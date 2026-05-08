@@ -5,13 +5,11 @@ export function Shell({
   children,
   username,
   activeView,
-  onNavigate,
   onLogout
 }: {
   children: ReactNode;
   username: string;
   activeView: "vehicles" | "settings";
-  onNavigate: (view: "vehicles" | "settings") => void;
   onLogout: () => void;
 }) {
   return (
@@ -23,17 +21,11 @@ export function Shell({
         </div>
 
         <nav className="nav" aria-label="Hauptnavigation">
-          <a className={activeView === "vehicles" ? "active" : ""} href="/" onClick={(event) => {
-            event.preventDefault();
-            onNavigate("vehicles");
-          }}>
+          <a className={activeView === "vehicles" ? "active" : ""} href="/">
             <Box size={16} aria-hidden="true" />
             Bestand
           </a>
-          <a className={activeView === "settings" ? "active" : ""} href="/settings" onClick={(event) => {
-            event.preventDefault();
-            onNavigate("settings");
-          }}>
+          <a className={activeView === "settings" ? "active" : ""} href="/settings">
             <Settings size={16} aria-hidden="true" />
             Einstellungen
           </a>

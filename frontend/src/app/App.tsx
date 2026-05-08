@@ -8,11 +8,22 @@ import { api, Session } from "../shared/api";
 
 type AppView = "vehicles" | "settings";
 
+function currentView(): AppView {
+  return window.location.pathname.startsWith("/settings") ? "settings" : "vehicles";
+}
+
 export function App() {
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null);
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
-  const [view, setView] = useState<AppView>("vehicles");
+  const [view, setView] = useState<AppView>(currentView);
+
+  useEffect(() => {
+    const syncView = () => setView(currentView());
+
+    window.addEventListener("popstate", syncView);
+    return () => window.removeEventListener("popstate", syncView);
+  }, []);
 
   useEffect(() => {
     api
@@ -80,7 +91,6 @@ export function App() {
     <Shell
       username={session.username}
       activeView={view}
-      onNavigate={setView}
       onLogout={() => {
         api.logout().finally(() => setSession(null));
       }}
