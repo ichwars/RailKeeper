@@ -19,30 +19,54 @@ type VehicleService struct {
 }
 
 type Vehicle struct {
-	ID              string `json:"id"`
-	InventoryNumber string `json:"inventoryNumber"`
-	Manufacturer    string `json:"manufacturer"`
-	ArticleNumber   string `json:"articleNumber,omitempty"`
-	Name            string `json:"name"`
-	Gauge           string `json:"gauge"`
-	Epoch           string `json:"epoch,omitempty"`
-	RailwayCompany  string `json:"railwayCompany,omitempty"`
-	Category        string `json:"category,omitempty"`
-	Gattung         string `json:"gattung,omitempty"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
+	ID                   string `json:"id"`
+	InventoryNumber      string `json:"inventoryNumber"`
+	Manufacturer         string `json:"manufacturer"`
+	ArticleNumber        string `json:"articleNumber,omitempty"`
+	Name                 string `json:"name"`
+	Gauge                string `json:"gauge"`
+	Epoch                string `json:"epoch,omitempty"`
+	RailwayCompany       string `json:"railwayCompany,omitempty"`
+	Category             string `json:"category,omitempty"`
+	Gattung              string `json:"gattung,omitempty"`
+	Description          string `json:"description,omitempty"`
+	Series               string `json:"series,omitempty"`
+	VehicleNumber        string `json:"vehicleNumber,omitempty"`
+	Digital              bool   `json:"digital"`
+	DigitalDecoderNumber string `json:"digitalDecoderNumber,omitempty"`
+	DTDecoder            bool   `json:"dtDecoder"`
+	DTDecoderNumber      string `json:"dtDecoderNumber,omitempty"`
+	ExhibitionReady      bool   `json:"exhibitionReady"`
+	ABCBrakes            bool   `json:"abcBrakes"`
+	EAN                  string `json:"ean,omitempty"`
+	ProductionPeriod     string `json:"productionPeriod,omitempty"`
+	ListPrice            string `json:"listPrice,omitempty"`
+	CreatedAt            string `json:"createdAt"`
+	UpdatedAt            string `json:"updatedAt"`
 }
 
 type CreateVehicleInput struct {
-	InventoryNumber string `json:"inventoryNumber"`
-	Manufacturer    string `json:"manufacturer"`
-	ArticleNumber   string `json:"articleNumber"`
-	Name            string `json:"name"`
-	Gauge           string `json:"gauge"`
-	Epoch           string `json:"epoch"`
-	RailwayCompany  string `json:"railwayCompany"`
-	Category        string `json:"category"`
-	Gattung         string `json:"gattung"`
+	InventoryNumber      string `json:"inventoryNumber"`
+	Manufacturer         string `json:"manufacturer"`
+	ArticleNumber        string `json:"articleNumber"`
+	Name                 string `json:"name"`
+	Gauge                string `json:"gauge"`
+	Epoch                string `json:"epoch"`
+	RailwayCompany       string `json:"railwayCompany"`
+	Category             string `json:"category"`
+	Gattung              string `json:"gattung"`
+	Description          string `json:"description"`
+	Series               string `json:"series"`
+	VehicleNumber        string `json:"vehicleNumber"`
+	Digital              bool   `json:"digital"`
+	DigitalDecoderNumber string `json:"digitalDecoderNumber"`
+	DTDecoder            bool   `json:"dtDecoder"`
+	DTDecoderNumber      string `json:"dtDecoderNumber"`
+	ExhibitionReady      bool   `json:"exhibitionReady"`
+	ABCBrakes            bool   `json:"abcBrakes"`
+	EAN                  string `json:"ean"`
+	ProductionPeriod     string `json:"productionPeriod"`
+	ListPrice            string `json:"listPrice"`
 }
 
 func NewVehicleService(db *sql.DB) *VehicleService {
@@ -54,6 +78,9 @@ func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, err
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
+       COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
+       digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''),
+       exhibition_ready, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
        created_at, updated_at
 FROM vehicles
 WHERE ? = '%%'
@@ -71,6 +98,10 @@ ORDER BY updated_at DESC, inventory_number ASC
 	vehicles := []Vehicle{}
 	for rows.Next() {
 		var vehicle Vehicle
+		var digital int
+		var dtDecoder int
+		var exhibitionReady int
+		var abcBrakes int
 		if err := rows.Scan(
 			&vehicle.ID,
 			&vehicle.InventoryNumber,
@@ -82,11 +113,27 @@ ORDER BY updated_at DESC, inventory_number ASC
 			&vehicle.RailwayCompany,
 			&vehicle.Category,
 			&vehicle.Gattung,
+			&vehicle.Description,
+			&vehicle.Series,
+			&vehicle.VehicleNumber,
+			&digital,
+			&vehicle.DigitalDecoderNumber,
+			&dtDecoder,
+			&vehicle.DTDecoderNumber,
+			&exhibitionReady,
+			&abcBrakes,
+			&vehicle.EAN,
+			&vehicle.ProductionPeriod,
+			&vehicle.ListPrice,
 			&vehicle.CreatedAt,
 			&vehicle.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan vehicle: %w", err)
 		}
+		vehicle.Digital = digital == 1
+		vehicle.DTDecoder = dtDecoder == 1
+		vehicle.ExhibitionReady = exhibitionReady == 1
+		vehicle.ABCBrakes = abcBrakes == 1
 		vehicles = append(vehicles, vehicle)
 	}
 	if err := rows.Err(); err != nil {
@@ -118,18 +165,30 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	vehicle := Vehicle{
-		ID:              randomID(),
-		InventoryNumber: input.InventoryNumber,
-		Manufacturer:    input.Manufacturer,
-		ArticleNumber:   input.ArticleNumber,
-		Name:            input.Name,
-		Gauge:           input.Gauge,
-		Epoch:           input.Epoch,
-		RailwayCompany:  input.RailwayCompany,
-		Category:        input.Category,
-		Gattung:         input.Gattung,
-		CreatedAt:       now,
-		UpdatedAt:       now,
+		ID:                   randomID(),
+		InventoryNumber:      input.InventoryNumber,
+		Manufacturer:         input.Manufacturer,
+		ArticleNumber:        input.ArticleNumber,
+		Name:                 input.Name,
+		Gauge:                input.Gauge,
+		Epoch:                input.Epoch,
+		RailwayCompany:       input.RailwayCompany,
+		Category:             input.Category,
+		Gattung:              input.Gattung,
+		Description:          input.Description,
+		Series:               input.Series,
+		VehicleNumber:        input.VehicleNumber,
+		Digital:              input.Digital,
+		DigitalDecoderNumber: input.DigitalDecoderNumber,
+		DTDecoder:            input.DTDecoder,
+		DTDecoderNumber:      input.DTDecoderNumber,
+		ExhibitionReady:      input.ExhibitionReady,
+		ABCBrakes:            input.ABCBrakes,
+		EAN:                  input.EAN,
+		ProductionPeriod:     input.ProductionPeriod,
+		ListPrice:            input.ListPrice,
+		CreatedAt:            now,
+		UpdatedAt:            now,
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -143,9 +202,13 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	}()
 
 	if _, err = tx.ExecContext(ctx, `
-INSERT INTO vehicles(id, inventory_number, manufacturer, article_number, name, gauge, epoch, railway_company, category, gattung, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, vehicle.ID, vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.CreatedAt, vehicle.UpdatedAt); err != nil {
+INSERT INTO vehicles(
+  id, inventory_number, manufacturer, article_number, name, gauge, epoch, railway_company, category, gattung,
+  description, series, vehicle_number, digital, digital_decoder_number, dt_decoder, dt_decoder_number,
+  exhibition_ready, abc_brakes, ean, production_period, list_price, created_at, updated_at
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, vehicle.ID, vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.Description, vehicle.Series, vehicle.VehicleNumber, boolToInt(vehicle.Digital), vehicle.DigitalDecoderNumber, boolToInt(vehicle.DTDecoder), vehicle.DTDecoderNumber, boolToInt(vehicle.ExhibitionReady), boolToInt(vehicle.ABCBrakes), vehicle.EAN, vehicle.ProductionPeriod, vehicle.ListPrice, vehicle.CreatedAt, vehicle.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("insert vehicle: %w", err)
 	}
 
@@ -184,18 +247,30 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	vehicle := Vehicle{
-		ID:              id,
-		InventoryNumber: input.InventoryNumber,
-		Manufacturer:    input.Manufacturer,
-		ArticleNumber:   input.ArticleNumber,
-		Name:            input.Name,
-		Gauge:           input.Gauge,
-		Epoch:           input.Epoch,
-		RailwayCompany:  input.RailwayCompany,
-		Category:        input.Category,
-		Gattung:         input.Gattung,
-		CreatedAt:       existing.CreatedAt,
-		UpdatedAt:       now,
+		ID:                   id,
+		InventoryNumber:      input.InventoryNumber,
+		Manufacturer:         input.Manufacturer,
+		ArticleNumber:        input.ArticleNumber,
+		Name:                 input.Name,
+		Gauge:                input.Gauge,
+		Epoch:                input.Epoch,
+		RailwayCompany:       input.RailwayCompany,
+		Category:             input.Category,
+		Gattung:              input.Gattung,
+		Description:          input.Description,
+		Series:               input.Series,
+		VehicleNumber:        input.VehicleNumber,
+		Digital:              input.Digital,
+		DigitalDecoderNumber: input.DigitalDecoderNumber,
+		DTDecoder:            input.DTDecoder,
+		DTDecoderNumber:      input.DTDecoderNumber,
+		ExhibitionReady:      input.ExhibitionReady,
+		ABCBrakes:            input.ABCBrakes,
+		EAN:                  input.EAN,
+		ProductionPeriod:     input.ProductionPeriod,
+		ListPrice:            input.ListPrice,
+		CreatedAt:            existing.CreatedAt,
+		UpdatedAt:            now,
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -210,9 +285,11 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 
 	result, err := tx.ExecContext(ctx, `
 UPDATE vehicles
-SET inventory_number=?, manufacturer=?, article_number=?, name=?, gauge=?, epoch=?, railway_company=?, category=?, gattung=?, updated_at=?
+SET inventory_number=?, manufacturer=?, article_number=?, name=?, gauge=?, epoch=?, railway_company=?, category=?, gattung=?,
+    description=?, series=?, vehicle_number=?, digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?,
+    exhibition_ready=?, abc_brakes=?, ean=?, production_period=?, list_price=?, updated_at=?
 WHERE id=?
-`, vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.UpdatedAt, vehicle.ID)
+`, vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber, vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category, vehicle.Gattung, vehicle.Description, vehicle.Series, vehicle.VehicleNumber, boolToInt(vehicle.Digital), vehicle.DigitalDecoderNumber, boolToInt(vehicle.DTDecoder), vehicle.DTDecoderNumber, boolToInt(vehicle.ExhibitionReady), boolToInt(vehicle.ABCBrakes), vehicle.EAN, vehicle.ProductionPeriod, vehicle.ListPrice, vehicle.UpdatedAt, vehicle.ID)
 	if err != nil {
 		return nil, fmt.Errorf("update vehicle: %w", err)
 	}
@@ -286,9 +363,16 @@ VALUES(?, ?, 'VehicleDeleted', 'vehicle', ?, ?, '{}')
 
 func (s *VehicleService) get(ctx context.Context, id string) (*Vehicle, error) {
 	var vehicle Vehicle
+	var digital int
+	var dtDecoder int
+	var exhibitionReady int
+	var abcBrakes int
 	if err := s.db.QueryRowContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
+       COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
+       digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''),
+       exhibition_ready, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
        created_at, updated_at
 FROM vehicles
 WHERE id=?
@@ -303,6 +387,18 @@ WHERE id=?
 		&vehicle.RailwayCompany,
 		&vehicle.Category,
 		&vehicle.Gattung,
+		&vehicle.Description,
+		&vehicle.Series,
+		&vehicle.VehicleNumber,
+		&digital,
+		&vehicle.DigitalDecoderNumber,
+		&dtDecoder,
+		&vehicle.DTDecoderNumber,
+		&exhibitionReady,
+		&abcBrakes,
+		&vehicle.EAN,
+		&vehicle.ProductionPeriod,
+		&vehicle.ListPrice,
 		&vehicle.CreatedAt,
 		&vehicle.UpdatedAt,
 	); err != nil {
@@ -311,6 +407,10 @@ WHERE id=?
 		}
 		return nil, fmt.Errorf("get vehicle: %w", err)
 	}
+	vehicle.Digital = digital == 1
+	vehicle.DTDecoder = dtDecoder == 1
+	vehicle.ExhibitionReady = exhibitionReady == 1
+	vehicle.ABCBrakes = abcBrakes == 1
 
 	return &vehicle, nil
 }
@@ -337,5 +437,13 @@ func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {
 	input.RailwayCompany = strings.TrimSpace(input.RailwayCompany)
 	input.Category = strings.TrimSpace(input.Category)
 	input.Gattung = strings.TrimSpace(input.Gattung)
+	input.Description = strings.TrimSpace(input.Description)
+	input.Series = strings.TrimSpace(input.Series)
+	input.VehicleNumber = strings.TrimSpace(input.VehicleNumber)
+	input.DigitalDecoderNumber = strings.TrimSpace(input.DigitalDecoderNumber)
+	input.DTDecoderNumber = strings.TrimSpace(input.DTDecoderNumber)
+	input.EAN = strings.TrimSpace(input.EAN)
+	input.ProductionPeriod = strings.TrimSpace(input.ProductionPeriod)
+	input.ListPrice = strings.TrimSpace(input.ListPrice)
 	return input
 }

@@ -22,7 +22,19 @@ const emptyVehicle: CreateVehicleRequest = {
   epoch: "",
   railwayCompany: "",
   category: "",
-  gattung: ""
+  gattung: "",
+  description: "",
+  series: "",
+  vehicleNumber: "",
+  digital: false,
+  digitalDecoderNumber: "",
+  dtDecoder: false,
+  dtDecoderNumber: "",
+  exhibitionReady: false,
+  abcBrakes: false,
+  ean: "",
+  productionPeriod: "",
+  listPrice: ""
 };
 
 type ModalMode = "create" | "view" | "edit";
@@ -70,7 +82,19 @@ function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
     epoch: vehicle.epoch || "",
     railwayCompany: vehicle.railwayCompany || "",
     category: vehicle.category || "",
-    gattung: vehicle.gattung || ""
+    gattung: vehicle.gattung || "",
+    description: vehicle.description || "",
+    series: vehicle.series || "",
+    vehicleNumber: vehicle.vehicleNumber || "",
+    digital: vehicle.digital,
+    digitalDecoderNumber: vehicle.digitalDecoderNumber || "",
+    dtDecoder: vehicle.dtDecoder,
+    dtDecoderNumber: vehicle.dtDecoderNumber || "",
+    exhibitionReady: vehicle.exhibitionReady,
+    abcBrakes: vehicle.abcBrakes,
+    ean: vehicle.ean || "",
+    productionPeriod: vehicle.productionPeriod || "",
+    listPrice: vehicle.listPrice || ""
   };
 }
 
@@ -508,6 +532,77 @@ export function VehiclesView() {
                             </select>
                           </label>
                         </div>
+
+                        <label>
+                          Beschreibung
+                          <textarea value={form.description || ""} onChange={(event) => update({ description: event.target.value })} disabled={readonly} rows={4} />
+                        </label>
+
+                        <div className="form-row">
+                          <label>
+                            Baureihe
+                            <input value={form.series || ""} onChange={(event) => update({ series: event.target.value })} disabled={readonly} />
+                          </label>
+                          <label>
+                            Fahrzeug-Nr.
+                            <input value={form.vehicleNumber || ""} onChange={(event) => update({ vehicleNumber: event.target.value })} disabled={readonly} />
+                          </label>
+                        </div>
+
+                        <div className="form-row decoder-row">
+                          <label>
+                            Digital / Decoder-Nr.
+                            <span className="inline-switch-input">
+                              <span className="switch-field" aria-label="Digital">
+                                <input type="checkbox" checked={Boolean(form.digital)} onChange={(event) => update({ digital: event.target.checked })} disabled={readonly} />
+                                <span />
+                              </span>
+                              <input value={form.digitalDecoderNumber || ""} onChange={(event) => update({ digitalDecoderNumber: event.target.value })} disabled={readonly || !form.digital} />
+                            </span>
+                          </label>
+                          <label>
+                            DT / Decoder-Nr.
+                            <span className="inline-switch-input">
+                              <span className="switch-field" aria-label="DT Decoder">
+                                <input type="checkbox" checked={Boolean(form.dtDecoder)} onChange={(event) => update({ dtDecoder: event.target.checked })} disabled={readonly} />
+                                <span />
+                              </span>
+                              <input value={form.dtDecoderNumber || ""} onChange={(event) => update({ dtDecoderNumber: event.target.value })} disabled={readonly || !form.dtDecoder} />
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="form-row compact-switch-row">
+                          <label className="switch-label">
+                            Messe tauglich
+                            <span className="switch-field">
+                              <input type="checkbox" checked={Boolean(form.exhibitionReady)} onChange={(event) => update({ exhibitionReady: event.target.checked })} disabled={readonly} />
+                              <span />
+                            </span>
+                          </label>
+                          <label className="switch-label">
+                            ABC-Bremsen
+                            <span className="switch-field">
+                              <input type="checkbox" checked={Boolean(form.abcBrakes)} onChange={(event) => update({ abcBrakes: event.target.checked })} disabled={readonly} />
+                              <span />
+                            </span>
+                          </label>
+                        </div>
+
+                        <div className="form-row three-columns">
+                          <label>
+                            EAN-Nr.
+                            <input value={form.ean || ""} onChange={(event) => update({ ean: event.target.value })} disabled={readonly} />
+                          </label>
+                          <label>
+                            Produktionszeit
+                            <input value={form.productionPeriod || ""} onChange={(event) => update({ productionPeriod: event.target.value })} disabled={readonly} placeholder="TT. MM. JJJJ" />
+                          </label>
+                          <label>
+                            Listenpreis
+                            <input value={form.listPrice || ""} onChange={(event) => update({ listPrice: event.target.value })} disabled={readonly} inputMode="decimal" />
+                          </label>
+                        </div>
                       </div>
                     )}
                   </section>
@@ -519,20 +614,7 @@ export function VehiclesView() {
                     </button>
                     {openSections.details && (
                       <div className="accordion-content vehicle-form">
-                        <div className="form-row">
-                          <label>
-                            Baureihe
-                            <input disabled />
-                          </label>
-                          <label>
-                            Fahrzeug-Nr.
-                            <input disabled />
-                          </label>
-                        </div>
-                        <label>
-                          Beschreibung
-                          <textarea disabled rows={4} />
-                        </label>
+                        <p className="empty-state compact">Weitere technische Fahrzeugdaten werden hier im naechsten Schritt ergaenzt.</p>
                       </div>
                     )}
                   </section>
@@ -544,16 +626,7 @@ export function VehiclesView() {
                     </button>
                     {openSections.ownership && (
                       <div className="accordion-content vehicle-form">
-                        <div className="form-row">
-                          <label>
-                            Produktionszeit
-                            <input disabled placeholder="TT. MM. JJJJ" />
-                          </label>
-                          <label>
-                            Listenpreis
-                            <input disabled type="number" min="0" step="0.01" />
-                          </label>
-                        </div>
+                        <p className="empty-state compact">Erwerb, Kaufpreis, Haendler und Verbleib kommen als eigener Block.</p>
                       </div>
                     )}
                   </section>

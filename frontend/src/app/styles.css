@@ -698,6 +698,32 @@ h1 {
   gap: 10px;
 }
 
+.form-row.three-columns {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.inline-switch-input {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.compact-switch-row {
+  align-items: start;
+}
+
+.switch-label {
+  align-content: start;
+  justify-items: start;
+}
+
+.switch-field input:disabled + span,
+.inline-switch-input input:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .list-head {
   justify-content: space-between;
   gap: 18px;
@@ -865,6 +891,10 @@ td {
   margin: 0;
   padding: 24px 18px;
   color: var(--muted);
+}
+
+.empty-state.compact {
+  padding: 8px 0;
 }
 
 .image-placeholder {

@@ -29,6 +29,18 @@ export type Vehicle = {
   railwayCompany?: string;
   category?: string;
   gattung?: string;
+  description?: string;
+  series?: string;
+  vehicleNumber?: string;
+  digital: boolean;
+  digitalDecoderNumber?: string;
+  dtDecoder: boolean;
+  dtDecoderNumber?: string;
+  exhibitionReady: boolean;
+  abcBrakes: boolean;
+  ean?: string;
+  productionPeriod?: string;
+  listPrice?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -43,6 +55,18 @@ export type CreateVehicleRequest = {
   railwayCompany?: string;
   category?: string;
   gattung?: string;
+  description?: string;
+  series?: string;
+  vehicleNumber?: string;
+  digital?: boolean;
+  digitalDecoderNumber?: string;
+  dtDecoder?: boolean;
+  dtDecoderNumber?: string;
+  exhibitionReady?: boolean;
+  abcBrakes?: boolean;
+  ean?: string;
+  productionPeriod?: string;
+  listPrice?: string;
 };
 
 export type MasterDataEntry = {

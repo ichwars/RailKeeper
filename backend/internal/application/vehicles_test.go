@@ -110,18 +110,31 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 	}
 
 	updated, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
-		InventoryNumber: created.InventoryNumber,
-		Manufacturer:    "Piko",
-		ArticleNumber:   "52700",
-		Name:            "BR 118 DR",
-		Gauge:           "H0",
-		Epoch:           "IV",
-		Gattung:         "Diesellok",
+		InventoryNumber:      created.InventoryNumber,
+		Manufacturer:         "Piko",
+		ArticleNumber:        "52700",
+		Name:                 "BR 118 DR",
+		Gauge:                "H0",
+		Epoch:                "IV",
+		Gattung:              "Diesellok",
+		Description:          "Testbeschreibung",
+		Series:               "118",
+		VehicleNumber:        "118 552-9",
+		Digital:              true,
+		DigitalDecoderNumber: "1234",
+		ExhibitionReady:      true,
+		ABCBrakes:            true,
+		EAN:                  "4015615527000",
+		ProductionPeriod:     "1998-2001",
+		ListPrice:            "129.90",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if updated.Name != "BR 118 DR" || updated.ArticleNumber != "52700" || updated.Epoch != "IV" || updated.Gattung != "Diesellok" {
+		t.Fatalf("unexpected update: %#v", updated)
+	}
+	if !updated.Digital || !updated.ExhibitionReady || !updated.ABCBrakes || updated.Series != "118" || updated.ListPrice != "129.90" {
 		t.Fatalf("unexpected update: %#v", updated)
 	}
 }

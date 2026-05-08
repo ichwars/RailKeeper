@@ -1,0 +1,12 @@
+ALTER TABLE vehicles ADD COLUMN description TEXT;
+ALTER TABLE vehicles ADD COLUMN series TEXT;
+ALTER TABLE vehicles ADD COLUMN vehicle_number TEXT;
+ALTER TABLE vehicles ADD COLUMN digital INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE vehicles ADD COLUMN digital_decoder_number TEXT;
+ALTER TABLE vehicles ADD COLUMN dt_decoder INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE vehicles ADD COLUMN dt_decoder_number TEXT;
+ALTER TABLE vehicles ADD COLUMN exhibition_ready INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE vehicles ADD COLUMN abc_brakes INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE vehicles ADD COLUMN ean TEXT;
+ALTER TABLE vehicles ADD COLUMN production_period TEXT;
+ALTER TABLE vehicles ADD COLUMN list_price TEXT;
