@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Box, Code2, LogOut, Settings, TrainFront } from "lucide-react";
+import { Box, Code2, LogOut, Settings } from "lucide-react";
 
 export function Shell({
   children,
@@ -16,7 +16,7 @@ export function Shell({
     <div className="layout">
       <aside className="sidebar">
         <div className="brand">
-          <TrainFront size={28} aria-hidden="true" />
+          <img src="/brand/railkeeper-mark.svg" alt="" />
           <span>RailKeeper2</span>
         </div>
 

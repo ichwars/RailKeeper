@@ -1,21 +1,20 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
 :root {
   color-scheme: light;
-  --bg: #eef2f3;
+  --bg: #edf2f1;
   --panel: #ffffff;
-  --panel-subtle: #f7f9fa;
-  --text: #15232d;
-  --muted: #5e6d79;
-  --line: #d8e1e6;
-  --line-strong: #c4d0d7;
-  --accent: #009fe3;
-  --accent-strong: #0078ad;
-  --accent-soft: #dff3fc;
-  --warm: #d98c00;
+  --panel-subtle: #f5f8f6;
+  --text: #0b1e26;
+  --muted: #4f6869;
+  --line: #d5dfdc;
+  --line-strong: #b9c8c3;
+  --accent: #419310;
+  --accent-strong: #1c621b;
+  --accent-bright: #a5ec60;
+  --accent-soft: #e9f8df;
+  --warm: #fca311;
   --danger: #b42318;
-  --shadow: 0 18px 44px rgba(43, 57, 68, 0.08);
-  font-family: "Inter", system-ui, sans-serif;
+  --shadow: 0 18px 44px rgba(11, 30, 38, 0.08);
+  font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   font-weight: 400;
   font-synthesis: none;
   line-height: 1.5;
@@ -51,8 +50,8 @@ a {
   flex-direction: column;
   gap: 22px;
   padding: 22px 20px;
-  background: var(--panel);
-  border-right: 1px solid var(--line);
+  background: #ffffff;
+  border-right: 1px solid var(--line-strong);
 }
 
 .brand {
@@ -66,8 +65,10 @@ a {
   font-weight: 760;
 }
 
-.brand svg {
-  color: var(--accent);
+.brand img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
 }
 
 .nav {
@@ -754,7 +755,7 @@ h1 {
   height: 26px;
   place-items: center;
   border-radius: 999px;
-  background: var(--accent-soft);
+  background: color-mix(in srgb, var(--accent-bright) 34%, #fff);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
   color: var(--muted);
   font-size: 12px;
@@ -974,15 +975,16 @@ td {
   min-height: 42px;
   border: 0;
   border-radius: 6px;
-  background: var(--accent);
+  background: linear-gradient(180deg, #52ad1c 0%, var(--accent) 100%);
   color: #fff;
   cursor: pointer;
   font: inherit;
   font-weight: 750;
+  box-shadow: 0 10px 22px rgba(65, 147, 16, 0.22);
 }
 
 .primary-button:hover {
-  background: var(--accent-strong);
+  background: linear-gradient(180deg, #4b9e18 0%, var(--accent-strong) 100%);
 }
 
 .primary-button:disabled {

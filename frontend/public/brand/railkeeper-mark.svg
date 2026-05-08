@@ -1,0 +1,27 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">RailKeeper</title>
+  <defs>
+    <linearGradient id="steel" x1="13" y1="12" x2="48" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5F6969"/>
+      <stop offset="1" stop-color="#0B1E26"/>
+    </linearGradient>
+    <linearGradient id="green" x1="43" y1="12" x2="54" y2="47" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5EC60"/>
+      <stop offset="1" stop-color="#419310"/>
+    </linearGradient>
+    <filter id="glow" x="28" y="3" width="36" height="58" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.395 0 0 0 0 0.820 0 0 0 0 0.120 0 0 0 0.55 0"/>
+      <feBlend in="SourceGraphic"/>
+    </filter>
+  </defs>
+  <path d="M31.9 5.5 53 17.7v7.8l-4.8-2.8v-2.2L31.9 11 12.2 22.4v19.3L31.9 53l9.6-5.6 4.7 2.8-14.3 8.3L7.4 44.4V19.6L31.9 5.5Z" fill="url(#steel)"/>
+  <path d="M46.2 16.2 56.6 22v20.5L46.2 48.7l-4.8-2.9 9.7-5.8V24.7L41.4 19l4.8-2.8Z" fill="url(#green)" filter="url(#glow)"/>
+  <path d="M15 39.5c10.8-.6 21.4-.4 31.8.7-3.4 3.7-8.5 5.8-15 5.8-6.8 0-12.5-2.3-16.8-6.5Z" fill="#0B1E26"/>
+  <path d="M14.4 34.4c3-7.1 9.7-11.6 18.1-11.6 8.2 0 14.7 4.4 17.5 11.4-10.9-1.4-22.8-1.3-35.6.2Z" fill="url(#steel)"/>
+  <path d="M22.3 33.1c4.2-2.5 9.3-4.1 15.3-4.9l4 5.1c-6.3-.6-12.8-.6-19.3-.2Z" fill="#121A20"/>
+  <path d="M28.2 25.8c-5.6 1.2-10 3.9-13.4 8.1 2.4-5.3 7-8.8 13.4-10.4v2.3Z" fill="#273235"/>
+  <path d="M45.6 31.8c-1.3-3.1-4.4-5.4-8.5-6.4 5 .1 9 2.8 11.1 7.2l-2.6-.8Z" fill="#1C621B"/>
+  <path d="M42 36.5c2.6-.2 4.8.1 6.5.9-.7 1.2-2.1 2.4-4.1 3.4-2.5-.7-4.2-2.2-5.1-4.2l2.7-.1Z" fill="#A5EC60"/>
+  <path d="M14.4 34.4c-3.9.6-6.7 1.1-8.3 1.6 2.7.6 5.7 1 9 1.2 10.9-1.3 22-1.4 33.4-.3l1.5-2.7c-10.9-1.4-22.8-1.3-35.6.2Z" fill="#10191E"/>
+</svg>

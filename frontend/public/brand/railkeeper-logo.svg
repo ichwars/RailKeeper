@@ -1,0 +1,13 @@
+<svg width="260" height="72" viewBox="0 0 260 72" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">RailKeeper</title>
+  <defs>
+    <linearGradient id="word" x1="84" y1="17" x2="208" y2="55" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5EC60"/>
+      <stop offset="0.34" stop-color="#419310"/>
+      <stop offset="0.35" stop-color="#223238"/>
+      <stop offset="1" stop-color="#0B1E26"/>
+    </linearGradient>
+  </defs>
+  <image href="/brand/railkeeper-mark.svg" x="0" y="4" width="64" height="64"/>
+  <text x="76" y="47" font-family="SF Pro Display, Segoe UI, Arial, sans-serif" font-size="34" font-weight="760" letter-spacing="0" fill="url(#word)">RailKeeper</text>
+</svg>
