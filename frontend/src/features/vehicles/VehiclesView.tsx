@@ -1,5 +1,16 @@
-import { FormEvent, useEffect, useState } from "react";
-import { Eye, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  Image,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+  X
+} from "lucide-react";
 import { api, CreateVehicleRequest, MasterDataEntry, MasterDataRelation, Vehicle } from "../../shared/api";
 
 const emptyVehicle: CreateVehicleRequest = {
@@ -13,19 +24,10 @@ const emptyVehicle: CreateVehicleRequest = {
   gattung: ""
 };
 
-function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
-  return {
-    inventoryNumber: vehicle.inventoryNumber,
-    manufacturer: vehicle.manufacturer,
-    articleNumber: vehicle.articleNumber || "",
-    name: vehicle.name,
-    gauge: vehicle.gauge,
-    epoch: vehicle.epoch || "",
-    railwayCompany: vehicle.railwayCompany || "",
-    category: vehicle.category || "",
-    gattung: vehicle.gattung || ""
-  };
-}
+type ModalMode = "create" | "view" | "edit";
+type ModalTab = "model" | "control" | "uploads";
+type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
+type SortDirection = "asc" | "desc";
 
 type MasterDataOptions = {
   manufacturers: MasterDataEntry[];
@@ -47,8 +49,36 @@ const emptyOptions: MasterDataOptions = {
   categoryRelations: []
 };
 
+const sortLabels: Record<SortKey, string> = {
+  inventoryNumber: "Inventar",
+  manufacturer: "Hersteller",
+  articleNumber: "Artikel",
+  name: "Bezeichnung",
+  gauge: "Spur",
+  epoch: "Epoche",
+  category: "Kategorie"
+};
+
+function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
+  return {
+    inventoryNumber: vehicle.inventoryNumber,
+    manufacturer: vehicle.manufacturer,
+    articleNumber: vehicle.articleNumber || "",
+    name: vehicle.name,
+    gauge: vehicle.gauge,
+    epoch: vehicle.epoch || "",
+    railwayCompany: vehicle.railwayCompany || "",
+    category: vehicle.category || "",
+    gattung: vehicle.gattung || ""
+  };
+}
+
 function optionValue(entry: MasterDataEntry) {
   return entry.label;
+}
+
+function valueForSort(vehicle: Vehicle, key: SortKey) {
+  return (vehicle[key] || "").toLocaleLowerCase("de-DE");
 }
 
 export function VehiclesView() {
@@ -59,8 +89,19 @@ export function VehiclesView() {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [selected, setSelected] = useState<Vehicle | null>(null);
-  const [mode, setMode] = useState<"create" | "view" | "edit">("create");
+  const [mode, setMode] = useState<ModalMode>("create");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<ModalTab>("model");
+  const [openSections, setOpenSections] = useState({
+    model: true,
+    details: false,
+    ownership: false
+  });
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
+  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
+    key: "inventoryNumber",
+    direction: "asc"
+  });
 
   const load = () => {
     api
@@ -89,6 +130,31 @@ export function VehiclesView() {
       .catch((error: Error) => setMessage(error.message));
   }, []);
 
+  const sortedVehicles = useMemo(() => {
+    return [...vehicles].sort((left, right) => {
+      const result = valueForSort(left, sort.key).localeCompare(valueForSort(right, sort.key), "de-DE", {
+        numeric: true,
+        sensitivity: "base"
+      });
+      return sort.direction === "asc" ? result : -result;
+    });
+  }, [vehicles, sort]);
+
+  const filteredGattungen = useMemo(() => {
+    const categoryKey = options.categories.find((entry) => optionValue(entry) === form.category)?.key;
+    if (!categoryKey) {
+      return options.gattungen;
+    }
+    const allowed = new Set(
+      options.categoryRelations
+        .filter((relation) => relation.parentKey === categoryKey)
+        .map((relation) => relation.childKey)
+    );
+    return options.gattungen.filter((entry) => allowed.has(entry.key));
+  }, [form.category, options]);
+
+  const readonly = mode === "view";
+
   const update = (patch: Partial<CreateVehicleRequest>) => {
     setForm((current) => ({ ...current, ...patch }));
   };
@@ -107,20 +173,25 @@ export function VehiclesView() {
     });
   };
 
-  const filteredGattungen = (() => {
-    const categoryKey = options.categories.find((entry) => optionValue(entry) === form.category)?.key;
-    if (!categoryKey) {
-      return options.gattungen;
-    }
-    const allowed = new Set(
-      options.categoryRelations
-        .filter((relation) => relation.parentKey === categoryKey)
-        .map((relation) => relation.childKey)
-    );
-    return options.gattungen.filter((entry) => allowed.has(entry.key));
-  })();
+  const toggleSort = (key: SortKey) => {
+    setSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
 
-  const resetCreate = () => {
+  const openCreate = () => {
+    setSelected(null);
+    setMode("create");
+    setForm(emptyVehicle);
+    setActiveTab("model");
+    setOpenSections({ model: true, details: false, ownership: false });
+    setModalOpen(true);
+    setMessage("");
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
     setSelected(null);
     setMode("create");
     setForm(emptyVehicle);
@@ -134,6 +205,9 @@ export function VehiclesView() {
         setSelected(detail);
         setForm(vehicleToForm(detail));
         setMode("view");
+        setActiveTab("model");
+        setOpenSections({ model: true, details: false, ownership: false });
+        setModalOpen(true);
         setMessage("");
       })
       .catch((error: Error) => setMessage(error.message));
@@ -146,9 +220,16 @@ export function VehiclesView() {
         setSelected(detail);
         setForm(vehicleToForm(detail));
         setMode("edit");
+        setActiveTab("model");
+        setOpenSections({ model: true, details: false, ownership: false });
+        setModalOpen(true);
         setMessage("");
       })
       .catch((error: Error) => setMessage(error.message));
+  };
+
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
   };
 
   const submit = (event: FormEvent) => {
@@ -163,9 +244,12 @@ export function VehiclesView() {
     action
       .then((vehicle) => {
         setSelected(vehicle);
-        setForm(mode === "edit" ? vehicleToForm(vehicle) : emptyVehicle);
-        setMode(mode === "edit" ? "view" : "create");
+        setForm(vehicleToForm(vehicle));
+        setMode("view");
         load();
+        if (mode === "create") {
+          closeModal();
+        }
       })
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setSaving(false));
@@ -178,7 +262,7 @@ export function VehiclesView() {
       .deleteVehicle(deleteCandidate.id)
       .then(() => {
         if (selected?.id === deleteCandidate.id) {
-          resetCreate();
+          closeModal();
         }
         setDeleteCandidate(null);
         load();
@@ -186,209 +270,311 @@ export function VehiclesView() {
       .catch((error: Error) => setMessage(error.message));
   };
 
-  const readonly = mode === "view";
+  const sortHeader = (key: SortKey) => (
+    <button type="button" className="sort-button" onClick={() => toggleSort(key)}>
+      {sortLabels[key]}
+      {sort.key === key && (sort.direction === "asc" ? <ChevronUp size={14} /> : <ChevronDown size={14} />)}
+    </button>
+  );
+
+  const selectOptions = (items: MasterDataEntry[], emptyLabel = "Keine Auswahl") => (
+    <>
+      <option value="">{emptyLabel}</option>
+      {items.map((entry) => (
+        <option key={entry.key} value={optionValue(entry)}>
+          {entry.label}
+        </option>
+      ))}
+    </>
+  );
 
   return (
     <>
-      <section className="page-head vehicles-head">
+      <section className="inventory-head">
         <div>
-          <p className="eyebrow">Fahrzeuge</p>
-          <h1>Bestand aufbauen</h1>
-          <p>Lege Fahrzeuge mit den wichtigsten Stammdaten an. Bilder, Wartung und CV-Daten folgen auf diesem Modell.</p>
+          <h1>Bestand</h1>
+          <p>Fahrzeuge verwalten</p>
         </div>
+        <button type="button" className="primary-button new-vehicle-button" onClick={openCreate}>
+          <Plus size={16} aria-hidden="true" />
+          Neues Fahrzeug
+        </button>
       </section>
 
-      <section className="work-grid">
-        <form className="panel vehicle-form" onSubmit={submit}>
-          <div className="panel-head form-head">
-            <div>
-              {mode === "create" && <Plus size={18} aria-hidden="true" />}
-              {mode === "view" && <Eye size={18} aria-hidden="true" />}
-              {mode === "edit" && <Pencil size={18} aria-hidden="true" />}
-              <h2>{mode === "create" ? "Fahrzeug anlegen" : mode === "edit" ? "Fahrzeug bearbeiten" : "Fahrzeugdetail"}</h2>
-            </div>
-            {mode !== "create" && (
-              <button type="button" className="icon-button" onClick={resetCreate} aria-label="Schliessen" title="Schliessen">
-                <X size={17} />
-              </button>
-            )}
-          </div>
+      <section className="panel search-panel">
+        <label className="search-field inventory-search">
+          Suche
+          <span>
+            <Search size={16} aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Inventarnummer, Hersteller, Artikel oder Bezeichnung"
+            />
+          </span>
+        </label>
+      </section>
 
-          {mode !== "create" && (
-            <label>
-              Inventar-Nr.
-              <input value={form.inventoryNumber || ""} onChange={(event) => update({ inventoryNumber: event.target.value })} disabled={readonly} />
-            </label>
-          )}
+      <section className="panel inventory-panel">
+        <div className="panel-head inventory-list-head">
+          <h2>Fahrzeuge</h2>
+          <span className="count-badge">{vehicles.length}</span>
+        </div>
 
-          <label>
-            Hersteller
-            <select value={form.manufacturer} onChange={(event) => update({ manufacturer: event.target.value })} disabled={readonly} required>
-              <option value="">Bitte waehlen</option>
-              {options.manufacturers.map((entry) => (
-                <option key={entry.key} value={optionValue(entry)}>
-                  {entry.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            Bezeichnung
-            <input value={form.name} onChange={(event) => update({ name: event.target.value })} disabled={readonly} required />
-          </label>
-
-          <div className="form-row">
-            <label>
-              Spur
-              <select value={form.gauge} onChange={(event) => update({ gauge: event.target.value })} disabled={readonly} required>
-                <option value="">Bitte waehlen</option>
-                {options.gauges.map((entry) => (
-                  <option key={entry.key} value={optionValue(entry)}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Artikel-Nr.
-              <input value={form.articleNumber || ""} onChange={(event) => update({ articleNumber: event.target.value })} disabled={readonly} />
-            </label>
-          </div>
-
-          <div className="form-row">
-            <label>
-              Epoche
-              <select value={form.epoch || ""} onChange={(event) => update({ epoch: event.target.value })} disabled={readonly}>
-                <option value="">Keine Auswahl</option>
-                {options.epochs.map((entry) => (
-                  <option key={entry.key} value={optionValue(entry)}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Bahngesellschaft
-              <select value={form.railwayCompany || ""} onChange={(event) => update({ railwayCompany: event.target.value })} disabled={readonly}>
-                <option value="">Keine Auswahl</option>
-                {options.railwayCompanies.map((entry) => (
-                  <option key={entry.key} value={optionValue(entry)}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="form-row">
-            <label>
-              Kategorie
-              <select value={form.category || ""} onChange={(event) => updateCategory(event.target.value)} disabled={readonly}>
-                <option value="">Keine Auswahl</option>
-                {options.categories.map((entry) => (
-                  <option key={entry.key} value={optionValue(entry)}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Gattung
-              <select value={form.gattung || ""} onChange={(event) => update({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0}>
-                <option value="">Keine Auswahl</option>
-                {filteredGattungen.map((entry) => (
-                  <option key={entry.key} value={optionValue(entry)}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {selected && readonly && (
-            <dl className="detail-meta">
-              <div>
-                <dt>Erstellt</dt>
-                <dd>{new Date(selected.createdAt).toLocaleString("de-DE")}</dd>
-              </div>
-              <div>
-                <dt>Aktualisiert</dt>
-                <dd>{new Date(selected.updatedAt).toLocaleString("de-DE")}</dd>
-              </div>
-            </dl>
-          )}
-
-          {readonly ? (
-            <button type="button" className="primary-button" onClick={() => setMode("edit")}>
-              Bearbeiten
-            </button>
-          ) : (
-            <button className="primary-button" disabled={saving}>
-              {saving ? "Wird gespeichert..." : mode === "edit" ? "Aenderungen speichern" : "Fahrzeug speichern"}
-            </button>
-          )}
-
-          {message && <p className="form-message">{message}</p>}
-        </form>
-
-        <section className="panel vehicle-list">
-          <div className="panel-head list-head">
-            <h2>Fahrzeuge</h2>
-            <label className="search-field">
-              <Search size={16} aria-hidden="true" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Suchen"
-              />
-            </label>
-          </div>
-
-          {vehicles.length === 0 ? (
-            <p className="empty-state">Noch keine Fahrzeuge vorhanden.</p>
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Inventar</th>
-                    <th>Hersteller</th>
-                    <th>Artikel</th>
-                    <th>Bezeichnung</th>
-                    <th>Spur</th>
-                    <th className="actions-cell">Aktionen</th>
+        {vehicles.length === 0 ? (
+          <p className="empty-state">Noch keine Fahrzeuge vorhanden.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="inventory-table">
+              <thead>
+                <tr>
+                  <th>Bild</th>
+                  <th>{sortHeader("inventoryNumber")}</th>
+                  <th>{sortHeader("manufacturer")}</th>
+                  <th>{sortHeader("articleNumber")}</th>
+                  <th>{sortHeader("name")}</th>
+                  <th>{sortHeader("gauge")}</th>
+                  <th>{sortHeader("epoch")}</th>
+                  <th>{sortHeader("category")}</th>
+                  <th className="actions-cell">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedVehicles.map((vehicle) => (
+                  <tr key={vehicle.id}>
+                    <td>
+                      <div className="image-placeholder">Keine Vorschau</div>
+                    </td>
+                    <td>{vehicle.inventoryNumber}</td>
+                    <td>{vehicle.manufacturer}</td>
+                    <td>{vehicle.articleNumber || "-"}</td>
+                    <td>{vehicle.name}</td>
+                    <td>{vehicle.gauge}</td>
+                    <td>{vehicle.epoch || "-"}</td>
+                    <td>{vehicle.category || "-"}</td>
+                    <td className="actions-cell">
+                      <div className="table-actions">
+                        <button type="button" className="icon-button" onClick={() => openDetail(vehicle)} aria-label="Anzeigen" title="Anzeigen">
+                          <Eye size={16} />
+                        </button>
+                        <button type="button" className="icon-button" onClick={() => openEdit(vehicle)} aria-label="Bearbeiten" title="Bearbeiten">
+                          <Pencil size={16} />
+                        </button>
+                        <button type="button" className="icon-button danger" onClick={() => setDeleteCandidate(vehicle)} aria-label="Loeschen" title="Loeschen">
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {vehicles.map((vehicle) => (
-                    <tr key={vehicle.id}>
-                      <td>{vehicle.inventoryNumber}</td>
-                      <td>{vehicle.manufacturer}</td>
-                      <td>{vehicle.articleNumber || "-"}</td>
-                      <td>{vehicle.name}</td>
-                      <td>{vehicle.gauge}</td>
-                      <td className="actions-cell">
-                        <div className="table-actions">
-                          <button type="button" className="icon-button" onClick={() => openDetail(vehicle)} aria-label="Anzeigen" title="Anzeigen">
-                            <Eye size={16} />
-                          </button>
-                          <button type="button" className="icon-button" onClick={() => openEdit(vehicle)} aria-label="Bearbeiten" title="Bearbeiten">
-                            <Pencil size={16} />
-                          </button>
-                          <button type="button" className="icon-button danger" onClick={() => setDeleteCandidate(vehicle)} aria-label="Loeschen" title="Loeschen">
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
+
+      {modalOpen && (
+        <div className="modal-layer" role="dialog" aria-modal="true" aria-label="Fahrzeugdaten bearbeiten">
+          <form className="vehicle-modal" onSubmit={submit}>
+            <header className="modal-head">
+              <h2>{mode === "create" ? "Fahrzeugdaten erfassen" : mode === "edit" ? "Fahrzeugdaten bearbeiten" : "Fahrzeugdaten"}</h2>
+              <button type="button" className="icon-button" onClick={closeModal} aria-label="Schliessen" title="Schliessen">
+                <X size={18} />
+              </button>
+            </header>
+
+            <nav className="modal-tabs" aria-label="Fahrzeugbereiche">
+              <button type="button" className={activeTab === "model" ? "active" : ""} onClick={() => setActiveTab("model")}>
+                Modell
+              </button>
+              <button type="button" className={activeTab === "control" ? "active" : ""} onClick={() => setActiveTab("control")}>
+                Steuerung
+              </button>
+              <button type="button" className={activeTab === "uploads" ? "active" : ""} onClick={() => setActiveTab("uploads")}>
+                Uploads
+              </button>
+            </nav>
+
+            <div className="modal-body">
+              {activeTab === "model" && (
+                <div className="accordion-stack">
+                  <section className="accordion-section">
+                    <button type="button" className="accordion-trigger" onClick={() => toggleSection("model")}>
+                      {openSections.model ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      Modell
+                    </button>
+                    {openSections.model && (
+                      <div className="accordion-content vehicle-form">
+                        <div className="article-search-box">
+                          <div>
+                            <strong>Artikelsuche</strong>
+                            <span>Nach Artikel-Nr. suchen</span>
+                          </div>
+                          <button type="button" className="secondary-button" disabled>Artikeldaten suchen</button>
+                        </div>
+
+                        <div className="form-row">
+                          <label>
+                            Inventar-Nr.
+                            <input value={form.inventoryNumber || ""} onChange={(event) => update({ inventoryNumber: event.target.value })} disabled={readonly} />
+                          </label>
+                          <label>
+                            Artikel-Nr.
+                            <input value={form.articleNumber || ""} onChange={(event) => update({ articleNumber: event.target.value })} disabled={readonly} />
+                          </label>
+                        </div>
+
+                        <div className="form-row">
+                          <label>
+                            Hersteller *
+                            <select value={form.manufacturer} onChange={(event) => update({ manufacturer: event.target.value })} disabled={readonly} required>
+                              {selectOptions(options.manufacturers, "Bitte waehlen")}
+                            </select>
+                          </label>
+                          <label>
+                            Spurweite *
+                            <select value={form.gauge} onChange={(event) => update({ gauge: event.target.value })} disabled={readonly} required>
+                              {selectOptions(options.gauges, "Bitte waehlen")}
+                            </select>
+                          </label>
+                        </div>
+
+                        <label>
+                          Bezeichnung *
+                          <input value={form.name} onChange={(event) => update({ name: event.target.value })} disabled={readonly} required />
+                        </label>
+
+                        <div className="form-row">
+                          <label>
+                            Bahngesellschaft
+                            <select value={form.railwayCompany || ""} onChange={(event) => update({ railwayCompany: event.target.value })} disabled={readonly}>
+                              {selectOptions(options.railwayCompanies)}
+                            </select>
+                          </label>
+                          <label>
+                            Epoche
+                            <select value={form.epoch || ""} onChange={(event) => update({ epoch: event.target.value })} disabled={readonly}>
+                              {selectOptions(options.epochs)}
+                            </select>
+                          </label>
+                        </div>
+
+                        <div className="form-row">
+                          <label>
+                            Kategorie
+                            <select value={form.category || ""} onChange={(event) => updateCategory(event.target.value)} disabled={readonly}>
+                              {selectOptions(options.categories)}
+                            </select>
+                          </label>
+                          <label>
+                            Gattung
+                            <select value={form.gattung || ""} onChange={(event) => update({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0}>
+                              {selectOptions(filteredGattungen)}
+                            </select>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="accordion-section">
+                    <button type="button" className="accordion-trigger" onClick={() => toggleSection("details")}>
+                      {openSections.details ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      Fahrzeug Details
+                    </button>
+                    {openSections.details && (
+                      <div className="accordion-content vehicle-form">
+                        <div className="form-row">
+                          <label>
+                            Baureihe
+                            <input disabled />
+                          </label>
+                          <label>
+                            Fahrzeug-Nr.
+                            <input disabled />
+                          </label>
+                        </div>
+                        <label>
+                          Beschreibung
+                          <textarea disabled rows={4} />
+                        </label>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="accordion-section">
+                    <button type="button" className="accordion-trigger" onClick={() => toggleSection("ownership")}>
+                      {openSections.ownership ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      Erwerb & Verbleib
+                    </button>
+                    {openSections.ownership && (
+                      <div className="accordion-content vehicle-form">
+                        <div className="form-row">
+                          <label>
+                            Produktionszeit
+                            <input disabled placeholder="TT. MM. JJJJ" />
+                          </label>
+                          <label>
+                            Listenpreis
+                            <input disabled type="number" min="0" step="0.01" />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              )}
+
+              {activeTab === "control" && (
+                <section className="empty-tab">
+                  <h3>Steuerung</h3>
+                  <p>Funktionssymbole und Decoderfunktionen werden als eigener Datenblock vorbereitet.</p>
+                </section>
+              )}
+
+              {activeTab === "uploads" && (
+                <section className="uploads-tab">
+                  <div className="upload-head">
+                    <div>
+                      <h3>Bilder</h3>
+                      <p>Lade Bilder zum Fahrzeug hoch.</p>
+                    </div>
+                    <button type="button" className="primary-button" disabled>
+                      <Upload size={16} aria-hidden="true" />
+                      Bild hochladen
+                    </button>
+                  </div>
+                  <div className="upload-list">
+                    <div className="image-placeholder large">
+                      <Image size={22} aria-hidden="true" />
+                      Keine Vorschau
+                    </div>
+                    <span>Kein Bild hinterlegt</span>
+                  </div>
+                </section>
+              )}
+            </div>
+
+            <footer className="modal-actions">
+              {message && <p className="form-message">{message}</p>}
+              {readonly ? (
+                <button type="button" className="primary-button" onClick={() => setMode("edit")}>
+                  Bearbeiten
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="secondary-button" onClick={closeModal}>
+                    Abbrechen
+                  </button>
+                  <button className="primary-button" disabled={saving}>
+                    {saving ? "Wird gespeichert..." : "Speichern"}
+                  </button>
+                </>
+              )}
+            </footer>
+          </form>
+        </div>
+      )}
 
       {deleteCandidate && (
         <div className="confirm-layer" role="dialog" aria-modal="true" aria-label="Fahrzeug loeschen">

@@ -1,12 +1,12 @@
 :root {
   color-scheme: light;
-  --bg: #f6f7f4;
+  --bg: #f3f6fa;
   --panel: #ffffff;
-  --text: #1d2420;
-  --muted: #66736c;
-  --line: #dbe2dc;
-  --accent: #256f5b;
-  --accent-strong: #174b3d;
+  --text: #111827;
+  --muted: #53657d;
+  --line: #d7e0ea;
+  --accent: #0ea5e9;
+  --accent-strong: #0284c7;
   --danger: #b42318;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -29,14 +29,14 @@ a {
 
 .layout {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 232px minmax(0, 1fr);
   min-height: 100vh;
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 26px;
   padding: 24px;
   background: var(--panel);
   border-right: 1px solid var(--line);
@@ -46,7 +46,7 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 750;
 }
 
@@ -112,8 +112,8 @@ a {
 }
 
 .main {
-  width: min(1120px, 100%);
-  padding: 44px;
+  width: 100%;
+  padding: 48px 28px;
 }
 
 .page-head {
@@ -134,6 +134,32 @@ h1 {
   margin: 0 0 14px;
   font-size: 42px;
   line-height: 1.08;
+}
+
+.inventory-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.inventory-head h1 {
+  margin-bottom: 18px;
+  font-size: 32px;
+}
+
+.inventory-head p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.new-vehicle-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+  white-space: nowrap;
 }
 
 .page-head p:last-child {
@@ -205,6 +231,14 @@ h1 {
   min-height: 0;
 }
 
+.search-panel {
+  margin-bottom: 16px;
+  padding: 18px;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
 .panel-head {
   display: flex;
   align-items: center;
@@ -253,6 +287,7 @@ h1 {
 
 .vehicle-form input,
 .vehicle-form select,
+.vehicle-form textarea,
 .settings-form input,
 .settings-form textarea,
 .search-field input {
@@ -268,6 +303,7 @@ h1 {
 
 .vehicle-form input:focus,
 .vehicle-form select:focus,
+.vehicle-form textarea:focus,
 .settings-form input:focus,
 .settings-form textarea:focus,
 .search-field input:focus {
@@ -277,12 +313,14 @@ h1 {
 
 .vehicle-form input:disabled,
 .vehicle-form select:disabled,
+.vehicle-form textarea:disabled,
 .settings-form input:disabled {
   background: color-mix(in srgb, var(--muted) 7%, #fff);
   color: var(--text);
   opacity: 0.82;
 }
 
+.vehicle-form textarea,
 .settings-form textarea {
   min-height: 180px;
   padding: 10px 11px;
@@ -290,6 +328,11 @@ h1 {
   font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
   font-size: 13px;
   line-height: 1.45;
+}
+
+.vehicle-form textarea {
+  min-height: 92px;
+  font-family: inherit;
 }
 
 .checkbox-field {
@@ -317,7 +360,12 @@ h1 {
 
 .search-field {
   position: relative;
-  width: min(260px, 100%);
+  width: min(320px, 100%);
+}
+
+.search-field span {
+  position: relative;
+  display: block;
 }
 
 .search-field svg {
@@ -328,6 +376,42 @@ h1 {
 
 .search-field input {
   padding-left: 34px;
+}
+
+.inventory-search {
+  width: 100%;
+}
+
+.inventory-panel {
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 18px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+}
+
+.inventory-list-head {
+  justify-content: space-between;
+  min-height: 68px;
+  margin: 0;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.inventory-list-head h2 {
+  font-size: 24px;
+}
+
+.count-badge {
+  display: inline-grid;
+  min-width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 999px;
+  background: #eef2f6;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .table-wrap {
@@ -351,6 +435,34 @@ th {
   font-size: 12px;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.inventory-table th,
+.inventory-table td {
+  height: 62px;
+}
+
+.inventory-table th:first-child,
+.inventory-table td:first-child {
+  padding-left: 18px;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: inherit;
+  text-transform: inherit;
+}
+
+.sort-button:hover {
+  color: var(--accent-strong);
 }
 
 td {
@@ -396,7 +508,29 @@ td {
 
 .empty-state {
   margin: 0;
+  padding: 24px 18px;
   color: var(--muted);
+}
+
+.image-placeholder {
+  display: grid;
+  width: 56px;
+  height: 40px;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2f6;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.15;
+  text-align: center;
+}
+
+.image-placeholder.large {
+  width: 76px;
+  height: 56px;
+  gap: 4px;
+  font-size: 10px;
 }
 
 .module-card svg {
@@ -559,6 +693,184 @@ td {
   background: rgba(16, 24, 20, 0.52);
 }
 
+.modal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(17, 24, 39, 0.62);
+}
+
+.vehicle-modal {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  width: min(920px, 100%);
+  max-height: min(86vh, 760px);
+  overflow: hidden;
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 68px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.modal-tabs {
+  display: flex;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.modal-tabs button {
+  min-width: 82px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.modal-tabs button.active,
+.modal-tabs button:hover {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.modal-body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.accordion-stack {
+  display: grid;
+}
+
+.accordion-section {
+  border-bottom: 1px solid var(--line);
+}
+
+.accordion-trigger {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  padding: 0 20px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 850;
+  text-align: left;
+}
+
+.accordion-trigger:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
+.accordion-content {
+  padding: 16px 20px 20px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+}
+
+.article-search-box,
+.upload-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 58px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.article-search-box div,
+.upload-head div {
+  display: grid;
+  gap: 4px;
+}
+
+.article-search-box strong,
+.upload-head h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.article-search-box span,
+.upload-head p,
+.empty-tab p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.empty-tab,
+.uploads-tab {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.empty-tab h3 {
+  margin: 0;
+}
+
+.upload-head .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.upload-list {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 64px;
+  padding: 0 20px;
+  border-top: 1px solid var(--line);
+}
+
+.modal-actions .form-message {
+  margin-right: auto;
+}
+
 .confirm-card {
   width: min(430px, 100%);
   padding: 20px;
@@ -586,6 +898,10 @@ td {
 
   .work-grid {
     grid-template-columns: 1fr;
+  }
+
+  .inventory-head {
+    display: grid;
   }
 
   .settings-grid {
@@ -633,6 +949,10 @@ td {
 
   .main {
     padding: 28px 18px;
+  }
+
+  .vehicle-modal {
+    max-height: 92vh;
   }
 
   h1 {

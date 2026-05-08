@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Code2, LogOut, Settings, TrainFront } from "lucide-react";
+import { Box, Code2, LogOut, Settings, TrainFront } from "lucide-react";
 
 export function Shell({
   children,
@@ -27,7 +27,8 @@ export function Shell({
             event.preventDefault();
             onNavigate("vehicles");
           }}>
-            Fahrzeuge
+            <Box size={16} aria-hidden="true" />
+            Bestand
           </a>
           <a className={activeView === "settings" ? "active" : ""} href="/settings" onClick={(event) => {
             event.preventDefault();
