@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
@@ -50,6 +51,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	masterDataService := application.NewMasterDataService(db)
+	if err = masterDataService.WarmCache(context.Background()); err != nil {
+		logger.Error("master data cache warmup failed", "error", err)
+		os.Exit(1)
+	}
+
 	handler := api.NewRouter(api.Config{
 		Version:           version,
 		StaticDir:         staticDir,
@@ -57,7 +64,7 @@ func main() {
 		SetupService:      application.NewSetupService(db),
 		AuthService:       application.NewAuthService(db),
 		VehicleService:    application.NewVehicleService(db),
-		MasterDataService: application.NewMasterDataService(db),
+		MasterDataService: masterDataService,
 		CookieSecure:      cookieSecure,
 	})
 

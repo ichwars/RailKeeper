@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -17,7 +18,9 @@ var (
 )
 
 type MasterDataService struct {
-	db *sql.DB
+	db      *sql.DB
+	cacheMu sync.RWMutex
+	cache   map[bool]map[string][]MasterDataEntry
 }
 
 type MasterDataEntry struct {
@@ -52,7 +55,20 @@ type MasterDataRelation struct {
 }
 
 func NewMasterDataService(db *sql.DB) *MasterDataService {
-	return &MasterDataService{db: db}
+	return &MasterDataService{
+		db:    db,
+		cache: map[bool]map[string][]MasterDataEntry{},
+	}
+}
+
+func (s *MasterDataService) WarmCache(ctx context.Context) error {
+	if _, err := s.ListAll(ctx, false); err != nil {
+		return err
+	}
+	if _, err := s.ListAll(ctx, true); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *MasterDataService) List(ctx context.Context, typeName string, activeOnly bool) ([]MasterDataEntry, error) {
@@ -92,6 +108,14 @@ WHERE type=?`
 }
 
 func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[string][]MasterDataEntry, error) {
+	s.cacheMu.RLock()
+	if cached, ok := s.cache[activeOnly]; ok {
+		out := cloneMasterDataMap(cached)
+		s.cacheMu.RUnlock()
+		return out, nil
+	}
+	s.cacheMu.RUnlock()
+
 	query := `
 SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
 FROM master_data_entries`
@@ -117,7 +141,12 @@ FROM master_data_entries`
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate all master data: %w", err)
 	}
-	return out, nil
+
+	s.cacheMu.Lock()
+	s.cache[activeOnly] = cloneMasterDataMap(out)
+	s.cacheMu.Unlock()
+
+	return cloneMasterDataMap(out), nil
 }
 
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {
@@ -150,6 +179,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, id, typeName, input.Key, input.Label, boolToInt(active), sortOrder, input.SourceURL, string(metadata), now, now); err != nil {
 		return nil, fmt.Errorf("create master data: %w", err)
 	}
+	s.invalidateCache()
 	return s.Get(ctx, typeName, input.Key)
 }
 
@@ -221,6 +251,7 @@ WHERE type=? AND key=?
 	if affected == 0 {
 		return nil, ErrMasterDataNotFound
 	}
+	s.invalidateCache()
 	return s.Get(ctx, typeName, key)
 }
 
@@ -236,6 +267,7 @@ func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) er
 	if affected == 0 {
 		return ErrMasterDataNotFound
 	}
+	s.invalidateCache()
 	return nil
 }
 
@@ -267,6 +299,20 @@ ORDER BY sort_order ASC
 
 type masterDataScanner interface {
 	Scan(dest ...any) error
+}
+
+func (s *MasterDataService) invalidateCache() {
+	s.cacheMu.Lock()
+	s.cache = map[bool]map[string][]MasterDataEntry{}
+	s.cacheMu.Unlock()
+}
+
+func cloneMasterDataMap(input map[string][]MasterDataEntry) map[string][]MasterDataEntry {
+	out := make(map[string][]MasterDataEntry, len(input))
+	for key, entries := range input {
+		out[key] = append([]MasterDataEntry(nil), entries...)
+	}
+	return out
 }
 
 func scanMasterDataEntry(scanner masterDataScanner) (MasterDataEntry, error) {
