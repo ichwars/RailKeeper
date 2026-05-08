@@ -110,6 +110,7 @@ export function SettingsView() {
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
   const [items, setItems] = useState<MasterDataEntry[]>([]);
+  const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [editing, setEditing] = useState<MasterDataEntry | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [message, setMessage] = useState("");
@@ -141,21 +142,32 @@ export function SettingsView() {
     setForm(emptyForm);
     setSearch("");
     setMessage("");
-    setItems([]);
 
     if (typeName === "symbols") {
+      setItems([]);
       setLoading(false);
       return () => {
         cancelled = true;
       };
     }
 
+    const cachedItems = itemsByType[typeName];
+    if (cachedItems) {
+      setItems(cachedItems);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setItems([]);
     setLoading(true);
     api
       .masterData(typeName)
       .then((entries) => {
         if (!cancelled) {
           setItems(entries);
+          setItemsByType((current) => ({ ...current, [typeName]: entries }));
         }
       })
       .catch((error: Error) => {
@@ -184,7 +196,10 @@ export function SettingsView() {
     setMessage("");
     api
       .masterData(activeType)
-      .then(setItems)
+      .then((entries) => {
+        setItems(entries);
+        setItemsByType((current) => ({ ...current, [activeType]: entries }));
+      })
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setLoading(false));
   };
