@@ -159,33 +159,27 @@ export function SettingsView() {
       };
     }
 
+    setMessage("");
     setLoadingTypes((current) => ({
       ...current,
       ...Object.fromEntries(typesToLoad.map((typeName) => [typeName, true]))
     }));
 
-    Promise.allSettled(typesToLoad.map((typeName) => api.masterData(typeName)))
-      .then((results) => {
+    api
+      .masterDataAll()
+      .then((entriesByType) => {
         if (cancelled) return;
 
-        const nextItems: Record<string, MasterDataEntry[]> = {};
-        const nextLoaded: Record<string, boolean> = {};
-        let firstError = "";
-
-        results.forEach((result, index) => {
-          const typeName = typesToLoad[index];
-          if (result.status === "fulfilled") {
-            nextItems[typeName] = result.value;
-            nextLoaded[typeName] = true;
-            return;
-          }
-          firstError ||= result.reason instanceof Error ? result.reason.message : "Stammdaten konnten nicht geladen werden.";
-        });
-
-        setItemsByType((current) => ({ ...current, ...nextItems }));
-        setLoadedTypes((current) => ({ ...current, ...nextLoaded }));
-        if (firstError) {
-          setMessage(firstError);
+        const normalized = Object.fromEntries(
+          loadableMasterDataTypes.map((item) => [item.type, entriesByType[item.type] || []])
+        );
+        const loaded = Object.fromEntries(loadableMasterDataTypes.map((item) => [item.type, true]));
+        setItemsByType((current) => ({ ...current, ...normalized }));
+        setLoadedTypes((current) => ({ ...current, ...loaded }));
+      })
+      .catch((error: Error) => {
+        if (!cancelled) {
+          setMessage(error.message);
         }
       })
       .finally(() => {

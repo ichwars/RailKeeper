@@ -91,6 +91,35 @@ WHERE type=?`
 	return out, nil
 }
 
+func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[string][]MasterDataEntry, error) {
+	query := `
+SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
+FROM master_data_entries`
+	if activeOnly {
+		query += " WHERE active=1"
+	}
+	query += " ORDER BY type ASC, active DESC, sort_order ASC, label ASC"
+
+	rows, err := s.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("list all master data: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := map[string][]MasterDataEntry{}
+	for rows.Next() {
+		item, err := scanMasterDataEntry(rows)
+		if err != nil {
+			return nil, err
+		}
+		out[item.Type] = append(out[item.Type], item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate all master data: %w", err)
+	}
+	return out, nil
+}
+
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {
 	typeName = strings.TrimSpace(typeName)
 	input = cleanMasterDataInput(input)

@@ -34,6 +34,8 @@ func OpenSQLite(dataDir string) (*sql.DB, error) {
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
 
+	db.SetMaxOpenConns(1)
+
 	return db, nil
 }
 

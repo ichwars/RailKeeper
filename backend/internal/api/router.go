@@ -71,6 +71,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
+	mux.HandleFunc("GET /api/v1/master-data-all", app.require("Viewer", app.listAllMasterData))
 	mux.HandleFunc("GET /api/v1/master-data/{type}", app.require("Viewer", app.listMasterData))
 	mux.HandleFunc("POST /api/v1/master-data/{type}", app.require("Editor", app.createMasterData))
 	mux.HandleFunc("PUT /api/v1/master-data/{type}/{key}", app.require("Editor", app.updateMasterData))
@@ -260,6 +261,18 @@ func (a *App) listMasterData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("master data list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "master_data_list_failed", "Could not list master data.")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, items)
+}
+
+func (a *App) listAllMasterData(w http.ResponseWriter, r *http.Request) {
+	activeOnly := r.URL.Query().Get("active") == "true"
+	items, err := a.masterDataService.ListAll(r.Context(), activeOnly)
+	if err != nil {
+		a.logger.Error("master data list all failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "master_data_list_failed", "Could not list master data.")
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"railkeeper2/backend/internal/application"
 	"railkeeper2/backend/internal/infrastructure"
 )
 
@@ -38,5 +39,17 @@ func TestSeedMasterDataLoadsGeneratedSeed(t *testing.T) {
 	}
 	if relations == 0 {
 		t.Fatal("expected category to gattung relations")
+	}
+
+	all, err := application.NewMasterDataService(db).ListAll(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all["manufacturer"]) < 500 || len(all["vehicle_category"]) != 9 || len(all["epoch"]) != 6 {
+		t.Fatalf("unexpected bundled master data counts: %#v", map[string]int{
+			"manufacturer":     len(all["manufacturer"]),
+			"vehicle_category": len(all["vehicle_category"]),
+			"epoch":            len(all["epoch"]),
+		})
 	}
 }

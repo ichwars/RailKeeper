@@ -182,6 +182,8 @@ export const api = {
     request<MasterDataEntry[]>(
       `/master-data/${encodeURIComponent(type)}${activeOnly ? "?active=true" : ""}`
     ),
+  masterDataAll: (activeOnly = false) =>
+    request<Record<string, MasterDataEntry[]>>(`/master-data-all${activeOnly ? "?active=true" : ""}`),
   createMasterData: (type: string, input: MasterDataInput) =>
     request<MasterDataEntry>(`/master-data/${encodeURIComponent(type)}`, {
       method: "POST",
