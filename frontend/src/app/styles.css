@@ -702,6 +702,19 @@ h1 {
   grid-template-columns: 1fr 1fr 1fr;
 }
 
+.form-row.four-columns {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.details-coupling-row {
+  grid-template-columns: 1fr auto 1fr 1fr;
+  align-items: end;
+}
+
+.switch-description-row {
+  grid-template-columns: 1fr 1fr;
+}
+
 .inline-switch-input {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

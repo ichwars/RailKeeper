@@ -34,7 +34,34 @@ const emptyVehicle: CreateVehicleRequest = {
   abcBrakes: false,
   ean: "",
   productionPeriod: "",
-  listPrice: ""
+  listPrice: "",
+  lengthMm: "",
+  weightG: "",
+  color: "",
+  lettering: "",
+  load: "",
+  interior: "",
+  axles: "",
+  axleCount: "",
+  tractionTireCount: "",
+  wheelset: "",
+  couplingSame: false,
+  couplingFront: "",
+  couplingRear: "",
+  powerPickup: "",
+  adapter: "",
+  driveEnabled: false,
+  driveDescription: "",
+  headlightsEnabled: false,
+  headlightsDescription: "",
+  lightingEnabled: false,
+  lightingDescription: "",
+  soundGeneratorEnabled: false,
+  soundGeneratorDescription: "",
+  smokeGeneratorEnabled: false,
+  smokeGeneratorDescription: "",
+  additionalInfo: "",
+  qrCodeEnabled: false
 };
 
 type ModalMode = "create" | "view" | "edit";
@@ -72,6 +99,11 @@ const sortLabels: Record<SortKey, string> = {
   category: "Kategorie"
 };
 
+const wheelsetOptions = ["2-Leiter DC", "3-Leiter AC", "NEM", "RP25", "Metall", "Kunststoff"];
+const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Buegelkupplung", "Klauenkupplung", "Schraubenkupplung"];
+const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
+const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
+
 function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
   return {
     inventoryNumber: vehicle.inventoryNumber,
@@ -94,7 +126,34 @@ function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
     abcBrakes: vehicle.abcBrakes,
     ean: vehicle.ean || "",
     productionPeriod: vehicle.productionPeriod || "",
-    listPrice: vehicle.listPrice || ""
+    listPrice: vehicle.listPrice || "",
+    lengthMm: vehicle.lengthMm || "",
+    weightG: vehicle.weightG || "",
+    color: vehicle.color || "",
+    lettering: vehicle.lettering || "",
+    load: vehicle.load || "",
+    interior: vehicle.interior || "",
+    axles: vehicle.axles || "",
+    axleCount: vehicle.axleCount || "",
+    tractionTireCount: vehicle.tractionTireCount || "",
+    wheelset: vehicle.wheelset || "",
+    couplingSame: vehicle.couplingSame,
+    couplingFront: vehicle.couplingFront || "",
+    couplingRear: vehicle.couplingRear || "",
+    powerPickup: vehicle.powerPickup || "",
+    adapter: vehicle.adapter || "",
+    driveEnabled: vehicle.driveEnabled,
+    driveDescription: vehicle.driveDescription || "",
+    headlightsEnabled: vehicle.headlightsEnabled,
+    headlightsDescription: vehicle.headlightsDescription || "",
+    lightingEnabled: vehicle.lightingEnabled,
+    lightingDescription: vehicle.lightingDescription || "",
+    soundGeneratorEnabled: vehicle.soundGeneratorEnabled,
+    soundGeneratorDescription: vehicle.soundGeneratorDescription || "",
+    smokeGeneratorEnabled: vehicle.smokeGeneratorEnabled,
+    smokeGeneratorDescription: vehicle.smokeGeneratorDescription || "",
+    additionalInfo: vehicle.additionalInfo || "",
+    qrCodeEnabled: vehicle.qrCodeEnabled
   };
 }
 
@@ -104,6 +163,193 @@ function optionValue(entry: MasterDataEntry) {
 
 function valueForSort(vehicle: Vehicle, key: SortKey) {
   return (vehicle[key] || "").toLocaleLowerCase("de-DE");
+}
+
+function renderStaticOptions(items: string[], emptyLabel = "Bitte waehlen") {
+  return (
+    <>
+      <option value="">{emptyLabel}</option>
+      {items.map((item) => (
+        <option key={item} value={item}>
+          {item}
+        </option>
+      ))}
+    </>
+  );
+}
+
+function VehicleDetailsFields({
+  form,
+  readonly,
+  update,
+  updateCouplingFront,
+  updateCouplingSame
+}: {
+  form: CreateVehicleRequest;
+  readonly: boolean;
+  update: (patch: Partial<CreateVehicleRequest>) => void;
+  updateCouplingFront: (couplingFront: string) => void;
+  updateCouplingSame: (couplingSame: boolean) => void;
+}) {
+  return (
+    <>
+      <div className="form-row four-columns">
+        <label>
+          Laenge (mm)
+          <input value={form.lengthMm || ""} onChange={(event) => update({ lengthMm: event.target.value })} disabled={readonly} inputMode="decimal" />
+        </label>
+        <label>
+          Gewicht (g)
+          <input value={form.weightG || ""} onChange={(event) => update({ weightG: event.target.value })} disabled={readonly} inputMode="decimal" />
+        </label>
+        <label>
+          Farbe
+          <input value={form.color || ""} onChange={(event) => update({ color: event.target.value })} disabled={readonly} />
+        </label>
+        <label>
+          Beschriftung
+          <input value={form.lettering || ""} onChange={(event) => update({ lettering: event.target.value })} disabled={readonly} />
+        </label>
+      </div>
+
+      <div className="form-row three-columns">
+        <label>
+          Beladung
+          <input value={form.load || ""} onChange={(event) => update({ load: event.target.value })} disabled={readonly} />
+        </label>
+        <label>
+          Inneneinrichtung
+          <input value={form.interior || ""} onChange={(event) => update({ interior: event.target.value })} disabled={readonly} />
+        </label>
+        <label>
+          Achsen
+          <input value={form.axles || ""} onChange={(event) => update({ axles: event.target.value })} disabled={readonly} />
+        </label>
+      </div>
+
+      <div className="form-row four-columns">
+        <label>
+          Anzahl
+          <input value={form.axleCount || ""} onChange={(event) => update({ axleCount: event.target.value })} disabled={readonly} inputMode="numeric" />
+        </label>
+        <label>
+          Anzahl Haftreifen
+          <input value={form.tractionTireCount || ""} onChange={(event) => update({ tractionTireCount: event.target.value })} disabled={readonly} inputMode="numeric" />
+        </label>
+        <label>
+          Radsatz
+          <select value={form.wheelset || ""} onChange={(event) => update({ wheelset: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(wheelsetOptions)}
+          </select>
+        </label>
+        <label>
+          Stromabnahme
+          <select value={form.powerPickup || ""} onChange={(event) => update({ powerPickup: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(powerPickupOptions)}
+          </select>
+        </label>
+      </div>
+
+      <div className="form-row details-coupling-row">
+        <label>
+          Adapter
+          <select value={form.adapter || ""} onChange={(event) => update({ adapter: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(adapterOptions)}
+          </select>
+        </label>
+        <label className="switch-label">
+          Kupplung (V=H)
+          <span className="switch-field">
+            <input type="checkbox" checked={Boolean(form.couplingSame)} onChange={(event) => updateCouplingSame(event.target.checked)} disabled={readonly} />
+            <span />
+          </span>
+        </label>
+        <label>
+          Kupplung vorne
+          <select value={form.couplingFront || ""} onChange={(event) => updateCouplingFront(event.target.value)} disabled={readonly}>
+            {renderStaticOptions(couplingOptions)}
+          </select>
+        </label>
+        <label>
+          Kupplung hinten
+          <select value={form.couplingSame ? form.couplingFront || "" : form.couplingRear || ""} onChange={(event) => update({ couplingRear: event.target.value })} disabled={readonly || Boolean(form.couplingSame)}>
+            {renderStaticOptions(couplingOptions)}
+          </select>
+        </label>
+      </div>
+
+      <div className="form-row switch-description-row">
+        <label>
+          Fahrlicht Beschreibung
+          <span className="inline-switch-input">
+            <span className="switch-field" aria-label="Fahrlicht">
+              <input type="checkbox" checked={Boolean(form.headlightsEnabled)} onChange={(event) => update({ headlightsEnabled: event.target.checked })} disabled={readonly} />
+              <span />
+            </span>
+            <input value={form.headlightsDescription || ""} onChange={(event) => update({ headlightsDescription: event.target.value })} disabled={readonly || !form.headlightsEnabled} />
+          </span>
+        </label>
+        <label>
+          Antrieb Beschreibung
+          <span className="inline-switch-input">
+            <span className="switch-field" aria-label="Antrieb">
+              <input type="checkbox" checked={Boolean(form.driveEnabled)} onChange={(event) => update({ driveEnabled: event.target.checked })} disabled={readonly} />
+              <span />
+            </span>
+            <input value={form.driveDescription || ""} onChange={(event) => update({ driveDescription: event.target.value })} disabled={readonly || !form.driveEnabled} />
+          </span>
+        </label>
+      </div>
+
+      <div className="form-row switch-description-row">
+        <label>
+          Beleuchtung Beschreibung
+          <span className="inline-switch-input">
+            <span className="switch-field" aria-label="Beleuchtung">
+              <input type="checkbox" checked={Boolean(form.lightingEnabled)} onChange={(event) => update({ lightingEnabled: event.target.checked })} disabled={readonly} />
+              <span />
+            </span>
+            <input value={form.lightingDescription || ""} onChange={(event) => update({ lightingDescription: event.target.value })} disabled={readonly || !form.lightingEnabled} />
+          </span>
+        </label>
+        <label>
+          Soundgenerator Beschreibung
+          <span className="inline-switch-input">
+            <span className="switch-field" aria-label="Soundgenerator">
+              <input type="checkbox" checked={Boolean(form.soundGeneratorEnabled)} onChange={(event) => update({ soundGeneratorEnabled: event.target.checked })} disabled={readonly} />
+              <span />
+            </span>
+            <input value={form.soundGeneratorDescription || ""} onChange={(event) => update({ soundGeneratorDescription: event.target.value })} disabled={readonly || !form.soundGeneratorEnabled} />
+          </span>
+        </label>
+      </div>
+
+      <div className="form-row switch-description-row">
+        <label>
+          Rauchgenerator Beschreibung
+          <span className="inline-switch-input">
+            <span className="switch-field" aria-label="Rauchgenerator">
+              <input type="checkbox" checked={Boolean(form.smokeGeneratorEnabled)} onChange={(event) => update({ smokeGeneratorEnabled: event.target.checked })} disabled={readonly} />
+              <span />
+            </span>
+            <input value={form.smokeGeneratorDescription || ""} onChange={(event) => update({ smokeGeneratorDescription: event.target.value })} disabled={readonly || !form.smokeGeneratorEnabled} />
+          </span>
+        </label>
+        <label className="switch-label">
+          QR-Code erstellen
+          <span className="switch-field">
+            <input type="checkbox" checked={Boolean(form.qrCodeEnabled)} onChange={(event) => update({ qrCodeEnabled: event.target.checked })} disabled={readonly} />
+            <span />
+          </span>
+        </label>
+      </div>
+
+      <label>
+        Zusatzinformationen
+        <textarea value={form.additionalInfo || ""} onChange={(event) => update({ additionalInfo: event.target.value })} disabled={readonly} rows={4} />
+      </label>
+    </>
+  );
 }
 
 export function VehiclesView() {
@@ -220,6 +466,20 @@ export function VehiclesView() {
     update({
       category,
       gattung: currentGattung && allowed.has(currentGattung.key) ? form.gattung : ""
+    });
+  };
+
+  const updateCouplingFront = (couplingFront: string) => {
+    update({
+      couplingFront,
+      couplingRear: form.couplingSame ? couplingFront : form.couplingRear
+    });
+  };
+
+  const updateCouplingSame = (couplingSame: boolean) => {
+    update({
+      couplingSame,
+      couplingRear: couplingSame ? form.couplingFront : form.couplingRear
     });
   };
 
@@ -614,7 +874,13 @@ export function VehiclesView() {
                     </button>
                     {openSections.details && (
                       <div className="accordion-content vehicle-form">
-                        <p className="empty-state compact">Weitere technische Fahrzeugdaten werden hier im naechsten Schritt ergaenzt.</p>
+                        <VehicleDetailsFields
+                          form={form}
+                          readonly={readonly}
+                          update={update}
+                          updateCouplingFront={updateCouplingFront}
+                          updateCouplingSame={updateCouplingSame}
+                        />
                       </div>
                     )}
                   </section>

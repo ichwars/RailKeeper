@@ -110,23 +110,34 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 	}
 
 	updated, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
-		InventoryNumber:      created.InventoryNumber,
-		Manufacturer:         "Piko",
-		ArticleNumber:        "52700",
-		Name:                 "BR 118 DR",
-		Gauge:                "H0",
-		Epoch:                "IV",
-		Gattung:              "Diesellok",
-		Description:          "Testbeschreibung",
-		Series:               "118",
-		VehicleNumber:        "118 552-9",
-		Digital:              true,
-		DigitalDecoderNumber: "1234",
-		ExhibitionReady:      true,
-		ABCBrakes:            true,
-		EAN:                  "4015615527000",
-		ProductionPeriod:     "1998-2001",
-		ListPrice:            "129.90",
+		InventoryNumber:       created.InventoryNumber,
+		Manufacturer:          "Piko",
+		ArticleNumber:         "52700",
+		Name:                  "BR 118 DR",
+		Gauge:                 "H0",
+		Epoch:                 "IV",
+		Gattung:               "Diesellok",
+		Description:           "Testbeschreibung",
+		Series:                "118",
+		VehicleNumber:         "118 552-9",
+		Digital:               true,
+		DigitalDecoderNumber:  "1234",
+		ExhibitionReady:       true,
+		ABCBrakes:             true,
+		EAN:                   "4015615527000",
+		ProductionPeriod:      "1998-2001",
+		ListPrice:             "129.90",
+		LengthMM:              "183",
+		WeightG:               "420",
+		Color:                 "rot",
+		CouplingSame:          true,
+		CouplingFront:         "Kurzkupplung",
+		DriveEnabled:          true,
+		DriveDescription:      "Kardan",
+		HeadlightsEnabled:     true,
+		HeadlightsDescription: "wechselnd",
+		AdditionalInfo:        "Testnotiz",
+		QRCodeEnabled:         true,
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -136,6 +147,9 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 	}
 	if !updated.Digital || !updated.ExhibitionReady || !updated.ABCBrakes || updated.Series != "118" || updated.ListPrice != "129.90" {
 		t.Fatalf("unexpected update: %#v", updated)
+	}
+	if !updated.CouplingSame || updated.CouplingRear != "Kurzkupplung" || !updated.DriveEnabled || updated.DriveDescription != "Kardan" || !updated.QRCodeEnabled {
+		t.Fatalf("unexpected technical details: %#v", updated)
 	}
 }
 
