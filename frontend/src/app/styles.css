@@ -175,6 +175,16 @@ h1 {
   margin-bottom: 18px;
 }
 
+.form-head {
+  justify-content: space-between;
+}
+
+.form-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .panel-head h2 {
   margin: 0;
   font-size: 18px;
@@ -214,6 +224,12 @@ h1 {
 .search-field input:focus {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.vehicle-form input:disabled {
+  background: color-mix(in srgb, var(--muted) 7%, #fff);
+  color: var(--text);
+  opacity: 0.82;
 }
 
 .form-row {
@@ -266,6 +282,43 @@ th {
 }
 
 td {
+  font-size: 14px;
+}
+
+.actions-cell {
+  width: 118px;
+  text-align: right;
+}
+
+.table-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.detail-meta {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0;
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--muted) 7%, transparent);
+}
+
+.detail-meta div {
+  display: grid;
+  gap: 2px;
+}
+
+.detail-meta dt {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.detail-meta dd {
+  margin: 0;
   font-size: 14px;
 }
 
@@ -379,6 +432,79 @@ td {
   margin: 0;
   color: var(--danger);
   font-size: 14px;
+}
+
+.secondary-button,
+.danger-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 750;
+}
+
+.secondary-button {
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  color: var(--text);
+}
+
+.danger-button {
+  background: var(--danger);
+  color: #fff;
+}
+
+.icon-button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-strong);
+}
+
+.icon-button.danger:hover {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+
+.confirm-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(16, 24, 20, 0.52);
+}
+
+.confirm-card {
+  width: min(430px, 100%);
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.confirm-card p {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 @media (max-width: 780px) {

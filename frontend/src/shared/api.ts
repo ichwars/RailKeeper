@@ -122,5 +122,15 @@ export const api = {
     request<Vehicle>("/vehicles", {
       method: "POST",
       body: JSON.stringify(input)
+    }),
+  vehicle: (id: string) => request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`),
+  updateVehicle: (id: string, input: CreateVehicleRequest) =>
+    request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteVehicle: (id: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(id)}`, {
+      method: "DELETE"
     })
 };

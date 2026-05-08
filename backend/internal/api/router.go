@@ -65,6 +65,9 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/auth/session", app.session)
 	mux.HandleFunc("GET /api/v1/vehicles", app.require("Viewer", app.listVehicles))
 	mux.HandleFunc("POST /api/v1/vehicles", app.require("Editor", app.createVehicle))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
 
 	mux.Handle("/", staticHandler(app.staticDir))
 
@@ -185,6 +188,59 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusCreated, vehicle)
+}
+
+func (a *App) getVehicle(w http.ResponseWriter, r *http.Request) {
+	vehicle, err := a.vehicleService.Get(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("vehicle get failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "vehicle_get_failed", "Could not read vehicle.")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, vehicle)
+}
+
+func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateVehicleInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name and gauge are required.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+		default:
+			a.logger.Error("vehicle update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "vehicle_update_failed", "Could not update vehicle.")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, vehicle)
+}
+
+func (a *App) deleteVehicle(w http.ResponseWriter, r *http.Request) {
+	if err := a.vehicleService.Delete(r.Context(), r.PathValue("id"), actorUserID(r)); err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("vehicle delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "vehicle_delete_failed", "Could not delete vehicle.")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func respondJSON(w http.ResponseWriter, status int, value any) {
