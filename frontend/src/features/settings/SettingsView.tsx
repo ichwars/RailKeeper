@@ -62,6 +62,8 @@ const masterDataTypes: MasterDataType[] = [
   }
 ];
 
+const loadableMasterDataTypes = masterDataTypes.filter((item) => item.type !== "symbols");
+
 const emptyForm = {
   key: "",
   label: "",
@@ -109,13 +111,13 @@ function externalLink(entry: MasterDataEntry) {
 export function SettingsView() {
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
-  const [items, setItems] = useState<MasterDataEntry[]>([]);
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
+  const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
+  const [loadingTypes, setLoadingTypes] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<MasterDataEntry | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(true);
   const [design, setDesign] = useState("Light");
@@ -125,6 +127,8 @@ export function SettingsView() {
     [activeType]
   );
   const isSymbolTab = activeType === "symbols";
+  const items = itemsByType[activeType] || [];
+  const loading = Boolean(loadingTypes[activeType]);
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("de-DE");
@@ -135,73 +139,84 @@ export function SettingsView() {
   }, [items, search]);
 
   useEffect(() => {
-    let cancelled = false;
-    const typeName = activeType;
-
     setEditing(null);
     setForm(emptyForm);
     setSearch("");
     setMessage("");
+  }, [activeType]);
 
-    if (typeName === "symbols") {
-      setItems([]);
-      setLoading(false);
+  useEffect(() => {
+    if (activeSettingsTab !== "data") return;
+
+    let cancelled = false;
+    const typesToLoad = loadableMasterDataTypes
+      .map((item) => item.type)
+      .filter((typeName) => !loadedTypes[typeName]);
+
+    if (typesToLoad.length === 0) {
       return () => {
         cancelled = true;
       };
     }
 
-    const cachedItems = itemsByType[typeName];
-    if (cachedItems) {
-      setItems(cachedItems);
-      setLoading(false);
-      return () => {
-        cancelled = true;
-      };
-    }
+    setLoadingTypes((current) => ({
+      ...current,
+      ...Object.fromEntries(typesToLoad.map((typeName) => [typeName, true]))
+    }));
 
-    setItems([]);
-    setLoading(true);
-    api
-      .masterData(typeName)
-      .then((entries) => {
-        if (!cancelled) {
-          setItems(entries);
-          setItemsByType((current) => ({ ...current, [typeName]: entries }));
-        }
-      })
-      .catch((error: Error) => {
-        if (!cancelled) {
-          setMessage(error.message);
+    Promise.allSettled(typesToLoad.map((typeName) => api.masterData(typeName)))
+      .then((results) => {
+        if (cancelled) return;
+
+        const nextItems: Record<string, MasterDataEntry[]> = {};
+        const nextLoaded: Record<string, boolean> = {};
+        let firstError = "";
+
+        results.forEach((result, index) => {
+          const typeName = typesToLoad[index];
+          if (result.status === "fulfilled") {
+            nextItems[typeName] = result.value;
+            nextLoaded[typeName] = true;
+            return;
+          }
+          firstError ||= result.reason instanceof Error ? result.reason.message : "Stammdaten konnten nicht geladen werden.";
+        });
+
+        setItemsByType((current) => ({ ...current, ...nextItems }));
+        setLoadedTypes((current) => ({ ...current, ...nextLoaded }));
+        if (firstError) {
+          setMessage(firstError);
         }
       })
       .finally(() => {
         if (!cancelled) {
-          setLoading(false);
+          setLoadingTypes((current) => ({
+            ...current,
+            ...Object.fromEntries(typesToLoad.map((typeName) => [typeName, false]))
+          }));
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [activeType]);
+  }, [activeSettingsTab]);
 
   const reloadActiveType = () => {
     if (isSymbolTab) {
-      setItems([]);
       return;
     }
 
-    setLoading(true);
+    setLoadingTypes((current) => ({ ...current, [activeType]: true }));
     setMessage("");
     api
       .masterData(activeType)
       .then((entries) => {
-        setItems(entries);
         setItemsByType((current) => ({ ...current, [activeType]: entries }));
+        setLoadedTypes((current) => ({ ...current, [activeType]: true }));
       })
       .catch((error: Error) => setMessage(error.message))
-      .finally(() => setLoading(false));
+      .finally(() => setLoadingTypes((current) => ({ ...current, [activeType]: false })));
   };
 
   const update = (patch: Partial<FormState>) => {
