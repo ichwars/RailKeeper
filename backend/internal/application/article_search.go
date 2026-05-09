@@ -121,7 +121,7 @@ func cleanArticleSearchInput(input ArticleSearchInput) ArticleSearchInput {
 
 func articleSearchQuery(input ArticleSearchInput) string {
 	parts := []string{}
-	for _, value := range []string{input.ArticleNumber, input.Manufacturer, input.Gauge, input.Name} {
+	for _, value := range []string{input.Name, input.ArticleNumber, input.Manufacturer, input.Gauge} {
 		if value != "" {
 			parts = append(parts, value)
 		}
@@ -199,7 +199,32 @@ func NewDuckDuckGoArticleSearchAdapter(client *http.Client) *DuckDuckGoArticleSe
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input ArticleSearchInput, query string) ([]ArticleSearchResult, error) {
-	requestURL := "https://duckduckgo.com/html/?" + url.Values{"q": []string{query + " Modelleisenbahn"}}.Encode()
+	queries := []string{query + " Modelleisenbahn"}
+	for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
+		queries = append(queries, query+" site:"+domain)
+		if len(queries) >= 3 {
+			break
+		}
+	}
+
+	results := []ArticleSearchResult{}
+	for _, searchQuery := range uniqueNonEmpty(queries) {
+		searchResults, err := a.searchDuckDuckGo(ctx, input, searchQuery)
+		if err != nil {
+			if len(results) == 0 {
+				return nil, err
+			}
+			continue
+		}
+		results = append(results, searchResults...)
+	}
+	results = dedupeArticleResults(results)
+	a.enrichResultsFromPages(ctx, input, results)
+	return results, nil
+}
+
+func (a *DuckDuckGoArticleSearchAdapter) searchDuckDuckGo(ctx context.Context, input ArticleSearchInput, query string) ([]ArticleSearchResult, error) {
+	requestURL := "https://duckduckgo.com/html/?" + url.Values{"q": []string{query}}.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build article search request: %w", err)
@@ -221,7 +246,6 @@ func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input Artic
 		return nil, fmt.Errorf("read article search response: %w", err)
 	}
 	results := parseDuckDuckGoResults(string(body), input)
-	a.enrichResultsFromPages(ctx, input, results)
 	return results, nil
 }
 
@@ -232,7 +256,7 @@ var (
 	tagPattern                  = regexp.MustCompile(`(?s)<[^>]+>`)
 	scriptStylePattern          = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
 	pricePattern                = regexp.MustCompile(`(?i)(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
-	lengthPattern               = regexp.MustCompile(`(?i)(?:laenge|l..nge|lange|length|mass|ma..|luep|luep\.)[^\d]{0,24}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
+	lengthPattern               = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,24}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
 	weightPattern               = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
 	tractionTirePattern         = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
 	eanPattern                  = regexp.MustCompile(`\b(\d{12,14})\b`)
@@ -511,17 +535,23 @@ func resolveURL(baseURL, raw string) string {
 func isManufacturerPreferredURL(manufacturer, resultURL string) bool {
 	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
 	resultURL = strings.ToLower(resultURL)
+	for _, domain := range preferredManufacturerDomains(manufacturer) {
+		if strings.Contains(resultURL, domain) {
+			return true
+		}
+	}
+	return false
+}
+
+func preferredManufacturerDomains(manufacturer string) []string {
+	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
 	for key, domains := range manufacturerDomains {
 		if manufacturer == "" || !strings.Contains(manufacturer, key) {
 			continue
 		}
-		for _, domain := range domains {
-			if strings.Contains(resultURL, domain) {
-				return true
-			}
-		}
+		return domains
 	}
-	return false
+	return nil
 }
 
 func manufacturerDomainToken(manufacturer string) string {
@@ -573,10 +603,11 @@ func looksLikeModelLength(candidate, context string) bool {
 	lower := strings.ToLower(context)
 	return strings.Contains(lower, "mm") ||
 		strings.Contains(lower, "laenge") ||
-		strings.Contains(lower, "l..nge") ||
+		strings.Contains(lower, "länge") ||
+		strings.Contains(lower, "laenge") ||
 		strings.Contains(lower, "length") ||
 		strings.Contains(lower, "mass") ||
-		strings.Contains(lower, "ma..") ||
+		strings.Contains(lower, "maß") ||
 		strings.Contains(lower, "luep")
 }
 
@@ -623,7 +654,7 @@ func looksLikeTechnicalDescription(value string) bool {
 		return false
 	}
 	lower := strings.ToLower(value)
-	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist"}
+	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist", "menü", "menue", "menu", "sprunggröße", "sprunggroesse", "wählen sie", "waehlen sie", "downloads", "bedienungsanleitung", "altersempfehlung"}
 	for _, token := range badTokens {
 		if strings.Contains(lower, token) {
 			return false
@@ -657,6 +688,7 @@ func hasExplicitSoundGenerator(value string) bool {
 }
 
 func visibleArticleText(value string) string {
+	value = regexp.MustCompile(`(?is)</(?:tr|li|p|div|h[1-6]|dd|dt)>`).ReplaceAllString(value, ". ")
 	value = scriptStylePattern.ReplaceAllString(value, " ")
 	return cleanHTML(value)
 }
@@ -754,7 +786,7 @@ func looksLikeHumanDescription(value string) bool {
 		return false
 	}
 	lower := strings.ToLower(value)
-	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist"}
+	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist", "menü", "menue", "menu", "sprunggröße", "sprunggroesse", "wählen sie", "waehlen sie", "downloads", "bedienungsanleitung", "altersempfehlung"}
 	for _, token := range badTokens {
 		if strings.Contains(lower, token) {
 			return false

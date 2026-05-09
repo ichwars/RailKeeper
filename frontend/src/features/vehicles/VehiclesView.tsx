@@ -133,6 +133,8 @@ const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Buegelkupplung", "Klaue
 const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
+const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
+const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 
 const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
@@ -405,7 +407,7 @@ function isBadArticleValue(key: string, value: string) {
     return lower.includes("altersempfehlung") || lower.includes("downloads") || lower.includes("bedienungsanleitung");
   }
   if (key === "soundGeneratorDescription") {
-    return lower.includes("menu") || lower.includes("menue") || lower.includes("sprunggroesse") || lower.includes("wählen sie") || lower.includes("waehlen sie");
+    return lower.includes("menu") || lower.includes("menü") || lower.includes("menue") || lower.includes("sprunggröße") || lower.includes("sprunggroesse") || lower.includes("wählen sie") || lower.includes("waehlen sie");
   }
   return false;
 }
@@ -453,6 +455,25 @@ function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileExtension(fileName: string) {
+  return fileName.split(".").pop()?.toLocaleLowerCase("de-DE") || "";
+}
+
+function isBlockedAttachmentFile(file: File) {
+  return blockedAttachmentExtensions.has(fileExtension(file.name));
+}
+
+function attachmentCategoryForFile(file: File) {
+  const lower = file.name.toLocaleLowerCase("de-DE");
+  if (lower.includes("rechnung") || lower.includes("invoice")) return "Rechnung";
+  if (lower.includes("decoder") || lower.endsWith(".json") || lower.endsWith(".xml")) return "Decoder-Datei";
+  if (lower.includes("ersatzteil")) return "Ersatzteilliste";
+  if (lower.includes("zertifikat") || lower.includes("certificate")) return "Zertifikat";
+  if (lower.includes("anleitung") || lower.includes("manual") || lower.includes("bedienung")) return "Anleitung";
+  if (lower.endsWith(".pdf")) return "Dokumentation";
+  return "Sonstiges";
 }
 
 function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
@@ -567,7 +588,7 @@ function VehicleDetailsFields({
             {renderStaticOptions(adapterOptions)}
           </select>
         </label>
-        <label className="switch-label switch-card">
+        <label className="coupling-same-field">
           <span>Kupplung (V=H)</span>
           <span className="switch-field">
             <input type="checkbox" checked={Boolean(form.couplingSame)} onChange={(event) => updateCouplingSame(event.target.checked)} disabled={readonly} />
@@ -645,7 +666,7 @@ function VehicleDetailsFields({
             <input value={form.smokeGeneratorDescription || ""} onChange={(event) => update({ smokeGeneratorDescription: event.target.value })} disabled={readonly || !form.smokeGeneratorEnabled} />
           </span>
         </label>
-        <label className="switch-label switch-card qr-switch-card">
+        <label className="qr-switch-field">
           <span>QR-Code erstellen</span>
           <span className="qr-card-actions">
             <span className="switch-field">
@@ -801,7 +822,16 @@ function ArticleSearchDialog({
                                   </td>
                                   <td><strong>{articleFieldLabels[key] || field.label}</strong></td>
                                   <td>{currentDisplay || "-"}</td>
-                                  <td>{foundDisplay || "-"}</td>
+                                  <td>
+                                    {key === "articleSourceUrl" && field.value ? (
+                                      <a className="inline-source-link" href={field.value} target="_blank" rel="noreferrer" title={field.value}>
+                                        {foundDisplay || "Quelle"}
+                                        <ExternalLink size={13} aria-hidden="true" />
+                                      </a>
+                                    ) : (
+                                      foundDisplay || "-"
+                                    )}
+                                  </td>
                                   <td><span className={`article-status ${status === "Konflikt" ? "conflict" : status === "bereits gleich" ? "same" : "empty"}`}>{status}</span></td>
                                 </tr>
                               );
@@ -899,13 +929,13 @@ function ImagePreviewDialog({
       <section className="image-preview-dialog">
         <div className="panel-head form-head">
           <div>
-            <h2>
-              Bildvorschau
+            <h2>Bildvorschau</h2>
+            <p className="image-preview-source">
+              {image.title || "Artikeldaten-Bild"} - {sourceDisplayName(image.source)}
               <a className="icon-button image-title-link" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
                 <ExternalLink size={15} />
               </a>
-            </h2>
-            <p>{image.title || "Artikeldaten-Bild"} - {sourceDisplayName(image.source)}</p>
+            </p>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
             <X size={17} />
@@ -1169,10 +1199,22 @@ export function VehiclesView() {
 
   const uploadAttachment = (files: FileList | null) => {
     if (!selected || !files || files.length === 0) return;
+    const uploadFiles = Array.from(files);
+    const blocked = uploadFiles.find(isBlockedAttachmentFile);
+    if (blocked) {
+      setMessage(`${blocked.name} ist als Beilage nicht erlaubt.`);
+      if (attachmentInputRef.current) {
+        attachmentInputRef.current.value = "";
+      }
+      return;
+    }
     setSaving(true);
     setMessage("");
-    api
-      .uploadVehicleAttachment(selected.id, files[0], "Sonstiges")
+    (async () => {
+      for (const file of uploadFiles) {
+        await api.uploadVehicleAttachment(selected.id, file, attachmentCategoryForFile(file));
+      }
+    })()
       .then(() => refreshSelectedVehicle(selected.id))
       .catch((error: Error) => setMessage(error.message))
       .finally(() => {
@@ -1852,6 +1894,8 @@ export function VehiclesView() {
                       <input
                         ref={attachmentInputRef}
                         type="file"
+                        multiple
+                        accept={attachmentAccept}
                         className="visually-hidden"
                         onChange={(event) => uploadAttachment(event.target.files)}
                         disabled={readonly || !selected}

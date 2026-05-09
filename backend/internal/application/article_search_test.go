@@ -66,7 +66,7 @@ func TestArticleSearchQueryUsesFocusedModelPattern(t *testing.T) {
 		},
 	})
 
-	expected := "47284 Piko Spielwaren TT V180 4-achsig"
+	expected := "V180 4-achsig 47284 Piko Spielwaren TT"
 	if query != expected {
 		t.Fatalf("expected %q, got %q", expected, query)
 	}
