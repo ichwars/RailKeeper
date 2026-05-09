@@ -156,6 +156,25 @@ export type MasterDataRelation = {
   sortOrder: number;
 };
 
+export type InventoryNumberScheme = {
+  id: string;
+  category: string;
+  prefix: string;
+  nextNumber: number;
+  padding: number;
+  active: boolean;
+  preview: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type InventoryNumberSchemeInput = {
+  prefix: string;
+  nextNumber: number;
+  padding: number;
+  active: boolean;
+};
+
 export type ArticleSearchInput = {
   manufacturer?: string;
   articleNumber?: string;
@@ -301,6 +320,12 @@ export const api = {
   deleteVehicle: (id: string) =>
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
       method: "DELETE"
+    }),
+  inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
+  updateInventoryNumberScheme: (category: string, input: InventoryNumberSchemeInput) =>
+    request<InventoryNumberScheme>(`/inventory-number-schemes/${encodeURIComponent(category)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
     }),
   articleSearch: (input: ArticleSearchInput) =>
     request<ArticleSearchResponse>(

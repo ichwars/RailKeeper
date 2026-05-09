@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ExternalLink, Info, Pencil, RefreshCw, Trash2, X } from "lucide-react";
-import { api, MasterDataEntry, MasterDataInput } from "../../shared/api";
+import { api, InventoryNumberScheme, MasterDataEntry, MasterDataInput } from "../../shared/api";
 
 type SettingsTab = "general" | "data" | "importExport" | "appearance";
 type MasterDataType = {
@@ -124,6 +124,9 @@ export function SettingsView() {
     () => window.localStorage.getItem(articleSearchSettingKey) !== "false"
   );
   const [design, setDesign] = useState("Light");
+  const [inventorySchemes, setInventorySchemes] = useState<InventoryNumberScheme[]>([]);
+  const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
+  const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
 
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
@@ -147,6 +150,11 @@ export function SettingsView() {
     setSearch("");
     setMessage("");
   }, [activeType]);
+
+  useEffect(() => {
+    if (activeSettingsTab !== "general" || inventorySchemes.length > 0 || inventorySchemesLoading) return;
+    loadInventorySchemes();
+  }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || isSymbolTab || loadedTypes[activeType]) return;
@@ -217,6 +225,35 @@ export function SettingsView() {
   const updateArticleSearchEnabled = (enabled: boolean) => {
     setArticleSearchEnabled(enabled);
     window.localStorage.setItem(articleSearchSettingKey, String(enabled));
+  };
+
+  const loadInventorySchemes = () => {
+    setInventorySchemesLoading(true);
+    setInventorySchemesMessage("");
+    api
+      .inventoryNumberSchemes()
+      .then(setInventorySchemes)
+      .catch((error: Error) => setInventorySchemesMessage(error.message))
+      .finally(() => setInventorySchemesLoading(false));
+  };
+
+  const updateInventoryScheme = (category: string, patch: Partial<InventoryNumberScheme>) => {
+    setInventorySchemes((current) =>
+      current.map((scheme) => (scheme.category === category ? { ...scheme, ...patch } : scheme))
+    );
+  };
+
+  const saveInventoryScheme = (scheme: InventoryNumberScheme) => {
+    setInventorySchemesMessage("");
+    api
+      .updateInventoryNumberScheme(scheme.category, {
+        prefix: scheme.prefix,
+        nextNumber: Number(scheme.nextNumber) || 1,
+        padding: Number(scheme.padding) || 6,
+        active: scheme.active
+      })
+      .then((updated) => updateInventoryScheme(updated.category, updated))
+      .catch((error: Error) => setInventorySchemesMessage(error.message));
   };
 
   const startCreate = () => {
@@ -331,6 +368,73 @@ export function SettingsView() {
                 <option>Dark</option>
               </select>
             </label>
+          </div>
+
+          <div className="inventory-number-settings">
+            <div className="settings-section-head">
+              <div>
+                <h3>Inventarnummern</h3>
+                <p>Praefixe, laufende Nummern und Stellen je Fahrzeugtyp verwalten.</p>
+              </div>
+              <button type="button" className="icon-button" onClick={loadInventorySchemes} aria-label="Aktualisieren" title="Aktualisieren" disabled={inventorySchemesLoading}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+
+            <div className="table-wrap settings-inline-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Kategorie</th>
+                    <th>Praefix</th>
+                    <th>Naechste Nr.</th>
+                    <th>Stellen</th>
+                    <th>Aktiv</th>
+                    <th>Vorschau</th>
+                    <th>Aktion</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inventorySchemesLoading && inventorySchemes.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="loading-cell">Lade Nummernschemata...</td>
+                    </tr>
+                  ) : inventorySchemes.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="loading-cell">Keine Nummernschemata gefunden.</td>
+                    </tr>
+                  ) : (
+                    inventorySchemes.map((scheme) => (
+                      <tr key={scheme.id}>
+                        <td><strong>{scheme.category}</strong></td>
+                        <td>
+                          <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
+                        </td>
+                        <td>
+                          <input type="number" min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
+                        </td>
+                        <td>
+                          <input type="number" min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
+                        </td>
+                        <td>
+                          <label className="switch-field" aria-label={`${scheme.category} aktiv`}>
+                            <input type="checkbox" checked={scheme.active} onChange={(event) => updateInventoryScheme(scheme.category, { active: event.target.checked })} />
+                            <span />
+                          </label>
+                        </td>
+                        <td><code>{scheme.preview}</code></td>
+                        <td>
+                          <button type="button" className="secondary-button compact-action" onClick={() => saveInventoryScheme(scheme)}>
+                            Speichern
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {inventorySchemesMessage && <p className="form-message">{inventorySchemesMessage}</p>}
           </div>
 
           <div className="settings-card-actions">

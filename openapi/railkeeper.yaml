@@ -8,6 +8,7 @@ tags:
   - name: Setup
   - name: Auth
   - name: Vehicles
+  - name: InventoryNumbers
   - name: MasterData
   - name: ArticleSearch
   - name: Backup
@@ -336,6 +337,48 @@ components:
           type: string
         sortOrder:
           type: integer
+    InventoryNumberScheme:
+      type: object
+      required: [id, category, prefix, nextNumber, padding, active, preview, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        category:
+          type: string
+        prefix:
+          type: string
+        nextNumber:
+          type: integer
+          minimum: 1
+        padding:
+          type: integer
+          minimum: 1
+          maximum: 12
+        active:
+          type: boolean
+        preview:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    InventoryNumberSchemeInput:
+      type: object
+      required: [prefix, nextNumber, padding, active]
+      properties:
+        prefix:
+          type: string
+        nextNumber:
+          type: integer
+          minimum: 1
+        padding:
+          type: integer
+          minimum: 1
+          maximum: 12
+        active:
+          type: boolean
     ArticleSearchInput:
       type: object
       properties:
@@ -587,6 +630,52 @@ paths:
           description: Vehicle deleted
         "404":
           description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /inventory-number-schemes:
+    get:
+      tags: [InventoryNumbers]
+      responses:
+        "200":
+          description: Inventory number schemes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InventoryNumberScheme"
+  /inventory-number-schemes/{category}:
+    put:
+      tags: [InventoryNumbers]
+      parameters:
+        - name: category
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryNumberSchemeInput"
+      responses:
+        "200":
+          description: Inventory number scheme updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryNumberScheme"
+        "400":
+          description: Invalid inventory number scheme
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Inventory number scheme not found
           content:
             application/json:
               schema:

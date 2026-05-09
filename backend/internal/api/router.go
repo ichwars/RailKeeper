@@ -23,6 +23,7 @@ type Config struct {
 	VehicleService    *application.VehicleService
 	MasterDataService *application.MasterDataService
 	ArticleSearch     *application.ArticleSearchService
+	InventoryNumbers  *application.InventoryNumberService
 	CookieSecure      bool
 }
 
@@ -35,6 +36,7 @@ type App struct {
 	vehicleService    *application.VehicleService
 	masterDataService *application.MasterDataService
 	articleSearch     *application.ArticleSearchService
+	inventoryNumbers  *application.InventoryNumberService
 	cookieSecure      bool
 }
 
@@ -51,6 +53,7 @@ func NewRouter(config Config) http.Handler {
 		vehicleService:    config.VehicleService,
 		masterDataService: config.MasterDataService,
 		articleSearch:     config.ArticleSearch,
+		inventoryNumbers:  config.InventoryNumbers,
 		cookieSecure:      config.CookieSecure,
 	}
 	if app.articleSearch == nil {
@@ -78,6 +81,8 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
 	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
+	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
+	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
 	mux.HandleFunc("GET /api/v1/master-data-all", app.require("Viewer", app.listAllMasterData))
 	mux.HandleFunc("GET /api/v1/master-data/{type}", app.require("Viewer", app.listMasterData))
 	mux.HandleFunc("POST /api/v1/master-data/{type}", app.require("Editor", app.createMasterData))
@@ -194,12 +199,17 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 
 	vehicle, err := a.vehicleService.Create(r.Context(), input, actorUserID(r))
 	if err != nil {
-		if errors.Is(err, application.ErrVehicleValidation) {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name and gauge are required.")
-			return
+		case errors.Is(err, application.ErrInventoryNumberConflict):
+			respondProblem(w, http.StatusConflict, "inventory_number_conflict", "Inventory number already exists.")
+		case errors.Is(err, application.ErrInventoryNumberNotFound):
+			respondProblem(w, http.StatusBadRequest, "inventory_number_scheme_missing", "No active inventory number scheme is available.")
+		default:
+			a.logger.Error("vehicle create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "vehicle_create_failed", "Could not create vehicle.")
 		}
-		a.logger.Error("vehicle create failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "vehicle_create_failed", "Could not create vehicle.")
 		return
 	}
 
@@ -231,8 +241,10 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
-		case errors.Is(err, application.ErrVehicleValidation):
+		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name and gauge are required.")
+		case errors.Is(err, application.ErrInventoryNumberConflict):
+			respondProblem(w, http.StatusConflict, "inventory_number_conflict", "Inventory number already exists.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 		default:
@@ -278,6 +290,41 @@ func (a *App) searchArticleData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) listInventoryNumberSchemes(w http.ResponseWriter, r *http.Request) {
+	schemes, err := a.inventoryNumbers.List(r.Context())
+	if err != nil {
+		a.logger.Error("inventory number scheme list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "inventory_number_scheme_list_failed", "Could not list inventory number schemes.")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, schemes)
+}
+
+func (a *App) updateInventoryNumberScheme(w http.ResponseWriter, r *http.Request) {
+	var input application.InventoryNumberSchemeInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	scheme, err := a.inventoryNumbers.Update(r.Context(), r.PathValue("category"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrInventoryNumberValidation):
+			respondProblem(w, http.StatusBadRequest, "inventory_number_validation", "Prefix, next number and padding are required.")
+		case errors.Is(err, application.ErrInventoryNumberNotFound):
+			respondProblem(w, http.StatusNotFound, "inventory_number_scheme_not_found", "Inventory number scheme not found.")
+		default:
+			a.logger.Error("inventory number scheme update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "inventory_number_scheme_update_failed", "Could not update inventory number scheme.")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusOK, scheme)
 }
 
 func (a *App) listMasterData(w http.ResponseWriter, r *http.Request) {

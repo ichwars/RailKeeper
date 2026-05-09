@@ -1204,7 +1204,7 @@ export function VehiclesView() {
                         <div className="form-row">
                           <label>
                             Inventar-Nr.
-                            <input value={form.inventoryNumber || ""} onChange={(event) => update({ inventoryNumber: event.target.value })} disabled={readonly} />
+                            <input value={form.inventoryNumber || ""} onChange={(event) => update({ inventoryNumber: event.target.value })} disabled={readonly} placeholder="wird automatisch vergeben" />
                           </label>
                           <label>
                             Artikel-Nr.

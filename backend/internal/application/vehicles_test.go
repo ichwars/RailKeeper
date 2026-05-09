@@ -25,6 +25,49 @@ func TestCreateVehicleAssignsInventoryNumber(t *testing.T) {
 	}
 }
 
+func TestCreateVehicleUsesCategoryInventoryNumberScheme(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+
+	vehicle, err := service.Create(context.Background(), application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "H0",
+		Category:     "Lokomotive",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vehicle.InventoryNumber != "RK-LOK-000001" {
+		t.Fatalf("unexpected inventory number %q", vehicle.InventoryNumber)
+	}
+}
+
+func TestCreateVehicleRejectsDuplicateManualInventoryNumber(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	_, err := service.Create(ctx, application.CreateVehicleInput{
+		InventoryNumber: "RK-MAN-000001",
+		Manufacturer:    "Piko",
+		Name:            "BR 118",
+		Gauge:           "H0",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.Create(ctx, application.CreateVehicleInput{
+		InventoryNumber: "RK-MAN-000001",
+		Manufacturer:    "Roco",
+		Name:            "V 200",
+		Gauge:           "H0",
+	}, "actor-1")
+	if !errors.Is(err, application.ErrInventoryNumberConflict) {
+		t.Fatalf("expected inventory number conflict, got %v", err)
+	}
+}
+
 func TestCreateVehicleValidatesRequiredFields(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
@@ -151,6 +194,42 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 	}
 	if !updated.CouplingSame || updated.CouplingRear != "Kurzkupplung" || !updated.DriveEnabled || updated.DriveDescription != "Kardan" || !updated.QRCodeEnabled {
 		t.Fatalf("unexpected technical details: %#v", updated)
+	}
+}
+
+func TestUpdateVehicleRecordsInventoryNumberHistory(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "H0",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
+		InventoryNumber: "RK-LOK-999999",
+		Manufacturer:    "Piko",
+		Name:            "BR 118",
+		Gauge:           "H0",
+	}, "actor-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.InventoryNumber != "RK-LOK-999999" {
+		t.Fatalf("unexpected inventory number %q", updated.InventoryNumber)
+	}
+
+	var historyCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM inventory_number_history WHERE vehicle_id=? AND old_number=? AND new_number=?`, created.ID, created.InventoryNumber, "RK-LOK-999999").Scan(&historyCount); err != nil {
+		t.Fatal(err)
+	}
+	if historyCount != 1 {
+		t.Fatalf("expected one history entry, got %d", historyCount)
 	}
 }
 

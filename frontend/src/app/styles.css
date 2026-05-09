@@ -384,6 +384,72 @@ h1 {
   justify-content: flex-end;
 }
 
+.inventory-number-settings {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.settings-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-section-head > div {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-inline-table {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.settings-inline-table table {
+  overflow: hidden;
+}
+
+.settings-inline-table th {
+  background: var(--panel-subtle);
+}
+
+.settings-inline-table input {
+  min-height: 36px;
+  width: 100%;
+  min-width: 92px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.settings-inline-table input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.settings-inline-table code {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  border-radius: 6px;
+  padding: 0 9px;
+  background: color-mix(in srgb, var(--accent) 8%, #fff);
+  color: var(--accent-strong);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.compact-action {
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .data-card {
   padding-bottom: 28px;
 }

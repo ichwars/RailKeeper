@@ -212,12 +212,24 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" {
 		return nil, ErrVehicleValidation
 	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin create vehicle: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
 	if input.InventoryNumber == "" {
-		next, err := s.nextInventoryNumber(ctx)
+		input.InventoryNumber, err = s.nextInventoryNumber(ctx, tx, input.Category)
 		if err != nil {
 			return nil, err
 		}
-		input.InventoryNumber = next
+	} else if err = s.ensureInventoryNumberAvailable(ctx, tx, input.InventoryNumber, ""); err != nil {
+		return nil, err
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -275,16 +287,6 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		CreatedAt:                 now,
 		UpdatedAt:                 now,
 	}
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin create vehicle: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
 
 	if _, err = tx.ExecContext(ctx, `
 INSERT INTO vehicles(
@@ -401,6 +403,12 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 		}
 	}()
 
+	if vehicle.InventoryNumber != existing.InventoryNumber {
+		if err = s.ensureInventoryNumberAvailable(ctx, tx, vehicle.InventoryNumber, vehicle.ID); err != nil {
+			return nil, err
+		}
+	}
+
 	result, err := tx.ExecContext(ctx, `
 UPDATE vehicles
 SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?, epoch=?, railway_company=?, category=?, gattung=?,
@@ -424,6 +432,15 @@ WHERE id=?
 	if affected == 0 {
 		_ = tx.Rollback()
 		return nil, ErrVehicleNotFound
+	}
+
+	if vehicle.InventoryNumber != existing.InventoryNumber {
+		if _, err = tx.ExecContext(ctx, `
+INSERT INTO inventory_number_history(id, vehicle_id, old_number, new_number, changed_by_user_id, changed_at, reason)
+VALUES(?, ?, ?, ?, ?, ?, 'manual_update')
+`, randomID(), vehicle.ID, existing.InventoryNumber, vehicle.InventoryNumber, actorUserID, now); err != nil {
+			return nil, fmt.Errorf("write inventory number history: %w", err)
+		}
 	}
 
 	if _, err = tx.ExecContext(ctx, `
@@ -587,16 +604,94 @@ WHERE id=?
 	return &vehicle, nil
 }
 
-func (s *VehicleService) nextInventoryNumber(ctx context.Context) (string, error) {
-	var next int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT COALESCE(MAX(CAST(SUBSTR(inventory_number, 8) AS INTEGER)), 0) + 1
-FROM vehicles
-WHERE inventory_number LIKE 'RK-FAH-%'
-`).Scan(&next); err != nil {
-		return "", fmt.Errorf("next inventory number: %w", err)
+func (s *VehicleService) nextInventoryNumber(ctx context.Context, tx *sql.Tx, vehicleCategory string) (string, error) {
+	category := inventoryCategoryForVehicle(vehicleCategory)
+	scheme, err := s.inventoryNumberSchemeForUpdate(ctx, tx, category)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("RK-FAH-%06d", next), nil
+
+	next := scheme.NextNumber
+	for attempts := 0; attempts < 500; attempts++ {
+		candidate := formatInventoryNumber(scheme.Prefix, next, scheme.Padding)
+		if err := s.ensureInventoryNumberAvailable(ctx, tx, candidate, ""); err == nil {
+			if _, err = tx.ExecContext(ctx, `
+UPDATE inventory_number_schemes
+SET next_number=?, updated_at=?
+WHERE category=?
+`, next+1, time.Now().UTC().Format(time.RFC3339), scheme.Category); err != nil {
+				return "", fmt.Errorf("advance inventory number scheme: %w", err)
+			}
+			return candidate, nil
+		} else if !errors.Is(err, ErrInventoryNumberConflict) {
+			return "", err
+		}
+		next++
+	}
+
+	return "", fmt.Errorf("next inventory number: exhausted attempts for %s", category)
+}
+
+func (s *VehicleService) inventoryNumberSchemeForUpdate(ctx context.Context, tx *sql.Tx, category string) (*InventoryNumberScheme, error) {
+	var scheme InventoryNumberScheme
+	var active int
+	err := tx.QueryRowContext(ctx, `
+SELECT id, category, prefix, next_number, padding, active, created_at, updated_at
+FROM inventory_number_schemes
+WHERE category=? AND active=1
+`, category).Scan(
+		&scheme.ID,
+		&scheme.Category,
+		&scheme.Prefix,
+		&scheme.NextNumber,
+		&scheme.Padding,
+		&active,
+		&scheme.CreatedAt,
+		&scheme.UpdatedAt,
+	)
+	if errors.Is(err, sql.ErrNoRows) && category != "Fahrzeug" {
+		err = tx.QueryRowContext(ctx, `
+SELECT id, category, prefix, next_number, padding, active, created_at, updated_at
+FROM inventory_number_schemes
+WHERE category='Fahrzeug' AND active=1
+`).Scan(
+			&scheme.ID,
+			&scheme.Category,
+			&scheme.Prefix,
+			&scheme.NextNumber,
+			&scheme.Padding,
+			&active,
+			&scheme.CreatedAt,
+			&scheme.UpdatedAt,
+		)
+	}
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrInventoryNumberNotFound
+		}
+		return nil, fmt.Errorf("read inventory number scheme: %w", err)
+	}
+	scheme.Active = active == 1
+	return &scheme, nil
+}
+
+func (s *VehicleService) ensureInventoryNumberAvailable(ctx context.Context, tx *sql.Tx, inventoryNumber, excludeVehicleID string) error {
+	inventoryNumber = strings.TrimSpace(inventoryNumber)
+	if inventoryNumber == "" {
+		return ErrInventoryNumberValidation
+	}
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*)
+FROM vehicles
+WHERE inventory_number=? AND (? = '' OR id <> ?)
+`, inventoryNumber, excludeVehicleID, excludeVehicleID).Scan(&count); err != nil {
+		return fmt.Errorf("check inventory number availability: %w", err)
+	}
+	if count > 0 {
+		return ErrInventoryNumberConflict
+	}
+	return nil
 }
 
 func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {

@@ -66,6 +66,7 @@ func main() {
 		VehicleService:    application.NewVehicleService(db),
 		MasterDataService: masterDataService,
 		ArticleSearch:     application.NewArticleSearchService(),
+		InventoryNumbers:  application.NewInventoryNumberService(db),
 		CookieSecure:      cookieSecure,
 	})
 
