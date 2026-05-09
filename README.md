@@ -9,6 +9,7 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - first-run setup without default credentials
 - login, logout, server-side sessions, roles and CSRF protection
 - vehicle list with search and sortable columns
+- printable/PDF inventory report with summary and vehicle detail cards
 - vehicle create, detail, edit and delete dialogs
 - configurable inventory number schemes with collision checks
 - inventory number change history

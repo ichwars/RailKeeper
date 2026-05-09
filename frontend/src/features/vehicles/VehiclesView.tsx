@@ -583,6 +583,184 @@ function formatDate(value?: string) {
   return date.toLocaleDateString("de-DE");
 }
 
+function reportValue(value?: string | number | boolean) {
+  if (typeof value === "boolean") return value ? "Ja" : "Nein";
+  if (value === 0) return "0";
+  return String(value || "-");
+}
+
+function escapeHtml(value?: string | number | boolean) {
+  return reportValue(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function reportField(label: string, value?: string | number | boolean) {
+  return `
+    <div class="field">
+      <span>${escapeHtml(label)}</span>
+      <strong>${escapeHtml(value)}</strong>
+    </div>
+  `;
+}
+
+function reportImage(vehicle: Vehicle) {
+  const image = primaryImage(vehicle.images);
+  if (!image?.url) {
+    return `<div class="image-placeholder">Keine Vorschau</div>`;
+  }
+  return `<img class="vehicle-image" src="${escapeHtml(image.url)}" alt="">`;
+}
+
+function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: SortKey; direction: SortDirection }) {
+  const now = new Date();
+  const totalAttachments = vehicles.reduce((sum, vehicle) => sum + (vehicle.attachments || []).length, 0);
+  const totalImages = vehicles.reduce((sum, vehicle) => sum + (vehicle.images || []).length, 0);
+  const totalCVValues = vehicles.reduce((sum, vehicle) => sum + (vehicle.cvValues || []).length, 0);
+  const rows = vehicles
+    .map(
+      (vehicle) => `
+        <tr>
+          <td>${escapeHtml(vehicle.inventoryNumber)}</td>
+          <td>${escapeHtml(vehicle.manufacturer)}</td>
+          <td>${escapeHtml(vehicle.articleNumber)}</td>
+          <td>${escapeHtml(vehicle.name)}</td>
+          <td>${escapeHtml(vehicle.gauge)}</td>
+          <td>${escapeHtml(vehicle.epoch)}</td>
+          <td>${escapeHtml(vehicle.category)}</td>
+        </tr>
+      `
+    )
+    .join("");
+  const details = vehicles
+    .map((vehicle) => {
+      const dueMaintenance = (vehicle.maintenance || []).filter(maintenanceIsDue).length;
+      const activeFunctions = (vehicle.functions || []).filter((item) => item.name || item.symbolKey || item.notes).length;
+      return `
+        <section class="vehicle-card">
+          <div class="vehicle-card-head">
+            ${reportImage(vehicle)}
+            <div>
+              <h2>${escapeHtml(vehicle.inventoryNumber)} · ${escapeHtml(vehicle.name)}</h2>
+              <p>${escapeHtml([vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(" · "))}</p>
+            </div>
+          </div>
+          <div class="field-grid">
+            ${reportField("Kategorie", vehicle.category)}
+            ${reportField("Gattung", vehicle.gattung)}
+            ${reportField("Bahngesellschaft", vehicle.railwayCompany)}
+            ${reportField("Baureihe", vehicle.series)}
+            ${reportField("Fahrzeug-Nr.", vehicle.vehicleNumber)}
+            ${reportField("EAN", vehicle.ean)}
+            ${reportField("Laenge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "")}
+            ${reportField("Gewicht", vehicle.weightG ? `${vehicle.weightG} g` : "")}
+            ${reportField("Farbe", vehicle.color)}
+            ${reportField("Beschriftung", vehicle.lettering)}
+            ${reportField("Digital", vehicle.digital)}
+            ${reportField("Decoder-Nr.", vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber)}
+            ${reportField("Soundgenerator", vehicle.soundGeneratorEnabled)}
+            ${reportField("Fahrlicht", vehicle.headlightsEnabled)}
+            ${reportField("Beleuchtung", vehicle.lightingEnabled)}
+            ${reportField("Rauchgenerator", vehicle.smokeGeneratorEnabled)}
+            ${reportField("Bilder", (vehicle.images || []).length)}
+            ${reportField("Beilagen", (vehicle.attachments || []).length)}
+            ${reportField("Wartung faellig", dueMaintenance)}
+            ${reportField("Funktionen", activeFunctions)}
+            ${reportField("CV-Werte", (vehicle.cvValues || []).length)}
+          </div>
+          ${vehicle.description ? `<p class="description">${escapeHtml(vehicle.description)}</p>` : ""}
+          ${vehicle.additionalInfo ? `<p class="description">${escapeHtml(vehicle.additionalInfo)}</p>` : ""}
+        </section>
+      `;
+    })
+    .join("");
+
+  return `
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <title>RailKeeper2 Bestand</title>
+    <style>
+      :root { color: #0b1e26; font-family: "SF Pro Display", "Segoe UI", Arial, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 24px; background: #fff; }
+      header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 18px; border-bottom: 2px solid #1c621b; }
+      h1 { margin: 0; font-size: 26px; }
+      h2 { margin: 0; font-size: 18px; }
+      p { margin: 6px 0 0; color: #487070; }
+      .meta { text-align: right; font-size: 12px; color: #487070; }
+      .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
+      .summary div { border: 1px solid #d9e4df; border-radius: 8px; padding: 10px; background: #f7faf8; }
+      .summary span, .field span { display: block; color: #487070; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+      .summary strong { display: block; margin-top: 4px; font-size: 22px; }
+      table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 12px; }
+      th, td { border-bottom: 1px solid #d9e4df; padding: 8px; text-align: left; vertical-align: top; }
+      th { background: #eef5f1; color: #24474a; font-size: 10px; text-transform: uppercase; }
+      .vehicle-card { page-break-inside: avoid; border: 1px solid #d9e4df; border-radius: 8px; padding: 12px; margin: 12px 0; }
+      .vehicle-card-head { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
+      .vehicle-image, .image-placeholder { width: 76px; height: 54px; border: 1px solid #d9e4df; border-radius: 7px; object-fit: cover; background: #f2f6f5; }
+      .image-placeholder { display: grid; place-items: center; color: #789; font-size: 10px; text-align: center; padding: 4px; }
+      .field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .field { min-height: 48px; border: 1px solid #e1e9e5; border-radius: 7px; padding: 8px; }
+      .field strong { display: block; margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
+      .description { border-left: 3px solid #a5ec60; padding-left: 10px; margin-top: 10px; color: #0b1e26; white-space: pre-wrap; }
+      .screen-actions { position: sticky; top: 0; display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
+      button { border: 0; border-radius: 7px; padding: 10px 14px; background: #3c8eff; color: white; font-weight: 800; cursor: pointer; }
+      @page { margin: 14mm; }
+      @media print {
+        body { margin: 0; }
+        .screen-actions { display: none; }
+        header { break-after: avoid; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="screen-actions">
+      <button onclick="window.print()">Drucken / Als PDF speichern</button>
+    </div>
+    <header>
+      <div>
+        <h1>RailKeeper2 Bestand</h1>
+        <p>${query.trim() ? `Filter: ${escapeHtml(query.trim())}` : "Alle Fahrzeuge"}</p>
+      </div>
+      <div class="meta">
+        <strong>${escapeHtml(now.toLocaleDateString("de-DE"))}</strong><br>
+        ${escapeHtml(now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }))}<br>
+        Sortierung: ${escapeHtml(sortLabels[sort.key])} ${sort.direction === "asc" ? "aufsteigend" : "absteigend"}
+      </div>
+    </header>
+    <section class="summary">
+      <div><span>Fahrzeuge</span><strong>${vehicles.length}</strong></div>
+      <div><span>Bilder</span><strong>${totalImages}</strong></div>
+      <div><span>Beilagen</span><strong>${totalAttachments}</strong></div>
+      <div><span>CV-Werte</span><strong>${totalCVValues}</strong></div>
+    </section>
+    <h2>Uebersicht</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Inventar</th>
+          <th>Hersteller</th>
+          <th>Artikel</th>
+          <th>Bezeichnung</th>
+          <th>Spur</th>
+          <th>Epoche</th>
+          <th>Kategorie</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <h2>Details</h2>
+    ${details}
+  </body>
+</html>
+`;
+}
+
 function maintenanceIsDue(entry: VehicleMaintenance) {
   if (!entry.dueDate || entry.status === "erledigt") return false;
   const today = new Date();
@@ -1836,6 +2014,21 @@ export function VehiclesView() {
     printWindow.print();
   };
 
+  const printInventoryReport = () => {
+    if (sortedVehicles.length === 0) {
+      setMessage("Es gibt keine Fahrzeuge fuer den PDF-Report.");
+      return;
+    }
+    const printWindow = window.open("", "railkeeper-inventory-report", "width=1180,height=860");
+    if (!printWindow) {
+      setMessage("Druckfenster konnte nicht geoeffnet werden.");
+      return;
+    }
+    printWindow.document.write(inventoryReportHtml(sortedVehicles, query, sort));
+    printWindow.document.close();
+    printWindow.focus();
+  };
+
   const toggleSort = (key: SortKey) => {
     setSort((current) => ({
       key,
@@ -2015,6 +2208,9 @@ export function VehiclesView() {
           <h2>Fahrzeuge</h2>
           <div className="table-actions">
             <span className="count-badge">{vehicles.length}</span>
+            <button type="button" className="icon-button" onClick={printInventoryReport} aria-label="Bestand als PDF drucken" title="Bestand als PDF drucken" disabled={loading || vehicles.length === 0}>
+              <Printer size={16} />
+            </button>
             <button type="button" className="icon-button" onClick={load} aria-label="Aktualisieren" title="Aktualisieren" disabled={loading}>
               <RefreshCw size={16} />
             </button>
