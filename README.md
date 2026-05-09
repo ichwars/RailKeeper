@@ -1,6 +1,6 @@
 # RailKeeper2
 
-RailKeeper2 is a local-first inventory application for model railway vehicles. It is designed as the clean successor to the original RailKeeper project: smaller, safer, easier to maintain, and focused on a solid vehicle workflow before accessories or larger collection modules are added.
+RailKeeper2 is a local-first inventory application for model railway vehicles. It is designed to stay small, safe and easy to maintain, with a solid vehicle workflow before accessories or larger collection modules are added.
 
 The application runs as one Go service that serves both the JSON API and the React frontend. Data is stored in SQLite so a private installation can stay simple to operate and back up.
 

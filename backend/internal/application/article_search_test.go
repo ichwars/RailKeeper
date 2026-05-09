@@ -77,10 +77,10 @@ func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 	fields := map[string]ArticleSearchField{"articleNumber": {Label: "Artikel-Nr.", Value: "47284", Confidence: 90}}
 
 	manufacturerScore := scoreArticleResult(input, "Piko V180", "https://www.piko.de/DE/index.php/de/piko-shop.html", "47284 TT", fields)
-	shopScore := scoreArticleResult(input, "Piko V180", "https://example-shop.test/piko-v180", "47284 TT", fields)
+	marketplaceScore := scoreArticleResult(input, "Piko V180", "https://www.idealo.de/preisvergleich/piko-v180.html", "47284 TT", fields)
 
-	if manufacturerScore <= shopScore {
-		t.Fatalf("manufacturer domain should rank higher, got manufacturer=%d shop=%d", manufacturerScore, shopScore)
+	if manufacturerScore <= marketplaceScore {
+		t.Fatalf("manufacturer domain should rank higher, got manufacturer=%d marketplace=%d", manufacturerScore, marketplaceScore)
 	}
 }
 
@@ -101,6 +101,9 @@ func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	}
 	if fields["description"].Value == "" || strings.Contains(fields["description"].Value, "google_analytics") {
 		t.Fatalf("unexpected description %q", fields["description"].Value)
+	}
+	if !strings.HasPrefix(fields["description"].Value, "Neuheit 2021") {
+		t.Fatalf("expected manufacturer novelty text, got %q", fields["description"].Value)
 	}
 	if fields["lengthMm"].Value != "162" {
 		t.Fatalf("expected length 162, got %#v", fields["lengthMm"])
@@ -125,12 +128,48 @@ func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	}
 }
 
+func TestBuildArticleFieldsKeepsTechnicalContextSeparate(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
+	fields := buildArticleFields(input,
+		"TT Diesellok V 180 DR III - PIKO Webshop",
+		"https://www.piko-shop.de/de/artikel/tt-diesellok-v180-47284.html",
+		`Neuheit 2021: Druckvariante der B 118 als V180 der DR in Epoche III.
+		 Maß [mm]: 162. Anzahl Haftreifen: 2.
+		 Digitale Schnittstelle: NEM 658 PluX16.
+		 Lichtwechsel: Fahrtrichtungsabhängiger Lichtwechsel weiß / rot.
+		 Beleuchtung Beschreibung: Fahrtrichtungsabhängiger Lichtwechsel weiß / rot.
+		 Sound: PIKO Sound-Modul nachrüstbar #46552 DE | EN Menü Sprunggröße wählen.`,
+	)
+
+	if fields["description"].Value != "Neuheit 2021: Druckvariante der B 118 als V180 der DR in Epoche III" {
+		t.Fatalf("unexpected description %q", fields["description"].Value)
+	}
+	if fields["lengthMm"].Value != "162" {
+		t.Fatalf("expected length 162, got %#v", fields["lengthMm"])
+	}
+	if fields["tractionTireCount"].Value != "2" {
+		t.Fatalf("expected two traction tires, got %#v", fields["tractionTireCount"])
+	}
+	if _, ok := fields["digital"]; ok {
+		t.Fatal("digital interface must not be interpreted as digital decoder")
+	}
+	if fields["headlightsDescription"].Value == "" {
+		t.Fatal("expected directional headlight description")
+	}
+	if _, ok := fields["lightingDescription"]; ok {
+		t.Fatal("directional headlight description must not be copied to general lighting")
+	}
+	if fields["soundGeneratorDescription"].Value != "PIKO Sound-Modul nachrüstbar #46552" {
+		t.Fatalf("unexpected sound description %q", fields["soundGeneratorDescription"].Value)
+	}
+}
+
 func TestBuildArticleFieldsRejectsImplausibleLength(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
 	fields := buildArticleFields(input,
 		"TT Diesellok V 180 DR III",
 		"https://shop.example.test/piko-47284.html",
-		`Laenge (mm): 2026. Mass [mm]: 162.`,
+		`Länge (mm): 2026. Maß [mm]: 162.`,
 	)
 
 	if fields["lengthMm"].Value != "162" {
@@ -143,8 +182,8 @@ func TestBuildArticleFieldsRejectsWrongContextValues(t *testing.T) {
 	fields := buildArticleFields(input,
 		"TT Diesellok V 180 DR III",
 		"https://shop.example.test/piko-47284.html",
-		`Laenge (mm) 2026 Die Absicht ist, Anzeigen zu zeigen.
-		 Beleuchtung Beschreibung: Fahrtrichtungsabhaengiger Lichtwechsel weiss / rot.
+		`Länge (mm) 2026 Die Absicht ist, Anzeigen zu zeigen.
+		 Beleuchtung Beschreibung: Fahrtrichtungsabhängiger Lichtwechsel weiß / rot.
 		 Digitale Schnittstelle: NEM 658 PluX16. Ohne Sound.`,
 	)
 

@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -79,6 +80,9 @@ func NewRouter(config Config) http.Handler {
 	}
 	if app.backupService == nil {
 		app.backupService = application.NewBackupService(nil, app.dataDir)
+	}
+	if app.vehicleService != nil {
+		app.vehicleService.SetImageLocalizer(app.localizeVehicleImages)
 	}
 
 	mux := http.NewServeMux()
@@ -332,6 +336,143 @@ const (
 
 var safeFileNamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
+var allowedAttachmentExtensions = map[string]struct{}{
+	".csv":  {},
+	".jpeg": {},
+	".jpg":  {},
+	".json": {},
+	".pdf":  {},
+	".png":  {},
+	".txt":  {},
+	".webp": {},
+	".xml":  {},
+	".zip":  {},
+}
+
+func (a *App) localizeVehicleImages(ctx context.Context, vehicleID string, images []application.VehicleImageInput) ([]application.VehicleImageInput, error) {
+	out := make([]application.VehicleImageInput, len(images))
+	copy(out, images)
+	for index, image := range out {
+		if image.StoragePath != "" || !strings.HasPrefix(strings.ToLower(image.URL), "http") {
+			continue
+		}
+		localized, err := a.localizeVehicleImage(ctx, vehicleID, image)
+		if err != nil {
+			a.logger.Warn("article image localization skipped", "url", image.URL, "error", err)
+			continue
+		}
+		out[index] = localized
+	}
+	return out, nil
+}
+
+func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image application.VehicleImageInput) (application.VehicleImageInput, error) {
+	if !isPublicImageURL(ctx, image.URL) {
+		return image, fmt.Errorf("image url is not public http(s)")
+	}
+	requestCtx, cancel := context.WithTimeout(ctx, 6*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, image.URL, nil)
+	if err != nil {
+		return image, err
+	}
+	req.Header.Set("User-Agent", "RailKeeper2/0.1 image-fetch")
+	req.Header.Set("Accept", "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8")
+	client := &http.Client{Timeout: 6 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return image, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return image, fmt.Errorf("image fetch returned status %d", resp.StatusCode)
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxImageBytes+1))
+	if err != nil || len(data) == 0 || int64(len(data)) > maxImageBytes {
+		return image, fmt.Errorf("image size invalid")
+	}
+	mimeType := http.DetectContentType(data)
+	if !isAllowedImageMime(mimeType) {
+		return image, fmt.Errorf("image type %s is not allowed", mimeType)
+	}
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), remoteImageFileName(image, mimeType))
+	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", storageName)
+	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	if err != nil {
+		return image, err
+	}
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		return image, err
+	}
+	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
+		return image, err
+	}
+	if image.SourceURL == "" {
+		image.SourceURL = image.URL
+	}
+	image.FileName = storageName
+	image.MimeType = mimeType
+	image.StoragePath = storagePath
+	return image, nil
+}
+
+func remoteImageFileName(image application.VehicleImageInput, mimeType string) string {
+	extension := ".jpg"
+	switch mimeType {
+	case "image/png":
+		extension = ".png"
+	case "image/webp":
+		extension = ".webp"
+	}
+	base := strings.TrimSpace(image.Title)
+	if base == "" {
+		if parsed, err := url.Parse(image.URL); err == nil {
+			base = path.Base(parsed.Path)
+		}
+	}
+	base = strings.TrimSuffix(base, filepath.Ext(base))
+	if base == "" || base == "." || base == "/" {
+		base = "artikelbild"
+	}
+	return safeAttachmentFileName(base + extension)
+}
+
+func isPublicImageURL(ctx context.Context, value string) bool {
+	parsed, err := url.Parse(value)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
+		return false
+	}
+	host := strings.ToLower(parsed.Hostname())
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return false
+	}
+	if ip := net.ParseIP(host); ip != nil {
+		return isPublicIP(ip)
+	}
+	lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+	addresses, err := net.DefaultResolver.LookupIPAddr(lookupCtx, host)
+	if err != nil || len(addresses) == 0 {
+		return false
+	}
+	for _, address := range addresses {
+		if !isPublicIP(address.IP) {
+			return false
+		}
+	}
+	return true
+}
+
+func isPublicIP(ip net.IP) bool {
+	return ip != nil &&
+		!ip.IsLoopback() &&
+		!ip.IsPrivate() &&
+		!ip.IsLinkLocalUnicast() &&
+		!ip.IsLinkLocalMulticast() &&
+		!ip.IsMulticast() &&
+		!ip.IsUnspecified()
+}
+
 func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxImageBytes+1024*1024)
 	if err := r.ParseMultipartForm(maxImageBytes); err != nil {
@@ -461,12 +602,13 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = file.Close() }()
+	originalName := cleanOriginalFileName(header.Filename)
 	if header.Size > maxAttachmentBytes {
 		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
 		return
 	}
-	if isBlockedAttachmentName(header.Filename) {
-		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausfuehrbare Dateien sind nicht erlaubt.")
+	if isBlockedAttachmentName(originalName) {
+		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausführbare Dateien sind nicht erlaubt.")
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(file, maxAttachmentBytes+1))
@@ -474,13 +616,21 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
 		return
 	}
+	if len(data) == 0 {
+		respondProblem(w, http.StatusBadRequest, "attachment_empty", "Leere Dateien sind nicht erlaubt.")
+		return
+	}
 	mimeType := http.DetectContentType(data)
 	if isBlockedAttachmentMime(mimeType) {
-		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausfuehrbare Dateien sind nicht erlaubt.")
+		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausführbare Dateien sind nicht erlaubt.")
+		return
+	}
+	if !isAllowedAttachmentUpload(originalName, mimeType) {
+		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.")
 		return
 	}
 	vehicleID := r.PathValue("id")
-	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
 	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), storageName)
 	fullPath, err := confinedDataPath(a.dataDir, storagePath)
 	if err != nil {
@@ -499,7 +649,7 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	attachment, err := a.vehicleService.CreateAttachment(r.Context(), vehicleID, application.VehicleAttachmentInput{
 		FileName:     storageName,
-		OriginalName: header.Filename,
+		OriginalName: originalName,
 		Description:  r.FormValue("description"),
 		Category:     r.FormValue("category"),
 		MimeType:     mimeType,
@@ -578,7 +728,7 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 	if r.URL.Query().Get("inline") == "true" && strings.Contains(strings.ToLower(attachment.MimeType), "pdf") {
 		disposition = "inline"
 	}
-	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": path.Base(attachment.OriginalName)}))
+	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": cleanOriginalFileName(attachment.OriginalName)}))
 	http.ServeFile(w, r, fullPath)
 }
 
@@ -677,7 +827,7 @@ func (a *App) upsertVehicleFunction(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation):
-			respondProblem(w, http.StatusBadRequest, "function_invalid", "Digitalfunktion ist ungueltig.")
+			respondProblem(w, http.StatusBadRequest, "function_invalid", "Digitalfunktion ist ungültig.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 		default:
@@ -788,7 +938,8 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = file.Close() }()
-	if header.Size > maxAttachmentBytes || isBlockedAttachmentName(header.Filename) {
+	originalName := cleanOriginalFileName(header.Filename)
+	if header.Size > maxAttachmentBytes || isBlockedAttachmentName(originalName) {
 		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
 		return
 	}
@@ -797,13 +948,17 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gross.")
 		return
 	}
+	if len(data) == 0 {
+		respondProblem(w, http.StatusBadRequest, "cv_file_empty", "Leere Dateien sind nicht erlaubt.")
+		return
+	}
 	mimeType := http.DetectContentType(data)
 	if isBlockedAttachmentMime(mimeType) {
 		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
 		return
 	}
 	vehicleID := r.PathValue("id")
-	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
 	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "cv", storageName)
 	fullPath, err := confinedDataPath(a.dataDir, storagePath)
 	if err != nil {
@@ -822,7 +977,7 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	cvFile, err := a.vehicleService.CreateCVFile(r.Context(), vehicleID, application.VehicleCVFileInput{
 		FileName:       storageName,
-		OriginalName:   header.Filename,
+		OriginalName:   originalName,
 		Description:    r.FormValue("description"),
 		DecoderProfile: r.FormValue("decoderProfile"),
 		MimeType:       mimeType,
@@ -878,7 +1033,7 @@ func (a *App) downloadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	if file.MimeType != "" {
 		w.Header().Set("Content-Type", file.MimeType)
 	}
-	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": path.Base(file.OriginalName)}))
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": cleanOriginalFileName(file.OriginalName)}))
 	http.ServeFile(w, r, fullPath)
 }
 
@@ -928,14 +1083,14 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 
 	backup, err := application.DecodeBackup(data)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungueltig.")
+		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungültig.")
 		return
 	}
 	result, err := a.backupService.Import(r.Context(), backup)
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrBackupInvalid), errors.Is(err, application.ErrBackupPath):
-			respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungueltig.")
+			respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungültig.")
 		default:
 			a.logger.Error("backup restore failed", "error", err)
 			respondProblem(w, http.StatusInternalServerError, "backup_restore_failed", "Backup konnte nicht wiederhergestellt werden.")
@@ -950,8 +1105,17 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, result)
 }
 
+func cleanOriginalFileName(value string) string {
+	value = strings.TrimSpace(strings.ReplaceAll(value, "\\", "/"))
+	value = strings.TrimSpace(path.Base(value))
+	if value == "" || value == "." || value == "/" {
+		return "beilage"
+	}
+	return value
+}
+
 func safeAttachmentFileName(value string) string {
-	value = strings.TrimSpace(filepath.Base(value))
+	value = cleanOriginalFileName(value)
 	if value == "" {
 		return "beilage"
 	}
@@ -1004,6 +1168,35 @@ func isBlockedAttachmentMime(value string) bool {
 		strings.Contains(value, "javascript") ||
 		strings.Contains(value, "ecmascript") ||
 		strings.Contains(value, "x-msdos-program")
+}
+
+func isAllowedAttachmentUpload(filename, mimeType string) bool {
+	if isBlockedAttachmentName(filename) || isBlockedAttachmentMime(mimeType) {
+		return false
+	}
+	extension := strings.ToLower(filepath.Ext(filename))
+	if _, ok := allowedAttachmentExtensions[extension]; !ok {
+		return false
+	}
+	mimeType = strings.ToLower(strings.TrimSpace(strings.Split(mimeType, ";")[0]))
+	switch extension {
+	case ".pdf":
+		return mimeType == "application/pdf"
+	case ".jpg", ".jpeg":
+		return mimeType == "image/jpeg"
+	case ".png":
+		return mimeType == "image/png"
+	case ".webp":
+		return mimeType == "image/webp"
+	case ".zip":
+		return mimeType == "application/zip" || mimeType == "application/x-zip-compressed" || mimeType == "application/octet-stream"
+	case ".txt", ".csv", ".json", ".xml":
+		return strings.HasPrefix(mimeType, "text/") ||
+			mimeType == "application/json" ||
+			mimeType == "application/xml"
+	default:
+		return false
+	}
 }
 
 func isAllowedImageMime(value string) bool {

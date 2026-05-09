@@ -6,11 +6,18 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  Circle,
+  Cloud,
+  Grid2X2,
   Download,
   ExternalLink,
   Eye,
   FileText,
+  Gauge,
   Image,
+  Lightbulb,
+  Link,
+  Megaphone,
   Pencil,
   Plus,
   Printer,
@@ -19,7 +26,9 @@ import {
   Save,
   Search,
   Star,
+  Table2,
   Trash2,
+  Volume2,
   Upload,
   Wrench,
   X
@@ -99,6 +108,7 @@ type ModalMode = "create" | "view" | "edit";
 type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance";
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type SortDirection = "asc" | "desc";
+type InventoryViewMode = "table" | "cards";
 type ArticleFieldKey = keyof CreateVehicleRequest;
 type PendingArticleImage = ArticleSearchImage & {
   id: string;
@@ -162,23 +172,30 @@ const sortLabels: Record<SortKey, string> = {
 };
 
 const wheelsetOptions = ["2-Leiter DC", "3-Leiter AC", "NEM", "RP25", "Metall", "Kunststoff"];
-const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Buegelkupplung", "Klauenkupplung", "Schraubenkupplung"];
+const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Bügelkupplung", "Klauenkupplung", "Schraubenkupplung"];
 const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
 const maintenanceKinds = ["Wartung", "Reparatur", "Umbau", "Superung", "Reinigung", "Schmierung", "Decoder-Einbau", "Ersatzteiltausch"];
-const maintenanceStatuses = ["geplant", "faellig", "erledigt"];
-const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparaturbeduerftig"];
+const maintenanceStatuses = [
+  { value: "geplant", label: "geplant" },
+  { value: "faellig", label: "fällig" },
+  { value: "erledigt", label: "erledigt" }
+];
+const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparaturbedürftig"];
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonderfunktion"];
 const functionModes = ["dauer", "moment"];
 const cvCategories = ["Adresse", "Fahrverhalten", "Motor", "Licht", "Sound", "Funktion", "Decoder", "Sonstiges"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
-const cvFileAccept = ".json,.csv,.txt,.xml,.z21,.esu,.lokprogrammer,.zip";
+const cvFileAccept = ".json,.csv,.txt,.xml,.z21,.esu,.esux,.lokprogrammer,.zip";
 const imageAccept = ".jpg,.jpeg,.png,.webp";
 const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
+const allowedAttachmentExtensions = new Set(["pdf", "jpg", "jpeg", "png", "webp", "txt", "csv", "json", "xml", "zip"]);
+const allowedCVFileExtensions = new Set(["json", "csv", "txt", "xml", "z21", "esu", "esux", "lokprogrammer", "zip"]);
 const allowedImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
+const inventoryViewSettingKey = "railkeeper.inventoryViewMode";
 
 const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   manufacturer: "Hersteller",
@@ -198,7 +215,7 @@ const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   ean: "EAN-Nr.",
   productionPeriod: "Produktionszeit",
   listPrice: "Listenpreis",
-  lengthMm: "Laenge (mm)",
+  lengthMm: "Länge (mm)",
   weightG: "Gewicht (g)",
   color: "Farbe",
   lettering: "Beschriftung",
@@ -358,6 +375,10 @@ function valueForSort(vehicle: Vehicle, key: SortKey) {
 
 function articleSearchEnabled() {
   return window.localStorage.getItem(articleSearchSettingKey) !== "false";
+}
+
+function inventoryViewMode(): InventoryViewMode {
+  return window.localStorage.getItem(inventoryViewSettingKey) === "cards" ? "cards" : "table";
 }
 
 function vehicleFieldsForSearch(form: CreateVehicleRequest) {
@@ -536,6 +557,32 @@ function emptyFunctionEdit(functionKey: string): VehicleFunctionInput & { persis
   };
 }
 
+function functionSymbolIcon(symbolKey?: string, functionType?: string) {
+  const key = symbolKey || functionType || "standard";
+  const props = { size: 16, "aria-hidden": true };
+  switch (key) {
+    case "light":
+    case "licht":
+      return <Lightbulb {...props} />;
+    case "sound":
+      return <Volume2 {...props} />;
+    case "horn":
+      return <Megaphone {...props} />;
+    case "coupling":
+    case "kupplung":
+      return <Link {...props} />;
+    case "smoke":
+    case "rauch":
+      return <Cloud {...props} />;
+    case "drive":
+      return <Gauge {...props} />;
+    case "warning":
+      return <AlertTriangle {...props} />;
+    default:
+      return <Circle {...props} />;
+  }
+}
+
 function cvValuesFromImport(text: string): VehicleCVValueInput[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
@@ -567,6 +614,19 @@ function cvValuesFromImport(text: string): VehicleCVValueInput[] {
         sourceFileId: ""
       };
     });
+}
+
+function cvValueKey(value: Pick<VehicleCVValueInput, "cvNumber" | "decoderProfile">) {
+  return `${Number(value.cvNumber)}::${(value.decoderProfile || "").trim().toLocaleLowerCase("de-DE")}`;
+}
+
+function isValidCVValueInput(value: VehicleCVValueInput) {
+  return Number.isInteger(Number(value.cvNumber)) &&
+    Number(value.cvNumber) >= 1 &&
+    Number(value.cvNumber) <= 1024 &&
+    Number.isInteger(Number(value.value)) &&
+    Number(value.value) >= 0 &&
+    Number(value.value) <= 255;
 }
 
 function formatFileSize(size: number) {
@@ -655,7 +715,7 @@ function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: So
             ${reportField("Baureihe", vehicle.series)}
             ${reportField("Fahrzeug-Nr.", vehicle.vehicleNumber)}
             ${reportField("EAN", vehicle.ean)}
-            ${reportField("Laenge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "")}
+            ${reportField("Länge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "")}
             ${reportField("Gewicht", vehicle.weightG ? `${vehicle.weightG} g` : "")}
             ${reportField("Farbe", vehicle.color)}
             ${reportField("Beschriftung", vehicle.lettering)}
@@ -667,7 +727,7 @@ function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: So
             ${reportField("Rauchgenerator", vehicle.smokeGeneratorEnabled)}
             ${reportField("Bilder", (vehicle.images || []).length)}
             ${reportField("Beilagen", (vehicle.attachments || []).length)}
-            ${reportField("Wartung faellig", dueMaintenance)}
+            ${reportField("Wartung fällig", dueMaintenance)}
             ${reportField("Funktionen", activeFunctions)}
             ${reportField("CV-Werte", (vehicle.cvValues || []).length)}
           </div>
@@ -769,12 +829,39 @@ function maintenanceIsDue(entry: VehicleMaintenance) {
   return !Number.isNaN(due.getTime()) && due <= today;
 }
 
+function maintenanceStatusLabel(status: string) {
+  return status === "faellig" || status === "fällig" ? "fällig" : status;
+}
+
+function maintenanceStatusClass(status: string) {
+  return status === "fällig" ? "faellig" : status;
+}
+
+function todayISODate() {
+  const today = new Date();
+  today.setMinutes(today.getMinutes() - today.getTimezoneOffset());
+  return today.toISOString().slice(0, 10);
+}
+
+function formatMaintenanceCost(cost?: string) {
+  if (!cost) return "-";
+  const value = Number(cost.replace(",", "."));
+  if (Number.isNaN(value)) return cost;
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value);
+}
+
 function fileExtension(fileName: string) {
   return fileName.split(".").pop()?.toLocaleLowerCase("de-DE") || "";
 }
 
 function isBlockedAttachmentFile(file: File) {
-  return blockedAttachmentExtensions.has(fileExtension(file.name));
+  const extension = fileExtension(file.name);
+  return blockedAttachmentExtensions.has(extension) || !allowedAttachmentExtensions.has(extension);
+}
+
+function isBlockedCVFile(file: File) {
+  const extension = fileExtension(file.name);
+  return blockedAttachmentExtensions.has(extension) || !allowedCVFileExtensions.has(extension);
 }
 
 function isAllowedImageFile(file: File) {
@@ -810,7 +897,7 @@ function composeBrandedQrSvg(svg: string) {
   return svg.replace("</svg>", `${mark}</svg>`);
 }
 
-function renderStaticOptions(items: string[], emptyLabel = "Bitte waehlen") {
+function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen") {
   return (
     <>
       <option value="">{emptyLabel}</option>
@@ -842,7 +929,7 @@ function VehicleDetailsFields({
     <>
       <div className="form-row four-columns">
         <label>
-          Laenge (mm)
+          Länge (mm)
           <input value={form.lengthMm || ""} onChange={(event) => update({ lengthMm: event.target.value })} disabled={readonly} inputMode="decimal" />
         </label>
         <label>
@@ -1039,15 +1126,15 @@ function ArticleSearchDialog({
         <div className="panel-head form-head">
           <div>
             <h2>Artikeldaten-Websuche</h2>
-            <p>{response?.query ? `Suchanfrage: ${response.query}` : "Webseiten werden als Vorschlaege ausgewertet."}</p>
+            <p>{response?.query ? `Suchanfrage: ${response.query}` : "Webseiten werden als Vorschläge ausgewertet."}</p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Schließen" title="Schließen">
             <X size={17} />
           </button>
         </div>
 
         <div className="article-dialog-state">
-          {loading && <p className="empty-state compact">Suche laeuft mit Timeout und ohne automatische Uebernahme...</p>}
+          {loading && <p className="empty-state compact">Suche läuft mit Timeout und ohne automatische Übernahme...</p>}
           {error && <p className="form-message">{error}</p>}
           {!loading && !error && response && response.results.length === 0 && (
             <p className="empty-state compact">Keine passenden Artikeldaten gefunden.</p>
@@ -1073,9 +1160,9 @@ function ArticleSearchDialog({
                     <span>{result.source} - {Object.keys(result.fields).length} Felder - Trefferwert {result.score}</span>
                     {result.snippet && <p>{result.snippet}</p>}
                   </div>
-                  <a className="secondary-button article-source-button" href={result.url} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+                  <a className="secondary-button article-source-button" href={result.url} target="_blank" rel="noreferrer" aria-label="Quelle öffnen" title="Quelle öffnen">
                     <ExternalLink size={15} />
-                    Quelle oeffnen
+                    Quelle öffnen
                   </a>
                 </header>
 
@@ -1113,7 +1200,7 @@ function ArticleSearchDialog({
                         <table>
                           <thead>
                             <tr>
-                              <th>Uebernehmen</th>
+                              <th>Übernehmen</th>
                               <th>Feld</th>
                               <th>Aktuell</th>
                               <th>Gefunden</th>
@@ -1160,10 +1247,10 @@ function ArticleSearchDialog({
                 </div>
 
                 <footer>
-                  <span>{selectableKeys.length} uebernehmbare Felder</span>
+                  <span>{selectableKeys.length} übernehmbare Felder</span>
                   <button type="button" className="primary-button" onClick={() => onApply(result)}>
                     <Check size={16} aria-hidden="true" />
-                    Ausgewaehlte Felder uebernehmen
+                    Ausgewählte Felder übernehmen
                   </button>
                 </footer>
               </article>
@@ -1173,8 +1260,8 @@ function ArticleSearchDialog({
 
         <footer className="article-dialog-actions">
           <button type="button" className="secondary-button" onClick={onSelectEmptyFields}>Nur leere Felder</button>
-          <button type="button" className="secondary-button" onClick={onSelectAllFields}>Alles auswaehlen</button>
-          <button type="button" className="secondary-button" onClick={onClearFields}>Nichts auswaehlen</button>
+          <button type="button" className="secondary-button" onClick={onSelectAllFields}>Alles auswählen</button>
+          <button type="button" className="secondary-button" onClick={onClearFields}>Nichts auswählen</button>
         </footer>
       </section>
     </div>
@@ -1206,12 +1293,12 @@ function QrDialog({
             <h2>QR-Code</h2>
             <p>{form.inventoryNumber || "Ohne Inventarnummer"} - {form.name || "Ohne Bezeichnung"}</p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Schließen" title="Schließen">
             <X size={17} />
           </button>
         </div>
         {error && <p className="form-message">{error}</p>}
-        <button type="button" className="qr-preview-button" onClick={onPrint} disabled={!qrSvg} title="Druckansicht oeffnen">
+        <button type="button" className="qr-preview-button" onClick={onPrint} disabled={!qrSvg} title="Druckansicht öffnen">
           {qrSvg ? <span dangerouslySetInnerHTML={{ __html: qrSvg }} /> : "QR-Code wird erstellt..."}
         </button>
         <div className="qr-dialog-actions">
@@ -1248,12 +1335,12 @@ function ImagePreviewDialog({
             <h2>Bildvorschau</h2>
             <p className="image-preview-source">
               {image.title || "Artikeldaten-Bild"} - {sourceDisplayName(image.source)}
-              <a className="icon-button image-title-link" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+              <a className="icon-button image-title-link" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle öffnen" title="Quelle öffnen">
                 <ExternalLink size={15} />
               </a>
             </p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Schließen" title="Schließen">
             <X size={17} />
           </button>
         </div>
@@ -1277,8 +1364,7 @@ export function VehiclesView() {
   const [activeTab, setActiveTab] = useState<ModalTab>("model");
   const [openSections, setOpenSections] = useState({
     model: true,
-    details: false,
-    ownership: false
+    details: false
   });
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [articleSearchOpen, setArticleSearchOpen] = useState(false);
@@ -1296,6 +1382,7 @@ export function VehiclesView() {
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
   const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
   const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
+  const [showConfiguredFunctionsOnly, setShowConfiguredFunctionsOnly] = useState(false);
   const [cvForm, setCVForm] = useState<VehicleCVValueInput>(emptyCVForm);
   const [editingCVID, setEditingCVID] = useState<string | null>(null);
   const [cvFileProfile, setCVFileProfile] = useState("");
@@ -1307,6 +1394,7 @@ export function VehiclesView() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
   const [qrError, setQrError] = useState("");
+  const [inventoryView, setInventoryView] = useState<InventoryViewMode>(inventoryViewMode);
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: "inventoryNumber",
     direction: "asc"
@@ -1599,6 +1687,10 @@ export function VehiclesView() {
       }
     })()
       .then(() => refreshSelectedVehicle(selected.id))
+      .then(() => {
+        setCVFileProfile("");
+        setCVFileDescription("");
+      })
       .catch((error: Error) => setMessage(error.message))
       .finally(() => {
         setSaving(false);
@@ -1613,7 +1705,7 @@ export function VehiclesView() {
     const uploadFiles = Array.from(files);
     const blocked = uploadFiles.find(isBlockedAttachmentFile);
     if (blocked) {
-      setMessage(`${blocked.name} ist als Beilage nicht erlaubt.`);
+      setMessage(`${blocked.name} ist als Beilage nicht erlaubt. Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.`);
       if (attachmentInputRef.current) {
         attachmentInputRef.current.value = "";
       }
@@ -1714,12 +1806,37 @@ export function VehiclesView() {
     if (!selected) return;
     setSaving(true);
     setMessage("");
+    const payload: VehicleMaintenanceInput = {
+      ...maintenanceForm,
+      status: maintenanceForm.status === "fällig" ? "faellig" : maintenanceForm.status,
+      cost: maintenanceForm.cost?.trim().replace(/\s*€$/, "") || "",
+      completedAt: maintenanceForm.status === "erledigt" && !maintenanceForm.completedAt ? todayISODate() : maintenanceForm.completedAt
+    };
     const action = editingMaintenanceID
-      ? api.updateVehicleMaintenance(selected.id, editingMaintenanceID, maintenanceForm)
-      : api.createVehicleMaintenance(selected.id, maintenanceForm);
+      ? api.updateVehicleMaintenance(selected.id, editingMaintenanceID, payload)
+      : api.createVehicleMaintenance(selected.id, payload);
     action
       .then(() => refreshSelectedVehicle(selected.id))
       .then(() => resetMaintenanceForm())
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const completeMaintenance = (entry: VehicleMaintenance) => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .updateVehicleMaintenance(selected.id, entry.id, {
+        kind: entry.kind,
+        status: "erledigt",
+        conditionRating: entry.conditionRating || "",
+        dueDate: entry.dueDate || "",
+        completedAt: entry.completedAt || todayISODate(),
+        cost: entry.cost || "",
+        notes: entry.notes || ""
+      })
+      .then(() => refreshSelectedVehicle(selected.id))
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setSaving(false));
   };
@@ -1751,6 +1868,10 @@ export function VehiclesView() {
   const saveFunction = (functionKey: string) => {
     if (!selected) return;
     const edit = functionEdit(functionKey);
+    if (!edit.persisted && !edit.name?.trim() && !edit.symbolKey && !edit.notes?.trim()) {
+      setMessage(`${functionKey}: Bitte Funktionsname, Symbol oder Notiz eintragen.`);
+      return;
+    }
     setSaving(true);
     setMessage("");
     api
@@ -1801,16 +1922,25 @@ export function VehiclesView() {
 
   const saveCVValue = () => {
     if (!selected) return;
-    setSaving(true);
-    setMessage("");
     const payload = {
       ...cvForm,
       cvNumber: Number(cvForm.cvNumber),
       value: Number(cvForm.value)
     };
+    if (!isValidCVValueInput(payload)) {
+      setMessage("CV-Nummer muss 1-1024 und Wert 0-255 sein.");
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    const existing = !editingCVID
+      ? (selected.cvValues || []).find((entry) => cvValueKey(entry) === cvValueKey(payload))
+      : undefined;
     const action = editingCVID
       ? api.updateVehicleCVValue(selected.id, editingCVID, payload)
-      : api.createVehicleCVValue(selected.id, payload);
+      : existing
+        ? api.updateVehicleCVValue(selected.id, existing.id, payload)
+        : api.createVehicleCVValue(selected.id, payload);
     action
       .then(() => refreshSelectedVehicle(selected.id))
       .then(() => resetCVForm())
@@ -1857,9 +1987,20 @@ export function VehiclesView() {
       .text()
       .then(cvValuesFromImport)
       .then(async (values) => {
-        const valid = values.filter((entry) => Number.isFinite(entry.cvNumber) && Number.isFinite(entry.value));
+        const valid = values.filter(isValidCVValueInput);
+        if (valid.length === 0) {
+          throw new Error("Keine gültigen CV-Werte gefunden.");
+        }
+        const existing = new Map((selected.cvValues || []).map((entry) => [cvValueKey(entry), entry]));
         for (const value of valid) {
-          await api.createVehicleCVValue(selected.id, value);
+          const match = existing.get(cvValueKey(value));
+          if (match) {
+            const updated = await api.updateVehicleCVValue(selected.id, match.id, value);
+            existing.set(cvValueKey(updated), updated);
+          } else {
+            const created = await api.createVehicleCVValue(selected.id, value);
+            existing.set(cvValueKey(created), created);
+          }
         }
       })
       .then(() => refreshSelectedVehicle(selected.id))
@@ -1875,9 +2016,9 @@ export function VehiclesView() {
   const uploadCVFiles = (files: FileList | null) => {
     if (!selected || !files || files.length === 0) return;
     const uploadFiles = Array.from(files);
-    const blocked = uploadFiles.find(isBlockedAttachmentFile);
+    const blocked = uploadFiles.find(isBlockedCVFile);
     if (blocked) {
-      setMessage(`${blocked.name} ist als CV-Datei nicht erlaubt.`);
+      setMessage(`${blocked.name} ist als CV-Datei nicht erlaubt. Erlaubt sind JSON, CSV, TXT, XML, Z21, ESU, ESUX, LokProgrammer und ZIP.`);
       return;
     }
     setSaving(true);
@@ -2016,7 +2157,7 @@ export function VehiclesView() {
 
   const printInventoryReport = () => {
     if (sortedVehicles.length === 0) {
-      setMessage("Es gibt keine Fahrzeuge fuer den PDF-Report.");
+      setMessage("Es gibt keine Fahrzeuge für den PDF-Report.");
       return;
     }
     const printWindow = window.open("", "railkeeper-inventory-report", "width=1180,height=860");
@@ -2036,6 +2177,11 @@ export function VehiclesView() {
     }));
   };
 
+  const setInventoryViewMode = (modeName: InventoryViewMode) => {
+    setInventoryView(modeName);
+    window.localStorage.setItem(inventoryViewSettingKey, modeName);
+  };
+
   const openCreate = () => {
     setSelected(null);
     setMode("create");
@@ -2049,7 +2195,7 @@ export function VehiclesView() {
     resetMaintenanceForm();
     resetCVForm();
     setActiveTab("model");
-    setOpenSections({ model: true, details: false, ownership: false });
+    setOpenSections({ model: true, details: false });
     setModalOpen(true);
     setMessage("");
   };
@@ -2078,7 +2224,7 @@ export function VehiclesView() {
         setSelectedDetail(detail);
         setMode("view");
         setActiveTab("model");
-        setOpenSections({ model: true, details: false, ownership: false });
+        setOpenSections({ model: true, details: false });
         setModalOpen(true);
         setMessage("");
       })
@@ -2092,7 +2238,7 @@ export function VehiclesView() {
         setSelectedDetail(detail);
         setMode("edit");
         setActiveTab("model");
-        setOpenSections({ model: true, details: false, ownership: false });
+        setOpenSections({ model: true, details: false });
         setModalOpen(true);
         setMessage("");
       })
@@ -2176,6 +2322,28 @@ export function VehiclesView() {
     </>
   );
 
+  const maintenanceEntries = selected?.maintenance || [];
+  const maintenanceSummary = {
+    due: maintenanceEntries.filter(maintenanceIsDue).length,
+    planned: maintenanceEntries.filter((entry) => entry.status !== "erledigt").length,
+    done: maintenanceEntries.filter((entry) => entry.status === "erledigt").length
+  };
+  const configuredFunctionKeys = functionKeys.filter((functionKey) => {
+    const edit = functionEdit(functionKey);
+    return Boolean(edit.persisted || edit.name || edit.symbolKey || edit.notes);
+  });
+  const visibleFunctionKeys = showConfiguredFunctionsOnly ? configuredFunctionKeys : functionKeys;
+  const functionSummary = {
+    configured: configuredFunctionKeys.length,
+    sound: configuredFunctionKeys.filter((functionKey) => functionEdit(functionKey).functionType === "sound").length,
+    light: configuredFunctionKeys.filter((functionKey) => functionEdit(functionKey).functionType === "licht").length
+  };
+  const cvSummary = {
+    values: selected?.cvValues?.length || 0,
+    files: selected?.cvFiles?.length || 0,
+    profiles: new Set((selected?.cvValues || []).map((value) => value.decoderProfile).filter(Boolean)).size
+  };
+
   return (
     <>
       <section className="inventory-head">
@@ -2208,6 +2376,14 @@ export function VehiclesView() {
           <h2>Fahrzeuge</h2>
           <div className="table-actions">
             <span className="count-badge">{vehicles.length}</span>
+            <div className="segmented-control" aria-label="Bestandsansicht">
+              <button type="button" className={inventoryView === "table" ? "active" : ""} onClick={() => setInventoryViewMode("table")} aria-label="Tabellenansicht" title="Tabellenansicht">
+                <Table2 size={15} />
+              </button>
+              <button type="button" className={inventoryView === "cards" ? "active" : ""} onClick={() => setInventoryViewMode("cards")} aria-label="Kartenansicht" title="Kartenansicht">
+                <Grid2X2 size={15} />
+              </button>
+            </div>
             <button type="button" className="icon-button" onClick={printInventoryReport} aria-label="Bestand als PDF drucken" title="Bestand als PDF drucken" disabled={loading || vehicles.length === 0}>
               <Printer size={16} />
             </button>
@@ -2223,6 +2399,58 @@ export function VehiclesView() {
           <p className="empty-state">Lade Fahrzeuge aus lokaler Datenbank...</p>
         ) : vehicles.length === 0 ? (
           <p className="empty-state">Noch keine Fahrzeuge vorhanden.</p>
+        ) : inventoryView === "cards" ? (
+          <div className="inventory-card-grid">
+            {sortedVehicles.map((vehicle) => {
+              const image = primaryImage(vehicle.images);
+              return (
+                <article key={vehicle.id} className="inventory-card">
+                  <button type="button" className="inventory-card-media" onClick={() => openDetail(vehicle)} aria-label={`${vehicle.inventoryNumber} anzeigen`}>
+                    {image ? (
+                      <img src={image.url} alt="" />
+                    ) : (
+                      <div className="image-placeholder">Keine Vorschau</div>
+                    )}
+                  </button>
+                  <div className="inventory-card-body">
+                    <div className="inventory-card-title">
+                      <div>
+                        <strong>{vehicle.inventoryNumber}</strong>
+                        <span>{vehicle.manufacturer || "-"}</span>
+                      </div>
+                      <span className="inventory-card-gauge">{vehicle.gauge || "-"}</span>
+                    </div>
+                    <h3>{vehicle.name}</h3>
+                    <dl>
+                      <div>
+                        <dt>Artikel</dt>
+                        <dd>{vehicle.articleNumber || "-"}</dd>
+                      </div>
+                      <div>
+                        <dt>Epoche</dt>
+                        <dd>{vehicle.epoch || "-"}</dd>
+                      </div>
+                      <div>
+                        <dt>Kategorie</dt>
+                        <dd>{vehicle.category || "-"}</dd>
+                      </div>
+                    </dl>
+                    <div className="inventory-card-actions">
+                      <button type="button" className="icon-button" onClick={() => openDetail(vehicle)} aria-label="Anzeigen" title="Anzeigen">
+                        <Eye size={16} />
+                      </button>
+                      <button type="button" className="icon-button" onClick={() => openEdit(vehicle)} aria-label="Bearbeiten" title="Bearbeiten">
+                        <Pencil size={16} />
+                      </button>
+                      <button type="button" className="icon-button danger" onClick={() => setDeleteCandidate(vehicle)} aria-label="Löschen" title="Löschen">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
         ) : (
           <div className="table-wrap">
             <table className="inventory-table">
@@ -2264,7 +2492,7 @@ export function VehiclesView() {
                         <button type="button" className="icon-button" onClick={() => openEdit(vehicle)} aria-label="Bearbeiten" title="Bearbeiten">
                           <Pencil size={16} />
                         </button>
-                        <button type="button" className="icon-button danger" onClick={() => setDeleteCandidate(vehicle)} aria-label="Loeschen" title="Loeschen">
+                        <button type="button" className="icon-button danger" onClick={() => setDeleteCandidate(vehicle)} aria-label="Löschen" title="Löschen">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -2282,7 +2510,7 @@ export function VehiclesView() {
           <form className="vehicle-modal" onSubmit={submit}>
             <header className="modal-head">
               <h2>{mode === "create" ? "Fahrzeugdaten erfassen" : mode === "edit" ? "Fahrzeugdaten bearbeiten" : "Fahrzeugdaten"}</h2>
-              <button type="button" className="icon-button" onClick={closeModal} aria-label="Schliessen" title="Schliessen">
+              <button type="button" className="icon-button" onClick={closeModal} aria-label="Schließen" title="Schließen">
                 <X size={18} />
               </button>
             </header>
@@ -2350,13 +2578,13 @@ export function VehiclesView() {
                           <label>
                             Hersteller *
                             <select value={form.manufacturer} onChange={(event) => update({ manufacturer: event.target.value })} disabled={readonly} required>
-                              {selectOptions(options.manufacturers, "Bitte waehlen")}
+                              {selectOptions(options.manufacturers, "Bitte wählen")}
                             </select>
                           </label>
                           <label>
                             Spurweite *
                             <select value={form.gauge} onChange={(event) => update({ gauge: event.target.value })} disabled={readonly} required>
-                              {selectOptions(options.gauges, "Bitte waehlen")}
+                              {selectOptions(options.gauges, "Bitte wählen")}
                             </select>
                           </label>
                         </div>
@@ -2489,17 +2717,6 @@ export function VehiclesView() {
                     )}
                   </section>
 
-                  <section className="accordion-section">
-                    <button type="button" className="accordion-trigger" onClick={() => toggleSection("ownership")}>
-                      {openSections.ownership ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                      Erwerb & Verbleib
-                    </button>
-                    {openSections.ownership && (
-                      <div className="accordion-content vehicle-form">
-                        <p className="empty-state compact">Erwerb, Kaufpreis, Haendler und Verbleib kommen als eigener Block.</p>
-                      </div>
-                    )}
-                  </section>
                 </div>
               )}
 
@@ -2508,17 +2725,42 @@ export function VehiclesView() {
                   <div className="upload-head">
                     <div>
                       <h3>Digitalfunktionen</h3>
-                      <p>Funktionstasten F0 bis F31 mit Symbol, Typ, Betriebsart und Richtungsabhaengigkeit pflegen.</p>
+                      <p>Funktionstasten F0 bis F31 mit Symbol, Typ, Betriebsart und Richtungsabhängigkeit pflegen.</p>
                     </div>
                   </div>
-                  {!selected && <p className="empty-state compact">Digitalfunktionen koennen nach dem ersten Speichern gepflegt werden.</p>}
+                  {!selected && <p className="empty-state compact">Digitalfunktionen können nach dem ersten Speichern gepflegt werden.</p>}
                   {selected && (
                     <div className="function-list">
-                      {functionKeys.map((functionKey) => {
+                      <div className="function-toolbar">
+                        <div className="function-summary">
+                          <span><strong>{functionSummary.configured}</strong> belegt</span>
+                          <span><strong>{functionSummary.sound}</strong> Sound</span>
+                          <span><strong>{functionSummary.light}</strong> Licht</span>
+                        </div>
+                        <label className="switch-label compact-switch">
+                          <span>Nur belegte</span>
+                          <span className="switch-field">
+                            <input
+                              type="checkbox"
+                              checked={showConfiguredFunctionsOnly}
+                              onChange={(event) => setShowConfiguredFunctionsOnly(event.target.checked)}
+                              disabled={saving}
+                            />
+                            <span />
+                          </span>
+                        </label>
+                      </div>
+                      {visibleFunctionKeys.length === 0 && (
+                        <p className="empty-state compact">Noch keine Digitalfunktionen belegt.</p>
+                      )}
+                      {visibleFunctionKeys.map((functionKey) => {
                         const edit = functionEdit(functionKey);
                         return (
                           <article key={functionKey} className={edit.persisted ? "function-row persisted" : "function-row"}>
-                            <strong className="function-key">{functionKey}</strong>
+                            <strong className="function-key">
+                              {functionSymbolIcon(edit.symbolKey, edit.functionType)}
+                              {functionKey}
+                            </strong>
                             <input
                               value={edit.name || ""}
                               onChange={(event) => updateFunctionEdit(functionKey, { name: event.target.value })}
@@ -2580,7 +2822,7 @@ export function VehiclesView() {
                               <button type="button" className="icon-button" onClick={() => saveFunction(functionKey)} disabled={readonly || saving} aria-label={`${functionKey} speichern`} title="Speichern">
                                 <Save size={15} />
                               </button>
-                              <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !edit.persisted} aria-label={`${functionKey} loeschen`} title="Loeschen">
+                              <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !edit.persisted} aria-label={`${functionKey} löschen`} title="Löschen">
                                 <Trash2 size={15} />
                               </button>
                             </div>
@@ -2619,9 +2861,23 @@ export function VehiclesView() {
                         </button>
                       </div>
                     </div>
-                    {!selected && <p className="empty-state compact">CV-Werte koennen nach dem ersten Speichern gepflegt werden.</p>}
+                    {!selected && <p className="empty-state compact">CV-Werte können nach dem ersten Speichern gepflegt werden.</p>}
                     {selected && (
                       <>
+                        <div className="cv-summary">
+                          <div>
+                            <span>CV-Werte</span>
+                            <strong>{cvSummary.values}</strong>
+                          </div>
+                          <div>
+                            <span>Profile</span>
+                            <strong>{cvSummary.profiles}</strong>
+                          </div>
+                          <div>
+                            <span>Dateien</span>
+                            <strong>{cvSummary.files}</strong>
+                          </div>
+                        </div>
                         <div className="cv-form">
                           <label>
                             CV-Nr.
@@ -2666,7 +2922,7 @@ export function VehiclesView() {
                           )}
                           <button type="button" className="primary-button" onClick={saveCVValue} disabled={readonly || saving}>
                             <Save size={15} aria-hidden="true" />
-                            {editingCVID ? "CV speichern" : "CV hinzufuegen"}
+                            {editingCVID ? "CV speichern" : "CV hinzufügen"}
                           </button>
                         </div>
                       </>
@@ -2703,7 +2959,7 @@ export function VehiclesView() {
                                     <button type="button" className="icon-button" onClick={() => editCVValue(value)} disabled={readonly || saving} aria-label="CV bearbeiten" title="CV bearbeiten">
                                       <Pencil size={15} />
                                     </button>
-                                    <button type="button" className="icon-button danger" onClick={() => deleteCVValue(value)} disabled={readonly || saving} aria-label="CV loeschen" title="CV loeschen">
+                                    <button type="button" className="icon-button danger" onClick={() => deleteCVValue(value)} disabled={readonly || saving} aria-label="CV löschen" title="CV löschen">
                                       <Trash2 size={15} />
                                     </button>
                                   </div>
@@ -2738,8 +2994,8 @@ export function VehiclesView() {
                     </div>
                     {selected && (
                       <div className="cv-file-controls">
-                        <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil fuer neue Dateien" />
-                        <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung fuer neue Dateien" />
+                        <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil für neue Dateien" />
+                        <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung für neue Dateien" />
                       </div>
                     )}
                     {selected && (!selected.cvFiles || selected.cvFiles.length === 0) && (
@@ -2767,7 +3023,7 @@ export function VehiclesView() {
                                 </a>
                                 <button type="button" className="danger-button" onClick={() => deleteCVFile(file)} disabled={readonly || saving}>
                                   <Trash2 size={15} aria-hidden="true" />
-                                  Loeschen
+                                  Löschen
                                 </button>
                               </div>
                             </article>
@@ -2801,7 +3057,7 @@ export function VehiclesView() {
                         Bild hochladen
                       </button>
                     </div>
-                    {!selected && <p className="empty-state compact">Lokale Bilder koennen nach dem ersten Speichern hochgeladen werden.</p>}
+                    {!selected && <p className="empty-state compact">Lokale Bilder können nach dem ersten Speichern hochgeladen werden.</p>}
                     {pendingArticleImages.length === 0 ? (
                       <div className="upload-list">
                         <div className="image-placeholder large">
@@ -2814,7 +3070,7 @@ export function VehiclesView() {
                       <div className="pending-image-grid">
                         {pendingArticleImages.map((image, imageIndex) => (
                           <figure key={image.id} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
-                            <button type="button" className="image-preview-button" onClick={() => setPreviewImage(image)} title="Originalgroesse anzeigen" aria-label="Originalgroesse anzeigen">
+                            <button type="button" className="image-preview-button" onClick={() => setPreviewImage(image)} title="Originalgröße anzeigen" aria-label="Originalgröße anzeigen">
                               <img src={image.url} alt="" />
                             </button>
                             <figcaption>
@@ -2827,7 +3083,7 @@ export function VehiclesView() {
                               />
                               <span>{sourceDisplayName(image.source)}</span>
                               <div className="image-card-actions">
-                                <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+                                <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle öffnen" title="Quelle öffnen">
                                   <ExternalLink size={15} />
                                 </a>
                                 <button type="button" className="icon-button" onClick={() => movePendingImage(image.id, -1)} disabled={readonly || imageIndex === 0} aria-label="Bild nach oben" title="Bild nach oben">
@@ -2861,7 +3117,7 @@ export function VehiclesView() {
                     <div className="upload-head">
                       <div>
                         <h3>Beilagen</h3>
-                        <p>PDFs, Anleitungen, Rechnungen und andere Dateien direkt in der Erfassung pflegen.</p>
+                        <p>PDFs, Anleitungen, Rechnungen und andere zugelassene Dateien direkt in der Erfassung pflegen.</p>
                       </div>
                       <input
                         ref={attachmentInputRef}
@@ -2887,7 +3143,7 @@ export function VehiclesView() {
                     >
                       <div>
                         <strong>Dateien hier ablegen</strong>
-                        <span>PDFs, Bilder, Decoder-Dateien und Dokumente. Ausfuehrbare Dateien werden blockiert.</span>
+                        <span>PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP. Maximal 25 MB pro Datei.</span>
                       </div>
                       <div className="attachment-upload-fields">
                         <select value={attachmentUploadCategory} onChange={(event) => setAttachmentUploadCategory(event.target.value)} disabled={readonly || !selected || saving}>
@@ -2900,11 +3156,11 @@ export function VehiclesView() {
                           value={attachmentUploadDescription}
                           onChange={(event) => setAttachmentUploadDescription(event.target.value)}
                           disabled={readonly || !selected || saving}
-                          placeholder="Bemerkung fuer neue Beilagen"
+                          placeholder="Bemerkung für neue Beilagen"
                         />
                       </div>
                     </section>
-                    {!selected && <p className="empty-state compact">Beilagen koennen nach dem ersten Speichern hinzugefuegt werden.</p>}
+                    {!selected && <p className="empty-state compact">Beilagen können nach dem ersten Speichern hinzugefügt werden.</p>}
                     {selected && (!selected.attachments || selected.attachments.length === 0) && (
                       <p className="empty-state compact">Noch keine Beilagen hinterlegt.</p>
                     )}
@@ -2941,7 +3197,7 @@ export function VehiclesView() {
                                   Download
                                 </a>
                                 {attachment.mimeType?.includes("pdf") && (
-                                  <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label="PDF oeffnen" title="PDF oeffnen">
+                                  <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label="PDF öffnen" title="PDF öffnen">
                                     <ExternalLink size={15} />
                                   </a>
                                 )}
@@ -2951,7 +3207,7 @@ export function VehiclesView() {
                                 </button>
                                 <button type="button" className="danger-button" onClick={() => deleteAttachment(attachment)} disabled={readonly || saving}>
                                   <Trash2 size={15} aria-hidden="true" />
-                                  Loeschen
+                                  Löschen
                                 </button>
                               </div>
                             </article>
@@ -2969,13 +3225,27 @@ export function VehiclesView() {
                     <div className="upload-head">
                       <div>
                         <h3>Wartung und Zustand</h3>
-                        <p>Wartungen, Reparaturen, Umbauten, Faelligkeiten und Kosten am Fahrzeug dokumentieren.</p>
+                        <p>Wartungen, Reparaturen, Umbauten, Fälligkeiten und Kosten am Fahrzeug dokumentieren.</p>
                       </div>
                       <Wrench size={22} aria-hidden="true" />
                     </div>
-                    {!selected && <p className="empty-state compact">Wartungseintraege koennen nach dem ersten Speichern hinzugefuegt werden.</p>}
+                    {!selected && <p className="empty-state compact">Wartungseinträge können nach dem ersten Speichern hinzugefügt werden.</p>}
                     {selected && (
                       <>
+                        <div className="maintenance-summary">
+                          <div>
+                            <span>Fällig</span>
+                            <strong>{maintenanceSummary.due}</strong>
+                          </div>
+                          <div>
+                            <span>Geplant/offen</span>
+                            <strong>{maintenanceSummary.planned}</strong>
+                          </div>
+                          <div>
+                            <span>Erledigt</span>
+                            <strong>{maintenanceSummary.done}</strong>
+                          </div>
+                        </div>
                         <div className="maintenance-form">
                           <label>
                             Art
@@ -2989,25 +3259,25 @@ export function VehiclesView() {
                             Status
                             <select value={maintenanceForm.status} onChange={(event) => updateMaintenanceForm({ status: event.target.value })} disabled={readonly || saving}>
                               {maintenanceStatuses.map((status) => (
-                                <option key={status} value={status}>{status}</option>
+                                <option key={status.value} value={status.value}>{status.label}</option>
                               ))}
                             </select>
                           </label>
                           <label>
                             Zustand
                             <select value={maintenanceForm.conditionRating || ""} onChange={(event) => updateMaintenanceForm({ conditionRating: event.target.value })} disabled={readonly || saving}>
-                              <option value="">Bitte waehlen</option>
+                              <option value="">Bitte wählen</option>
                               {conditionRatings.map((rating) => (
                                 <option key={rating} value={rating}>{rating}</option>
                               ))}
                             </select>
                           </label>
                           <label>
-                            Faellig am
+                            Fällig am
                             <input type="date" value={maintenanceForm.dueDate || ""} onChange={(event) => updateMaintenanceForm({ dueDate: event.target.value })} disabled={readonly || saving} />
                           </label>
                           <label>
-                            Durchgefuehrt am
+                            Durchgeführt am
                             <input type="date" value={maintenanceForm.completedAt || ""} onChange={(event) => updateMaintenanceForm({ completedAt: event.target.value })} disabled={readonly || saving} />
                           </label>
                           <label>
@@ -3027,7 +3297,7 @@ export function VehiclesView() {
                           )}
                           <button type="button" className="primary-button" onClick={saveMaintenance} disabled={readonly || saving}>
                             <Save size={15} aria-hidden="true" />
-                            {editingMaintenanceID ? "Eintrag speichern" : "Eintrag hinzufuegen"}
+                            {editingMaintenanceID ? "Eintrag speichern" : "Eintrag hinzufügen"}
                           </button>
                         </div>
                       </>
@@ -3036,7 +3306,7 @@ export function VehiclesView() {
 
                   <section className="maintenance-list">
                     {selected && (!selected.maintenance || selected.maintenance.length === 0) && (
-                      <p className="empty-state compact">Noch keine Wartungseintraege hinterlegt.</p>
+                      <p className="empty-state compact">Noch keine Wartungseinträge hinterlegt.</p>
                     )}
                     {selected?.maintenance?.map((entry) => (
                       <article key={entry.id} className={maintenanceIsDue(entry) ? "maintenance-card due" : "maintenance-card"}>
@@ -3045,15 +3315,15 @@ export function VehiclesView() {
                             <strong>{entry.kind}</strong>
                             <span>{entry.notes || "Keine Notiz hinterlegt"}</span>
                           </div>
-                          <span className={`maintenance-badge ${entry.status}`}>{entry.status}</span>
+                          <span className={`maintenance-badge ${maintenanceStatusClass(entry.status)}`}>{maintenanceStatusLabel(entry.status)}</span>
                         </div>
                         <dl className="maintenance-meta">
                           <div>
-                            <dt>Faellig</dt>
+                            <dt>Fällig</dt>
                             <dd>{formatDate(entry.dueDate)}</dd>
                           </div>
                           <div>
-                            <dt>Durchgefuehrt</dt>
+                            <dt>Durchgeführt</dt>
                             <dd>{formatDate(entry.completedAt)}</dd>
                           </div>
                           <div>
@@ -3062,14 +3332,19 @@ export function VehiclesView() {
                           </div>
                           <div>
                             <dt>Kosten</dt>
-                            <dd>{entry.cost || "-"}</dd>
+                            <dd>{formatMaintenanceCost(entry.cost)}</dd>
                           </div>
                         </dl>
                         <div className="maintenance-card-actions">
+                          {entry.status !== "erledigt" && (
+                            <button type="button" className="secondary-button" onClick={() => completeMaintenance(entry)} disabled={readonly || saving}>
+                              Erledigt
+                            </button>
+                          )}
                           <button type="button" className="icon-button" onClick={() => editMaintenance(entry)} disabled={readonly || saving} aria-label="Wartung bearbeiten" title="Wartung bearbeiten">
                             <Pencil size={15} />
                           </button>
-                          <button type="button" className="icon-button danger" onClick={() => deleteMaintenance(entry)} disabled={readonly || saving} aria-label="Wartung loeschen" title="Wartung loeschen">
+                          <button type="button" className="icon-button danger" onClick={() => deleteMaintenance(entry)} disabled={readonly || saving} aria-label="Wartung löschen" title="Wartung löschen">
                             <Trash2 size={15} />
                           </button>
                         </div>
@@ -3139,11 +3414,11 @@ export function VehiclesView() {
       )}
 
       {deleteCandidate && (
-        <div className="confirm-layer" role="dialog" aria-modal="true" aria-label="Fahrzeug loeschen">
+        <div className="confirm-layer" role="dialog" aria-modal="true" aria-label="Fahrzeug löschen">
           <section className="confirm-card">
             <div className="panel-head form-head">
-              <h2>Fahrzeug loeschen?</h2>
-              <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Schliessen">
+              <h2>Fahrzeug löschen?</h2>
+              <button type="button" className="icon-button" onClick={() => setDeleteCandidate(null)} aria-label="Schließen">
                 <X size={17} />
               </button>
             </div>
@@ -3155,7 +3430,7 @@ export function VehiclesView() {
                 Abbrechen
               </button>
               <button type="button" className="danger-button" onClick={confirmDelete}>
-                Loeschen
+                Löschen
               </button>
             </div>
           </section>

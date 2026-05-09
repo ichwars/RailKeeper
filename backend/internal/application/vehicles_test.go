@@ -250,7 +250,7 @@ func TestVehiclePersistsImages(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(created.Images) != 2 || !created.Images[1].IsPrimary {
+	if len(created.Images) != 2 || created.Images[0].URL != "https://example.test/front.jpg" || !created.Images[0].IsPrimary {
 		t.Fatalf("unexpected created images: %#v", created.Images)
 	}
 
@@ -434,7 +434,31 @@ func TestVehiclePersistsMaintenance(t *testing.T) {
 		t.Fatalf("unexpected maintenance update: %#v", updated)
 	}
 
+	normalized, err := service.CreateMaintenance(ctx, created.ID, application.VehicleMaintenanceInput{
+		Kind:    "Wartung",
+		Status:  "fällig",
+		DueDate: "2026-07-01",
+		Cost:    "5,00 €",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if normalized.Status != "faellig" || normalized.Cost != "5,00" {
+		t.Fatalf("expected normalized maintenance fields, got %#v", normalized)
+	}
+
+	if _, err := service.CreateMaintenance(ctx, created.ID, application.VehicleMaintenanceInput{
+		Kind:    "Wartung",
+		Status:  "geplant",
+		DueDate: "01.07.2026",
+	}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected invalid date to be rejected, got %v", err)
+	}
+
 	if _, err := service.DeleteMaintenance(ctx, created.ID, entry.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.DeleteMaintenance(ctx, created.ID, normalized.ID); err != nil {
 		t.Fatal(err)
 	}
 	entries, err := service.ListMaintenance(ctx, created.ID)
@@ -496,8 +520,26 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 		t.Fatalf("unexpected function update: %#v", updated)
 	}
 
+	normalized, err := service.UpsertFunction(ctx, created.ID, "F01", application.VehicleFunctionInput{
+		Name:         "Rangiergang",
+		FunctionType: "SOUND",
+		Mode:         "MOMENT",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if normalized.FunctionKey != "F1" || normalized.FunctionType != "sound" || normalized.Mode != "moment" {
+		t.Fatalf("expected normalized function fields, got %#v", normalized)
+	}
+
 	if _, err := service.UpsertFunction(ctx, created.ID, "F32", application.VehicleFunctionInput{}); !errors.Is(err, application.ErrVehicleValidation) {
 		t.Fatalf("expected validation for invalid function key, got %v", err)
+	}
+	if _, err := service.UpsertFunction(ctx, created.ID, "F2", application.VehicleFunctionInput{
+		FunctionType: "unknown",
+		Mode:         "dauer",
+	}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected validation for invalid function type, got %v", err)
 	}
 
 	if _, err := service.DeleteFunction(ctx, created.ID, "F1"); err != nil {
@@ -585,6 +627,9 @@ func TestVehiclePersistsCVValuesAndFiles(t *testing.T) {
 	}
 	if _, err := service.CreateCVValue(ctx, created.ID, application.VehicleCVValueInput{CVNumber: 1, Value: 256}); !errors.Is(err, application.ErrVehicleValidation) {
 		t.Fatalf("expected validation for invalid cv value, got %v", err)
+	}
+	if _, err := service.CreateCVValue(ctx, created.ID, application.VehicleCVValueInput{CVNumber: 2, Value: 1, SourceFileID: "missing"}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected validation for foreign cv source file, got %v", err)
 	}
 
 	detail, err := service.Get(ctx, created.ID)

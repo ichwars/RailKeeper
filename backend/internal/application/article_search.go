@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 var ErrArticleSearchValidation = errors.New("article search validation failed")
@@ -199,13 +200,14 @@ func NewDuckDuckGoArticleSearchAdapter(client *http.Client) *DuckDuckGoArticleSe
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input ArticleSearchInput, query string) ([]ArticleSearchResult, error) {
-	queries := []string{query + " Modelleisenbahn"}
+	queries := []string{}
 	for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
 		queries = append(queries, query+" site:"+domain)
-		if len(queries) >= 3 {
+		if len(queries) >= 2 {
 			break
 		}
 	}
+	queries = append(queries, query+" Modelleisenbahn")
 
 	results := []ArticleSearchResult{}
 	for _, searchQuery := range uniqueNonEmpty(queries) {
@@ -256,7 +258,7 @@ var (
 	tagPattern                  = regexp.MustCompile(`(?s)<[^>]+>`)
 	scriptStylePattern          = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
 	pricePattern                = regexp.MustCompile(`(?i)(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
-	lengthPattern               = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,24}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
+	lengthPattern               = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,30}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
 	weightPattern               = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
 	tractionTirePattern         = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
 	eanPattern                  = regexp.MustCompile(`\b(\d{12,14})\b`)
@@ -267,7 +269,7 @@ var (
 	digitalPositivePattern      = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
 	headlightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
 	lightingDescriptionPattern  = regexp.MustCompile(`(?i)(?:innenbeleuchtung|fuehrerstandsbeleuchtung|fuehrerstand|kabinenbeleuchtung|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
-	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|sound\s+laut\s+artikeldaten|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|\bsound\b|sound\s+laut\s+artikeldaten|geräuschmodul|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
 	imageMetaPattern            = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
 	imageMetaAltPattern         = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
 	imageTagPattern             = regexp.MustCompile(`(?is)<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["'][^>]*>`)
@@ -332,7 +334,7 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 			Confidence: 100,
 		},
 	}
-	combined := title + " " + snippet + " " + resultURL
+	combined := repairMojibake(title + " " + snippet + " " + resultURL)
 	combinedLower := strings.ToLower(combined)
 	if input.Manufacturer != "" && strings.Contains(strings.ToLower(combined), strings.ToLower(input.Manufacturer)) {
 		fields["manufacturer"] = ArticleSearchField{Label: "Hersteller", Value: input.Manufacturer, Confidence: 80}
@@ -359,7 +361,7 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 		fields["listPrice"] = ArticleSearchField{Label: "Listenpreis", Value: value, Confidence: 45}
 	}
 	if value := extractLengthMM(combined); value != "" {
-		fields["lengthMm"] = ArticleSearchField{Label: "Laenge (mm)", Value: value, Confidence: 62}
+		fields["lengthMm"] = ArticleSearchField{Label: "Länge (mm)", Value: value, Confidence: 62}
 	}
 	if value := firstRegexValue(weightPattern, combined); value != "" {
 		fields["weightG"] = ArticleSearchField{Label: "Gewicht (g)", Value: strings.ReplaceAll(value, ",", "."), Confidence: 55}
@@ -407,9 +409,12 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 		}
 	}
 	if isManufacturerPreferredURL(input.Manufacturer, resultURL) {
-		score += 60
+		score += 100
 	} else if strings.Contains(haystack, manufacturerDomainToken(input.Manufacturer)) {
 		score += 20
+	}
+	if isMarketplaceURL(resultURL) {
+		score -= 12
 	}
 	if input.ArticleNumber != "" && strings.Contains(haystack, strings.ToLower(input.ArticleNumber)) {
 		score += 35
@@ -543,6 +548,21 @@ func isManufacturerPreferredURL(manufacturer, resultURL string) bool {
 	return false
 }
 
+func isMarketplaceURL(resultURL string) bool {
+	parsed, err := url.Parse(resultURL)
+	if err != nil {
+		return false
+	}
+	host := strings.TrimPrefix(strings.ToLower(parsed.Host), "www.")
+	marketplaces := []string{"amazon.", "ebay.", "idealo.", "kaufland.", "kleinanzeigen."}
+	for _, marketplace := range marketplaces {
+		if strings.Contains(host, marketplace) {
+			return true
+		}
+	}
+	return false
+}
+
 func preferredManufacturerDomains(manufacturer string) []string {
 	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
 	for key, domains := range manufacturerDomains {
@@ -632,6 +652,10 @@ func extractLightingDescription(value string) string {
 }
 
 func extractSoundDescription(value string) string {
+	lower := strings.ToLower(value)
+	if strings.Contains(lower, "ohne sound") || strings.Contains(lower, "kein sound") {
+		return ""
+	}
 	description := firstRegexValue(soundDescriptionPattern, value)
 	if description == "" {
 		return ""
@@ -640,12 +664,28 @@ func extractSoundDescription(value string) string {
 }
 
 func cleanTechnicalDescription(value string) string {
-	value = normalizeWhitespace(value)
+	value = normalizeWhitespace(repairMojibake(value))
+	value = trimTechnicalNoise(value)
 	value = strings.Trim(value, " -:;,.")
 	if !looksLikeTechnicalDescription(value) {
 		return ""
 	}
 	return value
+}
+
+func trimTechnicalNoise(value string) string {
+	lower := strings.ToLower(value)
+	end := len(value)
+	for _, marker := range []string{
+		" downloads", " bedienungsanleitung", " altersempfehlung", " de | en",
+		" menü", " menue", " menu", " sprunggröße", " sprunggroesse",
+		" wählen sie", " waehlen sie",
+	} {
+		if index := strings.Index(lower, marker); index > 0 && index < end {
+			end = index
+		}
+	}
+	return strings.TrimSpace(value[:end])
 }
 
 func looksLikeTechnicalDescription(value string) bool {
@@ -673,6 +713,7 @@ func hasExplicitHeadlight(value string) bool {
 func hasExplicitInteriorLighting(value string) bool {
 	return strings.Contains(value, "innenbeleuchtung") ||
 		strings.Contains(value, "fuehrerstandsbeleuchtung") ||
+		strings.Contains(value, "führerstandsbeleuchtung") ||
 		strings.Contains(value, "kabinenbeleuchtung")
 }
 
@@ -682,6 +723,8 @@ func hasExplicitSoundGenerator(value string) bool {
 	}
 	return strings.Contains(value, "soundgenerator") ||
 		strings.Contains(value, "sounddecoder") ||
+		strings.Contains(value, "sound-modul") ||
+		strings.Contains(value, "soundmodul") ||
 		strings.Contains(value, "sound laut artikeldaten") ||
 		strings.Contains(value, "geraeuschmodul") ||
 		strings.Contains(value, "geräuschmodul")
@@ -730,6 +773,9 @@ func bestArticleDescription(input ArticleSearchInput, name, text, resultURL stri
 	if len(text) < 20 {
 		return ""
 	}
+	if preferred := preferredArticleDescription(text); preferred != "" {
+		return preferred
+	}
 	candidates := splitDescriptionCandidates(text)
 	best := ""
 	bestScore := -1
@@ -763,6 +809,41 @@ func bestArticleDescription(input ArticleSearchInput, name, text, resultURL stri
 		best = best[:320]
 	}
 	return strings.TrimSpace(best)
+}
+
+func preferredArticleDescription(text string) string {
+	text = normalizeWhitespace(repairMojibake(text))
+	lower := strings.ToLower(text)
+	start := -1
+	for _, marker := range []string{"neuheit ", "druckvariante "} {
+		if index := strings.Index(lower, marker); index >= 0 && (start < 0 || index < start) {
+			start = index
+		}
+	}
+	if start < 0 {
+		return ""
+	}
+	candidate := text[start:]
+	candidateLower := strings.ToLower(candidate)
+	end := len(candidate)
+	for _, marker := range []string{
+		" maß ", " mass ", " länge ", " laenge ", " digitale schnittstelle",
+		" lichtwechsel", " fahrlicht", " soundgenerator", " sounddecoder",
+		" downloads", " bedienungsanleitung", " altersempfehlung", " ean ",
+	} {
+		if index := strings.Index(candidateLower, marker); index > 30 && index < end {
+			end = index
+		}
+	}
+	if period := strings.Index(candidate, "."); period > 40 && period+1 < end {
+		end = period + 1
+	}
+	candidate = strings.TrimSpace(candidate[:end])
+	candidate = strings.Trim(candidate, " -:;,.")
+	if !looksLikeHumanDescription(candidate) {
+		return ""
+	}
+	return candidate
 }
 
 func splitDescriptionCandidates(text string) []string {
@@ -812,8 +893,26 @@ func firstRegexValue(pattern *regexp.Regexp, value string) string {
 func cleanHTML(value string) string {
 	value = tagPattern.ReplaceAllString(value, " ")
 	value = html.UnescapeString(value)
+	value = repairMojibake(value)
 	value = strings.Join(strings.Fields(value), " ")
 	return strings.TrimSpace(value)
+}
+
+func repairMojibake(value string) string {
+	if !strings.ContainsAny(value, "ÃÂâ") {
+		return value
+	}
+	bytes := make([]byte, 0, len(value))
+	for _, char := range value {
+		if char > 255 {
+			return value
+		}
+		bytes = append(bytes, byte(char))
+	}
+	if !utf8.Valid(bytes) {
+		return value
+	}
+	return string(bytes)
 }
 
 func decodeDuckDuckGoURL(value string) string {

@@ -50,6 +50,24 @@ func TestAttachmentSafetyHelpers(t *testing.T) {
 	if isBlockedAttachmentMime("application/pdf") {
 		t.Fatalf("expected pdf mime type to be allowed")
 	}
+	if cleanOriginalFileName(`C:\Users\daniel\Downloads\manual.pdf`) != "manual.pdf" {
+		t.Fatalf("expected original filename cleanup to strip client path")
+	}
+	if !isAllowedAttachmentUpload("manual.pdf", "application/pdf") {
+		t.Fatalf("expected pdf upload to be allowed")
+	}
+	if !isAllowedAttachmentUpload("daten.json", "text/plain; charset=utf-8") {
+		t.Fatalf("expected text-like json upload to be allowed")
+	}
+	if isAllowedAttachmentUpload("manual.pdf", "text/plain; charset=utf-8") {
+		t.Fatalf("expected mismatched pdf mime type to be rejected")
+	}
+	if isAllowedAttachmentUpload("script.js", "text/plain; charset=utf-8") {
+		t.Fatalf("expected blocked executable-like extension to be rejected")
+	}
+	if isAllowedAttachmentUpload("unknown.bin", "application/octet-stream") {
+		t.Fatalf("expected unknown attachment type to be rejected")
+	}
 }
 
 func TestRateLimiterBlocksAfterLimit(t *testing.T) {

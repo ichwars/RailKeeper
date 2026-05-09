@@ -27,7 +27,7 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           <LogIn size={30} aria-hidden="true" />
         </div>
         <h1 id="login-title">Anmelden</h1>
-        <p>Melde dich an, um RailKeeper2 zu oeffnen.</p>
+        <p>Melde dich an, um RailKeeper2 zu öffnen.</p>
 
         <form className="auth-form" onSubmit={submit}>
           <label>

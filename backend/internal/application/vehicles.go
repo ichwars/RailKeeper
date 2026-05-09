@@ -15,9 +15,51 @@ var (
 	ErrVehicleNotFound   = errors.New("vehicle not found")
 )
 
-type VehicleService struct {
-	db *sql.DB
+var allowedMaintenanceKinds = map[string]struct{}{
+	"Decoder-Einbau":   {},
+	"Ersatzteiltausch": {},
+	"Reinigung":        {},
+	"Reparatur":        {},
+	"Schmierung":       {},
+	"Superung":         {},
+	"Umbau":            {},
+	"Wartung":          {},
 }
+
+var allowedMaintenanceStatuses = map[string]struct{}{
+	"erledigt": {},
+	"faellig":  {},
+	"geplant":  {},
+}
+
+var allowedConditionRatings = map[string]struct{}{
+	"gebraucht":          {},
+	"gut":                {},
+	"neuwertig":          {},
+	"reparaturbedürftig": {},
+	"sehr gut":           {},
+}
+
+var allowedFunctionTypes = map[string]struct{}{
+	"kupplung":       {},
+	"licht":          {},
+	"rauch":          {},
+	"sonderfunktion": {},
+	"sound":          {},
+	"standard":       {},
+}
+
+var allowedFunctionModes = map[string]struct{}{
+	"dauer":  {},
+	"moment": {},
+}
+
+type VehicleService struct {
+	db             *sql.DB
+	imageLocalizer VehicleImageLocalizer
+}
+
+type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []VehicleImageInput) ([]VehicleImageInput, error)
 
 type Vehicle struct {
 	ID                        string               `json:"id"`
@@ -287,6 +329,10 @@ func NewVehicleService(db *sql.DB) *VehicleService {
 	return &VehicleService{db: db}
 }
 
+func (s *VehicleService) SetImageLocalizer(localizer VehicleImageLocalizer) {
+	s.imageLocalizer = localizer
+}
+
 func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, error) {
 	like := "%" + strings.TrimSpace(query) + "%"
 	rows, err := s.db.QueryContext(ctx, `
@@ -385,6 +431,14 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" {
 		return nil, ErrVehicleValidation
 	}
+	vehicleID := randomID()
+	var err error
+	if s.imageLocalizer != nil && len(input.Images) > 0 {
+		input.Images, err = s.imageLocalizer(ctx, vehicleID, input.Images)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -406,7 +460,6 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	vehicleID := randomID()
 	vehicle := Vehicle{
 		ID:                        vehicleID,
 		InventoryNumber:           input.InventoryNumber,
@@ -488,11 +541,15 @@ VALUES(?, ?, 'VehicleCreated', 'vehicle', ?, ?, '{}')
 	if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
 		return nil, err
 	}
-	vehicle.Images = vehicleImagesFromInput(vehicle.ID, input.Images, now)
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit create vehicle: %w", err)
 	}
+	images, err := s.loadVehicleImages(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Images = images
 
 	return &vehicle, nil
 }
@@ -514,6 +571,12 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 	}
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" {
 		return nil, ErrVehicleValidation
+	}
+	if s.imageLocalizer != nil && len(input.Images) > 0 {
+		input.Images, err = s.imageLocalizer(ctx, id, input.Images)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -636,6 +699,11 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit update vehicle: %w", err)
 	}
+	images, err := s.loadVehicleImages(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Images = images
 	attachments, err := s.loadVehicleAttachments(ctx, vehicle.ID)
 	if err != nil {
 		return nil, err
@@ -1218,7 +1286,7 @@ func (s *VehicleService) ListMaintenance(ctx context.Context, vehicleID string) 
 func (s *VehicleService) CreateMaintenance(ctx context.Context, vehicleID string, input VehicleMaintenanceInput) (*VehicleMaintenance, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleMaintenanceInput(input)
-	if vehicleID == "" || input.Kind == "" || input.Status == "" {
+	if vehicleID == "" || !isValidVehicleMaintenanceInput(input) {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
@@ -1252,7 +1320,7 @@ func (s *VehicleService) UpdateMaintenance(ctx context.Context, vehicleID, maint
 	vehicleID = strings.TrimSpace(vehicleID)
 	maintenanceID = strings.TrimSpace(maintenanceID)
 	input = cleanVehicleMaintenanceInput(input)
-	if vehicleID == "" || maintenanceID == "" || input.Kind == "" || input.Status == "" {
+	if vehicleID == "" || maintenanceID == "" || !isValidVehicleMaintenanceInput(input) {
 		return nil, ErrVehicleValidation
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
@@ -1380,7 +1448,7 @@ func (s *VehicleService) UpsertFunction(ctx context.Context, vehicleID, function
 	vehicleID = strings.TrimSpace(vehicleID)
 	functionKey = normalizeFunctionKey(functionKey)
 	input = cleanVehicleFunctionInput(input)
-	if vehicleID == "" || !validFunctionKey(functionKey) {
+	if vehicleID == "" || !validFunctionKey(functionKey) || !isValidVehicleFunctionInput(input) {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
@@ -1515,11 +1583,19 @@ func (s *VehicleService) ListCVValues(ctx context.Context, vehicleID string) ([]
 func (s *VehicleService) CreateCVValue(ctx context.Context, vehicleID string, input VehicleCVValueInput) (*VehicleCVValue, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleCVValueInput(input)
-	if vehicleID == "" || !validCVNumber(input.CVNumber) || !validCVValue(input.Value) {
+	if vehicleID == "" || !isValidVehicleCVValueInput(input) {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
 		return nil, err
+	}
+	if input.SourceFileID != "" {
+		if _, err := s.GetCVFile(ctx, vehicleID, input.SourceFileID); err != nil {
+			if errors.Is(err, ErrVehicleNotFound) {
+				return nil, ErrVehicleValidation
+			}
+			return nil, err
+		}
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	item := VehicleCVValue{
@@ -1547,12 +1623,20 @@ func (s *VehicleService) UpdateCVValue(ctx context.Context, vehicleID, cvValueID
 	vehicleID = strings.TrimSpace(vehicleID)
 	cvValueID = strings.TrimSpace(cvValueID)
 	input = cleanVehicleCVValueInput(input)
-	if vehicleID == "" || cvValueID == "" || !validCVNumber(input.CVNumber) || !validCVValue(input.Value) {
+	if vehicleID == "" || cvValueID == "" || !isValidVehicleCVValueInput(input) {
 		return nil, ErrVehicleValidation
 	}
 	existing, err := s.GetCVValue(ctx, vehicleID, cvValueID)
 	if err != nil {
 		return nil, err
+	}
+	if input.SourceFileID != "" {
+		if _, err := s.GetCVFile(ctx, vehicleID, input.SourceFileID); err != nil {
+			if errors.Is(err, ErrVehicleNotFound) {
+				return nil, ErrVehicleValidation
+			}
+			return nil, err
+		}
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -1835,10 +1919,14 @@ func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images
 		if sortOrder == 0 {
 			sortOrder = index
 		}
+		imageURL := image.URL
+		if image.StoragePath != "" {
+			imageURL = "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/file"
+		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_images(id, vehicle_id, url, title, source_url, file_name, mime_type, storage_path, is_primary, sort_order, created_at, updated_at)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, imageID, vehicleID, image.URL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, boolToInt(image.IsPrimary), sortOrder, createdAt, now); err != nil {
+`, imageID, vehicleID, imageURL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, boolToInt(image.IsPrimary), sortOrder, createdAt, now); err != nil {
 			return fmt.Errorf("insert vehicle image: %w", err)
 		}
 	}
@@ -2070,11 +2158,11 @@ func cleanVehicleAttachmentInput(input VehicleAttachmentInput) VehicleAttachment
 
 func cleanVehicleMaintenanceInput(input VehicleMaintenanceInput) VehicleMaintenanceInput {
 	input.Kind = strings.TrimSpace(input.Kind)
-	input.Status = strings.TrimSpace(input.Status)
+	input.Status = normalizeMaintenanceStatus(input.Status)
 	input.ConditionRating = strings.TrimSpace(input.ConditionRating)
 	input.DueDate = strings.TrimSpace(input.DueDate)
 	input.CompletedAt = strings.TrimSpace(input.CompletedAt)
-	input.Cost = strings.TrimSpace(input.Cost)
+	input.Cost = cleanMaintenanceCost(input.Cost)
 	input.Notes = strings.TrimSpace(input.Notes)
 	if input.Kind == "" {
 		input.Kind = "Wartung"
@@ -2085,11 +2173,68 @@ func cleanVehicleMaintenanceInput(input VehicleMaintenanceInput) VehicleMaintena
 	return input
 }
 
+func normalizeMaintenanceStatus(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case "fällig", "faellig":
+		return "faellig"
+	case "erledigt":
+		return "erledigt"
+	case "geplant", "":
+		return value
+	default:
+		return value
+	}
+}
+
+func cleanMaintenanceCost(value string) string {
+	value = strings.TrimSpace(value)
+	value = strings.TrimSuffix(value, "€")
+	value = strings.TrimSpace(value)
+	value = strings.ReplaceAll(value, " ", "")
+	return value
+}
+
+func isValidVehicleMaintenanceInput(input VehicleMaintenanceInput) bool {
+	if _, ok := allowedMaintenanceKinds[input.Kind]; !ok {
+		return false
+	}
+	if _, ok := allowedMaintenanceStatuses[input.Status]; !ok {
+		return false
+	}
+	if input.ConditionRating != "" {
+		if _, ok := allowedConditionRatings[input.ConditionRating]; !ok {
+			return false
+		}
+	}
+	return isValidDateOnly(input.DueDate) &&
+		isValidDateOnly(input.CompletedAt) &&
+		isValidMaintenanceCost(input.Cost) &&
+		len(input.Notes) <= 4000
+}
+
+func isValidDateOnly(value string) bool {
+	if value == "" {
+		return true
+	}
+	parsed, err := time.Parse("2006-01-02", value)
+	return err == nil && parsed.Format("2006-01-02") == value
+}
+
+func isValidMaintenanceCost(value string) bool {
+	if value == "" {
+		return true
+	}
+	normalized := strings.ReplaceAll(value, ",", ".")
+	amount, err := strconv.ParseFloat(normalized, 64)
+	return err == nil && amount >= 0
+}
+
 func cleanVehicleFunctionInput(input VehicleFunctionInput) VehicleFunctionInput {
 	input.Name = strings.TrimSpace(input.Name)
 	input.SymbolKey = strings.TrimSpace(input.SymbolKey)
-	input.FunctionType = strings.TrimSpace(input.FunctionType)
-	input.Mode = strings.TrimSpace(input.Mode)
+	input.FunctionType = strings.ToLower(strings.TrimSpace(input.FunctionType))
+	input.Mode = strings.ToLower(strings.TrimSpace(input.Mode))
 	input.Notes = strings.TrimSpace(input.Notes)
 	if input.FunctionType == "" {
 		input.FunctionType = "standard"
@@ -2100,12 +2245,33 @@ func cleanVehicleFunctionInput(input VehicleFunctionInput) VehicleFunctionInput 
 	return input
 }
 
+func isValidVehicleFunctionInput(input VehicleFunctionInput) bool {
+	if _, ok := allowedFunctionTypes[input.FunctionType]; !ok {
+		return false
+	}
+	if _, ok := allowedFunctionModes[input.Mode]; !ok {
+		return false
+	}
+	return len(input.Name) <= 120 &&
+		len(input.SymbolKey) <= 80 &&
+		len(input.Notes) <= 1000
+}
+
 func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
 	input.Description = strings.TrimSpace(input.Description)
 	input.Category = strings.TrimSpace(input.Category)
 	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
 	input.SourceFileID = strings.TrimSpace(input.SourceFileID)
 	return input
+}
+
+func isValidVehicleCVValueInput(input VehicleCVValueInput) bool {
+	return validCVNumber(input.CVNumber) &&
+		validCVValue(input.Value) &&
+		len(input.Description) <= 1000 &&
+		len(input.Category) <= 80 &&
+		len(input.DecoderProfile) <= 160 &&
+		len(input.SourceFileID) <= 80
 }
 
 func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
@@ -2119,7 +2285,15 @@ func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
 }
 
 func normalizeFunctionKey(value string) string {
-	return strings.ToUpper(strings.TrimSpace(value))
+	value = strings.ToUpper(strings.TrimSpace(value))
+	if !strings.HasPrefix(value, "F") {
+		return value
+	}
+	number, err := strconv.Atoi(strings.TrimPrefix(value, "F"))
+	if err != nil {
+		return value
+	}
+	return fmt.Sprintf("F%d", number)
 }
 
 func validFunctionKey(value string) bool {

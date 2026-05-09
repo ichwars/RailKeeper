@@ -1,13 +1,13 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Download, ExternalLink, Info, Pencil, RefreshCw, ShieldAlert, Trash2, Upload, X } from "lucide-react";
+import { CheckCircle2, Download, ExternalLink, Pencil, RefreshCw, ShieldAlert, Trash2, Upload, X } from "lucide-react";
 import { api, InventoryNumberScheme, MasterDataEntry, MasterDataInput } from "../../shared/api";
+import { applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 
 type SettingsTab = "general" | "data" | "importExport" | "appearance";
 type MasterDataType = {
   type: string;
   label: string;
   description: string;
-  source: string;
 };
 
 const settingsTabs: { id: SettingsTab; label: string }[] = [
@@ -21,44 +21,37 @@ const masterDataTypes: MasterDataType[] = [
   {
     type: "manufacturer",
     label: "Hersteller",
-    description: "Hersteller mit optionaler Spurweite oder Webseite pflegen.",
-    source: "Modellbau-Wiki Hersteller-Kategorien, importiert ueber backend/seeds/master_data.json."
+    description: "Hersteller mit optionaler Nenngröße, Spurweite oder Webseite pflegen."
   },
   {
     type: "vehicle_category",
     label: "Kategorie",
-    description: "Fahrzeugkategorien fuer die Erfassung verwalten.",
-    source: "Kategorie_Gattung.xlsx, importiert ueber backend/seeds/master_data.json."
+    description: "Fahrzeugkategorien für die Erfassung verwalten."
   },
   {
     type: "vehicle_gattung",
     label: "Gattung",
-    description: "Gattungen passend zu den Fahrzeugkategorien pflegen.",
-    source: "Kategorie_Gattung.xlsx, importiert ueber backend/seeds/master_data.json."
+    description: "Gattungen passend zu den Fahrzeugkategorien pflegen."
   },
   {
     type: "epoch",
     label: "Epoche",
-    description: "Epochen fuer die Fahrzeugauswahl verwalten.",
-    source: "Epoche.txt, importiert ueber backend/seeds/master_data.json."
+    description: "Epochen für die Fahrzeugauswahl verwalten."
   },
   {
     type: "gauge",
     label: "Spur",
-    description: "Spurweiten und Massstaebe fuer Dropdowns pflegen.",
-    source: "Spurweite.xlsx, importiert ueber backend/seeds/master_data.json."
+    description: "Spurweiten und Maßstäbe für Dropdowns pflegen."
   },
   {
     type: "railway_company",
     label: "Bahngesellschaft",
-    description: "Bahngesellschaften mit Abkuerzungen und Zusatzdaten pflegen.",
-    source: "Bahngesellschaft.xlsx, importiert ueber backend/seeds/master_data.json."
+    description: "Bahngesellschaften mit Abkürzungen und Zusatzdaten pflegen."
   },
   {
     type: "symbols",
     label: "Symbole",
-    description: "Funktionssymbole fuer Digitalfunktionen verwalten.",
-    source: "Standardwerte aus Migration 0013, danach lokal in der SQLite-Stammdatenbank gepflegt."
+    description: "Funktionssymbole für Digitalfunktionen verwalten."
   }
 ];
 
@@ -71,6 +64,7 @@ const emptyForm = {
   active: true,
   sortOrder: 0,
   sourceUrl: "",
+  nominalScalesText: "",
   metadataText: "{}"
 };
 
@@ -83,14 +77,9 @@ function entryToForm(entry: MasterDataEntry): FormState {
     active: entry.active,
     sortOrder: entry.sortOrder,
     sourceUrl: entry.sourceUrl || "",
+    nominalScalesText: nominalScalesText(entry),
     metadataText: JSON.stringify(entry.metadata || {}, null, 2)
   };
-}
-
-function metadataSummary(entry: MasterDataEntry) {
-  const keys = Object.keys(entry.metadata || {});
-  if (keys.length === 0) return "-";
-  return keys.slice(0, 4).join(", ") + (keys.length > 4 ? " ..." : "");
 }
 
 function metadataString(entry: MasterDataEntry, key: string) {
@@ -98,15 +87,56 @@ function metadataString(entry: MasterDataEntry, key: string) {
   return typeof value === "string" && value.trim() ? value.trim() : "";
 }
 
+function metadataList(entry: MasterDataEntry, key: string) {
+  const value = entry.metadata?.[key];
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+  if (typeof value === "string" && value.trim()) {
+    return value
+      .split(/[,;\n]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function nominalScalesText(entry: MasterDataEntry) {
+  return metadataList(entry, "nominalScales").join(", ");
+}
+
+function parseList(text: string) {
+  return text
+    .split(/[,;\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function applyVisibleMetadata(type: string, metadata: Record<string, unknown>, form: FormState) {
+  if (type !== "manufacturer") return metadata;
+  const next = { ...metadata };
+  const nominalScales = parseList(form.nominalScalesText);
+  if (nominalScales.length > 0) {
+    next.nominalScales = nominalScales;
+  } else {
+    delete next.nominalScales;
+  }
+  return next;
+}
+
 function externalLink(entry: MasterDataEntry) {
   const website = metadataString(entry, "website");
   if (website) {
-    return { href: website, title: "Website oeffnen" };
+    return { href: website, title: "Website öffnen" };
   }
   if (entry.sourceUrl) {
-    return { href: entry.sourceUrl, title: "Quelle oeffnen" };
+    return { href: entry.sourceUrl, title: "Quelle öffnen" };
   }
   return null;
+}
+
+function displayInventoryCategory(category: string) {
+  return category === "Zubehoer" ? "Zubehör" : category;
 }
 
 export function SettingsView() {
@@ -123,7 +153,7 @@ export function SettingsView() {
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(
     () => window.localStorage.getItem(articleSearchSettingKey) !== "false"
   );
-  const [design, setDesign] = useState("Light");
+  const [design, setDesign] = useState<ThemePreference>(readThemePreference);
   const [inventorySchemes, setInventorySchemes] = useState<InventoryNumberScheme[]>([]);
   const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
   const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
@@ -225,6 +255,11 @@ export function SettingsView() {
     window.localStorage.setItem(articleSearchSettingKey, String(enabled));
   };
 
+  const updateDesign = (preference: ThemePreference) => {
+    setDesign(preference);
+    applyThemePreference(preference);
+  };
+
   const loadInventorySchemes = () => {
     setInventorySchemesLoading(true);
     setInventorySchemesMessage("");
@@ -277,9 +312,10 @@ export function SettingsView() {
       metadata = JSON.parse(form.metadataText || "{}");
     } catch {
       setSaving(false);
-      setMessage("Metadaten muessen gueltiges JSON sein.");
+      setMessage("Interne Zusatzdaten müssen gültiges JSON sein.");
       return;
     }
+    metadata = applyVisibleMetadata(activeType, metadata, form);
 
     const input: MasterDataInput = {
       key: form.key,
@@ -305,7 +341,7 @@ export function SettingsView() {
   };
 
   const deleteEntry = (entry: MasterDataEntry) => {
-    if (!window.confirm(`${entry.label} loeschen?`)) return;
+    if (!window.confirm(`${entry.label} löschen?`)) return;
 
     api
       .deleteMasterData(activeType, entry.key)
@@ -320,7 +356,7 @@ export function SettingsView() {
 
   const restoreBackup = () => {
     if (!backupFile) {
-      setBackupMessage("Bitte zuerst eine Backup-Datei auswaehlen.");
+      setBackupMessage("Bitte zuerst eine Backup-Datei auswählen.");
       return;
     }
     if (!window.confirm("Backup wirklich wiederherstellen? Bestand, Stammdaten, Wartung, CVs und Uploads werden durch den Inhalt der Datei ersetzt.")) {
@@ -331,9 +367,7 @@ export function SettingsView() {
     api
       .restoreBackup(backupFile)
       .then((result) => {
-        setBackupMessage(
-          `Backup wiederhergestellt: ${result.restoredRows} Datensaetze, ${result.restoredFiles} Dateien.`
-        );
+        setBackupMessage(`Backup wiederhergestellt: ${result.restoredRows} Datensätze, ${result.restoredFiles} Dateien.`);
         setLoadedTypes({});
         setItemsByType({});
       })
@@ -347,7 +381,7 @@ export function SettingsView() {
         <h1>
           Einstellungen <span>0.1.0</span>
         </h1>
-        <p>Inventarverwaltung fuer Modellbahn und Zubehoer</p>
+        <p>Inventarverwaltung für Modellbahn und Zubehör</p>
       </section>
 
       <nav className="settings-primary-tabs" aria-label="Einstellungen">
@@ -366,12 +400,12 @@ export function SettingsView() {
       {activeSettingsTab === "general" && (
         <section className="panel settings-card">
           <h2>Allgemein</h2>
-          <p>Grundlegende Einstellungen fuer Suche und Darstellung.</p>
+          <p>Grundlegende Einstellungen für Suche und Darstellung.</p>
 
           <div className="settings-general-grid">
             <div>
               <h3>Artikeldaten-Websuche</h3>
-              <p>Aktiviert die spaetere Suche nach externen Artikeldaten.</p>
+              <p>Aktiviert die spätere Suche nach externen Artikeldaten.</p>
             </div>
             <label className="switch-field" aria-label="Artikeldaten-Websuche">
               <input
@@ -381,20 +415,13 @@ export function SettingsView() {
               />
               <span />
             </label>
-            <label>
-              Design
-              <select value={design} onChange={(event) => setDesign(event.target.value)}>
-                <option>Light</option>
-                <option>Dark</option>
-              </select>
-            </label>
           </div>
 
           <div className="inventory-number-settings">
             <div className="settings-section-head">
               <div>
                 <h3>Inventarnummern</h3>
-                <p>Praefixe, laufende Nummern und Stellen je Fahrzeugtyp verwalten.</p>
+                <p>Präfixe, laufende Nummern und Stellen je Fahrzeugtyp verwalten.</p>
               </div>
               <button type="button" className="icon-button" onClick={loadInventorySchemes} aria-label="Aktualisieren" title="Aktualisieren" disabled={inventorySchemesLoading}>
                 <RefreshCw size={16} />
@@ -406,8 +433,8 @@ export function SettingsView() {
                 <thead>
                   <tr>
                     <th>Kategorie</th>
-                    <th>Praefix</th>
-                    <th>Naechste Nr.</th>
+                    <th>Präfix</th>
+                    <th>Nächste Nr.</th>
                     <th>Stellen</th>
                     <th>Aktiv</th>
                     <th>Vorschau</th>
@@ -426,7 +453,7 @@ export function SettingsView() {
                   ) : (
                     inventorySchemes.map((scheme) => (
                       <tr key={scheme.id}>
-                        <td><strong>{scheme.category}</strong></td>
+                        <td><strong>{displayInventoryCategory(scheme.category)}</strong></td>
                         <td>
                           <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
                         </td>
@@ -466,7 +493,7 @@ export function SettingsView() {
       {activeSettingsTab === "data" && (
         <section className="panel settings-card data-card">
           <h2>Daten</h2>
-          <p>Pflege hier die Auswahlwerte fuer Dropdowns und Symbol-Listen.</p>
+          <p>Pflege hier die Auswahlwerte für Dropdowns und Symbol-Listen.</p>
 
           <nav className="settings-secondary-tabs" aria-label="Stammdaten">
             {masterDataTypes.map((item) => (
@@ -498,19 +525,19 @@ export function SettingsView() {
                 <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Stammdaten durchsuchen" />
               </label>
 
-                <p className="source-note">
-                  <Info size={15} aria-hidden="true" />
-                  <span>
-                    Quelle: {activeDataType.source} Bearbeitete Werte liegen danach in der lokalen SQLite-Stammdatenbank.
-                  </span>
-                </p>
-
-                <form className="master-data-create" onSubmit={submit}>
+                <form className={activeType === "manufacturer" ? "master-data-create manufacturer-create" : "master-data-create"} onSubmit={submit}>
                   <strong>{editing ? "Eintrag bearbeiten" : "Neuer Eintrag"}</strong>
                   <input value={form.label} onChange={(event) => update({ label: event.target.value })} placeholder={`${activeDataType.label} eintragen`} required />
+                  {activeType === "manufacturer" && (
+                    <input
+                      value={form.nominalScalesText}
+                      onChange={(event) => update({ nominalScalesText: event.target.value })}
+                      placeholder="Nenngröße / Spurweite, z. B. H0, TT, 1:87"
+                    />
+                  )}
                   <input value={form.sourceUrl} onChange={(event) => update({ sourceUrl: event.target.value })} placeholder="Webseite optional" />
                   <button className="primary-button" disabled={saving}>
-                    {saving ? "Speichert..." : editing ? "Speichern" : "+ Hinzufuegen"}
+                    {saving ? "Speichert..." : editing ? "Speichern" : "+ Hinzufügen"}
                   </button>
                   {editing && (
                     <button type="button" className="icon-button" onClick={startCreate} aria-label="Abbrechen" title="Abbrechen">
@@ -524,7 +551,7 @@ export function SettingsView() {
                   <form className="settings-form" onSubmit={submit}>
                     <div className="form-row">
                       <label>
-                        Schluessel
+                        Schlüssel
                         <input value={form.key} onChange={(event) => update({ key: event.target.value })} disabled={Boolean(editing)} />
                       </label>
                       <label>
@@ -536,10 +563,6 @@ export function SettingsView() {
                       <input type="checkbox" checked={form.active} onChange={(event) => update({ active: event.target.checked })} />
                       Aktiv
                     </label>
-                    <label>
-                      Metadaten
-                      <textarea value={form.metadataText} onChange={(event) => update({ metadataText: event.target.value })} rows={7} spellCheck={false} />
-                    </label>
                     {message && <p className="form-message">{message}</p>}
                   </form>
                 </details>
@@ -550,7 +573,7 @@ export function SettingsView() {
                       <tr>
                         <th>Aktionen</th>
                         <th>Name</th>
-                        <th>Metadaten</th>
+                        {activeType === "manufacturer" && <th>Nenngröße / Spurweite</th>}
                         <th>Link</th>
                         <th>Status</th>
                       </tr>
@@ -558,11 +581,11 @@ export function SettingsView() {
                     <tbody>
                       {loading ? (
                         <tr>
-                          <td colSpan={5} className="loading-cell">Lade aus lokaler Stammdatenbank...</td>
+                          <td colSpan={activeType === "manufacturer" ? 5 : 4} className="loading-cell">Lade aus lokaler Stammdatenbank...</td>
                         </tr>
                       ) : filteredItems.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="loading-cell">Keine Eintraege gefunden.</td>
+                          <td colSpan={activeType === "manufacturer" ? 5 : 4} className="loading-cell">Keine Einträge gefunden.</td>
                         </tr>
                       ) : (
                         filteredItems.map((entry) => {
@@ -574,13 +597,13 @@ export function SettingsView() {
                                   <button type="button" className="icon-button" onClick={() => startEdit(entry)} aria-label="Bearbeiten" title="Bearbeiten">
                                     <Pencil size={16} />
                                   </button>
-                                  <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} aria-label="Loeschen" title="Loeschen">
+                                  <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} aria-label="Löschen" title="Löschen">
                                     <Trash2 size={16} />
                                   </button>
                                 </div>
                               </td>
                               <td><strong>{entry.label}</strong></td>
-                              <td>{metadataSummary(entry)}</td>
+                              {activeType === "manufacturer" && <td>{nominalScalesText(entry) || "-"}</td>}
                               <td>
                                 {link ? (
                                   <a className="table-icon-link" href={link.href} target="_blank" rel="noreferrer" aria-label={link.title} title={link.title}>
@@ -612,7 +635,7 @@ export function SettingsView() {
       {activeSettingsTab === "importExport" && (
         <section className="panel settings-card import-export-card">
           <h2>Import/Export</h2>
-          <p>Lokales Vollbackup fuer Bestand, Stammdaten, Wartung, Digitalfunktionen, CV-Daten und Upload-Dateien.</p>
+          <p>Lokales Vollbackup für Bestand, Stammdaten, Wartung, Digitalfunktionen, CV-Daten und Upload-Dateien.</p>
 
           <div className="backup-grid">
             <section className="backup-box">
@@ -654,7 +677,7 @@ export function SettingsView() {
 
           <p className="source-note backup-note">
             <ShieldAlert size={16} aria-hidden="true" />
-            <span>Restore ist absichtlich Admin-geschuetzt und ersetzt Daten. Der Export enthaelt keine Passworthashes.</span>
+            <span>Restore ist absichtlich Admin-geschützt und ersetzt Daten. Der Export enthält keine Passworthashes.</span>
           </p>
           {backupMessage && <p className="form-message">{backupMessage}</p>}
         </section>
@@ -663,7 +686,48 @@ export function SettingsView() {
       {activeSettingsTab === "appearance" && (
         <section className="panel settings-card">
           <h2>Darstellung</h2>
-          <p>Design-Optionen und Anzeigeeinstellungen werden hier gebuendelt.</p>
+          <p>Design-Optionen und Anzeigeeinstellungen werden hier gebündelt.</p>
+          <div className="appearance-grid">
+            <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
+              <input
+                type="radio"
+                name="theme"
+                value="system"
+                checked={design === "system"}
+                onChange={() => updateDesign("system")}
+              />
+              <span>
+                <strong>System</strong>
+                <small>Übernimmt Hell/Dunkel vom Betriebssystem.</small>
+              </span>
+            </label>
+            <label className={design === "light" ? "appearance-option active" : "appearance-option"}>
+              <input
+                type="radio"
+                name="theme"
+                value="light"
+                checked={design === "light"}
+                onChange={() => updateDesign("light")}
+              />
+              <span>
+                <strong>Hell</strong>
+                <small>Ruhige helle Oberfläche für Tagesbetrieb.</small>
+              </span>
+            </label>
+            <label className={design === "dark" ? "appearance-option active" : "appearance-option"}>
+              <input
+                type="radio"
+                name="theme"
+                value="dark"
+                checked={design === "dark"}
+                onChange={() => updateDesign("dark")}
+              />
+              <span>
+                <strong>Dunkel</strong>
+                <small>Reduzierte Helligkeit für längere Arbeitssitzungen.</small>
+              </span>
+            </label>
+          </div>
         </section>
       )}
     </>

@@ -1,3 +1,3 @@
 package domain
 
-// Package domain contains RailKeeper's vehicle inventory model and rules.
+// Package domain contains RailKeeper2's vehicle inventory model and rules.

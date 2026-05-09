@@ -5,6 +5,7 @@ import { SetupView } from "../features/setup/SetupView";
 import { SettingsView } from "../features/settings/SettingsView";
 import { VehiclesView } from "../features/vehicles/VehiclesView";
 import { api, Session } from "../shared/api";
+import { applyThemePreference, readThemePreference } from "../shared/theme";
 
 type AppView = "vehicles" | "settings";
 
@@ -17,6 +18,10 @@ export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<AppView>(currentView);
+
+  useEffect(() => {
+    applyThemePreference(readThemePreference());
+  }, []);
 
   useEffect(() => {
     const syncView = () => setView(currentView());
@@ -55,7 +60,7 @@ export function App() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>RailKeeper2</h1>
-          <p>Initialisierung wird geprueft...</p>
+          <p>Initialisierung wird geprüft...</p>
         </section>
       </main>
     );
@@ -77,7 +82,7 @@ export function App() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>RailKeeper2</h1>
-          <p>Session wird geprueft...</p>
+          <p>Session wird geprüft...</p>
         </section>
       </main>
     );
