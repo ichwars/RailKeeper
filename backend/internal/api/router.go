@@ -109,6 +109,13 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/functions", app.require("Viewer", app.listVehicleFunctions))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.upsertVehicleFunction))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.deleteVehicleFunction))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-values", app.require("Viewer", app.listVehicleCVValues))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-values", app.require("Editor", app.createVehicleCVValue))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.updateVehicleCVValue))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.deleteVehicleCVValue))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-files", app.require("Editor", app.uploadVehicleCVFile))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-files/{cvFileID}", app.require("Editor", app.deleteVehicleCVFile))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-files/{cvFileID}/download", app.require("Viewer", app.downloadVehicleCVFile))
 	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
@@ -685,6 +692,186 @@ func (a *App) deleteVehicleFunction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) listVehicleCVValues(w http.ResponseWriter, r *http.Request) {
+	values, err := a.vehicleService.ListCVValues(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("cv value list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_value_list_failed", "CV-Werte konnten nicht geladen werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, values)
+}
+
+func (a *App) createVehicleCVValue(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleCVValueInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	value, err := a.vehicleService.CreateCVValue(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+		default:
+			a.logger.Error("cv value create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "cv_value_create_failed", "CV-Wert konnte nicht gespeichert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusCreated, value)
+}
+
+func (a *App) updateVehicleCVValue(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleCVValueInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	value, err := a.vehicleService.UpdateCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "cv_value_invalid", "CV-Nummer muss 1-1024 und Wert 0-255 sein.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "cv_value_not_found", "CV value not found.")
+		default:
+			a.logger.Error("cv value update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "cv_value_update_failed", "CV-Wert konnte nicht aktualisiert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, value)
+}
+
+func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.vehicleService.DeleteCVValue(r.Context(), r.PathValue("id"), r.PathValue("cvValueID")); err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "cv_value_not_found", "CV value not found.")
+			return
+		}
+		a.logger.Error("cv value delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_value_delete_failed", "CV-Wert konnte nicht geloescht werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxAttachmentBytes+1024*1024)
+	if err := r.ParseMultipartForm(maxAttachmentBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "cv_file_upload_invalid", "CV-Datei konnte nicht gelesen werden.")
+		return
+	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "cv_file_missing", "Eine Datei ist erforderlich.")
+		return
+	}
+	defer func() { _ = file.Close() }()
+	if header.Size > maxAttachmentBytes || isBlockedAttachmentName(header.Filename) {
+		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > maxAttachmentBytes {
+		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gross.")
+		return
+	}
+	mimeType := http.DetectContentType(data)
+	if isBlockedAttachmentMime(mimeType) {
+		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
+		return
+	}
+	vehicleID := r.PathValue("id")
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
+	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "cv", storageName)
+	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "cv_file_path_invalid", "CV-Datei konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		a.logger.Error("cv file directory create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
+		a.logger.Error("cv file write failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
+		return
+	}
+	cvFile, err := a.vehicleService.CreateCVFile(r.Context(), vehicleID, application.VehicleCVFileInput{
+		FileName:       storageName,
+		OriginalName:   header.Filename,
+		Description:    r.FormValue("description"),
+		DecoderProfile: r.FormValue("decoderProfile"),
+		MimeType:       mimeType,
+		SizeBytes:      int64(len(data)),
+		StoragePath:    storagePath,
+	})
+	if err != nil {
+		_ = os.Remove(fullPath)
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("cv file metadata create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusCreated, cvFile)
+}
+
+func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
+	file, err := a.vehicleService.DeleteCVFile(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "cv_file_not_found", "CV file not found.")
+			return
+		}
+		a.logger.Error("cv file delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_file_delete_failed", "CV-Datei konnte nicht geloescht werden.")
+		return
+	}
+	if fullPath, err := confinedDataPath(a.dataDir, file.StoragePath); err == nil {
+		_ = os.Remove(fullPath)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) downloadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
+	file, err := a.vehicleService.GetCVFile(r.Context(), r.PathValue("id"), r.PathValue("cvFileID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "cv_file_not_found", "CV file not found.")
+			return
+		}
+		a.logger.Error("cv file download lookup failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "cv_file_download_failed", "CV-Datei konnte nicht geladen werden.")
+		return
+	}
+	fullPath, err := confinedDataPath(a.dataDir, file.StoragePath)
+	if err != nil {
+		respondProblem(w, http.StatusInternalServerError, "cv_file_path_invalid", "CV-Datei konnte nicht geladen werden.")
+		return
+	}
+	if file.MimeType != "" {
+		w.Header().Set("Content-Type", file.MimeType)
+	}
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": path.Base(file.OriginalName)}))
+	http.ServeFile(w, r, fullPath)
 }
 
 func safeAttachmentFileName(value string) string {

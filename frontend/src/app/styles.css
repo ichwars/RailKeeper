@@ -1725,14 +1725,18 @@ td {
 .empty-tab,
 .uploads-tab,
 .maintenance-tab,
-.functions-tab {
+.functions-tab,
+.cv-tab {
   display: grid;
   gap: 18px;
   padding: 20px;
 }
 
 .upload-section,
-.maintenance-editor {
+.maintenance-editor,
+.cv-editor,
+.cv-files-section,
+.cv-table-section {
   display: grid;
   gap: 12px;
 }
@@ -2028,6 +2032,72 @@ td {
   gap: 6px;
 }
 
+.cv-toolbar,
+.cv-actions,
+.table-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.cv-toolbar .secondary-button,
+.cv-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cv-form {
+  display: grid;
+  grid-template-columns: minmax(82px, 0.4fr) minmax(82px, 0.4fr) minmax(150px, 0.8fr) minmax(170px, 1fr) minmax(170px, 1fr);
+  gap: 10px;
+}
+
+.cv-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.cv-description {
+  grid-column: 1 / -1;
+}
+
+.cv-form input,
+.cv-form select,
+.cv-file-controls input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.cv-form input:focus,
+.cv-form select:focus,
+.cv-file-controls input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.compact-table table th,
+.compact-table table td {
+  padding: 8px 10px;
+}
+
+.cv-file-controls {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) minmax(240px, 1fr);
+  gap: 8px;
+}
+
 .maintenance-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2285,6 +2355,8 @@ td {
   .attachment-row,
   .attachment-edit-row,
   .function-row,
+  .cv-form,
+  .cv-file-controls,
   .maintenance-form,
   .maintenance-meta,
   .list-head {

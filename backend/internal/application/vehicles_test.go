@@ -512,6 +512,90 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 	}
 }
 
+func TestVehiclePersistsCVValuesAndFiles(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	file, err := service.CreateCVFile(ctx, created.ID, application.VehicleCVFileInput{
+		FileName:       "decoder.json",
+		OriginalName:   "decoder.json",
+		Description:    "Decoder Export",
+		DecoderProfile: "ESU LokPilot",
+		MimeType:       "application/json",
+		SizeBytes:      42,
+		StoragePath:    "uploads/vehicles/test/cv/decoder.json",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file.DecoderProfile != "ESU LokPilot" || file.StoragePath == "" {
+		t.Fatalf("unexpected cv file: %#v", file)
+	}
+
+	value, err := service.CreateCVValue(ctx, created.ID, application.VehicleCVValueInput{
+		CVNumber:       1,
+		Value:          3,
+		Description:    "Adresse",
+		Category:       "Adresse",
+		DecoderProfile: "ESU LokPilot",
+		SourceFileID:   file.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if value.CVNumber != 1 || value.Value != 3 || value.SourceFileID != file.ID {
+		t.Fatalf("unexpected cv value: %#v", value)
+	}
+
+	updated, err := service.UpdateCVValue(ctx, created.ID, value.ID, application.VehicleCVValueInput{
+		CVNumber:       1,
+		Value:          4,
+		Description:    "Adresse geaendert",
+		Category:       "Adresse",
+		DecoderProfile: "ESU LokPilot",
+		SourceFileID:   file.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Value != 4 {
+		t.Fatalf("unexpected cv update: %#v", updated)
+	}
+
+	var historyCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM vehicle_cv_value_history WHERE cv_value_id=? AND old_value=3 AND new_value=4`, value.ID).Scan(&historyCount); err != nil {
+		t.Fatal(err)
+	}
+	if historyCount != 1 {
+		t.Fatalf("expected one cv history entry, got %d", historyCount)
+	}
+
+	if _, err := service.CreateCVValue(ctx, created.ID, application.VehicleCVValueInput{CVNumber: 0, Value: 1}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected validation for invalid cv number, got %v", err)
+	}
+	if _, err := service.CreateCVValue(ctx, created.ID, application.VehicleCVValueInput{CVNumber: 1, Value: 256}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected validation for invalid cv value, got %v", err)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.CVValues) != 1 || len(detail.CVFiles) != 1 {
+		t.Fatalf("unexpected cv detail: values=%#v files=%#v", detail.CVValues, detail.CVFiles)
+	}
+}
+
 func TestDeleteVehicleRemovesRecord(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

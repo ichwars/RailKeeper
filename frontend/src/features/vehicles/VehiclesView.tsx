@@ -34,6 +34,9 @@ import {
   MasterDataRelation,
   VehicleAttachment,
   VehicleImage as VehicleImageRecord,
+  VehicleCVFile,
+  VehicleCVValue,
+  VehicleCVValueInput,
   VehicleFunction,
   VehicleFunctionInput,
   VehicleMaintenance,
@@ -93,7 +96,7 @@ const emptyVehicle: CreateVehicleRequest = {
 };
 
 type ModalMode = "create" | "view" | "edit";
-type ModalTab = "model" | "control" | "uploads" | "maintenance";
+type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance";
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type SortDirection = "asc" | "desc";
 type ArticleFieldKey = keyof CreateVehicleRequest;
@@ -115,6 +118,15 @@ const emptyMaintenanceForm: VehicleMaintenanceInput = {
   completedAt: "",
   cost: "",
   notes: ""
+};
+
+const emptyCVForm: VehicleCVValueInput = {
+  cvNumber: 1,
+  value: 0,
+  description: "",
+  category: "",
+  decoderProfile: "",
+  sourceFileId: ""
 };
 
 type MasterDataOptions = {
@@ -160,7 +172,9 @@ const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparatu
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonderfunktion"];
 const functionModes = ["dauer", "moment"];
+const cvCategories = ["Adresse", "Fahrverhalten", "Motor", "Licht", "Sound", "Funktion", "Decoder", "Sonstiges"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
+const cvFileAccept = ".json,.csv,.txt,.xml,.z21,.esu,.lokprogrammer,.zip";
 const imageAccept = ".jpg,.jpeg,.png,.webp";
 const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
 const allowedImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
@@ -520,6 +534,39 @@ function emptyFunctionEdit(functionKey: string): VehicleFunctionInput & { persis
     notes: "",
     persisted: false
   };
+}
+
+function cvValuesFromImport(text: string): VehicleCVValueInput[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    const parsed = JSON.parse(trimmed);
+    const rows = Array.isArray(parsed) ? parsed : parsed.cvValues || [];
+    return rows.map((row: Partial<VehicleCVValueInput>) => ({
+      cvNumber: Number(row.cvNumber),
+      value: Number(row.value),
+      description: String(row.description || ""),
+      category: String(row.category || ""),
+      decoderProfile: String(row.decoderProfile || ""),
+      sourceFileId: String(row.sourceFileId || "")
+    }));
+  }
+  return trimmed
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.toLocaleLowerCase("de-DE").startsWith("cv"))
+    .map((line) => {
+      const [cvNumber, value, description = "", category = "", decoderProfile = ""] = line.split(/[;,]/).map((part) => part.trim());
+      return {
+        cvNumber: Number(cvNumber),
+        value: Number(value),
+        description,
+        category,
+        decoderProfile,
+        sourceFileId: ""
+      };
+    });
 }
 
 function formatFileSize(size: number) {
@@ -1071,8 +1118,14 @@ export function VehiclesView() {
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
   const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
   const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
+  const [cvForm, setCVForm] = useState<VehicleCVValueInput>(emptyCVForm);
+  const [editingCVID, setEditingCVID] = useState<string | null>(null);
+  const [cvFileProfile, setCVFileProfile] = useState("");
+  const [cvFileDescription, setCVFileDescription] = useState("");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
+  const cvFileInputRef = useRef<HTMLInputElement | null>(null);
+  const cvImportInputRef = useRef<HTMLInputElement | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
   const [qrError, setQrError] = useState("");
@@ -1170,6 +1223,8 @@ export function VehiclesView() {
     setFunctionEdits(functionsToEditState(detail.functions));
     setEditingMaintenanceID(null);
     setMaintenanceForm(emptyMaintenanceForm);
+    setEditingCVID(null);
+    setCVForm(emptyCVForm);
   };
 
   const updateCategory = (category: string) => {
@@ -1545,6 +1600,136 @@ export function VehiclesView() {
       .finally(() => setSaving(false));
   };
 
+  const updateCVForm = (patch: Partial<VehicleCVValueInput>) => {
+    setCVForm((current) => ({ ...current, ...patch }));
+  };
+
+  const resetCVForm = () => {
+    setCVForm(emptyCVForm);
+    setEditingCVID(null);
+  };
+
+  const editCVValue = (value: VehicleCVValue) => {
+    setCVForm({
+      cvNumber: value.cvNumber,
+      value: value.value,
+      description: value.description || "",
+      category: value.category || "",
+      decoderProfile: value.decoderProfile || "",
+      sourceFileId: value.sourceFileId || ""
+    });
+    setEditingCVID(value.id);
+  };
+
+  const saveCVValue = () => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    const payload = {
+      ...cvForm,
+      cvNumber: Number(cvForm.cvNumber),
+      value: Number(cvForm.value)
+    };
+    const action = editingCVID
+      ? api.updateVehicleCVValue(selected.id, editingCVID, payload)
+      : api.createVehicleCVValue(selected.id, payload);
+    action
+      .then(() => refreshSelectedVehicle(selected.id))
+      .then(() => resetCVForm())
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const deleteCVValue = (value: VehicleCVValue) => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .deleteVehicleCVValue(selected.id, value.id)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const exportCVValues = () => {
+    if (!selected) return;
+    const payload = {
+      vehicle: {
+        inventoryNumber: selected.inventoryNumber,
+        name: selected.name,
+        decoder: form.digitalDecoderNumber || form.dtDecoderNumber || ""
+      },
+      cvValues: selected.cvValues || []
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${selected.inventoryNumber || "railkeeper"}-cv.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importCVValues = (files: FileList | null) => {
+    if (!selected || !files || files.length === 0) return;
+    const [file] = Array.from(files);
+    setSaving(true);
+    setMessage("");
+    file
+      .text()
+      .then(cvValuesFromImport)
+      .then(async (values) => {
+        const valid = values.filter((entry) => Number.isFinite(entry.cvNumber) && Number.isFinite(entry.value));
+        for (const value of valid) {
+          await api.createVehicleCVValue(selected.id, value);
+        }
+      })
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => {
+        setSaving(false);
+        if (cvImportInputRef.current) {
+          cvImportInputRef.current.value = "";
+        }
+      });
+  };
+
+  const uploadCVFiles = (files: FileList | null) => {
+    if (!selected || !files || files.length === 0) return;
+    const uploadFiles = Array.from(files);
+    const blocked = uploadFiles.find(isBlockedAttachmentFile);
+    if (blocked) {
+      setMessage(`${blocked.name} ist als CV-Datei nicht erlaubt.`);
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    (async () => {
+      for (const file of uploadFiles) {
+        await api.uploadVehicleCVFile(selected.id, file, cvFileProfile, cvFileDescription);
+      }
+    })()
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => {
+        setSaving(false);
+        if (cvFileInputRef.current) {
+          cvFileInputRef.current.value = "";
+        }
+      });
+  };
+
+  const deleteCVFile = (file: VehicleCVFile) => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .deleteVehicleCVFile(selected.id, file.id)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
   const generateQr = async () => {
     setQrDialogOpen(true);
     setQrError("");
@@ -1669,6 +1854,7 @@ export function VehiclesView() {
     setAttachmentDragActive(false);
     setFunctionEdits({});
     resetMaintenanceForm();
+    resetCVForm();
     setActiveTab("model");
     setOpenSections({ model: true, details: false, ownership: false });
     setModalOpen(true);
@@ -1687,6 +1873,7 @@ export function VehiclesView() {
     setAttachmentDragActive(false);
     setFunctionEdits({});
     resetMaintenanceForm();
+    resetCVForm();
     setPreviewImage(null);
     setMessage("");
   };
@@ -1910,6 +2097,9 @@ export function VehiclesView() {
               </button>
               <button type="button" className={activeTab === "control" ? "active" : ""} onClick={() => setActiveTab("control")}>
                 Steuerung
+              </button>
+              <button type="button" className={activeTab === "cv" ? "active" : ""} onClick={() => setActiveTab("cv")}>
+                CV
               </button>
               <button type="button" className={activeTab === "uploads" ? "active" : ""} onClick={() => setActiveTab("uploads")}>
                 Uploads
@@ -2203,6 +2393,193 @@ export function VehiclesView() {
                       })}
                     </div>
                   )}
+                </section>
+              )}
+
+              {activeTab === "cv" && (
+                <section className="cv-tab">
+                  <section className="cv-editor">
+                    <div className="upload-head">
+                      <div>
+                        <h3>CV-Werte</h3>
+                        <p>Decoder-CVs strukturiert erfassen, importieren und exportieren. Werte werden im Backend validiert.</p>
+                      </div>
+                      <div className="cv-toolbar">
+                        <input
+                          ref={cvImportInputRef}
+                          type="file"
+                          accept=".json,.csv,.txt"
+                          className="visually-hidden"
+                          onChange={(event) => importCVValues(event.target.files)}
+                          disabled={readonly || !selected || saving}
+                        />
+                        <button type="button" className="secondary-button" onClick={() => cvImportInputRef.current?.click()} disabled={readonly || !selected || saving}>
+                          <Upload size={15} aria-hidden="true" />
+                          Import
+                        </button>
+                        <button type="button" className="secondary-button" onClick={exportCVValues} disabled={!selected || !(selected.cvValues || []).length}>
+                          <Download size={15} aria-hidden="true" />
+                          Export
+                        </button>
+                      </div>
+                    </div>
+                    {!selected && <p className="empty-state compact">CV-Werte koennen nach dem ersten Speichern gepflegt werden.</p>}
+                    {selected && (
+                      <>
+                        <div className="cv-form">
+                          <label>
+                            CV-Nr.
+                            <input type="number" min={1} max={1024} value={cvForm.cvNumber} onChange={(event) => updateCVForm({ cvNumber: Number(event.target.value) })} disabled={readonly || saving} />
+                          </label>
+                          <label>
+                            Wert
+                            <input type="number" min={0} max={255} value={cvForm.value} onChange={(event) => updateCVForm({ value: Number(event.target.value) })} disabled={readonly || saving} />
+                          </label>
+                          <label>
+                            Kategorie
+                            <select value={cvForm.category || ""} onChange={(event) => updateCVForm({ category: event.target.value })} disabled={readonly || saving}>
+                              <option value="">Kategorie</option>
+                              {cvCategories.map((category) => (
+                                <option key={category} value={category}>{category}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Decoder-Profil
+                            <input value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
+                          </label>
+                          <label>
+                            Quelldatei
+                            <select value={cvForm.sourceFileId || ""} onChange={(event) => updateCVForm({ sourceFileId: event.target.value })} disabled={readonly || saving}>
+                              <option value="">Ohne Datei</option>
+                              {(selected.cvFiles || []).map((file) => (
+                                <option key={file.id} value={file.id}>{file.originalName}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="cv-description">
+                            Beschreibung
+                            <input value={cvForm.description || ""} onChange={(event) => updateCVForm({ description: event.target.value })} disabled={readonly || saving} />
+                          </label>
+                        </div>
+                        <div className="cv-actions">
+                          {editingCVID && (
+                            <button type="button" className="secondary-button" onClick={resetCVForm} disabled={readonly || saving}>
+                              Abbrechen
+                            </button>
+                          )}
+                          <button type="button" className="primary-button" onClick={saveCVValue} disabled={readonly || saving}>
+                            <Save size={15} aria-hidden="true" />
+                            {editingCVID ? "CV speichern" : "CV hinzufuegen"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </section>
+
+                  <section className="cv-table-section">
+                    {selected && (!selected.cvValues || selected.cvValues.length === 0) && (
+                      <p className="empty-state compact">Noch keine CV-Werte hinterlegt.</p>
+                    )}
+                    {selected && selected.cvValues && selected.cvValues.length > 0 && (
+                      <div className="table-wrap compact-table">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>CV</th>
+                              <th>Wert</th>
+                              <th>Kategorie</th>
+                              <th>Decoder-Profil</th>
+                              <th>Beschreibung</th>
+                              <th>Aktionen</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selected.cvValues.map((value) => (
+                              <tr key={value.id}>
+                                <td>{value.cvNumber}</td>
+                                <td>{value.value}</td>
+                                <td>{value.category || "-"}</td>
+                                <td>{value.decoderProfile || "-"}</td>
+                                <td>{value.description || "-"}</td>
+                                <td>
+                                  <div className="table-actions">
+                                    <button type="button" className="icon-button" onClick={() => editCVValue(value)} disabled={readonly || saving} aria-label="CV bearbeiten" title="CV bearbeiten">
+                                      <Pencil size={15} />
+                                    </button>
+                                    <button type="button" className="icon-button danger" onClick={() => deleteCVValue(value)} disabled={readonly || saving} aria-label="CV loeschen" title="CV loeschen">
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="cv-files-section">
+                    <div className="upload-head">
+                      <div>
+                        <h3>CV-Dateien</h3>
+                        <p>Decoder-Dateien, Exporte oder Profile sicher am Fahrzeug speichern.</p>
+                      </div>
+                      <input
+                        ref={cvFileInputRef}
+                        type="file"
+                        multiple
+                        accept={cvFileAccept}
+                        className="visually-hidden"
+                        onChange={(event) => uploadCVFiles(event.target.files)}
+                        disabled={readonly || !selected || saving}
+                      />
+                      <button type="button" className="primary-button" onClick={() => cvFileInputRef.current?.click()} disabled={readonly || !selected || saving}>
+                        <Upload size={16} aria-hidden="true" />
+                        CV-Datei hochladen
+                      </button>
+                    </div>
+                    {selected && (
+                      <div className="cv-file-controls">
+                        <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil fuer neue Dateien" />
+                        <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung fuer neue Dateien" />
+                      </div>
+                    )}
+                    {selected && (!selected.cvFiles || selected.cvFiles.length === 0) && (
+                      <p className="empty-state compact">Noch keine CV-Dateien hinterlegt.</p>
+                    )}
+                    {selected && selected.cvFiles && selected.cvFiles.length > 0 && (
+                      <div className="attachment-list">
+                        {selected.cvFiles.map((file) => {
+                          const downloadUrl = api.vehicleCVFileDownloadUrl(selected.id, file.id);
+                          return (
+                            <article key={file.id} className="attachment-row">
+                              <div className="attachment-icon">
+                                <FileText size={18} aria-hidden="true" />
+                                <span>{file.originalName.split(".").pop()?.toUpperCase() || "CV"}</span>
+                              </div>
+                              <div className="attachment-main">
+                                <strong>{file.originalName}</strong>
+                                <span>{file.decoderProfile || "Ohne Profil"} - {file.mimeType || "Datei"} - {formatFileSize(file.sizeBytes)}</span>
+                                {file.description && <span>{file.description}</span>}
+                              </div>
+                              <div className="attachment-actions">
+                                <a className="secondary-button" href={downloadUrl}>
+                                  <Download size={15} aria-hidden="true" />
+                                  Download
+                                </a>
+                                <button type="button" className="danger-button" onClick={() => deleteCVFile(file)} disabled={readonly || saving}>
+                                  <Trash2 size={15} aria-hidden="true" />
+                                  Loeschen
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
                 </section>
               )}
 

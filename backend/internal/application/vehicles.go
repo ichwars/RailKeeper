@@ -74,6 +74,8 @@ type Vehicle struct {
 	Attachments               []VehicleAttachment  `json:"attachments,omitempty"`
 	Maintenance               []VehicleMaintenance `json:"maintenance,omitempty"`
 	Functions                 []VehicleFunction    `json:"functions,omitempty"`
+	CVValues                  []VehicleCVValue     `json:"cvValues,omitempty"`
+	CVFiles                   []VehicleCVFile      `json:"cvFiles,omitempty"`
 	CreatedAt                 string               `json:"createdAt"`
 	UpdatedAt                 string               `json:"updatedAt"`
 }
@@ -180,6 +182,52 @@ type VehicleFunctionInput struct {
 	Mode               string `json:"mode"`
 	DirectionDependent bool   `json:"directionDependent"`
 	Notes              string `json:"notes"`
+}
+
+type VehicleCVValue struct {
+	ID             string `json:"id"`
+	VehicleID      string `json:"vehicleId"`
+	CVNumber       int    `json:"cvNumber"`
+	Value          int    `json:"value"`
+	Description    string `json:"description,omitempty"`
+	Category       string `json:"category,omitempty"`
+	DecoderProfile string `json:"decoderProfile,omitempty"`
+	SourceFileID   string `json:"sourceFileId,omitempty"`
+	CreatedAt      string `json:"createdAt"`
+	UpdatedAt      string `json:"updatedAt"`
+}
+
+type VehicleCVValueInput struct {
+	CVNumber       int    `json:"cvNumber"`
+	Value          int    `json:"value"`
+	Description    string `json:"description"`
+	Category       string `json:"category"`
+	DecoderProfile string `json:"decoderProfile"`
+	SourceFileID   string `json:"sourceFileId"`
+}
+
+type VehicleCVFile struct {
+	ID             string `json:"id"`
+	VehicleID      string `json:"vehicleId"`
+	FileName       string `json:"fileName"`
+	OriginalName   string `json:"originalName"`
+	Description    string `json:"description,omitempty"`
+	DecoderProfile string `json:"decoderProfile,omitempty"`
+	MimeType       string `json:"mimeType,omitempty"`
+	SizeBytes      int64  `json:"sizeBytes"`
+	StoragePath    string `json:"-"`
+	CreatedAt      string `json:"createdAt"`
+	UpdatedAt      string `json:"updatedAt"`
+}
+
+type VehicleCVFileInput struct {
+	FileName       string
+	OriginalName   string
+	Description    string
+	DecoderProfile string
+	MimeType       string
+	SizeBytes      int64
+	StoragePath    string
 }
 
 type CreateVehicleInput struct {
@@ -316,6 +364,9 @@ ORDER BY updated_at DESC, inventory_number ASC
 		return nil, err
 	}
 	if err := s.attachFunctions(ctx, vehicles); err != nil {
+		return nil, err
+	}
+	if err := s.attachCVData(ctx, vehicles); err != nil {
 		return nil, err
 	}
 	return vehicles, nil
@@ -600,6 +651,16 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 	vehicle.Functions = functions
+	cvValues, err := s.loadVehicleCVValues(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.CVValues = cvValues
+	cvFiles, err := s.loadVehicleCVFiles(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.CVFiles = cvFiles
 
 	return &vehicle, nil
 }
@@ -767,6 +828,16 @@ WHERE id=?
 		return nil, err
 	}
 	vehicle.Functions = functions
+	cvValues, err := s.loadVehicleCVValues(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.CVValues = cvValues
+	cvFiles, err := s.loadVehicleCVFiles(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.CVFiles = cvFiles
 
 	return &vehicle, nil
 }
@@ -839,6 +910,22 @@ func (s *VehicleService) attachFunctions(ctx context.Context, vehicles []Vehicle
 			return err
 		}
 		vehicles[index].Functions = functions
+	}
+	return nil
+}
+
+func (s *VehicleService) attachCVData(ctx context.Context, vehicles []Vehicle) error {
+	for index := range vehicles {
+		values, err := s.loadVehicleCVValues(ctx, vehicles[index].ID)
+		if err != nil {
+			return err
+		}
+		vehicles[index].CVValues = values
+		files, err := s.loadVehicleCVFiles(ctx, vehicles[index].ID)
+		if err != nil {
+			return err
+		}
+		vehicles[index].CVFiles = files
 	}
 	return nil
 }
@@ -1414,6 +1501,313 @@ ORDER BY sort_order ASC, function_key ASC
 	return out, nil
 }
 
+func (s *VehicleService) ListCVValues(ctx context.Context, vehicleID string) ([]VehicleCVValue, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	if vehicleID == "" {
+		return nil, ErrVehicleNotFound
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+	return s.loadVehicleCVValues(ctx, vehicleID)
+}
+
+func (s *VehicleService) CreateCVValue(ctx context.Context, vehicleID string, input VehicleCVValueInput) (*VehicleCVValue, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	input = cleanVehicleCVValueInput(input)
+	if vehicleID == "" || !validCVNumber(input.CVNumber) || !validCVValue(input.Value) {
+		return nil, ErrVehicleValidation
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	item := VehicleCVValue{
+		ID:             randomID(),
+		VehicleID:      vehicleID,
+		CVNumber:       input.CVNumber,
+		Value:          input.Value,
+		Description:    input.Description,
+		Category:       input.Category,
+		DecoderProfile: input.DecoderProfile,
+		SourceFileID:   input.SourceFileID,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO vehicle_cv_values(id, vehicle_id, cv_number, value, description, category, decoder_profile, source_file_id, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, item.ID, item.VehicleID, item.CVNumber, item.Value, item.Description, item.Category, item.DecoderProfile, item.SourceFileID, item.CreatedAt, item.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("create vehicle cv value: %w", err)
+	}
+	return &item, nil
+}
+
+func (s *VehicleService) UpdateCVValue(ctx context.Context, vehicleID, cvValueID string, input VehicleCVValueInput) (*VehicleCVValue, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	cvValueID = strings.TrimSpace(cvValueID)
+	input = cleanVehicleCVValueInput(input)
+	if vehicleID == "" || cvValueID == "" || !validCVNumber(input.CVNumber) || !validCVValue(input.Value) {
+		return nil, ErrVehicleValidation
+	}
+	existing, err := s.GetCVValue(ctx, vehicleID, cvValueID)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin cv value update: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+	result, err := tx.ExecContext(ctx, `
+UPDATE vehicle_cv_values
+SET cv_number=?, value=?, description=?, category=?, decoder_profile=?, source_file_id=?, updated_at=?
+WHERE id=? AND vehicle_id=?
+`, input.CVNumber, input.Value, input.Description, input.Category, input.DecoderProfile, input.SourceFileID, now, cvValueID, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("update vehicle cv value: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle cv value update result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	if existing.Value != input.Value {
+		if _, err = tx.ExecContext(ctx, `
+INSERT INTO vehicle_cv_value_history(id, cv_value_id, vehicle_id, old_value, new_value, changed_at)
+VALUES(?, ?, ?, ?, ?, ?)
+`, randomID(), cvValueID, vehicleID, existing.Value, input.Value, now); err != nil {
+			return nil, fmt.Errorf("write cv value history: %w", err)
+		}
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit cv value update: %w", err)
+	}
+	return s.GetCVValue(ctx, vehicleID, cvValueID)
+}
+
+func (s *VehicleService) GetCVValue(ctx context.Context, vehicleID, cvValueID string) (*VehicleCVValue, error) {
+	var item VehicleCVValue
+	err := s.db.QueryRowContext(ctx, `
+SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
+       COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at
+FROM vehicle_cv_values
+WHERE id=? AND vehicle_id=?
+`, strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID)).Scan(
+		&item.ID,
+		&item.VehicleID,
+		&item.CVNumber,
+		&item.Value,
+		&item.Description,
+		&item.Category,
+		&item.DecoderProfile,
+		&item.SourceFileID,
+		&item.CreatedAt,
+		&item.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrVehicleNotFound
+		}
+		return nil, fmt.Errorf("get vehicle cv value: %w", err)
+	}
+	return &item, nil
+}
+
+func (s *VehicleService) DeleteCVValue(ctx context.Context, vehicleID, cvValueID string) (*VehicleCVValue, error) {
+	item, err := s.GetCVValue(ctx, vehicleID, cvValueID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_cv_values WHERE id=? AND vehicle_id=?`, strings.TrimSpace(cvValueID), strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("delete vehicle cv value: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle cv value delete result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return item, nil
+}
+
+func (s *VehicleService) loadVehicleCVValues(ctx context.Context, vehicleID string) ([]VehicleCVValue, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, vehicle_id, cv_number, value, COALESCE(description, ''), COALESCE(category, ''),
+       COALESCE(decoder_profile, ''), COALESCE(source_file_id, ''), created_at, updated_at
+FROM vehicle_cv_values
+WHERE vehicle_id=?
+ORDER BY decoder_profile ASC, cv_number ASC
+`, strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle cv values: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := []VehicleCVValue{}
+	for rows.Next() {
+		var item VehicleCVValue
+		if err := rows.Scan(
+			&item.ID,
+			&item.VehicleID,
+			&item.CVNumber,
+			&item.Value,
+			&item.Description,
+			&item.Category,
+			&item.DecoderProfile,
+			&item.SourceFileID,
+			&item.CreatedAt,
+			&item.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan vehicle cv value: %w", err)
+		}
+		out = append(out, item)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate vehicle cv values: %w", err)
+	}
+	return out, nil
+}
+
+func (s *VehicleService) ListCVFiles(ctx context.Context, vehicleID string) ([]VehicleCVFile, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	if vehicleID == "" {
+		return nil, ErrVehicleNotFound
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+	return s.loadVehicleCVFiles(ctx, vehicleID)
+}
+
+func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, input VehicleCVFileInput) (*VehicleCVFile, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	input = cleanVehicleCVFileInput(input)
+	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || input.StoragePath == "" {
+		return nil, ErrVehicleValidation
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	file := VehicleCVFile{
+		ID:             randomID(),
+		VehicleID:      vehicleID,
+		FileName:       input.FileName,
+		OriginalName:   input.OriginalName,
+		Description:    input.Description,
+		DecoderProfile: input.DecoderProfile,
+		MimeType:       input.MimeType,
+		SizeBytes:      input.SizeBytes,
+		StoragePath:    input.StoragePath,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO vehicle_cv_files(id, vehicle_id, file_name, original_name, description, decoder_profile, mime_type, size_bytes, storage_path, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, file.ID, file.VehicleID, file.FileName, file.OriginalName, file.Description, file.DecoderProfile, file.MimeType, file.SizeBytes, file.StoragePath, file.CreatedAt, file.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("create vehicle cv file: %w", err)
+	}
+	return &file, nil
+}
+
+func (s *VehicleService) GetCVFile(ctx context.Context, vehicleID, fileID string) (*VehicleCVFile, error) {
+	var file VehicleCVFile
+	err := s.db.QueryRowContext(ctx, `
+SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
+       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+FROM vehicle_cv_files
+WHERE id=? AND vehicle_id=?
+`, strings.TrimSpace(fileID), strings.TrimSpace(vehicleID)).Scan(
+		&file.ID,
+		&file.VehicleID,
+		&file.FileName,
+		&file.OriginalName,
+		&file.Description,
+		&file.DecoderProfile,
+		&file.MimeType,
+		&file.SizeBytes,
+		&file.StoragePath,
+		&file.CreatedAt,
+		&file.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrVehicleNotFound
+		}
+		return nil, fmt.Errorf("get vehicle cv file: %w", err)
+	}
+	return &file, nil
+}
+
+func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID string) (*VehicleCVFile, error) {
+	file, err := s.GetCVFile(ctx, vehicleID, fileID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_cv_files WHERE id=? AND vehicle_id=?`, strings.TrimSpace(fileID), strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("delete vehicle cv file: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle cv file delete result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return file, nil
+}
+
+func (s *VehicleService) loadVehicleCVFiles(ctx context.Context, vehicleID string) ([]VehicleCVFile, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
+       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+FROM vehicle_cv_files
+WHERE vehicle_id=?
+ORDER BY created_at ASC
+`, strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle cv files: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	out := []VehicleCVFile{}
+	for rows.Next() {
+		var file VehicleCVFile
+		if err := rows.Scan(
+			&file.ID,
+			&file.VehicleID,
+			&file.FileName,
+			&file.OriginalName,
+			&file.Description,
+			&file.DecoderProfile,
+			&file.MimeType,
+			&file.SizeBytes,
+			&file.StoragePath,
+			&file.CreatedAt,
+			&file.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan vehicle cv file: %w", err)
+		}
+		out = append(out, file)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate vehicle cv files: %w", err)
+	}
+	return out, nil
+}
+
 func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images []VehicleImageInput, now string) error {
 	existing, err := existingVehicleImageMeta(ctx, tx, vehicleID)
 	if err != nil {
@@ -1706,6 +2100,24 @@ func cleanVehicleFunctionInput(input VehicleFunctionInput) VehicleFunctionInput 
 	return input
 }
 
+func cleanVehicleCVValueInput(input VehicleCVValueInput) VehicleCVValueInput {
+	input.Description = strings.TrimSpace(input.Description)
+	input.Category = strings.TrimSpace(input.Category)
+	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
+	input.SourceFileID = strings.TrimSpace(input.SourceFileID)
+	return input
+}
+
+func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
+	input.FileName = strings.TrimSpace(input.FileName)
+	input.OriginalName = strings.TrimSpace(input.OriginalName)
+	input.Description = strings.TrimSpace(input.Description)
+	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
+	input.MimeType = strings.TrimSpace(input.MimeType)
+	input.StoragePath = strings.TrimSpace(input.StoragePath)
+	return input
+}
+
 func normalizeFunctionKey(value string) string {
 	return strings.ToUpper(strings.TrimSpace(value))
 }
@@ -1725,6 +2137,14 @@ func functionSortOrder(value string) int {
 		return 999
 	}
 	return number
+}
+
+func validCVNumber(value int) bool {
+	return value >= 1 && value <= 1024
+}
+
+func validCVValue(value int) bool {
+	return value >= 0 && value <= 255
 }
 
 func vehicleImagesFromInput(vehicleID string, images []VehicleImageInput, now string) []VehicleImage {

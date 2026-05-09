@@ -73,6 +73,8 @@ export type Vehicle = {
   attachments?: VehicleAttachment[];
   maintenance?: VehicleMaintenance[];
   functions?: VehicleFunction[];
+  cvValues?: VehicleCVValue[];
+  cvFiles?: VehicleCVFile[];
   createdAt: string;
   updatedAt: string;
 };
@@ -164,6 +166,41 @@ export type VehicleFunctionInput = {
   mode?: string;
   directionDependent?: boolean;
   notes?: string;
+};
+
+export type VehicleCVValue = {
+  id: string;
+  vehicleId: string;
+  cvNumber: number;
+  value: number;
+  description?: string;
+  category?: string;
+  decoderProfile?: string;
+  sourceFileId?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleCVValueInput = {
+  cvNumber: number;
+  value: number;
+  description?: string;
+  category?: string;
+  decoderProfile?: string;
+  sourceFileId?: string;
+};
+
+export type VehicleCVFile = {
+  id: string;
+  vehicleId: string;
+  fileName: string;
+  originalName: string;
+  description?: string;
+  decoderProfile?: string;
+  mimeType?: string;
+  sizeBytes: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type CreateVehicleRequest = {
@@ -499,6 +536,42 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/functions/${encodeURIComponent(functionKey)}`, {
       method: "DELETE"
     }),
+  vehicleCVValues: (vehicleId: string) =>
+    request<VehicleCVValue[]>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`),
+  createVehicleCVValue: (vehicleId: string, input: VehicleCVValueInput) =>
+    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateVehicleCVValue: (vehicleId: string, cvValueId: string, input: VehicleCVValueInput) =>
+    request<VehicleCVValue>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteVehicleCVValue: (vehicleId: string, cvValueId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-values/${encodeURIComponent(cvValueId)}`, {
+      method: "DELETE"
+    }),
+  uploadVehicleCVFile: (vehicleId: string, file: File, decoderProfile = "", description = "") => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("decoderProfile", decoderProfile);
+    form.append("description", description);
+    return request<VehicleCVFile>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/cv-files`,
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 30000 }
+    );
+  },
+  deleteVehicleCVFile: (vehicleId: string, cvFileId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}`, {
+      method: "DELETE"
+    }),
+  vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>
+    `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}/download`,
   inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
   updateInventoryNumberScheme: (category: string, input: InventoryNumberSchemeInput) =>
     request<InventoryNumberScheme>(`/inventory-number-schemes/${encodeURIComponent(category)}`, {
