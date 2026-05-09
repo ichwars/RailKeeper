@@ -106,6 +106,9 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/maintenance", app.require("Editor", app.createVehicleMaintenance))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.updateVehicleMaintenance))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.deleteVehicleMaintenance))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/functions", app.require("Viewer", app.listVehicleFunctions))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.upsertVehicleFunction))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.deleteVehicleFunction))
 	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
@@ -630,6 +633,55 @@ func (a *App) deleteVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
 		}
 		a.logger.Error("maintenance delete failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "maintenance_delete_failed", "Wartungseintrag konnte nicht geloescht werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) listVehicleFunctions(w http.ResponseWriter, r *http.Request) {
+	functions, err := a.vehicleService.ListFunctions(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("function list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "function_list_failed", "Digitalfunktionen konnten nicht geladen werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, functions)
+}
+
+func (a *App) upsertVehicleFunction(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleFunctionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	function, err := a.vehicleService.UpsertFunction(r.Context(), r.PathValue("id"), r.PathValue("functionKey"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "function_invalid", "Digitalfunktion ist ungueltig.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+		default:
+			a.logger.Error("function save failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "function_save_failed", "Digitalfunktion konnte nicht gespeichert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, function)
+}
+
+func (a *App) deleteVehicleFunction(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.vehicleService.DeleteFunction(r.Context(), r.PathValue("id"), r.PathValue("functionKey")); err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "function_not_found", "Function entry not found.")
+			return
+		}
+		a.logger.Error("function delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "function_delete_failed", "Digitalfunktion konnte nicht geloescht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)

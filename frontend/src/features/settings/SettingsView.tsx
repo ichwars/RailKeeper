@@ -57,12 +57,12 @@ const masterDataTypes: MasterDataType[] = [
   {
     type: "symbols",
     label: "Symbole",
-    description: "Funktionssymbole werden spaeter als eigener Datenblock erfasst.",
-    source: "Noch keine Quelle hinterlegt."
+    description: "Funktionssymbole fuer Digitalfunktionen verwalten.",
+    source: "Standardwerte aus Migration 0013, danach lokal in der SQLite-Stammdatenbank gepflegt."
   }
 ];
 
-const loadableMasterDataTypes = masterDataTypes.filter((item) => item.type !== "symbols");
+const loadableMasterDataTypes = masterDataTypes;
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 
 const emptyForm = {
@@ -132,7 +132,6 @@ export function SettingsView() {
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
     [activeType]
   );
-  const isSymbolTab = activeType === "symbols";
   const items = itemsByType[activeType] || [];
   const loading = Boolean(loadingTypes[activeType]);
 
@@ -157,7 +156,7 @@ export function SettingsView() {
   }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
 
   useEffect(() => {
-    if (activeSettingsTab !== "data" || isSymbolTab || loadedTypes[activeType]) return;
+    if (activeSettingsTab !== "data" || loadedTypes[activeType]) return;
 
     let cancelled = false;
     const typesToLoad = loadableMasterDataTypes
@@ -202,10 +201,6 @@ export function SettingsView() {
   }, [activeSettingsTab, activeType]);
 
   const reloadActiveType = () => {
-    if (isSymbolTab) {
-      return;
-    }
-
     setLoadingTypes((current) => ({ ...current, [activeType]: true }));
     setMessage("");
     api
@@ -270,7 +265,6 @@ export function SettingsView() {
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (isSymbolTab) return;
 
     setSaving(true);
     setMessage("");
@@ -467,19 +461,16 @@ export function SettingsView() {
                 <h3>{activeDataType.label} verwalten</h3>
                 <p>{activeDataType.description}</p>
               </div>
-              <button type="button" className="icon-button" onClick={reloadActiveType} aria-label="Aktualisieren" title="Aktualisieren" disabled={isSymbolTab || loading}>
+              <button type="button" className="icon-button" onClick={reloadActiveType} aria-label="Aktualisieren" title="Aktualisieren" disabled={loading}>
                 <RefreshCw size={16} />
               </button>
             </div>
 
-            {isSymbolTab ? (
-              <p className="empty-state">Symbole bereite ich als naechsten fachlichen Datenblock vor.</p>
-            ) : (
-              <>
-                <label className="settings-search">
-                  Suche
-                  <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Stammdaten durchsuchen" />
-                </label>
+            <>
+              <label className="settings-search">
+                Suche
+                <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Stammdaten durchsuchen" />
+              </label>
 
                 <p className="source-note">
                   <Info size={15} aria-hidden="true" />
@@ -587,8 +578,7 @@ export function SettingsView() {
                 </div>
 
                 {message && <p className="form-message">{message}</p>}
-              </>
-            )}
+            </>
           </section>
         </section>
       )}

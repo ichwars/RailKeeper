@@ -446,6 +446,72 @@ func TestVehiclePersistsMaintenance(t *testing.T) {
 	}
 }
 
+func TestVehiclePersistsFunctions(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	function, err := service.UpsertFunction(ctx, created.ID, "F1", application.VehicleFunctionInput{
+		Name:               "Sound",
+		SymbolKey:          "sound",
+		FunctionType:       "sound",
+		Mode:               "moment",
+		DirectionDependent: true,
+		Notes:              "Lokpfeife",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if function.FunctionKey != "F1" || function.SymbolKey != "sound" || !function.DirectionDependent {
+		t.Fatalf("unexpected function: %#v", function)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Functions) != 1 || detail.Functions[0].Name != "Sound" {
+		t.Fatalf("unexpected detail functions: %#v", detail.Functions)
+	}
+
+	updated, err := service.UpsertFunction(ctx, created.ID, "f1", application.VehicleFunctionInput{
+		Name:         "Licht",
+		SymbolKey:    "light",
+		FunctionType: "licht",
+		Mode:         "dauer",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.FunctionKey != "F1" || updated.Name != "Licht" || updated.DirectionDependent {
+		t.Fatalf("unexpected function update: %#v", updated)
+	}
+
+	if _, err := service.UpsertFunction(ctx, created.ID, "F32", application.VehicleFunctionInput{}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected validation for invalid function key, got %v", err)
+	}
+
+	if _, err := service.DeleteFunction(ctx, created.ID, "F1"); err != nil {
+		t.Fatal(err)
+	}
+	functions, err := service.ListFunctions(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(functions) != 0 {
+		t.Fatalf("expected function deletion, got %#v", functions)
+	}
+}
+
 func TestDeleteVehicleRemovesRecord(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

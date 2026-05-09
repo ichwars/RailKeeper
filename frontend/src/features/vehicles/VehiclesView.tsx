@@ -34,6 +34,8 @@ import {
   MasterDataRelation,
   VehicleAttachment,
   VehicleImage as VehicleImageRecord,
+  VehicleFunction,
+  VehicleFunctionInput,
   VehicleMaintenance,
   VehicleMaintenanceInput,
   Vehicle
@@ -103,6 +105,7 @@ type PendingArticleImage = ArticleSearchImage & {
 };
 
 type AttachmentEditState = Record<string, { description: string; category: string }>;
+type FunctionEditState = Record<string, VehicleFunctionInput & { persisted?: boolean }>;
 
 const emptyMaintenanceForm: VehicleMaintenanceInput = {
   kind: "Wartung",
@@ -121,6 +124,7 @@ type MasterDataOptions = {
   railwayCompanies: MasterDataEntry[];
   categories: MasterDataEntry[];
   gattungen: MasterDataEntry[];
+  symbols: MasterDataEntry[];
   categoryRelations: MasterDataRelation[];
 };
 
@@ -131,6 +135,7 @@ const emptyOptions: MasterDataOptions = {
   railwayCompanies: [],
   categories: [],
   gattungen: [],
+  symbols: [],
   categoryRelations: []
 };
 
@@ -152,6 +157,9 @@ const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumen
 const maintenanceKinds = ["Wartung", "Reparatur", "Umbau", "Superung", "Reinigung", "Schmierung", "Decoder-Einbau", "Ersatzteiltausch"];
 const maintenanceStatuses = ["geplant", "faellig", "erledigt"];
 const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparaturbeduerftig"];
+const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
+const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonderfunktion"];
+const functionModes = ["dauer", "moment"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
 const imageAccept = ".jpg,.jpeg,.png,.webp";
 const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
@@ -483,6 +491,35 @@ function attachmentsToEditState(attachments?: VehicleAttachment[]): AttachmentEd
       }
     ])
   );
+}
+
+function functionsToEditState(functions?: VehicleFunction[]): FunctionEditState {
+  return Object.fromEntries(
+    (functions || []).map((item) => [
+      item.functionKey,
+      {
+        name: item.name || "",
+        symbolKey: item.symbolKey || "",
+        functionType: item.functionType || "standard",
+        mode: item.mode || "dauer",
+        directionDependent: item.directionDependent,
+        notes: item.notes || "",
+        persisted: true
+      }
+    ])
+  );
+}
+
+function emptyFunctionEdit(functionKey: string): VehicleFunctionInput & { persisted?: boolean } {
+  return {
+    name: functionKey === "F0" ? "Fahrlicht" : "",
+    symbolKey: functionKey === "F0" ? "light" : "",
+    functionType: functionKey === "F0" ? "licht" : "standard",
+    mode: "dauer",
+    directionDependent: false,
+    notes: "",
+    persisted: false
+  };
 }
 
 function formatFileSize(size: number) {
@@ -1033,6 +1070,7 @@ export function VehiclesView() {
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
   const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
+  const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -1088,6 +1126,7 @@ export function VehiclesView() {
           railwayCompanies: entriesByType.railway_company || [],
           categories: entriesByType.vehicle_category || [],
           gattungen: entriesByType.vehicle_gattung || [],
+          symbols: entriesByType.symbols || [],
           categoryRelations
         });
       })
@@ -1128,6 +1167,7 @@ export function VehiclesView() {
     setForm(vehicleToForm(detail));
     setPendingArticleImages(vehicleImagesToPending(detail));
     setAttachmentEdits(attachmentsToEditState(detail.attachments));
+    setFunctionEdits(functionsToEditState(detail.functions));
     setEditingMaintenanceID(null);
     setMaintenanceForm(emptyMaintenanceForm);
   };
@@ -1462,6 +1502,49 @@ export function VehiclesView() {
       .finally(() => setSaving(false));
   };
 
+  const functionEdit = (functionKey: string) => functionEdits[functionKey] || emptyFunctionEdit(functionKey);
+
+  const updateFunctionEdit = (functionKey: string, patch: Partial<VehicleFunctionInput>) => {
+    setFunctionEdits((current) => ({
+      ...current,
+      [functionKey]: {
+        ...emptyFunctionEdit(functionKey),
+        ...current[functionKey],
+        ...patch
+      }
+    }));
+  };
+
+  const saveFunction = (functionKey: string) => {
+    if (!selected) return;
+    const edit = functionEdit(functionKey);
+    setSaving(true);
+    setMessage("");
+    api
+      .updateVehicleFunction(selected.id, functionKey, {
+        name: edit.name || "",
+        symbolKey: edit.symbolKey || "",
+        functionType: edit.functionType || "standard",
+        mode: edit.mode || "dauer",
+        directionDependent: Boolean(edit.directionDependent),
+        notes: edit.notes || ""
+      })
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const deleteFunction = (functionKey: string) => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .deleteVehicleFunction(selected.id, functionKey)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
   const generateQr = async () => {
     setQrDialogOpen(true);
     setQrError("");
@@ -1584,6 +1667,7 @@ export function VehiclesView() {
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
+    setFunctionEdits({});
     resetMaintenanceForm();
     setActiveTab("model");
     setOpenSections({ model: true, details: false, ownership: false });
@@ -1601,6 +1685,7 @@ export function VehiclesView() {
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
+    setFunctionEdits({});
     resetMaintenanceForm();
     setPreviewImage(null);
     setMessage("");
@@ -2033,9 +2118,91 @@ export function VehiclesView() {
               )}
 
               {activeTab === "control" && (
-                <section className="empty-tab">
-                  <h3>Steuerung</h3>
-                  <p>Funktionssymbole und Decoderfunktionen werden als eigener Datenblock vorbereitet.</p>
+                <section className="functions-tab">
+                  <div className="upload-head">
+                    <div>
+                      <h3>Digitalfunktionen</h3>
+                      <p>Funktionstasten F0 bis F31 mit Symbol, Typ, Betriebsart und Richtungsabhaengigkeit pflegen.</p>
+                    </div>
+                  </div>
+                  {!selected && <p className="empty-state compact">Digitalfunktionen koennen nach dem ersten Speichern gepflegt werden.</p>}
+                  {selected && (
+                    <div className="function-list">
+                      {functionKeys.map((functionKey) => {
+                        const edit = functionEdit(functionKey);
+                        return (
+                          <article key={functionKey} className={edit.persisted ? "function-row persisted" : "function-row"}>
+                            <strong className="function-key">{functionKey}</strong>
+                            <input
+                              value={edit.name || ""}
+                              onChange={(event) => updateFunctionEdit(functionKey, { name: event.target.value })}
+                              disabled={readonly || saving}
+                              placeholder="Funktionsname"
+                              aria-label={`${functionKey} Funktionsname`}
+                            />
+                            <select
+                              value={edit.symbolKey || ""}
+                              onChange={(event) => updateFunctionEdit(functionKey, { symbolKey: event.target.value })}
+                              disabled={readonly || saving}
+                              aria-label={`${functionKey} Symbol`}
+                            >
+                              <option value="">Symbol</option>
+                              {options.symbols.map((symbol) => (
+                                <option key={symbol.key} value={symbol.key}>{symbol.label}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={edit.functionType || "standard"}
+                              onChange={(event) => updateFunctionEdit(functionKey, { functionType: event.target.value })}
+                              disabled={readonly || saving}
+                              aria-label={`${functionKey} Typ`}
+                            >
+                              {functionTypes.map((type) => (
+                                <option key={type} value={type}>{type}</option>
+                              ))}
+                            </select>
+                            <select
+                              value={edit.mode || "dauer"}
+                              onChange={(event) => updateFunctionEdit(functionKey, { mode: event.target.value })}
+                              disabled={readonly || saving}
+                              aria-label={`${functionKey} Betriebsart`}
+                            >
+                              {functionModes.map((modeName) => (
+                                <option key={modeName} value={modeName}>{modeName}</option>
+                              ))}
+                            </select>
+                            <label className="switch-card function-direction">
+                              <span>Richtung</span>
+                              <span className="switch-field">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(edit.directionDependent)}
+                                  onChange={(event) => updateFunctionEdit(functionKey, { directionDependent: event.target.checked })}
+                                  disabled={readonly || saving}
+                                />
+                                <span />
+                              </span>
+                            </label>
+                            <input
+                              value={edit.notes || ""}
+                              onChange={(event) => updateFunctionEdit(functionKey, { notes: event.target.value })}
+                              disabled={readonly || saving}
+                              placeholder="Notiz"
+                              aria-label={`${functionKey} Notiz`}
+                            />
+                            <div className="function-actions">
+                              <button type="button" className="icon-button" onClick={() => saveFunction(functionKey)} disabled={readonly || saving} aria-label={`${functionKey} speichern`} title="Speichern">
+                                <Save size={15} />
+                              </button>
+                              <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !edit.persisted} aria-label={`${functionKey} loeschen`} title="Loeschen">
+                                <Trash2 size={15} />
+                              </button>
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
                 </section>
               )}
 

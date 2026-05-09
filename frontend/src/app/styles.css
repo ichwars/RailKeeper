@@ -1724,7 +1724,8 @@ td {
 
 .empty-tab,
 .uploads-tab,
-.maintenance-tab {
+.maintenance-tab,
+.functions-tab {
   display: grid;
   gap: 18px;
   padding: 20px;
@@ -1962,6 +1963,69 @@ td {
   gap: 7px;
   min-height: 32px;
   padding: 0 10px;
+}
+
+.function-list {
+  display: grid;
+  gap: 8px;
+}
+
+.function-row {
+  display: grid;
+  grid-template-columns: 48px minmax(150px, 1.2fr) minmax(130px, 0.8fr) minmax(110px, 0.7fr) minmax(100px, 0.65fr) minmax(112px, 0.6fr) minmax(130px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.function-row.persisted {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: color-mix(in srgb, var(--accent-bright) 8%, var(--panel));
+}
+
+.function-key {
+  display: inline-grid;
+  place-items: center;
+  min-height: 38px;
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  color: var(--accent-strong);
+  font-size: 13px;
+}
+
+.function-row input,
+.function-row select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 9px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.function-row input:focus,
+.function-row select:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.function-direction {
+  min-height: 38px;
+  font-size: 12px;
+}
+
+.function-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .maintenance-form {
@@ -2220,6 +2284,7 @@ td {
   .attachment-upload-fields,
   .attachment-row,
   .attachment-edit-row,
+  .function-row,
   .maintenance-form,
   .maintenance-meta,
   .list-head {

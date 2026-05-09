@@ -72,6 +72,7 @@ export type Vehicle = {
   images?: VehicleImage[];
   attachments?: VehicleAttachment[];
   maintenance?: VehicleMaintenance[];
+  functions?: VehicleFunction[];
   createdAt: string;
   updatedAt: string;
 };
@@ -138,6 +139,30 @@ export type VehicleMaintenanceInput = {
   dueDate?: string;
   completedAt?: string;
   cost?: string;
+  notes?: string;
+};
+
+export type VehicleFunction = {
+  id: string;
+  vehicleId: string;
+  functionKey: string;
+  name?: string;
+  symbolKey?: string;
+  functionType: string;
+  mode: string;
+  directionDependent: boolean;
+  notes?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleFunctionInput = {
+  name?: string;
+  symbolKey?: string;
+  functionType?: string;
+  mode?: string;
+  directionDependent?: boolean;
   notes?: string;
 };
 
@@ -461,6 +486,17 @@ export const api = {
     ),
   deleteVehicleMaintenance: (vehicleId: string, maintenanceId: string) =>
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance/${encodeURIComponent(maintenanceId)}`, {
+      method: "DELETE"
+    }),
+  vehicleFunctions: (vehicleId: string) =>
+    request<VehicleFunction[]>(`/vehicles/${encodeURIComponent(vehicleId)}/functions`),
+  updateVehicleFunction: (vehicleId: string, functionKey: string, input: VehicleFunctionInput) =>
+    request<VehicleFunction>(`/vehicles/${encodeURIComponent(vehicleId)}/functions/${encodeURIComponent(functionKey)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteVehicleFunction: (vehicleId: string, functionKey: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/functions/${encodeURIComponent(functionKey)}`, {
       method: "DELETE"
     }),
   inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
