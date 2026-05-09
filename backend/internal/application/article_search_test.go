@@ -125,6 +125,19 @@ func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	}
 }
 
+func TestBuildArticleFieldsRejectsImplausibleLength(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
+	fields := buildArticleFields(input,
+		"TT Diesellok V 180 DR III",
+		"https://shop.example.test/piko-47284.html",
+		`Laenge (mm): 2026. Mass [mm]: 162.`,
+	)
+
+	if fields["lengthMm"].Value != "162" {
+		t.Fatalf("expected plausible model length 162, got %#v", fields["lengthMm"])
+	}
+}
+
 func TestBuildArticleFieldsRejectsWrongContextValues(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
 	fields := buildArticleFields(input,

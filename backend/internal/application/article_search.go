@@ -567,7 +567,7 @@ func looksLikeModelLength(candidate, context string) bool {
 		}
 		integer = integer*10 + int(char-'0')
 	}
-	if integer < 20 || integer > 999 {
+	if integer < 20 || integer > 600 {
 		return false
 	}
 	lower := strings.ToLower(context)
@@ -760,7 +760,7 @@ func looksLikeHumanDescription(value string) bool {
 			return false
 		}
 	}
-	technicalStarts := []string{"digitale schnittstelle", "schnittstelle", "laenge", "mass", "gewicht", "haftreifen", "ean", "artikelnummer", "artikel-nr", "beleuchtung", "fahrlicht", "lichtwechsel", "soundgenerator", "sound"}
+	technicalStarts := []string{"digitale schnittstelle", "schnittstelle", "laenge", "mass", "gewicht", "haftreifen", "ean", "artikelnummer", "artikel-nr", "beleuchtung", "fahrlicht", "lichtwechsel", "soundgenerator", "sound", "altersempfehlung", "downloads", "bedienungsanleitung"}
 	for _, token := range technicalStarts {
 		if strings.HasPrefix(lower, token) {
 			return false

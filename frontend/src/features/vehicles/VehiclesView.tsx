@@ -378,6 +378,50 @@ function sourceDisplayName(rawUrl: string) {
   }
 }
 
+function isBadArticleValue(key: string, value: string) {
+  const normalized = value.trim();
+  const lower = normalized.toLocaleLowerCase("de-DE");
+  if (!normalized) return true;
+  if (key === "lengthMm") {
+    const number = Number(normalized.replace(",", "."));
+    return !Number.isFinite(number) || number < 20 || number > 600;
+  }
+  if (key === "description") {
+    return [
+      "die absicht ist",
+      "anzeigen zu zeigen",
+      "personalisierte anzeigen",
+      "cookie",
+      "google_analytics",
+      "altersempfehlung",
+      "downloads",
+      "bedienungsanleitung"
+    ].some((token) => lower.includes(token));
+  }
+  if (key === "lightingDescription") {
+    return lower.includes("fahrtrichtung") || lower.includes("lichtwechsel") || lower.includes("spitzenlicht") || lower.includes("schlusslicht");
+  }
+  if (key === "headlightsDescription") {
+    return lower.includes("altersempfehlung") || lower.includes("downloads") || lower.includes("bedienungsanleitung");
+  }
+  if (key === "soundGeneratorDescription") {
+    return lower.includes("menu") || lower.includes("menue") || lower.includes("sprunggroesse") || lower.includes("wählen sie") || lower.includes("waehlen sie");
+  }
+  return false;
+}
+
+function sanitizeArticleSearchResponse(response: ArticleSearchResponse): ArticleSearchResponse {
+  return {
+    ...response,
+    results: response.results.map((result) => {
+      const fields = Object.fromEntries(
+        Object.entries(result.fields).filter(([key, field]) => !isBadArticleValue(key, field.value))
+      );
+      return { ...result, fields };
+    })
+  };
+}
+
 function primaryImage(images?: { url: string; isPrimary?: boolean }[]) {
   return images?.find((image) => image.isPrimary) || images?.[0];
 }
@@ -855,20 +899,19 @@ function ImagePreviewDialog({
       <section className="image-preview-dialog">
         <div className="panel-head form-head">
           <div>
-            <h2>Bildvorschau</h2>
-            <p>{image.title || "Artikeldaten-Bild"}</p>
+            <h2>
+              Bildvorschau
+              <a className="icon-button image-title-link" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+                <ExternalLink size={15} />
+              </a>
+            </h2>
+            <p>{image.title || "Artikeldaten-Bild"} - {sourceDisplayName(image.source)}</p>
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
             <X size={17} />
           </button>
         </div>
         <img src={image.url} alt="" />
-        <footer>
-          <a className="secondary-button" href={image.source} target="_blank" rel="noreferrer">
-            <ExternalLink size={15} aria-hidden="true" />
-            Quelle oeffnen
-          </a>
-        </footer>
       </section>
     </div>
   );
@@ -1049,9 +1092,10 @@ export function VehiclesView() {
         fields: vehicleFieldsForSearch(form)
       })
       .then((response) => {
-        setArticleSearchResponse(response);
+        const sanitized = sanitizeArticleSearchResponse(response);
+        setArticleSearchResponse(sanitized);
         const initialSelection: Record<string, boolean> = {};
-        response.results.forEach((result, index) => {
+        sanitized.results.forEach((result, index) => {
           Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
             initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(form, key);
           });
@@ -1088,6 +1132,7 @@ export function VehiclesView() {
     const resultIndex = foundResultIndex >= 0 ? foundResultIndex : 0;
     Object.entries(result.fields).forEach(([key, field]) => {
       if (!isArticleFieldKey(key) || !selectedArticleFields[articleSelectionKey(result, key, resultIndex)]) return;
+      if (isBadArticleValue(key, field.value)) return;
       Object.assign(patch, { [key]: articleValueForForm(key, field.value) });
     });
     const selectedImages = (result.images || [])
