@@ -71,6 +71,7 @@ export type Vehicle = {
   qrCodeEnabled: boolean;
   images?: VehicleImage[];
   attachments?: VehicleAttachment[];
+  maintenance?: VehicleMaintenance[];
   createdAt: string;
   updatedAt: string;
 };
@@ -114,6 +115,30 @@ export type VehicleAttachment = {
 export type VehicleAttachmentUpdateInput = {
   description?: string;
   category?: string;
+};
+
+export type VehicleMaintenance = {
+  id: string;
+  vehicleId: string;
+  kind: string;
+  status: string;
+  conditionRating?: string;
+  dueDate?: string;
+  completedAt?: string;
+  cost?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleMaintenanceInput = {
+  kind: string;
+  status: string;
+  conditionRating?: string;
+  dueDate?: string;
+  completedAt?: string;
+  cost?: string;
+  notes?: string;
 };
 
 export type CreateVehicleRequest = {
@@ -419,6 +444,25 @@ export const api = {
     }),
   vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>
     `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}/download`,
+  vehicleMaintenance: (vehicleId: string) =>
+    request<VehicleMaintenance[]>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance`),
+  createVehicleMaintenance: (vehicleId: string, input: VehicleMaintenanceInput) =>
+    request<VehicleMaintenance>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateVehicleMaintenance: (vehicleId: string, maintenanceId: string, input: VehicleMaintenanceInput) =>
+    request<VehicleMaintenance>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/maintenance/${encodeURIComponent(maintenanceId)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input)
+      }
+    ),
+  deleteVehicleMaintenance: (vehicleId: string, maintenanceId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance/${encodeURIComponent(maintenanceId)}`, {
+      method: "DELETE"
+    }),
   inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
   updateInventoryNumberScheme: (category: string, input: InventoryNumberSchemeInput) =>
     request<InventoryNumberScheme>(`/inventory-number-schemes/${encodeURIComponent(category)}`, {

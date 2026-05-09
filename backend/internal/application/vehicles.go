@@ -19,60 +19,61 @@ type VehicleService struct {
 }
 
 type Vehicle struct {
-	ID                        string              `json:"id"`
-	InventoryNumber           string              `json:"inventoryNumber"`
-	Manufacturer              string              `json:"manufacturer"`
-	ArticleNumber             string              `json:"articleNumber,omitempty"`
-	ArticleSourceURL          string              `json:"articleSourceUrl,omitempty"`
-	Name                      string              `json:"name"`
-	Gauge                     string              `json:"gauge"`
-	Epoch                     string              `json:"epoch,omitempty"`
-	RailwayCompany            string              `json:"railwayCompany,omitempty"`
-	Category                  string              `json:"category,omitempty"`
-	Gattung                   string              `json:"gattung,omitempty"`
-	Description               string              `json:"description,omitempty"`
-	Series                    string              `json:"series,omitempty"`
-	VehicleNumber             string              `json:"vehicleNumber,omitempty"`
-	Digital                   bool                `json:"digital"`
-	DigitalDecoderNumber      string              `json:"digitalDecoderNumber,omitempty"`
-	DTDecoder                 bool                `json:"dtDecoder"`
-	DTDecoderNumber           string              `json:"dtDecoderNumber,omitempty"`
-	ExhibitionReady           bool                `json:"exhibitionReady"`
-	ABCBrakes                 bool                `json:"abcBrakes"`
-	EAN                       string              `json:"ean,omitempty"`
-	ProductionPeriod          string              `json:"productionPeriod,omitempty"`
-	ListPrice                 string              `json:"listPrice,omitempty"`
-	LengthMM                  string              `json:"lengthMm,omitempty"`
-	WeightG                   string              `json:"weightG,omitempty"`
-	Color                     string              `json:"color,omitempty"`
-	Lettering                 string              `json:"lettering,omitempty"`
-	Load                      string              `json:"load,omitempty"`
-	Interior                  string              `json:"interior,omitempty"`
-	Axles                     string              `json:"axles,omitempty"`
-	AxleCount                 string              `json:"axleCount,omitempty"`
-	TractionTireCount         string              `json:"tractionTireCount,omitempty"`
-	Wheelset                  string              `json:"wheelset,omitempty"`
-	CouplingSame              bool                `json:"couplingSame"`
-	CouplingFront             string              `json:"couplingFront,omitempty"`
-	CouplingRear              string              `json:"couplingRear,omitempty"`
-	PowerPickup               string              `json:"powerPickup,omitempty"`
-	Adapter                   string              `json:"adapter,omitempty"`
-	DriveEnabled              bool                `json:"driveEnabled"`
-	DriveDescription          string              `json:"driveDescription,omitempty"`
-	HeadlightsEnabled         bool                `json:"headlightsEnabled"`
-	HeadlightsDescription     string              `json:"headlightsDescription,omitempty"`
-	LightingEnabled           bool                `json:"lightingEnabled"`
-	LightingDescription       string              `json:"lightingDescription,omitempty"`
-	SoundGeneratorEnabled     bool                `json:"soundGeneratorEnabled"`
-	SoundGeneratorDescription string              `json:"soundGeneratorDescription,omitempty"`
-	SmokeGeneratorEnabled     bool                `json:"smokeGeneratorEnabled"`
-	SmokeGeneratorDescription string              `json:"smokeGeneratorDescription,omitempty"`
-	AdditionalInfo            string              `json:"additionalInfo,omitempty"`
-	QRCodeEnabled             bool                `json:"qrCodeEnabled"`
-	Images                    []VehicleImage      `json:"images,omitempty"`
-	Attachments               []VehicleAttachment `json:"attachments,omitempty"`
-	CreatedAt                 string              `json:"createdAt"`
-	UpdatedAt                 string              `json:"updatedAt"`
+	ID                        string               `json:"id"`
+	InventoryNumber           string               `json:"inventoryNumber"`
+	Manufacturer              string               `json:"manufacturer"`
+	ArticleNumber             string               `json:"articleNumber,omitempty"`
+	ArticleSourceURL          string               `json:"articleSourceUrl,omitempty"`
+	Name                      string               `json:"name"`
+	Gauge                     string               `json:"gauge"`
+	Epoch                     string               `json:"epoch,omitempty"`
+	RailwayCompany            string               `json:"railwayCompany,omitempty"`
+	Category                  string               `json:"category,omitempty"`
+	Gattung                   string               `json:"gattung,omitempty"`
+	Description               string               `json:"description,omitempty"`
+	Series                    string               `json:"series,omitempty"`
+	VehicleNumber             string               `json:"vehicleNumber,omitempty"`
+	Digital                   bool                 `json:"digital"`
+	DigitalDecoderNumber      string               `json:"digitalDecoderNumber,omitempty"`
+	DTDecoder                 bool                 `json:"dtDecoder"`
+	DTDecoderNumber           string               `json:"dtDecoderNumber,omitempty"`
+	ExhibitionReady           bool                 `json:"exhibitionReady"`
+	ABCBrakes                 bool                 `json:"abcBrakes"`
+	EAN                       string               `json:"ean,omitempty"`
+	ProductionPeriod          string               `json:"productionPeriod,omitempty"`
+	ListPrice                 string               `json:"listPrice,omitempty"`
+	LengthMM                  string               `json:"lengthMm,omitempty"`
+	WeightG                   string               `json:"weightG,omitempty"`
+	Color                     string               `json:"color,omitempty"`
+	Lettering                 string               `json:"lettering,omitempty"`
+	Load                      string               `json:"load,omitempty"`
+	Interior                  string               `json:"interior,omitempty"`
+	Axles                     string               `json:"axles,omitempty"`
+	AxleCount                 string               `json:"axleCount,omitempty"`
+	TractionTireCount         string               `json:"tractionTireCount,omitempty"`
+	Wheelset                  string               `json:"wheelset,omitempty"`
+	CouplingSame              bool                 `json:"couplingSame"`
+	CouplingFront             string               `json:"couplingFront,omitempty"`
+	CouplingRear              string               `json:"couplingRear,omitempty"`
+	PowerPickup               string               `json:"powerPickup,omitempty"`
+	Adapter                   string               `json:"adapter,omitempty"`
+	DriveEnabled              bool                 `json:"driveEnabled"`
+	DriveDescription          string               `json:"driveDescription,omitempty"`
+	HeadlightsEnabled         bool                 `json:"headlightsEnabled"`
+	HeadlightsDescription     string               `json:"headlightsDescription,omitempty"`
+	LightingEnabled           bool                 `json:"lightingEnabled"`
+	LightingDescription       string               `json:"lightingDescription,omitempty"`
+	SoundGeneratorEnabled     bool                 `json:"soundGeneratorEnabled"`
+	SoundGeneratorDescription string               `json:"soundGeneratorDescription,omitempty"`
+	SmokeGeneratorEnabled     bool                 `json:"smokeGeneratorEnabled"`
+	SmokeGeneratorDescription string               `json:"smokeGeneratorDescription,omitempty"`
+	AdditionalInfo            string               `json:"additionalInfo,omitempty"`
+	QRCodeEnabled             bool                 `json:"qrCodeEnabled"`
+	Images                    []VehicleImage       `json:"images,omitempty"`
+	Attachments               []VehicleAttachment  `json:"attachments,omitempty"`
+	Maintenance               []VehicleMaintenance `json:"maintenance,omitempty"`
+	CreatedAt                 string               `json:"createdAt"`
+	UpdatedAt                 string               `json:"updatedAt"`
 }
 
 type VehicleImage struct {
@@ -129,6 +130,30 @@ type VehicleAttachmentInput struct {
 type VehicleAttachmentUpdateInput struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
+}
+
+type VehicleMaintenance struct {
+	ID              string `json:"id"`
+	VehicleID       string `json:"vehicleId"`
+	Kind            string `json:"kind"`
+	Status          string `json:"status"`
+	ConditionRating string `json:"conditionRating,omitempty"`
+	DueDate         string `json:"dueDate,omitempty"`
+	CompletedAt     string `json:"completedAt,omitempty"`
+	Cost            string `json:"cost,omitempty"`
+	Notes           string `json:"notes,omitempty"`
+	CreatedAt       string `json:"createdAt"`
+	UpdatedAt       string `json:"updatedAt"`
+}
+
+type VehicleMaintenanceInput struct {
+	Kind            string `json:"kind"`
+	Status          string `json:"status"`
+	ConditionRating string `json:"conditionRating"`
+	DueDate         string `json:"dueDate"`
+	CompletedAt     string `json:"completedAt"`
+	Cost            string `json:"cost"`
+	Notes           string `json:"notes"`
 }
 
 type CreateVehicleInput struct {
@@ -259,6 +284,9 @@ ORDER BY updated_at DESC, inventory_number ASC
 		return nil, err
 	}
 	if err := s.attachAttachments(ctx, vehicles); err != nil {
+		return nil, err
+	}
+	if err := s.attachMaintenance(ctx, vehicles); err != nil {
 		return nil, err
 	}
 	return vehicles, nil
@@ -533,6 +561,11 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 		return nil, err
 	}
 	vehicle.Attachments = attachments
+	maintenance, err := s.loadVehicleMaintenance(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Maintenance = maintenance
 
 	return &vehicle, nil
 }
@@ -690,6 +723,11 @@ WHERE id=?
 		return nil, err
 	}
 	vehicle.Attachments = attachments
+	maintenance, err := s.loadVehicleMaintenance(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Maintenance = maintenance
 
 	return &vehicle, nil
 }
@@ -740,6 +778,17 @@ func (s *VehicleService) attachAttachments(ctx context.Context, vehicles []Vehic
 			return err
 		}
 		vehicles[index].Attachments = attachments
+	}
+	return nil
+}
+
+func (s *VehicleService) attachMaintenance(ctx context.Context, vehicles []Vehicle) error {
+	for index := range vehicles {
+		maintenance, err := s.loadVehicleMaintenance(ctx, vehicles[index].ID)
+		if err != nil {
+			return err
+		}
+		vehicles[index].Maintenance = maintenance
 	}
 	return nil
 }
@@ -1018,6 +1067,167 @@ func (s *VehicleService) DeleteAttachment(ctx context.Context, vehicleID, attach
 	return attachment, nil
 }
 
+func (s *VehicleService) ListMaintenance(ctx context.Context, vehicleID string) ([]VehicleMaintenance, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	if vehicleID == "" {
+		return nil, ErrVehicleNotFound
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+	return s.loadVehicleMaintenance(ctx, vehicleID)
+}
+
+func (s *VehicleService) CreateMaintenance(ctx context.Context, vehicleID string, input VehicleMaintenanceInput) (*VehicleMaintenance, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	input = cleanVehicleMaintenanceInput(input)
+	if vehicleID == "" || input.Kind == "" || input.Status == "" {
+		return nil, ErrVehicleValidation
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	maintenance := VehicleMaintenance{
+		ID:              randomID(),
+		VehicleID:       vehicleID,
+		Kind:            input.Kind,
+		Status:          input.Status,
+		ConditionRating: input.ConditionRating,
+		DueDate:         input.DueDate,
+		CompletedAt:     input.CompletedAt,
+		Cost:            input.Cost,
+		Notes:           input.Notes,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO vehicle_maintenance(id, vehicle_id, kind, status, condition_rating, due_date, completed_at, cost, notes, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, maintenance.ID, maintenance.VehicleID, maintenance.Kind, maintenance.Status, maintenance.ConditionRating, maintenance.DueDate, maintenance.CompletedAt, maintenance.Cost, maintenance.Notes, maintenance.CreatedAt, maintenance.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("create vehicle maintenance: %w", err)
+	}
+	return &maintenance, nil
+}
+
+func (s *VehicleService) UpdateMaintenance(ctx context.Context, vehicleID, maintenanceID string, input VehicleMaintenanceInput) (*VehicleMaintenance, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	maintenanceID = strings.TrimSpace(maintenanceID)
+	input = cleanVehicleMaintenanceInput(input)
+	if vehicleID == "" || maintenanceID == "" || input.Kind == "" || input.Status == "" {
+		return nil, ErrVehicleValidation
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := s.db.ExecContext(ctx, `
+UPDATE vehicle_maintenance
+SET kind=?, status=?, condition_rating=?, due_date=?, completed_at=?, cost=?, notes=?, updated_at=?
+WHERE id=? AND vehicle_id=?
+`, input.Kind, input.Status, input.ConditionRating, input.DueDate, input.CompletedAt, input.Cost, input.Notes, now, maintenanceID, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("update vehicle maintenance: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle maintenance update result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return s.GetMaintenance(ctx, vehicleID, maintenanceID)
+}
+
+func (s *VehicleService) GetMaintenance(ctx context.Context, vehicleID, maintenanceID string) (*VehicleMaintenance, error) {
+	var maintenance VehicleMaintenance
+	err := s.db.QueryRowContext(ctx, `
+SELECT id, vehicle_id, kind, status, COALESCE(condition_rating, ''), COALESCE(due_date, ''), COALESCE(completed_at, ''),
+       COALESCE(cost, ''), COALESCE(notes, ''), created_at, updated_at
+FROM vehicle_maintenance
+WHERE id=? AND vehicle_id=?
+`, strings.TrimSpace(maintenanceID), strings.TrimSpace(vehicleID)).Scan(
+		&maintenance.ID,
+		&maintenance.VehicleID,
+		&maintenance.Kind,
+		&maintenance.Status,
+		&maintenance.ConditionRating,
+		&maintenance.DueDate,
+		&maintenance.CompletedAt,
+		&maintenance.Cost,
+		&maintenance.Notes,
+		&maintenance.CreatedAt,
+		&maintenance.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrVehicleNotFound
+		}
+		return nil, fmt.Errorf("get vehicle maintenance: %w", err)
+	}
+	return &maintenance, nil
+}
+
+func (s *VehicleService) DeleteMaintenance(ctx context.Context, vehicleID, maintenanceID string) (*VehicleMaintenance, error) {
+	maintenance, err := s.GetMaintenance(ctx, vehicleID, maintenanceID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_maintenance WHERE id=? AND vehicle_id=?`, strings.TrimSpace(maintenanceID), strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("delete vehicle maintenance: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle maintenance delete result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return maintenance, nil
+}
+
+func (s *VehicleService) loadVehicleMaintenance(ctx context.Context, vehicleID string) ([]VehicleMaintenance, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, vehicle_id, kind, status, COALESCE(condition_rating, ''), COALESCE(due_date, ''), COALESCE(completed_at, ''),
+       COALESCE(cost, ''), COALESCE(notes, ''), created_at, updated_at
+FROM vehicle_maintenance
+WHERE vehicle_id=?
+ORDER BY
+  CASE WHEN status='erledigt' THEN 1 ELSE 0 END ASC,
+  CASE WHEN due_date='' THEN 1 ELSE 0 END ASC,
+  due_date ASC,
+  created_at DESC
+`, strings.TrimSpace(vehicleID))
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle maintenance: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	entries := []VehicleMaintenance{}
+	for rows.Next() {
+		var maintenance VehicleMaintenance
+		if err := rows.Scan(
+			&maintenance.ID,
+			&maintenance.VehicleID,
+			&maintenance.Kind,
+			&maintenance.Status,
+			&maintenance.ConditionRating,
+			&maintenance.DueDate,
+			&maintenance.CompletedAt,
+			&maintenance.Cost,
+			&maintenance.Notes,
+			&maintenance.CreatedAt,
+			&maintenance.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan vehicle maintenance: %w", err)
+		}
+		entries = append(entries, maintenance)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate vehicle maintenance: %w", err)
+	}
+	return entries, nil
+}
+
 func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images []VehicleImageInput, now string) error {
 	existing, err := existingVehicleImageMeta(ctx, tx, vehicleID)
 	if err != nil {
@@ -1275,6 +1485,23 @@ func cleanVehicleAttachmentInput(input VehicleAttachmentInput) VehicleAttachment
 	input.Category = strings.TrimSpace(input.Category)
 	input.MimeType = strings.TrimSpace(input.MimeType)
 	input.StoragePath = strings.TrimSpace(input.StoragePath)
+	return input
+}
+
+func cleanVehicleMaintenanceInput(input VehicleMaintenanceInput) VehicleMaintenanceInput {
+	input.Kind = strings.TrimSpace(input.Kind)
+	input.Status = strings.TrimSpace(input.Status)
+	input.ConditionRating = strings.TrimSpace(input.ConditionRating)
+	input.DueDate = strings.TrimSpace(input.DueDate)
+	input.CompletedAt = strings.TrimSpace(input.CompletedAt)
+	input.Cost = strings.TrimSpace(input.Cost)
+	input.Notes = strings.TrimSpace(input.Notes)
+	if input.Kind == "" {
+		input.Kind = "Wartung"
+	}
+	if input.Status == "" {
+		input.Status = "geplant"
+	}
 	return input
 }
 

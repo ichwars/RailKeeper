@@ -21,6 +21,7 @@ import {
   Star,
   Trash2,
   Upload,
+  Wrench,
   X
 } from "lucide-react";
 import {
@@ -33,6 +34,8 @@ import {
   MasterDataRelation,
   VehicleAttachment,
   VehicleImage as VehicleImageRecord,
+  VehicleMaintenance,
+  VehicleMaintenanceInput,
   Vehicle
 } from "../../shared/api";
 
@@ -88,7 +91,7 @@ const emptyVehicle: CreateVehicleRequest = {
 };
 
 type ModalMode = "create" | "view" | "edit";
-type ModalTab = "model" | "control" | "uploads";
+type ModalTab = "model" | "control" | "uploads" | "maintenance";
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type SortDirection = "asc" | "desc";
 type ArticleFieldKey = keyof CreateVehicleRequest;
@@ -100,6 +103,16 @@ type PendingArticleImage = ArticleSearchImage & {
 };
 
 type AttachmentEditState = Record<string, { description: string; category: string }>;
+
+const emptyMaintenanceForm: VehicleMaintenanceInput = {
+  kind: "Wartung",
+  status: "geplant",
+  conditionRating: "",
+  dueDate: "",
+  completedAt: "",
+  cost: "",
+  notes: ""
+};
 
 type MasterDataOptions = {
   manufacturers: MasterDataEntry[];
@@ -136,6 +149,9 @@ const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Buegelkupplung", "Klaue
 const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
+const maintenanceKinds = ["Wartung", "Reparatur", "Umbau", "Superung", "Reinigung", "Schmierung", "Decoder-Einbau", "Ersatzteiltausch"];
+const maintenanceStatuses = ["geplant", "faellig", "erledigt"];
+const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparaturbeduerftig"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
 const imageAccept = ".jpg,.jpeg,.png,.webp";
 const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
@@ -474,6 +490,21 @@ function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(value?: string) {
+  if (!value) return "-";
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleDateString("de-DE");
+}
+
+function maintenanceIsDue(entry: VehicleMaintenance) {
+  if (!entry.dueDate || entry.status === "erledigt") return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${entry.dueDate}T00:00:00`);
+  return !Number.isNaN(due.getTime()) && due <= today;
 }
 
 function fileExtension(fileName: string) {
@@ -1000,6 +1031,8 @@ export function VehiclesView() {
   const [attachmentUploadCategory, setAttachmentUploadCategory] = useState("");
   const [attachmentUploadDescription, setAttachmentUploadDescription] = useState("");
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
+  const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
+  const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
@@ -1095,6 +1128,8 @@ export function VehiclesView() {
     setForm(vehicleToForm(detail));
     setPendingArticleImages(vehicleImagesToPending(detail));
     setAttachmentEdits(attachmentsToEditState(detail.attachments));
+    setEditingMaintenanceID(null);
+    setMaintenanceForm(emptyMaintenanceForm);
   };
 
   const updateCategory = (category: string) => {
@@ -1380,6 +1415,53 @@ export function VehiclesView() {
       .finally(() => setSaving(false));
   };
 
+  const updateMaintenanceForm = (patch: Partial<VehicleMaintenanceInput>) => {
+    setMaintenanceForm((current) => ({ ...current, ...patch }));
+  };
+
+  const resetMaintenanceForm = () => {
+    setMaintenanceForm(emptyMaintenanceForm);
+    setEditingMaintenanceID(null);
+  };
+
+  const editMaintenance = (entry: VehicleMaintenance) => {
+    setMaintenanceForm({
+      kind: entry.kind || "Wartung",
+      status: entry.status || "geplant",
+      conditionRating: entry.conditionRating || "",
+      dueDate: entry.dueDate || "",
+      completedAt: entry.completedAt || "",
+      cost: entry.cost || "",
+      notes: entry.notes || ""
+    });
+    setEditingMaintenanceID(entry.id);
+  };
+
+  const saveMaintenance = () => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    const action = editingMaintenanceID
+      ? api.updateVehicleMaintenance(selected.id, editingMaintenanceID, maintenanceForm)
+      : api.createVehicleMaintenance(selected.id, maintenanceForm);
+    action
+      .then(() => refreshSelectedVehicle(selected.id))
+      .then(() => resetMaintenanceForm())
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const deleteMaintenance = (entry: VehicleMaintenance) => {
+    if (!selected) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .deleteVehicleMaintenance(selected.id, entry.id)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
   const generateQr = async () => {
     setQrDialogOpen(true);
     setQrError("");
@@ -1502,6 +1584,7 @@ export function VehiclesView() {
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
+    resetMaintenanceForm();
     setActiveTab("model");
     setOpenSections({ model: true, details: false, ownership: false });
     setModalOpen(true);
@@ -1518,6 +1601,7 @@ export function VehiclesView() {
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
     setAttachmentDragActive(false);
+    resetMaintenanceForm();
     setPreviewImage(null);
     setMessage("");
   };
@@ -1744,6 +1828,9 @@ export function VehiclesView() {
               </button>
               <button type="button" className={activeTab === "uploads" ? "active" : ""} onClick={() => setActiveTab("uploads")}>
                 Uploads
+              </button>
+              <button type="button" className={activeTab === "maintenance" ? "active" : ""} onClick={() => setActiveTab("maintenance")}>
+                Wartung
               </button>
             </nav>
 
@@ -2132,6 +2219,122 @@ export function VehiclesView() {
                         })}
                       </div>
                     )}
+                  </section>
+                </section>
+              )}
+
+              {activeTab === "maintenance" && (
+                <section className="maintenance-tab">
+                  <section className="maintenance-editor">
+                    <div className="upload-head">
+                      <div>
+                        <h3>Wartung und Zustand</h3>
+                        <p>Wartungen, Reparaturen, Umbauten, Faelligkeiten und Kosten am Fahrzeug dokumentieren.</p>
+                      </div>
+                      <Wrench size={22} aria-hidden="true" />
+                    </div>
+                    {!selected && <p className="empty-state compact">Wartungseintraege koennen nach dem ersten Speichern hinzugefuegt werden.</p>}
+                    {selected && (
+                      <>
+                        <div className="maintenance-form">
+                          <label>
+                            Art
+                            <select value={maintenanceForm.kind} onChange={(event) => updateMaintenanceForm({ kind: event.target.value })} disabled={readonly || saving}>
+                              {maintenanceKinds.map((kind) => (
+                                <option key={kind} value={kind}>{kind}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Status
+                            <select value={maintenanceForm.status} onChange={(event) => updateMaintenanceForm({ status: event.target.value })} disabled={readonly || saving}>
+                              {maintenanceStatuses.map((status) => (
+                                <option key={status} value={status}>{status}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Zustand
+                            <select value={maintenanceForm.conditionRating || ""} onChange={(event) => updateMaintenanceForm({ conditionRating: event.target.value })} disabled={readonly || saving}>
+                              <option value="">Bitte waehlen</option>
+                              {conditionRatings.map((rating) => (
+                                <option key={rating} value={rating}>{rating}</option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Faellig am
+                            <input type="date" value={maintenanceForm.dueDate || ""} onChange={(event) => updateMaintenanceForm({ dueDate: event.target.value })} disabled={readonly || saving} />
+                          </label>
+                          <label>
+                            Durchgefuehrt am
+                            <input type="date" value={maintenanceForm.completedAt || ""} onChange={(event) => updateMaintenanceForm({ completedAt: event.target.value })} disabled={readonly || saving} />
+                          </label>
+                          <label>
+                            Kosten
+                            <input value={maintenanceForm.cost || ""} onChange={(event) => updateMaintenanceForm({ cost: event.target.value })} disabled={readonly || saving} inputMode="decimal" placeholder="0,00" />
+                          </label>
+                          <label className="maintenance-notes">
+                            Notizen
+                            <textarea value={maintenanceForm.notes || ""} onChange={(event) => updateMaintenanceForm({ notes: event.target.value })} disabled={readonly || saving} rows={4} />
+                          </label>
+                        </div>
+                        <div className="maintenance-actions">
+                          {editingMaintenanceID && (
+                            <button type="button" className="secondary-button" onClick={resetMaintenanceForm} disabled={readonly || saving}>
+                              Abbrechen
+                            </button>
+                          )}
+                          <button type="button" className="primary-button" onClick={saveMaintenance} disabled={readonly || saving}>
+                            <Save size={15} aria-hidden="true" />
+                            {editingMaintenanceID ? "Eintrag speichern" : "Eintrag hinzufuegen"}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </section>
+
+                  <section className="maintenance-list">
+                    {selected && (!selected.maintenance || selected.maintenance.length === 0) && (
+                      <p className="empty-state compact">Noch keine Wartungseintraege hinterlegt.</p>
+                    )}
+                    {selected?.maintenance?.map((entry) => (
+                      <article key={entry.id} className={maintenanceIsDue(entry) ? "maintenance-card due" : "maintenance-card"}>
+                        <div className="maintenance-card-head">
+                          <div>
+                            <strong>{entry.kind}</strong>
+                            <span>{entry.notes || "Keine Notiz hinterlegt"}</span>
+                          </div>
+                          <span className={`maintenance-badge ${entry.status}`}>{entry.status}</span>
+                        </div>
+                        <dl className="maintenance-meta">
+                          <div>
+                            <dt>Faellig</dt>
+                            <dd>{formatDate(entry.dueDate)}</dd>
+                          </div>
+                          <div>
+                            <dt>Durchgefuehrt</dt>
+                            <dd>{formatDate(entry.completedAt)}</dd>
+                          </div>
+                          <div>
+                            <dt>Zustand</dt>
+                            <dd>{entry.conditionRating || "-"}</dd>
+                          </div>
+                          <div>
+                            <dt>Kosten</dt>
+                            <dd>{entry.cost || "-"}</dd>
+                          </div>
+                        </dl>
+                        <div className="maintenance-card-actions">
+                          <button type="button" className="icon-button" onClick={() => editMaintenance(entry)} disabled={readonly || saving} aria-label="Wartung bearbeiten" title="Wartung bearbeiten">
+                            <Pencil size={15} />
+                          </button>
+                          <button type="button" className="icon-button danger" onClick={() => deleteMaintenance(entry)} disabled={readonly || saving} aria-label="Wartung loeschen" title="Wartung loeschen">
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
+                      </article>
+                    ))}
                   </section>
                 </section>
               )}

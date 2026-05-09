@@ -102,6 +102,10 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.updateVehicleAttachment))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.deleteVehicleAttachment))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/attachments/{attachmentID}/download", app.require("Viewer", app.downloadVehicleAttachment))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/maintenance", app.require("Viewer", app.listVehicleMaintenance))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/maintenance", app.require("Editor", app.createVehicleMaintenance))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.updateVehicleMaintenance))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.deleteVehicleMaintenance))
 	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
@@ -558,6 +562,77 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": path.Base(attachment.OriginalName)}))
 	http.ServeFile(w, r, fullPath)
+}
+
+func (a *App) listVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
+	entries, err := a.vehicleService.ListMaintenance(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("maintenance list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "maintenance_list_failed", "Wartungseintraege konnten nicht geladen werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, entries)
+}
+
+func (a *App) createVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleMaintenanceInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	entry, err := a.vehicleService.CreateMaintenance(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollstaendig.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+		default:
+			a.logger.Error("maintenance create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "maintenance_create_failed", "Wartungseintrag konnte nicht gespeichert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusCreated, entry)
+}
+
+func (a *App) updateVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleMaintenanceInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	entry, err := a.vehicleService.UpdateMaintenance(r.Context(), r.PathValue("id"), r.PathValue("maintenanceID"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollstaendig.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "maintenance_not_found", "Maintenance entry not found.")
+		default:
+			a.logger.Error("maintenance update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "maintenance_update_failed", "Wartungseintrag konnte nicht aktualisiert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, entry)
+}
+
+func (a *App) deleteVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.vehicleService.DeleteMaintenance(r.Context(), r.PathValue("id"), r.PathValue("maintenanceID")); err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "maintenance_not_found", "Maintenance entry not found.")
+			return
+		}
+		a.logger.Error("maintenance delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "maintenance_delete_failed", "Wartungseintrag konnte nicht geloescht werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func safeAttachmentFileName(value string) string {

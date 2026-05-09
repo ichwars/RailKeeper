@@ -1723,13 +1723,15 @@ td {
 }
 
 .empty-tab,
-.uploads-tab {
+.uploads-tab,
+.maintenance-tab {
   display: grid;
   gap: 18px;
   padding: 20px;
 }
 
-.upload-section {
+.upload-section,
+.maintenance-editor {
   display: grid;
   gap: 12px;
 }
@@ -1962,6 +1964,162 @@ td {
   padding: 0 10px;
 }
 
+.maintenance-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.maintenance-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.maintenance-form input,
+.maintenance-form select,
+.maintenance-form textarea {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.maintenance-form textarea {
+  min-height: 92px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.maintenance-form input:focus,
+.maintenance-form select:focus,
+.maintenance-form textarea:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.maintenance-notes {
+  grid-column: 1 / -1;
+}
+
+.maintenance-actions,
+.maintenance-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.maintenance-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.maintenance-list {
+  display: grid;
+  gap: 10px;
+}
+
+.maintenance-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.maintenance-card.due {
+  border-color: color-mix(in srgb, #fca311 54%, var(--line));
+  background: color-mix(in srgb, #fca311 8%, var(--panel));
+}
+
+.maintenance-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.maintenance-card-head div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.maintenance-card-head strong {
+  font-size: 15px;
+}
+
+.maintenance-card-head span:not(.maintenance-badge) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.maintenance-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.maintenance-badge.faellig {
+  background: color-mix(in srgb, #fca311 18%, #fff);
+  color: #8a5200;
+}
+
+.maintenance-badge.erledigt {
+  background: color-mix(in srgb, var(--accent) 16%, #fff);
+  color: var(--accent-strong);
+}
+
+.maintenance-meta {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.maintenance-meta div {
+  min-width: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.maintenance-meta dt {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.maintenance-meta dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .image-preview-layer {
   z-index: 13;
 }
@@ -2062,6 +2220,8 @@ td {
   .attachment-upload-fields,
   .attachment-row,
   .attachment-edit-row,
+  .maintenance-form,
+  .maintenance-meta,
   .list-head {
     grid-template-columns: 1fr;
   }

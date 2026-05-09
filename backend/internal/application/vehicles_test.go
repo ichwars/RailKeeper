@@ -381,6 +381,71 @@ func TestVehiclePersistsAttachments(t *testing.T) {
 	}
 }
 
+func TestVehiclePersistsMaintenance(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entry, err := service.CreateMaintenance(ctx, created.ID, application.VehicleMaintenanceInput{
+		Kind:            "Schmierung",
+		Status:          "geplant",
+		ConditionRating: "gut",
+		DueDate:         "2026-06-01",
+		Cost:            "12,50",
+		Notes:           "Getriebe pruefen",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Kind != "Schmierung" || entry.Status != "geplant" {
+		t.Fatalf("unexpected maintenance entry: %#v", entry)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Maintenance) != 1 || detail.Maintenance[0].Notes != "Getriebe pruefen" {
+		t.Fatalf("unexpected detail maintenance: %#v", detail.Maintenance)
+	}
+
+	updated, err := service.UpdateMaintenance(ctx, created.ID, entry.ID, application.VehicleMaintenanceInput{
+		Kind:            "Schmierung",
+		Status:          "erledigt",
+		ConditionRating: "sehr gut",
+		DueDate:         "2026-06-01",
+		CompletedAt:     "2026-05-09",
+		Cost:            "12,50",
+		Notes:           "Erledigt",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Status != "erledigt" || updated.CompletedAt != "2026-05-09" {
+		t.Fatalf("unexpected maintenance update: %#v", updated)
+	}
+
+	if _, err := service.DeleteMaintenance(ctx, created.ID, entry.ID); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := service.ListMaintenance(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("expected maintenance deletion, got %#v", entries)
+	}
+}
+
 func TestDeleteVehicleRemovesRecord(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
