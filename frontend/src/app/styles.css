@@ -1217,6 +1217,11 @@ td {
   color: var(--accent-strong);
 }
 
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -1802,12 +1807,28 @@ td {
   min-width: 0;
 }
 
+.pending-image-card input,
 .pending-image-card strong,
 .pending-image-card figcaption > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+}
+
+.pending-image-card input {
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+}
+
+.pending-image-card input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .pending-image-card figcaption > span {

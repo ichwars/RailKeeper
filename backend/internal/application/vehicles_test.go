@@ -279,6 +279,50 @@ func TestVehiclePersistsImages(t *testing.T) {
 	}
 }
 
+func TestVehicleCreatesAndDeletesLocalImages(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	image, err := service.CreateImage(ctx, created.ID, application.VehicleImageInput{
+		Title:       "Seitenansicht",
+		FileName:    "side.webp",
+		MimeType:    "image/webp",
+		StoragePath: "uploads/vehicles/test/images/side.webp",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if image.URL == "" || !image.IsPrimary || image.StoragePath == "" {
+		t.Fatalf("unexpected local image: %#v", image)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Images) != 1 || detail.Images[0].ID != image.ID || detail.Images[0].MimeType != "image/webp" {
+		t.Fatalf("local image not attached to detail: %#v", detail.Images)
+	}
+
+	deleted, err := service.DeleteImage(ctx, created.ID, image.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted.StoragePath == "" {
+		t.Fatal("deleted image should return storage path for file cleanup")
+	}
+}
+
 func TestVehiclePersistsAttachments(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

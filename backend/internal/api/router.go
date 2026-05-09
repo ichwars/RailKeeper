@@ -95,6 +95,9 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/images", app.require("Editor", app.uploadVehicleImage))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/images/{imageID}", app.require("Editor", app.deleteVehicleImage))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/file", app.require("Viewer", app.downloadVehicleImage))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments", app.require("Editor", app.uploadVehicleAttachment))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.updateVehicleAttachment))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.deleteVehicleAttachment))
@@ -300,9 +303,126 @@ func (a *App) deleteVehicle(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-const maxAttachmentBytes = 25 * 1024 * 1024
+const (
+	maxAttachmentBytes = 25 * 1024 * 1024
+	maxImageBytes      = 10 * 1024 * 1024
+)
 
 var safeFileNamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
+
+func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxImageBytes+1024*1024)
+	if err := r.ParseMultipartForm(maxImageBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "image_upload_invalid", "Bild konnte nicht gelesen werden.")
+		return
+	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "image_missing", "Eine Bilddatei ist erforderlich.")
+		return
+	}
+	defer func() { _ = file.Close() }()
+	if header.Size > maxImageBytes {
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxImageBytes+1))
+	if err != nil || int64(len(data)) > maxImageBytes {
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
+		return
+	}
+	mimeType := http.DetectContentType(data)
+	if !isAllowedImageMime(mimeType) {
+		respondProblem(w, http.StatusBadRequest, "image_type_blocked", "Erlaubt sind JPG, PNG und WebP.")
+		return
+	}
+	vehicleID := r.PathValue("id")
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
+	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", storageName)
+	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "image_path_invalid", "Bild konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		a.logger.Error("image directory create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
+		a.logger.Error("image write failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
+		return
+	}
+	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, application.VehicleImageInput{
+		Title:       r.FormValue("title"),
+		SourceURL:   r.FormValue("sourceUrl"),
+		FileName:    storageName,
+		MimeType:    mimeType,
+		StoragePath: storagePath,
+		IsPrimary:   strings.EqualFold(r.FormValue("isPrimary"), "true"),
+	})
+	if err != nil {
+		_ = os.Remove(fullPath)
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("image metadata create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusCreated, image)
+}
+
+func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
+	image, err := a.vehicleService.DeleteImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
+			return
+		}
+		a.logger.Error("image delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht geloescht werden.")
+		return
+	}
+	if image.StoragePath != "" {
+		if fullPath, err := confinedDataPath(a.dataDir, image.StoragePath); err == nil {
+			_ = os.Remove(fullPath)
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) downloadVehicleImage(w http.ResponseWriter, r *http.Request) {
+	image, err := a.vehicleService.GetImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
+			return
+		}
+		a.logger.Error("image lookup failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_download_failed", "Bild konnte nicht geladen werden.")
+		return
+	}
+	if image.StoragePath == "" {
+		respondProblem(w, http.StatusNotFound, "image_file_missing", "Bilddatei ist nicht lokal gespeichert.")
+		return
+	}
+	fullPath, err := confinedDataPath(a.dataDir, image.StoragePath)
+	if err != nil {
+		respondProblem(w, http.StatusInternalServerError, "image_path_invalid", "Bild konnte nicht geladen werden.")
+		return
+	}
+	if image.MimeType != "" {
+		w.Header().Set("Content-Type", image.MimeType)
+	}
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": path.Base(image.FileName)}))
+	http.ServeFile(w, r, fullPath)
+}
 
 func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, maxAttachmentBytes+1024*1024)
@@ -476,6 +596,15 @@ func confinedDataPath(dataDir, relativePath string) (string, error) {
 func isBlockedAttachmentName(value string) bool {
 	switch strings.ToLower(filepath.Ext(value)) {
 	case ".exe", ".bat", ".cmd", ".com", ".scr", ".msi", ".dll", ".ps1", ".vbs", ".js", ".jar", ".sh":
+		return true
+	default:
+		return false
+	}
+}
+
+func isAllowedImageMime(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "image/jpeg", "image/png", "image/webp":
 		return true
 	default:
 		return false

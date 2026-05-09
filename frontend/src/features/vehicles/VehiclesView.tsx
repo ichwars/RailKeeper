@@ -32,6 +32,7 @@ import {
   MasterDataEntry,
   MasterDataRelation,
   VehicleAttachment,
+  VehicleImage as VehicleImageRecord,
   Vehicle
 } from "../../shared/api";
 
@@ -94,6 +95,8 @@ type ArticleFieldKey = keyof CreateVehicleRequest;
 type PendingArticleImage = ArticleSearchImage & {
   id: string;
   isPrimary?: boolean;
+  persisted?: boolean;
+  mimeType?: string;
 };
 
 type AttachmentEditState = Record<string, { description: string; category: string }>;
@@ -134,7 +137,9 @@ const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
+const imageAccept = ".jpg,.jpeg,.png,.webp";
 const blockedAttachmentExtensions = new Set(["exe", "bat", "cmd", "com", "scr", "msi", "dll", "ps1", "vbs", "js", "jar", "sh"]);
+const allowedImageExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 
 const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
@@ -434,8 +439,22 @@ function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
     url: image.url,
     title: image.title || "",
     source: image.sourceUrl || image.url,
-    isPrimary: image.isPrimary
+    isPrimary: image.isPrimary,
+    persisted: true,
+    mimeType: image.mimeType || ""
   }));
+}
+
+function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage {
+  return {
+    id: image.id || image.url,
+    url: image.url,
+    title: image.title || "",
+    source: image.sourceUrl || image.url,
+    isPrimary: image.isPrimary,
+    persisted: true,
+    mimeType: image.mimeType || ""
+  };
 }
 
 function attachmentsToEditState(attachments?: VehicleAttachment[]): AttachmentEditState {
@@ -463,6 +482,10 @@ function fileExtension(fileName: string) {
 
 function isBlockedAttachmentFile(file: File) {
   return blockedAttachmentExtensions.has(fileExtension(file.name));
+}
+
+function isAllowedImageFile(file: File) {
+  return allowedImageExtensions.has(fileExtension(file.name));
 }
 
 function attachmentCategoryForFile(file: File) {
@@ -974,6 +997,7 @@ export function VehiclesView() {
   const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
   const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
   const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
@@ -1186,6 +1210,47 @@ export function VehiclesView() {
     setPendingArticleImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === id })));
   };
 
+  const updatePendingImageTitle = (id: string, title: string) => {
+    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, title } : image)));
+  };
+
+  const movePendingImage = (id: string, direction: -1 | 1) => {
+    setPendingArticleImages((current) => {
+      const index = current.findIndex((image) => image.id === id);
+      const target = index + direction;
+      if (index < 0 || target < 0 || target >= current.length) return current;
+      const next = [...current];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const removePendingImage = (image: PendingArticleImage) => {
+    const removeFromState = () => {
+      setPendingArticleImages((current) => {
+        const next = current.filter((entry) => entry.id !== image.id);
+        if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
+          next[0] = { ...next[0], isPrimary: true };
+        }
+        return next;
+      });
+    };
+
+    if (selected && image.persisted) {
+      setSaving(true);
+      api
+        .deleteVehicleImage(selected.id, image.id)
+        .then(() => {
+          removeFromState();
+          refreshSelectedVehicle(selected.id);
+        })
+        .catch((error: Error) => setMessage(error.message))
+        .finally(() => setSaving(false));
+      return;
+    }
+    removeFromState();
+  };
+
   const refreshSelectedVehicle = (vehicleID = selected?.id) => {
     if (!vehicleID) return;
     api
@@ -1195,6 +1260,41 @@ export function VehiclesView() {
         load();
       })
       .catch((error: Error) => setMessage(error.message));
+  };
+
+  const uploadImages = (files: FileList | null) => {
+    if (!selected || !files || files.length === 0) return;
+    const uploadFiles = Array.from(files);
+    const invalid = uploadFiles.find((file) => !isAllowedImageFile(file));
+    if (invalid) {
+      setMessage(`${invalid.name} ist kein erlaubtes Bildformat.`);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
+      return;
+    }
+    setSaving(true);
+    setMessage("");
+    (async () => {
+      for (const file of uploadFiles) {
+        const image = await api.uploadVehicleImage(selected.id, file, file.name, pendingArticleImages.length === 0);
+        setPendingArticleImages((current) => {
+          const next = [...current, uploadedImageToPending(image)];
+          if (!next.some((entry) => entry.isPrimary) && next.length > 0) {
+            next[0] = { ...next[0], isPrimary: true };
+          }
+          return next;
+        });
+      }
+    })()
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => {
+        setSaving(false);
+        if (imageInputRef.current) {
+          imageInputRef.current.value = "";
+        }
+      });
   };
 
   const uploadAttachment = (files: FileList | null) => {
@@ -1431,6 +1531,7 @@ export function VehiclesView() {
     setMessage("");
 
     const images = pendingArticleImages.map((image, index) => ({
+      id: image.persisted ? image.id : undefined,
       url: image.url,
       title: image.title,
       sourceUrl: image.source,
@@ -1828,13 +1929,23 @@ export function VehiclesView() {
                     <div className="upload-head">
                       <div>
                         <h3>Bilder</h3>
-                        <p>Bilder aus der Artikelsuche werden hier zunaechst zwischengespeichert.</p>
+                        <p>Hauptbild, Alternativbilder, Quellen und Beschreibungen direkt am Fahrzeug pflegen.</p>
                       </div>
-                      <button type="button" className="primary-button" disabled>
+                      <input
+                        ref={imageInputRef}
+                        type="file"
+                        multiple
+                        accept={imageAccept}
+                        className="visually-hidden"
+                        onChange={(event) => uploadImages(event.target.files)}
+                        disabled={readonly || !selected}
+                      />
+                      <button type="button" className="primary-button" onClick={() => imageInputRef.current?.click()} disabled={readonly || !selected || saving}>
                         <Upload size={16} aria-hidden="true" />
                         Bild hochladen
                       </button>
                     </div>
+                    {!selected && <p className="empty-state compact">Lokale Bilder koennen nach dem ersten Speichern hochgeladen werden.</p>}
                     {pendingArticleImages.length === 0 ? (
                       <div className="upload-list">
                         <div className="image-placeholder large">
@@ -1845,33 +1956,38 @@ export function VehiclesView() {
                       </div>
                     ) : (
                       <div className="pending-image-grid">
-                        {pendingArticleImages.map((image) => (
+                        {pendingArticleImages.map((image, imageIndex) => (
                           <figure key={image.id} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
                             <button type="button" className="image-preview-button" onClick={() => setPreviewImage(image)} title="Originalgroesse anzeigen" aria-label="Originalgroesse anzeigen">
                               <img src={image.url} alt="" />
                             </button>
                             <figcaption>
-                              <strong>{image.title || "Artikeldaten-Bild"}</strong>
+                              <input
+                                value={image.title || ""}
+                                onChange={(event) => updatePendingImageTitle(image.id, event.target.value)}
+                                disabled={readonly}
+                                placeholder="Bildbeschreibung"
+                                aria-label="Bildbeschreibung"
+                              />
                               <span>{sourceDisplayName(image.source)}</span>
                               <div className="image-card-actions">
                                 <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
                                   <ExternalLink size={15} />
                                 </a>
+                                <button type="button" className="icon-button" onClick={() => movePendingImage(image.id, -1)} disabled={readonly || imageIndex === 0} aria-label="Bild nach oben" title="Bild nach oben">
+                                  <ChevronUp size={15} />
+                                </button>
+                                <button type="button" className="icon-button" onClick={() => movePendingImage(image.id, 1)} disabled={readonly || imageIndex === pendingArticleImages.length - 1} aria-label="Bild nach unten" title="Bild nach unten">
+                                  <ChevronDown size={15} />
+                                </button>
                                 <button type="button" className={image.isPrimary ? "icon-button active" : "icon-button"} onClick={() => setPrimaryPendingImage(image.id)} aria-label="Als Hauptbild markieren" title={image.isPrimary ? "Hauptbild" : "Als Hauptbild markieren"}>
                                   <Star size={15} />
                                 </button>
                                 <button
                                   type="button"
                                   className="icon-button danger"
-                                  onClick={() =>
-                                    setPendingArticleImages((current) => {
-                                      const next = current.filter((entry) => entry.id !== image.id);
-                                      if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
-                                        next[0] = { ...next[0], isPrimary: true };
-                                      }
-                                      return next;
-                                    })
-                                  }
+                                  onClick={() => removePendingImage(image)}
+                                  disabled={readonly || saving}
                                   aria-label="Bild entfernen"
                                   title="Bild entfernen"
                                 >

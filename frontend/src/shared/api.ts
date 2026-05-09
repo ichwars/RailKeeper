@@ -81,12 +81,16 @@ export type VehicleImage = {
   url: string;
   title?: string;
   sourceUrl?: string;
+  fileName?: string;
+  mimeType?: string;
   isPrimary: boolean;
   sortOrder: number;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export type VehicleImageInput = {
+  id?: string;
   url: string;
   title?: string;
   sourceUrl?: string;
@@ -367,6 +371,24 @@ export const api = {
     }),
   deleteVehicle: (id: string) =>
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }),
+  uploadVehicleImage: (vehicleId: string, file: File, title = "", isPrimary = false) => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("title", title);
+    form.append("isPrimary", String(isPrimary));
+    return request<VehicleImage>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/images`,
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 30000 }
+    );
+  },
+  deleteVehicleImage: (vehicleId: string, imageId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}`, {
       method: "DELETE"
     }),
   uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "") => {
