@@ -1,64 +1,126 @@
 # RailKeeper2
 
-RailKeeper2 is the clean successor for RailKeeper: a small, production-oriented model railway inventory application focused on vehicles.
+RailKeeper2 is a local-first inventory application for model railway vehicles. It is designed as the clean successor to the original RailKeeper project: smaller, safer, easier to maintain, and focused on a solid vehicle workflow before accessories or larger collection modules are added.
 
-## Goals
+The application runs as one Go service that serves both the JSON API and the React frontend. Data is stored in SQLite so a private installation can stay simple to operate and back up.
 
-- local-first deployment with one self-contained runtime
-- no default credentials; first-run setup creates the first admin
-- vehicle inventory as the core domain
-- article data web search as a first-class feature
-- OpenAPI as the API contract
-- generated frontend API client
-- SQLite for simple operation and backup
-- clear backend boundaries for long-term maintenance
+## Current Features
 
-## Stack
+- first-run setup without default credentials
+- login, logout, server-side sessions, roles and CSRF protection
+- vehicle list with search and sortable columns
+- vehicle create, detail, edit and delete dialogs
+- configurable inventory number schemes with collision checks
+- inventory number change history
+- editable master data for manufacturers, categories, gauges, epochs, railway companies and symbols
+- category-to-gattung dependencies for vehicle entry
+- model and technical vehicle fields
+- article data web search with explicit field-by-field review before applying values
+- source URL storage for imported article data
+- image suggestions from article search, primary image selection and preview
+- QR code generation with PNG/SVG download and print view
+- file attachments for vehicles, including category, notes, download and PDF inline view
+- audit log entries for setup, login/logout and vehicle changes
+- OpenAPI contract in `openapi/railkeeper.yaml`
+- Docker Compose deployment with persistent `/data` volume
 
-- Backend: Go
-- Database: SQLite
-- Frontend: React with Vite
-- API contract: OpenAPI
-- Runtime: Go binary serving API and static frontend
+Accessories are intentionally not part of the current scope.
 
-## MVP Scope
+## Security Baseline
 
-- setup and admin creation
-- authentication, sessions, roles, CSRF protection
-- vehicle CRUD
-- master data
-- vehicle images and documents
-- maintenance records
-- decoder and CV data
-- article data search
-- backup and restore
-- audit log
-- settings
+RailKeeper2 is built for private or small self-hosted installations, but the defaults avoid the most common footguns:
 
-Accessories are intentionally out of scope for the MVP.
+- no default admin account
+- Argon2id password hashing
+- HTTP-only session cookie
+- SameSite cookies
+- CSRF token for write requests
+- role checks for viewer/editor/admin operations
+- basic login/setup rate limiting
+- security headers including CSP, frame blocking and nosniff
+- upload size limit and executable attachment blocking
+- attachment paths confined to the configured data directory
+- runtime data ignored by Git
+
+For HTTPS deployments set:
+
+```env
+RAILKEEPER_COOKIE_SECURE=true
+```
 
 ## Repository Layout
 
 ```text
 backend/
-  cmd/railkeeper/
-  internal/
-    api/
-    application/
-    domain/
-    infrastructure/
-  migrations/
+  cmd/railkeeper/          Go entrypoint
+  internal/api/            HTTP routes, middleware and response mapping
+  internal/application/    use cases, validation and transactions
+  internal/infrastructure/ SQLite, migrations and seed loading
+  migrations/              SQLite schema migrations
+  seeds/                   master data seed JSON
 frontend/
-  src/
-    app/
-    features/
-    generated/
-    shared/
+  src/app/                 shell, routing and global styles
+  src/features/            setup, auth, vehicles and settings UI
+  src/shared/              API adapter and shared frontend types
 openapi/
+  railkeeper.yaml          API contract
 docs/
+  architecture.md
+  roadmap.md
+  security.md
 deploy/
+  README.md
 ```
 
 ## Development
 
-This repository is scaffolded first. Implementation should move module by module, starting with the API contract and backend foundation.
+Backend:
+
+```bash
+cd backend
+go test ./...
+go run ./cmd/railkeeper
+```
+
+Frontend:
+
+```bash
+cd frontend
+npm ci
+npm run build
+```
+
+Local full runtime expects the built frontend in `frontend/dist` and uses the following defaults:
+
+```env
+RAILKEEPER_ADDR=:8080
+RAILKEEPER_DATA_DIR=./data
+RAILKEEPER_MIGRATIONS_DIR=./backend/migrations
+RAILKEEPER_SEEDS_DIR=./backend/seeds
+RAILKEEPER_STATIC_DIR=./frontend/dist
+RAILKEEPER_COOKIE_SECURE=false
+```
+
+## Docker
+
+Create `.env` from `.env.example`, then run:
+
+```bash
+docker compose up -d --build
+```
+
+The container stores SQLite data, uploads and future backup files in `/data`.
+
+## Data Sources
+
+Initial master data is seeded from `backend/seeds/master_data.json`. Article data web search is treated as a suggestion source only: the user chooses explicitly which fields and images are applied to a vehicle.
+
+## Not Yet Included
+
+- accessories
+- full backup/restore UI
+- maintenance history
+- decoder function mapping F0-F31
+- structured CV value import/export
+- thumbnails for local image uploads
+- card/table view switch for inventory

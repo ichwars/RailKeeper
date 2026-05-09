@@ -1,66 +1,58 @@
 # Roadmap
 
-## Milestone 1: Foundation
+## Completed Foundation
 
-- Go server skeleton
-- Vite frontend shell
-- OpenAPI contract
-- SQLite migration runner
-- configuration and structured logging
+- Go API and static frontend runtime
+- SQLite migrations and seed loading
+- first-run setup and authentication
+- CSRF and role checks
+- vehicle CRUD
+- master data management
+- inventory number schemes and history
+- article data search review workflow
+- QR code generation
+- article-search image suggestions and primary image selection
+- vehicle attachments
 
-## Milestone 2: Security
+## Next Practical Milestones
 
-- setup admin
-- login, logout, session
-- CSRF middleware
-- role checks
-- audit log
+1. Local media uploads
+   - direct image upload
+   - drag and drop
+   - thumbnails
+   - configurable size limit
 
-## Milestone 3: Vehicles
+2. Import/export and backup
+   - backup archive including database and attachments
+   - restore compatibility checks
+   - import/export for master data
 
-- vehicle list
-- vehicle create/edit/view/delete
-- master data
-- image and document uploads
+3. Maintenance and condition
+   - maintenance history
+   - planned maintenance reminders
+   - repairs, conversions, cleaning and lubrication
+   - costs, notes, images and attachments per maintenance entry
 
-## Milestone 4: Operations
+4. Digital functions
+   - F0-F31 function mapping
+   - icon-based display
+   - editable symbol master data
+   - momentary/permanent and direction-dependent flags
 
-- backup and restore
-- import/export
-- migration compatibility checks
+5. Decoder and CV data
+   - structured CV values
+   - decoder profiles
+   - file import/export
+   - change history
 
-## Milestone 5: Article Search
+6. Responsive inventory views
+   - table/card switch
+   - compact mobile layout
+   - richer dashboard summaries
 
-- provider interface
-- manual search
-- result review before applying data
-- source attribution
+## Explicitly Deferred
 
-## Milestone 6: Inventory Numbers
-
-- configurable number schemes per category
-- collision-safe counters per type
-- manual unique overrides
-- number change history
-
-## Milestone 7: Media And Attachments
-
-- main image and ordered alternative images
-- drag and drop upload
-- normalized filesystem storage
-- thumbnails and backup inclusion
-- PDF and document attachments with safe MIME checks
-- no executable attachments by default
-
-## Milestone 8: Maintenance And Decoder Data
-
-- maintenance history, repairs, upgrades and reminders
-- condition, due dates, costs and notes
-- digital functions F0-F31 with icon-based symbols
-- CV values, CV files, import/export and change history
-
-## Milestone 9: Responsive UI
-
-- light, dark and system design mode
-- desktop, tablet and phone layouts
-- inventory table and card views
+- accessories
+- public sharing by default
+- cloud sync
+- multi-tenant hosting

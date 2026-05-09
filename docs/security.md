@@ -1,27 +1,39 @@
-# Security Baseline
+# Security
 
-RailKeeper2 is intended for production use by other users, not only private experiments.
+RailKeeper2 is intended for local-first and small self-hosted installations. This document describes the implemented baseline and the remaining hardening work.
 
-## Baseline Requirements
+## Implemented
 
-- no default login
+- no default credentials
 - first-run setup gate
 - Argon2id password hashing
-- httpOnly session cookies
+- random session and CSRF tokens
+- session token hashes stored in SQLite
+- HTTP-only session cookie
 - SameSite cookies
-- CSRF token for write requests
-- rate limits for login and setup-sensitive routes
-- roles: Admin, Editor, Viewer
-- audit log for security-sensitive actions
-- upload validation and path confinement
-- backup compatibility checks before restore
+- optional secure cookies via `RAILKEEPER_COOKIE_SECURE=true`
+- CSRF validation for API write requests
+- role enforcement with Admin, Editor and Viewer roles
+- basic in-memory rate limiting for login and setup attempts
+- audit logs for setup, login, logout and vehicle changes
+- attachment size limit
+- executable attachment extension blocklist
+- server-side MIME detection for attachments
+- attachment storage path confinement to the configured data directory
+- static asset cache separation from API responses
+- security headers: `nosniff`, `same-origin` referrer policy, frame blocking, permissions policy and CSP
 
-## First Implementation Order
+## Operational Notes
 
-1. setup gate and admin creation
-2. session storage and logout invalidation
-3. CSRF middleware
-4. role enforcement
-5. audit events
-6. rate limits
+- Put RailKeeper2 behind HTTPS before setting `RAILKEEPER_COOKIE_SECURE=true`.
+- Keep the `/data` directory private and backed up.
+- Do not expose the service directly to the internet without a reverse proxy and TLS.
+- Article search fetches third-party pages and should be considered untrusted input; results are suggestions and require explicit user selection.
 
+## Open Hardening Work
+
+- persistent rate limiting across restarts
+- configurable attachment size and allowed file types
+- backup/restore verification UI
+- structured security event review in the settings area
+- optional public read-only vehicle pages with explicit per-item enablement

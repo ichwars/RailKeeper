@@ -1,3 +1,3 @@
 # Shared Frontend Code
 
-Shared components, formatting helpers, and generated API adapters live here when they are used by more than one feature.
+This folder contains shared frontend types and the API adapter used by the feature modules. The adapter is intentionally small while the OpenAPI contract is still evolving.

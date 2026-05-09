@@ -8,12 +8,14 @@ import (
 	"io"
 	"log/slog"
 	"mime"
+	"net"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"railkeeper2/backend/internal/application"
@@ -45,6 +47,7 @@ type App struct {
 	articleSearch     *application.ArticleSearchService
 	inventoryNumbers  *application.InventoryNumberService
 	cookieSecure      bool
+	rateLimits        *rateLimiter
 }
 
 func NewRouter(config Config) http.Handler {
@@ -66,6 +69,7 @@ func NewRouter(config Config) http.Handler {
 		articleSearch:     config.ArticleSearch,
 		inventoryNumbers:  config.InventoryNumbers,
 		cookieSecure:      config.CookieSecure,
+		rateLimits:        newRateLimiter(),
 	}
 	if app.articleSearch == nil {
 		app.articleSearch = application.NewArticleSearchService()
@@ -122,6 +126,11 @@ func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
+	if !a.rateLimits.allow("setup", clientIP(r), 5, 10*time.Minute) {
+		respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many setup attempts. Please try again later.")
+		return
+	}
+
 	var input application.CreateAdminInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
@@ -145,6 +154,11 @@ func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) login(w http.ResponseWriter, r *http.Request) {
+	if !a.rateLimits.allow("login", clientIP(r), 10, 5*time.Minute) {
+		respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many login attempts. Please try again later.")
+		return
+	}
+
 	var input application.LoginInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
@@ -296,6 +310,9 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "attachment_upload_invalid", "Beilage konnte nicht gelesen werden.")
 		return
 	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		respondProblem(w, http.StatusBadRequest, "attachment_missing", "Eine Datei ist erforderlich.")
@@ -316,13 +333,14 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	mimeType := http.DetectContentType(data)
-	if header.Header.Get("Content-Type") != "" {
-		mimeType = header.Header.Get("Content-Type")
-	}
 	vehicleID := r.PathValue("id")
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
-	storagePath := filepath.Join("uploads", "vehicles", vehicleID, storageName)
-	fullPath := filepath.Join(a.dataDir, storagePath)
+	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), storageName)
+	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "attachment_path_invalid", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
 	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		a.logger.Error("attachment directory create failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
@@ -385,7 +403,9 @@ func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "attachment_delete_failed", "Beilage konnte nicht geloescht werden.")
 		return
 	}
-	_ = os.Remove(filepath.Join(a.dataDir, attachment.StoragePath))
+	if fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath); err == nil {
+		_ = os.Remove(fullPath)
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -400,7 +420,11 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 		respondProblem(w, http.StatusInternalServerError, "attachment_download_failed", "Beilage konnte nicht geladen werden.")
 		return
 	}
-	fullPath := filepath.Join(a.dataDir, attachment.StoragePath)
+	fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
+	if err != nil {
+		respondProblem(w, http.StatusInternalServerError, "attachment_path_invalid", "Beilage konnte nicht geladen werden.")
+		return
+	}
 	if attachment.MimeType != "" {
 		w.Header().Set("Content-Type", attachment.MimeType)
 	}
@@ -425,6 +449,30 @@ func safeAttachmentFileName(value string) string {
 	return value
 }
 
+func safePathSegment(value string) string {
+	value = safeFileNamePattern.ReplaceAllString(strings.TrimSpace(value), "-")
+	value = strings.Trim(value, ".-")
+	if value == "" {
+		return "unknown"
+	}
+	return value
+}
+
+func confinedDataPath(dataDir, relativePath string) (string, error) {
+	base, err := filepath.Abs(dataDir)
+	if err != nil {
+		return "", err
+	}
+	target, err := filepath.Abs(filepath.Join(base, relativePath))
+	if err != nil {
+		return "", err
+	}
+	if target != base && !strings.HasPrefix(target, base+string(os.PathSeparator)) {
+		return "", errors.New("path escapes data directory")
+	}
+	return target, nil
+}
+
 func isBlockedAttachmentName(value string) bool {
 	switch strings.ToLower(filepath.Ext(value)) {
 	case ".exe", ".bat", ".cmd", ".com", ".scr", ".msi", ".dll", ".ps1", ".vbs", ".js", ".jar", ".sh":
@@ -432,6 +480,51 @@ func isBlockedAttachmentName(value string) bool {
 	default:
 		return false
 	}
+}
+
+type rateLimiter struct {
+	mu       sync.Mutex
+	attempts map[string][]time.Time
+}
+
+func newRateLimiter() *rateLimiter {
+	return &rateLimiter{attempts: map[string][]time.Time{}}
+}
+
+func (r *rateLimiter) allow(scope, key string, limit int, window time.Duration) bool {
+	if r == nil {
+		return true
+	}
+	now := time.Now()
+	cutoff := now.Add(-window)
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	compoundKey := scope + ":" + key
+	current := r.attempts[compoundKey]
+	filtered := current[:0]
+	for _, attempt := range current {
+		if attempt.After(cutoff) {
+			filtered = append(filtered, attempt)
+		}
+	}
+	if len(filtered) >= limit {
+		r.attempts[compoundKey] = filtered
+		return false
+	}
+	r.attempts[compoundKey] = append(filtered, now)
+	return true
+}
+
+func clientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err == nil && host != "" {
+		return host
+	}
+	if r.RemoteAddr == "" {
+		return "unknown"
+	}
+	return r.RemoteAddr
 }
 
 func (a *App) searchArticleData(w http.ResponseWriter, r *http.Request) {
@@ -610,6 +703,9 @@ func securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data: blob: http: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'")
 		next.ServeHTTP(w, r)
 	})
 }
