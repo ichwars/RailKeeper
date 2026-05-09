@@ -189,6 +189,12 @@ export type ArticleSearchField = {
   confidence: number;
 };
 
+export type ArticleSearchImage = {
+  url: string;
+  title: string;
+  source: string;
+};
+
 export type ArticleSearchResult = {
   source: string;
   title: string;
@@ -196,6 +202,7 @@ export type ArticleSearchResult = {
   snippet: string;
   score: number;
   fields: Record<string, ArticleSearchField>;
+  images?: ArticleSearchImage[];
   conflicts?: string[];
 };
 

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import {
   api,
+  ArticleSearchImage,
   ArticleSearchResponse,
   ArticleSearchResult,
   CreateVehicleRequest,
@@ -86,6 +87,9 @@ type ModalTab = "model" | "control" | "uploads";
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type SortDirection = "asc" | "desc";
 type ArticleFieldKey = keyof CreateVehicleRequest;
+type PendingArticleImage = ArticleSearchImage & {
+  id: string;
+};
 
 type MasterDataOptions = {
   manufacturers: MasterDataEntry[];
@@ -155,6 +159,10 @@ const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   couplingRear: "Kupplung hinten",
   powerPickup: "Stromabnahme",
   adapter: "Adapter",
+  digital: "Digital",
+  soundGeneratorEnabled: "Soundgenerator",
+  headlightsEnabled: "Fahrlicht",
+  lightingEnabled: "Beleuchtung",
   driveDescription: "Antrieb Beschreibung",
   headlightsDescription: "Fahrlicht Beschreibung",
   lightingDescription: "Beleuchtung Beschreibung",
@@ -162,6 +170,38 @@ const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   smokeGeneratorDescription: "Rauchgenerator Beschreibung",
   additionalInfo: "Zusatzinformationen"
 };
+
+const articleFieldGroups: { title: string; keys: ArticleFieldKey[] }[] = [
+  {
+    title: "Modell",
+    keys: ["name", "articleNumber", "manufacturer", "gauge", "ean", "railwayCompany", "epoch", "series", "vehicleNumber", "gattung", "category"]
+  },
+  {
+    title: "Masse / Bauart",
+    keys: ["lengthMm", "weightG", "color", "lettering", "load", "interior", "axles", "axleCount", "tractionTireCount"]
+  },
+  {
+    title: "Technik",
+    keys: ["adapter", "powerPickup", "digital", "digitalDecoderNumber", "dtDecoderNumber", "soundGeneratorEnabled", "headlightsEnabled", "lightingEnabled", "driveDescription", "headlightsDescription", "lightingDescription", "soundGeneratorDescription", "smokeGeneratorDescription"]
+  },
+  {
+    title: "Weitere Daten",
+    keys: ["description", "additionalInfo", "productionPeriod", "listPrice", "articleSourceUrl"]
+  }
+];
+
+const booleanArticleFields = new Set<ArticleFieldKey>([
+  "digital",
+  "dtDecoder",
+  "exhibitionReady",
+  "abcBrakes",
+  "driveEnabled",
+  "headlightsEnabled",
+  "lightingEnabled",
+  "soundGeneratorEnabled",
+  "smokeGeneratorEnabled",
+  "qrCodeEnabled"
+]);
 
 const searchableFieldKeys: ArticleFieldKey[] = [
   "manufacturer",
@@ -281,6 +321,43 @@ function fieldValue(form: CreateVehicleRequest, key: string) {
 
 function isArticleFieldKey(key: string): key is ArticleFieldKey {
   return key in articleFieldLabels;
+}
+
+function articleResultKey(result: ArticleSearchResult, index = 0) {
+  return `${result.url || result.title}-${index}`;
+}
+
+function articleSelectionKey(result: ArticleSearchResult, key: string, index = 0) {
+  return `${articleResultKey(result, index)}::${key}`;
+}
+
+function imageSelectionKey(result: ArticleSearchResult, image: ArticleSearchImage, index = 0) {
+  return `${articleResultKey(result, index)}::image::${image.url}`;
+}
+
+function booleanFromArticleValue(value: string) {
+  return ["ja", "true", "1", "yes", "vorhanden", "digital"].includes(value.trim().toLocaleLowerCase("de-DE"));
+}
+
+function articleValueForForm(key: ArticleFieldKey, value: string) {
+  if (booleanArticleFields.has(key)) {
+    return booleanFromArticleValue(value);
+  }
+  return value;
+}
+
+function currentArticleValue(form: CreateVehicleRequest, key: ArticleFieldKey) {
+  const value = form[key];
+  if (typeof value === "boolean") {
+    return value ? "Ja" : "Nein";
+  }
+  return String(value || "").trim();
+}
+
+function articleFieldStatus(current: string, found: string) {
+  if (!current) return "leer";
+  if (current.toLocaleLowerCase("de-DE") === found.toLocaleLowerCase("de-DE")) return "bereits gleich";
+  return "Konflikt";
 }
 
 function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
@@ -501,18 +578,28 @@ function ArticleSearchDialog({
   response,
   error,
   selectedFields,
+  selectedImages,
   onApply,
   onClose,
-  onToggleField
+  onToggleField,
+  onToggleImage,
+  onSelectEmptyFields,
+  onSelectAllFields,
+  onClearFields
 }: {
   form: CreateVehicleRequest;
   loading: boolean;
   response: ArticleSearchResponse | null;
   error: string;
   selectedFields: Record<string, boolean>;
+  selectedImages: Record<string, boolean>;
   onApply: (result: ArticleSearchResult) => void;
   onClose: () => void;
-  onToggleField: (key: string, checked: boolean) => void;
+  onToggleField: (result: ArticleSearchResult, index: number, key: string, checked: boolean) => void;
+  onToggleImage: (result: ArticleSearchResult, index: number, image: ArticleSearchImage, checked: boolean) => void;
+  onSelectEmptyFields: () => void;
+  onSelectAllFields: () => void;
+  onClearFields: () => void;
 }) {
   return (
     <div className="confirm-layer article-search-layer" role="dialog" aria-modal="true" aria-label="Artikeldaten-Websuche">
@@ -527,62 +614,125 @@ function ArticleSearchDialog({
           </button>
         </div>
 
-        {loading && <p className="empty-state compact">Suche laeuft mit Timeout und ohne automatische Uebernahme...</p>}
-        {error && <p className="form-message">{error}</p>}
-        {!loading && !error && response && response.results.length === 0 && (
-          <p className="empty-state compact">Keine passenden Artikeldaten gefunden.</p>
-        )}
+        <div className="article-dialog-state">
+          {loading && <p className="empty-state compact">Suche laeuft mit Timeout und ohne automatische Uebernahme...</p>}
+          {error && <p className="form-message">{error}</p>}
+          {!loading && !error && response && response.results.length === 0 && (
+            <p className="empty-state compact">Keine passenden Artikeldaten gefunden.</p>
+          )}
+        </div>
 
         <div className="article-result-list">
-          {response?.results.map((result, index) => (
-            <article key={`${result.url}-${index}`} className="article-result-card">
-              <header>
-                <div>
-                  <strong>{result.title}</strong>
-                  <span>{result.source} - Trefferwert {result.score}</span>
+          {response?.results.map((result, index) => {
+            const resultKey = articleResultKey(result, index);
+            const selectableKeys = Object.keys(result.fields).filter(isArticleFieldKey);
+            return (
+              <article key={resultKey} className="article-result-card article-result-table-card">
+                <header>
+                  {result.images?.[0] ? (
+                    <img className="article-result-thumb" src={result.images[0].url} alt="" />
+                  ) : (
+                    <div className="article-result-thumb empty">
+                      <Image size={18} aria-hidden="true" />
+                    </div>
+                  )}
+                  <div>
+                    <strong>{result.title}</strong>
+                    <span>{result.source} - {Object.keys(result.fields).length} Felder - Trefferwert {result.score}</span>
+                    {result.snippet && <p>{result.snippet}</p>}
+                  </div>
+                  <a className="secondary-button article-source-button" href={result.url} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+                    <ExternalLink size={15} />
+                    Quelle oeffnen
+                  </a>
+                </header>
+
+                {result.images && result.images.length > 0 && (
+                  <div className="article-image-strip" aria-label="Gefundene Bilder">
+                    {result.images.map((image) => (
+                      <label key={image.url} className="article-image-option">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(selectedImages[imageSelectionKey(result, image, index)])}
+                          onChange={(event) => onToggleImage(result, index, image, event.target.checked)}
+                        />
+                        <img src={image.url} alt="" />
+                      </label>
+                    ))}
+                  </div>
+                )}
+
+                {result.conflicts && result.conflicts.length > 0 && (
+                  <div className="conflict-note">
+                    <AlertTriangle size={15} aria-hidden="true" />
+                    Konflikte mit bestehenden Feldern: {result.conflicts.map((key) => articleFieldLabels[key as ArticleFieldKey] || key).join(", ")}
+                  </div>
+                )}
+
+                <div className="article-field-groups">
+                  {articleFieldGroups.map((group) => {
+                    const rows = group.keys
+                      .filter((key) => result.fields[key])
+                      .map((key) => ({ key, field: result.fields[key] }));
+                    if (rows.length === 0) return null;
+                    return (
+                      <section key={group.title} className="article-field-group">
+                        <h3>{group.title}</h3>
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Uebernehmen</th>
+                              <th>Feld</th>
+                              <th>Aktuell</th>
+                              <th>Gefunden</th>
+                              <th>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {rows.map(({ key, field }) => {
+                              const current = currentArticleValue(form, key);
+                              const status = articleFieldStatus(current, field.value);
+                              const selectionKey = articleSelectionKey(result, key, index);
+                              return (
+                                <tr key={key} className={status === "Konflikt" ? "conflict" : ""}>
+                                  <td>
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(selectedFields[selectionKey])}
+                                      onChange={(event) => onToggleField(result, index, key, event.target.checked)}
+                                    />
+                                  </td>
+                                  <td><strong>{articleFieldLabels[key] || field.label}</strong></td>
+                                  <td>{current || "-"}</td>
+                                  <td>{field.value || "-"}</td>
+                                  <td><span className={`article-status ${status === "Konflikt" ? "conflict" : status === "bereits gleich" ? "same" : "empty"}`}>{status}</span></td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </section>
+                    );
+                  })}
                 </div>
-                <a className="icon-button" href={result.url} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
-                  <ExternalLink size={16} />
-                </a>
-              </header>
-              {result.snippet && <p>{result.snippet}</p>}
-              {result.conflicts && result.conflicts.length > 0 && (
-                <div className="conflict-note">
-                  <AlertTriangle size={15} aria-hidden="true" />
-                  Konflikte mit bestehenden Feldern: {result.conflicts.map((key) => articleFieldLabels[key as ArticleFieldKey] || key).join(", ")}
-                </div>
-              )}
-              <div className="article-field-grid">
-                {Object.entries(result.fields).map(([key, field]) => {
-                  const existing = fieldValue(form, key);
-                  const conflict = existing && existing !== field.value;
-                  return (
-                    <label key={key} className={conflict ? "article-field-row conflict" : "article-field-row"}>
-                      <input
-                        type="checkbox"
-                        checked={Boolean(selectedFields[key])}
-                        onChange={(event) => onToggleField(key, event.target.checked)}
-                        disabled={!isArticleFieldKey(key)}
-                      />
-                      <span>
-                        <strong>{articleFieldLabels[key as ArticleFieldKey] || field.label}</strong>
-                        <em>{field.value}</em>
-                        {existing && <small>Aktuell: {existing}</small>}
-                      </span>
-                      {conflict && <AlertTriangle size={15} aria-hidden="true" />}
-                    </label>
-                  );
-                })}
-              </div>
-              <footer>
-                <button type="button" className="primary-button" onClick={() => onApply(result)}>
-                  <Check size={16} aria-hidden="true" />
-                  Ausgewaehlte Felder uebernehmen
-                </button>
-              </footer>
-            </article>
-          ))}
+
+                <footer>
+                  <span>{selectableKeys.length} uebernehmbare Felder</span>
+                  <button type="button" className="primary-button" onClick={() => onApply(result)}>
+                    <Check size={16} aria-hidden="true" />
+                    Ausgewaehlte Felder uebernehmen
+                  </button>
+                </footer>
+              </article>
+            );
+          })}
         </div>
+
+        <footer className="article-dialog-actions">
+          <button type="button" className="secondary-button" onClick={onSelectEmptyFields}>Nur leere Felder</button>
+          <button type="button" className="secondary-button" onClick={onSelectAllFields}>Alles auswaehlen</button>
+          <button type="button" className="secondary-button" onClick={onClearFields}>Nichts auswaehlen</button>
+        </footer>
       </section>
     </div>
   );
@@ -663,6 +813,8 @@ export function VehiclesView() {
   const [articleSearchResponse, setArticleSearchResponse] = useState<ArticleSearchResponse | null>(null);
   const [articleSearchError, setArticleSearchError] = useState("");
   const [selectedArticleFields, setSelectedArticleFields] = useState<Record<string, boolean>>({});
+  const [selectedArticleImages, setSelectedArticleImages] = useState<Record<string, boolean>>({});
+  const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
   const [qrError, setQrError] = useState("");
@@ -792,6 +944,7 @@ export function VehiclesView() {
     setArticleSearchError("");
     setArticleSearchResponse(null);
     setSelectedArticleFields({});
+    setSelectedArticleImages({});
 
     api
       .articleSearch({
@@ -804,8 +957,10 @@ export function VehiclesView() {
       .then((response) => {
         setArticleSearchResponse(response);
         const initialSelection: Record<string, boolean> = {};
-        response.results[0] && Object.keys(response.results[0].fields).forEach((key) => {
-          initialSelection[key] = !fieldValue(form, key);
+        response.results.forEach((result, index) => {
+          Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
+            initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(form, key);
+          });
         });
         setSelectedArticleFields(initialSelection);
       })
@@ -813,16 +968,43 @@ export function VehiclesView() {
       .finally(() => setArticleSearchLoading(false));
   };
 
-  const toggleArticleField = (key: string, checked: boolean) => {
-    setSelectedArticleFields((current) => ({ ...current, [key]: checked }));
+  const toggleArticleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
+    setSelectedArticleFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
+  };
+
+  const toggleArticleImage = (result: ArticleSearchResult, index: number, image: ArticleSearchImage, checked: boolean) => {
+    setSelectedArticleImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
+  };
+
+  const setArticleFieldSelection = (modeName: "empty" | "all" | "none") => {
+    if (!articleSearchResponse) return;
+    const next: Record<string, boolean> = {};
+    articleSearchResponse.results.forEach((result, index) => {
+      Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
+        const selectionKey = articleSelectionKey(result, key, index);
+        next[selectionKey] = modeName === "all" || (modeName === "empty" && !currentArticleValue(form, key));
+      });
+    });
+    setSelectedArticleFields(next);
   };
 
   const applyArticleResult = (result: ArticleSearchResult) => {
     const patch: Partial<CreateVehicleRequest> = {};
+    const foundResultIndex = articleSearchResponse?.results.findIndex((entry) => entry.url === result.url) ?? 0;
+    const resultIndex = foundResultIndex >= 0 ? foundResultIndex : 0;
     Object.entries(result.fields).forEach(([key, field]) => {
-      if (!selectedArticleFields[key] || !isArticleFieldKey(key)) return;
-      Object.assign(patch, { [key]: field.value });
+      if (!isArticleFieldKey(key) || !selectedArticleFields[articleSelectionKey(result, key, resultIndex)]) return;
+      Object.assign(patch, { [key]: articleValueForForm(key, field.value) });
     });
+    const selectedImages = (result.images || [])
+      .filter((image) => selectedArticleImages[imageSelectionKey(result, image, resultIndex)])
+      .map((image) => ({ ...image, id: `${result.url}-${image.url}` }));
+    if (selectedImages.length > 0) {
+      setPendingArticleImages((current) => {
+        const existing = new Set(current.map((image) => image.url));
+        return [...current, ...selectedImages.filter((image) => !existing.has(image.url))];
+      });
+    }
     update(patch);
     setArticleSearchOpen(false);
   };
@@ -944,6 +1126,7 @@ export function VehiclesView() {
     setSelected(null);
     setMode("create");
     setForm(emptyVehicle);
+    setPendingArticleImages([]);
     setActiveTab("model");
     setOpenSections({ model: true, details: false, ownership: false });
     setModalOpen(true);
@@ -955,6 +1138,7 @@ export function VehiclesView() {
     setSelected(null);
     setMode("create");
     setForm(emptyVehicle);
+    setPendingArticleImages([]);
     setMessage("");
   };
 
@@ -964,6 +1148,7 @@ export function VehiclesView() {
       .then((detail) => {
         setSelected(detail);
         setForm(vehicleToForm(detail));
+        setPendingArticleImages([]);
         setMode("view");
         setActiveTab("model");
         setOpenSections({ model: true, details: false, ownership: false });
@@ -979,6 +1164,7 @@ export function VehiclesView() {
       .then((detail) => {
         setSelected(detail);
         setForm(vehicleToForm(detail));
+        setPendingArticleImages([]);
         setMode("edit");
         setActiveTab("model");
         setOpenSections({ model: true, details: false, ownership: false });
@@ -1381,20 +1567,43 @@ export function VehiclesView() {
                   <div className="upload-head">
                     <div>
                       <h3>Bilder</h3>
-                      <p>Lade Bilder zum Fahrzeug hoch.</p>
+                      <p>Bilder aus der Artikelsuche werden hier zunaechst zwischengespeichert.</p>
                     </div>
                     <button type="button" className="primary-button" disabled>
                       <Upload size={16} aria-hidden="true" />
                       Bild hochladen
                     </button>
                   </div>
-                  <div className="upload-list">
-                    <div className="image-placeholder large">
-                      <Image size={22} aria-hidden="true" />
-                      Keine Vorschau
+                  {pendingArticleImages.length === 0 ? (
+                    <div className="upload-list">
+                      <div className="image-placeholder large">
+                        <Image size={22} aria-hidden="true" />
+                        Keine Vorschau
+                      </div>
+                      <span>Kein Bild hinterlegt</span>
                     </div>
-                    <span>Kein Bild hinterlegt</span>
-                  </div>
+                  ) : (
+                    <div className="pending-image-grid">
+                      {pendingArticleImages.map((image) => (
+                        <figure key={image.id} className="pending-image-card">
+                          <img src={image.url} alt="" />
+                          <figcaption>
+                            <strong>{image.title || "Artikeldaten-Bild"}</strong>
+                            <a href={image.source} target="_blank" rel="noreferrer">Quelle oeffnen</a>
+                          </figcaption>
+                          <button
+                            type="button"
+                            className="icon-button danger"
+                            onClick={() => setPendingArticleImages((current) => current.filter((entry) => entry.id !== image.id))}
+                            aria-label="Bild entfernen"
+                            title="Bild entfernen"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </figure>
+                      ))}
+                    </div>
+                  )}
                 </section>
               )}
             </div>
@@ -1427,9 +1636,14 @@ export function VehiclesView() {
           response={articleSearchResponse}
           error={articleSearchError}
           selectedFields={selectedArticleFields}
+          selectedImages={selectedArticleImages}
           onApply={applyArticleResult}
           onClose={() => setArticleSearchOpen(false)}
           onToggleField={toggleArticleField}
+          onToggleImage={toggleArticleImage}
+          onSelectEmptyFields={() => setArticleFieldSelection("empty")}
+          onSelectAllFields={() => setArticleFieldSelection("all")}
+          onClearFields={() => setArticleFieldSelection("none")}
         />
       )}
 

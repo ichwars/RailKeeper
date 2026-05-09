@@ -404,6 +404,16 @@ components:
           type: string
         confidence:
           type: integer
+    ArticleSearchImage:
+      type: object
+      required: [url, title, source]
+      properties:
+        url:
+          type: string
+        title:
+          type: string
+        source:
+          type: string
     ArticleSearchResult:
       type: object
       required: [source, title, url, snippet, score, fields]
@@ -422,6 +432,10 @@ components:
           type: object
           additionalProperties:
             $ref: "#/components/schemas/ArticleSearchField"
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArticleSearchImage"
         conflicts:
           type: array
           items:

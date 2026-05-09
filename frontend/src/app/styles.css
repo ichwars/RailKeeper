@@ -1355,9 +1355,10 @@ td {
 
 .article-search-dialog {
   display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   gap: 16px;
-  width: min(980px, 100%);
-  max-height: min(86vh, 780px);
+  width: min(1040px, calc(100vw - 28px));
+  max-height: min(92vh, 880px);
   overflow: hidden;
   padding: 18px;
   border-radius: 8px;
@@ -1374,6 +1375,10 @@ td {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.article-dialog-state {
+  min-height: 0;
 }
 
 .article-result-list {
@@ -1393,6 +1398,10 @@ td {
   background: #fff;
 }
 
+.article-result-table-card {
+  align-content: start;
+}
+
 .article-result-card header,
 .article-result-card footer {
   display: flex;
@@ -1401,13 +1410,20 @@ td {
   gap: 12px;
 }
 
+.article-result-card header {
+  align-items: flex-start;
+}
+
 .article-result-card header div {
   display: grid;
   gap: 4px;
+  min-width: 0;
+  flex: 1;
 }
 
 .article-result-card header strong {
   font-size: 15px;
+  overflow-wrap: anywhere;
 }
 
 .article-result-card header span,
@@ -1421,6 +1437,68 @@ td {
 .article-result-card p {
   margin: 0;
   line-height: 1.5;
+}
+
+.article-source-button {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0 10px;
+  text-decoration: none;
+  font-size: 12px;
+}
+
+.article-result-thumb {
+  width: 70px;
+  height: 54px;
+  flex: 0 0 70px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.article-result-thumb.empty {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: var(--panel-subtle);
+}
+
+.article-image-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 2px 0;
+}
+
+.article-image-option {
+  position: relative;
+  display: block;
+  width: 88px;
+  height: 64px;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.article-image-option input {
+  position: absolute;
+  z-index: 1;
+  top: 5px;
+  left: 5px;
+}
+
+.article-image-option img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .conflict-note {
@@ -1480,6 +1558,70 @@ td {
 .article-field-row.conflict {
   border-color: color-mix(in srgb, var(--warm) 40%, var(--line));
   background: color-mix(in srgb, var(--warm) 8%, #fff);
+}
+
+.article-field-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.article-field-group {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.article-field-group h3 {
+  margin: 0;
+  padding: 10px 12px 0;
+  font-size: 13px;
+}
+
+.article-field-group table {
+  table-layout: fixed;
+}
+
+.article-field-group th,
+.article-field-group td {
+  height: 36px;
+  padding: 8px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.article-field-group th:first-child,
+.article-field-group td:first-child {
+  width: 86px;
+  text-align: center;
+}
+
+.article-field-group tr.conflict {
+  background: color-mix(in srgb, var(--warm) 8%, #fff);
+}
+
+.article-status {
+  font-weight: 800;
+}
+
+.article-status.empty {
+  color: var(--muted);
+}
+
+.article-status.same {
+  color: var(--accent-strong);
+}
+
+.article-status.conflict {
+  color: var(--warm);
+}
+
+.article-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 2px;
 }
 
 .qr-layer {
@@ -1557,6 +1699,59 @@ td {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.pending-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.pending-image-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  min-height: 88px;
+  margin: 0;
+  padding: 10px 42px 10px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.pending-image-card > img {
+  width: 78px;
+  height: 62px;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.pending-image-card figcaption {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.pending-image-card strong,
+.pending-image-card a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.pending-image-card a {
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.pending-image-card .icon-button {
+  position: absolute;
+  top: 8px;
+  right: 8px;
 }
 
 .modal-actions {
