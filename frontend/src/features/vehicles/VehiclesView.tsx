@@ -1,4 +1,4 @@
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import {
   AlertTriangle,
@@ -9,13 +9,16 @@ import {
   Download,
   ExternalLink,
   Eye,
+  FileText,
   Image,
   Pencil,
   Plus,
   Printer,
   QrCode,
   RefreshCw,
+  Save,
   Search,
+  Star,
   Trash2,
   Upload,
   X
@@ -28,6 +31,7 @@ import {
   CreateVehicleRequest,
   MasterDataEntry,
   MasterDataRelation,
+  VehicleAttachment,
   Vehicle
 } from "../../shared/api";
 
@@ -92,6 +96,8 @@ type PendingArticleImage = ArticleSearchImage & {
   isPrimary?: boolean;
 };
 
+type AttachmentEditState = Record<string, { description: string; category: string }>;
+
 type MasterDataOptions = {
   manufacturers: MasterDataEntry[];
   gauges: MasterDataEntry[];
@@ -126,6 +132,7 @@ const wheelsetOptions = ["2-Leiter DC", "3-Leiter AC", "NEM", "RP25", "Metall", 
 const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Buegelkupplung", "Klauenkupplung", "Schraubenkupplung"];
 const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
+const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 
 const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
@@ -383,6 +390,25 @@ function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
     source: image.sourceUrl || image.url,
     isPrimary: image.isPrimary
   }));
+}
+
+function attachmentsToEditState(attachments?: VehicleAttachment[]): AttachmentEditState {
+  return Object.fromEntries(
+    (attachments || []).map((attachment) => [
+      attachment.id,
+      {
+        description: attachment.description || "",
+        category: attachment.category || ""
+      }
+    ])
+  );
+}
+
+function formatFileSize(size: number) {
+  if (!size) return "0 B";
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
@@ -817,6 +843,37 @@ function QrDialog({
   );
 }
 
+function ImagePreviewDialog({
+  image,
+  onClose
+}: {
+  image: PendingArticleImage;
+  onClose: () => void;
+}) {
+  return (
+    <div className="confirm-layer image-preview-layer" role="dialog" aria-modal="true" aria-label="Bildvorschau">
+      <section className="image-preview-dialog">
+        <div className="panel-head form-head">
+          <div>
+            <h2>Bildvorschau</h2>
+            <p>{image.title || "Artikeldaten-Bild"}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Schliessen" title="Schliessen">
+            <X size={17} />
+          </button>
+        </div>
+        <img src={image.url} alt="" />
+        <footer>
+          <a className="secondary-button" href={image.source} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} aria-hidden="true" />
+            Quelle oeffnen
+          </a>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 export function VehiclesView() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
@@ -842,6 +899,9 @@ export function VehiclesView() {
   const [selectedArticleFields, setSelectedArticleFields] = useState<Record<string, boolean>>({});
   const [selectedArticleImages, setSelectedArticleImages] = useState<Record<string, boolean>>({});
   const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
+  const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
+  const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
   const [qrError, setQrError] = useState("");
@@ -928,6 +988,13 @@ export function VehiclesView() {
 
   const update = (patch: Partial<CreateVehicleRequest>) => {
     setForm((current) => ({ ...current, ...patch }));
+  };
+
+  const setSelectedDetail = (detail: Vehicle) => {
+    setSelected(detail);
+    setForm(vehicleToForm(detail));
+    setPendingArticleImages(vehicleImagesToPending(detail));
+    setAttachmentEdits(attachmentsToEditState(detail.attachments));
   };
 
   const updateCategory = (category: string) => {
@@ -1042,6 +1109,65 @@ export function VehiclesView() {
 
   const setPrimaryPendingImage = (id: string) => {
     setPendingArticleImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === id })));
+  };
+
+  const refreshSelectedVehicle = (vehicleID = selected?.id) => {
+    if (!vehicleID) return;
+    api
+      .vehicle(vehicleID)
+      .then((detail) => {
+        setSelectedDetail(detail);
+        load();
+      })
+      .catch((error: Error) => setMessage(error.message));
+  };
+
+  const uploadAttachment = (files: FileList | null) => {
+    if (!selected || !files || files.length === 0) return;
+    setSaving(true);
+    setMessage("");
+    api
+      .uploadVehicleAttachment(selected.id, files[0], "Sonstiges")
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => {
+        setSaving(false);
+        if (attachmentInputRef.current) {
+          attachmentInputRef.current.value = "";
+        }
+      });
+  };
+
+  const updateAttachmentEdit = (attachmentID: string, patch: Partial<{ description: string; category: string }>) => {
+    setAttachmentEdits((current) => ({
+      ...current,
+      [attachmentID]: {
+        description: current[attachmentID]?.description || "",
+        category: current[attachmentID]?.category || "",
+        ...patch
+      }
+    }));
+  };
+
+  const saveAttachment = (attachment: VehicleAttachment) => {
+    if (!selected) return;
+    const edit = attachmentEdits[attachment.id] || { description: "", category: "" };
+    setSaving(true);
+    api
+      .updateVehicleAttachment(selected.id, attachment.id, edit)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  const deleteAttachment = (attachment: VehicleAttachment) => {
+    if (!selected) return;
+    setSaving(true);
+    api
+      .deleteVehicleAttachment(selected.id, attachment.id)
+      .then(() => refreshSelectedVehicle(selected.id))
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
   };
 
   const generateQr = async () => {
@@ -1162,6 +1288,7 @@ export function VehiclesView() {
     setMode("create");
     setForm(emptyVehicle);
     setPendingArticleImages([]);
+    setAttachmentEdits({});
     setActiveTab("model");
     setOpenSections({ model: true, details: false, ownership: false });
     setModalOpen(true);
@@ -1174,6 +1301,8 @@ export function VehiclesView() {
     setMode("create");
     setForm(emptyVehicle);
     setPendingArticleImages([]);
+    setAttachmentEdits({});
+    setPreviewImage(null);
     setMessage("");
   };
 
@@ -1181,9 +1310,7 @@ export function VehiclesView() {
     api
       .vehicle(vehicle.id)
       .then((detail) => {
-        setSelected(detail);
-        setForm(vehicleToForm(detail));
-        setPendingArticleImages(vehicleImagesToPending(detail));
+        setSelectedDetail(detail);
         setMode("view");
         setActiveTab("model");
         setOpenSections({ model: true, details: false, ownership: false });
@@ -1197,9 +1324,7 @@ export function VehiclesView() {
     api
       .vehicle(vehicle.id)
       .then((detail) => {
-        setSelected(detail);
-        setForm(vehicleToForm(detail));
-        setPendingArticleImages(vehicleImagesToPending(detail));
+        setSelectedDetail(detail);
         setMode("edit");
         setActiveTab("model");
         setOpenSections({ model: true, details: false, ownership: false });
@@ -1232,9 +1357,7 @@ export function VehiclesView() {
 
     action
       .then((vehicle) => {
-        setSelected(vehicle);
-        setForm(vehicleToForm(vehicle));
-        setPendingArticleImages(vehicleImagesToPending(vehicle));
+        setSelectedDetail(vehicle);
         setMode("view");
         load();
         if (mode === "create") {
@@ -1614,57 +1737,141 @@ export function VehiclesView() {
 
               {activeTab === "uploads" && (
                 <section className="uploads-tab">
-                  <div className="upload-head">
-                    <div>
-                      <h3>Bilder</h3>
-                      <p>Bilder aus der Artikelsuche werden hier zunaechst zwischengespeichert.</p>
-                    </div>
-                    <button type="button" className="primary-button" disabled>
-                      <Upload size={16} aria-hidden="true" />
-                      Bild hochladen
-                    </button>
-                  </div>
-                  {pendingArticleImages.length === 0 ? (
-                    <div className="upload-list">
-                      <div className="image-placeholder large">
-                        <Image size={22} aria-hidden="true" />
-                        Keine Vorschau
+                  <section className="upload-section">
+                    <div className="upload-head">
+                      <div>
+                        <h3>Bilder</h3>
+                        <p>Bilder aus der Artikelsuche werden hier zunaechst zwischengespeichert.</p>
                       </div>
-                      <span>Kein Bild hinterlegt</span>
+                      <button type="button" className="primary-button" disabled>
+                        <Upload size={16} aria-hidden="true" />
+                        Bild hochladen
+                      </button>
                     </div>
-                  ) : (
-                    <div className="pending-image-grid">
-                      {pendingArticleImages.map((image) => (
-                        <figure key={image.id} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
-                          <img src={image.url} alt="" />
-                          <figcaption>
-                            <strong>{image.title || "Artikeldaten-Bild"}</strong>
-                            <a href={image.source} target="_blank" rel="noreferrer">Quelle oeffnen</a>
-                            <button type="button" className="secondary-button image-primary-button" onClick={() => setPrimaryPendingImage(image.id)}>
-                              {image.isPrimary ? "Hauptbild" : "Als Hauptbild"}
+                    {pendingArticleImages.length === 0 ? (
+                      <div className="upload-list">
+                        <div className="image-placeholder large">
+                          <Image size={22} aria-hidden="true" />
+                          Keine Vorschau
+                        </div>
+                        <span>Kein Bild hinterlegt</span>
+                      </div>
+                    ) : (
+                      <div className="pending-image-grid">
+                        {pendingArticleImages.map((image) => (
+                          <figure key={image.id} className={image.isPrimary ? "pending-image-card primary" : "pending-image-card"}>
+                            <button type="button" className="image-preview-button" onClick={() => setPreviewImage(image)} title="Originalgroesse anzeigen" aria-label="Originalgroesse anzeigen">
+                              <img src={image.url} alt="" />
                             </button>
-                          </figcaption>
-                          <button
-                            type="button"
-                            className="icon-button danger"
-                            onClick={() =>
-                              setPendingArticleImages((current) => {
-                                const next = current.filter((entry) => entry.id !== image.id);
-                                if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
-                                  next[0] = { ...next[0], isPrimary: true };
-                                }
-                                return next;
-                              })
-                            }
-                            aria-label="Bild entfernen"
-                            title="Bild entfernen"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </figure>
-                      ))}
+                            <figcaption>
+                              <strong>{image.title || "Artikeldaten-Bild"}</strong>
+                              <span>{sourceDisplayName(image.source)}</span>
+                              <div className="image-card-actions">
+                                <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle oeffnen" title="Quelle oeffnen">
+                                  <ExternalLink size={15} />
+                                </a>
+                                <button type="button" className={image.isPrimary ? "icon-button active" : "icon-button"} onClick={() => setPrimaryPendingImage(image.id)} aria-label="Als Hauptbild markieren" title={image.isPrimary ? "Hauptbild" : "Als Hauptbild markieren"}>
+                                  <Star size={15} />
+                                </button>
+                                <button
+                                  type="button"
+                                  className="icon-button danger"
+                                  onClick={() =>
+                                    setPendingArticleImages((current) => {
+                                      const next = current.filter((entry) => entry.id !== image.id);
+                                      if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
+                                        next[0] = { ...next[0], isPrimary: true };
+                                      }
+                                      return next;
+                                    })
+                                  }
+                                  aria-label="Bild entfernen"
+                                  title="Bild entfernen"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="upload-section">
+                    <div className="upload-head">
+                      <div>
+                        <h3>Beilagen</h3>
+                        <p>PDFs, Anleitungen, Rechnungen und andere Dateien direkt in der Erfassung pflegen.</p>
+                      </div>
+                      <input
+                        ref={attachmentInputRef}
+                        type="file"
+                        className="visually-hidden"
+                        onChange={(event) => uploadAttachment(event.target.files)}
+                        disabled={readonly || !selected}
+                      />
+                      <button type="button" className="primary-button" onClick={() => attachmentInputRef.current?.click()} disabled={readonly || !selected || saving}>
+                        <Upload size={16} aria-hidden="true" />
+                        Beilage hochladen
+                      </button>
                     </div>
-                  )}
+                    {!selected && <p className="empty-state compact">Beilagen koennen nach dem ersten Speichern hinzugefuegt werden.</p>}
+                    {selected && (!selected.attachments || selected.attachments.length === 0) && (
+                      <p className="empty-state compact">Noch keine Beilagen hinterlegt.</p>
+                    )}
+                    {selected && selected.attachments && selected.attachments.length > 0 && (
+                      <div className="attachment-list">
+                        {selected.attachments.map((attachment) => {
+                          const edit = attachmentEdits[attachment.id] || {
+                            description: attachment.description || "",
+                            category: attachment.category || ""
+                          };
+                          const downloadUrl = api.vehicleAttachmentDownloadUrl(selected.id, attachment.id);
+                          return (
+                            <article key={attachment.id} className="attachment-row">
+                              <div className="attachment-icon">
+                                <FileText size={18} aria-hidden="true" />
+                                <span>{attachment.originalName.split(".").pop()?.toUpperCase() || "DATEI"}</span>
+                              </div>
+                              <div className="attachment-main">
+                                <strong>{attachment.originalName}</strong>
+                                <span>{attachment.mimeType || "Datei"} - {formatFileSize(attachment.sizeBytes)}</span>
+                                <div className="attachment-edit-row">
+                                  <select value={edit.category} onChange={(event) => updateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
+                                    <option value="">Kategorie</option>
+                                    {attachmentCategories.map((category) => (
+                                      <option key={category} value={category}>{category}</option>
+                                    ))}
+                                  </select>
+                                  <input value={edit.description} onChange={(event) => updateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder="Bemerkung" />
+                                </div>
+                              </div>
+                              <div className="attachment-actions">
+                                <a className="secondary-button" href={downloadUrl}>
+                                  <Download size={15} aria-hidden="true" />
+                                  Download
+                                </a>
+                                {attachment.mimeType?.includes("pdf") && (
+                                  <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label="PDF oeffnen" title="PDF oeffnen">
+                                    <ExternalLink size={15} />
+                                  </a>
+                                )}
+                                <button type="button" className="secondary-button" onClick={() => saveAttachment(attachment)} disabled={readonly || saving}>
+                                  <Save size={15} aria-hidden="true" />
+                                  Speichern
+                                </button>
+                                <button type="button" className="danger-button" onClick={() => deleteAttachment(attachment)} disabled={readonly || saving}>
+                                  <Trash2 size={15} aria-hidden="true" />
+                                  Loeschen
+                                </button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
                 </section>
               )}
             </div>
@@ -1717,6 +1924,13 @@ export function VehiclesView() {
           onDownloadPng={downloadQrPng}
           onDownloadSvg={downloadQrSvg}
           onPrint={printQr}
+        />
+      )}
+
+      {previewImage && (
+        <ImagePreviewDialog
+          image={previewImage}
+          onClose={() => setPreviewImage(null)}
         />
       )}
 

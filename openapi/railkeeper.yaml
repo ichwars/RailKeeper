@@ -173,6 +173,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VehicleImage"
+        attachments:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleAttachment"
         createdAt:
           type: string
           format: date-time
@@ -320,6 +324,40 @@ components:
           type: boolean
         sortOrder:
           type: integer
+    VehicleAttachment:
+      type: object
+      required: [id, vehicleId, fileName, originalName, sizeBytes, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        vehicleId:
+          type: string
+        fileName:
+          type: string
+        originalName:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    VehicleAttachmentUpdateRequest:
+      type: object
+      properties:
+        description:
+          type: string
+        category:
+          type: string
     MasterDataEntry:
       type: object
       required: [id, type, key, label, active, sortOrder, metadata, createdAt, updatedAt]
@@ -687,6 +725,132 @@ paths:
           description: Vehicle deleted
         "404":
           description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/attachments:
+    post:
+      tags: [Vehicles]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                description:
+                  type: string
+      responses:
+        "201":
+          description: Attachment uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleAttachment"
+        "400":
+          description: Invalid attachment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/attachments/{attachmentID}:
+    put:
+      tags: [Vehicles]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleAttachmentUpdateRequest"
+      responses:
+        "200":
+          description: Attachment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleAttachment"
+        "404":
+          description: Attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Vehicles]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Attachment deleted
+        "404":
+          description: Attachment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/attachments/{attachmentID}/download:
+    get:
+      tags: [Vehicles]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: attachmentID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Attachment file
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "404":
+          description: Attachment not found
           content:
             application/json:
               schema:

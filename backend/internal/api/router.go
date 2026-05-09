@@ -4,10 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
 	"log/slog"
+	"mime"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -17,6 +22,7 @@ import (
 type Config struct {
 	Version           string
 	StaticDir         string
+	DataDir           string
 	Logger            *slog.Logger
 	SetupService      *application.SetupService
 	AuthService       *application.AuthService
@@ -30,6 +36,7 @@ type Config struct {
 type App struct {
 	version           string
 	staticDir         string
+	dataDir           string
 	logger            *slog.Logger
 	setupService      *application.SetupService
 	authService       *application.AuthService
@@ -44,9 +51,13 @@ func NewRouter(config Config) http.Handler {
 	if config.Logger == nil {
 		config.Logger = slog.Default()
 	}
+	if config.DataDir == "" {
+		config.DataDir = "./data"
+	}
 	app := &App{
 		version:           config.Version,
 		staticDir:         config.StaticDir,
+		dataDir:           config.DataDir,
 		logger:            config.Logger,
 		setupService:      config.SetupService,
 		authService:       config.AuthService,
@@ -80,6 +91,10 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments", app.require("Editor", app.uploadVehicleAttachment))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.updateVehicleAttachment))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.deleteVehicleAttachment))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/attachments/{attachmentID}/download", app.require("Viewer", app.downloadVehicleAttachment))
 	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
@@ -269,6 +284,154 @@ func (a *App) deleteVehicle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+const maxAttachmentBytes = 25 * 1024 * 1024
+
+var safeFileNamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
+
+func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxAttachmentBytes+1024*1024)
+	if err := r.ParseMultipartForm(maxAttachmentBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "attachment_upload_invalid", "Beilage konnte nicht gelesen werden.")
+		return
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "attachment_missing", "Eine Datei ist erforderlich.")
+		return
+	}
+	defer func() { _ = file.Close() }()
+	if header.Size > maxAttachmentBytes {
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		return
+	}
+	if isBlockedAttachmentName(header.Filename) {
+		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausfuehrbare Dateien sind nicht erlaubt.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > maxAttachmentBytes {
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		return
+	}
+	mimeType := http.DetectContentType(data)
+	if header.Header.Get("Content-Type") != "" {
+		mimeType = header.Header.Get("Content-Type")
+	}
+	vehicleID := r.PathValue("id")
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
+	storagePath := filepath.Join("uploads", "vehicles", vehicleID, storageName)
+	fullPath := filepath.Join(a.dataDir, storagePath)
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		a.logger.Error("attachment directory create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
+		a.logger.Error("attachment write failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
+	attachment, err := a.vehicleService.CreateAttachment(r.Context(), vehicleID, application.VehicleAttachmentInput{
+		FileName:     storageName,
+		OriginalName: header.Filename,
+		Description:  r.FormValue("description"),
+		Category:     r.FormValue("category"),
+		MimeType:     mimeType,
+		SizeBytes:    int64(len(data)),
+		StoragePath:  storagePath,
+	})
+	if err != nil {
+		_ = os.Remove(fullPath)
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("attachment metadata create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusCreated, attachment)
+}
+
+func (a *App) updateVehicleAttachment(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleAttachmentUpdateInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	attachment, err := a.vehicleService.UpdateAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"), input)
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "attachment_not_found", "Attachment not found.")
+			return
+		}
+		a.logger.Error("attachment update failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_update_failed", "Beilage konnte nicht aktualisiert werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, attachment)
+}
+
+func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
+	attachment, err := a.vehicleService.DeleteAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "attachment_not_found", "Attachment not found.")
+			return
+		}
+		a.logger.Error("attachment delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_delete_failed", "Beilage konnte nicht geloescht werden.")
+		return
+	}
+	_ = os.Remove(filepath.Join(a.dataDir, attachment.StoragePath))
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
+	attachment, err := a.vehicleService.GetAttachment(r.Context(), r.PathValue("id"), r.PathValue("attachmentID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "attachment_not_found", "Attachment not found.")
+			return
+		}
+		a.logger.Error("attachment download lookup failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_download_failed", "Beilage konnte nicht geladen werden.")
+		return
+	}
+	fullPath := filepath.Join(a.dataDir, attachment.StoragePath)
+	if attachment.MimeType != "" {
+		w.Header().Set("Content-Type", attachment.MimeType)
+	}
+	disposition := "attachment"
+	if r.URL.Query().Get("inline") == "true" && strings.Contains(strings.ToLower(attachment.MimeType), "pdf") {
+		disposition = "inline"
+	}
+	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": path.Base(attachment.OriginalName)}))
+	http.ServeFile(w, r, fullPath)
+}
+
+func safeAttachmentFileName(value string) string {
+	value = strings.TrimSpace(filepath.Base(value))
+	if value == "" {
+		return "beilage"
+	}
+	value = safeFileNamePattern.ReplaceAllString(value, "-")
+	value = strings.Trim(value, ".-")
+	if value == "" {
+		return "beilage"
+	}
+	return value
+}
+
+func isBlockedAttachmentName(value string) bool {
+	switch strings.ToLower(filepath.Ext(value)) {
+	case ".exe", ".bat", ".cmd", ".com", ".scr", ".msi", ".dll", ".ps1", ".vbs", ".js", ".jar", ".sh":
+		return true
+	default:
+		return false
+	}
 }
 
 func (a *App) searchArticleData(w http.ResponseWriter, r *http.Request) {

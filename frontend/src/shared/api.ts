@@ -70,6 +70,7 @@ export type Vehicle = {
   additionalInfo?: string;
   qrCodeEnabled: boolean;
   images?: VehicleImage[];
+  attachments?: VehicleAttachment[];
   createdAt: string;
   updatedAt: string;
 };
@@ -91,6 +92,24 @@ export type VehicleImageInput = {
   sourceUrl?: string;
   isPrimary?: boolean;
   sortOrder?: number;
+};
+
+export type VehicleAttachment = {
+  id: string;
+  vehicleId: string;
+  fileName: string;
+  originalName: string;
+  description?: string;
+  category?: string;
+  mimeType?: string;
+  sizeBytes: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleAttachmentUpdateInput = {
+  description?: string;
+  category?: string;
 };
 
 export type CreateVehicleRequest = {
@@ -250,8 +269,9 @@ function readCookie(name: string): string {
 
 async function request<T>(path: string, init: RequestInit = {}, options: RequestOptions = {}): Promise<T> {
   const method = (init.method || "GET").toUpperCase();
+  const isFormData = typeof FormData !== "undefined" && init.body instanceof FormData;
   const headers: Record<string, string> = {
-    ...(!["GET", "HEAD"].includes(method) ? { "Content-Type": "application/json" } : {}),
+    ...(!["GET", "HEAD"].includes(method) && !isFormData ? { "Content-Type": "application/json" } : {}),
     ...((init.headers as Record<string, string>) || {})
   };
   const timeoutMs = options.timeoutMs || 12000;
@@ -349,6 +369,34 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
+  uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "") => {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("category", category);
+    form.append("description", description);
+    return request<VehicleAttachment>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/attachments`,
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 30000 }
+    );
+  },
+  updateVehicleAttachment: (vehicleId: string, attachmentId: string, input: VehicleAttachmentUpdateInput) =>
+    request<VehicleAttachment>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input)
+      }
+    ),
+  deleteVehicleAttachment: (vehicleId: string, attachmentId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}`, {
+      method: "DELETE"
+    }),
+  vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>
+    `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}/download`,
   inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
   updateInventoryNumberScheme: (category: string, input: InventoryNumberSchemeInput) =>
     request<InventoryNumberScheme>(`/inventory-number-schemes/${encodeURIComponent(category)}`, {

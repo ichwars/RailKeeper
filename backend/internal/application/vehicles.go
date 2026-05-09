@@ -19,59 +19,60 @@ type VehicleService struct {
 }
 
 type Vehicle struct {
-	ID                        string         `json:"id"`
-	InventoryNumber           string         `json:"inventoryNumber"`
-	Manufacturer              string         `json:"manufacturer"`
-	ArticleNumber             string         `json:"articleNumber,omitempty"`
-	ArticleSourceURL          string         `json:"articleSourceUrl,omitempty"`
-	Name                      string         `json:"name"`
-	Gauge                     string         `json:"gauge"`
-	Epoch                     string         `json:"epoch,omitempty"`
-	RailwayCompany            string         `json:"railwayCompany,omitempty"`
-	Category                  string         `json:"category,omitempty"`
-	Gattung                   string         `json:"gattung,omitempty"`
-	Description               string         `json:"description,omitempty"`
-	Series                    string         `json:"series,omitempty"`
-	VehicleNumber             string         `json:"vehicleNumber,omitempty"`
-	Digital                   bool           `json:"digital"`
-	DigitalDecoderNumber      string         `json:"digitalDecoderNumber,omitempty"`
-	DTDecoder                 bool           `json:"dtDecoder"`
-	DTDecoderNumber           string         `json:"dtDecoderNumber,omitempty"`
-	ExhibitionReady           bool           `json:"exhibitionReady"`
-	ABCBrakes                 bool           `json:"abcBrakes"`
-	EAN                       string         `json:"ean,omitempty"`
-	ProductionPeriod          string         `json:"productionPeriod,omitempty"`
-	ListPrice                 string         `json:"listPrice,omitempty"`
-	LengthMM                  string         `json:"lengthMm,omitempty"`
-	WeightG                   string         `json:"weightG,omitempty"`
-	Color                     string         `json:"color,omitempty"`
-	Lettering                 string         `json:"lettering,omitempty"`
-	Load                      string         `json:"load,omitempty"`
-	Interior                  string         `json:"interior,omitempty"`
-	Axles                     string         `json:"axles,omitempty"`
-	AxleCount                 string         `json:"axleCount,omitempty"`
-	TractionTireCount         string         `json:"tractionTireCount,omitempty"`
-	Wheelset                  string         `json:"wheelset,omitempty"`
-	CouplingSame              bool           `json:"couplingSame"`
-	CouplingFront             string         `json:"couplingFront,omitempty"`
-	CouplingRear              string         `json:"couplingRear,omitempty"`
-	PowerPickup               string         `json:"powerPickup,omitempty"`
-	Adapter                   string         `json:"adapter,omitempty"`
-	DriveEnabled              bool           `json:"driveEnabled"`
-	DriveDescription          string         `json:"driveDescription,omitempty"`
-	HeadlightsEnabled         bool           `json:"headlightsEnabled"`
-	HeadlightsDescription     string         `json:"headlightsDescription,omitempty"`
-	LightingEnabled           bool           `json:"lightingEnabled"`
-	LightingDescription       string         `json:"lightingDescription,omitempty"`
-	SoundGeneratorEnabled     bool           `json:"soundGeneratorEnabled"`
-	SoundGeneratorDescription string         `json:"soundGeneratorDescription,omitempty"`
-	SmokeGeneratorEnabled     bool           `json:"smokeGeneratorEnabled"`
-	SmokeGeneratorDescription string         `json:"smokeGeneratorDescription,omitempty"`
-	AdditionalInfo            string         `json:"additionalInfo,omitempty"`
-	QRCodeEnabled             bool           `json:"qrCodeEnabled"`
-	Images                    []VehicleImage `json:"images,omitempty"`
-	CreatedAt                 string         `json:"createdAt"`
-	UpdatedAt                 string         `json:"updatedAt"`
+	ID                        string              `json:"id"`
+	InventoryNumber           string              `json:"inventoryNumber"`
+	Manufacturer              string              `json:"manufacturer"`
+	ArticleNumber             string              `json:"articleNumber,omitempty"`
+	ArticleSourceURL          string              `json:"articleSourceUrl,omitempty"`
+	Name                      string              `json:"name"`
+	Gauge                     string              `json:"gauge"`
+	Epoch                     string              `json:"epoch,omitempty"`
+	RailwayCompany            string              `json:"railwayCompany,omitempty"`
+	Category                  string              `json:"category,omitempty"`
+	Gattung                   string              `json:"gattung,omitempty"`
+	Description               string              `json:"description,omitempty"`
+	Series                    string              `json:"series,omitempty"`
+	VehicleNumber             string              `json:"vehicleNumber,omitempty"`
+	Digital                   bool                `json:"digital"`
+	DigitalDecoderNumber      string              `json:"digitalDecoderNumber,omitempty"`
+	DTDecoder                 bool                `json:"dtDecoder"`
+	DTDecoderNumber           string              `json:"dtDecoderNumber,omitempty"`
+	ExhibitionReady           bool                `json:"exhibitionReady"`
+	ABCBrakes                 bool                `json:"abcBrakes"`
+	EAN                       string              `json:"ean,omitempty"`
+	ProductionPeriod          string              `json:"productionPeriod,omitempty"`
+	ListPrice                 string              `json:"listPrice,omitempty"`
+	LengthMM                  string              `json:"lengthMm,omitempty"`
+	WeightG                   string              `json:"weightG,omitempty"`
+	Color                     string              `json:"color,omitempty"`
+	Lettering                 string              `json:"lettering,omitempty"`
+	Load                      string              `json:"load,omitempty"`
+	Interior                  string              `json:"interior,omitempty"`
+	Axles                     string              `json:"axles,omitempty"`
+	AxleCount                 string              `json:"axleCount,omitempty"`
+	TractionTireCount         string              `json:"tractionTireCount,omitempty"`
+	Wheelset                  string              `json:"wheelset,omitempty"`
+	CouplingSame              bool                `json:"couplingSame"`
+	CouplingFront             string              `json:"couplingFront,omitempty"`
+	CouplingRear              string              `json:"couplingRear,omitempty"`
+	PowerPickup               string              `json:"powerPickup,omitempty"`
+	Adapter                   string              `json:"adapter,omitempty"`
+	DriveEnabled              bool                `json:"driveEnabled"`
+	DriveDescription          string              `json:"driveDescription,omitempty"`
+	HeadlightsEnabled         bool                `json:"headlightsEnabled"`
+	HeadlightsDescription     string              `json:"headlightsDescription,omitempty"`
+	LightingEnabled           bool                `json:"lightingEnabled"`
+	LightingDescription       string              `json:"lightingDescription,omitempty"`
+	SoundGeneratorEnabled     bool                `json:"soundGeneratorEnabled"`
+	SoundGeneratorDescription string              `json:"soundGeneratorDescription,omitempty"`
+	SmokeGeneratorEnabled     bool                `json:"smokeGeneratorEnabled"`
+	SmokeGeneratorDescription string              `json:"smokeGeneratorDescription,omitempty"`
+	AdditionalInfo            string              `json:"additionalInfo,omitempty"`
+	QRCodeEnabled             bool                `json:"qrCodeEnabled"`
+	Images                    []VehicleImage      `json:"images,omitempty"`
+	Attachments               []VehicleAttachment `json:"attachments,omitempty"`
+	CreatedAt                 string              `json:"createdAt"`
+	UpdatedAt                 string              `json:"updatedAt"`
 }
 
 type VehicleImage struct {
@@ -91,6 +92,35 @@ type VehicleImageInput struct {
 	SourceURL string `json:"sourceUrl"`
 	IsPrimary bool   `json:"isPrimary"`
 	SortOrder int    `json:"sortOrder"`
+}
+
+type VehicleAttachment struct {
+	ID           string `json:"id"`
+	VehicleID    string `json:"vehicleId"`
+	FileName     string `json:"fileName"`
+	OriginalName string `json:"originalName"`
+	Description  string `json:"description,omitempty"`
+	Category     string `json:"category,omitempty"`
+	MimeType     string `json:"mimeType,omitempty"`
+	SizeBytes    int64  `json:"sizeBytes"`
+	StoragePath  string `json:"-"`
+	CreatedAt    string `json:"createdAt"`
+	UpdatedAt    string `json:"updatedAt"`
+}
+
+type VehicleAttachmentInput struct {
+	FileName     string
+	OriginalName string
+	Description  string
+	Category     string
+	MimeType     string
+	SizeBytes    int64
+	StoragePath  string
+}
+
+type VehicleAttachmentUpdateInput struct {
+	Description string `json:"description"`
+	Category    string `json:"category"`
 }
 
 type CreateVehicleInput struct {
@@ -220,6 +250,9 @@ ORDER BY updated_at DESC, inventory_number ASC
 	if err := s.attachImages(ctx, vehicles); err != nil {
 		return nil, err
 	}
+	if err := s.attachAttachments(ctx, vehicles); err != nil {
+		return nil, err
+	}
 	return vehicles, nil
 }
 
@@ -257,8 +290,9 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
+	vehicleID := randomID()
 	vehicle := Vehicle{
-		ID:                        randomID(),
+		ID:                        vehicleID,
 		InventoryNumber:           input.InventoryNumber,
 		Manufacturer:              input.Manufacturer,
 		ArticleNumber:             input.ArticleNumber,
@@ -308,7 +342,7 @@ func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, a
 		SmokeGeneratorDescription: input.SmokeGeneratorDescription,
 		AdditionalInfo:            input.AdditionalInfo,
 		QRCodeEnabled:             input.QRCodeEnabled,
-		Images:                    vehicleImagesFromInput("", input.Images, now),
+		Images:                    vehicleImagesFromInput(vehicleID, input.Images, now),
 		CreatedAt:                 now,
 		UpdatedAt:                 now,
 	}
@@ -338,6 +372,7 @@ VALUES(?, ?, 'VehicleCreated', 'vehicle', ?, ?, '{}')
 	if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
 		return nil, err
 	}
+	vehicle.Images = vehicleImagesFromInput(vehicle.ID, input.Images, now)
 
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit create vehicle: %w", err)
@@ -485,6 +520,11 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 	if err = tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit update vehicle: %w", err)
 	}
+	attachments, err := s.loadVehicleAttachments(ctx, vehicle.ID)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Attachments = attachments
 
 	return &vehicle, nil
 }
@@ -637,6 +677,11 @@ WHERE id=?
 		return nil, err
 	}
 	vehicle.Images = images
+	attachments, err := s.loadVehicleAttachments(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	vehicle.Attachments = attachments
 
 	return &vehicle, nil
 }
@@ -678,6 +723,161 @@ ORDER BY is_primary DESC, sort_order ASC, created_at ASC
 		return nil, fmt.Errorf("iterate vehicle images: %w", err)
 	}
 	return images, nil
+}
+
+func (s *VehicleService) attachAttachments(ctx context.Context, vehicles []Vehicle) error {
+	for index := range vehicles {
+		attachments, err := s.loadVehicleAttachments(ctx, vehicles[index].ID)
+		if err != nil {
+			return err
+		}
+		vehicles[index].Attachments = attachments
+	}
+	return nil
+}
+
+func (s *VehicleService) loadVehicleAttachments(ctx context.Context, vehicleID string) ([]VehicleAttachment, error) {
+	rows, err := s.db.QueryContext(ctx, `
+SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(category, ''),
+       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+FROM vehicle_attachments
+WHERE vehicle_id=?
+ORDER BY created_at ASC
+`, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle attachments: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	attachments := []VehicleAttachment{}
+	for rows.Next() {
+		var attachment VehicleAttachment
+		if err := rows.Scan(
+			&attachment.ID,
+			&attachment.VehicleID,
+			&attachment.FileName,
+			&attachment.OriginalName,
+			&attachment.Description,
+			&attachment.Category,
+			&attachment.MimeType,
+			&attachment.SizeBytes,
+			&attachment.StoragePath,
+			&attachment.CreatedAt,
+			&attachment.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan vehicle attachment: %w", err)
+		}
+		attachments = append(attachments, attachment)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate vehicle attachments: %w", err)
+	}
+	return attachments, nil
+}
+
+func (s *VehicleService) CreateAttachment(ctx context.Context, vehicleID string, input VehicleAttachmentInput) (*VehicleAttachment, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	input = cleanVehicleAttachmentInput(input)
+	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || input.StoragePath == "" {
+		return nil, ErrVehicleValidation
+	}
+	if _, err := s.Get(ctx, vehicleID); err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	attachment := VehicleAttachment{
+		ID:           randomID(),
+		VehicleID:    vehicleID,
+		FileName:     input.FileName,
+		OriginalName: input.OriginalName,
+		Description:  input.Description,
+		Category:     input.Category,
+		MimeType:     input.MimeType,
+		SizeBytes:    input.SizeBytes,
+		StoragePath:  input.StoragePath,
+		CreatedAt:    now,
+		UpdatedAt:    now,
+	}
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO vehicle_attachments(id, vehicle_id, file_name, original_name, description, category, mime_type, size_bytes, storage_path, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, attachment.ID, attachment.VehicleID, attachment.FileName, attachment.OriginalName, attachment.Description, attachment.Category, attachment.MimeType, attachment.SizeBytes, attachment.StoragePath, attachment.CreatedAt, attachment.UpdatedAt); err != nil {
+		return nil, fmt.Errorf("create vehicle attachment: %w", err)
+	}
+	return &attachment, nil
+}
+
+func (s *VehicleService) UpdateAttachment(ctx context.Context, vehicleID, attachmentID string, input VehicleAttachmentUpdateInput) (*VehicleAttachment, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	attachmentID = strings.TrimSpace(attachmentID)
+	input.Description = strings.TrimSpace(input.Description)
+	input.Category = strings.TrimSpace(input.Category)
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := s.db.ExecContext(ctx, `
+UPDATE vehicle_attachments
+SET description=?, category=?, updated_at=?
+WHERE id=? AND vehicle_id=?
+`, input.Description, input.Category, now, attachmentID, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("update vehicle attachment: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle attachment update result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return s.GetAttachment(ctx, vehicleID, attachmentID)
+}
+
+func (s *VehicleService) GetAttachment(ctx context.Context, vehicleID, attachmentID string) (*VehicleAttachment, error) {
+	var attachment VehicleAttachment
+	err := s.db.QueryRowContext(ctx, `
+SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(category, ''),
+       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+FROM vehicle_attachments
+WHERE id=? AND vehicle_id=?
+`, strings.TrimSpace(attachmentID), strings.TrimSpace(vehicleID)).Scan(
+		&attachment.ID,
+		&attachment.VehicleID,
+		&attachment.FileName,
+		&attachment.OriginalName,
+		&attachment.Description,
+		&attachment.Category,
+		&attachment.MimeType,
+		&attachment.SizeBytes,
+		&attachment.StoragePath,
+		&attachment.CreatedAt,
+		&attachment.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrVehicleNotFound
+		}
+		return nil, fmt.Errorf("get vehicle attachment: %w", err)
+	}
+	return &attachment, nil
+}
+
+func (s *VehicleService) DeleteAttachment(ctx context.Context, vehicleID, attachmentID string) (*VehicleAttachment, error) {
+	attachment, err := s.GetAttachment(ctx, vehicleID, attachmentID)
+	if err != nil {
+		return nil, err
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM vehicle_attachments WHERE id=? AND vehicle_id=?`, attachmentID, vehicleID)
+	if err != nil {
+		return nil, fmt.Errorf("delete vehicle attachment: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle attachment delete result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleNotFound
+	}
+	return attachment, nil
 }
 
 func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images []VehicleImageInput, now string) error {
@@ -868,6 +1068,16 @@ func cleanVehicleImageInputs(images []VehicleImageInput) []VehicleImageInput {
 		cleaned[0].IsPrimary = true
 	}
 	return cleaned
+}
+
+func cleanVehicleAttachmentInput(input VehicleAttachmentInput) VehicleAttachmentInput {
+	input.FileName = strings.TrimSpace(input.FileName)
+	input.OriginalName = strings.TrimSpace(input.OriginalName)
+	input.Description = strings.TrimSpace(input.Description)
+	input.Category = strings.TrimSpace(input.Category)
+	input.MimeType = strings.TrimSpace(input.MimeType)
+	input.StoragePath = strings.TrimSpace(input.StoragePath)
+	return input
 }
 
 func vehicleImagesFromInput(vehicleID string, images []VehicleImageInput, now string) []VehicleImage {

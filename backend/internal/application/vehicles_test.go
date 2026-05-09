@@ -279,6 +279,64 @@ func TestVehiclePersistsImages(t *testing.T) {
 	}
 }
 
+func TestVehiclePersistsAttachments(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	attachment, err := service.CreateAttachment(ctx, created.ID, application.VehicleAttachmentInput{
+		FileName:     "manual.pdf",
+		OriginalName: "Anleitung.pdf",
+		Description:  "Original Anleitung",
+		Category:     "Anleitung",
+		MimeType:     "application/pdf",
+		SizeBytes:    1234,
+		StoragePath:  "uploads/vehicles/test/manual.pdf",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attachment.OriginalName != "Anleitung.pdf" || attachment.Category != "Anleitung" {
+		t.Fatalf("unexpected attachment: %#v", attachment)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Attachments) != 1 || detail.Attachments[0].Description != "Original Anleitung" {
+		t.Fatalf("unexpected detail attachments: %#v", detail.Attachments)
+	}
+
+	updated, err := service.UpdateAttachment(ctx, created.ID, attachment.ID, application.VehicleAttachmentUpdateInput{
+		Description: "Neue Bemerkung",
+		Category:    "Dokumentation",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Description != "Neue Bemerkung" || updated.Category != "Dokumentation" {
+		t.Fatalf("unexpected attachment update: %#v", updated)
+	}
+
+	deleted, err := service.DeleteAttachment(ctx, created.ID, attachment.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted.StoragePath == "" {
+		t.Fatal("deleted attachment should return storage path for file cleanup")
+	}
+}
+
 func TestDeleteVehicleRemovesRecord(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

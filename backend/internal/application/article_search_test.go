@@ -66,7 +66,7 @@ func TestArticleSearchQueryUsesFocusedModelPattern(t *testing.T) {
 		},
 	})
 
-	expected := "V180 4-achsig 47284 Piko Spielwaren TT"
+	expected := "47284 Piko Spielwaren TT V180 4-achsig"
 	if query != expected {
 		t.Fatalf("expected %q, got %q", expected, query)
 	}
@@ -117,7 +117,34 @@ func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	if fields["headlightsDescription"].Value == "" {
 		t.Fatal("expected light description")
 	}
+	if _, ok := fields["lightingDescription"]; ok {
+		t.Fatal("directional headlight description must not be copied to general lighting")
+	}
 	if fields["soundGeneratorDescription"].Value == "" {
 		t.Fatal("expected sound description")
+	}
+}
+
+func TestBuildArticleFieldsRejectsWrongContextValues(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
+	fields := buildArticleFields(input,
+		"TT Diesellok V 180 DR III",
+		"https://shop.example.test/piko-47284.html",
+		`Laenge (mm) 2026 Die Absicht ist, Anzeigen zu zeigen.
+		 Beleuchtung Beschreibung: Fahrtrichtungsabhaengiger Lichtwechsel weiss / rot.
+		 Digitale Schnittstelle: NEM 658 PluX16. Ohne Sound.`,
+	)
+
+	if _, ok := fields["lengthMm"]; ok {
+		t.Fatalf("year-like value must not be used as length: %#v", fields["lengthMm"])
+	}
+	if _, ok := fields["description"]; ok {
+		t.Fatalf("advertising text must not be used as description: %#v", fields["description"])
+	}
+	if _, ok := fields["lightingDescription"]; ok {
+		t.Fatalf("directional headlight text must not be used as general lighting: %#v", fields["lightingDescription"])
+	}
+	if _, ok := fields["soundGeneratorEnabled"]; ok {
+		t.Fatal("without sound must not enable sound generator")
 	}
 }

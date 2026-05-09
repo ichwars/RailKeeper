@@ -121,7 +121,7 @@ func cleanArticleSearchInput(input ArticleSearchInput) ArticleSearchInput {
 
 func articleSearchQuery(input ArticleSearchInput) string {
 	parts := []string{}
-	for _, value := range []string{input.Name, input.ArticleNumber, input.Manufacturer, input.Gauge} {
+	for _, value := range []string{input.ArticleNumber, input.Manufacturer, input.Gauge, input.Name} {
 		if value != "" {
 			parts = append(parts, value)
 		}
@@ -226,27 +226,28 @@ func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input Artic
 }
 
 var (
-	resultBlockPattern      = regexp.MustCompile(`(?s)<div class="result results_links.*?</div>\s*</div>`)
-	resultLinkPattern       = regexp.MustCompile(`(?s)<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>`)
-	snippetPattern          = regexp.MustCompile(`(?s)<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div[^>]+class="result__snippet"[^>]*>(.*?)</div>`)
-	tagPattern              = regexp.MustCompile(`(?s)<[^>]+>`)
-	scriptStylePattern      = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
-	pricePattern            = regexp.MustCompile(`(?i)(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
-	lengthPattern           = regexp.MustCompile(`(?i)(?:laenge|l..nge|lange|length|mass|ma..)[^\d]{0,24}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
-	weightPattern           = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
-	tractionTirePattern     = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
-	eanPattern              = regexp.MustCompile(`\b(\d{12,14})\b`)
-	epochPattern            = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)\s*(I{1,3}|IV|V|VI)\b`)
-	railwayPattern          = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|OeBB|BLS|SNCF|NS|FS)\b`)
-	adapterPattern          = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol)\b`)
-	powerPattern            = regexp.MustCompile(`(?i)\b(DC|AC|2-?Leiter|3-?Leiter|Gleichstrom|Wechselstrom)\b`)
-	digitalPositivePattern  = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
-	lightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,160})`)
-	soundDescriptionPattern = regexp.MustCompile(`(?i)(?:sound|soundgenerator|geraeusch|ger..usch)[^\n:;]{0,35}[:]\s*([^.;\n]{3,160})`)
-	imageMetaPattern        = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
-	imageMetaAltPattern     = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
-	imageTagPattern         = regexp.MustCompile(`(?is)<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["'][^>]*>`)
-	metaDescriptionRegex    = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
+	resultBlockPattern          = regexp.MustCompile(`(?s)<div class="result results_links.*?</div>\s*</div>`)
+	resultLinkPattern           = regexp.MustCompile(`(?s)<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>`)
+	snippetPattern              = regexp.MustCompile(`(?s)<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div[^>]+class="result__snippet"[^>]*>(.*?)</div>`)
+	tagPattern                  = regexp.MustCompile(`(?s)<[^>]+>`)
+	scriptStylePattern          = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
+	pricePattern                = regexp.MustCompile(`(?i)(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
+	lengthPattern               = regexp.MustCompile(`(?i)(?:laenge|l..nge|lange|length|mass|ma..|luep|luep\.)[^\d]{0,24}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
+	weightPattern               = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
+	tractionTirePattern         = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
+	eanPattern                  = regexp.MustCompile(`\b(\d{12,14})\b`)
+	epochPattern                = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)\s*(I{1,3}|IV|V|VI)\b`)
+	railwayPattern              = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|OeBB|BLS|SNCF|NS|FS)\b`)
+	adapterPattern              = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol)\b`)
+	powerPattern                = regexp.MustCompile(`(?i)\b(DC|AC|2-?Leiter|3-?Leiter|Gleichstrom|Wechselstrom)\b`)
+	digitalPositivePattern      = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
+	headlightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	lightingDescriptionPattern  = regexp.MustCompile(`(?i)(?:innenbeleuchtung|fuehrerstandsbeleuchtung|fuehrerstand|kabinenbeleuchtung|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|sound\s+laut\s+artikeldaten|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	imageMetaPattern            = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
+	imageMetaAltPattern         = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
+	imageTagPattern             = regexp.MustCompile(`(?is)<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["'][^>]*>`)
+	metaDescriptionRegex        = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
 )
 
 var manufacturerDomains = map[string][]string{
@@ -333,8 +334,8 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	if value := firstRegexValue(pricePattern, combined); value != "" {
 		fields["listPrice"] = ArticleSearchField{Label: "Listenpreis", Value: value, Confidence: 45}
 	}
-	if value := firstRegexValue(lengthPattern, combined); value != "" {
-		fields["lengthMm"] = ArticleSearchField{Label: "Laenge (mm)", Value: strings.ReplaceAll(value, ",", "."), Confidence: 55}
+	if value := extractLengthMM(combined); value != "" {
+		fields["lengthMm"] = ArticleSearchField{Label: "Laenge (mm)", Value: value, Confidence: 62}
 	}
 	if value := firstRegexValue(weightPattern, combined); value != "" {
 		fields["weightG"] = ArticleSearchField{Label: "Gewicht (g)", Value: strings.ReplaceAll(value, ",", "."), Confidence: 55}
@@ -351,20 +352,23 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	if digitalPositivePattern.MatchString(combined) {
 		fields["digital"] = ArticleSearchField{Label: "Digital", Value: "Ja", Confidence: 48}
 	}
-	if soundDescription := firstRegexValue(soundDescriptionPattern, combined); soundDescription != "" {
+	if soundDescription := extractSoundDescription(combined); soundDescription != "" {
 		fields["soundGeneratorEnabled"] = ArticleSearchField{Label: "Soundgenerator", Value: "Ja", Confidence: 48}
 		fields["soundGeneratorDescription"] = ArticleSearchField{Label: "Soundgenerator Beschreibung", Value: normalizeWhitespace(soundDescription), Confidence: 55}
-	} else if strings.Contains(combinedLower, "sound") && !strings.Contains(combinedLower, "ohne sound") {
+	} else if hasExplicitSoundGenerator(combinedLower) {
 		fields["soundGeneratorEnabled"] = ArticleSearchField{Label: "Soundgenerator", Value: "Ja", Confidence: 38}
 	}
-	if lightDescription := firstRegexValue(lightDescriptionPattern, combined); lightDescription != "" {
+	if lightDescription := extractHeadlightDescription(combined); lightDescription != "" {
 		fields["headlightsEnabled"] = ArticleSearchField{Label: "Fahrlicht", Value: "Ja", Confidence: 42}
-		fields["lightingEnabled"] = ArticleSearchField{Label: "Beleuchtung", Value: "Ja", Confidence: 42}
 		fields["headlightsDescription"] = ArticleSearchField{Label: "Fahrlicht Beschreibung", Value: normalizeWhitespace(lightDescription), Confidence: 55}
-		fields["lightingDescription"] = ArticleSearchField{Label: "Beleuchtung Beschreibung", Value: normalizeWhitespace(lightDescription), Confidence: 50}
-	} else if strings.Contains(combinedLower, "licht") || strings.Contains(combinedLower, "beleuchtung") {
+	} else if hasExplicitHeadlight(combinedLower) {
 		fields["headlightsEnabled"] = ArticleSearchField{Label: "Fahrlicht", Value: "Ja", Confidence: 36}
+	}
+	if lightingDescription := extractLightingDescription(combined); lightingDescription != "" {
 		fields["lightingEnabled"] = ArticleSearchField{Label: "Beleuchtung", Value: "Ja", Confidence: 36}
+		fields["lightingDescription"] = ArticleSearchField{Label: "Beleuchtung Beschreibung", Value: normalizeWhitespace(lightingDescription), Confidence: 52}
+	} else if hasExplicitInteriorLighting(combinedLower) {
+		fields["lightingEnabled"] = ArticleSearchField{Label: "Beleuchtung", Value: "Ja", Confidence: 34}
 	}
 	return fields
 }
@@ -534,6 +538,124 @@ func normalizeWhitespace(value string) string {
 	return strings.Join(strings.Fields(value), " ")
 }
 
+func extractLengthMM(value string) string {
+	for _, match := range lengthPattern.FindAllStringSubmatch(value, -1) {
+		if len(match) < 2 {
+			continue
+		}
+		candidate := strings.ReplaceAll(strings.TrimSpace(match[1]), ",", ".")
+		whole := strings.TrimSpace(match[0])
+		if !looksLikeModelLength(candidate, whole) {
+			continue
+		}
+		return candidate
+	}
+	return ""
+}
+
+func looksLikeModelLength(candidate, context string) bool {
+	normalized := strings.ReplaceAll(candidate, ",", ".")
+	parts := strings.Split(normalized, ".")
+	number := parts[0]
+	if len(number) == 4 && strings.HasPrefix(number, "20") {
+		return false
+	}
+	var integer int
+	for _, char := range number {
+		if char < '0' || char > '9' {
+			return false
+		}
+		integer = integer*10 + int(char-'0')
+	}
+	if integer < 20 || integer > 999 {
+		return false
+	}
+	lower := strings.ToLower(context)
+	return strings.Contains(lower, "mm") ||
+		strings.Contains(lower, "laenge") ||
+		strings.Contains(lower, "l..nge") ||
+		strings.Contains(lower, "length") ||
+		strings.Contains(lower, "mass") ||
+		strings.Contains(lower, "ma..") ||
+		strings.Contains(lower, "luep")
+}
+
+func extractHeadlightDescription(value string) string {
+	description := firstRegexValue(headlightDescriptionPattern, value)
+	if description == "" {
+		return ""
+	}
+	return cleanTechnicalDescription(description)
+}
+
+func extractLightingDescription(value string) string {
+	description := firstRegexValue(lightingDescriptionPattern, value)
+	if description == "" {
+		return ""
+	}
+	lower := strings.ToLower(description)
+	if strings.Contains(lower, "fahrtrichtung") || strings.Contains(lower, "lichtwechsel") {
+		return ""
+	}
+	return cleanTechnicalDescription(description)
+}
+
+func extractSoundDescription(value string) string {
+	description := firstRegexValue(soundDescriptionPattern, value)
+	if description == "" {
+		return ""
+	}
+	return cleanTechnicalDescription(description)
+}
+
+func cleanTechnicalDescription(value string) string {
+	value = normalizeWhitespace(value)
+	value = strings.Trim(value, " -:;,.")
+	if !looksLikeTechnicalDescription(value) {
+		return ""
+	}
+	return value
+}
+
+func looksLikeTechnicalDescription(value string) bool {
+	value = strings.TrimSpace(value)
+	if len(value) < 3 || len(value) > 220 {
+		return false
+	}
+	lower := strings.ToLower(value)
+	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist"}
+	for _, token := range badTokens {
+		if strings.Contains(lower, token) {
+			return false
+		}
+	}
+	return true
+}
+
+func hasExplicitHeadlight(value string) bool {
+	return strings.Contains(value, "lichtwechsel") ||
+		strings.Contains(value, "spitzenlicht") ||
+		strings.Contains(value, "schlusslicht") ||
+		strings.Contains(value, "fahrlicht")
+}
+
+func hasExplicitInteriorLighting(value string) bool {
+	return strings.Contains(value, "innenbeleuchtung") ||
+		strings.Contains(value, "fuehrerstandsbeleuchtung") ||
+		strings.Contains(value, "kabinenbeleuchtung")
+}
+
+func hasExplicitSoundGenerator(value string) bool {
+	if strings.Contains(value, "ohne sound") || strings.Contains(value, "kein sound") {
+		return false
+	}
+	return strings.Contains(value, "soundgenerator") ||
+		strings.Contains(value, "sounddecoder") ||
+		strings.Contains(value, "sound laut artikeldaten") ||
+		strings.Contains(value, "geraeuschmodul") ||
+		strings.Contains(value, "geräuschmodul")
+}
+
 func visibleArticleText(value string) string {
 	value = scriptStylePattern.ReplaceAllString(value, " ")
 	return cleanHTML(value)
@@ -632,9 +754,15 @@ func looksLikeHumanDescription(value string) bool {
 		return false
 	}
 	lower := strings.ToLower(value)
-	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class "}
+	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist"}
 	for _, token := range badTokens {
 		if strings.Contains(lower, token) {
+			return false
+		}
+	}
+	technicalStarts := []string{"digitale schnittstelle", "schnittstelle", "laenge", "mass", "gewicht", "haftreifen", "ean", "artikelnummer", "artikel-nr", "beleuchtung", "fahrlicht", "lichtwechsel", "soundgenerator", "sound"}
+	for _, token := range technicalStarts {
+		if strings.HasPrefix(lower, token) {
 			return false
 		}
 	}

@@ -60,6 +60,7 @@ func main() {
 	handler := api.NewRouter(api.Config{
 		Version:           version,
 		StaticDir:         staticDir,
+		DataDir:           dataDir,
 		Logger:            logger,
 		SetupService:      application.NewSetupService(db),
 		AuthService:       application.NewAuthService(db),

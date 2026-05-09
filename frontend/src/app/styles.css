@@ -1215,6 +1215,20 @@ td {
   color: var(--danger);
 }
 
+.icon-button.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 .confirm-layer {
   position: fixed;
   inset: 0;
@@ -1700,6 +1714,11 @@ td {
   padding: 20px;
 }
 
+.upload-section {
+  display: grid;
+  gap: 12px;
+}
+
 .empty-tab h3 {
   margin: 0;
 }
@@ -1738,7 +1757,7 @@ td {
   align-items: center;
   min-height: 88px;
   margin: 0;
-  padding: 10px 42px 10px 10px;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
@@ -1749,7 +1768,17 @@ td {
   background: color-mix(in srgb, var(--accent-bright) 12%, #fff);
 }
 
-.pending-image-card > img {
+.image-preview-button {
+  display: block;
+  width: 78px;
+  height: 62px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.image-preview-button img {
   width: 78px;
   height: 62px;
   object-fit: contain;
@@ -1764,29 +1793,116 @@ td {
 }
 
 .pending-image-card strong,
-.pending-image-card a {
+.pending-image-card figcaption > span {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
 }
 
-.pending-image-card a {
+.pending-image-card figcaption > span {
   color: var(--accent-strong);
   font-weight: 800;
 }
 
-.image-primary-button {
-  justify-self: start;
-  min-height: 28px;
-  padding: 0 9px;
-  font-size: 12px;
+.image-card-actions,
+.attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.pending-image-card .icon-button {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+.attachment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attachment-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.attachment-icon {
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.attachment-main {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.attachment-main strong,
+.attachment-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attachment-edit-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 210px) minmax(200px, 1fr);
+  gap: 8px;
+}
+
+.attachment-actions .secondary-button,
+.attachment-actions .danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+}
+
+.image-preview-layer {
+  z-index: 13;
+}
+
+.image-preview-dialog {
+  display: grid;
+  gap: 14px;
+  width: min(980px, calc(100vw - 30px));
+  max-height: min(92vh, 860px);
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34);
+}
+
+.image-preview-dialog img {
+  max-width: 100%;
+  max-height: calc(92vh - 170px);
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.image-preview-dialog footer {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .modal-actions {
