@@ -470,6 +470,105 @@ func TestVehiclePersistsMaintenance(t *testing.T) {
 	}
 }
 
+func TestVehicleLinksMediaToMaintenance(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "BR 118",
+		Gauge:        "TT",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry, err := service.CreateMaintenance(ctx, created.ID, application.VehicleMaintenanceInput{
+		Kind:    "Wartung",
+		Status:  "geplant",
+		DueDate: "2026-06-01",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	image, err := service.CreateImage(ctx, created.ID, application.VehicleImageInput{
+		Title:         "Wartungsbild",
+		FileName:      "service.webp",
+		MimeType:      "image/webp",
+		StoragePath:   "uploads/vehicles/test/images/service.webp",
+		MaintenanceID: entry.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if image.MaintenanceID != entry.ID {
+		t.Fatalf("expected image maintenance link, got %#v", image)
+	}
+
+	attachment, err := service.CreateAttachment(ctx, created.ID, application.VehicleAttachmentInput{
+		FileName:      "invoice.pdf",
+		OriginalName:  "Rechnung.pdf",
+		Category:      "Rechnung",
+		MimeType:      "application/pdf",
+		SizeBytes:     123,
+		StoragePath:   "uploads/vehicles/test/invoice.pdf",
+		MaintenanceID: entry.ID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if attachment.MaintenanceID != entry.ID {
+		t.Fatalf("expected attachment maintenance link, got %#v", attachment)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Images) != 1 || detail.Images[0].MaintenanceID != entry.ID {
+		t.Fatalf("maintenance image link missing in detail: %#v", detail.Images)
+	}
+	if len(detail.Attachments) != 1 || detail.Attachments[0].MaintenanceID != entry.ID {
+		t.Fatalf("maintenance attachment link missing in detail: %#v", detail.Attachments)
+	}
+	if _, err := service.CreateImage(ctx, created.ID, application.VehicleImageInput{
+		Title:         "Falsch",
+		FileName:      "invalid.webp",
+		MimeType:      "image/webp",
+		StoragePath:   "uploads/vehicles/test/images/invalid.webp",
+		MaintenanceID: "missing",
+	}); !errors.Is(err, application.ErrVehicleValidation) {
+		t.Fatalf("expected invalid maintenance link to be rejected, got %v", err)
+	}
+	if _, err := service.DeleteImage(ctx, created.ID, image.ID); !errors.Is(err, application.ErrVehicleImageInUse) {
+		t.Fatalf("expected linked image deletion to be blocked, got %v", err)
+	}
+	if _, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
+		InventoryNumber: created.InventoryNumber,
+		Manufacturer:    "Piko",
+		Name:            "BR 118",
+		Gauge:           "TT",
+		Images: []application.VehicleImageInput{
+			{
+				ID:        image.ID,
+				URL:       image.URL,
+				Title:     image.Title,
+				IsPrimary: true,
+			},
+		},
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	deleted, err := service.DeleteImage(ctx, created.ID, image.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deleted.ID != image.ID {
+		t.Fatalf("unexpected deleted image: %#v", deleted)
+	}
+}
+
 func TestVehiclePersistsFunctions(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

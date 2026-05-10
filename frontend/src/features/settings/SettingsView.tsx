@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Download, ExternalLink, Pencil, RefreshCw, ShieldAlert, Trash2, Upload, X } from "lucide-react";
-import { api, InventoryNumberScheme, MasterDataEntry, MasterDataInput } from "../../shared/api";
+import { api, BackupValidationResult, InventoryNumberScheme, MasterDataEntry, MasterDataInput } from "../../shared/api";
 import { applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 
 type SettingsTab = "general" | "data" | "importExport" | "appearance";
@@ -57,6 +57,12 @@ const masterDataTypes: MasterDataType[] = [
 
 const loadableMasterDataTypes = masterDataTypes;
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
+
+function formatBytes(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return "0 KB";
+  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} MB`;
+  return `${Math.max(1, Math.round(value / 1024)).toLocaleString("de-DE")} KB`;
+}
 
 const emptyForm = {
   key: "",
@@ -158,8 +164,13 @@ export function SettingsView() {
   const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
   const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
   const [backupFile, setBackupFile] = useState<File | null>(null);
+  const [backupValidation, setBackupValidation] = useState<BackupValidationResult | null>(null);
   const [backupMessage, setBackupMessage] = useState("");
   const [backupSaving, setBackupSaving] = useState(false);
+  const [backupValidating, setBackupValidating] = useState(false);
+  const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
+  const [masterDataMessage, setMasterDataMessage] = useState("");
+  const [masterDataSaving, setMasterDataSaving] = useState(false);
 
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
@@ -354,9 +365,27 @@ export function SettingsView() {
       .catch((error: Error) => setMessage(error.message));
   };
 
+  const selectBackupFile = (file: File | null) => {
+    setBackupFile(file);
+    setBackupValidation(null);
+    setBackupMessage("");
+    if (!file) return;
+
+    setBackupValidating(true);
+    api
+      .validateBackup(file)
+      .then((result) => setBackupValidation(result))
+      .catch((error: Error) => setBackupMessage(error.message))
+      .finally(() => setBackupValidating(false));
+  };
+
   const restoreBackup = () => {
     if (!backupFile) {
       setBackupMessage("Bitte zuerst eine Backup-Datei auswählen.");
+      return;
+    }
+    if (!backupValidation?.compatible) {
+      setBackupMessage("Backup bitte zuerst erfolgreich prÃ¼fen.");
       return;
     }
     if (!window.confirm("Backup wirklich wiederherstellen? Bestand, Stammdaten, Wartung, CVs und Uploads werden durch den Inhalt der Datei ersetzt.")) {
@@ -373,6 +402,28 @@ export function SettingsView() {
       })
       .catch((error: Error) => setBackupMessage(error.message))
       .finally(() => setBackupSaving(false));
+  };
+
+  const importMasterData = () => {
+    if (!masterDataFile) {
+      setMasterDataMessage("Bitte zuerst eine Stammdaten-Datei auswÃ¤hlen.");
+      return;
+    }
+    if (!window.confirm("Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-AbhÃ¤ngigkeiten werden ersetzt. Bestand und Uploads bleiben unverÃ¤ndert.")) {
+      return;
+    }
+    setMasterDataSaving(true);
+    setMasterDataMessage("");
+    api
+      .importMasterData(masterDataFile)
+      .then((result) => {
+        setMasterDataMessage(`Stammdaten importiert: ${result.importedEntries} EintrÃ¤ge, ${result.importedRelations} AbhÃ¤ngigkeiten.`);
+        setLoadedTypes({});
+        setItemsByType({});
+        setSearch("");
+      })
+      .catch((error: Error) => setMasterDataMessage(error.message))
+      .finally(() => setMasterDataSaving(false));
   };
 
   return (
@@ -635,7 +686,42 @@ export function SettingsView() {
       {activeSettingsTab === "importExport" && (
         <section className="panel settings-card import-export-card">
           <h2>Import/Export</h2>
-          <p>Lokales Vollbackup für Bestand, Stammdaten, Wartung, Digitalfunktionen, CV-Daten und Upload-Dateien.</p>
+          <p>Daten gezielt sichern, austauschen oder vollständig wiederherstellen.</p>
+
+          <section className="backup-box master-data-transfer-box">
+            <div>
+              <h3>Stammdaten importieren/exportieren</h3>
+              <p>Exportiert nur Hersteller, Kategorien, Gattungen, Epochen, Spuren, Bahngesellschaften, Symbole und deren Abhängigkeiten. Bestand, Bilder, Wartung und Benutzer bleiben außen vor.</p>
+            </div>
+            <div className="transfer-actions">
+              <a className="primary-button" href={api.masterDataExportUrl()}>
+                <Download size={17} />
+                Stammdaten herunterladen
+              </a>
+              <label className="backup-file-field">
+                Stammdaten-Datei
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={(event) => {
+                    setMasterDataFile(event.target.files?.[0] || null);
+                    setMasterDataMessage("");
+                  }}
+                />
+              </label>
+              <button type="button" className="secondary-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile}>
+                {masterDataSaving ? (
+                  "Wird importiert..."
+                ) : (
+                  <>
+                    <Upload size={17} />
+                    Stammdaten einspielen
+                  </>
+                )}
+              </button>
+            </div>
+            {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
+          </section>
 
           <div className="backup-grid">
             <section className="backup-box">
@@ -659,10 +745,50 @@ export function SettingsView() {
                 <input
                   type="file"
                   accept="application/json,.json"
-                  onChange={(event) => setBackupFile(event.target.files?.[0] || null)}
+                  onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
                 />
               </label>
-              <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving}>
+              {backupValidating && <p className="backup-validation-status">Backup wird geprÃ¼ft...</p>}
+              {backupValidation && (
+                <div className={backupValidation.compatible ? "backup-validation ok" : "backup-validation danger"}>
+                  <strong>{backupValidation.compatible ? "Backup ist kompatibel" : "Backup ist nicht kompatibel"}</strong>
+                  <dl>
+                    <div>
+                      <dt>Version</dt>
+                      <dd>{backupValidation.version || "-"}</dd>
+                    </div>
+                    <div>
+                      <dt>Tabellen</dt>
+                      <dd>{backupValidation.tableCount}</dd>
+                    </div>
+                    <div>
+                      <dt>DatensÃ¤tze</dt>
+                      <dd>{backupValidation.rowCount}</dd>
+                    </div>
+                    <div>
+                      <dt>Dateien</dt>
+                      <dd>
+                        {backupValidation.fileCount} / {formatBytes(backupValidation.fileBytes)}
+                      </dd>
+                    </div>
+                  </dl>
+                  {backupValidation.errors.length > 0 && (
+                    <ul>
+                      {backupValidation.errors.map((error) => (
+                        <li key={error}>{error}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {backupValidation.warnings.length > 0 && (
+                    <ul>
+                      {backupValidation.warnings.map((warning) => (
+                        <li key={warning}>{warning}</li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+              <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible}>
                 {backupSaving ? (
                   "Wird wiederhergestellt..."
                 ) : (

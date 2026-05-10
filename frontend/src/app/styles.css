@@ -710,6 +710,10 @@ h1 {
   border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
 }
 
+.master-data-transfer-box {
+  background: color-mix(in srgb, var(--accent-bright) 8%, var(--panel-subtle));
+}
+
 .backup-box h3 {
   margin: 0 0 6px;
 }
@@ -727,6 +731,13 @@ h1 {
   text-decoration: none;
 }
 
+.transfer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
 .backup-file-field {
   display: grid;
   gap: 6px;
@@ -735,6 +746,63 @@ h1 {
 
 .backup-file-field input {
   width: 100%;
+}
+
+.backup-validation-status {
+  color: var(--muted);
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.backup-validation {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 8px;
+  gap: 10px;
+  padding: 12px;
+  display: grid;
+}
+
+.backup-validation.ok {
+  border-color: color-mix(in srgb, #22c55e 34%, var(--line));
+  background: color-mix(in srgb, #22c55e 8%, var(--panel));
+}
+
+.backup-validation.danger {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--line));
+  background: color-mix(in srgb, var(--danger) 7%, var(--panel));
+}
+
+.backup-validation strong {
+  font-size: 14px;
+}
+
+.backup-validation dl {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+  display: grid;
+}
+
+.backup-validation dt {
+  color: var(--muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.backup-validation dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.backup-validation ul {
+  color: var(--muted);
+  margin: 0;
+  padding-left: 18px;
+  font-size: 12px;
 }
 
 .backup-note {
@@ -799,6 +867,123 @@ h1 {
   border: 0;
   border-radius: 8px;
   box-shadow: var(--shadow);
+}
+
+.maintenance-reminder-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.maintenance-reminder-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.maintenance-reminder-head h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  line-height: 26px;
+}
+
+.maintenance-reminder-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.maintenance-reminder-counts {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.maintenance-reminder-counts span {
+  display: inline-flex;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.maintenance-reminder-counts span.danger {
+  border-color: color-mix(in srgb, var(--danger) 32%, var(--line));
+  background: color-mix(in srgb, var(--danger) 9%, var(--panel));
+  color: var(--danger);
+}
+
+.maintenance-reminder-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+}
+
+.maintenance-reminder {
+  display: flex;
+  min-height: 58px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+}
+
+.maintenance-reminder:hover {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+  background: var(--accent-soft);
+}
+
+.maintenance-reminder.due {
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--line));
+  background: color-mix(in srgb, var(--danger) 6%, var(--panel));
+}
+
+.maintenance-reminder-icon {
+  display: grid;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--accent-strong);
+}
+
+.maintenance-reminder.due .maintenance-reminder-icon {
+  color: var(--danger);
+}
+
+.maintenance-reminder strong,
+.maintenance-reminder small {
+  display: block;
+}
+
+.maintenance-reminder strong {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.maintenance-reminder small {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 17px;
 }
 
 .panel-head {
@@ -1183,11 +1368,12 @@ td {
 
 .inventory-card {
   display: grid;
-  grid-template-rows: 150px auto;
+  grid-template-rows: 156px auto;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
+  color: var(--text);
 }
 
 .inventory-card:hover {
@@ -1197,19 +1383,21 @@ td {
 
 .inventory-card-media {
   display: grid;
-  width: 100%;
-  height: 150px;
+  width: calc(100% + 2px);
+  height: 156px;
+  margin: -1px -1px 0;
   place-items: center;
   border: 0;
   border-bottom: 1px solid var(--line);
-  background: var(--panel-subtle);
+  background: #fff;
   cursor: pointer;
 }
 
 .inventory-card-media img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
+  object-position: center top;
 }
 
 .inventory-card-body {
@@ -1736,7 +1924,8 @@ td {
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--solid-bg);
+  color: var(--text);
 }
 
 .article-result-table-card {
@@ -1790,6 +1979,7 @@ td {
   border-radius: 999px;
   padding: 0 10px;
   text-decoration: none;
+  color: var(--text);
   font-size: 12px;
 }
 
@@ -1863,7 +2053,7 @@ td {
   padding: 7px 9px;
   border: 1px solid color-mix(in srgb, var(--warm) 28%, var(--line));
   border-radius: 999px;
-  background: color-mix(in srgb, var(--warm) 9%, #fff);
+  background: color-mix(in srgb, var(--warm) 11%, var(--panel));
   color: var(--text);
   font-size: 12px;
   font-weight: 800;
@@ -1911,7 +2101,7 @@ td {
 
 .article-field-row.conflict {
   border-color: color-mix(in srgb, var(--warm) 40%, var(--line));
-  background: color-mix(in srgb, var(--warm) 8%, #fff);
+  background: color-mix(in srgb, var(--warm) 9%, var(--solid-bg));
 }
 
 .article-field-groups {
@@ -1923,6 +2113,7 @@ td {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
+  background: var(--solid-bg);
 }
 
 .article-field-group h3 {
@@ -1933,6 +2124,7 @@ td {
 
 .article-field-group table {
   table-layout: fixed;
+  background: var(--solid-bg);
 }
 
 .article-field-group th,
@@ -1943,6 +2135,16 @@ td {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+  color: var(--text);
+}
+
+.article-field-group th {
+  background: var(--panel-subtle);
+  color: var(--muted);
+}
+
+.article-field-group tbody tr {
+  background: var(--solid-bg);
 }
 
 .article-field-group th:first-child,
@@ -1952,7 +2154,7 @@ td {
 }
 
 .article-field-group tr.conflict {
-  background: color-mix(in srgb, var(--warm) 8%, #fff);
+  background: color-mix(in srgb, var(--warm) 9%, var(--solid-bg));
 }
 
 .article-status {
@@ -2054,6 +2256,18 @@ td {
   padding: 0 14px;
 }
 
+.upload-maintenance-select {
+  width: min(260px, 100%);
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
 .upload-list {
   display: flex;
   align-items: center;
@@ -2069,33 +2283,34 @@ td {
 
 .pending-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 9px;
+  grid-template-columns: repeat(auto-fill, minmax(202px, 1fr));
+  gap: 8px;
 }
 
 .pending-image-card {
   position: relative;
   display: grid;
-  grid-template-columns: 70px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
-  min-height: 78px;
+  min-height: 66px;
   margin: 0;
-  padding: 8px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .pending-image-card.primary {
   border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
-  background: color-mix(in srgb, var(--accent-bright) 12%, #fff);
+  background: color-mix(in srgb, var(--accent-bright) 12%, var(--panel));
 }
 
 .image-preview-button {
   display: block;
-  width: 70px;
-  height: 56px;
+  width: 68px;
+  height: 50px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -2103,16 +2318,17 @@ td {
 }
 
 .image-preview-button img {
-  width: 70px;
-  height: 56px;
+  width: 68px;
+  height: 50px;
   object-fit: contain;
   border: 1px solid var(--line);
   border-radius: 6px;
+  background: #fff;
 }
 
 .pending-image-card figcaption {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -2122,17 +2338,19 @@ td {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .pending-image-card input {
-  min-height: 28px;
+  min-height: 23px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  padding: 0 8px;
-  background: #fff;
+  padding: 0 7px;
+  background: var(--input-bg);
   color: var(--text);
   font: inherit;
+  font-size: 10.5px;
+  font-weight: 700;
 }
 
 .pending-image-card input:focus {
@@ -2140,8 +2358,27 @@ td {
   outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
+.image-maintenance-select {
+  width: 100%;
+  min-height: 23px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 7px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 10.5px;
+}
+
+.upload-maintenance-select:focus,
+.image-maintenance-select:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
 .pending-image-card figcaption > span {
   color: var(--accent-strong);
+  font-size: 10.5px;
   font-weight: 800;
 }
 
@@ -2149,7 +2386,19 @@ td {
 .attachment-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 1px;
+}
+
+.image-card-actions .icon-button {
+  width: 22px;
+  height: 22px;
+  color: color-mix(in srgb, var(--muted) 84%, var(--text));
+}
+
+.image-card-actions .icon-button:hover,
+.image-card-actions .icon-button.active {
+  color: var(--accent-strong);
+  background: var(--accent-soft);
 }
 
 .attachment-list {
@@ -2191,7 +2440,7 @@ td {
 
 .attachment-upload-fields {
   display: grid;
-  grid-template-columns: minmax(150px, 210px) minmax(180px, 1fr);
+  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(180px, 1fr);
   gap: 8px;
 }
 
@@ -2258,7 +2507,7 @@ td {
 
 .attachment-edit-row {
   display: grid;
-  grid-template-columns: minmax(150px, 210px) minmax(200px, 1fr);
+  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(200px, 1fr);
   gap: 8px;
 }
 
@@ -2630,6 +2879,25 @@ td {
   white-space: nowrap;
 }
 
+.maintenance-linked-media {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.maintenance-linked-media span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent-bright) 12%, var(--panel-subtle));
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 850;
+}
+
 .image-preview-layer {
   z-index: 13;
 }
@@ -2724,6 +2992,28 @@ td {
   color: var(--accent-strong);
 }
 
+:root[data-theme="dark"] .article-search-dialog {
+  background: var(--panel);
+}
+
+:root[data-theme="dark"] .article-result-card,
+:root[data-theme="dark"] .article-field-group,
+:root[data-theme="dark"] .article-field-group table,
+:root[data-theme="dark"] .article-field-group tbody tr,
+:root[data-theme="dark"] .pending-image-card {
+  background: var(--panel-subtle);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] .article-field-group tr.conflict,
+:root[data-theme="dark"] .article-field-row.conflict {
+  background: color-mix(in srgb, var(--warm) 14%, var(--panel-subtle));
+}
+
+:root[data-theme="dark"] .pending-image-card.primary {
+  background: color-mix(in srgb, var(--accent-bright) 16%, var(--panel-subtle));
+}
+
 @media (prefers-color-scheme: dark) {
   :root[data-theme="system"] input:not([type="checkbox"]):not([type="radio"]),
   :root[data-theme="system"] select,
@@ -2744,6 +3034,28 @@ td {
   :root[data-theme="system"] th:hover .sort-button {
     background: rgba(165, 236, 96, 0.12);
     color: var(--accent-strong);
+  }
+
+  :root[data-theme="system"] .article-search-dialog {
+    background: var(--panel);
+  }
+
+  :root[data-theme="system"] .article-result-card,
+  :root[data-theme="system"] .article-field-group,
+  :root[data-theme="system"] .article-field-group table,
+  :root[data-theme="system"] .article-field-group tbody tr,
+  :root[data-theme="system"] .pending-image-card {
+    background: var(--panel-subtle);
+    color: var(--text);
+  }
+
+  :root[data-theme="system"] .article-field-group tr.conflict,
+  :root[data-theme="system"] .article-field-row.conflict {
+    background: color-mix(in srgb, var(--warm) 14%, var(--panel-subtle));
+  }
+
+  :root[data-theme="system"] .pending-image-card.primary {
+    background: color-mix(in srgb, var(--accent-bright) 16%, var(--panel-subtle));
   }
 }
 

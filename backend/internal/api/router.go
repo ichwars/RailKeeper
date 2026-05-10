@@ -1,10 +1,14 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"image"
+	"image/jpeg"
+	_ "image/png"
 	"io"
 	"log/slog"
 	"mime"
@@ -23,34 +27,40 @@ import (
 )
 
 type Config struct {
-	Version           string
-	StaticDir         string
-	DataDir           string
-	Logger            *slog.Logger
-	SetupService      *application.SetupService
-	AuthService       *application.AuthService
-	VehicleService    *application.VehicleService
-	MasterDataService *application.MasterDataService
-	ArticleSearch     *application.ArticleSearchService
-	InventoryNumbers  *application.InventoryNumberService
-	BackupService     *application.BackupService
-	CookieSecure      bool
+	Version                     string
+	StaticDir                   string
+	DataDir                     string
+	MaxImageBytes               int64
+	MaxAttachmentBytes          int64
+	AllowedAttachmentExtensions map[string]struct{}
+	Logger                      *slog.Logger
+	SetupService                *application.SetupService
+	AuthService                 *application.AuthService
+	VehicleService              *application.VehicleService
+	MasterDataService           *application.MasterDataService
+	ArticleSearch               *application.ArticleSearchService
+	InventoryNumbers            *application.InventoryNumberService
+	BackupService               *application.BackupService
+	CookieSecure                bool
 }
 
 type App struct {
-	version           string
-	staticDir         string
-	dataDir           string
-	logger            *slog.Logger
-	setupService      *application.SetupService
-	authService       *application.AuthService
-	vehicleService    *application.VehicleService
-	masterDataService *application.MasterDataService
-	articleSearch     *application.ArticleSearchService
-	inventoryNumbers  *application.InventoryNumberService
-	backupService     *application.BackupService
-	cookieSecure      bool
-	rateLimits        *rateLimiter
+	version                     string
+	staticDir                   string
+	dataDir                     string
+	maxImageBytes               int64
+	maxAttachmentBytes          int64
+	allowedAttachmentExtensions map[string]struct{}
+	logger                      *slog.Logger
+	setupService                *application.SetupService
+	authService                 *application.AuthService
+	vehicleService              *application.VehicleService
+	masterDataService           *application.MasterDataService
+	articleSearch               *application.ArticleSearchService
+	inventoryNumbers            *application.InventoryNumberService
+	backupService               *application.BackupService
+	cookieSecure                bool
+	rateLimits                  *rateLimiter
 }
 
 func NewRouter(config Config) http.Handler {
@@ -61,19 +71,22 @@ func NewRouter(config Config) http.Handler {
 		config.DataDir = "./data"
 	}
 	app := &App{
-		version:           config.Version,
-		staticDir:         config.StaticDir,
-		dataDir:           config.DataDir,
-		logger:            config.Logger,
-		setupService:      config.SetupService,
-		authService:       config.AuthService,
-		vehicleService:    config.VehicleService,
-		masterDataService: config.MasterDataService,
-		articleSearch:     config.ArticleSearch,
-		inventoryNumbers:  config.InventoryNumbers,
-		backupService:     config.BackupService,
-		cookieSecure:      config.CookieSecure,
-		rateLimits:        newRateLimiter(),
+		version:                     config.Version,
+		staticDir:                   config.StaticDir,
+		dataDir:                     config.DataDir,
+		maxImageBytes:               effectiveLimit(config.MaxImageBytes, defaultMaxImageBytes),
+		maxAttachmentBytes:          effectiveLimit(config.MaxAttachmentBytes, defaultMaxAttachmentBytes),
+		allowedAttachmentExtensions: effectiveAttachmentExtensions(config.AllowedAttachmentExtensions),
+		logger:                      config.Logger,
+		setupService:                config.SetupService,
+		authService:                 config.AuthService,
+		vehicleService:              config.VehicleService,
+		masterDataService:           config.MasterDataService,
+		articleSearch:               config.ArticleSearch,
+		inventoryNumbers:            config.InventoryNumbers,
+		backupService:               config.BackupService,
+		cookieSecure:                config.CookieSecure,
+		rateLimits:                  newRateLimiter(),
 	}
 	if app.articleSearch == nil {
 		app.articleSearch = application.NewArticleSearchService()
@@ -108,6 +121,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/images", app.require("Editor", app.uploadVehicleImage))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/images/{imageID}", app.require("Editor", app.deleteVehicleImage))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/file", app.require("Viewer", app.downloadVehicleImage))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/thumbnail", app.require("Viewer", app.downloadVehicleImageThumbnail))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments", app.require("Editor", app.uploadVehicleAttachment))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.updateVehicleAttachment))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.deleteVehicleAttachment))
@@ -130,12 +144,15 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
 	mux.HandleFunc("GET /api/v1/master-data-all", app.require("Viewer", app.listAllMasterData))
+	mux.HandleFunc("GET /api/v1/master-data/export", app.require("Admin", app.exportMasterData))
+	mux.HandleFunc("POST /api/v1/master-data/import", app.require("Admin", app.importMasterData))
 	mux.HandleFunc("GET /api/v1/master-data/{type}", app.require("Viewer", app.listMasterData))
 	mux.HandleFunc("POST /api/v1/master-data/{type}", app.require("Editor", app.createMasterData))
 	mux.HandleFunc("PUT /api/v1/master-data/{type}/{key}", app.require("Editor", app.updateMasterData))
 	mux.HandleFunc("DELETE /api/v1/master-data/{type}/{key}", app.require("Editor", app.deleteMasterData))
 	mux.HandleFunc("GET /api/v1/master-data-relations", app.require("Viewer", app.listMasterDataRelations))
 	mux.HandleFunc("GET /api/v1/backup/export", app.require("Admin", app.exportBackup))
+	mux.HandleFunc("POST /api/v1/backup/validate", app.require("Admin", app.validateBackup))
 	mux.HandleFunc("POST /api/v1/backup/restore", app.require("Admin", app.restoreBackup))
 
 	mux.Handle("/", staticHandler(app.staticDir))
@@ -330,9 +347,16 @@ func (a *App) deleteVehicle(w http.ResponseWriter, r *http.Request) {
 }
 
 const (
-	maxAttachmentBytes = 25 * 1024 * 1024
-	maxImageBytes      = 10 * 1024 * 1024
+	defaultMaxAttachmentBytes = 25 * 1024 * 1024
+	defaultMaxImageBytes      = 10 * 1024 * 1024
 )
+
+func effectiveLimit(value, fallback int64) int64 {
+	if value <= 0 {
+		return fallback
+	}
+	return value
+}
 
 var safeFileNamePattern = regexp.MustCompile(`[^a-zA-Z0-9._-]+`)
 
@@ -347,6 +371,30 @@ var allowedAttachmentExtensions = map[string]struct{}{
 	".webp": {},
 	".xml":  {},
 	".zip":  {},
+}
+
+func effectiveAttachmentExtensions(input map[string]struct{}) map[string]struct{} {
+	if len(input) == 0 {
+		return allowedAttachmentExtensions
+	}
+	out := map[string]struct{}{}
+	for extension := range input {
+		extension = strings.ToLower(strings.TrimSpace(extension))
+		if extension == "" {
+			continue
+		}
+		if !strings.HasPrefix(extension, ".") {
+			extension = "." + extension
+		}
+		if isBlockedAttachmentName("file" + extension) {
+			continue
+		}
+		out[extension] = struct{}{}
+	}
+	if len(out) == 0 {
+		return allowedAttachmentExtensions
+	}
+	return out
 }
 
 func (a *App) localizeVehicleImages(ctx context.Context, vehicleID string, images []application.VehicleImageInput) ([]application.VehicleImageInput, error) {
@@ -387,8 +435,8 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		return image, fmt.Errorf("image fetch returned status %d", resp.StatusCode)
 	}
-	data, err := io.ReadAll(io.LimitReader(resp.Body, maxImageBytes+1))
-	if err != nil || len(data) == 0 || int64(len(data)) > maxImageBytes {
+	data, err := io.ReadAll(io.LimitReader(resp.Body, a.maxImageBytes+1))
+	if err != nil || len(data) == 0 || int64(len(data)) > a.maxImageBytes {
 		return image, fmt.Errorf("image size invalid")
 	}
 	mimeType := http.DetectContentType(data)
@@ -407,12 +455,17 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
 		return image, err
 	}
+	thumbnailPath, err := a.createVehicleImageThumbnail(data, vehicleID, storageName)
+	if err != nil {
+		a.logger.Warn("image thumbnail skipped", "url", image.URL, "error", err)
+	}
 	if image.SourceURL == "" {
 		image.SourceURL = image.URL
 	}
 	image.FileName = storageName
 	image.MimeType = mimeType
 	image.StoragePath = storagePath
+	image.ThumbnailPath = thumbnailPath
 	return image, nil
 }
 
@@ -474,8 +527,8 @@ func isPublicIP(ip net.IP) bool {
 }
 
 func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxImageBytes+1024*1024)
-	if err := r.ParseMultipartForm(maxImageBytes); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, a.maxImageBytes+1024*1024)
+	if err := r.ParseMultipartForm(a.maxImageBytes); err != nil {
 		respondProblem(w, http.StatusBadRequest, "image_upload_invalid", "Bild konnte nicht gelesen werden.")
 		return
 	}
@@ -488,12 +541,12 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer func() { _ = file.Close() }()
-	if header.Size > maxImageBytes {
+	if header.Size > a.maxImageBytes {
 		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
 		return
 	}
-	data, err := io.ReadAll(io.LimitReader(file, maxImageBytes+1))
-	if err != nil || int64(len(data)) > maxImageBytes {
+	data, err := io.ReadAll(io.LimitReader(file, a.maxImageBytes+1))
+	if err != nil || int64(len(data)) > a.maxImageBytes {
 		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
 		return
 	}
@@ -520,13 +573,19 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
 		return
 	}
+	thumbnailPath, err := a.createVehicleImageThumbnail(data, vehicleID, storageName)
+	if err != nil {
+		a.logger.Warn("image thumbnail skipped", "file", header.Filename, "error", err)
+	}
 	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, application.VehicleImageInput{
-		Title:       r.FormValue("title"),
-		SourceURL:   r.FormValue("sourceUrl"),
-		FileName:    storageName,
-		MimeType:    mimeType,
-		StoragePath: storagePath,
-		IsPrimary:   strings.EqualFold(r.FormValue("isPrimary"), "true"),
+		Title:         r.FormValue("title"),
+		SourceURL:     r.FormValue("sourceUrl"),
+		FileName:      storageName,
+		MimeType:      mimeType,
+		StoragePath:   storagePath,
+		ThumbnailPath: thumbnailPath,
+		MaintenanceID: r.FormValue("maintenanceId"),
+		IsPrimary:     strings.EqualFold(r.FormValue("isPrimary"), "true"),
 	})
 	if err != nil {
 		_ = os.Remove(fullPath)
@@ -548,16 +607,34 @@ func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
 			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
 			return
 		}
+		if errors.Is(err, application.ErrVehicleImageInUse) {
+			respondProblem(w, http.StatusConflict, "image_in_use", "Bild ist mit einem Wartungseintrag verknuepft. Bitte zuerst die Verknuepfung entfernen.")
+			return
+		}
 		a.logger.Error("image delete failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht geloescht werden.")
 		return
 	}
-	if image.StoragePath != "" {
-		if fullPath, err := confinedDataPath(a.dataDir, image.StoragePath); err == nil {
-			_ = os.Remove(fullPath)
-		}
-	}
+	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.StoragePath)
+	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.ThumbnailPath)
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) removeVehicleImageFileIfUnreferenced(ctx context.Context, storagePath string) {
+	if storagePath == "" {
+		return
+	}
+	references, err := a.vehicleService.ImageFileReferenceCount(ctx, storagePath)
+	if err != nil {
+		a.logger.Warn("image file reference check failed", "path", storagePath, "error", err)
+		return
+	}
+	if references > 0 {
+		return
+	}
+	if fullPath, err := confinedDataPath(a.dataDir, storagePath); err == nil {
+		_ = os.Remove(fullPath)
+	}
 }
 
 func (a *App) downloadVehicleImage(w http.ResponseWriter, r *http.Request) {
@@ -587,9 +664,86 @@ func (a *App) downloadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, fullPath)
 }
 
+func (a *App) downloadVehicleImageThumbnail(w http.ResponseWriter, r *http.Request) {
+	image, err := a.vehicleService.GetImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "image_not_found", "Image not found.")
+			return
+		}
+		a.logger.Error("image thumbnail lookup failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_thumbnail_failed", "Bildvorschau konnte nicht geladen werden.")
+		return
+	}
+	if image.ThumbnailPath == "" {
+		a.downloadVehicleImage(w, r)
+		return
+	}
+	fullPath, err := confinedDataPath(a.dataDir, image.ThumbnailPath)
+	if err != nil {
+		respondProblem(w, http.StatusInternalServerError, "image_path_invalid", "Bildvorschau konnte nicht geladen werden.")
+		return
+	}
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("inline", map[string]string{"filename": strings.TrimSuffix(path.Base(image.FileName), path.Ext(image.FileName)) + "-thumb.jpg"}))
+	http.ServeFile(w, r, fullPath)
+}
+
+func (a *App) createVehicleImageThumbnail(data []byte, vehicleID, storageName string) (string, error) {
+	src, _, err := image.Decode(bytes.NewReader(data))
+	if err != nil {
+		return "", err
+	}
+	thumb := scaleImageToFit(src, 360, 240)
+	thumbnailName := strings.TrimSuffix(storageName, path.Ext(storageName)) + "-thumb.jpg"
+	thumbnailPath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", "thumbs", thumbnailName)
+	fullPath, err := confinedDataPath(a.dataDir, thumbnailPath)
+	if err != nil {
+		return "", err
+	}
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		return "", err
+	}
+	out, err := os.Create(fullPath)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = out.Close() }()
+	if err = jpeg.Encode(out, thumb, &jpeg.Options{Quality: 82}); err != nil {
+		return "", err
+	}
+	return thumbnailPath, nil
+}
+
+func scaleImageToFit(src image.Image, maxWidth, maxHeight int) image.Image {
+	bounds := src.Bounds()
+	width := bounds.Dx()
+	height := bounds.Dy()
+	if width <= 0 || height <= 0 || (width <= maxWidth && height <= maxHeight) {
+		return src
+	}
+	ratioW := float64(maxWidth) / float64(width)
+	ratioH := float64(maxHeight) / float64(height)
+	ratio := ratioW
+	if ratioH < ratio {
+		ratio = ratioH
+	}
+	dstWidth := max(1, int(float64(width)*ratio))
+	dstHeight := max(1, int(float64(height)*ratio))
+	dst := image.NewRGBA(image.Rect(0, 0, dstWidth, dstHeight))
+	for y := range dstHeight {
+		srcY := bounds.Min.Y + y*height/dstHeight
+		for x := range dstWidth {
+			srcX := bounds.Min.X + x*width/dstWidth
+			dst.Set(x, y, src.At(srcX, srcY))
+		}
+	}
+	return dst
+}
+
 func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxAttachmentBytes+1024*1024)
-	if err := r.ParseMultipartForm(maxAttachmentBytes); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, a.maxAttachmentBytes+1024*1024)
+	if err := r.ParseMultipartForm(a.maxAttachmentBytes); err != nil {
 		respondProblem(w, http.StatusBadRequest, "attachment_upload_invalid", "Beilage konnte nicht gelesen werden.")
 		return
 	}
@@ -603,7 +757,7 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = file.Close() }()
 	originalName := cleanOriginalFileName(header.Filename)
-	if header.Size > maxAttachmentBytes {
+	if header.Size > a.maxAttachmentBytes {
 		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
 		return
 	}
@@ -611,8 +765,8 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausführbare Dateien sind nicht erlaubt.")
 		return
 	}
-	data, err := io.ReadAll(io.LimitReader(file, maxAttachmentBytes+1))
-	if err != nil || int64(len(data)) > maxAttachmentBytes {
+	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
 		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
 		return
 	}
@@ -625,7 +779,7 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Ausführbare Dateien sind nicht erlaubt.")
 		return
 	}
-	if !isAllowedAttachmentUpload(originalName, mimeType) {
+	if !a.isAllowedAttachmentUpload(originalName, mimeType) {
 		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.")
 		return
 	}
@@ -648,13 +802,14 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	attachment, err := a.vehicleService.CreateAttachment(r.Context(), vehicleID, application.VehicleAttachmentInput{
-		FileName:     storageName,
-		OriginalName: originalName,
-		Description:  r.FormValue("description"),
-		Category:     r.FormValue("category"),
-		MimeType:     mimeType,
-		SizeBytes:    int64(len(data)),
-		StoragePath:  storagePath,
+		FileName:      storageName,
+		OriginalName:  originalName,
+		Description:   r.FormValue("description"),
+		Category:      r.FormValue("category"),
+		MimeType:      mimeType,
+		SizeBytes:     int64(len(data)),
+		StoragePath:   storagePath,
+		MaintenanceID: r.FormValue("maintenanceId"),
 	})
 	if err != nil {
 		_ = os.Remove(fullPath)
@@ -924,8 +1079,8 @@ func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxAttachmentBytes+1024*1024)
-	if err := r.ParseMultipartForm(maxAttachmentBytes); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, a.maxAttachmentBytes+1024*1024)
+	if err := r.ParseMultipartForm(a.maxAttachmentBytes); err != nil {
 		respondProblem(w, http.StatusBadRequest, "cv_file_upload_invalid", "CV-Datei konnte nicht gelesen werden.")
 		return
 	}
@@ -939,12 +1094,12 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = file.Close() }()
 	originalName := cleanOriginalFileName(header.Filename)
-	if header.Size > maxAttachmentBytes || isBlockedAttachmentName(originalName) {
+	if header.Size > a.maxAttachmentBytes || isBlockedAttachmentName(originalName) {
 		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
 		return
 	}
-	data, err := io.ReadAll(io.LimitReader(file, maxAttachmentBytes+1))
-	if err != nil || int64(len(data)) > maxAttachmentBytes {
+	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
 		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gross.")
 		return
 	}
@@ -1038,6 +1193,7 @@ func (a *App) downloadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 }
 
 const maxBackupBytes = 250 * 1024 * 1024
+const maxMasterDataImportBytes = 25 * 1024 * 1024
 
 func (a *App) exportBackup(w http.ResponseWriter, r *http.Request) {
 	backup, err := a.backupService.Export(r.Context())
@@ -1056,36 +1212,11 @@ func (a *App) exportBackup(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
-	r.Body = http.MaxBytesReader(w, r.Body, maxBackupBytes+1024*1024)
-	if err := r.ParseMultipartForm(maxBackupBytes); err != nil {
-		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei konnte nicht gelesen werden.")
-		return
-	}
-	if r.MultipartForm != nil {
-		defer func() { _ = r.MultipartForm.RemoveAll() }()
-	}
-
-	file, header, err := r.FormFile("file")
-	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "backup_file_missing", "Eine Backup-Datei ist erforderlich.")
-		return
-	}
-	defer func() { _ = file.Close() }()
-	if header.Size > maxBackupBytes {
-		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
-		return
-	}
-	data, err := io.ReadAll(io.LimitReader(file, maxBackupBytes+1))
-	if err != nil || int64(len(data)) > maxBackupBytes {
-		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
+	backup, ok := a.readBackupUpload(w, r)
+	if !ok {
 		return
 	}
 
-	backup, err := application.DecodeBackup(data)
-	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungültig.")
-		return
-	}
 	result, err := a.backupService.Import(r.Context(), backup)
 	if err != nil {
 		switch {
@@ -1103,6 +1234,122 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) validateBackup(w http.ResponseWriter, r *http.Request) {
+	backup, ok := a.readBackupUpload(w, r)
+	if !ok {
+		return
+	}
+	result, err := a.backupService.Validate(r.Context(), backup)
+	if err != nil {
+		a.logger.Error("backup validation failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "backup_validation_failed", "Backup konnte nicht geprüft werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) readBackupUpload(w http.ResponseWriter, r *http.Request) (*application.BackupDocument, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxBackupBytes+1024*1024)
+	if err := r.ParseMultipartForm(maxBackupBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei konnte nicht gelesen werden.")
+		return nil, false
+	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
+
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "backup_file_missing", "Eine Backup-Datei ist erforderlich.")
+		return nil, false
+	}
+	defer func() { _ = file.Close() }()
+	if header.Size > maxBackupBytes {
+		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
+		return nil, false
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxBackupBytes+1))
+	if err != nil || int64(len(data)) > maxBackupBytes {
+		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
+		return nil, false
+	}
+
+	backup, err := application.DecodeBackup(data)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "backup_restore_invalid", "Backup-Datei ist ungültig.")
+		return nil, false
+	}
+	return backup, true
+}
+
+func (a *App) exportMasterData(w http.ResponseWriter, r *http.Request) {
+	doc, err := a.masterDataService.Export(r.Context())
+	if err != nil {
+		a.logger.Error("master data export failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "master_data_export_failed", "Stammdaten konnten nicht exportiert werden.")
+		return
+	}
+	filename := "railkeeper2-stammdaten-" + time.Now().UTC().Format("20060102-150405") + ".json"
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filename}))
+	if err := json.NewEncoder(w).Encode(doc); err != nil {
+		a.logger.Error("master data encode failed", "error", err)
+	}
+}
+
+func (a *App) importMasterData(w http.ResponseWriter, r *http.Request) {
+	doc, ok := a.readMasterDataImportUpload(w, r)
+	if !ok {
+		return
+	}
+	result, err := a.masterDataService.Import(r.Context(), doc)
+	if err != nil {
+		if errors.Is(err, application.ErrMasterDataValidation) {
+			respondProblem(w, http.StatusBadRequest, "master_data_import_invalid", "Stammdaten-Datei ist ungültig.")
+			return
+		}
+		a.logger.Error("master data import failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "master_data_import_failed", "Stammdaten konnten nicht importiert werden.")
+		return
+	}
+	if err := a.masterDataService.WarmCache(r.Context()); err != nil {
+		a.logger.Error("master data cache refresh after import failed", "error", err)
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) readMasterDataImportUpload(w http.ResponseWriter, r *http.Request) (*application.MasterDataDocument, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, maxMasterDataImportBytes+1024*1024)
+	if err := r.ParseMultipartForm(maxMasterDataImportBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "master_data_import_invalid", "Stammdaten-Datei konnte nicht gelesen werden.")
+		return nil, false
+	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "master_data_file_missing", "Eine Stammdaten-Datei ist erforderlich.")
+		return nil, false
+	}
+	defer func() { _ = file.Close() }()
+	if header.Size > maxMasterDataImportBytes {
+		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gross.")
+		return nil, false
+	}
+	data, err := io.ReadAll(io.LimitReader(file, maxMasterDataImportBytes+1))
+	if err != nil || int64(len(data)) > maxMasterDataImportBytes {
+		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gross.")
+		return nil, false
+	}
+	var doc application.MasterDataDocument
+	if err := json.Unmarshal(data, &doc); err != nil {
+		respondProblem(w, http.StatusBadRequest, "master_data_import_invalid", "Stammdaten-Datei ist ungültig.")
+		return nil, false
+	}
+	return &doc, true
 }
 
 func cleanOriginalFileName(value string) string {
@@ -1171,11 +1418,19 @@ func isBlockedAttachmentMime(value string) bool {
 }
 
 func isAllowedAttachmentUpload(filename, mimeType string) bool {
+	return isAllowedAttachmentUploadWithExtensions(filename, mimeType, allowedAttachmentExtensions)
+}
+
+func (a *App) isAllowedAttachmentUpload(filename, mimeType string) bool {
+	return isAllowedAttachmentUploadWithExtensions(filename, mimeType, a.allowedAttachmentExtensions)
+}
+
+func isAllowedAttachmentUploadWithExtensions(filename, mimeType string, extensions map[string]struct{}) bool {
 	if isBlockedAttachmentName(filename) || isBlockedAttachmentMime(mimeType) {
 		return false
 	}
 	extension := strings.ToLower(filepath.Ext(filename))
-	if _, ok := allowedAttachmentExtensions[extension]; !ok {
+	if _, ok := extensions[extension]; !ok {
 		return false
 	}
 	mimeType = strings.ToLower(strings.TrimSpace(strings.Split(mimeType, ";")[0]))

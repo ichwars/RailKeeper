@@ -10,43 +10,38 @@
 - master data management
 - inventory number schemes and history
 - article data search review workflow
+- master data import/export
 - QR code generation
 - article-search image suggestions and primary image selection
+- local image uploads with drag and drop
+- automatic thumbnails for JPEG/PNG images
+- image deletion reference checks
 - vehicle attachments
+- backup and restore
+- backup compatibility preflight
+- maintenance and condition history
+- images and attachments per maintenance entry
+- digital function mapping
+- structured CV values and CV files
+- responsive inventory table/card switch
 
 ## Next Practical Milestones
 
-1. Local media uploads
-   - direct image upload
-   - drag and drop
-   - thumbnails
-   - configurable size limit
+1. Local media polish
+   - optional WebP thumbnail generation
 
-2. Import/export and backup
-   - backup archive including database and attachments
-   - restore compatibility checks
-   - import/export for master data
+2. Maintenance and condition polish
+   - richer dashboard summaries for planned maintenance
 
-3. Maintenance and condition
-   - maintenance history
-   - planned maintenance reminders
-   - repairs, conversions, cleaning and lubrication
-   - costs, notes, images and attachments per maintenance entry
+3. Digital functions polish
+   - richer icon picker
+   - import/export of function mappings
 
-4. Digital functions
-   - F0-F31 function mapping
-   - icon-based display
-   - editable symbol master data
-   - momentary/permanent and direction-dependent flags
-
-5. Decoder and CV data
-   - structured CV values
+4. Decoder and CV data polish
    - decoder profiles
-   - file import/export
    - change history
 
-6. Responsive inventory views
-   - table/card switch
+5. Responsive inventory polish
    - compact mobile layout
    - richer dashboard summaries
 

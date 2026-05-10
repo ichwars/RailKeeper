@@ -50,6 +50,27 @@ type BackupImportResult struct {
 	RestoredFiles  int `json:"restoredFiles"`
 }
 
+type BackupValidationResult struct {
+	Compatible bool                    `json:"compatible"`
+	Format     string                  `json:"format,omitempty"`
+	Version    int                     `json:"version"`
+	CreatedAt  string                  `json:"createdAt,omitempty"`
+	TableCount int                     `json:"tableCount"`
+	RowCount   int                     `json:"rowCount"`
+	FileCount  int                     `json:"fileCount"`
+	FileBytes  int64                   `json:"fileBytes"`
+	Tables     []BackupValidationTable `json:"tables"`
+	Warnings   []string                `json:"warnings"`
+	Errors     []string                `json:"errors"`
+}
+
+type BackupValidationTable struct {
+	Name           string   `json:"name"`
+	Rows           int      `json:"rows"`
+	Missing        bool     `json:"missing"`
+	UnknownColumns []string `json:"unknownColumns,omitempty"`
+}
+
 var backupTableOrder = []string{
 	"master_data_entries",
 	"master_data_relations",
@@ -103,11 +124,18 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if s == nil || s.db == nil {
 		return nil, errors.New("backup service is not configured")
 	}
-	if doc == nil || doc.Format != backupFormat || doc.Version != 1 {
+	if doc == nil {
 		return nil, ErrBackupInvalid
 	}
 	if err := validateBackupFiles(doc.Files); err != nil {
 		return nil, err
+	}
+	validation, err := s.Validate(ctx, doc)
+	if err != nil {
+		return nil, err
+	}
+	if !validation.Compatible {
+		return nil, ErrBackupInvalid
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -160,6 +188,84 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = restoredFiles
 
 	return result, nil
+}
+
+func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*BackupValidationResult, error) {
+	if s == nil || s.db == nil {
+		return nil, errors.New("backup service is not configured")
+	}
+
+	result := &BackupValidationResult{
+		Tables:   []BackupValidationTable{},
+		Warnings: []string{},
+		Errors:   []string{},
+	}
+	if doc == nil {
+		result.Errors = append(result.Errors, "Backup-Dokument fehlt.")
+		return finishBackupValidation(result), nil
+	}
+
+	result.Format = doc.Format
+	result.Version = doc.Version
+	result.CreatedAt = doc.CreatedAt
+	result.FileCount = len(doc.Files)
+	for _, file := range doc.Files {
+		result.FileBytes += file.SizeBytes
+	}
+	if doc.Format != backupFormat {
+		result.Errors = append(result.Errors, "Backup-Format wird nicht unterstützt.")
+	}
+	if doc.Version != 1 {
+		result.Errors = append(result.Errors, "Backup-Version wird nicht unterstützt.")
+	}
+	if err := validateBackupFiles(doc.Files); err != nil {
+		result.Errors = append(result.Errors, "Backup-Dateien sind unvollständig oder beschädigt.")
+	}
+
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		return nil, fmt.Errorf("begin backup validation: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	knownTables := map[string]struct{}{}
+	for _, table := range backupTableOrder {
+		knownTables[table] = struct{}{}
+		rows, exists := doc.Tables[table]
+		item := BackupValidationTable{Name: table, Rows: len(rows), Missing: !exists}
+		if !exists {
+			result.Errors = append(result.Errors, fmt.Sprintf("Tabelle %s fehlt im Backup.", table))
+			result.Tables = append(result.Tables, item)
+			continue
+		}
+		result.TableCount++
+		result.RowCount += len(rows)
+
+		columns, err := tableColumns(ctx, tx, table)
+		if err != nil {
+			return nil, err
+		}
+		unknownColumns := map[string]struct{}{}
+		for _, row := range rows {
+			for column := range row {
+				if !columns[column] {
+					unknownColumns[column] = struct{}{}
+				}
+			}
+		}
+		item.UnknownColumns = sortedKeys(unknownColumns)
+		if len(item.UnknownColumns) > 0 {
+			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
+		}
+		result.Tables = append(result.Tables, item)
+	}
+	for table := range doc.Tables {
+		if _, ok := knownTables[table]; !ok {
+			result.Warnings = append(result.Warnings, fmt.Sprintf("Unbekannte Tabelle %s wird beim Restore ignoriert.", table))
+		}
+	}
+
+	return finishBackupValidation(result), nil
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {
@@ -354,6 +460,20 @@ func normalizeImportValue(value any) any {
 	default:
 		return typed
 	}
+}
+
+func finishBackupValidation(result *BackupValidationResult) *BackupValidationResult {
+	result.Compatible = len(result.Errors) == 0
+	return result
+}
+
+func sortedKeys(values map[string]struct{}) []string {
+	out := make([]string, 0, len(values))
+	for value := range values {
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func quoteIdentifiers(values []string) []string {

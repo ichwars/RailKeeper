@@ -15,16 +15,17 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - inventory number change history
 - editable master data for manufacturers, categories, gauges, epochs, railway companies and symbols
 - category-to-gattung dependencies for vehicle entry
+- dedicated master data JSON import/export without touching inventory or uploads
 - model and technical vehicle fields
 - article data web search with explicit field-by-field review before applying values
 - source URL storage for imported article data
-- image suggestions from article search, primary image selection and preview
+- image suggestions from article search, local image uploads, primary image selection, preview and automatic JPEG/PNG thumbnails
 - QR code generation with PNG/SVG download and print view
 - file attachments for vehicles, including category, notes, download and PDF inline view
 - maintenance and condition history per vehicle
 - decoder function mapping from F0 to F31 with editable symbol master data
 - structured CV values with import/export and stored CV files
-- local JSON backup/restore for app data and upload files
+- local JSON backup/restore for app data and upload files with compatibility preflight
 - audit log entries for setup, login/logout and vehicle changes
 - OpenAPI contract in `openapi/railkeeper.yaml`
 - Docker Compose deployment with persistent `/data` volume
@@ -104,6 +105,9 @@ RAILKEEPER_MIGRATIONS_DIR=./backend/migrations
 RAILKEEPER_SEEDS_DIR=./backend/seeds
 RAILKEEPER_STATIC_DIR=./frontend/dist
 RAILKEEPER_COOKIE_SECURE=false
+RAILKEEPER_MAX_IMAGE_MB=10
+RAILKEEPER_MAX_ATTACHMENT_MB=25
+RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS=.pdf,.txt,.csv,.json,.xml,.zip,.jpg,.jpeg,.png,.webp
 ```
 
 ## Docker
@@ -123,5 +127,3 @@ Initial master data is seeded from `backend/seeds/master_data.json`. Article dat
 ## Not Yet Included
 
 - accessories
-- thumbnails for local image uploads
-- card/table view switch for inventory

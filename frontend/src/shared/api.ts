@@ -83,10 +83,12 @@ export type VehicleImage = {
   id: string;
   vehicleId: string;
   url: string;
+  thumbnailUrl?: string;
   title?: string;
   sourceUrl?: string;
   fileName?: string;
   mimeType?: string;
+  maintenanceId?: string;
   isPrimary: boolean;
   sortOrder: number;
   createdAt: string;
@@ -98,6 +100,7 @@ export type VehicleImageInput = {
   url: string;
   title?: string;
   sourceUrl?: string;
+  maintenanceId?: string;
   isPrimary?: boolean;
   sortOrder?: number;
 };
@@ -111,6 +114,7 @@ export type VehicleAttachment = {
   category?: string;
   mimeType?: string;
   sizeBytes: number;
+  maintenanceId?: string;
   createdAt: string;
   updatedAt: string;
 };
@@ -118,6 +122,7 @@ export type VehicleAttachment = {
 export type VehicleAttachmentUpdateInput = {
   description?: string;
   category?: string;
+  maintenanceId?: string;
 };
 
 export type VehicleMaintenance = {
@@ -287,6 +292,20 @@ export type MasterDataRelation = {
   sortOrder: number;
 };
 
+export type MasterDataDocument = {
+  format: string;
+  version: number;
+  createdAt: string;
+  entries: Record<string, MasterDataEntry[]>;
+  relations: MasterDataRelation[];
+};
+
+export type MasterDataImportResult = {
+  importedTypes: number;
+  importedEntries: number;
+  importedRelations: number;
+};
+
 export type InventoryNumberScheme = {
   id: string;
   category: string;
@@ -346,6 +365,27 @@ export type BackupImportResult = {
   restoredTables: number;
   restoredRows: number;
   restoredFiles: number;
+};
+
+export type BackupValidationTable = {
+  name: string;
+  rows: number;
+  missing: boolean;
+  unknownColumns?: string[];
+};
+
+export type BackupValidationResult = {
+  compatible: boolean;
+  format?: string;
+  version: number;
+  createdAt?: string;
+  tableCount: number;
+  rowCount: number;
+  fileCount: number;
+  fileBytes: number;
+  tables: BackupValidationTable[];
+  warnings: string[];
+  errors: string[];
 };
 
 let csrfToken = "";
@@ -466,11 +506,12 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
-  uploadVehicleImage: (vehicleId: string, file: File, title = "", isPrimary = false) => {
+  uploadVehicleImage: (vehicleId: string, file: File, title = "", isPrimary = false, maintenanceId = "") => {
     const form = new FormData();
     form.append("file", file);
     form.append("title", title);
     form.append("isPrimary", String(isPrimary));
+    form.append("maintenanceId", maintenanceId);
     return request<VehicleImage>(
       `/vehicles/${encodeURIComponent(vehicleId)}/images`,
       {
@@ -484,11 +525,12 @@ export const api = {
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}`, {
       method: "DELETE"
     }),
-  uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "") => {
+  uploadVehicleAttachment: (vehicleId: string, file: File, category = "", description = "", maintenanceId = "") => {
     const form = new FormData();
     form.append("file", file);
     form.append("category", category);
     form.append("description", description);
+    form.append("maintenanceId", maintenanceId);
     return request<VehicleAttachment>(
       `/vehicles/${encodeURIComponent(vehicleId)}/attachments`,
       {
@@ -594,6 +636,18 @@ export const api = {
       { timeoutMs: 15000 }
     ),
   backupExportUrl: () => "/api/v1/backup/export",
+  validateBackup: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<BackupValidationResult>(
+      "/backup/validate",
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 120000 }
+    );
+  },
   restoreBackup: (file: File) => {
     const form = new FormData();
     form.append("file", file);
@@ -633,5 +687,18 @@ export const api = {
   masterDataRelations: (parentType: string, childType: string) =>
     request<MasterDataRelation[]>(
       `/master-data-relations?parentType=${encodeURIComponent(parentType)}&childType=${encodeURIComponent(childType)}`
-    )
+    ),
+  masterDataExportUrl: () => "/api/v1/master-data/export",
+  importMasterData: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<MasterDataImportResult>(
+      "/master-data/import",
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 120000 }
+    );
+  }
 };

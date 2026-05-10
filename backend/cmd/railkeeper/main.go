@@ -5,6 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"railkeeper2/backend/internal/api"
@@ -29,6 +31,9 @@ func main() {
 	seedsDir := env("RAILKEEPER_SEEDS_DIR", "./seeds")
 	staticDir := env("RAILKEEPER_STATIC_DIR", "../../frontend/dist")
 	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
+	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
+	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
+	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	db, err := infrastructure.OpenSQLite(dataDir)
@@ -58,18 +63,21 @@ func main() {
 	}
 
 	handler := api.NewRouter(api.Config{
-		Version:           version,
-		StaticDir:         staticDir,
-		DataDir:           dataDir,
-		Logger:            logger,
-		SetupService:      application.NewSetupService(db),
-		AuthService:       application.NewAuthService(db),
-		VehicleService:    application.NewVehicleService(db),
-		MasterDataService: masterDataService,
-		ArticleSearch:     application.NewArticleSearchService(),
-		InventoryNumbers:  application.NewInventoryNumberService(db),
-		BackupService:     application.NewBackupService(db, dataDir),
-		CookieSecure:      cookieSecure,
+		Version:                     version,
+		StaticDir:                   staticDir,
+		DataDir:                     dataDir,
+		MaxImageBytes:               maxImageBytes,
+		MaxAttachmentBytes:          maxAttachmentBytes,
+		AllowedAttachmentExtensions: allowedAttachmentExtensions,
+		Logger:                      logger,
+		SetupService:                application.NewSetupService(db),
+		AuthService:                 application.NewAuthService(db),
+		VehicleService:              application.NewVehicleService(db),
+		MasterDataService:           masterDataService,
+		ArticleSearch:               application.NewArticleSearchService(),
+		InventoryNumbers:            application.NewInventoryNumberService(db),
+		BackupService:               application.NewBackupService(db, dataDir),
+		CookieSecure:                cookieSecure,
 	})
 
 	server := &http.Server{
@@ -91,4 +99,35 @@ func env(key, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+func envMegabytes(key string, fallback int64) int64 {
+	value := env(key, "")
+	if value == "" {
+		return fallback * 1024 * 1024
+	}
+	parsed, err := strconv.ParseInt(value, 10, 64)
+	if err != nil || parsed <= 0 {
+		return fallback * 1024 * 1024
+	}
+	return parsed * 1024 * 1024
+}
+
+func envExtensionSet(key string) map[string]struct{} {
+	value := env(key, "")
+	if value == "" {
+		return nil
+	}
+	out := map[string]struct{}{}
+	for _, part := range strings.Split(value, ",") {
+		extension := strings.ToLower(strings.TrimSpace(part))
+		if extension == "" {
+			continue
+		}
+		if !strings.HasPrefix(extension, ".") {
+			extension = "." + extension
+		}
+		out[extension] = struct{}{}
+	}
+	return out
 }

@@ -418,6 +418,39 @@ components:
           type: string
         sortOrder:
           type: integer
+    MasterDataDocument:
+      type: object
+      required: [format, version, createdAt, entries, relations]
+      properties:
+        format:
+          type: string
+          example: railkeeper2-master-data
+        version:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+        entries:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              $ref: "#/components/schemas/MasterDataEntry"
+        relations:
+          type: array
+          items:
+            $ref: "#/components/schemas/MasterDataRelation"
+    MasterDataImportResult:
+      type: object
+      required: [importedTypes, importedEntries, importedRelations]
+      properties:
+        importedTypes:
+          type: integer
+        importedEntries:
+          type: integer
+        importedRelations:
+          type: integer
     InventoryNumberScheme:
       type: object
       required: [id, category, prefix, nextNumber, padding, active, preview, createdAt, updatedAt]
@@ -907,6 +940,57 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Inventory number scheme not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /master-data/export:
+    get:
+      tags: [MasterData]
+      summary: Export master data only
+      responses:
+        "200":
+          description: Master data JSON containing entries and relations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDataDocument"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /master-data/import:
+    post:
+      tags: [MasterData]
+      summary: Replace local master data from a master data export
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Master data import result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDataImportResult"
+        "400":
+          description: Invalid master data file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
           content:
             application/json:
               schema:

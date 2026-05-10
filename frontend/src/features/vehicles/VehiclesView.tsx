@@ -115,9 +115,17 @@ type PendingArticleImage = ArticleSearchImage & {
   isPrimary?: boolean;
   persisted?: boolean;
   mimeType?: string;
+  thumbnailUrl?: string;
+  maintenanceId?: string;
 };
 
-type AttachmentEditState = Record<string, { description: string; category: string }>;
+type MaintenanceReminder = {
+  vehicle: Vehicle;
+  entry: VehicleMaintenance;
+  daysUntilDue: number;
+};
+
+type AttachmentEditState = Record<string, { description: string; category: string; maintenanceId: string }>;
 type FunctionEditState = Record<string, VehicleFunctionInput & { persisted?: boolean }>;
 
 const emptyMaintenanceForm: VehicleMaintenanceInput = {
@@ -488,19 +496,25 @@ function sanitizeArticleSearchResponse(response: ArticleSearchResponse): Article
   };
 }
 
-function primaryImage(images?: { url: string; isPrimary?: boolean }[]) {
+function primaryImage(images?: { url: string; thumbnailUrl?: string; isPrimary?: boolean }[]) {
   return images?.find((image) => image.isPrimary) || images?.[0];
+}
+
+function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) {
+  return image?.thumbnailUrl || image?.url || "";
 }
 
 function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
   return (vehicle.images || []).map((image) => ({
     id: image.id || image.url,
     url: image.url,
+    thumbnailUrl: image.thumbnailUrl,
     title: image.title || "",
     source: image.sourceUrl || image.url,
     isPrimary: image.isPrimary,
     persisted: true,
-    mimeType: image.mimeType || ""
+    mimeType: image.mimeType || "",
+    maintenanceId: image.maintenanceId || ""
   }));
 }
 
@@ -508,11 +522,13 @@ function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage 
   return {
     id: image.id || image.url,
     url: image.url,
+    thumbnailUrl: image.thumbnailUrl,
     title: image.title || "",
     source: image.sourceUrl || image.url,
     isPrimary: image.isPrimary,
     persisted: true,
-    mimeType: image.mimeType || ""
+    mimeType: image.mimeType || "",
+    maintenanceId: image.maintenanceId || ""
   };
 }
 
@@ -522,7 +538,8 @@ function attachmentsToEditState(attachments?: VehicleAttachment[]): AttachmentEd
       attachment.id,
       {
         description: attachment.description || "",
-        category: attachment.category || ""
+        category: attachment.category || "",
+        maintenanceId: attachment.maintenanceId || ""
       }
     ])
   );
@@ -641,6 +658,12 @@ function formatDate(value?: string) {
   const date = new Date(`${value}T00:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("de-DE");
+}
+
+function maintenanceOptionLabel(entry: VehicleMaintenance) {
+  const due = entry.dueDate ? ` · ${formatDate(entry.dueDate)}` : "";
+  const notes = entry.notes ? ` · ${entry.notes}` : "";
+  return `${entry.kind}${due}${notes}`;
 }
 
 function reportValue(value?: string | number | boolean) {
@@ -827,6 +850,22 @@ function maintenanceIsDue(entry: VehicleMaintenance) {
   today.setHours(0, 0, 0, 0);
   const due = new Date(`${entry.dueDate}T00:00:00`);
   return !Number.isNaN(due.getTime()) && due <= today;
+}
+
+function maintenanceDaysUntilDue(entry: VehicleMaintenance) {
+  if (!entry.dueDate || entry.status === "erledigt") return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(`${entry.dueDate}T00:00:00`);
+  if (Number.isNaN(due.getTime())) return null;
+  return Math.ceil((due.getTime() - today.getTime()) / 86400000);
+}
+
+function maintenanceReminderText(daysUntilDue: number) {
+  if (daysUntilDue < 0) return `seit ${Math.abs(daysUntilDue)} Tag${Math.abs(daysUntilDue) === 1 ? "" : "en"} überfällig`;
+  if (daysUntilDue === 0) return "heute fällig";
+  if (daysUntilDue === 1) return "morgen fällig";
+  return `in ${daysUntilDue} Tagen fällig`;
 }
 
 function maintenanceStatusLabel(status: string) {
@@ -1120,6 +1159,16 @@ function ArticleSearchDialog({
   onSelectAllFields: () => void;
   onClearFields: () => void;
 }) {
+  const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setFailedImages({});
+  }, [response?.query]);
+
+  const markImageFailed = useCallback((url: string) => {
+    setFailedImages((current) => current[url] ? current : { ...current, [url]: true });
+  }, []);
+
   return (
     <div className="confirm-layer article-search-layer" role="dialog" aria-modal="true" aria-label="Artikeldaten-Websuche">
       <section className="article-search-dialog">
@@ -1145,15 +1194,13 @@ function ArticleSearchDialog({
           {response?.results.map((result, index) => {
             const resultKey = articleResultKey(result, index);
             const selectableKeys = Object.keys(result.fields).filter(isArticleFieldKey);
+            const visibleImages = (result.images || []).filter((image) => image.url && !failedImages[image.url]);
+            const resultImage = visibleImages[0];
             return (
               <article key={resultKey} className="article-result-card article-result-table-card">
                 <header>
-                  {result.images?.[0] ? (
-                    <img className="article-result-thumb" src={result.images[0].url} alt="" />
-                  ) : (
-                    <div className="article-result-thumb empty">
-                      <Image size={18} aria-hidden="true" />
-                    </div>
+                  {resultImage && (
+                    <img className="article-result-thumb" src={previewImageUrl(resultImage)} alt="" onError={() => markImageFailed(resultImage.url)} />
                   )}
                   <div>
                     <strong>{result.title}</strong>
@@ -1166,18 +1213,29 @@ function ArticleSearchDialog({
                   </a>
                 </header>
 
-                {result.images && result.images.length > 0 && (
+                {visibleImages.length > 0 && (
                   <div className="article-image-strip" aria-label="Gefundene Bilder">
-                    {result.images.map((image) => (
+                    {visibleImages.map((image) => {
+                      const selectionKey = imageSelectionKey(result, image, index);
+                      return (
                       <label key={image.url} className="article-image-option">
                         <input
                           type="checkbox"
-                          checked={Boolean(selectedImages[imageSelectionKey(result, image, index)])}
+                          checked={Boolean(selectedImages[selectionKey])}
                           onChange={(event) => onToggleImage(result, index, image, event.target.checked)}
                         />
-                        <img src={image.url} alt="" />
+                        <img
+                          src={previewImageUrl(image)}
+                          alt=""
+                          onError={() => {
+                            markImageFailed(image.url);
+                            if (selectedImages[selectionKey]) {
+                              onToggleImage(result, index, image, false);
+                            }
+                          }}
+                        />
                       </label>
-                    ))}
+                    )})}
                   </div>
                 )}
 
@@ -1376,8 +1434,10 @@ export function VehiclesView() {
   const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
   const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
   const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
+  const [imageUploadMaintenanceID, setImageUploadMaintenanceID] = useState("");
   const [attachmentUploadCategory, setAttachmentUploadCategory] = useState("");
   const [attachmentUploadDescription, setAttachmentUploadDescription] = useState("");
+  const [attachmentUploadMaintenanceID, setAttachmentUploadMaintenanceID] = useState("");
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
   const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
@@ -1461,6 +1521,23 @@ export function VehiclesView() {
       return sort.direction === "asc" ? result : -result;
     });
   }, [vehicles, sort]);
+
+  const maintenanceReminders = useMemo<MaintenanceReminder[]>(() => {
+    return vehicles
+      .flatMap((vehicle) =>
+        (vehicle.maintenance || []).flatMap((entry) => {
+          const daysUntilDue = maintenanceDaysUntilDue(entry);
+          if (daysUntilDue === null || daysUntilDue > 14) return [];
+          return [{ vehicle, entry, daysUntilDue }];
+        })
+      )
+      .sort((left, right) => left.daysUntilDue - right.daysUntilDue || left.vehicle.inventoryNumber.localeCompare(right.vehicle.inventoryNumber, "de-DE"));
+  }, [vehicles]);
+
+  const maintenanceReminderSummary = {
+    due: maintenanceReminders.filter((item) => item.daysUntilDue <= 0).length,
+    upcoming: maintenanceReminders.filter((item) => item.daysUntilDue > 0).length
+  };
 
   const filteredGattungen = useMemo(() => {
     const categoryKey = options.categories.find((entry) => optionValue(entry) === form.category)?.key;
@@ -1613,6 +1690,10 @@ export function VehiclesView() {
     setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, title } : image)));
   };
 
+  const updatePendingImageMaintenance = (id: string, maintenanceId: string) => {
+    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, maintenanceId } : image)));
+  };
+
   const movePendingImage = (id: string, direction: -1 | 1) => {
     setPendingArticleImages((current) => {
       const index = current.findIndex((image) => image.id === id);
@@ -1625,6 +1706,10 @@ export function VehiclesView() {
   };
 
   const removePendingImage = (image: PendingArticleImage) => {
+    if (image.maintenanceId) {
+      setMessage("Bild ist mit einer Wartung verknüpft. Bitte zuerst die Verknüpfung entfernen und speichern.");
+      return;
+    }
     const removeFromState = () => {
       setPendingArticleImages((current) => {
         const next = current.filter((entry) => entry.id !== image.id);
@@ -1676,7 +1761,7 @@ export function VehiclesView() {
     setMessage("");
     (async () => {
       for (const file of uploadFiles) {
-        const image = await api.uploadVehicleImage(selected.id, file, file.name, pendingArticleImages.length === 0);
+        const image = await api.uploadVehicleImage(selected.id, file, file.name, pendingArticleImages.length === 0, imageUploadMaintenanceID);
         setPendingArticleImages((current) => {
           const next = [...current, uploadedImageToPending(image)];
           if (!next.some((entry) => entry.isPrimary) && next.length > 0) {
@@ -1719,7 +1804,8 @@ export function VehiclesView() {
           selected.id,
           file,
           attachmentUploadCategory || attachmentCategoryForFile(file),
-          attachmentUploadDescription
+          attachmentUploadDescription,
+          attachmentUploadMaintenanceID
         );
       }
     })()
@@ -1748,12 +1834,13 @@ export function VehiclesView() {
     uploadAttachment(event.dataTransfer.files);
   };
 
-  const updateAttachmentEdit = (attachmentID: string, patch: Partial<{ description: string; category: string }>) => {
+  const updateAttachmentEdit = (attachmentID: string, patch: Partial<{ description: string; category: string; maintenanceId: string }>) => {
     setAttachmentEdits((current) => ({
       ...current,
       [attachmentID]: {
         description: current[attachmentID]?.description || "",
         category: current[attachmentID]?.category || "",
+        maintenanceId: current[attachmentID]?.maintenanceId || "",
         ...patch
       }
     }));
@@ -1761,7 +1848,7 @@ export function VehiclesView() {
 
   const saveAttachment = (attachment: VehicleAttachment) => {
     if (!selected) return;
-    const edit = attachmentEdits[attachment.id] || { description: "", category: "" };
+    const edit = attachmentEdits[attachment.id] || { description: "", category: "", maintenanceId: "" };
     setSaving(true);
     api
       .updateVehicleAttachment(selected.id, attachment.id, edit)
@@ -2188,8 +2275,10 @@ export function VehiclesView() {
     setForm(emptyVehicle);
     setPendingArticleImages([]);
     setAttachmentEdits({});
+    setImageUploadMaintenanceID("");
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
+    setAttachmentUploadMaintenanceID("");
     setAttachmentDragActive(false);
     setFunctionEdits({});
     resetMaintenanceForm();
@@ -2207,8 +2296,10 @@ export function VehiclesView() {
     setForm(emptyVehicle);
     setPendingArticleImages([]);
     setAttachmentEdits({});
+    setImageUploadMaintenanceID("");
     setAttachmentUploadCategory("");
     setAttachmentUploadDescription("");
+    setAttachmentUploadMaintenanceID("");
     setAttachmentDragActive(false);
     setFunctionEdits({});
     resetMaintenanceForm();
@@ -2217,13 +2308,13 @@ export function VehiclesView() {
     setMessage("");
   };
 
-  const openDetail = (vehicle: Vehicle) => {
+  const openDetail = (vehicle: Vehicle, tab: ModalTab = "model") => {
     api
       .vehicle(vehicle.id)
       .then((detail) => {
         setSelectedDetail(detail);
         setMode("view");
-        setActiveTab("model");
+        setActiveTab(tab);
         setOpenSections({ model: true, details: false });
         setModalOpen(true);
         setMessage("");
@@ -2259,6 +2350,7 @@ export function VehiclesView() {
       url: image.url,
       title: image.title,
       sourceUrl: image.source,
+      maintenanceId: image.maintenanceId || "",
       isPrimary: Boolean(image.isPrimary),
       sortOrder: index
     }));
@@ -2371,6 +2463,36 @@ export function VehiclesView() {
         </label>
       </section>
 
+      <section className="panel maintenance-reminder-panel">
+        <div className="maintenance-reminder-head">
+          <div>
+            <h2>Wartung</h2>
+            <p>Fällige und bald fällige Einträge der nächsten 14 Tage.</p>
+          </div>
+          <div className="maintenance-reminder-counts" aria-label="Wartungsübersicht">
+            <span className={maintenanceReminderSummary.due > 0 ? "danger" : ""}>{maintenanceReminderSummary.due} fällig</span>
+            <span>{maintenanceReminderSummary.upcoming} geplant</span>
+          </div>
+        </div>
+        {maintenanceReminders.length === 0 ? (
+          <p className="empty-state compact">Keine fälligen Wartungen in den nächsten 14 Tagen.</p>
+        ) : (
+          <div className="maintenance-reminder-list">
+            {maintenanceReminders.slice(0, 6).map(({ vehicle, entry, daysUntilDue }) => (
+              <button type="button" key={`${vehicle.id}-${entry.id}`} className={daysUntilDue <= 0 ? "maintenance-reminder due" : "maintenance-reminder"} onClick={() => openDetail(vehicle, "maintenance")}>
+                <span className="maintenance-reminder-icon">
+                  {daysUntilDue <= 0 ? <AlertTriangle size={16} /> : <Wrench size={16} />}
+                </span>
+                <span>
+                  <strong>{vehicle.inventoryNumber} · {vehicle.name}</strong>
+                  <small>{entry.kind} · {maintenanceReminderText(daysUntilDue)} · {formatDate(entry.dueDate)}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="panel inventory-panel">
         <div className="panel-head inventory-list-head">
           <h2>Fahrzeuge</h2>
@@ -2407,7 +2529,7 @@ export function VehiclesView() {
                 <article key={vehicle.id} className="inventory-card">
                   <button type="button" className="inventory-card-media" onClick={() => openDetail(vehicle)} aria-label={`${vehicle.inventoryNumber} anzeigen`}>
                     {image ? (
-                      <img src={image.url} alt="" />
+                      <img src={previewImageUrl(image)} alt="" />
                     ) : (
                       <div className="image-placeholder">Keine Vorschau</div>
                     )}
@@ -2472,7 +2594,7 @@ export function VehiclesView() {
                   <tr key={vehicle.id}>
                     <td>
                       {primaryImage(vehicle.images) ? (
-                        <img className="inventory-thumb" src={primaryImage(vehicle.images)?.url} alt="" />
+                        <img className="inventory-thumb" src={previewImageUrl(primaryImage(vehicle.images))} alt="" />
                       ) : (
                         <div className="image-placeholder">Keine Vorschau</div>
                       )}
@@ -3052,6 +3174,20 @@ export function VehiclesView() {
                         onChange={(event) => uploadImages(event.target.files)}
                         disabled={readonly || !selected}
                       />
+                      {selected && maintenanceEntries.length > 0 && (
+                        <select
+                          className="upload-maintenance-select"
+                          value={imageUploadMaintenanceID}
+                          onChange={(event) => setImageUploadMaintenanceID(event.target.value)}
+                          disabled={readonly || saving}
+                          aria-label="Wartung fuer neue Bilder"
+                        >
+                          <option value="">Ohne Wartung</option>
+                          {maintenanceEntries.map((entry) => (
+                            <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
+                          ))}
+                        </select>
+                      )}
                       <button type="button" className="primary-button" onClick={() => imageInputRef.current?.click()} disabled={readonly || !selected || saving}>
                         <Upload size={16} aria-hidden="true" />
                         Bild hochladen
@@ -3082,6 +3218,20 @@ export function VehiclesView() {
                                 aria-label="Bildbeschreibung"
                               />
                               <span>{sourceDisplayName(image.source)}</span>
+                              {maintenanceEntries.length > 0 && (
+                                <select
+                                  className="image-maintenance-select"
+                                  value={image.maintenanceId || ""}
+                                  onChange={(event) => updatePendingImageMaintenance(image.id, event.target.value)}
+                                  disabled={readonly || saving}
+                                  aria-label="Bild mit Wartung verknuepfen"
+                                >
+                                  <option value="">Keine Wartung</option>
+                                  {maintenanceEntries.map((entry) => (
+                                    <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
+                                  ))}
+                                </select>
+                              )}
                               <div className="image-card-actions">
                                 <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label="Quelle öffnen" title="Quelle öffnen">
                                   <ExternalLink size={15} />
@@ -3152,6 +3302,12 @@ export function VehiclesView() {
                             <option key={category} value={category}>{category}</option>
                           ))}
                         </select>
+                        <select value={attachmentUploadMaintenanceID} onChange={(event) => setAttachmentUploadMaintenanceID(event.target.value)} disabled={readonly || !selected || saving}>
+                          <option value="">Keine Wartung</option>
+                          {maintenanceEntries.map((entry) => (
+                            <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
+                          ))}
+                        </select>
                         <input
                           value={attachmentUploadDescription}
                           onChange={(event) => setAttachmentUploadDescription(event.target.value)}
@@ -3169,7 +3325,8 @@ export function VehiclesView() {
                         {selected.attachments.map((attachment) => {
                           const edit = attachmentEdits[attachment.id] || {
                             description: attachment.description || "",
-                            category: attachment.category || ""
+                            category: attachment.category || "",
+                            maintenanceId: attachment.maintenanceId || ""
                           };
                           const downloadUrl = api.vehicleAttachmentDownloadUrl(selected.id, attachment.id);
                           return (
@@ -3186,6 +3343,12 @@ export function VehiclesView() {
                                     <option value="">Kategorie</option>
                                     {attachmentCategories.map((category) => (
                                       <option key={category} value={category}>{category}</option>
+                                    ))}
+                                  </select>
+                                  <select value={edit.maintenanceId} onChange={(event) => updateAttachmentEdit(attachment.id, { maintenanceId: event.target.value })} disabled={readonly}>
+                                    <option value="">Keine Wartung</option>
+                                    {maintenanceEntries.map((entry) => (
+                                      <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
                                     ))}
                                   </select>
                                   <input value={edit.description} onChange={(event) => updateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder="Bemerkung" />
@@ -3308,8 +3471,11 @@ export function VehiclesView() {
                     {selected && (!selected.maintenance || selected.maintenance.length === 0) && (
                       <p className="empty-state compact">Noch keine Wartungseinträge hinterlegt.</p>
                     )}
-                    {selected?.maintenance?.map((entry) => (
-                      <article key={entry.id} className={maintenanceIsDue(entry) ? "maintenance-card due" : "maintenance-card"}>
+                    {selected?.maintenance?.map((entry) => {
+                      const linkedImages = pendingArticleImages.filter((image) => image.maintenanceId === entry.id).length;
+                      const linkedAttachments = (selected.attachments || []).filter((attachment) => attachment.maintenanceId === entry.id).length;
+                      return (
+                        <article key={entry.id} className={maintenanceIsDue(entry) ? "maintenance-card due" : "maintenance-card"}>
                         <div className="maintenance-card-head">
                           <div>
                             <strong>{entry.kind}</strong>
@@ -3335,6 +3501,16 @@ export function VehiclesView() {
                             <dd>{formatMaintenanceCost(entry.cost)}</dd>
                           </div>
                         </dl>
+                        {(linkedImages > 0 || linkedAttachments > 0) && (
+                          <div className="maintenance-linked-media" aria-label="Verknuepfte Medien">
+                            {linkedImages > 0 && (
+                              <span><Image size={14} aria-hidden="true" /> {linkedImages} Bilder</span>
+                            )}
+                            {linkedAttachments > 0 && (
+                              <span><FileText size={14} aria-hidden="true" /> {linkedAttachments} Beilagen</span>
+                            )}
+                          </div>
+                        )}
                         <div className="maintenance-card-actions">
                           {entry.status !== "erledigt" && (
                             <button type="button" className="secondary-button" onClick={() => completeMaintenance(entry)} disabled={readonly || saving}>
@@ -3348,8 +3524,9 @@ export function VehiclesView() {
                             <Trash2 size={15} />
                           </button>
                         </div>
-                      </article>
-                    ))}
+                        </article>
+                      );
+                    })}
                   </section>
                 </section>
               )}

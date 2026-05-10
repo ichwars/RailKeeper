@@ -55,6 +55,13 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if len(backup.Files) != 1 {
 		t.Fatalf("expected one file in backup, got %d", len(backup.Files))
 	}
+	validation, err := backupService.Validate(ctx, backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !validation.Compatible || validation.RowCount == 0 || validation.FileCount != 1 {
+		t.Fatalf("expected backup to validate, got %#v", validation)
+	}
 
 	if _, err := db.Exec(`DELETE FROM vehicle_attachments`); err != nil {
 		t.Fatal(err)
@@ -101,6 +108,26 @@ func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	})
 	if !errors.Is(err, application.ErrBackupPath) {
 		t.Fatalf("expected unsafe backup path error, got %v", err)
+	}
+}
+
+func TestBackupValidationReportsIncompatibleDocuments(t *testing.T) {
+	db := testDB(t)
+	service := application.NewBackupService(db, t.TempDir())
+
+	result, err := service.Validate(context.Background(), &application.BackupDocument{
+		Format:  "other",
+		Version: 99,
+		Tables:  map[string][]map[string]any{"vehicles": {}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Compatible {
+		t.Fatalf("expected incompatible backup")
+	}
+	if len(result.Errors) == 0 {
+		t.Fatalf("expected validation errors")
 	}
 }
 

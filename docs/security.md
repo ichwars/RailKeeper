@@ -16,7 +16,7 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 - role enforcement with Admin, Editor and Viewer roles
 - basic in-memory rate limiting for login and setup attempts
 - audit logs for setup, login, logout and vehicle changes
-- attachment size limit
+- configurable image and attachment upload size limits
 - executable attachment extension blocklist
 - server-side MIME detection for attachments
 - attachment storage path confinement to the configured data directory
@@ -33,7 +33,7 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 ## Open Hardening Work
 
 - persistent rate limiting across restarts
-- configurable attachment size and allowed file types
+- configurable allowed attachment extensions via `RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS`
 - backup/restore verification UI
 - structured security event review in the settings area
 - optional public read-only vehicle pages with explicit per-item enablement

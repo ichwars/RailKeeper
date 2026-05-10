@@ -68,6 +68,17 @@ func TestAttachmentSafetyHelpers(t *testing.T) {
 	if isAllowedAttachmentUpload("unknown.bin", "application/octet-stream") {
 		t.Fatalf("expected unknown attachment type to be rejected")
 	}
+	onlyPDF := map[string]struct{}{".pdf": {}}
+	if !isAllowedAttachmentUploadWithExtensions("manual.pdf", "application/pdf", onlyPDF) {
+		t.Fatalf("expected configured pdf extension to be allowed")
+	}
+	if isAllowedAttachmentUploadWithExtensions("daten.json", "application/json", onlyPDF) {
+		t.Fatalf("expected non-configured json extension to be rejected")
+	}
+	unsafeOnly := effectiveAttachmentExtensions(map[string]struct{}{".exe": {}})
+	if _, ok := unsafeOnly[".exe"]; ok {
+		t.Fatalf("expected unsafe configured extension to be ignored")
+	}
 }
 
 func TestRateLimiterBlocksAfterLimit(t *testing.T) {
