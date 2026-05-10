@@ -1,16 +1,27 @@
 import { useEffect, useState } from "react";
 import { Shell } from "./Shell";
 import { LoginView } from "../features/auth/LoginView";
+import { ImportExportView } from "../features/importExport/ImportExportView";
+import { OverviewView } from "../features/overview/OverviewView";
 import { SetupView } from "../features/setup/SetupView";
 import { SettingsView } from "../features/settings/SettingsView";
 import { VehiclesView } from "../features/vehicles/VehiclesView";
 import { api, Session } from "../shared/api";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 
-type AppView = "vehicles" | "settings";
+export type AppView = "overview" | "vehicles" | "importExport" | "settings";
 
 function currentView(): AppView {
-  return window.location.pathname.startsWith("/settings") ? "settings" : "vehicles";
+  if (window.location.pathname.startsWith("/overview")) {
+    return "overview";
+  }
+  if (window.location.pathname.startsWith("/import-export")) {
+    return "importExport";
+  }
+  if (window.location.pathname.startsWith("/settings")) {
+    return "settings";
+  }
+  return "vehicles";
 }
 
 export function App() {
@@ -100,7 +111,10 @@ export function App() {
         api.logout().finally(() => setSession(null));
       }}
     >
-      {view === "settings" ? <SettingsView /> : <VehiclesView />}
+      {view === "overview" && <OverviewView />}
+      {view === "vehicles" && <VehiclesView />}
+      {view === "importExport" && <ImportExportView />}
+      {view === "settings" && <SettingsView />}
     </Shell>
   );
 }

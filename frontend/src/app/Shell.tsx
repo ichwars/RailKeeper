@@ -1,5 +1,14 @@
 import type { ReactNode } from "react";
-import { Box, Code2, LogOut, Settings } from "lucide-react";
+import { useState } from "react";
+import { BarChart3, Box, Code2, FileInput, LogOut, Menu, Settings, X } from "lucide-react";
+import type { AppView } from "./App";
+
+const navItems = [
+  { view: "overview", href: "/overview", label: "Übersicht", icon: BarChart3 },
+  { view: "vehicles", href: "/", label: "Bestand", icon: Box },
+  { view: "importExport", href: "/import-export", label: "Import/Export", icon: FileInput },
+  { view: "settings", href: "/settings", label: "Einstellungen", icon: Settings }
+] as const;
 
 export function Shell({
   children,
@@ -9,29 +18,40 @@ export function Shell({
 }: {
   children: ReactNode;
   username: string;
-  activeView: "vehicles" | "settings";
+  activeView: AppView;
   onLogout: () => void;
 }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
   return (
-    <div className="layout">
+    <div className={mobileMenuOpen ? "layout nav-open" : "layout"}>
+      {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label="Menue schliessen" onClick={() => setMobileMenuOpen(false)} />}
       <aside className="sidebar">
+        <button type="button" className="mobile-menu-button" aria-label={mobileMenuOpen ? "Menue schliessen" : "Menue oeffnen"} onClick={() => setMobileMenuOpen((open) => !open)}>
+          {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
+        </button>
         <div className="brand">
           <img src="/brand/railkeeper-mark.svg" alt="" />
           <span>RailKeeper2</span>
         </div>
 
         <nav className="nav" aria-label="Hauptnavigation">
-          <a className={activeView === "vehicles" ? "active" : ""} href="/">
-            <Box size={16} aria-hidden="true" />
-            Bestand
-          </a>
-          <a className={activeView === "settings" ? "active" : ""} href="/settings">
-            <Settings size={16} aria-hidden="true" />
-            Einstellungen
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <a key={item.view} className={activeView === item.view ? "active" : ""} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+                <Icon size={16} aria-hidden="true" />
+                {item.label}
+              </a>
+            );
+          })}
+          <a className="repo-link mobile-repo-link" href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer">
+            <Code2 size={16} aria-hidden="true" />
+            Repository
           </a>
         </nav>
 
-        <a className="repo-link" href="https://github.com/" target="_blank" rel="noreferrer">
+        <a className="repo-link desktop-repo-link" href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer">
           <Code2 size={16} aria-hidden="true" />
           Repository
         </a>

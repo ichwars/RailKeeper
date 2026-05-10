@@ -19,6 +19,8 @@
 - vehicle attachments
 - backup and restore
 - backup compatibility preflight
+- overview dashboard
+- vehicle CSV/TSV/JSON import and export
 - maintenance and condition history
 - images and attachments per maintenance entry
 - digital function mapping
@@ -45,9 +47,20 @@
    - compact mobile layout
    - richer dashboard summaries
 
+6. Vehicle import polish
+   - secure backend Excel import for XLSX/XLS/ODS
+   - duplicate matching and update mode for existing vehicles
+
+7. ESU LokProgrammer import
+   - read safe ESUX metadata such as decoder, address, project name and preview image
+   - import ESUX files as decoder attachments
+   - evaluate LokProgrammer CSV/XML/text exports for CV values and function mappings
+   - only reverse-engineer proprietary ESUX blocks if no supported export path exists
+
 ## Explicitly Deferred
 
 - accessories
+- spare parts tab with targeted web search, images, prices, source, article numbers and update checks
 - public sharing by default
 - cloud sync
 - multi-tenant hosting

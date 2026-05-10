@@ -385,7 +385,7 @@ export function SettingsView() {
       return;
     }
     if (!backupValidation?.compatible) {
-      setBackupMessage("Backup bitte zuerst erfolgreich prÃ¼fen.");
+      setBackupMessage("Backup bitte zuerst erfolgreich prüfen.");
       return;
     }
     if (!window.confirm("Backup wirklich wiederherstellen? Bestand, Stammdaten, Wartung, CVs und Uploads werden durch den Inhalt der Datei ersetzt.")) {
@@ -406,10 +406,10 @@ export function SettingsView() {
 
   const importMasterData = () => {
     if (!masterDataFile) {
-      setMasterDataMessage("Bitte zuerst eine Stammdaten-Datei auswÃ¤hlen.");
+      setMasterDataMessage("Bitte zuerst eine Stammdaten-Datei auswählen.");
       return;
     }
-    if (!window.confirm("Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-AbhÃ¤ngigkeiten werden ersetzt. Bestand und Uploads bleiben unverÃ¤ndert.")) {
+    if (!window.confirm("Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-Abhängigkeiten werden ersetzt. Bestand und Uploads bleiben unverändert.")) {
       return;
     }
     setMasterDataSaving(true);
@@ -417,7 +417,7 @@ export function SettingsView() {
     api
       .importMasterData(masterDataFile)
       .then((result) => {
-        setMasterDataMessage(`Stammdaten importiert: ${result.importedEntries} EintrÃ¤ge, ${result.importedRelations} AbhÃ¤ngigkeiten.`);
+        setMasterDataMessage(`Stammdaten importiert: ${result.importedEntries} Einträge, ${result.importedRelations} Abhängigkeiten.`);
         setLoadedTypes({});
         setItemsByType({});
         setSearch("");
@@ -748,7 +748,7 @@ export function SettingsView() {
                   onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
                 />
               </label>
-              {backupValidating && <p className="backup-validation-status">Backup wird geprÃ¼ft...</p>}
+              {backupValidating && <p className="backup-validation-status">Backup wird geprüft...</p>}
               {backupValidation && (
                 <div className={backupValidation.compatible ? "backup-validation ok" : "backup-validation danger"}>
                   <strong>{backupValidation.compatible ? "Backup ist kompatibel" : "Backup ist nicht kompatibel"}</strong>
@@ -762,7 +762,7 @@ export function SettingsView() {
                       <dd>{backupValidation.tableCount}</dd>
                     </div>
                     <div>
-                      <dt>DatensÃ¤tze</dt>
+                      <dt>Datensätze</dt>
                       <dd>{backupValidation.rowCount}</dd>
                     </div>
                     <div>

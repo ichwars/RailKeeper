@@ -822,7 +822,7 @@ function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: So
       <div><span>Beilagen</span><strong>${totalAttachments}</strong></div>
       <div><span>CV-Werte</span><strong>${totalCVValues}</strong></div>
     </section>
-    <h2>Uebersicht</h2>
+    <h2>Übersicht</h2>
     <table>
       <thead>
         <tr>
@@ -3180,7 +3180,7 @@ export function VehiclesView() {
                           value={imageUploadMaintenanceID}
                           onChange={(event) => setImageUploadMaintenanceID(event.target.value)}
                           disabled={readonly || saving}
-                          aria-label="Wartung fuer neue Bilder"
+                          aria-label="Wartung für neue Bilder"
                         >
                           <option value="">Ohne Wartung</option>
                           {maintenanceEntries.map((entry) => (
