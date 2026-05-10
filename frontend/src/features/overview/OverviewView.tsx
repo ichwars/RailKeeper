@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BarChart3, Box, Gauge, Image, Wrench } from "lucide-react";
+import { AlertTriangle, BarChart3, Box, CalendarClock, Gauge, Image, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
 
 function numberValue(value?: string) {
@@ -13,6 +13,13 @@ function numberValue(value?: string) {
 
 function currency(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
+}
+
+function formatDate(value?: string) {
+  if (!value) {
+    return "-";
+  }
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${value}T00:00:00`));
 }
 
 function dateDistance(entry: VehicleMaintenance) {
@@ -30,6 +37,19 @@ function topEntries(values: string[]) {
     counts.set(value, (counts.get(value) || 0) + 1);
   }
   return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
+}
+
+function maintenanceDistanceText(days: number) {
+  if (days < 0) {
+    return `${Math.abs(days)} Tage überfällig`;
+  }
+  if (days === 0) {
+    return "heute fällig";
+  }
+  if (days === 1) {
+    return "morgen fällig";
+  }
+  return `in ${days} Tagen`;
 }
 
 export function OverviewView() {
@@ -51,13 +71,18 @@ export function OverviewView() {
     const analog = vehicles.length - digital;
     const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
     const allMaintenance = vehicles.flatMap((vehicle) => (vehicle.maintenance || []).map((entry) => ({ vehicle, entry, days: dateDistance(entry) })));
-    const due = allMaintenance.filter((item) => item.days !== null && item.days <= 0).length;
-    const upcoming = allMaintenance.filter((item) => item.days !== null && item.days > 0 && item.days <= 30).length;
+    const scheduledMaintenance = allMaintenance.filter((item): item is { vehicle: Vehicle; entry: VehicleMaintenance; days: number } => item.days !== null && item.entry.status !== "erledigt");
+    const due = scheduledMaintenance.filter((item) => item.days <= 0).length;
+    const upcoming = scheduledMaintenance.filter((item) => item.days > 0 && item.days <= 30).length;
     const openMaintenance = allMaintenance.filter((item) => item.entry.status !== "erledigt").length;
+    const completedMaintenance = allMaintenance.filter((item) => item.entry.status === "erledigt").length;
+    const maintenanceCost = allMaintenance.reduce((sum, item) => sum + numberValue(item.entry.cost), 0);
+    const nextMaintenance = [...scheduledMaintenance].sort((a, b) => a.days - b.days).slice(0, 4);
+    const conditions = topEntries(allMaintenance.map((item) => item.entry.conditionRating || "").filter(Boolean));
     const categories = topEntries(vehicles.map((vehicle) => vehicle.category || "Ohne Kategorie"));
     const gauges = topEntries(vehicles.map((vehicle) => vehicle.gauge || "Ohne Spur"));
     const manufacturers = topEntries(vehicles.map((vehicle) => vehicle.manufacturer || "Ohne Hersteller"));
-    return { totalValue, digital, analog, withImages, due, upcoming, openMaintenance, categories, gauges, manufacturers };
+    return { totalValue, digital, analog, withImages, due, upcoming, openMaintenance, completedMaintenance, maintenanceCost, nextMaintenance, conditions, categories, gauges, manufacturers };
   }, [vehicles]);
 
   const digitalShare = vehicles.length ? Math.round((stats.digital / vehicles.length) * 100) : 0;
@@ -144,6 +169,38 @@ export function OverviewView() {
             {stats.manufacturers.map(([label, count], index) => (
               <div key={label}><span>{index + 1}</span><strong>{label}</strong><em>{count}</em></div>
             ))}
+          </div>
+        </article>
+
+        <article className="panel insight-card maintenance-insight-card">
+          <div className="panel-head">
+            <div>
+              <h2>Wartungsradar</h2>
+              <p>Die nächsten fälligen Arbeiten im Blick.</p>
+            </div>
+            <CalendarClock size={18} aria-hidden="true" />
+          </div>
+          {stats.nextMaintenance.length === 0 ? (
+            <p className="empty-mini">Keine geplanten Wartungen mit Fälligkeitsdatum.</p>
+          ) : (
+            <div className="maintenance-overview-list">
+              {stats.nextMaintenance.map(({ vehicle, entry, days }) => (
+                <div key={`${vehicle.id}-${entry.id}`} className={days <= 0 ? "due" : ""}>
+                  <span>
+                    <strong>{vehicle.inventoryNumber}</strong>
+                    <small>{vehicle.name || entry.kind}</small>
+                  </span>
+                  <em>{entry.kind}</em>
+                  <b>{maintenanceDistanceText(days)}</b>
+                  <small>{formatDate(entry.dueDate)}</small>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="maintenance-kpi-row">
+            <span><small>Erledigt</small><strong>{stats.completedMaintenance}</strong></span>
+            <span><small>Kosten</small><strong>{currency(stats.maintenanceCost)}</strong></span>
+            <span><small>Zustände</small><strong>{stats.conditions.length}</strong></span>
           </div>
         </article>
 

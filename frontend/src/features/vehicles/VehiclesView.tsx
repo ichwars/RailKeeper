@@ -2208,7 +2208,7 @@ export function VehiclesView() {
     if (!qrSvg) return;
     const printWindow = window.open("", "railkeeper-qr-print", "width=520,height=680");
     if (!printWindow) {
-      setQrError("Druckfenster konnte nicht geoeffnet werden.");
+      setQrError("Druckfenster konnte nicht geöffnet werden.");
       return;
     }
     printWindow.document.write(`
@@ -2249,7 +2249,7 @@ export function VehiclesView() {
     }
     const printWindow = window.open("", "railkeeper-inventory-report", "width=1180,height=860");
     if (!printWindow) {
-      setMessage("Druckfenster konnte nicht geoeffnet werden.");
+      setMessage("Druckfenster konnte nicht geöffnet werden.");
       return;
     }
     printWindow.document.write(inventoryReportHtml(sortedVehicles, query, sort));
@@ -3502,7 +3502,7 @@ export function VehiclesView() {
                           </div>
                         </dl>
                         {(linkedImages > 0 || linkedAttachments > 0) && (
-                          <div className="maintenance-linked-media" aria-label="Verknuepfte Medien">
+                          <div className="maintenance-linked-media" aria-label="Verknüpfte Medien">
                             {linkedImages > 0 && (
                               <span><Image size={14} aria-hidden="true" /> {linkedImages} Bilder</span>
                             )}
