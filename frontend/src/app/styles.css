@@ -4084,7 +4084,7 @@ td {
   }
 }
 
-@media (max-width: 780px) {
+@media (max-width: 900px) {
   .layout {
     grid-template-columns: 1fr;
   }
@@ -4226,7 +4226,8 @@ td {
     z-index: 9;
     top: 67px;
     left: 12px;
-    right: 12px;
+    right: auto;
+    width: min(340px, calc(100vw - 24px));
     display: none;
     gap: 6px;
     padding: 10px;
