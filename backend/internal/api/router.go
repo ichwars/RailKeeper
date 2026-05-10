@@ -23,6 +23,8 @@ import (
 	"sync"
 	"time"
 
+	_ "golang.org/x/image/webp"
+
 	"railkeeper2/backend/internal/application"
 )
 

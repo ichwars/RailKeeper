@@ -22,7 +22,7 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - model and technical vehicle fields
 - article data web search with explicit field-by-field review before applying values
 - source URL storage for imported article data
-- image suggestions from article search, local image uploads, primary image selection, preview and automatic JPEG/PNG thumbnails
+- image suggestions from article search, local image uploads, primary image selection, preview and automatic JPEG/PNG/WebP thumbnails
 - QR code generation with PNG/SVG download and print view
 - file attachments for vehicles, including category, notes, download and PDF inline view
 - maintenance and condition history per vehicle

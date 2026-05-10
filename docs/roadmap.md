@@ -14,7 +14,7 @@
 - QR code generation
 - article-search image suggestions and primary image selection
 - local image uploads with drag and drop
-- automatic thumbnails for JPEG/PNG images
+- automatic thumbnails for JPEG/PNG/WebP images
 - image deletion reference checks
 - vehicle attachments
 - backup and restore
@@ -35,20 +35,17 @@
 
 ## Next Practical Milestones
 
-1. Local media polish
-   - optional WebP thumbnail generation
-
-2. Decoder and CV data polish
+1. Decoder and CV data polish
    - CV comparison helpers for imported decoder files
 
-3. Responsive inventory polish
+2. Responsive inventory polish
    - compact mobile layout
 
-4. Vehicle import polish
+3. Vehicle import polish
    - secure backend import for XLS
    - field-level import preview before updating existing vehicles
 
-5. ESU LokProgrammer import
+4. ESU LokProgrammer import
    - read safe ESUX metadata such as decoder, address, project name and preview image
    - import ESUX files as decoder attachments
    - evaluate LokProgrammer CSV/XML/text exports for CV values and function mappings

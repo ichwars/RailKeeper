@@ -1,8 +1,12 @@
 package api
 
 import (
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -78,6 +82,25 @@ func TestAttachmentSafetyHelpers(t *testing.T) {
 	unsafeOnly := effectiveAttachmentExtensions(map[string]struct{}{".exe": {}})
 	if _, ok := unsafeOnly[".exe"]; ok {
 		t.Fatalf("expected unsafe configured extension to be ignored")
+	}
+}
+
+func TestCreateVehicleImageThumbnailSupportsWebP(t *testing.T) {
+	data, err := base64.StdEncoding.DecodeString("UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEADsD+JaQAA3AAAAAA")
+	if err != nil {
+		t.Fatal(err)
+	}
+	app := &App{dataDir: t.TempDir()}
+
+	thumbnailPath, err := app.createVehicleImageThumbnail(data, "vehicle-1", "side.webp")
+	if err != nil {
+		t.Fatalf("expected webp thumbnail: %v", err)
+	}
+	if !strings.HasSuffix(thumbnailPath, "-thumb.jpg") {
+		t.Fatalf("expected jpeg thumbnail path, got %q", thumbnailPath)
+	}
+	if _, err := os.Stat(filepath.Join(app.dataDir, thumbnailPath)); err != nil {
+		t.Fatalf("expected thumbnail file: %v", err)
 	}
 }
 
