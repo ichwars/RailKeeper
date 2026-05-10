@@ -1221,7 +1221,8 @@ h1 {
   gap: 12px;
 }
 
-.import-table input:not([type="checkbox"]) {
+.import-table input:not([type="checkbox"]),
+.import-table select {
   width: 100%;
   min-width: 130px;
   min-height: 34px;
@@ -1236,6 +1237,10 @@ h1 {
 
 .import-row-error {
   background: color-mix(in srgb, var(--danger) 7%, var(--panel));
+}
+
+.import-row-warning {
+  background: color-mix(in srgb, var(--warm) 10%, var(--panel));
 }
 
 .import-row-saved {
@@ -1258,6 +1263,10 @@ h1 {
 
 .import-status.error {
   color: var(--danger);
+}
+
+.import-status.warning {
+  color: var(--warm);
 }
 
 .panel-head {

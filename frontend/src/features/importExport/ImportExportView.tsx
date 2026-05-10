@@ -5,8 +5,11 @@ import { api, CreateVehicleRequest, Vehicle } from "../../shared/api";
 type ImportRow = {
   id: string;
   selected: boolean;
+  mode: "create" | "update";
   status: "ok" | "warning" | "error" | "saved";
   issues: string[];
+  importedKeys: (keyof CreateVehicleRequest)[];
+  duplicateVehicleId?: string;
   vehicle: CreateVehicleRequest;
 };
 
@@ -102,9 +105,10 @@ function detectDelimiter(text: string) {
 
 function importRowsFromTable(table: string[][], existing: Vehicle[]) {
   const headers = table[0]?.map(normalizeHeader) || [];
-  const existingInventory = new Set(existing.map((vehicle) => vehicle.inventoryNumber.toLowerCase()));
+  const existingByInventory = new Map(existing.map((vehicle) => [vehicle.inventoryNumber.toLowerCase(), vehicle]));
   return table.slice(1).map((cells, index) => {
     const vehicle: CreateVehicleRequest = { manufacturer: "", name: "", gauge: "" };
+    const importedKeys: (keyof CreateVehicleRequest)[] = [];
     headers.forEach((header, cellIndex) => {
       const key = columnAliases[header];
       if (!key) {
@@ -119,24 +123,105 @@ function importRowsFromTable(table: string[][], existing: Vehicle[]) {
       } else {
         (vehicle as Record<string, unknown>)[key] = value;
       }
+      importedKeys.push(key);
     });
 
     const issues: string[] = [];
-    if (!vehicle.manufacturer) issues.push("Hersteller fehlt");
-    if (!vehicle.name) issues.push("Bezeichnung fehlt");
-    if (!vehicle.gauge) issues.push("Spur fehlt");
-    if (vehicle.inventoryNumber && existingInventory.has(vehicle.inventoryNumber.toLowerCase())) {
-      issues.push("Inventarnummer existiert bereits");
+    const duplicate = vehicle.inventoryNumber ? existingByInventory.get(vehicle.inventoryNumber.toLowerCase()) : undefined;
+    if (!duplicate) {
+      if (!vehicle.manufacturer) issues.push("Hersteller fehlt");
+      if (!vehicle.name) issues.push("Bezeichnung fehlt");
+      if (!vehicle.gauge) issues.push("Spur fehlt");
+    }
+    if (duplicate) {
+      issues.push("Bestehendes Fahrzeug gefunden");
     }
 
     return {
       id: `row-${index + 1}`,
-      selected: issues.length === 0,
-      status: issues.length === 0 ? "ok" as const : "error" as const,
+      selected: !duplicate && issues.length === 0,
+      mode: duplicate ? "update" as const : "create" as const,
+      status: duplicate ? "warning" as const : issues.length === 0 ? "ok" as const : "error" as const,
       issues,
+      importedKeys,
+      duplicateVehicleId: duplicate?.id,
       vehicle
     };
   });
+}
+
+function vehicleToRequest(vehicle: Vehicle): CreateVehicleRequest {
+  return {
+    inventoryNumber: vehicle.inventoryNumber,
+    manufacturer: vehicle.manufacturer,
+    articleNumber: vehicle.articleNumber,
+    articleSourceUrl: vehicle.articleSourceUrl,
+    name: vehicle.name,
+    gauge: vehicle.gauge,
+    epoch: vehicle.epoch,
+    railwayCompany: vehicle.railwayCompany,
+    category: vehicle.category,
+    gattung: vehicle.gattung,
+    description: vehicle.description,
+    series: vehicle.series,
+    vehicleNumber: vehicle.vehicleNumber,
+    digital: vehicle.digital,
+    digitalDecoderNumber: vehicle.digitalDecoderNumber,
+    dtDecoder: vehicle.dtDecoder,
+    dtDecoderNumber: vehicle.dtDecoderNumber,
+    exhibitionReady: vehicle.exhibitionReady,
+    abcBrakes: vehicle.abcBrakes,
+    ean: vehicle.ean,
+    productionPeriod: vehicle.productionPeriod,
+    listPrice: vehicle.listPrice,
+    lengthMm: vehicle.lengthMm,
+    weightG: vehicle.weightG,
+    color: vehicle.color,
+    lettering: vehicle.lettering,
+    load: vehicle.load,
+    interior: vehicle.interior,
+    axles: vehicle.axles,
+    axleCount: vehicle.axleCount,
+    tractionTireCount: vehicle.tractionTireCount,
+    wheelset: vehicle.wheelset,
+    couplingSame: vehicle.couplingSame,
+    couplingFront: vehicle.couplingFront,
+    couplingRear: vehicle.couplingRear,
+    powerPickup: vehicle.powerPickup,
+    adapter: vehicle.adapter,
+    driveEnabled: vehicle.driveEnabled,
+    driveDescription: vehicle.driveDescription,
+    headlightsEnabled: vehicle.headlightsEnabled,
+    headlightsDescription: vehicle.headlightsDescription,
+    lightingEnabled: vehicle.lightingEnabled,
+    lightingDescription: vehicle.lightingDescription,
+    soundGeneratorEnabled: vehicle.soundGeneratorEnabled,
+    soundGeneratorDescription: vehicle.soundGeneratorDescription,
+    smokeGeneratorEnabled: vehicle.smokeGeneratorEnabled,
+    smokeGeneratorDescription: vehicle.smokeGeneratorDescription,
+    additionalInfo: vehicle.additionalInfo,
+    qrCodeEnabled: vehicle.qrCodeEnabled,
+    images: vehicle.images?.map((image) => ({
+      id: image.id,
+      url: image.url,
+      title: image.title,
+      sourceUrl: image.sourceUrl,
+      maintenanceId: image.maintenanceId,
+      isPrimary: image.isPrimary,
+      sortOrder: image.sortOrder
+    }))
+  };
+}
+
+function mergeImportedVehicle(existing: Vehicle, incoming: CreateVehicleRequest, importedKeys: (keyof CreateVehicleRequest)[]) {
+  const merged = vehicleToRequest(existing);
+  importedKeys.forEach((key) => {
+    const value = incoming[key];
+    if (typeof value === "boolean" || (typeof value === "string" && value.trim() !== "")) {
+      (merged as Record<string, unknown>)[key] = value;
+    }
+  });
+  return merged;
 }
 
 function vehiclesToCSV(vehicles: Vehicle[]) {
@@ -187,6 +272,7 @@ export function ImportExportView() {
     total: rows.length,
     selected: rows.filter((row) => row.selected && row.status !== "saved").length,
     errors: rows.filter((row) => row.status === "error").length,
+    updates: rows.filter((row) => row.mode === "update" && row.status !== "saved").length,
     saved: rows.filter((row) => row.status === "saved").length
   }), [rows]);
 
@@ -197,12 +283,51 @@ export function ImportExportView() {
       }
       const vehicle = { ...row.vehicle, ...patch };
       const issues: string[] = [];
+      const duplicate = vehicle.inventoryNumber ? vehicles.find((existing) => existing.inventoryNumber.toLowerCase() === vehicle.inventoryNumber?.toLowerCase()) : undefined;
+      const importedKeys = Array.from(new Set([...row.importedKeys, ...Object.keys(patch) as (keyof CreateVehicleRequest)[]]));
+      if (duplicate) {
+        issues.push("Bestehendes Fahrzeug gefunden");
+        return {
+          ...row,
+          vehicle,
+          importedKeys,
+          duplicateVehicleId: duplicate.id,
+          mode: "update",
+          issues,
+          status: "warning",
+          selected: row.selected
+        };
+      }
       if (!vehicle.manufacturer) issues.push("Hersteller fehlt");
       if (!vehicle.name) issues.push("Bezeichnung fehlt");
       if (!vehicle.gauge) issues.push("Spur fehlt");
-      const duplicate = vehicle.inventoryNumber && vehicles.some((existing) => existing.inventoryNumber.toLowerCase() === vehicle.inventoryNumber?.toLowerCase());
-      if (duplicate) issues.push("Inventarnummer existiert bereits");
-      return { ...row, vehicle, issues, status: issues.length ? "error" : "ok", selected: issues.length ? false : row.selected };
+      return {
+        ...row,
+        vehicle,
+        importedKeys,
+        duplicateVehicleId: undefined,
+        mode: "create",
+        issues,
+        status: issues.length ? "error" : "ok",
+        selected: issues.length ? false : row.selected
+      };
+    }));
+  };
+
+  const setRowSelected = (rowID: string, selected: boolean) => {
+    setRows((current) => current.map((item) => item.id === rowID ? { ...item, selected } : item));
+  };
+
+  const setRowMode = (rowID: string, mode: ImportRow["mode"]) => {
+    setRows((current) => current.map((row) => {
+      if (row.id !== rowID) return row;
+      if (mode === "create" && row.duplicateVehicleId) {
+        return { ...row, mode, selected: false, status: "error", issues: ["Inventarnummer existiert bereits"] };
+      }
+      if (mode === "update" && row.duplicateVehicleId) {
+        return { ...row, mode, status: "warning", issues: ["Bestehendes Fahrzeug gefunden"] };
+      }
+      return { ...row, mode };
     }));
   };
 
@@ -253,12 +378,20 @@ export function ImportExportView() {
     setSaving(true);
     setMessage("");
     for (const row of rows) {
-      if (!row.selected || row.status === "saved" || row.issues.length > 0) {
+      if (!row.selected || row.status === "saved" || row.status === "error") {
         continue;
       }
       try {
-        const created = await api.createVehicle(row.vehicle);
-        setVehicles((current) => [...current, created]);
+        const existing = row.duplicateVehicleId ? vehicles.find((vehicle) => vehicle.id === row.duplicateVehicleId) : undefined;
+        const saved = row.mode === "update" && existing
+          ? await api.updateVehicle(existing.id, mergeImportedVehicle(existing, row.vehicle, row.importedKeys))
+          : await api.createVehicle(row.vehicle);
+        setVehicles((current) => {
+          if (row.mode === "update") {
+            return current.map((vehicle) => vehicle.id === saved.id ? saved : vehicle);
+          }
+          return [...current, saved];
+        });
         setRows((current) => current.map((item) => item.id === row.id ? { ...item, selected: false, status: "saved", issues: [] } : item));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Import fehlgeschlagen";
@@ -315,6 +448,7 @@ export function ImportExportView() {
           <div className="import-summary">
             <span>{importSummary.total} Zeilen</span>
             <span>{previewLoading ? "liest Datei..." : `${importSummary.selected} bereit`}</span>
+            <span>{importSummary.updates} Updates</span>
             <span className={importSummary.errors ? "danger" : ""}>{importSummary.errors} Hinweise</span>
             <span>{importSummary.saved} gespeichert</span>
           </div>
@@ -401,6 +535,7 @@ export function ImportExportView() {
               <thead>
                 <tr>
                   <th>Übernehmen</th>
+                  <th>Aktion</th>
                   <th>Inventar</th>
                   <th>Hersteller</th>
                   <th>Artikel</th>
@@ -411,8 +546,14 @@ export function ImportExportView() {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id} className={row.status === "error" ? "import-row-error" : row.status === "saved" ? "import-row-saved" : ""}>
-                    <td><input type="checkbox" checked={row.selected} disabled={row.status === "saved" || row.issues.length > 0} onChange={(event) => setRows((current) => current.map((item) => item.id === row.id ? { ...item, selected: event.target.checked } : item))} /></td>
+                  <tr key={row.id} className={row.status === "error" ? "import-row-error" : row.status === "warning" ? "import-row-warning" : row.status === "saved" ? "import-row-saved" : ""}>
+                    <td><input type="checkbox" checked={row.selected} disabled={row.status === "saved" || row.status === "error"} onChange={(event) => setRowSelected(row.id, event.target.checked)} /></td>
+                    <td>
+                      <select value={row.mode} disabled={row.status === "saved"} onChange={(event) => setRowMode(row.id, event.target.value as ImportRow["mode"])}>
+                        <option value="create">Neu</option>
+                        <option value="update" disabled={!row.duplicateVehicleId}>Aktualisieren</option>
+                      </select>
+                    </td>
                     <td><input value={row.vehicle.inventoryNumber || ""} onChange={(event) => updateRow(row.id, { inventoryNumber: event.target.value })} /></td>
                     <td><input value={row.vehicle.manufacturer} onChange={(event) => updateRow(row.id, { manufacturer: event.target.value })} /></td>
                     <td><input value={row.vehicle.articleNumber || ""} onChange={(event) => updateRow(row.id, { articleNumber: event.target.value })} /></td>
@@ -420,7 +561,7 @@ export function ImportExportView() {
                     <td><input value={row.vehicle.gauge} onChange={(event) => updateRow(row.id, { gauge: event.target.value })} /></td>
                     <td>
                       <span className={`import-status ${row.status}`}>
-                        {row.status === "saved" ? <Check size={14} /> : row.status === "error" ? <AlertTriangle size={14} /> : <Check size={14} />}
+                        {row.status === "saved" ? <Check size={14} /> : row.status === "error" || row.status === "warning" ? <AlertTriangle size={14} /> : <Check size={14} />}
                         {row.status === "saved" ? "gespeichert" : row.issues[0] || "bereit"}
                       </span>
                     </td>
