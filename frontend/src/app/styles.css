@@ -2484,12 +2484,92 @@ td {
   font-size: 13px;
 }
 
+.article-search-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .article-search-box .secondary-button,
+.barcode-search-actions .secondary-button,
+.barcode-search-actions .primary-button,
 .qr-dialog-actions .secondary-button,
 .qr-dialog-actions .primary-button,
 .article-result-card .primary-button {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
+}
+
+.barcode-search-layer {
+  z-index: 13;
+}
+
+.barcode-search-dialog {
+  display: grid;
+  gap: 16px;
+  width: min(520px, calc(100vw - 28px));
+  padding: 18px;
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);
+}
+
+.barcode-input-label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.barcode-input-shell {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  align-items: center;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.barcode-input-shell svg {
+  justify-self: center;
+  color: var(--accent-strong);
+}
+
+.barcode-input-shell input {
+  width: 100%;
+  min-height: 44px;
+  border: 0;
+  border-left: 1px solid var(--line);
+  border-radius: 0 8px 8px 0;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: 0;
+  padding: 0 12px;
+}
+
+.barcode-input-shell input:focus {
+  outline: 2px solid color-mix(in srgb, var(--accent) 22%, transparent);
+  outline-offset: 0;
+}
+
+.barcode-hint {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.barcode-search-actions {
+  display: flex;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -4190,6 +4270,23 @@ td {
 
   .vehicle-modal {
     max-height: 92vh;
+  }
+
+  .article-search-box {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .article-search-actions,
+  .barcode-search-actions {
+    justify-content: stretch;
+  }
+
+  .article-search-actions .secondary-button,
+  .barcode-search-actions .secondary-button,
+  .barcode-search-actions .primary-button {
+    justify-content: center;
+    width: 100%;
   }
 
   h1 {

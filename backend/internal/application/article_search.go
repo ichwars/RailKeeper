@@ -122,7 +122,7 @@ func cleanArticleSearchInput(input ArticleSearchInput) ArticleSearchInput {
 
 func articleSearchQuery(input ArticleSearchInput) string {
 	parts := []string{}
-	for _, value := range []string{input.Name, input.ArticleNumber, input.Manufacturer, input.Gauge} {
+	for _, value := range []string{input.Name, input.ArticleNumber, input.Fields["ean"], input.Manufacturer, input.Gauge} {
 		if value != "" {
 			parts = append(parts, value)
 		}

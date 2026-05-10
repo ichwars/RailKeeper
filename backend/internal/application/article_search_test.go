@@ -61,12 +61,13 @@ func TestArticleSearchQueryUsesFocusedModelPattern(t *testing.T) {
 		Name:          "V180 4-achsig",
 		Gauge:         "TT",
 		Fields: map[string]string{
+			"ean":         "4015615472841",
 			"epoch":       "IV",
 			"description": "soll nicht in die Suchanfrage",
 		},
 	})
 
-	expected := "V180 4-achsig 47284 Piko Spielwaren TT"
+	expected := "V180 4-achsig 47284 4015615472841 Piko Spielwaren TT"
 	if query != expected {
 		t.Fatalf("expected %q, got %q", expected, query)
 	}

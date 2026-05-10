@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import {
   AlertTriangle,
   ArrowUpDown,
+  Barcode,
   Check,
   ChevronDown,
   ChevronUp,
@@ -18,6 +19,7 @@ import {
   Lightbulb,
   Link,
   Megaphone,
+  PackageSearch,
   Pencil,
   Plus,
   Printer,
@@ -1588,6 +1590,67 @@ function ImagePreviewDialog({
   );
 }
 
+type BarcodeSearchDialogProps = {
+  value: string;
+  onValueChange: (value: string) => void;
+  onClose: () => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+};
+
+function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: BarcodeSearchDialogProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  }, []);
+
+  return (
+    <div className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true" aria-label="Strichcode suchen">
+      <form className="barcode-search-dialog" onSubmit={onSubmit}>
+        <header className="panel-head form-head">
+          <div>
+            <h2>Strichcode suchen</h2>
+            <p>Scanner-App oder Tastatur-Scanner nutzen, Code einfügen und als EAN suchen.</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Schließen" title="Schließen">
+            <X size={17} />
+          </button>
+        </header>
+
+        <label className="barcode-input-label">
+          Barcode / EAN
+          <span className="barcode-input-shell">
+            <Barcode size={20} aria-hidden="true" />
+            <input
+              ref={inputRef}
+              value={value}
+              onChange={(event) => onValueChange(event.target.value)}
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="Scanner-Code"
+            />
+          </span>
+        </label>
+
+        <p className="barcode-hint">
+          Der Code wird als EAN-Nr. im Modell eingetragen. Artikelnummern bleiben unverändert.
+        </p>
+
+        <footer className="barcode-search-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Abbrechen
+          </button>
+          <button type="submit" className="primary-button">
+            <PackageSearch size={15} aria-hidden="true" />
+            Artikeldaten suchen
+          </button>
+        </footer>
+      </form>
+    </div>
+  );
+}
+
 export function VehiclesView() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
@@ -1609,6 +1672,8 @@ export function VehiclesView() {
   const [articleSearchLoading, setArticleSearchLoading] = useState(false);
   const [articleSearchResponse, setArticleSearchResponse] = useState<ArticleSearchResponse | null>(null);
   const [articleSearchError, setArticleSearchError] = useState("");
+  const [barcodeSearchOpen, setBarcodeSearchOpen] = useState(false);
+  const [barcodeSearchValue, setBarcodeSearchValue] = useState("");
   const [selectedArticleFields, setSelectedArticleFields] = useState<Record<string, boolean>>({});
   const [selectedArticleImages, setSelectedArticleImages] = useState<Record<string, boolean>>({});
   const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
@@ -1783,7 +1848,7 @@ export function VehiclesView() {
     });
   };
 
-  const runArticleSearch = () => {
+  const runArticleSearch = (searchForm = form) => {
     if (!articleSearchEnabled()) {
       setArticleSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
       setArticleSearchOpen(true);
@@ -1800,11 +1865,11 @@ export function VehiclesView() {
 
     api
       .articleSearch({
-        manufacturer: form.manufacturer,
-        articleNumber: form.articleNumber,
-        name: form.name,
-        gauge: form.gauge,
-        fields: vehicleFieldsForSearch(form)
+        manufacturer: searchForm.manufacturer,
+        articleNumber: searchForm.articleNumber,
+        name: searchForm.name,
+        gauge: searchForm.gauge,
+        fields: vehicleFieldsForSearch(searchForm)
       })
       .then((response) => {
         const sanitized = sanitizeArticleSearchResponse(response);
@@ -1812,13 +1877,31 @@ export function VehiclesView() {
         const initialSelection: Record<string, boolean> = {};
         sanitized.results.forEach((result, index) => {
           Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
-            initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(form, key);
+            initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(searchForm, key);
           });
         });
         setSelectedArticleFields(initialSelection);
       })
       .catch((error: Error) => setArticleSearchError(error.message))
       .finally(() => setArticleSearchLoading(false));
+  };
+
+  const openBarcodeSearch = () => {
+    setBarcodeSearchValue(form.ean || "");
+    setBarcodeSearchOpen(true);
+  };
+
+  const submitBarcodeSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const code = barcodeSearchValue.trim();
+    if (!code) {
+      setMessage("Bitte einen Barcode oder eine EAN eingeben.");
+      return;
+    }
+    const nextForm = { ...form, ean: code };
+    setForm(nextForm);
+    setBarcodeSearchOpen(false);
+    runArticleSearch(nextForm);
   };
 
   const toggleArticleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
@@ -3043,10 +3126,16 @@ export function VehiclesView() {
                             <strong>Artikelsuche</strong>
                             <span>Nach Hersteller, Artikel-Nr., Bezeichnung und Detaildaten suchen</span>
                           </div>
-                          <button type="button" className="secondary-button" onClick={runArticleSearch} disabled={readonly || articleSearchLoading}>
-                            <Search size={15} aria-hidden="true" />
-                            {articleSearchLoading ? "Sucht..." : "Artikeldaten suchen"}
-                          </button>
+                          <div className="article-search-actions">
+                            <button type="button" className="secondary-button" onClick={openBarcodeSearch} disabled={readonly || articleSearchLoading} title="Strichcode oder EAN suchen">
+                              <Barcode size={15} aria-hidden="true" />
+                              Strichcode suchen
+                            </button>
+                            <button type="button" className="secondary-button" onClick={() => runArticleSearch()} disabled={readonly || articleSearchLoading}>
+                              <PackageSearch size={15} aria-hidden="true" />
+                              {articleSearchLoading ? "Sucht..." : "Artikeldaten suchen"}
+                            </button>
+                          </div>
                         </div>
 
                         {form.articleSourceUrl && (
@@ -4106,6 +4195,15 @@ export function VehiclesView() {
           onSelectEmptyFields={() => setArticleFieldSelection("empty")}
           onSelectAllFields={() => setArticleFieldSelection("all")}
           onClearFields={() => setArticleFieldSelection("none")}
+        />
+      )}
+
+      {barcodeSearchOpen && (
+        <BarcodeSearchDialog
+          value={barcodeSearchValue}
+          onValueChange={setBarcodeSearchValue}
+          onClose={() => setBarcodeSearchOpen(false)}
+          onSubmit={submitBarcodeSearch}
         />
       )}
 
