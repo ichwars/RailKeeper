@@ -73,6 +73,18 @@ func TestArticleSearchQueryUsesFocusedModelPattern(t *testing.T) {
 	}
 }
 
+func TestArticleSearchQueryAllowsEANOnlyPattern(t *testing.T) {
+	query := articleSearchQuery(ArticleSearchInput{
+		Fields: map[string]string{
+			"ean": "4012501136399",
+		},
+	})
+
+	if query != "4012501136399" {
+		t.Fatalf("expected EAN-only query, got %q", query)
+	}
+}
+
 func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V180", Gauge: "TT"}
 	fields := map[string]ArticleSearchField{"articleNumber": {Label: "Artikel-Nr.", Value: "47284", Confidence: 90}}

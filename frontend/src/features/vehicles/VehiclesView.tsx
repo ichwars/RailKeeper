@@ -38,6 +38,7 @@ import {
 import {
   api,
   ArticleSearchImage,
+  ArticleSearchInput,
   ArticleSearchResponse,
   ArticleSearchResult,
   CreateVehicleRequest,
@@ -1848,7 +1849,7 @@ export function VehiclesView() {
     });
   };
 
-  const runArticleSearch = (searchForm = form) => {
+  const runArticleSearch = (searchForm = form, searchInput?: ArticleSearchInput) => {
     if (!articleSearchEnabled()) {
       setArticleSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
       setArticleSearchOpen(true);
@@ -1864,7 +1865,7 @@ export function VehiclesView() {
     setSelectedArticleImages({});
 
     api
-      .articleSearch({
+      .articleSearch(searchInput ?? {
         manufacturer: searchForm.manufacturer,
         articleNumber: searchForm.articleNumber,
         name: searchForm.name,
@@ -1901,7 +1902,11 @@ export function VehiclesView() {
     const nextForm = { ...form, ean: code };
     setForm(nextForm);
     setBarcodeSearchOpen(false);
-    runArticleSearch(nextForm);
+    runArticleSearch(nextForm, {
+      fields: {
+        ean: code
+      }
+    });
   };
 
   const toggleArticleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
