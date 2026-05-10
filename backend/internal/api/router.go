@@ -1133,11 +1133,12 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
 		return
 	}
+	decoderProfile, description := applyESUXMetadata(originalName, data, r.FormValue("decoderProfile"), r.FormValue("description"))
 	cvFile, err := a.vehicleService.CreateCVFile(r.Context(), vehicleID, application.VehicleCVFileInput{
 		FileName:       storageName,
 		OriginalName:   originalName,
-		Description:    r.FormValue("description"),
-		DecoderProfile: r.FormValue("decoderProfile"),
+		Description:    description,
+		DecoderProfile: decoderProfile,
 		MimeType:       mimeType,
 		SizeBytes:      int64(len(data)),
 		StoragePath:    storagePath,

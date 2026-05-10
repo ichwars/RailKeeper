@@ -3427,6 +3427,13 @@ td {
   gap: 8px;
 }
 
+.cv-file-controls span {
+  grid-column: 1 / -1;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .cv-summary,
 .maintenance-summary {
   display: grid;

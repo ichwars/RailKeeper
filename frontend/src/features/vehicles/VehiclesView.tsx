@@ -3554,7 +3554,7 @@ export function VehiclesView() {
                     <div className="upload-head">
                       <div>
                         <h3>CV-Dateien</h3>
-                        <p>Decoder-Dateien, Exporte oder Profile sicher am Fahrzeug speichern.</p>
+                        <p>Decoder-Dateien, Exporte oder Profile sicher am Fahrzeug speichern. ESU/LokProgrammer-Metadaten werden beim Upload übernommen.</p>
                       </div>
                       <input
                         ref={cvFileInputRef}
@@ -3574,6 +3574,7 @@ export function VehiclesView() {
                       <div className="cv-file-controls">
                         <input list="decoder-profile-options" value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil für neue Dateien" />
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung für neue Dateien" />
+                        <span>Leer lassen, um ESU/LokProgrammer-Metadaten automatisch zu verwenden.</span>
                       </div>
                     )}
                     {selected && (!selected.cvFiles || selected.cvFiles.length === 0) && (

@@ -34,14 +34,14 @@
 - CV import comparison preview
 - decoder profile suggestions for CV values and files
 - visible CV change history
+- ESU/LokProgrammer project files as decoder attachments with safe metadata extraction
 - responsive inventory table/card switch
 - compact mobile inventory layout
 
 ## Next Practical Milestones
 
 1. ESU LokProgrammer import
-   - read safe ESUX metadata such as decoder, address, project name and preview image
-   - import ESUX files as decoder attachments
+   - add preview image extraction when safely available
    - evaluate LokProgrammer CSV/XML/text exports for CV values and function mappings
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
 
