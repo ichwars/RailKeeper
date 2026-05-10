@@ -228,17 +228,8 @@ func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input Artic
 		return results, nil
 	}
 
-	queries := []string{}
-	for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
-		queries = append(queries, query+" site:"+domain)
-		if len(queries) >= 2 {
-			break
-		}
-	}
-	queries = append(queries, query+" Modelleisenbahn")
-
 	results := []ArticleSearchResult{}
-	for _, searchQuery := range uniqueNonEmpty(queries) {
+	for _, searchQuery := range articleSearchQueries(input, query) {
 		searchResults, err := a.searchDuckDuckGo(ctx, input, searchQuery)
 		if err != nil {
 			if len(results) == 0 {
@@ -251,6 +242,32 @@ func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input Artic
 	results = dedupeArticleResults(results)
 	a.enrichResultsFromPages(ctx, input, results)
 	return results, nil
+}
+
+func articleSearchQueries(input ArticleSearchInput, query string) []string {
+	focused := focusedArticleSearchQuery(input)
+	queries := []string{}
+	for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
+		if focused != "" {
+			queries = append(queries, focused+" site:"+domain)
+		}
+		queries = append(queries, query+" site:"+domain)
+		if len(queries) >= 4 {
+			break
+		}
+	}
+	queries = append(queries, focused, query, query+" Modelleisenbahn")
+	return uniqueNonEmpty(queries)
+}
+
+func focusedArticleSearchQuery(input ArticleSearchInput) string {
+	parts := []string{}
+	for _, value := range []string{input.ArticleNumber, input.Manufacturer, input.Gauge} {
+		if value != "" {
+			parts = append(parts, value)
+		}
+	}
+	return strings.Join(uniqueNonEmpty(parts), " ")
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) searchDuckDuckGo(ctx context.Context, input ArticleSearchInput, query string) ([]ArticleSearchResult, error) {
@@ -321,7 +338,7 @@ var manufacturerDomains = map[string][]string{
 func parseDuckDuckGoResults(body string, input ArticleSearchInput) []ArticleSearchResult {
 	blocks := resultBlockPattern.FindAllString(body, 12)
 	results := []ArticleSearchResult{}
-	for _, block := range blocks {
+	for rank, block := range blocks {
 		linkMatch := resultLinkPattern.FindStringSubmatch(block)
 		if len(linkMatch) < 3 {
 			continue
@@ -336,16 +353,26 @@ func parseDuckDuckGoResults(body string, input ArticleSearchInput) []ArticleSear
 			continue
 		}
 		fields := buildArticleFields(input, title, resultURL, snippet)
+		score := scoreArticleResult(input, title, resultURL, snippet, fields)
+		score += duckDuckGoRankBonus(rank)
 		results = append(results, ArticleSearchResult{
 			Source:  "DuckDuckGo",
 			Title:   title,
 			URL:     resultURL,
 			Snippet: snippet,
-			Score:   scoreArticleResult(input, title, resultURL, snippet, fields),
+			Score:   score,
 			Fields:  fields,
 		})
 	}
 	return results
+}
+
+func duckDuckGoRankBonus(rank int) int {
+	bonus := 48 - rank*6
+	if bonus < 0 {
+		return 0
+	}
+	return bonus
 }
 
 func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet string) map[string]ArticleSearchField {
@@ -430,12 +457,27 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet string, fields map[string]ArticleSearchField) int {
 	haystack := strings.ToLower(title + " " + resultURL + " " + snippet)
 	score := len(fields) * 10
-	for _, token := range uniqueNonEmpty([]string{input.Manufacturer, input.ArticleNumber, input.Name, input.Gauge}) {
-		token = strings.ToLower(token)
-		if token != "" && strings.Contains(haystack, token) {
-			score += 25
-		}
+	manufacturer := strings.ToLower(strings.TrimSpace(input.Manufacturer))
+	articleNumber := strings.ToLower(strings.TrimSpace(input.ArticleNumber))
+	gauge := strings.ToLower(strings.TrimSpace(input.Gauge))
+	name := strings.ToLower(strings.TrimSpace(input.Name))
+
+	if manufacturer != "" && strings.Contains(haystack, manufacturer) {
+		score += 35
 	}
+	if articleNumber != "" && strings.Contains(haystack, articleNumber) {
+		score += 95
+	} else if articleNumber != "" {
+		score -= 70
+	}
+	if gauge != "" && containsGaugeToken(haystack, gauge) {
+		score += 35
+	}
+	if name != "" && strings.Contains(haystack, name) {
+		score += 30
+	}
+	score += articleNameTokenScore(name, haystack)
+
 	if isManufacturerPreferredURL(input.Manufacturer, resultURL) {
 		score += 100
 	} else if strings.Contains(haystack, manufacturerDomainToken(input.Manufacturer)) {
@@ -443,9 +485,6 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	if isMarketplaceURL(resultURL) {
 		score -= 12
-	}
-	if input.ArticleNumber != "" && strings.Contains(haystack, strings.ToLower(input.ArticleNumber)) {
-		score += 35
 	}
 	ean := strings.ToLower(strings.TrimSpace(input.Fields["ean"]))
 	if ean != "" && strings.Contains(haystack, ean) {
@@ -461,6 +500,41 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 		}
 	}
 	return score
+}
+
+func articleNameTokenScore(name, haystack string) int {
+	if name == "" {
+		return 0
+	}
+	score := 0
+	for _, token := range uniqueSearchTokens(name) {
+		if strings.Contains(haystack, token) {
+			score += 10
+		}
+	}
+	if score > 40 {
+		return 40
+	}
+	return score
+}
+
+func uniqueSearchTokens(value string) []string {
+	tokens := []string{}
+	for _, token := range strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
+		return !(r >= 'a' && r <= 'z') && !(r >= '0' && r <= '9') && r != 'ä' && r != 'ö' && r != 'ü' && r != 'ß'
+	}) {
+		if len(token) >= 3 {
+			tokens = append(tokens, token)
+		}
+	}
+	return uniqueNonEmpty(tokens)
+}
+
+func containsGaugeToken(haystack, gauge string) bool {
+	if gauge == "" {
+		return false
+	}
+	return regexp.MustCompile(`(?i)(^|[^a-z0-9])`+regexp.QuoteMeta(gauge)+`([^a-z0-9]|$)`).MatchString(haystack)
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Context, input ArticleSearchInput, results []ArticleSearchResult) {
@@ -492,7 +566,7 @@ func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Cont
 			}
 		}
 		results[index].Images = articleImagesFromHTML(body, results[index].URL, results[index].Title)
-		results[index].Score = scoreArticleResult(input, results[index].Title, results[index].URL, results[index].Snippet+" "+pageText, results[index].Fields)
+		results[index].Score = scoreArticleResult(input, results[index].Title, results[index].URL, results[index].Snippet+" "+pageText, results[index].Fields) + duckDuckGoRankBonus(index)
 	}
 }
 

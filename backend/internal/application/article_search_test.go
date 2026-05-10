@@ -89,6 +89,28 @@ func TestArticleSearchQueryAllowsEANOnlyPattern(t *testing.T) {
 	}
 }
 
+func TestArticleSearchQueriesPreferFocusedManufacturerAndRawSearch(t *testing.T) {
+	input := ArticleSearchInput{
+		Manufacturer:  "Tillig",
+		ArticleNumber: "13639",
+		Name:          "Y-Wagen Nirosta",
+		Gauge:         "TT",
+	}
+	queries := articleSearchQueries(input, articleSearchQuery(input))
+
+	expectedStart := []string{
+		"13639 Tillig TT site:tillig.com",
+		"Y-Wagen Nirosta 13639 Tillig TT site:tillig.com",
+		"13639 Tillig TT",
+		"Y-Wagen Nirosta 13639 Tillig TT",
+	}
+	for index, expected := range expectedStart {
+		if len(queries) <= index || queries[index] != expected {
+			t.Fatalf("expected query %d to be %q, got %#v", index, expected, queries)
+		}
+	}
+}
+
 func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V180", Gauge: "TT"}
 	fields := map[string]ArticleSearchField{"articleNumber": {Label: "Artikel-Nr.", Value: "47284", Confidence: 90}}
@@ -98,6 +120,17 @@ func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 
 	if manufacturerScore <= marketplaceScore {
 		t.Fatalf("manufacturer domain should rank higher, got manufacturer=%d marketplace=%d", manufacturerScore, marketplaceScore)
+	}
+}
+
+func TestArticleSearchPenalizesMissingArticleNumber(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Tillig", ArticleNumber: "13639", Name: "Y-Wagen Nirosta", Gauge: "TT"}
+
+	exactScore := scoreArticleResult(input, "Tillig 13639 Y-Wagen Nirosta TT", "https://shop.example.test/tillig-13639.html", "TT Modellwagen", map[string]ArticleSearchField{})
+	weakScore := scoreArticleResult(input, "Tillig Y-Wagen Nirosta TT", "https://shop.example.test/tillig-y-wagen.html", "TT Modellwagen", map[string]ArticleSearchField{})
+
+	if exactScore <= weakScore {
+		t.Fatalf("article-number match should rank higher, got exact=%d weak=%d", exactScore, weakScore)
 	}
 }
 
