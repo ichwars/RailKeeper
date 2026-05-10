@@ -1,5 +1,5 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, Download, FileInput, Save, Upload } from "lucide-react";
+import { AlertTriangle, Check, Database, Download, FileInput, Save, Upload } from "lucide-react";
 import { api, CreateVehicleRequest, Vehicle } from "../../shared/api";
 
 type ImportRow = {
@@ -174,6 +174,9 @@ export function ImportExportView() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
+  const [masterDataSaving, setMasterDataSaving] = useState(false);
+  const [masterDataMessage, setMasterDataMessage] = useState("");
 
   useEffect(() => {
     api.vehicles().then(setVehicles).catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false));
@@ -250,6 +253,26 @@ export function ImportExportView() {
     setSaving(false);
   };
 
+  const importMasterData = async () => {
+    if (!masterDataFile) {
+      setMasterDataMessage("Bitte zuerst eine Stammdaten-Datei auswählen.");
+      return;
+    }
+    if (!window.confirm("Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-Abhängigkeiten werden ersetzt. Bestand und Uploads bleiben unverändert.")) {
+      return;
+    }
+    setMasterDataSaving(true);
+    setMasterDataMessage("");
+    try {
+      const result = await api.importMasterData(masterDataFile);
+      setMasterDataMessage(`Stammdaten importiert: ${result.importedEntries} Einträge, ${result.importedRelations} Abhängigkeiten.`);
+    } catch (error) {
+      setMasterDataMessage(error instanceof Error ? error.message : "Stammdaten-Import fehlgeschlagen.");
+    } finally {
+      setMasterDataSaving(false);
+    }
+  };
+
   return (
     <>
       <section className="page-head">
@@ -301,6 +324,46 @@ export function ImportExportView() {
             </button>
           </div>
         </article>
+      </section>
+
+      <section className="panel transfer-panel master-transfer-panel">
+        <div className="panel-head">
+          <div>
+            <h2>Stammdaten</h2>
+            <p>Hersteller, Spurweiten, Epochen, Kategorien, Gattungen, Bahngesellschaften, Symbole und Abhängigkeiten als RailKeeper-JSON sichern oder wiederherstellen.</p>
+          </div>
+          <Database size={20} aria-hidden="true" />
+        </div>
+        <div className="master-transfer-actions">
+          <a className="secondary-button" href={api.masterDataExportUrl()}>
+            <Download size={15} aria-hidden="true" />
+            Stammdaten herunterladen
+          </a>
+          <label className="file-drop inline-file-drop">
+            <Upload size={16} aria-hidden="true" />
+            {masterDataFile ? masterDataFile.name : "Stammdaten-Datei auswählen"}
+            <input
+              type="file"
+              accept="application/json,.json"
+              onChange={(event) => {
+                setMasterDataFile(event.target.files?.[0] || null);
+                setMasterDataMessage("");
+              }}
+            />
+          </label>
+          <button type="button" className="primary-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile}>
+            {masterDataSaving ? (
+              "Importiert..."
+            ) : (
+              <>
+                <Upload size={15} aria-hidden="true" />
+                Stammdaten einspielen
+              </>
+            )}
+          </button>
+        </div>
+        <p className="source-note backup-note">Der Stammdaten-Import ersetzt nur Stammdaten und deren Abhängigkeiten. Bestand, Wartung, Bilder, Dateien und Backups bleiben unberührt.</p>
+        {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
       </section>
 
       <section className="panel import-review-panel">

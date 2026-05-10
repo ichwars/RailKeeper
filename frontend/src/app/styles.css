@@ -1166,8 +1166,38 @@ h1 {
   min-height: 94px;
 }
 
+.file-drop.inline-file-drop {
+  display: inline-flex;
+  min-width: min(100%, 280px);
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .file-drop input {
   display: none;
+}
+
+.master-transfer-panel {
+  margin-bottom: 16px;
+}
+
+.master-transfer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.master-transfer-actions .secondary-button,
+.master-transfer-actions .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .import-summary span {
