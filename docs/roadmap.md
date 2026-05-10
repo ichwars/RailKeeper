@@ -21,6 +21,7 @@
 - backup compatibility preflight
 - overview dashboard
 - vehicle CSV/TSV/XLSX/ODS/JSON import and export
+- manual column mapping for unknown vehicle import headers
 - safe duplicate update mode for vehicle imports
 - maintenance and condition history
 - images and attachments per maintenance entry

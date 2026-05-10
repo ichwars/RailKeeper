@@ -13,40 +13,307 @@ type ImportRow = {
   vehicle: CreateVehicleRequest;
 };
 
-const columnAliases: Record<string, keyof CreateVehicleRequest> = {
+type VehicleImportField = keyof CreateVehicleRequest;
+
+type ColumnMapping = {
+  index: number;
+  header: string;
+  normalized: string;
+  key: VehicleImportField | "";
+};
+
+type ImportTablePreview = {
+  fileName: string;
+  table: string[][];
+  mappings: ColumnMapping[];
+};
+
+const vehicleImportFields: { key: VehicleImportField; label: string }[] = [
+  { key: "inventoryNumber", label: "Inventarnummer" },
+  { key: "manufacturer", label: "Hersteller" },
+  { key: "articleNumber", label: "Artikel-Nr." },
+  { key: "articleSourceUrl", label: "Quelle / URL" },
+  { key: "name", label: "Bezeichnung" },
+  { key: "gauge", label: "Spurweite" },
+  { key: "epoch", label: "Epoche" },
+  { key: "railwayCompany", label: "Bahngesellschaft" },
+  { key: "category", label: "Kategorie" },
+  { key: "gattung", label: "Gattung" },
+  { key: "description", label: "Beschreibung" },
+  { key: "series", label: "Baureihe" },
+  { key: "vehicleNumber", label: "Fahrzeug-Nr." },
+  { key: "digital", label: "Digital" },
+  { key: "digitalDecoderNumber", label: "Digital / Decoder-Nr." },
+  { key: "dtDecoder", label: "DT / Decoder" },
+  { key: "dtDecoderNumber", label: "DT / Decoder-Nr." },
+  { key: "exhibitionReady", label: "Messe tauglich" },
+  { key: "abcBrakes", label: "ABC-Bremsen" },
+  { key: "ean", label: "EAN" },
+  { key: "productionPeriod", label: "Produktionszeit" },
+  { key: "listPrice", label: "Listenpreis" },
+  { key: "lengthMm", label: "Länge (mm)" },
+  { key: "weightG", label: "Gewicht (g)" },
+  { key: "color", label: "Farbe" },
+  { key: "lettering", label: "Beschriftung" },
+  { key: "load", label: "Beladung" },
+  { key: "interior", label: "Inneneinrichtung" },
+  { key: "axles", label: "Achsen" },
+  { key: "axleCount", label: "Anzahl Achsen" },
+  { key: "tractionTireCount", label: "Anzahl Haftreifen" },
+  { key: "wheelset", label: "Radsatz" },
+  { key: "couplingSame", label: "Kupplung (V=H)" },
+  { key: "couplingFront", label: "Kupplung vorne" },
+  { key: "couplingRear", label: "Kupplung hinten" },
+  { key: "powerPickup", label: "Stromabnahme" },
+  { key: "adapter", label: "Adapter / Schnittstelle" },
+  { key: "driveEnabled", label: "Antrieb" },
+  { key: "driveDescription", label: "Antrieb Beschreibung" },
+  { key: "headlightsEnabled", label: "Fahrlicht" },
+  { key: "headlightsDescription", label: "Fahrlicht Beschreibung" },
+  { key: "lightingEnabled", label: "Beleuchtung" },
+  { key: "lightingDescription", label: "Beleuchtung Beschreibung" },
+  { key: "soundGeneratorEnabled", label: "Soundgenerator" },
+  { key: "soundGeneratorDescription", label: "Soundgenerator Beschreibung" },
+  { key: "smokeGeneratorEnabled", label: "Rauchgenerator" },
+  { key: "smokeGeneratorDescription", label: "Rauchgenerator Beschreibung" },
+  { key: "additionalInfo", label: "Zusatzinformationen" },
+  { key: "qrCodeEnabled", label: "QR-Code erstellen" }
+];
+
+const booleanImportFields = new Set<VehicleImportField>([
+  "digital",
+  "dtDecoder",
+  "exhibitionReady",
+  "abcBrakes",
+  "couplingSame",
+  "driveEnabled",
+  "headlightsEnabled",
+  "lightingEnabled",
+  "soundGeneratorEnabled",
+  "smokeGeneratorEnabled",
+  "qrCodeEnabled"
+]);
+
+const columnAliases: Record<string, VehicleImportField> = {
   inventar: "inventoryNumber",
   inventarnummer: "inventoryNumber",
+  inventarnr: "inventoryNumber",
   "inventar-nr": "inventoryNumber",
+  "inventar-nr-": "inventoryNumber",
+  inv: "inventoryNumber",
+  invnr: "inventoryNumber",
+  "inv-nr": "inventoryNumber",
+  "inv-nr-": "inventoryNumber",
+  inventarid: "inventoryNumber",
+  bestandsnummer: "inventoryNumber",
+  nummer: "inventoryNumber",
   hersteller: "manufacturer",
+  fabrikat: "manufacturer",
+  marke: "manufacturer",
+  firma: "manufacturer",
+  produzent: "manufacturer",
   artikel: "articleNumber",
   artikelnummer: "articleNumber",
+  artikelnr: "articleNumber",
   "artikel-nr": "articleNumber",
+  "artikel-nr-": "articleNumber",
+  "artikel-nr-alt": "articleNumber",
+  artnr: "articleNumber",
+  "art-nr": "articleNumber",
+  "art-nr-": "articleNumber",
+  bestellnummer: "articleNumber",
+  bestellnr: "articleNumber",
+  "bestell-nr": "articleNumber",
+  "bestell-nr-": "articleNumber",
+  katalognummer: "articleNumber",
+  katalognr: "articleNumber",
+  "katalog-nr": "articleNumber",
+  "katalog-nr-": "articleNumber",
+  url: "articleSourceUrl",
+  quelle: "articleSourceUrl",
+  source: "articleSourceUrl",
+  link: "articleSourceUrl",
+  website: "articleSourceUrl",
+  webseite: "articleSourceUrl",
+  artikelquelle: "articleSourceUrl",
   bezeichnung: "name",
   name: "name",
+  modell: "name",
+  modellname: "name",
+  fahrzeug: "name",
+  fahrzeugname: "name",
+  titel: "name",
+  typ: "name",
   spur: "gauge",
   spurweite: "gauge",
+  gauge: "gauge",
+  nenngroesse: "gauge",
+  nenngrosse: "gauge",
+  nenngroessemassstab: "gauge",
+  massstab: "gauge",
+  masstab: "gauge",
+  scale: "gauge",
   epoche: "epoch",
+  era: "epoch",
   bahngesellschaft: "railwayCompany",
+  bahn: "railwayCompany",
+  evu: "railwayCompany",
+  verwaltung: "railwayCompany",
+  gesellschaft: "railwayCompany",
   kategorie: "category",
+  fahrzeugkategorie: "category",
+  art: "category",
   gattung: "gattung",
+  bauart: "gattung",
+  "bauart-gattung": "gattung",
   beschreibung: "description",
+  notiz: "description",
+  notizen: "description",
+  kommentar: "description",
+  bemerkung: "description",
   baureihe: "series",
+  br: "series",
+  reihe: "series",
   fahrzeugnummer: "vehicleNumber",
+  fahrzeugnr: "vehicleNumber",
   "fahrzeug-nr": "vehicleNumber",
   digital: "digital",
-  decodernummer: "digitalDecoderNumber",
+  decoderja: "digital",
   decoder: "digitalDecoderNumber",
+  decodernummer: "digitalDecoderNumber",
+  decodernr: "digitalDecoderNumber",
+  "decoder-nr": "digitalDecoderNumber",
+  digitaldecoder: "digitalDecoderNumber",
+  "digital-decoder": "digitalDecoderNumber",
+  "digital-decoder-nr": "digitalDecoderNumber",
+  digitaldecodernummer: "digitalDecoderNumber",
+  dtdecoder: "dtDecoder",
+  "dt-decoder": "dtDecoder",
+  "dt-decoder-nr": "dtDecoderNumber",
+  dtnummer: "dtDecoderNumber",
+  dtdecodernummer: "dtDecoderNumber",
+  messe: "exhibitionReady",
+  messetauglich: "exhibitionReady",
+  abcbremse: "abcBrakes",
+  abcbremsen: "abcBrakes",
   ean: "ean",
+  barcode: "ean",
   produktionszeit: "productionPeriod",
-  listenpreis: "listPrice"
+  produktion: "productionPeriod",
+  baujahr: "productionPeriod",
+  bauzeit: "productionPeriod",
+  listenpreis: "listPrice",
+  herstellerpreis: "listPrice",
+  herstellerlistenpreis: "listPrice",
+  "herstellerpreis-listenpreis": "listPrice",
+  preis: "listPrice",
+  uvp: "listPrice",
+  laenge: "lengthMm",
+  lange: "lengthMm",
+  "laenge-mm": "lengthMm",
+  "lange-mm": "lengthMm",
+  laengemm: "lengthMm",
+  langemm: "lengthMm",
+  "laenge-in-mm": "lengthMm",
+  "lange-in-mm": "lengthMm",
+  mass: "lengthMm",
+  mas: "lengthMm",
+  "mass-mm": "lengthMm",
+  "mas-mm": "lengthMm",
+  "mass-mm-": "lengthMm",
+  "mas-mm-": "lengthMm",
+  masse: "lengthMm",
+  "masse-mm": "lengthMm",
+  gewicht: "weightG",
+  "gewicht-g": "weightG",
+  gewichtg: "weightG",
+  farbe: "color",
+  beschriftung: "lettering",
+  beladung: "load",
+  inneneinrichtung: "interior",
+  einrichtung: "interior",
+  achsen: "axles",
+  anzahl: "axleCount",
+  achsanzahl: "axleCount",
+  anzahlachsen: "axleCount",
+  "anzahl-achsen": "axleCount",
+  haftreifen: "tractionTireCount",
+  anzahlhaftreifen: "tractionTireCount",
+  "anzahl-haftreifen": "tractionTireCount",
+  radsatz: "wheelset",
+  stromabnahme: "powerPickup",
+  stromsystem: "powerPickup",
+  strom: "powerPickup",
+  adapter: "adapter",
+  schnittstelle: "adapter",
+  digitaleschnittstelle: "adapter",
+  kupplung: "couplingFront",
+  kupplungvorne: "couplingFront",
+  "kupplung-vorne": "couplingFront",
+  kupplunghinten: "couplingRear",
+  "kupplung-hinten": "couplingRear",
+  kupplungvh: "couplingSame",
+  "kupplung-v-h": "couplingSame",
+  "kupplung-v=h": "couplingSame",
+  antrieb: "driveEnabled",
+  antriebbeschreibung: "driveDescription",
+  "antrieb-beschreibung": "driveDescription",
+  fahrlicht: "headlightsEnabled",
+  fahrlichtbeschreibung: "headlightsDescription",
+  "fahrlicht-beschreibung": "headlightsDescription",
+  beleuchtung: "lightingEnabled",
+  licht: "lightingEnabled",
+  beleuchtungsbeschreibung: "lightingDescription",
+  "beleuchtung-beschreibung": "lightingDescription",
+  lichtbeschreibung: "lightingDescription",
+  "licht-beschreibung": "lightingDescription",
+  sound: "soundGeneratorEnabled",
+  soundgenerator: "soundGeneratorEnabled",
+  soundmodul: "soundGeneratorEnabled",
+  soundbeschreibung: "soundGeneratorDescription",
+  "sound-beschreibung": "soundGeneratorDescription",
+  soundgeneratorbeschreibung: "soundGeneratorDescription",
+  "soundgenerator-beschreibung": "soundGeneratorDescription",
+  rauch: "smokeGeneratorEnabled",
+  rauchgenerator: "smokeGeneratorEnabled",
+  rauchbeschreibung: "smokeGeneratorDescription",
+  "rauch-beschreibung": "smokeGeneratorDescription",
+  rauchgeneratorbeschreibung: "smokeGeneratorDescription",
+  "rauchgenerator-beschreibung": "smokeGeneratorDescription",
+  zusatzinfo: "additionalInfo",
+  zusatzinformationen: "additionalInfo",
+  zusatz: "additionalInfo",
+  qrcode: "qrCodeEnabled",
+  "qr-code": "qrCodeEnabled"
 };
 
 function normalizeHeader(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, "").replace(/[._]/g, "-").replace(/^-+|-+$/g, "");
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .replace(/\s+/g, "")
+    .replace(/[._/:()[\]]/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 function parseBoolean(value: string) {
-  return ["1", "ja", "yes", "true", "digital", "d"].includes(value.trim().toLowerCase());
+  return ["1", "ja", "yes", "true", "wahr", "digital", "d", "x", "vorhanden"].includes(value.trim().toLowerCase());
+}
+
+function defaultColumnMappings(table: string[][]): ColumnMapping[] {
+  return (table[0] || []).map((header, index) => {
+    const normalized = normalizeHeader(header);
+    return {
+      index,
+      header: header || `Spalte ${index + 1}`,
+      normalized,
+      key: columnAliases[normalized] || ""
+    };
+  });
 }
 
 function csvEscape(value: unknown) {
@@ -103,23 +370,22 @@ function detectDelimiter(text: string) {
   return semicolon >= comma ? ";" : ",";
 }
 
-function importRowsFromTable(table: string[][], existing: Vehicle[]) {
-  const headers = table[0]?.map(normalizeHeader) || [];
+function importRowsFromTable(table: string[][], existing: Vehicle[], mappings = defaultColumnMappings(table)) {
   const existingByInventory = new Map(existing.map((vehicle) => [vehicle.inventoryNumber.toLowerCase(), vehicle]));
   return table.slice(1).map((cells, index) => {
     const vehicle: CreateVehicleRequest = { manufacturer: "", name: "", gauge: "" };
     const importedKeys: (keyof CreateVehicleRequest)[] = [];
-    headers.forEach((header, cellIndex) => {
-      const key = columnAliases[header];
+    mappings.forEach((mapping) => {
+      const key = mapping.key;
       if (!key) {
         return;
       }
-      const value = cells[cellIndex]?.trim() || "";
+      const value = cells[mapping.index]?.trim() || "";
       if (!value) {
         return;
       }
-      if (key === "digital") {
-        vehicle.digital = parseBoolean(value);
+      if (booleanImportFields.has(key)) {
+        (vehicle as Record<string, unknown>)[key] = parseBoolean(value);
       } else {
         (vehicle as Record<string, unknown>)[key] = value;
       }
@@ -143,7 +409,7 @@ function importRowsFromTable(table: string[][], existing: Vehicle[]) {
       mode: duplicate ? "update" as const : "create" as const,
       status: duplicate ? "warning" as const : issues.length === 0 ? "ok" as const : "error" as const,
       issues,
-      importedKeys,
+      importedKeys: Array.from(new Set(importedKeys)),
       duplicateVehicleId: duplicate?.id,
       vehicle
     };
@@ -260,6 +526,7 @@ export function ImportExportView() {
   const [previewLoading, setPreviewLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
+  const [importTable, setImportTable] = useState<ImportTablePreview | null>(null);
   const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
   const [masterDataSaving, setMasterDataSaving] = useState(false);
   const [masterDataMessage, setMasterDataMessage] = useState("");
@@ -275,6 +542,46 @@ export function ImportExportView() {
     updates: rows.filter((row) => row.mode === "update" && row.status !== "saved").length,
     saved: rows.filter((row) => row.status === "saved").length
   }), [rows]);
+
+  const mappingSummary = useMemo(() => {
+    if (!importTable) {
+      return { mapped: 0, unmapped: 0 };
+    }
+    const visibleMappings = importTable.mappings.filter((mapping) => mapping.header.trim());
+    return {
+      mapped: visibleMappings.filter((mapping) => mapping.key).length,
+      unmapped: visibleMappings.filter((mapping) => !mapping.key).length
+    };
+  }, [importTable]);
+
+  const loadImportTable = (table: string[][], fileName: string) => {
+    if (table.length === 0) {
+      setImportTable(null);
+      setRows([]);
+      setMessage("Die Datei enthält keine auswertbaren Zeilen.");
+      return;
+    }
+    const mappings = defaultColumnMappings(table);
+    const importedRows = importRowsFromTable(table, vehicles, mappings);
+    const unmapped = mappings.filter((mapping) => !mapping.key && mapping.header.trim()).length;
+    setImportTable({ fileName, table, mappings });
+    setRows(importedRows);
+    setMessage(unmapped > 0 ? `${unmapped} Spalten nicht automatisch zugeordnet. Bitte bei Bedarf in der Spaltenzuordnung auswählen.` : "");
+  };
+
+  const setColumnMapping = (columnIndex: number, key: VehicleImportField | "") => {
+    if (!importTable) {
+      return;
+    }
+    const mappings: ColumnMapping[] = importTable.mappings.map((mapping) => {
+      if (mapping.index === columnIndex) {
+        return { ...mapping, key };
+      }
+      return key && mapping.key === key ? { ...mapping, key: "" } : mapping;
+    });
+    setImportTable({ ...importTable, mappings });
+    setRows(importRowsFromTable(importTable.table, vehicles, mappings));
+  };
 
   const updateRow = (rowID: string, patch: Partial<ImportRow["vehicle"]>) => {
     setRows((current) => current.map((row) => {
@@ -340,11 +647,17 @@ export function ImportExportView() {
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
     if (extension === "xlsx" || extension === "ods") {
       setRows([]);
+      setImportTable(null);
       setPreviewLoading(true);
       try {
         const preview = await api.previewVehicleImport(file);
-        setRows(importRowsFromTable(preview.rows, vehicles));
-        setMessage(preview.rows.length ? "" : "Die Tabellendatei enthält keine auswertbaren Zeilen.");
+        if (preview.rows.length) {
+          loadImportTable(preview.rows, file.name);
+        } else {
+          setRows([]);
+          setImportTable(null);
+          setMessage("Die Tabellendatei enthält keine auswertbaren Zeilen.");
+        }
       } catch (error) {
         setMessage(error instanceof Error ? error.message : "Tabellendatei konnte nicht ausgewertet werden.");
       } finally {
@@ -354,6 +667,7 @@ export function ImportExportView() {
     }
     if (extension === "xls") {
       setRows([]);
+      setImportTable(null);
       setMessage("XLS ist als altes Excel-Binärformat vorgemerkt. Aktuell bitte als XLSX, ODS, CSV, TSV oder JSON speichern.");
       return;
     }
@@ -366,12 +680,12 @@ export function ImportExportView() {
         ["Inventarnummer", "Hersteller", "Artikel-Nr.", "Bezeichnung", "Spur", "Epoche", "Bahngesellschaft", "Kategorie", "Gattung", "Digital", "Decoder-Nr.", "Listenpreis"],
         ...source.map((vehicle) => [vehicle.inventoryNumber, vehicle.manufacturer, vehicle.articleNumber || "", vehicle.name, vehicle.gauge, vehicle.epoch || "", vehicle.railwayCompany || "", vehicle.category || "", vehicle.gattung || "", vehicle.digital ? "ja" : "nein", vehicle.digitalDecoderNumber || "", vehicle.listPrice || ""])
       ];
-      setRows(importRowsFromTable(table, vehicles));
+      loadImportTable(table, file.name);
       return;
     }
 
     const delimiter = extension === "tsv" ? "\t" : detectDelimiter(text);
-    setRows(importRowsFromTable(parseDelimited(text, delimiter), vehicles));
+    loadImportTable(parseDelimited(text, delimiter), file.name);
   };
 
   const saveSelected = async () => {
@@ -451,6 +765,8 @@ export function ImportExportView() {
             <span>{importSummary.updates} Updates</span>
             <span className={importSummary.errors ? "danger" : ""}>{importSummary.errors} Hinweise</span>
             <span>{importSummary.saved} gespeichert</span>
+            {importTable && <span>{mappingSummary.mapped} Spalten erkannt</span>}
+            {importTable && <span className={mappingSummary.unmapped ? "danger" : ""}>{mappingSummary.unmapped} offen</span>}
           </div>
         </article>
 
@@ -474,6 +790,35 @@ export function ImportExportView() {
           </div>
         </article>
       </section>
+
+      {importTable && (
+        <section className="panel column-mapping-panel">
+          <div className="panel-head">
+            <div>
+              <h2>Spaltenzuordnung</h2>
+              <p>{importTable.fileName}: nicht erkannte Tabellenköpfe können hier vor dem Speichern manuell zugeordnet werden.</p>
+            </div>
+            <Database size={20} aria-hidden="true" />
+          </div>
+          <div className="column-mapping-grid">
+            {importTable.mappings.map((mapping) => (
+              <label key={mapping.index} className={mapping.key ? "" : "unmapped"}>
+                <span>
+                  <strong title={mapping.header}>{mapping.header || `Spalte ${mapping.index + 1}`}</strong>
+                  <small>{mapping.key ? "zugeordnet" : "nicht erkannt"}</small>
+                </span>
+                <select value={mapping.key} onChange={(event) => setColumnMapping(mapping.index, event.target.value as VehicleImportField | "")}>
+                  <option value="">Ignorieren</option>
+                  {vehicleImportFields.map((field) => (
+                    <option key={field.key} value={field.key}>{field.label}</option>
+                  ))}
+                </select>
+              </label>
+            ))}
+          </div>
+          <p className="source-note backup-note">Wenn zwei Spalten demselben Zielfeld zugeordnet werden, bleibt die zuletzt gewählte Zuordnung aktiv. Die Importprüfung wird sofort neu berechnet.</p>
+        </section>
+      )}
 
       <section className="panel transfer-panel master-transfer-panel">
         <div className="panel-head">

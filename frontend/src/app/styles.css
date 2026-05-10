@@ -1285,6 +1285,68 @@ h1 {
   margin-bottom: 16px;
 }
 
+.column-mapping-panel {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.column-mapping-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.column-mapping-grid label {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.column-mapping-grid label.unmapped {
+  border-color: color-mix(in srgb, var(--warm) 45%, var(--line));
+  background: color-mix(in srgb, var(--warm) 8%, var(--panel));
+}
+
+.column-mapping-grid span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.column-mapping-grid strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.column-mapping-grid small {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.column-mapping-grid select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
 .master-transfer-actions {
   display: flex;
   flex-wrap: wrap;
