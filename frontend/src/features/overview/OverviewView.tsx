@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, BarChart3, Box, CalendarClock, Gauge, Image, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowRight, BarChart3, Box, CalendarClock, Database, Gauge, Image, ListChecks, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
 
 function numberValue(value?: string) {
@@ -82,11 +82,46 @@ export function OverviewView() {
     const categories = topEntries(vehicles.map((vehicle) => vehicle.category || "Ohne Kategorie"));
     const gauges = topEntries(vehicles.map((vehicle) => vehicle.gauge || "Ohne Spur"));
     const manufacturers = topEntries(vehicles.map((vehicle) => vehicle.manufacturer || "Ohne Hersteller"));
-    return { totalValue, digital, analog, withImages, due, upcoming, openMaintenance, completedMaintenance, maintenanceCost, nextMaintenance, conditions, categories, gauges, manufacturers };
+    const withArticleNumbers = vehicles.filter((vehicle) => vehicle.articleNumber).length;
+    const withEAN = vehicles.filter((vehicle) => vehicle.ean).length;
+    const withDecoderNumbers = vehicles.filter((vehicle) => vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber).length;
+    const digitalWithoutDecoder = vehicles.filter((vehicle) => vehicle.digital && !vehicle.digitalDecoderNumber && !vehicle.dtDecoderNumber).length;
+    const documentedVehicles = vehicles.filter((vehicle) => vehicle.articleNumber && vehicle.ean && (vehicle.images || []).length > 0).length;
+    const dataGaps = [
+      { label: "Ohne Hauptbild", count: vehicles.length - withImages, detail: "Kartenansicht und PDF-Ausdruck profitieren sofort." },
+      { label: "Ohne Artikel-Nr.", count: vehicles.length - withArticleNumbers, detail: "Wichtig für Suche, Webabgleich und Ersatzteile." },
+      { label: "Ohne EAN", count: vehicles.length - withEAN, detail: "Hilft besonders bei Barcode- und Packungssuche." },
+      { label: "Digital ohne Decoder-Nr.", count: digitalWithoutDecoder, detail: "Relevant für Service, CVs und Decoder-Dateien." }
+    ].filter((gap) => gap.count > 0);
+    return {
+      totalValue,
+      digital,
+      analog,
+      withImages,
+      withArticleNumbers,
+      withEAN,
+      withDecoderNumbers,
+      documentedVehicles,
+      dataGaps,
+      due,
+      upcoming,
+      openMaintenance,
+      completedMaintenance,
+      maintenanceCost,
+      nextMaintenance,
+      conditions,
+      categories,
+      gauges,
+      manufacturers
+    };
   }, [vehicles]);
 
   const digitalShare = vehicles.length ? Math.round((stats.digital / vehicles.length) * 100) : 0;
   const imageShare = vehicles.length ? Math.round((stats.withImages / vehicles.length) * 100) : 0;
+  const decoderShare = vehicles.length ? Math.round((stats.withDecoderNumbers / vehicles.length) * 100) : 0;
+  const articleShare = vehicles.length ? Math.round((stats.withArticleNumbers / vehicles.length) * 100) : 0;
+  const eanShare = vehicles.length ? Math.round((stats.withEAN / vehicles.length) * 100) : 0;
+  const documentedShare = vehicles.length ? Math.round((stats.documentedVehicles / vehicles.length) * 100) : 0;
 
   return (
     <>
@@ -153,9 +188,37 @@ export function OverviewView() {
           </div>
           <div className="quality-list">
             <div><span>Bilder</span><strong>{imageShare}%</strong><i style={{ width: `${imageShare}%` }} /></div>
-            <div><span>Decoder-Nummern</span><strong>{vehicles.filter((vehicle) => vehicle.digitalDecoderNumber).length}</strong><i style={{ width: `${vehicles.length ? (vehicles.filter((vehicle) => vehicle.digitalDecoderNumber).length / vehicles.length) * 100 : 0}%` }} /></div>
-            <div><span>Artikelnummern</span><strong>{vehicles.filter((vehicle) => vehicle.articleNumber).length}</strong><i style={{ width: `${vehicles.length ? (vehicles.filter((vehicle) => vehicle.articleNumber).length / vehicles.length) * 100 : 0}%` }} /></div>
+            <div><span>Decoder-Nummern</span><strong>{decoderShare}%</strong><i style={{ width: `${decoderShare}%` }} /></div>
+            <div><span>Artikelnummern</span><strong>{articleShare}%</strong><i style={{ width: `${articleShare}%` }} /></div>
+            <div><span>EAN</span><strong>{eanShare}%</strong><i style={{ width: `${eanShare}%` }} /></div>
+            <div><span>Voll dokumentiert</span><strong>{documentedShare}%</strong><i style={{ width: `${documentedShare}%` }} /></div>
           </div>
+        </article>
+
+        <article className="panel insight-card action-card">
+          <div className="panel-head">
+            <div>
+              <h2>Handlungsbedarf</h2>
+              <p>Die größten Pflegepunkte im Bestand.</p>
+            </div>
+            <ListChecks size={18} aria-hidden="true" />
+          </div>
+          {stats.dataGaps.length === 0 ? (
+            <p className="empty-mini">Keine größeren Datenlücken erkannt.</p>
+          ) : (
+            <div className="action-gap-list">
+              {stats.dataGaps.map((gap) => (
+                <a key={gap.label} href="/" className="action-gap">
+                  <span>
+                    <strong>{gap.label}</strong>
+                    <small>{gap.detail}</small>
+                  </span>
+                  <em>{gap.count}</em>
+                  <ArrowRight size={15} aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+          )}
         </article>
 
         <article className="panel insight-card">
@@ -169,6 +232,33 @@ export function OverviewView() {
             {stats.manufacturers.map(([label, count], index) => (
               <div key={label}><span>{index + 1}</span><strong>{label}</strong><em>{count}</em></div>
             ))}
+          </div>
+        </article>
+
+        <article className="panel insight-card quick-actions-card">
+          <div className="panel-head">
+            <div>
+              <h2>Schnellaktionen</h2>
+              <p>Direkt zu den nächsten Arbeitsbereichen.</p>
+            </div>
+            <Database size={18} aria-hidden="true" />
+          </div>
+          <div className="quick-action-list">
+            <a href="/">
+              <span>Bestand pflegen</span>
+              <small>Fahrzeuge öffnen, suchen und ergänzen.</small>
+              <ArrowRight size={16} aria-hidden="true" />
+            </a>
+            <a href="/import-export">
+              <span>Import/Export</span>
+              <small>Listen prüfen, übernehmen oder drucken.</small>
+              <ArrowRight size={16} aria-hidden="true" />
+            </a>
+            <a href="/settings">
+              <span>Stammdaten prüfen</span>
+              <small>Auswahlwerte, Nummern und Darstellung verwalten.</small>
+              <ArrowRight size={16} aria-hidden="true" />
+            </a>
           </div>
         </article>
 
