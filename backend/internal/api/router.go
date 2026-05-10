@@ -140,6 +140,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-values", app.require("Editor", app.createVehicleCVValue))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.updateVehicleCVValue))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.deleteVehicleCVValue))
+	mux.HandleFunc("POST /api/v1/cv-files/preview", app.require("Editor", app.previewVehicleCVFile))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-files", app.require("Editor", app.uploadVehicleCVFile))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-files/{cvFileID}", app.require("Editor", app.deleteVehicleCVFile))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-files/{cvFileID}/download", app.require("Viewer", app.downloadVehicleCVFile))
@@ -1079,6 +1080,43 @@ func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) previewVehicleCVFile(w http.ResponseWriter, r *http.Request) {
+	r.Body = http.MaxBytesReader(w, r.Body, a.maxAttachmentBytes+1024*1024)
+	if err := r.ParseMultipartForm(a.maxAttachmentBytes); err != nil {
+		respondProblem(w, http.StatusBadRequest, "cv_file_preview_invalid", "CV-Datei konnte nicht gelesen werden.")
+		return
+	}
+	if r.MultipartForm != nil {
+		defer func() { _ = r.MultipartForm.RemoveAll() }()
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "cv_file_missing", "Eine Datei ist erforderlich.")
+		return
+	}
+	defer func() { _ = file.Close() }()
+	originalName := cleanOriginalFileName(header.Filename)
+	if header.Size > a.maxAttachmentBytes || isBlockedAttachmentName(originalName) {
+		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
+		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu groß.")
+		return
+	}
+	if len(data) == 0 {
+		respondProblem(w, http.StatusBadRequest, "cv_file_empty", "Leere Dateien sind nicht erlaubt.")
+		return
+	}
+	mimeType := http.DetectContentType(data)
+	if isBlockedAttachmentMime(mimeType) {
+		respondProblem(w, http.StatusBadRequest, "cv_file_blocked", "Diese CV-Datei ist nicht erlaubt.")
+		return
+	}
+	respondJSON(w, http.StatusOK, esuxPreviewResponse(originalName, int64(len(data)), mimeType, data))
 }
 
 func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {

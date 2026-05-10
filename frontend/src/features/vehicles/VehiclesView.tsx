@@ -44,6 +44,7 @@ import {
   VehicleAttachment,
   VehicleImage as VehicleImageRecord,
   VehicleCVFile,
+  VehicleCVFilePreview,
   VehicleCVValue,
   VehicleCVValueInput,
   VehicleFunction,
@@ -140,6 +141,10 @@ type CVImportRow = {
 type CVImportPreview = {
   fileName: string;
   rows: CVImportRow[];
+};
+type CVFileUploadPreview = {
+  files: File[];
+  previews: VehicleCVFilePreview[];
 };
 
 const emptyMaintenanceForm: VehicleMaintenanceInput = {
@@ -1623,6 +1628,7 @@ export function VehiclesView() {
   const [cvFileProfile, setCVFileProfile] = useState("");
   const [cvFileDescription, setCVFileDescription] = useState("");
   const [cvImportPreview, setCVImportPreview] = useState<CVImportPreview | null>(null);
+  const [cvFileUploadPreview, setCVFileUploadPreview] = useState<CVFileUploadPreview | null>(null);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const cvFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -1746,6 +1752,7 @@ export function VehiclesView() {
     setEditingCVID(null);
     setCVForm(emptyCVForm);
     setCVImportPreview(null);
+    setCVFileUploadPreview(null);
   };
 
   const updateCategory = (category: string) => {
@@ -2389,12 +2396,10 @@ export function VehiclesView() {
     }
     setSaving(true);
     setMessage("");
-    (async () => {
-      for (const file of uploadFiles) {
-        await api.uploadVehicleCVFile(selected.id, file, cvFileProfile, cvFileDescription);
-      }
-    })()
-      .then(() => refreshSelectedVehicle(selected.id))
+    Promise.all(uploadFiles.map((file) => api.previewVehicleCVFile(file)))
+      .then((previews) => {
+        setCVFileUploadPreview({ files: uploadFiles, previews });
+      })
       .catch((error: Error) => setMessage(error.message))
       .finally(() => {
         setSaving(false);
@@ -2402,6 +2407,36 @@ export function VehiclesView() {
           cvFileInputRef.current.value = "";
         }
       });
+  };
+
+  const applyFirstCVFileSuggestion = () => {
+    const suggestion = cvFileUploadPreview?.previews.find((preview) => preview.hasMetadata);
+    if (!suggestion) return;
+    if (suggestion.suggestedDecoderProfile) {
+      setCVFileProfile(suggestion.suggestedDecoderProfile);
+    }
+    if (suggestion.suggestedDescription) {
+      setCVFileDescription(suggestion.suggestedDescription);
+    }
+  };
+
+  const confirmCVFileUpload = () => {
+    if (!selected || !cvFileUploadPreview) return;
+    const uploadFiles = cvFileUploadPreview.files;
+    setSaving(true);
+    setMessage("");
+    (async () => {
+      for (const file of uploadFiles) {
+        await api.uploadVehicleCVFile(selected.id, file, cvFileProfile, cvFileDescription);
+      }
+    })()
+      .then(() => refreshSelectedVehicle(selected.id))
+      .then(() => {
+        setCVFileUploadPreview(null);
+        setMessage(`${uploadFiles.length} CV-Datei${uploadFiles.length === 1 ? "" : "en"} gespeichert.`);
+      })
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
   };
 
   const deleteCVFile = (file: VehicleCVFile) => {
@@ -2563,6 +2598,7 @@ export function VehiclesView() {
     resetMaintenanceForm();
     resetCVForm();
     setCVImportPreview(null);
+    setCVFileUploadPreview(null);
     setActiveTab("model");
     setOpenSections({ model: true, details: false });
     setModalOpen(true);
@@ -2585,6 +2621,7 @@ export function VehiclesView() {
     resetMaintenanceForm();
     resetCVForm();
     setCVImportPreview(null);
+    setCVFileUploadPreview(null);
     setPreviewImage(null);
     setMessage("");
   };
@@ -3576,6 +3613,50 @@ export function VehiclesView() {
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung für neue Dateien" />
                         <span>Leer lassen, um ESU/LokProgrammer-Metadaten automatisch zu verwenden.</span>
                       </div>
+                    )}
+                    {selected && cvFileUploadPreview && (
+                      <section className="cv-file-preview">
+                        <div className="upload-head compact">
+                          <div>
+                            <h3>Upload-Vorschau</h3>
+                            <p>Metadaten prüfen und danach bewusst speichern.</p>
+                          </div>
+                          <div className="inline-actions">
+                            <button type="button" className="secondary-button" onClick={applyFirstCVFileSuggestion} disabled={saving || !cvFileUploadPreview.previews.some((preview) => preview.hasMetadata)}>
+                              Vorschlag übernehmen
+                            </button>
+                            <button type="button" className="primary-button" onClick={confirmCVFileUpload} disabled={saving || readonly}>
+                              <Upload size={15} aria-hidden="true" />
+                              Dateien speichern
+                            </button>
+                            <button type="button" className="secondary-button" onClick={() => setCVFileUploadPreview(null)} disabled={saving}>
+                              Abbrechen
+                            </button>
+                          </div>
+                        </div>
+                        <div className="cv-file-preview-list">
+                          {cvFileUploadPreview.previews.map((preview) => (
+                            <article key={preview.fileName} className={preview.hasMetadata ? "" : "no-metadata"}>
+                              <div>
+                                <strong>{preview.fileName}</strong>
+                                <span>{preview.mimeType || "Datei"} - {formatFileSize(preview.sizeBytes)}</span>
+                              </div>
+                              {preview.hasMetadata ? (
+                                <dl>
+                                  <div><dt>Projekt</dt><dd>{preview.projectName || "-"}</dd></div>
+                                  <div><dt>Decoder</dt><dd>{preview.decoder || "-"}</dd></div>
+                                  <div><dt>Adresse</dt><dd>{preview.address || "-"}</dd></div>
+                                  <div><dt>Typ</dt><dd>{preview.type || "-"}</dd></div>
+                                  <div><dt>Hersteller</dt><dd>{preview.manufacturer || "-"}</dd></div>
+                                  <div><dt>LokProgrammer</dt><dd>{preview.lokProgrammer || "-"}</dd></div>
+                                </dl>
+                              ) : (
+                                <p>Keine ESU/LokProgrammer-Metadaten gefunden. Die Datei kann trotzdem gespeichert werden.</p>
+                              )}
+                            </article>
+                          ))}
+                        </div>
+                      </section>
                     )}
                     {selected && (!selected.cvFiles || selected.cvFiles.length === 0) && (
                       <p className="empty-state compact">Noch keine CV-Dateien hinterlegt.</p>

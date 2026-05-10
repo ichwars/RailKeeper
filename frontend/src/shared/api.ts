@@ -218,6 +218,22 @@ export type VehicleCVFile = {
   updatedAt: string;
 };
 
+export type VehicleCVFilePreview = {
+  fileName: string;
+  sizeBytes: number;
+  mimeType: string;
+  hasMetadata: boolean;
+  projectName?: string;
+  address?: string;
+  type?: string;
+  decoder?: string;
+  manufacturer?: string;
+  manufacturerId?: string;
+  lokProgrammer?: string;
+  suggestedDecoderProfile?: string;
+  suggestedDescription?: string;
+};
+
 export type CreateVehicleRequest = {
   inventoryNumber?: string;
   manufacturer: string;
@@ -621,6 +637,18 @@ export const api = {
     form.append("description", description);
     return request<VehicleCVFile>(
       `/vehicles/${encodeURIComponent(vehicleId)}/cv-files`,
+      {
+        method: "POST",
+        body: form
+      },
+      { timeoutMs: 30000 }
+    );
+  },
+  previewVehicleCVFile: (file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<VehicleCVFilePreview>(
+      "/cv-files/preview",
       {
         method: "POST",
         body: form

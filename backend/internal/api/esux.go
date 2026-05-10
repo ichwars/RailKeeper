@@ -19,6 +19,22 @@ type esuxMetadata struct {
 	LokProgrammer  string `xml:"lokprogrammer"`
 }
 
+type vehicleCVFilePreviewResponse struct {
+	FileName                string `json:"fileName"`
+	SizeBytes              int64  `json:"sizeBytes"`
+	MimeType               string `json:"mimeType"`
+	HasMetadata            bool   `json:"hasMetadata"`
+	ProjectName            string `json:"projectName,omitempty"`
+	Address                string `json:"address,omitempty"`
+	Type                   string `json:"type,omitempty"`
+	Decoder                string `json:"decoder,omitempty"`
+	Manufacturer           string `json:"manufacturer,omitempty"`
+	ManufacturerID         string `json:"manufacturerId,omitempty"`
+	LokProgrammer          string `json:"lokProgrammer,omitempty"`
+	SuggestedDecoderProfile string `json:"suggestedDecoderProfile,omitempty"`
+	SuggestedDescription    string `json:"suggestedDescription,omitempty"`
+}
+
 var errESUXMetadataUnavailable = errors.New("esux metadata unavailable")
 
 func parseESUXMetadata(filename string, data []byte) (*esuxMetadata, error) {
@@ -62,6 +78,29 @@ func applyESUXMetadata(filename string, data []byte, decoderProfile string, desc
 		description = metadata.Description()
 	}
 	return decoderProfile, description
+}
+
+func esuxPreviewResponse(filename string, sizeBytes int64, mimeType string, data []byte) vehicleCVFilePreviewResponse {
+	response := vehicleCVFilePreviewResponse{
+		FileName:   filename,
+		SizeBytes: sizeBytes,
+		MimeType:  mimeType,
+	}
+	metadata, err := parseESUXMetadata(filename, data)
+	if err != nil {
+		return response
+	}
+	response.HasMetadata = true
+	response.ProjectName = metadata.Name
+	response.Address = metadata.Address
+	response.Type = metadata.Type
+	response.Decoder = metadata.Decoder
+	response.Manufacturer = metadata.Manufacturer
+	response.ManufacturerID = metadata.ManufacturerID
+	response.LokProgrammer = metadata.LokProgrammer
+	response.SuggestedDecoderProfile = firstNonEmpty(metadata.Decoder, metadata.Name, "ESU LokProgrammer")
+	response.SuggestedDescription = metadata.Description()
+	return response
 }
 
 func (m esuxMetadata) Description() string {

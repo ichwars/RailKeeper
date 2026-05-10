@@ -34,7 +34,7 @@
 - CV import comparison preview
 - decoder profile suggestions for CV values and files
 - visible CV change history
-- ESU/LokProgrammer project files as decoder attachments with safe metadata extraction
+- ESU/LokProgrammer project files as decoder attachments with safe metadata preview and extraction
 - responsive inventory table/card switch
 - compact mobile inventory layout
 

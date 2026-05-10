@@ -575,6 +575,37 @@ components:
             type: array
             items:
               type: string
+    VehicleCVFilePreview:
+      type: object
+      required: [fileName, sizeBytes, mimeType, hasMetadata]
+      properties:
+        fileName:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        mimeType:
+          type: string
+        hasMetadata:
+          type: boolean
+        projectName:
+          type: string
+        address:
+          type: string
+        type:
+          type: string
+        decoder:
+          type: string
+        manufacturer:
+          type: string
+        manufacturerId:
+          type: string
+        lokProgrammer:
+          type: string
+        suggestedDecoderProfile:
+          type: string
+        suggestedDescription:
+          type: string
     BackupImportResult:
       type: object
       required: [restoredTables, restoredRows, restoredFiles]
@@ -736,6 +767,41 @@ paths:
                 $ref: "#/components/schemas/VehicleImportPreview"
         "400":
           description: Invalid or unsupported import file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /cv-files/preview:
+    post:
+      tags: [Vehicles]
+      summary: Preview CV or decoder project file metadata
+      description: Reads a CV/decoder file without storing it and returns safe metadata suggestions, including ESU/LokProgrammer project metadata when available.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: CV file metadata preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleCVFilePreview"
+        "400":
+          description: Invalid, empty, blocked or oversized file
           content:
             application/json:
               schema:
