@@ -176,7 +176,7 @@ func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	if _, ok := fields["digital"]; ok {
 		t.Fatal("digital interface must not be interpreted as digital decoder")
 	}
-	if fields["adapter"].Value != "NEM 658" && fields["adapter"].Value != "PluX16" {
+	if fields["adapter"].Value != "NEM 658 PluX16" {
 		t.Fatalf("expected adapter information, got %#v", fields["adapter"])
 	}
 	if fields["headlightsDescription"].Value == "" {
@@ -260,5 +260,41 @@ func TestBuildArticleFieldsRejectsWrongContextValues(t *testing.T) {
 	}
 	if _, ok := fields["soundGeneratorEnabled"]; ok {
 		t.Fatal("without sound must not enable sound generator")
+	}
+}
+
+func TestBuildArticleFieldsExtractsTechnicalSentencesWithoutColon(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
+	fields := buildArticleFields(input,
+		"TT Diesellok V 180 DR III",
+		"https://shop.example.test/piko-47284.html",
+		`Digitale Schnittstelle NEM 658 PluX16.
+		 Fahrtrichtungsabhängiger Lichtwechsel weiß / rot.
+		 PIKO Sound-Modul nachrüstbar #46552.`,
+	)
+
+	if fields["adapter"].Value != "NEM 658 PluX16" {
+		t.Fatalf("expected combined adapter, got %#v", fields["adapter"])
+	}
+	if fields["headlightsDescription"].Value != "Fahrtrichtungsabhängiger Lichtwechsel weiß / rot" {
+		t.Fatalf("unexpected headlight description %q", fields["headlightsDescription"].Value)
+	}
+	if fields["soundGeneratorDescription"].Value != "PIKO Sound-Modul nachrüstbar #46552" {
+		t.Fatalf("unexpected sound description %q", fields["soundGeneratorDescription"].Value)
+	}
+}
+
+func TestArticleImagesIgnorePlaceholders(t *testing.T) {
+	images := articleImagesFromHTML(`
+		<img src="/assets/placeholder.png">
+		<img src="/assets/no-image.webp">
+		<img src="/media/47284-v180-product.jpg">
+	`, "https://shop.example.test/product/47284", "Piko V180")
+
+	if len(images) != 1 {
+		t.Fatalf("expected one product image, got %#v", images)
+	}
+	if !strings.Contains(images[0].URL, "47284-v180-product.jpg") {
+		t.Fatalf("unexpected image selected: %#v", images)
 	}
 }

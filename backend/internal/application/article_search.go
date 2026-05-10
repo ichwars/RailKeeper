@@ -424,7 +424,7 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	if value := firstRegexValue(tractionTirePattern, combined); value != "" {
 		fields["tractionTireCount"] = ArticleSearchField{Label: "Anzahl Haftreifen", Value: value, Confidence: 58}
 	}
-	if value := firstRegexValue(adapterPattern, combined); value != "" {
+	if value := extractAdapterInfo(combined); value != "" {
 		fields["adapter"] = ArticleSearchField{Label: "Schnittstelle / Adapter", Value: normalizeWhitespace(value), Confidence: 60}
 	}
 	if value := firstRegexValue(powerPattern, combined); value != "" {
@@ -534,7 +534,7 @@ func containsGaugeToken(haystack, gauge string) bool {
 	if gauge == "" {
 		return false
 	}
-	return regexp.MustCompile(`(?i)(^|[^a-z0-9])`+regexp.QuoteMeta(gauge)+`([^a-z0-9]|$)`).MatchString(haystack)
+	return regexp.MustCompile(`(?i)(^|[^a-z0-9])` + regexp.QuoteMeta(gauge) + `([^a-z0-9]|$)`).MatchString(haystack)
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Context, input ArticleSearchInput, results []ArticleSearchResult) {
@@ -620,7 +620,16 @@ func articleImagesFromHTML(body, pageURL, title string) []ArticleSearchImage {
 
 func looksLikeArticleImage(imageURL string) bool {
 	lower := strings.ToLower(imageURL)
-	if strings.Contains(lower, "logo") || strings.Contains(lower, "sprite") || strings.Contains(lower, "icon") || strings.Contains(lower, "tracking") {
+	badTokens := []string{
+		"blank", "dummy", "icon", "lazy", "loading", "logo", "no-image", "noimage",
+		"placeholder", "pixel", "spacer", "sprite", "tracking", "transparent",
+	}
+	for _, token := range badTokens {
+		if strings.Contains(lower, token) {
+			return false
+		}
+	}
+	if strings.Contains(lower, "1x1") || strings.Contains(lower, "clear.gif") {
 		return false
 	}
 	return strings.Contains(lower, ".jpg") || strings.Contains(lower, ".jpeg") || strings.Contains(lower, ".png") || strings.Contains(lower, ".webp")
@@ -743,6 +752,9 @@ func looksLikeModelLength(candidate, context string) bool {
 func extractHeadlightDescription(value string) string {
 	description := firstRegexValue(headlightDescriptionPattern, value)
 	if description == "" {
+		description = sentenceForKeywords(value, []string{"lichtwechsel", "fahrlicht", "spitzenlicht", "schlusslicht"})
+	}
+	if description == "" {
 		return ""
 	}
 	return cleanTechnicalDescription(description)
@@ -766,10 +778,47 @@ func extractSoundDescription(value string) string {
 		return ""
 	}
 	description := firstRegexValue(soundDescriptionPattern, value)
+	if cleaned := cleanTechnicalDescription(description); cleaned != "" {
+		return cleaned
+	}
+	if description == "" || cleanTechnicalDescription(description) == "" {
+		description = sentenceForKeywords(value, []string{"sound-modul", "soundmodul", "sounddecoder", "soundgenerator", "geräuschmodul", "geraeuschmodul"})
+	}
 	if description == "" {
 		return ""
 	}
 	return cleanTechnicalDescription(description)
+}
+
+func extractAdapterInfo(value string) string {
+	matches := adapterPattern.FindAllString(value, -1)
+	if len(matches) == 0 {
+		return ""
+	}
+	parts := []string{}
+	for _, match := range matches {
+		part := normalizeWhitespace(match)
+		if part != "" {
+			parts = append(parts, part)
+		}
+	}
+	return strings.Join(uniqueNonEmpty(parts), " ")
+}
+
+func sentenceForKeywords(value string, keywords []string) string {
+	for _, candidate := range regexp.MustCompile(`[.;\n\r]+`).Split(value, -1) {
+		candidate = normalizeWhitespace(candidate)
+		if candidate == "" {
+			continue
+		}
+		lower := strings.ToLower(candidate)
+		for _, keyword := range keywords {
+			if strings.Contains(lower, keyword) {
+				return candidate
+			}
+		}
+	}
+	return ""
 }
 
 func cleanTechnicalDescription(value string) string {
@@ -804,6 +853,9 @@ func looksLikeTechnicalDescription(value string) bool {
 	}
 	lower := strings.ToLower(value)
 	badTokens := []string{"google_analytics", "cookie", "mandatory", "preferences", "statistics", "marketing", "function", "const ", "new map", "document.", "window.", "{", "};", "class ", "anzeigen zu zeigen", "personalisierte anzeigen", "absicht ist", "menü", "menue", "menu", "sprunggröße", "sprunggroesse", "wählen sie", "waehlen sie", "downloads", "bedienungsanleitung", "altersempfehlung"}
+	if strings.HasPrefix(lower, "//") || strings.Contains(lower, "://") {
+		return false
+	}
 	for _, token := range badTokens {
 		if strings.Contains(lower, token) {
 			return false
