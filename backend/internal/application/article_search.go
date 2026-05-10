@@ -131,6 +131,14 @@ func articleSearchQuery(input ArticleSearchInput) string {
 	return strings.Join(uniqueNonEmpty(parts), " ")
 }
 
+func isEANOnlyArticleSearch(input ArticleSearchInput, query string) bool {
+	ean := strings.TrimSpace(input.Fields["ean"])
+	if ean == "" || query != ean {
+		return false
+	}
+	return input.Manufacturer == "" && input.ArticleNumber == "" && input.Name == "" && input.Gauge == ""
+}
+
 func articleSearchConflicts(input ArticleSearchInput, fields map[string]ArticleSearchField) []string {
 	current := map[string]string{
 		"manufacturer":  input.Manufacturer,
@@ -200,6 +208,26 @@ func NewDuckDuckGoArticleSearchAdapter(client *http.Client) *DuckDuckGoArticleSe
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input ArticleSearchInput, query string) ([]ArticleSearchResult, error) {
+	if isEANOnlyArticleSearch(input, query) {
+		results, err := a.searchDuckDuckGo(ctx, input, query)
+		if err == nil && len(results) > 0 {
+			results = dedupeArticleResults(results)
+			a.enrichResultsFromPages(ctx, input, results)
+			return results, nil
+		}
+
+		fallbackResults, fallbackErr := a.searchDuckDuckGo(ctx, input, query+" Modelleisenbahn")
+		if fallbackErr != nil {
+			if err != nil {
+				return nil, err
+			}
+			return nil, fallbackErr
+		}
+		results = dedupeArticleResults(fallbackResults)
+		a.enrichResultsFromPages(ctx, input, results)
+		return results, nil
+	}
+
 	queries := []string{}
 	for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
 		queries = append(queries, query+" site:"+domain)
@@ -418,6 +446,13 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	if input.ArticleNumber != "" && strings.Contains(haystack, strings.ToLower(input.ArticleNumber)) {
 		score += 35
+	}
+	ean := strings.ToLower(strings.TrimSpace(input.Fields["ean"]))
+	if ean != "" && strings.Contains(haystack, ean) {
+		score += 160
+		if field, ok := fields["ean"]; ok && strings.EqualFold(strings.TrimSpace(field.Value), ean) {
+			score += 120
+		}
 	}
 	for _, value := range input.Fields {
 		value = strings.ToLower(strings.TrimSpace(value))

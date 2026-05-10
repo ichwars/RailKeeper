@@ -74,14 +74,18 @@ func TestArticleSearchQueryUsesFocusedModelPattern(t *testing.T) {
 }
 
 func TestArticleSearchQueryAllowsEANOnlyPattern(t *testing.T) {
-	query := articleSearchQuery(ArticleSearchInput{
+	input := ArticleSearchInput{
 		Fields: map[string]string{
 			"ean": "4012501136399",
 		},
-	})
+	}
+	query := articleSearchQuery(input)
 
 	if query != "4012501136399" {
 		t.Fatalf("expected EAN-only query, got %q", query)
+	}
+	if !isEANOnlyArticleSearch(input, query) {
+		t.Fatal("expected EAN-only search to be detected")
 	}
 }
 
@@ -94,6 +98,18 @@ func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 
 	if manufacturerScore <= marketplaceScore {
 		t.Fatalf("manufacturer domain should rank higher, got manufacturer=%d marketplace=%d", manufacturerScore, marketplaceScore)
+	}
+}
+
+func TestArticleSearchBoostsExactEANMatches(t *testing.T) {
+	input := ArticleSearchInput{Fields: map[string]string{"ean": "4012501136399"}}
+	fields := map[string]ArticleSearchField{"ean": {Label: "EAN-Nr.", Value: "4012501136399", Confidence: 60}}
+
+	exactScore := scoreArticleResult(input, "Tillig Y Wagen Nirosta", "https://example.test/13639", "EAN 4012501136399", fields)
+	weakScore := scoreArticleResult(input, "Tillig Y Wagen Nirosta", "https://example.test/13639", "passender Modellbahnwagen", map[string]ArticleSearchField{})
+
+	if exactScore <= weakScore {
+		t.Fatalf("exact EAN match should rank higher, got exact=%d weak=%d", exactScore, weakScore)
 	}
 }
 
