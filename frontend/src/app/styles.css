@@ -3190,6 +3190,50 @@ td {
   line-height: 1;
 }
 
+.decoder-profile-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.decoder-profile-list button {
+  display: grid;
+  gap: 3px;
+  min-width: 150px;
+  max-width: 230px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.decoder-profile-list button:hover {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+  background: var(--accent-soft);
+}
+
+.decoder-profile-list strong,
+.decoder-profile-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.decoder-profile-list strong {
+  font-size: 13px;
+}
+
+.decoder-profile-list span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .maintenance-form {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -195,6 +195,7 @@ const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparatu
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonderfunktion"];
 const functionModes = ["dauer", "moment"];
+const commonDecoderProfiles = ["ESU LokPilot 5", "ESU LokSound 5", "Zimo MS", "Zimo MX", "D&H SD", "D&H DH", "Märklin mLD3", "Märklin mSD3", "Lenz Standard+"];
 const fallbackFunctionSymbols = [
   { key: "light", label: "Licht" },
   { key: "sound", label: "Sound" },
@@ -2583,8 +2584,16 @@ export function VehiclesView() {
   const cvSummary = {
     values: selected?.cvValues?.length || 0,
     files: selected?.cvFiles?.length || 0,
-    profiles: new Set((selected?.cvValues || []).map((value) => value.decoderProfile).filter(Boolean)).size
+    profiles: new Set([
+      ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
+      ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
+    ]).size
   };
+  const storedDecoderProfiles = Array.from(new Set([
+    ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
+    ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
+  ])).sort((a, b) => a.localeCompare(b, "de-DE"));
+  const decoderProfileOptions = Array.from(new Set([...commonDecoderProfiles, ...storedDecoderProfiles]));
 
   return (
     <>
@@ -3165,6 +3174,25 @@ export function VehiclesView() {
                             <strong>{cvSummary.files}</strong>
                           </div>
                         </div>
+                        <datalist id="decoder-profile-options">
+                          {decoderProfileOptions.map((profile) => (
+                            <option key={profile} value={profile} />
+                          ))}
+                        </datalist>
+                        {storedDecoderProfiles.length > 0 && (
+                          <div className="decoder-profile-list" aria-label="Decoderprofile">
+                            {storedDecoderProfiles.map((profile) => {
+                              const valueCount = (selected.cvValues || []).filter((value) => value.decoderProfile === profile).length;
+                              const fileCount = (selected.cvFiles || []).filter((file) => file.decoderProfile === profile).length;
+                              return (
+                                <button type="button" key={profile} onClick={() => updateCVForm({ decoderProfile: profile })} disabled={readonly || saving} title={`${profile} für neuen CV-Wert verwenden`}>
+                                  <strong>{profile}</strong>
+                                  <span>{valueCount} CV · {fileCount} Datei</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                         <div className="cv-form">
                           <label>
                             CV-Nr.
@@ -3185,7 +3213,7 @@ export function VehiclesView() {
                           </label>
                           <label>
                             Decoder-Profil
-                            <input value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
+                            <input list="decoder-profile-options" value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
                           </label>
                           <label>
                             Quelldatei
@@ -3281,7 +3309,7 @@ export function VehiclesView() {
                     </div>
                     {selected && (
                       <div className="cv-file-controls">
-                        <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil für neue Dateien" />
+                        <input list="decoder-profile-options" value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder="Decoder-Profil für neue Dateien" />
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder="Bemerkung für neue Dateien" />
                       </div>
                     )}
