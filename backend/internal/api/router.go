@@ -609,11 +609,11 @@ func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, application.ErrVehicleImageInUse) {
-			respondProblem(w, http.StatusConflict, "image_in_use", "Bild ist mit einem Wartungseintrag verknuepft. Bitte zuerst die Verknuepfung entfernen.")
+			respondProblem(w, http.StatusConflict, "image_in_use", "Bild ist mit einem Wartungseintrag verknüpft. Bitte zuerst die Verknüpfung entfernen.")
 			return
 		}
 		a.logger.Error("image delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "image_delete_failed", "Bild konnte nicht gelöscht werden.")
 		return
 	}
 	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.StoragePath)
@@ -852,7 +852,7 @@ func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("attachment delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "attachment_delete_failed", "Beilage konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "attachment_delete_failed", "Beilage konnte nicht gelöscht werden.")
 		return
 	}
 	if fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath); err == nil {
@@ -953,7 +953,7 @@ func (a *App) deleteVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("maintenance delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "maintenance_delete_failed", "Wartungseintrag konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "maintenance_delete_failed", "Wartungseintrag konnte nicht gelöscht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1002,7 +1002,7 @@ func (a *App) deleteVehicleFunction(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("function delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "function_delete_failed", "Digitalfunktion konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "function_delete_failed", "Digitalfunktion konnte nicht gelöscht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1073,7 +1073,7 @@ func (a *App) deleteVehicleCVValue(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("cv value delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "cv_value_delete_failed", "CV-Wert konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "cv_value_delete_failed", "CV-Wert konnte nicht gelöscht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1161,7 +1161,7 @@ func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("cv file delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "cv_file_delete_failed", "CV-Datei konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "cv_file_delete_failed", "CV-Datei konnte nicht gelöscht werden.")
 		return
 	}
 	if fullPath, err := confinedDataPath(a.dataDir, file.StoragePath); err == nil {

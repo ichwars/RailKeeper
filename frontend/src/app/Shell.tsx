@@ -25,9 +25,9 @@ export function Shell({
 
   return (
     <div className={mobileMenuOpen ? "layout nav-open" : "layout"}>
-      {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label="Menue schliessen" onClick={() => setMobileMenuOpen(false)} />}
+      {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label="Menü schließen" onClick={() => setMobileMenuOpen(false)} />}
       <aside className="sidebar">
-        <button type="button" className="mobile-menu-button" aria-label={mobileMenuOpen ? "Menue schliessen" : "Menue oeffnen"} onClick={() => setMobileMenuOpen((open) => !open)}>
+        <button type="button" className="mobile-menu-button" aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"} onClick={() => setMobileMenuOpen((open) => !open)}>
           {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
         </button>
         <div className="brand">
