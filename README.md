@@ -26,7 +26,7 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - QR code generation with PNG/SVG download and print view
 - file attachments for vehicles, including category, notes, download and PDF inline view
 - maintenance and condition history per vehicle
-- decoder function mapping from F0 to F31 with editable symbol master data and JSON import/export
+- decoder function mapping from F0 to F31 with icon picker, editable symbol master data and JSON import/export
 - structured CV values with import/export and stored CV files
 - local JSON backup/restore for app data and upload files with compatibility preflight
 - audit log entries for setup, login/logout and vehicle changes

@@ -195,6 +195,15 @@ const conditionRatings = ["neuwertig", "sehr gut", "gut", "gebraucht", "reparatu
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonderfunktion"];
 const functionModes = ["dauer", "moment"];
+const fallbackFunctionSymbols = [
+  { key: "light", label: "Licht" },
+  { key: "sound", label: "Sound" },
+  { key: "horn", label: "Horn" },
+  { key: "coupling", label: "Kupplung" },
+  { key: "smoke", label: "Rauch" },
+  { key: "drive", label: "Fahrt" },
+  { key: "warning", label: "Warnung" }
+];
 const cvCategories = ["Adresse", "Fahrverhalten", "Motor", "Licht", "Sound", "Funktion", "Decoder", "Sonstiges"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
 const cvFileAccept = ".json,.csv,.txt,.xml,.z21,.esu,.esux,.lokprogrammer,.zip";
@@ -599,6 +608,58 @@ function functionSymbolIcon(symbolKey?: string, functionType?: string) {
     default:
       return <Circle {...props} />;
   }
+}
+
+function functionSymbolOptions(symbols: MasterDataEntry[]) {
+  const merged = new Map<string, { key: string; label: string }>();
+  for (const symbol of fallbackFunctionSymbols) {
+    merged.set(symbol.key, symbol);
+  }
+  for (const symbol of symbols) {
+    if (symbol.active) {
+      merged.set(symbol.key, { key: symbol.key, label: symbol.label });
+    }
+  }
+  return [...merged.values()];
+}
+
+function FunctionSymbolPicker({
+  value,
+  functionType,
+  symbols,
+  disabled,
+  label,
+  onChange
+}: {
+  value?: string;
+  functionType?: string;
+  symbols: MasterDataEntry[];
+  disabled?: boolean;
+  label: string;
+  onChange: (value: string) => void;
+}) {
+  const options = functionSymbolOptions(symbols);
+  const selected = options.find((symbol) => symbol.key === value);
+  return (
+    <details className="function-symbol-picker">
+      <summary aria-label={label}>
+        {functionSymbolIcon(value, functionType)}
+        <span>{selected?.label || "Symbol"}</span>
+      </summary>
+      <div className="function-symbol-menu">
+        <button type="button" className={!value ? "active" : ""} onClick={() => onChange("")} disabled={disabled}>
+          <Circle size={16} aria-hidden="true" />
+          <span>Kein Symbol</span>
+        </button>
+        {options.map((symbol) => (
+          <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => onChange(symbol.key)} disabled={disabled} title={symbol.label}>
+            {functionSymbolIcon(symbol.key, functionType)}
+            <span>{symbol.label}</span>
+          </button>
+        ))}
+      </div>
+    </details>
+  );
 }
 
 function cvValuesFromImport(text: string): VehicleCVValueInput[] {
@@ -2997,17 +3058,14 @@ export function VehiclesView() {
                               placeholder="Funktionsname"
                               aria-label={`${functionKey} Funktionsname`}
                             />
-                            <select
+                            <FunctionSymbolPicker
                               value={edit.symbolKey || ""}
-                              onChange={(event) => updateFunctionEdit(functionKey, { symbolKey: event.target.value })}
+                              functionType={edit.functionType}
+                              symbols={options.symbols}
                               disabled={readonly || saving}
-                              aria-label={`${functionKey} Symbol`}
-                            >
-                              <option value="">Symbol</option>
-                              {options.symbols.map((symbol) => (
-                                <option key={symbol.key} value={symbol.key}>{symbol.label}</option>
-                              ))}
-                            </select>
+                              label={`${functionKey} Symbol`}
+                              onChange={(symbolKey) => updateFunctionEdit(functionKey, { symbolKey })}
+                            />
                             <select
                               value={edit.functionType || "standard"}
                               onChange={(event) => updateFunctionEdit(functionKey, { functionType: event.target.value })}

@@ -2985,7 +2985,8 @@ td {
 }
 
 .function-row input,
-.function-row select {
+.function-row select,
+.function-symbol-picker summary {
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--line);
@@ -2998,9 +2999,84 @@ td {
 }
 
 .function-row input:focus,
-.function-row select:focus {
+.function-row select:focus,
+.function-symbol-picker summary:focus {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.function-symbol-picker {
+  position: relative;
+  min-width: 0;
+}
+
+.function-symbol-picker summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.function-symbol-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.function-symbol-picker summary span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.function-symbol-menu {
+  position: absolute;
+  z-index: 12;
+  top: calc(100% + 6px);
+  left: 0;
+  display: grid;
+  width: min(360px, 82vw);
+  max-height: 260px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  overflow: auto;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.function-symbol-menu button {
+  display: flex;
+  min-width: 0;
+  min-height: 36px;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.function-symbol-menu button:hover,
+.function-symbol-menu button.active {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.function-symbol-menu button span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .function-direction {
