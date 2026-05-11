@@ -1120,7 +1120,7 @@ function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
 }
 
 function composeBrandedQrSvg(svg: string) {
-  const mark = `<rect x="111" y="111" width="34" height="34" rx="8" fill="#fff"/><image href="/brand/railkeeper-mark.svg" x="115" y="115" width="26" height="26"/>`;
+  const mark = `<rect x="111" y="111" width="34" height="34" rx="8" fill="#fff"/><image href="/brand/railkeeper-mark.png" x="115" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>`;
   return svg.replace("</svg>", `${mark}</svg>`);
 }
 
@@ -2597,7 +2597,7 @@ export function VehiclesView() {
     await new Promise<void>((resolve) => {
       logoImage.onload = () => resolve();
       logoImage.onerror = () => resolve();
-      logoImage.src = "/brand/railkeeper-mark.svg";
+      logoImage.src = "/brand/railkeeper-mark.png";
     });
     context.fillStyle = "#fff";
     context.roundRect(333, 333, 102, 102, 20);

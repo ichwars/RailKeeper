@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { BarChart3, Box, Code2, FileInput, LogOut, Menu, Settings, X } from "lucide-react";
+import { BarChart3, Box, Bug, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
+import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
 
 const navItems = [
   { view: "overview", href: "/overview", label: "Übersicht", icon: BarChart3 },
@@ -22,6 +23,14 @@ export function Shell({
   onLogout: () => void;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
+  const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+
+  function toggleTheme() {
+    const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
+    setTheme(nextTheme);
+    applyThemePreference(nextTheme);
+  }
 
   return (
     <div className={mobileMenuOpen ? "layout nav-open" : "layout"}>
@@ -38,8 +47,8 @@ export function Shell({
           {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
         </button>
         <div className="brand">
-          <img src="/brand/railkeeper-mark.svg" alt="" />
-          <span>RailKeeper2</span>
+          <img className="brand-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper2" />
+          <img className="brand-mark" src="/brand/railkeeper-mark.png" alt="RailKeeper2" />
         </div>
 
         <nav id="main-navigation" className="nav" aria-label="Hauptnavigation">
@@ -52,26 +61,32 @@ export function Shell({
               </a>
             );
           })}
-          <a className="repo-link mobile-repo-link" href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer">
-            <Code2 size={16} aria-hidden="true" />
-            Repository
-          </a>
+
+          <div className="sidebar-footer" aria-label="Seitenleisten-Aktionen">
+            <div className="sidebar-footer-actions">
+              <a href="/settings" title="System" aria-label="System">
+                <Info size={17} aria-hidden="true" />
+              </a>
+              <a href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer" title="Repository" aria-label="Repository">
+                <Code2 size={17} aria-hidden="true" />
+              </a>
+              <button type="button" onClick={toggleTheme} title="Design wechseln" aria-label="Design wechseln">
+                <ThemeIcon size={17} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={onLogout} title={`Abmelden (${username})`} aria-label={`Abmelden (${username})`}>
+                <LogOut size={17} aria-hidden="true" />
+              </button>
+            </div>
+            <span className="sidebar-version">v0.1.0</span>
+          </div>
         </nav>
-
-        <a className="repo-link desktop-repo-link" href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer">
-          <Code2 size={16} aria-hidden="true" />
-          Repository
-        </a>
-
-        <div className="user-block">
-          <span>{username}</span>
-          <button onClick={onLogout} title="Abmelden" aria-label="Abmelden">
-            <LogOut size={16} aria-hidden="true" />
-          </button>
-        </div>
       </aside>
 
       <main className="main">{children}</main>
+
+      <a className="feedback-button" href="https://github.com/ichwars/RailKeeper2/issues/new" target="_blank" rel="noreferrer" title="Fehler melden" aria-label="Fehler melden">
+        <Bug size={20} aria-hidden="true" />
+      </a>
     </div>
   );
 }
