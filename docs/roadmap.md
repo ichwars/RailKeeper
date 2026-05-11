@@ -44,6 +44,24 @@
    - add preview image extraction when safely available
    - evaluate LokProgrammer CSV/XML/text exports for CV values and function mappings
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
+2. Inventory row quick menu
+   - add a compact context menu for vehicle rows/cards
+   - include RailKeeper actions such as details, edit, QR code, PDF entry, images, attachments, maintenance and delete
+   - keep destructive actions separated and confirmed
+3. Configurable overview dashboard
+   - evaluate draggable/hideable widgets for RailKeeper statistics
+   - include reset/export controls only where they provide real value
+   - keep the dashboard informative without turning it into a configuration surface
+4. Settings and system integration
+   - wire default printer selection to real system printers where the host platform allows it
+   - turn update checks from UI scaffolding into a real version check
+   - decide which authentication options should become functional instead of informational
+   - keep storage usage, backup and restore visible without making settings feel overloaded
+5. Ongoing Bambuddy-inspired design polish
+   - continue refining dense toolbar/table layouts without boxed hover effects
+   - keep icon buttons transparent by default with color-only hover feedback
+   - review mobile navigation after the collapsible desktop sidebar work
+   - adapt dashboard widgets only when they add RailKeeper-specific value
 
 ## Explicitly Deferred
 

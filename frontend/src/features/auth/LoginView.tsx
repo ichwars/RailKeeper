@@ -50,16 +50,16 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
             />
           </label>
 
+          <button className="primary-button" disabled={saving}>
+            {saving ? "Wird angemeldet..." : "Anmelden"}
+          </button>
+
           <button
             type="button"
             className="forgot-password-button"
             onClick={() => setRecoveryMessage("Bitte wenden Sie sich an den Administrator, um das Passwort zurückzusetzen.")}
           >
             Passwort vergessen?
-          </button>
-
-          <button className="primary-button" disabled={saving}>
-            {saving ? "Wird angemeldet..." : "Anmelden"}
           </button>
 
           {recoveryMessage && <p className="auth-hint">{recoveryMessage}</p>}

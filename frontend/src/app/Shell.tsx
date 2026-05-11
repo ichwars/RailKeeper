@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
-import { BarChart3, Box, Bug, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { BarChart3, Box, Bug, ChevronLeft, ChevronRight, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
 
@@ -10,6 +10,12 @@ const navItems = [
   { view: "importExport", href: "/import-export", label: "Import/Export", icon: FileInput },
   { view: "settings", href: "/settings", label: "Einstellungen", icon: Settings }
 ] as const;
+
+const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
+
+function readSidebarCollapsed() {
+  return window.localStorage.getItem(sidebarCollapsedKey) === "true";
+}
 
 export function Shell({
   children,
@@ -23,6 +29,7 @@ export function Shell({
   onLogout: () => void;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
 
@@ -32,10 +39,18 @@ export function Shell({
     applyThemePreference(nextTheme);
   }
 
+  function toggleSidebarCollapsed() {
+    setSidebarCollapsed((collapsed) => {
+      const next = !collapsed;
+      window.localStorage.setItem(sidebarCollapsedKey, String(next));
+      return next;
+    });
+  }
+
   return (
-    <div className={mobileMenuOpen ? "layout nav-open" : "layout"}>
+    <div className={`layout${mobileMenuOpen ? " nav-open" : ""}${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label="Menü schließen" onClick={() => setMobileMenuOpen(false)} />}
-      <aside className="sidebar">
+      <aside className={sidebarCollapsed ? "sidebar collapsed" : "sidebar"}>
         <button
           type="button"
           className="mobile-menu-button"
@@ -57,12 +72,21 @@ export function Shell({
             return (
               <a key={item.view} className={activeView === item.view ? "active" : ""} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                 <Icon size={16} aria-hidden="true" />
-                {item.label}
+                <span>{item.label}</span>
               </a>
             );
           })}
 
           <div className="sidebar-footer" aria-label="Seitenleisten-Aktionen">
+            <button
+              type="button"
+              className="sidebar-collapse"
+              onClick={toggleSidebarCollapsed}
+              aria-label={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
+              title={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
+            >
+              {sidebarCollapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
+            </button>
             <div className="sidebar-footer-actions">
               <a href="/settings" title="System" aria-label="System">
                 <Info size={17} aria-hidden="true" />

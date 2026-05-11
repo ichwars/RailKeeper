@@ -2875,20 +2875,6 @@ export function VehiclesView() {
         </button>
       </section>
 
-      <section className="panel search-panel">
-        <label className="search-field inventory-search">
-          Suche
-          <span>
-            <Search size={16} aria-hidden="true" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Inventarnummer, Hersteller, Artikel oder Bezeichnung"
-            />
-          </span>
-        </label>
-      </section>
-
       <section className="panel maintenance-reminder-panel">
         <div className="maintenance-reminder-head">
           <div>
@@ -2921,26 +2907,39 @@ export function VehiclesView() {
 
       <section className="panel inventory-panel">
         <div className="panel-head inventory-list-head">
-          <h2>Fahrzeuge</h2>
-          <div className="table-actions">
+          <div className="inventory-title-line">
+            <h2>Fahrzeuge</h2>
             <span className="count-badge">{vehicles.length}</span>
-            <div className="segmented-control" aria-label="Bestandsansicht">
-              <button type="button" className={inventoryView === "table" ? "active" : ""} onClick={() => setInventoryViewMode("table")} aria-label="Tabellenansicht" title="Tabellenansicht">
-                <Table2 size={15} />
+          </div>
+          <div className="inventory-toolbar">
+            <label className="search-field inventory-search">
+              <span>
+                <Search size={16} aria-hidden="true" />
+                <input
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Inventarnummer, Hersteller, Artikel oder Bezeichnung"
+                  aria-label="Bestand durchsuchen"
+                />
+              </span>
+            </label>
+            <div className="table-actions inventory-toolbar-actions">
+              <button type="button" className={inventoryView === "table" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("table")} aria-label="Tabellenansicht" title="Tabellenansicht">
+                <Table2 size={16} />
               </button>
-              <button type="button" className={inventoryView === "cards" ? "active" : ""} onClick={() => setInventoryViewMode("cards")} aria-label="Kartenansicht" title="Kartenansicht">
-                <Grid2X2 size={15} />
+              <button type="button" className={inventoryView === "cards" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("cards")} aria-label="Kartenansicht" title="Kartenansicht">
+                <Grid2X2 size={16} />
+              </button>
+              <button type="button" className="icon-button" onClick={() => printInventoryReport("summary")} aria-label="Kurzliste als PDF drucken" title="Kurzliste als PDF drucken" disabled={loading || vehicles.length === 0}>
+                <Printer size={16} />
+              </button>
+              <button type="button" className="icon-button" onClick={() => printInventoryReport("details")} aria-label="Detailreport als PDF drucken" title="Detailreport als PDF drucken" disabled={loading || vehicles.length === 0}>
+                <FileText size={16} />
+              </button>
+              <button type="button" className="icon-button" onClick={load} aria-label="Aktualisieren" title="Aktualisieren" disabled={loading}>
+                <RefreshCw size={16} />
               </button>
             </div>
-            <button type="button" className="icon-button" onClick={() => printInventoryReport("summary")} aria-label="Kurzliste als PDF drucken" title="Kurzliste als PDF drucken" disabled={loading || vehicles.length === 0}>
-              <Printer size={16} />
-            </button>
-            <button type="button" className="icon-button" onClick={() => printInventoryReport("details")} aria-label="Detailreport als PDF drucken" title="Detailreport als PDF drucken" disabled={loading || vehicles.length === 0}>
-              <FileText size={16} />
-            </button>
-            <button type="button" className="icon-button" onClick={load} aria-label="Aktualisieren" title="Aktualisieren" disabled={loading}>
-              <RefreshCw size={16} />
-            </button>
           </div>
         </div>
 

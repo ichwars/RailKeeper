@@ -418,6 +418,23 @@ export type BackupValidationResult = {
   errors: string[];
 };
 
+export type VersionInfo = {
+  version: string;
+};
+
+export type StorageUsageCategory = {
+  key: string;
+  label: string;
+  bytes: number;
+  files: number;
+};
+
+export type StorageUsage = {
+  totalBytes: number;
+  categories: StorageUsageCategory[];
+  updatedAt: string;
+};
+
 let csrfToken = "";
 
 type RequestOptions = {
@@ -519,6 +536,8 @@ export const api = {
     await request<void>("/auth/logout", { method: "POST" });
     csrfToken = "";
   },
+  version: () => request<VersionInfo>("/version"),
+  storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   createVehicle: (input: CreateVehicleRequest) =>

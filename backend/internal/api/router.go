@@ -109,6 +109,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, r *http.Request) {
 		respondJSON(w, http.StatusOK, map[string]string{"version": app.version})
 	})
+	mux.HandleFunc("GET /api/v1/system/storage", app.require("Admin", app.systemStorage))
 
 	mux.HandleFunc("GET /api/v1/setup/status", app.setupStatus)
 	mux.HandleFunc("POST /api/v1/setup/admin", app.createAdmin)
@@ -162,6 +163,107 @@ func NewRouter(config Config) http.Handler {
 	mux.Handle("/", staticHandler(app.staticDir))
 
 	return securityHeaders(app.csrf(mux))
+}
+
+type storageUsageResponse struct {
+	TotalBytes int64                  `json:"totalBytes"`
+	Categories []storageUsageCategory `json:"categories"`
+	UpdatedAt  string                 `json:"updatedAt"`
+}
+
+type storageUsageCategory struct {
+	Key   string `json:"key"`
+	Label string `json:"label"`
+	Bytes int64  `json:"bytes"`
+	Files int    `json:"files"`
+}
+
+func (a *App) systemStorage(w http.ResponseWriter, r *http.Request) {
+	categories := map[string]*storageUsageCategory{
+		"database":     {Key: "database", Label: "Datenbank"},
+		"images":       {Key: "images", Label: "Bilder"},
+		"thumbnails":   {Key: "thumbnails", Label: "Vorschaubilder"},
+		"attachments":  {Key: "attachments", Label: "Beilagen"},
+		"decoderFiles": {Key: "decoderFiles", Label: "Decoder-Dateien"},
+		"other":        {Key: "other", Label: "Sonstiges"},
+	}
+
+	var total int64
+	err := filepath.WalkDir(a.dataDir, func(filePath string, entry os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return err
+		}
+
+		relativePath, err := filepath.Rel(a.dataDir, filePath)
+		if err != nil {
+			relativePath = filePath
+		}
+		key := storageCategoryKey(relativePath)
+		category := categories[key]
+		category.Bytes += info.Size()
+		category.Files += 1
+		total += info.Size()
+		return nil
+	})
+	if err != nil {
+		a.logger.Error("storage usage scan failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "storage_usage_failed", "Speichernutzung konnte nicht gelesen werden.")
+		return
+	}
+
+	order := []string{"database", "images", "thumbnails", "attachments", "decoderFiles", "other"}
+	result := make([]storageUsageCategory, 0, len(order))
+	for _, key := range order {
+		category := categories[key]
+		if category.Files == 0 && key != "database" {
+			continue
+		}
+		result = append(result, *category)
+	}
+
+	respondJSON(w, http.StatusOK, storageUsageResponse{
+		TotalBytes: total,
+		Categories: result,
+		UpdatedAt:  time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func storageCategoryKey(relativePath string) string {
+	clean := filepath.ToSlash(relativePath)
+	name := path.Base(clean)
+	if name == "railkeeper.db" || name == "railkeeper.db-wal" || name == "railkeeper.db-shm" {
+		return "database"
+	}
+	parts := strings.Split(clean, "/")
+	if pathContains(parts, "thumbs") {
+		return "thumbnails"
+	}
+	if pathContains(parts, "images") {
+		return "images"
+	}
+	if pathContains(parts, "cv") {
+		return "decoderFiles"
+	}
+	if len(parts) > 0 && parts[0] == "uploads" {
+		return "attachments"
+	}
+	return "other"
+}
+
+func pathContains(parts []string, needle string) bool {
+	for _, part := range parts {
+		if part == needle {
+			return true
+		}
+	}
+	return false
 }
 
 func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {

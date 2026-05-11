@@ -1,9 +1,37 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { CheckCircle2, Download, ExternalLink, Pencil, RefreshCw, ShieldAlert, Trash2, Upload, X } from "lucide-react";
-import { api, BackupValidationResult, InventoryNumberScheme, MasterDataEntry, MasterDataInput } from "../../shared/api";
+import {
+  CheckCircle2,
+  Database,
+  Download,
+  ExternalLink,
+  HardDrive,
+  KeyRound,
+  Mail,
+  Palette,
+  Pencil,
+  Printer,
+  RefreshCw,
+  Shield,
+  ShieldAlert,
+  Trash2,
+  Upload,
+  UserCog,
+  Users,
+  X
+} from "lucide-react";
+import {
+  api,
+  BackupValidationResult,
+  InventoryNumberScheme,
+  MasterDataEntry,
+  MasterDataInput,
+  Session,
+  StorageUsage,
+  VersionInfo
+} from "../../shared/api";
 import { applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 
-type SettingsTab = "general" | "data" | "importExport" | "appearance";
+type SettingsTab = "general" | "data" | "importExport" | "appearance" | "auth";
 type MasterDataType = {
   type: string;
   label: string;
@@ -14,7 +42,8 @@ const settingsTabs: { id: SettingsTab; label: string }[] = [
   { id: "general", label: "Allgemein" },
   { id: "data", label: "Daten" },
   { id: "importExport", label: "Import/Export" },
-  { id: "appearance", label: "Darstellung" }
+  { id: "appearance", label: "Darstellung" },
+  { id: "auth", label: "Authentifizierung" }
 ];
 
 const masterDataTypes: MasterDataType[] = [
@@ -58,10 +87,44 @@ const masterDataTypes: MasterDataType[] = [
 const loadableMasterDataTypes = masterDataTypes;
 const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 
+const localSettingKeys = {
+  language: "railkeeper.settings.language",
+  defaultView: "railkeeper.settings.defaultView",
+  dateFormat: "railkeeper.settings.dateFormat",
+  timeFormat: "railkeeper.settings.timeFormat",
+  defaultPrinter: "railkeeper.settings.defaultPrinter",
+  updateChecks: "railkeeper.settings.updateChecks",
+  betaUpdates: "railkeeper.settings.betaUpdates",
+  darkBackground: "railkeeper.settings.darkBackground",
+  darkAccent: "railkeeper.settings.darkAccent",
+  darkStyle: "railkeeper.settings.darkStyle",
+  lightBackground: "railkeeper.settings.lightBackground",
+  lightAccent: "railkeeper.settings.lightAccent",
+  lightStyle: "railkeeper.settings.lightStyle",
+  twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
+};
+
 function formatBytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "0 KB";
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} MB`;
   return `${Math.max(1, Math.round(value / 1024)).toLocaleString("de-DE")} KB`;
+}
+
+function readLocalSetting(key: string, fallback: string) {
+  return window.localStorage.getItem(key) || fallback;
+}
+
+function readLocalBool(key: string, fallback: boolean) {
+  const value = window.localStorage.getItem(key);
+  if (value === null) return fallback;
+  return value === "true";
+}
+
+function formatDateTime(value: string) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
 }
 
 const emptyForm = {
@@ -167,6 +230,28 @@ export function SettingsView() {
   const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
+  const [language, setLanguage] = useState(() => readLocalSetting(localSettingKeys.language, "de"));
+  const [defaultView, setDefaultView] = useState(() => readLocalSetting(localSettingKeys.defaultView, "overview"));
+  const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
+  const [timeFormat, setTimeFormat] = useState(() => readLocalSetting(localSettingKeys.timeFormat, "system"));
+  const [defaultPrinter, setDefaultPrinter] = useState(() => readLocalSetting(localSettingKeys.defaultPrinter, "system-dialog"));
+  const [updateChecks, setUpdateChecks] = useState(() => readLocalBool(localSettingKeys.updateChecks, true));
+  const [betaUpdates, setBetaUpdates] = useState(() => readLocalBool(localSettingKeys.betaUpdates, false));
+  const [darkBackground, setDarkBackground] = useState(() => readLocalSetting(localSettingKeys.darkBackground, "neutral"));
+  const [darkAccent, setDarkAccent] = useState(() => readLocalSetting(localSettingKeys.darkAccent, "green"));
+  const [darkStyle, setDarkStyle] = useState(() => readLocalSetting(localSettingKeys.darkStyle, "classic"));
+  const [lightBackground, setLightBackground] = useState(() => readLocalSetting(localSettingKeys.lightBackground, "neutral"));
+  const [lightAccent, setLightAccent] = useState(() => readLocalSetting(localSettingKeys.lightAccent, "green"));
+  const [lightStyle, setLightStyle] = useState(() => readLocalSetting(localSettingKeys.lightStyle, "classic"));
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [versionMessage, setVersionMessage] = useState("");
+  const [versionLoading, setVersionLoading] = useState(false);
+  const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
+  const [storageMessage, setStorageMessage] = useState("");
+  const [storageLoading, setStorageLoading] = useState(false);
+  const [currentSession, setCurrentSession] = useState<Session | null>(null);
+  const [authMessage, setAuthMessage] = useState("");
+  const [twoFactorPrepared, setTwoFactorPrepared] = useState(() => readLocalBool(localSettingKeys.twoFactorPrepared, false));
 
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
@@ -194,6 +279,17 @@ export function SettingsView() {
     if (activeSettingsTab !== "general" || inventorySchemes.length > 0 || inventorySchemesLoading) return;
     loadInventorySchemes();
   }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
+
+  useEffect(() => {
+    if (activeSettingsTab !== "general") return;
+    loadVersionInfo();
+    loadStorageUsage();
+  }, [activeSettingsTab]);
+
+  useEffect(() => {
+    if (activeSettingsTab !== "auth") return;
+    loadCurrentSession();
+  }, [activeSettingsTab]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || loadedTypes[activeType]) return;
@@ -257,6 +353,16 @@ export function SettingsView() {
     setForm((current) => ({ ...current, ...patch }));
   };
 
+  const setLocalSetting = (key: string, value: string, setter: (value: string) => void) => {
+    setter(value);
+    window.localStorage.setItem(key, value);
+  };
+
+  const setLocalBool = (key: string, value: boolean, setter: (value: boolean) => void) => {
+    setter(value);
+    window.localStorage.setItem(key, String(value));
+  };
+
   const updateArticleSearchEnabled = (enabled: boolean) => {
     setArticleSearchEnabled(enabled);
     window.localStorage.setItem(articleSearchSettingKey, String(enabled));
@@ -265,6 +371,37 @@ export function SettingsView() {
   const updateDesign = (preference: ThemePreference) => {
     setDesign(preference);
     applyThemePreference(preference);
+  };
+
+  const loadVersionInfo = () => {
+    setVersionLoading(true);
+    setVersionMessage("");
+    api
+      .version()
+      .then((info) => {
+        setVersionInfo(info);
+        setVersionMessage(`RailKeeper ist erreichbar. Aktuelle Version: ${info.version || "unbekannt"}.`);
+      })
+      .catch((error: Error) => setVersionMessage(error.message))
+      .finally(() => setVersionLoading(false));
+  };
+
+  const loadStorageUsage = () => {
+    setStorageLoading(true);
+    setStorageMessage("");
+    api
+      .storageUsage()
+      .then(setStorageUsage)
+      .catch((error: Error) => setStorageMessage(error.message))
+      .finally(() => setStorageLoading(false));
+  };
+
+  const loadCurrentSession = () => {
+    setAuthMessage("");
+    api
+      .session()
+      .then(setCurrentSession)
+      .catch((error: Error) => setAuthMessage(error.message));
   };
 
   const loadInventorySchemes = () => {
@@ -445,95 +582,223 @@ export function SettingsView() {
       </nav>
 
       {activeSettingsTab === "general" && (
-        <section className="panel settings-card">
-          <h2>Allgemein</h2>
-          <p>Grundlegende Einstellungen für Suche und Darstellung.</p>
-
-          <div className="settings-general-grid">
-            <div>
-              <h3>Artikeldaten-Websuche</h3>
-              <p>Aktiviert die spätere Suche nach externen Artikeldaten.</p>
-            </div>
-            <label className="switch-field" aria-label="Artikeldaten-Websuche">
-              <input
-                type="checkbox"
-                checked={articleSearchEnabled}
-                onChange={(event) => updateArticleSearchEnabled(event.target.checked)}
-              />
-              <span />
-            </label>
-          </div>
-
-          <div className="inventory-number-settings">
-            <div className="settings-section-head">
-              <div>
-                <h3>Inventarnummern</h3>
-                <p>Präfixe, laufende Nummern und Stellen je Fahrzeugtyp verwalten.</p>
+        <section className="settings-dashboard-grid">
+          <div className="settings-card-stack">
+            <section className="panel settings-card settings-tool-card">
+              <div className="settings-section-head">
+                <div>
+                  <h2>Allgemein</h2>
+                  <p>Sprache, Startseite, Datumsformat und Druckausgabe.</p>
+                </div>
               </div>
-              <button type="button" className="icon-button" onClick={loadInventorySchemes} aria-label="Aktualisieren" title="Aktualisieren" disabled={inventorySchemesLoading}>
-                <RefreshCw size={16} />
-              </button>
-            </div>
+              <div className="settings-field-grid">
+                <label>
+                  Sprache
+                  <select value={language} onChange={(event) => setLocalSetting(localSettingKeys.language, event.target.value, setLanguage)}>
+                    <option value="de">Deutsch (German)</option>
+                    <option value="en">English (English)</option>
+                  </select>
+                </label>
+                <label>
+                  Standardansicht
+                  <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
+                    <option value="overview">Übersicht</option>
+                    <option value="inventory">Bestand</option>
+                    <option value="importExport">Import/Export</option>
+                    <option value="settings">Einstellungen</option>
+                  </select>
+                </label>
+                <label>
+                  Datumsformat
+                  <select value={dateFormat} onChange={(event) => setLocalSetting(localSettingKeys.dateFormat, event.target.value, setDateFormat)}>
+                    <option value="system">Systemstandard</option>
+                    <option value="de">Deutsch: 31.12.2026</option>
+                    <option value="iso">ISO: 2026-12-31</option>
+                  </select>
+                </label>
+                <label>
+                  Zeitformat
+                  <select value={timeFormat} onChange={(event) => setLocalSetting(localSettingKeys.timeFormat, event.target.value, setTimeFormat)}>
+                    <option value="system">Systemstandard</option>
+                    <option value="24h">24 Stunden</option>
+                    <option value="12h">12 Stunden</option>
+                  </select>
+                </label>
+                <label className="settings-field-wide">
+                  Standarddrucker
+                  <select value={defaultPrinter} onChange={(event) => setLocalSetting(localSettingKeys.defaultPrinter, event.target.value, setDefaultPrinter)}>
+                    <option value="system-dialog">Systemdialog / Standarddrucker</option>
+                    <option value="ask">Jedes Mal fragen</option>
+                    <option value="pdf">Als PDF speichern</option>
+                  </select>
+                </label>
+              </div>
+              <div className="settings-action-row">
+                <p>RailKeeper nutzt den Browser-Systemdialog. Die konkrete Druckerauswahl kommt vom Betriebssystem.</p>
+                <button type="button" className="secondary-button" onClick={() => window.print()}>
+                  <Printer size={17} />
+                  Systemdrucker öffnen
+                </button>
+              </div>
+            </section>
 
-            <div className="table-wrap settings-inline-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Kategorie</th>
-                    <th>Präfix</th>
-                    <th>Nächste Nr.</th>
-                    <th>Stellen</th>
-                    <th>Aktiv</th>
-                    <th>Vorschau</th>
-                    <th>Aktion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {inventorySchemesLoading && inventorySchemes.length === 0 ? (
+            <section className="panel settings-card settings-tool-card">
+              <div className="settings-section-head">
+                <div>
+                  <h2>Inventarnummern</h2>
+                  <p>Präfixe, laufende Nummern und Stellen je Fahrzeugtyp verwalten.</p>
+                </div>
+                <button type="button" className="icon-button" onClick={loadInventorySchemes} aria-label="Aktualisieren" title="Aktualisieren" disabled={inventorySchemesLoading}>
+                  <RefreshCw size={16} />
+                </button>
+              </div>
+
+              <div className="table-wrap settings-inline-table">
+                <table>
+                  <thead>
                     <tr>
-                      <td colSpan={7} className="loading-cell">Lade Nummernschemata...</td>
+                      <th>Kategorie</th>
+                      <th>Präfix</th>
+                      <th>Nächste Nr.</th>
+                      <th>Stellen</th>
+                      <th>Aktiv</th>
+                      <th>Vorschau</th>
+                      <th>Aktion</th>
                     </tr>
-                  ) : inventorySchemes.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="loading-cell">Keine Nummernschemata gefunden.</td>
-                    </tr>
-                  ) : (
-                    inventorySchemes.map((scheme) => (
-                      <tr key={scheme.id}>
-                        <td><strong>{scheme.category}</strong></td>
-                        <td>
-                          <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
-                        </td>
-                        <td>
-                          <input type="number" min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
-                        </td>
-                        <td>
-                          <input type="number" min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
-                        </td>
-                        <td>
-                          <label className="switch-field" aria-label={`${scheme.category} aktiv`}>
-                            <input type="checkbox" checked={scheme.active} onChange={(event) => updateInventoryScheme(scheme.category, { active: event.target.checked })} />
-                            <span />
-                          </label>
-                        </td>
-                        <td><code>{scheme.preview}</code></td>
-                        <td>
-                          <button type="button" className="secondary-button compact-action" onClick={() => saveInventoryScheme(scheme)}>
-                            Speichern
-                          </button>
-                        </td>
+                  </thead>
+                  <tbody>
+                    {inventorySchemesLoading && inventorySchemes.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="loading-cell">Lade Nummernschemata...</td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-            {inventorySchemesMessage && <p className="form-message">{inventorySchemesMessage}</p>}
+                    ) : inventorySchemes.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="loading-cell">Keine Nummernschemata gefunden.</td>
+                      </tr>
+                    ) : (
+                      inventorySchemes.map((scheme) => (
+                        <tr key={scheme.id}>
+                          <td><strong>{scheme.category}</strong></td>
+                          <td>
+                            <input value={scheme.prefix} onChange={(event) => updateInventoryScheme(scheme.category, { prefix: event.target.value })} />
+                          </td>
+                          <td>
+                            <input type="number" min={1} value={scheme.nextNumber} onChange={(event) => updateInventoryScheme(scheme.category, { nextNumber: Number(event.target.value) })} />
+                          </td>
+                          <td>
+                            <input type="number" min={1} max={12} value={scheme.padding} onChange={(event) => updateInventoryScheme(scheme.category, { padding: Number(event.target.value) })} />
+                          </td>
+                          <td>
+                            <label className="switch-field" aria-label={scheme.category + " aktiv"}>
+                              <input type="checkbox" checked={scheme.active} onChange={(event) => updateInventoryScheme(scheme.category, { active: event.target.checked })} />
+                              <span />
+                            </label>
+                          </td>
+                          <td><code>{scheme.preview}</code></td>
+                          <td>
+                            <button type="button" className="secondary-button compact-action" onClick={() => saveInventoryScheme(scheme)}>
+                              Speichern
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              {inventorySchemesMessage && <p className="form-message">{inventorySchemesMessage}</p>}
+            </section>
           </div>
 
-          <div className="settings-card-actions">
-            <button type="button" className="primary-button">Speichern</button>
-          </div>
+          <aside className="settings-card-stack">
+            <section className="panel settings-card settings-tool-card">
+              <div className="settings-card-title">
+                <Database size={17} />
+                <h2>Artikeldaten-Websuche</h2>
+              </div>
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Websuche aktiv</strong>
+                  <small>Erlaubt die Suche nach externen Artikeldaten und Bildern.</small>
+                </span>
+                <span className="switch-field">
+                  <input type="checkbox" checked={articleSearchEnabled} onChange={(event) => updateArticleSearchEnabled(event.target.checked)} />
+                  <span />
+                </span>
+              </label>
+            </section>
+
+            <section className="panel settings-card settings-tool-card">
+              <div className="settings-card-title">
+                <RefreshCw size={17} />
+                <h2>Updates</h2>
+              </div>
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Nach Updates suchen</strong>
+                  <small>Prüft die lokale RailKeeper-Version.</small>
+                </span>
+                <span className="switch-field">
+                  <input type="checkbox" checked={updateChecks} onChange={(event) => setLocalBool(localSettingKeys.updateChecks, event.target.checked, setUpdateChecks)} />
+                  <span />
+                </span>
+              </label>
+              <label className="settings-toggle-row">
+                <span>
+                  <strong>Beta-Versionen einschließen</strong>
+                  <small>Nur vormerken, solange kein Update-Kanal verbunden ist.</small>
+                </span>
+                <span className="switch-field">
+                  <input type="checkbox" checked={betaUpdates} onChange={(event) => setLocalBool(localSettingKeys.betaUpdates, event.target.checked, setBetaUpdates)} />
+                  <span />
+                </span>
+              </label>
+              <div className="settings-action-row">
+                <p>Aktuelle Version: <strong>{versionInfo?.version || "unbekannt"}</strong></p>
+                <button type="button" className="secondary-button" onClick={loadVersionInfo} disabled={versionLoading}>
+                  <RefreshCw size={17} />
+                  {versionLoading ? "Prüft..." : "Jetzt prüfen"}
+                </button>
+              </div>
+              {versionMessage && <p className="form-message">{versionMessage}</p>}
+            </section>
+
+            <section className="panel settings-card settings-tool-card">
+              <div className="settings-section-head">
+                <div className="settings-card-title">
+                  <HardDrive size={17} />
+                  <h2>Speichernutzung</h2>
+                </div>
+                <button type="button" className="icon-button" onClick={loadStorageUsage} aria-label="Speichernutzung aktualisieren" title="Aktualisieren" disabled={storageLoading}>
+                  <RefreshCw size={16} />
+                </button>
+              </div>
+              <p>Aufschlüsselung der lokalen Datenablage nach Kategorie.</p>
+              <div className="storage-total">
+                <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
+                <span>{storageUsage?.updatedAt ? "Aktualisiert " + formatDateTime(storageUsage.updatedAt) : "Noch nicht aktualisiert"}</span>
+              </div>
+              <div className="storage-list">
+                {(storageUsage?.categories || []).map((category) => {
+                  const percent = storageUsage?.totalBytes ? Math.round((category.bytes / storageUsage.totalBytes) * 100) : 0;
+                  return (
+                    <div className="storage-row" key={category.key}>
+                      <div>
+                        <strong>{category.label}</strong>
+                        <span>{category.files} Dateien · {formatBytes(category.bytes)}</span>
+                      </div>
+                      <div className="storage-bar" aria-label={category.label + ": " + percent + "%"}>
+                        <span style={{ width: Math.max(2, percent) + "%" }} />
+                      </div>
+                    </div>
+                  );
+                })}
+                {storageLoading && <p className="empty-state compact">Speichernutzung wird gelesen...</p>}
+                {!storageLoading && !storageUsage && <p className="empty-state compact">Noch keine Speichernutzung geladen.</p>}
+              </div>
+              {storageMessage && <p className="form-message">{storageMessage}</p>}
+            </section>
+          </aside>
         </section>
       )}
 
@@ -806,52 +1071,201 @@ export function SettingsView() {
       )}
 
       {activeSettingsTab === "appearance" && (
-        <section className="panel settings-card">
-          <h2>Darstellung</h2>
-          <p>Design-Optionen und Anzeigeeinstellungen werden hier gebündelt.</p>
-          <div className="appearance-grid">
+        <section className="panel settings-card settings-tool-card">
+          <div className="settings-card-title">
+            <Palette size={18} />
+            <div>
+              <h2>Darstellung</h2>
+              <p>Design-Optionen und Anzeigeeinstellungen werden hier gebündelt.</p>
+            </div>
+          </div>
+
+          <div className="appearance-mode-row" role="radiogroup" aria-label="Designmodus">
             <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
-              <input
-                type="radio"
-                name="theme"
-                value="system"
-                checked={design === "system"}
-                onChange={() => updateDesign("system")}
-              />
+              <input type="radio" name="theme" value="system" checked={design === "system"} onChange={() => updateDesign("system")} />
               <span>
                 <strong>System</strong>
                 <small>Übernimmt Hell/Dunkel vom Betriebssystem.</small>
               </span>
             </label>
             <label className={design === "light" ? "appearance-option active" : "appearance-option"}>
-              <input
-                type="radio"
-                name="theme"
-                value="light"
-                checked={design === "light"}
-                onChange={() => updateDesign("light")}
-              />
+              <input type="radio" name="theme" value="light" checked={design === "light"} onChange={() => updateDesign("light")} />
               <span>
                 <strong>Hell</strong>
                 <small>Ruhige helle Oberfläche für Tagesbetrieb.</small>
               </span>
             </label>
             <label className={design === "dark" ? "appearance-option active" : "appearance-option"}>
-              <input
-                type="radio"
-                name="theme"
-                value="dark"
-                checked={design === "dark"}
-                onChange={() => updateDesign("dark")}
-              />
+              <input type="radio" name="theme" value="dark" checked={design === "dark"} onChange={() => updateDesign("dark")} />
               <span>
                 <strong>Dunkel</strong>
                 <small>Reduzierte Helligkeit für längere Arbeitssitzungen.</small>
               </span>
             </label>
           </div>
+
+          <div className="appearance-config-grid">
+            <section className="appearance-config-card">
+              <h3>Dunkelmodus <span className="settings-pill active">aktiv</span></h3>
+              <div className="settings-field-grid compact">
+                <label>
+                  Hintergrund
+                  <select value={darkBackground} onChange={(event) => setLocalSetting(localSettingKeys.darkBackground, event.target.value, setDarkBackground)}>
+                    <option value="neutral">Neutral</option>
+                    <option value="warm">Warm</option>
+                    <option value="cool">Kühl</option>
+                    <option value="oled">OLED Schwarz</option>
+                  </select>
+                </label>
+                <label>
+                  Akzent
+                  <select value={darkAccent} onChange={(event) => setLocalSetting(localSettingKeys.darkAccent, event.target.value, setDarkAccent)}>
+                    <option value="green">Grün</option>
+                    <option value="blue">Blau</option>
+                    <option value="gold">Gold</option>
+                  </select>
+                </label>
+                <label>
+                  Stil
+                  <select value={darkStyle} onChange={(event) => setLocalSetting(localSettingKeys.darkStyle, event.target.value, setDarkStyle)}>
+                    <option value="classic">Klassisch</option>
+                    <option value="compact">Kompakt</option>
+                    <option value="contrast">Kontrast</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+            <section className="appearance-config-card">
+              <h3>Hellmodus</h3>
+              <div className="settings-field-grid compact">
+                <label>
+                  Hintergrund
+                  <select value={lightBackground} onChange={(event) => setLocalSetting(localSettingKeys.lightBackground, event.target.value, setLightBackground)}>
+                    <option value="neutral">Neutral</option>
+                    <option value="warm">Warm</option>
+                    <option value="cool">Kühl</option>
+                  </select>
+                </label>
+                <label>
+                  Akzent
+                  <select value={lightAccent} onChange={(event) => setLocalSetting(localSettingKeys.lightAccent, event.target.value, setLightAccent)}>
+                    <option value="green">Grün</option>
+                    <option value="blue">Blau</option>
+                    <option value="gold">Gold</option>
+                  </select>
+                </label>
+                <label>
+                  Stil
+                  <select value={lightStyle} onChange={(event) => setLocalSetting(localSettingKeys.lightStyle, event.target.value, setLightStyle)}>
+                    <option value="classic">Klassisch</option>
+                    <option value="compact">Kompakt</option>
+                    <option value="contrast">Kontrast</option>
+                  </select>
+                </label>
+              </div>
+            </section>
+          </div>
         </section>
       )}
+
+      {activeSettingsTab === "auth" && (
+        <section className="auth-settings-grid">
+          <section className="panel settings-card settings-tool-card auth-status-card">
+            <div className="settings-card-title">
+              <Shield size={18} />
+              <div>
+                <h2>Authentifizierung</h2>
+                <p>Ihre Instanz ist mit lokaler Benutzeranmeldung geschützt.</p>
+              </div>
+            </div>
+            <div className="auth-provider-tabs" aria-label="Authentifizierungsarten">
+              <button type="button" className="active"><Mail size={15} /> E-Mail / Lokal</button>
+              <button type="button" disabled><Shield size={15} /> LDAP</button>
+              <button type="button" disabled><KeyRound size={15} /> Zwei-Faktor-Auth</button>
+              <button type="button" disabled><UserCog size={15} /> SSO / OIDC</button>
+            </div>
+            <label className="settings-toggle-row">
+              <span>
+                <strong>Lokale Anmeldung</strong>
+                <small>Benutzername und Passwort über RailKeeper.</small>
+              </span>
+              <span className="switch-field">
+                <input type="checkbox" checked readOnly disabled />
+                <span />
+              </span>
+            </label>
+            <label className="settings-toggle-row disabled">
+              <span>
+                <strong>Zwei-Faktor-Auth vorbereiten</strong>
+                <small>UI-Vormerkung. Backend-Erzwingung folgt in einem späteren Schritt.</small>
+              </span>
+              <span className="switch-field">
+                <input type="checkbox" checked={twoFactorPrepared} onChange={(event) => setLocalBool(localSettingKeys.twoFactorPrepared, event.target.checked, setTwoFactorPrepared)} />
+                <span />
+              </span>
+            </label>
+            {authMessage && <p className="form-message">{authMessage}</p>}
+          </section>
+
+          <section className="panel settings-card settings-tool-card">
+            <div className="settings-card-title">
+              <UserCog size={18} />
+              <h2>Aktueller Benutzer</h2>
+            </div>
+            <div className="current-user-card">
+              <strong>{currentSession?.username || "Nicht geladen"}</strong>
+              <div className="role-chip-row">
+                {(currentSession?.roles || []).map((role) => <span className="settings-pill" key={role}>{role}</span>)}
+                {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">Keine Rollen</span>}
+              </div>
+              <button type="button" className="secondary-button" onClick={loadCurrentSession}>Sitzung prüfen</button>
+            </div>
+          </section>
+
+          <section className="panel settings-card settings-tool-card">
+            <div className="settings-section-head">
+              <div className="settings-card-title">
+                <Users size={18} />
+                <h2>Rollen</h2>
+              </div>
+              <span className="settings-pill muted">read-only</span>
+            </div>
+            <div className="role-list">
+              <article>
+                <strong>Admin</strong>
+                <span>Vollzugriff auf Einstellungen, Backup und Benutzerverwaltung.</span>
+              </article>
+              <article>
+                <strong>Editor</strong>
+                <span>Bestand, Stammdaten, Wartung, Uploads und CV-Daten bearbeiten.</span>
+              </article>
+              <article>
+                <strong>Viewer</strong>
+                <span>Lesender Zugriff auf Bestand und Stammdaten.</span>
+              </article>
+            </div>
+          </section>
+
+          <section className="panel settings-card settings-tool-card">
+            <h2>Geplante Integrationen</h2>
+            <div className="integration-list">
+              <article>
+                <strong>LDAP</strong>
+                <span>Vorbereitet, aktuell deaktiviert.</span>
+              </article>
+              <article>
+                <strong>SSO / OIDC</strong>
+                <span>Für spätere zentrale Anmeldung vorgemerkt.</span>
+              </article>
+              <article>
+                <strong>Passwort zurücksetzen</strong>
+                <span>Login-Hinweis vorhanden, Mail-Flow noch nicht aktiviert.</span>
+              </article>
+            </div>
+          </section>
+        </section>
+      )}
+
     </>
   );
 }
