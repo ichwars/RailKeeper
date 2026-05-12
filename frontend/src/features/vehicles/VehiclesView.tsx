@@ -2913,10 +2913,12 @@ export function VehiclesView() {
         <div className="quick-menu" role="menu">
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle); }}>Anzeigen</button>
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle); }}>Bearbeiten</button>
+          <span className="quick-menu-separator" role="separator" />
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openQrForVehicle(vehicle); }}>QR-Code</button>
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); printVehicleReport(vehicle); }}>Drucken</button>
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "uploads"); }}>Uploads</button>
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "maintenance"); }}>Wartung</button>
+          <span className="quick-menu-separator" role="separator" />
           <button type="button" role="menuitem" className="danger" onClick={() => { setQuickMenuVehicleID(""); setDeleteCandidate(vehicle); }}>Löschen</button>
         </div>
       )}

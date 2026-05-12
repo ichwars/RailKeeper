@@ -2645,6 +2645,13 @@ td {
   color: var(--danger);
 }
 
+.quick-menu-separator {
+  display: block;
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--line);
+}
+
 .inventory-toolbar-actions .icon-button {
   width: 30px;
   height: 30px;
