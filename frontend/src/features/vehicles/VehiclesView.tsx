@@ -3010,23 +3010,33 @@ export function VehiclesView() {
       </section>
 
       <section className="inventory-status-row" aria-label="Bestandsstatus">
-        <article className="inventory-status-card">
-          <span><PackageSearch size={16} aria-hidden="true" /></span>
-          <small>Gesamtbestand</small>
-          <strong>{vehicles.length}</strong>
-          <em>{inventorySummary.categories} Kategorien</em>
+        <article className={inventoryFilter === "all" ? "inventory-status-card active" : "inventory-status-card"}>
+          <button type="button" onClick={() => setInventoryFilter("all")} aria-label="Alle Fahrzeuge anzeigen">
+            <span><PackageSearch size={16} aria-hidden="true" /></span>
+            <small>Gesamtbestand</small>
+            <strong>{vehicles.length}</strong>
+            <em>{inventorySummary.categories} Kategorien</em>
+          </button>
         </article>
-        <article className="inventory-status-card">
-          <span><Gauge size={16} aria-hidden="true" /></span>
-          <small>Digitalisierung</small>
-          <strong>{vehicles.length ? Math.round((inventorySummary.digital / vehicles.length) * 100) : 0}%</strong>
-          <em>{inventorySummary.digital} digital · {inventorySummary.analog} analog</em>
+        <article className={inventoryFilter === "digital" ? "inventory-status-card active" : "inventory-status-card"}>
+          <button type="button" onClick={() => setInventoryFilter("digital")} aria-label="Digitale Fahrzeuge anzeigen">
+            <span><Gauge size={16} aria-hidden="true" /></span>
+            <small>Digitalisierung</small>
+            <strong>{vehicles.length ? Math.round((inventorySummary.digital / vehicles.length) * 100) : 0}%</strong>
+            <em>{inventorySummary.digital} digital · {inventorySummary.analog} analog</em>
+          </button>
         </article>
-        <article className={maintenanceReminderSummary.due > 0 ? "inventory-status-card attention" : "inventory-status-card"}>
-          <span>{maintenanceReminderSummary.due > 0 ? <AlertTriangle size={16} aria-hidden="true" /> : <Wrench size={16} aria-hidden="true" />}</span>
-          <small>Wartung</small>
-          <strong>{maintenanceReminderSummary.due}</strong>
-          <em>{maintenanceReminderSummary.upcoming} geplant</em>
+        <article className={[
+          "inventory-status-card",
+          maintenanceReminderSummary.due > 0 ? "attention" : "",
+          inventoryFilter === "maintenanceDue" ? "active" : ""
+        ].filter(Boolean).join(" ")}>
+          <button type="button" onClick={() => setInventoryFilter("maintenanceDue")} aria-label="Fahrzeuge mit fälliger Wartung anzeigen">
+            <span>{maintenanceReminderSummary.due > 0 ? <AlertTriangle size={16} aria-hidden="true" /> : <Wrench size={16} aria-hidden="true" />}</span>
+            <small>Wartung</small>
+            <strong>{maintenanceReminderSummary.due}</strong>
+            <em>{maintenanceReminderSummary.upcoming} geplant</em>
+          </button>
         </article>
         <article className="inventory-status-card wide">
           <span><Wrench size={16} aria-hidden="true" /></span>
@@ -3043,11 +3053,13 @@ export function VehiclesView() {
             </>
           )}
         </article>
-        <article className="inventory-status-card">
-          <span><Image size={16} aria-hidden="true" /></span>
-          <small>Bildpflege</small>
-          <strong>{vehicles.length ? Math.round((inventorySummary.withImages / vehicles.length) * 100) : 0}%</strong>
-          <em>{inventorySummary.withImages} mit Bild</em>
+        <article className={inventoryFilter === "withoutImages" ? "inventory-status-card active" : "inventory-status-card"}>
+          <button type="button" onClick={() => setInventoryFilter("withoutImages")} aria-label="Fahrzeuge ohne Bild anzeigen">
+            <span><Image size={16} aria-hidden="true" /></span>
+            <small>Bildpflege</small>
+            <strong>{vehicles.length ? Math.round((inventorySummary.withImages / vehicles.length) * 100) : 0}%</strong>
+            <em>{inventorySummary.withImages} mit Bild</em>
+          </button>
         </article>
       </section>
 

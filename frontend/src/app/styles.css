@@ -1483,7 +1483,13 @@ h1 {
   background: color-mix(in srgb, var(--danger) 6%, var(--panel));
 }
 
-.inventory-status-card > span {
+.inventory-status-card.active {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+}
+
+.inventory-status-card > span,
+.inventory-status-card button > span {
   display: grid;
   width: 34px;
   height: 34px;
@@ -1493,7 +1499,8 @@ h1 {
   color: var(--accent-strong);
 }
 
-.inventory-status-card.attention > span {
+.inventory-status-card.attention > span,
+.inventory-status-card.attention button > span {
   background: color-mix(in srgb, var(--danger) 12%, var(--panel));
   color: var(--danger);
 }
