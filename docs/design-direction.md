@@ -12,8 +12,12 @@ Stand: 11. Mai 2026
 - Tabellen-/Kartenumschalter als Segmented Control führen.
 - Einstellungsseiten kompakter und stärker wie eine Werkzeugoberfläche strukturieren.
 - Fahrzeugaktionen weiterhin als Iconbuttons mit Tooltip und ARIA-Beschriftung ausbauen.
+- Bestandswerkzeuge wie Suche, Filter, Ansicht, Druck und Refresh in einer kompakten Werkzeugzeile führen.
+- Übersichtskacheln dürfen lokal ausgeblendet und sortiert werden, solange das Dashboard informativ bleibt.
+- Kontextmenüs passen zu RailKeeper, wenn sie direkte Fahrzeugaktionen bündeln und nicht jede Aktion als Textbutton sichtbar machen.
 
 ## Bewusst nicht übernommen
 
 - SmartSwitch und Tastatur-Shortcut aus dem Bambuddy-Sidebar-Footer.
-- Funktionale Änderungen aus Bambuddy. Die Übernahme betrifft nur Optik, Größen, Navigation und Bedienmuster.
+- Drucker-, Slicer- und Bambu-spezifische Funktionsbereiche.
+- Vollständiges Drag-and-drop für Dashboardkacheln, solange einfache Reihungsbuttons wartbarer sind.
