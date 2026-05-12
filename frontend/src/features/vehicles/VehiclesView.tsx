@@ -2934,15 +2934,15 @@ export function VehiclesView() {
       </button>
       {quickMenuVehicleID === vehicle.id && (
         <div className="quick-menu" role="menu">
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle); }}>Anzeigen</button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle); }}>Bearbeiten</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle); }}><Eye size={14} />Anzeigen</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle); }}><Pencil size={14} />Bearbeiten</button>
           <span className="quick-menu-separator" role="separator" />
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openQrForVehicle(vehicle); }}>QR-Code</button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); printVehicleReport(vehicle); }}>Drucken</button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "uploads"); }}>Uploads</button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "maintenance"); }}>Wartung</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openQrForVehicle(vehicle); }}><QrCode size={14} />QR-Code</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); printVehicleReport(vehicle); }}><Printer size={14} />Drucken</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "uploads"); }}><Upload size={14} />Uploads</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "maintenance"); }}><Wrench size={14} />Wartung</button>
           <span className="quick-menu-separator" role="separator" />
-          <button type="button" role="menuitem" className="danger" onClick={() => { setQuickMenuVehicleID(""); setDeleteCandidate(vehicle); }}>Löschen</button>
+          <button type="button" role="menuitem" className="danger" onClick={() => { setQuickMenuVehicleID(""); setDeleteCandidate(vehicle); }}><Trash2 size={14} />Löschen</button>
         </div>
       )}
     </div>

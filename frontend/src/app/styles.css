@@ -2636,7 +2636,11 @@ td {
 }
 
 .quick-menu button {
-  min-height: 30px;
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
   border: 0;
   border-radius: 6px;
   padding: 0 9px;
@@ -2649,6 +2653,10 @@ td {
   text-align: left;
 }
 
+.quick-menu button svg {
+  color: var(--muted);
+}
+
 .quick-menu button:hover,
 .quick-menu button:focus-visible {
   background: var(--accent-soft);
@@ -2658,6 +2666,10 @@ td {
 
 .quick-menu button.danger {
   color: var(--danger);
+}
+
+.quick-menu button.danger svg {
+  color: currentColor;
 }
 
 .quick-menu-separator {
