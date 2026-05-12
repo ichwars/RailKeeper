@@ -2515,7 +2515,7 @@ td {
 
 .inventory-card {
   display: grid;
-  grid-template-rows: 156px auto;
+  grid-template-rows: 168px auto;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -2531,7 +2531,7 @@ td {
 .inventory-card-media {
   display: grid;
   width: calc(100% + 2px);
-  height: 156px;
+  height: 168px;
   margin: -1px -1px 0;
   place-items: center;
   border: 0;
@@ -2543,7 +2543,7 @@ td {
 .inventory-card-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center top;
 }
 
@@ -2592,8 +2592,8 @@ td {
 
 .inventory-card h3 {
   margin: 0;
-  font-size: 16px;
-  line-height: 22px;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 .inventory-card dl {
@@ -2627,7 +2627,7 @@ td {
 .inventory-card-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 2px;
   padding-top: 2px;
 }
 
@@ -3692,19 +3692,19 @@ td {
 
 .pending-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px;
 }
 
 .pending-image-card {
   position: relative;
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr);
-  gap: 7px;
+  grid-template-columns: 58px minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
-  min-height: 70px;
+  min-height: 66px;
   margin: 0;
-  padding: 7px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -3718,8 +3718,8 @@ td {
 
 .image-preview-button {
   display: block;
-  width: 64px;
-  height: 54px;
+  width: 58px;
+  height: 50px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -3727,8 +3727,8 @@ td {
 }
 
 .image-preview-button img {
-  width: 64px;
-  height: 54px;
+  width: 58px;
+  height: 50px;
   object-fit: cover;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -3737,7 +3737,7 @@ td {
 
 .pending-image-card figcaption {
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -3751,14 +3751,14 @@ td {
 }
 
 .pending-image-card input {
-  min-height: 22px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0 7px;
-  background: var(--input-bg);
+  min-height: 20px;
+  border: 0;
+  border-radius: 5px;
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--input-bg) 88%, transparent);
   color: var(--text);
   font: inherit;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -3795,12 +3795,12 @@ td {
 .attachment-actions {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 0;
 }
 
 .image-card-actions .icon-button {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
   color: color-mix(in srgb, var(--muted) 84%, var(--text));
 }
 
@@ -3810,7 +3810,8 @@ td {
 }
 
 .image-card-actions .icon-button.active {
-  background: var(--accent-soft);
+  background: transparent;
+  color: var(--accent-strong);
 }
 
 .attachment-list {
