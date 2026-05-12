@@ -1362,6 +1362,86 @@ h1 {
   line-height: 17px;
 }
 
+.inventory-status-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.inventory-status-card {
+  display: grid;
+  gap: 6px;
+  min-height: 118px;
+  align-content: space-between;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.inventory-status-card.wide {
+  grid-column: span 2;
+}
+
+.inventory-status-card.attention {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--line));
+  background: color-mix(in srgb, var(--danger) 6%, var(--panel));
+}
+
+.inventory-status-card > span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.inventory-status-card.attention > span {
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+  color: var(--danger);
+}
+
+.inventory-status-card small,
+.inventory-status-card em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 750;
+  line-height: 18px;
+}
+
+.inventory-status-card strong {
+  color: var(--text);
+  font-size: 25px;
+  line-height: 28px;
+}
+
+.inventory-status-card button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.inventory-status-card button:hover strong,
+.inventory-status-card button:focus-visible strong {
+  color: var(--accent-strong);
+}
+
+.inventory-status-card button:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  outline-offset: 3px;
+}
+
 .overview-head {
   max-width: 860px;
 }
@@ -4686,11 +4766,16 @@ td {
 
   .overview-hero,
   .overview-grid,
+  .inventory-status-row,
   .import-export-grid,
   .settings-dashboard-grid,
   .auth-settings-grid,
   .appearance-config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .inventory-status-card.wide {
+    grid-column: auto;
   }
 
   .inventory-card {

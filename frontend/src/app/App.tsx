@@ -55,6 +55,12 @@ export function App() {
       .catch((error: Error) => setLoadError(error.message));
   }, []);
 
+  function handleLogin(nextSession: Session) {
+    window.history.replaceState(null, "", "/overview");
+    setView("overview");
+    setSession(nextSession);
+  }
+
   if (loadError) {
     return (
       <main className="auth-page">
@@ -100,7 +106,7 @@ export function App() {
   }
 
   if (session === null) {
-    return <LoginView onLogin={setSession} />;
+    return <LoginView onLogin={handleLogin} />;
   }
 
   return (

@@ -1792,6 +1792,18 @@ export function VehiclesView() {
     due: maintenanceReminders.filter((item) => item.daysUntilDue <= 0).length,
     upcoming: maintenanceReminders.filter((item) => item.daysUntilDue > 0).length
   };
+  const nextMaintenanceReminder = maintenanceReminders[0];
+  const inventorySummary = useMemo(() => {
+    const categories = new Set(vehicles.map((vehicle) => vehicle.category).filter(Boolean));
+    const digital = vehicles.filter((vehicle) => vehicle.digital).length;
+    const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
+    return {
+      categories: categories.size,
+      digital,
+      analog: vehicles.length - digital,
+      withImages
+    };
+  }, [vehicles]);
 
   const filteredGattungen = useMemo(() => {
     const categoryKey = options.categories.find((entry) => optionValue(entry) === form.category)?.key;
@@ -2875,34 +2887,46 @@ export function VehiclesView() {
         </button>
       </section>
 
-      <section className="panel maintenance-reminder-panel">
-        <div className="maintenance-reminder-head">
-          <div>
-            <h2>Wartung</h2>
-            <p>Fällige und bald fällige Einträge der nächsten 14 Tage.</p>
-          </div>
-          <div className="maintenance-reminder-counts" aria-label="Wartungsübersicht">
-            <span className={maintenanceReminderSummary.due > 0 ? "danger" : ""}>{maintenanceReminderSummary.due} fällig</span>
-            <span>{maintenanceReminderSummary.upcoming} geplant</span>
-          </div>
-        </div>
-        {maintenanceReminders.length === 0 ? (
-          <p className="empty-state compact">Keine fälligen Wartungen in den nächsten 14 Tagen.</p>
-        ) : (
-          <div className="maintenance-reminder-list">
-            {maintenanceReminders.slice(0, 6).map(({ vehicle, entry, daysUntilDue }) => (
-              <button type="button" key={`${vehicle.id}-${entry.id}`} className={daysUntilDue <= 0 ? "maintenance-reminder due" : "maintenance-reminder"} onClick={() => openDetail(vehicle, "maintenance")}>
-                <span className="maintenance-reminder-icon">
-                  {daysUntilDue <= 0 ? <AlertTriangle size={16} /> : <Wrench size={16} />}
-                </span>
-                <span>
-                  <strong>{vehicle.inventoryNumber} · {vehicle.name}</strong>
-                  <small>{entry.kind} · {maintenanceReminderText(daysUntilDue)} · {formatDate(entry.dueDate)}</small>
-                </span>
-              </button>
-            ))}
-          </div>
-        )}
+      <section className="inventory-status-row" aria-label="Bestandsstatus">
+        <article className="inventory-status-card">
+          <span><PackageSearch size={16} aria-hidden="true" /></span>
+          <small>Gesamtbestand</small>
+          <strong>{vehicles.length}</strong>
+          <em>{inventorySummary.categories} Kategorien</em>
+        </article>
+        <article className="inventory-status-card">
+          <span><Gauge size={16} aria-hidden="true" /></span>
+          <small>Digitalisierung</small>
+          <strong>{vehicles.length ? Math.round((inventorySummary.digital / vehicles.length) * 100) : 0}%</strong>
+          <em>{inventorySummary.digital} digital · {inventorySummary.analog} analog</em>
+        </article>
+        <article className={maintenanceReminderSummary.due > 0 ? "inventory-status-card attention" : "inventory-status-card"}>
+          <span>{maintenanceReminderSummary.due > 0 ? <AlertTriangle size={16} aria-hidden="true" /> : <Wrench size={16} aria-hidden="true" />}</span>
+          <small>Wartung</small>
+          <strong>{maintenanceReminderSummary.due}</strong>
+          <em>{maintenanceReminderSummary.upcoming} geplant</em>
+        </article>
+        <article className="inventory-status-card wide">
+          <span><Wrench size={16} aria-hidden="true" /></span>
+          <small>Nächster Termin</small>
+          {nextMaintenanceReminder ? (
+            <button type="button" onClick={() => openDetail(nextMaintenanceReminder.vehicle, "maintenance")}>
+              <strong>{nextMaintenanceReminder.vehicle.inventoryNumber}</strong>
+              <em>{nextMaintenanceReminder.entry.kind} · {maintenanceReminderText(nextMaintenanceReminder.daysUntilDue)} · {formatDate(nextMaintenanceReminder.entry.dueDate)}</em>
+            </button>
+          ) : (
+            <>
+              <strong>Alles ruhig</strong>
+              <em>Keine fälligen Wartungen in den nächsten 14 Tagen</em>
+            </>
+          )}
+        </article>
+        <article className="inventory-status-card">
+          <span><Image size={16} aria-hidden="true" /></span>
+          <small>Bildpflege</small>
+          <strong>{vehicles.length ? Math.round((inventorySummary.withImages / vehicles.length) * 100) : 0}%</strong>
+          <em>{inventorySummary.withImages} mit Bild</em>
+        </article>
       </section>
 
       <section className="panel inventory-panel">
