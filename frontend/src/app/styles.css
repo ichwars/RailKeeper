@@ -2416,11 +2416,10 @@ h1 {
 }
 
 .inventory-list-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(0, 760px);
   align-items: end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 18px;
+  gap: 12px 18px;
   min-height: 0;
   margin: 0 0 12px;
   padding: 0;
@@ -2450,11 +2449,11 @@ h1 {
 
 .inventory-filter-row {
   display: flex;
-  flex: 1 0 100%;
+  grid-column: 1 / -1;
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding: 2px 0;
+  padding: 0;
 }
 
 .inventory-filter-pill {
@@ -2462,7 +2461,7 @@ h1 {
   align-items: center;
   gap: 7px;
   min-height: 28px;
-  border: 1px solid transparent;
+  border: 0;
   border-radius: 999px;
   padding: 0 10px;
   background: transparent;
@@ -2492,7 +2491,6 @@ h1 {
 }
 
 .inventory-filter-pill.active {
-  border-color: color-mix(in srgb, var(--accent) 18%, transparent);
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
@@ -2500,9 +2498,10 @@ h1 {
 .inventory-toolbar {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 10px;
-  min-width: min(680px, 100%);
+  min-width: 0;
+  width: 100%;
 }
 
 .count-badge {
@@ -2674,6 +2673,7 @@ td {
   border: 0;
   background: transparent;
   color: var(--muted);
+  opacity: 0.9;
 }
 
 .inventory-toolbar-actions .icon-button:hover,
@@ -2681,15 +2681,16 @@ td {
 .inventory-toolbar-actions .icon-button.active {
   background: transparent;
   color: var(--accent-strong);
+  opacity: 1;
 }
 
 .inventory-view-tools {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  padding-right: 8px;
-  margin-right: 4px;
-  border-right: 1px solid var(--line);
+  gap: 4px;
+  padding-right: 0;
+  margin-right: 0;
+  border-right: 0;
 }
 
 .segmented-control {
