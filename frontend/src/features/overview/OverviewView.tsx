@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, EyeOff, FileInput, Gauge, Printer, RefreshCw, RotateCcw, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, Download, EyeOff, FileInput, Gauge, Printer, RefreshCw, RotateCcw, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
 
 type OverviewWidgetID = "mix" | "quality" | "actions" | "manufacturers" | "quickActions" | "maintenance" | "recommendation";
@@ -206,6 +206,39 @@ export function OverviewView() {
   const eanShare = vehicles.length ? Math.round((stats.withEAN / vehicles.length) * 100) : 0;
   const documentedShare = vehicles.length ? Math.round((stats.documentedVehicles / vehicles.length) * 100) : 0;
 
+  const exportOverviewStats = () => {
+    const payload = {
+      exportedAt: new Date().toISOString(),
+      totals: {
+        vehicles: vehicles.length,
+        listValue: stats.totalValue,
+        digital: stats.digital,
+        analog: stats.analog,
+        maintenanceDue: stats.due,
+        maintenanceUpcoming: stats.upcoming,
+        openMaintenance: stats.openMaintenance
+      },
+      quality: {
+        images: imageShare,
+        decoderNumbers: decoderShare,
+        articleNumbers: articleShare,
+        ean: eanShare,
+        documented: documentedShare
+      },
+      categories: stats.categories,
+      gauges: stats.gauges,
+      manufacturers: stats.manufacturers,
+      dataGaps: stats.dataGaps
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "railkeeper-uebersicht.json";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <section className="page-head overview-head">
@@ -222,6 +255,10 @@ export function OverviewView() {
           <button type="button" className="secondary-button" onClick={printDashboard}>
             <Printer size={15} aria-hidden="true" />
             Drucken
+          </button>
+          <button type="button" className="secondary-button" onClick={exportOverviewStats} disabled={loading}>
+            <Download size={15} aria-hidden="true" />
+            Exportieren
           </button>
           {hiddenWidgets.length > 0 && (
             <button type="button" className="secondary-button" onClick={resetWidgets}>
