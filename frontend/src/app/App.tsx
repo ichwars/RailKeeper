@@ -11,6 +11,26 @@ import { applyThemePreference, readThemePreference } from "../shared/theme";
 
 export type AppView = "overview" | "vehicles" | "importExport" | "settings";
 
+const defaultViewSettingKey = "railkeeper.settings.defaultView";
+
+function configuredStartView(): AppView {
+  const stored = window.localStorage.getItem(defaultViewSettingKey);
+  if (stored === "vehicles" || stored === "importExport" || stored === "settings" || stored === "overview") {
+    return stored;
+  }
+  if (stored === "inventory") {
+    return "vehicles";
+  }
+  return "overview";
+}
+
+function pathForView(nextView: AppView) {
+  if (nextView === "overview") return "/overview";
+  if (nextView === "importExport") return "/import-export";
+  if (nextView === "settings") return "/settings";
+  return "/";
+}
+
 function currentView(): AppView {
   if (window.location.pathname.startsWith("/overview")) {
     return "overview";
@@ -21,7 +41,7 @@ function currentView(): AppView {
   if (window.location.pathname.startsWith("/settings")) {
     return "settings";
   }
-  return "vehicles";
+  return configuredStartView();
 }
 
 export function App() {
@@ -56,8 +76,9 @@ export function App() {
   }, []);
 
   function handleLogin(nextSession: Session) {
-    window.history.replaceState(null, "", "/overview");
-    setView("overview");
+    const startView = configuredStartView();
+    window.history.replaceState(null, "", pathForView(startView));
+    setView(startView);
     setSession(nextSession);
   }
 

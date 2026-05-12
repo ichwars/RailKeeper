@@ -255,7 +255,10 @@ export function SettingsView() {
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
   const [language, setLanguage] = useState(() => readLocalSetting(localSettingKeys.language, "de"));
-  const [defaultView, setDefaultView] = useState(() => readLocalSetting(localSettingKeys.defaultView, "overview"));
+  const [defaultView, setDefaultView] = useState(() => {
+    const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
+    return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
+  });
   const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(readSidebarOrder);
   const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
   const [timeFormat, setTimeFormat] = useState(() => readLocalSetting(localSettingKeys.timeFormat, "system"));
@@ -647,7 +650,7 @@ export function SettingsView() {
                   Standardansicht
                   <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
                     <option value="overview">Übersicht</option>
-                    <option value="inventory">Bestand</option>
+                    <option value="vehicles">Bestand</option>
                     <option value="importExport">Import/Export</option>
                     <option value="settings">Einstellungen</option>
                   </select>
