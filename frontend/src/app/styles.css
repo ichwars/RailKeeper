@@ -2263,7 +2263,7 @@ h1 {
 }
 
 .inventory-search {
-  width: min(430px, 100%);
+  width: min(360px, 100%);
 }
 
 .inventory-panel {
@@ -2276,19 +2276,29 @@ h1 {
 }
 
 .inventory-list-head {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 18px;
   min-height: 0;
-  margin: 0;
-  padding: 0 0 14px;
+  margin: 0 0 12px;
+  padding: 0;
   border-bottom: 0;
   background: transparent;
 }
 
 .inventory-list-head h2 {
   margin: 0;
-  font-size: 21px;
-  line-height: 28px;
+  font-size: 22px;
+  line-height: 30px;
+}
+
+.inventory-list-head p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 17px;
 }
 
 .inventory-title-line {
@@ -2300,8 +2310,9 @@ h1 {
 .inventory-toolbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 14px;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: min(680px, 100%);
 }
 
 .count-badge {
@@ -2349,7 +2360,7 @@ th {
 
 .inventory-table {
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 0;
   border-radius: 8px;
   background: var(--panel);
 }
@@ -2361,7 +2372,7 @@ th {
 
 .inventory-table tbody tr:hover,
 .master-data-table tbody tr:hover {
-  background: color-mix(in srgb, var(--accent) 4%, #fff);
+  background: color-mix(in srgb, var(--accent) 3%, var(--panel));
 }
 
 .sort-button {
@@ -2392,6 +2403,11 @@ th {
 
 th:hover .sort-button {
   background: transparent;
+  color: inherit;
+}
+
+th .sort-button:hover,
+th .sort-button:focus-visible {
   color: var(--accent-strong);
 }
 
@@ -2412,8 +2428,8 @@ td {
 }
 
 .inventory-toolbar-actions .icon-button {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: 0;
   background: transparent;
   color: var(--muted);
@@ -2424,6 +2440,15 @@ td {
 .inventory-toolbar-actions .icon-button.active {
   background: transparent;
   color: var(--accent-strong);
+}
+
+.inventory-view-tools {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 8px;
+  margin-right: 4px;
+  border-right: 1px solid var(--line);
 }
 
 .segmented-control {
@@ -4636,10 +4661,14 @@ td {
 }
 
 :root[data-theme="dark"] .sort-button:hover,
-:root[data-theme="dark"] .sort-button.active,
-:root[data-theme="dark"] th:hover .sort-button {
+:root[data-theme="dark"] .sort-button.active {
   background: transparent;
   color: var(--accent-strong);
+}
+
+:root[data-theme="dark"] th:hover .sort-button {
+  background: transparent;
+  color: inherit;
 }
 
 :root[data-theme="dark"] .article-search-dialog {
@@ -4684,10 +4713,14 @@ td {
   }
 
   :root[data-theme="system"] .sort-button:hover,
-  :root[data-theme="system"] .sort-button.active,
-  :root[data-theme="system"] th:hover .sort-button {
+  :root[data-theme="system"] .sort-button.active {
     background: transparent;
     color: var(--accent-strong);
+  }
+
+  :root[data-theme="system"] th:hover .sort-button {
+    background: transparent;
+    color: inherit;
   }
 
   :root[data-theme="system"] .article-search-dialog {

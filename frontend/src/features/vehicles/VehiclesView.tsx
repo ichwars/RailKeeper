@@ -2932,10 +2932,12 @@ export function VehiclesView() {
       <section className="panel inventory-panel">
         <div className="panel-head inventory-list-head">
           <div className="inventory-title-line">
-            <h2>Fahrzeuge</h2>
-            <span className="count-badge">{vehicles.length}</span>
+            <div>
+              <h2>Fahrzeuge</h2>
+              <p>{sortedVehicles.length} von {vehicles.length} Fahrzeugen</p>
+            </div>
           </div>
-          <div className="inventory-toolbar">
+          <div className="inventory-toolbar" aria-label="Bestandswerkzeuge">
             <label className="search-field inventory-search">
               <span>
                 <Search size={16} aria-hidden="true" />
@@ -2948,12 +2950,14 @@ export function VehiclesView() {
               </span>
             </label>
             <div className="table-actions inventory-toolbar-actions">
-              <button type="button" className={inventoryView === "table" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("table")} aria-label="Tabellenansicht" title="Tabellenansicht">
-                <Table2 size={16} />
-              </button>
-              <button type="button" className={inventoryView === "cards" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("cards")} aria-label="Kartenansicht" title="Kartenansicht">
-                <Grid2X2 size={16} />
-              </button>
+              <span className="inventory-view-tools" aria-label="Ansicht wechseln">
+                <button type="button" className={inventoryView === "table" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("table")} aria-label="Tabellenansicht" title="Tabellenansicht">
+                  <Table2 size={16} />
+                </button>
+                <button type="button" className={inventoryView === "cards" ? "icon-button active" : "icon-button"} onClick={() => setInventoryViewMode("cards")} aria-label="Kartenansicht" title="Kartenansicht">
+                  <Grid2X2 size={16} />
+                </button>
+              </span>
               <button type="button" className="icon-button" onClick={() => printInventoryReport("summary")} aria-label="Kurzliste als PDF drucken" title="Kurzliste als PDF drucken" disabled={loading || vehicles.length === 0}>
                 <Printer size={16} />
               </button>
