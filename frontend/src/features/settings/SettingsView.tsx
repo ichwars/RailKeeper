@@ -109,10 +109,11 @@ const localSettingKeys = {
 };
 
 const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
-const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "importExport", "settings"];
+const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "exhibition", "importExport", "settings"];
 const sidebarLabels: Record<AppView, string> = {
   overview: "Übersicht",
   vehicles: "Bestand",
+  exhibition: "Messeliste",
   importExport: "Import/Export",
   settings: "Einstellungen"
 };
@@ -652,6 +653,7 @@ export function SettingsView() {
                   <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
                     <option value="overview">Übersicht</option>
                     <option value="vehicles">Bestand</option>
+                    <option value="exhibition">Messeliste</option>
                     <option value="importExport">Import/Export</option>
                     <option value="settings">Einstellungen</option>
                   </select>

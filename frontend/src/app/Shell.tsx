@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Box, Bug, ChevronLeft, ChevronRight, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { BarChart3, Box, Bug, CalendarDays, ChevronLeft, ChevronRight, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
 
 const navItems = [
   { view: "overview", href: "/overview", label: "Übersicht", icon: BarChart3 },
-  { view: "vehicles", href: "/", label: "Bestand", icon: Box },
+  { view: "vehicles", href: "/vehicles", label: "Bestand", icon: Box },
+  { view: "exhibition", href: "/exhibition", label: "Messeliste", icon: CalendarDays },
   { view: "importExport", href: "/import-export", label: "Import/Export", icon: FileInput },
   { view: "settings", href: "/settings", label: "Einstellungen", icon: Settings }
 ] as const;
@@ -19,38 +20,47 @@ function readSidebarCollapsed() {
   return window.localStorage.getItem(sidebarCollapsedKey) === "true";
 }
 
-function readNavItems() {
+function allowedNavItems(roles: string[]) {
+  if (roles.includes("Admin")) return [...navItems];
+  if (roles.includes("Messe")) return navItems.filter((item) => item.view === "exhibition");
+  return navItems.filter((item) => item.view !== "exhibition");
+}
+
+function readNavItems(roles: string[]) {
+  const available = allowedNavItems(roles);
   try {
     const order = JSON.parse(window.localStorage.getItem(sidebarOrderKey) || "[]") as AppView[];
     const ordered = order
-      .map((view) => navItems.find((item) => item.view === view))
+      .map((view) => available.find((item) => item.view === view))
       .filter((item): item is (typeof navItems)[number] => Boolean(item));
-    const missing = navItems.filter((item) => !ordered.some((orderedItem) => orderedItem.view === item.view));
+    const missing = available.filter((item) => !ordered.some((orderedItem) => orderedItem.view === item.view));
     return [...ordered, ...missing];
   } catch {
-    return [...navItems];
+    return available;
   }
 }
 
 export function Shell({
   children,
   username,
+  roles,
   activeView,
   onLogout
 }: {
   children: ReactNode;
   username: string;
+  roles: string[];
   activeView: AppView;
   onLogout: () => void;
 }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
-  const [orderedNavItems, setOrderedNavItems] = useState(readNavItems);
+  const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles));
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
 
   useEffect(() => {
-    const syncOrder = () => setOrderedNavItems(readNavItems());
+    const syncOrder = () => setOrderedNavItems(readNavItems(roles));
 
     window.addEventListener(sidebarOrderChangedEvent, syncOrder);
     window.addEventListener("storage", syncOrder);
@@ -58,7 +68,7 @@ export function Shell({
       window.removeEventListener(sidebarOrderChangedEvent, syncOrder);
       window.removeEventListener("storage", syncOrder);
     };
-  }, []);
+  }, [roles]);
 
   function toggleTheme() {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
@@ -104,16 +114,17 @@ export function Shell({
             );
           })}
 
+          <button
+            type="button"
+            className="sidebar-collapse"
+            onClick={toggleSidebarCollapsed}
+            aria-label={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
+            title={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
+          >
+            {sidebarCollapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
+          </button>
+
           <div className="sidebar-footer" aria-label="Seitenleisten-Aktionen">
-            <button
-              type="button"
-              className="sidebar-collapse"
-              onClick={toggleSidebarCollapsed}
-              aria-label={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
-              title={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
-            >
-              {sidebarCollapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
-            </button>
             <div className="sidebar-footer-actions">
               <a href="/settings" title="System" aria-label="System">
                 <Info size={17} aria-hidden="true" />

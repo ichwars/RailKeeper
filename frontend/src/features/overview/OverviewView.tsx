@@ -248,27 +248,22 @@ export function OverviewView() {
           <p>Der schnelle Blick auf Bestand, Wert, Digitalisierung und offene Aufgaben.</p>
         </div>
         <div className="overview-actions" aria-label="Dashboard-Werkzeuge">
-          <button type="button" className="secondary-button" onClick={loadVehicles} disabled={loading}>
+          <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label="Aktualisieren" title="Aktualisieren">
             <RefreshCw size={15} aria-hidden="true" />
-            Aktualisieren
           </button>
-          <button type="button" className="secondary-button" onClick={printDashboard}>
+          <button type="button" className="icon-button" onClick={printDashboard} aria-label="Drucken" title="Drucken">
             <Printer size={15} aria-hidden="true" />
-            Drucken
           </button>
-          <button type="button" className="secondary-button" onClick={exportOverviewStats} disabled={loading}>
+          <button type="button" className="icon-button" onClick={exportOverviewStats} disabled={loading} aria-label="Exportieren" title="Exportieren">
             <Download size={15} aria-hidden="true" />
-            Exportieren
           </button>
           {hiddenWidgets.length > 0 && (
-            <button type="button" className="secondary-button" onClick={resetWidgets}>
+            <button type="button" className="icon-button" onClick={resetWidgets} aria-label="Layout zurücksetzen" title="Layout zurücksetzen">
               <RotateCcw size={15} aria-hidden="true" />
-              Layout zurücksetzen
             </button>
           )}
-          <a className="secondary-button" href="/import-export">
+          <a className="icon-button" href="/import-export" aria-label="Import/Export" title="Import/Export">
             <FileInput size={15} aria-hidden="true" />
-            Import/Export
           </a>
         </div>
       </section>
@@ -352,7 +347,7 @@ export function OverviewView() {
           ) : (
             <div className="action-gap-list">
               {stats.dataGaps.map((gap) => (
-                <a key={gap.label} href="/" className="action-gap">
+                <a key={gap.label} href="/vehicles" className="action-gap">
                   <span>
                     <strong>{gap.label}</strong>
                     <small>{gap.detail}</small>
@@ -389,7 +384,7 @@ export function OverviewView() {
             {widgetControls("quickActions", "Schnellaktionen")}
           </div>
           <div className="quick-action-list">
-            <a href="/">
+            <a href="/vehicles">
               <span>Bestand pflegen</span>
               <small>Fahrzeuge öffnen, suchen und ergänzen.</small>
               <ArrowRight size={16} aria-hidden="true" />

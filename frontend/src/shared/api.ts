@@ -442,6 +442,48 @@ export type StorageUsage = {
   updatedAt: string;
 };
 
+export type ExhibitionList = {
+  id: string;
+  designation: string;
+  date: string;
+  locked: boolean;
+  entryCount: number;
+  entries?: ExhibitionEntry[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExhibitionListInput = {
+  designation: string;
+  date: string;
+};
+
+export type ExhibitionEntry = {
+  id: string;
+  listId: string;
+  owner: string;
+  imageUrl?: string;
+  locomotiveName: string;
+  dtDecoder: boolean;
+  decoderNumber?: string;
+  functionKeys?: string;
+  notes?: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ExhibitionEntryInput = {
+  owner: string;
+  imageUrl?: string;
+  locomotiveName: string;
+  dtDecoder: boolean;
+  decoderNumber?: string;
+  functionKeys?: string;
+  notes?: string;
+  sortOrder?: number;
+};
+
 let csrfToken = "";
 
 type RequestOptions = {
@@ -550,6 +592,42 @@ export const api = {
       { timeoutMs: 10000 }
     ),
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
+  exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
+  exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
+  createExhibitionList: (input: ExhibitionListInput) =>
+    request<ExhibitionList>("/exhibition-lists", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateExhibitionList: (id: string, input: ExhibitionListInput) =>
+    request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteExhibitionList: (id: string) =>
+    request<void>(`/exhibition-lists/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }),
+  setExhibitionListLocked: (id: string, locked: boolean) =>
+    request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}/lock`, {
+      method: "PUT",
+      body: JSON.stringify({ locked })
+    }),
+  exhibitionEntries: (listId: string) => request<ExhibitionEntry[]>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`),
+  createExhibitionEntry: (listId: string, input: ExhibitionEntryInput) =>
+    request<ExhibitionEntry>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateExhibitionEntry: (listId: string, entryId: string, input: ExhibitionEntryInput) =>
+    request<ExhibitionEntry>(`/exhibition-lists/${encodeURIComponent(listId)}/entries/${encodeURIComponent(entryId)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteExhibitionEntry: (listId: string, entryId: string) =>
+    request<void>(`/exhibition-lists/${encodeURIComponent(listId)}/entries/${encodeURIComponent(entryId)}`, {
+      method: "DELETE"
+    }),
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
   createVehicle: (input: CreateVehicleRequest) =>

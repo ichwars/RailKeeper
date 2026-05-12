@@ -44,6 +44,7 @@ type Config struct {
 	ArticleSearch               *application.ArticleSearchService
 	InventoryNumbers            *application.InventoryNumberService
 	BackupService               *application.BackupService
+	ExhibitionService           *application.ExhibitionService
 	CookieSecure                bool
 }
 
@@ -63,6 +64,7 @@ type App struct {
 	articleSearch               *application.ArticleSearchService
 	inventoryNumbers            *application.InventoryNumberService
 	backupService               *application.BackupService
+	exhibitionService           *application.ExhibitionService
 	cookieSecure                bool
 	rateLimits                  *rateLimiter
 }
@@ -90,6 +92,7 @@ func NewRouter(config Config) http.Handler {
 		articleSearch:               config.ArticleSearch,
 		inventoryNumbers:            config.InventoryNumbers,
 		backupService:               config.BackupService,
+		exhibitionService:           config.ExhibitionService,
 		cookieSecure:                config.CookieSecure,
 		rateLimits:                  newRateLimiter(),
 	}
@@ -160,6 +163,16 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/backup/export", app.require("Admin", app.exportBackup))
 	mux.HandleFunc("POST /api/v1/backup/validate", app.require("Admin", app.validateBackup))
 	mux.HandleFunc("POST /api/v1/backup/restore", app.require("Admin", app.restoreBackup))
+	mux.HandleFunc("GET /api/v1/exhibition-lists", app.require("Messe", app.listExhibitionLists))
+	mux.HandleFunc("POST /api/v1/exhibition-lists", app.require("Admin", app.createExhibitionList))
+	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}", app.require("Messe", app.getExhibitionList))
+	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}", app.require("Admin", app.updateExhibitionList))
+	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}", app.require("Admin", app.deleteExhibitionList))
+	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/lock", app.require("Admin", app.setExhibitionListLocked))
+	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.listExhibitionEntries))
+	mux.HandleFunc("POST /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.createExhibitionEntry))
+	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Messe", app.updateExhibitionEntry))
+	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Messe", app.deleteExhibitionEntry))
 
 	mux.Handle("/", staticHandler(app.staticDir))
 

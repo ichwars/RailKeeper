@@ -79,6 +79,7 @@ func main() {
 		ArticleSearch:               application.NewArticleSearchService(),
 		InventoryNumbers:            application.NewInventoryNumberService(db),
 		BackupService:               application.NewBackupService(db, dataDir),
+		ExhibitionService:           application.NewExhibitionService(db),
 		CookieSecure:                cookieSecure,
 	})
 

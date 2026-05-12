@@ -206,7 +206,6 @@ a {
 .sidebar-footer {
   display: grid;
   gap: 12px;
-  margin-top: auto;
   padding-top: 16px;
   border-top: 1px solid var(--line);
 }
@@ -215,6 +214,7 @@ a {
   display: grid;
   width: 100%;
   height: 28px;
+  margin-top: auto;
   place-items: center;
   border: 0;
   border-radius: 6px;
@@ -1562,14 +1562,19 @@ h1 {
   gap: 8px;
 }
 
-.overview-actions .secondary-button {
-  display: inline-flex;
-  min-height: 34px;
-  align-items: center;
-  gap: 7px;
-  padding: 0 11px;
+.overview-actions .icon-button {
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  color: var(--muted);
   text-decoration: none;
-  white-space: nowrap;
+}
+
+.overview-actions .icon-button:hover,
+.overview-actions .icon-button:focus-visible {
+  background: transparent;
+  color: var(--accent-strong);
+  outline: none;
 }
 
 .overview-widget .panel-head {
@@ -3893,6 +3898,11 @@ td {
   padding: 20px;
 }
 
+.uploads-tab {
+  gap: 16px;
+  overflow-x: hidden;
+}
+
 .upload-section,
 .maintenance-editor,
 .cv-editor,
@@ -3900,6 +3910,11 @@ td {
 .cv-table-section {
   display: grid;
   gap: 12px;
+}
+
+.uploads-tab .upload-section + .upload-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
 }
 
 .cv-history-row td {
@@ -3946,6 +3961,21 @@ td {
   padding: 0 14px;
 }
 
+.uploads-tab .upload-head {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.uploads-tab .upload-head > div {
+  min-width: 0;
+}
+
+.uploads-tab .upload-head .primary-button {
+  margin-left: auto;
+}
+
 .upload-maintenance-select {
   width: min(260px, 100%);
   min-height: 38px;
@@ -3973,19 +4003,19 @@ td {
 
 .pending-image-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
 }
 
 .pending-image-card {
   position: relative;
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
-  gap: 6px;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
-  min-height: 66px;
+  min-height: 92px;
   margin: 0;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -3999,8 +4029,8 @@ td {
 
 .image-preview-button {
   display: block;
-  width: 58px;
-  height: 50px;
+  width: 112px;
+  height: 76px;
   padding: 0;
   border: 0;
   background: transparent;
@@ -4008,8 +4038,8 @@ td {
 }
 
 .image-preview-button img {
-  width: 58px;
-  height: 50px;
+  width: 112px;
+  height: 76px;
   object-fit: cover;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -4018,7 +4048,7 @@ td {
 
 .pending-image-card figcaption {
   display: grid;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -4032,7 +4062,7 @@ td {
 }
 
 .pending-image-card input {
-  min-height: 20px;
+  min-height: 24px;
   border: 0;
   border-radius: 5px;
   padding: 0 6px;
@@ -4050,7 +4080,7 @@ td {
 
 .image-maintenance-select {
   width: 100%;
-  min-height: 23px;
+  min-height: 26px;
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 0 7px;
@@ -4102,10 +4132,10 @@ td {
 
 .attachment-upload-zone {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.2fr);
-  gap: 14px;
-  align-items: center;
-  min-height: 88px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+  min-height: 0;
   padding: 14px;
   border: 1px dashed var(--line-strong);
   border-radius: 8px;
@@ -4134,12 +4164,13 @@ td {
 
 .attachment-upload-fields {
   display: grid;
-  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(180px, 1fr);
+  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(0, 1fr);
   gap: 8px;
 }
 
 .attachment-upload-fields select,
 .attachment-upload-fields input {
+  min-width: 0;
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -4929,6 +4960,204 @@ td {
   margin-right: auto;
 }
 
+.exhibition-layout {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.4fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.exhibition-list-panel,
+.exhibition-entry-panel {
+  overflow: hidden;
+}
+
+.exhibition-list-panel tbody tr {
+  cursor: pointer;
+}
+
+.exhibition-table th button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  text-transform: inherit;
+}
+
+.exhibition-table td small {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-row td {
+  background: color-mix(in srgb, var(--accent-bright) 10%, transparent);
+}
+
+.exhibition-thumb,
+.image-placeholder.mini {
+  display: grid;
+  width: 54px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  object-fit: cover;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.compact-modal {
+  width: min(520px, 100%);
+}
+
+.simple-form {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.simple-form label,
+.exhibition-entry-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.simple-form input,
+.exhibition-entry-form input,
+.exhibition-entry-form textarea {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.exhibition-entry-form textarea {
+  min-height: 94px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+.exhibition-entry-modal {
+  width: min(920px, 100%);
+}
+
+.exhibition-view-modal {
+  width: min(980px, 100%);
+}
+
+.exhibition-entry-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px;
+}
+
+.exhibition-entry-form section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.exhibition-entry-form h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.exhibition-entry-tabs {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.exhibition-image-tab,
+.exhibition-functions-tab {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.exhibition-image-tab .upload-head {
+  min-height: auto;
+}
+
+.exhibition-image-tab .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.exhibition-image-editor {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.exhibition-image-editor img,
+.exhibition-image-editor .image-placeholder {
+  width: 240px;
+  height: 160px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.exhibition-image-editor label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exhibition-image-editor input {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.exhibition-function-row {
+  grid-template-columns: 54px minmax(220px, 1fr) minmax(150px, 220px);
+}
+
+.checkbox-line {
+  display: flex !important;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--text) !important;
+}
+
+.checkbox-line input {
+  min-height: auto;
+}
+
 .confirm-card {
   width: min(430px, 100%);
   padding: 20px;
@@ -5115,6 +5344,7 @@ td {
 
   .overview-hero,
   .overview-grid,
+  .exhibition-layout,
   .inventory-status-row,
   .import-export-grid,
   .settings-dashboard-grid,
@@ -5136,6 +5366,23 @@ td {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .exhibition-entry-form {
+    grid-template-columns: 1fr;
+  }
+
+  .exhibition-image-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .exhibition-image-editor img,
+  .exhibition-image-editor .image-placeholder {
+    width: 100%;
+  }
+
+  .exhibition-function-row {
     grid-template-columns: 1fr;
   }
 

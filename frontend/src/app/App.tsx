@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Shell } from "./Shell";
 import { LoginView } from "../features/auth/LoginView";
+import { ExhibitionView } from "../features/exhibition/ExhibitionView";
 import { ImportExportView } from "../features/importExport/ImportExportView";
 import { OverviewView } from "../features/overview/OverviewView";
 import { SetupView } from "../features/setup/SetupView";
@@ -9,13 +10,13 @@ import { VehiclesView } from "../features/vehicles/VehiclesView";
 import { api, Session } from "../shared/api";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 
-export type AppView = "overview" | "vehicles" | "importExport" | "settings";
+export type AppView = "overview" | "vehicles" | "exhibition" | "importExport" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 
 function configuredStartView(): AppView {
   const stored = window.localStorage.getItem(defaultViewSettingKey);
-  if (stored === "vehicles" || stored === "importExport" || stored === "settings" || stored === "overview") {
+  if (stored === "vehicles" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
     return stored;
   }
   if (stored === "inventory") {
@@ -26,6 +27,8 @@ function configuredStartView(): AppView {
 
 function pathForView(nextView: AppView) {
   if (nextView === "overview") return "/overview";
+  if (nextView === "vehicles") return "/vehicles";
+  if (nextView === "exhibition") return "/exhibition";
   if (nextView === "importExport") return "/import-export";
   if (nextView === "settings") return "/settings";
   return "/";
@@ -35,6 +38,12 @@ function currentView(): AppView {
   if (window.location.pathname.startsWith("/overview")) {
     return "overview";
   }
+  if (window.location.pathname.startsWith("/vehicles")) {
+    return "vehicles";
+  }
+  if (window.location.pathname.startsWith("/exhibition")) {
+    return "exhibition";
+  }
   if (window.location.pathname.startsWith("/import-export")) {
     return "importExport";
   }
@@ -42,6 +51,18 @@ function currentView(): AppView {
     return "settings";
   }
   return configuredStartView();
+}
+
+function canAccessView(view: AppView, roles: string[]) {
+  if (roles.includes("Admin")) return true;
+  if (roles.includes("Messe")) return view === "exhibition";
+  return view !== "exhibition";
+}
+
+function firstAllowedView(roles: string[]): AppView {
+  if (roles.includes("Admin")) return "overview";
+  if (roles.includes("Messe")) return "exhibition";
+  return "overview";
 }
 
 export function App() {
@@ -76,8 +97,9 @@ export function App() {
   }, []);
 
   function handleLogin(nextSession: Session) {
-    window.history.replaceState(null, "", pathForView("overview"));
-    setView("overview");
+    const nextView = firstAllowedView(nextSession.roles);
+    window.history.replaceState(null, "", pathForView(nextView));
+    setView(nextView);
     setSession(nextSession);
   }
 
@@ -129,18 +151,25 @@ export function App() {
     return <LoginView onLogin={handleLogin} />;
   }
 
+  const effectiveView = canAccessView(view, session.roles) ? view : firstAllowedView(session.roles);
+  if (effectiveView !== view) {
+    window.history.replaceState(null, "", pathForView(effectiveView));
+  }
+
   return (
     <Shell
       username={session.username}
-      activeView={view}
+      roles={session.roles}
+      activeView={effectiveView}
       onLogout={() => {
         api.logout().finally(() => setSession(null));
       }}
     >
-      {view === "overview" && <OverviewView />}
-      {view === "vehicles" && <VehiclesView />}
-      {view === "importExport" && <ImportExportView />}
-      {view === "settings" && <SettingsView />}
+      {effectiveView === "overview" && <OverviewView />}
+      {effectiveView === "vehicles" && <VehiclesView />}
+      {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
+      {effectiveView === "importExport" && <ImportExportView />}
+      {effectiveView === "settings" && <SettingsView />}
     </Shell>
   );
 }

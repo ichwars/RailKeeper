@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 }
 
 func SeedRoles(db *sql.DB) error {
-	for _, role := range []string{"Admin", "Editor", "Viewer"} {
+	for _, role := range []string{"Admin", "Editor", "Viewer", "Messe"} {
 		if _, err := db.Exec(
 			`INSERT INTO roles(id, name) VALUES(?, ?) ON CONFLICT(name) DO NOTHING`,
 			randomID(),
