@@ -420,14 +420,15 @@ export function SettingsView() {
     applyThemePreference(preference);
   };
 
-  const loadVersionInfo = () => {
+  const loadVersionInfo = (forceCheck = false) => {
+    const shouldCheck = forceCheck || updateChecks;
     setVersionLoading(true);
     setVersionMessage("");
     api
-      .version()
+      .version(shouldCheck, betaUpdates)
       .then((info) => {
         setVersionInfo(info);
-        setVersionMessage(`RailKeeper ist erreichbar. Aktuelle Version: ${info.version || "unbekannt"}.`);
+        setVersionMessage(info.message || `RailKeeper ist erreichbar. Aktuelle Version: ${info.version || "unbekannt"}.`);
       })
       .catch((error: Error) => setVersionMessage(error.message))
       .finally(() => setVersionLoading(false));
@@ -824,12 +825,26 @@ export function SettingsView() {
                 </span>
               </label>
               <div className="settings-action-row">
-                <p>Aktuelle Version: <strong>{versionInfo?.version || "unbekannt"}</strong></p>
-                <button type="button" className="secondary-button" onClick={loadVersionInfo} disabled={versionLoading}>
+                <p>
+                  Aktuelle Version: <strong>{versionInfo?.version || "unbekannt"}</strong>
+                  {versionInfo?.latestVersion && <> · Neueste Version: <strong>{versionInfo.latestVersion}</strong></>}
+                </p>
+                {versionInfo?.status && (
+                  <span className={`settings-pill ${versionInfo.updateAvailable ? "active" : versionInfo.status === "unavailable" ? "muted" : ""}`}>
+                    {versionInfo.updateAvailable ? "Update verfügbar" : versionInfo.status === "current" ? "aktuell" : versionInfo.status === "not_configured" ? "lokal" : versionInfo.status === "unavailable" ? "offline" : "lokal"}
+                  </span>
+                )}
+                <button type="button" className="secondary-button" onClick={() => loadVersionInfo(true)} disabled={versionLoading}>
                   <RefreshCw size={17} />
                   {versionLoading ? "Prüft..." : "Jetzt prüfen"}
                 </button>
               </div>
+              {versionInfo?.releaseUrl && (
+                <a className="settings-link-row" href={versionInfo.releaseUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={15} />
+                  Release öffnen
+                </a>
+              )}
               {versionMessage && <p className="form-message">{versionMessage}</p>}
             </section>
 

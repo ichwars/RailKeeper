@@ -575,6 +575,22 @@ h1 {
   flex: 0 0 auto;
 }
 
+.settings-link-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.settings-link-row:hover,
+.settings-link-row:focus-visible {
+  color: var(--accent-bright);
+}
+
 .sidebar-order-box {
   display: grid;
   gap: 10px;

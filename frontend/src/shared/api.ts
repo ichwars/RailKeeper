@@ -420,6 +420,13 @@ export type BackupValidationResult = {
 
 export type VersionInfo = {
   version: string;
+  latestVersion?: string;
+  updateAvailable: boolean;
+  sourceUrl?: string;
+  releaseUrl?: string;
+  checkedAt: string;
+  status: "local" | "not_configured" | "current" | "update_available" | "unavailable";
+  message: string;
 };
 
 export type StorageUsageCategory = {
@@ -536,7 +543,12 @@ export const api = {
     await request<void>("/auth/logout", { method: "POST" });
     csrfToken = "";
   },
-  version: () => request<VersionInfo>("/version"),
+  version: (check = false, includePrerelease = false) =>
+    request<VersionInfo>(
+      `/version${check ? `?check=true&prerelease=${includePrerelease ? "true" : "false"}` : ""}`,
+      {},
+      { timeoutMs: 10000 }
+    ),
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),

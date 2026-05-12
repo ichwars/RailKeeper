@@ -30,6 +30,7 @@ import (
 
 type Config struct {
 	Version                     string
+	UpdateCheckURL              string
 	StaticDir                   string
 	DataDir                     string
 	MaxImageBytes               int64
@@ -48,6 +49,7 @@ type Config struct {
 
 type App struct {
 	version                     string
+	updateCheckURL              string
 	staticDir                   string
 	dataDir                     string
 	maxImageBytes               int64
@@ -74,6 +76,7 @@ func NewRouter(config Config) http.Handler {
 	}
 	app := &App{
 		version:                     config.Version,
+		updateCheckURL:              config.UpdateCheckURL,
 		staticDir:                   config.StaticDir,
 		dataDir:                     config.DataDir,
 		maxImageBytes:               effectiveLimit(config.MaxImageBytes, defaultMaxImageBytes),
@@ -106,9 +109,7 @@ func NewRouter(config Config) http.Handler {
 		respondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 	})
 
-	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"version": app.version})
-	})
+	mux.HandleFunc("GET /api/v1/version", app.versionInfo)
 	mux.HandleFunc("GET /api/v1/system/storage", app.require("Admin", app.systemStorage))
 
 	mux.HandleFunc("GET /api/v1/setup/status", app.setupStatus)
@@ -176,6 +177,169 @@ type storageUsageCategory struct {
 	Label string `json:"label"`
 	Bytes int64  `json:"bytes"`
 	Files int    `json:"files"`
+}
+
+type versionInfoResponse struct {
+	Version         string `json:"version"`
+	LatestVersion   string `json:"latestVersion,omitempty"`
+	UpdateAvailable bool   `json:"updateAvailable"`
+	SourceURL       string `json:"sourceUrl,omitempty"`
+	ReleaseURL      string `json:"releaseUrl,omitempty"`
+	CheckedAt       string `json:"checkedAt"`
+	Status          string `json:"status"`
+	Message         string `json:"message"`
+}
+
+type updateReleaseResponse struct {
+	Version string `json:"version"`
+	TagName string `json:"tag_name"`
+	Name    string `json:"name"`
+	HTMLURL string `json:"html_url"`
+}
+
+func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
+	response := versionInfoResponse{
+		Version:   a.version,
+		CheckedAt: time.Now().UTC().Format(time.RFC3339),
+		Status:    "local",
+		Message:   "Lokale RailKeeper-Version gelesen.",
+	}
+
+	if r.URL.Query().Get("check") != "true" {
+		respondJSON(w, http.StatusOK, response)
+		return
+	}
+
+	updateURL := strings.TrimSpace(a.updateCheckURL)
+	if updateURL == "" {
+		response.Status = "not_configured"
+		response.Message = "Keine externe Updatequelle konfiguriert."
+		respondJSON(w, http.StatusOK, response)
+		return
+	}
+	if !isAllowedUpdateURL(updateURL) {
+		response.Status = "unavailable"
+		response.SourceURL = updateURL
+		response.Message = "Updatequelle ist nicht erlaubt. Bitte eine HTTP- oder HTTPS-URL konfigurieren."
+		respondJSON(w, http.StatusOK, response)
+		return
+	}
+
+	release, err := fetchUpdateRelease(r.Context(), updateURL)
+	response.SourceURL = updateURL
+	if err != nil {
+		a.logger.Warn("update check failed", "url", updateURL, "error", err)
+		response.Status = "unavailable"
+		response.Message = "Updatequelle konnte nicht erreicht werden."
+		respondJSON(w, http.StatusOK, response)
+		return
+	}
+
+	response.LatestVersion = firstUpdateVersion(release.Version, release.TagName, release.Name)
+	response.ReleaseURL = release.HTMLURL
+	if response.LatestVersion == "" {
+		response.Status = "unavailable"
+		response.Message = "Updatequelle enthielt keine auswertbare Version."
+		respondJSON(w, http.StatusOK, response)
+		return
+	}
+
+	if compareVersionStrings(response.LatestVersion, a.version) > 0 {
+		response.UpdateAvailable = true
+		response.Status = "update_available"
+		response.Message = "Eine neuere RailKeeper-Version ist verfügbar."
+	} else {
+		response.Status = "current"
+		response.Message = "RailKeeper ist aktuell."
+	}
+	respondJSON(w, http.StatusOK, response)
+}
+
+func isAllowedUpdateURL(rawURL string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+	return parsed.Scheme == "https" || parsed.Scheme == "http"
+}
+
+func fetchUpdateRelease(ctx context.Context, updateURL string) (*updateReleaseResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, updateURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("User-Agent", "RailKeeper2")
+
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = response.Body.Close() }()
+
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		return nil, fmt.Errorf("unexpected update status %d", response.StatusCode)
+	}
+
+	var release updateReleaseResponse
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&release); err != nil {
+		return nil, err
+	}
+	return &release, nil
+}
+
+func firstUpdateVersion(values ...string) string {
+	for _, value := range values {
+		if trimmed := strings.TrimSpace(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
+}
+
+func compareVersionStrings(latest, current string) int {
+	latestParts := numericVersionParts(latest)
+	currentParts := numericVersionParts(current)
+	if len(latestParts) == 0 || len(currentParts) == 0 {
+		return strings.Compare(strings.TrimSpace(latest), strings.TrimSpace(current))
+	}
+
+	length := len(latestParts)
+	if len(currentParts) > length {
+		length = len(currentParts)
+	}
+	for i := 0; i < length; i++ {
+		var left, right int
+		if i < len(latestParts) {
+			left = latestParts[i]
+		}
+		if i < len(currentParts) {
+			right = currentParts[i]
+		}
+		if left > right {
+			return 1
+		}
+		if left < right {
+			return -1
+		}
+	}
+	return 0
+}
+
+func numericVersionParts(value string) []int {
+	cleaned := strings.TrimPrefix(strings.TrimSpace(value), "v")
+	matches := regexp.MustCompile(`\d+`).FindAllString(cleaned, -1)
+	parts := make([]int, 0, len(matches))
+	for _, match := range matches {
+		var part int
+		if _, err := fmt.Sscanf(match, "%d", &part); err == nil {
+			parts = append(parts, part)
+		}
+	}
+	return parts
 }
 
 func (a *App) systemStorage(w http.ResponseWriter, r *http.Request) {
