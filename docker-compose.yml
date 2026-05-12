@@ -9,8 +9,16 @@ services:
     restart: unless-stopped
     ports:
       - "8080:8080"
-    env_file:
-      - .env
+    environment:
+      RAILKEEPER_ADDR: ":8080"
+      RAILKEEPER_DATA_DIR: /data
+      RAILKEEPER_MIGRATIONS_DIR: /app/migrations
+      RAILKEEPER_SEEDS_DIR: /app/seeds
+      RAILKEEPER_STATIC_DIR: /app/web
+      RAILKEEPER_COOKIE_SECURE: "${RAILKEEPER_COOKIE_SECURE:-false}"
+      RAILKEEPER_MAX_IMAGE_MB: "${RAILKEEPER_MAX_IMAGE_MB:-10}"
+      RAILKEEPER_MAX_ATTACHMENT_MB: "${RAILKEEPER_MAX_ATTACHMENT_MB:-25}"
+      RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS: "${RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS:-.pdf,.txt,.csv,.json,.xml,.zip,.jpg,.jpeg,.png,.webp}"
     volumes:
       - railkeeper2_data:/data
     security_opt:
@@ -23,4 +31,3 @@ services:
 
 volumes:
   railkeeper2_data:
-

@@ -116,11 +116,15 @@ RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS=.pdf,.txt,.csv,.json,.xml,.zip,.jpg,.jp
 
 ## Docker
 
-Create `.env` from `.env.example`, then run:
+Optionally create `.env` from `.env.example` when you want to override operational settings such as upload limits or secure cookies. Do not put host paths for migrations, seeds or static files into the Docker `.env`; Compose sets the required container paths itself.
+
+Run:
 
 ```bash
 docker compose up -d --build
 ```
+
+If you copied an older `.env`, remove `RAILKEEPER_DATA_DIR`, `RAILKEEPER_MIGRATIONS_DIR`, `RAILKEEPER_SEEDS_DIR` and `RAILKEEPER_STATIC_DIR` from it before rebuilding. Those paths are fixed in `docker-compose.yml` for the container.
 
 The container stores SQLite data and uploads in `/data`. Backups can be exported from the settings UI as JSON files.
 
