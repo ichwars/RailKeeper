@@ -3,9 +3,11 @@ package application_test
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"railkeeper2/backend/internal/application"
@@ -90,6 +92,44 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 	if _, err := os.Stat(uploadPath); err != nil {
 		t.Fatalf("expected upload file restored: %v", err)
+	}
+}
+
+func TestBackupExcludesAuthenticationTables(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.Login(ctx, application.LoginInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	backupService := application.NewBackupService(db, dataDir)
+	backup, err := backupService.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"users", "user_roles", "sessions", "audit_log", "rate_limit_attempts"} {
+		if _, ok := backup.Tables[table]; ok {
+			t.Fatalf("backup should not export authentication table %q", table)
+		}
+	}
+	data, err := json.Marshal(backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "password_hash") {
+		t.Fatal("backup should not contain password hashes")
 	}
 }
 
