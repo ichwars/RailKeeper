@@ -22,6 +22,8 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 - persistent rate limiting for login and setup attempts
 - audit logs for setup, login, logout, password, session, user, vehicle and exhibition-list changes
 - structured security event review in the settings area
+- application backups exclude local users, roles, sessions, rate limits, audit logs and password hashes
+- backup validation warns about ignored authentication tables instead of importing them
 - configurable image and attachment upload size limits
 - configurable allowed attachment extensions via `RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS`
 - executable attachment extension blocklist

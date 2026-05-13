@@ -14,8 +14,11 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Audit-Log in den Einstellungen inklusive Labels für neue Authentifizierungsereignisse.
 - Backup-Restore mit Texteingabe `WIEDERHERSTELLEN`.
 - Backup-Export zeigt kompakt lokale Ablagegröße und Dateianzahl.
+- Backup-Export beschreibt klar, welche fachlichen Daten gesichert werden und dass Benutzer, Sitzungen und Passworthashes ausgenommen bleiben.
+- Backup-Validierung trennt Fehler und Hinweise sichtbar voneinander, damit Restore-Risiken schneller erkennbar sind.
 - Backup-Export/Restore ist gegen versehentliche Auth-Tabellen, Sitzungen und Passworthashes abgesichert; ignorierte Auth-Tabellen werden in der Validierung als Warnung behandelt.
 - Messelisten und Messelisteneinträge werden im Backup gesichert und wiederhergestellt; ältere Backups ohne diese Tabellen bleiben kompatibel.
+- Messe-Rolle ist in den Einstellungen jetzt als aktiver Zugriff auf Messelisten, Einträge und Messe-Druck beschrieben.
 - Beta-/Prerelease-Updateprüfung ist im Backend und in der Settings-UI aktivierbar.
 - Decoder-Preview-Aktionen übernehmen erkannte CV-Werte und Funktionstasten.
 - ESU/ECoS-Funktionstastensymbole werden als Stammdaten mit SVG-Bild, Beschreibung und Upload-Pflege gespeichert.
@@ -31,16 +34,16 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 ## Letzte Commits
 
 ```text
+f3b9e7a Clarify backup validation feedback
+25176e1 Clarify backup export scope
+e05b3bd Update messe role description
+f394876 Document exhibition backup coverage
 2c21ae0 Allow older backups without exhibition tables
 026e2b1 Cover backup table coverage
 b320d0d Include exhibition data in backups
 13ff961 Refresh status after settings safeguards
 83c66a9 Cover ignored auth backup tables
 6fa4356 Cover backup auth table exclusions
-778eed2 Cover session list API limit
-57f2cf6 Limit session list in API
-68bd0c1 Align planned integration cards
-19bd1eb Polish settings security layout
 ```
 
 ## Offene Entscheidungen
