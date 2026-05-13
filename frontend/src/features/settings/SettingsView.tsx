@@ -201,6 +201,9 @@ const auditActionLabels: Record<string, string> = {
   UserCreated: "Benutzer angelegt",
   UserUpdated: "Benutzer geändert",
   UserDeleted: "Benutzer gelöscht",
+  PasswordChanged: "Passwort geändert",
+  PasswordChangeFailed: "Passwortwechsel fehlgeschlagen",
+  SessionRevoked: "Sitzung widerrufen",
   VehicleCreated: "Fahrzeug angelegt",
   VehicleUpdated: "Fahrzeug geändert",
   VehicleDeleted: "Fahrzeug gelöscht"
