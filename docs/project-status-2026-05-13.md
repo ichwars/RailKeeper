@@ -19,14 +19,19 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Messelisten-Einträge nutzen in der Funktionstasten-Maske den Symbol-Picker mit den gespeicherten Stammdaten-SVGs.
 - Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen und Sperrstatus aus.
 - Messe-API ist per HTTP-Test für Messe-Rollenzugriff und gesperrte Listen abgesichert.
+- Messe-Eintrag-Rechte sind per HTTP-Test abgesichert: Einträge anlegen/bearbeiten erlaubt, Einträge löschen und Listenverwaltung nur Admin.
 - Reine Messe-Benutzer sind backend- und frontendseitig von Viewer-/Bestandsrouten getrennt; kombinierte Rollen werden als Rollenunion behandelt.
-- Messe-/Messelisten-Aktionen werden im Audit-Log mit eigenen Labels protokolliert.
+- Messe-/Messelisten-Aktionen werden im Audit-Log mit eigenen Labels protokolliert und per Lifecycle-Tests für Listen und Einträge abgesichert.
 - Fehlende GitHub-Releases werden beim Update-Check ruhig als eigener Status `no_release` behandelt und in den Einstellungen als "kein Release" angezeigt.
 - Zusätzliche HTTP-Tests für Passwortwechsel und Session-Management.
 
 ## Letzte Commits
 
 ```text
+e5625a3 Cover messe entry permissions
+ff4091c Cover exhibition list audit lifecycle
+c162269 Cover exhibition entry audit logging
+3c798f4 Refresh project status notes
 647cfdd Distinguish missing update releases
 754f29e Document messe role boundaries
 cadde19 Respect combined roles in navigation
@@ -35,10 +40,6 @@ cadde19 Respect combined roles in navigation
 43fad59 Restrict messe users from viewer routes
 8b5ee3d Handle missing update releases quietly
 5943507 Cover seeded function symbol images
-b2fa438 Share function symbol picker
-191c144 Cover exhibition API permissions
-07f0255 Improve exhibition list print view
-1ac2fef Use symbol picker for exhibition functions
 ```
 
 ## Offene Entscheidungen
