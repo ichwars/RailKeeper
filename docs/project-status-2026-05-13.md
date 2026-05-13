@@ -17,7 +17,7 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Decoder-Preview-Aktionen übernehmen erkannte CV-Werte und Funktionstasten.
 - ESU/ECoS-Funktionstastensymbole werden als Stammdaten mit SVG-Bild, Beschreibung und Upload-Pflege gespeichert.
 - Messelisten-Einträge nutzen in der Funktionstasten-Maske den Symbol-Picker mit den gespeicherten Stammdaten-SVGs.
-- Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen und Sperrstatus aus.
+- Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen, Sperrstatus und Funktionstasten-Symbolen aus.
 - Messe-API ist per HTTP-Test für Messe-Rollenzugriff und gesperrte Listen abgesichert.
 - Messe-Eintrag-Rechte sind per HTTP-Test abgesichert: Einträge anlegen/bearbeiten erlaubt, Einträge löschen und Listenverwaltung nur Admin.
 - Reine Messe-Benutzer sind backend- und frontendseitig von Viewer-/Bestandsrouten getrennt; kombinierte Rollen werden als Rollenunion behandelt.
@@ -28,6 +28,7 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 ## Letzte Commits
 
 ```text
+ebc75a4 Print exhibition function symbols
 e5625a3 Cover messe entry permissions
 ff4091c Cover exhibition list audit lifecycle
 c162269 Cover exhibition entry audit logging
@@ -37,9 +38,6 @@ c162269 Cover exhibition entry audit logging
 cadde19 Respect combined roles in navigation
 269eff4 Cover exhibition audit logging
 8e0ad2b Audit exhibition changes
-43fad59 Restrict messe users from viewer routes
-8b5ee3d Handle missing update releases quietly
-5943507 Cover seeded function symbol images
 ```
 
 ## Offene Entscheidungen
