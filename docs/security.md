@@ -16,6 +16,7 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 - optional secure cookies via `RAILKEEPER_COOKIE_SECURE=true`
 - CSRF validation for API write requests
 - role enforcement with Admin, Editor, Viewer and Messe roles
+- Messe users are isolated from Viewer inventory routes and only receive the symbol read access needed by the exhibition function picker
 - admin-only user management for local accounts and role assignment
 - admin-only session review and targeted local session revocation
 - persistent rate limiting for login and setup attempts
