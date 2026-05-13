@@ -90,6 +90,21 @@ function displayFunctions(value?: string) {
   return configured.map((item) => `${item.key} ${item.name}`).join(", ");
 }
 
+function symbolImageDataFromMetadata(metadata?: Record<string, unknown>) {
+  const value = metadata?.imageData || metadata?.activeImageData || metadata?.svgData;
+  return typeof value === "string" ? value : "";
+}
+
+function printFunctionChips(value: string | undefined, symbols: MasterDataEntry[]) {
+  const configured = parseFunctions(value).filter((item) => item.name.trim());
+  if (configured.length === 0) return "-";
+  return configured.map((item) => {
+    const metadata = functionSymbolMetadata(symbols, item.symbolKey);
+    const imageData = symbolImageDataFromMetadata(metadata);
+    return `<span class="function-chip">${imageData ? `<img src="${escapeHTML(imageData)}" alt="" />` : ""}<strong>${escapeHTML(item.key)}</strong> ${escapeHTML(item.name)}</span>`;
+  }).join("");
+}
+
 function escapeHTML(value: unknown) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => htmlEscapes[char] || char);
 }
@@ -103,7 +118,7 @@ function fileToDataURL(file: File) {
   });
 }
 
-function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
+function printList(list: ExhibitionList, entries: ExhibitionEntry[], symbols: MasterDataEntry[] = []) {
   const rows = entries.map((entry) => `
     <tr>
       <td class="image-cell">${entry.imageUrl ? `<img src="${escapeHTML(entry.imageUrl)}" alt="" />` : `<span>-</span>`}</td>
@@ -114,7 +129,7 @@ function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
       </td>
       <td>${entry.dtDecoder ? "Ja" : "Nein"}</td>
       <td>${escapeHTML(entry.decoderNumber || "-")}</td>
-      <td>${escapeHTML(displayFunctions(entry.functionKeys))}</td>
+      <td class="function-cell">${printFunctionChips(entry.functionKeys, symbols)}</td>
     </tr>
   `).join("");
   const win = window.open("", "_blank", "noopener,noreferrer");
@@ -135,6 +150,10 @@ function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
           td small { margin-top: 3px; color: #666; }
           .image-cell { width: 64px; }
           .image-cell img, .image-cell span { display: grid; width: 56px; height: 40px; place-items: center; border: 1px solid #ddd; border-radius: 4px; object-fit: contain; }
+          .function-cell { min-width: 170px; }
+          .function-chip { display: inline-flex; align-items: center; gap: 4px; margin: 0 6px 5px 0; padding: 3px 6px; border: 1px solid #d9e4dc; border-radius: 4px; white-space: nowrap; }
+          .function-chip img { width: 14px; height: 14px; object-fit: contain; }
+          .function-chip strong { display: inline; }
           footer { margin-top: 18px; color: #777; font-size: 11px; }
           @media print { body { margin: 14mm; } button { display: none; } }
         </style>
@@ -277,7 +296,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   };
 
   const printListByID = async (list: ExhibitionList) => {
-    printList(list, await entriesForList(list));
+    printList(list, await entriesForList(list), symbols);
   };
 
   const openEntryDialog = (mode: "create" | "edit", entry?: ExhibitionEntry) => {
@@ -410,7 +429,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
               <p>{selectedList ? `${formatDate(selectedList.date)} · ${entries.length} Einträge` : "Bitte eine Liste auswählen."}</p>
             </div>
             <div className="table-actions">
-              {selectedList && <button type="button" className="icon-button" onClick={() => printList(selectedList, sortedEntries)} aria-label="Liste drucken" title="Liste drucken"><Printer size={15} /></button>}
+              {selectedList && <button type="button" className="icon-button" onClick={() => printList(selectedList, sortedEntries, symbols)} aria-label="Liste drucken" title="Liste drucken"><Printer size={15} /></button>}
               {selectedList && <button type="button" className="primary-button" onClick={() => openEntryDialog("create")} disabled={!canEditEntries}>Eintrag</button>}
             </div>
           </div>
@@ -521,7 +540,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
               </div>
             </div>
             <div className="modal-actions">
-              <button type="button" className="secondary-button" onClick={() => printList(viewDialog.list, viewDialog.entries)}>Drucken</button>
+              <button type="button" className="secondary-button" onClick={() => printList(viewDialog.list, viewDialog.entries, symbols)}>Drucken</button>
               <button type="button" className="primary-button" onClick={() => setViewDialog(null)}>Schließen</button>
             </div>
           </section>
