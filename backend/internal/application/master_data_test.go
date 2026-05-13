@@ -99,3 +99,41 @@ func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 		t.Fatalf("expected validation error, got %v", err)
 	}
 }
+
+func TestESUFunctionSymbolsSeededWithImages(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	entries, err := service.List(context.Background(), "symbols", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	esuCount := 0
+	var fahrgeraeusch *application.MasterDataEntry
+	for i := range entries {
+		if entries[i].Metadata["category"] == "ESU ECoS" {
+			esuCount++
+		}
+		if entries[i].Key == "esu-f006-fahrgeraeusch" {
+			fahrgeraeusch = &entries[i]
+		}
+	}
+
+	if esuCount != 86 {
+		t.Fatalf("expected 86 ESU function symbols, got %d", esuCount)
+	}
+	if fahrgeraeusch == nil {
+		t.Fatal("expected Fahrgeraeusch symbol")
+	}
+	if fahrgeraeusch.Label != "Fahrgeräusch" {
+		t.Fatalf("unexpected symbol label %q", fahrgeraeusch.Label)
+	}
+	if fahrgeraeusch.Metadata["description"] == "" {
+		t.Fatalf("expected symbol description metadata: %#v", fahrgeraeusch.Metadata)
+	}
+	for _, key := range []string{"imageData", "activeImageData", "inactiveImageData"} {
+		value, ok := fahrgeraeusch.Metadata[key].(string)
+		if !ok || len(value) < 100 || value[:26] != "data:image/svg+xml;base64," {
+			t.Fatalf("expected %s SVG data URL, got %#v", key, fahrgeraeusch.Metadata[key])
+		}
+	}
+}
