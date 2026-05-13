@@ -129,3 +129,17 @@ func TestPrinterHelpers(t *testing.T) {
 		t.Fatalf("unexpected printers: %#v", printers)
 	}
 }
+
+func TestAuditLimit(t *testing.T) {
+	cases := map[string]int{
+		"":    50,
+		"-1":  50,
+		"25":  25,
+		"500": 200,
+	}
+	for input, want := range cases {
+		if got := auditLimit(input); got != want {
+			t.Fatalf("auditLimit(%q) = %d, want %d", input, got, want)
+		}
+	}
+}

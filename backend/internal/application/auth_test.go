@@ -104,6 +104,50 @@ func TestLogoutRevokesSession(t *testing.T) {
 	}
 }
 
+func TestListAuditLogReturnsRecentSecurityEvents(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.Login(ctx, application.LoginInput{
+		Username: "admin",
+		Password: "wrong-password",
+	}); !errors.Is(err, application.ErrInvalidLogin) {
+		t.Fatalf("expected invalid login, got %v", err)
+	}
+	if _, err := auth.Login(ctx, application.LoginInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	entries, err := auth.ListAuditLog(ctx, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("expected two audit entries, got %d", len(entries))
+	}
+	actions := map[string]application.AuditLogEntry{}
+	for _, entry := range entries {
+		actions[entry.Action] = entry
+	}
+	if actions["Login"].ActorUsername != "admin" {
+		t.Fatalf("expected login entry for admin, got %#v", actions["Login"])
+	}
+	if actions["LoginFailed"].TargetID != "admin" {
+		t.Fatalf("expected failed login target, got %#v", actions["LoginFailed"])
+	}
+}
+
 func TestValidateCSRFRejectsWrongToken(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()

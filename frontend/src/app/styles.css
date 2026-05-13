@@ -948,6 +948,10 @@ h1 {
   grid-column: 1 / -1;
 }
 
+.audit-log-card {
+  grid-column: 1 / -1;
+}
+
 .user-management-grid {
   display: grid;
   grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
@@ -975,6 +979,17 @@ h1 {
 
 .user-table td {
   vertical-align: middle;
+}
+
+.audit-log-table td {
+  vertical-align: middle;
+}
+
+.audit-log-table code {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inventory-number-settings {

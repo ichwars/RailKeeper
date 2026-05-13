@@ -117,6 +117,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/version", app.versionInfo)
 	mux.HandleFunc("GET /api/v1/system/storage", app.require("Admin", app.systemStorage))
 	mux.HandleFunc("GET /api/v1/system/printers", app.require("Admin", app.systemPrinters))
+	mux.HandleFunc("GET /api/v1/system/audit-log", app.require("Admin", app.systemAuditLog))
 
 	mux.HandleFunc("GET /api/v1/setup/status", app.setupStatus)
 	mux.HandleFunc("POST /api/v1/setup/admin", app.createAdmin)

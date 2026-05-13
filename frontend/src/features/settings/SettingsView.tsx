@@ -7,6 +7,7 @@ import {
   Download,
   ExternalLink,
   HardDrive,
+  History,
   KeyRound,
   Mail,
   Palette,
@@ -24,6 +25,7 @@ import {
 import type { AppView } from "../../app/App";
 import {
   api,
+  AuditLogEntry,
   BackupValidationResult,
   InventoryNumberScheme,
   MasterDataEntry,
@@ -182,6 +184,28 @@ const roleDescriptions: Record<string, string> = {
   Messe: "Zugriff auf Messelisten, Einträge und den späteren Messe-Druck."
 };
 
+const auditActionLabels: Record<string, string> = {
+  Login: "Anmeldung",
+  Logout: "Abmeldung",
+  LoginFailed: "Fehlgeschlagene Anmeldung",
+  SetupAdminCreated: "Admin eingerichtet",
+  UserCreated: "Benutzer angelegt",
+  UserUpdated: "Benutzer geändert",
+  UserDeleted: "Benutzer gelöscht",
+  VehicleCreated: "Fahrzeug angelegt",
+  VehicleUpdated: "Fahrzeug geändert",
+  VehicleDeleted: "Fahrzeug gelöscht"
+};
+
+function auditActor(entry: AuditLogEntry) {
+  return entry.actorUsername || entry.actorUserId || (entry.action === "LoginFailed" ? "Unbekannt" : "System");
+}
+
+function auditTarget(entry: AuditLogEntry) {
+  if (!entry.targetType && !entry.targetId) return "-";
+  return [entry.targetType, entry.targetId].filter(Boolean).join(" ");
+}
+
 function entryToForm(entry: MasterDataEntry): FormState {
   return {
     key: entry.key,
@@ -304,6 +328,9 @@ export function SettingsView() {
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [usersLoading, setUsersLoading] = useState(false);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+  const [auditLogLoading, setAuditLogLoading] = useState(false);
+  const [auditLogMessage, setAuditLogMessage] = useState("");
   const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
   const [userForm, setUserForm] = useState<UserFormState>(emptyUserForm);
   const [userSaving, setUserSaving] = useState(false);
@@ -352,6 +379,7 @@ export function SettingsView() {
   useEffect(() => {
     if (activeSettingsTab !== "auth" || !canManageUsers) return;
     loadUsersAndRoles();
+    loadAuditLog();
   }, [activeSettingsTab, canManageUsers]);
 
   useEffect(() => {
@@ -516,6 +544,16 @@ export function SettingsView() {
       .finally(() => setUsersLoading(false));
   };
 
+  const loadAuditLog = () => {
+    setAuditLogLoading(true);
+    setAuditLogMessage("");
+    api
+      .auditLog(50)
+      .then((result) => setAuditLog(result.entries))
+      .catch((error: Error) => setAuditLogMessage(error.message))
+      .finally(() => setAuditLogLoading(false));
+  };
+
   const startUserCreate = () => {
     setEditingUser(null);
     setUserForm(emptyUserForm);
@@ -558,6 +596,7 @@ export function SettingsView() {
         setEditingUser(user);
         setUserForm({ username: user.username, password: "", roles: user.roles });
         loadUsersAndRoles();
+        loadAuditLog();
         loadCurrentSession();
       })
       .catch((error: Error) => setAuthMessage(error.message))
@@ -574,6 +613,7 @@ export function SettingsView() {
           startUserCreate();
         }
         loadUsersAndRoles();
+        loadAuditLog();
       })
       .catch((error: Error) => setAuthMessage(error.message));
   };
@@ -1569,6 +1609,64 @@ export function SettingsView() {
                   </table>
                 </div>
               </div>
+            )}
+          </section>
+
+          <section className="panel settings-card settings-tool-card audit-log-card">
+            <div className="settings-section-head">
+              <div className="settings-card-title">
+                <History size={18} />
+                <div>
+                  <h2>Sicherheitsereignisse</h2>
+                  <p>Letzte Anmeldungen, Benutzeraktionen und sicherheitsrelevante Änderungen.</p>
+                </div>
+              </div>
+              {canManageUsers && (
+                <button type="button" className="icon-button" onClick={loadAuditLog} disabled={auditLogLoading} aria-label="Ereignisse aktualisieren" title="Ereignisse aktualisieren">
+                  <RefreshCw size={16} />
+                </button>
+              )}
+            </div>
+
+            {!canManageUsers ? (
+              <div className="current-user-card">
+                <strong>Admin erforderlich</strong>
+                <span>Nur Admins dürfen Sicherheitsereignisse einsehen.</span>
+              </div>
+            ) : (
+              <>
+                <div className="table-wrap settings-inline-table audit-log-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Zeit</th>
+                        <th>Ereignis</th>
+                        <th>Benutzer</th>
+                        <th>Ziel</th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogLoading ? (
+                        <tr><td colSpan={5} className="loading-cell">Ereignisse werden geladen...</td></tr>
+                      ) : auditLog.length === 0 ? (
+                        <tr><td colSpan={5} className="loading-cell">Keine Ereignisse gefunden.</td></tr>
+                      ) : (
+                        auditLog.map((entry) => (
+                          <tr key={entry.id}>
+                            <td>{formatDateTime(entry.createdAt)}</td>
+                            <td><span className="settings-pill">{auditActionLabels[entry.action] || entry.action}</span></td>
+                            <td>{auditActor(entry)}</td>
+                            <td>{auditTarget(entry)}</td>
+                            <td><code>{entry.detailsJson && entry.detailsJson !== "{}" ? entry.detailsJson : "-"}</code></td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
+              </>
             )}
           </section>
 

@@ -48,6 +48,7 @@
 - default GitHub release update endpoint for stable release checks
 - system printer discovery with optional configured printer list
 - admin user management for local accounts and Admin, Editor, Viewer and Messe role assignment
+- settings security event review for audit logs
 
 ## Next Practical Milestones
 

@@ -490,6 +490,21 @@ export type SystemPrinters = {
   printers: SystemPrinter[];
 };
 
+export type AuditLogEntry = {
+  id: string;
+  actorUserId?: string;
+  actorUsername?: string;
+  action: string;
+  targetType?: string;
+  targetId?: string;
+  createdAt: string;
+  detailsJson: string;
+};
+
+export type AuditLogResponse = {
+  entries: AuditLogEntry[];
+};
+
 export type ExhibitionList = {
   id: string;
   designation: string;
@@ -657,6 +672,7 @@ export const api = {
     ),
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
   systemPrinters: () => request<SystemPrinters>("/system/printers", {}, { timeoutMs: 10000 }),
+  auditLog: (limit = 50) => request<AuditLogResponse>(`/system/audit-log?limit=${encodeURIComponent(String(limit))}`, {}, { timeoutMs: 10000 }),
   exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
   exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
   createExhibitionList: (input: ExhibitionListInput) =>

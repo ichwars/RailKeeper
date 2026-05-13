@@ -53,6 +53,17 @@ type UserView struct {
 	CreatedAt string   `json:"createdAt"`
 }
 
+type AuditLogEntry struct {
+	ID            string `json:"id"`
+	ActorUserID   string `json:"actorUserId,omitempty"`
+	ActorUsername string `json:"actorUsername,omitempty"`
+	Action        string `json:"action"`
+	TargetType    string `json:"targetType,omitempty"`
+	TargetID      string `json:"targetId,omitempty"`
+	CreatedAt     string `json:"createdAt"`
+	DetailsJSON   string `json:"detailsJson"`
+}
+
 type CreateUserInput struct {
 	Username string   `json:"username"`
 	Password string   `json:"password"`
@@ -130,6 +141,58 @@ func (s *AuthService) ListRoles(ctx context.Context) ([]RoleView, error) {
 		return nil, fmt.Errorf("read roles: %w", err)
 	}
 	return roles, nil
+}
+
+func (s *AuthService) ListAuditLog(ctx context.Context, limit int) ([]AuditLogEntry, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+
+	rows, err := s.db.QueryContext(
+		ctx,
+		`SELECT audit_logs.id,
+		        COALESCE(audit_logs.actor_user_id, ''),
+		        COALESCE(users.username, ''),
+		        audit_logs.action,
+		        COALESCE(audit_logs.target_type, ''),
+		        COALESCE(audit_logs.target_id, ''),
+		        audit_logs.created_at,
+		        COALESCE(audit_logs.details_json, '{}')
+		   FROM audit_logs
+		   LEFT JOIN users ON users.id = audit_logs.actor_user_id
+		  ORDER BY audit_logs.created_at DESC, audit_logs.id DESC
+		  LIMIT ?`,
+		limit,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list audit log: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	entries := []AuditLogEntry{}
+	for rows.Next() {
+		var entry AuditLogEntry
+		if err := rows.Scan(
+			&entry.ID,
+			&entry.ActorUserID,
+			&entry.ActorUsername,
+			&entry.Action,
+			&entry.TargetType,
+			&entry.TargetID,
+			&entry.CreatedAt,
+			&entry.DetailsJSON,
+		); err != nil {
+			return nil, fmt.Errorf("scan audit log: %w", err)
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("read audit log: %w", err)
+	}
+	return entries, nil
 }
 
 func (s *AuthService) CreateUser(ctx context.Context, actorUserID string, input CreateUserInput) (*UserView, error) {
