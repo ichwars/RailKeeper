@@ -5738,7 +5738,7 @@ td {
 
 .exhibition-layout {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(0, 1.4fr);
+  grid-template-columns: 1fr;
   gap: 14px;
   align-items: start;
 }

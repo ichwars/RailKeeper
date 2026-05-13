@@ -386,6 +386,51 @@ function parseDelimited(text: string, delimiter: string) {
   return rows;
 }
 
+function parseXMLImport(text: string) {
+  const document = new DOMParser().parseFromString(text, "application/xml");
+  const parseError = document.querySelector("parsererror");
+  if (parseError) {
+    throw new Error("XML-Datei konnte nicht gelesen werden.");
+  }
+
+  const preferredNames = new Set(["vehicle", "fahrzeug", "locomotive", "lok"]);
+  const allElements = Array.from(document.getElementsByTagName("*"));
+  let records = allElements.filter((element) => preferredNames.has(element.localName.toLowerCase()));
+  if (records.length === 0) {
+    const counts = new Map<string, number>();
+    allElements.forEach((element) => {
+      if (element.children.length > 0 && element !== document.documentElement) {
+        const name = element.localName.toLowerCase();
+        counts.set(name, (counts.get(name) || 0) + 1);
+      }
+    });
+    const repeated = Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0];
+    if (repeated) {
+      records = allElements.filter((element) => element.localName.toLowerCase() === repeated);
+    }
+  }
+
+  const rows = records.map((record) => {
+    const values = new Map<string, string>();
+    Array.from(record.attributes).forEach((attribute) => values.set(attribute.name, attribute.value.trim()));
+    Array.from(record.children).forEach((child) => {
+      if (child.children.length === 0) {
+        const value = child.textContent?.trim() || "";
+        if (value) {
+          values.set(child.localName, value);
+        }
+      }
+    });
+    return values;
+  }).filter((row) => row.size > 0);
+
+  const headers = Array.from(new Set(rows.flatMap((row) => Array.from(row.keys()))));
+  if (headers.length === 0 || rows.length === 0) {
+    return [];
+  }
+  return [headers, ...rows.map((row) => headers.map((header) => row.get(header) || ""))];
+}
+
 function detectDelimiter(text: string) {
   const firstLine = text.split(/\r?\n/).find(Boolean) || "";
   const semicolon = (firstLine.match(/;/g) || []).length;
@@ -924,27 +969,6 @@ export function ImportExportView() {
     }
     setMessage("");
     const extension = file.name.split(".").pop()?.toLowerCase() || "";
-    if (extension === "xlsx" || extension === "xls" || extension === "ods") {
-      setRows([]);
-      setImportTable(null);
-      setPreviewLoading(true);
-      try {
-        const preview = await api.previewVehicleImport(file);
-        if (preview.rows.length) {
-          loadImportTable(preview.rows, file.name);
-        } else {
-          setRows([]);
-          setImportTable(null);
-          setMessage(t("importExport.error.emptyTable"));
-        }
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : t("importExport.error.tableRead"));
-      } finally {
-        setPreviewLoading(false);
-      }
-      return;
-    }
-
     const text = await file.text();
     if (extension === "json") {
       const parsed = JSON.parse(text) as Vehicle[] | { vehicles?: Vehicle[] };
@@ -967,6 +991,17 @@ export function ImportExportView() {
         ...source.map((vehicle) => [vehicle.inventoryNumber, vehicle.manufacturer, vehicle.articleNumber || "", vehicle.name, vehicle.gauge, vehicle.epoch || "", vehicle.railwayCompany || "", vehicle.category || "", vehicle.gattung || "", vehicle.digital ? t("common.yes") : t("common.no"), vehicle.digitalDecoderNumber || "", vehicle.listPrice || ""])
       ];
       loadImportTable(table, file.name);
+      return;
+    }
+    if (extension === "xml") {
+      const table = parseXMLImport(text);
+      if (table.length) {
+        loadImportTable(table, file.name);
+      } else {
+        setRows([]);
+        setImportTable(null);
+        setMessage(t("importExport.error.emptyTable"));
+      }
       return;
     }
 
@@ -1085,7 +1120,7 @@ export function ImportExportView() {
           <label className="file-drop compact-drop">
             <Upload size={18} aria-hidden="true" />
             {t("importExport.file.choose")}
-            <input type="file" accept=".csv,.tsv,.json,.xlsx,.xls,.ods" onChange={handleFile} />
+            <input type="file" accept=".csv,.tsv,.xml,.json" onChange={handleFile} />
           </label>
           <div className="import-summary">
             <span>{t("importExport.summary.rows", { count: importSummary.total })}</span>

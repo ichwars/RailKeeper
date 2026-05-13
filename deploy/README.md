@@ -20,7 +20,7 @@ RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:latest
 For a fixed release, set the image tag in `.env` before pulling:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.3
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.4
 ```
 
 Then run:

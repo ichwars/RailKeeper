@@ -735,17 +735,6 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ArticleSearchResult"
-    VehicleImportPreview:
-      type: object
-      required: [rows]
-      properties:
-        rows:
-          type: array
-          description: Tabellenzeilen aus der ersten Arbeitsmappe. Die erste Zeile enthält die Header.
-          items:
-            type: array
-            items:
-              type: string
     VehicleCVFilePreview:
       type: object
       required: [fileName, sizeBytes, mimeType, hasMetadata]
@@ -1350,41 +1339,6 @@ paths:
                 $ref: "#/components/schemas/Vehicle"
         "400":
           description: Invalid vehicle data
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
-        "403":
-          description: Insufficient role
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
-  /vehicle-import/preview:
-    post:
-      tags: [Vehicles]
-      summary: Preview a vehicle import file
-      description: Reads a supported import file and returns table rows for client-side review. Currently supports XLSX and ODS.
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required: [file]
-              properties:
-                file:
-                  type: string
-                  format: binary
-      responses:
-        "200":
-          description: Parsed table rows
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/VehicleImportPreview"
-        "400":
-          description: Invalid or unsupported import file
           content:
             application/json:
               schema:

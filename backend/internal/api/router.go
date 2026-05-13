@@ -144,7 +144,6 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/sessions", app.require("Admin", app.listSessions))
 	mux.HandleFunc("PUT /api/v1/sessions/{id}/revoke", app.require("Admin", app.revokeSession))
 	mux.HandleFunc("GET /api/v1/vehicles", app.require("Viewer", app.listVehicles))
-	mux.HandleFunc("POST /api/v1/vehicle-import/preview", app.require("Editor", app.previewVehicleImport))
 	mux.HandleFunc("POST /api/v1/ecos/test", app.require("Admin", app.testECoSConnection))
 	mux.HandleFunc("POST /api/v1/ecos/locomotives/preview", app.require("Admin", app.previewECoSLocomotives))
 	mux.HandleFunc("POST /api/v1/vehicles", app.require("Editor", app.createVehicle))

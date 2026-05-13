@@ -474,10 +474,6 @@ export type ArticleSearchResponse = {
   results: ArticleSearchResult[];
 };
 
-export type VehicleImportPreview = {
-  rows: string[][];
-};
-
 export type ECoSConnectionInput = {
   host: string;
   port?: number;
@@ -975,18 +971,6 @@ export const api = {
       },
       { timeoutMs: 15000 }
     ),
-  previewVehicleImport: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return request<VehicleImportPreview>(
-      "/vehicle-import/preview",
-      {
-        method: "POST",
-        body: form
-      },
-      { timeoutMs: 60000 }
-    );
-  },
   testECoSConnection: (input: ECoSConnectionInput) =>
     request<ECoSConnectionResult>(
       "/ecos/test",
