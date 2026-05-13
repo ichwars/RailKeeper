@@ -485,12 +485,14 @@ h1 {
 
 .settings-card-title {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
 }
 
 .settings-card-title > svg,
 .settings-section-head svg {
+  flex: 0 0 auto;
+  margin-top: 4px;
   color: var(--accent-bright);
 }
 
@@ -972,7 +974,7 @@ h1 {
 
 .password-change-form {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid var(--line);
@@ -986,6 +988,35 @@ h1 {
 .password-change-form h3 {
   margin: 0;
   font-size: 15px;
+}
+
+.password-field-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.password-field-grid label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.password-field-grid input {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.password-field-grid input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .role-select-grid {
@@ -1013,6 +1044,13 @@ h1 {
   white-space: nowrap;
 }
 
+.table-limit-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .inventory-number-settings {
   display: grid;
   gap: 14px;
@@ -1027,9 +1065,15 @@ h1 {
   gap: 16px;
 }
 
-.settings-section-head > div {
+.settings-section-head > div:not(.settings-card-title) {
   display: grid;
   gap: 6px;
+}
+
+.settings-section-head > .settings-card-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
 }
 
 .settings-inline-table {
@@ -1307,20 +1351,20 @@ h1 {
 
 .import-export-card {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .backup-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .backup-box {
   display: grid;
-  gap: 14px;
+  gap: 12px;
   align-content: start;
-  padding: 16px;
+  padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-subtle);
@@ -1331,7 +1375,7 @@ h1 {
 }
 
 .master-data-transfer-box {
-  background: color-mix(in srgb, var(--accent-bright) 8%, var(--panel-subtle));
+  background: var(--panel-subtle);
 }
 
 .backup-box h3 {
@@ -1346,8 +1390,8 @@ h1 {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 10px;
+  gap: 8px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
@@ -1381,10 +1425,10 @@ h1 {
 }
 
 .transfer-actions {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
   align-items: end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .backup-file-field {
@@ -3415,9 +3459,14 @@ td {
 }
 
 .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 42px;
   border: 0;
   border-radius: 6px;
+  padding: 0 14px;
   background: linear-gradient(180deg, #52ad1c 0%, var(--accent) 100%);
   color: #fff;
   cursor: pointer;
@@ -3443,6 +3492,10 @@ td {
 
 .secondary-button,
 .danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 40px;
   border: 0;
   border-radius: 6px;
@@ -5602,6 +5655,8 @@ td {
   .exhibition-layout,
   .inventory-status-row,
   .import-export-grid,
+  .backup-grid,
+  .transfer-actions,
   .settings-dashboard-grid,
   .auth-settings-grid,
   .appearance-config-grid {

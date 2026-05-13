@@ -645,7 +645,7 @@ export function SettingsView() {
     setAuditLogLoading(true);
     setAuditLogMessage("");
     api
-      .auditLog(50)
+      .auditLog(10)
       .then((result) => setAuditLog(result.entries))
       .catch((error: Error) => setAuditLogMessage(error.message))
       .finally(() => setAuditLogLoading(false));
@@ -1402,8 +1402,13 @@ export function SettingsView() {
 
       {activeSettingsTab === "importExport" && (
         <section className="panel settings-card import-export-card">
-          <h2>Import/Export</h2>
-          <p>Daten gezielt sichern, austauschen oder vollständig wiederherstellen.</p>
+          <div className="settings-card-title">
+            <Database size={18} />
+            <div>
+              <h2>Import/Export</h2>
+              <p>Daten gezielt sichern, austauschen oder vollständig wiederherstellen.</p>
+            </div>
+          </div>
 
           <section className="backup-box master-data-transfer-box">
             <div>
@@ -1720,35 +1725,37 @@ export function SettingsView() {
             </div>
             <form className="password-change-form" onSubmit={changePassword}>
               <h3>Passwort ändern</h3>
-              <label>
-                Aktuelles Passwort
-                <input
-                  type="password"
-                  value={passwordForm.currentPassword}
-                  onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
-                  autoComplete="current-password"
-                />
-              </label>
-              <label>
-                Neues Passwort
-                <input
-                  type="password"
-                  value={passwordForm.newPassword}
-                  onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
-                  autoComplete="new-password"
-                  minLength={12}
-                />
-              </label>
-              <label>
-                Neues Passwort wiederholen
-                <input
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                  onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-                  autoComplete="new-password"
-                  minLength={12}
-                />
-              </label>
+              <div className="password-field-grid">
+                <label>
+                  Aktuelles Passwort
+                  <input
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                    autoComplete="current-password"
+                  />
+                </label>
+                <label>
+                  Neues Passwort
+                  <input
+                    type="password"
+                    value={passwordForm.newPassword}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                    autoComplete="new-password"
+                    minLength={12}
+                  />
+                </label>
+                <label>
+                  Neues Passwort wiederholen
+                  <input
+                    type="password"
+                    value={passwordForm.confirmPassword}
+                    onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                    autoComplete="new-password"
+                    minLength={12}
+                  />
+                </label>
+              </div>
               <button type="submit" className="primary-button" disabled={passwordSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}>
                 <KeyRound size={16} />
                 Passwort speichern
@@ -1910,7 +1917,7 @@ export function SettingsView() {
                       ) : sessions.length === 0 ? (
                         <tr><td colSpan={5} className="loading-cell">Keine Sitzungen gefunden.</td></tr>
                       ) : (
-                        sessions.map((session) => (
+                        sessions.slice(0, 5).map((session) => (
                           <tr key={session.id} className={session.active ? "" : "muted-row"}>
                             <td><strong>{session.username}</strong></td>
                             <td><span className={session.active ? "settings-pill active" : "settings-pill muted"}>{session.active ? "aktiv" : "beendet"}</span></td>
@@ -1927,6 +1934,7 @@ export function SettingsView() {
                     </tbody>
                   </table>
                 </div>
+                {sessions.length > 5 && <p className="table-limit-note">5 von {sessions.length} Sitzungen angezeigt.</p>}
                 {sessionsMessage && <p className="form-message">{sessionsMessage}</p>}
               </>
             )}
@@ -1972,7 +1980,7 @@ export function SettingsView() {
                       ) : auditLog.length === 0 ? (
                         <tr><td colSpan={5} className="loading-cell">Keine Ereignisse gefunden.</td></tr>
                       ) : (
-                        auditLog.map((entry) => (
+                        auditLog.slice(0, 10).map((entry) => (
                           <tr key={entry.id}>
                             <td>{formatDateTime(entry.createdAt)}</td>
                             <td><span className="settings-pill">{auditActionLabels[entry.action] || entry.action}</span></td>
@@ -1985,6 +1993,7 @@ export function SettingsView() {
                     </tbody>
                   </table>
                 </div>
+                {auditLog.length > 10 && <p className="table-limit-note">10 von {auditLog.length} Ereignissen angezeigt.</p>}
                 {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
               </>
             )}
