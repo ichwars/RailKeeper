@@ -386,6 +386,44 @@ func TestExhibitionLockedListRejectsEntryWrites(t *testing.T) {
 	}
 }
 
+func TestExhibitionListCreateWritesAuditLog(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	exhibition := application.NewExhibitionService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, ExhibitionService: exhibition})
+	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/exhibition-lists", bytes.NewBufferString(`{"designation":"Leipzig","date":"2026-05-12"}`))
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusCreated {
+		t.Fatalf("expected list create success, got %d: %s", response.Code, response.Body.String())
+	}
+
+	entries, err := auth.ListAuditLog(t.Context(), 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		if entry.Action == "ExhibitionListCreated" && entry.TargetType == "exhibition_list" && entry.ActorUsername == "admin" {
+			return
+		}
+	}
+	t.Fatalf("expected exhibition audit entry, got %#v", entries)
+}
+
 func loginTestUser(t *testing.T, router http.Handler, username, password string) (application.SessionView, []*http.Cookie) {
 	t.Helper()
 	loginBody := bytes.NewBufferString(`{"username":"` + username + `","password":"` + password + `"}`)
