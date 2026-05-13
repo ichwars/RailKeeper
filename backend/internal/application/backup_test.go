@@ -133,6 +133,44 @@ func TestBackupExcludesAuthenticationTables(t *testing.T) {
 	}
 }
 
+func TestBackupValidationWarnsAboutIgnoredAuthenticationTables(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format:  "railkeeper2-backup",
+		Version: 1,
+		Tables:  map[string][]map[string]any{},
+	}
+	for _, table := range []string{
+		"master_data_entries",
+		"master_data_relations",
+		"inventory_number_schemes",
+		"vehicles",
+		"inventory_number_history",
+		"vehicle_images",
+		"vehicle_attachments",
+		"vehicle_maintenance",
+		"vehicle_functions",
+		"vehicle_cv_files",
+		"vehicle_cv_values",
+		"vehicle_cv_value_history",
+	} {
+		doc.Tables[table] = []map[string]any{}
+	}
+	doc.Tables["users"] = []map[string]any{{"id": "user-1", "password_hash": "secret"}}
+
+	result, err := service.Validate(context.Background(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected backup to remain compatible with ignored auth table, got %#v", result)
+	}
+	if !containsWarning(result.Warnings, "Unbekannte Tabelle users") {
+		t.Fatalf("expected ignored users table warning, got %#v", result.Warnings)
+	}
+}
+
 func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	db := testDB(t)
 	service := application.NewBackupService(db, t.TempDir())
@@ -169,6 +207,15 @@ func TestBackupValidationReportsIncompatibleDocuments(t *testing.T) {
 	if len(result.Errors) == 0 {
 		t.Fatalf("expected validation errors")
 	}
+}
+
+func containsWarning(warnings []string, needle string) bool {
+	for _, warning := range warnings {
+		if strings.Contains(warning, needle) {
+			return true
+		}
+	}
+	return false
 }
 
 func backupTestDB(t *testing.T, dataDir string) *sql.DB {
