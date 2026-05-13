@@ -7,7 +7,7 @@ RailKeeper2 is a small modular monolith. It is deployed as one process, but the 
 - `api`: HTTP transport, request validation, response mapping
 - `application`: use cases, transactions, authorization decisions
 - `domain`: vehicle inventory model and domain rules
-- `infrastructure`: SQLite, migrations, seed loading and future backup support
+- `infrastructure`: SQLite, migrations, seed loading and filesystem adapters
 
 ## API Contract
 
@@ -30,3 +30,4 @@ Node.js is only used to build the frontend.
 - Article data web search is a core module. It already uses an adapter boundary so provider-specific logic can be replaced later.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
+- Backup and restore are application-level use cases: they export inventory data and uploads while intentionally excluding local authentication data such as users, sessions and password hashes.

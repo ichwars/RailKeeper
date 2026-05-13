@@ -33,6 +33,7 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - ESU/LokProgrammer project files with metadata preview, CV import review and function mapping import before storing as decoder files
 - local JSON backup/restore for app data, exhibition lists and upload files with compatibility preflight and typed restore confirmation
 - app backups intentionally exclude local users, sessions, rate limits, audit logs and password hashes
+- exhibition lists for fair/show operations with a dedicated Messe role, entry dialogs, lock state and print view
 - audit log entries for setup, login/logout, user, session, vehicle and exhibition changes
 - OpenAPI contract in `openapi/railkeeper.yaml`
 - Docker Compose deployment with persistent `/data` volume
@@ -48,7 +49,7 @@ RailKeeper2 is built for private or small self-hosted installations, but the def
 - HTTP-only session cookie
 - SameSite cookies
 - CSRF token for write requests
-- role checks for viewer/editor/admin operations
+- role checks for viewer/editor/admin and Messe operations
 - admin-only session review and revocation
 - persistent login/setup rate limiting
 - security headers including CSP, frame blocking and nosniff

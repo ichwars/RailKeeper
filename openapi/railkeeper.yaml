@@ -15,6 +15,7 @@ tags:
   - name: ArticleSearch
   - name: Backup
   - name: Audit
+  - name: Exhibition
 components:
   securitySchemes:
     sessionCookie:
@@ -187,6 +188,53 @@ components:
                 type: string
               isDefault:
                 type: boolean
+    VersionInfo:
+      type: object
+      required: [version, updateAvailable, checkedAt, status, message]
+      properties:
+        version:
+          type: string
+        latestVersion:
+          type: string
+        updateAvailable:
+          type: boolean
+        sourceUrl:
+          type: string
+        releaseUrl:
+          type: string
+        checkedAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [local, not_configured, current, update_available, unavailable, no_release]
+        message:
+          type: string
+    StorageUsageCategory:
+      type: object
+      required: [key, label, bytes, files]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        bytes:
+          type: integer
+        files:
+          type: integer
+    StorageUsage:
+      type: object
+      required: [totalBytes, categories, updatedAt]
+      properties:
+        totalBytes:
+          type: integer
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/StorageUsageCategory"
+        updatedAt:
+          type: string
+          format: date-time
     Vehicle:
       type: object
       required: [id, inventoryNumber, manufacturer, name, gauge, createdAt, updatedAt]
@@ -819,6 +867,96 @@ components:
           type: integer
         rowCount:
           type: integer
+    ExhibitionList:
+      type: object
+      required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        designation:
+          type: string
+        date:
+          type: string
+          format: date
+        locked:
+          type: boolean
+        entryCount:
+          type: integer
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ExhibitionEntry"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ExhibitionListInput:
+      type: object
+      required: [designation, date]
+      properties:
+        designation:
+          type: string
+        date:
+          type: string
+          format: date
+    ExhibitionLockInput:
+      type: object
+      required: [locked]
+      properties:
+        locked:
+          type: boolean
+    ExhibitionEntry:
+      type: object
+      required: [id, listId, owner, locomotiveName, dtDecoder, sortOrder, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        listId:
+          type: string
+        owner:
+          type: string
+        imageUrl:
+          type: string
+        locomotiveName:
+          type: string
+        dtDecoder:
+          type: boolean
+        decoderNumber:
+          type: string
+        functionKeys:
+          type: string
+        notes:
+          type: string
+        sortOrder:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ExhibitionEntryInput:
+      type: object
+      required: [owner, locomotiveName, dtDecoder]
+      properties:
+        owner:
+          type: string
+        imageUrl:
+          type: string
+        locomotiveName:
+          type: string
+        dtDecoder:
+          type: boolean
+        decoderNumber:
+          type: string
+        functionKeys:
+          type: string
+        notes:
+          type: string
+        sortOrder:
+          type: integer
 paths:
   /setup/status:
     get:
@@ -925,6 +1063,27 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /version:
+    get:
+      tags: [System]
+      parameters:
+        - name: check
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: prerelease
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Current version and optional update-check result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VersionInfo"
   /system/printers:
     get:
       tags: [System]
@@ -935,6 +1094,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/SystemPrinters"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/storage:
+    get:
+      tags: [System]
+      responses:
+        "200":
+          description: Local data directory usage grouped by category
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageUsage"
         "403":
           description: Admin role required
           content:
@@ -1695,6 +1870,335 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "504":
           description: Search timeout or upstream failure
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /exhibition-lists:
+    get:
+      tags: [Exhibition]
+      responses:
+        "200":
+          description: Exhibition lists visible to the current user
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExhibitionList"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Exhibition]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExhibitionListInput"
+      responses:
+        "201":
+          description: Exhibition list created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionList"
+        "400":
+          description: Invalid list data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}:
+    get:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exhibition list including entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionList"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExhibitionListInput"
+      responses:
+        "200":
+          description: Exhibition list updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionList"
+        "400":
+          description: Invalid list data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Exhibition list deleted
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}/lock:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExhibitionLockInput"
+      responses:
+        "200":
+          description: Exhibition list lock state updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionList"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}/entries:
+    get:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Entries in the exhibition list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ExhibitionEntry"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExhibitionEntryInput"
+      responses:
+        "201":
+          description: Exhibition entry created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionEntry"
+        "400":
+          description: Invalid entry data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Exhibition list is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}/entries/{entryID}:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExhibitionEntryInput"
+      responses:
+        "200":
+          description: Exhibition entry updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionEntry"
+        "400":
+          description: Invalid entry data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list or entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Exhibition list is locked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: entryID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Exhibition entry deleted
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Exhibition list or entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Exhibition list is locked
           content:
             application/json:
               schema:

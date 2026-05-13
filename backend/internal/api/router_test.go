@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -324,6 +325,62 @@ func TestSessionListEndpointHonorsLimit(t *testing.T) {
 	}
 }
 
+func TestBackupValidateEndpoint(t *testing.T) {
+	dataDir := t.TempDir()
+	db := testRouterDBWithDataDir(t, dataDir)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	backupService := application.NewBackupService(db, dataDir)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	backup, err := backupService.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupData, err := json.Marshal(backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, BackupService: backupService, DataDir: dataDir})
+	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", "railkeeper2-backup.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(backupData); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/backup/validate", body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected backup validation success, got %d: %s", response.Code, response.Body.String())
+	}
+	var validation application.BackupValidationResult
+	if err := json.NewDecoder(response.Body).Decode(&validation); err != nil {
+		t.Fatal(err)
+	}
+	if !validation.Compatible || len(validation.Errors) > 0 || validation.TableCount == 0 {
+		t.Fatalf("expected compatible backup validation response, got %#v", validation)
+	}
+}
+
 func TestExhibitionEndpointsAllowMesseRole(t *testing.T) {
 	db := testRouterDB(t)
 	setup := application.NewSetupService(db)
@@ -402,6 +459,23 @@ func TestExhibitionEndpointsAllowMesseRole(t *testing.T) {
 	router.ServeHTTP(entryUpdateResponse, entryUpdateRequest)
 	if entryUpdateResponse.Code != http.StatusOK {
 		t.Fatalf("expected messe user to update entries, got %d: %s", entryUpdateResponse.Code, entryUpdateResponse.Body.String())
+	}
+
+	detailRequest := httptest.NewRequest(http.MethodGet, "/api/v1/exhibition-lists/"+list.ID, nil)
+	for _, cookie := range cookies {
+		detailRequest.AddCookie(cookie)
+	}
+	detailResponse := httptest.NewRecorder()
+	router.ServeHTTP(detailResponse, detailRequest)
+	if detailResponse.Code != http.StatusOK {
+		t.Fatalf("expected messe user to read list details, got %d: %s", detailResponse.Code, detailResponse.Body.String())
+	}
+	var detail application.ExhibitionList
+	if err := json.NewDecoder(detailResponse.Body).Decode(&detail); err != nil {
+		t.Fatal(err)
+	}
+	if len(detail.Entries) != 1 || detail.Entries[0].ID != entry.ID {
+		t.Fatalf("expected list detail response to include entry, got %#v", detail)
 	}
 
 	entryDeleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v1/exhibition-lists/"+list.ID+"/entries/"+entry.ID, nil)
@@ -709,7 +783,12 @@ func loginTestUser(t *testing.T, router http.Handler, username, password string)
 
 func testRouterDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := infrastructure.OpenSQLite(t.TempDir())
+	return testRouterDBWithDataDir(t, t.TempDir())
+}
+
+func testRouterDBWithDataDir(t *testing.T, dataDir string) *sql.DB {
+	t.Helper()
+	db, err := infrastructure.OpenSQLite(dataDir)
 	if err != nil {
 		t.Fatal(err)
 	}

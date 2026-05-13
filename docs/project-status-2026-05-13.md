@@ -16,6 +16,7 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Backup-Export zeigt kompakt lokale Ablagegröße und Dateianzahl.
 - Backup-Export beschreibt klar, welche fachlichen Daten gesichert werden und dass Benutzer, Sitzungen und Passworthashes ausgenommen bleiben.
 - Backup-Validierung trennt Fehler und Hinweise sichtbar voneinander, damit Restore-Risiken schneller erkennbar sind.
+- Backup-Validierung ist zusätzlich auf Router-Ebene per HTTP-Test abgesichert.
 - Backup-Export/Restore ist gegen versehentliche Auth-Tabellen, Sitzungen und Passworthashes abgesichert; ignorierte Auth-Tabellen werden in der Validierung als Warnung behandelt.
 - Messelisten und Messelisteneinträge werden im Backup gesichert und wiederhergestellt; ältere Backups ohne diese Tabellen bleiben kompatibel.
 - Messe-Rolle ist in den Einstellungen jetzt als aktiver Zugriff auf Messelisten, Einträge und Messe-Druck beschrieben.
@@ -24,7 +25,9 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - ESU/ECoS-Funktionstastensymbole werden als Stammdaten mit SVG-Bild, Beschreibung und Upload-Pflege gespeichert.
 - Messelisten-Einträge nutzen in der Funktionstasten-Maske den Symbol-Picker mit den gespeicherten Stammdaten-SVGs.
 - Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen, Sperrstatus und Funktionstasten-Symbolen aus.
+- OpenAPI dokumentiert Messelisten, Messelisteneinträge, Sperren und Backup-Validierung.
 - Messe-API ist per HTTP-Test für Messe-Rollenzugriff und gesperrte Listen abgesichert.
+- Messe-Detailansicht ist per HTTP-Test abgesichert, inklusive Rückgabe der Einträge für Popup-/Ansichtsmodus.
 - Messe-Eintrag-Rechte sind per HTTP-Test abgesichert: Einträge anlegen/bearbeiten erlaubt, Einträge löschen und Listenverwaltung nur Admin.
 - Reine Messe-Benutzer sind backend- und frontendseitig von Viewer-/Bestandsrouten getrennt; kombinierte Rollen werden als Rollenunion behandelt.
 - Messe-/Messelisten-Aktionen werden im Audit-Log mit eigenen Labels protokolliert und per Lifecycle-Tests für Listen und Einträge abgesichert.
@@ -34,6 +37,8 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 ## Letzte Commits
 
 ```text
+688f24d Refresh API backup contract
+5439831 Refresh backup security docs
 f3b9e7a Clarify backup validation feedback
 25176e1 Clarify backup export scope
 e05b3bd Update messe role description
@@ -42,8 +47,6 @@ f394876 Document exhibition backup coverage
 026e2b1 Cover backup table coverage
 b320d0d Include exhibition data in backups
 13ff961 Refresh status after settings safeguards
-83c66a9 Cover ignored auth backup tables
-6fa4356 Cover backup auth table exclusions
 ```
 
 ## Offene Entscheidungen
