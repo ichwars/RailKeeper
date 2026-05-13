@@ -129,12 +129,12 @@ func TestListAuditLogReturnsRecentSecurityEvents(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	entries, err := auth.ListAuditLog(ctx, 2)
+	entries, err := auth.ListAuditLog(ctx, 3)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 {
-		t.Fatalf("expected two audit entries, got %d", len(entries))
+	if len(entries) != 3 {
+		t.Fatalf("expected three audit entries, got %d", len(entries))
 	}
 	actions := map[string]application.AuditLogEntry{}
 	for _, entry := range entries {

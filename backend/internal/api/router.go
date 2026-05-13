@@ -47,6 +47,7 @@ type Config struct {
 	InventoryNumbers            *application.InventoryNumberService
 	BackupService               *application.BackupService
 	ExhibitionService           *application.ExhibitionService
+	RateLimitService            *application.RateLimitService
 	CookieSecure                bool
 }
 
@@ -68,7 +69,7 @@ type App struct {
 	backupService               *application.BackupService
 	exhibitionService           *application.ExhibitionService
 	cookieSecure                bool
-	rateLimits                  *rateLimiter
+	rateLimits                  rateLimitStore
 }
 
 func NewRouter(config Config) http.Handler {
@@ -96,7 +97,10 @@ func NewRouter(config Config) http.Handler {
 		backupService:               config.BackupService,
 		exhibitionService:           config.ExhibitionService,
 		cookieSecure:                config.CookieSecure,
-		rateLimits:                  newRateLimiter(),
+		rateLimits:                  config.RateLimitService,
+	}
+	if app.rateLimits == nil {
+		app.rateLimits = newRateLimiter()
 	}
 	if app.articleSearch == nil {
 		app.articleSearch = application.NewArticleSearchService()
@@ -652,7 +656,11 @@ func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
-	if !a.rateLimits.allow("setup", clientIP(r), 5, 10*time.Minute) {
+	allowed, ok := a.allowRequest(w, r, "setup", clientIP(r), 5, 10*time.Minute)
+	if !ok {
+		return
+	}
+	if !allowed {
 		respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many setup attempts. Please try again later.")
 		return
 	}
@@ -680,7 +688,11 @@ func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) login(w http.ResponseWriter, r *http.Request) {
-	if !a.rateLimits.allow("login", clientIP(r), 10, 5*time.Minute) {
+	allowed, ok := a.allowRequest(w, r, "login", clientIP(r), 10, 5*time.Minute)
+	if !ok {
+		return
+	}
+	if !allowed {
 		respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many login attempts. Please try again later.")
 		return
 	}
@@ -1981,6 +1993,10 @@ func isAllowedImageMime(value string) bool {
 	}
 }
 
+type rateLimitStore interface {
+	Allow(ctx context.Context, scope, key string, limit int, window time.Duration) (bool, error)
+}
+
 type rateLimiter struct {
 	mu       sync.Mutex
 	attempts map[string][]time.Time
@@ -1990,9 +2006,9 @@ func newRateLimiter() *rateLimiter {
 	return &rateLimiter{attempts: map[string][]time.Time{}}
 }
 
-func (r *rateLimiter) allow(scope, key string, limit int, window time.Duration) bool {
+func (r *rateLimiter) Allow(ctx context.Context, scope, key string, limit int, window time.Duration) (bool, error) {
 	if r == nil {
-		return true
+		return true, nil
 	}
 	now := time.Now()
 	cutoff := now.Add(-window)
@@ -2009,10 +2025,20 @@ func (r *rateLimiter) allow(scope, key string, limit int, window time.Duration) 
 	}
 	if len(filtered) >= limit {
 		r.attempts[compoundKey] = filtered
-		return false
+		return false, nil
 	}
 	r.attempts[compoundKey] = append(filtered, now)
-	return true
+	return true, nil
+}
+
+func (a *App) allowRequest(w http.ResponseWriter, r *http.Request, scope, key string, limit int, window time.Duration) (bool, bool) {
+	allowed, err := a.rateLimits.Allow(r.Context(), scope, key, limit, window)
+	if err != nil {
+		a.logger.Error("rate limit check failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "rate_limit_failed", "Could not verify request rate limit.")
+		return false, false
+	}
+	return allowed, true
 }
 
 func clientIP(r *http.Request) string {

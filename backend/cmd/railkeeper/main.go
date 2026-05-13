@@ -83,6 +83,7 @@ func main() {
 		InventoryNumbers:            application.NewInventoryNumberService(db),
 		BackupService:               application.NewBackupService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
+		RateLimitService:            application.NewRateLimitService(db),
 		CookieSecure:                cookieSecure,
 	})
 

@@ -5,6 +5,7 @@
 - Go API and static frontend runtime
 - SQLite migrations and seed loading
 - first-run setup and authentication
+- persistent setup and login rate limiting
 - CSRF and role checks
 - vehicle CRUD
 - master data management

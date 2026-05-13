@@ -106,13 +106,25 @@ func TestCreateVehicleImageThumbnailSupportsWebP(t *testing.T) {
 
 func TestRateLimiterBlocksAfterLimit(t *testing.T) {
 	limiter := newRateLimiter()
-	if !limiter.allow("login", "127.0.0.1", 2, time.Hour) {
+	allowed, err := limiter.Allow(t.Context(), "login", "127.0.0.1", 2, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !allowed {
 		t.Fatalf("first attempt should be allowed")
 	}
-	if !limiter.allow("login", "127.0.0.1", 2, time.Hour) {
+	allowed, err = limiter.Allow(t.Context(), "login", "127.0.0.1", 2, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !allowed {
 		t.Fatalf("second attempt should be allowed")
 	}
-	if limiter.allow("login", "127.0.0.1", 2, time.Hour) {
+	allowed, err = limiter.Allow(t.Context(), "login", "127.0.0.1", 2, time.Hour)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if allowed {
 		t.Fatalf("third attempt should be blocked")
 	}
 }

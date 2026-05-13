@@ -46,7 +46,7 @@ RailKeeper2 is built for private or small self-hosted installations, but the def
 - SameSite cookies
 - CSRF token for write requests
 - role checks for viewer/editor/admin operations
-- basic login/setup rate limiting
+- persistent login/setup rate limiting
 - security headers including CSP, frame blocking and nosniff
 - upload size limit and executable attachment blocking
 - attachment paths confined to the configured data directory

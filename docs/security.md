@@ -15,7 +15,7 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 - CSRF validation for API write requests
 - role enforcement with Admin, Editor, Viewer and Messe roles
 - admin-only user management for local accounts and role assignment
-- basic in-memory rate limiting for login and setup attempts
+- persistent rate limiting for login and setup attempts
 - audit logs for setup, login, logout and vehicle changes
 - structured security event review in the settings area
 - configurable image and attachment upload size limits
@@ -35,5 +35,4 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 
 ## Open Hardening Work
 
-- persistent rate limiting across restarts
 - optional public read-only vehicle pages with explicit per-item enablement
