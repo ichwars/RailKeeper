@@ -501,18 +501,25 @@ export function SettingsView() {
     applyThemePreference(preference);
   };
 
-  const loadVersionInfo = (forceCheck = false) => {
+  const loadVersionInfo = (forceCheck = false, includeBeta = betaUpdates) => {
     const shouldCheck = forceCheck || updateChecks;
     setVersionLoading(true);
     setVersionMessage("");
     api
-      .version(shouldCheck, betaUpdates)
+      .version(shouldCheck, includeBeta)
       .then((info) => {
         setVersionInfo(info);
         setVersionMessage(info.message || `RailKeeper ist erreichbar. Aktuelle Version: ${info.version || "unbekannt"}.`);
       })
       .catch((error: Error) => setVersionMessage(error.message))
       .finally(() => setVersionLoading(false));
+  };
+
+  const updateBetaUpdates = (enabled: boolean) => {
+    setLocalBool(localSettingKeys.betaUpdates, enabled, setBetaUpdates);
+    if (updateChecks) {
+      loadVersionInfo(true, enabled);
+    }
   };
 
   const loadStorageUsage = () => {
@@ -1065,10 +1072,10 @@ export function SettingsView() {
               <label className="settings-toggle-row">
                 <span>
                   <strong>Beta-Versionen einschließen</strong>
-                  <small>Der aktive Kanal prüft stabile GitHub-Releases. Beta-Kanal folgt später.</small>
+                  <small>Berücksichtigt auch Prereleases, wenn der Update-Endpunkt GitHub-Releases liefert.</small>
                 </span>
                 <span className="switch-field">
-                  <input type="checkbox" checked={betaUpdates} onChange={(event) => setLocalBool(localSettingKeys.betaUpdates, event.target.checked, setBetaUpdates)} disabled />
+                  <input type="checkbox" checked={betaUpdates} onChange={(event) => updateBetaUpdates(event.target.checked)} />
                   <span />
                 </span>
               </label>
@@ -1079,7 +1086,7 @@ export function SettingsView() {
                 </p>
                 {versionInfo?.status && (
                   <span className={`settings-pill ${versionInfo.updateAvailable ? "active" : versionInfo.status === "unavailable" ? "muted" : ""}`}>
-                    {versionInfo.updateAvailable ? "Update verfügbar" : versionInfo.status === "current" ? "aktuell" : versionInfo.status === "not_configured" ? "lokal" : versionInfo.status === "unavailable" ? "offline" : "lokal"}
+                    {versionInfo.updateAvailable ? "Update verfügbar" : versionInfo.status === "current" ? (betaUpdates ? "aktuell inkl. Beta" : "aktuell") : versionInfo.status === "not_configured" ? "lokal" : versionInfo.status === "unavailable" ? "offline" : "lokal"}
                   </span>
                 )}
                 <button type="button" className="secondary-button" onClick={() => loadVersionInfo(true)} disabled={versionLoading}>
