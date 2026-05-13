@@ -38,7 +38,7 @@ import {
   UserAccount,
   VersionInfo
 } from "../../shared/api";
-import { applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
+import { applyStoredThemeOptions, applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 
 type SettingsTab = "general" | "data" | "importExport" | "appearance" | "auth";
 type MasterDataType = {
@@ -344,7 +344,6 @@ export function SettingsView() {
   const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
-  const [language, setLanguage] = useState(() => readLocalSetting(localSettingKeys.language, "de"));
   const [defaultView, setDefaultView] = useState(() => {
     const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
     return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
@@ -537,6 +536,9 @@ export function SettingsView() {
   const setLocalSetting = (key: string, value: string, setter: (value: string) => void) => {
     setter(value);
     window.localStorage.setItem(key, value);
+    if (key.startsWith("railkeeper.settings.dark") || key.startsWith("railkeeper.settings.light")) {
+      applyStoredThemeOptions();
+    }
   };
 
   const setLocalBool = (key: string, value: boolean, setter: (value: boolean) => void) => {
@@ -958,12 +960,10 @@ export function SettingsView() {
                 </div>
               </div>
               <div className="settings-field-grid">
-                <label>
+                <label className="settings-static-field">
                   Sprache
-                  <select value={language} onChange={(event) => setLocalSetting(localSettingKeys.language, event.target.value, setLanguage)}>
-                    <option value="de">Deutsch (German)</option>
-                    <option value="en">English (English)</option>
-                  </select>
+                  <span>Deutsch</span>
+                  <small>Mehrsprachigkeit ist noch nicht implementiert.</small>
                 </label>
                 <label>
                   Standardansicht
@@ -1411,17 +1411,27 @@ export function SettingsView() {
           </div>
 
           <section className="backup-box master-data-transfer-box">
-            <div>
-              <h3>Stammdaten importieren/exportieren</h3>
-              <p>Exportiert nur Hersteller, Kategorien, Gattungen, Epochen, Spuren, Bahngesellschaften, Symbole und deren Abhängigkeiten. Bestand, Bilder, Wartung und Benutzer bleiben außen vor.</p>
+            <div className="backup-box-head">
+              <div>
+                <h3>Stammdaten importieren/exportieren</h3>
+                <p>Exportiert nur Hersteller, Kategorien, Gattungen, Epochen, Spuren, Bahngesellschaften, Symbole und deren Abhängigkeiten. Bestand, Bilder, Wartung und Benutzer bleiben außen vor.</p>
+              </div>
+              <div className="box-icon-actions">
+                <a className="icon-button" href={api.masterDataExportUrl()} aria-label="Stammdaten herunterladen" title="Stammdaten herunterladen">
+                  <Download size={16} />
+                </a>
+                <button type="button" className="icon-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile} aria-label="Stammdaten einspielen" title="Stammdaten einspielen">
+                  <Upload size={16} />
+                </button>
+              </div>
             </div>
             <div className="transfer-actions">
-              <a className="primary-button" href={api.masterDataExportUrl()}>
-                <Download size={17} />
-                Stammdaten herunterladen
-              </a>
-              <label className="backup-file-field">
-                Stammdaten-Datei
+              <label className="file-picker-field">
+                <span>Stammdaten-Datei</span>
+                <span className="file-picker-shell">
+                  <span className="file-picker-button">Datei auswählen</span>
+                  <span className="file-picker-name">{masterDataFile?.name || "Keine ausgewählt"}</span>
+                </span>
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -1431,16 +1441,7 @@ export function SettingsView() {
                   }}
                 />
               </label>
-              <button type="button" className="secondary-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile}>
-                {masterDataSaving ? (
-                  "Wird importiert..."
-                ) : (
-                  <>
-                    <Upload size={17} />
-                    Stammdaten einspielen
-                  </>
-                )}
-              </button>
+              {masterDataSaving && <span className="inline-status">Wird importiert...</span>}
             </div>
             {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
           </section>
@@ -1475,8 +1476,12 @@ export function SettingsView() {
                 <h3>Backup wiederherstellen</h3>
                 <p>Ersetzt lokale App-Daten und Uploads durch den Inhalt der Backup-Datei. Bitte vorher ein aktuelles Backup exportieren.</p>
               </div>
-              <label className="backup-file-field">
-                Backup-Datei
+              <label className="file-picker-field">
+                <span>Backup-Datei</span>
+                <span className="file-picker-shell">
+                  <span className="file-picker-button">Datei auswählen</span>
+                  <span className="file-picker-name">{backupFile?.name || "Keine ausgewählt"}</span>
+                </span>
                 <input
                   type="file"
                   accept="application/json,.json"
@@ -1727,7 +1732,11 @@ export function SettingsView() {
                 {(currentSession?.roles || []).map((role) => <span className="settings-pill" key={role}>{role}</span>)}
                 {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">Keine Rollen</span>}
               </div>
-              <button type="button" className="secondary-button" onClick={loadCurrentSession}>Sitzung prüfen</button>
+              <p>Aktualisiert Benutzername und Rollen der aktuellen Anmeldung.</p>
+              <button type="button" className="secondary-button" onClick={loadCurrentSession}>
+                <RefreshCw size={16} />
+                Sitzung aktualisieren
+              </button>
             </div>
             <form className="password-change-form" onSubmit={changePassword}>
               <h3>Passwort ändern</h3>
