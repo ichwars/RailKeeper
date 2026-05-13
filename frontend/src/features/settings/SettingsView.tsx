@@ -38,6 +38,7 @@ import {
   UserAccount,
   VersionInfo
 } from "../../shared/api";
+import { Language, useI18n } from "../../shared/i18n";
 import { applyStoredThemeOptions, applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 
 type SettingsTab = "general" | "data" | "importExport" | "appearance" | "auth";
@@ -47,12 +48,12 @@ type MasterDataType = {
   description: string;
 };
 
-const settingsTabs: { id: SettingsTab; label: string }[] = [
-  { id: "general", label: "Allgemein" },
-  { id: "data", label: "Daten" },
-  { id: "importExport", label: "Import/Export" },
-  { id: "appearance", label: "Darstellung" },
-  { id: "auth", label: "Authentifizierung" }
+const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
+  { id: "general", labelKey: "settings.tabs.general" },
+  { id: "data", labelKey: "settings.tabs.data" },
+  { id: "importExport", labelKey: "settings.tabs.importExport" },
+  { id: "appearance", labelKey: "settings.tabs.appearance" },
+  { id: "auth", labelKey: "settings.tabs.auth" }
 ];
 
 const masterDataTypes: MasterDataType[] = [
@@ -318,6 +319,7 @@ function externalLink(entry: MasterDataEntry) {
 }
 
 export function SettingsView() {
+  const { language, setLanguage, t } = useI18n();
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
@@ -931,12 +933,12 @@ export function SettingsView() {
     <>
       <section className="settings-head">
         <h1>
-          Einstellungen <span>0.1.0</span>
+          {t("settings.title")} <span>0.1.0</span>
         </h1>
-        <p>Inventarverwaltung für Modellbahnfahrzeuge</p>
+        <p>{t("settings.subtitle")}</p>
       </section>
 
-      <nav className="settings-primary-tabs" aria-label="Einstellungen">
+      <nav className="settings-primary-tabs" aria-label={t("settings.title")}>
         {settingsTabs.map((tab) => (
           <button
             key={tab.id}
@@ -944,7 +946,7 @@ export function SettingsView() {
             className={activeSettingsTab === tab.id ? "active" : ""}
             onClick={() => setActiveSettingsTab(tab.id)}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </nav>
@@ -955,28 +957,30 @@ export function SettingsView() {
             <section className="panel settings-card settings-tool-card">
               <div className="settings-section-head">
                 <div>
-                  <h2>Allgemein</h2>
-                  <p>Sprache, Startseite, Datumsformat und Druckausgabe.</p>
+                  <h2>{t("settings.general.title")}</h2>
+                  <p>{t("settings.general.subtitle")}</p>
                 </div>
               </div>
               <div className="settings-field-grid">
-                <label className="settings-static-field">
-                  Sprache
-                  <span>Deutsch</span>
-                  <small>Mehrsprachigkeit ist noch nicht implementiert.</small>
-                </label>
                 <label>
-                  Standardansicht
-                  <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
-                    <option value="overview">Übersicht</option>
-                    <option value="vehicles">Bestand</option>
-                    <option value="exhibition">Messeliste</option>
-                    <option value="importExport">Import/Export</option>
-                    <option value="settings">Einstellungen</option>
+                  {t("settings.language")}
+                  <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
+                    <option value="de">{t("settings.language.de")}</option>
+                    <option value="en">{t("settings.language.en")}</option>
                   </select>
                 </label>
                 <label>
-                  Datumsformat
+                  {t("settings.defaultView")}
+                  <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
+                    <option value="overview">{t("nav.overview")}</option>
+                    <option value="vehicles">{t("nav.vehicles")}</option>
+                    <option value="exhibition">{t("nav.exhibition")}</option>
+                    <option value="importExport">{t("nav.importExport")}</option>
+                    <option value="settings">{t("nav.settings")}</option>
+                  </select>
+                </label>
+                <label>
+                  {t("settings.dateFormat")}
                   <select value={dateFormat} onChange={(event) => setLocalSetting(localSettingKeys.dateFormat, event.target.value, setDateFormat)}>
                     <option value="system">Systemstandard</option>
                     <option value="de">Deutsch: 31.12.2026</option>
@@ -984,7 +988,7 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label>
-                  Zeitformat
+                  {t("settings.timeFormat")}
                   <select value={timeFormat} onChange={(event) => setLocalSetting(localSettingKeys.timeFormat, event.target.value, setTimeFormat)}>
                     <option value="system">Systemstandard</option>
                     <option value="24h">24 Stunden</option>
@@ -992,50 +996,50 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label className="settings-field-wide">
-                  Standarddrucker
+                  {t("settings.defaultPrinter")}
                   <select value={defaultPrinter} onChange={(event) => setLocalSetting(localSettingKeys.defaultPrinter, event.target.value, setDefaultPrinter)}>
-                    <option value="system-dialog">Systemdialog / Standarddrucker</option>
+                    <option value="system-dialog">{t("settings.printer.system")}</option>
                     {(systemPrinters?.printers || []).map((printer) => (
                       <option key={printer.id} value={`printer:${printer.name}`}>
                         {printer.name}{printer.isDefault ? " (Standard)" : ""}
                       </option>
                     ))}
-                    <option value="ask">Jedes Mal fragen</option>
-                    <option value="pdf">Als PDF speichern</option>
+                    <option value="ask">{t("settings.printer.ask")}</option>
+                    <option value="pdf">{t("settings.printer.pdf")}</option>
                   </select>
                 </label>
               </div>
               <div className="settings-action-row">
-                <p>{printerMessage || "RailKeeper nutzt den Browser-Systemdialog. Die konkrete Druckerauswahl kommt vom Betriebssystem."}</p>
+                <p>{printerMessage || t("settings.printer.message")}</p>
                 <button type="button" className="secondary-button" onClick={() => window.print()}>
                   <Printer size={17} />
-                  Systemdrucker öffnen
+                  {t("settings.printer.open")}
                 </button>
-                <button type="button" className="icon-button" onClick={loadSystemPrinters} aria-label="Systemdrucker aktualisieren" title="Systemdrucker aktualisieren" disabled={printersLoading}>
+                <button type="button" className="icon-button" onClick={loadSystemPrinters} aria-label={t("settings.printer.refresh")} title={t("settings.printer.refresh")} disabled={printersLoading}>
                   <RefreshCw size={16} />
                 </button>
               </div>
-              <section className="sidebar-order-box" aria-label="Seitenleisten-Reihenfolge">
+              <section className="sidebar-order-box" aria-label={t("settings.sidebarOrder.title")}>
                 <div>
-                  <h3>Seitenleisten-Reihenfolge</h3>
-                  <p>Ordnet die Hauptnavigation lokal für diesen Browser.</p>
+                  <h3>{t("settings.sidebarOrder.title")}</h3>
+                  <p>{t("settings.sidebarOrder.subtitle")}</p>
                 </div>
                 <div className="sidebar-order-list">
                   {sidebarOrder.map((view, index) => (
                     <div key={view}>
                       <span>{index + 1}</span>
-                      <strong>{sidebarLabels[view]}</strong>
-                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, -1)} disabled={index === 0} aria-label={sidebarLabels[view] + " nach oben"} title="Nach oben">
+                      <strong>{t(`nav.${view}`)}</strong>
+                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, -1)} disabled={index === 0} aria-label={t(`nav.${view}`) + " nach oben"} title="Nach oben">
                         <ChevronUp size={15} />
                       </button>
-                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, 1)} disabled={index === sidebarOrder.length - 1} aria-label={sidebarLabels[view] + " nach unten"} title="Nach unten">
+                      <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, 1)} disabled={index === sidebarOrder.length - 1} aria-label={t(`nav.${view}`) + " nach unten"} title="Nach unten">
                         <ChevronDown size={15} />
                       </button>
                     </div>
                   ))}
                 </div>
                 <button type="button" className="secondary-button compact-action" onClick={resetSidebarOrder}>
-                  Zurücksetzen
+                  {t("settings.sidebarOrder.reset")}
                 </button>
               </section>
             </section>
@@ -1405,32 +1409,32 @@ export function SettingsView() {
           <div className="settings-card-title">
             <Database size={18} />
             <div>
-              <h2>Import/Export</h2>
-              <p>Daten gezielt sichern, austauschen oder vollständig wiederherstellen.</p>
+              <h2>{t("settings.import.title")}</h2>
+              <p>{t("settings.import.subtitle")}</p>
             </div>
           </div>
 
           <section className="backup-box master-data-transfer-box">
             <div className="backup-box-head">
               <div>
-                <h3>Stammdaten importieren/exportieren</h3>
-                <p>Exportiert nur Hersteller, Kategorien, Gattungen, Epochen, Spuren, Bahngesellschaften, Symbole und deren Abhängigkeiten. Bestand, Bilder, Wartung und Benutzer bleiben außen vor.</p>
+                <h3>{t("settings.masterTransfer.title")}</h3>
+                <p>{t("settings.masterTransfer.subtitle")}</p>
               </div>
               <div className="box-icon-actions">
-                <a className="icon-button" href={api.masterDataExportUrl()} aria-label="Stammdaten herunterladen" title="Stammdaten herunterladen">
+                <a className="icon-button" href={api.masterDataExportUrl()} aria-label={t("settings.masterTransfer.download")} title={t("settings.masterTransfer.download")}>
                   <Download size={16} />
                 </a>
-                <button type="button" className="icon-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile} aria-label="Stammdaten einspielen" title="Stammdaten einspielen">
+                <button type="button" className="icon-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile} aria-label={t("settings.masterTransfer.upload")} title={t("settings.masterTransfer.upload")}>
                   <Upload size={16} />
                 </button>
               </div>
             </div>
             <div className="transfer-actions">
               <label className="file-picker-field">
-                <span>Stammdaten-Datei</span>
+                <span>{t("settings.masterTransfer.file")}</span>
                 <span className="file-picker-shell">
-                  <span className="file-picker-button">Datei auswählen</span>
-                  <span className="file-picker-name">{masterDataFile?.name || "Keine ausgewählt"}</span>
+                  <span className="file-picker-button">{t("settings.file.pick")}</span>
+                  <span className="file-picker-name">{masterDataFile?.name || t("settings.file.none")}</span>
                 </span>
                 <input
                   type="file"
@@ -1441,7 +1445,7 @@ export function SettingsView() {
                   }}
                 />
               </label>
-              {masterDataSaving && <span className="inline-status">Wird importiert...</span>}
+              {masterDataSaving && <span className="inline-status">{t("settings.masterTransfer.saving")}</span>}
             </div>
             {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
           </section>
@@ -1449,17 +1453,17 @@ export function SettingsView() {
           <div className="backup-grid">
             <section className="backup-box">
               <div>
-                <h3>Backup exportieren</h3>
-                <p>Erstellt eine JSON-Datei mit Bestand, Stammdaten, Wartung, CVs, Messelisten und lokal gespeicherten Uploads. Benutzerkonten und Sitzungen bleiben ausgeschlossen.</p>
+                <h3>{t("settings.backup.export.title")}</h3>
+                <p>{t("settings.backup.export.subtitle")}</p>
               </div>
               <div className="backup-summary-strip">
                 <span>
                   <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
-                  lokale Ablage
+                  {t("settings.backup.storage")}
                 </span>
                 <span>
                   <strong>{storageFileCount.toLocaleString("de-DE")}</strong>
-                  Dateien
+                  {t("settings.backup.files")}
                 </span>
                 <button type="button" className="icon-button" onClick={loadStorageUsage} disabled={storageLoading} aria-label="Speichernutzung aktualisieren" title="Speichernutzung aktualisieren">
                   <RefreshCw size={15} />
@@ -1467,20 +1471,20 @@ export function SettingsView() {
               </div>
               <a className="primary-button" href={api.backupExportUrl()}>
                 <Download size={17} />
-                Backup herunterladen
+                {t("settings.backup.download")}
               </a>
             </section>
 
             <section className="backup-box warning">
               <div>
-                <h3>Backup wiederherstellen</h3>
-                <p>Ersetzt lokale App-Daten und Uploads durch den Inhalt der Backup-Datei. Bitte vorher ein aktuelles Backup exportieren.</p>
+                <h3>{t("settings.backup.restore.title")}</h3>
+                <p>{t("settings.backup.restore.subtitle")}</p>
               </div>
               <label className="file-picker-field">
-                <span>Backup-Datei</span>
+                <span>{t("settings.backup.file")}</span>
                 <span className="file-picker-shell">
-                  <span className="file-picker-button">Datei auswählen</span>
-                  <span className="file-picker-name">{backupFile?.name || "Keine ausgewählt"}</span>
+                  <span className="file-picker-button">{t("settings.file.pick")}</span>
+                  <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
                 </span>
                 <input
                   type="file"
@@ -1488,25 +1492,25 @@ export function SettingsView() {
                   onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
                 />
               </label>
-              {backupValidating && <p className="backup-validation-status">Backup wird geprüft...</p>}
+              {backupValidating && <p className="backup-validation-status">{t("settings.backup.validating")}</p>}
               {backupValidation && (
                 <div className={backupValidation.compatible ? "backup-validation ok" : "backup-validation danger"}>
-                  <strong>{backupValidation.compatible ? "Backup ist kompatibel" : "Backup ist nicht kompatibel"}</strong>
+                  <strong>{backupValidation.compatible ? t("settings.backup.compatible") : t("settings.backup.incompatible")}</strong>
                   <dl>
                     <div>
-                      <dt>Version</dt>
+                      <dt>{t("settings.backup.version")}</dt>
                       <dd>{backupValidation.version || "-"}</dd>
                     </div>
                     <div>
-                      <dt>Tabellen</dt>
+                      <dt>{t("settings.backup.tables")}</dt>
                       <dd>{backupValidation.tableCount}</dd>
                     </div>
                     <div>
-                      <dt>Datensätze</dt>
+                      <dt>{t("settings.backup.rows")}</dt>
                       <dd>{backupValidation.rowCount}</dd>
                     </div>
                     <div>
-                      <dt>Dateien</dt>
+                      <dt>{t("settings.backup.files")}</dt>
                       <dd>
                         {backupValidation.fileCount} / {formatBytes(backupValidation.fileBytes)}
                       </dd>
@@ -1514,7 +1518,7 @@ export function SettingsView() {
                   </dl>
                   {backupValidation.errors.length > 0 && (
                     <div className="backup-validation-list danger">
-                      <strong>Fehler</strong>
+                      <strong>{t("settings.backup.errors")}</strong>
                       <ul>
                         {backupValidation.errors.map((error) => (
                           <li key={error}>{error}</li>
@@ -1524,7 +1528,7 @@ export function SettingsView() {
                   )}
                   {backupValidation.warnings.length > 0 && (
                     <div className="backup-validation-list warning">
-                      <strong>Hinweise</strong>
+                      <strong>{t("settings.backup.warnings")}</strong>
                       <ul>
                         {backupValidation.warnings.map((warning) => (
                           <li key={warning}>{warning}</li>
@@ -1536,8 +1540,8 @@ export function SettingsView() {
               )}
               {backupValidation?.compatible && (
                 <label className="backup-confirm-field">
-                  Restore freigeben
-                  <span>Zum Einspielen bitte WIEDERHERSTELLEN eingeben.</span>
+                  {t("settings.backup.confirmLabel")}
+                  <span>{t("settings.backup.confirmHelp")}</span>
                   <input
                     value={backupRestoreConfirm}
                     onChange={(event) => setBackupRestoreConfirm(event.target.value)}
@@ -1548,11 +1552,11 @@ export function SettingsView() {
               )}
               <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
                 {backupSaving ? (
-                  "Wird wiederhergestellt..."
+                    t("settings.backup.restoring")
                 ) : (
                   <>
                     <Upload size={17} />
-                    Backup einspielen
+                    {t("settings.backup.restoreButton")}
                   </>
                 )}
               </button>
@@ -1561,7 +1565,7 @@ export function SettingsView() {
 
           <p className="source-note backup-note">
             <ShieldAlert size={16} aria-hidden="true" />
-            <span>Restore ist absichtlich Admin-geschützt und ersetzt Daten. Authentifizierung, Sitzungen und Passworthashes werden nicht exportiert.</span>
+            <span>{t("settings.backup.note")}</span>
           </p>
           {backupMessage && <p className="form-message">{backupMessage}</p>}
         </section>
@@ -1572,41 +1576,41 @@ export function SettingsView() {
           <div className="settings-card-title">
             <Palette size={18} />
             <div>
-              <h2>Darstellung</h2>
-              <p>Design-Optionen und Anzeigeeinstellungen werden hier gebündelt.</p>
+              <h2>{t("settings.appearance.title")}</h2>
+              <p>{t("settings.appearance.subtitle")}</p>
             </div>
           </div>
 
-          <div className="appearance-mode-row" role="radiogroup" aria-label="Designmodus">
+          <div className="appearance-mode-row" role="radiogroup" aria-label={t("settings.appearance.mode")}>
             <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
               <input type="radio" name="theme" value="system" checked={design === "system"} onChange={() => updateDesign("system")} />
               <span>
-                <strong>System</strong>
-                <small>Übernimmt Hell/Dunkel vom Betriebssystem.</small>
+                <strong>{t("settings.appearance.system")}</strong>
+                <small>{t("settings.appearance.systemHelp")}</small>
               </span>
             </label>
             <label className={design === "light" ? "appearance-option active" : "appearance-option"}>
               <input type="radio" name="theme" value="light" checked={design === "light"} onChange={() => updateDesign("light")} />
               <span>
-                <strong>Hell</strong>
-                <small>Ruhige helle Oberfläche für Tagesbetrieb.</small>
+                <strong>{t("settings.appearance.light")}</strong>
+                <small>{t("settings.appearance.lightHelp")}</small>
               </span>
             </label>
             <label className={design === "dark" ? "appearance-option active" : "appearance-option"}>
               <input type="radio" name="theme" value="dark" checked={design === "dark"} onChange={() => updateDesign("dark")} />
               <span>
-                <strong>Dunkel</strong>
-                <small>Reduzierte Helligkeit für längere Arbeitssitzungen.</small>
+                <strong>{t("settings.appearance.dark")}</strong>
+                <small>{t("settings.appearance.darkHelp")}</small>
               </span>
             </label>
           </div>
 
           <div className="appearance-config-grid">
             <section className="appearance-config-card">
-              <h3>Dunkelmodus <span className="settings-pill active">aktiv</span></h3>
+              <h3>{t("settings.appearance.darkMode")} <span className="settings-pill active">{t("settings.appearance.active")}</span></h3>
               <div className="settings-field-grid compact">
                 <label>
-                  Hintergrund
+                  {t("settings.appearance.background")}
                   <select value={darkBackground} onChange={(event) => setLocalSetting(localSettingKeys.darkBackground, event.target.value, setDarkBackground)}>
                     <option value="neutral">Neutral</option>
                     <option value="warm">Warm</option>
@@ -1615,7 +1619,7 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label>
-                  Akzent
+                  {t("settings.appearance.accent")}
                   <select value={darkAccent} onChange={(event) => setLocalSetting(localSettingKeys.darkAccent, event.target.value, setDarkAccent)}>
                     <option value="green">Grün</option>
                     <option value="blue">Blau</option>
@@ -1623,7 +1627,7 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label>
-                  Stil
+                  {t("settings.appearance.style")}
                   <select value={darkStyle} onChange={(event) => setLocalSetting(localSettingKeys.darkStyle, event.target.value, setDarkStyle)}>
                     <option value="classic">Klassisch</option>
                     <option value="compact">Kompakt</option>
@@ -1633,10 +1637,10 @@ export function SettingsView() {
               </div>
             </section>
             <section className="appearance-config-card">
-              <h3>Hellmodus</h3>
+              <h3>{t("settings.appearance.lightMode")}</h3>
               <div className="settings-field-grid compact">
                 <label>
-                  Hintergrund
+                  {t("settings.appearance.background")}
                   <select value={lightBackground} onChange={(event) => setLocalSetting(localSettingKeys.lightBackground, event.target.value, setLightBackground)}>
                     <option value="neutral">Neutral</option>
                     <option value="warm">Warm</option>
@@ -1644,7 +1648,7 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label>
-                  Akzent
+                  {t("settings.appearance.accent")}
                   <select value={lightAccent} onChange={(event) => setLocalSetting(localSettingKeys.lightAccent, event.target.value, setLightAccent)}>
                     <option value="green">Grün</option>
                     <option value="blue">Blau</option>
@@ -1652,7 +1656,7 @@ export function SettingsView() {
                   </select>
                 </label>
                 <label>
-                  Stil
+                  {t("settings.appearance.style")}
                   <select value={lightStyle} onChange={(event) => setLocalSetting(localSettingKeys.lightStyle, event.target.value, setLightStyle)}>
                     <option value="classic">Klassisch</option>
                     <option value="compact">Kompakt</option>
@@ -1671,36 +1675,36 @@ export function SettingsView() {
             <div className="settings-card-title">
               <Shield size={18} />
               <div>
-                <h2>Authentifizierung</h2>
-                <p>Ihre Instanz ist mit lokaler Benutzeranmeldung geschützt.</p>
+                <h2>{t("settings.auth.title")}</h2>
+                <p>{t("settings.auth.subtitle")}</p>
               </div>
             </div>
-            <div className="auth-provider-tabs" aria-label="Authentifizierungsarten">
+            <div className="auth-provider-tabs" aria-label={t("settings.auth.provider")}>
               <button type="button" className="active"><Mail size={15} /> E-Mail / Lokal</button>
               <button type="button" disabled><Shield size={15} /> LDAP</button>
               <button type="button" disabled><KeyRound size={15} /> Zwei-Faktor-Auth</button>
               <button type="button" disabled><UserCog size={15} /> SSO / OIDC</button>
             </div>
-            <div className="auth-status-grid" aria-label="Authentifizierungsstatus">
+            <div className="auth-status-grid" aria-label={t("settings.auth.status")}>
               <article>
-                <span className="settings-pill active">aktiv</span>
-                <strong>Lokale Anmeldung</strong>
-                <small>Benutzername, Passwort und CSRF-Schutz sind aktiv.</small>
+                <span className="settings-pill active">{t("common.active")}</span>
+                <strong>{t("settings.auth.local")}</strong>
+                <small>{t("settings.auth.localHelp")}</small>
               </article>
               <article>
-                <span className="settings-pill">{currentSession?.roles.length || 0} Rollen</span>
-                <strong>Aktuelle Sitzung</strong>
-                <small>{currentSession?.username ? `Angemeldet als ${currentSession.username}` : "Sitzung wird geladen."}</small>
+                <span className="settings-pill">{t("common.roles", { count: currentSession?.roles.length || 0 })}</span>
+                <strong>{t("settings.auth.currentSession")}</strong>
+                <small>{currentSession?.username ? t("settings.auth.signedInAs", { username: currentSession.username }) : t("settings.auth.loading")}</small>
               </article>
               <article>
-                <span className={twoFactorPrepared ? "settings-pill active" : "settings-pill muted"}>{twoFactorPrepared ? "vorgemerkt" : "offen"}</span>
-                <strong>Zwei-Faktor-Auth</strong>
-                <small>Vorbereitung sichtbar, Backend-Erzwingung noch nicht aktiv.</small>
+                <span className={twoFactorPrepared ? "settings-pill active" : "settings-pill muted"}>{twoFactorPrepared ? t("settings.auth.prepared") : t("settings.auth.open")}</span>
+                <strong>{t("settings.auth.twoFactor")}</strong>
+                <small>{t("settings.auth.twoFactorHelp")}</small>
               </article>
             </div>
             <label className="settings-toggle-row">
               <span>
-                <strong>Lokale Anmeldung</strong>
+                <strong>{t("settings.auth.local")}</strong>
                 <small>Benutzername und Passwort über RailKeeper.</small>
               </span>
               <span className="switch-field">
@@ -1724,18 +1728,18 @@ export function SettingsView() {
           <section className="panel settings-card settings-tool-card">
             <div className="settings-card-title">
               <UserCog size={18} />
-              <h2>Aktueller Benutzer</h2>
+              <h2>{t("settings.currentUser")}</h2>
             </div>
             <div className="current-user-card">
               <strong>{currentSession?.username || "Nicht geladen"}</strong>
               <div className="role-chip-row">
                 {(currentSession?.roles || []).map((role) => <span className="settings-pill" key={role}>{role}</span>)}
-                {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">Keine Rollen</span>}
+                {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">{t("common.noRoles")}</span>}
               </div>
-              <p>Aktualisiert Benutzername und Rollen der aktuellen Anmeldung.</p>
+              <p>{t("settings.session.refreshHelp")}</p>
               <button type="button" className="secondary-button" onClick={loadCurrentSession}>
                 <RefreshCw size={16} />
-                Sitzung aktualisieren
+                {t("settings.session.refresh")}
               </button>
             </div>
             <form className="password-change-form" onSubmit={changePassword}>

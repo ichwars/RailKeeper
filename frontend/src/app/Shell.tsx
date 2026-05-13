@@ -2,14 +2,15 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { BarChart3, Box, Bug, CalendarDays, ChevronLeft, ChevronRight, Code2, FileInput, Info, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
+import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
 
 const navItems = [
-  { view: "overview", href: "/overview", label: "Übersicht", icon: BarChart3 },
-  { view: "vehicles", href: "/vehicles", label: "Bestand", icon: Box },
-  { view: "exhibition", href: "/exhibition", label: "Messeliste", icon: CalendarDays },
-  { view: "importExport", href: "/import-export", label: "Import/Export", icon: FileInput },
-  { view: "settings", href: "/settings", label: "Einstellungen", icon: Settings }
+  { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
+  { view: "vehicles", href: "/vehicles", labelKey: "nav.vehicles", icon: Box },
+  { view: "exhibition", href: "/exhibition", labelKey: "nav.exhibition", icon: CalendarDays },
+  { view: "importExport", href: "/import-export", labelKey: "nav.importExport", icon: FileInput },
+  { view: "settings", href: "/settings", labelKey: "nav.settings", icon: Settings }
 ] as const;
 
 const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
@@ -62,6 +63,7 @@ export function Shell({
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles));
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
+  const { t } = useI18n();
 
   useEffect(() => {
     const syncOrder = () => setOrderedNavItems(readNavItems(roles));
@@ -90,14 +92,14 @@ export function Shell({
 
   return (
     <div className={`layout${mobileMenuOpen ? " nav-open" : ""}${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
-      {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label="Menü schließen" onClick={() => setMobileMenuOpen(false)} />}
+      {mobileMenuOpen && <button type="button" className="mobile-nav-scrim" aria-label={t("nav.menu.close")} onClick={() => setMobileMenuOpen(false)} />}
       <aside className={sidebarCollapsed ? "sidebar collapsed" : "sidebar"}>
         <button
           type="button"
           className="mobile-menu-button"
           aria-controls="main-navigation"
           aria-expanded={mobileMenuOpen}
-          aria-label={mobileMenuOpen ? "Menü schließen" : "Menü öffnen"}
+          aria-label={mobileMenuOpen ? t("nav.menu.close") : t("nav.menu.open")}
           onClick={() => setMobileMenuOpen((open) => !open)}
         >
           {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
@@ -113,7 +115,7 @@ export function Shell({
             return (
               <a key={item.view} className={activeView === item.view ? "active" : ""} href={item.href} onClick={() => setMobileMenuOpen(false)}>
                 <Icon size={16} aria-hidden="true" />
-                <span>{item.label}</span>
+                <span>{t(item.labelKey)}</span>
               </a>
             );
           })}
@@ -122,24 +124,24 @@ export function Shell({
             type="button"
             className="sidebar-collapse"
             onClick={toggleSidebarCollapsed}
-            aria-label={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
-            title={sidebarCollapsed ? "Seitenleiste ausklappen" : "Seitenleiste einklappen"}
+            aria-label={sidebarCollapsed ? t("nav.sidebar.expand") : t("nav.sidebar.collapse")}
+            title={sidebarCollapsed ? t("nav.sidebar.expand") : t("nav.sidebar.collapse")}
           >
             {sidebarCollapsed ? <ChevronRight size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
           </button>
 
           <div className="sidebar-footer" aria-label="Seitenleisten-Aktionen">
             <div className="sidebar-footer-actions">
-              <a href="/settings" title="System" aria-label="System">
+              <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}>
                 <Info size={17} aria-hidden="true" />
               </a>
-              <a href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer" title="Repository" aria-label="Repository">
+              <a href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>
                 <Code2 size={17} aria-hidden="true" />
               </a>
-              <button type="button" onClick={toggleTheme} title="Design wechseln" aria-label="Design wechseln">
+              <button type="button" onClick={toggleTheme} title={t("nav.theme")} aria-label={t("nav.theme")}>
                 <ThemeIcon size={17} aria-hidden="true" />
               </button>
-              <button type="button" onClick={onLogout} title={`Abmelden (${username})`} aria-label={`Abmelden (${username})`}>
+              <button type="button" onClick={onLogout} title={t("nav.logout", { username })} aria-label={t("nav.logout", { username })}>
                 <LogOut size={17} aria-hidden="true" />
               </button>
             </div>

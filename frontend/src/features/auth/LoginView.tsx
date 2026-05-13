@@ -1,5 +1,6 @@
 import { FormEvent, useState } from "react";
 import { api, Session } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 
 export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) {
   const [username, setUsername] = useState("");
@@ -7,6 +8,7 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
   const [message, setMessage] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const { t } = useI18n();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -25,12 +27,12 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="login-title">
         <img className="auth-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper" />
-        <h1 id="login-title">RailKeeper Anmelden</h1>
-        <p>Melden Sie sich an Ihrem Konto an</p>
+        <h1 id="login-title">{t("auth.login.title")}</h1>
+        <p>{t("auth.login.subtitle")}</p>
 
         <form className="auth-form" onSubmit={submit}>
           <label>
-            Benutzername
+            {t("auth.username")}
             <input
               value={username}
               autoComplete="username"
@@ -40,7 +42,7 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           </label>
 
           <label>
-            Passwort
+            {t("auth.password")}
             <input
               type="password"
               value={password}
@@ -51,15 +53,15 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           </label>
 
           <button className="primary-button" disabled={saving}>
-            {saving ? "Wird angemeldet..." : "Anmelden"}
+            {saving ? t("auth.login.saving") : t("auth.login.submit")}
           </button>
 
           <button
             type="button"
             className="forgot-password-button"
-            onClick={() => setRecoveryMessage("Bitte wenden Sie sich an den Administrator, um das Passwort zurückzusetzen.")}
+            onClick={() => setRecoveryMessage(t("auth.recovery"))}
           >
-            Passwort vergessen?
+            {t("auth.forgot")}
           </button>
 
           {recoveryMessage && <p className="auth-hint">{recoveryMessage}</p>}

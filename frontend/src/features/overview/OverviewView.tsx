@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, Download, EyeOff, FileInput, Gauge, Printer, RefreshCw, RotateCcw, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 
 type OverviewWidgetID = "mix" | "quality" | "actions" | "manufacturers" | "quickActions" | "maintenance" | "recommendation";
 
@@ -79,6 +80,7 @@ function maintenanceDistanceText(days: number) {
 }
 
 export function OverviewView() {
+  const { t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -243,22 +245,22 @@ export function OverviewView() {
     <>
       <section className="page-head overview-head">
         <div>
-          <p className="eyebrow">RailKeeper Cockpit</p>
-          <h1>Übersicht</h1>
-          <p>Der schnelle Blick auf Bestand, Wert, Digitalisierung und offene Aufgaben.</p>
+          <p className="eyebrow">{t("overview.eyebrow")}</p>
+          <h1>{t("overview.title")}</h1>
+          <p>{t("overview.subtitle")}</p>
         </div>
         <div className="overview-actions" aria-label="Dashboard-Werkzeuge">
-          <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label="Aktualisieren" title="Aktualisieren">
+          <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
             <RefreshCw size={15} aria-hidden="true" />
           </button>
-          <button type="button" className="icon-button" onClick={printDashboard} aria-label="Drucken" title="Drucken">
+          <button type="button" className="icon-button" onClick={printDashboard} aria-label={t("overview.print")} title={t("overview.print")}>
             <Printer size={15} aria-hidden="true" />
           </button>
-          <button type="button" className="icon-button" onClick={exportOverviewStats} disabled={loading} aria-label="Exportieren" title="Exportieren">
+          <button type="button" className="icon-button" onClick={exportOverviewStats} disabled={loading} aria-label={t("overview.export")} title={t("overview.export")}>
             <Download size={15} aria-hidden="true" />
           </button>
           {hiddenWidgets.length > 0 && (
-            <button type="button" className="icon-button" onClick={resetWidgets} aria-label="Layout zurücksetzen" title="Layout zurücksetzen">
+            <button type="button" className="icon-button" onClick={resetWidgets} aria-label={t("overview.resetLayout")} title={t("overview.resetLayout")}>
               <RotateCcw size={15} aria-hidden="true" />
             </button>
           )}

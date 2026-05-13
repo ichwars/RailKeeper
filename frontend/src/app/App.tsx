@@ -8,6 +8,7 @@ import { SetupView } from "../features/setup/SetupView";
 import { SettingsView } from "../features/settings/SettingsView";
 import { VehiclesView } from "../features/vehicles/VehiclesView";
 import { api, Session } from "../shared/api";
+import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 
 export type AppView = "overview" | "vehicles" | "exhibition" | "importExport" | "settings";
@@ -73,6 +74,7 @@ export function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<AppView>(currentView);
+  const { t } = useI18n();
 
   useEffect(() => {
     applyThemePreference(readThemePreference());
@@ -122,7 +124,7 @@ export function App() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>RailKeeper2</h1>
-          <p>Initialisierung wird geprüft...</p>
+          <p>{t("app.init")}</p>
         </section>
       </main>
     );
@@ -144,7 +146,7 @@ export function App() {
       <main className="auth-page">
         <section className="auth-card">
           <h1>RailKeeper2</h1>
-          <p>Session wird geprüft...</p>
+          <p>{t("app.session")}</p>
         </section>
       </main>
     );

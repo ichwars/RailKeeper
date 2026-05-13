@@ -1,12 +1,14 @@
 import { FormEvent, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { api } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
 
 export function SetupView({ onComplete }: { onComplete: () => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const { t } = useI18n();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -26,12 +28,12 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
         <div className="auth-mark">
           <ShieldCheck size={30} aria-hidden="true" />
         </div>
-        <h1 id="setup-title">Ersteinrichtung</h1>
-        <p>Lege den ersten Admin an. Es gibt kein Default-Passwort.</p>
+        <h1 id="setup-title">{t("setup.title")}</h1>
+        <p>{t("setup.subtitle")}</p>
 
         <form className="auth-form" onSubmit={submit}>
           <label>
-            Benutzername
+            {t("auth.username")}
             <input
               value={username}
               minLength={3}
@@ -42,7 +44,7 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
           </label>
 
           <label>
-            Passwort
+            {t("auth.password")}
             <input
               type="password"
               value={password}
@@ -54,7 +56,7 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
           </label>
 
           <button className="primary-button" disabled={saving}>
-            {saving ? "Wird erstellt..." : "Admin erstellen"}
+            {saving ? t("setup.saving") : t("setup.submit")}
           </button>
 
           {message && <p className="form-message">{message}</p>}
