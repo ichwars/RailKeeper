@@ -1,7 +1,10 @@
 package api
 
 import (
+	"bytes"
+	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -9,6 +12,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"railkeeper2/backend/internal/application"
+	"railkeeper2/backend/internal/infrastructure"
 )
 
 func TestSecurityHeaders(t *testing.T) {
@@ -154,4 +160,70 @@ func TestAuditLimit(t *testing.T) {
 			t.Fatalf("auditLimit(%q) = %d, want %d", input, got, want)
 		}
 	}
+}
+
+func TestChangePasswordEndpoint(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth})
+	loginBody := bytes.NewBufferString(`{"username":"admin","password":"very-secure-password"}`)
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", loginBody)
+	loginRequest.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	router.ServeHTTP(loginResponse, loginRequest)
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("expected login success, got %d", loginResponse.Code)
+	}
+	var session application.SessionView
+	if err := json.NewDecoder(loginResponse.Body).Decode(&session); err != nil {
+		t.Fatal(err)
+	}
+
+	changeBody := bytes.NewBufferString(`{"currentPassword":"very-secure-password","newPassword":"new-secure-password"}`)
+	changeRequest := httptest.NewRequest(http.MethodPut, "/api/v1/auth/password", changeBody)
+	changeRequest.Header.Set("Content-Type", "application/json")
+	changeRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range loginResponse.Result().Cookies() {
+		changeRequest.AddCookie(cookie)
+	}
+	changeResponse := httptest.NewRecorder()
+	router.ServeHTTP(changeResponse, changeRequest)
+	if changeResponse.Code != http.StatusNoContent {
+		t.Fatalf("expected password change success, got %d: %s", changeResponse.Code, changeResponse.Body.String())
+	}
+
+	oldLogin := httptest.NewRecorder()
+	router.ServeHTTP(oldLogin, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBufferString(`{"username":"admin","password":"very-secure-password"}`)))
+	if oldLogin.Code != http.StatusUnauthorized {
+		t.Fatalf("expected old password to fail, got %d", oldLogin.Code)
+	}
+	newLogin := httptest.NewRecorder()
+	router.ServeHTTP(newLogin, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBufferString(`{"username":"admin","password":"new-secure-password"}`)))
+	if newLogin.Code != http.StatusOK {
+		t.Fatalf("expected new password to work, got %d", newLogin.Code)
+	}
+}
+
+func testRouterDB(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := infrastructure.OpenSQLite(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := infrastructure.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatal(err)
+	}
+	if err := infrastructure.SeedRoles(db); err != nil {
+		t.Fatal(err)
+	}
+	return db
 }
