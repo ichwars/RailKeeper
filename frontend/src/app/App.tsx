@@ -55,12 +55,15 @@ function currentView(): AppView {
 
 function canAccessView(view: AppView, roles: string[]) {
   if (roles.includes("Admin")) return true;
-  if (roles.includes("Messe")) return view === "exhibition";
-  return view !== "exhibition";
+  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
+  const canUseExhibition = roles.includes("Messe");
+  if (view === "exhibition") return canUseExhibition;
+  return canUseInventory;
 }
 
 function firstAllowedView(roles: string[]): AppView {
   if (roles.includes("Admin")) return "overview";
+  if (roles.includes("Editor") || roles.includes("Viewer")) return "overview";
   if (roles.includes("Messe")) return "exhibition";
   return "overview";
 }

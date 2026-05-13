@@ -22,8 +22,12 @@ function readSidebarCollapsed() {
 
 function allowedNavItems(roles: string[]) {
   if (roles.includes("Admin")) return [...navItems];
-  if (roles.includes("Messe")) return navItems.filter((item) => item.view === "exhibition");
-  return navItems.filter((item) => item.view !== "exhibition");
+  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
+  const canUseExhibition = roles.includes("Messe");
+  return navItems.filter((item) => {
+    if (item.view === "exhibition") return canUseExhibition;
+    return canUseInventory;
+  });
 }
 
 function readNavItems(roles: string[]) {
