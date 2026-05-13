@@ -424,6 +424,96 @@ func TestExhibitionListCreateWritesAuditLog(t *testing.T) {
 	t.Fatalf("expected exhibition audit entry, got %#v", entries)
 }
 
+func TestExhibitionListChangesWriteAuditLog(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	exhibition := application.NewExhibitionService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := exhibition.Create(t.Context(), application.ExhibitionListInput{
+		Designation: "Leipzig 2026",
+		Date:        "2026-05-12",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, ExhibitionService: exhibition})
+	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
+	updateRequest := httptest.NewRequest(http.MethodPut, "/api/v1/exhibition-lists/"+list.ID, bytes.NewBufferString(`{"designation":"Leipzig 2026 aktualisiert","date":"2026-05-13"}`))
+	updateRequest.Header.Set("Content-Type", "application/json")
+	updateRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		updateRequest.AddCookie(cookie)
+	}
+	updateResponse := httptest.NewRecorder()
+	router.ServeHTTP(updateResponse, updateRequest)
+	if updateResponse.Code != http.StatusOK {
+		t.Fatalf("expected list update success, got %d: %s", updateResponse.Code, updateResponse.Body.String())
+	}
+
+	lockRequest := httptest.NewRequest(http.MethodPut, "/api/v1/exhibition-lists/"+list.ID+"/lock", bytes.NewBufferString(`{"locked":true}`))
+	lockRequest.Header.Set("Content-Type", "application/json")
+	lockRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		lockRequest.AddCookie(cookie)
+	}
+	lockResponse := httptest.NewRecorder()
+	router.ServeHTTP(lockResponse, lockRequest)
+	if lockResponse.Code != http.StatusOK {
+		t.Fatalf("expected list lock success, got %d: %s", lockResponse.Code, lockResponse.Body.String())
+	}
+
+	unlockRequest := httptest.NewRequest(http.MethodPut, "/api/v1/exhibition-lists/"+list.ID+"/lock", bytes.NewBufferString(`{"locked":false}`))
+	unlockRequest.Header.Set("Content-Type", "application/json")
+	unlockRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		unlockRequest.AddCookie(cookie)
+	}
+	unlockResponse := httptest.NewRecorder()
+	router.ServeHTTP(unlockResponse, unlockRequest)
+	if unlockResponse.Code != http.StatusOK {
+		t.Fatalf("expected list unlock success, got %d: %s", unlockResponse.Code, unlockResponse.Body.String())
+	}
+
+	deleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v1/exhibition-lists/"+list.ID, nil)
+	deleteRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		deleteRequest.AddCookie(cookie)
+	}
+	deleteResponse := httptest.NewRecorder()
+	router.ServeHTTP(deleteResponse, deleteRequest)
+	if deleteResponse.Code != http.StatusNoContent {
+		t.Fatalf("expected list delete success, got %d: %s", deleteResponse.Code, deleteResponse.Body.String())
+	}
+
+	entries, err := auth.ListAuditLog(t.Context(), 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := map[string]bool{
+		"ExhibitionListUpdated":  false,
+		"ExhibitionListLocked":   false,
+		"ExhibitionListUnlocked": false,
+		"ExhibitionListDeleted":  false,
+	}
+	for _, auditEntry := range entries {
+		if _, ok := want[auditEntry.Action]; ok && auditEntry.TargetType == "exhibition_list" && auditEntry.TargetID == list.ID && auditEntry.ActorUsername == "admin" {
+			want[auditEntry.Action] = true
+		}
+	}
+	for action, seen := range want {
+		if !seen {
+			t.Fatalf("expected audit action %s for list %s, got %#v", action, list.ID, entries)
+		}
+	}
+}
+
 func TestExhibitionEntryChangesWriteAuditLog(t *testing.T) {
 	db := testRouterDB(t)
 	setup := application.NewSetupService(db)
