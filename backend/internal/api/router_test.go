@@ -294,6 +294,13 @@ func TestExhibitionEndpointsAllowMesseRole(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+	list, err := exhibition.Create(t.Context(), application.ExhibitionListInput{
+		Designation: "Leipzig 2026",
+		Date:        "2026-05-12",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	router := NewRouter(Config{SetupService: setup, AuthService: auth, ExhibitionService: exhibition, MasterDataService: masterData})
 	session, cookies := loginTestUser(t, router, "messe", "messe-secure-password")
@@ -318,6 +325,45 @@ func TestExhibitionEndpointsAllowMesseRole(t *testing.T) {
 	router.ServeHTTP(createResponse, createRequest)
 	if createResponse.Code != http.StatusForbidden {
 		t.Fatalf("expected messe user to be forbidden from creating lists, got %d", createResponse.Code)
+	}
+
+	entryCreateRequest := httptest.NewRequest(http.MethodPost, "/api/v1/exhibition-lists/"+list.ID+"/entries", bytes.NewBufferString(`{"owner":"Daniel","locomotiveName":"V180","dtDecoder":true,"decoderNumber":"1001"}`))
+	entryCreateRequest.Header.Set("Content-Type", "application/json")
+	entryCreateRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		entryCreateRequest.AddCookie(cookie)
+	}
+	entryCreateResponse := httptest.NewRecorder()
+	router.ServeHTTP(entryCreateResponse, entryCreateRequest)
+	if entryCreateResponse.Code != http.StatusCreated {
+		t.Fatalf("expected messe user to create entries, got %d: %s", entryCreateResponse.Code, entryCreateResponse.Body.String())
+	}
+	var entry application.ExhibitionEntry
+	if err := json.NewDecoder(entryCreateResponse.Body).Decode(&entry); err != nil {
+		t.Fatal(err)
+	}
+
+	entryUpdateRequest := httptest.NewRequest(http.MethodPut, "/api/v1/exhibition-lists/"+list.ID+"/entries/"+entry.ID, bytes.NewBufferString(`{"owner":"Daniel","locomotiveName":"V180 DR","dtDecoder":true,"decoderNumber":"1001"}`))
+	entryUpdateRequest.Header.Set("Content-Type", "application/json")
+	entryUpdateRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		entryUpdateRequest.AddCookie(cookie)
+	}
+	entryUpdateResponse := httptest.NewRecorder()
+	router.ServeHTTP(entryUpdateResponse, entryUpdateRequest)
+	if entryUpdateResponse.Code != http.StatusOK {
+		t.Fatalf("expected messe user to update entries, got %d: %s", entryUpdateResponse.Code, entryUpdateResponse.Body.String())
+	}
+
+	entryDeleteRequest := httptest.NewRequest(http.MethodDelete, "/api/v1/exhibition-lists/"+list.ID+"/entries/"+entry.ID, nil)
+	entryDeleteRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		entryDeleteRequest.AddCookie(cookie)
+	}
+	entryDeleteResponse := httptest.NewRecorder()
+	router.ServeHTTP(entryDeleteResponse, entryDeleteRequest)
+	if entryDeleteResponse.Code != http.StatusForbidden {
+		t.Fatalf("expected messe user to be forbidden from deleting entries, got %d", entryDeleteResponse.Code)
 	}
 
 	vehicleRequest := httptest.NewRequest(http.MethodGet, "/api/v1/vehicles", nil)
