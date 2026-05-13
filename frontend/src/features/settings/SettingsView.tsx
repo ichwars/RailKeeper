@@ -192,7 +192,7 @@ const roleDescriptions: Record<string, string> = {
   Admin: "Vollzugriff auf Einstellungen, Backup und Benutzerverwaltung.",
   Editor: "Bestand, Stammdaten, Wartung, Uploads und CV-Daten bearbeiten.",
   Viewer: "Lesender Zugriff auf Bestand und Stammdaten.",
-  Messe: "Zugriff auf Messelisten, Einträge und den späteren Messe-Druck."
+  Messe: "Zugriff auf Messelisten, Einträge und Messe-Druck."
 };
 
 const auditActionLabels: Record<string, string> = {
