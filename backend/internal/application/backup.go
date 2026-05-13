@@ -84,6 +84,8 @@ var backupTableOrder = []string{
 	"vehicle_cv_files",
 	"vehicle_cv_values",
 	"vehicle_cv_value_history",
+	"exhibition_lists",
+	"exhibition_entries",
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {

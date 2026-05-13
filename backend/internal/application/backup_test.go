@@ -20,6 +20,7 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	ctx := context.Background()
 
 	vehicles := application.NewVehicleService(db)
+	exhibitions := application.NewExhibitionService(db)
 	created, err := vehicles.Create(ctx, application.CreateVehicleInput{
 		Manufacturer: "Piko",
 		Name:         "BR 118",
@@ -45,6 +46,23 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err := os.WriteFile(uploadPath, []byte("manual"), 0o600); err != nil {
 		t.Fatal(err)
 	}
+	list, err := exhibitions.Create(ctx, application.ExhibitionListInput{
+		Designation: "Leipzig 2026",
+		Date:        "2026-05-12",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry, err := exhibitions.CreateEntry(ctx, list.ID, application.ExhibitionEntryInput{
+		Owner:          "Daniel",
+		LocomotiveName: "V180",
+		DTDecoder:      true,
+		DecoderNumber:  "1001",
+		FunctionKeys:   `[{"key":"F0","name":"Licht","type":"licht","symbolKey":"esu-f006-spitzensignal"}]`,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	backupService := application.NewBackupService(db, dataDir)
 	backup, err := backupService.Export(ctx)
@@ -57,6 +75,9 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if len(backup.Files) != 1 {
 		t.Fatalf("expected one file in backup, got %d", len(backup.Files))
 	}
+	if len(backup.Tables["exhibition_lists"]) != 1 || len(backup.Tables["exhibition_entries"]) != 1 {
+		t.Fatalf("expected exhibition data in backup, got lists=%d entries=%d", len(backup.Tables["exhibition_lists"]), len(backup.Tables["exhibition_entries"]))
+	}
 	validation, err := backupService.Validate(ctx, backup)
 	if err != nil {
 		t.Fatal(err)
@@ -66,6 +87,12 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 
 	if _, err := db.Exec(`DELETE FROM vehicle_attachments`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM exhibition_entries`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DELETE FROM exhibition_lists`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`DELETE FROM vehicles`); err != nil {
@@ -92,6 +119,13 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 	if _, err := os.Stat(uploadPath); err != nil {
 		t.Fatalf("expected upload file restored: %v", err)
+	}
+	restoredList, err := exhibitions.Get(ctx, list.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredList.Designation != list.Designation || len(restoredList.Entries) != 1 || restoredList.Entries[0].ID != entry.ID {
+		t.Fatalf("unexpected restored exhibition list: %#v", restoredList)
 	}
 }
 
@@ -154,6 +188,8 @@ func TestBackupValidationWarnsAboutIgnoredAuthenticationTables(t *testing.T) {
 		"vehicle_cv_files",
 		"vehicle_cv_values",
 		"vehicle_cv_value_history",
+		"exhibition_lists",
+		"exhibition_entries",
 	} {
 		doc.Tables[table] = []map[string]any{}
 	}
