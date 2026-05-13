@@ -21,19 +21,24 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Messe-API ist per HTTP-Test für Messe-Rollenzugriff und gesperrte Listen abgesichert.
 - Reine Messe-Benutzer sind backend- und frontendseitig von Viewer-/Bestandsrouten getrennt; kombinierte Rollen werden als Rollenunion behandelt.
 - Messe-/Messelisten-Aktionen werden im Audit-Log mit eigenen Labels protokolliert.
+- Fehlende GitHub-Releases werden beim Update-Check ruhig als eigener Status `no_release` behandelt und in den Einstellungen als "kein Release" angezeigt.
 - Zusätzliche HTTP-Tests für Passwortwechsel und Session-Management.
 
 ## Letzte Commits
 
 ```text
-08aa197 Cover session management API
-410869e Cover password change API
-1b054db Label authentication audit events
-28cbf81 Revoke sessions after admin password resets
-1989e45 Show storage summary for backups
-c910fee Enable beta update checks in settings
-e0befcd Add current user password change
-b4d2690 Add admin session management
+647cfdd Distinguish missing update releases
+754f29e Document messe role boundaries
+cadde19 Respect combined roles in navigation
+269eff4 Cover exhibition audit logging
+8e0ad2b Audit exhibition changes
+43fad59 Restrict messe users from viewer routes
+8b5ee3d Handle missing update releases quietly
+5943507 Cover seeded function symbol images
+b2fa438 Share function symbol picker
+191c144 Cover exhibition API permissions
+07f0255 Improve exhibition list print view
+1ac2fef Use symbol picker for exhibition functions
 ```
 
 ## Offene Entscheidungen
