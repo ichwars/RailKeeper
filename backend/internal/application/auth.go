@@ -215,7 +215,13 @@ func (s *AuthService) RecordAudit(ctx context.Context, actorUserID, action, targ
 	return s.audit(ctx, actorUserID, action, targetType, targetID, detailsJSON)
 }
 
-func (s *AuthService) ListSessions(ctx context.Context) ([]SessionRecord, error) {
+func (s *AuthService) ListSessions(ctx context.Context, limit int) ([]SessionRecord, error) {
+	if limit <= 0 {
+		limit = 200
+	}
+	if limit > 200 {
+		limit = 200
+	}
 	rows, err := s.db.QueryContext(
 		ctx,
 		`SELECT sessions.id,
@@ -228,8 +234,9 @@ func (s *AuthService) ListSessions(ctx context.Context) ([]SessionRecord, error)
 		   FROM sessions
 		   JOIN users ON users.id = sessions.user_id
 		  ORDER BY active DESC, sessions.created_at DESC
-		  LIMIT 200`,
+		  LIMIT ?`,
 		time.Now().UTC().Format(time.RFC3339),
+		limit,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list sessions: %w", err)

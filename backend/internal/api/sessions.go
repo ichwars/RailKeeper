@@ -3,12 +3,13 @@ package api
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"railkeeper2/backend/internal/application"
 )
 
 func (a *App) listSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := a.authService.ListSessions(r.Context())
+	sessions, err := a.authService.ListSessions(r.Context(), sessionLimit(r.URL.Query().Get("limit")))
 	if err != nil {
 		a.logger.Error("session list failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "session_list_failed", "Sitzungen konnten nicht gelesen werden.")
@@ -28,4 +29,15 @@ func (a *App) revokeSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func sessionLimit(value string) int {
+	limit, err := strconv.Atoi(value)
+	if err != nil || limit <= 0 {
+		return 200
+	}
+	if limit > 200 {
+		return 200
+	}
+	return limit
 }

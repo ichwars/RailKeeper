@@ -1064,13 +1064,6 @@ h1 {
   white-space: nowrap;
 }
 
-.table-limit-note {
-  margin: -4px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
 .inventory-number-settings {
   display: grid;
   gap: 14px;

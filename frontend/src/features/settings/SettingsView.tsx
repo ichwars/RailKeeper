@@ -655,7 +655,7 @@ export function SettingsView() {
     setSessionsLoading(true);
     setSessionsMessage("");
     api
-      .sessions()
+      .sessions(5)
       .then(setSessions)
       .catch((error: Error) => setSessionsMessage(error.message))
       .finally(() => setSessionsLoading(false));
@@ -1917,7 +1917,7 @@ export function SettingsView() {
                       ) : sessions.length === 0 ? (
                         <tr><td colSpan={5} className="loading-cell">Keine Sitzungen gefunden.</td></tr>
                       ) : (
-                        sessions.slice(0, 5).map((session) => (
+                        sessions.map((session) => (
                           <tr key={session.id} className={session.active ? "" : "muted-row"}>
                             <td><strong>{session.username}</strong></td>
                             <td><span className={session.active ? "settings-pill active" : "settings-pill muted"}>{session.active ? "aktiv" : "beendet"}</span></td>
@@ -1934,7 +1934,6 @@ export function SettingsView() {
                     </tbody>
                   </table>
                 </div>
-                {sessions.length > 5 && <p className="table-limit-note">5 von {sessions.length} Sitzungen angezeigt.</p>}
                 {sessionsMessage && <p className="form-message">{sessionsMessage}</p>}
               </>
             )}
@@ -1993,7 +1992,6 @@ export function SettingsView() {
                     </tbody>
                   </table>
                 </div>
-                {auditLog.length > 10 && <p className="table-limit-note">10 von {auditLog.length} Ereignissen angezeigt.</p>}
                 {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
               </>
             )}

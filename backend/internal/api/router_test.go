@@ -162,6 +162,20 @@ func TestAuditLimit(t *testing.T) {
 	}
 }
 
+func TestSessionLimit(t *testing.T) {
+	cases := map[string]int{
+		"":    200,
+		"-1":  200,
+		"5":   5,
+		"500": 200,
+	}
+	for input, want := range cases {
+		if got := sessionLimit(input); got != want {
+			t.Fatalf("sessionLimit(%q) = %d, want %d", input, got, want)
+		}
+	}
+}
+
 func TestChangePasswordEndpoint(t *testing.T) {
 	db := testRouterDB(t)
 	setup := application.NewSetupService(db)

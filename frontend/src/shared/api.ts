@@ -684,7 +684,7 @@ export const api = {
     request<void>(`/users/${encodeURIComponent(id)}`, {
       method: "DELETE"
     }),
-  sessions: () => request<SessionRecord[]>("/sessions"),
+  sessions: (limit = 5) => request<SessionRecord[]>(`/sessions?limit=${encodeURIComponent(String(limit))}`),
   revokeSession: (id: string) =>
     request<void>(`/sessions/${encodeURIComponent(id)}/revoke`, {
       method: "PUT"

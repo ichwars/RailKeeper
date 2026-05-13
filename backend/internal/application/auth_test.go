@@ -123,7 +123,7 @@ func TestListAndRevokeSessions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := auth.ListSessions(ctx)
+	sessions, err := auth.ListSessions(ctx, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,6 +135,36 @@ func TestListAndRevokeSessions(t *testing.T) {
 	}
 	if _, err := auth.CurrentSession(ctx, result.SessionToken); !errors.Is(err, application.ErrUnauthorized) {
 		t.Fatalf("expected revoked session to be unauthorized, got %v", err)
+	}
+}
+
+func TestListSessionsHonorsLimit(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for range 4 {
+		if _, err := auth.Login(ctx, application.LoginInput{
+			Username: "admin",
+			Password: "very-secure-password",
+		}); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	sessions, err := auth.ListSessions(ctx, 2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(sessions) != 2 {
+		t.Fatalf("expected two limited sessions, got %#v", sessions)
 	}
 }
 
@@ -164,7 +194,7 @@ func TestChangeOwnPasswordKeepsCurrentSessionAndRevokesOthers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sessions, err := auth.ListSessions(ctx)
+	sessions, err := auth.ListSessions(ctx, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
