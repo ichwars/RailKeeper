@@ -1449,7 +1449,7 @@ export function SettingsView() {
             <section className="backup-box">
               <div>
                 <h3>Backup exportieren</h3>
-                <p>Erstellt eine JSON-Datei mit allen RailKeeper-Daten und lokal gespeicherten Uploads. Benutzerkonten und Sitzungen werden nicht exportiert.</p>
+                <p>Erstellt eine JSON-Datei mit Bestand, Stammdaten, Wartung, CVs, Messelisten und lokal gespeicherten Uploads. Benutzerkonten und Sitzungen bleiben ausgeschlossen.</p>
               </div>
               <div className="backup-summary-strip">
                 <span>
@@ -1550,7 +1550,7 @@ export function SettingsView() {
 
           <p className="source-note backup-note">
             <ShieldAlert size={16} aria-hidden="true" />
-            <span>Restore ist absichtlich Admin-geschützt und ersetzt Daten. Der Export enthält keine Passworthashes.</span>
+            <span>Restore ist absichtlich Admin-geschützt und ersetzt Daten. Authentifizierung, Sitzungen und Passworthashes werden nicht exportiert.</span>
           </p>
           {backupMessage && <p className="form-message">{backupMessage}</p>}
         </section>
