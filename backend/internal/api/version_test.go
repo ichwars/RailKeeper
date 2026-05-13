@@ -91,6 +91,61 @@ func TestVersionInfoCanIncludePrereleases(t *testing.T) {
 	}
 }
 
+func TestVersionInfoHandlesMissingGithubRelease(t *testing.T) {
+	updateServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer updateServer.Close()
+
+	router := NewRouter(Config{Version: "0.1.0", UpdateCheckURL: updateServer.URL})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/version?check=true", nil)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	var body versionInfoResponse
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "unavailable" {
+		t.Fatalf("expected unavailable status, got %q", body.Status)
+	}
+	if body.Message != "Keine Release-Information verfügbar." {
+		t.Fatalf("unexpected message %q", body.Message)
+	}
+	if body.UpdateAvailable {
+		t.Fatal("expected no update when no release exists")
+	}
+}
+
+func TestVersionInfoHandlesEmptyReleaseList(t *testing.T) {
+	updateServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer updateServer.Close()
+
+	router := NewRouter(Config{Version: "0.1.0", UpdateCheckURL: updateServer.URL})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/version?check=true&prerelease=true", nil)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	var body versionInfoResponse
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.Status != "unavailable" || body.Message != "Keine Release-Information verfügbar." {
+		t.Fatalf("expected no-release response, got %#v", body)
+	}
+}
+
 func TestReleaseListURLConvertsGithubLatestEndpoint(t *testing.T) {
 	got := releaseListURL("https://api.github.com/repos/ichwars/RailKeeper2/releases/latest")
 	want := "https://api.github.com/repos/ichwars/RailKeeper2/releases"

@@ -241,6 +241,8 @@ type updateReleaseResponse struct {
 	Draft      bool   `json:"draft"`
 }
 
+var errNoUpdateRelease = errors.New("no update release available")
+
 func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	response := versionInfoResponse{
 		Version:   a.version,
@@ -273,6 +275,12 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	release, err := fetchUpdateRelease(r.Context(), updateURL, includePrerelease)
 	response.SourceURL = updateURL
 	if err != nil {
+		if errors.Is(err, errNoUpdateRelease) {
+			response.Status = "unavailable"
+			response.Message = "Keine Release-Information verfügbar."
+			respondJSON(w, http.StatusOK, response)
+			return
+		}
 		a.logger.Warn("update check failed", "url", updateURL, "error", err)
 		response.Status = "unavailable"
 		response.Message = "Updatequelle konnte nicht erreicht werden."
@@ -329,6 +337,9 @@ func fetchUpdateRelease(ctx context.Context, updateURL string, includePrerelease
 	}
 	defer func() { _ = response.Body.Close() }()
 
+	if response.StatusCode == http.StatusNotFound {
+		return nil, errNoUpdateRelease
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, fmt.Errorf("unexpected update status %d", response.StatusCode)
 	}
@@ -339,6 +350,9 @@ func fetchUpdateRelease(ctx context.Context, updateURL string, includePrerelease
 	}
 	if release := decodeReleaseList(data, includePrerelease); release != nil {
 		return release, nil
+	}
+	if isReleaseList(data) {
+		return nil, errNoUpdateRelease
 	}
 
 	var release updateReleaseResponse
@@ -371,6 +385,11 @@ func decodeReleaseList(data []byte, includePrerelease bool) *updateReleaseRespon
 		return &release
 	}
 	return nil
+}
+
+func isReleaseList(data []byte) bool {
+	var releases []updateReleaseResponse
+	return json.Unmarshal(data, &releases) == nil
 }
 
 func firstUpdateVersion(values ...string) string {
