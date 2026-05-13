@@ -17,6 +17,7 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - Decoder-Preview-Aktionen übernehmen erkannte CV-Werte und Funktionstasten.
 - ESU/ECoS-Funktionstastensymbole werden als Stammdaten mit SVG-Bild, Beschreibung und Upload-Pflege gespeichert.
 - Messelisten-Einträge nutzen in der Funktionstasten-Maske den Symbol-Picker mit den gespeicherten Stammdaten-SVGs.
+- Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen und Sperrstatus aus.
 - Zusätzliche HTTP-Tests für Passwortwechsel und Session-Management.
 
 ## Letzte Commits

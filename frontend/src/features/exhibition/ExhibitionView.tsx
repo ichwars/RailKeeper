@@ -213,8 +213,12 @@ function FunctionSymbolPicker({
 function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
   const rows = entries.map((entry) => `
     <tr>
+      <td class="image-cell">${entry.imageUrl ? `<img src="${escapeHTML(entry.imageUrl)}" alt="" />` : `<span>-</span>`}</td>
       <td>${escapeHTML(entry.owner)}</td>
-      <td>${escapeHTML(entry.locomotiveName)}</td>
+      <td>
+        <strong>${escapeHTML(entry.locomotiveName)}</strong>
+        ${entry.notes ? `<small>${escapeHTML(entry.notes)}</small>` : ""}
+      </td>
       <td>${entry.dtDecoder ? "Ja" : "Nein"}</td>
       <td>${escapeHTML(entry.decoderNumber || "-")}</td>
       <td>${escapeHTML(displayFunctions(entry.functionKeys))}</td>
@@ -234,6 +238,12 @@ function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
           th { background: #f3f6f4; }
+          td strong, td small { display: block; }
+          td small { margin-top: 3px; color: #666; }
+          .image-cell { width: 64px; }
+          .image-cell img, .image-cell span { display: grid; width: 56px; height: 40px; place-items: center; border: 1px solid #ddd; border-radius: 4px; object-fit: contain; }
+          footer { margin-top: 18px; color: #777; font-size: 11px; }
+          @media print { body { margin: 14mm; } button { display: none; } }
         </style>
       </head>
       <body>
@@ -241,10 +251,11 @@ function printList(list: ExhibitionList, entries: ExhibitionEntry[]) {
         <p>${escapeHTML(formatDate(list.date))} · ${entries.length} Einträge</p>
         <table>
           <thead>
-            <tr><th>Besitzer</th><th>Lok Bezeichnung</th><th>DT</th><th>Decoder-Nr.</th><th>Funktionstasten</th></tr>
+            <tr><th>Bild</th><th>Besitzer</th><th>Lok Bezeichnung</th><th>DT</th><th>Decoder-Nr.</th><th>Funktionstasten</th></tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="5">Keine Einträge.</td></tr>`}</tbody>
+          <tbody>${rows || `<tr><td colspan="6">Keine Einträge.</td></tr>`}</tbody>
         </table>
+        <footer>RailKeeper2 Messeliste · ${list.locked ? "gesperrt" : "offen"}</footer>
         <script>window.print();</script>
       </body>
     </html>`);
