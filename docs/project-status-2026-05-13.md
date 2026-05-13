@@ -18,6 +18,7 @@ Der aktuelle Stand ist lokal gebaut, per Docker Compose gestartet und auf GitHub
 - ESU/ECoS-Funktionstastensymbole werden als Stammdaten mit SVG-Bild, Beschreibung und Upload-Pflege gespeichert.
 - Messelisten-Einträge nutzen in der Funktionstasten-Maske den Symbol-Picker mit den gespeicherten Stammdaten-SVGs.
 - Messelisten-Druck gibt den aktuellen Tabellenstand inklusive Bildspalte, Notizen und Sperrstatus aus.
+- Messe-API ist per HTTP-Test für Messe-Rollenzugriff und gesperrte Listen abgesichert.
 - Zusätzliche HTTP-Tests für Passwortwechsel und Session-Management.
 
 ## Letzte Commits

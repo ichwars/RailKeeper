@@ -275,6 +275,113 @@ func TestSessionListAndRevokeEndpoints(t *testing.T) {
 	}
 }
 
+func TestExhibitionEndpointsAllowMesseRole(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	exhibition := application.NewExhibitionService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "messe",
+		Password: "messe-secure-password",
+		Roles:    []string{"Messe"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, ExhibitionService: exhibition})
+	session, cookies := loginTestUser(t, router, "messe", "messe-secure-password")
+
+	listRequest := httptest.NewRequest(http.MethodGet, "/api/v1/exhibition-lists", nil)
+	for _, cookie := range cookies {
+		listRequest.AddCookie(cookie)
+	}
+	listResponse := httptest.NewRecorder()
+	router.ServeHTTP(listResponse, listRequest)
+	if listResponse.Code != http.StatusOK {
+		t.Fatalf("expected messe user to list exhibition lists, got %d: %s", listResponse.Code, listResponse.Body.String())
+	}
+
+	createRequest := httptest.NewRequest(http.MethodPost, "/api/v1/exhibition-lists", bytes.NewBufferString(`{"designation":"Leipzig","date":"2026-05-12"}`))
+	createRequest.Header.Set("Content-Type", "application/json")
+	createRequest.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		createRequest.AddCookie(cookie)
+	}
+	createResponse := httptest.NewRecorder()
+	router.ServeHTTP(createResponse, createRequest)
+	if createResponse.Code != http.StatusForbidden {
+		t.Fatalf("expected messe user to be forbidden from creating lists, got %d", createResponse.Code)
+	}
+}
+
+func TestExhibitionLockedListRejectsEntryWrites(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	exhibition := application.NewExhibitionService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "messe",
+		Password: "messe-secure-password",
+		Roles:    []string{"Messe"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	list, err := exhibition.Create(t.Context(), application.ExhibitionListInput{
+		Designation: "Leipzig 2026",
+		Date:        "2026-05-12",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := exhibition.SetLocked(t.Context(), list.ID, true); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, ExhibitionService: exhibition})
+	session, cookies := loginTestUser(t, router, "messe", "messe-secure-password")
+	body := bytes.NewBufferString(`{"owner":"Daniel","locomotiveName":"V180","dtDecoder":true,"decoderNumber":"1001"}`)
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/exhibition-lists/"+list.ID+"/entries", body)
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range cookies {
+		request.AddCookie(cookie)
+	}
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	if response.Code != http.StatusConflict {
+		t.Fatalf("expected locked list conflict, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func loginTestUser(t *testing.T, router http.Handler, username, password string) (application.SessionView, []*http.Cookie) {
+	t.Helper()
+	loginBody := bytes.NewBufferString(`{"username":"` + username + `","password":"` + password + `"}`)
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", loginBody)
+	loginRequest.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	router.ServeHTTP(loginResponse, loginRequest)
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("expected login success, got %d: %s", loginResponse.Code, loginResponse.Body.String())
+	}
+	var session application.SessionView
+	if err := json.NewDecoder(loginResponse.Body).Decode(&session); err != nil {
+		t.Fatal(err)
+	}
+	return session, loginResponse.Result().Cookies()
+}
+
 func testRouterDB(t *testing.T) *sql.DB {
 	t.Helper()
 	db, err := infrastructure.OpenSQLite(t.TempDir())
