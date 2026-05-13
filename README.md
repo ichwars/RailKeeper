@@ -117,6 +117,8 @@ RAILKEEPER_PRINTERS=
 RAILKEEPER_DEFAULT_PRINTER=
 ```
 
+When beta updates are enabled in the settings UI, GitHub-style `/releases/latest` endpoints are checked through their `/releases` list so prereleases can be considered.
+
 ## Docker
 
 Optionally create `.env` from `.env.example` when you want to override operational settings such as upload limits, secure cookies, the GitHub release update endpoint or a manually configured printer list. Do not put host paths for migrations, seeds or static files into the Docker `.env`; Compose sets the required container paths itself.

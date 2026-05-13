@@ -230,10 +230,12 @@ type versionInfoResponse struct {
 }
 
 type updateReleaseResponse struct {
-	Version string `json:"version"`
-	TagName string `json:"tag_name"`
-	Name    string `json:"name"`
-	HTMLURL string `json:"html_url"`
+	Version    string `json:"version"`
+	TagName    string `json:"tag_name"`
+	Name       string `json:"name"`
+	HTMLURL    string `json:"html_url"`
+	Prerelease bool   `json:"prerelease"`
+	Draft      bool   `json:"draft"`
 }
 
 func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
@@ -264,7 +266,8 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	release, err := fetchUpdateRelease(r.Context(), updateURL)
+	includePrerelease := r.URL.Query().Get("prerelease") == "true"
+	release, err := fetchUpdateRelease(r.Context(), updateURL, includePrerelease)
 	response.SourceURL = updateURL
 	if err != nil {
 		a.logger.Warn("update check failed", "url", updateURL, "error", err)
@@ -302,9 +305,13 @@ func isAllowedUpdateURL(rawURL string) bool {
 	return parsed.Scheme == "https" || parsed.Scheme == "http"
 }
 
-func fetchUpdateRelease(ctx context.Context, updateURL string) (*updateReleaseResponse, error) {
+func fetchUpdateRelease(ctx context.Context, updateURL string, includePrerelease bool) (*updateReleaseResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+
+	if includePrerelease {
+		updateURL = releaseListURL(updateURL)
+	}
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, updateURL, nil)
 	if err != nil {
@@ -323,11 +330,44 @@ func fetchUpdateRelease(ctx context.Context, updateURL string) (*updateReleaseRe
 		return nil, fmt.Errorf("unexpected update status %d", response.StatusCode)
 	}
 
+	data, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	if release := decodeReleaseList(data, includePrerelease); release != nil {
+		return release, nil
+	}
+
 	var release updateReleaseResponse
-	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&release); err != nil {
+	if err := json.Unmarshal(data, &release); err != nil {
 		return nil, err
 	}
 	return &release, nil
+}
+
+func releaseListURL(updateURL string) string {
+	if strings.HasSuffix(updateURL, "/releases/latest") {
+		return strings.TrimSuffix(updateURL, "/latest")
+	}
+	return updateURL
+}
+
+func decodeReleaseList(data []byte, includePrerelease bool) *updateReleaseResponse {
+	var releases []updateReleaseResponse
+	if err := json.Unmarshal(data, &releases); err != nil {
+		return nil
+	}
+	for index := range releases {
+		release := releases[index]
+		if release.Draft || (!includePrerelease && release.Prerelease) {
+			continue
+		}
+		if firstUpdateVersion(release.Version, release.TagName, release.Name) == "" {
+			continue
+		}
+		return &release
+	}
+	return nil
 }
 
 func firstUpdateVersion(values ...string) string {
@@ -365,11 +405,22 @@ func compareVersionStrings(latest, current string) int {
 			return -1
 		}
 	}
+	latestPrerelease := versionPrerelease(latest)
+	currentPrerelease := versionPrerelease(current)
+	if latestPrerelease != "" && currentPrerelease == "" {
+		return -1
+	}
+	if latestPrerelease == "" && currentPrerelease != "" {
+		return 1
+	}
+	if latestPrerelease != "" || currentPrerelease != "" {
+		return strings.Compare(latestPrerelease, currentPrerelease)
+	}
 	return 0
 }
 
 func numericVersionParts(value string) []int {
-	cleaned := strings.TrimPrefix(strings.TrimSpace(value), "v")
+	cleaned := versionCore(value)
 	matches := regexp.MustCompile(`\d+`).FindAllString(cleaned, -1)
 	parts := make([]int, 0, len(matches))
 	for _, match := range matches {
@@ -379,6 +430,27 @@ func numericVersionParts(value string) []int {
 		}
 	}
 	return parts
+}
+
+func versionCore(value string) string {
+	cleaned := strings.TrimPrefix(strings.TrimSpace(value), "v")
+	if index := strings.IndexAny(cleaned, "-+"); index >= 0 {
+		return cleaned[:index]
+	}
+	return cleaned
+}
+
+func versionPrerelease(value string) string {
+	cleaned := strings.TrimPrefix(strings.TrimSpace(value), "v")
+	start := strings.Index(cleaned, "-")
+	if start < 0 {
+		return ""
+	}
+	prerelease := cleaned[start+1:]
+	if end := strings.Index(prerelease, "+"); end >= 0 {
+		prerelease = prerelease[:end]
+	}
+	return prerelease
 }
 
 func (a *App) systemStorage(w http.ResponseWriter, r *http.Request) {

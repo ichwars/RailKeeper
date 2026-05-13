@@ -59,3 +59,48 @@ func TestVersionInfoDetectsUpdate(t *testing.T) {
 		t.Fatalf("expected latest version v0.2.0, got %q", body.LatestVersion)
 	}
 }
+
+func TestVersionInfoCanIncludePrereleases(t *testing.T) {
+	updateServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[
+			{"tag_name":"v0.3.0-beta.1","html_url":"https://example.test/releases/v0.3.0-beta.1","prerelease":true},
+			{"tag_name":"v0.2.0","html_url":"https://example.test/releases/v0.2.0","prerelease":false}
+		]`))
+	}))
+	defer updateServer.Close()
+
+	router := NewRouter(Config{Version: "0.2.0", UpdateCheckURL: updateServer.URL})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/version?check=true&prerelease=true", nil)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d", response.Code)
+	}
+	var body versionInfoResponse
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if body.LatestVersion != "v0.3.0-beta.1" {
+		t.Fatalf("expected prerelease version, got %q", body.LatestVersion)
+	}
+	if !body.UpdateAvailable {
+		t.Fatal("expected prerelease update to be detected")
+	}
+}
+
+func TestReleaseListURLConvertsGithubLatestEndpoint(t *testing.T) {
+	got := releaseListURL("https://api.github.com/repos/ichwars/RailKeeper2/releases/latest")
+	want := "https://api.github.com/repos/ichwars/RailKeeper2/releases"
+	if got != want {
+		t.Fatalf("releaseListURL() = %q, want %q", got, want)
+	}
+}
+
+func TestCompareVersionStringsTreatsReleaseNewerThanSamePrerelease(t *testing.T) {
+	if compareVersionStrings("v0.3.0-beta.1", "v0.3.0") >= 0 {
+		t.Fatal("expected final release to be newer than matching prerelease")
+	}
+}

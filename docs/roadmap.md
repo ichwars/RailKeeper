@@ -49,6 +49,7 @@
 - login redirect to the overview dashboard
 - configurable update-check endpoint with offline-safe UI status
 - default GitHub release update endpoint for stable release checks
+- optional prerelease update checks for beta channels
 - system printer discovery with optional configured printer list
 - admin user management for local accounts and Admin, Editor, Viewer and Messe role assignment
 - settings security event review for audit logs
@@ -60,7 +61,6 @@
    - keep expanding supported export formats when real samples become available
 2. Settings and system integration
    - decide how far print jobs should be automated beyond the browser system dialog
-   - decide whether a separate beta/prerelease update channel is needed
    - decide which authentication options should become functional instead of informational
    - keep storage usage, backup and restore visible without making settings feel overloaded
 3. Ongoing Bambuddy-inspired design polish
