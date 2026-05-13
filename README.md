@@ -31,8 +31,9 @@ The application runs as one Go service that serves both the JSON API and the Rea
 - decoder function mapping from F0 to F31 with icon picker, stored symbol graphics, editable symbol master data and JSON import/export
 - structured CV values with import/export preview, decoder profile suggestions, change history and stored CV files
 - ESU/LokProgrammer project files with metadata preview, CV import review and function mapping import before storing as decoder files
-- local JSON backup/restore for app data and upload files with compatibility preflight and typed restore confirmation
-- audit log entries for setup, login/logout and vehicle changes
+- local JSON backup/restore for app data, exhibition lists and upload files with compatibility preflight and typed restore confirmation
+- app backups intentionally exclude local users, sessions, rate limits, audit logs and password hashes
+- audit log entries for setup, login/logout, user, session, vehicle and exhibition changes
 - OpenAPI contract in `openapi/railkeeper.yaml`
 - Docker Compose deployment with persistent `/data` volume
 

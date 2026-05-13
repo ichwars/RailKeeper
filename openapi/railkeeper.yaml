@@ -777,6 +777,48 @@ components:
           type: integer
         restoredFiles:
           type: integer
+    BackupValidationTable:
+      type: object
+      required: [name, rows, missing, extraColumns]
+      properties:
+        name:
+          type: string
+        rows:
+          type: integer
+        missing:
+          type: boolean
+        extraColumns:
+          type: array
+          items:
+            type: string
+    BackupValidationResult:
+      type: object
+      required: [compatible, errors, warnings, tables, fileCount, fileBytes, tableCount, rowCount]
+      properties:
+        compatible:
+          type: boolean
+        version:
+          type: string
+        errors:
+          type: array
+          items:
+            type: string
+        warnings:
+          type: array
+          items:
+            type: string
+        tables:
+          type: array
+          items:
+            $ref: "#/components/schemas/BackupValidationTable"
+        fileCount:
+          type: integer
+        fileBytes:
+          type: integer
+        tableCount:
+          type: integer
+        rowCount:
+          type: integer
 paths:
   /setup/status:
     get:
@@ -1052,6 +1094,14 @@ paths:
   /sessions:
     get:
       tags: [Users]
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 200
       responses:
         "200":
           description: Recent local sessions
@@ -1655,11 +1705,45 @@ paths:
       summary: Export a local RailKeeper backup
       responses:
         "200":
-          description: Backup JSON containing app data and upload files
+          description: Backup JSON containing app data and upload files. Local users, sessions, rate limits, audit logs and password hashes are excluded.
           content:
             application/json:
               schema:
                 type: object
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /backup/validate:
+    post:
+      tags: [Backup]
+      summary: Validate a local RailKeeper backup before restore
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Backup compatibility summary with errors and warnings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BackupValidationResult"
+        "400":
+          description: Invalid backup file
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
           content:
