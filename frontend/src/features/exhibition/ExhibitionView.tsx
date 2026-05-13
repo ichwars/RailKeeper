@@ -141,6 +141,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
 
   const selectedList = lists.find((list) => list.id === selectedID) || null;
   const canEditEntries = Boolean(selectedList && !selectedList.locked);
+  const canDeleteEntries = Boolean(canManageLists && canEditEntries);
 
   const sortedLists = useMemo(() => {
     return [...lists].sort((a, b) => {
@@ -284,7 +285,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   };
 
   const deleteEntry = async (entry: ExhibitionEntry) => {
-    if (!selectedID || !canEditEntries || !window.confirm(`Eintrag "${entry.locomotiveName}" wirklich löschen?`)) return;
+    if (!selectedID || !canDeleteEntries || !window.confirm(`Eintrag "${entry.locomotiveName}" wirklich löschen?`)) return;
     await api.deleteExhibitionEntry(selectedID, entry.id);
     await reloadEntries();
   };
@@ -399,7 +400,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                     <td>
                       <div className="table-actions">
                         <button type="button" className="icon-button" onClick={() => openEntryDialog("edit", entry)} disabled={!canEditEntries} aria-label="Bearbeiten" title="Bearbeiten"><Edit3 size={15} /></button>
-                        <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} disabled={!canEditEntries} aria-label="Löschen" title="Löschen"><Trash2 size={15} /></button>
+                        {canManageLists && <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} disabled={!canDeleteEntries} aria-label="Löschen" title="Löschen"><Trash2 size={15} /></button>}
                       </div>
                     </td>
                   </tr>

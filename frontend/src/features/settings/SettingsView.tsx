@@ -28,8 +28,10 @@ import {
   InventoryNumberScheme,
   MasterDataEntry,
   MasterDataInput,
+  Role,
   Session,
   StorageUsage,
+  UserAccount,
   VersionInfo
 } from "../../shared/api";
 import { applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
@@ -164,6 +166,21 @@ const emptyForm = {
 
 type FormState = typeof emptyForm;
 
+const emptyUserForm = {
+  username: "",
+  password: "",
+  roles: ["Viewer"]
+};
+
+type UserFormState = typeof emptyUserForm;
+
+const roleDescriptions: Record<string, string> = {
+  Admin: "Vollzugriff auf Einstellungen, Backup und Benutzerverwaltung.",
+  Editor: "Bestand, Stammdaten, Wartung, Uploads und CV-Daten bearbeiten.",
+  Viewer: "Lesender Zugriff auf Bestand und Stammdaten.",
+  Messe: "Zugriff auf Messelisten, Einträge und den späteren Messe-Druck."
+};
+
 function entryToForm(entry: MasterDataEntry): FormState {
   return {
     key: entry.key,
@@ -280,7 +297,14 @@ export function SettingsView() {
   const [storageLoading, setStorageLoading] = useState(false);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState("");
+  const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
+  const [users, setUsers] = useState<UserAccount[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
+  const [userForm, setUserForm] = useState<UserFormState>(emptyUserForm);
+  const [userSaving, setUserSaving] = useState(false);
   const [twoFactorPrepared, setTwoFactorPrepared] = useState(() => readLocalBool(localSettingKeys.twoFactorPrepared, false));
+  const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
 
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
@@ -319,6 +343,11 @@ export function SettingsView() {
     if (activeSettingsTab !== "auth") return;
     loadCurrentSession();
   }, [activeSettingsTab]);
+
+  useEffect(() => {
+    if (activeSettingsTab !== "auth" || !canManageUsers) return;
+    loadUsersAndRoles();
+  }, [activeSettingsTab, canManageUsers]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || loadedTypes[activeType]) return;
@@ -450,6 +479,80 @@ export function SettingsView() {
     api
       .session()
       .then(setCurrentSession)
+      .catch((error: Error) => setAuthMessage(error.message));
+  };
+
+  const loadUsersAndRoles = () => {
+    setUsersLoading(true);
+    setAuthMessage("");
+    Promise.all([api.roles(), api.users()])
+      .then(([roles, accounts]) => {
+        setAvailableRoles(roles);
+        setUsers(accounts);
+      })
+      .catch((error: Error) => setAuthMessage(error.message))
+      .finally(() => setUsersLoading(false));
+  };
+
+  const startUserCreate = () => {
+    setEditingUser(null);
+    setUserForm(emptyUserForm);
+    setAuthMessage("");
+  };
+
+  const startUserEdit = (user: UserAccount) => {
+    setEditingUser(user);
+    setUserForm({
+      username: user.username,
+      password: "",
+      roles: user.roles.length > 0 ? user.roles : ["Viewer"]
+    });
+    setAuthMessage("");
+  };
+
+  const toggleUserRole = (role: string, checked: boolean) => {
+    setUserForm((current) => {
+      const nextRoles = checked
+        ? [...current.roles, role]
+        : current.roles.filter((currentRole) => currentRole !== role);
+      return { ...current, roles: Array.from(new Set(nextRoles)) };
+    });
+  };
+
+  const saveUser = (event: FormEvent) => {
+    event.preventDefault();
+    setUserSaving(true);
+    setAuthMessage("");
+
+    const input = {
+      username: userForm.username,
+      password: userForm.password || undefined,
+      roles: userForm.roles
+    };
+    const action = editingUser ? api.updateUser(editingUser.id, input) : api.createUser(input);
+
+    action
+      .then((user) => {
+        setEditingUser(user);
+        setUserForm({ username: user.username, password: "", roles: user.roles });
+        loadUsersAndRoles();
+        loadCurrentSession();
+      })
+      .catch((error: Error) => setAuthMessage(error.message))
+      .finally(() => setUserSaving(false));
+  };
+
+  const deleteUser = (user: UserAccount) => {
+    if (!window.confirm(`${user.username} löschen?`)) return;
+    setAuthMessage("");
+    api
+      .deleteUser(user.id)
+      .then(() => {
+        if (editingUser?.id === user.id) {
+          startUserCreate();
+        }
+        loadUsersAndRoles();
+      })
       .catch((error: Error) => setAuthMessage(error.message));
   };
 
@@ -1326,27 +1429,134 @@ export function SettingsView() {
             </div>
           </section>
 
+          <section className="panel settings-card settings-tool-card user-management-card">
+            <div className="settings-section-head">
+              <div className="settings-card-title">
+                <Users size={18} />
+                <div>
+                  <h2>Benutzerverwaltung</h2>
+                  <p>Lokale Benutzer anlegen, Rollen vergeben und Messe-Zugriff steuern.</p>
+                </div>
+              </div>
+              {canManageUsers && (
+                <button type="button" className="secondary-button" onClick={startUserCreate}>
+                  <UserCog size={16} />
+                  Neuer Benutzer
+                </button>
+              )}
+            </div>
+
+            {!canManageUsers ? (
+              <div className="current-user-card">
+                <strong>Admin erforderlich</strong>
+                <span>Nur Admins dürfen Benutzer anlegen, Rollen ändern oder Konten löschen.</span>
+              </div>
+            ) : (
+              <div className="user-management-grid">
+                <form className="settings-form user-form" onSubmit={saveUser}>
+                  <h3>{editingUser ? "Benutzer bearbeiten" : "Benutzer anlegen"}</h3>
+                  <label>
+                    Benutzername
+                    <input
+                      value={userForm.username}
+                      onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))}
+                      placeholder="z. B. messe-leipzig"
+                    />
+                  </label>
+                  <label>
+                    Passwort
+                    <input
+                      type="password"
+                      value={userForm.password}
+                      onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                      placeholder={editingUser ? "Leer lassen, um es nicht zu ändern" : "Mindestens 12 Zeichen"}
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <div className="role-select-grid" aria-label="Rollen">
+                    {availableRoles.map((role) => (
+                      <label className="checkbox-field" key={role.id}>
+                        <input
+                          type="checkbox"
+                          checked={userForm.roles.includes(role.name)}
+                          onChange={(event) => toggleUserRole(role.name, event.target.checked)}
+                        />
+                        {role.name}
+                      </label>
+                    ))}
+                  </div>
+                  <div className="settings-action-row">
+                    <button type="submit" className="primary-button" disabled={userSaving || userForm.roles.length === 0}>
+                      {userSaving ? "Speichert..." : "Speichern"}
+                    </button>
+                    {editingUser && (
+                      <button type="button" className="secondary-button" onClick={startUserCreate}>
+                        Abbrechen
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                <div className="table-wrap settings-inline-table user-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Benutzer</th>
+                        <th>Rollen</th>
+                        <th>Angelegt</th>
+                        <th>Aktionen</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usersLoading ? (
+                        <tr><td colSpan={4} className="loading-cell">Benutzer werden geladen...</td></tr>
+                      ) : users.length === 0 ? (
+                        <tr><td colSpan={4} className="loading-cell">Keine Benutzer gefunden.</td></tr>
+                      ) : (
+                        users.map((user) => (
+                          <tr key={user.id} className={editingUser?.id === user.id ? "selected-row" : ""}>
+                            <td><strong>{user.username}</strong></td>
+                            <td>
+                              <div className="role-chip-row">
+                                {user.roles.map((role) => <span className="settings-pill" key={role}>{role}</span>)}
+                              </div>
+                            </td>
+                            <td>{formatDateTime(user.createdAt)}</td>
+                            <td>
+                              <div className="table-actions">
+                                <button type="button" className="icon-button" onClick={() => startUserEdit(user)} aria-label="Bearbeiten" title="Bearbeiten">
+                                  <Pencil size={16} />
+                                </button>
+                                <button type="button" className="icon-button danger" onClick={() => deleteUser(user)} aria-label="Löschen" title="Löschen">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </section>
+
           <section className="panel settings-card settings-tool-card">
             <div className="settings-section-head">
               <div className="settings-card-title">
                 <Users size={18} />
                 <h2>Rollen</h2>
               </div>
-              <span className="settings-pill muted">read-only</span>
+              <span className="settings-pill active">aktiv</span>
             </div>
             <div className="role-list">
-              <article>
-                <strong>Admin</strong>
-                <span>Vollzugriff auf Einstellungen, Backup und Benutzerverwaltung.</span>
-              </article>
-              <article>
-                <strong>Editor</strong>
-                <span>Bestand, Stammdaten, Wartung, Uploads und CV-Daten bearbeiten.</span>
-              </article>
-              <article>
-                <strong>Viewer</strong>
-                <span>Lesender Zugriff auf Bestand und Stammdaten.</span>
-              </article>
+              {(availableRoles.length > 0 ? availableRoles.map((role) => role.name) : ["Admin", "Editor", "Viewer", "Messe"]).map((role) => (
+                <article key={role}>
+                  <strong>{role}</strong>
+                  <span>{roleDescriptions[role] || "Individuelle lokale Rolle."}</span>
+                </article>
+              ))}
             </div>
           </section>
 

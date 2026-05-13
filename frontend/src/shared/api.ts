@@ -18,6 +18,24 @@ export type Session = {
   csrfToken: string;
 };
 
+export type Role = {
+  id: string;
+  name: string;
+};
+
+export type UserAccount = {
+  id: string;
+  username: string;
+  roles: string[];
+  createdAt: string;
+};
+
+export type UserAccountInput = {
+  username: string;
+  password?: string;
+  roles: string[];
+};
+
 export type Vehicle = {
   id: string;
   inventoryNumber: string;
@@ -585,6 +603,22 @@ export const api = {
     await request<void>("/auth/logout", { method: "POST" });
     csrfToken = "";
   },
+  roles: () => request<Role[]>("/roles"),
+  users: () => request<UserAccount[]>("/users"),
+  createUser: (input: UserAccountInput) =>
+    request<UserAccount>("/users", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateUser: (id: string, input: UserAccountInput) =>
+    request<UserAccount>(`/users/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  deleteUser: (id: string) =>
+    request<void>(`/users/${encodeURIComponent(id)}`, {
+      method: "DELETE"
+    }),
   version: (check = false, includePrerelease = false) =>
     request<VersionInfo>(
       `/version${check ? `?check=true&prerelease=${includePrerelease ? "true" : "false"}` : ""}`,

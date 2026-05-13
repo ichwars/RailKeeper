@@ -43,6 +43,7 @@
 - overview statistics export
 - login redirect to the overview dashboard
 - configurable update-check endpoint with offline-safe UI status
+- admin user management for local accounts and Admin, Editor, Viewer and Messe role assignment
 
 ## Next Practical Milestones
 
@@ -51,7 +52,6 @@
    - evaluate LokProgrammer CSV/XML/text exports for CV values and function mappings
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
 2. Settings and system integration
-   - add user management for assigning roles such as Admin, Editor, Viewer and Messe
    - wire default printer selection to real system printers where the host platform allows it
    - decide on the final GitHub release/update endpoint and set `RAILKEEPER_UPDATE_CHECK_URL`
    - decide which authentication options should become functional instead of informational

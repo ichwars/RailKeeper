@@ -944,6 +944,39 @@ h1 {
   background: var(--panel-subtle);
 }
 
+.user-management-card {
+  grid-column: 1 / -1;
+}
+
+.user-management-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.user-form {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.user-form h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.role-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.user-table td {
+  vertical-align: middle;
+}
+
 .inventory-number-settings {
   display: grid;
   gap: 14px;
@@ -5366,6 +5399,11 @@ td {
   }
 
   .settings-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .user-management-grid,
+  .role-select-grid {
     grid-template-columns: 1fr;
   }
 

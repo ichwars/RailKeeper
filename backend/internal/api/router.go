@@ -120,6 +120,11 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/auth/login", app.login)
 	mux.HandleFunc("POST /api/v1/auth/logout", app.logout)
 	mux.HandleFunc("GET /api/v1/auth/session", app.session)
+	mux.HandleFunc("GET /api/v1/roles", app.require("Admin", app.listRoles))
+	mux.HandleFunc("GET /api/v1/users", app.require("Admin", app.listUsers))
+	mux.HandleFunc("POST /api/v1/users", app.require("Admin", app.createUser))
+	mux.HandleFunc("PUT /api/v1/users/{id}", app.require("Admin", app.updateUser))
+	mux.HandleFunc("DELETE /api/v1/users/{id}", app.require("Admin", app.deleteUser))
 	mux.HandleFunc("GET /api/v1/vehicles", app.require("Viewer", app.listVehicles))
 	mux.HandleFunc("POST /api/v1/vehicle-import/preview", app.require("Editor", app.previewVehicleImport))
 	mux.HandleFunc("POST /api/v1/vehicles", app.require("Editor", app.createVehicle))
@@ -172,7 +177,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.listExhibitionEntries))
 	mux.HandleFunc("POST /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.createExhibitionEntry))
 	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Messe", app.updateExhibitionEntry))
-	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Messe", app.deleteExhibitionEntry))
+	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Admin", app.deleteExhibitionEntry))
 
 	mux.Handle("/", staticHandler(app.staticDir))
 

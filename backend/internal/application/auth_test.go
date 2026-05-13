@@ -160,3 +160,95 @@ func TestRequireRoleAllowsViewerForAnyAssignedRole(t *testing.T) {
 		t.Fatal("expected actor user id")
 	}
 }
+
+func TestCreateUserAssignsMesseRole(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	user, err := auth.CreateUser(ctx, "", application.CreateUserInput{
+		Username: "messe",
+		Password: "very-secure-password",
+		Roles:    []string{"Messe"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if user.Username != "messe" || !testHasRole(user.Roles, "Messe") {
+		t.Fatalf("expected messe user with Messe role, got %#v", user)
+	}
+}
+
+func TestUpdateUserProtectsLastAdmin(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	users, err := auth.ListUsers(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(users) != 1 {
+		t.Fatalf("expected one admin, got %d", len(users))
+	}
+
+	_, err = auth.UpdateUser(ctx, "", users[0].ID, application.UpdateUserInput{
+		Username: "admin",
+		Roles:    []string{"Viewer"},
+	})
+	if !errors.Is(err, application.ErrLastAdmin) {
+		t.Fatalf("expected last admin error, got %v", err)
+	}
+}
+
+func TestDeleteUserAllowsRemovingSecondAdmin(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	second, err := auth.CreateUser(ctx, "", application.CreateUserInput{
+		Username: "second-admin",
+		Password: "very-secure-password",
+		Roles:    []string{"Admin", "Editor", "Viewer"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := auth.DeleteUser(ctx, "", second.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := auth.GetUser(ctx, second.ID); !errors.Is(err, application.ErrUserNotFound) {
+		t.Fatalf("expected user not found after delete, got %v", err)
+	}
+}
+
+func testHasRole(roles []string, role string) bool {
+	for _, current := range roles {
+		if current == role {
+			return true
+		}
+	}
+	return false
+}
