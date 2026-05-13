@@ -1508,18 +1508,24 @@ export function SettingsView() {
                     </div>
                   </dl>
                   {backupValidation.errors.length > 0 && (
-                    <ul>
-                      {backupValidation.errors.map((error) => (
-                        <li key={error}>{error}</li>
-                      ))}
-                    </ul>
+                    <div className="backup-validation-list danger">
+                      <strong>Fehler</strong>
+                      <ul>
+                        {backupValidation.errors.map((error) => (
+                          <li key={error}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                   {backupValidation.warnings.length > 0 && (
-                    <ul>
-                      {backupValidation.warnings.map((warning) => (
-                        <li key={warning}>{warning}</li>
-                      ))}
-                    </ul>
+                    <div className="backup-validation-list warning">
+                      <strong>Hinweise</strong>
+                      <ul>
+                        {backupValidation.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
               )}

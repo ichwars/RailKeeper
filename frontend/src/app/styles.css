@@ -1532,7 +1532,30 @@ h1 {
   font-weight: 800;
 }
 
-.backup-validation ul {
+.backup-validation-list {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+}
+
+.backup-validation-list.warning {
+  border-color: color-mix(in srgb, var(--warm) 34%, var(--line));
+  background: color-mix(in srgb, var(--warm) 8%, var(--panel));
+}
+
+.backup-validation-list.danger {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--line));
+}
+
+.backup-validation-list strong {
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.backup-validation-list ul {
   color: var(--muted);
   margin: 0;
   padding-left: 18px;
