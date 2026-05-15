@@ -66,7 +66,7 @@ const emptyVehicle: CreateVehicleRequest = {
   articleNumber: "",
   articleSourceUrl: "",
   name: "",
-  gauge: "H0",
+  gauge: "",
   epoch: "",
   railwayCompany: "",
   category: "",
@@ -463,6 +463,34 @@ function articleSearchSources() {
   } catch {
     return defaultArticleSearchSources;
   }
+}
+
+function compactValue(value: unknown) {
+  return String(value ?? "").trim();
+}
+
+function hasArticleSearchCriteria(searchForm: CreateVehicleRequest, searchInput?: ArticleSearchInput) {
+  if (searchInput) {
+    const fields = searchInput.fields || {};
+    const articleNumber = compactValue(searchInput.articleNumber || fields.articleNumber);
+    const name = compactValue(searchInput.name || fields.name);
+    const manufacturer = compactValue(searchInput.manufacturer || fields.manufacturer);
+    const gauge = compactValue(searchInput.gauge || fields.gauge);
+    return Boolean((articleNumber || name) && manufacturer && gauge);
+  }
+
+  return hasArticleIdentity(searchForm) && Boolean(compactValue(searchForm.manufacturer)) && Boolean(compactValue(searchForm.gauge));
+}
+
+function hasArticleIdentity(form: CreateVehicleRequest) {
+  return Boolean(compactValue(form.articleNumber) || compactValue(form.name));
+}
+
+function hasQrPayloadData(vehicle: Vehicle | null, form: CreateVehicleRequest) {
+  return Boolean(
+    compactValue(form.inventoryNumber || vehicle?.inventoryNumber) ||
+    compactValue(form.name || vehicle?.name)
+  );
 }
 
 function inventoryViewMode(): InventoryViewMode {
@@ -1290,10 +1318,20 @@ function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen") {
   );
 }
 
+function RequiredLabel({ label, filled }: { label: string; filled: boolean }) {
+  return (
+    <span className="required-label">
+      {label}
+      <span className={filled ? "required-dot filled" : "required-dot"} aria-hidden="true" />
+    </span>
+  );
+}
+
 function VehicleDetailsFields({
   form,
   readonly,
   onOpenQr,
+  canOpenQr,
   update,
   updateCouplingFront,
   updateCouplingSame
@@ -1301,11 +1339,13 @@ function VehicleDetailsFields({
   form: CreateVehicleRequest;
   readonly: boolean;
   onOpenQr: () => void;
+  canOpenQr: boolean;
   update: (patch: Partial<CreateVehicleRequest>) => void;
   updateCouplingFront: (couplingFront: string) => void;
   updateCouplingSame: (couplingSame: boolean) => void;
 }) {
   const { t } = useI18n();
+  const qrButtonTitle = canOpenQr ? t("vehicles.detail.qrShow") : t("vehicles.qr.missingInput");
   return (
     <>
       <div className="form-row four-columns">
@@ -1457,7 +1497,7 @@ function VehicleDetailsFields({
               <input type="checkbox" checked={Boolean(form.qrCodeEnabled)} onChange={(event) => update({ qrCodeEnabled: event.target.checked })} disabled={readonly} />
               <span />
             </span>
-            <button type="button" className="icon-button" onClick={onOpenQr} aria-label={t("vehicles.detail.qrShow")} title={t("vehicles.detail.qrShow")} disabled={!form.qrCodeEnabled}>
+            <button type="button" className="icon-button" onClick={onOpenQr} aria-label={qrButtonTitle} title={qrButtonTitle} disabled={!form.qrCodeEnabled || !canOpenQr}>
               <QrCode size={16} />
             </button>
           </span>
@@ -1609,6 +1649,8 @@ function VehicleReadOnlyView({
   const cvFiles = vehicle.cvFiles || [];
   const attachments = vehicle.attachments || [];
   const images = vehicle.images || [];
+  const canShowQr = hasQrPayloadData(vehicle, emptyVehicle);
+  const qrButtonTitle = canShowQr ? t("vehicles.detail.qrShow") : t("vehicles.qr.missingInput");
 
   return (
     <div className="modal-body vehicle-read-view">
@@ -1635,7 +1677,7 @@ function VehicleReadOnlyView({
           <button type="button" className="icon-button" onClick={onPrint} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")}>
             <Printer size={16} />
           </button>
-          <button type="button" className="icon-button" onClick={onQr} aria-label={t("vehicles.detail.qrShow")} title={t("vehicles.detail.qrShow")}>
+          <button type="button" className="icon-button" onClick={onQr} aria-label={qrButtonTitle} title={qrButtonTitle} disabled={!canShowQr}>
             <QrCode size={16} />
           </button>
         </div>
@@ -2509,6 +2551,9 @@ export function VehiclesView() {
   );
   const allVisibleSelected = sortedVehicles.length > 0 && sortedVehicles.every((vehicle) => selectedVehicleIDs.has(vehicle.id));
   const someVisibleSelected = sortedVehicles.some((vehicle) => selectedVehicleIDs.has(vehicle.id));
+  const articleIdentityFilled = hasArticleIdentity(form);
+  const canRunArticleSearch = hasArticleSearchCriteria(form);
+  const canGenerateQr = hasQrPayloadData(selected, form);
 
   const maintenanceReminders = useMemo<MaintenanceReminder[]>(() => {
     return vehicles
@@ -2657,6 +2702,15 @@ export function VehiclesView() {
       setArticleSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
       setArticleSearchOpen(true);
       setArticleSearchResponse(null);
+      return;
+    }
+
+    if (!hasArticleSearchCriteria(searchForm, searchInput)) {
+      setArticleSearchOpen(false);
+      setArticleSearchLoading(false);
+      setArticleSearchResponse(null);
+      setArticleSearchError(t("vehicles.articleSearch.missingInput"));
+      setMessage(t("vehicles.articleSearch.missingInput"));
       return;
     }
 
@@ -3456,6 +3510,14 @@ export function VehiclesView() {
   };
 
   const generateQr = async () => {
+    if (!hasQrPayloadData(selected, form)) {
+      setQrDialogOpen(false);
+      setQrSvg("");
+      setQrError("");
+      setMessage(t("vehicles.qr.missingInput"));
+      return;
+    }
+
     setQrDialogOpen(true);
     setQrSvg("");
     setQrError("");
@@ -4331,7 +4393,13 @@ export function VehiclesView() {
                               <Barcode size={15} aria-hidden="true" />
                               {t("vehicles.articleSearch.barcode")}
                             </button>
-                            <button type="button" className="secondary-button" onClick={() => runArticleSearch()} disabled={readonly || articleSearchLoading}>
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              onClick={() => runArticleSearch()}
+                              disabled={readonly || articleSearchLoading || !canRunArticleSearch}
+                              title={!canRunArticleSearch ? t("vehicles.articleSearch.missingInput") : undefined}
+                            >
                               <PackageSearch size={15} aria-hidden="true" />
                               {articleSearchLoading ? t("vehicles.articleSearch.searching") : t("vehicles.articleSearch.search")}
                             </button>
@@ -4353,20 +4421,20 @@ export function VehiclesView() {
                             <input value={form.inventoryNumber || ""} onChange={(event) => update({ inventoryNumber: event.target.value })} disabled={readonly} placeholder={t("vehicles.inventoryNumberAuto")} />
                           </label>
                           <label>
-                            {t("vehicle.field.articleNumber")}
+                            <RequiredLabel label={t("vehicle.field.articleNumber")} filled={articleIdentityFilled} />
                             <input value={form.articleNumber || ""} onChange={(event) => update({ articleNumber: event.target.value })} disabled={readonly} />
                           </label>
                         </div>
 
                         <div className="form-row">
                           <label>
-                            {t("vehicle.field.manufacturer")} *
+                            <RequiredLabel label={t("vehicle.field.manufacturer")} filled={Boolean(compactValue(form.manufacturer))} />
                             <select value={form.manufacturer} onChange={(event) => update({ manufacturer: event.target.value })} disabled={readonly} required>
                               {selectOptions(options.manufacturers, t("vehicles.select.placeholder"))}
                             </select>
                           </label>
                           <label>
-                            {t("vehicle.field.gauge")} *
+                            <RequiredLabel label={t("vehicle.field.gauge")} filled={Boolean(compactValue(form.gauge))} />
                             <select value={form.gauge} onChange={(event) => update({ gauge: event.target.value })} disabled={readonly} required>
                               {selectOptions(options.gauges, t("vehicles.select.placeholder"))}
                             </select>
@@ -4374,7 +4442,7 @@ export function VehiclesView() {
                         </div>
 
                         <label>
-                          {t("vehicle.field.name")} *
+                          <RequiredLabel label={t("vehicle.field.name")} filled={articleIdentityFilled} />
                           <input value={form.name} onChange={(event) => update({ name: event.target.value })} disabled={readonly} required />
                         </label>
 
@@ -4493,6 +4561,7 @@ export function VehiclesView() {
                           form={form}
                           readonly={readonly}
                           onOpenQr={generateQr}
+                          canOpenQr={canGenerateQr}
                           update={update}
                           updateCouplingFront={updateCouplingFront}
                           updateCouplingSame={updateCouplingSame}

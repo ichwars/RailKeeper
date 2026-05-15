@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, Download, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
@@ -204,39 +204,6 @@ export function OverviewView() {
   const eanShare = vehicles.length ? Math.round((stats.withEAN / vehicles.length) * 100) : 0;
   const documentedShare = vehicles.length ? Math.round((stats.documentedVehicles / vehicles.length) * 100) : 0;
 
-  const exportOverviewStats = () => {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      totals: {
-        vehicles: vehicles.length,
-        listValue: stats.totalValue,
-        digital: stats.digital,
-        analog: stats.analog,
-        maintenanceDue: stats.due,
-        maintenanceUpcoming: stats.upcoming,
-        openMaintenance: stats.openMaintenance
-      },
-      quality: {
-        images: imageShare,
-        decoderNumbers: decoderShare,
-        articleNumbers: articleShare,
-        ean: eanShare,
-        documented: documentedShare
-      },
-      categories: stats.categories,
-      gauges: stats.gauges,
-      manufacturers: stats.manufacturers,
-      dataGaps: stats.dataGaps
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "railkeeper-uebersicht.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <>
       <section className="page-head overview-head">
@@ -248,9 +215,6 @@ export function OverviewView() {
         <div className="overview-actions" aria-label={t("overview.tools")}>
           <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
             <RefreshCw size={15} aria-hidden="true" />
-          </button>
-          <button type="button" className="icon-button" onClick={exportOverviewStats} disabled={loading} aria-label={t("overview.export")} title={t("overview.export")}>
-            <Download size={15} aria-hidden="true" />
           </button>
           {hiddenWidgets.length > 0 && (
             <button type="button" className="icon-button" onClick={resetWidgets} aria-label={t("overview.resetLayout")} title={t("overview.resetLayout")}>

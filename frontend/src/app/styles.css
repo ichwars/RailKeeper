@@ -761,7 +761,7 @@ h1 {
 
 .sidebar-order-list div {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 28px 28px;
+  grid-template-columns: 28px minmax(0, 1fr) 28px 28px 28px;
   gap: 7px;
   align-items: center;
   min-height: 36px;
@@ -2135,6 +2135,17 @@ h1 {
   justify-content: space-between;
 }
 
+.overview-widget[hidden] {
+  display: none !important;
+}
+
+.overview-grid .panel-head p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 18px;
+}
+
 .widget-head-actions {
   display: inline-flex;
   align-items: center;
@@ -2987,6 +2998,26 @@ h1 {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.required-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.required-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--danger);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.required-dot.filled {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 .vehicle-form input,
@@ -4113,6 +4144,14 @@ td {
   color: var(--text);
 }
 
+.secondary-button:disabled {
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--muted) 7%, transparent);
+  color: color-mix(in srgb, var(--muted) 82%, var(--text));
+  opacity: 0.58;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--muted) 12%, transparent);
+}
+
 .danger-button {
   background: var(--danger);
   color: #fff;
@@ -4162,7 +4201,7 @@ td {
 .confirm-layer {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
   display: grid;
   place-items: center;
   padding: 18px;
@@ -4172,7 +4211,7 @@ td {
 .modal-layer {
   position: fixed;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
   display: grid;
   place-items: center;
   padding: 20px;
@@ -4541,7 +4580,7 @@ td {
 }
 
 .barcode-search-layer {
-  z-index: 13;
+  z-index: 42;
 }
 
 .barcode-search-dialog {
@@ -4691,7 +4730,7 @@ td {
 }
 
 .article-search-layer {
-  z-index: 12;
+  z-index: 42;
 }
 
 .article-search-dialog {
@@ -5001,7 +5040,7 @@ td {
 }
 
 .qr-layer {
-  z-index: 12;
+  z-index: 42;
 }
 
 .qr-dialog {
@@ -6317,7 +6356,7 @@ td {
 }
 
 .image-preview-layer {
-  z-index: 13;
+  z-index: 42;
 }
 
 .image-preview-dialog {
@@ -7046,5 +7085,353 @@ td {
 
   .module-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 22px 14px;
+  }
+
+  .page-head,
+  .overview-head,
+  .settings-head {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .page-head h1,
+  .settings-head h1 {
+    font-size: 28px;
+    line-height: 32px;
+  }
+
+  .page-head p:not(.eyebrow),
+  .settings-head p,
+  .panel-head p,
+  .settings-card-title p {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+    line-height: 18px;
+  }
+
+  .overview-actions {
+    gap: 8px;
+  }
+
+  .overview-hero {
+    gap: 9px;
+    margin-bottom: 12px;
+  }
+
+  .overview-hero > div {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 4px 10px;
+    min-height: 0;
+    align-content: center;
+    padding: 12px;
+  }
+
+  .overview-icon {
+    grid-row: 1 / span 3;
+    width: 34px;
+    height: 34px;
+  }
+
+  .overview-hero p {
+    font-size: 12px;
+    line-height: 16px;
+  }
+
+  .overview-hero strong {
+    font-size: 25px;
+    line-height: 28px;
+  }
+
+  .overview-hero small {
+    font-size: 11px;
+    line-height: 15px;
+  }
+
+  .overview-grid {
+    gap: 12px;
+  }
+
+  .insight-card {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .insight-card .panel-head {
+    align-items: start;
+    gap: 8px;
+  }
+
+  .insight-card h2 {
+    font-size: 18px;
+    line-height: 22px;
+  }
+
+  .inventory-status-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .inventory-status-card,
+  .inventory-status-card.wide {
+    grid-column: auto;
+    min-height: 92px;
+    padding: 10px;
+  }
+
+  .inventory-status-card > span,
+  .inventory-status-card button > span {
+    width: 30px;
+    height: 30px;
+  }
+
+  .inventory-status-card strong {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .inventory-status-card small,
+  .inventory-status-card em {
+    font-size: 10px;
+    line-height: 14px;
+  }
+
+  .inventory-list-head {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .inventory-title-line {
+    align-items: start;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .inventory-toolbar {
+    display: grid;
+    gap: 8px;
+  }
+
+  .inventory-search {
+    width: 100%;
+  }
+
+  .inventory-toolbar-actions {
+    justify-content: flex-start;
+  }
+
+  .inventory-filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .inventory-filter-group,
+  .inventory-filter-toggle,
+  .inventory-filter-select,
+  .inventory-filter-clear,
+  .inventory-filter-result {
+    flex: 0 0 auto;
+  }
+
+  .inventory-filter-select {
+    width: 158px;
+    max-width: none;
+  }
+
+  .inventory-filter-result {
+    margin-left: 0;
+  }
+
+  .inventory-mobile-list {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .inventory-card,
+  .inventory-mobile-list article {
+    border-radius: 8px;
+  }
+
+  .settings-dashboard-grid,
+  .settings-card-stack {
+    gap: 12px;
+  }
+
+  .settings-card {
+    padding: 14px;
+  }
+
+  .sidebar-order-box {
+    padding: 10px;
+  }
+
+  .sidebar-order-list div {
+    grid-template-columns: 26px minmax(0, 1fr) 28px 28px 28px;
+  }
+
+  .modal-layer {
+    place-items: stretch;
+    padding: 0;
+    background: var(--solid-bg);
+  }
+
+  .vehicle-modal,
+  .vehicle-read-modal-shell {
+    width: 100vw;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .modal-head {
+    min-height: 58px;
+    padding: 0 14px 0 18px;
+  }
+
+  .modal-head h2 {
+    overflow: hidden;
+    font-size: 20px;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-tabs {
+    min-height: 42px;
+    gap: 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    padding: 0 6px;
+    scrollbar-width: none;
+  }
+
+  .modal-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal-tabs button {
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    padding: 0 4px;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .modal-body {
+    overscroll-behavior: contain;
+  }
+
+  .accordion-trigger {
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 13px;
+  }
+
+  .accordion-content {
+    padding: 12px 14px 16px;
+  }
+
+  .vehicle-form {
+    gap: 11px;
+  }
+
+  .vehicle-form label,
+  .settings-form label,
+  .search-field {
+    gap: 5px;
+    font-size: 12px;
+  }
+
+  .vehicle-form input,
+  .vehicle-form select,
+  .vehicle-form textarea {
+    min-height: 38px;
+    padding: 0 10px;
+    font-size: 13px;
+  }
+
+  .vehicle-form textarea {
+    min-height: 82px;
+    padding: 9px 10px;
+  }
+
+  .article-search-box {
+    gap: 10px;
+    min-height: 0;
+    padding: 10px;
+  }
+
+  .article-search-box strong {
+    font-size: 14px;
+  }
+
+  .article-search-box span {
+    max-width: 100%;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  .article-search-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .article-search-actions .secondary-button {
+    min-height: 40px;
+  }
+
+  .modal-actions {
+    min-height: 62px;
+    padding: 8px 14px calc(8px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--panel) 96%, transparent);
+  }
+
+  .modal-actions .secondary-button,
+  .modal-actions .primary-button {
+    min-height: 42px;
+    padding: 0 14px;
+  }
+
+  .modal-actions .primary-button {
+    flex: 1 1 auto;
+  }
+
+  .modal-actions .form-message {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .barcode-search-dialog {
+    align-self: start;
+    width: min(100%, calc(100vw - 22px));
+    margin-top: 18px;
+    padding: 14px;
+  }
+
+  .barcode-search-dialog .form-head > div {
+    align-items: start;
+  }
+
+  .barcode-search-dialog .form-head h2 {
+    white-space: nowrap;
+  }
+
+  .barcode-search-dialog .form-head p {
+    grid-column: 1 / -1;
+    font-size: 12px;
   }
 }

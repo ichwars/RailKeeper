@@ -174,7 +174,7 @@ export function App() {
       {effectiveView === "vehicles" && <VehiclesView />}
       {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
       {effectiveView === "importExport" && <ImportExportView />}
-      {effectiveView === "settings" && <SettingsView />}
+      {effectiveView === "settings" && <SettingsView username={session.username} />}
     </Shell>
   );
 }

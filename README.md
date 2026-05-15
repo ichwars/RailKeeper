@@ -31,12 +31,14 @@ The project is designed for private collections, clubs and small workshops that 
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
+- Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
 - ECoS live connection for reading locomotive lists and preparing future external ID synchronization
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle
 - Exhibition lists with lock state, dedicated Messe role and print-ready list views
 - Local authentication with first-run setup including email, roles, sessions, password change, token-based password reset and audit log
+- User-specific sidebar order and visibility for tailoring the main navigation per login
 - Master data management for manufacturers, gauges, epochs, categories, subtypes, railway companies and symbols
 - Docker Compose deployment with hardened runtime container and persistent `/data` volume
 - Built-in GitHub release update check with release notes and user-controlled installation flow
@@ -83,7 +85,7 @@ The SQLite database, uploads and local files stay in the `railkeeper2_data` Dock
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.6
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.7
 ```
 
 If you intentionally want to build the checked-out source tree, use:

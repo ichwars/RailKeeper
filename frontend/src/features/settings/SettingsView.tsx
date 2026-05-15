@@ -5,6 +5,8 @@ import {
   ChevronUp,
   Database,
   Download,
+  Eye,
+  EyeOff,
   ExternalLink,
   HardDrive,
   History,
@@ -12,7 +14,6 @@ import {
   Mail,
   Palette,
   Pencil,
-  Printer,
   RefreshCw,
   Shield,
   ShieldAlert,
@@ -90,12 +91,17 @@ const localSettingKeys = {
   lightBackground: "railkeeper.settings.lightBackground",
   lightAccent: "railkeeper.settings.lightAccent",
   lightStyle: "railkeeper.settings.lightStyle",
-  sidebarOrder: "railkeeper.settings.sidebarOrder",
   twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
 };
 
 const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
+const legacySidebarOrderKey = "railkeeper.settings.sidebarOrder";
+const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
 const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "exhibition", "importExport", "settings"];
+type SidebarPrefs = {
+  order: AppView[];
+  hidden: AppView[];
+};
 function formatBytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "0 KB";
   if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} MB`;
@@ -123,14 +129,33 @@ function readArticleSearchSources() {
   }
 }
 
-function readSidebarOrder() {
+function sidebarPrefsKey(username: string) {
+  return `${sidebarPrefsBaseKey}:${username || "local"}`;
+}
+
+function normalizeSidebarOrder(order: AppView[]) {
+  const ordered = order.filter((view): view is AppView => defaultSidebarOrder.includes(view));
+  const missing = defaultSidebarOrder.filter((view) => !ordered.includes(view));
+  return [...ordered, ...missing];
+}
+
+function readSidebarPrefs(username: string): SidebarPrefs {
   try {
-    const stored = JSON.parse(window.localStorage.getItem(localSettingKeys.sidebarOrder) || "[]") as AppView[];
-    const ordered = stored.filter((view): view is AppView => defaultSidebarOrder.includes(view));
-    const missing = defaultSidebarOrder.filter((view) => !ordered.includes(view));
-    return [...ordered, ...missing];
+    const stored = JSON.parse(window.localStorage.getItem(sidebarPrefsKey(username)) || "null") as Partial<SidebarPrefs> | null;
+    if (stored) {
+      return {
+        order: normalizeSidebarOrder(Array.isArray(stored.order) ? stored.order : []),
+        hidden: Array.isArray(stored.hidden) ? stored.hidden.filter((view): view is AppView => defaultSidebarOrder.includes(view) && view !== "settings") : []
+      };
+    }
   } catch {
-    return defaultSidebarOrder;
+    return { order: defaultSidebarOrder, hidden: [] };
+  }
+  try {
+    const legacyOrder = JSON.parse(window.localStorage.getItem(legacySidebarOrderKey) || "[]") as AppView[];
+    return { order: normalizeSidebarOrder(legacyOrder), hidden: [] };
+  } catch {
+    return { order: defaultSidebarOrder, hidden: [] };
   }
 }
 
@@ -270,7 +295,7 @@ function externalLink(entry: MasterDataEntry) {
   return null;
 }
 
-export function SettingsView() {
+export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
@@ -303,7 +328,8 @@ export function SettingsView() {
     const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
     return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
   });
-  const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(readSidebarOrder);
+  const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(() => readSidebarPrefs(username).order);
+  const [sidebarHidden, setSidebarHidden] = useState<AppView[]>(() => readSidebarPrefs(username).hidden);
   const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
   const [timeFormat, setTimeFormat] = useState(() => readLocalSetting(localSettingKeys.timeFormat, "system"));
   const [defaultPrinter, setDefaultPrinter] = useState(() => readLocalSetting(localSettingKeys.defaultPrinter, "system-dialog"));
@@ -323,8 +349,6 @@ export function SettingsView() {
   const [storageMessage, setStorageMessage] = useState("");
   const [storageLoading, setStorageLoading] = useState(false);
   const [systemPrinters, setSystemPrinters] = useState<SystemPrinters | null>(null);
-  const [printerMessage, setPrinterMessage] = useState("");
-  const [printersLoading, setPrintersLoading] = useState(false);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState("");
   const [availableRoles, setAvailableRoles] = useState<Role[]>([]);
@@ -426,6 +450,12 @@ export function SettingsView() {
     if (activeSettingsTab !== "general" || inventorySchemes.length > 0 || inventorySchemesLoading) return;
     loadInventorySchemes();
   }, [activeSettingsTab, inventorySchemes.length, inventorySchemesLoading]);
+
+  useEffect(() => {
+    const prefs = readSidebarPrefs(username);
+    setSidebarOrder(prefs.order);
+    setSidebarHidden(prefs.hidden);
+  }, [username]);
 
   useEffect(() => {
     if (activeSettingsTab !== "general") return;
@@ -550,10 +580,15 @@ export function SettingsView() {
     window.localStorage.setItem(key, String(value));
   };
 
-  const saveSidebarOrder = (nextOrder: AppView[]) => {
+  const saveSidebarPrefs = (nextOrder: AppView[], nextHidden: AppView[]) => {
     setSidebarOrder(nextOrder);
-    window.localStorage.setItem(localSettingKeys.sidebarOrder, JSON.stringify(nextOrder));
+    setSidebarHidden(nextHidden);
+    window.localStorage.setItem(sidebarPrefsKey(username), JSON.stringify({ order: nextOrder, hidden: nextHidden }));
     window.dispatchEvent(new Event(sidebarOrderChangedEvent));
+  };
+
+  const saveSidebarOrder = (nextOrder: AppView[]) => {
+    saveSidebarPrefs(nextOrder, sidebarHidden);
   };
 
   const moveSidebarItem = (view: AppView, direction: -1 | 1) => {
@@ -566,7 +601,15 @@ export function SettingsView() {
   };
 
   const resetSidebarOrder = () => {
-    saveSidebarOrder(defaultSidebarOrder);
+    saveSidebarPrefs(defaultSidebarOrder, []);
+  };
+
+  const toggleSidebarVisibility = (view: AppView) => {
+    if (view === "settings") return;
+    const nextHidden = sidebarHidden.includes(view)
+      ? sidebarHidden.filter((item) => item !== view)
+      : [...sidebarHidden, view];
+    saveSidebarPrefs(sidebarOrder, nextHidden);
   };
 
   const updateArticleSearchEnabled = (enabled: boolean) => {
@@ -638,20 +681,16 @@ export function SettingsView() {
   };
 
   const loadSystemPrinters = () => {
-    setPrintersLoading(true);
-    setPrinterMessage("");
     api
       .systemPrinters()
       .then((result) => {
         setSystemPrinters(result);
-        setPrinterMessage(result.message);
         if (defaultPrinter === "system-dialog" && result.defaultPrinter) {
           setDefaultPrinter(`printer:${result.defaultPrinter}`);
           window.localStorage.setItem(localSettingKeys.defaultPrinter, `printer:${result.defaultPrinter}`);
         }
       })
-      .catch((error: Error) => setPrinterMessage(error.message))
-      .finally(() => setPrintersLoading(false));
+      .catch(() => undefined);
   };
 
   const loadCurrentSession = () => {
@@ -964,7 +1003,7 @@ export function SettingsView() {
     <>
       <section className="settings-head">
         <h1>
-          {t("settings.title")} <span>0.1.6</span>
+          {t("settings.title")} <span>0.1.7</span>
         </h1>
         <p>{t("settings.subtitle")}</p>
       </section>
@@ -1040,16 +1079,6 @@ export function SettingsView() {
                   </select>
                 </label>
               </div>
-              <div className="settings-action-row">
-                <p>{printerMessage ? localizedStatusMessage(printerMessage) : t("settings.printer.message")}</p>
-                <button type="button" className="secondary-button" onClick={() => window.print()}>
-                  <Printer size={17} />
-                  {t("settings.printer.open")}
-                </button>
-                <button type="button" className="icon-button" onClick={loadSystemPrinters} aria-label={t("settings.printer.refresh")} title={t("settings.printer.refresh")} disabled={printersLoading}>
-                  <RefreshCw size={16} />
-                </button>
-              </div>
               <section className="sidebar-order-box" aria-label={t("settings.sidebarOrder.title")}>
                 <div>
                   <h3>{t("settings.sidebarOrder.title")}</h3>
@@ -1057,9 +1086,19 @@ export function SettingsView() {
                 </div>
                 <div className="sidebar-order-list">
                   {sidebarOrder.map((view, index) => (
-                    <div key={view}>
+                    <div key={view} className={sidebarHidden.includes(view) ? "muted-row" : ""}>
                       <span>{index + 1}</span>
                       <strong>{t(`nav.${view}`)}</strong>
+                      <button
+                        type="button"
+                        className="icon-button"
+                        onClick={() => toggleSidebarVisibility(view)}
+                        disabled={view === "settings"}
+                        aria-label={sidebarHidden.includes(view) ? t("settings.sidebarOrder.show", { label: t(`nav.${view}`) }) : t("settings.sidebarOrder.hide", { label: t(`nav.${view}`) })}
+                        title={view === "settings" ? t("settings.sidebarOrder.alwaysActive") : sidebarHidden.includes(view) ? t("settings.sidebarOrder.showShort") : t("settings.sidebarOrder.hideShort")}
+                      >
+                        {sidebarHidden.includes(view) ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
                       <button type="button" className="icon-button" onClick={() => moveSidebarItem(view, -1)} disabled={index === 0} aria-label={t("overview.widget.forward", { label: t(`nav.${view}`) })} title={t("overview.moveForward")}>
                         <ChevronUp size={15} />
                       </button>
@@ -2089,31 +2128,6 @@ export function SettingsView() {
             </div>
           </section>
 
-          <section className="panel settings-card settings-tool-card">
-            <div className="settings-card-title">
-              <ShieldAlert size={18} />
-              <div>
-                <h2>{t("settings.integrations.title")}</h2>
-                <p>{t("settings.integrations.subtitle")}</p>
-              </div>
-            </div>
-            <div className="integration-list">
-              <article>
-                <Shield size={17} />
-                <div>
-                  <strong>LDAP</strong>
-                  <span>{t("settings.integrations.preparedDisabled")}</span>
-                </div>
-              </article>
-              <article>
-                <UserCog size={17} />
-                <div>
-                  <strong>SSO / OIDC</strong>
-                  <span>{t("settings.integrations.ssoHelp")}</span>
-                </div>
-              </article>
-            </div>
-          </section>
         </section>
       )}
 
