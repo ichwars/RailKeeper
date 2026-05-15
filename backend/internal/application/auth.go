@@ -16,20 +16,23 @@ import (
 )
 
 var (
-	ErrInvalidLogin    = errors.New("invalid credentials")
-	ErrUnauthorized    = errors.New("unauthorized")
-	ErrInvalidCSRF     = errors.New("invalid csrf token")
-	ErrForbidden       = errors.New("forbidden")
-	ErrUserValidation  = errors.New("user validation failed")
-	ErrUserNotFound    = errors.New("user not found")
-	ErrSessionNotFound = errors.New("session not found")
-	ErrDuplicateUser   = errors.New("user already exists")
-	ErrLastAdmin       = errors.New("last admin cannot be removed")
+	ErrInvalidLogin         = errors.New("invalid credentials")
+	ErrUnauthorized         = errors.New("unauthorized")
+	ErrInvalidCSRF          = errors.New("invalid csrf token")
+	ErrForbidden            = errors.New("forbidden")
+	ErrUserValidation       = errors.New("user validation failed")
+	ErrUserNotFound         = errors.New("user not found")
+	ErrSessionNotFound      = errors.New("session not found")
+	ErrDuplicateUser        = errors.New("user already exists")
+	ErrLastAdmin            = errors.New("last admin cannot be removed")
+	ErrPasswordResetInvalid = errors.New("password reset token invalid")
 )
 
 type AuthService struct {
 	db *sql.DB
 }
+
+const passwordResetTTL = 30 * time.Minute
 
 type LoginInput struct {
 	Username string
@@ -100,8 +103,16 @@ type PasswordResetRequestInput struct {
 }
 
 type PasswordResetRequestResult struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
+	ResetToken string `json:"-"`
+	ResetURL   string `json:"resetUrl,omitempty"`
+	ExpiresAt  string `json:"expiresAt,omitempty"`
+}
+
+type PasswordResetConfirmInput struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"newPassword"`
 }
 
 type LoginResult struct {
@@ -552,14 +563,40 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input PasswordRe
 		return nil, fmt.Errorf("read reset user: %w", err)
 	}
 
-	now := time.Now().UTC().Format(time.RFC3339)
+	now := time.Now().UTC()
+	var resetToken string
+	var tokenHash any
+	var expiresAt any
+	var expiresAtText string
+	if userID != "" {
+		resetToken = randomToken()
+		tokenHash = hashToken(resetToken)
+		expiresAtTime := now.Add(passwordResetTTL)
+		expiresAt = expiresAtTime.Format(time.RFC3339)
+		expiresAtText = expiresAtTime.Format(time.RFC3339)
+		if _, err := s.db.ExecContext(
+			ctx,
+			`UPDATE password_reset_requests
+			    SET handled_at=?
+			  WHERE user_id=?
+			    AND handled_at IS NULL`,
+			now.Format(time.RFC3339),
+			userID,
+		); err != nil {
+			return nil, fmt.Errorf("close previous password reset requests: %w", err)
+		}
+	}
+
 	if _, err := s.db.ExecContext(
 		ctx,
-		`INSERT INTO password_reset_requests(id, user_id, email, created_at) VALUES(?, ?, ?, ?)`,
+		`INSERT INTO password_reset_requests(id, user_id, email, token_hash, created_at, expires_at)
+		 VALUES(?, ?, ?, ?, ?, ?)`,
 		randomID(),
 		nullableString(userID),
 		email,
-		now,
+		tokenHash,
+		now.Format(time.RFC3339),
+		expiresAt,
 	); err != nil {
 		return nil, fmt.Errorf("create password reset request: %w", err)
 	}
@@ -570,9 +607,103 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input PasswordRe
 	_ = s.audit(ctx, "", "PasswordResetRequested", "user", targetID, "{}")
 
 	return &PasswordResetRequestResult{
-		Status:  "queued",
-		Message: "Wenn die E-Mail-Adresse bekannt ist, wurde eine Passwort-Ruecksetzung vorgemerkt.",
+		Status:     "ready",
+		Message:    "Wenn die E-Mail-Adresse bekannt ist, wurde ein Passwort-Reset-Link erstellt.",
+		ResetToken: resetToken,
+		ExpiresAt:  expiresAtText,
 	}, nil
+}
+
+func (s *AuthService) ResetPassword(ctx context.Context, input PasswordResetConfirmInput) error {
+	token := strings.TrimSpace(input.Token)
+	if token == "" || len(input.NewPassword) < 12 {
+		return ErrUserValidation
+	}
+
+	var requestID, userID, expiresAtText, usedAt, handledAt string
+	err := s.db.QueryRowContext(
+		ctx,
+		`SELECT id,
+		        COALESCE(user_id, ''),
+		        COALESCE(expires_at, ''),
+		        COALESCE(used_at, ''),
+		        COALESCE(handled_at, '')
+		   FROM password_reset_requests
+		  WHERE token_hash=?`,
+		hashToken(token),
+	).Scan(&requestID, &userID, &expiresAtText, &usedAt, &handledAt)
+	if errors.Is(err, sql.ErrNoRows) {
+		return ErrPasswordResetInvalid
+	}
+	if err != nil {
+		return fmt.Errorf("read password reset token: %w", err)
+	}
+	if userID == "" || usedAt != "" || handledAt != "" || expiresAtText == "" {
+		return ErrPasswordResetInvalid
+	}
+	expiresAt, err := time.Parse(time.RFC3339, expiresAtText)
+	if err != nil || !time.Now().UTC().Before(expiresAt) {
+		return ErrPasswordResetInvalid
+	}
+
+	nextHash, err := hashPassword(input.NewPassword)
+	if err != nil {
+		return fmt.Errorf("hash password reset password: %w", err)
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin password reset: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err = tx.ExecContext(ctx, `UPDATE users SET password_hash=? WHERE id=?`, nextHash, userID); err != nil {
+		return fmt.Errorf("update reset password: %w", err)
+	}
+	if _, err = tx.ExecContext(
+		ctx,
+		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND revoked_at IS NULL`,
+		now,
+		userID,
+	); err != nil {
+		return fmt.Errorf("revoke reset sessions: %w", err)
+	}
+	if _, err = tx.ExecContext(
+		ctx,
+		`UPDATE password_reset_requests
+		    SET used_at=?, handled_at=?
+		  WHERE id=?`,
+		now,
+		now,
+		requestID,
+	); err != nil {
+		return fmt.Errorf("complete password reset request: %w", err)
+	}
+	if _, err = tx.ExecContext(
+		ctx,
+		`UPDATE password_reset_requests
+		    SET handled_at=?
+		  WHERE user_id=?
+		    AND id<>?
+		    AND handled_at IS NULL`,
+		now,
+		userID,
+		requestID,
+	); err != nil {
+		return fmt.Errorf("close other password reset requests: %w", err)
+	}
+	if err = s.auditTx(ctx, tx, userID, "PasswordResetCompleted", "user", userID, "{}"); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit password reset: %w", err)
+	}
+	return nil
 }
 
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {

@@ -133,6 +133,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("POST /api/v1/setup/admin", app.createAdmin)
 	mux.HandleFunc("POST /api/v1/auth/login", app.login)
 	mux.HandleFunc("POST /api/v1/auth/password-reset", app.requestPasswordReset)
+	mux.HandleFunc("POST /api/v1/auth/password-reset/confirm", app.confirmPasswordReset)
 	mux.HandleFunc("POST /api/v1/auth/logout", app.logout)
 	mux.HandleFunc("GET /api/v1/auth/session", app.session)
 	mux.HandleFunc("PUT /api/v1/auth/password", app.require("Viewer", app.changePassword))
@@ -868,7 +869,59 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort-Ruecksetzung konnte nicht vorgemerkt werden.")
 		return
 	}
+	if result.ResetToken != "" {
+		result.ResetURL = passwordResetURL(r, result.ResetToken)
+	}
 	respondJSON(w, http.StatusAccepted, result)
+}
+
+func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
+	allowed, ok := a.allowRequest(w, r, "password-reset-confirm", clientIP(r), 10, 10*time.Minute)
+	if !ok {
+		return
+	}
+	if !allowed {
+		respondProblem(w, http.StatusTooManyRequests, "rate_limited", "Too many reset attempts. Please try again later.")
+		return
+	}
+
+	var input application.PasswordResetConfirmInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	if err := a.authService.ResetPassword(r.Context(), input); err != nil {
+		if errors.Is(err, application.ErrUserValidation) {
+			respondProblem(w, http.StatusBadRequest, "invalid_password_reset", "Reset-Link und neues Passwort muessen gueltig sein.")
+			return
+		}
+		if errors.Is(err, application.ErrPasswordResetInvalid) {
+			respondProblem(w, http.StatusBadRequest, "invalid_reset_token", "Reset-Link ist ungueltig oder abgelaufen.")
+			return
+		}
+		a.logger.Error("password reset confirmation failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort konnte nicht zurueckgesetzt werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func passwordResetURL(r *http.Request, token string) string {
+	scheme := "http"
+	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwarded != "" {
+		scheme = strings.Split(forwarded, ",")[0]
+	} else if r.TLS != nil {
+		scheme = "https"
+	}
+	u := url.URL{
+		Scheme: scheme,
+		Host:   r.Host,
+		Path:   "/password-reset",
+	}
+	query := u.Query()
+	query.Set("token", token)
+	u.RawQuery = query.Encode()
+	return u.String()
 }
 
 func (a *App) logout(w http.ResponseWriter, r *http.Request) {
@@ -2477,6 +2530,7 @@ func (a *App) csrf(next http.Handler) http.Handler {
 		if r.URL.Path == "/api/v1/setup/admin" ||
 			r.URL.Path == "/api/v1/auth/login" ||
 			r.URL.Path == "/api/v1/auth/password-reset" ||
+			r.URL.Path == "/api/v1/auth/password-reset/confirm" ||
 			r.URL.Path == "/api/v1/auth/logout" {
 			next.ServeHTTP(w, r)
 			return

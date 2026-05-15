@@ -4,9 +4,14 @@ import {
   AlertTriangle,
   ArrowUpDown,
   Barcode,
+  BadgeCheck,
+  Camera,
   Check,
   ChevronDown,
   ChevronUp,
+  Circle,
+  CircleOff,
+  Cpu,
   Grid2X2,
   Download,
   ExternalLink,
@@ -14,6 +19,7 @@ import {
   FileText,
   Gauge,
   Image,
+  ImageOff,
   MoreVertical,
   PackageSearch,
   Pencil,
@@ -76,6 +82,15 @@ const emptyVehicle: CreateVehicleRequest = {
   ean: "",
   productionPeriod: "",
   listPrice: "",
+  acquisitionType: "",
+  acquiredFrom: "",
+  purchasePrice: "",
+  purchaseDate: "",
+  storageLocation: "",
+  storageDetails: "",
+  condition: "",
+  conditionDetails: "",
+  packaging: "",
   lengthMm: "",
   weightG: "",
   color: "",
@@ -110,8 +125,11 @@ type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance";
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type SortDirection = "asc" | "desc";
 type InventoryViewMode = "table" | "cards";
-type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages" | "maintenanceDue";
+type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages";
+type MaintenanceFilter = "all" | "due" | "none";
 type InventoryReportMode = "summary" | "details";
+type InventoryReportSelection = "all" | "selected";
+type InventoryReportAssets = Record<string, { qrCode?: string }>;
 type ArticleFieldKey = keyof CreateVehicleRequest;
 type PendingArticleImage = ArticleSearchImage & {
   id: string;
@@ -204,6 +222,11 @@ const wheelsetOptions = ["2-Leiter DC", "3-Leiter AC", "NEM", "RP25", "Metall", 
 const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Bügelkupplung", "Klauenkupplung", "Schraubenkupplung"];
 const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
+const acquisitionOptions = ["Kauf", "Tausch", "Geschenk", "Erbe", "Leihgabe", "Sonstiges"];
+const acquiredFromOptions = ["Händler", "Privat", "Messe / Börse", "Online", "Auktion", "Hersteller", "Verein", "Sonstiges"];
+const storageLocationOptions = ["Auf Anlage", "Vitrine", "Lager", "Werkstatt", "Transportbox", "Ausgeliehen", "Sonstiges"];
+const vehicleConditionOptions = ["Neu", "Neuwertig", "Sehr gut", "Gut", "Gebraucht", "Leichte Gebrauchsspuren", "Reparaturbedürftig", "Defekt"];
+const packagingOptions = ["Originalverpackung", "Ersatzverpackung", "Ohne Verpackung", "Transportbox", "Sonstiges"];
 const attachmentCategories = ["Anleitung", "Rechnung", "Decoder-Datei", "Dokumentation", "Ersatzteilliste", "Zertifikat", "Sonstiges"];
 const maintenanceKinds = ["Wartung", "Reparatur", "Umbau", "Superung", "Reinigung", "Schmierung", "Decoder-Einbau", "Ersatzteiltausch"];
 const maintenanceStatuses = [
@@ -228,6 +251,18 @@ const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
 const defaultArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
 const inventoryViewSettingKey = "railkeeper.inventoryViewMode";
+
+function inferFunctionTypeFromSymbol(symbolKey: string, symbols: MasterDataEntry[], fallback = "standard") {
+  const symbol = symbols.find((item) => item.active && item.key === symbolKey);
+  const signal = `${symbolKey} ${symbol?.label || ""}`.toLocaleLowerCase("de-DE");
+  if (!symbolKey) return "standard";
+  if (signal.includes("sound") || signal.includes("horn") || signal.includes("pfiff")) return "sound";
+  if (signal.includes("licht") || signal.includes("light") || signal.includes("lampe")) return "licht";
+  if (signal.includes("kuppl")) return "kupplung";
+  if (signal.includes("rauch") || signal.includes("smoke")) return "rauch";
+  if (signal.includes("warn") || signal.includes("sonder") || signal.includes("sifa")) return "sonderfunktion";
+  return fallback || "standard";
+}
 
 const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   manufacturer: "Hersteller",
@@ -367,6 +402,15 @@ function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
     ean: vehicle.ean || "",
     productionPeriod: vehicle.productionPeriod || "",
     listPrice: vehicle.listPrice || "",
+    acquisitionType: vehicle.acquisitionType || "",
+    acquiredFrom: vehicle.acquiredFrom || "",
+    purchasePrice: vehicle.purchasePrice || "",
+    purchaseDate: vehicle.purchaseDate || "",
+    storageLocation: vehicle.storageLocation || "",
+    storageDetails: vehicle.storageDetails || "",
+    condition: vehicle.condition || "",
+    conditionDetails: vehicle.conditionDetails || "",
+    packaging: vehicle.packaging || "",
     lengthMm: vehicle.lengthMm || "",
     weightG: vehicle.weightG || "",
     color: vehicle.color || "",
@@ -487,6 +531,28 @@ function sourceDisplayName(rawUrl: string) {
   }
 }
 
+function sourceShortLink(rawUrl?: string) {
+  const value = String(rawUrl || "").trim();
+  if (!value) return "";
+  try {
+    const url = new URL(value);
+    const host = url.hostname.replace(/^www\./, "");
+    const path = `${url.pathname}${url.search}`.replace(/\/$/, "");
+    if (!path || path === "/") return host;
+    const shortenedPath = path.length > 44 ? `${path.slice(0, 24)}...${path.slice(-16)}` : path;
+    return `${host}${shortenedPath}`;
+  } catch {
+    return value.length > 54 ? `${value.slice(0, 32)}...${value.slice(-18)}` : value;
+  }
+}
+
+function formatEuro(value?: string | number) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  if (/[€$£]|eur\b/i.test(text)) return text;
+  return `${text} €`;
+}
+
 function isBadArticleValue(key: string, value: string) {
   const normalized = value.trim();
   const lower = normalized.toLocaleLowerCase("de-DE");
@@ -539,21 +605,7 @@ function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) {
   return image?.thumbnailUrl || image?.url || "";
 }
 
-function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
-  return (vehicle.images || []).map((image) => ({
-    id: image.id || image.url,
-    url: image.url,
-    thumbnailUrl: image.thumbnailUrl,
-    title: image.title || "",
-    source: image.sourceUrl || image.url,
-    isPrimary: image.isPrimary,
-    persisted: true,
-    mimeType: image.mimeType || "",
-    maintenanceId: image.maintenanceId || ""
-  }));
-}
-
-function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage {
+function vehicleImageToPending(image: VehicleImageRecord): PendingArticleImage {
   return {
     id: image.id || image.url,
     url: image.url,
@@ -565,6 +617,14 @@ function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage 
     mimeType: image.mimeType || "",
     maintenanceId: image.maintenanceId || ""
   };
+}
+
+function vehicleImagesToPending(vehicle: Vehicle): PendingArticleImage[] {
+  return (vehicle.images || []).map(vehicleImageToPending);
+}
+
+function uploadedImageToPending(image: VehicleImageRecord): PendingArticleImage {
+  return vehicleImageToPending(image);
 }
 
 function attachmentsToEditState(attachments?: VehicleAttachment[]): AttachmentEditState {
@@ -789,90 +849,211 @@ function escapeHtml(value?: string | number | boolean) {
     .replaceAll("'", "&#039;");
 }
 
-function reportField(label: string, value?: string | number | boolean) {
-  return `
-    <div class="field">
-      <span>${escapeHtml(label)}</span>
-      <strong>${escapeHtml(value)}</strong>
-    </div>
-  `;
+function hasReportValue(value?: string | number | boolean) {
+  if (typeof value === "boolean") return true;
+  if (typeof value === "number") return true;
+  return Boolean(String(value || "").trim());
 }
 
-function reportImage(vehicle: Vehicle) {
+function reportField(label: string, value?: string | number | boolean) {
+  if (!hasReportValue(value)) return "";
+  const labelText = label.trim().endsWith(":") ? label.trim() : `${label.trim()}:`;
+  return `<div class="field"><span>${escapeHtml(labelText)}</span><strong>${escapeHtml(value)}</strong></div>`;
+}
+
+function reportImage(vehicle: Vehicle, includeImages: boolean) {
+  if (!includeImages) return "";
   const image = primaryImage(vehicle.images);
   if (!image?.url) {
-    return `<div class="image-placeholder">Keine Vorschau</div>`;
+    return "";
   }
-  return `<img class="vehicle-image" src="${escapeHtml(image.url)}" alt="">`;
+  return `<img class="vehicle-image" src="${escapeHtml(previewImageUrl(image))}" alt="">`;
 }
 
-function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: SortKey; direction: SortDirection }, mode: InventoryReportMode) {
-  const now = new Date();
-  const totalAttachments = vehicles.reduce((sum, vehicle) => sum + (vehicle.attachments || []).length, 0);
-  const totalImages = vehicles.reduce((sum, vehicle) => sum + (vehicle.images || []).length, 0);
-  const totalCVValues = vehicles.reduce((sum, vehicle) => sum + (vehicle.cvValues || []).length, 0);
-  const rows = vehicles
-    .map(
-      (vehicle) => `
-        <tr>
-          <td>${escapeHtml(vehicle.inventoryNumber)}</td>
-          <td>${escapeHtml(vehicle.manufacturer)}</td>
-          <td>${escapeHtml(vehicle.articleNumber)}</td>
-          <td>${escapeHtml(vehicle.name)}</td>
-          <td>${escapeHtml(vehicle.gauge)}</td>
-          <td>${escapeHtml(vehicle.epoch)}</td>
-          <td>${escapeHtml(vehicle.category)}</td>
-        </tr>
-      `
-    )
-    .join("");
-  const details = vehicles
-    .map((vehicle) => {
-      const dueMaintenance = (vehicle.maintenance || []).filter(maintenanceIsDue).length;
-      const activeFunctions = (vehicle.functions || []).filter((item) => item.name || item.symbolKey || item.notes).length;
+function reportSection(title: string, fields: string[]) {
+  const body = fields.filter(Boolean).join("");
+  if (!body) return "";
+  return `<section class="detail-section"><h3>${escapeHtml(title)}</h3><div class="field-grid">${body}</div></section>`;
+}
+
+function reportJoined(values: Array<string | undefined | false>) {
+  return values.filter(Boolean).join(" · ");
+}
+
+function reportImageGallery(vehicle: Vehicle, includeImages: boolean) {
+  if (!includeImages || !vehicle.images?.length) return "";
+  const images = vehicle.images
+    .map((image) => {
+      const meta = reportJoined([
+        image.isPrimary ? "Hauptbild" : "Alternativbild",
+        image.title,
+        image.fileName,
+        image.mimeType,
+        image.sourceUrl
+      ]);
       return `
-        <section class="vehicle-card">
-          <div class="vehicle-card-head">
-            ${reportImage(vehicle)}
-            <div>
-              <h2>${escapeHtml(vehicle.inventoryNumber)} · ${escapeHtml(vehicle.name)}</h2>
-              <p>${escapeHtml([vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(" · "))}</p>
-            </div>
-          </div>
-          <div class="field-grid">
-            ${reportField("Kategorie", vehicle.category)}
-            ${reportField("Gattung", vehicle.gattung)}
-            ${reportField("Bahngesellschaft", vehicle.railwayCompany)}
-            ${reportField("Baureihe", vehicle.series)}
-            ${reportField("Fahrzeug-Nr.", vehicle.vehicleNumber)}
-            ${reportField("EAN", vehicle.ean)}
-            ${reportField("Länge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "")}
-            ${reportField("Gewicht", vehicle.weightG ? `${vehicle.weightG} g` : "")}
-            ${reportField("Farbe", vehicle.color)}
-            ${reportField("Beschriftung", vehicle.lettering)}
-            ${reportField("Digital", vehicle.digital)}
-            ${reportField("Decoder-Nr.", vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber)}
-            ${reportField("Soundgenerator", vehicle.soundGeneratorEnabled)}
-            ${reportField("Fahrlicht", vehicle.headlightsEnabled)}
-            ${reportField("Beleuchtung", vehicle.lightingEnabled)}
-            ${reportField("Rauchgenerator", vehicle.smokeGeneratorEnabled)}
-            ${reportField("Bilder", (vehicle.images || []).length)}
-            ${reportField("Beilagen", (vehicle.attachments || []).length)}
-            ${reportField("Wartung fällig", dueMaintenance)}
-            ${reportField("Funktionen", activeFunctions)}
-            ${reportField("CV-Werte", (vehicle.cvValues || []).length)}
-          </div>
-          ${vehicle.description ? `<p class="description">${escapeHtml(vehicle.description)}</p>` : ""}
-          ${vehicle.additionalInfo ? `<p class="description">${escapeHtml(vehicle.additionalInfo)}</p>` : ""}
-        </section>
+        <figure class="image-tile">
+          <img src="${escapeHtml(previewImageUrl(image))}" alt="">
+          ${meta ? `<figcaption>${escapeHtml(meta)}</figcaption>` : ""}
+        </figure>
       `;
     })
     .join("");
+  return `<section class="detail-section image-section"><h3>Bilder</h3><div class="image-grid">${images}</div></section>`;
+}
 
-  const detailSection = mode === "details" ? `
-    <h2>Details</h2>
-    ${details}
-  ` : "";
+function vehicleOverviewRow(vehicle: Vehicle, assets: InventoryReportAssets, includeImages: boolean, includeQRCode: boolean) {
+  const image = reportImage(vehicle, includeImages);
+  const qrCode = includeQRCode && assets[vehicle.id]?.qrCode
+    ? `<img class="qr-code" src="${escapeHtml(assets[vehicle.id].qrCode)}" alt="">`
+    : "";
+  return `
+    <section class="overview-row">
+      <div class="overview-media">${image || `<div class="image-spacer"></div>`}</div>
+      <div class="overview-main">
+        <h3>${escapeHtml(vehicle.name || vehicle.inventoryNumber)}</h3>
+        <div class="overview-fields">
+          ${reportField("Hersteller", vehicle.manufacturer)}
+          ${reportField("Artikel-Nr.", vehicle.articleNumber)}
+          ${reportField("Gattung", vehicle.gattung || vehicle.category)}
+          ${reportField("Baureihe", vehicle.series)}
+          ${reportField("Betriebs-Nr.", vehicle.vehicleNumber)}
+        </div>
+      </div>
+      <div class="overview-identity">
+        ${reportField("Inventar-Nr.", vehicle.inventoryNumber)}
+        ${reportField("Decoder-Nr.", vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber)}
+      </div>
+      <div class="overview-qr">${qrCode}</div>
+    </section>
+  `;
+}
+
+function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, includeImages: boolean, includeQRCode: boolean) {
+  const image = reportImage(vehicle, includeImages);
+  const qrCode = includeQRCode && assets[vehicle.id]?.qrCode
+    ? `<img class="qr-code" src="${escapeHtml(assets[vehicle.id].qrCode)}" alt="">`
+    : "";
+  const functions = (vehicle.functions || [])
+    .filter((item) => item.name || item.symbolKey || item.notes)
+    .map((item) => reportField(item.functionKey, [item.name, item.functionType, item.mode, item.notes].filter(Boolean).join(" · ")));
+  const maintenance = (vehicle.maintenance || [])
+    .filter((item) => item.kind || item.status || item.dueDate || item.completedAt || item.cost || item.notes)
+    .map((item) => reportField(item.kind || "Wartung", [item.status, item.dueDate && `Fällig: ${formatDate(item.dueDate)}`, item.completedAt && `Erledigt: ${formatDate(item.completedAt)}`, item.cost && formatMaintenanceCost(item.cost), item.notes].filter(Boolean).join(" · ")));
+  const attachments = (vehicle.attachments || [])
+    .map((item) => reportField(item.originalName || item.fileName, [item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
+  const cvValues = (vehicle.cvValues || [])
+    .map((item) => reportField(`CV ${item.cvNumber}`, [String(item.value), item.category, item.decoderProfile, item.description].filter(Boolean).join(" · ")));
+  const cvFiles = (vehicle.cvFiles || [])
+    .map((item) => reportField(item.originalName || item.fileName, [item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
+  const externalMappings = (vehicle.externalMappings || [])
+    .map((item) => reportField(item.provider, reportJoined([item.externalId, item.externalName, item.externalAddress, item.externalProtocol, item.syncStatus, item.lastSeenAt && formatDate(item.lastSeenAt)])));
+
+  return `
+    <article class="detail-card">
+      <header class="detail-card-head">
+        <div class="detail-media">${image}</div>
+        <div>
+          <h2>${escapeHtml(vehicle.name || vehicle.inventoryNumber)}</h2>
+          <p>${escapeHtml([vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(" · "))}</p>
+        </div>
+        <div class="detail-identity">
+          ${reportField("Inventar-Nr.", vehicle.inventoryNumber)}
+          ${reportField("Decoder-Nr.", vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber)}
+        </div>
+        <div class="detail-qr">${qrCode}</div>
+      </header>
+      ${reportSection("Produkt", [
+        reportField("Hersteller", vehicle.manufacturer),
+        reportField("Artikel-Nr.", vehicle.articleNumber),
+        reportField("Artikelquelle", sourceShortLink(vehicle.articleSourceUrl)),
+        reportField("EAN", vehicle.ean),
+        reportField("Listenpreis", formatEuro(vehicle.listPrice)),
+        reportField("Produktionszeit", vehicle.productionPeriod),
+        reportField("Erfasst am", formatDate(vehicle.createdAt)),
+        reportField("Aktualisiert am", formatDate(vehicle.updatedAt))
+      ])}
+      ${reportSection("Modell", [
+        reportField("Bezeichnung", vehicle.name),
+        reportField("Spurweite / Epoche", [vehicle.gauge, vehicle.epoch].filter(Boolean).join(" / ")),
+        reportField("Bahngesellschaft", vehicle.railwayCompany),
+        reportField("Kategorie", vehicle.category),
+        reportField("Gattung", vehicle.gattung),
+        reportField("Baureihe", vehicle.series),
+        reportField("Betriebs-Nr.", vehicle.vehicleNumber),
+        reportField("Messe tauglich", vehicle.exhibitionReady),
+        reportField("QR-Code aktiv", vehicle.qrCodeEnabled)
+      ])}
+      ${reportSection("Details", [
+        reportField("Länge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : ""),
+        reportField("Gewicht", vehicle.weightG ? `${vehicle.weightG} g` : ""),
+        reportField("Farbe", vehicle.color),
+        reportField("Beschriftung", vehicle.lettering),
+        reportField("Beladung", vehicle.load),
+        reportField("Inneneinrichtung", vehicle.interior),
+        reportField("Achsen", vehicle.axles),
+        reportField("Anzahl Achsen", vehicle.axleCount),
+        reportField("Haftreifen", vehicle.tractionTireCount),
+        reportField("Radsatz", vehicle.wheelset),
+        reportField("Kupplung", vehicle.couplingSame ? "Vorne und hinten gleich" : ""),
+        reportField("Kupplung vorne", vehicle.couplingFront),
+        reportField("Kupplung hinten", vehicle.couplingRear),
+        reportField("Stromaufnahme", vehicle.powerPickup),
+        reportField("Fahrlicht", vehicle.headlightsEnabled),
+        reportField("Fahrlicht Beschreibung", vehicle.headlightsDescription),
+        reportField("Antrieb", vehicle.driveEnabled),
+        reportField("Antrieb Beschreibung", vehicle.driveDescription),
+        reportField("Beleuchtung", vehicle.lightingEnabled),
+        reportField("Beleuchtung Beschreibung", vehicle.lightingDescription),
+        reportField("Soundgenerator", vehicle.soundGeneratorEnabled),
+        reportField("Sound Beschreibung", vehicle.soundGeneratorDescription),
+        reportField("Rauchgenerator", vehicle.smokeGeneratorEnabled),
+        reportField("Rauch Beschreibung", vehicle.smokeGeneratorDescription)
+      ])}
+      ${reportSection("Fahrzeug", [
+        reportField("Erwerb", vehicle.acquisitionType),
+        reportField("von/bei", vehicle.acquiredFrom),
+        reportField("Preis", formatEuro(vehicle.purchasePrice)),
+        reportField("Datum", formatDate(vehicle.purchaseDate)),
+        reportField("Standort", vehicle.storageLocation),
+        reportField("Details", vehicle.storageDetails),
+        reportField("Zustand", vehicle.condition),
+        reportField("Zustand Details", vehicle.conditionDetails),
+        reportField("Verpackung", vehicle.packaging),
+        reportField("Zusatzinformationen", vehicle.additionalInfo)
+      ])}
+      ${reportSection("Steuerung", [
+        reportField("Digital", vehicle.digital),
+        reportField("Decoder-Nr.", vehicle.digitalDecoderNumber),
+        reportField("DT-Decoder", vehicle.dtDecoder),
+        reportField("DT Decoder-Nr.", vehicle.dtDecoderNumber),
+        reportField("ABC Bremsen", vehicle.abcBrakes),
+        reportField("Adapter / Schnittstelle", vehicle.adapter)
+      ])}
+      ${reportSection("Funktionstasten", functions)}
+      ${reportSection("Wartung", maintenance)}
+      ${reportSection("CV-Werte", cvValues)}
+      ${reportSection("CV-Dateien", cvFiles)}
+      ${reportImageGallery(vehicle, includeImages)}
+      ${reportSection("Beilagen", attachments)}
+      ${reportSection("Externe Zuordnung", externalMappings)}
+    </article>
+  `;
+}
+
+function inventoryReportHtml(
+  vehicles: Vehicle[],
+  query: string,
+  sort: { key: SortKey; direction: SortDirection },
+  options: { mode: InventoryReportMode; title: string; includeQRCode: boolean; includeImages: boolean },
+  assets: InventoryReportAssets
+) {
+  const now = new Date();
+  const modeTitle = options.mode === "details" ? "Detailliste" : "Übersichtsliste";
+  const overviewRows = vehicles.map((vehicle) => vehicleOverviewRow(vehicle, assets, options.includeImages, options.includeQRCode)).join("");
+  const detailRows = options.mode === "details"
+    ? vehicles.map((vehicle) => vehicleDetailReport(vehicle, assets, options.includeImages, options.includeQRCode)).join("")
+    : "";
 
   return `
 <!doctype html>
@@ -881,29 +1062,50 @@ function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: So
     <meta charset="utf-8">
     <title>RailKeeper2 Bestand</title>
     <style>
-      :root { color: #0b1e26; font-family: "SF Pro Display", "Segoe UI", Arial, sans-serif; }
+      :root { color: #101820; font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; }
       * { box-sizing: border-box; }
-      body { margin: 24px; background: #fff; }
-      header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 18px; border-bottom: 2px solid #1c621b; }
-      h1 { margin: 0; font-size: 26px; }
-      h2 { margin: 0; font-size: 18px; }
-      p { margin: 6px 0 0; color: #487070; }
-      .meta { text-align: right; font-size: 12px; color: #487070; }
-      .summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 18px 0; }
-      .summary div { border: 1px solid #d9e4df; border-radius: 8px; padding: 10px; background: #f7faf8; }
-      .summary span, .field span { display: block; color: #487070; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-      .summary strong { display: block; margin-top: 4px; font-size: 22px; }
-      table { width: 100%; border-collapse: collapse; margin: 12px 0 24px; font-size: 12px; }
-      th, td { border-bottom: 1px solid #d9e4df; padding: 8px; text-align: left; vertical-align: top; }
-      th { background: #eef5f1; color: #24474a; font-size: 10px; text-transform: uppercase; }
-      .vehicle-card { page-break-inside: avoid; border: 1px solid #d9e4df; border-radius: 8px; padding: 12px; margin: 12px 0; }
-      .vehicle-card-head { display: grid; grid-template-columns: 76px 1fr; gap: 12px; align-items: center; margin-bottom: 10px; }
-      .vehicle-image, .image-placeholder { width: 76px; height: 54px; border: 1px solid #d9e4df; border-radius: 7px; object-fit: cover; background: #f2f6f5; }
-      .image-placeholder { display: grid; place-items: center; color: #789; font-size: 10px; text-align: center; padding: 4px; }
-      .field-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .field { min-height: 48px; border: 1px solid #e1e9e5; border-radius: 7px; padding: 8px; }
-      .field strong { display: block; margin-top: 4px; font-size: 12px; overflow-wrap: anywhere; }
-      .description { border-left: 3px solid #a5ec60; padding-left: 10px; margin-top: 10px; color: #0b1e26; white-space: pre-wrap; }
+      body { margin: 18mm 14mm 20mm; background: #fff; }
+      header { display: grid; grid-template-columns: 1fr 62px; gap: 18px; align-items: start; padding-bottom: 10px; border-bottom: 1.5px solid #67b532; }
+      h1 { margin: 0; font-size: 14px; letter-spacing: .02em; }
+      h2 { margin: 0; font-size: 15px; }
+      h3 { margin: 0; font-size: 12px; }
+      p { margin: 4px 0 0; color: #4a6268; }
+      .brand-mark { width: 48px; justify-self: end; }
+      .report-subtitle { margin-top: 3px; font-size: 13px; font-weight: 800; color: #101820; }
+      .report-meta { display: flex; gap: 14px; margin: 8px 0 14px; color: #60747b; font-size: 10px; }
+      .overview-row { display: grid; grid-template-columns: 88px 1fr 110px 66px; gap: 14px; align-items: start; padding: 10px 0; border-bottom: 1px solid #101820; page-break-inside: avoid; }
+      .overview-main h3 { margin-bottom: 10px; }
+      .overview-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 18px; }
+      .overview-identity .field { margin-bottom: 8px; }
+      .overview-qr, .detail-qr { display: grid; place-items: start center; min-height: 58px; }
+      .qr-code { width: 58px; height: 58px; object-fit: contain; }
+      .vehicle-image { width: 78px; max-height: 54px; object-fit: contain; }
+      .image-spacer { width: 78px; height: 1px; }
+      .field { display: grid; grid-template-columns: minmax(88px, max-content) minmax(0, 1fr); gap: 6px; align-items: baseline; min-width: 0; }
+      .field span { display: inline; color: #344a50; font-size: 9px; font-weight: 650; line-height: 1.25; }
+      .field strong { display: inline; min-width: 0; font-size: 10px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
+      .overview-row .field { display: block; }
+      .overview-row .field span,
+      .overview-row .field strong { display: block; }
+      .overview-row .field strong { margin-top: 2px; }
+      .detail-card { page-break-inside: avoid; padding: 12px 0 16px; border-bottom: 1px solid #101820; }
+      .detail-card-head { display: grid; grid-template-columns: 132px 1fr 120px 72px; gap: 16px; align-items: start; margin-bottom: 14px; }
+      .detail-card-head .vehicle-image { width: 118px; max-height: 74px; }
+      .detail-identity .field { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 8px; text-align: center; }
+      .detail-identity .field span,
+      .detail-identity .field strong { display: block; }
+      .detail-section { display: grid; grid-template-columns: 78px 1fr; gap: 18px; margin: 7px 0; }
+      .detail-section h3 { font-size: 10px; }
+      .field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 24px; }
+      .image-section { align-items: start; }
+      .image-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+      .image-tile { margin: 0; page-break-inside: avoid; }
+      .image-tile img { width: 100%; height: 88px; object-fit: contain; border: 1px solid #d9e4df; border-radius: 4px; padding: 3px; }
+      .image-tile figcaption { margin-top: 4px; color: #4a6268; font-size: 8px; line-height: 1.25; overflow-wrap: anywhere; }
+      .description { border-left: 2px solid #67b532; padding-left: 8px; margin-top: 10px; color: #101820; white-space: pre-wrap; }
+      .footer { position: fixed; left: 14mm; right: 14mm; bottom: 8mm; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; border-top: 1px solid #101820; padding-top: 6px; font-size: 9px; color: #101820; }
+      .footer-center { text-align: center; font-weight: 700; }
+      .footer-right { text-align: right; }
       .screen-actions { position: sticky; top: 0; display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 12px; }
       button { border: 0; border-radius: 7px; padding: 10px 14px; background: #3c8eff; color: white; font-weight: 800; cursor: pointer; }
       @page { margin: 14mm; }
@@ -920,40 +1122,65 @@ function inventoryReportHtml(vehicles: Vehicle[], query: string, sort: { key: So
     </div>
     <header>
       <div>
-        <h1>RailKeeper2 Bestand</h1>
-        <p>${query.trim() ? `Filter: ${escapeHtml(query.trim())}` : "Alle Fahrzeuge"} · ${mode === "details" ? "Detailreport" : "Kurzliste"}</p>
+        <h1>${escapeHtml(options.title || "Fahrzeugsammlung")}</h1>
+        <div class="report-subtitle">${escapeHtml(modeTitle)} / Allgemein</div>
       </div>
-      <div class="meta">
-        <strong>${escapeHtml(now.toLocaleDateString("de-DE"))}</strong><br>
-        ${escapeHtml(now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }))}<br>
-        Sortierung: ${escapeHtml(sortLabels[sort.key])} ${sort.direction === "asc" ? "aufsteigend" : "absteigend"}
-      </div>
+      <img class="brand-mark" src="/brand/railkeeper-mark.png" alt="">
     </header>
-    <section class="summary">
-      <div><span>Fahrzeuge</span><strong>${vehicles.length}</strong></div>
-      <div><span>Bilder</span><strong>${totalImages}</strong></div>
-      <div><span>Beilagen</span><strong>${totalAttachments}</strong></div>
-      <div><span>CV-Werte</span><strong>${totalCVValues}</strong></div>
-    </section>
-    <h2>Übersicht</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Inventar</th>
-          <th>Hersteller</th>
-          <th>Artikel</th>
-          <th>Bezeichnung</th>
-          <th>Spur</th>
-          <th>Epoche</th>
-          <th>Kategorie</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>
-    ${detailSection}
+    <div class="report-meta">
+      <span>${escapeHtml(vehicles.length)} Fahrzeuge</span>
+      <span>${query.trim() ? `Filter: ${escapeHtml(query.trim())}` : "Alle Fahrzeuge"}</span>
+      <span>Sortierung: ${escapeHtml(sortLabels[sort.key])} ${sort.direction === "asc" ? "aufsteigend" : "absteigend"}</span>
+    </div>
+    ${options.mode === "details" ? detailRows : overviewRows}
+    <footer class="footer">
+      <span>${escapeHtml(now.toLocaleDateString("de-DE"))}</span>
+      <span class="footer-center">RailKeeper</span>
+      <span class="footer-right">${escapeHtml(modeTitle)}</span>
+    </footer>
   </body>
 </html>
 `;
+}
+
+function writePrintWindow(printWindow: Window, html: string) {
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+}
+
+function printHtmlFallback(html: string) {
+  const iframe = document.createElement("iframe");
+  iframe.title = "RailKeeper PDF Report";
+  iframe.style.position = "fixed";
+  iframe.style.right = "0";
+  iframe.style.bottom = "0";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.opacity = "0";
+  iframe.setAttribute("aria-hidden", "true");
+  document.body.appendChild(iframe);
+
+  const cleanup = () => {
+    window.setTimeout(() => iframe.remove(), 1000);
+  };
+  iframe.onload = () => {
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    cleanup();
+  };
+  iframe.srcdoc = html;
+}
+
+function openPrintDocument(html: string, name: string) {
+  const printWindow = window.open("", name, "width=1180,height=860");
+  if (printWindow) {
+    writePrintWindow(printWindow, html);
+    return;
+  }
+  printHtmlFallback(html);
 }
 
 function maintenanceIsDue(entry: VehicleMaintenance) {
@@ -1034,13 +1261,14 @@ function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
   const inventory = form.inventoryNumber || vehicle?.inventoryNumber || "";
   const name = form.name || vehicle?.name || "";
   const decoder = form.digitalDecoderNumber || form.dtDecoderNumber || vehicle?.digitalDecoderNumber || vehicle?.dtDecoderNumber || "";
-  const detailURL = vehicle?.id ? `${window.location.origin}/?vehicle=${encodeURIComponent(vehicle.id)}` : window.location.origin;
-  return [
-    `URL: ${detailURL}`,
-    `INV-Nr.: ${inventory}`,
-    `Bezeichnung: ${name}`,
-    `Decodernummer: ${decoder || "-"}`
-  ].join("\n");
+  const lines = [
+    `Inventar-Nr.: ${inventory || "-"}`,
+    `Bezeichnung: ${name || "-"}`
+  ];
+  if (decoder) {
+    lines.push(`Decoder-Nr.: ${decoder}`);
+  }
+  return lines.join("\n");
 }
 
 function composeBrandedQrSvg(svg: string) {
@@ -1235,11 +1463,355 @@ function VehicleDetailsFields({
         </label>
       </div>
 
+    </>
+  );
+}
+
+function VehicleOwnershipFields({
+  form,
+  readonly,
+  update
+}: {
+  form: CreateVehicleRequest;
+  readonly: boolean;
+  update: (patch: Partial<CreateVehicleRequest>) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <>
+      <div className="form-row four-columns">
+        <label>
+          {t("vehicle.field.acquisitionType")}
+          <select value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(acquisitionOptions, t("vehicles.select.placeholder"))}
+          </select>
+        </label>
+        <label>
+          {t("vehicle.field.acquiredFrom")}
+          <select value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(acquiredFromOptions, t("vehicles.select.placeholder"))}
+          </select>
+        </label>
+        <label>
+          {t("vehicle.field.purchasePrice")}
+          <input value={form.purchasePrice || ""} onChange={(event) => update({ purchasePrice: event.target.value })} disabled={readonly} inputMode="decimal" />
+        </label>
+        <label>
+          {t("vehicle.field.purchaseDate")}
+          <input type="date" value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={readonly} />
+        </label>
+      </div>
+
+      <div className="form-row">
+        <label>
+          {t("vehicle.field.storageLocation")}
+          <select value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(storageLocationOptions, t("vehicles.select.placeholder"))}
+          </select>
+        </label>
+        <label>
+          {t("vehicle.field.storageDetails")}
+          <input value={form.storageDetails || ""} onChange={(event) => update({ storageDetails: event.target.value })} disabled={readonly} />
+        </label>
+      </div>
+
+      <div className="form-row three-columns">
+        <label>
+          {t("vehicle.field.condition")}
+          <select value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(vehicleConditionOptions, t("vehicles.select.placeholder"))}
+          </select>
+        </label>
+        <label>
+          {t("vehicle.field.conditionDetails")}
+          <input value={form.conditionDetails || ""} onChange={(event) => update({ conditionDetails: event.target.value })} disabled={readonly} />
+        </label>
+        <label>
+          {t("vehicle.field.packaging")}
+          <select value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={readonly}>
+            {renderStaticOptions(packagingOptions, t("vehicles.select.placeholder"))}
+          </select>
+        </label>
+      </div>
+
       <label>
         {t("vehicle.field.additionalInfo")}
-        <textarea value={form.additionalInfo || ""} onChange={(event) => update({ additionalInfo: event.target.value })} disabled={readonly} rows={4} />
+        <textarea value={form.additionalInfo || ""} onChange={(event) => update({ additionalInfo: event.target.value })} disabled={readonly} rows={5} />
       </label>
     </>
+  );
+}
+
+type VehicleViewField = {
+  label: string;
+  value?: string | number | boolean;
+  showFalse?: boolean;
+  href?: string;
+};
+
+function viewValue(value?: string | number | boolean) {
+  if (typeof value === "boolean") return value ? "Ja" : "Nein";
+  if (value === 0) return "0";
+  return String(value || "").trim();
+}
+
+function hasViewValue(field: VehicleViewField) {
+  if (typeof field.value === "boolean") return field.value || field.showFalse;
+  if (typeof field.value === "number") return true;
+  return Boolean(String(field.value || "").trim());
+}
+
+function VehicleViewSection({ title, fields }: { title: string; fields: VehicleViewField[] }) {
+  const visibleFields = fields.filter(hasViewValue);
+  if (visibleFields.length === 0) return null;
+  return (
+    <section className="vehicle-view-section">
+      <h3>{title}</h3>
+      <dl>
+        {visibleFields.map((field) => (
+          <div key={`${title}-${field.label}`}>
+            <dt>{field.label}</dt>
+            <dd>
+              {field.href ? (
+                <a href={field.href} target="_blank" rel="noreferrer">
+                  {viewValue(field.value)}
+                </a>
+              ) : (
+                viewValue(field.value)
+              )}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
+function VehicleReadOnlyView({
+  vehicle,
+  onEdit,
+  onPrint,
+  onQr,
+  onPreviewImage
+}: {
+  vehicle: Vehicle;
+  onEdit: () => void;
+  onPrint: () => void;
+  onQr: () => void;
+  onPreviewImage: (image: PendingArticleImage) => void;
+}) {
+  const { t } = useI18n();
+  const image = primaryImage(vehicle.images);
+  const configuredFunctions = (vehicle.functions || []).filter((item) => item.name || item.symbolKey || item.notes);
+  const activeMaintenance = (vehicle.maintenance || []).filter((item) => item.kind || item.status || item.dueDate || item.completedAt || item.notes);
+  const cvValues = vehicle.cvValues || [];
+  const cvFiles = vehicle.cvFiles || [];
+  const attachments = vehicle.attachments || [];
+  const images = vehicle.images || [];
+
+  return (
+    <div className="modal-body vehicle-read-view">
+      <section className="vehicle-read-hero">
+        <div className="vehicle-read-image">
+          {image?.url ? <img src={previewImageUrl(image)} alt="" /> : <span>{t("exhibition.noPreview")}</span>}
+        </div>
+        <div className="vehicle-read-title">
+          <p className="eyebrow">Fahrzeugansicht</p>
+          <h2>{vehicle.name || vehicle.inventoryNumber}</h2>
+          <p>{[vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(" · ")}</p>
+          <div className="vehicle-read-chips">
+            <span>{vehicle.inventoryNumber}</span>
+            {vehicle.category && <span>{vehicle.category}</span>}
+            {vehicle.gattung && <span>{vehicle.gattung}</span>}
+            <span>{vehicle.digital ? "Digital" : "Analog"}</span>
+            {vehicle.exhibitionReady && <span>Messe tauglich</span>}
+          </div>
+        </div>
+        <div className="vehicle-read-actions">
+          <button type="button" className="icon-button" onClick={onEdit} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
+            <Pencil size={16} />
+          </button>
+          <button type="button" className="icon-button" onClick={onPrint} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")}>
+            <Printer size={16} />
+          </button>
+          <button type="button" className="icon-button" onClick={onQr} aria-label={t("vehicles.detail.qrShow")} title={t("vehicles.detail.qrShow")}>
+            <QrCode size={16} />
+          </button>
+        </div>
+      </section>
+
+      <div className="vehicle-view-grid">
+        <VehicleViewSection
+          title="Produkt"
+          fields={[
+            { label: "Hersteller", value: vehicle.manufacturer },
+            { label: "Artikel-Nr.", value: vehicle.articleNumber },
+            { label: "EAN", value: vehicle.ean },
+            { label: "Listenpreis", value: formatEuro(vehicle.listPrice) },
+            { label: "Produktionszeit", value: vehicle.productionPeriod },
+            { label: "Artikelquelle", value: sourceShortLink(vehicle.articleSourceUrl), href: vehicle.articleSourceUrl }
+          ]}
+        />
+        <VehicleViewSection
+          title="Modell"
+          fields={[
+            { label: "Bezeichnung", value: vehicle.name },
+            { label: "Spurweite", value: vehicle.gauge },
+            { label: "Epoche", value: vehicle.epoch },
+            { label: "Bahngesellschaft", value: vehicle.railwayCompany },
+            { label: "Kategorie", value: vehicle.category },
+            { label: "Gattung", value: vehicle.gattung },
+            { label: "Baureihe", value: vehicle.series },
+            { label: "Fahrzeug-Nr.", value: vehicle.vehicleNumber },
+            { label: "Beschreibung", value: vehicle.description },
+            { label: "Messe tauglich", value: vehicle.exhibitionReady }
+          ]}
+        />
+        <VehicleViewSection
+          title="Details"
+          fields={[
+            { label: "Länge", value: vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "" },
+            { label: "Gewicht", value: vehicle.weightG ? `${vehicle.weightG} g` : "" },
+            { label: "Farbe", value: vehicle.color },
+            { label: "Beschriftung", value: vehicle.lettering },
+            { label: "Beladung", value: vehicle.load },
+            { label: "Inneneinrichtung", value: vehicle.interior },
+            { label: "Achsen", value: vehicle.axles },
+            { label: "Anzahl Achsen", value: vehicle.axleCount },
+            { label: "Haftreifen", value: vehicle.tractionTireCount },
+            { label: "Radsatz", value: vehicle.wheelset },
+            { label: "Kupplung", value: vehicle.couplingSame ? "Vorne und hinten gleich" : "" },
+            { label: "Kupplung vorne", value: vehicle.couplingFront },
+            { label: "Kupplung hinten", value: vehicle.couplingRear },
+            { label: "Stromaufnahme", value: vehicle.powerPickup },
+            { label: "Fahrlicht", value: vehicle.headlightsEnabled },
+            { label: "Fahrlicht Beschreibung", value: vehicle.headlightsDescription },
+            { label: "Antrieb", value: vehicle.driveEnabled },
+            { label: "Antrieb Beschreibung", value: vehicle.driveDescription },
+            { label: "Beleuchtung", value: vehicle.lightingEnabled },
+            { label: "Beleuchtung Beschreibung", value: vehicle.lightingDescription },
+            { label: "Soundgenerator", value: vehicle.soundGeneratorEnabled },
+            { label: "Sound Beschreibung", value: vehicle.soundGeneratorDescription },
+            { label: "Rauchgenerator", value: vehicle.smokeGeneratorEnabled },
+            { label: "Rauch Beschreibung", value: vehicle.smokeGeneratorDescription }
+          ]}
+        />
+        <VehicleViewSection
+          title="Fahrzeug"
+          fields={[
+            { label: "Erwerb", value: vehicle.acquisitionType },
+            { label: "von/bei", value: vehicle.acquiredFrom },
+            { label: "Preis", value: formatEuro(vehicle.purchasePrice) },
+            { label: "Datum", value: vehicle.purchaseDate ? formatDate(vehicle.purchaseDate) : "" },
+            { label: "Standort", value: vehicle.storageLocation },
+            { label: "Details", value: vehicle.storageDetails },
+            { label: "Zustand", value: vehicle.condition },
+            { label: "Zustand Details", value: vehicle.conditionDetails },
+            { label: "Verpackung", value: vehicle.packaging },
+            { label: "Zusatzinformationen", value: vehicle.additionalInfo }
+          ]}
+        />
+        <VehicleViewSection
+          title="Steuerung"
+          fields={[
+            { label: "Digital", value: vehicle.digital },
+            { label: "Decoder-Nr.", value: vehicle.digitalDecoderNumber },
+            { label: "DT-Decoder", value: vehicle.dtDecoder },
+            { label: "DT Decoder-Nr.", value: vehicle.dtDecoderNumber },
+            { label: "ABC Bremsen", value: vehicle.abcBrakes },
+            { label: "Adapter / Schnittstelle", value: vehicle.adapter },
+            { label: "QR-Code aktiv", value: vehicle.qrCodeEnabled }
+          ]}
+        />
+      </div>
+
+      {configuredFunctions.length > 0 && (
+        <section className="vehicle-view-section vehicle-view-wide">
+          <h3>Funktionstasten</h3>
+          <div className="vehicle-view-list">
+            {configuredFunctions.map((item) => (
+              <article key={item.functionKey}>
+                <strong>{item.functionKey}</strong>
+                <span>{[item.name, item.functionType, item.mode, item.notes].filter(Boolean).join(" · ")}</span>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {images.length > 0 && (
+        <section className="vehicle-view-section vehicle-view-wide">
+          <h3>Bilder</h3>
+          <div className="vehicle-view-gallery">
+            {images.map((item) => (
+              <figure key={item.id}>
+                <button type="button" className="vehicle-view-image-button" onClick={() => onPreviewImage(vehicleImageToPending(item))}>
+                  <img src={previewImageUrl(item)} alt="" />
+                </button>
+                <figcaption>{[item.isPrimary ? "Hauptbild" : "Alternativbild", item.title].filter(Boolean).join(" · ") || item.fileName || "Bild"}</figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(attachments.length > 0 || activeMaintenance.length > 0 || cvValues.length > 0 || cvFiles.length > 0) && (
+        <div className="vehicle-view-grid">
+          {activeMaintenance.length > 0 && (
+            <section className="vehicle-view-section">
+              <h3>Wartung</h3>
+              <div className="vehicle-view-list">
+                {activeMaintenance.map((item) => (
+                  <article key={item.id}>
+                    <strong>{item.kind}</strong>
+                    <span>{[item.status, item.dueDate && `Fällig ${formatDate(item.dueDate)}`, item.completedAt && `Erledigt ${formatDate(item.completedAt)}`, item.notes].filter(Boolean).join(" · ")}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          {attachments.length > 0 && (
+            <section className="vehicle-view-section">
+              <h3>Beilagen</h3>
+              <div className="vehicle-view-list">
+                {attachments.map((item) => (
+                  <article key={item.id}>
+                    <strong>{item.originalName || item.fileName}</strong>
+                    <span>{[item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          {cvValues.length > 0 && (
+            <section className="vehicle-view-section">
+              <h3>CV-Werte</h3>
+              <div className="vehicle-view-list compact">
+                {cvValues.slice(0, 12).map((item) => (
+                  <article key={item.id}>
+                    <strong>CV {item.cvNumber}</strong>
+                    <span>{[String(item.value), item.category, item.decoderProfile, item.description].filter(Boolean).join(" · ")}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+          {cvFiles.length > 0 && (
+            <section className="vehicle-view-section">
+              <h3>CV-Dateien</h3>
+              <div className="vehicle-view-list">
+                {cvFiles.map((item) => (
+                  <article key={item.id}>
+                    <strong>{item.originalName || item.fileName}</strong>
+                    <span>{[item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1469,6 +2041,7 @@ function QrDialog({
   onPrint: () => void;
 }) {
   const { t } = useI18n();
+  const decoderNumber = form.digitalDecoderNumber || form.dtDecoderNumber || "";
   return (
     <div className="confirm-layer qr-layer" role="dialog" aria-modal="true" aria-label="QR-Code">
       <section className="qr-dialog">
@@ -1476,6 +2049,7 @@ function QrDialog({
           <div>
             <h2>QR-Code</h2>
             <p>{form.inventoryNumber || t("vehicles.qr.noInventory")} - {form.name || t("vehicles.qr.noName")}</p>
+            {decoderNumber && <p className="qr-dialog-meta">Decoder-Nr.: {decoderNumber}</p>}
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
             <X size={17} />
@@ -1483,7 +2057,14 @@ function QrDialog({
         </div>
         {error && <p className="form-message">{error}</p>}
         <button type="button" className="qr-preview-button" onClick={onPrint} disabled={!qrSvg} title={t("vehicles.qr.printView")}>
-          {qrSvg ? <span dangerouslySetInnerHTML={{ __html: qrSvg }} /> : t("vehicles.qr.creating")}
+          {qrSvg ? (
+            <>
+              <span dangerouslySetInnerHTML={{ __html: qrSvg }} />
+              <img className="qr-preview-logo" src="/brand/railkeeper-mark.png" alt="" />
+            </>
+          ) : (
+            t("vehicles.qr.creating")
+          )}
         </button>
         <div className="qr-dialog-actions">
           <button type="button" className="secondary-button" onClick={onDownloadPng} disabled={!qrSvg}>
@@ -1542,14 +2123,123 @@ type BarcodeSearchDialogProps = {
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 };
 
+type DetectedBarcode = {
+  rawValue?: string;
+};
+
+type BarcodeDetectorInstance = {
+  detect(source: HTMLVideoElement): Promise<DetectedBarcode[]>;
+};
+
+type BarcodeDetectorConstructor = new (options?: { formats?: string[] }) => BarcodeDetectorInstance;
+
 function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: BarcodeSearchDialogProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const scannerActiveRef = useRef(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scannerMessage, setScannerMessage] = useState("");
 
   useEffect(() => {
     inputRef.current?.focus();
     inputRef.current?.select();
   }, []);
+
+  const stopCameraScan = useCallback(() => {
+    scannerActiveRef.current = false;
+    if (frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+      frameRef.current = null;
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setScannerOpen(false);
+  }, []);
+
+  useEffect(() => () => stopCameraScan(), [stopCameraScan]);
+
+  const startCameraScan = async () => {
+    const Detector = (window as typeof window & { BarcodeDetector?: BarcodeDetectorConstructor }).BarcodeDetector;
+    if (!navigator.mediaDevices?.getUserMedia || !Detector) {
+      setScannerMessage(t("vehicles.barcode.cameraUnsupported"));
+      setScannerOpen(false);
+      return;
+    }
+
+    stopCameraScan();
+    setScannerMessage(t("vehicles.barcode.cameraStarting"));
+    setScannerOpen(true);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: {
+          facingMode: { ideal: "environment" }
+        }
+      });
+      streamRef.current = stream;
+
+      const video = videoRef.current;
+      if (!video) {
+        stream.getTracks().forEach((track) => track.stop());
+        setScannerMessage(t("vehicles.barcode.cameraUnavailable"));
+        return;
+      }
+
+      video.srcObject = stream;
+      await video.play();
+
+      let detector: BarcodeDetectorInstance;
+      try {
+        detector = new Detector({ formats: ["ean_13", "ean_8", "upc_a", "upc_e", "code_128"] });
+      } catch {
+        detector = new Detector();
+      }
+
+      scannerActiveRef.current = true;
+      setScannerMessage(t("vehicles.barcode.cameraReady"));
+
+      const scan = async () => {
+        if (!scannerActiveRef.current || !videoRef.current) {
+          return;
+        }
+        try {
+          if (videoRef.current.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+            const codes = await detector.detect(videoRef.current);
+            const rawValue = codes.find((code) => code.rawValue)?.rawValue?.trim();
+            const ean = rawValue?.replace(/[^\d]/g, "") ?? "";
+            if (ean.length >= 8) {
+              onValueChange(ean);
+              setScannerMessage(t("vehicles.barcode.cameraDetected"));
+              stopCameraScan();
+              inputRef.current?.focus();
+              inputRef.current?.select();
+              return;
+            }
+          }
+        } catch {
+          setScannerMessage(t("vehicles.barcode.cameraDetecting"));
+        }
+        frameRef.current = window.requestAnimationFrame(scan);
+      };
+
+      frameRef.current = window.requestAnimationFrame(scan);
+    } catch {
+      setScannerMessage(t("vehicles.barcode.cameraPermission"));
+      setScannerOpen(false);
+    }
+  };
+
+  const handleClose = () => {
+    stopCameraScan();
+    onClose();
+  };
 
   return (
     <div className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.barcode.title")}>
@@ -1559,32 +2249,53 @@ function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: Barcod
             <h2>{t("vehicles.barcode.title")}</h2>
             <p>{t("vehicles.barcode.help")}</p>
           </div>
-          <button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
+          <button type="button" className="icon-button" onClick={handleClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
             <X size={17} />
           </button>
         </header>
 
         <label className="barcode-input-label">
           Barcode / EAN
-          <span className="barcode-input-shell">
-            <Barcode size={20} aria-hidden="true" />
-            <input
-              ref={inputRef}
-              value={value}
-              onChange={(event) => onValueChange(event.target.value)}
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder={t("vehicles.barcode.placeholder")}
-            />
+          <span className="barcode-input-row">
+            <span className="barcode-input-shell">
+              <Barcode size={18} aria-hidden="true" />
+              <input
+                ref={inputRef}
+                value={value}
+                onChange={(event) => onValueChange(event.target.value)}
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder={t("vehicles.barcode.placeholder")}
+              />
+            </span>
+            <button type="button" className="secondary-button barcode-camera-button" onClick={startCameraScan}>
+              <Camera size={15} aria-hidden="true" />
+              {t("vehicles.barcode.camera")}
+            </button>
           </span>
         </label>
+
+        {scannerOpen && (
+          <section className="barcode-camera-panel">
+            <video ref={videoRef} muted playsInline />
+            <div>
+              <strong>{t("vehicles.barcode.cameraTitle")}</strong>
+              <p>{scannerMessage}</p>
+            </div>
+            <button type="button" className="secondary-button" onClick={stopCameraScan}>
+              {t("vehicles.barcode.cameraClose")}
+            </button>
+          </section>
+        )}
+
+        {!scannerOpen && scannerMessage && <p className="barcode-scan-message">{scannerMessage}</p>}
 
         <p className="barcode-hint">
           {t("vehicles.barcode.hint")}
         </p>
 
         <footer className="barcode-search-actions">
-          <button type="button" className="secondary-button" onClick={onClose}>
+          <button type="button" className="secondary-button" onClick={handleClose}>
             {t("vehicles.cancel")}
           </button>
           <button type="submit" className="primary-button">
@@ -1612,7 +2323,8 @@ export function VehiclesView() {
   const [activeTab, setActiveTab] = useState<ModalTab>("model");
   const [openSections, setOpenSections] = useState({
     model: true,
-    details: false
+    details: false,
+    vehicle: false
   });
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [articleSearchOpen, setArticleSearchOpen] = useState(false);
@@ -1649,8 +2361,20 @@ export function VehiclesView() {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [qrSvg, setQrSvg] = useState("");
   const [qrError, setQrError] = useState("");
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportMode, setReportMode] = useState<InventoryReportMode>("summary");
+  const [reportTitle, setReportTitle] = useState("Fahrzeugsammlung");
+  const [reportSelection, setReportSelection] = useState<InventoryReportSelection>("all");
+  const [reportIncludeQRCode, setReportIncludeQRCode] = useState(true);
+  const [reportIncludeImages, setReportIncludeImages] = useState(true);
+  const [selectedVehicleIDs, setSelectedVehicleIDs] = useState<Set<string>>(() => new Set());
   const [inventoryView, setInventoryView] = useState<InventoryViewMode>(inventoryViewMode);
   const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
+  const [maintenanceFilter, setMaintenanceFilter] = useState<MaintenanceFilter>("all");
+  const [manufacturerFilter, setManufacturerFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [gattungFilter, setGattungFilter] = useState("");
+  const [exhibitionReadyFilter, setExhibitionReadyFilter] = useState(false);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: "inventoryNumber",
@@ -1670,6 +2394,14 @@ export function VehiclesView() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const availableIDs = new Set(vehicles.map((vehicle) => vehicle.id));
+    setSelectedVehicleIDs((current) => {
+      const next = new Set(Array.from(current).filter((id) => availableIDs.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [vehicles]);
 
   useEffect(() => {
     const reloadVisible = () => {
@@ -1736,6 +2468,7 @@ export function VehiclesView() {
     const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
     const digital = vehicles.filter((vehicle) => vehicle.digital).length;
     const maintenanceDue = vehicles.filter((vehicle) => (vehicle.maintenance || []).some(maintenanceIsDue)).length;
+    const exhibitionReady = vehicles.filter((vehicle) => vehicle.exhibitionReady).length;
 
     return {
       all: vehicles.length,
@@ -1743,20 +2476,43 @@ export function VehiclesView() {
       analog: vehicles.length - digital,
       withImages,
       withoutImages: vehicles.length - withImages,
-      maintenanceDue
+      maintenanceDue,
+      withoutMaintenance: vehicles.length - maintenanceDue,
+      exhibitionReady
     };
   }, [vehicles]);
 
+  const inventoryFilterOptions = useMemo(() => {
+    const unique = (values: string[]) =>
+      Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) =>
+        left.localeCompare(right, "de-DE", { sensitivity: "base" })
+      );
+
+    const gattungSource = categoryFilter ? vehicles.filter((vehicle) => vehicle.category === categoryFilter) : vehicles;
+
+    return {
+      manufacturers: unique(vehicles.map((vehicle) => vehicle.manufacturer)),
+      categories: unique(vehicles.map((vehicle) => vehicle.category || "")),
+      gattungen: unique(gattungSource.map((vehicle) => vehicle.gattung || ""))
+    };
+  }, [categoryFilter, vehicles]);
+
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((vehicle) => {
-      if (inventoryFilter === "digital") return vehicle.digital;
-      if (inventoryFilter === "analog") return !vehicle.digital;
-      if (inventoryFilter === "withImages") return (vehicle.images || []).length > 0;
-      if (inventoryFilter === "withoutImages") return (vehicle.images || []).length === 0;
-      if (inventoryFilter === "maintenanceDue") return (vehicle.maintenance || []).some(maintenanceIsDue);
+      const maintenanceDue = (vehicle.maintenance || []).some(maintenanceIsDue);
+      if (inventoryFilter === "digital" && !vehicle.digital) return false;
+      if (inventoryFilter === "analog" && vehicle.digital) return false;
+      if (inventoryFilter === "withImages" && (vehicle.images || []).length === 0) return false;
+      if (inventoryFilter === "withoutImages" && (vehicle.images || []).length > 0) return false;
+      if (maintenanceFilter === "due" && !maintenanceDue) return false;
+      if (maintenanceFilter === "none" && maintenanceDue) return false;
+      if (manufacturerFilter && vehicle.manufacturer !== manufacturerFilter) return false;
+      if (categoryFilter && vehicle.category !== categoryFilter) return false;
+      if (gattungFilter && vehicle.gattung !== gattungFilter) return false;
+      if (exhibitionReadyFilter && !vehicle.exhibitionReady) return false;
       return true;
     });
-  }, [inventoryFilter, vehicles]);
+  }, [categoryFilter, exhibitionReadyFilter, gattungFilter, inventoryFilter, maintenanceFilter, manufacturerFilter, vehicles]);
 
   const sortedVehicles = useMemo(() => {
     return [...filteredVehicles].sort((left, right) => {
@@ -1767,6 +2523,13 @@ export function VehiclesView() {
       return sort.direction === "asc" ? result : -result;
     });
   }, [filteredVehicles, sort]);
+
+  const selectedVisibleVehicles = useMemo(
+    () => sortedVehicles.filter((vehicle) => selectedVehicleIDs.has(vehicle.id)),
+    [selectedVehicleIDs, sortedVehicles]
+  );
+  const allVisibleSelected = sortedVehicles.length > 0 && sortedVehicles.every((vehicle) => selectedVehicleIDs.has(vehicle.id));
+  const someVisibleSelected = sortedVehicles.some((vehicle) => selectedVehicleIDs.has(vehicle.id));
 
   const maintenanceReminders = useMemo<MaintenanceReminder[]>(() => {
     return vehicles
@@ -1797,14 +2560,57 @@ export function VehiclesView() {
     };
   }, [vehicles]);
 
-  const inventoryFilters: { key: InventoryFilter; label: string; count: number }[] = [
-    { key: "all", label: t("vehicles.filter.all"), count: inventoryFilterCounts.all },
-    { key: "digital", label: t("vehicles.filter.digital"), count: inventoryFilterCounts.digital },
-    { key: "analog", label: t("vehicles.filter.analog"), count: inventoryFilterCounts.analog },
-    { key: "withImages", label: t("vehicles.filter.withImages"), count: inventoryFilterCounts.withImages },
-    { key: "withoutImages", label: t("vehicles.filter.withoutImages"), count: inventoryFilterCounts.withoutImages },
-    { key: "maintenanceDue", label: t("vehicles.filter.maintenanceDue"), count: inventoryFilterCounts.maintenanceDue }
+  const inventoryFilters = [
+    { key: "all" as const, label: t("vehicles.filter.all"), count: inventoryFilterCounts.all },
+    { key: "digital" as const, label: t("vehicles.filter.digital"), count: inventoryFilterCounts.digital, icon: <Cpu size={15} aria-hidden="true" /> },
+    { key: "analog" as const, label: t("vehicles.filter.analog"), count: inventoryFilterCounts.analog, icon: <Circle size={15} aria-hidden="true" /> },
+    { key: "withImages" as const, label: t("vehicles.filter.withImages"), count: inventoryFilterCounts.withImages, icon: <Image size={15} aria-hidden="true" /> },
+    { key: "withoutImages" as const, label: t("vehicles.filter.withoutImages"), count: inventoryFilterCounts.withoutImages, icon: <ImageOff size={15} aria-hidden="true" /> }
   ];
+
+  const maintenanceFilters = [
+    { key: "all" as const, label: t("vehicles.filter.all"), count: vehicles.length },
+    { key: "due" as const, label: t("vehicles.filter.maintenanceDue"), count: inventoryFilterCounts.maintenanceDue, icon: <Wrench size={15} aria-hidden="true" /> },
+    { key: "none" as const, label: t("vehicles.filter.withoutMaintenance"), count: inventoryFilterCounts.withoutMaintenance, icon: <CircleOff size={15} aria-hidden="true" /> }
+  ];
+
+  const hasActiveInventoryFilters =
+    inventoryFilter !== "all" ||
+    maintenanceFilter !== "all" ||
+    Boolean(manufacturerFilter || categoryFilter || gattungFilter || exhibitionReadyFilter);
+
+  const resetInventoryFilters = () => {
+    setInventoryFilter("all");
+    setMaintenanceFilter("all");
+    setManufacturerFilter("");
+    setCategoryFilter("");
+    setGattungFilter("");
+    setExhibitionReadyFilter(false);
+  };
+
+  const toggleVehicleSelection = (vehicleID: string) => {
+    setSelectedVehicleIDs((current) => {
+      const next = new Set(current);
+      if (next.has(vehicleID)) {
+        next.delete(vehicleID);
+      } else {
+        next.add(vehicleID);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllVisibleSelection = () => {
+    setSelectedVehicleIDs((current) => {
+      const next = new Set(current);
+      if (allVisibleSelected) {
+        sortedVehicles.forEach((vehicle) => next.delete(vehicle.id));
+      } else {
+        sortedVehicles.forEach((vehicle) => next.add(vehicle.id));
+      }
+      return next;
+    });
+  };
 
   const filteredGattungen = useMemo(() => {
     const categoryKey = options.categories.find((entry) => optionValue(entry) === form.category)?.key;
@@ -2630,6 +3436,46 @@ export function VehiclesView() {
     return composeBrandedQrSvg(svg);
   };
 
+  const buildBrandedQrPngDataUrl = async (payload: string, width = 768) => {
+    const dataURL = await QRCode.toDataURL(payload, {
+      width,
+      margin: 2,
+      color: {
+        dark: "#0b1e26",
+        light: "#ffffff"
+      }
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = width;
+    const context = canvas.getContext("2d");
+    if (!context) return dataURL;
+    const qrImage = new window.Image();
+    await new Promise<void>((resolve, reject) => {
+      qrImage.onload = () => resolve();
+      qrImage.onerror = () => reject(new Error("QR-Code konnte nicht geladen werden."));
+      qrImage.src = dataURL;
+    });
+    context.drawImage(qrImage, 0, 0, width, width);
+    const logoImage = new window.Image();
+    await new Promise<void>((resolve) => {
+      logoImage.onload = () => resolve();
+      logoImage.onerror = () => resolve();
+      logoImage.src = "/brand/railkeeper-mark.png";
+    });
+    const plateSize = Math.round(width * 0.14);
+    const plateX = Math.round((width - plateSize) / 2);
+    const plateRadius = Math.round(plateSize * 0.18);
+    context.fillStyle = "#fff";
+    context.roundRect(plateX, plateX, plateSize, plateSize, plateRadius);
+    context.fill();
+    if (logoImage.complete && logoImage.naturalWidth > 0) {
+      const logoPadding = Math.round(plateSize * 0.12);
+      context.drawImage(logoImage, plateX + logoPadding, plateX + logoPadding, plateSize - logoPadding * 2, plateSize - logoPadding * 2);
+    }
+    return canvas.toDataURL("image/png");
+  };
+
   const generateQr = async () => {
     setQrDialogOpen(true);
     setQrSvg("");
@@ -2652,40 +3498,8 @@ export function VehiclesView() {
   };
 
   const downloadQrPng = async () => {
-    const dataURL = await QRCode.toDataURL(qrPayload(selected, form), {
-      width: 768,
-      margin: 2,
-      color: {
-        dark: "#0b1e26",
-        light: "#ffffff"
-      }
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = 768;
-    canvas.height = 768;
-    const context = canvas.getContext("2d");
-    if (!context) return;
-    const qrImage = new window.Image();
-    const logoImage = new window.Image();
-    await new Promise<void>((resolve, reject) => {
-      qrImage.onload = () => resolve();
-      qrImage.onerror = () => reject(new Error("QR-Code konnte nicht geladen werden."));
-      qrImage.src = dataURL;
-    });
-    context.drawImage(qrImage, 0, 0);
-    await new Promise<void>((resolve) => {
-      logoImage.onload = () => resolve();
-      logoImage.onerror = () => resolve();
-      logoImage.src = "/brand/railkeeper-mark.png";
-    });
-    context.fillStyle = "#fff";
-    context.roundRect(333, 333, 102, 102, 20);
-    context.fill();
-    if (logoImage.complete) {
-      context.drawImage(logoImage, 345, 345, 78, 78);
-    }
     const link = document.createElement("a");
-    link.href = canvas.toDataURL("image/png");
+    link.href = await buildBrandedQrPngDataUrl(qrPayload(selected, form));
     link.download = `${form.inventoryNumber || "railkeeper"}-qr.png`;
     link.click();
   };
@@ -2728,30 +3542,60 @@ export function VehiclesView() {
     printWindow.print();
   };
 
-  const printInventoryReport = (reportMode: InventoryReportMode) => {
-    if (sortedVehicles.length === 0) {
+  const buildInventoryReportAssets = async (reportVehicles: Vehicle[], includeQRCode = reportIncludeQRCode) => {
+    const assets: InventoryReportAssets = {};
+    if (!includeQRCode) return assets;
+    await Promise.all(
+      reportVehicles.map(async (vehicle) => {
+        assets[vehicle.id] = {
+          qrCode: await buildBrandedQrPngDataUrl(qrPayload(vehicle, vehicleToForm(vehicle)), 192)
+        };
+      })
+    );
+    return assets;
+  };
+
+  const loadCompleteReportVehicles = async (reportVehicles: Vehicle[]) => {
+    return Promise.all(reportVehicles.map((vehicle) => api.vehicle(vehicle.id)));
+  };
+
+  const createInventoryReport = async (event?: FormEvent) => {
+    event?.preventDefault();
+    const reportVehicles = reportSelection === "selected" ? selectedVisibleVehicles : sortedVehicles;
+    if (reportVehicles.length === 0) {
       setMessage("Es gibt keine Fahrzeuge für den PDF-Report.");
       return;
     }
-    const printWindow = window.open("", `railkeeper-inventory-${reportMode}`, "width=1180,height=860");
-    if (!printWindow) {
-      setMessage("Druckfenster konnte nicht geöffnet werden.");
-      return;
+    try {
+      const completeReportVehicles = await loadCompleteReportVehicles(reportVehicles);
+      const assets = await buildInventoryReportAssets(completeReportVehicles);
+      const html = inventoryReportHtml(completeReportVehicles, query, sort, {
+        mode: reportMode,
+        title: reportTitle.trim() || "Fahrzeugsammlung",
+        includeQRCode: reportIncludeQRCode,
+        includeImages: reportIncludeImages
+      }, assets);
+      openPrintDocument(html, `railkeeper-inventory-${reportMode}`);
+      setReportDialogOpen(false);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Report konnte nicht erstellt werden.");
     }
-    printWindow.document.write(inventoryReportHtml(sortedVehicles, query, sort, reportMode));
-    printWindow.document.close();
-    printWindow.focus();
   };
 
-  const printVehicleReport = (vehicle: Vehicle) => {
-    const printWindow = window.open("", `railkeeper-vehicle-${vehicle.id}`, "width=1180,height=860");
-    if (!printWindow) {
-      setMessage("Druckfenster konnte nicht geöffnet werden.");
-      return;
+  const printVehicleReport = async (vehicle: Vehicle) => {
+    try {
+      const completeVehicle = await api.vehicle(vehicle.id);
+      const assets = await buildInventoryReportAssets([completeVehicle], true);
+      const html = inventoryReportHtml([completeVehicle], completeVehicle.inventoryNumber || completeVehicle.name, sort, {
+        mode: "details",
+        title: completeVehicle.name || completeVehicle.inventoryNumber || "Fahrzeugsammlung",
+        includeQRCode: true,
+        includeImages: true
+      }, assets);
+      openPrintDocument(html, `railkeeper-vehicle-${completeVehicle.id}`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Report konnte nicht erstellt werden.");
     }
-    printWindow.document.write(inventoryReportHtml([vehicle], vehicle.inventoryNumber || vehicle.name, sort, "details"));
-    printWindow.document.close();
-    printWindow.focus();
   };
 
   const toggleSort = (key: SortKey) => {
@@ -2783,7 +3627,7 @@ export function VehiclesView() {
     setCVImportPreview(null);
     setCVFileUploadPreview(null);
     setActiveTab("model");
-    setOpenSections({ model: true, details: false });
+    setOpenSections({ model: true, details: false, vehicle: false });
     setModalOpen(true);
     setMessage("");
   };
@@ -2816,7 +3660,7 @@ export function VehiclesView() {
         setSelectedDetail(detail);
         setMode("view");
         setActiveTab(tab);
-        setOpenSections({ model: true, details: false });
+        setOpenSections({ model: true, details: false, vehicle: false });
         setModalOpen(true);
         setMessage("");
       })
@@ -2830,7 +3674,7 @@ export function VehiclesView() {
         setSelectedDetail(detail);
         setMode("edit");
         setActiveTab("model");
-        setOpenSections({ model: true, details: false });
+        setOpenSections({ model: true, details: false, vehicle: false });
         setModalOpen(true);
         setMessage("");
       })
@@ -2847,7 +3691,7 @@ export function VehiclesView() {
         setSelectedDetail(detail);
         setMode("view");
         setActiveTab("model");
-        setOpenSections({ model: true, details: false });
+        setOpenSections({ model: true, details: false, vehicle: false });
         setModalOpen(true);
         setQrSvg(await buildQrSvg(detail, vehicleToForm(detail)));
       })
@@ -3014,8 +3858,19 @@ export function VehiclesView() {
       </section>
 
       <section className="inventory-status-row" aria-label={t("vehicles.status")}>
-        <article className={inventoryFilter === "all" ? "inventory-status-card active" : "inventory-status-card"}>
-          <button type="button" onClick={() => setInventoryFilter("all")} aria-label={t("vehicles.status.allAria")}>
+        <article className={inventoryFilter === "all" && maintenanceFilter === "all" && !manufacturerFilter && !categoryFilter && !gattungFilter && !exhibitionReadyFilter ? "inventory-status-card active" : "inventory-status-card"}>
+          <button
+            type="button"
+            onClick={() => {
+              setInventoryFilter("all");
+              setMaintenanceFilter("all");
+              setManufacturerFilter("");
+              setCategoryFilter("");
+              setGattungFilter("");
+              setExhibitionReadyFilter(false);
+            }}
+            aria-label={t("vehicles.status.allAria")}
+          >
             <span><PackageSearch size={16} aria-hidden="true" /></span>
             <small>{t("vehicles.totalInventory")}</small>
             <strong>{vehicles.length}</strong>
@@ -3033,9 +3888,9 @@ export function VehiclesView() {
         <article className={[
           "inventory-status-card",
           maintenanceReminderSummary.due > 0 ? "attention" : "",
-          inventoryFilter === "maintenanceDue" ? "active" : ""
+          maintenanceFilter === "due" ? "active" : ""
         ].filter(Boolean).join(" ")}>
-          <button type="button" onClick={() => setInventoryFilter("maintenanceDue")} aria-label={t("vehicles.status.maintenanceAria")}>
+          <button type="button" onClick={() => setMaintenanceFilter("due")} aria-label={t("vehicles.status.maintenanceAria")}>
             <span>{maintenanceReminderSummary.due > 0 ? <AlertTriangle size={16} aria-hidden="true" /> : <Wrench size={16} aria-hidden="true" />}</span>
             <small>{t("vehicles.maintenance")}</small>
             <strong>{maintenanceReminderSummary.due}</strong>
@@ -3096,11 +3951,8 @@ export function VehiclesView() {
                   <Grid2X2 size={16} />
                 </button>
               </span>
-              <button type="button" className="icon-button" onClick={() => printInventoryReport("summary")} aria-label="Kurzliste als PDF drucken" title="Kurzliste als PDF drucken" disabled={loading || vehicles.length === 0}>
+              <button type="button" className="icon-button" onClick={() => setReportDialogOpen(true)} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
                 <Printer size={16} />
-              </button>
-              <button type="button" className="icon-button" onClick={() => printInventoryReport("details")} aria-label="Detailreport als PDF drucken" title="Detailreport als PDF drucken" disabled={loading || vehicles.length === 0}>
-                <FileText size={16} />
               </button>
               <button type="button" className="icon-button" onClick={load} aria-label="Aktualisieren" title="Aktualisieren" disabled={loading}>
                 <RefreshCw size={16} />
@@ -3108,18 +3960,91 @@ export function VehiclesView() {
             </div>
           </div>
           <div className="inventory-filter-row" aria-label={t("vehicles.filter")}>
-            {inventoryFilters.map((filter) => (
-              <button
-                key={filter.key}
-                type="button"
-                className={inventoryFilter === filter.key ? "inventory-filter-pill active" : "inventory-filter-pill"}
-                onClick={() => setInventoryFilter(filter.key)}
-                aria-pressed={inventoryFilter === filter.key}
-              >
-                <span>{filter.label}</span>
-                <strong>{filter.count}</strong>
-              </button>
-            ))}
+            <div className="inventory-filter-group">
+              {inventoryFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  className={inventoryFilter === filter.key ? "inventory-filter-pill active" : "inventory-filter-pill"}
+                  onClick={() => setInventoryFilter(filter.key)}
+                  aria-label={filter.label}
+                  title={filter.label}
+                  aria-pressed={inventoryFilter === filter.key}
+                >
+                  {filter.icon || <span>{filter.label}</span>}
+                </button>
+              ))}
+            </div>
+
+            <div className="inventory-filter-group">
+              {maintenanceFilters.map((filter) => (
+                <button
+                  key={filter.key}
+                  type="button"
+                  className={maintenanceFilter === filter.key ? "inventory-filter-pill active" : "inventory-filter-pill"}
+                  onClick={() => setMaintenanceFilter(filter.key)}
+                  aria-label={filter.label}
+                  title={filter.label}
+                  aria-pressed={maintenanceFilter === filter.key}
+                >
+                  {filter.icon || <span>{filter.label}</span>}
+                </button>
+              ))}
+            </div>
+
+            <select className="inventory-filter-select" value={manufacturerFilter} onChange={(event) => setManufacturerFilter(event.target.value)} aria-label={t("vehicles.filter.manufacturer")}>
+              <option value="">{t("vehicles.filter.manufacturer")}</option>
+              {inventoryFilterOptions.manufacturers.map((manufacturer) => (
+                <option key={manufacturer} value={manufacturer}>{manufacturer}</option>
+              ))}
+            </select>
+
+            <select
+              className="inventory-filter-select"
+              value={categoryFilter}
+              onChange={(event) => {
+                setCategoryFilter(event.target.value);
+                setGattungFilter("");
+              }}
+              aria-label={t("vehicles.filter.category")}
+            >
+              <option value="">{t("vehicles.filter.category")}</option>
+              {inventoryFilterOptions.categories.map((category) => (
+                <option key={category} value={category}>{category}</option>
+              ))}
+            </select>
+
+            <select className="inventory-filter-select" value={gattungFilter} onChange={(event) => setGattungFilter(event.target.value)} aria-label={t("vehicles.filter.gattung")}>
+              <option value="">{t("vehicles.filter.gattung")}</option>
+              {inventoryFilterOptions.gattungen.map((gattung) => (
+                <option key={gattung} value={gattung}>{gattung}</option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              className={exhibitionReadyFilter ? "inventory-filter-pill inventory-filter-toggle active" : "inventory-filter-pill inventory-filter-toggle"}
+              onClick={() => setExhibitionReadyFilter((current) => !current)}
+              aria-pressed={exhibitionReadyFilter}
+              title={t("vehicles.filter.exhibitionReady")}
+            >
+              <BadgeCheck size={15} aria-hidden="true" />
+              <span>{t("vehicles.filter.exhibitionReady")}</span>
+            </button>
+
+            {hasActiveInventoryFilters && (
+              <>
+                <span className="inventory-filter-divider" aria-hidden="true" />
+                <button type="button" className="inventory-filter-clear" onClick={resetInventoryFilters}>
+                  <X size={14} aria-hidden="true" />
+                  {t("vehicles.filter.clear")}
+                </button>
+              </>
+            )}
+
+            <span className="inventory-filter-result">
+              {t("vehicles.filter.result", { count: sortedVehicles.length })}
+            </span>
           </div>
         </div>
 
@@ -3228,6 +4153,17 @@ export function VehiclesView() {
             <table className="inventory-table">
               <thead>
                 <tr>
+                  <th className="select-cell">
+                    <label className="table-select-field" title={t("vehicles.report.selectAll")}>
+                      <input
+                        type="checkbox"
+                        checked={allVisibleSelected}
+                        onChange={toggleAllVisibleSelection}
+                        aria-label={t("vehicles.report.selectAll")}
+                        disabled={sortedVehicles.length === 0}
+                      />
+                    </label>
+                  </th>
                   <th>{t("vehicles.image")}</th>
                   <th>{sortHeader("inventoryNumber")}</th>
                   <th>{sortHeader("manufacturer")}</th>
@@ -3241,7 +4177,17 @@ export function VehiclesView() {
               </thead>
               <tbody>
                 {sortedVehicles.map((vehicle) => (
-                  <tr key={vehicle.id}>
+                  <tr key={vehicle.id} className={selectedVehicleIDs.has(vehicle.id) ? "selected-row" : ""}>
+                    <td className="select-cell">
+                      <label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
+                        <input
+                          type="checkbox"
+                          checked={selectedVehicleIDs.has(vehicle.id)}
+                          onChange={() => toggleVehicleSelection(vehicle.id)}
+                          aria-label={`${vehicle.inventoryNumber} ${t("vehicles.report.selectVehicle")}`}
+                        />
+                      </label>
+                    </td>
                     <td>
                       {primaryImage(vehicle.images) ? (
                         <img className="inventory-thumb" src={previewImageUrl(primaryImage(vehicle.images))} alt="" />
@@ -3284,9 +4230,73 @@ export function VehiclesView() {
         )}
       </section>
 
+      {reportDialogOpen && (
+        <div className="confirm-layer report-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.report.title")}>
+          <form className="report-dialog" onSubmit={createInventoryReport}>
+            <header className="report-dialog-head">
+              <div>
+                <Printer size={18} aria-hidden="true" />
+                <h2>{t("vehicles.report.title")}</h2>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setReportDialogOpen(false)} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="report-form-grid">
+              <label>
+                {t("vehicles.report.type")}
+                <select value={reportMode} onChange={(event) => setReportMode(event.target.value as InventoryReportMode)}>
+                  <option value="summary">{t("vehicles.report.summary")}</option>
+                  <option value="details">{t("vehicles.report.details")}</option>
+                </select>
+              </label>
+
+              <label>
+                {t("vehicles.report.customTitle")}
+                <input value={reportTitle} onChange={(event) => setReportTitle(event.target.value)} placeholder="Fahrzeugsammlung" />
+              </label>
+
+              <fieldset className="report-choice-group">
+                <legend>{t("vehicles.report.scope")}</legend>
+                <label>
+                  <input type="radio" checked={reportSelection === "all"} onChange={() => setReportSelection("all")} />
+                  {t("vehicles.report.all")}
+                </label>
+                <label>
+                  <input type="radio" checked={reportSelection === "selected"} onChange={() => setReportSelection("selected")} disabled={!someVisibleSelected} />
+                  {t("vehicles.report.selected", { count: selectedVisibleVehicles.length })}
+                </label>
+              </fieldset>
+
+              <fieldset className="report-choice-group">
+                <legend>{t("vehicles.report.options")}</legend>
+                <label>
+                  <input type="checkbox" checked={reportIncludeQRCode} onChange={(event) => setReportIncludeQRCode(event.target.checked)} />
+                  {t("vehicles.report.qrCode")}
+                </label>
+                <label>
+                  <input type="checkbox" checked={reportIncludeImages} onChange={(event) => setReportIncludeImages(event.target.checked)} />
+                  {t("vehicles.report.image")}
+                </label>
+              </fieldset>
+            </div>
+
+            <footer className="report-dialog-actions">
+              <button type="button" className="secondary-button" onClick={() => setReportDialogOpen(false)}>
+                {t("vehicles.cancel")}
+              </button>
+              <button type="submit" className="primary-button">
+                {t("vehicles.report.create")}
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
+
       {modalOpen && (
         <div className="modal-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.modal.aria")}>
-          <form className="vehicle-modal" onSubmit={submit}>
+          <form key={`${mode}-${selected?.id || "new"}`} className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal"} onSubmit={submit}>
             <header className="modal-head">
               <h2>{mode === "create" ? t("vehicles.modal.create") : mode === "edit" ? t("vehicles.modal.edit") : t("vehicles.modal.view")}</h2>
               <button type="button" className="icon-button" onClick={closeModal} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
@@ -3294,6 +4304,16 @@ export function VehiclesView() {
               </button>
             </header>
 
+            {mode === "view" && selected ? (
+              <VehicleReadOnlyView
+                vehicle={selected}
+                onEdit={() => openEdit(selected)}
+                onPrint={() => printVehicleReport(selected)}
+                onQr={generateQr}
+                onPreviewImage={setPreviewImage}
+              />
+            ) : (
+              <>
             <nav className="modal-tabs" aria-label={t("vehicles.modal.aria")}>
               <button type="button" className={activeTab === "model" ? "active" : ""} onClick={() => setActiveTab("model")}>
                 {t("vehicles.tab.model")}
@@ -3502,6 +4522,22 @@ export function VehiclesView() {
                     )}
                   </section>
 
+                  <section className="accordion-section">
+                    <button type="button" className="accordion-trigger" onClick={() => toggleSection("vehicle")}>
+                      {openSections.vehicle ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {t("vehicles.vehicle.title")}
+                    </button>
+                    {openSections.vehicle && (
+                      <div className="accordion-content vehicle-form">
+                        <VehicleOwnershipFields
+                          form={form}
+                          readonly={readonly}
+                          update={update}
+                        />
+                      </div>
+                    )}
+                  </section>
+
                 </div>
               )}
 
@@ -3565,6 +4601,7 @@ export function VehiclesView() {
                               {functionKey}
                             </strong>
                             <input
+                              className="function-name-input"
                               value={edit.name || ""}
                               onChange={(event) => updateFunctionEdit(functionKey, { name: event.target.value })}
                               disabled={readonly || saving}
@@ -3577,18 +4614,11 @@ export function VehiclesView() {
                               symbols={options.symbols}
                               disabled={readonly || saving}
                               label={`${functionKey} ${t("vehicles.functions.symbol")}`}
-                              onChange={(symbolKey) => updateFunctionEdit(functionKey, { symbolKey })}
+                              onChange={(symbolKey) => updateFunctionEdit(functionKey, {
+                                symbolKey,
+                                functionType: inferFunctionTypeFromSymbol(symbolKey, options.symbols, edit.functionType)
+                              })}
                             />
-                            <select
-                              value={edit.functionType || "standard"}
-                              onChange={(event) => updateFunctionEdit(functionKey, { functionType: event.target.value })}
-                              disabled={readonly || saving}
-                              aria-label={`${functionKey} ${t("vehicles.functions.type")}`}
-                            >
-                              {functionTypes.map((type) => (
-                                <option key={type} value={type}>{t(`vehicles.functionType.${type}`)}</option>
-                              ))}
-                            </select>
                             <select
                               value={edit.mode || "dauer"}
                               onChange={(event) => updateFunctionEdit(functionKey, { mode: event.target.value })}
@@ -3612,6 +4642,7 @@ export function VehiclesView() {
                               </span>
                             </label>
                             <input
+                              className="function-note-input"
                               value={edit.notes || ""}
                               onChange={(event) => updateFunctionEdit(functionKey, { notes: event.target.value })}
                               disabled={readonly || saving}
@@ -4384,21 +5415,15 @@ export function VehiclesView() {
 
             <footer className="modal-actions">
               {message && <p className="form-message">{message}</p>}
-              {readonly ? (
-                <button type="button" className="primary-button" onClick={() => setMode("edit")}>
-                  {t("vehicles.edit")}
-                </button>
-              ) : (
-                <>
-                  <button type="button" className="secondary-button" onClick={closeModal}>
-                    {t("vehicles.cancel")}
-                  </button>
-                  <button className="primary-button" disabled={saving}>
-                    {saving ? t("vehicles.saving") : t("vehicles.save")}
-                  </button>
-                </>
-              )}
+              <button type="button" className="secondary-button" onClick={closeModal}>
+                {t("vehicles.cancel")}
+              </button>
+              <button className="primary-button" disabled={saving}>
+                {saving ? t("vehicles.saving") : t("vehicles.save")}
+              </button>
             </footer>
+              </>
+            )}
           </form>
         </div>
       )}

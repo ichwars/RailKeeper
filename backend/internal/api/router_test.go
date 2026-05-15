@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -214,6 +215,59 @@ func TestChangePasswordEndpoint(t *testing.T) {
 	router.ServeHTTP(changeResponse, changeRequest)
 	if changeResponse.Code != http.StatusNoContent {
 		t.Fatalf("expected password change success, got %d: %s", changeResponse.Code, changeResponse.Body.String())
+	}
+
+	oldLogin := httptest.NewRecorder()
+	router.ServeHTTP(oldLogin, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBufferString(`{"username":"admin","password":"very-secure-password"}`)))
+	if oldLogin.Code != http.StatusUnauthorized {
+		t.Fatalf("expected old password to fail, got %d", oldLogin.Code)
+	}
+	newLogin := httptest.NewRecorder()
+	router.ServeHTTP(newLogin, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBufferString(`{"username":"admin","password":"new-secure-password"}`)))
+	if newLogin.Code != http.StatusOK {
+		t.Fatalf("expected new password to work, got %d", newLogin.Code)
+	}
+}
+
+func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth})
+	resetRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password-reset", bytes.NewBufferString(`{"email":"admin@example.test"}`))
+	resetRequest.Host = "railkeeper.test"
+	resetResponse := httptest.NewRecorder()
+	router.ServeHTTP(resetResponse, resetRequest)
+	if resetResponse.Code != http.StatusAccepted {
+		t.Fatalf("expected reset request success, got %d: %s", resetResponse.Code, resetResponse.Body.String())
+	}
+	var resetResult application.PasswordResetRequestResult
+	if err := json.NewDecoder(resetResponse.Body).Decode(&resetResult); err != nil {
+		t.Fatal(err)
+	}
+	resetURL, err := url.Parse(resetResult.ResetURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	token := resetURL.Query().Get("token")
+	if token == "" {
+		t.Fatalf("expected reset token URL, got %#v", resetResult)
+	}
+
+	confirmBody := bytes.NewBufferString(`{"token":"` + token + `","newPassword":"new-secure-password"}`)
+	confirmRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password-reset/confirm", confirmBody)
+	confirmResponse := httptest.NewRecorder()
+	router.ServeHTTP(confirmResponse, confirmRequest)
+	if confirmResponse.Code != http.StatusNoContent {
+		t.Fatalf("expected reset confirmation success, got %d: %s", confirmResponse.Code, confirmResponse.Body.String())
 	}
 
 	oldLogin := httptest.NewRecorder()

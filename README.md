@@ -28,14 +28,15 @@ The project is designed for private collections, clubs and small workshops that 
 ## Highlights
 
 - Local-first inventory with SQLite, uploads and JSON backups
-- Vehicle records with model data, technical fields, images, attachments, QR codes and print views
-- Article data web search with configurable sources and explicit field-by-field review
+- Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
+- Article data web search with configurable sources, barcode/EAN entry, camera-assisted EAN scanning where supported and explicit field-by-field review
+- PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - ECoS live connection for reading locomotive lists and preparing future external ID synchronization
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle
 - Exhibition lists with lock state, dedicated Messe role and print-ready list views
-- Local authentication with first-run setup, roles, sessions, password change and audit log
+- Local authentication with first-run setup including email, roles, sessions, password change, token-based password reset and audit log
 - Master data management for manufacturers, gauges, epochs, categories, subtypes, railway companies and symbols
 - Docker Compose deployment with hardened runtime container and persistent `/data` volume
 - Built-in GitHub release update check with release notes and user-controlled installation flow
@@ -45,7 +46,7 @@ The project is designed for private collections, clubs and small workshops that 
 RailKeeper is built around operational views instead of marketing pages:
 
 - **Overview** for inventory, value, maintenance and data quality
-- **Inventory** for vehicle search, editing, uploads, CVs and function keys
+- **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
 - **Exhibition List** for fair/show operations
 - **Import/Export** for CSV, TSV, XML and JSON imports, controlled updates and ECoS readout
 - **Settings** for master data, appearance, backups, updates and authentication
@@ -82,7 +83,7 @@ The SQLite database, uploads and local files stay in the `railkeeper2_data` Dock
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.4
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.5
 ```
 
 If you intentionally want to build the checked-out source tree, use:

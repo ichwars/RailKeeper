@@ -2,11 +2,22 @@ import { FormEvent, useState } from "react";
 import { api, Session } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
+const initialResetToken = () => {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  return new URLSearchParams(window.location.search).get("token") || "";
+};
+
 export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [resetEmail, setResetEmail] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
+  const [resetToken, setResetToken] = useState(initialResetToken);
+  const [resetLink, setResetLink] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetPasswordRepeat, setResetPasswordRepeat] = useState("");
   const [message, setMessage] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const [saving, setSaving] = useState(false);
@@ -29,13 +40,107 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
     setSaving(true);
     setMessage("");
     setRecoveryMessage("");
+    setResetLink("");
 
     api
       .requestPasswordReset({ email: resetEmail })
-      .then((result) => setRecoveryMessage(result.message || t("auth.recovery.requested")))
+      .then((result) => {
+        setRecoveryMessage(result.message || t("auth.recovery.requested"));
+        setResetLink(result.resetUrl || "");
+      })
       .catch((error: Error) => setRecoveryMessage(error.message))
       .finally(() => setSaving(false));
   };
+
+  const confirmReset = (event: FormEvent) => {
+    event.preventDefault();
+    setSaving(true);
+    setMessage("");
+
+    if (!resetToken.trim()) {
+      setMessage(t("auth.reset.invalidToken"));
+      setSaving(false);
+      return;
+    }
+    if (resetPassword !== resetPasswordRepeat) {
+      setMessage(t("auth.reset.mismatch"));
+      setSaving(false);
+      return;
+    }
+
+    api
+      .confirmPasswordReset({ token: resetToken, newPassword: resetPassword })
+      .then(() => {
+        setRecoveryMessage(t("auth.reset.done"));
+        setResetToken("");
+        setResetPassword("");
+        setResetPasswordRepeat("");
+        window.history.replaceState(null, "", "/");
+      })
+      .catch((error: Error) => setMessage(error.message))
+      .finally(() => setSaving(false));
+  };
+
+  if (resetToken) {
+    return (
+      <main className="auth-page">
+        <section className="auth-card" aria-labelledby="password-reset-title">
+          <img className="auth-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper" />
+          <h1 id="password-reset-title">{t("auth.reset.title")}</h1>
+          <p>{t("auth.reset.subtitle")}</p>
+
+          <form className="auth-form" onSubmit={confirmReset}>
+            <label>
+              {t("auth.reset.token")}
+              <input value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />
+            </label>
+
+            <label>
+              {t("auth.reset.newPassword")}
+              <input
+                type="password"
+                value={resetPassword}
+                autoComplete="new-password"
+                onChange={(event) => setResetPassword(event.target.value)}
+                minLength={12}
+                required
+              />
+            </label>
+
+            <label>
+              {t("auth.reset.confirmPassword")}
+              <input
+                type="password"
+                value={resetPasswordRepeat}
+                autoComplete="new-password"
+                onChange={(event) => setResetPasswordRepeat(event.target.value)}
+                minLength={12}
+                required
+              />
+            </label>
+
+            <button className="primary-button" disabled={saving}>
+              {saving ? t("auth.reset.saving") : t("auth.reset.submit")}
+            </button>
+
+            <button
+              type="button"
+              className="forgot-password-button"
+              onClick={() => {
+                setResetToken("");
+                setMessage("");
+                window.history.replaceState(null, "", "/");
+              }}
+            >
+              {t("auth.reset.backToLogin")}
+            </button>
+
+            {message && <p className="form-message">{message}</p>}
+          </form>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="auth-page">
@@ -76,6 +181,7 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
             onClick={() => {
               setResetOpen((current) => !current);
               setRecoveryMessage("");
+              setResetLink("");
             }}
           >
             {t("auth.forgot")}
@@ -106,6 +212,11 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           )}
 
           {recoveryMessage && <p className="auth-hint">{recoveryMessage}</p>}
+          {resetLink && (
+            <a className="auth-reset-link" href={resetLink}>
+              {t("auth.recovery.openLink")}
+            </a>
+          )}
           {message && <p className="form-message">{message}</p>}
         </form>
       </section>

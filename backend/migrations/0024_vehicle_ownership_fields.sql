@@ -1,0 +1,9 @@
+ALTER TABLE vehicles ADD COLUMN acquisition_type TEXT;
+ALTER TABLE vehicles ADD COLUMN acquired_from TEXT;
+ALTER TABLE vehicles ADD COLUMN purchase_price TEXT;
+ALTER TABLE vehicles ADD COLUMN purchase_date TEXT;
+ALTER TABLE vehicles ADD COLUMN storage_location TEXT;
+ALTER TABLE vehicles ADD COLUMN storage_details TEXT;
+ALTER TABLE vehicles ADD COLUMN condition TEXT;
+ALTER TABLE vehicles ADD COLUMN condition_details TEXT;
+ALTER TABLE vehicles ADD COLUMN packaging TEXT;

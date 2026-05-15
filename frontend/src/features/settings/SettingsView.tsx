@@ -964,7 +964,7 @@ export function SettingsView() {
     <>
       <section className="settings-head">
         <h1>
-          {t("settings.title")} <span>0.1.2</span>
+          {t("settings.title")} <span>0.1.5</span>
         </h1>
         <p>{t("settings.subtitle")}</p>
       </section>
@@ -2110,13 +2110,6 @@ export function SettingsView() {
                 <div>
                   <strong>SSO / OIDC</strong>
                   <span>{t("settings.integrations.ssoHelp")}</span>
-                </div>
-              </article>
-              <article>
-                <KeyRound size={17} />
-                <div>
-                  <strong>{t("settings.integrations.resetPassword")}</strong>
-                  <span>{t("settings.integrations.resetPasswordHelp")}</span>
                 </div>
               </article>
             </div>

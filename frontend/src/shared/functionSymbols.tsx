@@ -1,4 +1,5 @@
 import { AlertTriangle, Circle, Cloud, Gauge, Lightbulb, Link, Megaphone, Volume2 } from "lucide-react";
+import type { ReactNode } from "react";
 import type { MasterDataEntry } from "./api";
 
 const fallbackFunctionSymbols = [
@@ -16,34 +17,42 @@ function symbolImageFromMetadata(metadata?: Record<string, unknown>) {
   return typeof value === "string" ? value : "";
 }
 
+function functionSymbolTile(content: ReactNode) {
+  return (
+    <span className="function-symbol-tile" aria-hidden="true">
+      {content}
+    </span>
+  );
+}
+
 export function functionSymbolIcon(symbolKey?: string, functionType?: string, metadata?: Record<string, unknown>) {
   const imageData = symbolImageFromMetadata(metadata);
   if (imageData) {
-    return <img className="function-symbol-image" src={imageData} alt="" aria-hidden="true" />;
+    return functionSymbolTile(<img className="function-symbol-image" src={imageData} alt="" />);
   }
 
   const key = symbolKey || functionType || "standard";
-  const props = { size: 16, "aria-hidden": true };
+  const props = { size: 18, "aria-hidden": true };
   switch (key) {
     case "light":
     case "licht":
-      return <Lightbulb {...props} />;
+      return functionSymbolTile(<Lightbulb {...props} />);
     case "sound":
-      return <Volume2 {...props} />;
+      return functionSymbolTile(<Volume2 {...props} />);
     case "horn":
-      return <Megaphone {...props} />;
+      return functionSymbolTile(<Megaphone {...props} />);
     case "coupling":
     case "kupplung":
-      return <Link {...props} />;
+      return functionSymbolTile(<Link {...props} />);
     case "smoke":
     case "rauch":
-      return <Cloud {...props} />;
+      return functionSymbolTile(<Cloud {...props} />);
     case "drive":
-      return <Gauge {...props} />;
+      return functionSymbolTile(<Gauge {...props} />);
     case "warning":
-      return <AlertTriangle {...props} />;
+      return functionSymbolTile(<AlertTriangle {...props} />);
     default:
-      return <Circle {...props} />;
+      return functionSymbolTile(<Circle {...props} />);
   }
 }
 
@@ -90,7 +99,7 @@ export function FunctionSymbolPicker({
       </summary>
       <div className="function-symbol-menu">
         <button type="button" className={!value ? "active" : ""} onClick={() => onChange("")} disabled={disabled}>
-          <Circle size={16} aria-hidden="true" />
+          {functionSymbolTile(<Circle size={18} aria-hidden="true" />)}
           <span>Kein Symbol</span>
         </button>
         {options.map((symbol) => (

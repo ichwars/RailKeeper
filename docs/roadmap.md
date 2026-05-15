@@ -58,12 +58,18 @@
 - admin session management with targeted local session revocation
 - current-user password change with automatic revocation of other sessions
 - admin password resets revoke affected user sessions
+- token-based password reset flow from login
 - settings security event review for audit logs
 - compact backup export storage summary in settings
 - exhibition lists for fair/show operations with a dedicated Messe role
 - exhibition entry dialogs with shared function symbol picker
 - exhibition print view for the current list state
 - audit coverage for exhibition list and entry lifecycle actions
+- inventory filter bar with segmented icon filters and master-data dropdowns
+- inventory PDF report dialog for overview and detailed vehicle reports
+- read-only vehicle detail view with clickable source links and image preview
+- camera-assisted EAN scanning where supported by the browser
+- updated ESU function symbol set with dark-mode symbol tiles
 
 ## Next Practical Milestones
 
@@ -84,6 +90,9 @@
 4. Vehicle action depth
    - evaluate direct upload shortcuts in the quick menu where useful
    - keep destructive actions separated and confirmed
+   - later upload polish: drag sorting for vehicle images
+   - later upload polish: direct preview for PDF/TXT attachments
+   - later upload polish: bulk actions for attachments
 
 ## Explicitly Deferred
 

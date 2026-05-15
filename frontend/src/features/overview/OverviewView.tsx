@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, Download, EyeOff, FileInput, Gauge, Printer, RefreshCw, RotateCcw, Wrench } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, Download, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
 import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
@@ -100,10 +100,6 @@ export function OverviewView() {
   useEffect(() => {
     loadVehicles();
   }, [loadVehicles]);
-
-  const printDashboard = () => {
-    window.print();
-  };
 
   const hideWidget = (widget: OverviewWidgetID) => {
     setHiddenWidgets((current) => {
@@ -252,9 +248,6 @@ export function OverviewView() {
         <div className="overview-actions" aria-label={t("overview.tools")}>
           <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
             <RefreshCw size={15} aria-hidden="true" />
-          </button>
-          <button type="button" className="icon-button" onClick={printDashboard} aria-label={t("overview.print")} title={t("overview.print")}>
-            <Printer size={15} aria-hidden="true" />
           </button>
           <button type="button" className="icon-button" onClick={exportOverviewStats} disabled={loading} aria-label={t("overview.export")} title={t("overview.export")}>
             <Download size={15} aria-hidden="true" />

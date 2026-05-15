@@ -89,15 +89,54 @@ func TestPasswordResetRequestIsRecorded(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Status != "queued" {
-		t.Fatalf("expected queued reset, got %#v", result)
+	if result.Status != "ready" || result.ResetToken == "" || result.ExpiresAt == "" {
+		t.Fatalf("expected ready reset with token, got %#v", result)
 	}
 	var count int
-	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM password_reset_requests WHERE email='admin@example.test'`).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM password_reset_requests WHERE email='admin@example.test' AND token_hash IS NOT NULL`).Scan(&count); err != nil {
 		t.Fatal(err)
 	}
 	if count != 1 {
 		t.Fatalf("expected one reset request, got %d", count)
+	}
+}
+
+func TestPasswordResetChangesPasswordOnce(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := auth.RequestPasswordReset(ctx, application.PasswordResetRequestInput{Email: "admin@example.test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := auth.ResetPassword(ctx, application.PasswordResetConfirmInput{
+		Token:       result.ResetToken,
+		NewPassword: "new-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := auth.Login(ctx, application.LoginInput{Username: "admin", Password: "very-secure-password"}); !errors.Is(err, application.ErrInvalidLogin) {
+		t.Fatalf("expected old password to fail, got %v", err)
+	}
+	if _, err := auth.Login(ctx, application.LoginInput{Username: "admin", Password: "new-secure-password"}); err != nil {
+		t.Fatalf("expected new password to work: %v", err)
+	}
+	if err := auth.ResetPassword(ctx, application.PasswordResetConfirmInput{
+		Token:       result.ResetToken,
+		NewPassword: "another-secure-password",
+	}); !errors.Is(err, application.ErrPasswordResetInvalid) {
+		t.Fatalf("expected used reset token to fail, got %v", err)
 	}
 }
 

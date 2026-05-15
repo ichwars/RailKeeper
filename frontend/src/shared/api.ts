@@ -46,6 +46,13 @@ export type PasswordResetRequest = {
 export type PasswordResetResult = {
   status: string;
   message: string;
+  resetUrl?: string;
+  expiresAt?: string;
+};
+
+export type PasswordResetConfirmRequest = {
+  token: string;
+  newPassword: string;
 };
 
 export type ChangePasswordInput = {
@@ -87,6 +94,15 @@ export type Vehicle = {
   ean?: string;
   productionPeriod?: string;
   listPrice?: string;
+  acquisitionType?: string;
+  acquiredFrom?: string;
+  purchasePrice?: string;
+  purchaseDate?: string;
+  storageLocation?: string;
+  storageDetails?: string;
+  condition?: string;
+  conditionDetails?: string;
+  packaging?: string;
   lengthMm?: string;
   weightG?: string;
   color?: string;
@@ -343,6 +359,15 @@ export type CreateVehicleRequest = {
   ean?: string;
   productionPeriod?: string;
   listPrice?: string;
+  acquisitionType?: string;
+  acquiredFrom?: string;
+  purchasePrice?: string;
+  purchaseDate?: string;
+  storageLocation?: string;
+  storageDetails?: string;
+  condition?: string;
+  conditionDetails?: string;
+  packaging?: string;
   lengthMm?: string;
   weightG?: string;
   color?: string;
@@ -725,6 +750,11 @@ export const api = {
   },
   requestPasswordReset: (input: PasswordResetRequest) =>
     request<PasswordResetResult>("/auth/password-reset", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  confirmPasswordReset: (input: PasswordResetConfirmRequest) =>
+    request<void>("/auth/password-reset/confirm", {
       method: "POST",
       body: JSON.stringify(input)
     }),
