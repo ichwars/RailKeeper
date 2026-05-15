@@ -472,6 +472,10 @@ function compactValue(value: unknown) {
 function hasArticleSearchCriteria(searchForm: CreateVehicleRequest, searchInput?: ArticleSearchInput) {
   if (searchInput) {
     const fields = searchInput.fields || {};
+    const ean = compactValue(fields.ean);
+    if (ean) {
+      return true;
+    }
     const articleNumber = compactValue(searchInput.articleNumber || fields.articleNumber);
     const name = compactValue(searchInput.name || fields.name);
     const manufacturer = compactValue(searchInput.manufacturer || fields.manufacturer);
@@ -2194,6 +2198,12 @@ function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: Barcod
   useEffect(() => () => stopCameraScan(), [stopCameraScan]);
 
   const startCameraScan = async () => {
+    if (!window.isSecureContext) {
+      setScannerMessage(t("vehicles.barcode.cameraSecureContext"));
+      setScannerOpen(false);
+      return;
+    }
+
     if (!navigator.mediaDevices?.getUserMedia) {
       setScannerMessage(t("vehicles.barcode.cameraUnsupported"));
       setScannerOpen(false);
