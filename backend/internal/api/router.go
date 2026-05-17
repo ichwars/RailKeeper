@@ -146,7 +146,7 @@ func NewRouter(config Config) http.Handler {
 	mux.HandleFunc("PUT /api/v1/sessions/{id}/revoke", app.require("Admin", app.revokeSession))
 	mux.HandleFunc("GET /api/v1/vehicles", app.require("Viewer", app.listVehicles))
 	mux.HandleFunc("POST /api/v1/ecos/test", app.require("Admin", app.testECoSConnection))
-	mux.HandleFunc("POST /api/v1/ecos/locomotives/preview", app.require("Admin", app.previewECoSLocomotives))
+	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", app.require("Admin", app.probeECoSLocomotiveRaw))
 	mux.HandleFunc("POST /api/v1/vehicles", app.require("Editor", app.createVehicle))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
@@ -1003,20 +1003,20 @@ func (a *App) testECoSConnection(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, result)
 }
 
-func (a *App) previewECoSLocomotives(w http.ResponseWriter, r *http.Request) {
+func (a *App) probeECoSLocomotiveRaw(w http.ResponseWriter, r *http.Request) {
 	var input application.ECoSConnectionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
 
-	preview, err := a.ecosService.PreviewLocomotives(r.Context(), input)
+	probe, err := a.ecosService.ProbeLocomotiveRaw(r.Context(), input)
 	if err != nil {
-		respondProblem(w, http.StatusBadGateway, "ecos_preview_failed", err.Error())
+		respondProblem(w, http.StatusBadGateway, "ecos_raw_probe_failed", err.Error())
 		return
 	}
 
-	respondJSON(w, http.StatusOK, preview)
+	respondJSON(w, http.StatusOK, probe)
 }
 
 func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
@@ -1030,7 +1030,7 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
-			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name and gauge are required.")
+			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name, gauge, category and subtype are required.")
 		case errors.Is(err, application.ErrInventoryNumberConflict):
 			respondProblem(w, http.StatusConflict, "inventory_number_conflict", "Inventory number already exists.")
 		case errors.Is(err, application.ErrInventoryNumberNotFound):
@@ -1071,7 +1071,7 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
-			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name and gauge are required.")
+			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name, gauge, category and subtype are required.")
 		case errors.Is(err, application.ErrInventoryNumberConflict):
 			respondProblem(w, http.StatusConflict, "inventory_number_conflict", "Inventory number already exists.")
 		case errors.Is(err, application.ErrVehicleNotFound):

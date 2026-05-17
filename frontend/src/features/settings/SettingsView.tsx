@@ -62,6 +62,7 @@ const masterDataTypes: MasterDataType[] = [
   { type: "epoch" },
   { type: "gauge" },
   { type: "railway_company" },
+  { type: "cv8_manufacturer" },
   { type: "symbols" }
 ];
 

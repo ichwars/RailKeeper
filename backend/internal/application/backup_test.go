@@ -25,6 +25,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)

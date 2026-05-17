@@ -32,9 +32,9 @@ The project is designed for private collections, clubs and small workshops that 
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
-- ECoS live connection for reading locomotive lists and preparing future external ID synchronization
+- ECoS live connection with locomotive/CV readout, import handoff into vehicle creation and external ID preparation
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
-- Structured CV values, CV import/export, decoder profiles and ESU/LokProgrammer file metadata
+- Structured CV values, CV import/export, decoder profiles, NMRA CV8 manufacturer master data and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle
 - Exhibition lists with lock state, dedicated Messe role and print-ready list views
 - Local authentication with first-run setup including email, roles, sessions, password change, token-based password reset and audit log

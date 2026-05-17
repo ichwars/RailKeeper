@@ -171,7 +171,7 @@ export function App() {
       }}
     >
       {effectiveView === "overview" && <OverviewView />}
-      {effectiveView === "vehicles" && <VehiclesView />}
+      {effectiveView === "vehicles" && <VehiclesView username={session.username} />}
       {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
       {effectiveView === "importExport" && <ImportExportView />}
       {effectiveView === "settings" && <SettingsView username={session.username} />}

@@ -89,7 +89,9 @@ export type Vehicle = {
   digitalDecoderNumber?: string;
   dtDecoder: boolean;
   dtDecoderNumber?: string;
+  decoderType?: string;
   exhibitionReady: boolean;
+  exhibition: boolean;
   abcBrakes: boolean;
   ean?: string;
   productionPeriod?: string;
@@ -265,6 +267,7 @@ export type VehicleCVValue = {
   value: number;
   description?: string;
   category?: string;
+  protocol?: string;
   decoderProfile?: string;
   sourceFileId?: string;
   createdAt: string;
@@ -286,6 +289,7 @@ export type VehicleCVValueInput = {
   value: number;
   description?: string;
   category?: string;
+  protocol?: string;
   decoderProfile?: string;
   sourceFileId?: string;
 };
@@ -322,6 +326,7 @@ export type VehicleCVFilePreview = {
     value: number;
     description?: string;
     category?: string;
+    protocol?: string;
   }[];
   suggestedFunctions?: {
     functionKey: string;
@@ -354,7 +359,9 @@ export type CreateVehicleRequest = {
   digitalDecoderNumber?: string;
   dtDecoder?: boolean;
   dtDecoderNumber?: string;
+  decoderType?: string;
   exhibitionReady?: boolean;
+  exhibition?: boolean;
   abcBrakes?: boolean;
   ean?: string;
   productionPeriod?: string;
@@ -517,17 +524,49 @@ export type ECoSConnectionResult = {
   fields?: Record<string, string>;
 };
 
-export type ECoSLocomotive = {
+export type ECoSRawCommandProbe = {
+  command: string;
+  fields: string[];
+  ok: boolean;
+  status?: string;
+  error?: string;
+  rawLines?: string[];
+  attributes?: Record<string, string[]>;
+};
+
+export type ECoSRawLocomotive = {
   objectId: number;
   name?: string;
   address?: number;
   protocol?: string;
+  profile?: string;
+  speed?: number;
+  speedStep?: number;
+  direction?: number;
+  functionSet?: string;
+  numberOfFunctions?: number;
+  functions?: Array<{
+    index: number;
+    active: boolean;
+    description?: number;
+  }>;
+  cvs?: Array<{
+    number: number;
+    value: number;
+  }>;
+  attributes?: Record<string, string[]>;
+  supportedFields?: string[];
+  missingFields?: string[];
+  interestingFields?: string[];
+  probes?: ECoSRawCommandProbe[];
+  detailError?: string;
 };
 
-export type ECoSLocomotivePreview = {
+export type ECoSRawProbe = {
   host: string;
   port: number;
-  locomotives: ECoSLocomotive[];
+  probeFields: string[];
+  locomotives: ECoSRawLocomotive[];
   rawLines?: string[];
   message: string;
 };
@@ -636,8 +675,18 @@ export type ExhibitionEntry = {
   owner: string;
   imageUrl?: string;
   locomotiveName: string;
+  gattung?: string;
+  series?: string;
+  manufacturer?: string;
+  epoch?: string;
+  railwayCompany?: string;
+  dayScope: string;
   dtDecoder: boolean;
   decoderNumber?: string;
+  decoderType?: string;
+  adapter?: string;
+  sxAddress?: string;
+  analog: boolean;
   functionKeys?: string;
   notes?: string;
   sortOrder: number;
@@ -649,8 +698,18 @@ export type ExhibitionEntryInput = {
   owner: string;
   imageUrl?: string;
   locomotiveName: string;
+  gattung?: string;
+  series?: string;
+  manufacturer?: string;
+  epoch?: string;
+  railwayCompany?: string;
+  dayScope?: string;
   dtDecoder: boolean;
   decoderNumber?: string;
+  decoderType?: string;
+  adapter?: string;
+  sxAddress?: string;
+  analog?: boolean;
   functionKeys?: string;
   notes?: string;
   sortOrder?: number;
@@ -1010,14 +1069,14 @@ export const api = {
       },
       { timeoutMs: 10000 }
     ),
-  previewECoSLocomotives: (input: ECoSConnectionInput) =>
-    request<ECoSLocomotivePreview>(
-      "/ecos/locomotives/preview",
+  probeECoSLocomotiveRaw: (input: ECoSConnectionInput) =>
+    request<ECoSRawProbe>(
+      "/ecos/locomotives/raw",
       {
         method: "POST",
         body: JSON.stringify(input)
       },
-      { timeoutMs: 15000 }
+      { timeoutMs: 30000 }
     ),
   backupExportUrl: () => "/api/v1/backup/export",
   validateBackup: (file: File) => {

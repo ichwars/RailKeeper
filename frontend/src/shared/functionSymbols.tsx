@@ -1,5 +1,5 @@
 import { AlertTriangle, Circle, Cloud, Gauge, Lightbulb, Link, Megaphone, Volume2 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import type { MasterDataEntry } from "./api";
 
 const fallbackFunctionSymbols = [
@@ -87,23 +87,28 @@ export function FunctionSymbolPicker({
   symbols: MasterDataEntry[];
   disabled?: boolean;
   label: string;
-  onChange: (value: string) => void;
+  onChange: (value: string, label?: string) => void;
 }) {
+  const detailsRef = useRef<HTMLDetailsElement | null>(null);
   const options = functionSymbolOptions(symbols);
   const selected = options.find((symbol) => symbol.key === value);
+  const selectSymbol = (nextValue: string, nextLabel?: string) => {
+    onChange(nextValue, nextLabel);
+    detailsRef.current?.removeAttribute("open");
+  };
   return (
-    <details className="function-symbol-picker">
+    <details ref={detailsRef} className="function-symbol-picker">
       <summary aria-label={label}>
         {functionSymbolIcon(value, functionType, selected?.metadata)}
         <span>{selected?.label || "Symbol"}</span>
       </summary>
       <div className="function-symbol-menu">
-        <button type="button" className={!value ? "active" : ""} onClick={() => onChange("")} disabled={disabled}>
+        <button type="button" className={!value ? "active" : ""} onClick={() => selectSymbol("")} disabled={disabled}>
           {functionSymbolTile(<Circle size={18} aria-hidden="true" />)}
           <span>Kein Symbol</span>
         </button>
         {options.map((symbol) => (
-          <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => onChange(symbol.key)} disabled={disabled} title={symbol.label}>
+          <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => selectSymbol(symbol.key, symbol.label)} disabled={disabled} title={symbol.label}>
             {functionSymbolIcon(symbol.key, functionType, symbol.metadata)}
             <span>{symbol.label}</span>
           </button>

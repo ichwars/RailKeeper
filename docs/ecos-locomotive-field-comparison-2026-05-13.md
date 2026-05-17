@@ -84,8 +84,8 @@ Bidirektional ist machbar, aber nicht fuer alle Felder gleich sinnvoll:
    - optional `vehicle_ecos_sync` fuer Richtung, Status, letzte Synchronisation
 
 3. Import-Assistent
-   - Verbindung testen
-   - ECoS-Lokliste laden
+   - Verbindung herstellen
+   - ECoS-Daten holen
    - RailKeeper-Matching nach ECoS-ID, Name, Digitaladresse
    - Vorschau: neu, geaendert, Konflikt, ignoriert
    - bewusste Uebernahme je Feld
@@ -124,6 +124,6 @@ Release 0.1.x sollte enthalten:
 Naechster Entwicklungsblock:
 
 - ECoS-Verbindungstest im Backend
-- API `GET /api/v1/ecos/status`
-- API `POST /api/v1/ecos/locomotives/preview`
-- UI im Import/Export-Bereich als experimenteller ECoS-Import
+- API `POST /api/v1/ecos/test`
+- API `POST /api/v1/ecos/locomotives/raw`
+- UI im Import/Export-Bereich als ECoS-Datenuebernahme

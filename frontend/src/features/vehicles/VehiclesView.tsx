@@ -44,6 +44,9 @@ import {
   ArticleSearchResponse,
   ArticleSearchResult,
   CreateVehicleRequest,
+  ExhibitionEntry,
+  ExhibitionEntryInput,
+  ExhibitionList,
   MasterDataEntry,
   MasterDataRelation,
   VehicleAttachment,
@@ -52,6 +55,7 @@ import {
   VehicleCVFilePreview,
   VehicleCVValue,
   VehicleCVValueInput,
+  VehicleExternalMappingInput,
   VehicleFunction,
   VehicleFunctionInput,
   VehicleMaintenance,
@@ -78,7 +82,9 @@ const emptyVehicle: CreateVehicleRequest = {
   digitalDecoderNumber: "",
   dtDecoder: false,
   dtDecoderNumber: "",
+  decoderType: "",
   exhibitionReady: false,
+  exhibition: false,
   abcBrakes: false,
   ean: "",
   productionPeriod: "",
@@ -132,6 +138,23 @@ type InventoryReportMode = "summary" | "details";
 type InventoryReportSelection = "all" | "selected";
 type InventoryReportAssets = Record<string, { qrCode?: string }>;
 type ArticleFieldKey = keyof CreateVehicleRequest;
+type ECoSRequiredField = "manufacturer" | "name" | "gauge" | "category" | "gattung";
+type ECoSVehicleDraftPayload = {
+  source: "ecos";
+  sourceSummary: {
+    objectId: number;
+    name: string;
+    address: string;
+    protocol: string;
+    profile: string;
+  };
+  vehicle: CreateVehicleRequest;
+  externalMapping: VehicleExternalMappingInput;
+  cvValues: VehicleCVValueInput[];
+  unclearFields: ECoSRequiredField[];
+};
+const ecosVehicleDraftStorageKey = "railkeeper.ecosVehicleDraft";
+const ecosRequiredFields: ECoSRequiredField[] = ["manufacturer", "name", "gauge", "category", "gattung"];
 type PendingArticleImage = ArticleSearchImage & {
   id: string;
   isPrimary?: boolean;
@@ -167,6 +190,15 @@ type CVFileUploadPreview = {
   files: File[];
   previews: VehicleCVFilePreview[];
 };
+type ExhibitionAssignment = {
+  vehicle: Vehicle;
+  lists: ExhibitionList[];
+  selectedListID: string;
+  entries: ExhibitionEntry[];
+  loadingEntries: boolean;
+  saving: boolean;
+  error: string;
+};
 
 const emptyMaintenanceForm: VehicleMaintenanceInput = {
   kind: "Wartung",
@@ -183,6 +215,7 @@ const emptyCVForm: VehicleCVValueInput = {
   value: 0,
   description: "",
   category: "",
+  protocol: "",
   decoderProfile: "",
   sourceFileId: ""
 };
@@ -241,6 +274,7 @@ const functionTypes = ["standard", "sound", "licht", "kupplung", "rauch", "sonde
 const functionModes = ["dauer", "moment"];
 const commonDecoderProfiles = ["ESU LokPilot 5", "ESU LokSound 5", "Zimo MS", "Zimo MX", "D&H SD", "D&H DH", "Märklin mLD3", "Märklin mSD3", "Lenz Standard+"];
 const cvCategories = ["Adresse", "Fahrverhalten", "Motor", "Licht", "Sound", "Funktion", "Decoder", "Sonstiges"];
+const cvProtocols = ["Motorola 14", "Motorola 27", "Motorola 28", "Motorola FX 14", "DCC 14", "DCC 28", "DCC 128", "LGB", "Selectrix"];
 const attachmentAccept = ".pdf,.jpg,.jpeg,.png,.webp,.txt,.csv,.json,.xml,.zip";
 const cvFileAccept = ".json,.csv,.txt,.xml,.z21,.esu,.esux,.lokprogrammer,.zip";
 const imageAccept = ".jpg,.jpeg,.png,.webp";
@@ -280,6 +314,7 @@ const articleFieldLabels: Partial<Record<ArticleFieldKey, string>> = {
   vehicleNumber: "Fahrzeug-Nr.",
   digitalDecoderNumber: "Digital / Decoder-Nr.",
   dtDecoderNumber: "DT / Decoder-Nr.",
+  decoderType: "Decoder-Typ",
   ean: "EAN-Nr.",
   productionPeriod: "Produktionszeit",
   listPrice: "Listenpreis",
@@ -332,6 +367,7 @@ const booleanArticleFields = new Set<ArticleFieldKey>([
   "digital",
   "dtDecoder",
   "exhibitionReady",
+  "exhibition",
   "abcBrakes",
   "driveEnabled",
   "headlightsEnabled",
@@ -398,7 +434,9 @@ function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
     digitalDecoderNumber: vehicle.digitalDecoderNumber || "",
     dtDecoder: vehicle.dtDecoder,
     dtDecoderNumber: vehicle.dtDecoderNumber || "",
+    decoderType: vehicle.decoderType || "",
     exhibitionReady: vehicle.exhibitionReady,
+    exhibition: vehicle.exhibition,
     abcBrakes: vehicle.abcBrakes,
     ean: vehicle.ean || "",
     productionPeriod: vehicle.productionPeriod || "",
@@ -690,6 +728,49 @@ function functionsToEditState(functions?: VehicleFunction[]): FunctionEditState 
   );
 }
 
+function normalizedText(value?: string) {
+  return String(value || "").trim().toLocaleLowerCase("de-DE");
+}
+
+function vehicleExhibitionEligible(vehicle: Pick<Vehicle, "digital" | "digitalDecoderNumber">) {
+  return Boolean(vehicle.digital && vehicle.digitalDecoderNumber?.trim());
+}
+
+function vehicleFunctionsToExhibitionFunctions(functions?: VehicleFunction[]) {
+  const configured = (functions || [])
+    .filter((item) => item.name?.trim() || item.symbolKey || item.notes?.trim())
+    .map((item) => ({
+      key: item.functionKey,
+      name: item.name || "",
+      type: item.functionType || "standard",
+      symbolKey: item.symbolKey || ""
+    }));
+  return configured.length > 0 ? JSON.stringify(configured) : "";
+}
+
+function vehicleToExhibitionEntry(vehicle: Vehicle, owner: string): ExhibitionEntryInput {
+  const image = primaryImage(vehicle.images);
+  return {
+    owner,
+    imageUrl: image?.url || "",
+    locomotiveName: vehicle.name,
+    gattung: vehicle.gattung || "",
+    series: vehicle.series || "",
+    manufacturer: vehicle.manufacturer || "",
+    epoch: vehicle.epoch || "",
+    railwayCompany: vehicle.railwayCompany || "",
+    dayScope: "all",
+    dtDecoder: Boolean(vehicle.dtDecoder),
+    decoderNumber: vehicle.digitalDecoderNumber || "",
+    decoderType: vehicle.decoderType || "",
+    adapter: vehicle.adapter || "",
+    sxAddress: vehicle.dtDecoderNumber || "",
+    analog: false,
+    functionKeys: vehicleFunctionsToExhibitionFunctions(vehicle.functions),
+    notes: [vehicle.vehicleNumber, vehicle.lettering, vehicle.additionalInfo].filter(Boolean).join(" · ")
+  };
+}
+
 function emptyFunctionEdit(functionKey: string): VehicleFunctionInput & { persisted?: boolean } {
   return {
     name: functionKey === "F0" ? "Fahrlicht" : "",
@@ -713,6 +794,7 @@ function cvValuesFromImport(text: string): VehicleCVValueInput[] {
       value: Number(row.value),
       description: String(row.description || ""),
       category: String(row.category || ""),
+      protocol: String(row.protocol || ""),
       decoderProfile: String(row.decoderProfile || ""),
       sourceFileId: String(row.sourceFileId || "")
     }));
@@ -729,6 +811,7 @@ function cvValuesFromImport(text: string): VehicleCVValueInput[] {
         value: Number(value),
         description,
         category,
+        protocol: "",
         decoderProfile,
         sourceFileId: ""
       };
@@ -770,6 +853,7 @@ function cvImportChanges(existing: VehicleCVValue, input: VehicleCVValueInput) {
   if (Number(existing.value) !== Number(input.value)) changes.push("Wert");
   if (normalizeCVText(existing.description) !== normalizeCVText(input.description)) changes.push("Beschreibung");
   if (normalizeCVText(existing.category) !== normalizeCVText(input.category)) changes.push("Kategorie");
+  if (normalizeCVText(existing.protocol) !== normalizeCVText(input.protocol)) changes.push("Protokoll");
   if (normalizeCVText(existing.sourceFileId) !== normalizeCVText(input.sourceFileId)) changes.push("Quelldatei");
   return changes;
 }
@@ -976,7 +1060,7 @@ function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, in
   const attachments = (vehicle.attachments || [])
     .map((item) => reportField(item.originalName || item.fileName, [item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
   const cvValues = (vehicle.cvValues || [])
-    .map((item) => reportField(`CV ${item.cvNumber}`, [String(item.value), item.category, item.decoderProfile, item.description].filter(Boolean).join(" · ")));
+    .map((item) => reportField(`CV ${item.cvNumber}`, [String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(" · ")));
   const cvFiles = (vehicle.cvFiles || [])
     .map((item) => reportField(item.originalName || item.fileName, [item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")));
   const externalMappings = (vehicle.externalMappings || [])
@@ -1015,6 +1099,7 @@ function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, in
         reportField("Baureihe", vehicle.series),
         reportField("Betriebs-Nr.", vehicle.vehicleNumber),
         reportField("Messe tauglich", vehicle.exhibitionReady),
+        reportField("Ausstellung", vehicle.exhibition),
         reportField("QR-Code aktiv", vehicle.qrCodeEnabled)
       ])}
       ${reportSection("Details", [
@@ -1058,6 +1143,7 @@ function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, in
       ${reportSection("Steuerung", [
         reportField("Digital", vehicle.digital),
         reportField("Decoder-Nr.", vehicle.digitalDecoderNumber),
+        reportField("Decoder-Typ", vehicle.decoderType),
         reportField("DT-Decoder", vehicle.dtDecoder),
         reportField("DT Decoder-Nr.", vehicle.dtDecoderNumber),
         reportField("ABC Bremsen", vehicle.abcBrakes),
@@ -1672,6 +1758,7 @@ function VehicleReadOnlyView({
             {vehicle.gattung && <span>{vehicle.gattung}</span>}
             <span>{vehicle.digital ? "Digital" : "Analog"}</span>
             {vehicle.exhibitionReady && <span>Messe tauglich</span>}
+            {vehicle.exhibition && <span>Ausstellung</span>}
           </div>
         </div>
         <div className="vehicle-read-actions">
@@ -1711,7 +1798,8 @@ function VehicleReadOnlyView({
             { label: "Baureihe", value: vehicle.series },
             { label: "Fahrzeug-Nr.", value: vehicle.vehicleNumber },
             { label: "Beschreibung", value: vehicle.description },
-            { label: "Messe tauglich", value: vehicle.exhibitionReady }
+            { label: "Messe tauglich", value: vehicle.exhibitionReady },
+            { label: "Ausstellung", value: vehicle.exhibition }
           ]}
         />
         <VehicleViewSection
@@ -1763,6 +1851,7 @@ function VehicleReadOnlyView({
           fields={[
             { label: "Digital", value: vehicle.digital },
             { label: "Decoder-Nr.", value: vehicle.digitalDecoderNumber },
+            { label: "Decoder-Typ", value: vehicle.decoderType },
             { label: "DT-Decoder", value: vehicle.dtDecoder },
             { label: "DT Decoder-Nr.", value: vehicle.dtDecoderNumber },
             { label: "ABC Bremsen", value: vehicle.abcBrakes },
@@ -1837,7 +1926,7 @@ function VehicleReadOnlyView({
                 {cvValues.slice(0, 12).map((item) => (
                   <article key={item.id}>
                     <strong>CV {item.cvNumber}</strong>
-                    <span>{[String(item.value), item.category, item.decoderProfile, item.description].filter(Boolean).join(" · ")}</span>
+                    <span>{[String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(" · ")}</span>
                   </article>
                 ))}
               </div>
@@ -2339,7 +2428,7 @@ function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: Barcod
   );
 }
 
-export function VehiclesView() {
+export function VehiclesView({ username }: { username: string }) {
   const { language, t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
@@ -2384,6 +2473,8 @@ export function VehiclesView() {
   const [cvFileDescription, setCVFileDescription] = useState("");
   const [cvImportPreview, setCVImportPreview] = useState<CVImportPreview | null>(null);
   const [cvFileUploadPreview, setCVFileUploadPreview] = useState<CVFileUploadPreview | null>(null);
+  const [ecosDraft, setEcosDraft] = useState<ECoSVehicleDraftPayload | null>(null);
+  const [ecosUnclearFields, setEcosUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const cvFileInputRef = useRef<HTMLInputElement | null>(null);
@@ -2406,6 +2497,7 @@ export function VehiclesView() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [gattungFilter, setGattungFilter] = useState("");
   const [exhibitionReadyFilter, setExhibitionReadyFilter] = useState(false);
+  const [exhibitionAssignment, setExhibitionAssignment] = useState<ExhibitionAssignment | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
   const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
     key: "inventoryNumber",
@@ -2471,6 +2563,50 @@ export function VehiclesView() {
       })
       .catch((error: Error) => setMessage(error.message));
   }, []);
+
+  const openECoSDraft = useCallback((draft: ECoSVehicleDraftPayload) => {
+    const nextForm = { ...emptyVehicle, ...draft.vehicle };
+    setSelected(null);
+    setMode("create");
+    setForm(nextForm);
+    setPendingArticleImages([]);
+    setAttachmentEdits({});
+    setImageUploadMaintenanceID("");
+    setAttachmentUploadCategory("");
+    setAttachmentUploadDescription("");
+    setAttachmentUploadMaintenanceID("");
+    setAttachmentDragActive(false);
+    setFunctionEdits({});
+    resetMaintenanceForm();
+    resetCVForm();
+    setCVImportPreview(null);
+    setCVFileUploadPreview(null);
+    setEcosDraft(draft);
+    setEcosUnclearFields(new Set(draft.unclearFields));
+    setActiveTab("model");
+    setOpenSections({ model: true, details: false, vehicle: false });
+    setModalOpen(true);
+    setMessage(t("vehicles.ecosDraft.loaded"));
+  }, [t]);
+
+  useEffect(() => {
+    const rawDraft = window.sessionStorage.getItem(ecosVehicleDraftStorageKey);
+    if (!rawDraft) return;
+
+    try {
+      const draft = JSON.parse(rawDraft) as ECoSVehicleDraftPayload;
+      if (draft?.source === "ecos") {
+        openECoSDraft(draft);
+      }
+    } catch {
+      setMessage(t("vehicles.ecosDraft.invalid"));
+    } finally {
+      window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
+      if (window.location.search.includes("source=ecos")) {
+        window.history.replaceState(null, "", "/vehicles");
+      }
+    }
+  }, [openECoSDraft, t]);
 
   useEffect(() => {
     if (!quickMenuVehicleID) return;
@@ -2661,11 +2797,34 @@ export function VehiclesView() {
 
   const readonly = mode === "view";
 
+  const syncECoSUnclearFields = (nextForm: CreateVehicleRequest) => {
+    setEcosUnclearFields((current) => {
+      if (!ecosDraft && current.size === 0) return current;
+      const next = new Set(current);
+      ecosRequiredFields.forEach((field) => {
+        if (compactValue(nextForm[field])) {
+          next.delete(field);
+        } else if (ecosDraft?.unclearFields.includes(field)) {
+          next.add(field);
+        }
+      });
+      return next;
+    });
+  };
+
+  const ecosFieldClass = (field: ECoSRequiredField) => (ecosDraft && ecosUnclearFields.has(field) ? "ecos-unclear-field" : "");
+
   const update = (patch: Partial<CreateVehicleRequest>) => {
-    setForm((current) => ({ ...current, ...patch }));
+    setForm((current) => {
+      const next = { ...current, ...patch };
+      syncECoSUnclearFields(next);
+      return next;
+    });
   };
 
   const setSelectedDetail = (detail: Vehicle) => {
+    setEcosDraft(null);
+    setEcosUnclearFields(new Set());
     setSelected(detail);
     setForm(vehicleToForm(detail));
     setPendingArticleImages(vehicleImagesToPending(detail));
@@ -3208,6 +3367,7 @@ export function VehiclesView() {
       value: value.value,
       description: value.description || "",
       category: value.category || "",
+      protocol: value.protocol || "",
       decoderProfile: value.decoderProfile || "",
       sourceFileId: value.sourceFileId || ""
     });
@@ -3385,6 +3545,7 @@ export function VehiclesView() {
         value: value.value,
         description: value.description || "",
         category: value.category || "",
+        protocol: value.protocol || "",
         decoderProfile: preview.suggestedDecoderProfile || cvFileProfile || preview.decoder || preview.projectName || "",
         sourceFileId: ""
       }))
@@ -3662,6 +3823,8 @@ export function VehiclesView() {
   };
 
   const openCreate = () => {
+    setEcosDraft(null);
+    setEcosUnclearFields(new Set());
     setSelected(null);
     setMode("create");
     setForm(emptyVehicle);
@@ -3684,6 +3847,8 @@ export function VehiclesView() {
   };
 
   const closeModal = () => {
+    setEcosDraft(null);
+    setEcosUnclearFields(new Set());
     setModalOpen(false);
     setSelected(null);
     setMode("create");
@@ -3702,6 +3867,110 @@ export function VehiclesView() {
     setCVFileUploadPreview(null);
     setPreviewImage(null);
     setMessage("");
+  };
+
+  const updateVehicleExhibitionFlag = (vehicle: Vehicle, exhibition: boolean) => {
+    setMessage("");
+    return api
+      .updateVehicle(vehicle.id, { ...vehicleToForm(vehicle), exhibition })
+      .then((updated) => {
+        setVehicles((current) => current.map((item) => (item.id === updated.id ? updated : item)));
+        if (selected?.id === updated.id) {
+          setSelectedDetail(updated);
+        }
+        return updated;
+      });
+  };
+
+  const loadAssignmentEntries = (listID: string) => {
+    if (!listID) {
+      setExhibitionAssignment((current) => current ? { ...current, selectedListID: "", entries: [], loadingEntries: false, error: "" } : current);
+      return;
+    }
+    setExhibitionAssignment((current) => current ? { ...current, selectedListID: listID, loadingEntries: true, error: "" } : current);
+    api
+      .exhibitionEntries(listID)
+      .then((entries) => {
+        setExhibitionAssignment((current) => current && current.selectedListID === listID ? { ...current, entries, loadingEntries: false, error: "" } : current);
+      })
+      .catch((error: Error) => {
+        setExhibitionAssignment((current) => current ? { ...current, entries: [], loadingEntries: false, error: error.message } : current);
+      });
+  };
+
+  const openExhibitionAssignment = (vehicle: Vehicle) => {
+    if (!vehicleExhibitionEligible(vehicle)) {
+      setMessage(t("vehicles.exhibition.requiresDecoder"));
+      return;
+    }
+    setMessage("");
+    setExhibitionAssignment({
+      vehicle,
+      lists: [],
+      selectedListID: "",
+      entries: [],
+      loadingEntries: true,
+      saving: false,
+      error: ""
+    });
+    api
+      .exhibitionLists()
+      .then((lists) => {
+        const availableLists = lists.filter((list) => !list.locked);
+        const firstListID = availableLists[0]?.id || "";
+        setExhibitionAssignment((current) => current ? {
+          ...current,
+          lists: availableLists,
+          selectedListID: firstListID,
+          loadingEntries: Boolean(firstListID),
+          error: firstListID ? "" : t("vehicles.exhibition.noOpenLists")
+        } : current);
+        if (firstListID) {
+          return api.exhibitionEntries(firstListID).then((entries) => {
+            setExhibitionAssignment((current) => current && current.selectedListID === firstListID ? { ...current, entries, loadingEntries: false, error: "" } : current);
+          });
+        }
+        return undefined;
+      })
+      .catch((error: Error) => {
+        setExhibitionAssignment((current) => current ? { ...current, loadingEntries: false, error: error.message } : current);
+      });
+  };
+
+  const duplicateAssignmentVehicle = exhibitionAssignment
+    ? exhibitionAssignment.entries.find((entry) =>
+      normalizedText(entry.owner) === normalizedText(username) &&
+      normalizedText(entry.locomotiveName) === normalizedText(exhibitionAssignment.vehicle.name)
+    )
+    : undefined;
+  const duplicateAssignmentDecoder = exhibitionAssignment?.vehicle.digitalDecoderNumber
+    ? exhibitionAssignment.entries.find((entry) => normalizedText(entry.decoderNumber) === normalizedText(exhibitionAssignment.vehicle.digitalDecoderNumber))
+    : undefined;
+
+  const saveExhibitionAssignment = () => {
+    if (!exhibitionAssignment || !exhibitionAssignment.selectedListID || duplicateAssignmentVehicle || duplicateAssignmentDecoder) return;
+    setExhibitionAssignment((current) => current ? { ...current, saving: true, error: "" } : current);
+    api
+      .vehicle(exhibitionAssignment.vehicle.id)
+      .then((detail) => api.createExhibitionEntry(exhibitionAssignment.selectedListID, vehicleToExhibitionEntry(detail, username)).then(() => detail))
+      .then((detail) => updateVehicleExhibitionFlag(detail, true))
+      .then(() => {
+        setExhibitionAssignment(null);
+        setMessage(t("vehicles.exhibition.assigned"));
+      })
+      .catch((error: Error) => {
+        setExhibitionAssignment((current) => current ? { ...current, saving: false, error: error.message } : current);
+      });
+  };
+
+  const toggleVehicleExhibition = (vehicle: Vehicle, checked: boolean) => {
+    if (checked) {
+      openExhibitionAssignment(vehicle);
+      return;
+    }
+    updateVehicleExhibitionFlag(vehicle, false)
+      .then(() => setMessage(t("vehicles.exhibition.disabled")))
+      .catch((error: Error) => setMessage(error.message));
   };
 
   const openDetail = (vehicle: Vehicle, tab: ModalTab = "model") => {
@@ -3753,36 +4022,52 @@ export function VehiclesView() {
     setOpenSections((current) => ({ ...current, [section]: !current[section] }));
   };
 
-  const submit = (event: FormEvent) => {
+  const submit = async (event: FormEvent) => {
     event.preventDefault();
+    if (ecosDraft && ecosUnclearFields.size > 0) {
+      setMessage(t("vehicles.ecosDraft.unresolved", { count: ecosUnclearFields.size }));
+      return;
+    }
+
     setSaving(true);
     setMessage("");
 
-    const images = pendingArticleImages.map((image, index) => ({
-      id: image.persisted ? image.id : undefined,
-      url: image.url,
-      title: image.title,
-      sourceUrl: image.source,
-      maintenanceId: image.maintenanceId || "",
-      isPrimary: Boolean(image.isPrimary),
-      sortOrder: index
-    }));
-    const payload = { ...form, images };
-    const action = mode === "edit" && selected
-      ? api.updateVehicle(selected.id, payload)
-      : api.createVehicle(payload);
+    try {
+      const images = pendingArticleImages.map((image, index) => ({
+        id: image.persisted ? image.id : undefined,
+        url: image.url,
+        title: image.title,
+        sourceUrl: image.source,
+        maintenanceId: image.maintenanceId || "",
+        isPrimary: Boolean(image.isPrimary),
+        sortOrder: index
+      }));
+      const payload = { ...form, images };
+      let vehicle = mode === "edit" && selected
+        ? await api.updateVehicle(selected.id, payload)
+        : await api.createVehicle(payload);
 
-    action
-      .then((vehicle) => {
-        setSelectedDetail(vehicle);
-        setMode("view");
-        load();
-        if (mode === "create") {
-          closeModal();
+      if (ecosDraft && mode === "create") {
+        await api.upsertVehicleExternalMapping(vehicle.id, ecosDraft.externalMapping);
+        for (const cvValue of ecosDraft.cvValues) {
+          await api.createVehicleCVValue(vehicle.id, cvValue);
         }
-      })
-      .catch((error: Error) => setMessage(error.message))
-      .finally(() => setSaving(false));
+        vehicle = await api.vehicle(vehicle.id);
+        setEcosDraft(null);
+        setEcosUnclearFields(new Set());
+      }
+
+      setSelectedDetail(vehicle);
+      setMode("view");
+      load();
+      if (mode === "create") {
+        closeModal();
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const confirmDelete = () => {
@@ -4222,7 +4507,7 @@ export function VehiclesView() {
                   <th>{sortHeader("name")}</th>
                   <th>{sortHeader("gauge")}</th>
                   <th>{sortHeader("epoch")}</th>
-                  <th>{sortHeader("category")}</th>
+                  <th>{t("vehicle.field.exhibition")}</th>
                   <th className="actions-cell">{t("vehicles.actions")}</th>
                 </tr>
               </thead>
@@ -4256,7 +4541,22 @@ export function VehiclesView() {
                     </td>
                     <td>{vehicle.gauge}</td>
                     <td>{vehicle.epoch || "-"}</td>
-                    <td>{vehicle.category || "-"}</td>
+                    <td>
+                      <label
+                        className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}
+                        title={vehicle.exhibition || vehicleExhibitionEligible(vehicle) ? t("vehicles.exhibition.toggle") : t("vehicles.exhibition.requiresDecoder")}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={Boolean(vehicle.exhibition)}
+                          disabled={!vehicle.exhibition && !vehicleExhibitionEligible(vehicle)}
+                          onChange={(event) => toggleVehicleExhibition(vehicle, event.target.checked)}
+                          aria-label={t("vehicles.exhibition.toggle")}
+                        />
+                        <span aria-hidden="true" />
+                        <em>{vehicle.exhibition ? t("common.yes") : t("common.no")}</em>
+                      </label>
+                    </td>
                     <td className="actions-cell">
                       <div className="table-actions">
                         <button type="button" className="icon-button" onClick={() => openDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
@@ -4437,13 +4737,13 @@ export function VehiclesView() {
                         </div>
 
                         <div className="form-row">
-                          <label>
+                          <label className={ecosFieldClass("manufacturer")}>
                             <RequiredLabel label={t("vehicle.field.manufacturer")} filled={Boolean(compactValue(form.manufacturer))} />
                             <select value={form.manufacturer} onChange={(event) => update({ manufacturer: event.target.value })} disabled={readonly} required>
                               {selectOptions(options.manufacturers, t("vehicles.select.placeholder"))}
                             </select>
                           </label>
-                          <label>
+                          <label className={ecosFieldClass("gauge")}>
                             <RequiredLabel label={t("vehicle.field.gauge")} filled={Boolean(compactValue(form.gauge))} />
                             <select value={form.gauge} onChange={(event) => update({ gauge: event.target.value })} disabled={readonly} required>
                               {selectOptions(options.gauges, t("vehicles.select.placeholder"))}
@@ -4451,7 +4751,7 @@ export function VehiclesView() {
                           </label>
                         </div>
 
-                        <label>
+                        <label className={ecosFieldClass("name")}>
                           <RequiredLabel label={t("vehicle.field.name")} filled={articleIdentityFilled} />
                           <input value={form.name} onChange={(event) => update({ name: event.target.value })} disabled={readonly} required />
                         </label>
@@ -4472,16 +4772,16 @@ export function VehiclesView() {
                         </div>
 
                         <div className="form-row">
-                          <label>
-                            {t("vehicle.field.category")}
-                            <select value={form.category || ""} onChange={(event) => updateCategory(event.target.value)} disabled={readonly}>
-                              {selectOptions(options.categories)}
+                          <label className={ecosFieldClass("category")}>
+                            <RequiredLabel label={t("vehicle.field.category")} filled={Boolean(compactValue(form.category))} />
+                            <select value={form.category || ""} onChange={(event) => updateCategory(event.target.value)} disabled={readonly} required>
+                              {selectOptions(options.categories, t("vehicles.select.placeholder"))}
                             </select>
                           </label>
-                          <label>
-                            {t("vehicle.field.gattung")}
-                            <select value={form.gattung || ""} onChange={(event) => update({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0}>
-                              {selectOptions(filteredGattungen)}
+                          <label className={ecosFieldClass("gattung")}>
+                            <RequiredLabel label={t("vehicle.field.gattung")} filled={Boolean(compactValue(form.gattung))} />
+                            <select value={form.gattung || ""} onChange={(event) => update({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0} required>
+                              {selectOptions(filteredGattungen, t("vehicles.select.placeholder"))}
                             </select>
                           </label>
                         </div>
@@ -4502,7 +4802,7 @@ export function VehiclesView() {
                           </label>
                         </div>
 
-                        <div className="form-row decoder-row">
+                        <div className="form-row three-columns decoder-row">
                           <label>
                             {t("vehicle.field.digitalDecoderNumber")}
                             <span className="inline-switch-input">
@@ -4523,6 +4823,10 @@ export function VehiclesView() {
                               <input value={form.dtDecoderNumber || ""} onChange={(event) => update({ dtDecoderNumber: event.target.value })} disabled={readonly || !form.dtDecoder} />
                             </span>
                           </label>
+                          <label>
+                            {t("vehicle.field.decoderType")}
+                            <input value={form.decoderType || ""} onChange={(event) => update({ decoderType: event.target.value })} disabled={readonly} />
+                          </label>
                         </div>
 
                         <div className="form-row compact-switch-row">
@@ -4530,6 +4834,13 @@ export function VehiclesView() {
                             {t("vehicle.field.exhibitionReady")}
                             <span className="switch-field">
                               <input type="checkbox" checked={Boolean(form.exhibitionReady)} onChange={(event) => update({ exhibitionReady: event.target.checked })} disabled={readonly} />
+                              <span />
+                            </span>
+                          </label>
+                          <label className="switch-label">
+                            {t("vehicle.field.exhibition")}
+                            <span className="switch-field">
+                              <input type="checkbox" checked={Boolean(form.exhibition)} onChange={(event) => update({ exhibition: event.target.checked })} disabled={readonly} />
                               <span />
                             </span>
                           </label>
@@ -4672,8 +4983,9 @@ export function VehiclesView() {
                               symbols={options.symbols}
                               disabled={readonly || saving}
                               label={`${functionKey} ${t("vehicles.functions.symbol")}`}
-                              onChange={(symbolKey) => updateFunctionEdit(functionKey, {
+                              onChange={(symbolKey, symbolLabel) => updateFunctionEdit(functionKey, {
                                 symbolKey,
+                                name: symbolLabel || edit.name || "",
                                 functionType: inferFunctionTypeFromSymbol(symbolKey, options.symbols, edit.functionType)
                               })}
                             />
@@ -4750,7 +5062,27 @@ export function VehiclesView() {
                         </button>
                       </div>
                     </div>
-                    {!selected && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
+                    {!selected && !ecosDraft && <p className="empty-state compact">{t("vehicles.cv.emptyUntilSave")}</p>}
+                    {!selected && ecosDraft && (
+                      <section className="ecos-draft-cv-preview">
+                        <div>
+                          <h4>{t("vehicles.ecosDraft.cvPreviewTitle")}</h4>
+                          <p>{t("vehicles.ecosDraft.cvPreviewSubtitle", { count: ecosDraft.cvValues.length })}</p>
+                        </div>
+                        <div className="ecos-draft-cv-grid">
+                          {ecosDraft.cvValues.slice(0, 18).map((cvValue) => (
+                            <span key={`${cvValue.cvNumber}-${cvValue.protocol || ""}-${cvValue.decoderProfile || ""}`}>
+                              <strong>CV {cvValue.cvNumber}</strong>
+                              {cvValue.value}
+                            </span>
+                          ))}
+                          {ecosDraft.cvValues.length > 18 && <em>+{ecosDraft.cvValues.length - 18}</em>}
+                        </div>
+                        <p className="ecos-draft-mapping-preview">
+                          {t("vehicles.ecosDraft.mappingPreviewTitle")}: {ecosDraft.sourceSummary.name} · #{ecosDraft.sourceSummary.objectId}
+                        </p>
+                      </section>
+                    )}
                     {selected && (
                       <>
                         <div className="cv-summary">
@@ -4807,6 +5139,7 @@ export function VehiclesView() {
                                     <th>CV</th>
                                     <th>{t("vehicles.articleSearch.current")}</th>
                                     <th>Import</th>
+                                    <th>{t("vehicle.field.protocol")}</th>
                                     <th>{t("vehicles.cv.profiles")}</th>
                                     <th>{t("vehicles.articleSearch.status")}</th>
                                   </tr>
@@ -4826,6 +5159,7 @@ export function VehiclesView() {
                                       <td>{row.input.cvNumber || "-"}</td>
                                       <td>{row.existing ? row.existing.value : "-"}</td>
                                       <td>{Number.isFinite(Number(row.input.value)) ? row.input.value : "-"}</td>
+                                      <td>{row.input.protocol || row.existing?.protocol || "-"}</td>
                                       <td>{row.input.decoderProfile || row.existing?.decoderProfile || "-"}</td>
                                       <td>{row.message}</td>
                                     </tr>
@@ -4873,18 +5207,29 @@ export function VehiclesView() {
                             </select>
                           </label>
                           <label>
-                            {t("vehicle.field.decoderProfile")}
-                            <input list="decoder-profile-options" value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
-                          </label>
-                          <label>
-                            {t("vehicles.cv.sourceFile")}
-                            <select value={cvForm.sourceFileId || ""} onChange={(event) => updateCVForm({ sourceFileId: event.target.value })} disabled={readonly || saving}>
-                              <option value="">{t("vehicles.cv.noFile")}</option>
-                              {(selected.cvFiles || []).map((file) => (
-                                <option key={file.id} value={file.id}>{file.originalName}</option>
+                            {t("vehicle.field.protocol")}
+                            <select value={cvForm.protocol || ""} onChange={(event) => updateCVForm({ protocol: event.target.value })} disabled={readonly || saving}>
+                              <option value="">{t("vehicles.cv.noProtocol")}</option>
+                              {cvProtocols.map((protocol) => (
+                                <option key={protocol} value={protocol}>{protocol}</option>
                               ))}
                             </select>
                           </label>
+                          <label>
+                            {t("vehicle.field.decoderProfile")}
+                            <input list="decoder-profile-options" value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
+                          </label>
+                          {(selected.cvFiles || []).length > 0 && (
+                            <label>
+                              {t("vehicles.cv.sourceFile")}
+                              <select value={cvForm.sourceFileId || ""} onChange={(event) => updateCVForm({ sourceFileId: event.target.value })} disabled={readonly || saving}>
+                                <option value="">{t("vehicles.cv.noFile")}</option>
+                                {(selected.cvFiles || []).map((file) => (
+                                  <option key={file.id} value={file.id}>{file.originalName}</option>
+                                ))}
+                              </select>
+                            </label>
+                          )}
                           <label className="cv-description">
                             {t("vehicles.cv.description")}
                             <input value={cvForm.description || ""} onChange={(event) => updateCVForm({ description: event.target.value })} disabled={readonly || saving} />
@@ -4917,6 +5262,7 @@ export function VehiclesView() {
                               <th>CV</th>
                               <th>{t("vehicle.field.value")}</th>
                               <th>{t("vehicle.field.category")}</th>
+                              <th>{t("vehicle.field.protocol")}</th>
                               <th>{t("vehicle.field.decoderProfile")}</th>
                               <th>{t("vehicles.cv.description")}</th>
                               <th>{t("vehicles.actions")}</th>
@@ -4929,6 +5275,7 @@ export function VehiclesView() {
                                   <td>{value.cvNumber}</td>
                                   <td>{value.value}</td>
                                   <td>{value.category || "-"}</td>
+                                  <td>{value.protocol || "-"}</td>
                                   <td>{value.decoderProfile || "-"}</td>
                                   <td>{value.description || "-"}</td>
                                   <td>
@@ -4944,7 +5291,7 @@ export function VehiclesView() {
                                 </tr>
                                 {value.history && value.history.length > 0 && (
                                   <tr className="cv-history-row">
-                                    <td colSpan={6}>
+                                    <td colSpan={7}>
                                       <details>
                                         <summary>{t("vehicles.cv.history", { count: value.history.length, suffix: value.history.length === 1 ? "" : language === "de" ? "en" : "s" })}</summary>
                                         <div className="cv-history-list">
@@ -5530,6 +5877,73 @@ export function VehiclesView() {
           image={previewImage}
           onClose={() => setPreviewImage(null)}
         />
+      )}
+
+      {exhibitionAssignment && (
+        <div className="confirm-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.exhibition.dialogTitle")}>
+          <section className="confirm-card exhibition-assign-dialog">
+            <div className="panel-head form-head">
+              <div>
+                <h2>{t("vehicles.exhibition.dialogTitle")}</h2>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setExhibitionAssignment(null)} aria-label={t("vehicles.close")}>
+                <X size={17} />
+              </button>
+            </div>
+            <p className="exhibition-assign-vehicle">
+              {exhibitionAssignment.vehicle.inventoryNumber} · {exhibitionAssignment.vehicle.name}
+            </p>
+            <label className="exhibition-assign-field">
+              <span>{t("vehicles.exhibition.list")}</span>
+              <select
+                value={exhibitionAssignment.selectedListID}
+                onChange={(event) => loadAssignmentEntries(event.target.value)}
+                disabled={exhibitionAssignment.loadingEntries || exhibitionAssignment.saving || exhibitionAssignment.lists.length === 0}
+              >
+                {exhibitionAssignment.lists.length === 0 && <option value="">{t("vehicles.exhibition.noOpenLists")}</option>}
+                {exhibitionAssignment.lists.map((list) => (
+                  <option key={list.id} value={list.id}>
+                    {list.designation} · {formatDate(list.date)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="exhibition-assign-checks" aria-live="polite">
+              <span className={vehicleExhibitionEligible(exhibitionAssignment.vehicle) ? "check-ok" : "check-error"}>
+                {vehicleExhibitionEligible(exhibitionAssignment.vehicle) ? <Check size={14} /> : <X size={14} />}
+                {t("vehicles.exhibition.checkDecoder")}
+              </span>
+              <span className={!duplicateAssignmentVehicle ? "check-ok" : "check-error"}>
+                {!duplicateAssignmentVehicle ? <Check size={14} /> : <X size={14} />}
+                {duplicateAssignmentVehicle ? t("vehicles.exhibition.duplicateVehicle", { name: duplicateAssignmentVehicle.locomotiveName }) : t("vehicles.exhibition.checkVehicle")}
+              </span>
+              <span className={!duplicateAssignmentDecoder ? "check-ok" : "check-error"}>
+                {!duplicateAssignmentDecoder ? <Check size={14} /> : <X size={14} />}
+                {duplicateAssignmentDecoder ? t("vehicles.exhibition.duplicateDecoder", { name: duplicateAssignmentDecoder.locomotiveName }) : t("vehicles.exhibition.checkUniqueDecoder")}
+              </span>
+            </div>
+            {exhibitionAssignment.error && <p className="form-message error">{exhibitionAssignment.error}</p>}
+            <div className="confirm-actions">
+              <button type="button" className="secondary-button" onClick={() => setExhibitionAssignment(null)}>
+                {t("vehicles.cancel")}
+              </button>
+              <button
+                type="button"
+                className="primary-button"
+                onClick={saveExhibitionAssignment}
+                disabled={
+                  exhibitionAssignment.saving ||
+                  exhibitionAssignment.loadingEntries ||
+                  !exhibitionAssignment.selectedListID ||
+                  Boolean(duplicateAssignmentVehicle) ||
+                  Boolean(duplicateAssignmentDecoder)
+                }
+              >
+                {exhibitionAssignment.saving ? t("vehicles.saving") : t("vehicles.exhibition.assign")}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
       {deleteCandidate && (

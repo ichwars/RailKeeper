@@ -18,6 +18,14 @@ type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
 type SortDirection = "asc" | "desc";
 type EntryTab = "general" | "images" | "functions";
+type PrintOptions = { includeImages: boolean };
+
+type ExhibitionMasterDataOptions = {
+  manufacturers: MasterDataEntry[];
+  epochs: MasterDataEntry[];
+  railwayCompanies: MasterDataEntry[];
+  gattungen: MasterDataEntry[];
+};
 
 type ExhibitionFunction = {
   key: string;
@@ -31,13 +39,31 @@ const emptyEntryForm: ExhibitionEntryInput = {
   owner: "",
   imageUrl: "",
   locomotiveName: "",
+  gattung: "",
+  series: "",
+  manufacturer: "",
+  epoch: "",
+  railwayCompany: "",
+  dayScope: "all",
   dtDecoder: false,
   decoderNumber: "",
+  decoderType: "",
+  adapter: "",
+  sxAddress: "",
+  analog: false,
   functionKeys: "",
   notes: ""
 };
+const emptyExhibitionOptions: ExhibitionMasterDataOptions = {
+  manufacturers: [],
+  epochs: [],
+  railwayCompanies: [],
+  gattungen: []
+};
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "licht", "sound", "kupplung", "rauch", "sonderfunktion"];
+const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
+const dayScopes = ["all", "day1", "day2", "day3", "day4"];
 const htmlEscapes: Record<string, string> = {
   "&": "&amp;",
   "<": "&lt;",
@@ -45,7 +71,25 @@ const htmlEscapes: Record<string, string> = {
   "\"": "&quot;",
   "'": "&#39;"
 };
-const emptyFunctions = () => functionKeys.map((key) => ({ key, name: key === "F0" ? "Fahrlicht" : "", type: key === "F0" ? "licht" : "standard", symbolKey: key === "F0" ? "light" : "" }));
+function defaultFunction(key: string): ExhibitionFunction {
+  return {
+    key,
+    name: key === "F0" ? "Fahrlicht" : "",
+    type: key === "F0" ? "licht" : "standard",
+    symbolKey: key === "F0" ? "light" : ""
+  };
+}
+
+const emptyFunctions = () => functionKeys.map(defaultFunction);
+
+function isConfiguredFunction(item: ExhibitionFunction) {
+  const fallback = defaultFunction(item.key);
+  return Boolean(item.name.trim() || item.symbolKey || (item.type || fallback.type) !== fallback.type);
+}
+
+function functionDisplayName(item: ExhibitionFunction) {
+  return item.name.trim() || item.symbolKey || item.type || item.key;
+}
 
 function hasAdmin(roles: string[]) {
   return roles.includes("Admin");
@@ -60,6 +104,21 @@ function sortValue(value: unknown) {
   if (typeof value === "boolean") return value ? "1" : "0";
   if (typeof value === "number") return String(value).padStart(8, "0");
   return String(value || "").toLowerCase();
+}
+
+function sortEntries(entries: ExhibitionEntry[], sort: { key: EntrySortKey; direction: SortDirection }) {
+  return [...entries].sort((a, b) => {
+    const result = sortValue(a[sort.key]).localeCompare(sortValue(b[sort.key]), "de");
+    return sort.direction === "asc" ? result : -result;
+  });
+}
+
+function optionValue(entry: MasterDataEntry) {
+  return entry.label;
+}
+
+function normalizeAddress(value?: string) {
+  return String(value || "").trim().toLowerCase();
 }
 
 function parseFunctions(value?: string): ExhibitionFunction[] {
@@ -82,13 +141,54 @@ function parseFunctions(value?: string): ExhibitionFunction[] {
 }
 
 function serializeFunctions(functions: ExhibitionFunction[]) {
-  return JSON.stringify(functions.filter((item) => item.name.trim()).map((item) => ({ ...item, name: item.name.trim(), symbolKey: item.symbolKey || "" })));
+  return JSON.stringify(functions.filter(isConfiguredFunction).map((item) => {
+    const fallback = defaultFunction(item.key);
+    return {
+      key: item.key,
+      name: item.name.trim(),
+      type: item.type || fallback.type,
+      symbolKey: item.symbolKey || ""
+    };
+  }));
 }
 
 function displayFunctions(value?: string) {
-  const configured = parseFunctions(value).filter((item) => item.name.trim());
+  const configured = parseFunctions(value).filter(isConfiguredFunction);
   if (configured.length === 0) return "-";
-  return configured.map((item) => `${item.key} ${item.name}`).join(", ");
+  return configured.map((item) => `${item.key} ${functionDisplayName(item)}`).join(", ");
+}
+
+function configuredFunctions(value?: string) {
+  return parseFunctions(value).filter(isConfiguredFunction);
+}
+
+function dayScopeLabel(value: string | undefined, t: (key: string, values?: Record<string, string | number>) => string) {
+  const scope = dayScopes.includes(value || "") ? value : "all";
+  return t(`exhibition.dayScope.${scope}`);
+}
+
+function locomotiveTitle(entry: Pick<ExhibitionEntry, "locomotiveName" | "railwayCompany">) {
+  return [entry.locomotiveName, entry.railwayCompany ? `(${entry.railwayCompany})` : ""].filter(Boolean).join(" ");
+}
+
+function modelMeta(entry: Pick<ExhibitionEntry, "manufacturer" | "gattung" | "epoch">) {
+  return [entry.manufacturer, entry.gattung, entry.epoch].filter(Boolean);
+}
+
+function controlRows(
+  entry: Pick<ExhibitionEntry, "decoderNumber" | "sxAddress" | "analog" | "decoderType" | "adapter">,
+  t: (key: string, values?: Record<string, string | number>) => string
+) {
+  const address = [
+    entry.decoderNumber || "",
+    entry.sxAddress ? `SX ${entry.sxAddress}` : ""
+  ].filter(Boolean).join(" / ");
+  return [
+    [t("exhibition.address"), address || "-"],
+    [t("exhibition.analog"), entry.analog ? t("exhibition.yes") : t("exhibition.no")],
+    [t("exhibition.decoder"), entry.decoderType || "-"],
+    [t("exhibition.interface"), entry.adapter || "-"]
+  ];
 }
 
 function symbolImageDataFromMetadata(metadata?: Record<string, unknown>) {
@@ -97,12 +197,13 @@ function symbolImageDataFromMetadata(metadata?: Record<string, unknown>) {
 }
 
 function printFunctionChips(value: string | undefined, symbols: MasterDataEntry[]) {
-  const configured = parseFunctions(value).filter((item) => item.name.trim());
+  const configured = parseFunctions(value).filter(isConfiguredFunction);
   if (configured.length === 0) return "-";
   return configured.map((item) => {
     const metadata = functionSymbolMetadata(symbols, item.symbolKey);
     const imageData = symbolImageDataFromMetadata(metadata);
-    return `<span class="function-chip">${imageData ? `<img src="${escapeHTML(imageData)}" alt="" />` : ""}<strong>${escapeHTML(item.key)}</strong> ${escapeHTML(item.name)}</span>`;
+    const label = functionDisplayName(item);
+    return `<span class="function-chip">${imageData ? `<img src="${escapeHTML(imageData)}" alt="" />` : ""}<strong>${escapeHTML(item.key)}</strong> ${escapeHTML(label)}</span>`;
   }).join("");
 }
 
@@ -119,66 +220,131 @@ function fileToDataURL(file: File) {
   });
 }
 
+function printHTMLDocument(html: string) {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.position = "fixed";
+  frame.style.right = "0";
+  frame.style.bottom = "0";
+  frame.style.width = "0";
+  frame.style.height = "0";
+  frame.style.border = "0";
+  frame.style.opacity = "0";
+  document.body.appendChild(frame);
+
+  const printWindow = frame.contentWindow;
+  if (!printWindow) {
+    frame.remove();
+    return;
+  }
+
+  let printed = false;
+  const runPrint = () => {
+    if (printed) return;
+    printed = true;
+    printWindow.focus();
+    printWindow.print();
+    window.setTimeout(() => frame.remove(), 1200);
+  };
+
+  frame.onload = runPrint;
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  window.setTimeout(runPrint, 250);
+}
+
 function printList(
   list: ExhibitionList,
   entries: ExhibitionEntry[],
   symbols: MasterDataEntry[] = [],
   language = "de",
-  t: (key: string, values?: Record<string, string | number>) => string = (key) => key
+  t: (key: string, values?: Record<string, string | number>) => string = (key) => key,
+  options: PrintOptions = { includeImages: true }
 ) {
-  const rows = entries.map((entry) => `
+  const rows = entries.map((entry) => {
+    const modelParts = modelMeta(entry);
+    const controlParts = controlRows(entry, t);
+    return `
     <tr>
-      <td class="image-cell">${entry.imageUrl ? `<img src="${escapeHTML(entry.imageUrl)}" alt="" />` : `<span>-</span>`}</td>
-      <td>${escapeHTML(entry.owner)}</td>
-      <td>
-        <strong>${escapeHTML(entry.locomotiveName)}</strong>
-        ${entry.notes ? `<small>${escapeHTML(entry.notes)}</small>` : ""}
+      ${options.includeImages ? `<td class="image-cell">${entry.imageUrl ? `<img src="${escapeHTML(entry.imageUrl)}" alt="" />` : `<span>-</span>`}</td>` : ""}
+      <td class="owner-cell">${escapeHTML(entry.owner)}<small>${escapeHTML(dayScopeLabel(entry.dayScope, t))}</small></td>
+      <td class="loco-cell">
+        <strong>${escapeHTML(locomotiveTitle(entry))}</strong>
+        ${modelParts.length > 0 ? `<small>${modelParts.map(escapeHTML).join(" | ")}</small>` : ""}
       </td>
-      <td>${entry.dtDecoder ? t("exhibition.yes") : t("exhibition.no")}</td>
-      <td>${escapeHTML(entry.decoderNumber || "-")}</td>
-      <td class="function-cell">${printFunctionChips(entry.functionKeys, symbols)}</td>
+      <td class="control-cell">${controlParts.map(([label, value]) => `<span class="control-row"><em>${escapeHTML(label)}:</em> <strong>${escapeHTML(value)}</strong></span>`).join("")}</td>
+      <td class="function-cell"><div class="function-chip-grid">${printFunctionChips(entry.functionKeys, symbols)}</div></td>
+      <td class="notes-cell">${entry.notes ? escapeHTML(entry.notes) : "-"}</td>
     </tr>
-  `).join("");
-  const win = window.open("", "_blank", "noopener,noreferrer");
-  if (!win) return;
-  win.document.write(`<!doctype html>
+  `;
+  }).join("");
+  const emptyColSpan = options.includeImages ? 6 : 5;
+  const colGroup = options.includeImages
+    ? `<colgroup><col class="col-image" /><col class="col-owner" /><col class="col-loco" /><col class="col-control" /><col class="col-functions" /><col class="col-notes" /></colgroup>`
+    : `<colgroup><col class="col-owner" /><col class="col-loco" /><col class="col-control" /><col class="col-functions" /><col class="col-notes" /></colgroup>`;
+  printHTMLDocument(`<!doctype html>
     <html lang="${escapeHTML(language)}">
       <head>
         <meta charset="utf-8" />
-        <title>${escapeHTML(list.designation)}</title>
+        <title> </title>
         <style>
-          body { font-family: Arial, sans-serif; margin: 28px; color: #111; }
-          h1 { margin: 0 0 6px; }
-          p { margin: 0 0 20px; color: #555; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
-          th { background: #f3f6f4; }
+          @page { size: A4 landscape; margin: 13mm 12mm 12mm; }
+          * { box-sizing: border-box; }
+          body { font-family: Arial, sans-serif; margin: 0; color: #111; }
+          .print-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid #78b943; }
+          .print-eyebrow { margin: 0 0 4px; color: #4e7f27; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+          h1 { margin: 0 0 5px; font-size: 22px; line-height: 1.12; }
+          p { margin: 0; color: #555; }
+          .print-meta { font-size: 11px; }
+          .print-logo { width: 44px; height: 44px; object-fit: contain; flex: 0 0 auto; }
+          table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 10.5px; }
+          .col-image { width: 74px; }
+          .col-owner { width: 102px; }
+          .col-loco { width: 200px; }
+          .col-control { width: 180px; }
+          .col-functions { width: 178px; }
+          .col-notes { width: auto; }
+          th, td { border-bottom: 1px solid #d7ddd9; padding: 7px 8px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+          th { background: #eef5ee; color: #26352a; font-size: 9px; text-transform: uppercase; }
           td strong, td small { display: block; }
-          td small { margin-top: 3px; color: #666; }
-          .image-cell { width: 64px; }
-          .image-cell img, .image-cell span { display: grid; width: 56px; height: 40px; place-items: center; border: 1px solid #ddd; border-radius: 4px; object-fit: contain; }
-          .function-cell { min-width: 170px; }
-          .function-chip { display: inline-flex; align-items: center; gap: 4px; margin: 0 6px 5px 0; padding: 3px 6px; border: 1px solid #d9e4dc; border-radius: 4px; white-space: nowrap; }
+          td small { margin-top: 3px; color: #666; line-height: 1.35; }
+          .image-cell { width: 74px; }
+          .image-cell img, .image-cell span { display: grid; width: 66px; height: 46px; place-items: center; border: 1px solid #d7ddd9; border-radius: 4px; object-fit: contain; }
+          .control-row { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 5px; margin-bottom: 3px; line-height: 1.25; }
+          .control-row em { color: #666; font-style: normal; }
+          .function-cell { min-width: 0; }
+          .function-chip-grid { display: grid; grid-template-columns: repeat(2, max-content); gap: 5px 6px; align-content: start; min-width: 0; }
+          .function-chip { display: inline-flex; align-items: center; gap: 4px; min-width: 54px; padding: 3px 6px; border: 1px solid #d9e4dc; border-radius: 4px; white-space: nowrap; }
           .function-chip img { width: 14px; height: 14px; object-fit: contain; }
           .function-chip strong { display: inline; }
-          footer { margin-top: 18px; color: #777; font-size: 11px; }
-          @media print { body { margin: 14mm; } button { display: none; } }
         </style>
       </head>
       <body>
-        <h1>${escapeHTML(list.designation)}</h1>
-        <p>${escapeHTML(t("exhibition.entriesCountWithDate", { date: formatDate(list.date, language), count: entries.length }))}</p>
+        <header class="print-head">
+          <div>
+            <p class="print-eyebrow">RailKeeper Ausstellung</p>
+            <h1>${escapeHTML(list.designation)}</h1>
+            <p class="print-meta">${escapeHTML(t("exhibition.entriesCountWithDate", { date: formatDate(list.date, language), count: entries.length }))}</p>
+          </div>
+          <img class="print-logo" src="/brand/railkeeper-mark.png" alt="RailKeeper" />
+        </header>
         <table>
+          ${colGroup}
           <thead>
-            <tr><th>${escapeHTML(t("exhibition.image"))}</th><th>${escapeHTML(t("exhibition.owner"))}</th><th>${escapeHTML(t("exhibition.locomotiveName"))}</th><th>DT</th><th>${escapeHTML(t("exhibition.decoderNumber"))}</th><th>${escapeHTML(t("exhibition.functionKeys"))}</th></tr>
+            <tr>
+              ${options.includeImages ? `<th>${escapeHTML(t("exhibition.image"))}</th>` : ""}
+              <th>${escapeHTML(t("exhibition.owner"))}</th>
+              <th>${escapeHTML(t("exhibition.locomotiveName"))}</th>
+              <th>${escapeHTML(t("exhibition.controlData"))}</th>
+              <th>${escapeHTML(t("exhibition.functionKeys"))}</th>
+              <th>${escapeHTML(t("exhibition.notes"))}</th>
+            </tr>
           </thead>
-          <tbody>${rows || `<tr><td colspan="6">${escapeHTML(t("exhibition.printEmpty"))}</td></tr>`}</tbody>
+          <tbody>${rows || `<tr><td colspan="${emptyColSpan}">${escapeHTML(t("exhibition.printEmpty"))}</td></tr>`}</tbody>
         </table>
-        <footer>${escapeHTML(t("exhibition.printFooter", { status: list.locked ? t("exhibition.locked") : t("exhibition.open") }))}</footer>
-        <script>window.print();</script>
       </body>
     </html>`);
-  win.document.close();
 }
 
 export function ExhibitionView({ roles }: { roles: string[] }) {
@@ -195,11 +361,14 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   const [listDialog, setListDialog] = useState<{ mode: "create" | "edit"; list?: ExhibitionList } | null>(null);
   const [entryDialog, setEntryDialog] = useState<{ mode: "create" | "edit"; entry?: ExhibitionEntry } | null>(null);
   const [viewDialog, setViewDialog] = useState<{ list: ExhibitionList; entries: ExhibitionEntry[] } | null>(null);
+  const [printDialog, setPrintDialog] = useState<{ list: ExhibitionList; entries: ExhibitionEntry[] } | null>(null);
+  const [printIncludeImages, setPrintIncludeImages] = useState(true);
   const [activeEntryTab, setActiveEntryTab] = useState<EntryTab>("general");
   const [entryFunctions, setEntryFunctions] = useState<ExhibitionFunction[]>(emptyFunctions);
   const [listForm, setListForm] = useState<ExhibitionListInput>(emptyListForm);
   const [entryForm, setEntryForm] = useState<ExhibitionEntryInput>(emptyEntryForm);
   const [symbols, setSymbols] = useState<MasterDataEntry[]>([]);
+  const [masterDataOptions, setMasterDataOptions] = useState<ExhibitionMasterDataOptions>(emptyExhibitionOptions);
 
   const selectedList = lists.find((list) => list.id === selectedID) || null;
   const canEditEntries = Boolean(selectedList && !selectedList.locked);
@@ -212,12 +381,19 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
     });
   }, [listSort, lists]);
 
-  const sortedEntries = useMemo(() => {
-    return [...entries].sort((a, b) => {
-      const result = sortValue(a[entrySort.key]).localeCompare(sortValue(b[entrySort.key]), "de");
-      return entrySort.direction === "asc" ? result : -result;
-    });
-  }, [entries, entrySort]);
+  const sortedEntries = useMemo(() => sortEntries(entries, entrySort), [entries, entrySort]);
+
+  const duplicateAddress = useMemo(() => {
+    const currentID = entryDialog?.entry?.id || "";
+    const dcc = normalizeAddress(entryForm.decoderNumber);
+    const sx = normalizeAddress(entryForm.sxAddress);
+    return {
+      dcc: dcc ? entries.find((entry) => entry.id !== currentID && normalizeAddress(entry.decoderNumber) === dcc) : undefined,
+      sx: sx ? entries.find((entry) => entry.id !== currentID && normalizeAddress(entry.sxAddress) === sx) : undefined
+    };
+  }, [entries, entryDialog?.entry?.id, entryForm.decoderNumber, entryForm.sxAddress]);
+
+  const hasDuplicateAddress = Boolean(duplicateAddress.dcc || duplicateAddress.sx);
 
   const load = () => {
     setLoading(true);
@@ -238,6 +414,17 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
 
   useEffect(() => {
     api.masterData("symbols", true).then(setSymbols).catch((error: Error) => setMessage(error.message));
+  }, []);
+
+  useEffect(() => {
+    api.masterDataAll(true)
+      .then((entriesByType) => setMasterDataOptions({
+        manufacturers: entriesByType.manufacturer || [],
+        epochs: entriesByType.epoch || [],
+        railwayCompanies: entriesByType.railway_company || [],
+        gattungen: entriesByType.vehicle_gattung || []
+      }))
+      .catch((error: Error) => setMessage(error.message));
   }, []);
 
   useEffect(() => {
@@ -300,11 +487,19 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   const openListView = async (list: ExhibitionList) => {
     setSelectedID(list.id);
     const nextEntries = await entriesForList(list);
-    setViewDialog({ list, entries: nextEntries });
+    setViewDialog({ list, entries: sortEntries(nextEntries, entrySort) });
   };
 
   const printListByID = async (list: ExhibitionList) => {
-    printList(list, await entriesForList(list), symbols, language, t);
+    const nextEntries = await entriesForList(list);
+    setPrintIncludeImages(true);
+    setPrintDialog({ list, entries: sortEntries(nextEntries, entrySort) });
+  };
+
+  const runPrintDialog = () => {
+    if (!printDialog) return;
+    printList(printDialog.list, printDialog.entries, symbols, language, t, { includeImages: printIncludeImages });
+    setPrintDialog(null);
   };
 
   const openEntryDialog = (mode: "create" | "edit", entry?: ExhibitionEntry) => {
@@ -314,8 +509,18 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
       owner: entry.owner,
       imageUrl: entry.imageUrl || "",
       locomotiveName: entry.locomotiveName,
+      gattung: entry.gattung || "",
+      series: entry.series || "",
+      manufacturer: entry.manufacturer || "",
+      epoch: entry.epoch || "",
+      railwayCompany: entry.railwayCompany || "",
+      dayScope: entry.dayScope || "all",
       dtDecoder: entry.dtDecoder,
       decoderNumber: entry.decoderNumber || "",
+      decoderType: entry.decoderType || "",
+      adapter: entry.adapter || "",
+      sxAddress: entry.sxAddress || "",
+      analog: entry.analog,
       functionKeys: entry.functionKeys || "",
       notes: entry.notes || "",
       sortOrder: entry.sortOrder
@@ -332,6 +537,10 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
 
   const saveEntry = async () => {
     if (!selectedID || !canEditEntries) return;
+    if (hasDuplicateAddress) {
+      setMessage(t("exhibition.duplicateAddressMessage"));
+      return;
+    }
     setSaving(true);
     setMessage("");
     const payload = { ...entryForm, functionKeys: serializeFunctions(entryFunctions) };
@@ -365,6 +574,56 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
 
   const updateEntryFunction = (key: string, patch: Partial<ExhibitionFunction>) => {
     setEntryFunctions((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  };
+
+  const selectOptions = (items: MasterDataEntry[], emptyLabel = t("exhibition.noSelection")) => (
+    <>
+      <option value="">{emptyLabel}</option>
+      {items.map((entry) => (
+        <option key={entry.key} value={optionValue(entry)}>
+          {entry.label}
+        </option>
+      ))}
+    </>
+  );
+
+  const renderLocomotiveCell = (entry: ExhibitionEntry) => {
+    const meta = modelMeta(entry);
+    return (
+      <div className="exhibition-loco-cell">
+        <strong>{locomotiveTitle(entry)}</strong>
+        {meta.length > 0 && <small>{meta.join(" | ")}</small>}
+        {entry.notes && <small>{entry.notes}</small>}
+      </div>
+    );
+  };
+
+  const renderControlCell = (entry: ExhibitionEntry) => (
+    <dl className="exhibition-control-stack">
+      {controlRows(entry, t).map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}:</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+
+  const renderFunctionGrid = (value?: string) => {
+    const configured = configuredFunctions(value);
+    if (configured.length === 0) return <span className="muted-inline">-</span>;
+    return (
+      <div className="exhibition-function-grid">
+        {configured.map((item) => (
+          <span key={item.key} className="exhibition-function-pill" title={functionDisplayName(item)} aria-label={`${item.key} ${functionDisplayName(item)}`}>
+            <span className="exhibition-function-icon">
+              {functionSymbolIcon(item.symbolKey, item.type, functionSymbolMetadata(symbols, item.symbolKey))}
+            </span>
+            <strong>{item.key}</strong>
+          </span>
+        ))}
+      </div>
+    );
   };
 
   return (
@@ -437,7 +696,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
               <p>{selectedList ? t("exhibition.entriesCountWithDate", { date: formatDate(selectedList.date, language), count: entries.length }) : t("exhibition.selectList")}</p>
             </div>
             <div className="table-actions">
-              {selectedList && <button type="button" className="icon-button" onClick={() => printList(selectedList, sortedEntries, symbols, language, t)} aria-label={t("exhibition.printList")} title={t("exhibition.printList")}><Printer size={15} /></button>}
+              {selectedList && <button type="button" className="icon-button" onClick={() => { setPrintIncludeImages(true); setPrintDialog({ list: selectedList, entries: sortedEntries }); }} aria-label={t("exhibition.printList")} title={t("exhibition.printList")}><Printer size={15} /></button>}
               {selectedList && <button type="button" className="primary-button" onClick={() => openEntryDialog("create")} disabled={!canEditEntries}>{t("exhibition.entry")}</button>}
             </div>
           </div>
@@ -448,8 +707,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                   <th>{t("exhibition.image")}</th>
                   <th><button type="button" className={entrySort.key === "owner" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("owner")}>{t("exhibition.owner")}</button></th>
                   <th><button type="button" className={entrySort.key === "locomotiveName" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("locomotiveName")}>{t("exhibition.locomotiveName")}</button></th>
-                  <th><button type="button" className={entrySort.key === "dtDecoder" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("dtDecoder")}>DT</button></th>
-                  <th><button type="button" className={entrySort.key === "decoderNumber" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("decoderNumber")}>{t("exhibition.decoderNumber")}</button></th>
+                  <th><button type="button" className={entrySort.key === "decoderNumber" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("decoderNumber")}>{t("exhibition.controlData")}</button></th>
                   <th><button type="button" className={entrySort.key === "functionKeys" ? "sort-button active" : "sort-button"} onClick={() => setEntrySortKey("functionKeys")}>{t("exhibition.functionKeys")}</button></th>
                   <th>{t("exhibition.actions")}</th>
                 </tr>
@@ -458,11 +716,10 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                 {sortedEntries.map((entry) => (
                   <tr key={entry.id}>
                     <td>{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
-                    <td>{entry.owner}</td>
-                    <td><strong>{entry.locomotiveName}</strong>{entry.notes && <small>{entry.notes}</small>}</td>
-                    <td>{entry.dtDecoder ? t("exhibition.yes") : t("exhibition.no")}</td>
-                    <td>{entry.decoderNumber || t("common.placeholder")}</td>
-                    <td>{displayFunctions(entry.functionKeys)}</td>
+                    <td><strong>{entry.owner}</strong><small>{dayScopeLabel(entry.dayScope, t)}</small></td>
+                    <td>{renderLocomotiveCell(entry)}</td>
+                    <td>{renderControlCell(entry)}</td>
+                    <td>{renderFunctionGrid(entry.functionKeys)}</td>
                     <td>
                       <div className="table-actions">
                         <button type="button" className="icon-button" onClick={() => openEntryDialog("edit", entry)} disabled={!canEditEntries} aria-label={t("exhibition.edit")} title={t("exhibition.edit")}><Edit3 size={15} /></button>
@@ -472,10 +729,10 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                   </tr>
                 ))}
                 {selectedList && sortedEntries.length === 0 && (
-                  <tr><td colSpan={7}>{t("exhibition.noEntries")}</td></tr>
+                  <tr><td colSpan={6}>{t("exhibition.noEntries")}</td></tr>
                 )}
                 {!selectedList && (
-                  <tr><td colSpan={7}>{t("exhibition.noList")}</td></tr>
+                  <tr><td colSpan={6}>{t("exhibition.noList")}</td></tr>
                 )}
               </tbody>
             </table>
@@ -526,8 +783,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                       <th>{t("exhibition.image")}</th>
                       <th>{t("exhibition.owner")}</th>
                       <th>{t("exhibition.locomotiveName")}</th>
-                      <th>DT</th>
-                      <th>{t("exhibition.decoderNumber")}</th>
+                      <th>{t("exhibition.controlData")}</th>
                       <th>{t("exhibition.functionKeys")}</th>
                     </tr>
                   </thead>
@@ -535,21 +791,44 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                     {viewDialog.entries.map((entry) => (
                       <tr key={entry.id}>
                         <td>{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
-                        <td>{entry.owner}</td>
-                        <td><strong>{entry.locomotiveName}</strong>{entry.notes && <small>{entry.notes}</small>}</td>
-                        <td>{entry.dtDecoder ? t("exhibition.yes") : t("exhibition.no")}</td>
-                        <td>{entry.decoderNumber || t("common.placeholder")}</td>
-                        <td>{displayFunctions(entry.functionKeys)}</td>
+                        <td><strong>{entry.owner}</strong><small>{dayScopeLabel(entry.dayScope, t)}</small></td>
+                        <td>{renderLocomotiveCell(entry)}</td>
+                        <td>{renderControlCell(entry)}</td>
+                        <td>{renderFunctionGrid(entry.functionKeys)}</td>
                       </tr>
                     ))}
-                    {viewDialog.entries.length === 0 && <tr><td colSpan={6}>{t("exhibition.noEntriesShort")}</td></tr>}
+                    {viewDialog.entries.length === 0 && <tr><td colSpan={5}>{t("exhibition.noEntriesShort")}</td></tr>}
                   </tbody>
                 </table>
               </div>
             </div>
             <div className="modal-actions">
-              <button type="button" className="secondary-button" onClick={() => printList(viewDialog.list, viewDialog.entries, symbols, language, t)}>{t("exhibition.print")}</button>
+              <button type="button" className="secondary-button" onClick={() => { setPrintIncludeImages(true); setPrintDialog({ list: viewDialog.list, entries: viewDialog.entries }); }}>{t("exhibition.print")}</button>
               <button type="button" className="primary-button" onClick={() => setViewDialog(null)}>{t("exhibition.close")}</button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {printDialog && (
+        <div className="modal-layer">
+          <section className="vehicle-modal compact-modal">
+            <div className="modal-head">
+              <div>
+                <h2>{t("exhibition.printDialogTitle")}</h2>
+                <p>{printDialog.list.designation}</p>
+              </div>
+              <button type="button" className="icon-button" onClick={() => setPrintDialog(null)} aria-label={t("exhibition.close")}>×</button>
+            </div>
+            <div className="modal-body simple-form">
+              <label className="checkbox-line">
+                <input type="checkbox" checked={printIncludeImages} onChange={(event) => setPrintIncludeImages(event.target.checked)} />
+                {t("exhibition.printIncludeImages")}
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button type="button" className="secondary-button" onClick={() => setPrintDialog(null)}>{t("exhibition.cancel")}</button>
+              <button type="button" className="primary-button" onClick={runPrintDialog}>{t("exhibition.print")}</button>
             </div>
           </section>
         </div>
@@ -570,16 +849,98 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
             <div className="modal-body">
               {activeEntryTab === "general" && (
                 <div className="exhibition-entry-form">
-                  <section>
+                  <section className="exhibition-entry-section exhibition-entry-section-wide">
                     <h3>{t("exhibition.basicData")}</h3>
-                    <label><span>{t("exhibition.owner")}</span><input value={entryForm.owner} onChange={(event) => setEntryForm({ ...entryForm, owner: event.target.value })} required /></label>
-                    <label><span>{t("exhibition.locomotiveName")}</span><input value={entryForm.locomotiveName} onChange={(event) => setEntryForm({ ...entryForm, locomotiveName: event.target.value })} required /></label>
+                    <div className="exhibition-day-selector" role="group" aria-label={t("exhibition.dayScope")}>
+                      {dayScopes.map((scope) => (
+                        <button
+                          key={scope}
+                          type="button"
+                          className={(entryForm.dayScope || "all") === scope ? "active" : ""}
+                          onClick={() => setEntryForm({ ...entryForm, dayScope: scope })}
+                        >
+                          {dayScopeLabel(scope, t)}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="exhibition-entry-grid">
+                      <label>
+                        <span>{t("exhibition.owner")}</span>
+                        <input value={entryForm.owner} onChange={(event) => setEntryForm({ ...entryForm, owner: event.target.value })} required />
+                      </label>
+                      <label>
+                        <span>{t("exhibition.locomotiveName")}</span>
+                        <input value={entryForm.locomotiveName} onChange={(event) => setEntryForm({ ...entryForm, locomotiveName: event.target.value })} required />
+                      </label>
+                      <label>
+                        <span>{t("exhibition.manufacturer")}</span>
+                        <select value={entryForm.manufacturer || ""} onChange={(event) => setEntryForm({ ...entryForm, manufacturer: event.target.value })}>
+                          {selectOptions(masterDataOptions.manufacturers)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>{t("exhibition.series")}</span>
+                        <input value={entryForm.series || ""} onChange={(event) => setEntryForm({ ...entryForm, series: event.target.value })} />
+                      </label>
+                      <label>
+                        <span>{t("exhibition.gattung")}</span>
+                        <select value={entryForm.gattung || ""} onChange={(event) => setEntryForm({ ...entryForm, gattung: event.target.value })}>
+                          {selectOptions(masterDataOptions.gattungen)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>{t("exhibition.epoch")}</span>
+                        <select value={entryForm.epoch || ""} onChange={(event) => setEntryForm({ ...entryForm, epoch: event.target.value })}>
+                          {selectOptions(masterDataOptions.epochs)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>{t("exhibition.railwayCompany")}</span>
+                        <select value={entryForm.railwayCompany || ""} onChange={(event) => setEntryForm({ ...entryForm, railwayCompany: event.target.value })}>
+                          {selectOptions(masterDataOptions.railwayCompanies)}
+                        </select>
+                      </label>
+                    </div>
                   </section>
-                  <section>
-                    <h3>{t("exhibition.digitalTech")}</h3>
-                    <label className="checkbox-line"><input type="checkbox" checked={entryForm.dtDecoder} onChange={(event) => setEntryForm({ ...entryForm, dtDecoder: event.target.checked })} /> <span>{t("exhibition.dtAvailable")}</span></label>
-                    <label><span>{t("exhibition.decoderNumber")}</span><input value={entryForm.decoderNumber || ""} onChange={(event) => setEntryForm({ ...entryForm, decoderNumber: event.target.value })} /></label>
-                    <label><span>{t("exhibition.notes")}</span><textarea value={entryForm.notes || ""} onChange={(event) => setEntryForm({ ...entryForm, notes: event.target.value })} /></label>
+                  <section className="exhibition-entry-section">
+                    <h3>{t("exhibition.controlData")}</h3>
+                    <div className="exhibition-entry-grid">
+                      <label>
+                        <span>{t("exhibition.decoderType")}</span>
+                        <input value={entryForm.decoderType || ""} onChange={(event) => setEntryForm({ ...entryForm, decoderType: event.target.value })} />
+                      </label>
+                      <label>
+                        <span>{t("exhibition.adapter")}</span>
+                        <select value={entryForm.adapter || ""} onChange={(event) => setEntryForm({ ...entryForm, adapter: event.target.value })}>
+                          <option value="">{t("exhibition.noSelection")}</option>
+                          {adapterOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                        </select>
+                      </label>
+                      <label>
+                        <span>{t("exhibition.dccAddress")}</span>
+                        <input value={entryForm.decoderNumber || ""} onChange={(event) => setEntryForm({ ...entryForm, decoderNumber: event.target.value })} />
+                        {duplicateAddress.dcc && <small className="field-warning">{t("exhibition.duplicateDccAddress", { name: duplicateAddress.dcc.locomotiveName })}</small>}
+                      </label>
+                      <label>
+                        <span>{t("exhibition.sxAddress")}</span>
+                        <input value={entryForm.sxAddress || ""} onChange={(event) => setEntryForm({ ...entryForm, sxAddress: event.target.value })} />
+                        {duplicateAddress.sx && <small className="field-warning">{t("exhibition.duplicateSxAddress", { name: duplicateAddress.sx.locomotiveName })}</small>}
+                      </label>
+                    </div>
+                    <label className="switch-label exhibition-entry-switch">
+                      {t("exhibition.analog")}
+                      <span className="switch-field">
+                        <input type="checkbox" checked={Boolean(entryForm.analog)} onChange={(event) => setEntryForm({ ...entryForm, analog: event.target.checked })} />
+                        <span />
+                      </span>
+                    </label>
+                  </section>
+                  <section className="exhibition-entry-section">
+                    <h3>{t("exhibition.notesSection")}</h3>
+                    <label>
+                      <span>{t("exhibition.notes")}</span>
+                      <textarea value={entryForm.notes || ""} onChange={(event) => setEntryForm({ ...entryForm, notes: event.target.value })} rows={5} />
+                    </label>
                   </section>
                 </div>
               )}
@@ -615,13 +976,13 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                   <div className="function-list">
                     <div className="function-toolbar">
                       <div className="function-summary">
-                        <span><strong>{entryFunctions.filter((item) => item.name.trim()).length}</strong> {t("exhibition.assigned")}</span>
-                        <span><strong>{entryFunctions.filter((item) => item.type === "sound" && item.name.trim()).length}</strong> {t("exhibition.sound")}</span>
-                        <span><strong>{entryFunctions.filter((item) => item.type === "licht" && item.name.trim()).length}</strong> {t("exhibition.light")}</span>
+                        <span><strong>{entryFunctions.filter(isConfiguredFunction).length}</strong> {t("exhibition.assigned")}</span>
+                        <span><strong>{entryFunctions.filter((item) => item.type === "sound" && isConfiguredFunction(item)).length}</strong> {t("exhibition.sound")}</span>
+                        <span><strong>{entryFunctions.filter((item) => item.type === "licht" && isConfiguredFunction(item)).length}</strong> {t("exhibition.light")}</span>
                       </div>
                     </div>
                     {entryFunctions.map((item) => (
-                      <article key={item.key} className={item.name.trim() ? "function-row exhibition-function-row persisted" : "function-row exhibition-function-row"}>
+                      <article key={item.key} className={isConfiguredFunction(item) ? "function-row exhibition-function-row persisted" : "function-row exhibition-function-row"}>
                         <strong className="function-key">
                           {functionSymbolIcon(item.symbolKey, item.type, functionSymbolMetadata(symbols, item.symbolKey))}
                           {item.key}
@@ -632,7 +993,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                           functionType={item.type}
                           symbols={symbols}
                           label={t("exhibition.functionSymbolAria", { key: item.key })}
-                          onChange={(symbolKey) => updateEntryFunction(item.key, { symbolKey })}
+                          onChange={(symbolKey, symbolLabel) => updateEntryFunction(item.key, { symbolKey, name: symbolLabel || item.name })}
                         />
                         <select value={item.type} onChange={(event) => updateEntryFunction(item.key, { type: event.target.value })} aria-label={t("exhibition.functionTypeAria", { key: item.key })}>
                           {functionTypes.map((type) => <option key={type} value={type}>{type}</option>)}
@@ -645,7 +1006,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
             </div>
             <div className="modal-actions">
               <button type="button" className="secondary-button" onClick={() => setEntryDialog(null)}>{t("exhibition.cancel")}</button>
-              <button type="submit" className="primary-button" disabled={saving}>{t("exhibition.save")}</button>
+              <button type="submit" className="primary-button" disabled={saving || hasDuplicateAddress}>{t("exhibition.save")}</button>
             </div>
           </form>
         </div>

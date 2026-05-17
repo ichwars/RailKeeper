@@ -80,14 +80,17 @@
    - decide how far print jobs should be automated beyond the browser system dialog
    - decide which authentication options should become functional instead of informational
    - keep storage usage, backup and restore visible without making settings feel overloaded
-3. Ongoing Bambuddy-inspired design polish
+3. Exhibition hardening
+   - add backend-side duplicate address validation for exhibition entries, matching the current UI warning for DCC/SX address conflicts
+   - decide whether duplicate exhibition addresses should be warning-only or blocked at database/API level
+4. Ongoing Bambuddy-inspired design polish
    - continue refining dense toolbar/table layouts without boxed hover effects
    - keep icon buttons transparent by default with color-only hover feedback
    - review mobile navigation after the collapsible desktop sidebar work
    - continue checking table, card and modal readability in dark mode
    - refine maintenance placement and visual hierarchy in the inventory area
    - adapt Bambuddy-style row context menus further where they add clear value
-4. Vehicle action depth
+5. Vehicle action depth
    - evaluate direct upload shortcuts in the quick menu where useful
    - keep destructive actions separated and confirmed
    - later upload polish: drag sorting for vehicle images

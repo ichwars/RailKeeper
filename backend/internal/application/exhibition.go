@@ -41,8 +41,18 @@ type ExhibitionEntry struct {
 	Owner          string `json:"owner"`
 	ImageURL       string `json:"imageUrl,omitempty"`
 	LocomotiveName string `json:"locomotiveName"`
+	Gattung        string `json:"gattung,omitempty"`
+	Series         string `json:"series,omitempty"`
+	Manufacturer   string `json:"manufacturer,omitempty"`
+	Epoch          string `json:"epoch,omitempty"`
+	RailwayCompany string `json:"railwayCompany,omitempty"`
+	DayScope       string `json:"dayScope"`
 	DTDecoder      bool   `json:"dtDecoder"`
 	DecoderNumber  string `json:"decoderNumber,omitempty"`
+	DecoderType    string `json:"decoderType,omitempty"`
+	Adapter        string `json:"adapter,omitempty"`
+	SXAddress      string `json:"sxAddress,omitempty"`
+	Analog         bool   `json:"analog"`
 	FunctionKeys   string `json:"functionKeys,omitempty"`
 	Notes          string `json:"notes,omitempty"`
 	SortOrder      int    `json:"sortOrder"`
@@ -54,8 +64,18 @@ type ExhibitionEntryInput struct {
 	Owner          string `json:"owner"`
 	ImageURL       string `json:"imageUrl"`
 	LocomotiveName string `json:"locomotiveName"`
+	Gattung        string `json:"gattung"`
+	Series         string `json:"series"`
+	Manufacturer   string `json:"manufacturer"`
+	Epoch          string `json:"epoch"`
+	RailwayCompany string `json:"railwayCompany"`
+	DayScope       string `json:"dayScope"`
 	DTDecoder      bool   `json:"dtDecoder"`
 	DecoderNumber  string `json:"decoderNumber"`
+	DecoderType    string `json:"decoderType"`
+	Adapter        string `json:"adapter"`
+	SXAddress      string `json:"sxAddress"`
+	Analog         bool   `json:"analog"`
 	FunctionKeys   string `json:"functionKeys"`
 	Notes          string `json:"notes"`
 	SortOrder      int    `json:"sortOrder"`
@@ -172,7 +192,11 @@ func (s *ExhibitionService) ListEntries(ctx context.Context, listID string) ([]E
 		return nil, err
 	}
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id, list_id, owner, image_url, locomotive_name, dt_decoder, decoder_number, function_keys, notes, sort_order, created_at, updated_at
+SELECT id, list_id, owner, image_url, locomotive_name,
+       COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
+       COALESCE(day_scope, 'all'),
+       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
+       function_keys, notes, sort_order, created_at, updated_at
 FROM exhibition_entries
 WHERE list_id=?
 ORDER BY sort_order, locomotive_name COLLATE NOCASE, owner COLLATE NOCASE
@@ -212,9 +236,14 @@ func (s *ExhibitionService) CreateEntry(ctx context.Context, listID string, inpu
 	id := randomID()
 	now := time.Now().UTC().Format(time.RFC3339)
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO exhibition_entries(id, list_id, owner, image_url, locomotive_name, dt_decoder, decoder_number, function_keys, notes, sort_order, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, boolToInt(input.DTDecoder), input.DecoderNumber, input.FunctionKeys, input.Notes, input.SortOrder, now, now); err != nil {
+INSERT INTO exhibition_entries(
+  id, list_id, owner, image_url, locomotive_name,
+  gattung, series, manufacturer, epoch, railway_company, day_scope,
+  dt_decoder, decoder_number, decoder_type, adapter, sx_address, analog,
+  function_keys, notes, sort_order, created_at, updated_at
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, now); err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("create exhibition entry: %w", err)
 	}
 	return s.getEntry(ctx, listID, id)
@@ -238,9 +267,12 @@ func (s *ExhibitionService) UpdateEntry(ctx context.Context, listID, entryID str
 	now := time.Now().UTC().Format(time.RFC3339)
 	if _, err := s.db.ExecContext(ctx, `
 UPDATE exhibition_entries
-SET owner=?, image_url=?, locomotive_name=?, dt_decoder=?, decoder_number=?, function_keys=?, notes=?, sort_order=?, updated_at=?
+SET owner=?, image_url=?, locomotive_name=?,
+    gattung=?, series=?, manufacturer=?, epoch=?, railway_company=?, day_scope=?,
+    dt_decoder=?, decoder_number=?, decoder_type=?, adapter=?, sx_address=?, analog=?,
+    function_keys=?, notes=?, sort_order=?, updated_at=?
 WHERE id=? AND list_id=?
-`, input.Owner, input.ImageURL, input.LocomotiveName, boolToInt(input.DTDecoder), input.DecoderNumber, input.FunctionKeys, input.Notes, input.SortOrder, now, entryID, listID); err != nil {
+`, input.Owner, input.ImageURL, input.LocomotiveName, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, entryID, listID); err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("update exhibition entry: %w", err)
 	}
 	return s.getEntry(ctx, listID, entryID)
@@ -283,7 +315,11 @@ FROM exhibition_lists WHERE id=?
 
 func (s *ExhibitionService) getEntry(ctx context.Context, listID, entryID string) (ExhibitionEntry, error) {
 	row := s.db.QueryRowContext(ctx, `
-SELECT id, list_id, owner, image_url, locomotive_name, dt_decoder, decoder_number, function_keys, notes, sort_order, created_at, updated_at
+SELECT id, list_id, owner, image_url, locomotive_name,
+       COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
+       COALESCE(day_scope, 'all'),
+       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
+       function_keys, notes, sort_order, created_at, updated_at
 FROM exhibition_entries
 WHERE id=? AND list_id=?
 `, entryID, listID)
@@ -314,14 +350,25 @@ func scanExhibitionEntry(row exhibitionEntryScanner) (ExhibitionEntry, error) {
 	var entry ExhibitionEntry
 	var imageURL, decoderNumber, functionKeys, notes sql.NullString
 	var dtDecoder int
+	var analog int
 	if err := row.Scan(
 		&entry.ID,
 		&entry.ListID,
 		&entry.Owner,
 		&imageURL,
 		&entry.LocomotiveName,
+		&entry.Gattung,
+		&entry.Series,
+		&entry.Manufacturer,
+		&entry.Epoch,
+		&entry.RailwayCompany,
+		&entry.DayScope,
 		&dtDecoder,
 		&decoderNumber,
+		&entry.DecoderType,
+		&entry.Adapter,
+		&entry.SXAddress,
+		&analog,
 		&functionKeys,
 		&notes,
 		&entry.SortOrder,
@@ -333,6 +380,7 @@ func scanExhibitionEntry(row exhibitionEntryScanner) (ExhibitionEntry, error) {
 	entry.ImageURL = imageURL.String
 	entry.DTDecoder = dtDecoder == 1
 	entry.DecoderNumber = decoderNumber.String
+	entry.Analog = analog == 1
 	entry.FunctionKeys = functionKeys.String
 	entry.Notes = notes.String
 	return entry, nil
@@ -342,7 +390,21 @@ func normalizeExhibitionEntryInput(input ExhibitionEntryInput) ExhibitionEntryIn
 	input.Owner = strings.TrimSpace(input.Owner)
 	input.ImageURL = strings.TrimSpace(input.ImageURL)
 	input.LocomotiveName = strings.TrimSpace(input.LocomotiveName)
+	input.Gattung = strings.TrimSpace(input.Gattung)
+	input.Series = strings.TrimSpace(input.Series)
+	input.Manufacturer = strings.TrimSpace(input.Manufacturer)
+	input.Epoch = strings.TrimSpace(input.Epoch)
+	input.RailwayCompany = strings.TrimSpace(input.RailwayCompany)
+	input.DayScope = strings.TrimSpace(input.DayScope)
+	switch input.DayScope {
+	case "day1", "day2", "day3", "day4":
+	default:
+		input.DayScope = "all"
+	}
 	input.DecoderNumber = strings.TrimSpace(input.DecoderNumber)
+	input.DecoderType = strings.TrimSpace(input.DecoderType)
+	input.Adapter = strings.TrimSpace(input.Adapter)
+	input.SXAddress = strings.TrimSpace(input.SXAddress)
 	input.FunctionKeys = strings.TrimSpace(input.FunctionKeys)
 	input.Notes = strings.TrimSpace(input.Notes)
 	return input

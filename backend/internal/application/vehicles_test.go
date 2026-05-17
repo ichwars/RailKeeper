@@ -16,6 +16,8 @@ func TestCreateVehicleAssignsInventoryNumber(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Fahrzeug",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -33,6 +35,7 @@ func TestCreateVehicleUsesCategoryInventoryNumberScheme(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Gattung:      "Diesellok",
 		Category:     "Lokomotive",
 	}, "actor-1")
 	if err != nil {
@@ -51,6 +54,7 @@ func TestCreateVehicleDoesNotUseAccessoryInventoryNumberScheme(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "Kiste",
 		Gauge:        "H0",
+		Gattung:      "Diesellok",
 		Category:     "Zubehör",
 	}, "actor-1")
 	if err != nil {
@@ -71,6 +75,8 @@ func TestCreateVehicleRejectsDuplicateManualInventoryNumber(t *testing.T) {
 		Manufacturer:    "Piko",
 		Name:            "BR 118",
 		Gauge:           "H0",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -80,6 +86,8 @@ func TestCreateVehicleRejectsDuplicateManualInventoryNumber(t *testing.T) {
 		Manufacturer:    "Roco",
 		Name:            "V 200",
 		Gauge:           "H0",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
 	}, "actor-1")
 	if !errors.Is(err, application.ErrInventoryNumberConflict) {
 		t.Fatalf("expected inventory number conflict, got %v", err)
@@ -94,6 +102,8 @@ func TestCreateVehicleValidatesRequiredFields(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if !errors.Is(err, application.ErrVehicleValidation) {
 		t.Fatalf("expected validation error, got %v", err)
@@ -110,6 +120,8 @@ func TestListVehiclesFiltersByQuery(t *testing.T) {
 		ArticleNumber: "4711",
 		Name:          "BR 118",
 		Gauge:         "H0",
+		Category:      "Lokomotive",
+		Gattung:       "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -119,6 +131,8 @@ func TestListVehiclesFiltersByQuery(t *testing.T) {
 		ArticleNumber: "1234",
 		Name:          "V 200",
 		Gauge:         "H0",
+		Category:      "Lokomotive",
+		Gattung:       "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -142,6 +156,8 @@ func TestGetVehicleReturnsDetail(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -165,6 +181,8 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -177,6 +195,7 @@ func TestUpdateVehicleChangesFields(t *testing.T) {
 		ArticleSourceURL:      "https://example.test/article",
 		Name:                  "BR 118 DR",
 		Gauge:                 "H0",
+		Category:              "Lokomotive",
 		Epoch:                 "IV",
 		Gattung:               "Diesellok",
 		Description:           "Testbeschreibung",
@@ -224,6 +243,8 @@ func TestUpdateVehicleRecordsInventoryNumberHistory(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -234,6 +255,8 @@ func TestUpdateVehicleRecordsInventoryNumberHistory(t *testing.T) {
 		Manufacturer:    "Piko",
 		Name:            "BR 118",
 		Gauge:           "H0",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
 	}, "actor-2")
 	if err != nil {
 		t.Fatal(err)
@@ -260,6 +283,8 @@ func TestVehiclePersistsImages(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 		Images: []application.VehicleImageInput{
 			{URL: "https://example.test/side.jpg", Title: "Seite"},
 			{URL: "https://example.test/front.jpg", Title: "Front", IsPrimary: true},
@@ -285,6 +310,8 @@ func TestVehiclePersistsImages(t *testing.T) {
 		Manufacturer:    "Piko",
 		Name:            "BR 118",
 		Gauge:           "TT",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
 		Images: []application.VehicleImageInput{
 			{URL: "https://example.test/new.jpg", Title: "Neu"},
 		},
@@ -306,6 +333,8 @@ func TestVehicleCreatesAndDeletesLocalImages(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -350,6 +379,8 @@ func TestVehiclePersistsAttachments(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -408,6 +439,8 @@ func TestVehiclePersistsMaintenance(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -497,6 +530,8 @@ func TestVehicleLinksMediaToMaintenance(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -567,6 +602,8 @@ func TestVehicleLinksMediaToMaintenance(t *testing.T) {
 		Manufacturer:    "Piko",
 		Name:            "BR 118",
 		Gauge:           "TT",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
 		Images: []application.VehicleImageInput{
 			{
 				ID:        image.ID,
@@ -596,6 +633,8 @@ func TestVehiclePersistsFunctions(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -680,6 +719,8 @@ func TestVehiclePersistsCVValuesAndFiles(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "TT",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -770,6 +811,8 @@ func TestDeleteVehicleRemovesRecord(t *testing.T) {
 		Manufacturer: "Piko",
 		Name:         "BR 118",
 		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
 	}, "actor-1")
 	if err != nil {
 		t.Fatal(err)
