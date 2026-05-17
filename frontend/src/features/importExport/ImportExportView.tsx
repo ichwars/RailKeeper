@@ -1250,7 +1250,7 @@ function findECoSMatch(locomotive: ECoSMatchable, vehicles: Vehicle[]): ECoSMatc
   return null;
 }
 
-function rawECoSImportRow(
+function buildECoSVehicleDraftRow(
   locomotive: ECoSRawLocomotive,
   vehicles: Vehicle[],
   symbols: MasterDataEntry[],
@@ -1315,54 +1315,6 @@ function rawECoSImportRow(
     functionSuggestions: ecosFunctionSuggestions(locomotive, symbols),
     cvSuggestions: ecosCVSuggestions(locomotive),
     vehicle
-  };
-}
-
-function validateECoSImportRow(
-  row: ImportRow,
-  vehicles: Vehicle[],
-  labels: {
-    matched: string;
-    missingManufacturer: string;
-    missingName: string;
-    missingGauge: string;
-    missingCategory: string;
-    missingGattung: string;
-    duplicate: string;
-  }
-): ImportRow {
-  const vehicle = row.vehicle;
-  const issues: string[] = [];
-  const inventoryNumber = (vehicle.inventoryNumber || "").trim();
-  const duplicate = inventoryNumber
-    ? vehicles.find((existing) =>
-        existing.inventoryNumber.toLowerCase() === inventoryNumber.toLowerCase() &&
-        existing.id !== row.duplicateVehicleId
-      )
-    : undefined;
-
-  if (duplicate) issues.push(labels.duplicate);
-  if (row.duplicateVehicleId && !duplicate) issues.push(labels.matched);
-  if (!vehicle.manufacturer?.trim()) issues.push(labels.missingManufacturer);
-  if (!vehicle.name?.trim()) issues.push(labels.missingName);
-  if (!vehicle.gauge?.trim()) issues.push(labels.missingGauge);
-  if (!vehicle.category?.trim()) issues.push(labels.missingCategory);
-  if (!vehicle.gattung?.trim()) issues.push(labels.missingGattung);
-
-  const hasBlockingIssues = Boolean(
-    duplicate ||
-    !vehicle.manufacturer?.trim() ||
-    !vehicle.name?.trim() ||
-    !vehicle.gauge?.trim() ||
-    !vehicle.category?.trim() ||
-    !vehicle.gattung?.trim()
-  );
-  return {
-    ...row,
-    issues,
-    duplicateVehicleId: duplicate?.id || row.duplicateVehicleId,
-    status: hasBlockingIssues ? "error" : row.duplicateVehicleId ? "warning" : "ok",
-    selected: hasBlockingIssues ? false : row.selected
   };
 }
 
@@ -1847,7 +1799,7 @@ export function ImportExportView() {
   };
 
   const openECoSVehicleDraft = (locomotive: ECoSRawLocomotive) => {
-    const row = rawECoSImportRow(locomotive, vehicles, symbols, {
+    const row = buildECoSVehicleDraftRow(locomotive, vehicles, symbols, {
       matched: issueLabels.ecosMatched,
       missingManufacturer: issueLabels.missingManufacturer,
       missingName: issueLabels.missingName,

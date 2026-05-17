@@ -7396,22 +7396,31 @@ td {
 
 .exhibition-image-editor {
   display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 
 .exhibition-image-editor img,
 .exhibition-image-editor .image-placeholder {
-  width: 240px;
-  height: 160px;
+  width: 220px;
+  height: 150px;
   object-fit: cover;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-subtle);
 }
 
-.exhibition-image-editor label {
+.exhibition-image-source {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-subtle) 72%, transparent);
+}
+
+.exhibition-image-source label {
   display: grid;
   gap: 7px;
   color: var(--muted);
@@ -7419,7 +7428,7 @@ td {
   font-weight: 800;
 }
 
-.exhibition-image-editor input {
+.exhibition-image-source input {
   min-height: 40px;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -7427,6 +7436,17 @@ td {
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
+}
+
+.exhibition-image-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exhibition-image-source-actions .secondary-button {
+  min-height: 38px;
+  cursor: pointer;
 }
 
 .exhibition-function-row {

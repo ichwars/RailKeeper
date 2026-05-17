@@ -43,3 +43,29 @@ func TestExhibitionListLocksEntries(t *testing.T) {
 		t.Fatalf("expected locked list error, got %v", err)
 	}
 }
+
+func TestExhibitionEntryAcceptsMultipleDayScopes(t *testing.T) {
+	db := testDB(t)
+	service := application.NewExhibitionService(db)
+	ctx := context.Background()
+
+	list, err := service.Create(ctx, application.ExhibitionListInput{
+		Designation: "Messe Leipzig",
+		Date:        "2026-05-13",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	entry, err := service.CreateEntry(ctx, list.ID, application.ExhibitionEntryInput{
+		Owner:          "Test Besitzer",
+		LocomotiveName: "BR 38",
+		DayScope:       "day4,day1,day2",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.DayScope != "day1,day2,day4" {
+		t.Fatalf("expected normalized multi-day scope, got %q", entry.DayScope)
+	}
+}

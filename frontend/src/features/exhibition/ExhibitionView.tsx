@@ -64,6 +64,7 @@ const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "licht", "sound", "kupplung", "rauch", "sonderfunktion"];
 const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const dayScopes = ["all", "day1", "day2", "day3", "day4"];
+const selectableDayScopes = dayScopes.filter((scope) => scope !== "all");
 const htmlEscapes: Record<string, string> = {
   "&": "&amp;",
   "<": "&lt;",
@@ -162,9 +163,37 @@ function configuredFunctions(value?: string) {
   return parseFunctions(value).filter(isConfiguredFunction);
 }
 
+function selectedDayScopes(value: string | undefined) {
+  const raw = String(value || "").split(",").map((scope) => scope.trim()).filter(Boolean);
+  if (raw.length === 0 || raw.includes("all")) return ["all"];
+  const selected = selectableDayScopes.filter((scope) => raw.includes(scope));
+  if (selected.length === 0 || selected.length === selectableDayScopes.length) return ["all"];
+  return selected;
+}
+
+function normalizeDayScopeSelection(scopes: string[]) {
+  if (scopes.includes("all")) return "all";
+  const selected = selectableDayScopes.filter((scope) => scopes.includes(scope));
+  if (selected.length === 0 || selected.length === selectableDayScopes.length) return "all";
+  return selected.join(",");
+}
+
+function toggleDayScope(value: string | undefined, scope: string) {
+  if (scope === "all") return "all";
+  const current = selectedDayScopes(value).filter((item) => item !== "all");
+  const next = current.includes(scope) ? current.filter((item) => item !== scope) : [...current, scope];
+  return normalizeDayScopeSelection(next);
+}
+
+function isDayScopeActive(value: string | undefined, scope: string) {
+  const selected = selectedDayScopes(value);
+  return scope === "all" ? selected.includes("all") : selected.includes(scope);
+}
+
 function dayScopeLabel(value: string | undefined, t: (key: string, values?: Record<string, string | number>) => string) {
-  const scope = dayScopes.includes(value || "") ? value : "all";
-  return t(`exhibition.dayScope.${scope}`);
+  const selected = selectedDayScopes(value);
+  if (selected.includes("all")) return t("exhibition.dayScope.all");
+  return selected.map((scope) => t(`exhibition.dayScope.${scope}`)).join(", ");
 }
 
 function locomotiveTitle(entry: Pick<ExhibitionEntry, "locomotiveName" | "railwayCompany">) {
@@ -543,7 +572,11 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
     }
     setSaving(true);
     setMessage("");
-    const payload = { ...entryForm, functionKeys: serializeFunctions(entryFunctions) };
+    const payload = {
+      ...entryForm,
+      dayScope: normalizeDayScopeSelection(selectedDayScopes(entryForm.dayScope)),
+      functionKeys: serializeFunctions(entryFunctions)
+    };
     try {
       if (entryDialog?.mode === "edit" && entryDialog.entry) {
         await api.updateExhibitionEntry(selectedID, entryDialog.entry.id, payload);
@@ -856,8 +889,9 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                         <button
                           key={scope}
                           type="button"
-                          className={(entryForm.dayScope || "all") === scope ? "active" : ""}
-                          onClick={() => setEntryForm({ ...entryForm, dayScope: scope })}
+                          className={isDayScopeActive(entryForm.dayScope, scope) ? "active" : ""}
+                          aria-pressed={isDayScopeActive(entryForm.dayScope, scope)}
+                          onClick={() => setEntryForm((current) => ({ ...current, dayScope: toggleDayScope(current.dayScope, scope) }))}
                         >
                           {dayScopeLabel(scope, t)}
                         </button>
@@ -951,11 +985,6 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                       <h3>{t("exhibition.images")}</h3>
                       <p>{t("exhibition.imagesHelp")}</p>
                     </div>
-                    <label className="primary-button">
-                      <Upload size={16} aria-hidden="true" />
-                      {t("exhibition.uploadImage")}
-                      <input type="file" accept="image/png,image/jpeg,image/webp" className="visually-hidden" onChange={(event) => uploadEntryImage(event.target.files)} />
-                    </label>
                   </div>
                   <div className="exhibition-image-editor">
                     {entryForm.imageUrl ? (
@@ -963,11 +992,20 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                     ) : (
                       <div className="image-placeholder large"><ImageIcon size={24} aria-hidden="true" />{t("exhibition.noPreview")}</div>
                     )}
-                    <label>
-                      <span>{t("exhibition.imageSource")}</span>
-                      <input value={entryForm.imageUrl || ""} onChange={(event) => setEntryForm({ ...entryForm, imageUrl: event.target.value })} placeholder="https://..." />
-                    </label>
-                    {entryForm.imageUrl && <button type="button" className="secondary-button" onClick={() => setEntryForm({ ...entryForm, imageUrl: "" })}>{t("exhibition.removeImage")}</button>}
+                    <div className="exhibition-image-source">
+                      <label>
+                        <span>{t("exhibition.imageSource")}</span>
+                        <input value={entryForm.imageUrl || ""} onChange={(event) => setEntryForm({ ...entryForm, imageUrl: event.target.value })} placeholder="https://..." />
+                      </label>
+                      <div className="exhibition-image-source-actions">
+                        <label className="secondary-button">
+                          <Upload size={16} aria-hidden="true" />
+                          {t("exhibition.uploadImage")}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="visually-hidden" onChange={(event) => uploadEntryImage(event.target.files)} />
+                        </label>
+                        {entryForm.imageUrl && <button type="button" className="secondary-button" onClick={() => setEntryForm({ ...entryForm, imageUrl: "" })}>{t("exhibition.removeImage")}</button>}
+                      </div>
+                    </div>
                   </div>
                 </section>
               )}

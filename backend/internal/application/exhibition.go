@@ -395,12 +395,7 @@ func normalizeExhibitionEntryInput(input ExhibitionEntryInput) ExhibitionEntryIn
 	input.Manufacturer = strings.TrimSpace(input.Manufacturer)
 	input.Epoch = strings.TrimSpace(input.Epoch)
 	input.RailwayCompany = strings.TrimSpace(input.RailwayCompany)
-	input.DayScope = strings.TrimSpace(input.DayScope)
-	switch input.DayScope {
-	case "day1", "day2", "day3", "day4":
-	default:
-		input.DayScope = "all"
-	}
+	input.DayScope = normalizeExhibitionDayScope(input.DayScope)
 	input.DecoderNumber = strings.TrimSpace(input.DecoderNumber)
 	input.DecoderType = strings.TrimSpace(input.DecoderType)
 	input.Adapter = strings.TrimSpace(input.Adapter)
@@ -408,4 +403,35 @@ func normalizeExhibitionEntryInput(input ExhibitionEntryInput) ExhibitionEntryIn
 	input.FunctionKeys = strings.TrimSpace(input.FunctionKeys)
 	input.Notes = strings.TrimSpace(input.Notes)
 	return input
+}
+
+func normalizeExhibitionDayScope(value string) string {
+	allowed := map[string]bool{
+		"day1": true,
+		"day2": true,
+		"day3": true,
+		"day4": true,
+	}
+	raw := strings.Split(strings.TrimSpace(value), ",")
+	seen := map[string]bool{}
+	for _, part := range raw {
+		scope := strings.TrimSpace(part)
+		if scope == "all" {
+			return "all"
+		}
+		if allowed[scope] {
+			seen[scope] = true
+		}
+	}
+	if len(seen) == 0 || len(seen) == len(allowed) {
+		return "all"
+	}
+	ordered := []string{"day1", "day2", "day3", "day4"}
+	selected := make([]string, 0, len(seen))
+	for _, scope := range ordered {
+		if seen[scope] {
+			selected = append(selected, scope)
+		}
+	}
+	return strings.Join(selected, ",")
 }

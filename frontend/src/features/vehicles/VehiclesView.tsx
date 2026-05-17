@@ -3556,7 +3556,7 @@ export function VehiclesView({ username }: { username: string }) {
       return;
     }
     setCVImportPreview(preview);
-    setMessage(`${values.length} erkannte CV-Werte in die Importprüfung übernommen.`);
+    setMessage(`${values.length} erkannte CV-Werte für die Prüfung vorbereitet.`);
   };
 
   const applyCVFileFunctionSuggestions = () => {
