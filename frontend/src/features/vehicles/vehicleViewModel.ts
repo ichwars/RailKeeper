@@ -99,9 +99,15 @@ export type ECoSVehicleDraftPayload = {
   vehicle: CreateVehicleRequest;
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
+  functionValues: (VehicleFunctionInput & { functionKey: string })[];
   unclearFields: ECoSRequiredField[];
+  returnToEcos?: {
+    sessionId: string;
+    objectId: number;
+  };
 };
 export const ecosVehicleDraftStorageKey = "railkeeper.ecosVehicleDraft";
+export const ecosImportSessionStorageKey = "railkeeper.ecosImportSession";
 export const ecosRequiredFields: ECoSRequiredField[] = ["manufacturer", "name", "gauge", "category", "gattung"];
 export type MaintenanceReminder = {
   vehicle: Vehicle;

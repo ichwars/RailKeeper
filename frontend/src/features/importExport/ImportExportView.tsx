@@ -11,6 +11,8 @@ import {
   displayImportValue,
   downloadText,
   ECoSBusyPhase,
+  ECoSImportSession,
+  ecosImportSessionStorageKey,
   ECoSVehicleDraftPayload,
   ecosExternalMapping,
   ecosRequiredFields,
@@ -49,6 +51,7 @@ export function ImportExportView() {
   const [ecosBusy, setEcosBusy] = useState<ECoSBusyPhase>("idle");
   const [ecosResult, setEcosResult] = useState<ECoSConnectionResult | null>(null);
   const [ecosRawProbe, setEcosRawProbe] = useState<ECoSRawProbe | null>(null);
+  const [ecosSession, setEcosSession] = useState<ECoSImportSession | null>(null);
   const [ecosMessage, setEcosMessage] = useState("");
   const fieldLabel = (key: VehicleImportField) => t(`vehicle.field.${key}`);
   const issueLabels = {
@@ -64,6 +67,63 @@ export function ImportExportView() {
     () => cv8ManufacturersFromMasterData(masterOptions.cv8_manufacturer || []),
     [masterOptions]
   );
+
+  const rememberECoSImportSession = (session: ECoSImportSession) => {
+    const next = { ...session, updatedAt: new Date().toISOString() };
+    window.sessionStorage.setItem(ecosImportSessionStorageKey, JSON.stringify(next));
+    setEcosSession(next);
+    return next;
+  };
+
+  const createECoSImportSession = (probe: ECoSRawProbe): ECoSImportSession => rememberECoSImportSession({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    rawProbe: probe,
+    statuses: Object.fromEntries(probe.locomotives.map((locomotive) => [
+      String(locomotive.objectId),
+      { status: "open", updatedAt: new Date().toISOString() }
+    ]))
+  });
+
+  const updateECoSImportSessionStatus = (objectId: number, status: ECoSImportSession["statuses"][string]["status"]) => {
+    const base = ecosSession || (ecosRawProbe ? createECoSImportSession(ecosRawProbe) : null);
+    if (!base) return null;
+    return rememberECoSImportSession({
+      ...base,
+      statuses: {
+        ...base.statuses,
+        [String(objectId)]: {
+          ...base.statuses[String(objectId)],
+          status,
+          updatedAt: new Date().toISOString()
+        }
+      }
+    });
+  };
+
+  useEffect(() => {
+    const rawSession = window.sessionStorage.getItem(ecosImportSessionStorageKey);
+    if (!rawSession) return;
+    try {
+      const session = JSON.parse(rawSession) as ECoSImportSession;
+      if (!session?.rawProbe?.locomotives) return;
+      setEcosSession(session);
+      setEcosRawProbe(session.rawProbe);
+      setEcosHost(session.rawProbe.host || "");
+      setEcosPort(String(session.rawProbe.port || 15471));
+      setEcosResult({
+        connected: true,
+        host: session.rawProbe.host,
+        port: session.rawProbe.port,
+        message: t("importExport.ecos.sessionRestored")
+      });
+      const saved = Object.values(session.statuses || {}).filter((item) => item.status === "saved").length;
+      setEcosMessage(t("importExport.ecos.sessionProgress", { saved, total: session.rawProbe.locomotives.length }));
+    } catch {
+      window.sessionStorage.removeItem(ecosImportSessionStorageKey);
+    }
+  }, [t]);
 
   useEffect(() => {
     api.vehicles().then(setVehicles).catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false));
@@ -309,6 +369,8 @@ export function ImportExportView() {
     setEcosMessage("");
     setEcosResult(null);
     setEcosRawProbe(null);
+    setEcosSession(null);
+    window.sessionStorage.removeItem(ecosImportSessionStorageKey);
     try {
       rememberECoSSettings();
       const result = await api.testECoSConnection(ecosInput());
@@ -333,6 +395,7 @@ export function ImportExportView() {
       rememberECoSSettings();
       const probe = await api.probeECoSLocomotiveRaw(ecosInput());
       setEcosRawProbe(probe);
+      createECoSImportSession(probe);
       setEcosMessage(probe.message);
     } catch (error) {
       setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
@@ -351,6 +414,7 @@ export function ImportExportView() {
       missingGattung: issueLabels.missingGattung
     }, cv8Manufacturers);
     const unclearFields = ecosRequiredFields.filter((field) => !String(row.vehicle[field] ?? "").trim());
+    const updatedSession = updateECoSImportSessionStatus(locomotive.objectId, "editing");
     const payload: ECoSVehicleDraftPayload = {
       source: "ecos",
       sourceSummary: {
@@ -363,12 +427,33 @@ export function ImportExportView() {
       vehicle: row.vehicle,
       externalMapping: row.externalMapping || ecosExternalMapping(locomotive),
       cvValues: row.cvSuggestions || [],
-      unclearFields
+      functionValues: row.functionSuggestions || [],
+      unclearFields,
+      returnToEcos: updatedSession ? { sessionId: updatedSession.id, objectId: locomotive.objectId } : undefined
     };
     window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(payload));
     window.history.pushState(null, "", "/vehicles?source=ecos");
     window.dispatchEvent(new PopStateEvent("popstate"));
     setEcosMessage(t("importExport.ecos.handoff"));
+  };
+
+  const addECoSProbeToImportReview = () => {
+    if (!ecosRawProbe || ecosRawProbe.locomotives.length === 0) {
+      setEcosMessage(t("importExport.ecos.noImportRows"));
+      return;
+    }
+    const ecosRows = ecosRawProbe.locomotives.map((locomotive) => buildECoSVehicleDraftRow(locomotive, vehicles, symbols, {
+      matched: issueLabels.ecosMatched,
+      missingManufacturer: issueLabels.missingManufacturer,
+      missingName: issueLabels.missingName,
+      missingGauge: issueLabels.missingGauge,
+      missingCategory: issueLabels.missingCategory,
+      missingGattung: issueLabels.missingGattung
+    }, cv8Manufacturers));
+    const nextIds = new Set(ecosRows.map((row) => row.id));
+    setImportTable(null);
+    setRows((current) => [...current.filter((row) => !nextIds.has(row.id)), ...ecosRows]);
+    setEcosMessage(t("importExport.ecos.reviewAdded", { count: ecosRows.length }));
   };
 
   return (
@@ -474,6 +559,15 @@ export function ImportExportView() {
         {ecosMessage && <p className="form-message">{ecosMessage}</p>}
         <p className="source-note backup-note">{t("importExport.ecos.note")}</p>
         <p className="source-note backup-note">{t("importExport.ecos.mappingNote")}</p>
+        {ecosRawProbe && ecosRawProbe.locomotives.length > 0 && (
+          <div className="ecos-preview-toolbar">
+            <span>{t("importExport.ecos.reviewHint", { count: ecosRawProbe.locomotives.length })}</span>
+            <button type="button" className="secondary-button" onClick={addECoSProbeToImportReview} disabled={saving}>
+              <ClipboardCheck size={15} aria-hidden="true" />
+              {t("importExport.ecos.addToReview")}
+            </button>
+          </div>
+        )}
         {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft)}
       </section>
 
@@ -534,6 +628,8 @@ export function ImportExportView() {
                   <th>{t("importExport.review.article")}</th>
                   <th>{fieldLabel("name")}</th>
                   <th>{fieldLabel("gauge")}</th>
+                  <th>{fieldLabel("category")}</th>
+                  <th>{fieldLabel("gattung")}</th>
                   <th>{t("exhibition.status")}</th>
                 </tr>
               </thead>
@@ -556,6 +652,8 @@ export function ImportExportView() {
                         <td><input value={row.vehicle.articleNumber || ""} onChange={(event) => updateRow(row.id, { articleNumber: event.target.value })} /></td>
                         <td><input value={row.vehicle.name} onChange={(event) => updateRow(row.id, { name: event.target.value })} /></td>
                         <td><input value={row.vehicle.gauge} onChange={(event) => updateRow(row.id, { gauge: event.target.value })} /></td>
+                        <td><input value={row.vehicle.category} onChange={(event) => updateRow(row.id, { category: event.target.value })} /></td>
+                        <td><input value={row.vehicle.gattung} onChange={(event) => updateRow(row.id, { gattung: event.target.value })} /></td>
                         <td>
                           <span className={`import-status ${row.status}`}>
                             {row.status === "saved" ? <Check size={14} /> : row.status === "error" || row.status === "warning" ? <AlertTriangle size={14} /> : <Check size={14} />}
@@ -565,7 +663,7 @@ export function ImportExportView() {
                       </tr>
                       {((existing && row.mode === "update") || (row.functionSuggestions && row.functionSuggestions.length > 0) || (row.cvSuggestions && row.cvSuggestions.length > 0)) && (
                         <tr className="import-change-row">
-                          <td colSpan={8}>
+                          <td colSpan={10}>
                             <div className="import-change-panel">
                               {existing && row.mode === "update" && (
                                 <>
@@ -602,15 +700,15 @@ export function ImportExportView() {
                               {row.functionSuggestions && row.functionSuggestions.length > 0 && (
                                 <div className="import-function-panel">
                                   <div>
-                                    <strong>ECoS-Funktionstasten</strong>
-                                    <span>{row.functionSuggestions.length} Werte werden übernommen</span>
+                                    <strong>{t("importExport.ecos.review.functions")}</strong>
+                                    <span>{t("importExport.ecos.review.valuesApplied", { count: row.functionSuggestions.length })}</span>
                                   </div>
                                   <div className="import-function-grid">
                                     {row.functionSuggestions.map((fn) => (
                                       <span key={fn.functionKey} title={fn.notes || undefined}>
                                         <strong>{fn.functionKey}</strong>
                                         {fn.name || (typeof fn.ecosDescription === "number" ? `ECoS ${fn.ecosDescription}` : "ECoS")}
-                                        {fn.active && <em>aktiv</em>}
+                                        {fn.active && <em>{t("common.active")}</em>}
                                       </span>
                                     ))}
                                   </div>
@@ -619,8 +717,8 @@ export function ImportExportView() {
                               {row.cvSuggestions && row.cvSuggestions.length > 0 && (
                                 <div className="import-function-panel">
                                   <div>
-                                    <strong>ECoS-CV-Werte</strong>
-                                    <span>{row.cvSuggestions.length} Werte werden übernommen</span>
+                                    <strong>{t("importExport.ecos.review.cvValues")}</strong>
+                                    <span>{t("importExport.ecos.review.valuesApplied", { count: row.cvSuggestions.length })}</span>
                                   </div>
                                   <div className="import-function-grid">
                                     {row.cvSuggestions.slice(0, 16).map((cv) => (

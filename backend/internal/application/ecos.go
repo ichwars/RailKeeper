@@ -234,6 +234,15 @@ func (s *ECoSService) fetchLocomotiveRawProbes(ctx context.Context, host string,
 			fields:  []string{field},
 		})
 	}
+	for _, field := range eCoSTargetedCVProbeFields() {
+		commands = append(commands, struct {
+			command string
+			fields  []string
+		}{
+			command: fmt.Sprintf("get(%d, %s)", objectID, field),
+			fields:  []string{field},
+		})
+	}
 	return s.exchangeRequestedCommands(ctx, host, port, objectID, commands)
 }
 
@@ -474,6 +483,18 @@ func eCoSRawProbeFields() []string {
 	}
 }
 
+func eCoSTargetedCVProbeFields() []string {
+	return []string{
+		"cv[1:8]",
+		"cv[7]",
+		"cv[8]",
+		"cv[7:8]",
+		"cv[17]",
+		"cv[18]",
+		"cv[29]",
+	}
+}
+
 func parseECoSFields(lines []string) map[string]string {
 	fields := map[string]string{}
 	for _, line := range lines {
@@ -544,27 +565,95 @@ func interestingECoSFields(attributes map[string][]string) []string {
 }
 
 func parseECoSCVValues(attributes map[string][]string) []ECoSCVValue {
-	values := attributes["cv"]
-	if len(values) == 0 {
-		values = attributes["CV"]
+	parsed := map[int]int{}
+	add := func(number int, value int) {
+		if number <= 0 {
+			return
+		}
+		parsed[number] = value
 	}
-	cvs := make([]ECoSCVValue, 0, len(values))
-	seen := map[int]bool{}
-	for _, value := range values {
-		parts := strings.Split(value, ",")
-		if len(parts) < 2 {
+	for _, key := range sortedECoSCVAttributeKeys(attributes) {
+		normalizedKey := strings.ToLower(strings.TrimSpace(key))
+		keyNumber := parseECoSCVKeyNumber(normalizedKey)
+		values := attributes[key]
+		for _, value := range values {
+			parts := splitECoSParams(value)
+			if len(parts) >= 2 {
+				for index := 0; index+1 < len(parts); index += 2 {
+					add(parseECoSInt(parts[index]), parseECoSInt(parts[index+1]))
+				}
+				continue
+			}
+			if keyNumber > 0 && len(parts) == 1 {
+				add(keyNumber, parseECoSInt(parts[0]))
+				continue
+			}
+			number, cvValue, ok := parseECoSCVTextPair(value)
+			if ok {
+				add(number, cvValue)
+			}
+		}
+	}
+	cvs := make([]ECoSCVValue, 0, len(parsed))
+	for number, value := range parsed {
+		cvs = append(cvs, ECoSCVValue{Number: number, Value: value})
+	}
+	sortECoSCVValues(cvs)
+	return cvs
+}
+
+func sortedECoSCVAttributeKeys(attributes map[string][]string) []string {
+	primary := []string{}
+	specific := []string{}
+	for key := range attributes {
+		normalizedKey := strings.ToLower(strings.TrimSpace(key))
+		if !isECoSCVAttributeKey(normalizedKey) {
+			continue
+		}
+		if parseECoSCVKeyNumber(normalizedKey) > 0 {
+			specific = append(specific, key)
+			continue
+		}
+		primary = append(primary, key)
+	}
+	sortStrings(primary)
+	sortStrings(specific)
+	return append(primary, specific...)
+}
+
+func isECoSCVAttributeKey(key string) bool {
+	return key == "cv" || key == "cvs" || key == "cvlist" || parseECoSCVKeyNumber(key) > 0
+}
+
+func parseECoSCVKeyNumber(key string) int {
+	if !strings.HasPrefix(key, "cv") {
+		return 0
+	}
+	suffix := strings.Trim(strings.TrimPrefix(key, "cv"), " _-[]")
+	if suffix == "" {
+		return 0
+	}
+	number, err := strconv.Atoi(suffix)
+	if err != nil {
+		return 0
+	}
+	return number
+}
+
+func parseECoSCVTextPair(value string) (int, int, bool) {
+	value = cleanECoSValue(value)
+	for _, separator := range []string{"=", ":"} {
+		parts := strings.SplitN(value, separator, 2)
+		if len(parts) != 2 {
 			continue
 		}
 		number := parseECoSInt(parts[0])
 		cvValue := parseECoSInt(parts[1])
-		if number <= 0 || seen[number] {
-			continue
+		if number > 0 {
+			return number, cvValue, true
 		}
-		seen[number] = true
-		cvs = append(cvs, ECoSCVValue{Number: number, Value: cvValue})
 	}
-	sortECoSCVValues(cvs)
-	return cvs
+	return 0, 0, false
 }
 
 func sortECoSCVValues(values []ECoSCVValue) {

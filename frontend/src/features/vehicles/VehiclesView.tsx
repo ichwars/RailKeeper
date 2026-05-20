@@ -107,6 +107,7 @@ import {
   emptyMaintenanceForm,
   emptyOptions,
   emptyVehicle,
+  ecosImportSessionStorageKey,
   ecosRequiredFields,
   ecosVehicleDraftStorageKey,
   fieldValue,
@@ -288,13 +289,25 @@ export function VehiclesView({ username }: { username: string }) {
     setAttachmentUploadDescription("");
     setAttachmentUploadMaintenanceID("");
     setAttachmentDragActive(false);
-    setFunctionEdits({});
+    setFunctionEdits(Object.fromEntries((draft.functionValues || []).map((item) => [
+      item.functionKey,
+      {
+        name: item.name || "",
+        symbolKey: item.symbolKey || "",
+        functionType: item.functionType || "standard",
+        mode: item.mode || "dauer",
+        directionDependent: Boolean(item.directionDependent),
+        notes: item.notes || "",
+        persisted: false
+      }
+    ])));
     resetMaintenanceForm();
     resetCVForm();
     setCVImportPreview(null);
     setCVFileUploadPreview(null);
     setEcosDraft(draft);
     setEcosUnclearFields(new Set(draft.unclearFields));
+    setShowConfiguredFunctionsOnly((draft.functionValues || []).length > 0);
     setActiveTab("model");
     setOpenSections({ model: true, details: false, vehicle: false });
     setModalOpen(true);
@@ -1642,6 +1655,43 @@ export function VehiclesView({ username }: { username: string }) {
     setOpenSections((current) => ({ ...current, [section]: !current[section] }));
   };
 
+  const markECoSImportSessionSaved = (draft: ECoSVehicleDraftPayload, vehicleId: string) => {
+    if (!draft.returnToEcos) return;
+    try {
+      const rawSession = window.sessionStorage.getItem(ecosImportSessionStorageKey);
+      if (!rawSession) return;
+      const session = JSON.parse(rawSession) as {
+        id?: string;
+        statuses?: Record<string, { status: string; vehicleId?: string; updatedAt?: string }>;
+        updatedAt?: string;
+      };
+      if (session.id !== draft.returnToEcos.sessionId) return;
+      const key = String(draft.returnToEcos.objectId);
+      const now = new Date().toISOString();
+      const nextSession = {
+        ...session,
+        updatedAt: now,
+        statuses: {
+          ...(session.statuses || {}),
+          [key]: {
+            ...(session.statuses || {})[key],
+            status: "saved",
+            vehicleId,
+            updatedAt: now
+          }
+        }
+      };
+      window.sessionStorage.setItem(ecosImportSessionStorageKey, JSON.stringify(nextSession));
+    } catch {
+      window.sessionStorage.removeItem(ecosImportSessionStorageKey);
+    }
+  };
+
+  const returnToECoSImportSession = () => {
+    window.history.pushState(null, "", "/import-export?source=ecos");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (ecosDraft && ecosUnclearFields.size > 0) {
@@ -1672,9 +1722,30 @@ export function VehiclesView({ username }: { username: string }) {
         for (const cvValue of ecosDraft.cvValues) {
           await api.createVehicleCVValue(vehicle.id, cvValue);
         }
+        for (const functionKey of configuredFunctionKeys) {
+          const edit = functionEdit(functionKey);
+          if (!edit.name?.trim() && !edit.symbolKey && !edit.notes?.trim()) {
+            continue;
+          }
+          await api.updateVehicleFunction(vehicle.id, functionKey, {
+            name: edit.name || "",
+            symbolKey: edit.symbolKey || "",
+            functionType: edit.functionType || "standard",
+            mode: edit.mode || "dauer",
+            directionDependent: Boolean(edit.directionDependent),
+            notes: edit.notes || ""
+          });
+        }
+        markECoSImportSessionSaved(ecosDraft, vehicle.id);
         vehicle = await api.vehicle(vehicle.id);
         setEcosDraft(null);
         setEcosUnclearFields(new Set());
+        if (ecosDraft.returnToEcos) {
+          load();
+          closeModal();
+          returnToECoSImportSession();
+          return;
+        }
       }
 
       setSelectedDetail(vehicle);
@@ -1929,6 +2000,7 @@ export function VehiclesView({ username }: { username: string }) {
               {activeTab === "control" && (
                 <VehicleFunctionsTab
                   selected={selected}
+                  draftMode={Boolean(ecosDraft)}
                   readonly={readonly}
                   saving={saving}
                   functionImportInputRef={functionImportInputRef}

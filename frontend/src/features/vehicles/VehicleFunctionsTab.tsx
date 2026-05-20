@@ -9,6 +9,7 @@ type FunctionEdit = VehicleFunctionInput & { persisted?: boolean };
 
 export function VehicleFunctionsTab({
   selected,
+  draftMode = false,
   readonly,
   saving,
   functionImportInputRef,
@@ -27,6 +28,7 @@ export function VehicleFunctionsTab({
   deleteFunction
 }: {
   selected: Vehicle | null;
+  draftMode?: boolean;
   readonly: boolean;
   saving: boolean;
   functionImportInputRef: RefObject<HTMLInputElement | null>;
@@ -49,6 +51,7 @@ export function VehicleFunctionsTab({
   deleteFunction: (functionKey: string) => void;
 }) {
   const { t } = useI18n();
+  const canEditFunctions = Boolean(selected || draftMode);
 
   return (
     <section className="functions-tab">
@@ -76,8 +79,8 @@ export function VehicleFunctionsTab({
           </button>
         </div>
       </div>
-      {!selected && <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p>}
-      {selected && (
+      {!canEditFunctions && <p className="empty-state compact">{t("vehicles.functions.emptyUntilSave")}</p>}
+      {canEditFunctions && (
         <div className="function-list">
           <div className="function-toolbar">
             <div className="function-summary">
@@ -160,10 +163,10 @@ export function VehicleFunctionsTab({
                   aria-label={`${functionKey} ${t("vehicles.functions.note")}`}
                 />
                 <div className="function-actions">
-                  <button type="button" className="icon-button" onClick={() => saveFunction(functionKey)} disabled={readonly || saving} aria-label={t("vehicles.functions.save", { key: functionKey })} title={t("vehicles.save")}>
+                  <button type="button" className="icon-button" onClick={() => saveFunction(functionKey)} disabled={readonly || saving || !selected} aria-label={t("vehicles.functions.save", { key: functionKey })} title={t("vehicles.save")}>
                     <Save size={15} />
                   </button>
-                  <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !edit.persisted} aria-label={t("vehicles.functions.delete", { key: functionKey })} title={t("vehicles.delete")}>
+                  <button type="button" className="icon-button danger" onClick={() => deleteFunction(functionKey)} disabled={readonly || saving || !selected || !edit.persisted} aria-label={t("vehicles.functions.delete", { key: functionKey })} title={t("vehicles.delete")}>
                     <Trash2 size={15} />
                   </button>
                 </div>

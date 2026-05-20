@@ -17,8 +17,10 @@ type VehicleViewField = {
   href?: string;
 };
 
-function viewValue(value?: string | number | boolean) {
-  if (typeof value === "boolean") return value ? "Ja" : "Nein";
+type Translate = (key: string, values?: Record<string, string | number>) => string;
+
+function viewValue(value: string | number | boolean | undefined, t: Translate) {
+  if (typeof value === "boolean") return value ? t("common.yes") : t("common.no");
   if (value === 0) return "0";
   return String(value || "").trim();
 }
@@ -29,7 +31,7 @@ function hasViewValue(field: VehicleViewField) {
   return Boolean(String(field.value || "").trim());
 }
 
-function VehicleViewSection({ title, fields }: { title: string; fields: VehicleViewField[] }) {
+function VehicleViewSection({ title, fields, t }: { title: string; fields: VehicleViewField[]; t: Translate }) {
   const visibleFields = fields.filter(hasViewValue);
   if (visibleFields.length === 0) return null;
   return (
@@ -42,10 +44,10 @@ function VehicleViewSection({ title, fields }: { title: string; fields: VehicleV
             <dd>
               {field.href ? (
                 <a href={field.href} target="_blank" rel="noreferrer">
-                  {viewValue(field.value)}
+                  {viewValue(field.value, t)}
                 </a>
               ) : (
-                viewValue(field.value)
+                viewValue(field.value, t)
               )}
             </dd>
           </div>
@@ -78,6 +80,7 @@ export function VehicleReadOnlyView({
   const images = vehicle.images || [];
   const canShowQr = Boolean(String(vehicle.inventoryNumber || vehicle.name || "").trim());
   const qrButtonTitle = canShowQr ? t("vehicles.detail.qrShow") : t("vehicles.qr.missingInput");
+  const separator = " · ";
 
   return (
     <div className="modal-body vehicle-read-view">
@@ -86,16 +89,16 @@ export function VehicleReadOnlyView({
           {image?.url ? <img src={previewImageUrl(image)} alt="" /> : <span>{t("exhibition.noPreview")}</span>}
         </div>
         <div className="vehicle-read-title">
-          <p className="eyebrow">Fahrzeugansicht</p>
+          <p className="eyebrow">{t("vehicles.modal.view")}</p>
           <h2>{vehicle.name || vehicle.inventoryNumber}</h2>
-          <p>{[vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(" · ")}</p>
+          <p>{[vehicle.manufacturer, vehicle.articleNumber, vehicle.gauge, vehicle.epoch].filter(Boolean).join(separator)}</p>
           <div className="vehicle-read-chips">
             <span>{vehicle.inventoryNumber}</span>
             {vehicle.category && <span>{vehicle.category}</span>}
             {vehicle.gattung && <span>{vehicle.gattung}</span>}
             <span>{vehicle.digital ? "Digital" : "Analog"}</span>
-            {vehicle.exhibitionReady && <span>Messe tauglich</span>}
-            {vehicle.exhibition && <span>Ausstellung</span>}
+            {vehicle.exhibitionReady && <span>{t("vehicle.field.exhibitionReady")}</span>}
+            {vehicle.exhibition && <span>{t("vehicle.field.exhibition")}</span>}
           </div>
         </div>
         <div className="vehicle-read-actions">
@@ -113,99 +116,104 @@ export function VehicleReadOnlyView({
 
       <div className="vehicle-view-grid">
         <VehicleViewSection
-          title="Produkt"
+          title={t("vehicles.product.title")}
+          t={t}
           fields={[
-            { label: "Hersteller", value: vehicle.manufacturer },
-            { label: "Artikel-Nr.", value: vehicle.articleNumber },
-            { label: "EAN", value: vehicle.ean },
-            { label: "Listenpreis", value: formatEuro(vehicle.listPrice) },
-            { label: "Produktionszeit", value: vehicle.productionPeriod },
-            { label: "Artikelquelle", value: sourceShortLink(vehicle.articleSourceUrl), href: vehicle.articleSourceUrl }
+            { label: t("vehicle.field.manufacturer"), value: vehicle.manufacturer },
+            { label: t("vehicle.field.articleNumber"), value: vehicle.articleNumber },
+            { label: t("vehicle.field.ean"), value: vehicle.ean },
+            { label: t("vehicle.field.listPrice"), value: formatEuro(vehicle.listPrice) },
+            { label: t("vehicle.field.productionPeriod"), value: vehicle.productionPeriod },
+            { label: t("vehicles.source"), value: sourceShortLink(vehicle.articleSourceUrl), href: vehicle.articleSourceUrl }
           ]}
         />
         <VehicleViewSection
-          title="Modell"
+          title={t("vehicles.tab.model")}
+          t={t}
           fields={[
-            { label: "Bezeichnung", value: vehicle.name },
-            { label: "Spurweite", value: vehicle.gauge },
-            { label: "Epoche", value: vehicle.epoch },
-            { label: "Bahngesellschaft", value: vehicle.railwayCompany },
-            { label: "Kategorie", value: vehicle.category },
-            { label: "Gattung", value: vehicle.gattung },
-            { label: "Baureihe", value: vehicle.series },
-            { label: "Fahrzeug-Nr.", value: vehicle.vehicleNumber },
-            { label: "Beschreibung", value: vehicle.description },
-            { label: "Messe tauglich", value: vehicle.exhibitionReady },
-            { label: "Ausstellung", value: vehicle.exhibition }
+            { label: t("vehicle.field.name"), value: vehicle.name },
+            { label: t("vehicle.field.gauge"), value: vehicle.gauge },
+            { label: t("vehicle.field.epoch"), value: vehicle.epoch },
+            { label: t("vehicle.field.railwayCompany"), value: vehicle.railwayCompany },
+            { label: t("vehicle.field.category"), value: vehicle.category },
+            { label: t("vehicle.field.gattung"), value: vehicle.gattung },
+            { label: t("vehicle.field.series"), value: vehicle.series },
+            { label: t("vehicle.field.vehicleNumber"), value: vehicle.vehicleNumber },
+            { label: t("vehicle.field.description"), value: vehicle.description },
+            { label: t("vehicle.field.exhibitionReady"), value: vehicle.exhibitionReady },
+            { label: t("vehicle.field.exhibition"), value: vehicle.exhibition }
           ]}
         />
         <VehicleViewSection
-          title="Details"
+          title={t("vehicles.details.title")}
+          t={t}
           fields={[
-            { label: "Länge", value: vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "" },
-            { label: "Gewicht", value: vehicle.weightG ? `${vehicle.weightG} g` : "" },
-            { label: "Farbe", value: vehicle.color },
-            { label: "Beschriftung", value: vehicle.lettering },
-            { label: "Beladung", value: vehicle.load },
-            { label: "Inneneinrichtung", value: vehicle.interior },
-            { label: "Achsen", value: vehicle.axles },
-            { label: "Anzahl Achsen", value: vehicle.axleCount },
-            { label: "Haftreifen", value: vehicle.tractionTireCount },
-            { label: "Radsatz", value: vehicle.wheelset },
-            { label: "Kupplung", value: vehicle.couplingSame ? "Vorne und hinten gleich" : "" },
-            { label: "Kupplung vorne", value: vehicle.couplingFront },
-            { label: "Kupplung hinten", value: vehicle.couplingRear },
-            { label: "Stromaufnahme", value: vehicle.powerPickup },
-            { label: "Fahrlicht", value: vehicle.headlightsEnabled },
-            { label: "Fahrlicht Beschreibung", value: vehicle.headlightsDescription },
-            { label: "Antrieb", value: vehicle.driveEnabled },
-            { label: "Antrieb Beschreibung", value: vehicle.driveDescription },
-            { label: "Beleuchtung", value: vehicle.lightingEnabled },
-            { label: "Beleuchtung Beschreibung", value: vehicle.lightingDescription },
-            { label: "Soundgenerator", value: vehicle.soundGeneratorEnabled },
-            { label: "Sound Beschreibung", value: vehicle.soundGeneratorDescription },
-            { label: "Rauchgenerator", value: vehicle.smokeGeneratorEnabled },
-            { label: "Rauch Beschreibung", value: vehicle.smokeGeneratorDescription }
+            { label: t("vehicle.field.lengthMm"), value: vehicle.lengthMm ? `${vehicle.lengthMm} mm` : "" },
+            { label: t("vehicle.field.weightG"), value: vehicle.weightG ? `${vehicle.weightG} g` : "" },
+            { label: t("vehicle.field.color"), value: vehicle.color },
+            { label: t("vehicle.field.lettering"), value: vehicle.lettering },
+            { label: t("vehicle.field.load"), value: vehicle.load },
+            { label: t("vehicle.field.interior"), value: vehicle.interior },
+            { label: t("vehicle.field.axles"), value: vehicle.axles },
+            { label: t("vehicle.field.axleCount"), value: vehicle.axleCount },
+            { label: t("vehicle.field.tractionTireCount"), value: vehicle.tractionTireCount },
+            { label: t("vehicle.field.wheelset"), value: vehicle.wheelset },
+            { label: t("vehicle.field.couplingSame"), value: vehicle.couplingSame ? t("vehicles.detail.couplingSameValue") : "" },
+            { label: t("vehicle.field.couplingFront"), value: vehicle.couplingFront },
+            { label: t("vehicle.field.couplingRear"), value: vehicle.couplingRear },
+            { label: t("vehicle.field.powerPickup"), value: vehicle.powerPickup },
+            { label: t("vehicle.field.headlightsEnabled"), value: vehicle.headlightsEnabled },
+            { label: t("vehicle.field.headlightsDescription"), value: vehicle.headlightsDescription },
+            { label: t("vehicle.field.driveEnabled"), value: vehicle.driveEnabled },
+            { label: t("vehicle.field.driveDescription"), value: vehicle.driveDescription },
+            { label: t("vehicle.field.lightingEnabled"), value: vehicle.lightingEnabled },
+            { label: t("vehicle.field.lightingDescription"), value: vehicle.lightingDescription },
+            { label: t("vehicle.field.soundGeneratorEnabled"), value: vehicle.soundGeneratorEnabled },
+            { label: t("vehicle.field.soundGeneratorDescription"), value: vehicle.soundGeneratorDescription },
+            { label: t("vehicle.field.smokeGeneratorEnabled"), value: vehicle.smokeGeneratorEnabled },
+            { label: t("vehicle.field.smokeGeneratorDescription"), value: vehicle.smokeGeneratorDescription }
           ]}
         />
         <VehicleViewSection
-          title="Fahrzeug"
+          title={t("vehicles.vehicle.title")}
+          t={t}
           fields={[
-            { label: "Erwerb", value: vehicle.acquisitionType },
-            { label: "von/bei", value: vehicle.acquiredFrom },
-            { label: "Preis", value: formatEuro(vehicle.purchasePrice) },
-            { label: "Datum", value: vehicle.purchaseDate ? formatDate(vehicle.purchaseDate) : "" },
-            { label: "Standort", value: vehicle.storageLocation },
-            { label: "Details", value: vehicle.storageDetails },
-            { label: "Zustand", value: vehicle.condition },
-            { label: "Zustand Details", value: vehicle.conditionDetails },
-            { label: "Verpackung", value: vehicle.packaging },
-            { label: "Zusatzinformationen", value: vehicle.additionalInfo }
+            { label: t("vehicle.field.acquisitionType"), value: vehicle.acquisitionType },
+            { label: t("vehicle.field.acquiredFrom"), value: vehicle.acquiredFrom },
+            { label: t("vehicle.field.purchasePrice"), value: formatEuro(vehicle.purchasePrice) },
+            { label: t("vehicle.field.purchaseDate"), value: vehicle.purchaseDate ? formatDate(vehicle.purchaseDate) : "" },
+            { label: t("vehicle.field.storageLocation"), value: vehicle.storageLocation },
+            { label: t("vehicle.field.storageDetails"), value: vehicle.storageDetails },
+            { label: t("vehicle.field.condition"), value: vehicle.condition },
+            { label: t("vehicle.field.conditionDetails"), value: vehicle.conditionDetails },
+            { label: t("vehicle.field.packaging"), value: vehicle.packaging },
+            { label: t("vehicle.field.additionalInfo"), value: vehicle.additionalInfo }
           ]}
         />
         <VehicleViewSection
-          title="Steuerung"
+          title={t("vehicles.tab.control")}
+          t={t}
           fields={[
-            { label: "Digital", value: vehicle.digital },
-            { label: "Decoder-Nr.", value: vehicle.digitalDecoderNumber },
-            { label: "Decoder-Typ", value: vehicle.decoderType },
-            { label: "DT-Decoder", value: vehicle.dtDecoder },
-            { label: "DT Decoder-Nr.", value: vehicle.dtDecoderNumber },
-            { label: "ABC Bremsen", value: vehicle.abcBrakes },
-            { label: "Adapter / Schnittstelle", value: vehicle.adapter },
-            { label: "QR-Code aktiv", value: vehicle.qrCodeEnabled }
+            { label: t("vehicle.field.digital"), value: vehicle.digital },
+            { label: t("vehicle.field.digitalDecoderNumber"), value: vehicle.digitalDecoderNumber },
+            { label: t("vehicle.field.decoderType"), value: vehicle.decoderType },
+            { label: t("vehicle.field.dtDecoder"), value: vehicle.dtDecoder },
+            { label: t("vehicle.field.dtDecoderNumber"), value: vehicle.dtDecoderNumber },
+            { label: t("vehicle.field.abcBrakes"), value: vehicle.abcBrakes },
+            { label: t("vehicle.field.adapter"), value: vehicle.adapter },
+            { label: t("vehicle.field.qrCodeEnabled"), value: vehicle.qrCodeEnabled }
           ]}
         />
       </div>
 
       {configuredFunctions.length > 0 && (
         <section className="vehicle-view-section vehicle-view-wide">
-          <h3>Funktionstasten</h3>
+          <h3>{t("vehicles.functions.title")}</h3>
           <div className="vehicle-view-list">
             {configuredFunctions.map((item) => (
               <article key={item.functionKey}>
                 <strong>{item.functionKey}</strong>
-                <span>{[item.name, item.functionType, item.mode, item.notes].filter(Boolean).join(" · ")}</span>
+                <span>{[item.name, item.functionType, item.mode, item.notes].filter(Boolean).join(separator)}</span>
               </article>
             ))}
           </div>
@@ -214,14 +222,14 @@ export function VehicleReadOnlyView({
 
       {images.length > 0 && (
         <section className="vehicle-view-section vehicle-view-wide">
-          <h3>Bilder</h3>
+          <h3>{t("vehicles.uploads.imagesTitle")}</h3>
           <div className="vehicle-view-gallery">
             {images.map((item) => (
               <figure key={item.id}>
                 <button type="button" className="vehicle-view-image-button" onClick={() => onPreviewImage(vehicleImageToPending(item))}>
                   <img src={previewImageUrl(item)} alt="" />
                 </button>
-                <figcaption>{[item.isPrimary ? "Hauptbild" : "Alternativbild", item.title].filter(Boolean).join(" · ") || item.fileName || "Bild"}</figcaption>
+                <figcaption>{[item.isPrimary ? t("vehicles.uploads.primary") : t("vehicles.uploads.alternative"), item.title].filter(Boolean).join(separator) || item.fileName || t("vehicles.image")}</figcaption>
               </figure>
             ))}
           </div>
@@ -232,12 +240,12 @@ export function VehicleReadOnlyView({
         <div className="vehicle-view-grid">
           {activeMaintenance.length > 0 && (
             <section className="vehicle-view-section">
-              <h3>Wartung</h3>
+              <h3>{t("vehicles.tab.maintenance")}</h3>
               <div className="vehicle-view-list">
                 {activeMaintenance.map((item) => (
                   <article key={item.id}>
                     <strong>{item.kind}</strong>
-                    <span>{[item.status, item.dueDate && `Fällig ${formatDate(item.dueDate)}`, item.completedAt && `Erledigt ${formatDate(item.completedAt)}`, item.notes].filter(Boolean).join(" · ")}</span>
+                    <span>{[item.status, item.dueDate && t("vehicles.maintenance.dueWithDate", { date: formatDate(item.dueDate) }), item.completedAt && t("vehicles.maintenance.completedWithDate", { date: formatDate(item.completedAt) }), item.notes].filter(Boolean).join(separator)}</span>
                   </article>
                 ))}
               </div>
@@ -245,12 +253,12 @@ export function VehicleReadOnlyView({
           )}
           {attachments.length > 0 && (
             <section className="vehicle-view-section">
-              <h3>Beilagen</h3>
+              <h3>{t("vehicles.uploads.attachmentsTitle")}</h3>
               <div className="vehicle-view-list">
                 {attachments.map((item) => (
                   <article key={item.id}>
                     <strong>{item.originalName || item.fileName}</strong>
-                    <span>{[item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")}</span>
+                    <span>{[item.category, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(separator)}</span>
                   </article>
                 ))}
               </div>
@@ -258,12 +266,12 @@ export function VehicleReadOnlyView({
           )}
           {cvValues.length > 0 && (
             <section className="vehicle-view-section">
-              <h3>CV-Werte</h3>
+              <h3>{t("vehicles.cv.values")}</h3>
               <div className="vehicle-view-list compact">
                 {cvValues.slice(0, 12).map((item) => (
                   <article key={item.id}>
                     <strong>CV {item.cvNumber}</strong>
-                    <span>{[String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(" · ")}</span>
+                    <span>{[String(item.value), item.category, item.protocol, item.decoderProfile, item.description].filter(Boolean).join(separator)}</span>
                   </article>
                 ))}
               </div>
@@ -271,12 +279,12 @@ export function VehicleReadOnlyView({
           )}
           {cvFiles.length > 0 && (
             <section className="vehicle-view-section">
-              <h3>CV-Dateien</h3>
+              <h3>{t("vehicles.cv.filesTitle")}</h3>
               <div className="vehicle-view-list">
                 {cvFiles.map((item) => (
                   <article key={item.id}>
                     <strong>{item.originalName || item.fileName}</strong>
-                    <span>{[item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(" · ")}</span>
+                    <span>{[item.decoderProfile, item.description, formatFileSize(item.sizeBytes)].filter(Boolean).join(separator)}</span>
                   </article>
                 ))}
               </div>

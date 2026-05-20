@@ -97,6 +97,12 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 				`1001 cv[1,3] cv[2,0] cv[29,38]`,
 				"<END 0 (OK)>",
 			}
+		case command == "get(1001, cv[8])":
+			return []string{
+				"<REPLY get(1001, cv[8])>",
+				`1001 cv[8,151]`,
+				"<END 0 (OK)>",
+			}
 		case command == "release(1001, view)":
 			return []string{
 				"<REPLY release(1001, view)>",
@@ -130,8 +136,25 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 	if len(locomotive.InterestingFields) == 0 {
 		t.Fatalf("expected image to be marked as interesting: %#v", locomotive)
 	}
-	if len(locomotive.CVs) != 3 || locomotive.CVs[2].Number != 29 || locomotive.CVs[2].Value != 38 {
+	if len(locomotive.CVs) != 4 || locomotive.CVs[2].Number != 8 || locomotive.CVs[2].Value != 151 {
 		t.Fatalf("expected structured CV values: %#v", locomotive.CVs)
+	}
+}
+
+func TestParseECoSCVValuesVariants(t *testing.T) {
+	cvs := parseECoSCVValues(map[string][]string{
+		"cvs":    {"1,3,2,0"},
+		"cvlist": {"7:42"},
+		"cv8":    {"151"},
+	})
+	if len(cvs) != 4 {
+		t.Fatalf("expected four CV values, got %#v", cvs)
+	}
+	expected := map[int]int{1: 3, 2: 0, 7: 42, 8: 151}
+	for _, cv := range cvs {
+		if expected[cv.Number] != cv.Value {
+			t.Fatalf("unexpected CV value: %#v", cvs)
+		}
 	}
 }
 

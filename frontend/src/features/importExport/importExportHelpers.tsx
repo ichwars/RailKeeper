@@ -79,16 +79,37 @@ export type ECoSVehicleDraftPayload = {
   vehicle: CreateVehicleRequest;
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
+  functionValues: FunctionImportSuggestion[];
   unclearFields: VehicleImportField[];
+  returnToEcos?: {
+    sessionId: string;
+    objectId: number;
+  };
 };
 
 export type ECoSBusyPhase = "idle" | "connecting" | "fetching";
+
+export type ECoSImportSessionStatus = "open" | "editing" | "saved" | "skipped" | "error";
+
+export type ECoSImportSession = {
+  id: string;
+  createdAt: string;
+  updatedAt: string;
+  rawProbe: ECoSRawProbe;
+  statuses: Record<string, {
+    status: ECoSImportSessionStatus;
+    vehicleId?: string;
+    message?: string;
+    updatedAt: string;
+  }>;
+};
 
 export type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 export type VehicleImportField = keyof CreateVehicleRequest;
 
 export const ecosVehicleDraftStorageKey = "railkeeper.ecosVehicleDraft";
+export const ecosImportSessionStorageKey = "railkeeper.ecosImportSession";
 export const ecosRequiredFields: VehicleImportField[] = ["manufacturer", "name", "gauge", "category", "gattung"];
 
 export type ColumnMapping = {
@@ -727,45 +748,29 @@ export function fallbackECoSFunction(index: number, code?: number): Partial<Vehi
 }
 
 export function ecosFunctionSuggestions(locomotive: ECoSRawLocomotive, symbols: MasterDataEntry[]): FunctionImportSuggestion[] {
-  return (locomotive.functions || [])
-    .filter((fn) => fn.active || fn.description)
-    .map((fn) => {
-      const symbol = typeof fn.description === "number" ? findSymbolByECoSCode(fn.description, symbols) : undefined;
-      const fallback = fallbackECoSFunction(fn.index, fn.description);
-      const symbolKey = symbol?.key || fallback.symbolKey || "";
-      const name = symbol?.label || fallback.name || "";
-      const functionType = inferFunctionTypeFromSymbol(symbolKey, symbols, fallback.functionType || "standard");
-      const notes = [
-        typeof fn.description === "number" ? `ECoS funcdesc ${fn.description}` : "",
-        fn.active ? "ECoS aktiv" : ""
-      ].filter(Boolean).join(" · ");
-      return {
-        functionKey: `F${fn.index}`,
-        name,
-        symbolKey,
-        functionType,
-        mode: "dauer",
-        directionDependent: false,
-        notes,
-        ecosDescription: fn.description,
-        active: fn.active
-      };
-    });
+  void locomotive;
+  void symbols;
+  return [];
 }
 
 export function ecosCVSuggestions(locomotive: ECoSRawLocomotive): VehicleCVValueInput[] {
   const decoderProfile = locomotive.profile || "";
-  return (locomotive.cvs || []).map((cv) => {
+  const cvs = eCoSCVValuesWithInferredManufacturer(locomotive);
+  const inferredManufacturerId = inferECoSDecoderManufacturerId(locomotive);
+  return cvs.map((cv) => {
     const definition = ecosStandardCVDefinitions[cv.number];
+    const inferredDescription = cv.number === 8 && !findECoSCVValue(locomotive, 8) && typeof inferredManufacturerId === "number"
+      ? "Herstellerkennung: aus ECoS-Decoderprofil abgeleitet."
+      : "";
     return {
       cvNumber: cv.number,
       value: cv.value,
       category: definition?.category || inferECoSCVCategory(cv.number),
       protocol: normalizeECoSProtocolForCV(locomotive.protocol),
       decoderProfile,
-      description: definition
+      description: inferredDescription || (definition
         ? `${definition.label}: ${definition.description}`
-        : `ECoS ${locomotive.objectId}${locomotive.name ? ` - ${locomotive.name}` : ""}`
+        : `ECoS ${locomotive.objectId}${locomotive.name ? ` - ${locomotive.name}` : ""}`)
     };
   });
 }
@@ -776,6 +781,9 @@ export function uniqueECoSValues(values: string[]) {
 
 export const ecosRawKnownAttributes = new Set([
   "addr",
+  "decoder",
+  "decodername",
+  "decodertype",
   "dir",
   "func",
   "funcdesc",
@@ -917,6 +925,8 @@ export const ecosDecoderManufacturers: ECoSDecoderManufacturerMap = {
   173: { id: 173, name: "Maerklin / Trix" }
 };
 
+const esuCV8ManufacturerId = 151;
+
 function cv8NumberFromMetadataValue(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {
@@ -1033,6 +1043,18 @@ export const ecosStandardCVDefinitions: Record<number, ECoSCVDefinition> = {
     category: "Decoder",
     description: "NMRA-Herstellerkennung des Decoders."
   },
+  17: {
+    number: 17,
+    label: "Lange Adresse High",
+    category: "Adresse",
+    description: "Oberer Anteil der langen DCC-Adresse."
+  },
+  18: {
+    number: 18,
+    label: "Lange Adresse Low",
+    category: "Adresse",
+    description: "Unterer Anteil der langen DCC-Adresse."
+  },
   29: {
     number: 29,
     label: "Basis-Konfiguration",
@@ -1056,8 +1078,38 @@ export function findECoSCVValue(locomotive: ECoSRawLocomotive, cvNumber: number)
   return (locomotive.cvs || []).find((cv) => cv.number === cvNumber)?.value;
 }
 
-export function getECoSDecoderManufacturer(locomotive: ECoSRawLocomotive, manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers) {
+function eCoSDecoderIdentityText(locomotive: ECoSRawLocomotive) {
+  const values = [
+    locomotive.profile,
+    locomotive.protocol,
+    ...(locomotive.attributes?.decoder || []),
+    ...(locomotive.attributes?.decodertype || []),
+    ...(locomotive.attributes?.decodername || [])
+  ];
+  return values.filter(Boolean).join(" ").toLocaleLowerCase("de-DE");
+}
+
+export function inferECoSDecoderManufacturerId(locomotive: ECoSRawLocomotive) {
   const manufacturerId = findECoSCVValue(locomotive, 8);
+  if (typeof manufacturerId === "number") return manufacturerId;
+  const identity = eCoSDecoderIdentityText(locomotive);
+  if (identity.includes("esu") || identity.includes("lokpilot") || identity.includes("loksound")) {
+    return esuCV8ManufacturerId;
+  }
+  return undefined;
+}
+
+function eCoSCVValuesWithInferredManufacturer(locomotive: ECoSRawLocomotive) {
+  const cvs = [...(locomotive.cvs || [])];
+  const inferredManufacturerId = inferECoSDecoderManufacturerId(locomotive);
+  if (!cvs.some((cv) => cv.number === 8) && typeof inferredManufacturerId === "number") {
+    cvs.push({ number: 8, value: inferredManufacturerId });
+  }
+  return cvs;
+}
+
+export function getECoSDecoderManufacturer(locomotive: ECoSRawLocomotive, manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers) {
+  const manufacturerId = inferECoSDecoderManufacturerId(locomotive);
   if (typeof manufacturerId !== "number") return undefined;
   return manufacturers[manufacturerId];
 }
@@ -1071,7 +1123,7 @@ export function buildECoSDecoderProfileHints(raw: ECoSRawProbe | null, manufactu
   if (!raw) return [];
   return raw.locomotives
     .map((locomotive) => {
-      const manufacturerId = findECoSCVValue(locomotive, 8);
+      const manufacturerId = inferECoSDecoderManufacturerId(locomotive);
       return {
         locomotive,
         manufacturerId,
@@ -1097,17 +1149,30 @@ export function interpretECoSCV29(value: number) {
   return flags.join(" - ");
 }
 
+export function interpretECoSLongAddress(locomotive: ECoSRawLocomotive) {
+  const high = findECoSCVValue(locomotive, 17);
+  const low = findECoSCVValue(locomotive, 18);
+  if (typeof high !== "number" || typeof low !== "number" || high < 192 || high > 231) {
+    return "";
+  }
+  return String(((high - 192) * 256) + low);
+}
+
 export function interpretECoSCV(cvNumber: number, value: number, locomotive: ECoSRawLocomotive, manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers) {
   if (cvNumber === 8) {
     const manufacturer = getECoSDecoderManufacturer(locomotive, manufacturers);
     return manufacturer ? `${manufacturer.name} (${value})` : `Unbekannte Herstellerkennung (${value})`;
+  }
+  if (cvNumber === 17 || cvNumber === 18) {
+    const longAddress = interpretECoSLongAddress(locomotive);
+    return longAddress ? `Lange Adresse ${longAddress}` : "Lange Adresse unvollstaendig";
   }
   if (cvNumber === 29) {
     return interpretECoSCV29(value);
   }
   const definition = ecosStandardCVDefinitions[cvNumber];
   if (definition) {
-    return definition.label;
+    return `${definition.label} (${value})`;
   }
   return "-";
 }
@@ -1119,7 +1184,7 @@ export function cvPreviewKey(cvNumber: number, decoderProfile?: string) {
 export function buildECoSCVImportRows(raw: ECoSRawProbe | null, vehicles: Vehicle[], manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers): ECoSCVImportRow[] {
   if (!raw) return [];
   return raw.locomotives.flatMap((locomotive) => {
-    const cvs = locomotive.cvs || [];
+    const cvs = eCoSCVValuesWithInferredManufacturer(locomotive);
     if (cvs.length === 0) return [];
     const match = findECoSMatch(locomotive, vehicles);
     const decoderProfile = locomotive.profile || "";
