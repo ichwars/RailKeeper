@@ -1,0 +1,394 @@
+/* Vehicle upload, pending image and attachment styles. */
+.empty-tab,
+.uploads-tab,
+.maintenance-tab,
+.functions-tab,
+.cv-tab {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.uploads-tab {
+  gap: 16px;
+  overflow-x: hidden;
+}
+
+.upload-section,
+.maintenance-editor,
+.cv-editor,
+.cv-files-section,
+.cv-table-section {
+  display: grid;
+  gap: 12px;
+}
+
+.uploads-tab .upload-section + .upload-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.cv-history-row td {
+  background: color-mix(in srgb, var(--accent-bright) 8%, var(--panel));
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.cv-history-row details {
+  display: grid;
+  gap: 8px;
+}
+
+.cv-history-row summary {
+  width: max-content;
+  cursor: pointer;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.cv-history-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cv-history-list span {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.empty-tab h3 {
+  margin: 0;
+}
+
+.upload-head .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px;
+}
+
+.uploads-tab .upload-head {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.uploads-tab .upload-head > div {
+  min-width: 0;
+}
+
+.uploads-tab .upload-head .primary-button {
+  margin-left: auto;
+}
+
+.upload-maintenance-select {
+  width: min(260px, 100%);
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.upload-list {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 86px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pending-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 10px;
+}
+
+.pending-image-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  min-height: 78px;
+  margin: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.pending-image-card.primary {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent-bright) 12%, var(--panel));
+}
+
+.image-preview-button {
+  display: block;
+  width: 112px;
+  height: 76px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.image-preview-button img {
+  width: 112px;
+  height: 76px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+
+.pending-image-card figcaption {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pending-image-card input,
+.pending-image-card strong,
+.pending-image-card figcaption > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.pending-image-card input {
+  width: 100%;
+  max-width: 180px;
+  min-height: 20px;
+  border: 0;
+  border-radius: 5px;
+  padding: 0 6px;
+  background: color-mix(in srgb, var(--input-bg) 88%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.pending-image-card input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.image-maintenance-select {
+  width: 100%;
+  min-height: 26px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 7px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 10.5px;
+}
+
+.upload-maintenance-select:focus,
+.image-maintenance-select:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.pending-image-card figcaption > span {
+  color: var(--accent-strong);
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+.image-card-actions,
+.attachment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.image-card-actions .icon-button {
+  width: 22px;
+  height: 22px;
+  color: color-mix(in srgb, var(--muted) 84%, var(--text));
+}
+
+.image-card-actions .icon-button:hover,
+.image-card-actions .icon-button.active {
+  color: var(--accent-strong);
+}
+
+.image-card-actions .icon-button.active {
+  background: transparent;
+  color: var(--accent-strong);
+}
+
+.attachment-list {
+  display: grid;
+  gap: 10px;
+}
+
+.attachment-upload-zone {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+  min-height: 0;
+  padding: 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.attachment-upload-zone.active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-bright) 16%, #fff);
+}
+
+.attachment-upload-zone div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.attachment-upload-zone strong {
+  font-size: 14px;
+}
+
+.attachment-upload-zone span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attachment-upload-fields {
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.attachment-upload-fields select,
+.attachment-upload-fields input {
+  min-width: 0;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.attachment-upload-fields select:focus,
+.attachment-upload-fields input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.attachment-row {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-areas:
+    "icon main"
+    "icon actions";
+  gap: 10px 14px;
+  align-items: start;
+  min-height: 92px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-subtle) 82%, transparent);
+}
+
+.attachment-icon {
+  grid-area: icon;
+  display: grid;
+  place-items: center;
+  gap: 4px;
+  width: 54px;
+  height: 54px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.attachment-main {
+  grid-area: main;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.attachment-main strong,
+.attachment-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-main span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.attachment-edit-row {
+  display: grid;
+  grid-template-columns: minmax(145px, 190px) minmax(160px, 210px) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.attachment-edit-row select,
+.attachment-edit-row input {
+  min-width: 0;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 11px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.attachment-edit-row select:focus,
+.attachment-edit-row input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.attachment-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.attachment-actions .secondary-button,
+.attachment-actions .danger-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+}

@@ -1,0 +1,479 @@
+/* Exhibition list, entry editor and assignment styles. */
+.exhibition-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.exhibition-list-panel,
+.exhibition-entry-panel {
+  overflow: hidden;
+}
+
+.exhibition-list-panel tbody tr {
+  cursor: pointer;
+}
+
+.exhibition-table thead th {
+  height: 52px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.exhibition-table th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 850;
+  text-transform: inherit;
+}
+
+.exhibition-table td small {
+  display: block;
+  max-width: 260px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exhibition-entry-panel .exhibition-table th,
+.exhibition-entry-panel .exhibition-table td {
+  vertical-align: top;
+}
+
+.exhibition-entry-panel .exhibition-table th:nth-child(5),
+.exhibition-entry-panel .exhibition-table td:nth-child(5) {
+  width: 178px;
+}
+
+.exhibition-entry-panel .exhibition-table th:last-child,
+.exhibition-entry-panel .exhibition-table td:last-child {
+  text-align: right;
+}
+
+.exhibition-entry-panel .exhibition-table td:last-child .table-actions {
+  justify-content: flex-end;
+}
+
+.exhibition-loco-cell {
+  display: grid;
+  gap: 3px;
+  min-width: 210px;
+}
+
+.exhibition-control-stack {
+  display: grid;
+  min-width: 170px;
+  gap: 4px;
+  margin: 0;
+}
+
+.exhibition-control-stack div {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.exhibition-control-stack dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.exhibition-control-stack dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.exhibition-function-grid {
+  display: inline-grid;
+  grid-template-columns: repeat(2, max-content);
+  width: fit-content;
+  min-width: 0;
+  max-width: 100%;
+  gap: 6px;
+  align-content: start;
+  justify-content: start;
+  vertical-align: top;
+}
+
+.exhibition-function-pill {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.exhibition-function-pill strong {
+  display: inline-flex;
+  min-width: 20px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.exhibition-function-icon {
+  display: inline-grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  flex: 0 0 auto;
+}
+
+.exhibition-function-icon .function-symbol-tile {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.exhibition-function-icon svg,
+.exhibition-function-icon img {
+  width: 15px;
+  height: 15px;
+  object-fit: contain;
+}
+
+.selected-row td {
+  background: color-mix(in srgb, var(--accent-bright) 10%, transparent);
+}
+
+.exhibition-thumb,
+.image-placeholder.mini {
+  display: grid;
+  width: 54px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  object-fit: cover;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.compact-modal {
+  width: min(520px, 100%);
+}
+
+.simple-form {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.simple-form label,
+.exhibition-entry-form label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.field-warning {
+  color: var(--danger);
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.simple-form input,
+.exhibition-entry-form input,
+.exhibition-entry-form select,
+.exhibition-entry-form textarea {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.exhibition-entry-form textarea {
+  min-height: 94px;
+  padding-top: 10px;
+  resize: vertical;
+}
+
+.exhibition-entry-modal {
+  width: min(920px, 100%);
+}
+
+.exhibition-view-modal {
+  width: min(980px, 100%);
+}
+
+.exhibition-entry-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding: 20px;
+}
+
+.exhibition-entry-section {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.exhibition-entry-section-wide {
+  grid-column: 1 / -1;
+}
+
+.exhibition-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.exhibition-day-selector {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+}
+
+.exhibition-day-selector button {
+  min-height: 36px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 0 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.exhibition-day-selector button:last-child {
+  border-right: 0;
+}
+
+.exhibition-day-selector button.active {
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.exhibition-entry-switch {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 320px;
+}
+
+.exhibition-entry-form h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.exhibition-entry-tabs {
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+.exhibition-image-tab,
+.exhibition-functions-tab {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.exhibition-image-tab .upload-head {
+  min-height: auto;
+}
+
+.exhibition-image-tab .primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.exhibition-image-editor {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.exhibition-image-editor img,
+.exhibition-image-editor .image-placeholder {
+  width: 220px;
+  height: 150px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.exhibition-image-source {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-subtle) 72%, transparent);
+}
+
+.exhibition-image-source label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exhibition-image-source input {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 11px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.exhibition-image-source-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.exhibition-image-source-actions .secondary-button {
+  min-height: 38px;
+  cursor: pointer;
+}
+
+.exhibition-function-row {
+  grid-template-columns: 72px minmax(220px, 1fr) minmax(180px, 260px) minmax(150px, 220px);
+}
+
+.checkbox-line {
+  display: flex !important;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px !important;
+  color: var(--text) !important;
+}
+
+.checkbox-line input {
+  min-height: auto;
+}
+
+.confirm-card {
+  width: min(430px, 100%);
+  padding: 20px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.confirm-card p {
+  margin: 0 0 20px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.exhibition-assign-dialog {
+  display: grid;
+  gap: 16px;
+  width: min(520px, 100%);
+}
+
+.exhibition-assign-dialog .form-head p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.exhibition-assign-vehicle {
+  margin: -6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exhibition-assign-field {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.exhibition-assign-field select {
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 12px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.exhibition-assign-checks {
+  display: grid;
+  gap: 8px;
+}
+
+.exhibition-assign-checks span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.exhibition-assign-checks .check-ok {
+  color: var(--accent-strong);
+}
+
+.exhibition-assign-checks .check-error {
+  color: var(--danger);
+}

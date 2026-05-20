@@ -1,12 +1,7 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Shell } from "./Shell";
 import { LoginView } from "../features/auth/LoginView";
-import { ExhibitionView } from "../features/exhibition/ExhibitionView";
-import { ImportExportView } from "../features/importExport/ImportExportView";
-import { OverviewView } from "../features/overview/OverviewView";
 import { SetupView } from "../features/setup/SetupView";
-import { SettingsView } from "../features/settings/SettingsView";
-import { VehiclesView } from "../features/vehicles/VehiclesView";
 import { api, Session } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
@@ -14,6 +9,11 @@ import { applyThemePreference, readThemePreference } from "../shared/theme";
 export type AppView = "overview" | "vehicles" | "exhibition" | "importExport" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
+const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
+const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesView })));
+const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
+const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
+const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 function configuredStartView(): AppView {
   const stored = window.localStorage.getItem(defaultViewSettingKey);
@@ -67,6 +67,15 @@ function firstAllowedView(roles: string[]): AppView {
   if (roles.includes("Editor") || roles.includes("Viewer")) return "overview";
   if (roles.includes("Messe")) return "exhibition";
   return "overview";
+}
+
+function ViewLoading() {
+  const { t } = useI18n();
+  return (
+    <section className="panel">
+      <p>{t("app.init")}</p>
+    </section>
+  );
 }
 
 export function App() {
@@ -170,11 +179,13 @@ export function App() {
         api.logout().finally(() => setSession(null));
       }}
     >
-      {effectiveView === "overview" && <OverviewView />}
-      {effectiveView === "vehicles" && <VehiclesView username={session.username} />}
-      {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
-      {effectiveView === "importExport" && <ImportExportView />}
-      {effectiveView === "settings" && <SettingsView username={session.username} />}
+      <Suspense fallback={<ViewLoading />}>
+        {effectiveView === "overview" && <OverviewView />}
+        {effectiveView === "vehicles" && <VehiclesView username={session.username} />}
+        {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
+        {effectiveView === "importExport" && <ImportExportView />}
+        {effectiveView === "settings" && <SettingsView username={session.username} />}
+      </Suspense>
     </Shell>
   );
 }

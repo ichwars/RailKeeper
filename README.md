@@ -85,7 +85,7 @@ The SQLite database, uploads and local files stay in the `railkeeper2_data` Dock
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.8
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.9
 ```
 
 If you intentionally want to build the checked-out source tree, use:
@@ -139,6 +139,22 @@ RAILKEEPER_COOKIE_SECURE=false
 RAILKEEPER_UPDATE_CHECK_URL=https://api.github.com/repos/ichwars/RailKeeper2/releases/latest
 ```
 
+Optional SMTP settings for password reset emails can be configured in the Admin UI under
+`Einstellungen > Authentifizierung > SMTP für Passwort-Reset`. The environment variables
+below remain useful as deployment defaults:
+
+```env
+RAILKEEPER_PUBLIC_URL=https://railkeeper.example.test
+RAILKEEPER_SMTP_HOST=smtp.example.test
+RAILKEEPER_SMTP_PORT=587
+RAILKEEPER_SMTP_USER=railkeeper@example.test
+RAILKEEPER_SMTP_PASSWORD=change-me
+RAILKEEPER_SMTP_FROM=railkeeper@example.test
+RAILKEEPER_SMTP_TLS=starttls
+```
+
+If SMTP is not configured, password reset links are not returned to the browser. For local recovery only, the backend writes the link to the server log.
+
 ## Architecture
 
 ```text
@@ -159,6 +175,7 @@ deploy/
   README.md                deployment notes
 docs/
   architecture.md
+  production-runbook.md
   roadmap.md
   security.md
 ```
@@ -173,6 +190,7 @@ RailKeeper is intended for trusted self-hosted environments, but the default ins
 - SameSite cookies and CSRF protection
 - role checks for viewer, editor, admin and Messe workflows
 - setup, login and session rate limiting
+- password reset links are sent by email when SMTP is configured
 - audit log for relevant security and data actions
 - upload size limits and executable attachment blocking
 - runtime data ignored by Git

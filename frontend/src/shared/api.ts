@@ -46,7 +46,6 @@ export type PasswordResetRequest = {
 export type PasswordResetResult = {
   status: string;
   message: string;
-  resetUrl?: string;
   expiresAt?: string;
 };
 
@@ -58,6 +57,33 @@ export type PasswordResetConfirmRequest = {
 export type ChangePasswordInput = {
   currentPassword: string;
   newPassword: string;
+};
+
+export type SMTPSettings = {
+  enabled: boolean;
+  publicUrl: string;
+  host: string;
+  port: string;
+  username: string;
+  from: string;
+  tlsMode: string;
+  passwordConfigured: boolean;
+};
+
+export type SMTPSettingsInput = {
+  enabled: boolean;
+  publicUrl: string;
+  host: string;
+  port: string;
+  username: string;
+  password?: string;
+  from: string;
+  tlsMode: string;
+  clearPassword?: boolean;
+};
+
+export type SMTPTestRequest = {
+  recipient: string;
 };
 
 export type SessionRecord = {
@@ -861,6 +887,17 @@ export const api = {
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
   systemPrinters: () => request<SystemPrinters>("/system/printers", {}, { timeoutMs: 10000 }),
   auditLog: (limit = 50) => request<AuditLogResponse>(`/system/audit-log?limit=${encodeURIComponent(String(limit))}`, {}, { timeoutMs: 10000 }),
+  smtpSettings: () => request<SMTPSettings>("/system/smtp", {}, { timeoutMs: 10000 }),
+  updateSMTPSettings: (input: SMTPSettingsInput) =>
+    request<SMTPSettings>("/system/smtp", {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  testSMTPSettings: (input: SMTPTestRequest) =>
+    request<{ status: string }>("/system/smtp/test", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }, { timeoutMs: 30000 }),
   exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
   exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
   createExhibitionList: (input: ExhibitionListInput) =>

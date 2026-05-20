@@ -106,7 +106,7 @@ type PasswordResetRequestResult struct {
 	Status     string `json:"status"`
 	Message    string `json:"message"`
 	ResetToken string `json:"-"`
-	ResetURL   string `json:"resetUrl,omitempty"`
+	ResetURL   string `json:"-"`
 	ExpiresAt  string `json:"expiresAt,omitempty"`
 }
 
@@ -608,7 +608,7 @@ func (s *AuthService) RequestPasswordReset(ctx context.Context, input PasswordRe
 
 	return &PasswordResetRequestResult{
 		Status:     "ready",
-		Message:    "Wenn die E-Mail-Adresse bekannt ist, wurde ein Passwort-Reset-Link erstellt.",
+		Message:    "Wenn die E-Mail-Adresse bekannt ist, wurde ein Passwort-Reset-Link versendet.",
 		ResetToken: resetToken,
 		ExpiresAt:  expiresAtText,
 	}, nil

@@ -1,0 +1,72 @@
+/* Vehicle image preview and modal action styles. */
+.image-preview-layer {
+  z-index: 42;
+}
+
+.image-preview-dialog {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  width: fit-content;
+  max-width: calc(100vw - 30px);
+  max-height: min(92vh, 860px);
+  padding: 16px;
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 24px 90px rgba(0, 0, 0, 0.34);
+}
+
+.image-title-link {
+  width: 28px;
+  height: 28px;
+}
+
+.image-preview-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-width: min(720px, calc(100vw - 70px));
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.image-preview-dialog .form-head > div {
+  display: grid;
+  gap: 2px;
+  padding-right: 38px;
+}
+
+.image-preview-dialog > .form-head > .icon-button {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.image-preview-dialog img {
+  display: block;
+  width: auto;
+  max-width: calc(100vw - 70px);
+  max-height: calc(92vh - 128px);
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-height: 64px;
+  padding: 0 20px;
+  border-top: 1px solid var(--line);
+}
+
+.modal-actions .form-message {
+  margin-right: auto;
+}

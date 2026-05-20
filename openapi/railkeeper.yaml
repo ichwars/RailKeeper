@@ -188,6 +188,58 @@ components:
                 type: string
               isDefault:
                 type: boolean
+    SMTPSettings:
+      type: object
+      required: [enabled, publicUrl, host, port, username, from, tlsMode, passwordConfigured]
+      properties:
+        enabled:
+          type: boolean
+        publicUrl:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        username:
+          type: string
+        from:
+          type: string
+        tlsMode:
+          type: string
+          enum: [starttls, implicit, none]
+        passwordConfigured:
+          type: boolean
+    SMTPSettingsInput:
+      type: object
+      required: [enabled, publicUrl, host, port, username, from, tlsMode]
+      properties:
+        enabled:
+          type: boolean
+        publicUrl:
+          type: string
+        host:
+          type: string
+        port:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+          description: Optional. Leave empty to keep the stored SMTP password.
+        from:
+          type: string
+        tlsMode:
+          type: string
+          enum: [starttls, implicit, none]
+        clearPassword:
+          type: boolean
+    SMTPTestRequest:
+      type: object
+      required: [recipient]
+      properties:
+        recipient:
+          type: string
+          format: email
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]
@@ -1125,6 +1177,79 @@ paths:
                 $ref: "#/components/schemas/AuditLogResponse"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/smtp:
+    get:
+      tags: [System]
+      responses:
+        "200":
+          description: SMTP settings without the stored password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMTPSettings"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [System]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMTPSettingsInput"
+      responses:
+        "200":
+          description: Updated SMTP settings without the stored password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SMTPSettings"
+        "400":
+          description: Invalid SMTP settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/smtp/test:
+    post:
+      tags: [System]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SMTPTestRequest"
+      responses:
+        "200":
+          description: Test email was sent
+        "400":
+          description: SMTP is disabled or recipient is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: SMTP server rejected the test email
           content:
             application/json:
               schema:
@@ -2242,3 +2367,395 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /auth/password-reset:
+    post:
+      tags: [Auth]
+      summary: Request a password reset email for a local account
+      responses:
+        "202":
+          description: Password reset request accepted. The reset link is not returned in the browser response.
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/password-reset/confirm:
+    post:
+      tags: [Auth]
+      summary: Confirm a password reset with a token
+      responses:
+        "204":
+          description: Password changed
+        "400":
+          description: Invalid token or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /ecos/test:
+    post:
+      tags: [Vehicles]
+      summary: Test an ECoS connection
+      responses:
+        "200":
+          description: ECoS connection result
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /ecos/locomotives/raw:
+    post:
+      tags: [Vehicles]
+      summary: Read raw locomotive data from an ECoS station
+      responses:
+        "200":
+          description: Raw ECoS locomotive payload
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /master-data-all:
+    get:
+      tags: [MasterData]
+      summary: List all master-data groups and relations
+      responses:
+        "200":
+          description: Combined master-data response
+        "403":
+          description: Viewer role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/external-mappings:
+    post:
+      tags: [Vehicles]
+      summary: Create or update an external vehicle mapping
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stored external mapping
+        "403":
+          description: Editor role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/images:
+    post:
+      tags: [Vehicles]
+      summary: Upload a vehicle image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Uploaded image
+        "403":
+          description: Editor role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/images/{imageID}:
+    delete:
+      tags: [Vehicles]
+      summary: Delete a vehicle image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Image deleted
+        "403":
+          description: Editor role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/images/{imageID}/file:
+    get:
+      tags: [Vehicles]
+      summary: Download a vehicle image file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Image file
+        "403":
+          description: Viewer role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/images/{imageID}/thumbnail:
+    get:
+      tags: [Vehicles]
+      summary: Download a vehicle image thumbnail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: imageID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Image thumbnail
+        "403":
+          description: Viewer role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/maintenance:
+    get:
+      tags: [Vehicles]
+      summary: List maintenance entries for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Maintenance entries
+    post:
+      tags: [Vehicles]
+      summary: Create a maintenance entry for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Maintenance entry created
+  /vehicles/{id}/maintenance/{maintenanceID}:
+    put:
+      tags: [Vehicles]
+      summary: Update a maintenance entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: maintenanceID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Maintenance entry updated
+    delete:
+      tags: [Vehicles]
+      summary: Delete a maintenance entry
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: maintenanceID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Maintenance entry deleted
+  /vehicles/{id}/functions:
+    get:
+      tags: [Vehicles]
+      summary: List decoder functions for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vehicle functions
+  /vehicles/{id}/functions/{functionKey}:
+    put:
+      tags: [Vehicles]
+      summary: Create or update a decoder function
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: functionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Vehicle function stored
+    delete:
+      tags: [Vehicles]
+      summary: Delete a decoder function
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: functionKey
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Vehicle function deleted
+  /vehicles/{id}/cv-values:
+    get:
+      tags: [Vehicles]
+      summary: List CV values for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CV values
+    post:
+      tags: [Vehicles]
+      summary: Create a CV value for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: CV value created
+  /vehicles/{id}/cv-values/{cvValueID}:
+    put:
+      tags: [Vehicles]
+      summary: Update a CV value
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cvValueID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CV value updated
+    delete:
+      tags: [Vehicles]
+      summary: Delete a CV value
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cvValueID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: CV value deleted
+  /vehicles/{id}/cv-files:
+    post:
+      tags: [Vehicles]
+      summary: Upload a decoder CV file for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: CV file uploaded
+  /vehicles/{id}/cv-files/{cvFileID}:
+    delete:
+      tags: [Vehicles]
+      summary: Delete a decoder CV file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cvFileID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: CV file deleted
+  /vehicles/{id}/cv-files/{cvFileID}/download:
+    get:
+      tags: [Vehicles]
+      summary: Download a decoder CV file
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: cvFileID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CV file

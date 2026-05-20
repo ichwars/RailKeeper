@@ -34,6 +34,8 @@ import {
   Role,
   Session,
   SessionRecord,
+  SMTPSettings,
+  SMTPSettingsInput,
   SystemPrinters,
   StorageUsage,
   UserAccount,
@@ -41,260 +43,47 @@ import {
 } from "../../shared/api";
 import { Language, useI18n } from "../../shared/i18n";
 import { applyStoredThemeOptions, applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
+import { SettingsAuthTab } from "./SettingsAuthTab";
 
-type SettingsTab = "general" | "data" | "importExport" | "appearance" | "auth";
-type MasterDataType = {
-  type: string;
-};
-
-const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
-  { id: "general", labelKey: "settings.tabs.general" },
-  { id: "data", labelKey: "settings.tabs.data" },
-  { id: "importExport", labelKey: "settings.tabs.importExport" },
-  { id: "appearance", labelKey: "settings.tabs.appearance" },
-  { id: "auth", labelKey: "settings.tabs.auth" }
-];
-
-const masterDataTypes: MasterDataType[] = [
-  { type: "manufacturer" },
-  { type: "vehicle_category" },
-  { type: "vehicle_gattung" },
-  { type: "epoch" },
-  { type: "gauge" },
-  { type: "railway_company" },
-  { type: "cv8_manufacturer" },
-  { type: "symbols" }
-];
-
-const loadableMasterDataTypes = masterDataTypes;
-const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
-const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
-const defaultArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
-const articleSearchSourceOptions = [
-  { id: "web", labelKey: "settings.articleSearch.source.web", helpKey: "settings.articleSearch.source.webHelp" },
-  { id: "manufacturer", labelKey: "settings.articleSearch.source.manufacturer", helpKey: "settings.articleSearch.source.manufacturerHelp" },
-  { id: "dealers", labelKey: "settings.articleSearch.source.dealers", helpKey: "settings.articleSearch.source.dealersHelp" },
-  { id: "wiki", labelKey: "settings.articleSearch.source.wiki", helpKey: "settings.articleSearch.source.wikiHelp" }
-];
-
-const localSettingKeys = {
-  language: "railkeeper.settings.language",
-  defaultView: "railkeeper.settings.defaultView",
-  dateFormat: "railkeeper.settings.dateFormat",
-  timeFormat: "railkeeper.settings.timeFormat",
-  defaultPrinter: "railkeeper.settings.defaultPrinter",
-  updateChecks: "railkeeper.settings.updateChecks",
-  betaUpdates: "railkeeper.settings.betaUpdates",
-  ignoredUpdate: "railkeeper.settings.ignoredUpdate",
-  darkBackground: "railkeeper.settings.darkBackground",
-  darkAccent: "railkeeper.settings.darkAccent",
-  darkStyle: "railkeeper.settings.darkStyle",
-  lightBackground: "railkeeper.settings.lightBackground",
-  lightAccent: "railkeeper.settings.lightAccent",
-  lightStyle: "railkeeper.settings.lightStyle",
-  twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
-};
-
-const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
-const legacySidebarOrderKey = "railkeeper.settings.sidebarOrder";
-const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
-const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "exhibition", "importExport", "settings"];
-type SidebarPrefs = {
-  order: AppView[];
-  hidden: AppView[];
-};
-function formatBytes(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return "0 KB";
-  if (value >= 1024 * 1024) return `${(value / 1024 / 1024).toLocaleString("de-DE", { maximumFractionDigits: 1 })} MB`;
-  return `${Math.max(1, Math.round(value / 1024)).toLocaleString("de-DE")} KB`;
-}
-
-function readLocalSetting(key: string, fallback: string) {
-  return window.localStorage.getItem(key) || fallback;
-}
-
-function readLocalBool(key: string, fallback: boolean) {
-  const value = window.localStorage.getItem(key);
-  if (value === null) return fallback;
-  return value === "true";
-}
-
-function readArticleSearchSources() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(articleSearchSourcesSettingKey) || "[]") as string[];
-    const allowed = new Set(articleSearchSourceOptions.map((option) => option.id));
-    const sources = stored.filter((source) => allowed.has(source));
-    return sources.length > 0 ? sources : defaultArticleSearchSources;
-  } catch {
-    return defaultArticleSearchSources;
-  }
-}
-
-function sidebarPrefsKey(username: string) {
-  return `${sidebarPrefsBaseKey}:${username || "local"}`;
-}
-
-function normalizeSidebarOrder(order: AppView[]) {
-  const ordered = order.filter((view): view is AppView => defaultSidebarOrder.includes(view));
-  const missing = defaultSidebarOrder.filter((view) => !ordered.includes(view));
-  return [...ordered, ...missing];
-}
-
-function readSidebarPrefs(username: string): SidebarPrefs {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(sidebarPrefsKey(username)) || "null") as Partial<SidebarPrefs> | null;
-    if (stored) {
-      return {
-        order: normalizeSidebarOrder(Array.isArray(stored.order) ? stored.order : []),
-        hidden: Array.isArray(stored.hidden) ? stored.hidden.filter((view): view is AppView => defaultSidebarOrder.includes(view) && view !== "settings") : []
-      };
-    }
-  } catch {
-    return { order: defaultSidebarOrder, hidden: [] };
-  }
-  try {
-    const legacyOrder = JSON.parse(window.localStorage.getItem(legacySidebarOrderKey) || "[]") as AppView[];
-    return { order: normalizeSidebarOrder(legacyOrder), hidden: [] };
-  } catch {
-    return { order: defaultSidebarOrder, hidden: [] };
-  }
-}
-
-function formatDateTime(value: string) {
-  if (!value) return "-";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" });
-}
-
-const emptyForm = {
-  key: "",
-  label: "",
-  active: true,
-  sortOrder: 0,
-  sourceUrl: "",
-  nominalScalesText: "",
-  description: "",
-  imageData: "",
-  metadataText: "{}"
-};
-
-type FormState = typeof emptyForm;
-
-const emptyUserForm = {
-  username: "",
-  email: "",
-  password: "",
-  roles: ["Viewer"]
-};
-
-type UserFormState = typeof emptyUserForm;
-
-const emptyPasswordForm = {
-  currentPassword: "",
-  newPassword: "",
-  confirmPassword: ""
-};
-
-type PasswordFormState = typeof emptyPasswordForm;
-
-function auditActor(entry: AuditLogEntry) {
-  return entry.actorUsername || entry.actorUserId || (entry.action === "LoginFailed" ? "Unbekannt" : "System");
-}
-
-function auditTarget(entry: AuditLogEntry) {
-  if (!entry.targetType && !entry.targetId) return "-";
-  return [entry.targetType, entry.targetId].filter(Boolean).join(" ");
-}
-
-function entryToForm(entry: MasterDataEntry): FormState {
-  return {
-    key: entry.key,
-    label: entry.label,
-    active: entry.active,
-    sortOrder: entry.sortOrder,
-    sourceUrl: entry.sourceUrl || "",
-    nominalScalesText: nominalScalesText(entry),
-    description: metadataString(entry, "description"),
-    imageData: masterDataImage(entry),
-    metadataText: JSON.stringify(entry.metadata || {}, null, 2)
-  };
-}
-
-function metadataString(entry: MasterDataEntry, key: string) {
-  const value = entry.metadata?.[key];
-  return typeof value === "string" && value.trim() ? value.trim() : "";
-}
-
-function metadataList(entry: MasterDataEntry, key: string) {
-  const value = entry.metadata?.[key];
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
-  }
-  if (typeof value === "string" && value.trim()) {
-    return value
-      .split(/[,;\n]/)
-      .map((item) => item.trim())
-      .filter(Boolean);
-  }
-  return [];
-}
-
-function nominalScalesText(entry: MasterDataEntry) {
-  return metadataList(entry, "nominalScales").join(", ");
-}
-
-function masterDataImage(entry: MasterDataEntry) {
-  return metadataString(entry, "imageData") || metadataString(entry, "activeImageData") || metadataString(entry, "svgData");
-}
-
-function parseList(text: string) {
-  return text
-    .split(/[,;\n]/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-}
-
-function applyVisibleMetadata(type: string, metadata: Record<string, unknown>, form: FormState) {
-  const next = { ...metadata };
-  if (type === "manufacturer") {
-    const nominalScales = parseList(form.nominalScalesText);
-    if (nominalScales.length > 0) {
-      next.nominalScales = nominalScales;
-    } else {
-      delete next.nominalScales;
-    }
-  }
-  if (type === "symbols") {
-    if (form.description.trim()) {
-      next.description = form.description.trim();
-    } else {
-      delete next.description;
-    }
-    if (form.imageData) {
-      next.imageData = form.imageData;
-      next.activeImageData = form.imageData;
-      next.imageMime = form.imageData.startsWith("data:image/svg+xml") ? "image/svg+xml" : "image";
-    } else {
-      delete next.imageData;
-      delete next.activeImageData;
-      delete next.svgData;
-      delete next.imageMime;
-    }
-  }
-  return next;
-}
-
-function externalLink(entry: MasterDataEntry) {
-  const website = metadataString(entry, "website");
-  if (website) {
-    return { href: website, title: "Website öffnen" };
-  }
-  if (entry.sourceUrl) {
-    return { href: entry.sourceUrl, title: "Quelle öffnen" };
-  }
-  return null;
-}
+import {
+  applyVisibleMetadata,
+  articleSearchSettingKey,
+  articleSearchSourceOptions,
+  articleSearchSourcesSettingKey,
+  auditActor,
+  auditTarget,
+  cv8BinaryText,
+  cv8CountryText,
+  cv8DecimalText,
+  cv8HexText,
+  cv8NameText,
+  defaultArticleSearchSources,
+  defaultSidebarOrder,
+  emptyForm,
+  emptyPasswordForm,
+  emptyUserForm,
+  entryToForm,
+  externalLink,
+  formatBytes,
+  formatDateTime,
+  loadableMasterDataTypes,
+  localSettingKeys,
+  masterDataImage,
+  masterDataTypes,
+  metadataString,
+  nominalScalesText,
+  normalizeCV8Binary,
+  normalizeCV8Decimal,
+  normalizeCV8Hex,
+  readArticleSearchSources,
+  readLocalBool,
+  readLocalSetting,
+  readSidebarPrefs,
+  settingsTabs,
+  sidebarOrderChangedEvent,
+  sidebarPrefsKey
+} from "./settingsModel";
+import type { FormState, PasswordFormState, SettingsTab, UserFormState } from "./settingsModel";
 
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
@@ -367,6 +156,23 @@ export function SettingsView({ username }: { username: string }) {
   const [passwordForm, setPasswordForm] = useState<PasswordFormState>(emptyPasswordForm);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [passwordMessage, setPasswordMessage] = useState("");
+  const [smtpSettings, setSmtpSettings] = useState<SMTPSettings | null>(null);
+  const [smtpForm, setSmtpForm] = useState<SMTPSettingsInput & { password: string; testRecipient: string }>({
+    enabled: false,
+    publicUrl: "",
+    host: "",
+    port: "587",
+    username: "",
+    password: "",
+    from: "",
+    tlsMode: "starttls",
+    clearPassword: false,
+    testRecipient: ""
+  });
+  const [smtpLoading, setSmtpLoading] = useState(false);
+  const [smtpSaving, setSmtpSaving] = useState(false);
+  const [smtpTesting, setSmtpTesting] = useState(false);
+  const [smtpMessage, setSmtpMessage] = useState("");
   const [twoFactorPrepared, setTwoFactorPrepared] = useState(() => readLocalBool(localSettingKeys.twoFactorPrepared, false));
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
   const backupRestoreConfirmed = backupRestoreConfirm.trim().toLocaleUpperCase("de-DE") === "WIEDERHERSTELLEN";
@@ -430,13 +236,14 @@ export function SettingsView({ username }: { username: string }) {
   const items = itemsByType[activeType] || [];
   const loading = Boolean(loadingTypes[activeType]);
   const isSymbolData = activeType === "symbols";
-  const masterDataColumnCount = activeType === "manufacturer" || isSymbolData ? 5 : 4;
+  const isCV8ManufacturerData = activeType === "cv8_manufacturer";
+  const masterDataColumnCount = isCV8ManufacturerData ? 7 : activeType === "manufacturer" || isSymbolData ? 5 : 4;
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("de-DE");
     if (!needle) return items;
     return items.filter((entry) =>
-      `${entry.label} ${entry.key} ${entry.sourceUrl || ""} ${metadataString(entry, "description")}`.toLocaleLowerCase("de-DE").includes(needle)
+      `${entry.label} ${cv8NameText(entry)} ${entry.key} ${entry.sourceUrl || ""} ${metadataString(entry, "description")} ${cv8DecimalText(entry)} ${cv8BinaryText(entry)} ${cv8HexText(entry)} ${cv8CountryText(entry)}`.toLocaleLowerCase("de-DE").includes(needle)
     );
   }, [items, search]);
 
@@ -480,6 +287,7 @@ export function SettingsView({ username }: { username: string }) {
     loadUsersAndRoles();
     loadAuditLog();
     loadSessions();
+    loadSMTPSettings();
   }, [activeSettingsTab, canManageUsers]);
 
   useEffect(() => {
@@ -734,6 +542,81 @@ export function SettingsView({ username }: { username: string }) {
       .finally(() => setSessionsLoading(false));
   };
 
+  const loadSMTPSettings = () => {
+    setSmtpLoading(true);
+    setSmtpMessage("");
+    api
+      .smtpSettings()
+      .then((settings) => {
+        setSmtpSettings(settings);
+        setSmtpForm((current) => ({
+          ...current,
+          enabled: settings.enabled,
+          publicUrl: settings.publicUrl || "",
+          host: settings.host || "",
+          port: settings.port || "587",
+          username: settings.username || "",
+          password: "",
+          from: settings.from || "",
+          tlsMode: settings.tlsMode || "starttls",
+          clearPassword: false
+        }));
+      })
+      .catch((error: Error) => setSmtpMessage(error.message))
+      .finally(() => setSmtpLoading(false));
+  };
+
+  const saveSMTPSettings = (event: FormEvent) => {
+    event.preventDefault();
+    setSmtpSaving(true);
+    setSmtpMessage("");
+    api
+      .updateSMTPSettings({
+        enabled: smtpForm.enabled,
+        publicUrl: smtpForm.publicUrl,
+        host: smtpForm.host,
+        port: smtpForm.port,
+        username: smtpForm.username,
+        password: smtpForm.password || undefined,
+        from: smtpForm.from,
+        tlsMode: smtpForm.tlsMode,
+        clearPassword: smtpForm.clearPassword
+      })
+      .then((settings) => {
+        setSmtpSettings(settings);
+        setSmtpForm((current) => ({
+          ...current,
+          enabled: settings.enabled,
+          publicUrl: settings.publicUrl || "",
+          host: settings.host || "",
+          port: settings.port || "587",
+          username: settings.username || "",
+          password: "",
+          from: settings.from || "",
+          tlsMode: settings.tlsMode || "starttls",
+          clearPassword: false
+        }));
+        setSmtpMessage(t("settings.smtp.saved"));
+      })
+      .catch((error: Error) => setSmtpMessage(error.message))
+      .finally(() => setSmtpSaving(false));
+  };
+
+  const testSMTPSettings = () => {
+    const recipient = smtpForm.testRecipient.trim();
+    if (!recipient) {
+      setSmtpMessage(t("settings.smtp.recipientRequired"));
+      return;
+    }
+    setSmtpTesting(true);
+    setSmtpMessage("");
+    api
+      .testSMTPSettings({ recipient })
+      .then(() => setSmtpMessage(t("settings.smtp.testSent", { recipient })))
+      .catch((error: Error) => setSmtpMessage(error.message))
+      .finally(() => setSmtpTesting(false));
+  };
+
   const revokeSession = (session: SessionRecord) => {
     if (!window.confirm(`Sitzung von ${session.username} widerrufen?`)) return;
     setSessionsMessage("");
@@ -894,14 +777,22 @@ export function SettingsView({ username }: { username: string }) {
       setMessage("Interne Zusatzdaten müssen gültiges JSON sein.");
       return;
     }
+
+    const cv8Decimal = isCV8ManufacturerData ? normalizeCV8Decimal(form.cvDecimal) : "";
+    if (isCV8ManufacturerData && !cv8Decimal) {
+      setSaving(false);
+      setMessage("Bitte eine gültige CV8-Decimal-ID zwischen 0 und 255 eintragen.");
+      return;
+    }
+
     metadata = applyVisibleMetadata(activeType, metadata, form);
 
     const input: MasterDataInput = {
-      key: form.key,
-      label: form.label,
+      key: isCV8ManufacturerData && !editing ? `cv8-${cv8Decimal.padStart(3, "0")}` : form.key,
+      label: isCV8ManufacturerData ? form.label.replace(/^\s*\d{1,3}\s*-\s*/, "").trim() : form.label,
       active: form.active,
       sortOrder: Number(form.sortOrder) || 0,
-      sourceUrl: isSymbolData ? "" : form.sourceUrl,
+      sourceUrl: isSymbolData || isCV8ManufacturerData ? "" : form.sourceUrl,
       metadata
     };
 
@@ -1004,7 +895,7 @@ export function SettingsView({ username }: { username: string }) {
     <>
       <section className="settings-head">
         <h1>
-          {t("settings.title")} <span>0.1.8</span>
+          {t("settings.title")} <span>0.1.9</span>
         </h1>
         <p>{t("settings.subtitle")}</p>
       </section>
@@ -1352,6 +1243,12 @@ export function SettingsView({ username }: { username: string }) {
                 <RefreshCw size={16} />
               </button>
             </div>
+            {isCV8ManufacturerData && (
+              <a className="source-note" href="https://www.nmra.org/sites/default/files/standards/sandrp/DCC/S/appendix_a_s-9_2_2.pdf" target="_blank" rel="noreferrer">
+                <ExternalLink size={15} />
+                <span>{t("settings.data.cv8Source")}</span>
+              </a>
+            )}
 
             <>
               <label className="settings-search">
@@ -1359,7 +1256,7 @@ export function SettingsView({ username }: { username: string }) {
                 <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("settings.data.searchPlaceholder")} />
               </label>
 
-                <form className={activeType === "manufacturer" ? "master-data-create manufacturer-create" : isSymbolData ? "master-data-create symbol-create" : "master-data-create"} onSubmit={submit}>
+                <form className={isCV8ManufacturerData ? "master-data-create cv8-create" : activeType === "manufacturer" ? "master-data-create manufacturer-create" : isSymbolData ? "master-data-create symbol-create" : "master-data-create"} onSubmit={submit}>
                   <strong>{editing ? t("settings.data.editEntry") : t("settings.data.newEntry")}</strong>
                   <input value={form.label} onChange={(event) => update({ label: event.target.value })} placeholder={t("settings.data.entryPlaceholder", { label: activeDataLabel })} required />
                   {activeType === "manufacturer" && (
@@ -1369,7 +1266,42 @@ export function SettingsView({ username }: { username: string }) {
                       placeholder={t("settings.data.nominalPlaceholder")}
                     />
                   )}
-                  {isSymbolData ? (
+                  {isCV8ManufacturerData ? (
+                    <>
+                      <input
+                        value={form.cvDecimal}
+                        onChange={(event) => {
+                          const value = event.target.value;
+                          const decimal = normalizeCV8Decimal(value);
+                          update({
+                            cvDecimal: value,
+                            cvBinary: decimal ? normalizeCV8Binary("", decimal) : form.cvBinary,
+                            cvHex: decimal ? normalizeCV8Hex("", decimal) : form.cvHex
+                          });
+                        }}
+                        placeholder={t("settings.data.cv8DecimalPlaceholder")}
+                        inputMode="numeric"
+                        required
+                      />
+                      <input
+                        value={form.cvBinary}
+                        onChange={(event) => update({ cvBinary: normalizeCV8Binary(event.target.value, form.cvDecimal) })}
+                        placeholder={t("settings.data.cv8BinaryPlaceholder")}
+                        inputMode="numeric"
+                      />
+                      <input
+                        value={form.cvHex}
+                        onChange={(event) => update({ cvHex: normalizeCV8Hex(event.target.value, form.cvDecimal) })}
+                        placeholder={t("settings.data.cv8HexPlaceholder")}
+                      />
+                      <input
+                        value={form.cvCountry}
+                        onChange={(event) => update({ cvCountry: event.target.value.toUpperCase() })}
+                        placeholder={t("settings.data.cv8CountryPlaceholder")}
+                        maxLength={8}
+                      />
+                    </>
+                  ) : isSymbolData ? (
                     <>
                       <textarea
                         value={form.description}
@@ -1419,9 +1351,13 @@ export function SettingsView({ username }: { username: string }) {
                       <tr>
                         <th>{t("settings.data.actions")}</th>
                         {isSymbolData && <th>{t("settings.data.symbol")}</th>}
-                        <th>{t("settings.data.name")}</th>
+                        <th>{isCV8ManufacturerData ? t("settings.data.cv8Manufacturer") : t("settings.data.name")}</th>
                         {activeType === "manufacturer" && <th>{t("settings.data.nominalScales")}</th>}
-                        {!isSymbolData && <th>{t("settings.data.link")}</th>}
+                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Decimal")}</th>}
+                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Binary")}</th>}
+                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Hex")}</th>}
+                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Country")}</th>}
+                        {!isSymbolData && !isCV8ManufacturerData && <th>{t("settings.data.link")}</th>}
                         {isSymbolData && <th>{t("settings.data.description")}</th>}
                         <th>Status</th>
                       </tr>
@@ -1456,9 +1392,13 @@ export function SettingsView({ username }: { username: string }) {
                                   {symbolImage ? <img className="master-data-symbol-preview" src={symbolImage} alt="" /> : "-"}
                                 </td>
                               )}
-                              <td><strong>{entry.label}</strong></td>
+                              <td><strong>{isCV8ManufacturerData ? cv8NameText(entry) : entry.label}</strong></td>
                               {activeType === "manufacturer" && <td>{nominalScalesText(entry) || "-"}</td>}
-                              {!isSymbolData && (
+                              {isCV8ManufacturerData && <td><code>{cv8DecimalText(entry) || "-"}</code></td>}
+                              {isCV8ManufacturerData && <td><code>{cv8BinaryText(entry) || "-"}</code></td>}
+                              {isCV8ManufacturerData && <td><code>{cv8HexText(entry) || "-"}</code></td>}
+                              {isCV8ManufacturerData && <td>{cv8CountryText(entry) || "-"}</td>}
+                              {!isSymbolData && !isCV8ManufacturerData && (
                                 <td>
                                   {link ? (
                                     <a className="table-icon-link" href={link.href} target="_blank" rel="noreferrer" aria-label={link.title} title={link.title}>
@@ -1756,380 +1696,58 @@ export function SettingsView({ username }: { username: string }) {
       )}
 
       {activeSettingsTab === "auth" && (
-        <section className="auth-settings-grid">
-          <section className="panel settings-card settings-tool-card auth-status-card">
-            <div className="settings-card-title">
-              <Shield size={18} />
-              <div>
-                <h2>{t("settings.auth.title")}</h2>
-                <p>{t("settings.auth.subtitle")}</p>
-              </div>
-            </div>
-            <div className="auth-provider-tabs" aria-label={t("settings.auth.provider")}>
-              <button type="button" className="active"><Mail size={15} /> E-Mail / Lokal</button>
-              <button type="button" disabled><KeyRound size={15} /> Zwei-Faktor-Auth</button>
-            </div>
-            <div className="auth-status-grid" aria-label={t("settings.auth.status")}>
-              <article>
-                <span className="settings-pill active">{t("common.active")}</span>
-                <strong>{t("settings.auth.local")}</strong>
-                <small>{t("settings.auth.localHelp")}</small>
-              </article>
-              <article>
-                <span className="settings-pill">{t("common.roles", { count: currentSession?.roles.length || 0 })}</span>
-                <strong>{t("settings.auth.currentSession")}</strong>
-                <small>{currentSession?.username ? t("settings.auth.signedInAs", { username: currentSession.username }) : t("settings.auth.loading")}</small>
-              </article>
-              <article>
-                <span className={twoFactorPrepared ? "settings-pill active" : "settings-pill muted"}>{twoFactorPrepared ? t("settings.auth.prepared") : t("settings.auth.open")}</span>
-                <strong>{t("settings.auth.twoFactor")}</strong>
-                <small>{t("settings.auth.twoFactorHelp")}</small>
-              </article>
-            </div>
-            <label className="settings-toggle-row">
-              <span>
-                <strong>{t("settings.auth.local")}</strong>
-                <small>{t("settings.auth.localToggleHelp")}</small>
-              </span>
-              <span className="switch-field">
-                <input type="checkbox" checked readOnly disabled />
-                <span />
-              </span>
-            </label>
-            <label className="settings-toggle-row disabled">
-              <span>
-                <strong>{t("settings.auth.twoFactorPrepare")}</strong>
-                <small>{t("settings.auth.twoFactorPrepareHelp")}</small>
-              </span>
-              <span className="switch-field">
-                <input type="checkbox" checked={twoFactorPrepared} onChange={(event) => setLocalBool(localSettingKeys.twoFactorPrepared, event.target.checked, setTwoFactorPrepared)} />
-                <span />
-              </span>
-            </label>
-            {authMessage && <p className="form-message">{authMessage}</p>}
-          </section>
-
-          <section className="panel settings-card settings-tool-card">
-            <div className="settings-card-title">
-              <UserCog size={18} />
-              <h2>{t("settings.currentUser")}</h2>
-            </div>
-            <div className="current-user-card">
-              <strong>{currentSession?.username || t("settings.notLoaded")}</strong>
-              <div className="role-chip-row">
-                {(currentSession?.roles || []).map((role) => <span className="settings-pill" key={role}>{role}</span>)}
-                {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">{t("common.noRoles")}</span>}
-              </div>
-              <p>{t("settings.session.refreshHelp")}</p>
-              <button type="button" className="secondary-button" onClick={loadCurrentSession}>
-                <RefreshCw size={16} />
-                {t("settings.session.refresh")}
-              </button>
-            </div>
-            <form className="password-change-form" onSubmit={changePassword}>
-              <h3>{t("settings.password.title")}</h3>
-              <div className="password-field-grid">
-                <label>
-                  {t("settings.password.current")}
-                  <input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
-                    autoComplete="current-password"
-                  />
-                </label>
-                <label>
-                  {t("settings.password.new")}
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
-                    autoComplete="new-password"
-                    minLength={12}
-                  />
-                </label>
-                <label>
-                  {t("settings.password.confirm")}
-                  <input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-                    autoComplete="new-password"
-                    minLength={12}
-                  />
-                </label>
-              </div>
-              <button type="submit" className="primary-button" disabled={passwordSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}>
-                <KeyRound size={16} />
-                {t("settings.password.save")}
-              </button>
-              {passwordMessage && <p className="form-message">{passwordMessage}</p>}
-            </form>
-          </section>
-
-          <section className="panel settings-card settings-tool-card user-management-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <Users size={18} />
-                <div>
-                  <h2>{t("settings.users.title")}</h2>
-                  <p>{t("settings.users.subtitle")}</p>
-                </div>
-              </div>
-              {canManageUsers && (
-                <button type="button" className="secondary-button" onClick={startUserCreate}>
-                  <UserCog size={16} />
-                  {t("settings.users.new")}
-                </button>
-              )}
-            </div>
-
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.users.adminHelp")}</span>
-              </div>
-            ) : (
-              <div className="user-management-grid">
-                <form className="settings-form user-form" onSubmit={saveUser}>
-                  <h3>{editingUser ? t("settings.users.edit") : t("settings.users.create")}</h3>
-                  <label>
-                    {t("settings.users.username")}
-                    <input
-                      value={userForm.username}
-                      onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))}
-                      placeholder={t("settings.users.usernamePlaceholder")}
-                    />
-                  </label>
-                  <label>
-                    {t("auth.email")}
-                    <input
-                      type="email"
-                      value={userForm.email}
-                      onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
-                      placeholder={t("settings.users.emailPlaceholder")}
-                    />
-                  </label>
-                  <label>
-                    {t("auth.password")}
-                    <input
-                      type="password"
-                      value={userForm.password}
-                      onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
-                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
-                      autoComplete="new-password"
-                    />
-                  </label>
-                  <div className="role-select-grid" aria-label={t("settings.users.roles")}>
-                    {availableRoles.map((role) => (
-                      <label className="checkbox-field" key={role.id}>
-                        <input
-                          type="checkbox"
-                          checked={userForm.roles.includes(role.name)}
-                          onChange={(event) => toggleUserRole(role.name, event.target.checked)}
-                        />
-                        {role.name}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="settings-action-row">
-                    <button type="submit" className="primary-button" disabled={userSaving || userForm.roles.length === 0}>
-                      {userSaving ? t("vehicles.saving") : t("vehicles.save")}
-                    </button>
-                    {editingUser && (
-                      <button type="button" className="secondary-button" onClick={startUserCreate}>
-                        {t("vehicles.cancel")}
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                <div className="table-wrap settings-inline-table user-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.users.username")}</th>
-                        <th>{t("auth.email")}</th>
-                        <th>{t("settings.users.roles")}</th>
-                        <th>{t("settings.users.created")}</th>
-                        <th>{t("settings.sessions.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usersLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.users.loading")}</td></tr>
-                      ) : users.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.users.empty")}</td></tr>
-                      ) : (
-                        users.map((user) => (
-                          <tr key={user.id} className={editingUser?.id === user.id ? "selected-row" : ""}>
-                            <td><strong>{user.username}</strong></td>
-                            <td>{user.email || "-"}</td>
-                            <td>
-                              <div className="role-chip-row">
-                                {user.roles.map((role) => <span className="settings-pill" key={role}>{role}</span>)}
-                              </div>
-                            </td>
-                            <td>{formatDateTime(user.createdAt)}</td>
-                            <td>
-                              <div className="table-actions">
-                                <button type="button" className="icon-button" onClick={() => startUserEdit(user)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                                  <Pencil size={16} />
-                                </button>
-                                <button type="button" className="icon-button danger" onClick={() => deleteUser(user)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                                  <Trash2 size={16} />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </section>
-
-          <section className="panel settings-card settings-tool-card session-management-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <KeyRound size={18} />
-                <div>
-                  <h2>{t("settings.sessions.title")}</h2>
-                  <p>{t("settings.sessions.subtitle")}</p>
-                </div>
-              </div>
-              {canManageUsers && (
-                <button type="button" className="icon-button" onClick={loadSessions} disabled={sessionsLoading} aria-label={t("settings.sessions.refresh")} title={t("settings.sessions.refresh")}>
-                  <RefreshCw size={16} />
-                </button>
-              )}
-            </div>
-
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.sessions.adminHelp")}</span>
-              </div>
-            ) : (
-              <>
-                <div className="table-wrap settings-inline-table session-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.sessions.user")}</th>
-                        <th>{t("settings.sessions.status")}</th>
-                        <th>{t("settings.sessions.created")}</th>
-                        <th>{t("settings.sessions.expires")}</th>
-                        <th>{t("settings.sessions.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {sessionsLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.sessions.loading")}</td></tr>
-                      ) : sessions.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.sessions.empty")}</td></tr>
-                      ) : (
-                        sessions.map((session) => (
-                          <tr key={session.id} className={session.active ? "" : "muted-row"}>
-                            <td><strong>{session.username}</strong></td>
-                            <td><span className={session.active ? "settings-pill active" : "settings-pill muted"}>{session.active ? t("common.active") : t("settings.sessions.ended")}</span></td>
-                            <td>{formatDateTime(session.createdAt)}</td>
-                            <td>{session.revokedAt ? t("settings.sessions.revoked", { date: formatDateTime(session.revokedAt) }) : formatDateTime(session.expiresAt)}</td>
-                            <td>
-                              <button type="button" className="icon-button danger" onClick={() => revokeSession(session)} disabled={!session.active || sessionsLoading} aria-label={t("settings.sessions.revoke")} title={t("settings.sessions.revoke")}>
-                                <X size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {sessionsMessage && <p className="form-message">{sessionsMessage}</p>}
-              </>
-            )}
-          </section>
-
-          <section className="panel settings-card settings-tool-card audit-log-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <History size={18} />
-                <div>
-                  <h2>{t("settings.audit.title")}</h2>
-                  <p>{t("settings.audit.subtitle")}</p>
-                </div>
-              </div>
-              {canManageUsers && (
-                <button type="button" className="icon-button" onClick={loadAuditLog} disabled={auditLogLoading} aria-label={t("settings.audit.refresh")} title={t("settings.audit.refresh")}>
-                  <RefreshCw size={16} />
-                </button>
-              )}
-            </div>
-
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.audit.adminHelp")}</span>
-              </div>
-            ) : (
-              <>
-                <div className="table-wrap settings-inline-table audit-log-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{t("settings.audit.time")}</th>
-                        <th>{t("settings.audit.event")}</th>
-                        <th>{t("settings.sessions.user")}</th>
-                        <th>{t("settings.audit.target")}</th>
-                        <th>{t("settings.audit.details")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {auditLogLoading ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.audit.loading")}</td></tr>
-                      ) : auditLog.length === 0 ? (
-                        <tr><td colSpan={5} className="loading-cell">{t("settings.audit.empty")}</td></tr>
-                      ) : (
-                        auditLog.slice(0, 10).map((entry) => (
-                          <tr key={entry.id}>
-                            <td>{formatDateTime(entry.createdAt)}</td>
-                            <td><span className="settings-pill">{auditLabel(entry.action)}</span></td>
-                            <td>{auditActor(entry)}</td>
-                            <td>{auditTarget(entry)}</td>
-                            <td><code>{entry.detailsJson && entry.detailsJson !== "{}" ? entry.detailsJson : "-"}</code></td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
-              </>
-            )}
-          </section>
-
-          <section className="panel settings-card settings-tool-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <Users size={18} />
-                <h2>{t("settings.roles.title")}</h2>
-              </div>
-              <span className="settings-pill active">{t("common.active")}</span>
-            </div>
-            <div className="role-list">
-              {(availableRoles.length > 0 ? availableRoles.map((role) => role.name) : ["Admin", "Editor", "Viewer", "Messe"]).map((role) => (
-                <article key={role}>
-                  <strong>{role}</strong>
-                  <span>{roleDescription(role)}</span>
-                </article>
-              ))}
-            </div>
-          </section>
-
-        </section>
+        <SettingsAuthTab
+          t={t}
+          currentSession={currentSession}
+          twoFactorPrepared={twoFactorPrepared}
+          setTwoFactorPrepared={setTwoFactorPrepared}
+          setLocalBool={setLocalBool}
+          twoFactorSettingKey={localSettingKeys.twoFactorPrepared}
+          authMessage={authMessage}
+          loadCurrentSession={loadCurrentSession}
+          changePassword={changePassword}
+          passwordForm={passwordForm}
+          setPasswordForm={setPasswordForm}
+          passwordSaving={passwordSaving}
+          passwordMessage={passwordMessage}
+          smtpSettings={smtpSettings}
+          smtpForm={smtpForm}
+          setSmtpForm={setSmtpForm}
+          smtpLoading={smtpLoading}
+          smtpSaving={smtpSaving}
+          smtpTesting={smtpTesting}
+          smtpMessage={smtpMessage}
+          loadSMTPSettings={loadSMTPSettings}
+          saveSMTPSettings={saveSMTPSettings}
+          testSMTPSettings={testSMTPSettings}
+          canManageUsers={canManageUsers}
+          startUserCreate={startUserCreate}
+          editingUser={editingUser}
+          saveUser={saveUser}
+          userForm={userForm}
+          setUserForm={setUserForm}
+          availableRoles={availableRoles}
+          toggleUserRole={toggleUserRole}
+          userSaving={userSaving}
+          usersLoading={usersLoading}
+          users={users}
+          formatDateTime={formatDateTime}
+          startUserEdit={startUserEdit}
+          deleteUser={deleteUser}
+          loadSessions={loadSessions}
+          sessionsLoading={sessionsLoading}
+          sessions={sessions}
+          revokeSession={revokeSession}
+          sessionsMessage={sessionsMessage}
+          loadAuditLog={loadAuditLog}
+          auditLogLoading={auditLogLoading}
+          auditLog={auditLog}
+          auditLabel={auditLabel}
+          auditActor={auditActor}
+          auditTarget={auditTarget}
+          auditLogMessage={auditLogMessage}
+          roleDescription={roleDescription}
+        />
       )}
 
     </>

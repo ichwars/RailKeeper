@@ -49,6 +49,9 @@ type Config struct {
 	ExhibitionService           *application.ExhibitionService
 	ECoSService                 *application.ECoSService
 	RateLimitService            *application.RateLimitService
+	PasswordResetMailer         application.PasswordResetMailer
+	SMTPSettingsService         *application.SMTPSettingsService
+	PublicURL                   string
 	CookieSecure                bool
 }
 
@@ -70,6 +73,9 @@ type App struct {
 	backupService               *application.BackupService
 	exhibitionService           *application.ExhibitionService
 	ecosService                 *application.ECoSService
+	passwordResetMailer         application.PasswordResetMailer
+	smtpSettingsService         *application.SMTPSettingsService
+	publicURL                   string
 	cookieSecure                bool
 	rateLimits                  rateLimitStore
 }
@@ -99,6 +105,9 @@ func NewRouter(config Config) http.Handler {
 		backupService:               config.BackupService,
 		exhibitionService:           config.ExhibitionService,
 		ecosService:                 config.ECoSService,
+		passwordResetMailer:         config.PasswordResetMailer,
+		smtpSettingsService:         config.SMTPSettingsService,
+		publicURL:                   strings.TrimRight(strings.TrimSpace(config.PublicURL), "/"),
 		cookieSecure:                config.CookieSecure,
 		rateLimits:                  config.RateLimitService,
 	}
@@ -120,86 +129,7 @@ func NewRouter(config Config) http.Handler {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
-
-	mux.HandleFunc("GET /api/v1/version", app.versionInfo)
-	mux.HandleFunc("GET /api/v1/system/storage", app.require("Admin", app.systemStorage))
-	mux.HandleFunc("GET /api/v1/system/printers", app.require("Admin", app.systemPrinters))
-	mux.HandleFunc("GET /api/v1/system/audit-log", app.require("Admin", app.systemAuditLog))
-
-	mux.HandleFunc("GET /api/v1/setup/status", app.setupStatus)
-	mux.HandleFunc("POST /api/v1/setup/admin", app.createAdmin)
-	mux.HandleFunc("POST /api/v1/auth/login", app.login)
-	mux.HandleFunc("POST /api/v1/auth/password-reset", app.requestPasswordReset)
-	mux.HandleFunc("POST /api/v1/auth/password-reset/confirm", app.confirmPasswordReset)
-	mux.HandleFunc("POST /api/v1/auth/logout", app.logout)
-	mux.HandleFunc("GET /api/v1/auth/session", app.session)
-	mux.HandleFunc("PUT /api/v1/auth/password", app.require("Viewer", app.changePassword))
-	mux.HandleFunc("GET /api/v1/roles", app.require("Admin", app.listRoles))
-	mux.HandleFunc("GET /api/v1/users", app.require("Admin", app.listUsers))
-	mux.HandleFunc("POST /api/v1/users", app.require("Admin", app.createUser))
-	mux.HandleFunc("PUT /api/v1/users/{id}", app.require("Admin", app.updateUser))
-	mux.HandleFunc("DELETE /api/v1/users/{id}", app.require("Admin", app.deleteUser))
-	mux.HandleFunc("GET /api/v1/sessions", app.require("Admin", app.listSessions))
-	mux.HandleFunc("PUT /api/v1/sessions/{id}/revoke", app.require("Admin", app.revokeSession))
-	mux.HandleFunc("GET /api/v1/vehicles", app.require("Viewer", app.listVehicles))
-	mux.HandleFunc("POST /api/v1/ecos/test", app.require("Admin", app.testECoSConnection))
-	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", app.require("Admin", app.probeECoSLocomotiveRaw))
-	mux.HandleFunc("POST /api/v1/vehicles", app.require("Editor", app.createVehicle))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}", app.require("Viewer", app.getVehicle))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}", app.require("Editor", app.updateVehicle))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", app.require("Editor", app.deleteVehicle))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/external-mappings", app.require("Editor", app.upsertVehicleExternalMapping))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/images", app.require("Editor", app.uploadVehicleImage))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/images/{imageID}", app.require("Editor", app.deleteVehicleImage))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/file", app.require("Viewer", app.downloadVehicleImage))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/thumbnail", app.require("Viewer", app.downloadVehicleImageThumbnail))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments", app.require("Editor", app.uploadVehicleAttachment))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.updateVehicleAttachment))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", app.require("Editor", app.deleteVehicleAttachment))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/attachments/{attachmentID}/download", app.require("Viewer", app.downloadVehicleAttachment))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/maintenance", app.require("Viewer", app.listVehicleMaintenance))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/maintenance", app.require("Editor", app.createVehicleMaintenance))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.updateVehicleMaintenance))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", app.require("Editor", app.deleteVehicleMaintenance))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/functions", app.require("Viewer", app.listVehicleFunctions))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.upsertVehicleFunction))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/functions/{functionKey}", app.require("Editor", app.deleteVehicleFunction))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-values", app.require("Viewer", app.listVehicleCVValues))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-values", app.require("Editor", app.createVehicleCVValue))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.updateVehicleCVValue))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-values/{cvValueID}", app.require("Editor", app.deleteVehicleCVValue))
-	mux.HandleFunc("POST /api/v1/cv-files/preview", app.require("Editor", app.previewVehicleCVFile))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-files", app.require("Editor", app.uploadVehicleCVFile))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-files/{cvFileID}", app.require("Editor", app.deleteVehicleCVFile))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-files/{cvFileID}/download", app.require("Viewer", app.downloadVehicleCVFile))
-	mux.HandleFunc("POST /api/v1/article-search", app.require("Viewer", app.searchArticleData))
-	mux.HandleFunc("GET /api/v1/inventory-number-schemes", app.require("Viewer", app.listInventoryNumberSchemes))
-	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", app.require("Editor", app.updateInventoryNumberScheme))
-	mux.HandleFunc("GET /api/v1/master-data-all", app.require("Viewer", app.listAllMasterData))
-	mux.HandleFunc("GET /api/v1/master-data/export", app.require("Admin", app.exportMasterData))
-	mux.HandleFunc("POST /api/v1/master-data/import", app.require("Admin", app.importMasterData))
-	mux.HandleFunc("GET /api/v1/master-data/{type}", app.requireMasterDataRead(app.listMasterData))
-	mux.HandleFunc("POST /api/v1/master-data/{type}", app.require("Editor", app.createMasterData))
-	mux.HandleFunc("PUT /api/v1/master-data/{type}/{key}", app.require("Editor", app.updateMasterData))
-	mux.HandleFunc("DELETE /api/v1/master-data/{type}/{key}", app.require("Editor", app.deleteMasterData))
-	mux.HandleFunc("GET /api/v1/master-data-relations", app.require("Viewer", app.listMasterDataRelations))
-	mux.HandleFunc("GET /api/v1/backup/export", app.require("Admin", app.exportBackup))
-	mux.HandleFunc("POST /api/v1/backup/validate", app.require("Admin", app.validateBackup))
-	mux.HandleFunc("POST /api/v1/backup/restore", app.require("Admin", app.restoreBackup))
-	mux.HandleFunc("GET /api/v1/exhibition-lists", app.require("Messe", app.listExhibitionLists))
-	mux.HandleFunc("POST /api/v1/exhibition-lists", app.require("Admin", app.createExhibitionList))
-	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}", app.require("Messe", app.getExhibitionList))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}", app.require("Admin", app.updateExhibitionList))
-	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}", app.require("Admin", app.deleteExhibitionList))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/lock", app.require("Admin", app.setExhibitionListLocked))
-	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.listExhibitionEntries))
-	mux.HandleFunc("POST /api/v1/exhibition-lists/{id}/entries", app.require("Messe", app.createExhibitionEntry))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Messe", app.updateExhibitionEntry))
-	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}/entries/{entryID}", app.require("Admin", app.deleteExhibitionEntry))
-
+	app.registerRoutes(mux)
 	mux.Handle("/", staticHandler(app.staticDir))
 
 	return securityHeaders(app.csrf(mux))
@@ -870,8 +800,27 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if result.ResetToken != "" {
-		result.ResetURL = passwordResetURL(r, result.ResetToken)
+		resetURL := a.passwordResetURL(r, result.ResetToken)
+		mailer := a.passwordResetMailer
+		if a.smtpSettingsService != nil {
+			settingsMailer, publicURL, err := a.smtpSettingsService.EffectiveMailer(r.Context())
+			if err != nil {
+				a.logger.Error("smtp settings invalid", "error", err)
+			} else if settingsMailer != nil {
+				mailer = settingsMailer
+				resetURL = a.passwordResetURLWithBase(r, result.ResetToken, publicURL)
+			}
+		}
+		if mailer != nil {
+			if err := mailer.SendPasswordReset(r.Context(), input.Email, resetURL, result.ExpiresAt); err != nil {
+				a.logger.Error("password reset email failed", "error", err)
+			}
+		} else {
+			a.logger.Warn("password reset email disabled; link is available in server log for local recovery only", "reset_url", resetURL)
+		}
 	}
+	result.ResetToken = ""
+	result.ResetURL = ""
 	respondJSON(w, http.StatusAccepted, result)
 }
 
@@ -906,7 +855,21 @@ func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func passwordResetURL(r *http.Request, token string) string {
+func (a *App) passwordResetURL(r *http.Request, token string) string {
+	return a.passwordResetURLWithBase(r, token, a.publicURL)
+}
+
+func (a *App) passwordResetURLWithBase(r *http.Request, token string, baseURL string) string {
+	if strings.TrimSpace(baseURL) != "" {
+		u, err := url.Parse(strings.TrimRight(strings.TrimSpace(baseURL), "/"))
+		if err == nil {
+			u.Path = "/password-reset"
+			query := u.Query()
+			query.Set("token", token)
+			u.RawQuery = query.Encode()
+			return u.String()
+		}
+	}
 	scheme := "http"
 	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwarded != "" {
 		scheme = strings.Split(forwarded, ",")[0]
@@ -922,6 +885,79 @@ func passwordResetURL(r *http.Request, token string) string {
 	query.Set("token", token)
 	u.RawQuery = query.Encode()
 	return u.String()
+}
+
+type smtpTestRequest struct {
+	Recipient string `json:"recipient"`
+}
+
+func (a *App) getSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	if a.smtpSettingsService == nil {
+		respondJSON(w, http.StatusOK, application.SMTPSettings{TLSMode: "starttls", Port: "587"})
+		return
+	}
+	settings, err := a.smtpSettingsService.Get(r.Context())
+	if err != nil {
+		a.logger.Error("smtp settings load failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "smtp_settings_failed", "SMTP-Einstellungen konnten nicht geladen werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, settings)
+}
+
+func (a *App) updateSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	if a.smtpSettingsService == nil {
+		respondProblem(w, http.StatusServiceUnavailable, "smtp_settings_unavailable", "SMTP-Einstellungen sind nicht verfügbar.")
+		return
+	}
+	var input application.SMTPSettingsInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	settings, err := a.smtpSettingsService.Update(r.Context(), input)
+	if err != nil {
+		if errors.Is(err, application.ErrSMTPSettingsValidation) {
+			respondProblem(w, http.StatusBadRequest, "smtp_settings_validation", err.Error())
+			return
+		}
+		a.logger.Error("smtp settings update failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "smtp_settings_failed", "SMTP-Einstellungen konnten nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, settings)
+}
+
+func (a *App) testSMTPSettings(w http.ResponseWriter, r *http.Request) {
+	if a.smtpSettingsService == nil {
+		respondProblem(w, http.StatusServiceUnavailable, "smtp_settings_unavailable", "SMTP-Einstellungen sind nicht verfügbar.")
+		return
+	}
+	var input smtpTestRequest
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	mailer, _, err := a.smtpSettingsService.EffectiveMailer(r.Context())
+	if err != nil {
+		if errors.Is(err, application.ErrSMTPSettingsValidation) {
+			respondProblem(w, http.StatusBadRequest, "smtp_settings_validation", err.Error())
+			return
+		}
+		a.logger.Error("smtp settings load failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "smtp_settings_failed", "SMTP-Einstellungen konnten nicht geladen werden.")
+		return
+	}
+	if mailer == nil {
+		respondProblem(w, http.StatusBadRequest, "smtp_disabled", "SMTP ist nicht aktiviert oder unvollständig konfiguriert.")
+		return
+	}
+	if err := mailer.SendTest(r.Context(), input.Recipient); err != nil {
+		a.logger.Error("smtp test email failed", "error", err)
+		respondProblem(w, http.StatusBadGateway, "smtp_test_failed", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]string{"status": "sent"})
 }
 
 func (a *App) logout(w http.ResponseWriter, r *http.Request) {

@@ -72,6 +72,7 @@ type BackupValidationTable struct {
 }
 
 var backupTableOrder = []string{
+	"app_settings",
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
@@ -90,6 +91,7 @@ var backupTableOrder = []string{
 }
 
 var optionalBackupTables = map[string]struct{}{
+	"app_settings":              {},
 	"exhibition_lists":          {},
 	"exhibition_entries":        {},
 	"vehicle_external_mappings": {},

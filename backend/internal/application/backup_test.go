@@ -334,6 +334,7 @@ func backupDocumentTablesWithout(excludedTables ...string) map[string][]map[stri
 	}
 	tables := map[string][]map[string]any{}
 	for _, table := range []string{
+		"app_settings",
 		"master_data_entries",
 		"master_data_relations",
 		"inventory_number_schemes",

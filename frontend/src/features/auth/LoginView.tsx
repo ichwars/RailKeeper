@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { api, Session } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
@@ -15,13 +15,18 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
   const [resetEmail, setResetEmail] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetToken, setResetToken] = useState(initialResetToken);
-  const [resetLink, setResetLink] = useState("");
   const [resetPassword, setResetPassword] = useState("");
   const [resetPasswordRepeat, setResetPasswordRepeat] = useState("");
   const [message, setMessage] = useState("");
   const [recoveryMessage, setRecoveryMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (resetToken && window.location.search.includes("token=")) {
+      window.history.replaceState(null, "", "/password-reset");
+    }
+  }, [resetToken]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -40,13 +45,11 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
     setSaving(true);
     setMessage("");
     setRecoveryMessage("");
-    setResetLink("");
 
     api
       .requestPasswordReset({ email: resetEmail })
       .then((result) => {
         setRecoveryMessage(result.message || t("auth.recovery.requested"));
-        setResetLink(result.resetUrl || "");
       })
       .catch((error: Error) => setRecoveryMessage(error.message))
       .finally(() => setSaving(false));
@@ -90,11 +93,6 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           <p>{t("auth.reset.subtitle")}</p>
 
           <form className="auth-form" onSubmit={confirmReset}>
-            <label>
-              {t("auth.reset.token")}
-              <input value={resetToken} onChange={(event) => setResetToken(event.target.value)} required />
-            </label>
-
             <label>
               {t("auth.reset.newPassword")}
               <input
@@ -181,7 +179,6 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
             onClick={() => {
               setResetOpen((current) => !current);
               setRecoveryMessage("");
-              setResetLink("");
             }}
           >
             {t("auth.forgot")}
@@ -212,11 +209,6 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
           )}
 
           {recoveryMessage && <p className="auth-hint">{recoveryMessage}</p>}
-          {resetLink && (
-            <a className="auth-reset-link" href={resetLink}>
-              {t("auth.recovery.openLink")}
-            </a>
-          )}
           {message && <p className="form-message">{message}</p>}
         </form>
       </section>

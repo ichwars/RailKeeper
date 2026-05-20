@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version               = "0.1.8"
+	version               = "0.1.9"
 	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper2/releases/latest"
 )
 
@@ -28,6 +28,7 @@ func main() {
 		return
 	}
 
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	addr := env("RAILKEEPER_ADDR", ":8080")
 	dataDir := env("RAILKEEPER_DATA_DIR", "./data")
 	migrationsDir := env("RAILKEEPER_MIGRATIONS_DIR", "./migrations")
@@ -38,8 +39,21 @@ func main() {
 	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 	updateCheckURL := env("RAILKEEPER_UPDATE_CHECK_URL", defaultUpdateCheckURL)
+	publicURL := env("RAILKEEPER_PUBLIC_URL", "")
+	smtpConfig := application.SMTPPasswordResetMailConfig{
+		Host:     env("RAILKEEPER_SMTP_HOST", ""),
+		Port:     env("RAILKEEPER_SMTP_PORT", "587"),
+		Username: env("RAILKEEPER_SMTP_USER", ""),
+		Password: env("RAILKEEPER_SMTP_PASSWORD", ""),
+		From:     env("RAILKEEPER_SMTP_FROM", ""),
+		TLSMode:  env("RAILKEEPER_SMTP_TLS", "starttls"),
+	}
+	passwordResetMailer, err := application.NewSMTPPasswordResetMailer(smtpConfig)
+	if err != nil {
+		logger.Error("smtp configuration invalid", "error", err)
+		os.Exit(1)
+	}
 
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	db, err := infrastructure.OpenSQLite(dataDir)
 	if err != nil {
 		logger.Error("database open failed", "error", err)
@@ -85,6 +99,9 @@ func main() {
 		ExhibitionService:           application.NewExhibitionService(db),
 		ECoSService:                 application.NewECoSService(),
 		RateLimitService:            application.NewRateLimitService(db),
+		PasswordResetMailer:         passwordResetMailer,
+		SMTPSettingsService:         application.NewSMTPSettingsService(db, smtpConfig, publicURL),
+		PublicURL:                   publicURL,
 		CookieSecure:                cookieSecure,
 	})
 

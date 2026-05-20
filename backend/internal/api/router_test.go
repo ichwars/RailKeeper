@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -18,6 +19,19 @@ import (
 	"railkeeper2/backend/internal/application"
 	"railkeeper2/backend/internal/infrastructure"
 )
+
+type capturePasswordResetMailer struct {
+	to        string
+	resetURL  string
+	expiresAt string
+}
+
+func (m *capturePasswordResetMailer) SendPasswordReset(_ context.Context, toEmail, resetURL, expiresAt string) error {
+	m.to = toEmail
+	m.resetURL = resetURL
+	m.expiresAt = expiresAt
+	return nil
+}
 
 func TestSecurityHeaders(t *testing.T) {
 	handler := securityHeaders(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -190,7 +204,8 @@ func TestChangePasswordEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	router := NewRouter(Config{SetupService: setup, AuthService: auth})
+	mailer := &capturePasswordResetMailer{}
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, PasswordResetMailer: mailer})
 	loginBody := bytes.NewBufferString(`{"username":"admin","password":"very-secure-password"}`)
 	loginRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", loginBody)
 	loginRequest.Header.Set("Content-Type", "application/json")
@@ -241,7 +256,8 @@ func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	router := NewRouter(Config{SetupService: setup, AuthService: auth})
+	mailer := &capturePasswordResetMailer{}
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, PasswordResetMailer: mailer})
 	resetRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password-reset", bytes.NewBufferString(`{"email":"admin@example.test"}`))
 	resetRequest.Host = "railkeeper.test"
 	resetResponse := httptest.NewRecorder()
@@ -253,7 +269,13 @@ func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 	if err := json.NewDecoder(resetResponse.Body).Decode(&resetResult); err != nil {
 		t.Fatal(err)
 	}
-	resetURL, err := url.Parse(resetResult.ResetURL)
+	if resetResult.ResetURL != "" {
+		t.Fatalf("reset url must not be returned to the browser, got %#v", resetResult.ResetURL)
+	}
+	if mailer.to != "admin@example.test" || mailer.resetURL == "" || mailer.expiresAt == "" {
+		t.Fatalf("expected reset link to be sent by mailer, got %#v", mailer)
+	}
+	resetURL, err := url.Parse(mailer.resetURL)
 	if err != nil {
 		t.Fatal(err)
 	}
