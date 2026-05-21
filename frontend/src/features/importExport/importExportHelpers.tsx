@@ -1230,7 +1230,9 @@ export function renderECoSCVImportPreview(
   vehicles: Vehicle[],
   t: Translate,
   manufacturers: ECoSDecoderManufacturerMap,
-  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void
+  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
+  sessionStatuses?: ECoSImportSession["statuses"],
+  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
 ) {
   const rows = buildECoSCVImportRows(raw, vehicles, manufacturers);
   const profileHints = buildECoSDecoderProfileHints(raw, manufacturers);
@@ -1248,31 +1250,45 @@ export function renderECoSCVImportPreview(
       <p>{t("importExport.ecos.cvReview.subtitle")}</p>
       {profileHints.length > 0 && (
         <div className="ecos-cv-profile-grid" aria-label={t("importExport.ecos.cvReview.decoderProfiles")}>
-          {profileHints.map((hint) => (
-            <button key={hint.locomotive.objectId} type="button" className="ecos-cv-profile-card" onClick={() => onOpenVehicleDraft?.(hint.locomotive)} title={t("importExport.ecos.openVehicleDraft")}>
-              <strong>{hint.locomotive.name || `ECoS ${hint.locomotive.objectId}`}</strong>
-              <dl>
-                <div>
-                  <dt>{t("importExport.ecos.cvReview.manufacturer")}</dt>
-                  <dd>
-                    {typeof hint.manufacturerId === "number"
-                      ? hint.manufacturer
-                        ? formatECoSDecoderManufacturer(hint.manufacturer, hint.manufacturerId)
-                        : t("importExport.ecos.cvReview.unknownManufacturer", { id: hint.manufacturerId })
-                      : t("importExport.ecos.cvReview.missingManufacturerCV")}
-                  </dd>
+          {profileHints.map((hint) => {
+            const status = sessionStatuses?.[String(hint.locomotive.objectId)]?.status || "open";
+            return (
+              <div key={hint.locomotive.objectId} className={`ecos-cv-profile-card ${status}`} title={t("importExport.ecos.openVehicleDraft")}>
+                <div className="ecos-card-head">
+                  <strong>{hint.locomotive.name || `ECoS ${hint.locomotive.objectId}`}</strong>
+                  <span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span>
                 </div>
-                <div>
-                  <dt>{t("importExport.ecos.cvReview.version")}</dt>
-                  <dd>{typeof hint.version === "number" ? hint.version : "-"}</dd>
+                <dl>
+                  <div>
+                    <dt>{t("importExport.ecos.cvReview.manufacturer")}</dt>
+                    <dd>
+                      {typeof hint.manufacturerId === "number"
+                        ? hint.manufacturer
+                          ? formatECoSDecoderManufacturer(hint.manufacturer, hint.manufacturerId)
+                          : t("importExport.ecos.cvReview.unknownManufacturer", { id: hint.manufacturerId })
+                        : t("importExport.ecos.cvReview.missingManufacturerCV")}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{t("importExport.ecos.cvReview.version")}</dt>
+                    <dd>{typeof hint.version === "number" ? hint.version : "-"}</dd>
+                  </div>
+                  <div>
+                    <dt>{t("importExport.ecos.cvReview.profileHint")}</dt>
+                    <dd>{[hint.manufacturer?.name, hint.profile, hint.protocol].filter(Boolean).join(" - ") || "-"}</dd>
+                  </div>
+                </dl>
+                <div className="ecos-card-actions">
+                  <button type="button" className="secondary-button" onClick={() => onOpenVehicleDraft?.(hint.locomotive)} disabled={status === "saved"}>
+                    {t("importExport.ecos.openVehicleDraft")}
+                  </button>
+                  <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(hint.locomotive)} disabled={status === "saved" || status === "skipped"}>
+                    {t("importExport.ecos.skip")}
+                  </button>
                 </div>
-                <div>
-                  <dt>{t("importExport.ecos.cvReview.profileHint")}</dt>
-                  <dd>{[hint.manufacturer?.name, hint.profile, hint.protocol].filter(Boolean).join(" - ") || "-"}</dd>
-                </div>
-              </dl>
-            </button>
-          ))}
+              </div>
+            );
+          })}
         </div>
       )}
       {rows.length > 0 && <div className="table-wrap ecos-cv-review-table">
@@ -1322,7 +1338,9 @@ export function renderECoSRawProbe(
   vehicles: Vehicle[],
   t: Translate,
   manufacturers: ECoSDecoderManufacturerMap,
-  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void
+  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
+  sessionStatuses?: ECoSImportSession["statuses"],
+  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
 ) {
   if (!raw) {
     return null;
@@ -1333,7 +1351,7 @@ export function renderECoSRawProbe(
         <span>{raw.message}</span>
         <span>{t("importExport.ecos.rawProbeFields", { count: raw.probeFields.length })}</span>
       </div>
-      {raw.locomotives.length === 0 ? <p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : renderECoSCVImportPreview(raw, vehicles, t, manufacturers, onOpenVehicleDraft)}
+      {raw.locomotives.length === 0 ? <p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : renderECoSCVImportPreview(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
       <p className="source-note backup-note">{t("importExport.ecos.rawNote")}</p>
     </div>
   );

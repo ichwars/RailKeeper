@@ -1,5 +1,5 @@
 import { ChangeEvent, Fragment, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, Upload } from "lucide-react";
+import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, SkipForward, Upload } from "lucide-react";
 import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import {
@@ -67,6 +67,29 @@ export function ImportExportView() {
     () => cv8ManufacturersFromMasterData(masterOptions.cv8_manufacturer || []),
     [masterOptions]
   );
+  const ecosSessionStats = useMemo(() => {
+    const locomotives = ecosRawProbe?.locomotives || [];
+    const statuses = ecosSession?.statuses || {};
+    const stats: Record<ECoSImportSession["statuses"][string]["status"], number> & { total: number } = {
+      open: 0,
+      editing: 0,
+      saved: 0,
+      skipped: 0,
+      error: 0,
+      total: locomotives.length
+    };
+    locomotives.forEach((locomotive) => {
+      const status = statuses[String(locomotive.objectId)]?.status || "open";
+      stats[status] += 1;
+    });
+    return stats;
+  }, [ecosRawProbe, ecosSession]);
+  const nextOpenECoSLocomotive = useMemo(() => {
+    const locomotives = ecosRawProbe?.locomotives || [];
+    const statuses = ecosSession?.statuses || {};
+    return locomotives.find((locomotive) => (statuses[String(locomotive.objectId)]?.status || "open") === "open")
+      || locomotives.find((locomotive) => ["editing", "error"].includes(statuses[String(locomotive.objectId)]?.status || ""));
+  }, [ecosRawProbe, ecosSession]);
 
   const rememberECoSImportSession = (session: ECoSImportSession) => {
     const next = { ...session, updatedAt: new Date().toISOString() };
@@ -437,6 +460,19 @@ export function ImportExportView() {
     setEcosMessage(t("importExport.ecos.handoff"));
   };
 
+  const openNextECoSVehicleDraft = () => {
+    if (!nextOpenECoSLocomotive) {
+      setEcosMessage(t("importExport.ecos.allDone"));
+      return;
+    }
+    openECoSVehicleDraft(nextOpenECoSLocomotive);
+  };
+
+  const skipECoSLocomotive = (locomotive: ECoSRawLocomotive) => {
+    updateECoSImportSessionStatus(locomotive.objectId, "skipped");
+    setEcosMessage(t("importExport.ecos.skipped", { name: locomotive.name || `ECoS ${locomotive.objectId}` }));
+  };
+
   const addECoSProbeToImportReview = () => {
     if (!ecosRawProbe || ecosRawProbe.locomotives.length === 0) {
       setEcosMessage(t("importExport.ecos.noImportRows"));
@@ -562,13 +598,23 @@ export function ImportExportView() {
         {ecosRawProbe && ecosRawProbe.locomotives.length > 0 && (
           <div className="ecos-preview-toolbar">
             <span>{t("importExport.ecos.reviewHint", { count: ecosRawProbe.locomotives.length })}</span>
+            <span>{t("importExport.ecos.sessionOverview", {
+              open: ecosSessionStats.open + ecosSessionStats.editing + ecosSessionStats.error,
+              saved: ecosSessionStats.saved,
+              skipped: ecosSessionStats.skipped,
+              total: ecosSessionStats.total
+            })}</span>
+            <button type="button" className="secondary-button" onClick={openNextECoSVehicleDraft} disabled={saving || !nextOpenECoSLocomotive}>
+              <SkipForward size={15} aria-hidden="true" />
+              {t("importExport.ecos.nextOpen")}
+            </button>
             <button type="button" className="secondary-button" onClick={addECoSProbeToImportReview} disabled={saving}>
               <ClipboardCheck size={15} aria-hidden="true" />
               {t("importExport.ecos.addToReview")}
             </button>
           </div>
         )}
-        {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft)}
+        {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive)}
       </section>
 
 

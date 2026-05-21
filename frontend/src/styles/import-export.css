@@ -235,13 +235,30 @@
   color: var(--text);
   font: inherit;
   text-align: left;
-  cursor: pointer;
 }
 
 .ecos-cv-profile-card:hover,
-.ecos-cv-profile-card:focus-visible {
+.ecos-cv-profile-card:focus-within {
   border-color: var(--accent);
   background: color-mix(in srgb, var(--accent) 10%, var(--panel-subtle));
+}
+
+.ecos-card-head,
+.ecos-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ecos-card-actions {
+  flex-wrap: wrap;
+}
+
+.ecos-card-actions .secondary-button {
+  min-height: 32px;
+  padding: 6px 9px;
+  font-size: 0.76rem;
 }
 
 .ecos-cv-profile-card strong {
@@ -496,6 +513,27 @@
 .ecos-cv-status.unmatched {
   background: color-mix(in srgb, var(--danger) 18%, transparent);
   color: var(--danger);
+}
+
+.ecos-cv-status.open {
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+.ecos-cv-status.editing,
+.ecos-cv-status.error {
+  background: color-mix(in srgb, var(--warm) 22%, transparent);
+  color: var(--warm);
+}
+
+.ecos-cv-status.saved {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+
+.ecos-cv-status.skipped {
+  background: var(--input-bg);
+  color: var(--muted);
 }
 
 .ecos-raw-card {
