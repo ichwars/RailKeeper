@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { BarChart3, Box, Bug, CalendarDays, ChevronLeft, ChevronRight, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
+import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
 
@@ -105,6 +106,7 @@ export function Shell({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(readSidebarCollapsed);
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles, username));
+  const [appVersion, setAppVersion] = useState("");
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
   const { t } = useI18n();
 
@@ -118,6 +120,25 @@ export function Shell({
       window.removeEventListener("storage", syncOrder);
     };
   }, [roles, username]);
+
+  useEffect(() => {
+    let mounted = true;
+    api
+      .version(false)
+      .then((info) => {
+        if (mounted) {
+          setAppVersion(info.version);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setAppVersion("");
+        }
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   function toggleTheme() {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
@@ -188,7 +209,7 @@ export function Shell({
                 <LogOut size={17} aria-hidden="true" />
               </button>
             </div>
-            <span className="sidebar-version">v0.1.9</span>
+            {appVersion && <span className="sidebar-version">v{appVersion}</span>}
           </div>
         </nav>
       </aside>

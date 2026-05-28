@@ -155,6 +155,27 @@ func TestArticleSearchPenalizesMissingArticleNumber(t *testing.T) {
 	}
 }
 
+func TestArticleSearchRequiresArticleNumberForPreferredManufacturerBoost(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V180", Gauge: "TT"}
+
+	exactDealerScore := scoreArticleResult(input,
+		"Piko TT 47284 Diesellok V 180 DR",
+		"https://www.conrad.de/de/p/piko-tt-47284-diesellok-v-180.html",
+		"Spur TT",
+		map[string]ArticleSearchField{"articleNumber": {Label: "Artikel-Nr.", Value: "47284", Confidence: 90}},
+	)
+	wrongManufacturerScore := scoreArticleResult(input,
+		"PIKO Spielwaren GmbH - Spur TT E-Lok BR 243 DR IV #47490ff",
+		"https://www.piko.de/DE/index.php/de/piko-news/modellvorstellungen/2250-spur-tt-e-lok-br-243-dr-iv-47490ff.html",
+		"Spur TT BR 243 DR",
+		map[string]ArticleSearchField{},
+	)
+
+	if exactDealerScore <= wrongManufacturerScore {
+		t.Fatalf("exact article number should outrank unrelated manufacturer page, got exact=%d wrong=%d", exactDealerScore, wrongManufacturerScore)
+	}
+}
+
 func TestArticleSearchBoostsExactEANMatches(t *testing.T) {
 	input := ArticleSearchInput{Fields: map[string]string{"ean": "4012501136399"}}
 	fields := map[string]ArticleSearchField{"ean": {Label: "EAN-Nr.", Value: "4012501136399", Confidence: 60}}
@@ -309,6 +330,8 @@ func TestArticleImagesIgnorePlaceholders(t *testing.T) {
 	images := articleImagesFromHTML(`
 		<img src="/assets/placeholder.png">
 		<img src="/assets/no-image.webp">
+		<img src="/images/flaggen/i_ital.jpg">
+		<img src="/images/Versandkostenfrei_2023_Start_.png">
 		<img src="/media/47284-v180-product.jpg">
 	`, "https://shop.example.test/product/47284", "Piko V180")
 

@@ -1113,7 +1113,7 @@ export const api = {
         method: "POST",
         body: JSON.stringify(input)
       },
-      { timeoutMs: 30000 }
+      { timeoutMs: 120000 }
     ),
   backupExportUrl: () => "/api/v1/backup/export",
   validateBackup: (file: File) => {

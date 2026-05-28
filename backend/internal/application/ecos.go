@@ -109,7 +109,7 @@ type ECoSCVValue struct {
 }
 
 func NewECoSService() *ECoSService {
-	return &ECoSService{timeout: 5 * time.Second}
+	return &ECoSService{timeout: 8 * time.Second}
 }
 
 func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionInput) (*ECoSConnectionResult, error) {
@@ -304,7 +304,7 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 	if timeout <= 0 {
 		timeout = 5 * time.Second
 	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
+	ctx, cancel := context.WithTimeout(ctx, timeout+time.Duration(len(commands))*1200*time.Millisecond)
 	defer cancel()
 
 	dialer := net.Dialer{Timeout: timeout}
@@ -327,7 +327,18 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 	}
 
 	probes := make([]ECoSRawCommandProbe, 0, len(commands))
+	replyTimeout := 1200 * time.Millisecond
 	for _, item := range commands {
+		if err := ctx.Err(); err != nil {
+			probes = append(probes, ECoSRawCommandProbe{
+				Command: item.command,
+				Fields:  item.fields,
+				OK:      false,
+				Error:   err.Error(),
+			})
+			break
+		}
+		_ = conn.SetWriteDeadline(time.Now().Add(replyTimeout))
 		if _, err := fmt.Fprintf(conn, "%s\r\n", strings.TrimSpace(item.command)); err != nil {
 			probes = append(probes, ECoSRawCommandProbe{
 				Command: item.command,
@@ -337,7 +348,7 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 			})
 			continue
 		}
-		lines, err := readECoSReply(conn, reader, timeout)
+		lines, err := readECoSReply(conn, reader, replyTimeout)
 		status, ok := parseECoSEndStatus(lines)
 		probe := ECoSRawCommandProbe{
 			Command:    item.command,
@@ -458,19 +469,6 @@ func normalizeECoSInput(input ECoSConnectionInput) (ECoSConnectionInput, error) 
 
 func eCoSRawProbeFields() []string {
 	return []string{
-		"decoder",
-		"decodertype",
-		"decodername",
-		"mfxid",
-		"mfxuid",
-		"railcom",
-		"snifferaddr",
-		"longaddr",
-		"consist",
-		"consistid",
-		"category",
-		"type",
-		"symbol",
 		"icon",
 		"image",
 		"picture",

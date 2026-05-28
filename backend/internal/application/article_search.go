@@ -561,10 +561,11 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	if manufacturer != "" && strings.Contains(haystack, manufacturer) {
 		score += 35
 	}
-	if articleNumber != "" && strings.Contains(haystack, articleNumber) {
+	hasArticleNumber := articleNumber != "" && strings.Contains(haystack, articleNumber)
+	if hasArticleNumber {
 		score += 95
 	} else if articleNumber != "" {
-		score -= 70
+		score -= 150
 	}
 	if gauge != "" && containsGaugeToken(haystack, gauge) {
 		score += 35
@@ -574,7 +575,7 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	score += articleNameTokenScore(name, haystack)
 
-	if isManufacturerPreferredURL(input.Manufacturer, resultURL) {
+	if isManufacturerPreferredURL(input.Manufacturer, resultURL) && (articleNumber == "" || hasArticleNumber) {
 		score += 100
 	} else if strings.Contains(haystack, manufacturerDomainToken(input.Manufacturer)) {
 		score += 20
@@ -753,8 +754,9 @@ func imageURLsFromSrcset(srcset string) []string {
 func looksLikeArticleImage(imageURL string) bool {
 	lower := strings.ToLower(imageURL)
 	badTokens := []string{
-		"blank", "dummy", "icon", "lazy", "loading", "logo", "no-image", "noimage",
-		"placeholder", "pixel", "spacer", "sprite", "tracking", "transparent",
+		"badge", "banner", "blank", "dummy", "flaggen", "/flag", "icon", "i_ital",
+		"lazy", "loading", "logo", "no-image", "noimage", "payment", "placeholder",
+		"pixel", "shipping", "spacer", "sprite", "tracking", "transparent", "versandkostenfrei",
 	}
 	for _, token := range badTokens {
 		if strings.Contains(lower, token) {

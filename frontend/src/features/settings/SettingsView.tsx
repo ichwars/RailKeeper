@@ -895,7 +895,7 @@ export function SettingsView({ username }: { username: string }) {
     <>
       <section className="settings-head">
         <h1>
-          {t("settings.title")} <span>0.1.9</span>
+          {t("settings.title")} {versionInfo?.version && <span>{versionInfo.version}</span>}
         </h1>
         <p>{t("settings.subtitle")}</p>
       </section>
