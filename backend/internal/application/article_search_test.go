@@ -124,6 +124,14 @@ func containsArticleSearchQuery(queries []articleSearchQuerySpec, expected artic
 	return false
 }
 
+func TestDuckDuckGoSearchURLUsesGermanRegion(t *testing.T) {
+	requestURL := duckDuckGoSearchURL("Piko TT")
+
+	if !strings.Contains(requestURL, "kl=de-de") || !strings.Contains(requestURL, "kad=de_DE") {
+		t.Fatalf("expected German DuckDuckGo region/language, got %s", requestURL)
+	}
+}
+
 func TestArticleSearchBoostsManufacturerDomains(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V180", Gauge: "TT"}
 	fields := map[string]ArticleSearchField{"articleNumber": {Label: "Artikel-Nr.", Value: "47284", Confidence: 90}}
@@ -309,5 +317,23 @@ func TestArticleImagesIgnorePlaceholders(t *testing.T) {
 	}
 	if !strings.Contains(images[0].URL, "47284-v180-product.jpg") {
 		t.Fatalf("unexpected image selected: %#v", images)
+	}
+}
+
+func TestArticleImagesReadLazyImagesAndSrcset(t *testing.T) {
+	body := strings.Repeat(`<img src="/assets/logo.png">`, 12) + `
+		<img src="/assets/lazy.png" data-src="/media/47284-v180-product.jpg">
+		<img src="/assets/lazy.png" data-srcset="/media/47284-v180-detail-small.webp 320w, /media/47284-v180-detail-large.webp 1024w">
+	`
+	images := articleImagesFromHTML(body, "https://shop.example.test/product/47284", "Piko V180")
+
+	if len(images) != 2 {
+		t.Fatalf("expected lazy image and srcset image, got %#v", images)
+	}
+	if !strings.Contains(images[0].URL, "47284-v180-product.jpg") {
+		t.Fatalf("unexpected lazy image selected: %#v", images)
+	}
+	if !strings.Contains(images[1].URL, "47284-v180-detail-large.webp") {
+		t.Fatalf("unexpected srcset image selected: %#v", images)
 	}
 }

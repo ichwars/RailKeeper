@@ -34,10 +34,7 @@ export function ArticleSearchDialog({
   onApply,
   onClose,
   onToggleField,
-  onToggleImage,
-  onSelectEmptyFields,
-  onSelectAllFields,
-  onClearFields
+  onToggleImage
 }: {
   form: CreateVehicleRequest;
   loading: boolean;
@@ -49,9 +46,6 @@ export function ArticleSearchDialog({
   onClose: () => void;
   onToggleField: (result: ArticleSearchResult, index: number, key: string, checked: boolean) => void;
   onToggleImage: (result: ArticleSearchResult, index: number, image: ArticleSearchImage, checked: boolean) => void;
-  onSelectEmptyFields: () => void;
-  onSelectAllFields: () => void;
-  onClearFields: () => void;
 }) {
   const { t } = useI18n();
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
@@ -222,12 +216,6 @@ export function ArticleSearchDialog({
             );
           })}
         </div>
-
-        <footer className="article-dialog-actions">
-          <button type="button" className="secondary-button" onClick={onSelectEmptyFields}>{t("vehicles.articleSearch.onlyEmpty")}</button>
-          <button type="button" className="secondary-button" onClick={onSelectAllFields}>{t("vehicles.articleSearch.selectAll")}</button>
-          <button type="button" className="secondary-button" onClick={onClearFields}>{t("vehicles.articleSearch.selectNone")}</button>
-        </footer>
       </section>
     </div>
   );

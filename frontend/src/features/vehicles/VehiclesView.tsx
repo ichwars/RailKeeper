@@ -670,18 +670,6 @@ export function VehiclesView({ username }: { username: string }) {
     setSelectedArticleImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
   };
 
-  const setArticleFieldSelection = (modeName: "empty" | "all" | "none") => {
-    if (!articleSearchResponse) return;
-    const next: Record<string, boolean> = {};
-    articleSearchResponse.results.forEach((result, index) => {
-      Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
-        const selectionKey = articleSelectionKey(result, key, index);
-        next[selectionKey] = modeName === "all" || (modeName === "empty" && !currentArticleValue(form, key));
-      });
-    });
-    setSelectedArticleFields(next);
-  };
-
   const applyArticleResult = (result: ArticleSearchResult) => {
     const patch: Partial<CreateVehicleRequest> = {};
     const foundResultIndex = articleSearchResponse?.results.findIndex((entry) => entry.url === result.url) ?? 0;
@@ -1507,11 +1495,16 @@ export function VehiclesView({ username }: { username: string }) {
     return api
       .updateVehicle(vehicle.id, { ...vehicleToForm(vehicle), exhibition })
       .then((updated) => {
-        setVehicles((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-        if (selected?.id === updated.id) {
-          setSelectedDetail(updated);
+        const nextVehicle = {
+          ...updated,
+          images: updated.images ?? vehicle.images,
+          attachments: updated.attachments ?? vehicle.attachments
+        };
+        setVehicles((current) => current.map((item) => (item.id === nextVehicle.id ? nextVehicle : item)));
+        if (selected?.id === nextVehicle.id) {
+          setSelectedDetail(nextVehicle);
         }
-        return updated;
+        return nextVehicle;
       });
   };
 
@@ -2139,9 +2132,6 @@ export function VehiclesView({ username }: { username: string }) {
           onClose={() => setArticleSearchOpen(false)}
           onToggleField={toggleArticleField}
           onToggleImage={toggleArticleImage}
-          onSelectEmptyFields={() => setArticleFieldSelection("empty")}
-          onSelectAllFields={() => setArticleFieldSelection("all")}
-          onClearFields={() => setArticleFieldSelection("none")}
         />
       )}
 

@@ -349,13 +349,14 @@ func focusedArticleSearchQuery(input ArticleSearchInput) string {
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) searchDuckDuckGo(ctx context.Context, input ArticleSearchInput, query string, source string) ([]ArticleSearchResult, error) {
-	requestURL := "https://duckduckgo.com/html/?" + url.Values{"q": []string{query}}.Encode()
+	requestURL := duckDuckGoSearchURL(query)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("build article search request: %w", err)
 	}
 	req.Header.Set("User-Agent", "RailKeeper2/0.1 article-search")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
 
 	resp, err := a.client.Do(req)
 	if err != nil {
@@ -372,6 +373,14 @@ func (a *DuckDuckGoArticleSearchAdapter) searchDuckDuckGo(ctx context.Context, i
 	}
 	results := parseDuckDuckGoResults(string(body), input, source)
 	return results, nil
+}
+
+func duckDuckGoSearchURL(query string) string {
+	values := url.Values{}
+	values.Set("q", query)
+	values.Set("kl", "de-de")
+	values.Set("kad", "de_DE")
+	return "https://duckduckgo.com/html/?" + values.Encode()
 }
 
 var (
@@ -395,7 +404,9 @@ var (
 	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|\bsound\b|sound\s+laut\s+artikeldaten|geräuschmodul|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
 	imageMetaPattern            = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
 	imageMetaAltPattern         = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
-	imageTagPattern             = regexp.MustCompile(`(?is)<img[^>]+src=["']([^"']+\.(?:jpg|jpeg|png|webp)(?:\?[^"']*)?)["'][^>]*>`)
+	imageTagPattern             = regexp.MustCompile(`(?is)<img\b[^>]*>`)
+	imageURLAttrPattern         = regexp.MustCompile(`(?is)\b(?:src|data-src|data-original|data-lazy-src|data-zoom-image)=["']([^"']+)["']`)
+	imageSrcSetAttrPattern      = regexp.MustCompile(`(?is)\b(?:srcset|data-srcset)=["']([^"']+)["']`)
 	metaDescriptionRegex        = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
 )
 
@@ -666,6 +677,7 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, p
 	}
 	req.Header.Set("User-Agent", "RailKeeper2/0.1 article-search")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
 	resp, err := a.client.Do(req)
 	if err != nil {
 		return "", "", err
@@ -684,23 +696,58 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, p
 func articleImagesFromHTML(body, pageURL, title string) []ArticleSearchImage {
 	seen := map[string]bool{}
 	images := []ArticleSearchImage{}
-	for _, pattern := range []*regexp.Regexp{imageMetaPattern, imageMetaAltPattern, imageTagPattern} {
-		for _, match := range pattern.FindAllStringSubmatch(body, 8) {
+	addImage := func(raw string) bool {
+		imageURL := resolveURL(pageURL, html.UnescapeString(raw))
+		if imageURL == "" || seen[strings.ToLower(imageURL)] || !looksLikeArticleImage(imageURL) {
+			return false
+		}
+		seen[strings.ToLower(imageURL)] = true
+		images = append(images, ArticleSearchImage{URL: imageURL, Title: title, Source: pageURL})
+		return len(images) >= 4
+	}
+
+	for _, pattern := range []*regexp.Regexp{imageMetaPattern, imageMetaAltPattern} {
+		for _, match := range pattern.FindAllStringSubmatch(body, -1) {
 			if len(match) < 2 {
 				continue
 			}
-			imageURL := resolveURL(pageURL, html.UnescapeString(match[1]))
-			if imageURL == "" || seen[strings.ToLower(imageURL)] || !looksLikeArticleImage(imageURL) {
-				continue
-			}
-			seen[strings.ToLower(imageURL)] = true
-			images = append(images, ArticleSearchImage{URL: imageURL, Title: title, Source: pageURL})
-			if len(images) >= 4 {
+			if addImage(match[1]) {
 				return images
 			}
 		}
 	}
+	for _, tag := range imageTagPattern.FindAllString(body, -1) {
+		for _, match := range imageURLAttrPattern.FindAllStringSubmatch(tag, -1) {
+			if len(match) >= 2 && addImage(match[1]) {
+				return images
+			}
+		}
+		for _, match := range imageSrcSetAttrPattern.FindAllStringSubmatch(tag, -1) {
+			if len(match) < 2 {
+				continue
+			}
+			for _, candidate := range imageURLsFromSrcset(match[1]) {
+				if addImage(candidate) {
+					return images
+				}
+			}
+		}
+	}
 	return images
+}
+
+func imageURLsFromSrcset(srcset string) []string {
+	best := ""
+	for _, candidate := range strings.Split(srcset, ",") {
+		parts := strings.Fields(strings.TrimSpace(candidate))
+		if len(parts) > 0 {
+			best = parts[0]
+		}
+	}
+	if best == "" {
+		return nil
+	}
+	return []string{best}
 }
 
 func looksLikeArticleImage(imageURL string) bool {

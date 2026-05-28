@@ -269,6 +269,7 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 		return nil, err
 	}
 
+	replaceImages := input.Images != nil
 	input = cleanVehicleInput(input)
 	if input.InventoryNumber == "" {
 		input.InventoryNumber = existing.InventoryNumber
@@ -276,7 +277,7 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" || input.Category == "" || input.Gattung == "" {
 		return nil, ErrVehicleValidation
 	}
-	if s.imageLocalizer != nil && len(input.Images) > 0 {
+	if s.imageLocalizer != nil && replaceImages && len(input.Images) > 0 {
 		input.Images, err = s.imageLocalizer(ctx, id, input.Images)
 		if err != nil {
 			return nil, err
@@ -408,8 +409,10 @@ VALUES(?, ?, 'VehicleUpdated', 'vehicle', ?, ?, '{}')
 `, randomID(), actorUserID, vehicle.ID, now); err != nil {
 		return nil, fmt.Errorf("write vehicle audit log: %w", err)
 	}
-	if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
-		return nil, err
+	if replaceImages {
+		if err = saveVehicleImages(ctx, tx, vehicle.ID, input.Images, now); err != nil {
+			return nil, err
+		}
 	}
 
 	if err = tx.Commit(); err != nil {

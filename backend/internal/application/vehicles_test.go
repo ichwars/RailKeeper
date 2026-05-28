@@ -305,6 +305,22 @@ func TestVehiclePersistsImages(t *testing.T) {
 		t.Fatalf("unexpected detail images: %#v", detail.Images)
 	}
 
+	preserved, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
+		InventoryNumber: created.InventoryNumber,
+		Manufacturer:    "Piko",
+		Name:            "BR 118",
+		Gauge:           "TT",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
+		Exhibition:      true,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(preserved.Images) != 2 || preserved.Images[0].URL != "https://example.test/front.jpg" || !preserved.Images[0].IsPrimary {
+		t.Fatalf("expected images to survive metadata update, got %#v", preserved.Images)
+	}
+
 	updated, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
 		InventoryNumber: created.InventoryNumber,
 		Manufacturer:    "Piko",
