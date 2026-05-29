@@ -166,6 +166,7 @@ export const emptyUserForm = {
   username: "",
   email: "",
   password: "",
+  confirmPassword: "",
   roles: ["Viewer"]
 };
 

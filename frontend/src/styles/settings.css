@@ -115,6 +115,10 @@
   grid-column: 1;
 }
 
+.auth-settings-grid .current-user-settings-card {
+  grid-column: 1 / -1;
+}
+
 .auth-settings-grid .smtp-settings-card {
   grid-column: 2;
   grid-row: 1 / span 2;
@@ -656,6 +660,22 @@
   gap: 6px;
 }
 
+.account-security-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.68fr) minmax(340px, 1fr);
+  gap: 14px;
+  align-items: stretch;
+}
+
+.account-summary-card {
+  align-content: start;
+}
+
+.account-summary-card strong {
+  font-size: 22px;
+  line-height: 1.1;
+}
+
 .role-list article {
   display: grid;
   gap: 4px;
@@ -700,9 +720,16 @@
 
 .user-management-grid {
   display: grid;
-  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+}
+
+.user-management-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .user-form {
@@ -720,6 +747,14 @@
   border-top: 1px solid var(--line);
 }
 
+.password-change-panel {
+  margin-top: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
 .user-form h3 {
   margin: 0;
   font-size: 15px;
@@ -728,6 +763,14 @@
 .password-change-form h3 {
   margin: 0;
   font-size: 15px;
+}
+
+.user-form-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .password-field-grid {
@@ -762,6 +805,21 @@
 .role-select-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.role-select-grid .checkbox-field {
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input-bg);
+}
+
+.user-cell {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
 }
 

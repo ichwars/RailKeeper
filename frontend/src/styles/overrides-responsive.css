@@ -211,6 +211,7 @@
   }
 
   .user-management-grid,
+  .account-security-grid,
   .role-select-grid {
     grid-template-columns: 1fr;
   }

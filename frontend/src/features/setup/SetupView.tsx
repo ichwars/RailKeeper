@@ -1,5 +1,4 @@
 import { FormEvent, useState } from "react";
-import { ShieldCheck } from "lucide-react";
 import { api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
@@ -7,14 +6,21 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordRepeat, setPasswordRepeat] = useState("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const { t } = useI18n();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    setSaving(true);
     setMessage("");
+
+    if (password !== passwordRepeat) {
+      setMessage(t("setup.passwordMismatch"));
+      return;
+    }
+
+    setSaving(true);
 
     api
       .createAdmin({ username, email, password })
@@ -26,9 +32,7 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
   return (
     <main className="auth-page">
       <section className="auth-card" aria-labelledby="setup-title">
-        <div className="auth-mark">
-          <ShieldCheck size={30} aria-hidden="true" />
-        </div>
+        <img className="auth-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper" />
         <h1 id="setup-title">{t("setup.title")}</h1>
         <p>{t("setup.subtitle")}</p>
 
@@ -63,6 +67,18 @@ export function SetupView({ onComplete }: { onComplete: () => void }) {
               minLength={12}
               autoComplete="new-password"
               onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </label>
+
+          <label>
+            {t("setup.passwordRepeat")}
+            <input
+              type="password"
+              value={passwordRepeat}
+              minLength={12}
+              autoComplete="new-password"
+              onChange={(event) => setPasswordRepeat(event.target.value)}
               required
             />
           </label>

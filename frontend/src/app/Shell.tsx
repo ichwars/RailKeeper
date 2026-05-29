@@ -18,6 +18,10 @@ const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
 const sidebarOrderKey = "railkeeper.settings.sidebarOrder";
 const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
 const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
+const updateChecksKey = "railkeeper.settings.updateChecks";
+const betaUpdatesKey = "railkeeper.settings.betaUpdates";
+const ignoredUpdateKey = "railkeeper.settings.ignoredUpdate";
+export const updateStatusChangedEvent = "railkeeper-update-status-changed";
 
 type SidebarPrefs = {
   order: AppView[];
@@ -37,6 +41,12 @@ function GitHubMark({ size = 17 }: { size?: number }) {
 
 function readSidebarCollapsed() {
   return window.localStorage.getItem(sidebarCollapsedKey) === "true";
+}
+
+function readLocalBool(key: string, fallback: boolean) {
+  const value = window.localStorage.getItem(key);
+  if (value === null) return fallback;
+  return value === "true";
 }
 
 function allowedNavItems(roles: string[]) {
@@ -107,6 +117,7 @@ export function Shell({
   const [theme, setTheme] = useState<ThemePreference>(readThemePreference);
   const [orderedNavItems, setOrderedNavItems] = useState(() => readNavItems(roles, username));
   const [appVersion, setAppVersion] = useState("");
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const ThemeIcon = theme === "dark" ? Moon : theme === "light" ? Sun : Monitor;
   const { t } = useI18n();
 
@@ -123,6 +134,41 @@ export function Shell({
 
   useEffect(() => {
     let mounted = true;
+
+    const loadVersion = (forceCheck = false) => {
+      const checkForUpdates = readLocalBool(updateChecksKey, true);
+      const includeBeta = readLocalBool(betaUpdatesKey, false);
+      api
+        .version(forceCheck || checkForUpdates, includeBeta)
+        .then((info) => {
+          if (!mounted) return;
+          const ignoredUpdate = window.localStorage.getItem(ignoredUpdateKey) || "";
+          setAppVersion(info.version);
+          setUpdateAvailable(Boolean(info.updateAvailable && info.latestVersion && info.latestVersion !== ignoredUpdate));
+        })
+        .catch(() => {
+          if (!mounted) return;
+          setUpdateAvailable(false);
+        });
+    };
+    const syncVersion = (event?: Event) => {
+      const forceCheck = event instanceof CustomEvent && Boolean(event.detail?.forceCheck);
+      loadVersion(forceCheck);
+    };
+
+    loadVersion();
+    window.addEventListener(updateStatusChangedEvent, syncVersion);
+    window.addEventListener("storage", syncVersion);
+    return () => {
+      mounted = false;
+      window.removeEventListener(updateStatusChangedEvent, syncVersion);
+      window.removeEventListener("storage", syncVersion);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (appVersion) return;
+    let mounted = true;
     api
       .version(false)
       .then((info) => {
@@ -138,7 +184,7 @@ export function Shell({
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [appVersion]);
 
   function toggleTheme() {
     const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
@@ -209,7 +255,17 @@ export function Shell({
                 <LogOut size={17} aria-hidden="true" />
               </button>
             </div>
-            {appVersion && <span className="sidebar-version">v{appVersion}</span>}
+            {appVersion && (
+              <span className="sidebar-version-row">
+                <span className="sidebar-version">v{appVersion}</span>
+                {updateAvailable && (
+                  <span className="sidebar-update-badge" title={t("nav.updateAvailable")} aria-label={t("nav.updateAvailable")}>
+                    <span aria-hidden="true" />
+                    Update
+                  </span>
+                )}
+              </span>
+            )}
           </div>
         </nav>
       </aside>

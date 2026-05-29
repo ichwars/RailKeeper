@@ -90,6 +90,8 @@ import {
 import type { FormState, PasswordFormState, SettingsTab, UserFormState } from "./settingsModel";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
+const updateStatusChangedEvent = "railkeeper-update-status-changed";
+
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
@@ -116,9 +118,11 @@ export function SettingsView({ username }: { username: string }) {
   const [backupRestoreConfirm, setBackupRestoreConfirm] = useState("");
   const [backupSaving, setBackupSaving] = useState(false);
   const [backupValidating, setBackupValidating] = useState(false);
+  const [backupFileInputKey, setBackupFileInputKey] = useState(0);
   const [masterDataFile, setMasterDataFile] = useState<File | null>(null);
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
+  const [masterDataFileInputKey, setMasterDataFileInputKey] = useState(0);
   const [defaultView, setDefaultView] = useState(() => {
     const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
     return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
@@ -180,7 +184,10 @@ export function SettingsView({ username }: { username: string }) {
   const [smtpMessage, setSmtpMessage] = useState("");
   const [twoFactorPrepared, setTwoFactorPrepared] = useState(() => readLocalBool(localSettingKeys.twoFactorPrepared, false));
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
-  const backupRestoreConfirmed = backupRestoreConfirm.trim().toLocaleUpperCase("de-DE") === "WIEDERHERSTELLEN";
+  const languageLocale = language === "de" ? "de-DE" : "en-US";
+  const backupRestorePhrase = t("settings.backup.confirmPhrase");
+  const backupRestoreConfirmed =
+    backupRestoreConfirm.trim().toLocaleUpperCase(languageLocale) === backupRestorePhrase.toLocaleUpperCase(languageLocale);
 
   const activeDataType = useMemo(
     () => masterDataTypes.find((item) => item.type === activeType) || masterDataTypes[0],
@@ -231,6 +238,10 @@ export function SettingsView({ username }: { username: string }) {
     if (message.includes("RailKeeper ist aktuell")) return t("settings.updates.message.current");
     return message;
   };
+  const updateVersionLabel = (version?: string) => version?.replace(/^v/i, "") || t("settings.unknown");
+  const updateCheckedAtLabel = versionInfo?.checkedAt
+    ? t("settings.updates.checkedAt", { date: formatDateTime(versionInfo.checkedAt) })
+    : t("settings.updates.notChecked");
   const updateIgnored = Boolean(versionInfo?.updateAvailable && versionInfo.latestVersion && versionInfo.latestVersion === ignoredUpdate);
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
@@ -454,13 +465,23 @@ export function SettingsView({ username }: { username: string }) {
       .then((info) => {
         setVersionInfo(info);
         setVersionMessage(info.message || t("settings.updates.message.reachable", { version: info.version || t("settings.unknown") }));
+        window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: shouldCheck } }));
       })
       .catch((error: Error) => setVersionMessage(error.message))
       .finally(() => setVersionLoading(false));
   };
 
+  const updateUpdateChecks = (enabled: boolean) => {
+    setLocalBool(localSettingKeys.updateChecks, enabled, setUpdateChecks);
+    window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: enabled } }));
+    if (enabled) {
+      loadVersionInfo(true);
+    }
+  };
+
   const updateBetaUpdates = (enabled: boolean) => {
     setLocalBool(localSettingKeys.betaUpdates, enabled, setBetaUpdates);
+    window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: updateChecks } }));
     if (updateChecks) {
       loadVersionInfo(true, enabled);
     }
@@ -483,6 +504,7 @@ export function SettingsView({ username }: { username: string }) {
     window.localStorage.setItem(localSettingKeys.ignoredUpdate, versionInfo.latestVersion);
     setIgnoredUpdate(versionInfo.latestVersion);
     setVersionMessage(t("settings.updates.message.ignored", { version: versionInfo.latestVersion }));
+    window.dispatchEvent(new Event(updateStatusChangedEvent));
   };
 
   const loadStorageUsage = () => {
@@ -674,6 +696,7 @@ export function SettingsView({ username }: { username: string }) {
       username: user.username,
       email: user.email || "",
       password: "",
+      confirmPassword: "",
       roles: user.roles.length > 0 ? user.roles : ["Viewer"]
     });
     setAuthMessage("");
@@ -693,6 +716,12 @@ export function SettingsView({ username }: { username: string }) {
     setUserSaving(true);
     setAuthMessage("");
 
+    if (userForm.password !== userForm.confirmPassword) {
+      setUserSaving(false);
+      setAuthMessage(t("setup.passwordMismatch"));
+      return;
+    }
+
     const input = {
       username: userForm.username,
       email: userForm.email,
@@ -704,7 +733,7 @@ export function SettingsView({ username }: { username: string }) {
     action
       .then((user) => {
         setEditingUser(user);
-        setUserForm({ username: user.username, email: user.email || "", password: "", roles: user.roles });
+        setUserForm({ username: user.username, email: user.email || "", password: "", confirmPassword: "", roles: user.roles });
         loadUsersAndRoles();
         loadAuditLog();
         loadCurrentSession();
@@ -847,18 +876,18 @@ export function SettingsView({ username }: { username: string }) {
 
   const restoreBackup = () => {
     if (!backupFile) {
-      setBackupMessage("Bitte zuerst eine Backup-Datei auswählen.");
+      setBackupMessage(t("settings.backup.error.noFile"));
       return;
     }
     if (!backupValidation?.compatible) {
-      setBackupMessage("Backup bitte zuerst erfolgreich prüfen.");
+      setBackupMessage(t("settings.backup.error.notValidated"));
       return;
     }
     if (!backupRestoreConfirmed) {
-      setBackupMessage("Bitte WIEDERHERSTELLEN eingeben, um den Restore freizugeben.");
+      setBackupMessage(t("settings.backup.error.confirmRequired", { phrase: backupRestorePhrase }));
       return;
     }
-    if (!window.confirm("Backup wirklich wiederherstellen? Bestand, Stammdaten, Wartung, CVs und Uploads werden durch den Inhalt der Datei ersetzt.")) {
+    if (!window.confirm(t("settings.backup.confirmRestore"))) {
       return;
     }
     setBackupSaving(true);
@@ -866,10 +895,14 @@ export function SettingsView({ username }: { username: string }) {
     api
       .restoreBackup(backupFile)
       .then((result) => {
-        setBackupMessage(`Backup wiederhergestellt: ${result.restoredRows} Datensätze, ${result.restoredFiles} Dateien.`);
+        setBackupMessage(t("settings.backup.restored", { rows: result.restoredRows, files: result.restoredFiles }));
         setLoadedTypes({});
         setItemsByType({});
+        setBackupFile(null);
+        setBackupValidation(null);
         setBackupRestoreConfirm("");
+        setBackupFileInputKey((current) => current + 1);
+        loadStorageUsage();
       })
       .catch((error: Error) => setBackupMessage(error.message))
       .finally(() => setBackupSaving(false));
@@ -877,10 +910,10 @@ export function SettingsView({ username }: { username: string }) {
 
   const importMasterData = () => {
     if (!masterDataFile) {
-      setMasterDataMessage("Bitte zuerst eine Stammdaten-Datei auswählen.");
+      setMasterDataMessage(t("settings.masterTransfer.fileMissing"));
       return;
     }
-    if (!window.confirm("Stammdaten wirklich importieren? Bestehende Stammdaten und Kategorie/Gattung-Abhängigkeiten werden ersetzt. Bestand und Uploads bleiben unverändert.")) {
+    if (!window.confirm(t("settings.masterTransfer.confirm"))) {
       return;
     }
     setMasterDataSaving(true);
@@ -888,9 +921,11 @@ export function SettingsView({ username }: { username: string }) {
     api
       .importMasterData(masterDataFile)
       .then((result) => {
-        setMasterDataMessage(`Stammdaten importiert: ${result.importedEntries} Einträge, ${result.importedRelations} Abhängigkeiten.`);
+        setMasterDataMessage(t("settings.masterTransfer.imported", { entries: result.importedEntries, relations: result.importedRelations }));
         setLoadedTypes({});
         setItemsByType({});
+        setMasterDataFile(null);
+        setMasterDataFileInputKey((current) => current + 1);
         setSearch("");
       })
       .catch((error: Error) => setMasterDataMessage(error.message))
@@ -1125,7 +1160,7 @@ export function SettingsView({ username }: { username: string }) {
                   <small>{t("settings.updates.checkHelp")}</small>
                 </span>
                 <span className="switch-field">
-                  <input type="checkbox" checked={updateChecks} onChange={(event) => setLocalBool(localSettingKeys.updateChecks, event.target.checked, setUpdateChecks)} />
+                  <input type="checkbox" checked={updateChecks} onChange={(event) => updateUpdateChecks(event.target.checked)} />
                   <span />
                 </span>
               </label>
@@ -1141,8 +1176,10 @@ export function SettingsView({ username }: { username: string }) {
               </label>
               <div className="settings-action-row">
                 <p>
-                  {t("settings.updates.currentVersion")}: <strong>{versionInfo?.version || t("settings.unknown")}</strong>
-                  {versionInfo?.latestVersion && <> · {t("settings.updates.latestVersion")}: <strong>{versionInfo.latestVersion}</strong></>}
+                  {t("settings.updates.currentVersion")}: <strong>{updateVersionLabel(versionInfo?.version)}</strong>
+                  {versionInfo?.latestVersion && <> · {t("settings.updates.latestVersion")}: <strong>{updateVersionLabel(versionInfo.latestVersion)}</strong></>}
+                  <br />
+                  <small>{updateCheckedAtLabel}</small>
                 </p>
                 {versionInfo?.status && (
                   <span className={`settings-pill ${versionInfo.updateAvailable && !updateIgnored ? "active" : ["unavailable", "no_release"].includes(versionInfo.status) || updateIgnored ? "muted" : ""}`}>
@@ -1498,6 +1535,7 @@ export function SettingsView({ username }: { username: string }) {
                   <span className="file-picker-name">{masterDataFile?.name || t("settings.file.none")}</span>
                 </span>
                 <input
+                  key={masterDataFileInputKey}
                   type="file"
                   accept="application/json,.json"
                   onChange={(event) => {
@@ -1531,7 +1569,7 @@ export function SettingsView({ username }: { username: string }) {
                   <strong>{storageFileCount.toLocaleString("de-DE")}</strong>
                   {t("settings.backup.files")}
                 </span>
-                <button type="button" className="icon-button" onClick={loadStorageUsage} disabled={storageLoading} aria-label="Speichernutzung aktualisieren" title="Speichernutzung aktualisieren">
+                <button type="button" className="icon-button" onClick={loadStorageUsage} disabled={storageLoading} aria-label={t("settings.backup.refreshStorage")} title={t("settings.backup.refreshStorage")}>
                   <RefreshCw size={15} />
                 </button>
               </div>
@@ -1549,6 +1587,7 @@ export function SettingsView({ username }: { username: string }) {
                   <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
                 </span>
                 <input
+                  key={backupFileInputKey}
                   type="file"
                   accept="application/json,.json"
                   onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
@@ -1603,18 +1642,18 @@ export function SettingsView({ username }: { username: string }) {
               {backupValidation?.compatible && (
                 <label className="backup-confirm-field">
                   {t("settings.backup.confirmLabel")}
-                  <span>{t("settings.backup.confirmHelp")}</span>
+                  <span>{t("settings.backup.confirmHelp", { phrase: backupRestorePhrase })}</span>
                   <input
                     value={backupRestoreConfirm}
                     onChange={(event) => setBackupRestoreConfirm(event.target.value)}
-                    placeholder="WIEDERHERSTELLEN"
+                    placeholder={backupRestorePhrase}
                     autoComplete="off"
                   />
                 </label>
               )}
               <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
                 {backupSaving ? (
-                    t("settings.backup.restoring")
+                  t("settings.backup.restoring")
                 ) : (
                   <>
                     <Upload size={17} />

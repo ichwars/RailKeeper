@@ -9,6 +9,7 @@ type UserFormState = {
   username: string;
   email: string;
   password: string;
+  confirmPassword: string;
   roles: string[];
 };
 
@@ -123,6 +124,9 @@ export function SettingsAuthTab({
   auditLogMessage,
   roleDescription
 }: SettingsAuthTabProps) {
+  const currentRoles = currentSession?.roles || [];
+  const userCountLabel = t("settings.users.count", { count: users.length });
+
   return (
         <section className="auth-settings-grid">
           <section className="panel settings-card settings-tool-card auth-status-card">
@@ -273,63 +277,71 @@ export function SettingsAuthTab({
             )}
           </section>
 
-          <section className="panel settings-card settings-tool-card current-user-settings-card">
-            <div className="settings-card-title">
-              <UserCog size={18} />
-              <h2>{t("settings.currentUser")}</h2>
-            </div>
-            <div className="current-user-card">
-              <strong>{currentSession?.username || t("settings.notLoaded")}</strong>
-              <div className="role-chip-row">
-                {(currentSession?.roles || []).map((role) => <span className="settings-pill" key={role}>{role}</span>)}
-                {(!currentSession?.roles || currentSession.roles.length === 0) && <span className="settings-pill muted">{t("common.noRoles")}</span>}
+          {!canManageUsers && <section className="panel settings-card settings-tool-card current-user-settings-card">
+            <div className="settings-section-head">
+              <div className="settings-card-title">
+                <UserCog size={18} />
+                <div>
+                  <h2>{t("settings.currentUser")}</h2>
+                  <p>{t("settings.session.refreshHelp")}</p>
+                </div>
               </div>
-              <p>{t("settings.session.refreshHelp")}</p>
-              <button type="button" className="secondary-button" onClick={loadCurrentSession}>
+              <button type="button" className="icon-button" onClick={loadCurrentSession} aria-label={t("settings.session.refresh")} title={t("settings.session.refresh")}>
                 <RefreshCw size={16} />
-                {t("settings.session.refresh")}
               </button>
             </div>
-            <form className="password-change-form" onSubmit={changePassword}>
-              <h3>{t("settings.password.title")}</h3>
-              <div className="password-field-grid">
-                <label>
-                  {t("settings.password.current")}
-                  <input
-                    type="password"
-                    value={passwordForm.currentPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
-                    autoComplete="current-password"
-                  />
-                </label>
-                <label>
-                  {t("settings.password.new")}
-                  <input
-                    type="password"
-                    value={passwordForm.newPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
-                    autoComplete="new-password"
-                    minLength={12}
-                  />
-                </label>
-                <label>
-                  {t("settings.password.confirm")}
-                  <input
-                    type="password"
-                    value={passwordForm.confirmPassword}
-                    onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-                    autoComplete="new-password"
-                    minLength={12}
-                  />
-                </label>
+            <div className="account-security-grid">
+              <div className="current-user-card account-summary-card">
+                <span className="settings-pill active">{t("settings.auth.currentSession")}</span>
+                <strong>{currentSession?.username || t("settings.notLoaded")}</strong>
+                <div className="role-chip-row">
+                  {currentRoles.map((role) => <span className="settings-pill" key={role}>{role}</span>)}
+                  {currentRoles.length === 0 && <span className="settings-pill muted">{t("common.noRoles")}</span>}
+                </div>
               </div>
-              <button type="submit" className="primary-button" disabled={passwordSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}>
-                <KeyRound size={16} />
-                {t("settings.password.save")}
-              </button>
-              {passwordMessage && <p className="form-message">{passwordMessage}</p>}
-            </form>
-          </section>
+              <form className="password-change-form password-change-panel" onSubmit={changePassword}>
+                <div className="user-form-head">
+                  <h3>{t("settings.password.title")}</h3>
+                </div>
+                <div className="password-field-grid">
+                  <label>
+                    {t("settings.password.current")}
+                    <input
+                      type="password"
+                      value={passwordForm.currentPassword}
+                      onChange={(event) => setPasswordForm((current) => ({ ...current, currentPassword: event.target.value }))}
+                      autoComplete="current-password"
+                    />
+                  </label>
+                  <label>
+                    {t("settings.password.new")}
+                    <input
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(event) => setPasswordForm((current) => ({ ...current, newPassword: event.target.value }))}
+                      autoComplete="new-password"
+                      minLength={12}
+                    />
+                  </label>
+                  <label>
+                    {t("settings.password.confirm")}
+                    <input
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) => setPasswordForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                      autoComplete="new-password"
+                      minLength={12}
+                    />
+                  </label>
+                </div>
+                <button type="submit" className="primary-button" disabled={passwordSaving || !passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword}>
+                  <KeyRound size={16} />
+                  {t("settings.password.save")}
+                </button>
+                {passwordMessage && <p className="form-message">{passwordMessage}</p>}
+              </form>
+            </div>
+          </section>}
 
           <section className="panel settings-card settings-tool-card user-management-card">
             <div className="settings-section-head">
@@ -340,12 +352,15 @@ export function SettingsAuthTab({
                   <p>{t("settings.users.subtitle")}</p>
                 </div>
               </div>
-              {canManageUsers && (
-                <button type="button" className="secondary-button" onClick={startUserCreate}>
-                  <UserCog size={16} />
-                  {t("settings.users.new")}
-                </button>
-              )}
+              <div className="user-management-toolbar">
+                <span className="settings-pill">{userCountLabel}</span>
+                {canManageUsers && (
+                  <button type="button" className="secondary-button" onClick={startUserCreate}>
+                    <UserCog size={16} />
+                    {t("settings.users.new")}
+                  </button>
+                )}
+              </div>
             </div>
 
             {!canManageUsers ? (
@@ -356,7 +371,10 @@ export function SettingsAuthTab({
             ) : (
               <div className="user-management-grid">
                 <form className="settings-form user-form" onSubmit={saveUser}>
-                  <h3>{editingUser ? t("settings.users.edit") : t("settings.users.create")}</h3>
+                  <div className="user-form-head">
+                    <h3>{editingUser ? t("settings.users.edit") : t("settings.users.create")}</h3>
+                    {editingUser && <span className="settings-pill active">{editingUser.username}</span>}
+                  </div>
                   <label>
                     {t("settings.users.username")}
                     <input
@@ -380,6 +398,16 @@ export function SettingsAuthTab({
                       type="password"
                       value={userForm.password}
                       onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
+                      autoComplete="new-password"
+                    />
+                  </label>
+                  <label>
+                    {t("settings.users.passwordConfirm")}
+                    <input
+                      type="password"
+                      value={userForm.confirmPassword}
+                      onChange={(event) => setUserForm((current) => ({ ...current, confirmPassword: event.target.value }))}
                       placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
                       autoComplete="new-password"
                     />
@@ -427,7 +455,12 @@ export function SettingsAuthTab({
                       ) : (
                         users.map((user) => (
                           <tr key={user.id} className={editingUser?.id === user.id ? "selected-row" : ""}>
-                            <td><strong>{user.username}</strong></td>
+                            <td>
+                              <div className="user-cell">
+                                <strong>{user.username}</strong>
+                                {currentSession?.username === user.username && <span className="settings-pill active">{t("settings.users.current")}</span>}
+                              </div>
+                            </td>
                             <td>{user.email || "-"}</td>
                             <td>
                               <div className="role-chip-row">
