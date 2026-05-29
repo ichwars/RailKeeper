@@ -27,7 +27,7 @@ import (
 
 	_ "golang.org/x/image/webp"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 type Config struct {
@@ -115,7 +115,7 @@ func NewRouter(config Config) http.Handler {
 		app.rateLimits = newRateLimiter()
 	}
 	if app.articleSearch == nil {
-		app.articleSearch = application.NewArticleSearchService()
+		app.articleSearch = application.NewArticleSearchService(app.masterDataService)
 	}
 	if app.backupService == nil {
 		app.backupService = application.NewBackupService(nil, app.dataDir)
@@ -281,7 +281,7 @@ func fetchUpdateRelease(ctx context.Context, updateURL string, includePrerelease
 		return nil, err
 	}
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "RailKeeper2")
+	request.Header.Set("User-Agent", "RailKeeper")
 
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
@@ -1238,7 +1238,7 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	if err != nil {
 		return image, err
 	}
-	req.Header.Set("User-Agent", "RailKeeper2/0.1 image-fetch")
+	req.Header.Set("User-Agent", "RailKeeper/0.1 image-fetch")
 	req.Header.Set("Accept", "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8")
 	client := &http.Client{Timeout: 6 * time.Second}
 	resp, err := client.Do(req)
@@ -1304,6 +1304,58 @@ func remoteImageFileName(image application.VehicleImageInput, mimeType string) s
 	return safeAttachmentFileName(base + extension)
 }
 
+func remoteAttachmentFileName(input importVehicleAttachmentInput, rawURL, mimeType string) string {
+	base := strings.TrimSpace(input.Title)
+	if base == "" {
+		if parsed, err := url.Parse(rawURL); err == nil {
+			base = path.Base(parsed.Path)
+		}
+	}
+	if base == "" || base == "." || base == "/" {
+		base = "dokument"
+	}
+	extension := strings.ToLower(filepath.Ext(base))
+	if extension == "" {
+		extension = attachmentExtensionForMime(mimeType)
+		base += extension
+	}
+	return safeAttachmentFileName(base)
+}
+
+func attachmentExtensionForMime(mimeType string) string {
+	switch strings.ToLower(strings.Split(mimeType, ";")[0]) {
+	case "application/pdf":
+		return ".pdf"
+	case "application/json", "text/json":
+		return ".json"
+	case "application/xml", "text/xml":
+		return ".xml"
+	case "application/zip", "application/x-zip-compressed":
+		return ".zip"
+	case "image/jpeg":
+		return ".jpg"
+	case "image/png":
+		return ".png"
+	case "image/webp":
+		return ".webp"
+	case "text/csv":
+		return ".csv"
+	default:
+		return ".txt"
+	}
+}
+
+func attachmentCategoryForRemoteDocument(fileName, title string) string {
+	lower := strings.ToLower(fileName + " " + title)
+	if strings.Contains(lower, "ersatzteil") || strings.Contains(lower, "spare") || strings.Contains(lower, "et-blatt") {
+		return "Ersatzteilliste"
+	}
+	if strings.Contains(lower, "anleitung") || strings.Contains(lower, "manual") || strings.Contains(lower, "bedienung") {
+		return "Anleitung"
+	}
+	return "Dokumentation"
+}
+
 func isPublicImageURL(ctx context.Context, value string) bool {
 	parsed, err := url.Parse(value)
 	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
@@ -1338,6 +1390,21 @@ func isPublicIP(ip net.IP) bool {
 		!ip.IsLinkLocalMulticast() &&
 		!ip.IsMulticast() &&
 		!ip.IsUnspecified()
+}
+
+func remoteDocumentHTTPClient(ctx context.Context) *http.Client {
+	return &http.Client{
+		Timeout: 10 * time.Second,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 5 {
+				return http.ErrUseLastResponse
+			}
+			if !isPublicImageURL(ctx, req.URL.String()) {
+				return http.ErrUseLastResponse
+			}
+			return nil
+		},
+	}
 }
 
 func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
@@ -1555,6 +1622,14 @@ func scaleImageToFit(src image.Image, maxWidth, maxHeight int) image.Image {
 	return dst
 }
 
+type importVehicleAttachmentInput struct {
+	URL           string `json:"url"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Category      string `json:"category"`
+	MaintenanceID string `json:"maintenanceId"`
+}
+
 func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, a.maxAttachmentBytes+1024*1024)
 	if err := r.ParseMultipartForm(a.maxAttachmentBytes); err != nil {
@@ -1633,6 +1708,105 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		}
 		a.logger.Error("attachment metadata create failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusCreated, attachment)
+}
+
+func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Request) {
+	var input importVehicleAttachmentInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	input.URL = strings.TrimSpace(input.URL)
+	if input.URL == "" || !isPublicImageURL(r.Context(), input.URL) {
+		respondProblem(w, http.StatusBadRequest, "attachment_url_invalid", "Dokument-URL ist nicht erreichbar oder nicht erlaubt.")
+		return
+	}
+	requestCtx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, input.URL, nil)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "attachment_url_invalid", "Dokument-URL ist ungueltig.")
+		return
+	}
+	req.Header.Set("User-Agent", "RailKeeper/0.1 document-fetch")
+	req.Header.Set("Accept", "application/pdf,text/plain,application/json,application/xml,text/xml,application/zip,image/*;q=0.8,*/*;q=0.4")
+	client := remoteDocumentHTTPClient(r.Context())
+	resp, err := client.Do(req)
+	if err != nil {
+		a.logger.Warn("remote attachment fetch failed", "url", input.URL, "error", err)
+		respondProblem(w, http.StatusBadGateway, "attachment_fetch_failed", "Dokument konnte nicht heruntergeladen werden.")
+		return
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		respondProblem(w, http.StatusBadGateway, "attachment_fetch_failed", "Dokument konnte nicht heruntergeladen werden.")
+		return
+	}
+	data, err := io.ReadAll(io.LimitReader(resp.Body, a.maxAttachmentBytes+1))
+	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		return
+	}
+	if len(data) == 0 {
+		respondProblem(w, http.StatusBadRequest, "attachment_empty", "Leere Dateien sind nicht erlaubt.")
+		return
+	}
+	mimeType := http.DetectContentType(data)
+	if headerMime := strings.TrimSpace(resp.Header.Get("Content-Type")); headerMime != "" && (strings.Contains(headerMime, "pdf") || strings.Contains(headerMime, "zip") || strings.Contains(headerMime, "xml")) {
+		mimeType = strings.Split(headerMime, ";")[0]
+	}
+	originalName := remoteAttachmentFileName(input, input.URL, mimeType)
+	if isBlockedAttachmentName(originalName) || isBlockedAttachmentMime(mimeType) || !a.isAllowedAttachmentUpload(originalName, mimeType) {
+		respondProblem(w, http.StatusBadRequest, "attachment_type_blocked", "Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.")
+		return
+	}
+	vehicleID := r.PathValue("id")
+	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
+	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), storageName)
+	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "attachment_path_invalid", "Beilage konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
+		a.logger.Error("remote attachment directory create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_import_failed", "Dokument konnte nicht gespeichert werden.")
+		return
+	}
+	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
+		a.logger.Error("remote attachment write failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_import_failed", "Dokument konnte nicht gespeichert werden.")
+		return
+	}
+	category := strings.TrimSpace(input.Category)
+	if category == "" {
+		category = attachmentCategoryForRemoteDocument(originalName, input.Title)
+	}
+	attachment, err := a.vehicleService.CreateAttachment(r.Context(), vehicleID, application.VehicleAttachmentInput{
+		FileName:      storageName,
+		OriginalName:  originalName,
+		Description:   strings.TrimSpace(input.Description),
+		Category:      category,
+		MimeType:      mimeType,
+		SizeBytes:     int64(len(data)),
+		StoragePath:   storagePath,
+		MaintenanceID: strings.TrimSpace(input.MaintenanceID),
+	})
+	if err != nil {
+		_ = os.Remove(fullPath)
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "attachment_invalid", "Beilage ist unvollstaendig.")
+			return
+		}
+		a.logger.Error("remote attachment metadata create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "attachment_import_failed", "Dokument konnte nicht gespeichert werden.")
 		return
 	}
 	respondJSON(w, http.StatusCreated, attachment)
@@ -1767,6 +1941,77 @@ func (a *App) deleteVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
 		}
 		a.logger.Error("maintenance delete failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "maintenance_delete_failed", "Wartungseintrag konnte nicht gelöscht werden.")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (a *App) listVehicleSpareParts(w http.ResponseWriter, r *http.Request) {
+	entries, err := a.vehicleService.ListSpareParts(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("spare part list failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "spare_part_list_failed", "Ersatzteile konnten nicht geladen werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, entries)
+}
+
+func (a *App) createVehicleSparePart(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleSparePartInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	entry, err := a.vehicleService.CreateSparePart(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollstaendig.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+		default:
+			a.logger.Error("spare part create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "spare_part_create_failed", "Ersatzteil konnte nicht gespeichert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusCreated, entry)
+}
+
+func (a *App) updateVehicleSparePart(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleSparePartInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	entry, err := a.vehicleService.UpdateSparePart(r.Context(), r.PathValue("id"), r.PathValue("sparePartID"), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleValidation):
+			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollstaendig.")
+		case errors.Is(err, application.ErrVehicleNotFound):
+			respondProblem(w, http.StatusNotFound, "spare_part_not_found", "Spare part not found.")
+		default:
+			a.logger.Error("spare part update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "spare_part_update_failed", "Ersatzteil konnte nicht aktualisiert werden.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, entry)
+}
+
+func (a *App) deleteVehicleSparePart(w http.ResponseWriter, r *http.Request) {
+	if _, err := a.vehicleService.DeleteSparePart(r.Context(), r.PathValue("id"), r.PathValue("sparePartID")); err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "spare_part_not_found", "Spare part not found.")
+			return
+		}
+		a.logger.Error("spare part delete failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "spare_part_delete_failed", "Ersatzteil konnte nicht geloescht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -2055,7 +2300,7 @@ func (a *App) exportBackup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	filename := "railkeeper2-backup-" + time.Now().UTC().Format("20060102-150405") + ".json"
+	filename := "railkeeper-backup-" + time.Now().UTC().Format("20060102-150405") + ".json"
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filename}))
 	if err := json.NewEncoder(w).Encode(backup); err != nil {
@@ -2143,7 +2388,7 @@ func (a *App) exportMasterData(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "master_data_export_failed", "Stammdaten konnten nicht exportiert werden.")
 		return
 	}
-	filename := "railkeeper2-stammdaten-" + time.Now().UTC().Format("20060102-150405") + ".json"
+	filename := "railkeeper-stammdaten-" + time.Now().UTC().Format("20060102-150405") + ".json"
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": filename}))
 	if err := json.NewEncoder(w).Encode(doc); err != nil {

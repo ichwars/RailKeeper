@@ -4607,7 +4607,13 @@
           "N",
           "T"
         ],
-        "website": "http://www.altemodellbahnen.de/t78437f144-Simplex.html"
+        "website": "https://uk.hornby.com/brands/arnold",
+        "searchDomains": [
+          "hornby.com"
+        ],
+        "aliases": [
+          "Arnold Hornby"
+        ]
       }
     },
     {
@@ -4826,7 +4832,10 @@
           "N",
           "TT"
         ],
-        "website": "http://www.auhagen.de"
+        "website": "https://www.auhagen.de/",
+        "searchDomains": [
+          "auhagen.de"
+        ]
       }
     },
     {
@@ -4940,7 +4949,13 @@
           "2",
           "N"
         ],
-        "website": "http://www.bachmann.co.uk/"
+        "website": "https://www.bachmann.co.uk/",
+        "searchDomains": [
+          "bachmann.co.uk"
+        ],
+        "aliases": [
+          "Bachmann Branchline"
+        ]
       }
     },
     {
@@ -5173,7 +5188,13 @@
           "H0m",
           "N"
         ],
-        "website": "http://www.bemo-modellbahn.de"
+        "website": "https://www.bemo-modellbahn.de/",
+        "searchDomains": [
+          "bemo-modellbahn.de"
+        ],
+        "aliases": [
+          "BEMO"
+        ]
       }
     },
     {
@@ -5457,7 +5478,10 @@
           "2",
           "N"
         ],
-        "website": "http://www.brawa.de/"
+        "website": "https://www.brawa.de/",
+        "searchDomains": [
+          "brawa.de"
+        ]
       }
     },
     {
@@ -5614,7 +5638,11 @@
           "T",
           "Z"
         ],
-        "website": "http://www.busch-model.com"
+        "website": "https://www.busch-model.info/",
+        "searchDomains": [
+          "busch-model.info",
+          "busch-model.com"
+        ]
       }
     },
     {
@@ -6319,7 +6347,15 @@
           "Kategorie:Hersteller (Modelleisenbahn)"
         ],
         "nominalScales": [],
-        "website": "http://doehler-haass.de"
+        "website": "https://doehler-haass.de/",
+        "searchDomains": [
+          "doehler-haass.de"
+        ],
+        "aliases": [
+          "Doehler & Haass",
+          "D&H",
+          "Doehler Haass"
+        ]
       }
     },
     {
@@ -6526,7 +6562,10 @@
           "0",
           "N"
         ],
-        "website": "http://www.electrotren.com"
+        "website": "https://uk.hornby.com/brands/electrotren",
+        "searchDomains": [
+          "hornby.com"
+        ]
       }
     },
     {
@@ -6651,7 +6690,10 @@
           "Kategorie:Hersteller (Modelleisenbahn)"
         ],
         "nominalScales": [],
-        "website": "https://www.esu.eu"
+        "website": "https://www.esu.eu/",
+        "searchDomains": [
+          "esu.eu"
+        ]
       }
     },
     {
@@ -6876,7 +6918,10 @@
           "Kategorie:Hersteller (Modelleisenbahn)"
         ],
         "nominalScales": [],
-        "website": "http://www.faller.de"
+        "website": "https://www.faller.de/",
+        "searchDomains": [
+          "faller.de"
+        ]
       }
     },
     {
@@ -6995,7 +7040,10 @@
           "H0",
           "N"
         ],
-        "website": "http://www.fleischmann.de"
+        "website": "https://www.fleischmann.de/",
+        "searchDomains": [
+          "fleischmann.de"
+        ]
       }
     },
     {
@@ -8218,7 +8266,10 @@
           "0",
           "N"
         ],
-        "website": "http://www.hornbyguide.com/default.asp"
+        "website": "https://uk.hornby.com/",
+        "searchDomains": [
+          "hornby.com"
+        ]
       }
     },
     {
@@ -8616,7 +8667,10 @@
         "nominalScales": [
           "T"
         ],
-        "website": ""
+        "website": "",
+        "aliases": [
+          "JATT"
+        ]
       }
     },
     {
@@ -8768,7 +8822,10 @@
           "0",
           "N"
         ],
-        "website": "http://lestrainsjouef.free.fr/en/index.html"
+        "website": "https://uk.hornby.com/brands/jouef",
+        "searchDomains": [
+          "hornby.com"
+        ]
       }
     },
     {
@@ -8943,7 +9000,10 @@
         "nominalScales": [
           "N"
         ],
-        "website": "http://www.katomodels.com"
+        "website": "https://www.katomodels.com/",
+        "searchDomains": [
+          "katomodels.com"
+        ]
       }
     },
     {
@@ -9074,7 +9134,13 @@
           "N",
           "Z"
         ],
-        "website": "http://www.viessmann-modell.com"
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": [
+          "viessmann-modell.com"
+        ],
+        "aliases": [
+          "Kibri"
+        ]
       }
     },
     {
@@ -9605,7 +9671,16 @@
         "nominalScales": [
           "2"
         ],
-        "website": "http://www.lgb.de/"
+        "website": "https://www.lgb.de/",
+        "searchDomains": [
+          "lgb.de",
+          "maerklin.de"
+        ],
+        "aliases": [
+          "LGB",
+          "Lehmann Gross Bahn",
+          "Lehmann-Gross-Bahn"
+        ]
       }
     },
     {
@@ -9666,7 +9741,15 @@
         "nominalScales": [
           "0"
         ],
-        "website": "http://www.digital-plus.de"
+        "website": "https://www.lenz-elektronik.de/",
+        "searchDomains": [
+          "lenz-elektronik.de",
+          "digital-plus.de"
+        ],
+        "aliases": [
+          "Lenz",
+          "Digital plus"
+        ]
       }
     },
     {
@@ -11503,7 +11586,15 @@
           "N",
           "Z"
         ],
-        "website": "http://www.maerklin.de/"
+        "website": "https://www.maerklin.de/",
+        "searchDomains": [
+          "maerklin.de"
+        ],
+        "aliases": [
+          "Märklin",
+          "Maerklin",
+          "Marklin"
+        ]
       }
     },
     {
@@ -12057,7 +12148,15 @@
           "N",
           "T"
         ],
-        "website": "https://www.eisenbahnfreunde-sonneberg.de/"
+        "website": "https://www.piko-shop.de/",
+        "searchDomains": [
+          "piko-shop.de",
+          "piko.de"
+        ],
+        "aliases": [
+          "PIKO",
+          "Piko Spielwaren"
+        ]
       }
     },
     {
@@ -12757,7 +12856,10 @@
           "0",
           "N"
         ],
-        "website": "http://www.rivarossi-memory.it"
+        "website": "https://uk.hornby.com/brands/rivarossi",
+        "searchDomains": [
+          "hornby.com"
+        ]
       }
     },
     {
@@ -12817,7 +12919,10 @@
           "0",
           "T"
         ],
-        "website": "http://www.roco.cc/de/home/index.html"
+        "website": "https://www.roco.cc/",
+        "searchDomains": [
+          "roco.cc"
+        ]
       }
     },
     {
@@ -14185,7 +14290,14 @@
           "0",
           "T"
         ],
-        "website": "http://www.berliner-tt-bahner.de/bin/bttb_f_list.php?firma=40125&mtyp=3"
+        "website": "https://www.tillig.com/",
+        "searchDomains": [
+          "tillig.com"
+        ],
+        "aliases": [
+          "TILLIG",
+          "Tillig Modellbahnen"
+        ]
       }
     },
     {
@@ -14419,7 +14531,11 @@
           "0",
           "N"
         ],
-        "website": "http://www.Trix.de"
+        "website": "https://www.trix.de/",
+        "searchDomains": [
+          "trix.de",
+          "maerklin.de"
+        ]
       }
     },
     {
@@ -14531,7 +14647,10 @@
           "Kategorie:Hersteller (Modelleisenbahn)"
         ],
         "nominalScales": [],
-        "website": "http://www.uhlenbrock.de"
+        "website": "https://www.uhlenbrock.de/",
+        "searchDomains": [
+          "uhlenbrock.de"
+        ]
       }
     },
     {
@@ -14702,7 +14821,10 @@
           "T",
           "Z"
         ],
-        "website": "http://www.viessmann-modell.com"
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": [
+          "viessmann-modell.com"
+        ]
       }
     },
     {
@@ -14763,7 +14885,13 @@
           "T",
           "Z"
         ],
-        "website": "http://www.viessmann-modell.com"
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": [
+          "viessmann-modell.com"
+        ],
+        "aliases": [
+          "Vollmer"
+        ]
       }
     },
     {
@@ -15226,7 +15354,10 @@
           "Kategorie:Hersteller (Modelleisenbahn)"
         ],
         "nominalScales": [],
-        "website": "https://www.zimo.at/web2010/"
+        "website": "https://www.zimo.at/",
+        "searchDomains": [
+          "zimo.at"
+        ]
       }
     },
     {

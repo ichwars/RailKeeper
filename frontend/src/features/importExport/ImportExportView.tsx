@@ -2,6 +2,7 @@ import { ChangeEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, SkipForward, Upload } from "lucide-react";
 import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import {
   buildECoSVehicleDraftRow,
   ColumnMapping,
@@ -634,12 +635,12 @@ export function ImportExportView() {
                   <strong title={mapping.header}>{mapping.header || t("importExport.mapping.column", { number: mapping.index + 1 })}</strong>
                   <small>{mapping.key ? t("importExport.mapping.mapped") : t("importExport.mapping.unmapped")}</small>
                 </span>
-                <select value={mapping.key} onChange={(event) => setColumnMapping(mapping.index, event.target.value as VehicleImportField | "")}>
+                <AppSelect value={mapping.key} onChange={(event) => setColumnMapping(mapping.index, event.target.value as VehicleImportField | "")}>
                   <option value="">{t("importExport.mapping.ignore")}</option>
                   {vehicleImportFields.map((field) => (
                     <option key={field.key} value={field.key}>{fieldLabel(field.key)}</option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
             ))}
           </div>
@@ -688,10 +689,10 @@ export function ImportExportView() {
                       <tr className={row.status === "error" ? "import-row-error" : row.status === "warning" ? "import-row-warning" : row.status === "saved" ? "import-row-saved" : ""}>
                         <td><input type="checkbox" checked={row.selected} disabled={row.status === "saved" || row.status === "error"} onChange={(event) => setRowSelected(row.id, event.target.checked)} /></td>
                         <td>
-                          <select value={row.mode} disabled={row.status === "saved"} onChange={(event) => setRowMode(row.id, event.target.value as ImportRow["mode"])}>
+                          <AppSelect value={row.mode} disabled={row.status === "saved"} onChange={(event) => setRowMode(row.id, event.target.value as ImportRow["mode"])}>
                             <option value="create">{t("importExport.review.create")}</option>
                             <option value="update" disabled={!row.duplicateVehicleId}>{t("importExport.review.update")}</option>
-                          </select>
+                          </AppSelect>
                         </td>
                         <td><input value={row.vehicle.inventoryNumber || ""} onChange={(event) => updateRow(row.id, { inventoryNumber: event.target.value })} /></td>
                         <td><input value={row.vehicle.manufacturer} onChange={(event) => updateRow(row.id, { manufacturer: event.target.value })} /></td>

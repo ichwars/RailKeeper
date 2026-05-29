@@ -1,6 +1,7 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { History, KeyRound, Mail, Pencil, RefreshCw, Save, Send, Shield, Trash2, UserCog, Users, X } from "lucide-react";
 import type { AuditLogEntry, Role, Session, SessionRecord, SMTPSettings, SMTPSettingsInput, UserAccount } from "../../shared/api";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -221,11 +222,11 @@ export function SettingsAuthTab({
                   </label>
                   <label>
                     {t("settings.smtp.tlsMode")}
-                    <select value={smtpForm.tlsMode} onChange={(event) => setSmtpForm((current) => ({ ...current, tlsMode: event.target.value }))}>
+                    <AppSelect value={smtpForm.tlsMode} onChange={(event) => setSmtpForm((current) => ({ ...current, tlsMode: event.target.value }))}>
                       <option value="starttls">STARTTLS</option>
                       <option value="implicit">{t("settings.smtp.tlsImplicit")}</option>
                       <option value="none">{t("settings.smtp.tlsNone")}</option>
-                    </select>
+                    </AppSelect>
                   </label>
                   <label>
                     {t("settings.smtp.from")}

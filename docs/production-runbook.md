@@ -1,11 +1,11 @@
 # Production Runbook
 
-Dieses Runbook beschreibt den sicheren Betrieb einer kleinen RailKeeper2-Installation mit Docker Compose, Reverse Proxy, TLS und lokalem Datenverzeichnis.
+Dieses Runbook beschreibt den sicheren Betrieb einer kleinen RailKeeper-Installation mit Docker Compose, Reverse Proxy, TLS und lokalem Datenverzeichnis.
 
 ## Zielbild
 
-- RailKeeper2 läuft als einzelner Container hinter einem Reverse Proxy mit HTTPS.
-- SQLite-Datenbank, Uploads und Backups liegen im persistenten Docker-Volume `railkeeper2_data` oder in einem explizit gesicherten Host-Verzeichnis.
+- RailKeeper läuft als einzelner Container hinter einem Reverse Proxy mit HTTPS.
+- SQLite-Datenbank, Uploads und Backups liegen im persistenten Docker-Volume `railkeeper_data` oder in einem explizit gesicherten Host-Verzeichnis.
 - Updates werden über GHCR-Images bezogen und erst nach Backup und kurzem Smoke-Test produktiv genutzt.
 - Benutzer, Sessions, Rate Limits und Audit Logs bleiben lokal und werden nicht über App-Backups wiederhergestellt.
 
@@ -29,7 +29,7 @@ Dieses Runbook beschreibt den sicheren Betrieb einer kleinen RailKeeper2-Install
 
 ## TLS Und Reverse Proxy
 
-RailKeeper2 sollte nicht direkt unverschlüsselt im Internet hängen. Empfohlen ist ein Reverse Proxy wie Caddy, Traefik, nginx oder ein NAS-/Router-Proxy.
+RailKeeper sollte nicht direkt unverschlüsselt im Internet hängen. Empfohlen ist ein Reverse Proxy wie Caddy, Traefik, nginx oder ein NAS-/Router-Proxy.
 
 Mindestanforderungen:
 
@@ -55,7 +55,7 @@ Wichtige Daten liegen im konfigurierten Data-Verzeichnis:
 
 Regelmäßiger Ablauf:
 
-1. In RailKeeper2 unter Einstellungen einen App-Backup-Export erstellen.
+1. In RailKeeper unter Einstellungen einen App-Backup-Export erstellen.
 2. Zusätzlich das Docker-Volume oder Host-Datenverzeichnis sichern.
 3. Backup außerhalb des Hosts ablegen.
 4. Vor größeren Updates ein frisches Backup erzeugen.
@@ -97,7 +97,7 @@ Rollback:
 1. In `.env` ein bekannt funktionierendes Image setzen, zum Beispiel:
 
    ```env
-   RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.11
+   RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.11
    ```
 
 2. Container neu ziehen und starten:

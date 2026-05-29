@@ -1,6 +1,6 @@
 # Architecture
 
-RailKeeper2 is a small modular monolith. It is deployed as one process, but the code is separated by responsibility.
+RailKeeper is a small modular monolith. It is deployed as one process, but the code is separated by responsibility.
 
 ## Boundaries
 

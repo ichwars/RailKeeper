@@ -17,7 +17,10 @@ import (
 	"time"
 )
 
-const backupFormat = "railkeeper2-backup"
+const (
+	backupFormat       = "railkeeper-backup"
+	legacyBackupFormat = "railkeeper2-backup"
+)
 
 var (
 	ErrBackupInvalid = errors.New("backup invalid")
@@ -82,6 +85,7 @@ var backupTableOrder = []string{
 	"vehicle_images",
 	"vehicle_attachments",
 	"vehicle_maintenance",
+	"vehicle_spare_parts",
 	"vehicle_functions",
 	"vehicle_cv_files",
 	"vehicle_cv_values",
@@ -95,6 +99,7 @@ var optionalBackupTables = map[string]struct{}{
 	"exhibition_lists":          {},
 	"exhibition_entries":        {},
 	"vehicle_external_mappings": {},
+	"vehicle_spare_parts":       {},
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {
@@ -223,7 +228,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	for _, file := range doc.Files {
 		result.FileBytes += file.SizeBytes
 	}
-	if doc.Format != backupFormat {
+	if !isSupportedBackupFormat(doc.Format) {
 		result.Errors = append(result.Errors, "Backup-Format wird nicht unterstützt.")
 	}
 	if doc.Version != 1 {
@@ -281,6 +286,10 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 
 	return finishBackupValidation(result), nil
+}
+
+func isSupportedBackupFormat(format string) bool {
+	return format == backupFormat || format == legacyBackupFormat
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {

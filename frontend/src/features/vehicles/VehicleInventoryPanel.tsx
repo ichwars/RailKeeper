@@ -21,6 +21,7 @@ import { useI18n } from "../../shared/i18n";
 import { formatDate } from "./vehicleFormat";
 import { maintenanceReminderText } from "./vehicleMaintenance";
 import { previewImageUrl, primaryImage, vehicleExhibitionEligible } from "./vehicleTransforms";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type InventoryViewMode = "table" | "cards";
@@ -83,7 +84,7 @@ type InventoryPanelProps = {
   onGattungFilterChange: (value: string) => void;
   onExhibitionReadyFilterChange: (value: boolean) => void;
   onResetFilters: () => void;
-  onOpenDetail: (vehicle: Vehicle, tab?: "model" | "control" | "cv" | "uploads" | "maintenance") => void;
+  onOpenDetail: (vehicle: Vehicle, tab?: "model" | "control" | "cv" | "uploads" | "maintenance" | "spareParts") => void;
   onOpenEdit: (vehicle: Vehicle) => void;
   onDelete: (vehicle: Vehicle) => void;
   onToggleSelection: (vehicleID: string) => void;
@@ -287,14 +288,14 @@ export function VehicleInventoryPanel({
               ))}
             </div>
 
-            <select className="inventory-filter-select" value={manufacturerFilter} onChange={(event) => onManufacturerFilterChange(event.target.value)} aria-label={t("vehicles.filter.manufacturer")}>
+            <AppSelect className="inventory-filter-select" value={manufacturerFilter} onChange={(event) => onManufacturerFilterChange(event.target.value)} aria-label={t("vehicles.filter.manufacturer")}>
               <option value="">{t("vehicles.filter.manufacturer")}</option>
               {inventoryFilterOptions.manufacturers.map((manufacturer) => (
                 <option key={manufacturer} value={manufacturer}>{manufacturer}</option>
               ))}
-            </select>
+            </AppSelect>
 
-            <select
+            <AppSelect
               className="inventory-filter-select"
               value={categoryFilter}
               onChange={(event) => {
@@ -307,14 +308,14 @@ export function VehicleInventoryPanel({
               {inventoryFilterOptions.categories.map((category) => (
                 <option key={category} value={category}>{category}</option>
               ))}
-            </select>
+            </AppSelect>
 
-            <select className="inventory-filter-select" value={gattungFilter} onChange={(event) => onGattungFilterChange(event.target.value)} aria-label={t("vehicles.filter.gattung")}>
+            <AppSelect className="inventory-filter-select" value={gattungFilter} onChange={(event) => onGattungFilterChange(event.target.value)} aria-label={t("vehicles.filter.gattung")}>
               <option value="">{t("vehicles.filter.gattung")}</option>
               {inventoryFilterOptions.gattungen.map((gattung) => (
                 <option key={gattung} value={gattung}>{gattung}</option>
               ))}
-            </select>
+            </AppSelect>
 
             <button
               type="button"

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 type exhibitionLockInput struct {

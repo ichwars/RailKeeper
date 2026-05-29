@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
-	"railkeeper2/backend/internal/infrastructure"
+	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
@@ -222,7 +222,7 @@ func TestBackupValidationWarnsAboutIgnoredAuthenticationTables(t *testing.T) {
 	db := backupTestDB(t, t.TempDir())
 	service := application.NewBackupService(db, t.TempDir())
 	doc := &application.BackupDocument{
-		Format:  "railkeeper2-backup",
+		Format:  "railkeeper-backup",
 		Version: 1,
 		Tables:  map[string][]map[string]any{},
 	}
@@ -263,7 +263,7 @@ func TestBackupValidationAllowsMissingOptionalExhibitionTables(t *testing.T) {
 	db := backupTestDB(t, t.TempDir())
 	service := application.NewBackupService(db, t.TempDir())
 	doc := &application.BackupDocument{
-		Format:  "railkeeper2-backup",
+		Format:  "railkeeper-backup",
 		Version: 1,
 		Tables:  backupDocumentTablesWithout("exhibition_lists", "exhibition_entries"),
 	}
@@ -280,12 +280,30 @@ func TestBackupValidationAllowsMissingOptionalExhibitionTables(t *testing.T) {
 	}
 }
 
+func TestBackupValidationAcceptsLegacyRailKeeper2Format(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format:  "railkeeper2-backup",
+		Version: 1,
+		Tables:  backupDocumentTablesWithout(),
+	}
+
+	result, err := service.Validate(context.Background(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected legacy backup format to remain compatible, got %#v", result)
+	}
+}
+
 func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	db := testDB(t)
 	service := application.NewBackupService(db, t.TempDir())
 
 	_, err := service.Import(context.Background(), &application.BackupDocument{
-		Format:  "railkeeper2-backup",
+		Format:  "railkeeper-backup",
 		Version: 1,
 		Tables:  map[string][]map[string]any{},
 		Files: []application.BackupFile{{

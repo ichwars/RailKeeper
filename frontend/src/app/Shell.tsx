@@ -169,8 +169,8 @@ export function Shell({
           {mobileMenuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
         </button>
         <div className="brand">
-          <img className="brand-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper2" />
-          <img className="brand-mark" src="/brand/railkeeper-mark.png" alt="RailKeeper2" />
+          <img className="brand-logo" src="/brand/railkeeper-logo.png" alt="RailKeeper" />
+          <img className="brand-mark" src="/brand/railkeeper-mark.png" alt="RailKeeper" />
         </div>
 
         <nav id="main-navigation" className="nav" aria-label={t("nav.main")}>
@@ -199,7 +199,7 @@ export function Shell({
               <a href="/settings" title={t("nav.system")} aria-label={t("nav.system")}>
                 <Settings size={17} aria-hidden="true" />
               </a>
-              <a href="https://github.com/ichwars/RailKeeper2" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>
+              <a href="https://github.com/ichwars/RailKeeper" target="_blank" rel="noreferrer" title={t("nav.repository")} aria-label={t("nav.repository")}>
                 <GitHubMark size={17} />
               </a>
               <button type="button" onClick={toggleTheme} title={t("nav.theme")} aria-label={t("nav.theme")}>
@@ -216,7 +216,7 @@ export function Shell({
 
       <main className="main">{children}</main>
 
-      <a className="feedback-button" href="https://github.com/ichwars/RailKeeper2/issues/new" target="_blank" rel="noreferrer" title={t("nav.feedback")} aria-label={t("nav.feedback")}>
+      <a className="feedback-button" href="https://github.com/ichwars/RailKeeper/issues/new" target="_blank" rel="noreferrer" title={t("nav.feedback")} aria-label={t("nav.feedback")}>
         <Bug size={20} aria-hidden="true" />
       </a>
     </div>

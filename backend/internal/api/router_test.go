@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	"railkeeper2/backend/internal/application"
-	"railkeeper2/backend/internal/infrastructure"
+	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 type capturePasswordResetMailer struct {
@@ -104,6 +104,26 @@ func TestAttachmentSafetyHelpers(t *testing.T) {
 	unsafeOnly := effectiveAttachmentExtensions(map[string]struct{}{".exe": {}})
 	if _, ok := unsafeOnly[".exe"]; ok {
 		t.Fatalf("expected unsafe configured extension to be ignored")
+	}
+}
+
+func TestRemoteDocumentHTTPClientDoesNotFollowPrivateRedirect(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "http://127.0.0.1/private.pdf", http.StatusFound)
+	}))
+	defer server.Close()
+
+	client := remoteDocumentHTTPClient(t.Context())
+	resp, err := client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("unexpected client error: %v", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.Request.URL.String() != server.URL {
+		t.Fatalf("client followed private redirect to %s", resp.Request.URL.String())
+	}
+	if resp.StatusCode != http.StatusFound {
+		t.Fatalf("expected redirect response to be returned, got %d", resp.StatusCode)
 	}
 }
 
@@ -430,7 +450,7 @@ func TestBackupValidateEndpoint(t *testing.T) {
 	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("file", "railkeeper2-backup.json")
+	part, err := writer.CreateFormFile("file", "railkeeper-backup.json")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -28,10 +28,13 @@ export const masterDataTypes: MasterDataType[] = [
 export const loadableMasterDataTypes = masterDataTypes;
 export const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 export const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
-export const defaultArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
+export const defaultArticleSearchSources = ["manufacturer", "catalogs", "dealers", "web"];
+const legacyArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
+const previousArticleSearchSources = ["manufacturer", "dealers", "web"];
 export const articleSearchSourceOptions = [
   { id: "web", labelKey: "settings.articleSearch.source.web", helpKey: "settings.articleSearch.source.webHelp" },
   { id: "manufacturer", labelKey: "settings.articleSearch.source.manufacturer", helpKey: "settings.articleSearch.source.manufacturerHelp" },
+  { id: "catalogs", labelKey: "settings.articleSearch.source.catalogs", helpKey: "settings.articleSearch.source.catalogsHelp" },
   { id: "dealers", labelKey: "settings.articleSearch.source.dealers", helpKey: "settings.articleSearch.source.dealersHelp" },
   { id: "wiki", labelKey: "settings.articleSearch.source.wiki", helpKey: "settings.articleSearch.source.wikiHelp" }
 ];
@@ -78,11 +81,23 @@ export function readLocalBool(key: string, fallback: boolean) {
   return value === "true";
 }
 
+function isLegacyArticleSearchDefault(sources: string[]) {
+  return (
+    sources.length === legacyArticleSearchSources.length && legacyArticleSearchSources.every((source) => sources.includes(source))
+  ) || (
+    sources.length === previousArticleSearchSources.length && previousArticleSearchSources.every((source) => sources.includes(source))
+  );
+}
+
 export function readArticleSearchSources() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(articleSearchSourcesSettingKey) || "[]") as string[];
     const allowed = new Set(articleSearchSourceOptions.map((option) => option.id));
     const sources = stored.filter((source) => allowed.has(source));
+    if (isLegacyArticleSearchDefault(sources)) {
+      window.localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(defaultArticleSearchSources));
+      return defaultArticleSearchSources;
+    }
     return sources.length > 0 ? sources : defaultArticleSearchSources;
   } catch {
     return defaultArticleSearchSources;
@@ -132,6 +147,9 @@ export const emptyForm = {
   active: true,
   sortOrder: 0,
   sourceUrl: "",
+  website: "",
+  searchDomainsText: "",
+  aliasesText: "",
   nominalScalesText: "",
   cvDecimal: "",
   cvBinary: "",
@@ -178,6 +196,9 @@ export function entryToForm(entry: MasterDataEntry): FormState {
     active: entry.active,
     sortOrder: entry.sortOrder,
     sourceUrl: entry.sourceUrl || "",
+    website: metadataString(entry, "website"),
+    searchDomainsText: manufacturerSearchDomainsText(entry),
+    aliasesText: metadataList(entry, "aliases").join(", "),
     nominalScalesText: nominalScalesText(entry),
     cvDecimal: cv8DecimalText(entry),
     cvBinary: cv8BinaryText(entry),
@@ -230,6 +251,46 @@ export function metadataList(entry: MasterDataEntry, key: string) {
 
 export function nominalScalesText(entry: MasterDataEntry) {
   return metadataList(entry, "nominalScales").join(", ");
+}
+
+export function manufacturerWebsite(entry: MasterDataEntry) {
+  return metadataString(entry, "website");
+}
+
+export function domainFromUrl(value: string | undefined) {
+  const clean = (value || "").trim();
+  if (!clean) return "";
+  try {
+    const url = new URL(clean.startsWith("http://") || clean.startsWith("https://") ? clean : `https://${clean}`);
+    return url.hostname.replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+export function manufacturerSearchDomains(entry: MasterDataEntry) {
+  const explicit = metadataList(entry, "searchDomains");
+  if (explicit.length > 0) return explicit;
+  const derived = domainFromUrl(manufacturerWebsite(entry));
+  return derived ? [derived] : [];
+}
+
+export function manufacturerSearchDomainsText(entry: MasterDataEntry) {
+  return manufacturerSearchDomains(entry).join(", ");
+}
+
+export function manufacturerAliasesText(entry: MasterDataEntry) {
+  return metadataList(entry, "aliases").join(", ");
+}
+
+export function isWikiLikeUrl(value: string | undefined) {
+  const normalized = (value || "").toLocaleLowerCase("de-DE");
+  return normalized.includes("modellbau-wiki") || normalized.includes("wikipedia.org") || normalized.includes("wikimedia.org");
+}
+
+export function manufacturerNeedsWebsiteReview(entry: MasterDataEntry) {
+  const website = manufacturerWebsite(entry);
+  return isWikiLikeUrl(website) || (!website && isWikiLikeUrl(entry.sourceUrl));
 }
 
 export function cv8NameText(entry: MasterDataEntry) {
@@ -309,10 +370,32 @@ export function applyVisibleMetadata(type: string, metadata: Record<string, unkn
   const next = { ...metadata };
   if (type === "manufacturer") {
     const nominalScales = parseList(form.nominalScalesText);
+    const aliases = parseList(form.aliasesText);
+    const website = form.website.trim();
+    const searchDomains = parseList(form.searchDomainsText);
+    const derivedDomain = domainFromUrl(website);
+    if (searchDomains.length === 0 && derivedDomain) {
+      searchDomains.push(derivedDomain);
+    }
     if (nominalScales.length > 0) {
       next.nominalScales = nominalScales;
     } else {
       delete next.nominalScales;
+    }
+    if (website) {
+      next.website = website;
+    } else {
+      delete next.website;
+    }
+    if (searchDomains.length > 0) {
+      next.searchDomains = searchDomains;
+    } else {
+      delete next.searchDomains;
+    }
+    if (aliases.length > 0) {
+      next.aliases = aliases;
+    } else {
+      delete next.aliases;
     }
   }
   if (type === "cv8_manufacturer") {

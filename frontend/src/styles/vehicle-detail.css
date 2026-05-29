@@ -294,6 +294,19 @@
   border-bottom: 1px solid var(--line);
 }
 
+.accordion-section:has(.required-label.missing),
+.accordion-section:has(.ecos-unclear-field) {
+  border: 1px solid color-mix(in srgb, var(--danger) 66%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
+.accordion-section:has(.required-label.missing) + .accordion-section,
+.accordion-section:has(.ecos-unclear-field) + .accordion-section {
+  border-top: 0;
+}
+
 .accordion-trigger {
   display: flex;
   align-items: center;

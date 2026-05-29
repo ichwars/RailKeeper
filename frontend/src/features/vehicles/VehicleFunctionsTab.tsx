@@ -4,6 +4,7 @@ import { MasterDataEntry, Vehicle, VehicleFunctionInput } from "../../shared/api
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { functionModes } from "./cvImport";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 type FunctionEdit = VehicleFunctionInput & { persisted?: boolean };
 
@@ -132,7 +133,7 @@ export function VehicleFunctionsTab({
                     functionType: inferFunctionTypeFromSymbol(symbolKey, symbols, edit.functionType)
                   })}
                 />
-                <select
+                <AppSelect
                   value={edit.mode || "dauer"}
                   onChange={(event) => updateFunctionEdit(functionKey, { mode: event.target.value })}
                   disabled={readonly || saving}
@@ -141,7 +142,7 @@ export function VehicleFunctionsTab({
                   {functionModes.map((modeName) => (
                     <option key={modeName} value={modeName}>{t(`vehicles.functionMode.${modeName}`)}</option>
                   ))}
-                </select>
+                </AppSelect>
                 <label className="switch-card function-direction">
                   <span>{t("vehicles.functions.direction")}</span>
                   <span className="switch-field">

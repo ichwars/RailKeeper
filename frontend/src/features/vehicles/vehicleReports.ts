@@ -295,7 +295,7 @@ export function inventoryReportHtml(
 <html lang="de">
   <head>
     <meta charset="utf-8">
-    <title>RailKeeper2 Bestand</title>
+    <title>RailKeeper Bestand</title>
     <style>
       :root { color: #101820; font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; }
       * { box-sizing: border-box; }

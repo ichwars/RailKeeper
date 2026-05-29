@@ -62,6 +62,29 @@
   color: var(--text);
 }
 
+.required-label.missing {
+  color: var(--danger);
+}
+
+.required-label.filled {
+  color: var(--text);
+}
+
+.vehicle-form label:has(.required-label.missing) > input,
+.vehicle-form label:has(.required-label.missing) > textarea,
+.vehicle-form label:has(.required-label.missing) .app-select-trigger {
+  border-color: color-mix(in srgb, var(--danger) 72%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--input-bg));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 26%, transparent);
+}
+
+.vehicle-form label:has(.required-label.missing) > input:focus,
+.vehicle-form label:has(.required-label.missing) > textarea:focus,
+.vehicle-form label:has(.required-label.missing) .app-select-trigger:focus-visible {
+  border-color: var(--danger);
+  outline-color: color-mix(in srgb, var(--danger) 18%, transparent);
+}
+
 .required-dot {
   width: 6px;
   height: 6px;
@@ -355,21 +378,41 @@
 }
 
 .inventory-filter-select {
-  flex: 1 1 138px;
+  flex: 0 1 176px;
+  min-width: 148px;
+  max-width: 176px;
+}
+
+.app-select.inventory-filter-select {
   min-height: 32px;
-  min-width: 128px;
-  max-width: 210px;
-  border: 1px solid var(--line);
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.app-select.inventory-filter-select .app-select-trigger {
+  min-height: 32px;
+  height: 32px;
   border-radius: 8px;
-  padding: 0 34px 0 12px;
-  background: var(--panel-subtle);
-  color: var(--text);
-  font: inherit;
+  padding: 0 10px 0 12px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
   font-size: 12px;
   font-weight: 650;
 }
 
-.inventory-filter-select:focus {
+.app-select.inventory-filter-select .app-select-options {
+  width: max(100%, 190px);
+}
+
+.app-select.inventory-filter-select .app-select-option {
+  min-height: 30px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.inventory-filter-select:focus,
+.app-select.inventory-filter-select .app-select-trigger:focus-visible {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
 }

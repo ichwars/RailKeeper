@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestRateLimitPersistsAttemptsInDatabase(t *testing.T) {

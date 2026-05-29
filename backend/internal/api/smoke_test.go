@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
@@ -69,7 +69,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	doAuthedMultipart(t, router, "/api/v1/master-data/import", "railkeeper-master-data.json", masterDataExport, adminSession, adminCookies, http.StatusOK)
 
 	backupExport := doJSON(t, router, http.MethodGet, "/api/v1/backup/export", "", adminCookies, http.StatusOK).Body.Bytes()
-	validateResponse := doAuthedMultipart(t, router, "/api/v1/backup/validate", "railkeeper2-backup.json", backupExport, adminSession, adminCookies, http.StatusOK)
+	validateResponse := doAuthedMultipart(t, router, "/api/v1/backup/validate", "railkeeper-backup.json", backupExport, adminSession, adminCookies, http.StatusOK)
 	var validation application.BackupValidationResult
 	if err := json.NewDecoder(validateResponse.Body).Decode(&validation); err != nil {
 		t.Fatal(err)
@@ -80,7 +80,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 
 	doAuthedJSON(t, router, http.MethodDelete, "/api/v1/vehicles/"+vehicle.ID, "", adminSession, adminCookies, http.StatusNoContent)
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", adminCookies, http.StatusOK)
-	restoreResponse := doAuthedMultipart(t, router, "/api/v1/backup/restore", "railkeeper2-backup.json", backupExport, adminSession, adminCookies, http.StatusOK)
+	restoreResponse := doAuthedMultipart(t, router, "/api/v1/backup/restore", "railkeeper-backup.json", backupExport, adminSession, adminCookies, http.StatusOK)
 	var restore application.BackupImportResult
 	if err := json.NewDecoder(restoreResponse.Body).Decode(&restore); err != nil {
 		t.Fatal(err)

@@ -48,10 +48,15 @@ func apiRouteSpecs() []routeSpec {
 		{"PUT", "/api/v1/vehicles/{id}/attachments/{attachmentID}"},
 		{"DELETE", "/api/v1/vehicles/{id}/attachments/{attachmentID}"},
 		{"GET", "/api/v1/vehicles/{id}/attachments/{attachmentID}/download"},
+		{"POST", "/api/v1/vehicles/{id}/attachments/import-url"},
 		{"GET", "/api/v1/vehicles/{id}/maintenance"},
 		{"POST", "/api/v1/vehicles/{id}/maintenance"},
 		{"PUT", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
 		{"DELETE", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
+		{"GET", "/api/v1/vehicles/{id}/spare-parts"},
+		{"POST", "/api/v1/vehicles/{id}/spare-parts"},
+		{"PUT", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
+		{"DELETE", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
 		{"GET", "/api/v1/vehicles/{id}/functions"},
 		{"PUT", "/api/v1/vehicles/{id}/functions/{functionKey}"},
 		{"DELETE", "/api/v1/vehicles/{id}/functions/{functionKey}"},
@@ -150,10 +155,15 @@ func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", a.require("Editor", a.updateVehicleAttachment))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", a.require("Editor", a.deleteVehicleAttachment))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/attachments/{attachmentID}/download", a.require("Viewer", a.downloadVehicleAttachment))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments/import-url", a.require("Editor", a.importVehicleAttachmentFromURL))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/maintenance", a.require("Viewer", a.listVehicleMaintenance))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/maintenance", a.require("Editor", a.createVehicleMaintenance))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.updateVehicleMaintenance))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.deleteVehicleMaintenance))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/spare-parts", a.require("Viewer", a.listVehicleSpareParts))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/spare-parts", a.require("Editor", a.createVehicleSparePart))
+	mux.HandleFunc("PUT /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.updateVehicleSparePart))
+	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.deleteVehicleSparePart))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/functions", a.require("Viewer", a.listVehicleFunctions))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/functions/{functionKey}", a.require("Editor", a.upsertVehicleFunction))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/functions/{functionKey}", a.require("Editor", a.deleteVehicleFunction))

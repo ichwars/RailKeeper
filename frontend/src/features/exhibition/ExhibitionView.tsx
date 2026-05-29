@@ -13,6 +13,7 @@ import {
 import { api, ExhibitionEntry, ExhibitionEntryInput, ExhibitionList, ExhibitionListInput, MasterDataEntry } from "../../shared/api";
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
@@ -908,9 +909,9 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                       </label>
                       <label>
                         <span>{t("exhibition.manufacturer")}</span>
-                        <select value={entryForm.manufacturer || ""} onChange={(event) => setEntryForm({ ...entryForm, manufacturer: event.target.value })}>
+                        <AppSelect value={entryForm.manufacturer || ""} onChange={(event) => setEntryForm({ ...entryForm, manufacturer: event.target.value })}>
                           {selectOptions(masterDataOptions.manufacturers)}
-                        </select>
+                        </AppSelect>
                       </label>
                       <label>
                         <span>{t("exhibition.series")}</span>
@@ -918,21 +919,21 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                       </label>
                       <label>
                         <span>{t("exhibition.gattung")}</span>
-                        <select value={entryForm.gattung || ""} onChange={(event) => setEntryForm({ ...entryForm, gattung: event.target.value })}>
+                        <AppSelect value={entryForm.gattung || ""} onChange={(event) => setEntryForm({ ...entryForm, gattung: event.target.value })}>
                           {selectOptions(masterDataOptions.gattungen)}
-                        </select>
+                        </AppSelect>
                       </label>
                       <label>
                         <span>{t("exhibition.epoch")}</span>
-                        <select value={entryForm.epoch || ""} onChange={(event) => setEntryForm({ ...entryForm, epoch: event.target.value })}>
+                        <AppSelect value={entryForm.epoch || ""} onChange={(event) => setEntryForm({ ...entryForm, epoch: event.target.value })}>
                           {selectOptions(masterDataOptions.epochs)}
-                        </select>
+                        </AppSelect>
                       </label>
                       <label>
                         <span>{t("exhibition.railwayCompany")}</span>
-                        <select value={entryForm.railwayCompany || ""} onChange={(event) => setEntryForm({ ...entryForm, railwayCompany: event.target.value })}>
+                        <AppSelect value={entryForm.railwayCompany || ""} onChange={(event) => setEntryForm({ ...entryForm, railwayCompany: event.target.value })}>
                           {selectOptions(masterDataOptions.railwayCompanies)}
-                        </select>
+                        </AppSelect>
                       </label>
                     </div>
                   </section>
@@ -945,10 +946,10 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                       </label>
                       <label>
                         <span>{t("exhibition.adapter")}</span>
-                        <select value={entryForm.adapter || ""} onChange={(event) => setEntryForm({ ...entryForm, adapter: event.target.value })}>
+                        <AppSelect value={entryForm.adapter || ""} onChange={(event) => setEntryForm({ ...entryForm, adapter: event.target.value })}>
                           <option value="">{t("exhibition.noSelection")}</option>
                           {adapterOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                        </select>
+                        </AppSelect>
                       </label>
                       <label>
                         <span>{t("exhibition.dccAddress")}</span>
@@ -1033,9 +1034,9 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                           label={t("exhibition.functionSymbolAria", { key: item.key })}
                           onChange={(symbolKey, symbolLabel) => updateEntryFunction(item.key, { symbolKey, name: symbolLabel || item.name })}
                         />
-                        <select value={item.type} onChange={(event) => updateEntryFunction(item.key, { type: event.target.value })} aria-label={t("exhibition.functionTypeAria", { key: item.key })}>
+                        <AppSelect value={item.type} onChange={(event) => updateEntryFunction(item.key, { type: event.target.value })} aria-label={t("exhibition.functionTypeAria", { key: item.key })}>
                           {functionTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-                        </select>
+                        </AppSelect>
                       </article>
                     ))}
                   </div>

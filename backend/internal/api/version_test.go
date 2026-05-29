@@ -150,8 +150,8 @@ func TestVersionInfoHandlesEmptyReleaseList(t *testing.T) {
 }
 
 func TestReleaseListURLConvertsGithubLatestEndpoint(t *testing.T) {
-	got := releaseListURL("https://api.github.com/repos/ichwars/RailKeeper2/releases/latest")
-	want := "https://api.github.com/repos/ichwars/RailKeeper2/releases"
+	got := releaseListURL("https://api.github.com/repos/ichwars/RailKeeper/releases/latest")
+	want := "https://api.github.com/repos/ichwars/RailKeeper/releases"
 	if got != want {
 		t.Fatalf("releaseListURL() = %q, want %q", got, want)
 	}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestInventoryNumberSchemeListAndUpdate(t *testing.T) {

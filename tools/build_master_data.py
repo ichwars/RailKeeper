@@ -19,6 +19,146 @@ MANUFACTURER_CATEGORIES = [
 ]
 
 
+CURATED_MANUFACTURER_SITES = {
+    "auhagen": {
+        "website": "https://www.auhagen.de/",
+        "searchDomains": ["auhagen.de"],
+    },
+    "bachmann": {
+        "website": "https://www.bachmann.co.uk/",
+        "searchDomains": ["bachmann.co.uk"],
+        "aliases": ["Bachmann Branchline"],
+    },
+    "bemo-modelleisenbahnen": {
+        "website": "https://www.bemo-modellbahn.de/",
+        "searchDomains": ["bemo-modellbahn.de"],
+        "aliases": ["BEMO"],
+    },
+    "busch": {
+        "website": "https://www.busch-model.info/",
+        "searchDomains": ["busch-model.info", "busch-model.com"],
+    },
+    "doehler-haass": {
+        "website": "https://doehler-haass.de/",
+        "searchDomains": ["doehler-haass.de"],
+        "aliases": ["Doehler & Haass", "D&H", "Doehler Haass"],
+    },
+    "electrotren": {
+        "website": "https://uk.hornby.com/brands/electrotren",
+        "searchDomains": ["hornby.com"],
+    },
+    "faller": {
+        "website": "https://www.faller.de/",
+        "searchDomains": ["faller.de"],
+    },
+    "hornby": {
+        "website": "https://uk.hornby.com/",
+        "searchDomains": ["hornby.com"],
+    },
+    "jouef": {
+        "website": "https://uk.hornby.com/brands/jouef",
+        "searchDomains": ["hornby.com"],
+    },
+    "kato": {
+        "website": "https://www.katomodels.com/",
+        "searchDomains": ["katomodels.com"],
+    },
+    "kibri": {
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": ["viessmann-modell.com"],
+        "aliases": ["Kibri"],
+    },
+    "lenz-elektronik": {
+        "website": "https://www.lenz-elektronik.de/",
+        "searchDomains": ["lenz-elektronik.de", "digital-plus.de"],
+        "aliases": ["Lenz", "Digital plus"],
+    },
+    "rivarossi": {
+        "website": "https://uk.hornby.com/brands/rivarossi",
+        "searchDomains": ["hornby.com"],
+    },
+    "uhlenbrock": {
+        "website": "https://www.uhlenbrock.de/",
+        "searchDomains": ["uhlenbrock.de"],
+    },
+    "vollmer": {
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": ["viessmann-modell.com"],
+        "aliases": ["Vollmer"],
+    },
+    "zimo": {
+        "website": "https://www.zimo.at/",
+        "searchDomains": ["zimo.at"],
+    },
+    "arnold": {
+        "website": "https://uk.hornby.com/brands/arnold",
+        "searchDomains": ["hornby.com"],
+        "aliases": ["Arnold Hornby"],
+    },
+    "brawa": {
+        "website": "https://www.brawa.de/",
+        "searchDomains": ["brawa.de"],
+    },
+    "esu": {
+        "website": "https://www.esu.eu/",
+        "searchDomains": ["esu.eu"],
+    },
+    "fleischmann": {
+        "website": "https://www.fleischmann.de/",
+        "searchDomains": ["fleischmann.de"],
+    },
+    "jatt": {
+        "aliases": ["JATT"],
+    },
+    "lehmann-gro-bahn": {
+        "website": "https://www.lgb.de/",
+        "searchDomains": ["lgb.de", "maerklin.de"],
+        "aliases": ["LGB", "Lehmann Gross Bahn", "Lehmann-Gross-Bahn"],
+    },
+    "marklin": {
+        "website": "https://www.maerklin.de/",
+        "searchDomains": ["maerklin.de"],
+        "aliases": ["M\u00e4rklin", "Maerklin", "Marklin"],
+    },
+    "piko-spielwaren": {
+        "website": "https://www.piko-shop.de/",
+        "searchDomains": ["piko-shop.de", "piko.de"],
+        "aliases": ["PIKO", "Piko Spielwaren"],
+    },
+    "roco": {
+        "website": "https://www.roco.cc/",
+        "searchDomains": ["roco.cc"],
+    },
+    "tillig-modellbahnen": {
+        "website": "https://www.tillig.com/",
+        "searchDomains": ["tillig.com"],
+        "aliases": ["TILLIG", "Tillig Modellbahnen"],
+    },
+    "trix": {
+        "website": "https://www.trix.de/",
+        "searchDomains": ["trix.de", "maerklin.de"],
+    },
+    "viessmann": {
+        "website": "https://viessmann-modell.com/",
+        "searchDomains": ["viessmann-modell.com"],
+    },
+}
+
+NON_MANUFACTURER_SITE_MARKERS = (
+    "altemodellbahnen.de",
+    "berliner-tt-bahner.de",
+    "eisenbahnfreunde-sonneberg.de",
+    "facebook.com",
+    "forum.",
+    "maetrix.net",
+    "modellbahnarchiv.de",
+    "modellbahninfo.org",
+    "radiomuseum.org",
+    "spurnull-magazin.de",
+    "web.archive.org",
+)
+
+
 def slug(value: str) -> str:
     value = unicodedata.normalize("NFKD", value.strip())
     value = value.encode("ascii", "ignore").decode("ascii").lower()
@@ -187,16 +327,29 @@ def nominal_scales(text):
 
 
 def website(links):
-    ignored = ("wikipedia.org", "wikimedia.org", "modellbau-wiki.de")
+    ignored = ("wikipedia.org", "wikimedia.org", "modellbau-wiki.de", *NON_MANUFACTURER_SITE_MARKERS)
     candidates = []
     for link in links:
         if link.startswith("//"):
             link = "https:" + link
-        if any(part in link for part in ignored):
+        normalized = link.lower()
+        if any(part in normalized for part in ignored):
             continue
         if link.startswith("http://") or link.startswith("https://"):
             candidates.append(link)
     return candidates[0] if candidates else ""
+
+
+def apply_manufacturer_curation(item):
+    curated = CURATED_MANUFACTURER_SITES.get(item["key"])
+    if not curated:
+        return item
+    metadata = dict(item.get("metadata") or {})
+    for key in ("website", "searchDomains", "aliases"):
+        if key in curated:
+            metadata[key] = curated[key]
+    item["metadata"] = metadata
+    return item
 
 
 def manufacturer_entries():
@@ -209,12 +362,13 @@ def manufacturer_entries():
     for index, title in enumerate(sorted(source_by_title, key=str.lower)):
         text, links = page_details(title)
         source_url = "https://www.modellbau-wiki.de/wiki/" + urllib.parse.quote(title.replace(" ", "_"))
-        out.append(entry("manufacturer", title, index, {
+        item = entry("manufacturer", title, index, {
             "wikiTitle": title,
             "sourceCategories": source_by_title[title],
             "nominalScales": nominal_scales(text),
             "website": website(links),
-        }, source_url))
+        }, source_url)
+        out.append(apply_manufacturer_curation(item))
         time.sleep(0.05)
     return out
 

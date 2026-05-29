@@ -9,14 +9,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ichwars/RailKeeper2/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper2?style=for-the-badge"></a>
-  <a href="https://github.com/ichwars/RailKeeper2/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper2/ci.yml?branch=main&style=for-the-badge"></a>
+  <a href="https://github.com/ichwars/RailKeeper/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper?style=for-the-badge"></a>
+  <a href="https://github.com/ichwars/RailKeeper/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper/ci.yml?branch=main&style=for-the-badge"></a>
   <img alt="Go" src="https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/License-MIT%20Self--Hosting-7AC943?style=for-the-badge"></a>
-  <a href="https://github.com/ichwars/RailKeeper2/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper2/total?style=for-the-badge"></a>
+  <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
 </p>
 
 ## Overview
@@ -58,8 +58,8 @@ RailKeeper is built around operational views instead of marketing pages:
 ### Docker Compose
 
 ```bash
-git clone https://github.com/ichwars/RailKeeper2.git
-cd RailKeeper2
+git clone https://github.com/ichwars/RailKeeper.git
+cd RailKeeper
 docker compose pull
 docker compose up -d
 ```
@@ -80,12 +80,12 @@ docker compose pull
 docker compose up -d
 ```
 
-The SQLite database, uploads and local files stay in the `railkeeper2_data` Docker volume.
+The SQLite database, uploads and local files stay in the `railkeeper_data` Docker volume.
 
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.11
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.11
 ```
 
 If you intentionally want to build the checked-out source tree, use:
@@ -136,7 +136,7 @@ RAILKEEPER_MIGRATIONS_DIR=./backend/migrations
 RAILKEEPER_SEEDS_DIR=./backend/seeds
 RAILKEEPER_STATIC_DIR=./frontend/dist
 RAILKEEPER_COOKIE_SECURE=false
-RAILKEEPER_UPDATE_CHECK_URL=https://api.github.com/repos/ichwars/RailKeeper2/releases/latest
+RAILKEEPER_UPDATE_CHECK_URL=https://api.github.com/repos/ichwars/RailKeeper/releases/latest
 ```
 
 Optional SMTP settings for password reset emails can be configured in the Admin UI under

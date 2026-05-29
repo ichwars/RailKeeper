@@ -5,6 +5,7 @@ import { useI18n } from "../../shared/i18n";
 import { CVFileUploadPreview, CVImportPreview, cvCategories, cvProtocols } from "./cvImport";
 import { cvFileAccept } from "./vehicleFiles";
 import { formatDateTime, formatFileSize } from "./vehicleFormat";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 type ECoSDraftPreview = {
   cvValues: VehicleCVValueInput[];
@@ -255,21 +256,21 @@ export function VehicleCVTab({
                           </label>
                           <label>
                             {t("vehicle.field.category")}
-                            <select value={cvForm.category || ""} onChange={(event) => updateCVForm({ category: event.target.value })} disabled={readonly || saving}>
+                            <AppSelect value={cvForm.category || ""} onChange={(event) => updateCVForm({ category: event.target.value })} disabled={readonly || saving}>
                               <option value="">{t("vehicle.field.category")}</option>
                               {cvCategories.map((category) => (
                                 <option key={category} value={category}>{category}</option>
                               ))}
-                            </select>
+                            </AppSelect>
                           </label>
                           <label>
                             {t("vehicle.field.protocol")}
-                            <select value={cvForm.protocol || ""} onChange={(event) => updateCVForm({ protocol: event.target.value })} disabled={readonly || saving}>
+                            <AppSelect value={cvForm.protocol || ""} onChange={(event) => updateCVForm({ protocol: event.target.value })} disabled={readonly || saving}>
                               <option value="">{t("vehicles.cv.noProtocol")}</option>
                               {cvProtocols.map((protocol) => (
                                 <option key={protocol} value={protocol}>{protocol}</option>
                               ))}
-                            </select>
+                            </AppSelect>
                           </label>
                           <label>
                             {t("vehicle.field.decoderProfile")}
@@ -278,12 +279,12 @@ export function VehicleCVTab({
                           {(selected.cvFiles || []).length > 0 && (
                             <label>
                               {t("vehicles.cv.sourceFile")}
-                              <select value={cvForm.sourceFileId || ""} onChange={(event) => updateCVForm({ sourceFileId: event.target.value })} disabled={readonly || saving}>
+                              <AppSelect value={cvForm.sourceFileId || ""} onChange={(event) => updateCVForm({ sourceFileId: event.target.value })} disabled={readonly || saving}>
                                 <option value="">{t("vehicles.cv.noFile")}</option>
                                 {(selected.cvFiles || []).map((file) => (
                                   <option key={file.id} value={file.id}>{file.originalName}</option>
                                 ))}
-                              </select>
+                              </AppSelect>
                             </label>
                           )}
                           <label className="cv-description">

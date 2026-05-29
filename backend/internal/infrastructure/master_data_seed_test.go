@@ -4,8 +4,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
-	"railkeeper2/backend/internal/infrastructure"
+	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 func TestSeedMasterDataLoadsGeneratedSeed(t *testing.T) {

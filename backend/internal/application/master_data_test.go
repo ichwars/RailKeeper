@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestMasterDataExportImportReplacesEntriesAndRelations(t *testing.T) {
@@ -97,6 +97,19 @@ func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 		Format: "wrong",
 	}); err != application.ErrMasterDataValidation {
 		t.Fatalf("expected validation error, got %v", err)
+	}
+}
+
+func TestMasterDataImportAcceptsLegacyRailKeeper2Format(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	_, err := service.Import(context.Background(), &application.MasterDataDocument{
+		Format:    "railkeeper2-master-data",
+		Version:   1,
+		Entries:   map[string][]application.MasterDataEntry{},
+		Relations: []application.MasterDataRelation{},
+	})
+	if err != nil {
+		t.Fatalf("expected legacy master data format to import, got %v", err)
 	}
 }
 

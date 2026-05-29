@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func (a *App) listSessions(w http.ResponseWriter, r *http.Request) {

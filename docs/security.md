@@ -1,6 +1,6 @@
 # Security
 
-RailKeeper2 is intended for local-first and small self-hosted installations. This document describes the implemented baseline and the remaining hardening work.
+RailKeeper is intended for local-first and small self-hosted installations. This document describes the implemented baseline and the remaining hardening work.
 
 ## Implemented
 
@@ -34,7 +34,7 @@ RailKeeper2 is intended for local-first and small self-hosted installations. Thi
 
 ## Operational Notes
 
-- Put RailKeeper2 behind HTTPS before setting `RAILKEEPER_COOKIE_SECURE=true`.
+- Put RailKeeper behind HTTPS before setting `RAILKEEPER_COOKIE_SECURE=true`.
 - Keep the `/data` directory private and backed up.
 - Do not expose the service directly to the internet without a reverse proxy and TLS.
 - Article search fetches third-party pages and should be considered untrusted input; results are suggestions and require explicit user selection.

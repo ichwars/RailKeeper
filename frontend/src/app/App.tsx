@@ -121,7 +121,7 @@ export function App() {
     return (
       <main className="auth-page">
         <section className="auth-card">
-          <h1>RailKeeper2</h1>
+          <h1>RailKeeper</h1>
           <p>{loadError}</p>
         </section>
       </main>
@@ -132,7 +132,7 @@ export function App() {
     return (
       <main className="auth-page">
         <section className="auth-card">
-          <h1>RailKeeper2</h1>
+          <h1>RailKeeper</h1>
           <p>{t("app.init")}</p>
         </section>
       </main>
@@ -154,7 +154,7 @@ export function App() {
     return (
       <main className="auth-page">
         <section className="auth-card">
-          <h1>RailKeeper2</h1>
+          <h1>RailKeeper</h1>
           <p>{t("app.session")}</p>
         </section>
       </main>

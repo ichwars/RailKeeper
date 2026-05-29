@@ -1,12 +1,13 @@
 import type { DragEvent, RefObject } from "react";
-import { ChevronDown, ChevronUp, Download, ExternalLink, FileText, Image, Save, Star, Trash2, Upload } from "lucide-react";
-import { api, Vehicle, VehicleAttachment, VehicleMaintenance } from "../../shared/api";
+import { ChevronDown, ChevronUp, Download, ExternalLink, FileText, Image, Save, Search, Star, Trash2, Upload } from "lucide-react";
+import { api, ArticleSearchDocument, Vehicle, VehicleAttachment, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { attachmentAccept, attachmentCategories, imageAccept } from "./vehicleFiles";
 import { formatFileSize } from "./vehicleFormat";
 import { maintenanceOptionLabel } from "./vehicleMaintenance";
 import { AttachmentEditState, PendingArticleImage } from "./vehicleTransforms";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 export function VehicleUploadsTab({
   selected,
@@ -22,6 +23,10 @@ export function VehicleUploadsTab({
   attachmentUploadMaintenanceID,
   attachmentUploadDescription,
   attachmentEdits,
+  documentSearchLoading,
+  documentSearchError,
+  documentSearchRan,
+  foundDocuments,
   onImageUploadMaintenanceIDChange,
   onUploadImages,
   onPreviewImage,
@@ -38,7 +43,9 @@ export function VehicleUploadsTab({
   onAttachmentUploadDescriptionChange,
   onUpdateAttachmentEdit,
   onSaveAttachment,
-  onDeleteAttachment
+  onDeleteAttachment,
+  onSearchDocuments,
+  onImportDocument
 }: {
   selected: Vehicle | null;
   readonly: boolean;
@@ -53,6 +60,10 @@ export function VehicleUploadsTab({
   attachmentUploadMaintenanceID: string;
   attachmentUploadDescription: string;
   attachmentEdits: AttachmentEditState;
+  documentSearchLoading: boolean;
+  documentSearchError: string;
+  documentSearchRan: boolean;
+  foundDocuments: ArticleSearchDocument[];
   onImageUploadMaintenanceIDChange: (value: string) => void;
   onUploadImages: (files: FileList | null) => void;
   onPreviewImage: (image: PendingArticleImage) => void;
@@ -70,8 +81,12 @@ export function VehicleUploadsTab({
   onUpdateAttachmentEdit: (id: string, patch: Partial<AttachmentEditState[string]>) => void;
   onSaveAttachment: (attachment: VehicleAttachment) => void;
   onDeleteAttachment: (attachment: VehicleAttachment) => void;
+  onSearchDocuments: () => void;
+  onImportDocument: (document: ArticleSearchDocument) => void;
 }) {
   const { t } = useI18n();
+
+  const importedAttachmentForDocument = (document: ArticleSearchDocument) => selected?.attachments?.find((attachment) => Boolean(document.url) && (attachment.description || "").includes(document.url));
 
   return (
     <section className="uploads-tab">
@@ -91,7 +106,7 @@ export function VehicleUploadsTab({
             disabled={readonly || !selected}
           />
           {selected && maintenanceEntries.length > 0 && (
-            <select
+            <AppSelect
               className="upload-maintenance-select"
               value={imageUploadMaintenanceID}
               onChange={(event) => onImageUploadMaintenanceIDChange(event.target.value)}
@@ -102,7 +117,7 @@ export function VehicleUploadsTab({
               {maintenanceEntries.map((entry) => (
                 <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
               ))}
-            </select>
+            </AppSelect>
           )}
           <button type="button" className="primary-button" onClick={() => imageInputRef.current?.click()} disabled={readonly || !selected || saving}>
             <Upload size={16} aria-hidden="true" />
@@ -135,7 +150,7 @@ export function VehicleUploadsTab({
                   />
                   <span>{sourceDisplayName(image.source)}</span>
                   {maintenanceEntries.length > 0 && (
-                    <select
+                    <AppSelect
                       className="image-maintenance-select"
                       value={image.maintenanceId || ""}
                       onChange={(event) => onUpdatePendingImageMaintenance(image.id, event.target.value)}
@@ -146,7 +161,7 @@ export function VehicleUploadsTab({
                       {maintenanceEntries.map((entry) => (
                         <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
                       ))}
-                    </select>
+                    </AppSelect>
                   )}
                   <div className="image-card-actions">
                     <a className="icon-button" href={image.source} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openSource")} title={t("vehicles.uploads.openSource")}>
@@ -212,18 +227,18 @@ export function VehicleUploadsTab({
             <span>{t("vehicles.uploads.dropHelp")}</span>
           </div>
           <div className="attachment-upload-fields">
-            <select value={attachmentUploadCategory} onChange={(event) => onAttachmentUploadCategoryChange(event.target.value)} disabled={readonly || !selected || saving}>
+            <AppSelect value={attachmentUploadCategory} onChange={(event) => onAttachmentUploadCategoryChange(event.target.value)} disabled={readonly || !selected || saving}>
               <option value="">{t("vehicles.uploads.autoCategory")}</option>
               {attachmentCategories.map((category) => (
                 <option key={category} value={category}>{category}</option>
               ))}
-            </select>
-            <select value={attachmentUploadMaintenanceID} onChange={(event) => onAttachmentUploadMaintenanceIDChange(event.target.value)} disabled={readonly || !selected || saving}>
+            </AppSelect>
+            <AppSelect value={attachmentUploadMaintenanceID} onChange={(event) => onAttachmentUploadMaintenanceIDChange(event.target.value)} disabled={readonly || !selected || saving}>
               <option value="">{t("vehicles.uploads.noMaintenance")}</option>
               {maintenanceEntries.map((entry) => (
                 <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
               ))}
-            </select>
+            </AppSelect>
             <input
               value={attachmentUploadDescription}
               onChange={(event) => onAttachmentUploadDescriptionChange(event.target.value)}
@@ -232,6 +247,66 @@ export function VehicleUploadsTab({
             />
           </div>
         </section>
+
+        <section className="web-document-section">
+          <div className="upload-head compact">
+            <div>
+              <h3>{t("vehicles.uploads.webDocumentsTitle")}</h3>
+              <p>{t("vehicles.uploads.webDocumentsHelp")}</p>
+            </div>
+            <button type="button" className="secondary-button" onClick={onSearchDocuments} disabled={!selected || readonly || documentSearchLoading}>
+              <Search size={15} aria-hidden="true" />
+              {documentSearchLoading ? t("vehicles.uploads.webDocumentsSearching") : t("vehicles.uploads.webDocumentsSearch")}
+            </button>
+          </div>
+          {documentSearchError && <p className="form-message">{documentSearchError}</p>}
+          {documentSearchRan && !documentSearchLoading && foundDocuments.length === 0 && <p className="empty-state compact">{t("vehicles.uploads.webDocumentsEmpty")}</p>}
+          {foundDocuments.length > 0 && (
+            <div className="compact-table web-document-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t("vehicles.uploads.webDocument")}</th>
+                    <th>{t("vehicles.spareParts.kind")}</th>
+                    <th>{t("vehicles.articleSearch.source")}</th>
+                    <th>{t("vehicles.actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {foundDocuments.map((document, index) => {
+                    const importedAttachment = importedAttachmentForDocument(document);
+                    const downloadUrl = importedAttachment && selected ? api.vehicleAttachmentDownloadUrl(selected.id, importedAttachment.id) : "";
+                    return (
+                      <tr key={`${document.url}-${index}`}>
+                        <td><a href={document.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {document.title}</a></td>
+                        <td>{document.kind || "-"}</td>
+                        <td>{document.source || "-"}</td>
+                        <td>
+                          {importedAttachment ? (
+                            <div className="table-actions">
+                              <a className="secondary-button" href={downloadUrl}>
+                                <Download size={15} aria-hidden="true" />
+                                {t("vehicles.uploads.webDocumentDownload")}
+                              </a>
+                              <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.webDocumentOpen")} title={t("vehicles.uploads.webDocumentOpen")}>
+                                <ExternalLink size={15} />
+                              </a>
+                            </div>
+                          ) : (
+                            <button type="button" className="secondary-button" onClick={() => onImportDocument(document)} disabled={readonly || saving}>
+                              {t("vehicles.uploads.webDocumentImport")}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
         {!selected && <p className="empty-state compact">{t("vehicles.uploads.attachmentsUntilSave")}</p>}
         {selected && (!selected.attachments || selected.attachments.length === 0) && (
           <p className="empty-state compact">{t("vehicles.uploads.attachmentsEmpty")}</p>
@@ -255,18 +330,18 @@ export function VehicleUploadsTab({
                     <strong>{attachment.originalName}</strong>
                     <span>{attachment.category || t("vehicles.uploads.noCategory")} - {attachment.mimeType || "Datei"} - {formatFileSize(attachment.sizeBytes)}</span>
                     <div className="attachment-edit-row">
-                      <select value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
+                      <AppSelect value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
                         <option value="">{t("vehicles.uploads.category")}</option>
                         {attachmentCategories.map((category) => (
                           <option key={category} value={category}>{category}</option>
                         ))}
-                      </select>
-                      <select value={edit.maintenanceId} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { maintenanceId: event.target.value })} disabled={readonly}>
+                      </AppSelect>
+                      <AppSelect value={edit.maintenanceId} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { maintenanceId: event.target.value })} disabled={readonly}>
                         <option value="">{t("vehicles.uploads.noMaintenance")}</option>
                         {maintenanceEntries.map((entry) => (
                           <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                       <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder={t("vehicles.uploads.note")} />
                     </div>
                   </div>

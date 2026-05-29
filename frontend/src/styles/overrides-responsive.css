@@ -617,8 +617,10 @@
     flex: 0 0 auto;
   }
 
-  .inventory-filter-select {
+  .inventory-filter-select,
+  .app-select.inventory-filter-select {
     width: 158px;
+    min-width: 158px;
     max-width: none;
   }
 

@@ -9,14 +9,14 @@ import (
 	"strings"
 	"time"
 
-	"railkeeper2/backend/internal/api"
-	"railkeeper2/backend/internal/application"
-	"railkeeper2/backend/internal/infrastructure"
+	"railkeeper/backend/internal/api"
+	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 const (
 	version               = "0.1.11"
-	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper2/releases/latest"
+	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 )
 
 func main() {
@@ -93,7 +93,7 @@ func main() {
 		AuthService:                 application.NewAuthService(db),
 		VehicleService:              application.NewVehicleService(db),
 		MasterDataService:           masterDataService,
-		ArticleSearch:               application.NewArticleSearchService(),
+		ArticleSearch:               application.NewArticleSearchService(masterDataService),
 		InventoryNumbers:            application.NewInventoryNumberService(db),
 		BackupService:               application.NewBackupService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
@@ -111,7 +111,7 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	logger.Info("railkeeper2 started", "addr", addr, "version", version)
+	logger.Info("railkeeper started", "addr", addr, "version", version)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)

@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 type auditLogResponse struct {

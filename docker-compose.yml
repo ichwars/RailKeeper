@@ -1,11 +1,11 @@
 services:
-  railkeeper2:
-    image: "${RAILKEEPER_IMAGE:-ghcr.io/ichwars/railkeeper2:latest}"
+  railkeeper:
+    image: "${RAILKEEPER_IMAGE:-ghcr.io/ichwars/railkeeper:latest}"
     build:
       context: .
       dockerfile: Dockerfile
       target: runtime
-    container_name: railkeeper2
+    container_name: railkeeper
     restart: unless-stopped
     ports:
       - "8080:8080"
@@ -19,11 +19,11 @@ services:
       RAILKEEPER_MAX_IMAGE_MB: "${RAILKEEPER_MAX_IMAGE_MB:-10}"
       RAILKEEPER_MAX_ATTACHMENT_MB: "${RAILKEEPER_MAX_ATTACHMENT_MB:-25}"
       RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS: "${RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS:-.pdf,.txt,.csv,.json,.xml,.zip,.jpg,.jpeg,.png,.webp}"
-      RAILKEEPER_UPDATE_CHECK_URL: "${RAILKEEPER_UPDATE_CHECK_URL:-https://api.github.com/repos/ichwars/RailKeeper2/releases/latest}"
+      RAILKEEPER_UPDATE_CHECK_URL: "${RAILKEEPER_UPDATE_CHECK_URL:-https://api.github.com/repos/ichwars/RailKeeper/releases/latest}"
       RAILKEEPER_PRINTERS: "${RAILKEEPER_PRINTERS:-}"
       RAILKEEPER_DEFAULT_PRINTER: "${RAILKEEPER_DEFAULT_PRINTER:-}"
     volumes:
-      - railkeeper2_data:/data
+      - railkeeper_data:/data
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -33,4 +33,4 @@ services:
       - /tmp
 
 volumes:
-  railkeeper2_data:
+  railkeeper_data:

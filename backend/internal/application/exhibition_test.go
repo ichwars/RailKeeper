@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestExhibitionListLocksEntries(t *testing.T) {

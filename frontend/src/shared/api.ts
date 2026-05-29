@@ -161,6 +161,7 @@ export type Vehicle = {
   images?: VehicleImage[];
   attachments?: VehicleAttachment[];
   maintenance?: VehicleMaintenance[];
+  spareParts?: VehicleSparePart[];
   functions?: VehicleFunction[];
   cvValues?: VehicleCVValue[];
   cvFiles?: VehicleCVFile[];
@@ -261,6 +262,25 @@ export type VehicleMaintenanceInput = {
   cost?: string;
   notes?: string;
 };
+
+export type VehicleSparePart = {
+  id: string;
+  vehicleId: string;
+  articleNumber: string;
+  description: string;
+  price?: string;
+  url?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleSparePartInput = {
+  articleNumber?: string;
+  description?: string;
+  price?: string;
+  url?: string;
+};
+
 
 export type VehicleFunction = {
   id: string;
@@ -516,6 +536,39 @@ export type ArticleSearchImage = {
   source: string;
 };
 
+export type ArticleSearchSparePart = {
+  articleNumber: string;
+  description: string;
+  price?: string;
+  url?: string;
+  source?: string;
+};
+
+export type ArticleSearchDocument = {
+  title: string;
+  url: string;
+  source?: string;
+  kind?: string;
+};
+
+export type VehicleAttachmentImportInput = {
+  url: string;
+  title?: string;
+  description?: string;
+  category?: string;
+  maintenanceId?: string;
+};
+
+export type ArticleSearchResultTrace = {
+  detailLoaded: boolean;
+  detailFields: number;
+  detailImages: number;
+  detailSpareParts?: number;
+  detailDocuments?: number;
+  finalUrl?: string;
+  error?: string;
+};
+
 export type ArticleSearchResult = {
   source: string;
   title: string;
@@ -524,11 +577,22 @@ export type ArticleSearchResult = {
   score: number;
   fields: Record<string, ArticleSearchField>;
   images?: ArticleSearchImage[];
+  spareParts?: ArticleSearchSparePart[];
+  documents?: ArticleSearchDocument[];
+  trace?: ArticleSearchResultTrace;
   conflicts?: string[];
+};
+
+export type ArticleSearchQueryInfo = {
+  source: string;
+  query: string;
 };
 
 export type ArticleSearchResponse = {
   query: string;
+  sources?: string[];
+  manufacturerDomains?: string[];
+  queries?: ArticleSearchQueryInfo[];
   results: ArticleSearchResult[];
 };
 
@@ -999,6 +1063,11 @@ export const api = {
     }),
   vehicleAttachmentDownloadUrl: (vehicleId: string, attachmentId: string) =>
     `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/attachments/${encodeURIComponent(attachmentId)}/download`,
+  importVehicleAttachmentFromUrl: (vehicleId: string, input: VehicleAttachmentImportInput) =>
+    request<VehicleAttachment>(`/vehicles/${encodeURIComponent(vehicleId)}/attachments/import-url`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
   vehicleMaintenance: (vehicleId: string) =>
     request<VehicleMaintenance[]>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance`),
   createVehicleMaintenance: (vehicleId: string, input: VehicleMaintenanceInput) =>
@@ -1016,6 +1085,25 @@ export const api = {
     ),
   deleteVehicleMaintenance: (vehicleId: string, maintenanceId: string) =>
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/maintenance/${encodeURIComponent(maintenanceId)}`, {
+      method: "DELETE"
+    }),
+  vehicleSpareParts: (vehicleId: string) =>
+    request<VehicleSparePart[]>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts`),
+  createVehicleSparePart: (vehicleId: string, input: VehicleSparePartInput) =>
+    request<VehicleSparePart>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts`, {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateVehicleSparePart: (vehicleId: string, sparePartId: string, input: VehicleSparePartInput) =>
+    request<VehicleSparePart>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/${encodeURIComponent(sparePartId)}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(input)
+      }
+    ),
+  deleteVehicleSparePart: (vehicleId: string, sparePartId: string) =>
+    request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/${encodeURIComponent(sparePartId)}`, {
       method: "DELETE"
     }),
   vehicleFunctions: (vehicleId: string) =>

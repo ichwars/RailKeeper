@@ -131,6 +131,14 @@
   background: var(--panel);
 }
 
+.settings-card:has(.backup-validation.danger),
+.settings-card:has(.backup-validation-list.danger),
+.settings-card:has(.form-message:not(:empty)) {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+  background: color-mix(in srgb, var(--danger) 5%, var(--panel));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 18%, transparent), var(--shadow);
+}
+
 .settings-card-title {
   display: flex;
   align-items: flex-start;
@@ -916,7 +924,7 @@
 }
 
 .master-data-create.manufacturer-create {
-  grid-template-columns: minmax(120px, 0.7fr) minmax(220px, 1.1fr) minmax(220px, 1fr) minmax(170px, 0.8fr) auto auto;
+  grid-template-columns: minmax(110px, 0.55fr) repeat(4, minmax(150px, 1fr)) auto auto;
 }
 
 .master-data-create.symbol-create {
@@ -1063,6 +1071,29 @@
 .table-icon-link:hover {
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+.master-data-warning {
+  display: block;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in srgb, #d97706 44%, var(--line));
+  border-radius: 999px;
+  color: #b45309;
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.master-data-table td {
+  vertical-align: middle;
+}
+
+.master-data-table td:nth-child(4),
+.master-data-table td:nth-child(5) {
+  max-width: 240px;
+  overflow-wrap: anywhere;
 }
 
 .status-icon {

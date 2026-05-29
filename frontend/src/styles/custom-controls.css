@@ -1,0 +1,154 @@
+/* App-owned controls and scrollbars. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--accent) 58%, var(--line)) color-mix(in srgb, var(--panel-subtle) 70%, transparent);
+}
+
+*::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+
+*::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--panel-subtle) 80%, transparent);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  min-height: 40px;
+  border: 3px solid color-mix(in srgb, var(--panel-subtle) 80%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 62%, var(--line));
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-strong);
+}
+
+.app-select {
+  position: relative;
+  min-width: 0;
+  color: var(--text);
+  font: inherit;
+}
+
+.app-select-trigger {
+  display: inline-flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--input-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-select-trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select-trigger:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.app-select.disabled .app-select-trigger,
+.app-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.app-select-options {
+  position: absolute;
+  z-index: 80;
+  top: calc(100% + 4px);
+  left: 0;
+  width: max(100%, 220px);
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: 8px;
+  padding: 5px;
+  background: var(--panel);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.22);
+}
+
+.app-select-option {
+  display: flex;
+  width: 100%;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-select-option span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-select-option.active,
+.app-select-option:hover {
+  background: color-mix(in srgb, var(--accent-bright) 22%, var(--panel));
+}
+
+.app-select-option.selected {
+  color: var(--accent-strong);
+  font-weight: 850;
+}
+
+.app-select-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.selection-toggle {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--input-bg, #fff);
+  color: transparent;
+  cursor: pointer;
+}
+
+.selection-toggle.active {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--line));
+  background: color-mix(in srgb, var(--accent-bright) 25%, var(--panel));
+  color: var(--accent-strong);
+}
+
+.selection-toggle:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.selection-count {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}

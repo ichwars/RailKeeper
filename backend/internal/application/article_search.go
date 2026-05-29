@@ -18,12 +18,14 @@ import (
 var ErrArticleSearchValidation = errors.New("article search validation failed")
 
 type ArticleSearchInput struct {
-	Manufacturer  string            `json:"manufacturer"`
-	ArticleNumber string            `json:"articleNumber"`
-	Name          string            `json:"name"`
-	Gauge         string            `json:"gauge"`
-	SearchSources []string          `json:"searchSources"`
-	Fields        map[string]string `json:"fields"`
+	Manufacturer        string            `json:"manufacturer"`
+	ArticleNumber       string            `json:"articleNumber"`
+	Name                string            `json:"name"`
+	Gauge               string            `json:"gauge"`
+	SearchSources       []string          `json:"searchSources"`
+	Fields              map[string]string `json:"fields"`
+	PreferredDomains    []string          `json:"preferredDomains,omitempty"`
+	ManufacturerAliases []string          `json:"manufacturerAliases,omitempty"`
 }
 
 type ArticleSearchField struct {
@@ -38,20 +40,56 @@ type ArticleSearchImage struct {
 	Source string `json:"source"`
 }
 
+type ArticleSearchSparePart struct {
+	ArticleNumber string `json:"articleNumber"`
+	Description   string `json:"description"`
+	Price         string `json:"price,omitempty"`
+	URL           string `json:"url,omitempty"`
+	Source        string `json:"source,omitempty"`
+}
+
+type ArticleSearchDocument struct {
+	Title  string `json:"title"`
+	URL    string `json:"url"`
+	Source string `json:"source,omitempty"`
+	Kind   string `json:"kind,omitempty"`
+}
+
 type ArticleSearchResult struct {
-	Source    string                        `json:"source"`
-	Title     string                        `json:"title"`
-	URL       string                        `json:"url"`
-	Snippet   string                        `json:"snippet"`
-	Score     int                           `json:"score"`
-	Fields    map[string]ArticleSearchField `json:"fields"`
-	Images    []ArticleSearchImage          `json:"images,omitempty"`
-	Conflicts []string                      `json:"conflicts,omitempty"`
+	Source     string                        `json:"source"`
+	Title      string                        `json:"title"`
+	URL        string                        `json:"url"`
+	Snippet    string                        `json:"snippet"`
+	Score      int                           `json:"score"`
+	Fields     map[string]ArticleSearchField `json:"fields"`
+	Images     []ArticleSearchImage          `json:"images,omitempty"`
+	SpareParts []ArticleSearchSparePart      `json:"spareParts,omitempty"`
+	Documents  []ArticleSearchDocument       `json:"documents,omitempty"`
+	Trace      ArticleSearchResultTrace      `json:"trace"`
+	Conflicts  []string                      `json:"conflicts,omitempty"`
+}
+
+type ArticleSearchResultTrace struct {
+	DetailLoaded     bool   `json:"detailLoaded"`
+	DetailFields     int    `json:"detailFields"`
+	DetailImages     int    `json:"detailImages"`
+	DetailSpareParts int    `json:"detailSpareParts"`
+	DetailDocuments  int    `json:"detailDocuments"`
+	FinalURL         string `json:"finalUrl,omitempty"`
+	Error            string `json:"error,omitempty"`
 }
 
 type ArticleSearchResponse struct {
-	Query   string                `json:"query"`
-	Results []ArticleSearchResult `json:"results"`
+	Query               string                   `json:"query"`
+	Sources             []string                 `json:"sources"`
+	ManufacturerDomains []string                 `json:"manufacturerDomains,omitempty"`
+	Queries             []ArticleSearchQueryInfo `json:"queries,omitempty"`
+	Results             []ArticleSearchResult    `json:"results"`
+}
+
+type ArticleSearchQueryInfo struct {
+	Source string `json:"source"`
+	Query  string `json:"query"`
 }
 
 type ArticleSearchAdapter interface {
@@ -59,8 +97,9 @@ type ArticleSearchAdapter interface {
 }
 
 type ArticleSearchService struct {
-	adapters []ArticleSearchAdapter
-	timeout  time.Duration
+	adapters   []ArticleSearchAdapter
+	timeout    time.Duration
+	masterData *MasterDataService
 }
 
 type articleSearchQuerySpec struct {
@@ -68,21 +107,31 @@ type articleSearchQuerySpec struct {
 	Source string
 }
 
-func NewArticleSearchService() *ArticleSearchService {
+func NewArticleSearchService(masterData ...*MasterDataService) *ArticleSearchService {
+	var masterDataService *MasterDataService
+	if len(masterData) > 0 {
+		masterDataService = masterData[0]
+	}
 	return &ArticleSearchService{
 		adapters: []ArticleSearchAdapter{
 			NewDuckDuckGoArticleSearchAdapter(http.DefaultClient),
 		},
-		timeout: 10 * time.Second,
+		timeout:    10 * time.Second,
+		masterData: masterDataService,
 	}
 }
 
 func (s *ArticleSearchService) Search(ctx context.Context, input ArticleSearchInput) (*ArticleSearchResponse, error) {
 	input = cleanArticleSearchInput(input)
+	input = s.withManufacturerMetadata(ctx, input)
 	query := articleSearchQuery(input)
 	if query == "" {
 		return nil, ErrArticleSearchValidation
 	}
+
+	sources := cleanArticleSearchSources(input.SearchSources)
+	manufacturerDomains := preferredManufacturerDomains(input)
+	queryPlan := articleSearchQueryInfo(input, query)
 
 	searchCtx, cancel := context.WithTimeout(ctx, s.timeout)
 	defer cancel()
@@ -107,7 +156,13 @@ func (s *ArticleSearchService) Search(ctx context.Context, input ArticleSearchIn
 		results = results[:10]
 	}
 
-	return &ArticleSearchResponse{Query: query, Results: results}, nil
+	return &ArticleSearchResponse{
+		Query:               query,
+		Sources:             sources,
+		ManufacturerDomains: manufacturerDomains,
+		Queries:             queryPlan,
+		Results:             results,
+	}, nil
 }
 
 func cleanArticleSearchInput(input ArticleSearchInput) ArticleSearchInput {
@@ -131,6 +186,7 @@ func cleanArticleSearchSources(sources []string) []string {
 	allowed := map[string]bool{
 		"web":          true,
 		"manufacturer": true,
+		"catalogs":     true,
 		"dealers":      true,
 		"wiki":         true,
 	}
@@ -143,9 +199,87 @@ func cleanArticleSearchSources(sources []string) []string {
 	}
 	cleaned = uniqueNonEmpty(cleaned)
 	if len(cleaned) == 0 {
-		return []string{"web", "manufacturer", "dealers", "wiki"}
+		return []string{"manufacturer", "catalogs", "dealers", "web"}
 	}
 	return cleaned
+}
+
+func (s *ArticleSearchService) withManufacturerMetadata(ctx context.Context, input ArticleSearchInput) ArticleSearchInput {
+	if s == nil || s.masterData == nil || strings.TrimSpace(input.Manufacturer) == "" {
+		return input
+	}
+	entries, err := s.masterData.List(ctx, "manufacturer", true)
+	if err != nil {
+		return input
+	}
+	entry, ok := matchManufacturerEntry(input.Manufacturer, entries)
+	if !ok {
+		return input
+	}
+	aliases := metadataStringList(entry.Metadata, "aliases")
+	input.ManufacturerAliases = uniqueNonEmpty(append(input.ManufacturerAliases, aliases...))
+	domains := metadataStringList(entry.Metadata, "searchDomains")
+	if website := metadataStringValue(entry.Metadata, "website"); website != "" {
+		domains = append(domains, domainFromURL(website))
+	}
+	input.PreferredDomains = uniqueDomains(append(input.PreferredDomains, domains...))
+	return input
+}
+
+func matchManufacturerEntry(manufacturer string, entries []MasterDataEntry) (MasterDataEntry, bool) {
+	needle := slugKey(manufacturer)
+	if needle == "" {
+		return MasterDataEntry{}, false
+	}
+	for _, entry := range entries {
+		if slugKey(entry.Label) == needle || slugKey(entry.Key) == needle {
+			return entry, true
+		}
+		for _, alias := range metadataStringList(entry.Metadata, "aliases") {
+			if slugKey(alias) == needle {
+				return entry, true
+			}
+		}
+	}
+	return MasterDataEntry{}, false
+}
+
+func metadataStringValue(metadata map[string]any, key string) string {
+	if metadata == nil {
+		return ""
+	}
+	value, ok := metadata[key]
+	if !ok {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return strings.TrimSpace(typed)
+	default:
+		return strings.TrimSpace(fmt.Sprint(typed))
+	}
+}
+
+func metadataStringList(metadata map[string]any, key string) []string {
+	if metadata == nil {
+		return nil
+	}
+	value, ok := metadata[key]
+	if !ok {
+		return nil
+	}
+	items := []string{}
+	switch typed := value.(type) {
+	case []any:
+		for _, item := range typed {
+			items = append(items, strings.TrimSpace(fmt.Sprint(item)))
+		}
+	case []string:
+		items = append(items, typed...)
+	case string:
+		items = strings.Split(typed, ",")
+	}
+	return uniqueNonEmpty(items)
 }
 
 func articleSearchQuery(input ArticleSearchInput) string {
@@ -257,19 +391,40 @@ func (a *DuckDuckGoArticleSearchAdapter) Search(ctx context.Context, input Artic
 	}
 
 	results := []ArticleSearchResult{}
+	var firstErr error
 	for _, searchQuery := range articleSearchQueries(input, query) {
 		searchResults, err := a.searchDuckDuckGo(ctx, input, searchQuery.Query, searchQuery.Source)
 		if err != nil {
-			if len(results) == 0 {
-				return nil, err
+			if firstErr == nil {
+				firstErr = err
 			}
 			continue
 		}
+		if isPriorityArticleSource(searchQuery.Source) || hasPriorityArticleURL(input, searchResults) {
+			searchResults = dedupeArticleResults(searchResults)
+			a.enrichResultsFromPages(ctx, input, searchResults)
+		}
 		results = append(results, searchResults...)
+	}
+	if firstErr != nil && len(results) == 0 {
+		return nil, firstErr
 	}
 	results = dedupeArticleResults(results)
 	a.enrichResultsFromPages(ctx, input, results)
 	return results, nil
+}
+
+func isPriorityArticleSource(source string) bool {
+	return source == "Herstellerseiten" || source == "Modellbahn-Fokus"
+}
+
+func hasPriorityArticleURL(input ArticleSearchInput, results []ArticleSearchResult) bool {
+	for _, result := range results {
+		if isManufacturerPreferredURL(input, result.URL) || isCatalogURL(result.URL) {
+			return true
+		}
+	}
+	return false
 }
 
 func articleSearchQueries(input ArticleSearchInput, query string) []articleSearchQuerySpec {
@@ -292,7 +447,7 @@ func articleSearchQueries(input ArticleSearchInput, query string) []articleSearc
 	}
 
 	if hasSource("manufacturer") {
-		for _, domain := range preferredManufacturerDomains(input.Manufacturer) {
+		for _, domain := range preferredManufacturerDomains(input) {
 			if focused != "" {
 				appendQuery(focused+" site:"+domain, "Herstellerseiten")
 			}
@@ -302,10 +457,18 @@ func articleSearchQueries(input ArticleSearchInput, query string) []articleSearc
 			}
 		}
 	}
+	if hasSource("catalogs") {
+		for _, domain := range catalogArticleDomains {
+			if focused != "" {
+				appendQuery(focused+" site:"+domain, "Modellbahn-Fokus")
+			}
+			appendQuery(query+" site:"+domain, "Modellbahn-Fokus")
+		}
+	}
 	if hasSource("dealers") {
 		for _, domain := range dealerArticleDomains {
-			appendQuery(query+" site:"+domain, "Händlerseiten")
-			if len(queries) >= 7 {
+			appendQuery(query+" site:"+domain, "H?ndlerseiten")
+			if len(queries) >= 8 {
 				break
 			}
 		}
@@ -318,7 +481,22 @@ func articleSearchQueries(input ArticleSearchInput, query string) []articleSearc
 		appendQuery(query, "DuckDuckGo")
 		appendQuery(query+" Modelleisenbahn", "DuckDuckGo")
 	}
-	return uniqueArticleSearchQueries(queries, 9)
+	return uniqueArticleSearchQueries(queries, 11)
+}
+
+func articleSearchQueryInfo(input ArticleSearchInput, query string) []ArticleSearchQueryInfo {
+	if isEANOnlyArticleSearch(input, query) {
+		return []ArticleSearchQueryInfo{
+			{Source: "DuckDuckGo", Query: query},
+			{Source: "DuckDuckGo", Query: query + " Modelleisenbahn"},
+		}
+	}
+	queries := articleSearchQueries(input, query)
+	out := make([]ArticleSearchQueryInfo, 0, len(queries))
+	for _, item := range queries {
+		out = append(out, ArticleSearchQueryInfo{Source: item.Source, Query: item.Query})
+	}
+	return out
 }
 
 func uniqueArticleSearchQueries(queries []articleSearchQuerySpec, limit int) []articleSearchQuerySpec {
@@ -354,7 +532,7 @@ func (a *DuckDuckGoArticleSearchAdapter) searchDuckDuckGo(ctx context.Context, i
 	if err != nil {
 		return nil, fmt.Errorf("build article search request: %w", err)
 	}
-	req.Header.Set("User-Agent", "RailKeeper2/0.1 article-search")
+	req.Header.Set("User-Agent", "RailKeeper/0.1 article-search")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
 
@@ -389,22 +567,26 @@ var (
 	snippetPattern              = regexp.MustCompile(`(?s)<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div[^>]+class="result__snippet"[^>]*>(.*?)</div>`)
 	tagPattern                  = regexp.MustCompile(`(?s)<[^>]+>`)
 	scriptStylePattern          = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
-	pricePattern                = regexp.MustCompile(`(?i)(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
+	pricePattern                = regexp.MustCompile(`(?i)(?:hersteller[-\s]*preis|preis|uvp)?[^\d]{0,20}(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
 	lengthPattern               = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,30}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
 	weightPattern               = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
 	tractionTirePattern         = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
 	eanPattern                  = regexp.MustCompile(`\b(\d{12,14})\b`)
-	epochPattern                = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)\s*(I{1,3}|IV|V|VI)\b`)
-	railwayPattern              = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|OeBB|BLS|SNCF|NS|FS)\b`)
-	adapterPattern              = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol)\b`)
+	epochPattern                = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)[^IVX]{0,16}(I{1,3}|IV|V|VI)\b`)
+	railwayPattern              = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|\x{00D6}BB|OeBB|BLS|SNCF|NS|FS)\b`)
+	adapterPattern              = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol|elektrische\s+schnittstelle)\b`)
 	powerPattern                = regexp.MustCompile(`(?i)\b(DC|AC|2-?Leiter|3-?Leiter|Gleichstrom|Wechselstrom)\b`)
 	digitalPositivePattern      = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
-	headlightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	headlightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|spitzenbeleuchtung|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,220})`)
 	lightingDescriptionPattern  = regexp.MustCompile(`(?i)(?:innenbeleuchtung|fuehrerstandsbeleuchtung|fuehrerstand|kabinenbeleuchtung|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
 	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|\bsound\b|sound\s+laut\s+artikeldaten|geräuschmodul|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
 	imageMetaPattern            = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
 	imageMetaAltPattern         = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
 	imageTagPattern             = regexp.MustCompile(`(?is)<img\b[^>]*>`)
+	linkTagPattern              = regexp.MustCompile(`(?is)<a\b[^>]*>.*?</a>`)
+	linkHrefAttrPattern         = regexp.MustCompile(`(?is)\bhref=["']([^"']+)["']`)
+	rowLikePattern              = regexp.MustCompile(`(?is)<(?:tr|li)\b[^>]*>.*?</(?:tr|li)>`)
+	sparePartArticlePattern     = regexp.MustCompile(`(?i)\b([A-Z]?\d{4,8}(?:[-/][A-Z0-9]+)?)\b`)
 	imageURLAttrPattern         = regexp.MustCompile(`(?is)\b(?:src|data-src|data-original|data-lazy-src|data-zoom-image)=["']([^"']+)["']`)
 	imageSrcSetAttrPattern      = regexp.MustCompile(`(?is)\b(?:srcset|data-srcset)=["']([^"']+)["']`)
 	metaDescriptionRegex        = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
@@ -424,11 +606,44 @@ var manufacturerDomains = map[string][]string{
 	"viessmann":   {"viessmann-modell.com"},
 }
 
+var catalogArticleDomains = []string{
+	"modellbahn-fokus.de",
+}
+
 var dealerArticleDomains = []string{
 	"elriwa.de",
 	"modellbahnshop-lippe.com",
 	"dm-toys.de",
 	"haertle.de",
+}
+
+var catalogDetailLabels = []string{
+	"Hersteller",
+	"Art.-Nr.",
+	"Artikel-Nr.",
+	"Artikelnummer",
+	"EAN",
+	"Spur",
+	"Bahn-Gesellschaft",
+	"Bahngesellschaft",
+	"Epoche",
+	"Stromsystem",
+	"Digital-Decoder",
+	"Schnittstelle",
+	"Motor",
+	"Schwungmasse",
+	"Haftreifen",
+	"L?nge ?ber Puffer",
+	"Laenge ueber Puffer",
+	"Mindestradius",
+	"Spitzenlicht",
+	"Vorbild (Land)",
+	"Hersteller-Preis",
+	"Herstellerpreis",
+	"Preis",
+	"UVP",
+	"Produktlinie",
+	"Erscheinungsdatum",
 }
 
 func parseDuckDuckGoResults(body string, input ArticleSearchInput, source string) []ArticleSearchResult {
@@ -487,17 +702,27 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	combined := repairMojibake(title + " " + snippet + " " + resultURL)
 	combinedLower := strings.ToLower(combined)
-	if input.Manufacturer != "" && strings.Contains(strings.ToLower(combined), strings.ToLower(input.Manufacturer)) {
+	if containsManufacturerTerm(input, combinedLower) {
 		fields["manufacturer"] = ArticleSearchField{Label: "Hersteller", Value: input.Manufacturer, Confidence: 80}
 	}
 	if input.ArticleNumber != "" && strings.Contains(strings.ToLower(combined), strings.ToLower(input.ArticleNumber)) {
 		fields["articleNumber"] = ArticleSearchField{Label: "Artikel-Nr.", Value: input.ArticleNumber, Confidence: 90}
+	}
+	if input.ArticleNumber == "" {
+		if value := labeledValue(combined, []string{"Art.-Nr.", "Artikel-Nr.", "Artikelnummer"}); value != "" {
+			fields["articleNumber"] = ArticleSearchField{Label: "Artikel-Nr.", Value: value, Confidence: 78}
+		}
 	}
 	if input.Gauge != "" && strings.Contains(strings.ToLower(combined), strings.ToLower(input.Gauge)) {
 		fields["gauge"] = ArticleSearchField{Label: "Spurweite", Value: input.Gauge, Confidence: 80}
 	}
 	if description := bestArticleDescription(input, cleanName, snippet, resultURL); description != "" {
 		fields["description"] = ArticleSearchField{Label: "Beschreibung", Value: description, Confidence: 65}
+	}
+	if description := catalogDescription(snippet, resultURL); description != "" {
+		if existing, ok := fields["description"]; !ok || len(description) > len(existing.Value) {
+			fields["description"] = ArticleSearchField{Label: "Beschreibung", Value: description, Confidence: 72}
+		}
 	}
 	if value := firstRegexValue(eanPattern, combined); value != "" && value != input.ArticleNumber {
 		fields["ean"] = ArticleSearchField{Label: "EAN-Nr.", Value: value, Confidence: 60}
@@ -508,8 +733,14 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	if value := firstRegexValue(railwayPattern, combined); value != "" {
 		fields["railwayCompany"] = ArticleSearchField{Label: "Bahngesellschaft", Value: strings.ToUpper(value), Confidence: 55}
 	}
-	if value := firstRegexValue(pricePattern, combined); value != "" {
-		fields["listPrice"] = ArticleSearchField{Label: "Listenpreis", Value: value, Confidence: 45}
+	if value := extractPrice(combined); value != "" {
+		fields["listPrice"] = ArticleSearchField{Label: "Listenpreis", Value: value, Confidence: 55}
+	}
+	if value := labeledValue(combined, []string{"Bahn-Gesellschaft", "Bahngesellschaft"}); value != "" {
+		fields["railwayCompany"] = ArticleSearchField{Label: "Bahngesellschaft", Value: strings.ToUpper(value), Confidence: 70}
+	}
+	if value := labeledValue(combined, []string{"Stromsystem"}); value != "" {
+		fields["powerPickup"] = ArticleSearchField{Label: "Stromsystem", Value: normalizeWhitespace(value), Confidence: 62}
 	}
 	if value := extractLengthMM(combined); value != "" {
 		fields["lengthMm"] = ArticleSearchField{Label: "Länge (mm)", Value: value, Confidence: 62}
@@ -522,6 +753,9 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	if value := extractAdapterInfo(combined); value != "" {
 		fields["adapter"] = ArticleSearchField{Label: "Schnittstelle / Adapter", Value: normalizeWhitespace(value), Confidence: 60}
+	}
+	if value := labeledValue(combined, []string{"Motor"}); value != "" {
+		fields["driveDescription"] = ArticleSearchField{Label: "Antrieb Beschreibung", Value: normalizeWhitespace(value), Confidence: 55}
 	}
 	if value := firstRegexValue(powerPattern, combined); value != "" {
 		fields["powerPickup"] = ArticleSearchField{Label: "Stromsystem", Value: normalizeWhitespace(value), Confidence: 50}
@@ -558,14 +792,14 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	gauge := strings.ToLower(strings.TrimSpace(input.Gauge))
 	name := strings.ToLower(strings.TrimSpace(input.Name))
 
-	if manufacturer != "" && strings.Contains(haystack, manufacturer) {
+	if manufacturer != "" && containsManufacturerTerm(input, haystack) {
 		score += 35
 	}
 	hasArticleNumber := articleNumber != "" && strings.Contains(haystack, articleNumber)
 	if hasArticleNumber {
-		score += 95
+		score += 105
 	} else if articleNumber != "" {
-		score -= 150
+		score -= 165
 	}
 	if gauge != "" && containsGaugeToken(haystack, gauge) {
 		score += 35
@@ -575,13 +809,28 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 	}
 	score += articleNameTokenScore(name, haystack)
 
-	if isManufacturerPreferredURL(input.Manufacturer, resultURL) && (articleNumber == "" || hasArticleNumber) {
-		score += 100
+	if isManufacturerPreferredURL(input, resultURL) {
+		if articleNumber == "" || hasArticleNumber {
+			score += 140
+		} else {
+			score += 15
+		}
+	} else if isCatalogURL(resultURL) && (articleNumber == "" || hasArticleNumber) {
+		score += 70
+	} else if isDealerURL(resultURL) && (articleNumber == "" || hasArticleNumber) {
+		score += 35
 	} else if strings.Contains(haystack, manufacturerDomainToken(input.Manufacturer)) {
 		score += 20
 	}
+	resultDomain := domainFromURL(resultURL)
 	if isMarketplaceURL(resultURL) {
-		score -= 12
+		score -= 30
+	}
+	if isWikiDomain(resultDomain) {
+		score -= 35
+	}
+	if isBlockedManufacturerDomain(resultDomain) {
+		score -= 45
 	}
 	ean := strings.ToLower(strings.TrimSpace(input.Fields["ean"]))
 	if ean != "" && strings.Contains(haystack, ean) {
@@ -597,6 +846,22 @@ func scoreArticleResult(input ArticleSearchInput, title, resultURL, snippet stri
 		}
 	}
 	return score
+}
+
+func containsManufacturerTerm(input ArticleSearchInput, haystack string) bool {
+	haystack = strings.ToLower(haystack)
+	for _, term := range manufacturerSearchTerms(input) {
+		if strings.Contains(haystack, strings.ToLower(term)) {
+			return true
+		}
+	}
+	return false
+}
+
+func manufacturerSearchTerms(input ArticleSearchInput) []string {
+	terms := []string{input.Manufacturer}
+	terms = append(terms, input.ManufacturerAliases...)
+	return uniqueNonEmpty(terms)
 }
 
 func articleNameTokenScore(name, haystack string) int {
@@ -635,17 +900,15 @@ func containsGaugeToken(haystack, gauge string) bool {
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Context, input ArticleSearchInput, results []ArticleSearchResult) {
-	limit := len(results)
-	if limit > 6 {
-		limit = 6
-	}
-	for index := 0; index < limit; index++ {
-		pageCtx, cancel := context.WithTimeout(ctx, 1800*time.Millisecond)
+	for _, index := range articleResultEnrichmentIndices(input, results) {
+		pageCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
 		body, finalURL, err := a.fetchArticlePage(pageCtx, results[index].URL)
 		cancel()
 		if err != nil || body == "" {
+			results[index].Trace.Error = detailLoadError(err, body)
 			continue
 		}
+		fieldsBefore := len(results[index].Fields)
 		if finalURL != "" {
 			results[index].URL = finalURL
 			if sourceField, ok := results[index].Fields["articleSourceUrl"]; ok {
@@ -663,8 +926,50 @@ func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Cont
 			}
 		}
 		results[index].Images = articleImagesFromHTML(body, results[index].URL, results[index].Title)
+		results[index].SpareParts = articleSparePartsFromHTML(body, results[index].URL)
+		results[index].Documents = articleDocumentsFromHTML(body, results[index].URL)
+		results[index].Trace = ArticleSearchResultTrace{
+			DetailLoaded:     true,
+			DetailFields:     len(results[index].Fields) - fieldsBefore,
+			DetailImages:     len(results[index].Images),
+			DetailSpareParts: len(results[index].SpareParts),
+			DetailDocuments:  len(results[index].Documents),
+			FinalURL:         results[index].URL,
+		}
 		results[index].Score = scoreArticleResult(input, results[index].Title, results[index].URL, results[index].Snippet+" "+pageText, results[index].Fields) + duckDuckGoRankBonus(index)
 	}
+}
+
+func detailLoadError(err error, body string) string {
+	if err != nil {
+		return err.Error()
+	}
+	if body == "" {
+		return "empty response"
+	}
+	return ""
+}
+
+func articleResultEnrichmentIndices(input ArticleSearchInput, results []ArticleSearchResult) []int {
+	const limit = 10
+	indices := []int{}
+	seen := map[int]bool{}
+	add := func(index int) {
+		if index < 0 || index >= len(results) || seen[index] || len(indices) >= limit {
+			return
+		}
+		seen[index] = true
+		indices = append(indices, index)
+	}
+	for index, result := range results {
+		if isManufacturerPreferredURL(input, result.URL) || isCatalogURL(result.URL) {
+			add(index)
+		}
+	}
+	for index := 0; index < len(results) && len(indices) < limit; index++ {
+		add(index)
+	}
+	return indices
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, pageURL string) (string, string, error) {
@@ -676,7 +981,7 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, p
 	if err != nil {
 		return "", "", err
 	}
-	req.Header.Set("User-Agent", "RailKeeper2/0.1 article-search")
+	req.Header.Set("User-Agent", "RailKeeper/0.1 article-search")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml")
 	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
 	resp, err := a.client.Do(req)
@@ -692,6 +997,150 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, p
 		return "", "", err
 	}
 	return string(body), resp.Request.URL.String(), nil
+}
+
+func articleDocumentsFromHTML(body, pageURL string) []ArticleSearchDocument {
+	seen := map[string]bool{}
+	documents := []ArticleSearchDocument{}
+	for _, tag := range linkTagPattern.FindAllString(body, -1) {
+		match := linkHrefAttrPattern.FindStringSubmatch(tag)
+		if len(match) < 2 {
+			continue
+		}
+		documentURL := resolveURL(pageURL, html.UnescapeString(match[1]))
+		if documentURL == "" || seen[strings.ToLower(documentURL)] || !looksLikeArticleDocument(tag, documentURL) {
+			continue
+		}
+		title := cleanDocumentTitle(cleanHTML(tag), documentURL)
+		seen[strings.ToLower(documentURL)] = true
+		documents = append(documents, ArticleSearchDocument{
+			Title:  title,
+			URL:    documentURL,
+			Source: sourceDisplayName(pageURL),
+			Kind:   classifyArticleDocument(tag + " " + documentURL),
+		})
+		if len(documents) >= 12 {
+			break
+		}
+	}
+	return documents
+}
+
+func articleSparePartsFromHTML(body, pageURL string) []ArticleSearchSparePart {
+	seen := map[string]bool{}
+	parts := []ArticleSearchSparePart{}
+	rows := rowLikePattern.FindAllString(body, -1)
+	rows = append(rows, strings.Split(visibleArticleLines(body), "\n")...)
+	for _, row := range rows {
+		part, ok := articleSparePartFromRow(row, pageURL)
+		if !ok {
+			continue
+		}
+		key := strings.ToLower(part.ArticleNumber + "|" + part.Description + "|" + part.URL)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		parts = append(parts, part)
+		if len(parts) >= 80 {
+			break
+		}
+	}
+	return parts
+}
+
+func articleSparePartFromRow(row, pageURL string) (ArticleSearchSparePart, bool) {
+	text := cleanHTML(row)
+	if len(text) < 6 {
+		return ArticleSearchSparePart{}, false
+	}
+	lower := strings.ToLower(text)
+	price := extractPrice(text)
+	if price == "" && !containsAny(lower, []string{"ersatzteil", "spare", "kuppl", "motor", "radsatz", "puffer", "decoder", "leiterplatte", "geh\u00e4use", "gehaeuse", "schraube", "stromabnehmer", "getriebe"}) {
+		return ArticleSearchSparePart{}, false
+	}
+	match := sparePartArticlePattern.FindStringSubmatch(text)
+	if len(match) < 2 {
+		return ArticleSearchSparePart{}, false
+	}
+	number := strings.TrimSpace(match[1])
+	description := strings.TrimSpace(strings.Replace(text, match[0], " ", 1))
+	if price != "" {
+		description = strings.TrimSpace(strings.Replace(description, price, " ", 1))
+	}
+	description = strings.Trim(description, " -:;,.\t")
+	description = regexp.MustCompile(`(?i)^(ersatzteil|spare part|artikel|art\\.?\\s*nr\\.?|nr\\.?)\\s*[:#-]*\\s*`).ReplaceAllString(description, "")
+	if len(description) > 180 {
+		description = strings.TrimSpace(description[:180])
+	}
+	link := ""
+	if linkMatch := linkHrefAttrPattern.FindStringSubmatch(row); len(linkMatch) >= 2 {
+		link = resolveURL(pageURL, html.UnescapeString(linkMatch[1]))
+	}
+	if description == "" && link == "" && price == "" {
+		return ArticleSearchSparePart{}, false
+	}
+	return ArticleSearchSparePart{ArticleNumber: number, Description: description, Price: price, URL: link, Source: sourceDisplayName(pageURL)}, true
+}
+
+func looksLikeArticleDocument(tag, documentURL string) bool {
+	lower := strings.ToLower(tag + " " + documentURL)
+	if strings.Contains(lower, ".pdf") {
+		return true
+	}
+	return containsAny(lower, []string{"bedienungsanleitung", "anleitung", "manual", "ersatzteil", "spare", "et-blatt", "explosionszeichnung", "serviceblatt", "beipackzettel", "download"})
+}
+
+func classifyArticleDocument(value string) string {
+	lower := strings.ToLower(value)
+	if containsAny(lower, []string{"ersatzteil", "spare", "et-blatt", "explosionszeichnung", "serviceblatt"}) {
+		return "spare-parts"
+	}
+	if containsAny(lower, []string{"bedienungsanleitung", "anleitung", "manual", "beipackzettel"}) {
+		return "manual"
+	}
+	return "document"
+}
+
+func cleanDocumentTitle(title, documentURL string) string {
+	title = strings.Trim(title, " -:;,.\t")
+	if title == "" || strings.EqualFold(title, "download") {
+		if parsed, err := url.Parse(documentURL); err == nil {
+			parts := strings.Split(strings.Trim(parsed.Path, "/"), "/")
+			if len(parts) > 0 {
+				title = parts[len(parts)-1]
+			}
+		}
+	}
+	if title == "" {
+		title = "Dokument"
+	}
+	return title
+}
+
+func visibleArticleLines(value string) string {
+	value = regexp.MustCompile(`(?is)</(?:tr|li|p|div|h[1-6]|dd|dt|br)>`).ReplaceAllString(value, "\n")
+	value = scriptStylePattern.ReplaceAllString(value, " ")
+	value = tagPattern.ReplaceAllString(value, " ")
+	value = html.UnescapeString(value)
+	value = repairMojibake(value)
+	lines := []string{}
+	for _, line := range strings.Split(value, "\n") {
+		line = strings.Join(strings.Fields(line), " ")
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
+}
+
+func containsAny(value string, tokens []string) bool {
+	for _, token := range tokens {
+		if strings.Contains(value, token) {
+			return true
+		}
+	}
+	return false
 }
 
 func articleImagesFromHTML(body, pageURL, title string) []ArticleSearchImage {
@@ -789,11 +1238,30 @@ func resolveURL(baseURL, raw string) string {
 	return base.ResolveReference(relative).String()
 }
 
-func isManufacturerPreferredURL(manufacturer, resultURL string) bool {
-	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
+func isManufacturerPreferredURL(input ArticleSearchInput, resultURL string) bool {
 	resultURL = strings.ToLower(resultURL)
-	for _, domain := range preferredManufacturerDomains(manufacturer) {
+	for _, domain := range preferredManufacturerDomains(input) {
 		if strings.Contains(resultURL, domain) {
+			return true
+		}
+	}
+	return false
+}
+
+func isCatalogURL(resultURL string) bool {
+	domain := domainFromURL(resultURL)
+	for _, catalog := range catalogArticleDomains {
+		if domain == catalog || strings.HasSuffix(domain, "."+catalog) {
+			return true
+		}
+	}
+	return false
+}
+
+func isDealerURL(resultURL string) bool {
+	domain := domainFromURL(resultURL)
+	for _, dealer := range dealerArticleDomains {
+		if domain == dealer || strings.HasSuffix(domain, "."+dealer) {
 			return true
 		}
 	}
@@ -815,15 +1283,73 @@ func isMarketplaceURL(resultURL string) bool {
 	return false
 }
 
-func preferredManufacturerDomains(manufacturer string) []string {
-	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
-	for key, domains := range manufacturerDomains {
+func preferredManufacturerDomains(input ArticleSearchInput) []string {
+	domains := uniqueDomains(input.PreferredDomains)
+	manufacturer := strings.ToLower(strings.TrimSpace(input.Manufacturer))
+	for key, staticDomains := range manufacturerDomains {
 		if manufacturer == "" || !strings.Contains(manufacturer, key) {
 			continue
 		}
-		return domains
+		domains = append(domains, staticDomains...)
 	}
-	return nil
+	return uniqueDomains(domains)
+}
+
+func uniqueDomains(values []string) []string {
+	out := []string{}
+	seen := map[string]bool{}
+	for _, value := range values {
+		domain := domainFromURL(value)
+		if domain == "" || isWikiDomain(domain) || isBlockedManufacturerDomain(domain) || seen[domain] {
+			continue
+		}
+		seen[domain] = true
+		out = append(out, domain)
+	}
+	return out
+}
+
+func domainFromURL(value string) string {
+	value = strings.TrimSpace(strings.ToLower(value))
+	if value == "" {
+		return ""
+	}
+	if !strings.Contains(value, "://") {
+		value = "https://" + value
+	}
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return ""
+	}
+	host := strings.TrimPrefix(strings.TrimSpace(parsed.Hostname()), "www.")
+	return strings.Trim(host, ".")
+}
+
+func isWikiDomain(domain string) bool {
+	domain = strings.TrimPrefix(strings.ToLower(strings.TrimSpace(domain)), "www.")
+	return domain == "modellbau-wiki.de" || strings.HasSuffix(domain, ".wikipedia.org") || strings.HasSuffix(domain, ".wikimedia.org")
+}
+
+func isBlockedManufacturerDomain(domain string) bool {
+	domain = strings.TrimPrefix(strings.ToLower(strings.TrimSpace(domain)), "www.")
+	blockedDomains := []string{
+		"altemodellbahnen.de",
+		"berliner-tt-bahner.de",
+		"eisenbahnfreunde-sonneberg.de",
+		"facebook.com",
+		"maetrix.net",
+		"modellbahnarchiv.de",
+		"modellbahninfo.org",
+		"radiomuseum.org",
+		"spurnull-magazin.de",
+		"web.archive.org",
+	}
+	for _, blocked := range blockedDomains {
+		if domain == blocked || strings.HasSuffix(domain, "."+blocked) {
+			return true
+		}
+	}
+	return strings.HasPrefix(domain, "forum.")
 }
 
 func manufacturerDomainToken(manufacturer string) string {
@@ -838,6 +1364,150 @@ func manufacturerDomainToken(manufacturer string) string {
 
 func normalizeWhitespace(value string) string {
 	return strings.Join(strings.Fields(value), " ")
+}
+
+func labeledValue(text string, labels []string) string {
+	text = repairMojibake(text)
+	lines := regexp.MustCompile(`[
+
+]+`).Split(text, -1)
+	for _, line := range lines {
+		line = normalizeWhitespace(line)
+		lowerLine := strings.ToLower(line)
+		for _, label := range labels {
+			lowerLabel := strings.ToLower(label)
+			if lowerLine == lowerLabel {
+				continue
+			}
+			if strings.HasPrefix(lowerLine, lowerLabel+":") || strings.HasPrefix(lowerLine, lowerLabel+" ") {
+				value := strings.TrimSpace(line[len(label):])
+				value = strings.Trim(value, " -:;,.	")
+				if value != "" {
+					return value
+				}
+			}
+		}
+	}
+	if value := compactLabeledValue(text, labels); value != "" {
+		return value
+	}
+	for _, label := range labels {
+		pattern := regexp.MustCompile(`(?im)^\s*` + regexp.QuoteMeta(label) + `\s*:?\s*([^\n\r.;|]{1,90})`)
+		for _, match := range pattern.FindAllStringSubmatch(text, -1) {
+			if len(match) < 2 {
+				continue
+			}
+			value := normalizeWhitespace(match[1])
+			value = strings.Trim(value, " -:;,.	")
+			if value != "" {
+				return value
+			}
+		}
+	}
+	return ""
+}
+
+func compactLabeledValue(text string, labels []string) string {
+	searchText := text
+	lower := strings.ToLower(text)
+	if detailsStart := strings.Index(lower, "daten & details:"); detailsStart >= 0 {
+		searchText = text[detailsStart:]
+		lower = strings.ToLower(searchText)
+	}
+	for _, label := range labels {
+		lowerLabel := strings.ToLower(label)
+		index := strings.Index(lower, lowerLabel)
+		for index >= 0 {
+			start := index + len(label)
+			if start < len(searchText) {
+				for start < len(searchText) && (searchText[start] == ' ' || searchText[start] == ':' || searchText[start] == '\t' || searchText[start] == '\u00a0') {
+					start++
+				}
+				end := len(searchText)
+				for _, nextLabel := range catalogDetailLabels {
+					if strings.EqualFold(nextLabel, label) {
+						continue
+					}
+					nextLower := strings.ToLower(nextLabel)
+					if next := strings.Index(lower[start:], nextLower); next > 0 && start+next < end {
+						end = start + next
+					}
+				}
+				value := normalizeWhitespace(searchText[start:end])
+				value = strings.Trim(value, " -:;,.	")
+				if value != "" && len(value) <= 90 {
+					return value
+				}
+			}
+			nextIndex := strings.Index(lower[index+len(lowerLabel):], lowerLabel)
+			if nextIndex < 0 {
+				break
+			}
+			index += len(lowerLabel) + nextIndex
+		}
+	}
+	return ""
+}
+
+func catalogDescription(value, resultURL string) string {
+	if !isCatalogURL(resultURL) {
+		return ""
+	}
+	value = repairMojibake(value)
+	lower := strings.ToLower(value)
+	start := strings.Index(lower, "beschreibung:")
+	for start > 0 && strings.Contains(lower[maxInt(0, start-14):start], "beleuchtung") {
+		next := strings.Index(lower[start+len("beschreibung:"):], "beschreibung:")
+		if next < 0 {
+			return ""
+		}
+		start += len("beschreibung:") + next
+	}
+	if start < 0 {
+		return ""
+	}
+	description := value[start+len("beschreibung:"):]
+	if end := strings.Index(strings.ToLower(description), "daten & details:"); end >= 0 {
+		description = description[:end]
+	}
+	description = normalizeWhitespace(description)
+	description = strings.Trim(description, " -:;,.	")
+	if len(description) > 520 {
+		description = strings.TrimSpace(description[:520])
+	}
+	if len(description) < 20 {
+		return ""
+	}
+	return description
+}
+
+func maxInt(left, right int) int {
+	if left > right {
+		return left
+	}
+	return right
+}
+
+func extractPrice(value string) string {
+	for _, label := range []string{"Hersteller-Preis", "Herstellerpreis", "Preis", "UVP"} {
+		labeled := labeledValue(value, []string{label})
+		if labeled == "" {
+			continue
+		}
+		if match := regexp.MustCompile(`\d{1,4}(?:[,.]\d{2})?`).FindString(labeled); match != "" {
+			return normalizePrice(match)
+		}
+	}
+	if value := firstRegexValue(pricePattern, value); value != "" {
+		return normalizePrice(value)
+	}
+	return ""
+}
+
+func normalizePrice(value string) string {
+	value = strings.ReplaceAll(strings.TrimSpace(value), ".", "")
+	value = strings.ReplaceAll(value, ",", ".")
+	return value
 }
 
 func extractLengthMM(value string) string {
@@ -886,7 +1556,7 @@ func looksLikeModelLength(candidate, context string) bool {
 func extractHeadlightDescription(value string) string {
 	description := firstRegexValue(headlightDescriptionPattern, value)
 	if description == "" {
-		description = sentenceForKeywords(value, []string{"lichtwechsel", "fahrlicht", "spitzenlicht", "schlusslicht"})
+		description = sentenceForKeywords(value, []string{"lichtwechsel", "fahrlicht", "spitzenlicht", "spitzenbeleuchtung", "schlusslicht"})
 	}
 	if description == "" {
 		return ""
@@ -1033,6 +1703,9 @@ func visibleArticleText(value string) string {
 
 func cleanArticleName(title, resultURL string) string {
 	value := cleanHTML(title)
+	if isCatalogURL(resultURL) {
+		value = cleanCatalogArticleName(value)
+	}
 	sourceParts := []string{
 		" - " + sourceDisplayName(resultURL),
 		" | " + sourceDisplayName(resultURL),
@@ -1048,6 +1721,12 @@ func cleanArticleName(title, resultURL string) string {
 		}
 	}
 	return strings.Trim(value, " -|")
+}
+
+func cleanCatalogArticleName(value string) string {
+	value = regexp.MustCompile(`(?i)^\s*\S+\s+\d{3,8}\s+`).ReplaceAllString(value, "")
+	value = regexp.MustCompile(`(?i)\s+(Diesellok|E-Lok|Elektrolok|Dampflok|Triebwagen|Dieseltriebwagen|Wagen|G?terwagen|Personenwagen)\s+[A-Z0-9]+\s+Modellbahn\s+Katalog\s*$`).ReplaceAllString(value, "")
+	return strings.Trim(value, " -:;,.\t")
 }
 
 func sourceDisplayName(resultURL string) string {

@@ -68,6 +68,10 @@ import {
   formatDateTime,
   loadableMasterDataTypes,
   localSettingKeys,
+  manufacturerAliasesText,
+  manufacturerNeedsWebsiteReview,
+  manufacturerSearchDomainsText,
+  manufacturerWebsite,
   masterDataImage,
   masterDataTypes,
   metadataString,
@@ -84,6 +88,7 @@ import {
   sidebarPrefsKey
 } from "./settingsModel";
 import type { FormState, PasswordFormState, SettingsTab, UserFormState } from "./settingsModel";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
@@ -236,14 +241,15 @@ export function SettingsView({ username }: { username: string }) {
   const items = itemsByType[activeType] || [];
   const loading = Boolean(loadingTypes[activeType]);
   const isSymbolData = activeType === "symbols";
+  const isManufacturerData = activeType === "manufacturer";
   const isCV8ManufacturerData = activeType === "cv8_manufacturer";
-  const masterDataColumnCount = isCV8ManufacturerData ? 7 : activeType === "manufacturer" || isSymbolData ? 5 : 4;
+  const masterDataColumnCount = isCV8ManufacturerData ? 7 : isManufacturerData ? 7 : isSymbolData ? 5 : 4;
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("de-DE");
     if (!needle) return items;
     return items.filter((entry) =>
-      `${entry.label} ${cv8NameText(entry)} ${entry.key} ${entry.sourceUrl || ""} ${metadataString(entry, "description")} ${cv8DecimalText(entry)} ${cv8BinaryText(entry)} ${cv8HexText(entry)} ${cv8CountryText(entry)}`.toLocaleLowerCase("de-DE").includes(needle)
+      `${entry.label} ${cv8NameText(entry)} ${entry.key} ${entry.sourceUrl || ""} ${manufacturerWebsite(entry)} ${manufacturerSearchDomainsText(entry)} ${manufacturerAliasesText(entry)} ${metadataString(entry, "description")} ${cv8DecimalText(entry)} ${cv8BinaryText(entry)} ${cv8HexText(entry)} ${cv8CountryText(entry)}`.toLocaleLowerCase("de-DE").includes(needle)
     );
   }, [items, search]);
 
@@ -926,40 +932,40 @@ export function SettingsView({ username }: { username: string }) {
               <div className="settings-field-grid">
                 <label>
                   {t("settings.language")}
-                  <select value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
+                  <AppSelect value={language} onChange={(event) => setLanguage(event.target.value as Language)}>
                     <option value="de">{t("settings.language.de")}</option>
                     <option value="en">{t("settings.language.en")}</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.defaultView")}
-                  <select value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
+                  <AppSelect value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.dateFormat")}
-                  <select value={dateFormat} onChange={(event) => setLocalSetting(localSettingKeys.dateFormat, event.target.value, setDateFormat)}>
+                  <AppSelect value={dateFormat} onChange={(event) => setLocalSetting(localSettingKeys.dateFormat, event.target.value, setDateFormat)}>
                     <option value="system">{t("settings.option.systemDefault")}</option>
                     <option value="de">{t("settings.option.dateDe")}</option>
                     <option value="iso">{t("settings.option.dateIso")}</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.timeFormat")}
-                  <select value={timeFormat} onChange={(event) => setLocalSetting(localSettingKeys.timeFormat, event.target.value, setTimeFormat)}>
+                  <AppSelect value={timeFormat} onChange={(event) => setLocalSetting(localSettingKeys.timeFormat, event.target.value, setTimeFormat)}>
                     <option value="system">{t("settings.option.systemDefault")}</option>
                     <option value="24h">{t("settings.option.hours24")}</option>
                     <option value="12h">{t("settings.option.hours12")}</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label className="settings-field-wide">
                   {t("settings.defaultPrinter")}
-                  <select value={defaultPrinter} onChange={(event) => setLocalSetting(localSettingKeys.defaultPrinter, event.target.value, setDefaultPrinter)}>
+                  <AppSelect value={defaultPrinter} onChange={(event) => setLocalSetting(localSettingKeys.defaultPrinter, event.target.value, setDefaultPrinter)}>
                     <option value="system-dialog">{t("settings.printer.system")}</option>
                     {(systemPrinters?.printers || []).map((printer) => (
                       <option key={printer.id} value={`printer:${printer.name}`}>
@@ -968,7 +974,7 @@ export function SettingsView({ username }: { username: string }) {
                     ))}
                     <option value="ask">{t("settings.printer.ask")}</option>
                     <option value="pdf">{t("settings.printer.pdf")}</option>
-                  </select>
+                  </AppSelect>
                 </label>
               </div>
               <section className="sidebar-order-box" aria-label={t("settings.sidebarOrder.title")}>
@@ -1259,12 +1265,34 @@ export function SettingsView({ username }: { username: string }) {
                 <form className={isCV8ManufacturerData ? "master-data-create cv8-create" : activeType === "manufacturer" ? "master-data-create manufacturer-create" : isSymbolData ? "master-data-create symbol-create" : "master-data-create"} onSubmit={submit}>
                   <strong>{editing ? t("settings.data.editEntry") : t("settings.data.newEntry")}</strong>
                   <input value={form.label} onChange={(event) => update({ label: event.target.value })} placeholder={t("settings.data.entryPlaceholder", { label: activeDataLabel })} required />
-                  {activeType === "manufacturer" && (
-                    <input
-                      value={form.nominalScalesText}
-                      onChange={(event) => update({ nominalScalesText: event.target.value })}
-                      placeholder={t("settings.data.nominalPlaceholder")}
-                    />
+                  {isManufacturerData && (
+                    <>
+                      <input
+                        value={form.nominalScalesText}
+                        onChange={(event) => update({ nominalScalesText: event.target.value })}
+                        placeholder={t("settings.data.nominalPlaceholder")}
+                      />
+                      <input
+                        value={form.website}
+                        onChange={(event) => update({ website: event.target.value })}
+                        placeholder={t("settings.data.manufacturerWebsitePlaceholder")}
+                      />
+                      <input
+                        value={form.searchDomainsText}
+                        onChange={(event) => update({ searchDomainsText: event.target.value })}
+                        placeholder={t("settings.data.searchDomainsPlaceholder")}
+                      />
+                      <input
+                        value={form.aliasesText}
+                        onChange={(event) => update({ aliasesText: event.target.value })}
+                        placeholder={t("settings.data.aliasesPlaceholder")}
+                      />
+                      <input
+                        value={form.sourceUrl}
+                        onChange={(event) => update({ sourceUrl: event.target.value })}
+                        placeholder={t("settings.data.sourceUrlPlaceholder")}
+                      />
+                    </>
                   )}
                   {isCV8ManufacturerData ? (
                     <>
@@ -1322,8 +1350,8 @@ export function SettingsView({ username }: { username: string }) {
                         />
                       </label>
                     </>
-                  ) : (
-                    <input value={form.sourceUrl} onChange={(event) => update({ sourceUrl: event.target.value })} placeholder={t("settings.data.websitePlaceholder")} />
+                  ) : isManufacturerData ? null : (
+                    <input value={form.sourceUrl} onChange={(event) => update({ sourceUrl: event.target.value })} placeholder={t("settings.data.sourceUrlPlaceholder")} />
                   )}
                   <button className="primary-button" disabled={saving}>
                     {saving ? t("vehicles.saving") : editing ? t("vehicles.save") : "+ " + t("settings.data.add")}
@@ -1352,7 +1380,9 @@ export function SettingsView({ username }: { username: string }) {
                         <th>{t("settings.data.actions")}</th>
                         {isSymbolData && <th>{t("settings.data.symbol")}</th>}
                         <th>{isCV8ManufacturerData ? t("settings.data.cv8Manufacturer") : t("settings.data.name")}</th>
-                        {activeType === "manufacturer" && <th>{t("settings.data.nominalScales")}</th>}
+                        {isManufacturerData && <th>{t("settings.data.nominalScales")}</th>}
+                        {isManufacturerData && <th>{t("settings.data.manufacturerWebsite")}</th>}
+                        {isManufacturerData && <th>{t("settings.data.searchDomains")}</th>}
                         {isCV8ManufacturerData && <th>{t("settings.data.cv8Decimal")}</th>}
                         {isCV8ManufacturerData && <th>{t("settings.data.cv8Binary")}</th>}
                         {isCV8ManufacturerData && <th>{t("settings.data.cv8Hex")}</th>}
@@ -1373,7 +1403,8 @@ export function SettingsView({ username }: { username: string }) {
                         </tr>
                       ) : (
                         filteredItems.map((entry) => {
-                          const link = externalLink(entry);
+                          const website = manufacturerWebsite(entry);
+                          const link = isManufacturerData ? (website ? { href: website, title: t("settings.data.openManufacturerWebsite") } : null) : externalLink(entry);
                           const symbolImage = masterDataImage(entry);
                           return (
                             <tr key={entry.id}>
@@ -1392,8 +1423,13 @@ export function SettingsView({ username }: { username: string }) {
                                   {symbolImage ? <img className="master-data-symbol-preview" src={symbolImage} alt="" /> : "-"}
                                 </td>
                               )}
-                              <td><strong>{isCV8ManufacturerData ? cv8NameText(entry) : entry.label}</strong></td>
-                              {activeType === "manufacturer" && <td>{nominalScalesText(entry) || "-"}</td>}
+                              <td>
+                                <strong>{isCV8ManufacturerData ? cv8NameText(entry) : entry.label}</strong>
+                                {isManufacturerData && manufacturerNeedsWebsiteReview(entry) && <span className="master-data-warning">{t("settings.data.wikiSourceWarning")}</span>}
+                              </td>
+                              {isManufacturerData && <td>{nominalScalesText(entry) || "-"}</td>}
+                              {isManufacturerData && <td>{manufacturerWebsite(entry) || "-"}</td>}
+                              {isManufacturerData && <td>{manufacturerSearchDomainsText(entry) || "-"}</td>}
                               {isCV8ManufacturerData && <td><code>{cv8DecimalText(entry) || "-"}</code></td>}
                               {isCV8ManufacturerData && <td><code>{cv8BinaryText(entry) || "-"}</code></td>}
                               {isCV8ManufacturerData && <td><code>{cv8HexText(entry) || "-"}</code></td>}
@@ -1637,28 +1673,28 @@ export function SettingsView({ username }: { username: string }) {
               <div className="settings-field-grid compact">
                 <label>
                   {t("settings.appearance.background")}
-                  <select value={darkBackground} onChange={(event) => setLocalSetting(localSettingKeys.darkBackground, event.target.value, setDarkBackground)}>
+                  <AppSelect value={darkBackground} onChange={(event) => setLocalSetting(localSettingKeys.darkBackground, event.target.value, setDarkBackground)}>
                     <option value="neutral">Neutral</option>
                     <option value="warm">Warm</option>
                     <option value="cool">Kühl</option>
                     <option value="oled">OLED Schwarz</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.appearance.accent")}
-                  <select value={darkAccent} onChange={(event) => setLocalSetting(localSettingKeys.darkAccent, event.target.value, setDarkAccent)}>
+                  <AppSelect value={darkAccent} onChange={(event) => setLocalSetting(localSettingKeys.darkAccent, event.target.value, setDarkAccent)}>
                     <option value="green">Grün</option>
                     <option value="blue">Blau</option>
                     <option value="gold">Gold</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.appearance.style")}
-                  <select value={darkStyle} onChange={(event) => setLocalSetting(localSettingKeys.darkStyle, event.target.value, setDarkStyle)}>
+                  <AppSelect value={darkStyle} onChange={(event) => setLocalSetting(localSettingKeys.darkStyle, event.target.value, setDarkStyle)}>
                     <option value="classic">Klassisch</option>
                     <option value="compact">Kompakt</option>
                     <option value="contrast">Kontrast</option>
-                  </select>
+                  </AppSelect>
                 </label>
               </div>
             </section>
@@ -1667,27 +1703,27 @@ export function SettingsView({ username }: { username: string }) {
               <div className="settings-field-grid compact">
                 <label>
                   {t("settings.appearance.background")}
-                  <select value={lightBackground} onChange={(event) => setLocalSetting(localSettingKeys.lightBackground, event.target.value, setLightBackground)}>
+                  <AppSelect value={lightBackground} onChange={(event) => setLocalSetting(localSettingKeys.lightBackground, event.target.value, setLightBackground)}>
                     <option value="neutral">Neutral</option>
                     <option value="warm">Warm</option>
                     <option value="cool">Kühl</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.appearance.accent")}
-                  <select value={lightAccent} onChange={(event) => setLocalSetting(localSettingKeys.lightAccent, event.target.value, setLightAccent)}>
+                  <AppSelect value={lightAccent} onChange={(event) => setLocalSetting(localSettingKeys.lightAccent, event.target.value, setLightAccent)}>
                     <option value="green">Grün</option>
                     <option value="blue">Blau</option>
                     <option value="gold">Gold</option>
-                  </select>
+                  </AppSelect>
                 </label>
                 <label>
                   {t("settings.appearance.style")}
-                  <select value={lightStyle} onChange={(event) => setLocalSetting(localSettingKeys.lightStyle, event.target.value, setLightStyle)}>
+                  <AppSelect value={lightStyle} onChange={(event) => setLocalSetting(localSettingKeys.lightStyle, event.target.value, setLightStyle)}>
                     <option value="classic">Klassisch</option>
                     <option value="compact">Kompakt</option>
                     <option value="contrast">Kontrast</option>
-                  </select>
+                  </AppSelect>
                 </label>
               </div>
             </section>

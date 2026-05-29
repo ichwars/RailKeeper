@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: RailKeeper2 API
+  title: RailKeeper API
   version: 0.1.0
 servers:
   - url: /api/v1
@@ -647,7 +647,7 @@ components:
       properties:
         format:
           type: string
-          example: railkeeper2-master-data
+          example: railkeeper-master-data
         version:
           type: integer
           example: 1
@@ -2542,6 +2542,23 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/attachments/import-url:
+    post:
+      tags: [Vehicles]
+      summary: Import a remote document URL as a vehicle attachment
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Attachment imported
+        "400":
+          description: Invalid URL or unsupported attachment type
+        "502":
+          description: Remote document could not be downloaded
   /vehicles/{id}/maintenance:
     get:
       tags: [Vehicles]
@@ -2602,6 +2619,66 @@ paths:
       responses:
         "204":
           description: Maintenance entry deleted
+  /vehicles/{id}/spare-parts:
+    get:
+      tags: [Vehicles]
+      summary: List spare parts for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Spare parts
+    post:
+      tags: [Vehicles]
+      summary: Create a spare part for a vehicle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Spare part created
+  /vehicles/{id}/spare-parts/{sparePartID}:
+    put:
+      tags: [Vehicles]
+      summary: Update a spare part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sparePartID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Spare part updated
+    delete:
+      tags: [Vehicles]
+      summary: Delete a spare part
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: sparePartID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Spare part deleted
   /vehicles/{id}/functions:
     get:
       tags: [Vehicles]

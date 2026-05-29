@@ -123,6 +123,7 @@ type Vehicle struct {
 	Images                    []VehicleImage       `json:"images,omitempty"`
 	Attachments               []VehicleAttachment  `json:"attachments,omitempty"`
 	Maintenance               []VehicleMaintenance `json:"maintenance,omitempty"`
+	SpareParts                []VehicleSparePart   `json:"spareParts,omitempty"`
 	Functions                 []VehicleFunction    `json:"functions,omitempty"`
 	CVValues                  []VehicleCVValue     `json:"cvValues,omitempty"`
 	CVFiles                   []VehicleCVFile      `json:"cvFiles,omitempty"`
@@ -240,6 +241,24 @@ type VehicleMaintenanceInput struct {
 	CompletedAt     string `json:"completedAt"`
 	Cost            string `json:"cost"`
 	Notes           string `json:"notes"`
+}
+
+type VehicleSparePart struct {
+	ID            string `json:"id"`
+	VehicleID     string `json:"vehicleId"`
+	ArticleNumber string `json:"articleNumber"`
+	Description   string `json:"description"`
+	Price         string `json:"price,omitempty"`
+	URL           string `json:"url,omitempty"`
+	CreatedAt     string `json:"createdAt"`
+	UpdatedAt     string `json:"updatedAt"`
+}
+
+type VehicleSparePartInput struct {
+	ArticleNumber string `json:"articleNumber"`
+	Description   string `json:"description"`
+	Price         string `json:"price"`
+	URL           string `json:"url"`
 }
 
 type VehicleFunction struct {

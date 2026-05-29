@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func (a *App) listUsers(w http.ResponseWriter, r *http.Request) {

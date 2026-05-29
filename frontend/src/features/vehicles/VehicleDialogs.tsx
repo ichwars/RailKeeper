@@ -5,6 +5,7 @@ import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { formatDate } from "./vehicleFormat";
 import { PendingArticleImage, vehicleExhibitionEligible } from "./vehicleTransforms";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 export function QrDialog({
   form,
@@ -147,10 +148,10 @@ export function ReportDialog({
         <div className="report-form-grid">
           <label>
             {t("vehicles.report.type")}
-            <select value={reportMode} onChange={(event) => onReportModeChange(event.target.value as "summary" | "details")}>
+            <AppSelect value={reportMode} onChange={(event) => onReportModeChange(event.target.value as "summary" | "details")}>
               <option value="summary">{t("vehicles.report.summary")}</option>
               <option value="details">{t("vehicles.report.details")}</option>
-            </select>
+            </AppSelect>
           </label>
 
           <label>
@@ -235,7 +236,7 @@ export function ExhibitionAssignmentDialog({
         </p>
         <label className="exhibition-assign-field">
           <span>{t("vehicles.exhibition.list")}</span>
-          <select
+          <AppSelect
             value={assignment.selectedListID}
             onChange={(event) => onListChange(event.target.value)}
             disabled={assignment.loadingEntries || assignment.saving || assignment.lists.length === 0}
@@ -246,7 +247,7 @@ export function ExhibitionAssignmentDialog({
                 {list.designation} · {formatDate(list.date)}
               </option>
             ))}
-          </select>
+          </AppSelect>
         </label>
         <div className="exhibition-assign-checks" aria-live="polite">
           <span className={vehicleExhibitionEligible(assignment.vehicle) ? "check-ok" : "check-error"}>

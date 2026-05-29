@@ -476,7 +476,8 @@
 
 .ecos-unclear-field input,
 .ecos-unclear-field select,
-.ecos-unclear-field textarea {
+.ecos-unclear-field textarea,
+.ecos-unclear-field .app-select-trigger {
   border-color: color-mix(in srgb, var(--danger) 70%, var(--line));
   background: color-mix(in srgb, var(--danger) 8%, var(--input-bg));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 28%, transparent);
@@ -860,6 +861,14 @@
 .import-review-panel {
   display: grid;
   gap: 12px;
+}
+
+.import-review-panel:has(.import-row-error),
+.column-mapping-panel:has(.form-message:not(:empty)),
+.ecos-panel:has(.ecos-unclear-field) {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+  background: color-mix(in srgb, var(--danger) 5%, var(--panel));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
 .import-table input:not([type="checkbox"]),

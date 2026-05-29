@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	"railkeeper2/backend/internal/application"
+	"railkeeper/backend/internal/application"
 )
 
 func TestLoginCreatesReadableSession(t *testing.T) {

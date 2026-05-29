@@ -1,6 +1,7 @@
 import { QrCode } from "lucide-react";
 import { CreateVehicleRequest } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import {
   acquiredFromOptions,
   acquisitionOptions,
@@ -28,7 +29,7 @@ function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen") {
 
 export function RequiredLabel({ label, filled }: { label: string; filled: boolean }) {
   return (
-    <span className="required-label">
+    <span className={filled ? "required-label filled" : "required-label missing"}>
       {label}
       <span className={filled ? "required-dot filled" : "required-dot"} aria-hidden="true" />
     </span>
@@ -101,24 +102,24 @@ export function VehicleDetailsFields({
         </label>
         <label>
           {t("vehicle.field.wheelset")}
-          <select value={form.wheelset || ""} onChange={(event) => update({ wheelset: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.wheelset || ""} onChange={(event) => update({ wheelset: event.target.value })} disabled={readonly}>
             {renderStaticOptions(wheelsetOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.powerPickup")}
-          <select value={form.powerPickup || ""} onChange={(event) => update({ powerPickup: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.powerPickup || ""} onChange={(event) => update({ powerPickup: event.target.value })} disabled={readonly}>
             {renderStaticOptions(powerPickupOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
       </div>
 
       <div className="form-row details-coupling-row">
         <label>
           {t("vehicle.field.adapter")}
-          <select value={form.adapter || ""} onChange={(event) => update({ adapter: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.adapter || ""} onChange={(event) => update({ adapter: event.target.value })} disabled={readonly}>
             {renderStaticOptions(adapterOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label className="coupling-same-field">
           <span>{t("vehicles.detail.couplingSame")}</span>
@@ -129,15 +130,15 @@ export function VehicleDetailsFields({
         </label>
         <label>
           {t("vehicle.field.couplingFront")}
-          <select value={form.couplingFront || ""} onChange={(event) => updateCouplingFront(event.target.value)} disabled={readonly}>
+          <AppSelect value={form.couplingFront || ""} onChange={(event) => updateCouplingFront(event.target.value)} disabled={readonly}>
             {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.couplingRear")}
-          <select value={form.couplingSame ? form.couplingFront || "" : form.couplingRear || ""} onChange={(event) => update({ couplingRear: event.target.value })} disabled={readonly || Boolean(form.couplingSame)}>
+          <AppSelect value={form.couplingSame ? form.couplingFront || "" : form.couplingRear || ""} onChange={(event) => update({ couplingRear: event.target.value })} disabled={readonly || Boolean(form.couplingSame)}>
             {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
       </div>
 
@@ -230,15 +231,15 @@ export function VehicleOwnershipFields({
       <div className="form-row four-columns">
         <label>
           {t("vehicle.field.acquisitionType")}
-          <select value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={readonly}>
             {renderStaticOptions(acquisitionOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.acquiredFrom")}
-          <select value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={readonly}>
             {renderStaticOptions(acquiredFromOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.purchasePrice")}
@@ -253,9 +254,9 @@ export function VehicleOwnershipFields({
       <div className="form-row">
         <label>
           {t("vehicle.field.storageLocation")}
-          <select value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={readonly}>
             {renderStaticOptions(storageLocationOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.storageDetails")}
@@ -266,9 +267,9 @@ export function VehicleOwnershipFields({
       <div className="form-row three-columns">
         <label>
           {t("vehicle.field.condition")}
-          <select value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={readonly}>
             {renderStaticOptions(vehicleConditionOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
         <label>
           {t("vehicle.field.conditionDetails")}
@@ -276,9 +277,9 @@ export function VehicleOwnershipFields({
         </label>
         <label>
           {t("vehicle.field.packaging")}
-          <select value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={readonly}>
             {renderStaticOptions(packagingOptions, t("vehicles.select.placeholder"))}
-          </select>
+          </AppSelect>
         </label>
       </div>
 

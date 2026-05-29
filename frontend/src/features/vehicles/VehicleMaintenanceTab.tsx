@@ -10,6 +10,7 @@ import {
 import { conditionRatings, maintenanceKinds, maintenanceStatuses } from "./vehicleOptions";
 import { formatDate } from "./vehicleFormat";
 import { PendingArticleImage } from "./vehicleTransforms";
+import { AppSelect } from "../../shared/ui/AppSelect";
 
 export function VehicleMaintenanceTab({
   selected,
@@ -76,28 +77,28 @@ export function VehicleMaintenanceTab({
             <div className="maintenance-form">
               <label>
                 {t("vehicles.maintenance.kind")}
-                <select value={maintenanceForm.kind} onChange={(event) => onUpdateMaintenanceForm({ kind: event.target.value })} disabled={readonly || saving}>
+                <AppSelect value={maintenanceForm.kind} onChange={(event) => onUpdateMaintenanceForm({ kind: event.target.value })} disabled={readonly || saving}>
                   {maintenanceKinds.map((kind) => (
                     <option key={kind} value={kind}>{t(`vehicles.maintenance.kind.${kind}`)}</option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
               <label>
                 {t("vehicles.maintenance.status")}
-                <select value={maintenanceForm.status} onChange={(event) => onUpdateMaintenanceForm({ status: event.target.value })} disabled={readonly || saving}>
+                <AppSelect value={maintenanceForm.status} onChange={(event) => onUpdateMaintenanceForm({ status: event.target.value })} disabled={readonly || saving}>
                   {maintenanceStatuses.map((status) => (
                     <option key={status.value} value={status.value}>{t(`vehicles.maintenance.status.${status.value}`)}</option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
               <label>
                 {t("vehicles.maintenance.condition")}
-                <select value={maintenanceForm.conditionRating || ""} onChange={(event) => onUpdateMaintenanceForm({ conditionRating: event.target.value })} disabled={readonly || saving}>
+                <AppSelect value={maintenanceForm.conditionRating || ""} onChange={(event) => onUpdateMaintenanceForm({ conditionRating: event.target.value })} disabled={readonly || saving}>
                   <option value="">{t("vehicles.select.placeholder")}</option>
                   {conditionRatings.map((rating) => (
                     <option key={rating} value={rating}>{rating}</option>
                   ))}
-                </select>
+                </AppSelect>
               </label>
               <label>
                 {t("vehicles.maintenance.dueDate")}

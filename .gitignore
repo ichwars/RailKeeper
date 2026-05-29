@@ -5,6 +5,7 @@ Thumbs.db
 .vscode/
 
 # Go
+.cache/
 backend/bin/
 backend/coverage.out
 
@@ -20,6 +21,7 @@ backend/data/
 *.db
 *.db-shm
 *.db-wal
+docs/*.pdf
 
 # Environment
 .env

@@ -392,3 +392,33 @@
   min-height: 32px;
   padding: 0 10px;
 }
+
+.web-document-section {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.web-document-section .secondary-button,
+.web-document-table a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.web-document-table {
+  overflow: auto;
+}
+
+.web-document-table table {
+  min-width: 680px;
+}
+
+.web-document-table a {
+  color: var(--accent-strong);
+  font-weight: 850;
+  text-decoration: none;
+}

@@ -16,13 +16,13 @@ docker compose up -d
 By default Compose uses:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:latest
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:latest
 ```
 
 For a fixed release, set the image tag in `.env` before pulling:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper2:v0.1.9
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.9
 ```
 
 Then run:

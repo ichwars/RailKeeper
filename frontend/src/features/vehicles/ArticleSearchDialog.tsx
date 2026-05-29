@@ -60,6 +60,10 @@ export function ArticleSearchDialog({
     if (title === "Weitere Daten") return t("vehicles.articleSearch.group.more");
     return title;
   };
+  const sourceLabel = (source: string) => t(`settings.articleSearch.source.${source}`);
+  const sources = response?.sources || [];
+  const manufacturerDomains = response?.manufacturerDomains || [];
+  const queries = response?.queries || [];
 
   useEffect(() => {
     setFailedImages({});
@@ -76,6 +80,35 @@ export function ArticleSearchDialog({
           <div>
             <h2>{t("vehicles.articleSearch.dialogTitle")}</h2>
             <p>{response?.query ? t("vehicles.articleSearch.query", { query: response.query }) : t("vehicles.articleSearch.help")}</p>
+            {response && (sources.length > 0 || manufacturerDomains.length > 0 || queries.length > 0) && (
+              <div className="article-search-trace" aria-label={t("vehicles.articleSearch.trace")}>
+                {sources.length > 0 && (
+                  <div>
+                    <span>{t("vehicles.articleSearch.traceSources")}</span>
+                    <strong>{sources.map(sourceLabel).join(" / ")}</strong>
+                  </div>
+                )}
+                {manufacturerDomains.length > 0 && (
+                  <div>
+                    <span>{t("vehicles.articleSearch.traceDomains")}</span>
+                    <strong>{manufacturerDomains.join(" / ")}</strong>
+                  </div>
+                )}
+                {queries.length > 0 && (
+                  <details>
+                    <summary>{t("vehicles.articleSearch.traceQueries", { count: queries.length })}</summary>
+                    <ul>
+                      {queries.map((item, index) => (
+                        <li key={`${item.source}-${item.query}-${index}`}>
+                          <span>{item.source}</span>
+                          <code>{item.query}</code>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
           </div>
           <button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
             <X size={17} />
@@ -105,6 +138,13 @@ export function ArticleSearchDialog({
                   <div>
                     <strong>{result.title}</strong>
                     <span>{result.source} - {Object.keys(result.fields).length} Felder - Trefferwert {result.score}</span>
+                    <span className={`article-detail-trace ${result.trace?.detailLoaded ? "loaded" : result.trace?.error ? "failed" : "skipped"}`}>
+                      {result.trace?.detailLoaded
+                        ? t("vehicles.articleSearch.detailLoaded", { fields: result.trace.detailFields, images: result.trace.detailImages })
+                        : result.trace?.error
+                          ? t("vehicles.articleSearch.detailFailed")
+                          : t("vehicles.articleSearch.detailSkipped")}
+                    </span>
                     {result.snippet && <p>{result.snippet}</p>}
                   </div>
                   <a className="secondary-button article-source-button" href={result.url} target="_blank" rel="noreferrer" aria-label={t("vehicles.articleSearch.sourceOpen")} title={t("vehicles.articleSearch.sourceOpen")}>

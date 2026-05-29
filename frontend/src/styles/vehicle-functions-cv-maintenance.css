@@ -749,3 +749,129 @@
   font-size: 12px;
   font-weight: 850;
 }
+
+
+.spare-parts-tab {
+  display: grid;
+  gap: 14px;
+}
+
+.spare-parts-editor,
+.spare-parts-section {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.spare-parts-editor summary {
+  display: flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 900;
+  list-style: none;
+}
+
+.spare-parts-editor summary::-webkit-details-marker {
+  display: none;
+}
+
+.spare-parts-editor summary span,
+.spare-parts-section .upload-head .secondary-button,
+.compact-table a,
+.document-chip-list a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.spare-part-form {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.45fr) minmax(220px, 1fr) minmax(100px, 0.35fr);
+  gap: 12px;
+}
+
+.spare-part-form label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.spare-part-form input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.spare-part-form input:focus {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.spare-part-link {
+  grid-column: 1 / -1;
+}
+
+.spare-parts-section .compact-table {
+  overflow: auto;
+}
+
+.spare-parts-section .compact-table table {
+  min-width: 720px;
+}
+
+.spare-parts-section .compact-table td {
+  vertical-align: middle;
+}
+
+.spare-parts-section .compact-table a,
+.document-chip-list a {
+  color: var(--accent-strong);
+  font-weight: 850;
+  text-decoration: none;
+}
+
+.document-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.document-chip-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  max-width: 100%;
+  padding: 3px 5px 3px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-subtle);
+}
+
+.document-chip-list a {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .spare-part-form {
+    grid-template-columns: 1fr;
+  }
+}

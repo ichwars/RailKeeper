@@ -11,7 +11,8 @@ import type {
   VehicleExternalMappingInput,
   VehicleFunctionInput,
   VehicleMaintenance,
-  VehicleMaintenanceInput
+  VehicleMaintenanceInput,
+  VehicleSparePartInput
 } from "../../shared/api";
 import type { ArticleFieldKey } from "./articleSearch";
 
@@ -78,7 +79,7 @@ export const emptyVehicle: CreateVehicleRequest = {
 };
 
 export type ModalMode = "create" | "view" | "edit";
-export type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance";
+export type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance" | "spareParts";
 export type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 export type SortDirection = "asc" | "desc";
 export type InventoryViewMode = "table" | "cards";
@@ -134,6 +135,13 @@ export const emptyMaintenanceForm: VehicleMaintenanceInput = {
   notes: ""
 };
 
+export const emptySparePartForm: VehicleSparePartInput = {
+  articleNumber: "",
+  description: "",
+  price: "",
+  url: ""
+};
+
 export const emptyCVForm: VehicleCVValueInput = {
   cvNumber: 1,
   value: 0,
@@ -178,7 +186,10 @@ export const sortLabels: Record<SortKey, string> = {
 
 export const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
 export const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
-export const defaultArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
+export const articleSearchSourceIds = ["web", "manufacturer", "catalogs", "dealers", "wiki"];
+export const defaultArticleSearchSources = ["manufacturer", "catalogs", "dealers", "web"];
+const legacyArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
+const previousArticleSearchSources = ["manufacturer", "dealers", "web"];
 export const inventoryViewSettingKey = "railkeeper.inventoryViewMode";
 
 export function inferFunctionTypeFromSymbol(symbolKey: string, symbols: MasterDataEntry[], fallback = "standard") {
@@ -243,11 +254,23 @@ export function articleSearchEnabled() {
   return window.localStorage.getItem(articleSearchSettingKey) !== "false";
 }
 
+function isLegacyArticleSearchDefault(sources: string[]) {
+  return (
+    sources.length === legacyArticleSearchSources.length && legacyArticleSearchSources.every((source) => sources.includes(source))
+  ) || (
+    sources.length === previousArticleSearchSources.length && previousArticleSearchSources.every((source) => sources.includes(source))
+  );
+}
+
 export function articleSearchSources() {
   try {
     const stored = JSON.parse(window.localStorage.getItem(articleSearchSourcesSettingKey) || "[]") as string[];
-    const allowed = new Set(defaultArticleSearchSources);
+    const allowed = new Set(articleSearchSourceIds);
     const sources = stored.filter((source) => allowed.has(source));
+    if (isLegacyArticleSearchDefault(sources)) {
+      window.localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(defaultArticleSearchSources));
+      return defaultArticleSearchSources;
+    }
     return sources.length > 0 ? sources : defaultArticleSearchSources;
   } catch {
     return defaultArticleSearchSources;

@@ -1,4 +1,4 @@
-module railkeeper2/backend
+module railkeeper/backend
 
 go 1.25.0
 
