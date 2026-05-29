@@ -17,10 +17,7 @@ var (
 	ErrMasterDataNotFound   = errors.New("master data not found")
 )
 
-const (
-	masterDataExportFormat       = "railkeeper-master-data"
-	legacyMasterDataExportFormat = "railkeeper2-master-data"
-)
+const masterDataExportFormat = "railkeeper-master-data"
 
 type MasterDataService struct {
 	db      *sql.DB
@@ -335,7 +332,7 @@ func (s *MasterDataService) Export(ctx context.Context) (*MasterDataDocument, er
 }
 
 func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument) (*MasterDataImportResult, error) {
-	if doc == nil || !isSupportedMasterDataFormat(doc.Format) || doc.Version < 1 {
+	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 {
 		return nil, ErrMasterDataValidation
 	}
 
@@ -425,10 +422,6 @@ VALUES(?, ?, ?, ?, ?, ?, ?)
 	}
 	s.invalidateCache()
 	return result, nil
-}
-
-func isSupportedMasterDataFormat(format string) bool {
-	return format == masterDataExportFormat || format == legacyMasterDataExportFormat
 }
 
 type masterDataScanner interface {

@@ -280,24 +280,6 @@ func TestBackupValidationAllowsMissingOptionalExhibitionTables(t *testing.T) {
 	}
 }
 
-func TestBackupValidationAcceptsLegacyRailKeeper2Format(t *testing.T) {
-	db := backupTestDB(t, t.TempDir())
-	service := application.NewBackupService(db, t.TempDir())
-	doc := &application.BackupDocument{
-		Format:  "railkeeper2-backup",
-		Version: 1,
-		Tables:  backupDocumentTablesWithout(),
-	}
-
-	result, err := service.Validate(context.Background(), doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !result.Compatible {
-		t.Fatalf("expected legacy backup format to remain compatible, got %#v", result)
-	}
-}
-
 func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	db := testDB(t)
 	service := application.NewBackupService(db, t.TempDir())

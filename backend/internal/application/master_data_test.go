@@ -100,19 +100,6 @@ func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 	}
 }
 
-func TestMasterDataImportAcceptsLegacyRailKeeper2Format(t *testing.T) {
-	service := application.NewMasterDataService(testDB(t))
-	_, err := service.Import(context.Background(), &application.MasterDataDocument{
-		Format:    "railkeeper2-master-data",
-		Version:   1,
-		Entries:   map[string][]application.MasterDataEntry{},
-		Relations: []application.MasterDataRelation{},
-	})
-	if err != nil {
-		t.Fatalf("expected legacy master data format to import, got %v", err)
-	}
-}
-
 func TestESUFunctionSymbolsSeededWithImages(t *testing.T) {
 	service := application.NewMasterDataService(testDB(t))
 	entries, err := service.List(context.Background(), "symbols", true)
