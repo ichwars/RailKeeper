@@ -21,6 +21,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +49,7 @@ type Config struct {
 	BackupService               *application.BackupService
 	ExhibitionService           *application.ExhibitionService
 	ECoSService                 *application.ECoSService
+	DigitalCenterService        *application.DigitalCenterService
 	RateLimitService            *application.RateLimitService
 	PasswordResetMailer         application.PasswordResetMailer
 	SMTPSettingsService         *application.SMTPSettingsService
@@ -73,6 +75,7 @@ type App struct {
 	backupService               *application.BackupService
 	exhibitionService           *application.ExhibitionService
 	ecosService                 *application.ECoSService
+	digitalCenterService        *application.DigitalCenterService
 	passwordResetMailer         application.PasswordResetMailer
 	smtpSettingsService         *application.SMTPSettingsService
 	publicURL                   string
@@ -105,6 +108,7 @@ func NewRouter(config Config) http.Handler {
 		backupService:               config.BackupService,
 		exhibitionService:           config.ExhibitionService,
 		ecosService:                 config.ECoSService,
+		digitalCenterService:        config.DigitalCenterService,
 		passwordResetMailer:         config.PasswordResetMailer,
 		smtpSettingsService:         config.SMTPSettingsService,
 		publicURL:                   strings.TrimRight(strings.TrimSpace(config.PublicURL), "/"),
@@ -122,6 +126,9 @@ func NewRouter(config Config) http.Handler {
 	}
 	if app.ecosService == nil {
 		app.ecosService = application.NewECoSService()
+	}
+	if app.digitalCenterService == nil {
+		app.digitalCenterService = application.NewDigitalCenterService()
 	}
 	if app.vehicleService != nil {
 		app.vehicleService.SetImageLocalizer(app.localizeVehicleImages)
@@ -189,6 +196,15 @@ type updateReleaseResponse struct {
 type updateReleaseAsset struct {
 	Name               string `json:"name"`
 	BrowserDownloadURL string `json:"browser_download_url"`
+}
+
+type eCoSLocomotiveSyncRequest struct {
+	Host      string `json:"host"`
+	Port      int    `json:"port"`
+	VehicleID string `json:"vehicleId"`
+	ObjectID  int    `json:"objectId"`
+	DryRun    bool   `json:"dryRun"`
+	Confirm   bool   `json:"confirm"`
 }
 
 var errNoUpdateRelease = errors.New("no update release available")
@@ -760,6 +776,10 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 
 	result, err := a.authService.Login(r.Context(), input)
 	if err != nil {
+		if errors.Is(err, application.ErrTwoFactorRequired) {
+			respondProblem(w, http.StatusUnauthorized, "two_factor_required", "Zwei-Faktor-Code erforderlich.")
+			return
+		}
 		if errors.Is(err, application.ErrInvalidLogin) {
 			respondProblem(w, http.StatusUnauthorized, "invalid_login", "Invalid username or password.")
 			return
@@ -1055,6 +1075,78 @@ func (a *App) probeECoSLocomotiveRaw(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, probe)
 }
 
+func (a *App) syncECoSLocomotive(w http.ResponseWriter, r *http.Request) {
+	var request eCoSLocomotiveSyncRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	vehicle, err := a.vehicleService.Get(r.Context(), request.VehicleID)
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("vehicle read for ecos sync failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "vehicle_read_failed", "Could not read vehicle.")
+		return
+	}
+
+	objectID := request.ObjectID
+	mapping := vehicleECoSMappingForSync(vehicle, objectID)
+	if objectID <= 0 && mapping != nil {
+		objectID = parsePositiveIntText(mapping.ExternalID)
+	}
+	if objectID <= 0 {
+		respondProblem(w, http.StatusBadRequest, "ecos_object_required", "ECoS object ID is required.")
+		return
+	}
+
+	desired := application.ECoSLocomotiveSyncDesired{
+		Name:     vehicle.Name,
+		Address:  parsePositiveIntText(vehicle.DigitalDecoderNumber),
+		Protocol: "",
+	}
+	if mapping != nil {
+		if address := parsePositiveIntText(mapping.ExternalAddress); address > 0 {
+			desired.Address = address
+		}
+		desired.Protocol = mapping.ExternalProtocol
+	}
+
+	result, err := a.ecosService.SyncLocomotive(r.Context(), application.ECoSLocomotiveSyncInput{
+		Host:     request.Host,
+		Port:     request.Port,
+		ObjectID: objectID,
+		Desired:  desired,
+		DryRun:   request.DryRun,
+		Confirm:  request.Confirm,
+	})
+	if err != nil {
+		respondProblem(w, http.StatusBadGateway, "ecos_sync_failed", err.Error())
+		return
+	}
+
+	if (request.Confirm && len(result.Changes) == 0) || result.Applied {
+		address := ""
+		if desired.Address > 0 {
+			address = strconv.Itoa(desired.Address)
+		}
+		if _, err := a.vehicleService.UpsertExternalMapping(r.Context(), vehicle.ID, application.VehicleExternalMapInput{
+			Provider:         "ecos",
+			ExternalID:       strconv.Itoa(objectID),
+			ExternalName:     desired.Name,
+			ExternalAddress:  address,
+			ExternalProtocol: desired.Protocol,
+			SyncStatus:       "synced",
+		}, actorUserID(r)); err != nil {
+			a.logger.Warn("ecos sync mapping update failed", "vehicleID", vehicle.ID, "objectID", objectID, "error", err)
+		}
+	}
+
+	respondJSON(w, http.StatusOK, result)
+}
+
 func (a *App) eCoSLiveStatus(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, a.ecosService.LiveStatus())
 }
@@ -1078,6 +1170,34 @@ func (a *App) startECoSLive(w http.ResponseWriter, r *http.Request) {
 func (a *App) stopECoSLive(w http.ResponseWriter, r *http.Request) {
 	status := a.ecosService.StopLive()
 	respondJSON(w, http.StatusOK, status)
+}
+
+func (a *App) testZ21Connection(w http.ResponseWriter, r *http.Request) {
+	var input application.DigitalCenterConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterService.TestZ21Connection(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "digital_center_validation", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) testCS3Connection(w http.ResponseWriter, r *http.Request) {
+	var input application.DigitalCenterConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterService.TestCS3Connection(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "digital_center_validation", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
 }
 
 func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
@@ -2091,7 +2211,11 @@ func (a *App) suggestVehicleSpareParts(w http.ResponseWriter, r *http.Request) {
 	}
 	seen := map[string]bool{}
 	suggestions := []application.ArticleSearchSparePart{}
+	attachmentID := strings.TrimSpace(r.URL.Query().Get("attachmentId"))
 	for _, attachment := range vehicle.Attachments {
+		if attachmentID != "" && attachment.ID != attachmentID {
+			continue
+		}
 		if len(suggestions) >= 80 || !looksLikeSparePartAttachment(attachment) {
 			continue
 		}
@@ -2970,14 +3094,42 @@ func respondProblem(w http.ResponseWriter, status int, code, message string) {
 	})
 }
 
+func vehicleECoSMappingForSync(vehicle *application.Vehicle, objectID int) *application.VehicleExternalMap {
+	if vehicle == nil {
+		return nil
+	}
+	for index := range vehicle.ExternalMappings {
+		mapping := &vehicle.ExternalMappings[index]
+		if mapping.Provider != "ecos" {
+			continue
+		}
+		if objectID <= 0 || mapping.ExternalID == strconv.Itoa(objectID) {
+			return mapping
+		}
+	}
+	return nil
+}
+
+func parsePositiveIntText(value string) int {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil || parsed <= 0 {
+		return 0
+	}
+	return parsed
+}
+
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Referrer-Policy", "same-origin")
 		w.Header().Set("Cross-Origin-Opener-Policy", "same-origin")
-		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Frame-Options", "SAMEORIGIN")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data: blob: http: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data: blob: http: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; object-src 'none'; frame-ancestors 'self'; base-uri 'self'")
 		next.ServeHTTP(w, r)
 	})
 }

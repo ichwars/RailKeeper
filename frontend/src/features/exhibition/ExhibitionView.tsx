@@ -14,6 +14,7 @@ import { api, ExhibitionEntry, ExhibitionEntryInput, ExhibitionList, ExhibitionL
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppDateInput } from "../../shared/ui/AppDateInput";
 
 type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
@@ -731,7 +732,18 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
             </div>
             <div className="table-actions">
               {selectedList && <button type="button" className="icon-button" onClick={() => { setPrintIncludeImages(true); setPrintDialog({ list: selectedList, entries: sortedEntries }); }} aria-label={t("exhibition.printList")} title={t("exhibition.printList")}><Printer size={15} /></button>}
-              {selectedList && <button type="button" className="primary-button" onClick={() => openEntryDialog("create")} disabled={!canEditEntries}>{t("exhibition.entry")}</button>}
+              {selectedList && (
+                <button
+                  type="button"
+                  className="icon-button exhibition-entry-add-button"
+                  onClick={() => openEntryDialog("create")}
+                  disabled={!canEditEntries}
+                  aria-label={t("exhibition.entry")}
+                  title={t("exhibition.entry")}
+                >
+                  <Plus size={17} aria-hidden="true" />
+                </button>
+              )}
             </div>
           </div>
           <div className="table-wrap">
@@ -749,7 +761,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
               <tbody>
                 {sortedEntries.map((entry) => (
                   <tr key={entry.id}>
-                    <td>{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
+                    <td className="exhibition-image-cell">{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
                     <td><strong>{entry.owner}</strong><small>{dayScopeLabel(entry.dayScope, t)}</small></td>
                     <td>{renderLocomotiveCell(entry)}</td>
                     <td>{renderControlCell(entry)}</td>
@@ -788,7 +800,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
               </label>
               <label>
                 <span>{t("exhibition.date")}</span>
-                <input type="date" value={listForm.date} onChange={(event) => setListForm({ ...listForm, date: event.target.value })} required />
+                <AppDateInput value={listForm.date} onChange={(event) => setListForm({ ...listForm, date: event.target.value })} required />
               </label>
             </div>
             <div className="modal-actions">
@@ -824,7 +836,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
                   <tbody>
                     {viewDialog.entries.map((entry) => (
                       <tr key={entry.id}>
-                        <td>{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
+                        <td className="exhibition-image-cell">{entry.imageUrl ? <img className="exhibition-thumb" src={entry.imageUrl} alt="" /> : <span className="image-placeholder mini">-</span>}</td>
                         <td><strong>{entry.owner}</strong><small>{dayScopeLabel(entry.dayScope, t)}</small></td>
                         <td>{renderLocomotiveCell(entry)}</td>
                         <td>{renderControlCell(entry)}</td>

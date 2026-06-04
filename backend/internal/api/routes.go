@@ -25,6 +25,10 @@ func apiRouteSpecs() []routeSpec {
 		{"POST", "/api/v1/auth/logout"},
 		{"GET", "/api/v1/auth/session"},
 		{"PUT", "/api/v1/auth/password"},
+		{"GET", "/api/v1/auth/two-factor"},
+		{"POST", "/api/v1/auth/two-factor/setup"},
+		{"POST", "/api/v1/auth/two-factor/enable"},
+		{"POST", "/api/v1/auth/two-factor/disable"},
 		{"GET", "/api/v1/roles"},
 		{"GET", "/api/v1/users"},
 		{"POST", "/api/v1/users"},
@@ -34,6 +38,9 @@ func apiRouteSpecs() []routeSpec {
 		{"PUT", "/api/v1/sessions/{id}/revoke"},
 		{"POST", "/api/v1/ecos/test"},
 		{"POST", "/api/v1/ecos/locomotives/raw"},
+		{"POST", "/api/v1/digital-centers/ecos/locomotives/sync"},
+		{"POST", "/api/v1/digital-centers/z21/test"},
+		{"POST", "/api/v1/digital-centers/cs3/test"},
 		{"GET", "/api/v1/digital-centers/ecos/live/status"},
 		{"POST", "/api/v1/digital-centers/ecos/live/start"},
 		{"POST", "/api/v1/digital-centers/ecos/live/stop"},
@@ -134,6 +141,10 @@ func (a *App) registerAuthRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("GET /api/v1/auth/session", a.session)
 	mux.HandleFunc("PUT /api/v1/auth/password", a.require("Viewer", a.changePassword))
+	mux.HandleFunc("GET /api/v1/auth/two-factor", a.require("Viewer", a.twoFactorStatus))
+	mux.HandleFunc("POST /api/v1/auth/two-factor/setup", a.require("Viewer", a.setupTwoFactor))
+	mux.HandleFunc("POST /api/v1/auth/two-factor/enable", a.require("Viewer", a.enableTwoFactor))
+	mux.HandleFunc("POST /api/v1/auth/two-factor/disable", a.require("Viewer", a.disableTwoFactor))
 	mux.HandleFunc("GET /api/v1/roles", a.require("Admin", a.listRoles))
 	mux.HandleFunc("GET /api/v1/users", a.require("Admin", a.listUsers))
 	mux.HandleFunc("POST /api/v1/users", a.require("Admin", a.createUser))
@@ -146,6 +157,9 @@ func (a *App) registerAuthRoutes(mux *http.ServeMux) {
 func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/ecos/test", a.require("Admin", a.testECoSConnection))
 	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", a.require("Admin", a.probeECoSLocomotiveRaw))
+	mux.HandleFunc("POST /api/v1/digital-centers/ecos/locomotives/sync", a.require("Admin", a.syncECoSLocomotive))
+	mux.HandleFunc("POST /api/v1/digital-centers/z21/test", a.require("Admin", a.testZ21Connection))
+	mux.HandleFunc("POST /api/v1/digital-centers/cs3/test", a.require("Admin", a.testCS3Connection))
 	mux.HandleFunc("GET /api/v1/digital-centers/ecos/live/status", a.require("Admin", a.eCoSLiveStatus))
 	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/start", a.require("Admin", a.startECoSLive))
 	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/stop", a.require("Admin", a.stopECoSLive))

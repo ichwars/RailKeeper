@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useState } from "react";
-import { api, Session } from "../../shared/api";
+import { api, ApiError, Session } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 
 const initialResetToken = () => {
@@ -12,6 +12,8 @@ const initialResetToken = () => {
 export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetOpen, setResetOpen] = useState(false);
   const [resetToken, setResetToken] = useState(initialResetToken);
@@ -35,9 +37,16 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
     setRecoveryMessage("");
 
     api
-      .login({ username, password })
+      .login({ username, password, twoFactorCode: twoFactorRequired ? twoFactorCode : undefined })
       .then(onLogin)
-      .catch((error: Error) => setMessage(error.message))
+      .catch((error: Error) => {
+        if (error instanceof ApiError && error.code === "two_factor_required") {
+          setTwoFactorRequired(true);
+          setMessage(t("auth.twoFactor.required"));
+          return;
+        }
+        setMessage(error.message);
+      })
       .finally(() => setSaving(false));
   };
 
@@ -164,10 +173,28 @@ export function LoginView({ onLogin }: { onLogin: (session: Session) => void }) 
               type="password"
               value={password}
               autoComplete="current-password"
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value);
+                setTwoFactorRequired(false);
+                setTwoFactorCode("");
+              }}
               required
             />
           </label>
+
+          {twoFactorRequired && (
+            <label>
+              {t("auth.twoFactor.code")}
+              <input
+                value={twoFactorCode}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9 ]{6,8}"
+                onChange={(event) => setTwoFactorCode(event.target.value)}
+                required
+              />
+            </label>
+          )}
 
           <button className="primary-button" disabled={saving}>
             {saving ? t("auth.login.saving") : t("auth.login.submit")}

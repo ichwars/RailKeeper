@@ -48,14 +48,14 @@
 
 .maintenance-reminder-head h2 {
   margin: 0 0 4px;
-  font-size: 19px;
-  line-height: 26px;
+  font-size: var(--font-size-title-xs);
+  line-height: var(--line-height-title-base);
 }
 
 .maintenance-reminder-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .maintenance-reminder-counts {
@@ -73,8 +73,8 @@
   border-radius: 7px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .maintenance-reminder-counts span.danger {
@@ -115,14 +115,11 @@
 }
 
 .maintenance-reminder-icon {
-  display: grid;
+  display: inline-grid;
   flex: none;
-  width: 34px;
-  height: 34px;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
   color: var(--accent-strong);
 }
 
@@ -136,14 +133,14 @@
 }
 
 .maintenance-reminder strong {
-  font-size: 13px;
-  line-height: 18px;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-control-md);
 }
 
 .maintenance-reminder small {
   color: var(--muted);
-  font-size: 12px;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-control-md);
 }
 
 .inventory-status-row {
@@ -155,7 +152,8 @@
 
 .inventory-status-card {
   display: grid;
-  gap: 6px;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 6px 8px;
   min-height: 118px;
   align-content: space-between;
   padding: 13px;
@@ -180,39 +178,38 @@
 
 .inventory-status-card > span,
 .inventory-status-card button > span {
-  display: grid;
-  width: 34px;
-  height: 34px;
+  display: inline-grid;
+  width: 20px;
+  height: 20px;
   place-items: center;
-  border-radius: 8px;
-  background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
 .inventory-status-card.attention > span,
 .inventory-status-card.attention button > span {
-  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
   color: var(--danger);
 }
 
 .inventory-status-card small,
 .inventory-status-card em {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-style: normal;
-  font-weight: 750;
-  line-height: 18px;
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-control-md);
 }
 
 .inventory-status-card strong {
   color: var(--text);
-  font-size: 25px;
-  line-height: 28px;
+  font-size: var(--font-size-title-2xl);
+  line-height: var(--line-height-title-md);
 }
 
 .inventory-status-card button {
   display: grid;
-  gap: 3px;
+  grid-column: 1 / -1;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 3px 8px;
   width: 100%;
   border: 0;
   padding: 0;
@@ -221,6 +218,19 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.inventory-status-card > small,
+.inventory-status-card button > small {
+  grid-column: 2;
+  align-self: center;
+}
+
+.inventory-status-card > strong,
+.inventory-status-card > em,
+.inventory-status-card button > strong,
+.inventory-status-card button > em {
+  grid-column: 1 / -1;
 }
 
 .inventory-status-card button:hover strong,
@@ -278,9 +288,9 @@
 
 .overview-grid .panel-head p {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 18px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-control-md);
 }
 
 .widget-head-actions {
@@ -343,7 +353,7 @@
 
 .overview-hero > div {
   display: grid;
-  gap: 7px;
+  gap: 8px;
   min-height: 150px;
   align-content: space-between;
   padding: 14px;
@@ -358,24 +368,33 @@
 }
 
 .overview-icon {
-  display: grid;
-  width: 38px;
-  height: 38px;
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  border-radius: 8px;
-  background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+.overview-hero > div.attention .overview-icon {
+  color: var(--danger);
+}
+
+.overview-hero-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
 }
 
 .overview-hero p,
 .overview-hero small {
   margin: 0;
   color: var(--muted);
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
 }
 
 .overview-hero strong {
-  font-size: 30px;
+  font-size: var(--font-size-title-xl);
   line-height: 34px;
 }
 
@@ -473,14 +492,14 @@
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-heavy);
 }
 
 .rank-list em {
   color: var(--muted);
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .action-gap {
@@ -525,8 +544,8 @@
 .quick-action-list small {
   margin-top: 3px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .action-gap em {
@@ -538,7 +557,7 @@
   background: color-mix(in srgb, var(--danger) 12%, var(--panel));
   color: var(--danger);
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .quick-action-list a {
@@ -557,7 +576,7 @@
 }
 
 .quick-action-list span {
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .quick-action-list small {
@@ -573,7 +592,7 @@
 .recommendation {
   margin: 0;
   color: var(--muted);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
   font-weight: 720;
   line-height: 1.65;
 }
@@ -616,14 +635,14 @@
 
 .maintenance-overview-list small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .maintenance-overview-list em,
 .maintenance-overview-list b {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-style: normal;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
   text-align: right;
 }
 
@@ -658,8 +677,8 @@
 
 .maintenance-kpi-row small {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .maintenance-kpi-row strong {

@@ -1,4 +1,4 @@
-import { CreateVehicleRequest, ECoSImageSuggestion, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
+import { CreateVehicleRequest, ECoSImageSuggestion, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
 
 export type ImportRow = {
   id: string;
@@ -70,6 +70,8 @@ export type ECoSVehicleDraftPayload = {
 };
 
 export type ECoSBusyPhase = "idle" | "connecting" | "fetching";
+
+export type ECoSSyncHandler = (locomotive: ECoSRawLocomotive, vehicle: Vehicle, confirm: boolean) => void;
 
 export type ECoSImportSessionStatus = "open" | "editing" | "saved" | "skipped" | "error";
 
@@ -1230,7 +1232,10 @@ export function renderECoSWorklist(
   manufacturers: ECoSDecoderManufacturerMap,
   onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
   sessionStatuses?: ECoSImportSession["statuses"],
-  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
+  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void,
+  onSyncLocomotive?: ECoSSyncHandler,
+  syncPlans?: Record<string, ECoSLocomotiveSyncResult>,
+  syncBusyObjectId?: number | null
 ) {
   if (!raw || raw.locomotives.length === 0) {
     return null;
@@ -1264,6 +1269,8 @@ export function renderECoSWorklist(
               const manufacturer = getECoSDecoderManufacturer(locomotive, manufacturers);
               const cvCount = eCoSCVValuesWithInferredManufacturer(locomotive).length;
               const imageCount = ecosImageSuggestions(locomotive).length;
+              const syncPlan = syncPlans?.[String(locomotive.objectId)];
+              const syncBusy = syncBusyObjectId === locomotive.objectId;
               return (
                 <tr key={locomotive.objectId}>
                   <td>
@@ -1282,7 +1289,31 @@ export function renderECoSWorklist(
                       <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(locomotive)} disabled={status === "saved" || status === "skipped"}>
                         {t("importExport.ecos.skip")}
                       </button>
+                      {match && onSyncLocomotive && (
+                        <button type="button" className="secondary-button" onClick={() => onSyncLocomotive(locomotive, match.vehicle, false)} disabled={syncBusy}>
+                          {syncBusy ? t("importExport.ecos.syncing") : t("importExport.ecos.syncPreview")}
+                        </button>
+                      )}
+                      {match && syncPlan && !syncPlan.applied && syncPlan.changes.length > 0 && onSyncLocomotive && (
+                        <button type="button" className="secondary-button danger" onClick={() => onSyncLocomotive(locomotive, match.vehicle, true)} disabled={syncBusy}>
+                          {t("importExport.ecos.syncWrite")}
+                        </button>
+                      )}
                     </div>
+                    {syncPlan && (
+                      <div className={`ecos-sync-preview ${syncPlan.applied ? "applied" : syncPlan.changes.length ? "pending" : "clean"}`}>
+                        {syncPlan.changes.length === 0 ? (
+                          <small>{t("importExport.ecos.syncNoChanges")}</small>
+                        ) : (
+                          syncPlan.changes.slice(0, 3).map((change) => (
+                            <small key={change.field}>
+                              <strong>{t(`importExport.ecos.syncField.${change.field}`)}</strong>
+                              {change.current || "-"} {"->"} {change.desired || "-"}
+                            </small>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               );
@@ -1373,7 +1404,10 @@ export function renderECoSRawProbe(
   manufacturers: ECoSDecoderManufacturerMap,
   onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
   sessionStatuses?: ECoSImportSession["statuses"],
-  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
+  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void,
+  onSyncLocomotive?: ECoSSyncHandler,
+  syncPlans?: Record<string, ECoSLocomotiveSyncResult>,
+  syncBusyObjectId?: number | null
 ) {
   if (!raw) {
     return null;
@@ -1387,7 +1421,7 @@ export function renderECoSRawProbe(
       {raw.locomotives.length === 0 ?<p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : (
         <>
           {renderECoSImagePreview(raw, vehicles, t, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
-          {renderECoSWorklist(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
+          {renderECoSWorklist(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive, onSyncLocomotive, syncPlans, syncBusyObjectId)}
         </>
       )}
       <p className="source-note backup-note">{t("importExport.ecos.rawNote")}</p>

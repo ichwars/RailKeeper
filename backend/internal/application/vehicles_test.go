@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"railkeeper/backend/internal/application"
 )
@@ -169,6 +170,91 @@ func TestGetVehicleReturnsDetail(t *testing.T) {
 	}
 	if vehicle.ID != created.ID || vehicle.Name != "BR 118" {
 		t.Fatalf("unexpected detail: %#v", vehicle)
+	}
+}
+
+func TestListVehiclesResetsExpiredExhibitionFlags(t *testing.T) {
+	db := testDB(t)
+	vehicles := application.NewVehicleService(db)
+	exhibitions := application.NewExhibitionService(db)
+	ctx := context.Background()
+
+	expiredVehicle, err := vehicles.Create(ctx, application.CreateVehicleInput{
+		Manufacturer:         "Piko",
+		Name:                 "BR 118",
+		Gauge:                "H0",
+		Category:             "Lokomotive",
+		Gattung:              "Diesellok",
+		Digital:              true,
+		DigitalDecoderNumber: "1001",
+		Exhibition:           true,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	activeVehicle, err := vehicles.Create(ctx, application.CreateVehicleInput{
+		Manufacturer:         "Roco",
+		Name:                 "V 200",
+		Gauge:                "H0",
+		Category:             "Lokomotive",
+		Gattung:              "Diesellok",
+		Digital:              true,
+		DigitalDecoderNumber: "1002",
+		Exhibition:           true,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expiredList, err := exhibitions.Create(ctx, application.ExhibitionListInput{
+		Designation: "Vergangene Messe",
+		Date:        time.Now().AddDate(0, 0, -1).Format("2006-01-02"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := exhibitions.CreateEntry(ctx, expiredList.ID, application.ExhibitionEntryInput{
+		VehicleID:      expiredVehicle.ID,
+		Owner:          "Test",
+		LocomotiveName: expiredVehicle.Name,
+		DecoderNumber:  expiredVehicle.DigitalDecoderNumber,
+		Manufacturer:   expiredVehicle.Manufacturer,
+		DTDecoder:      true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	futureList, err := exhibitions.Create(ctx, application.ExhibitionListInput{
+		Designation: "Kommende Messe",
+		Date:        time.Now().AddDate(0, 0, 1).Format("2006-01-02"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := exhibitions.CreateEntry(ctx, futureList.ID, application.ExhibitionEntryInput{
+		VehicleID:      activeVehicle.ID,
+		Owner:          "Test",
+		LocomotiveName: activeVehicle.Name,
+		DecoderNumber:  activeVehicle.DigitalDecoderNumber,
+		Manufacturer:   activeVehicle.Manufacturer,
+		DTDecoder:      true,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	listed, err := vehicles.List(ctx, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	byID := map[string]application.Vehicle{}
+	for _, vehicle := range listed {
+		byID[vehicle.ID] = vehicle
+	}
+	if byID[expiredVehicle.ID].Exhibition {
+		t.Fatal("expected expired exhibition vehicle to be reset")
+	}
+	if !byID[activeVehicle.ID].Exhibition {
+		t.Fatal("expected future exhibition vehicle to stay active")
 	}
 }
 
@@ -841,5 +927,54 @@ func TestDeleteVehicleRemovesRecord(t *testing.T) {
 	_, err = service.Get(ctx, created.ID)
 	if !errors.Is(err, application.ErrVehicleNotFound) {
 		t.Fatalf("expected not found after delete, got %v", err)
+	}
+}
+
+func TestCreateSparePartUpdatesDuplicateArticleNumber(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer:  "Piko",
+		ArticleNumber: "47280",
+		Name:          "BR 118",
+		Gauge:         "TT",
+		Category:      "Lokomotive",
+		Gattung:       "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first, err := service.CreateSparePart(ctx, created.ID, application.VehicleSparePartInput{
+		ArticleNumber: "47280-16",
+		Description:   "Leuchteinsaetze",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := service.CreateSparePart(ctx, created.ID, application.VehicleSparePartInput{
+		ArticleNumber: "ET47280-16",
+		Description:   "Leuchteinsaetze (3-tlg.)",
+		Price:         "6.00",
+		URL:           "https://www.piko-shop.de/de/artikel/leuchteinsaetze-3tlg.-16008.html",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.ID != first.ID {
+		t.Fatalf("expected duplicate spare part to update %q, got %q", first.ID, second.ID)
+	}
+
+	parts, err := service.ListSpareParts(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(parts) != 1 {
+		t.Fatalf("expected one spare part after duplicate create, got %#v", parts)
+	}
+	if parts[0].Price != "6.00" || parts[0].URL == "" {
+		t.Fatalf("expected duplicate create to enrich price/link, got %#v", parts[0])
 	}
 }

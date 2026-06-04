@@ -1,6 +1,6 @@
 import { ChangeEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, SkipForward, Upload } from "lucide-react";
-import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
+import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { localSettingKeys } from "../settings/settingsModel";
@@ -19,6 +19,7 @@ import {
   ecosExternalMapping,
   ecosRequiredFields,
   ecosVehicleDraftStorageKey,
+  ECoSSyncHandler,
   FunctionImportSuggestion,
   getImportChanges,
   ImportRow,
@@ -59,6 +60,8 @@ export function ImportExportView() {
   const [ecosResult, setEcosResult] = useState<ECoSConnectionResult | null>(null);
   const [ecosRawProbe, setEcosRawProbe] = useState<ECoSRawProbe | null>(null);
   const [ecosSession, setEcosSession] = useState<ECoSImportSession | null>(null);
+  const [ecosSyncPlans, setEcosSyncPlans] = useState<Record<string, ECoSLocomotiveSyncResult>>({});
+  const [ecosSyncBusyObjectId, setEcosSyncBusyObjectId] = useState<number | null>(null);
   const [ecosMessage, setEcosMessage] = useState("");
   const fieldLabel = (key: VehicleImportField) => t(`vehicle.field.${key}`);
   const issueLabels = {
@@ -417,6 +420,7 @@ export function ImportExportView() {
     setEcosResult(null);
     setEcosRawProbe(null);
     setEcosSession(null);
+    setEcosSyncPlans({});
     window.sessionStorage.removeItem(ecosImportSessionStorageKey);
     try {
       rememberECoSSettings();
@@ -438,6 +442,7 @@ export function ImportExportView() {
     setEcosBusy("fetching");
     setEcosMessage("");
     setEcosRawProbe(null);
+    setEcosSyncPlans({});
     try {
       rememberECoSSettings();
       const probe = await api.probeECoSLocomotiveRaw(ecosInput());
@@ -499,6 +504,40 @@ export function ImportExportView() {
   const skipECoSLocomotive = (locomotive: ECoSRawLocomotive) => {
     updateECoSImportSessionStatus(locomotive.objectId, "skipped");
     setEcosMessage(t("importExport.ecos.skipped", { name: locomotive.name || `ECoS ${locomotive.objectId}` }));
+  };
+
+  const syncECoSLocomotive: ECoSSyncHandler = async (locomotive, vehicle, confirm) => {
+    if (confirm && !window.confirm(t("importExport.ecos.syncConfirm", { name: locomotive.name || `ECoS ${locomotive.objectId}` }))) {
+      return;
+    }
+    setEcosSyncBusyObjectId(locomotive.objectId);
+    setEcosMessage("");
+    try {
+      rememberECoSSettings();
+      const result = await api.syncECoSLocomotive({
+        ...ecosInput(),
+        vehicleId: vehicle.id,
+        objectId: locomotive.objectId,
+        dryRun: !confirm,
+        confirm
+      });
+      setEcosSyncPlans((current) => ({ ...current, [String(locomotive.objectId)]: result }));
+      if (confirm) {
+        const updatedVehicle = await api.vehicle(vehicle.id);
+        setVehicles((current) => current.map((item) => item.id === updatedVehicle.id ? updatedVehicle : item));
+      }
+      if (result.applied) {
+        setEcosMessage(t("importExport.ecos.syncApplied", { count: result.changes.length }));
+      } else if (result.changes.length === 0) {
+        setEcosMessage(t("importExport.ecos.syncNoChanges"));
+      } else {
+        setEcosMessage(t("importExport.ecos.syncReady", { count: result.changes.length }));
+      }
+    } catch (error) {
+      setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
+    } finally {
+      setEcosSyncBusyObjectId(null);
+    }
   };
 
   const openDigitalSettings = () => {
@@ -647,7 +686,7 @@ export function ImportExportView() {
             </button>
           </div>
         )}
-        {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive)}
+        {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive, syncECoSLocomotive, ecosSyncPlans, ecosSyncBusyObjectId)}
       </section>
       )}
 

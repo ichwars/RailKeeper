@@ -226,11 +226,6 @@ export function VehicleCVTab({
                             </div>
                           </section>
                         )}
-                        <datalist id="decoder-profile-options">
-                          {decoderProfileOptions.map((profile) => (
-                            <option key={profile} value={profile} />
-                          ))}
-                        </datalist>
                         {storedDecoderProfiles.length > 0 && (
                           <div className="decoder-profile-list" aria-label="Decoderprofile">
                             {storedDecoderProfiles.map((profile) => {
@@ -274,7 +269,7 @@ export function VehicleCVTab({
                           </label>
                           <label>
                             {t("vehicle.field.decoderProfile")}
-                            <input list="decoder-profile-options" value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
+                            <input value={cvForm.decoderProfile || ""} onChange={(event) => updateCVForm({ decoderProfile: event.target.value })} disabled={readonly || saving} placeholder="z. B. ESU LokPilot 5" />
                           </label>
                           {(selected.cvFiles || []).length > 0 && (
                             <label>
@@ -392,7 +387,7 @@ export function VehicleCVTab({
                     </div>
                     {selected && (
                       <div className="cv-file-controls">
-                        <input list="decoder-profile-options" value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileProfilePlaceholder")} />
+                      <input value={cvFileProfile} onChange={(event) => setCVFileProfile(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileProfilePlaceholder")} />
                         <input value={cvFileDescription} onChange={(event) => setCVFileDescription(event.target.value)} disabled={readonly || saving} placeholder={t("vehicles.cv.fileNotePlaceholder")} />
                         <span>{t("vehicles.cv.autoMetadata")}</span>
                       </div>

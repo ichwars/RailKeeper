@@ -30,8 +30,8 @@
   max-width: min(720px, calc(100vw - 70px));
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .image-preview-dialog .form-head > div {

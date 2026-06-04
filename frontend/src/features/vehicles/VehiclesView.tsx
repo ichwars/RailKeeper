@@ -108,7 +108,7 @@ import { VehicleMaintenanceTab } from "./VehicleMaintenanceTab";
 
 import { VehicleModelTab } from "./VehicleModelTab";
 
-import { VehicleSparePartsTab, isStrictRealSparePartCandidate, sparePartResultKey, strictCleanSparePartDescription } from "./VehicleSparePartsTab";
+import { VehicleSparePartsTab, sparePartResultKey, strictCleanSparePartDescription, type SparePartSortKey, type SparePartSortDirection } from "./VehicleSparePartsTab";
 
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 
@@ -131,6 +131,8 @@ import {
   imageSelectionKey,
 
   isArticleFieldKey,
+
+  sourceDisplayName,
 
 } from "./articleSearch";
 
@@ -170,8 +172,6 @@ import {
 
 import {
 
-  maintenanceDaysUntilDue,
-
   maintenanceIsDue,
 
   todayISODate
@@ -180,7 +180,7 @@ import {
 
 import { buildBrandedQrPngDataUrl, buildQrSvg, downloadQrPngFile, downloadQrSvgFile, printQrSvgLabel, qrPayload } from "./vehicleQr";
 
-import { InventoryReportAssets, inventoryReportHtml, openPrintDocument } from "./vehicleReports";
+import { InventoryReportAssets, inventoryReportHtml, openPrintDocument, reservePrintDocument } from "./vehicleReports";
 
 import {
 
@@ -246,23 +246,16 @@ import {
 
   inferFunctionTypeFromSymbol,
 
-  inventoryViewMode,
-
-  inventoryViewSettingKey,
-
   isBadArticleValue,
 
   optionValue,
 
   sanitizeArticleSearchResponse,
 
-  sortLabels,
-
-  valueForSort,
-
   vehicleFieldsForSearch
 
 } from "./vehicleViewModel";
+import { useVehicleInventoryController } from "./useVehicleInventoryController";
 
 import type {
 
@@ -282,15 +275,11 @@ import type {
 
   MaintenanceFilter,
 
-  MaintenanceReminder,
-
   MasterDataOptions,
 
   ModalMode,
 
   ModalTab,
-
-  SortDirection,
 
   SortKey
 
@@ -386,6 +375,26 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [selectedFoundSpareParts, setSelectedFoundSpareParts] = useState<Record<string, boolean>>({});
 
+  const [sparePartSort, setSparePartSort] = useState<{ key: SparePartSortKey; direction: SparePartSortDirection }>({
+
+    key: "articleNumber",
+
+    direction: "asc"
+
+  });
+
+  const [sparePartLookupLoadingID, setSparePartLookupLoadingID] = useState("");
+
+  const [sparePartLookupErrors, setSparePartLookupErrors] = useState<Record<string, string>>({});
+
+  const [sparePartLookupResults, setSparePartLookupResults] = useState<Record<string, ArticleSearchSparePart[]>>({});
+
+  const [sparePartStatusLoading, setSparePartStatusLoading] = useState<Record<string, boolean>>({});
+
+  const [sparePartStatuses, setSparePartStatuses] = useState<Record<string, ArticleSearchSparePart>>({});
+
+  const [importAllSparePartsLoading, setImportAllSparePartsLoading] = useState(false);
+
   const [documentSearchLoading, setDocumentSearchLoading] = useState(false);
 
   const [documentSearchError, setDocumentSearchError] = useState("");
@@ -425,6 +434,8 @@ export function VehiclesView({ username }: { username: string }) {
 
   const functionImportInputRef = useRef<HTMLInputElement | null>(null);
 
+  const sparePartStatusCheckKeyRef = useRef("");
+
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
   const [qrSvg, setQrSvg] = useState("");
@@ -443,33 +454,45 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [reportIncludeImages, setReportIncludeImages] = useState(true);
 
-  const [selectedVehicleIDs, setSelectedVehicleIDs] = useState<Set<string>>(() => new Set());
-
-  const [inventoryView, setInventoryView] = useState<InventoryViewMode>(inventoryViewMode);
-
-  const [inventoryFilter, setInventoryFilter] = useState<InventoryFilter>("all");
-
-  const [maintenanceFilter, setMaintenanceFilter] = useState<MaintenanceFilter>("all");
-
-  const [manufacturerFilter, setManufacturerFilter] = useState("");
-
-  const [categoryFilter, setCategoryFilter] = useState("");
-
-  const [gattungFilter, setGattungFilter] = useState("");
-
-  const [exhibitionReadyFilter, setExhibitionReadyFilter] = useState(false);
+  const [reportCreating, setReportCreating] = useState(false);
 
   const [exhibitionAssignment, setExhibitionAssignment] = useState<ExhibitionAssignment | null>(null);
 
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
-
-  const [sort, setSort] = useState<{ key: SortKey; direction: SortDirection }>({
-
-    key: "inventoryNumber",
-
-    direction: "asc"
-
-  });
+  const {
+    allVisibleSelected,
+    categoryFilter,
+    exhibitionReadyFilter,
+    gattungFilter,
+    hasActiveInventoryFilters,
+    inventoryFilter,
+    inventoryFilterCounts,
+    inventoryFilterOptions,
+    inventorySummary,
+    inventoryView,
+    maintenanceFilter,
+    maintenanceReminderSummary,
+    manufacturerFilter,
+    nextMaintenanceReminder,
+    qualityFilter,
+    resetInventoryFilters,
+    selectedVehicleIDs,
+    selectedVisibleVehicles,
+    setCategoryFilter,
+    setExhibitionReadyFilter,
+    setGattungFilter,
+    setInventoryFilter,
+    setInventoryViewMode,
+    setMaintenanceFilter,
+    setManufacturerFilter,
+    setQualityFilter,
+    someVisibleSelected,
+    sort,
+    sortedVehicles,
+    toggleAllVisibleSelection,
+    toggleSort,
+    toggleVehicleSelection
+  } = useVehicleInventoryController(vehicles);
 
 
 
@@ -498,22 +521,6 @@ export function VehiclesView({ username }: { username: string }) {
     load();
 
   }, [load]);
-
-
-
-  useEffect(() => {
-
-    const availableIDs = new Set(vehicles.map((vehicle) => vehicle.id));
-
-    setSelectedVehicleIDs((current) => {
-
-      const next = new Set(Array.from(current).filter((id) => availableIDs.has(id)));
-
-      return next.size === current.size ? current : next;
-
-    });
-
-  }, [vehicles]);
 
 
 
@@ -853,138 +860,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const inventoryFilterCounts = useMemo(() => {
-
-    const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
-
-    const digital = vehicles.filter((vehicle) => vehicle.digital).length;
-
-    const maintenanceDue = vehicles.filter((vehicle) => (vehicle.maintenance || []).some(maintenanceIsDue)).length;
-
-    const exhibitionReady = vehicles.filter((vehicle) => vehicle.exhibitionReady).length;
-
-
-
-    return {
-
-      all: vehicles.length,
-
-      digital,
-
-      analog: vehicles.length - digital,
-
-      withImages,
-
-      withoutImages: vehicles.length - withImages,
-
-      maintenanceDue,
-
-      withoutMaintenance: vehicles.length - maintenanceDue,
-
-      exhibitionReady
-
-    };
-
-  }, [vehicles]);
-
-
-
-  const inventoryFilterOptions = useMemo(() => {
-
-    const unique = (values: string[]) =>
-
-      Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))).sort((left, right) =>
-
-        left.localeCompare(right, "de-DE", { sensitivity: "base" })
-
-      );
-
-
-
-    const gattungSource = categoryFilter ? vehicles.filter((vehicle) => vehicle.category === categoryFilter) : vehicles;
-
-
-
-    return {
-
-      manufacturers: unique(vehicles.map((vehicle) => vehicle.manufacturer)),
-
-      categories: unique(vehicles.map((vehicle) => vehicle.category || "")),
-
-      gattungen: unique(gattungSource.map((vehicle) => vehicle.gattung || ""))
-
-    };
-
-  }, [categoryFilter, vehicles]);
-
-
-
-  const filteredVehicles = useMemo(() => {
-
-    return vehicles.filter((vehicle) => {
-
-      const maintenanceDue = (vehicle.maintenance || []).some(maintenanceIsDue);
-
-      if (inventoryFilter === "digital" && !vehicle.digital) return false;
-
-      if (inventoryFilter === "analog" && vehicle.digital) return false;
-
-      if (inventoryFilter === "withImages" && (vehicle.images || []).length === 0) return false;
-
-      if (inventoryFilter === "withoutImages" && (vehicle.images || []).length > 0) return false;
-
-      if (maintenanceFilter === "due" && !maintenanceDue) return false;
-
-      if (maintenanceFilter === "none" && maintenanceDue) return false;
-
-      if (manufacturerFilter && vehicle.manufacturer !== manufacturerFilter) return false;
-
-      if (categoryFilter && vehicle.category !== categoryFilter) return false;
-
-      if (gattungFilter && vehicle.gattung !== gattungFilter) return false;
-
-      if (exhibitionReadyFilter && !vehicle.exhibitionReady) return false;
-
-      return true;
-
-    });
-
-  }, [categoryFilter, exhibitionReadyFilter, gattungFilter, inventoryFilter, maintenanceFilter, manufacturerFilter, vehicles]);
-
-
-
-  const sortedVehicles = useMemo(() => {
-
-    return [...filteredVehicles].sort((left, right) => {
-
-      const result = valueForSort(left, sort.key).localeCompare(valueForSort(right, sort.key), "de-DE", {
-
-        numeric: true,
-
-        sensitivity: "base"
-
-      });
-
-      return sort.direction === "asc" ? result : -result;
-
-    });
-
-  }, [filteredVehicles, sort]);
-
-
-
-  const selectedVisibleVehicles = useMemo(
-
-    () => sortedVehicles.filter((vehicle) => selectedVehicleIDs.has(vehicle.id)),
-
-    [selectedVehicleIDs, sortedVehicles]
-
-  );
-
-  const allVisibleSelected = sortedVehicles.length > 0 && sortedVehicles.every((vehicle) => selectedVehicleIDs.has(vehicle.id));
-
-  const someVisibleSelected = sortedVehicles.some((vehicle) => selectedVehicleIDs.has(vehicle.id));
-
   const canRunArticleSearch = hasArticleSearchCriteria(form);
 
   const canGenerateQr = hasQrPayloadData(selected, form);
@@ -1000,64 +875,6 @@ export function VehiclesView({ username }: { username: string }) {
   const missingRequiredModelFields = requiredModelFields.filter((field) => !compactValue(field.value));
 
   const showRequiredErrors = saveAttempted || Boolean(ecosDraft);
-
-
-
-  const maintenanceReminders = useMemo<MaintenanceReminder[]>(() => {
-
-    return vehicles
-
-      .flatMap((vehicle) =>
-
-        (vehicle.maintenance || []).flatMap((entry) => {
-
-          const daysUntilDue = maintenanceDaysUntilDue(entry);
-
-          if (daysUntilDue === null || daysUntilDue > 14) return [];
-
-          return [{ vehicle, entry, daysUntilDue }];
-
-        })
-
-      )
-
-      .sort((left, right) => left.daysUntilDue - right.daysUntilDue || left.vehicle.inventoryNumber.localeCompare(right.vehicle.inventoryNumber, "de-DE"));
-
-  }, [vehicles]);
-
-
-
-  const maintenanceReminderSummary = {
-
-    due: maintenanceReminders.filter((item) => item.daysUntilDue <= 0).length,
-
-    upcoming: maintenanceReminders.filter((item) => item.daysUntilDue > 0).length
-
-  };
-
-  const nextMaintenanceReminder = maintenanceReminders[0];
-
-  const inventorySummary = useMemo(() => {
-
-    const categories = new Set(vehicles.map((vehicle) => vehicle.category).filter(Boolean));
-
-    const digital = vehicles.filter((vehicle) => vehicle.digital).length;
-
-    const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
-
-    return {
-
-      categories: categories.size,
-
-      digital,
-
-      analog: vehicles.length - digital,
-
-      withImages
-
-    };
-
-  }, [vehicles]);
 
 
 
@@ -1086,82 +903,6 @@ export function VehiclesView({ username }: { username: string }) {
     { key: "none" as const, label: t("vehicles.filter.withoutMaintenance"), count: inventoryFilterCounts.withoutMaintenance, icon: <CircleOff size={15} aria-hidden="true" /> }
 
   ];
-
-
-
-  const hasActiveInventoryFilters =
-
-    inventoryFilter !== "all" ||
-
-    maintenanceFilter !== "all" ||
-
-    Boolean(manufacturerFilter || categoryFilter || gattungFilter || exhibitionReadyFilter);
-
-
-
-  const resetInventoryFilters = () => {
-
-    setInventoryFilter("all");
-
-    setMaintenanceFilter("all");
-
-    setManufacturerFilter("");
-
-    setCategoryFilter("");
-
-    setGattungFilter("");
-
-    setExhibitionReadyFilter(false);
-
-  };
-
-
-
-  const toggleVehicleSelection = (vehicleID: string) => {
-
-    setSelectedVehicleIDs((current) => {
-
-      const next = new Set(current);
-
-      if (next.has(vehicleID)) {
-
-        next.delete(vehicleID);
-
-      } else {
-
-        next.add(vehicleID);
-
-      }
-
-      return next;
-
-    });
-
-  };
-
-
-
-  const toggleAllVisibleSelection = () => {
-
-    setSelectedVehicleIDs((current) => {
-
-      const next = new Set(current);
-
-      if (allVisibleSelected) {
-
-        sortedVehicles.forEach((vehicle) => next.delete(vehicle.id));
-
-      } else {
-
-        sortedVehicles.forEach((vehicle) => next.add(vehicle.id));
-
-      }
-
-      return next;
-
-    });
-
-  };
 
 
 
@@ -1268,6 +1009,14 @@ export function VehiclesView({ username }: { username: string }) {
     resetSparePartForm();
 
     resetSparePartSearch();
+
+    setSparePartStatusLoading({});
+
+    setSparePartStatuses({});
+
+    setImportAllSparePartsLoading(false);
+
+    sparePartStatusCheckKeyRef.current = "";
 
     setEditingCVID(null);
 
@@ -2122,11 +1871,23 @@ export function VehiclesView({ username }: { username: string }) {
 
       price: part.price || "",
 
-      url: part.url || ""
+      url: part.url?.startsWith("/api/v1/vehicles/") ? "" : part.url || ""
 
     });
 
     setEditingSparePartID(part.id);
+
+    window.setTimeout(() => {
+
+      const editor = document.getElementById("vehicle-spare-parts-editor") as HTMLDetailsElement | null;
+
+      editor?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      if (editor) editor.open = true;
+
+      document.getElementById("vehicle-spare-part-article-number")?.focus({ preventScroll: true });
+
+    }, 0);
 
   };
 
@@ -2216,6 +1977,18 @@ export function VehiclesView({ username }: { username: string }) {
 
   };
 
+  const toggleSparePartSort = (key: SparePartSortKey) => {
+
+    setSparePartSort((current) => ({
+
+      key,
+
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+
+    }));
+
+  };
+
   const selectedFoundSparePartInputs = () => foundSpareParts
 
     .filter((part, index) => selectedFoundSpareParts[sparePartResultKey(part, index)])
@@ -2232,15 +2005,728 @@ export function VehiclesView({ username }: { username: string }) {
 
     }));
 
-  const runSparePartSearch = () => {
+  const sparePartImportKey = (part: VehicleSparePartInput) => {
+
+    const articleNumber = part.articleNumber?.trim() || "";
+
+    const description = part.description?.trim() || "";
+
+    const url = part.url?.trim() || "";
+
+    return (articleNumber || description ? `${articleNumber}|${description}` : `|${url}`).toLocaleLowerCase("de-DE");
+
+  };
+
+  const sparePartCatalogKey = (part: VehicleSparePartInput | VehicleSparePart | ArticleSearchSparePart) => {
+
+    const article = normalizedText(part.articleNumber || "").replace(/^et(?=\d)/, "").replace(/[^a-z0-9]/g, "");
+
+    if (article) return `article:${article}`;
+
+    const description = normalizedText(part.description || "").replace(/[^a-z0-9]/g, "");
+
+    if (description) return `description:${description}`;
+
+    const urlValue = "url" in part ? part.url : "";
+
+    return `url:${normalizedSparePartUrl(urlValue)}`;
+
+  };
+
+  const sparePartSearchCandidateMatches = (part: VehicleSparePart, signal: string) => {
+
+    const normalizedSignal = normalizedText(signal);
+
+    const compactSignal = normalizedSignal.replace(/[^a-z0-9]/g, "");
+
+    const articleNumber = normalizedText(part.articleNumber || "");
+
+    const compactArticleNumber = articleNumber.replace(/[^a-z0-9]/g, "");
+
+    if (articleNumber) return normalizedSignal.includes(articleNumber) || Boolean(compactArticleNumber && compactSignal.includes(compactArticleNumber));
+
+    const descriptionTokens = normalizedText(part.description || "")
+
+      .split(/\s+/)
+
+      .filter((token) => token.length >= 4);
+
+    return descriptionTokens.length > 0 && descriptionTokens.slice(0, 4).some((token) => normalizedSignal.includes(token));
+
+  };
+
+  const sparePartSearchSourcesForLookup = () => {
+
+    const sources = articleSearchSources().filter((source) => source === "manufacturer" || source === "catalogs");
+
+    return sources.length > 0 ? sources : ["manufacturer", "catalogs"];
+
+  };
+
+  const isPikoVehicle = (vehicle: Vehicle) => vehicle.manufacturer.trim().toLocaleLowerCase("de-DE").includes("piko");
+
+  const isRocoVehicle = (vehicle: Vehicle) => vehicle.manufacturer.trim().toLocaleLowerCase("de-DE").includes("roco");
+
+  const sparePartLookupMode = (vehicle: Vehicle) => {
+
+    if (isPikoVehicle(vehicle)) return "piko";
+
+    if (isRocoVehicle(vehicle)) return "roco";
+
+    return "";
+
+  };
+
+  const visibleSparePartUrl = (part: VehicleSparePart) => part.url && !part.url.startsWith("/api/v1/vehicles/") ? part.url : "";
+
+  const normalizedSparePartUrl = (value?: string) => String(value || "").trim().replace(/\/+$/, "").toLocaleLowerCase("de-DE");
+
+  const sparePartLookupCandidates = (part: VehicleSparePart, response: ArticleSearchResponse) => {
+
+    const sanitized = sanitizeArticleSearchResponse(response);
+
+    const parts = new Map<string, ArticleSearchSparePart>();
+
+    sanitized.results.forEach((result) => {
+
+      const resultSignal = `${result.title || ""} ${result.snippet || ""} ${result.url || ""}`.toLocaleLowerCase("de-DE");
+
+      (result.spareParts || []).forEach((candidate) => {
+
+        const candidateSignal = `${candidate.articleNumber || ""} ${candidate.description || ""} ${candidate.url || ""}`.toLocaleLowerCase("de-DE");
+
+        if (!sparePartSearchCandidateMatches(part, candidateSignal)) return;
+
+        const key = `${candidate.price || ""}|${candidate.url || ""}`.toLocaleLowerCase("de-DE");
+
+        if (key !== "|" && !parts.has(key)) parts.set(key, candidate);
+
+      });
+
+      if (sparePartSearchCandidateMatches(part, resultSignal) && result.url) {
+
+        const fallback: ArticleSearchSparePart = {
+
+          articleNumber: part.articleNumber || "",
+
+          description: part.description || result.title || "",
+
+          price: "",
+
+          url: result.url,
+
+          source: result.source || sourceDisplayName(result.url)
+
+        };
+
+        const key = `${fallback.price || ""}|${fallback.url || ""}`.toLocaleLowerCase("de-DE");
+
+        if (key !== "|" && !parts.has(key)) parts.set(key, fallback);
+
+      }
+
+    });
+
+    return Array.from(parts.values())
+      .filter((candidate) => candidate.price || candidate.url)
+      .sort((left, right) => {
+        const priceRank = Number(Boolean(right.price)) - Number(Boolean(left.price));
+        if (priceRank !== 0) return priceRank;
+        const availabilityRank = Number(Boolean(right.availability)) - Number(Boolean(left.availability));
+        if (availabilityRank !== 0) return availabilityRank;
+        return Number(Boolean(right.url)) - Number(Boolean(left.url));
+      })
+      .slice(0, 5);
+
+  };
+
+  const sparePartStatusCandidate = (part: VehicleSparePart, response: ArticleSearchResponse) => {
+
+    const candidates = sanitizeArticleSearchResponse(response).results.flatMap((result) => result.spareParts || []);
+
+    const partKey = sparePartCatalogKey(part);
+
+    const partUrl = normalizedSparePartUrl(part.url);
+
+    return candidates.find((candidate) => sparePartCatalogKey(candidate) === partKey) ||
+      candidates.find((candidate) => partUrl && normalizedSparePartUrl(candidate.url) === partUrl) ||
+      sparePartLookupCandidates(part, response)[0];
+
+  };
+
+  const refreshSparePartStatuses = async (vehicle: Vehicle) => {
+
+    const linkedParts = (vehicle.spareParts || []).filter((part) => visibleSparePartUrl(part));
+
+    if (linkedParts.length === 0 || !articleSearchEnabled()) return;
+
+    const nextLoading = Object.fromEntries(linkedParts.map((part) => [part.id, true]));
+
+    setSparePartStatusLoading((current) => ({ ...current, ...nextLoading }));
+
+    try {
+
+      const lookupMode = sparePartLookupMode(vehicle);
+
+      if (lookupMode) {
+
+        const response = await api.articleSearch({
+
+          manufacturer: vehicle.manufacturer,
+
+          articleNumber: vehicle.articleNumber || linkedParts[0]?.articleNumber || "",
+
+          name: "",
+
+          gauge: "",
+
+          searchSources: sparePartSearchSourcesForLookup(),
+
+          fields: {
+
+            manufacturer: vehicle.manufacturer || "",
+
+            articleNumber: vehicle.articleNumber || linkedParts[0]?.articleNumber || "",
+
+            vehicleArticleNumber: vehicle.articleNumber || "",
+
+            sparePartLookup: lookupMode
+
+          }
+
+        });
+
+        const nextStatuses: Record<string, ArticleSearchSparePart> = {};
+
+        linkedParts.forEach((part) => {
+
+          const candidate = sparePartStatusCandidate(part, response);
+
+          if (candidate?.availability || candidate?.price || candidate?.url) nextStatuses[part.id] = candidate;
+
+        });
+
+        setSparePartStatuses((current) => ({ ...current, ...nextStatuses }));
+
+        return;
+
+      }
+
+      const batch = linkedParts.filter((part) => part.articleNumber?.trim()).slice(0, 4);
+
+      const results = await Promise.allSettled(batch.map((part) =>
+
+        api.articleSearch({
+
+          manufacturer: vehicle.manufacturer,
+
+          articleNumber: part.articleNumber || "",
+
+          name: "",
+
+          gauge: "",
+
+          searchSources: sparePartSearchSourcesForLookup(),
+
+          fields: {
+
+            manufacturer: vehicle.manufacturer || "",
+
+            articleNumber: part.articleNumber || "",
+
+            vehicleArticleNumber: vehicle.articleNumber || "",
+
+            sparePartLookup: lookupMode
+
+          }
+
+        }).then((response) => ({ part, response }))
+
+      ));
+
+      const nextStatuses: Record<string, ArticleSearchSparePart> = {};
+
+      results.forEach((result) => {
+
+        if (result.status !== "fulfilled") return;
+
+        const candidate = sparePartStatusCandidate(result.value.part, result.value.response);
+
+        if (candidate?.availability || candidate?.price || candidate?.url) nextStatuses[result.value.part.id] = candidate;
+
+      });
+
+      setSparePartStatuses((current) => ({ ...current, ...nextStatuses }));
+
+    } finally {
+
+      setSparePartStatusLoading((current) => {
+
+        const next = { ...current };
+
+        linkedParts.forEach((part) => delete next[part.id]);
+
+        return next;
+
+      });
+
+    }
+
+  };
+
+  useEffect(() => {
+
+    if (activeTab !== "spareParts" || !selected) return;
+
+    const linkedParts = (selected.spareParts || []).filter((part) => visibleSparePartUrl(part));
+
+    if (linkedParts.length === 0) return;
+
+    const statusKey = `${selected.id}|${selected.articleNumber}|${selected.manufacturer}|${linkedParts.map((part) => `${part.id}:${part.articleNumber}:${part.url}`).join("|")}`;
+
+    if (sparePartStatusCheckKeyRef.current === statusKey) return;
+
+    sparePartStatusCheckKeyRef.current = statusKey;
+
+    refreshSparePartStatuses(selected).catch(() => {
+
+      setSparePartStatusLoading({});
+
+    });
+
+  }, [activeTab, selected]);
+
+  const searchSingleSparePart = async (part: VehicleSparePart) => {
+
+    if (!selected || !part.articleNumber?.trim()) return;
+
+    if (!articleSearchEnabled()) {
+
+      setSparePartLookupErrors((current) => ({ ...current, [part.id]: t("vehicles.spareParts.searchDisabledSettings") }));
+
+      setSparePartLookupResults((current) => ({ ...current, [part.id]: [] }));
+
+      return;
+
+    }
+
+    setSparePartLookupLoadingID(part.id);
+
+    setSparePartLookupErrors((current) => ({ ...current, [part.id]: "" }));
+
+    setSparePartLookupResults((current) => ({ ...current, [part.id]: [] }));
+
+    try {
+
+      const response = await api.articleSearch({
+
+        manufacturer: selected.manufacturer,
+
+        articleNumber: part.articleNumber || "",
+
+        name: "",
+
+        gauge: "",
+
+        searchSources: sparePartSearchSourcesForLookup(),
+
+        fields: {
+
+          manufacturer: selected.manufacturer || "",
+
+          articleNumber: part.articleNumber || "",
+
+          vehicleArticleNumber: selected.articleNumber || "",
+
+          sparePartLookup: sparePartLookupMode(selected)
+
+        }
+
+      });
+
+      setSparePartLookupResults((current) => ({ ...current, [part.id]: sparePartLookupCandidates(part, response) }));
+
+    } catch (error) {
+
+      setSparePartLookupErrors((current) => ({
+
+        ...current,
+
+        [part.id]: error instanceof Error ? error.message : String(error)
+
+      }));
+
+    } finally {
+
+      setSparePartLookupLoadingID("");
+
+    }
+
+  };
+
+  const applySparePartLookup = (part: VehicleSparePart, result: ArticleSearchSparePart) => {
 
     if (!selected) return;
 
-    const searchForm = vehicleToForm(selected);
+    setSaving(true);
 
-    if (!hasArticleSearchCriteria(searchForm)) {
+    setMessage("");
 
-      setSparePartSearchError(t("vehicles.articleSearch.missingInput"));
+    const pricedResult = result.price
+      ? result
+      : (sparePartLookupResults[part.id] || []).find((candidate) => candidate.price) || result;
+
+    api
+
+      .updateVehicleSparePart(selected.id, part.id, {
+
+        articleNumber: part.articleNumber || "",
+
+        description: part.description || "",
+
+        price: result.price || pricedResult.price || part.price || "",
+
+        url: pricedResult.url || result.url || part.url || ""
+
+      })
+
+      .then(() => {
+
+        setSparePartLookupResults((current) => {
+
+          const next = { ...current };
+
+          delete next[part.id];
+
+          return next;
+
+        });
+
+        setSparePartLookupErrors((current) => {
+
+          const next = { ...current };
+
+          delete next[part.id];
+
+          return next;
+
+        });
+
+        return refreshSelectedVehicle(selected.id);
+
+      })
+
+      .catch((error: Error) => setMessage(error.message))
+
+      .finally(() => setSaving(false));
+
+  };
+
+  const importAllAvailableSpareParts = async () => {
+
+    if (!selected) return;
+
+    const lookupMode = sparePartLookupMode(selected);
+
+    if (!lookupMode || !selected.articleNumber?.trim()) return;
+
+    if (!articleSearchEnabled()) {
+
+      setMessage(t("vehicles.spareParts.searchDisabledSettings"));
+
+      return;
+
+    }
+
+    setImportAllSparePartsLoading(true);
+
+    setMessage("");
+
+    try {
+
+      const response = await api.articleSearch({
+
+        manufacturer: selected.manufacturer,
+
+        articleNumber: selected.articleNumber || "",
+
+        name: "",
+
+        gauge: "",
+
+        searchSources: sparePartSearchSourcesForLookup(),
+
+        fields: {
+
+          manufacturer: selected.manufacturer || "",
+
+          articleNumber: selected.articleNumber || "",
+
+          vehicleArticleNumber: selected.articleNumber || "",
+
+          sparePartLookup: lookupMode
+
+        }
+
+      });
+
+      const sanitized = sanitizeArticleSearchResponse(response);
+
+      const existingPartsByKey = new Map((selected.spareParts || []).map((part) => [sparePartCatalogKey(part), part]));
+
+      const importable = new Map<string, VehicleSparePartInput>();
+
+      const updates = new Map<string, { id: string; input: VehicleSparePartInput }>();
+
+      sanitized.results.forEach((result) => {
+
+        (result.spareParts || []).forEach((part) => {
+
+          const input: VehicleSparePartInput = {
+
+            articleNumber: part.articleNumber?.trim() || "",
+
+            description: strictCleanSparePartDescription(part.description || "") || part.description || "",
+
+            price: part.price?.trim() || "",
+
+            url: part.url?.trim() || result.url || ""
+
+          };
+
+          const key = sparePartCatalogKey(input);
+
+          if (key === "url:") return;
+
+          const existingPart = existingPartsByKey.get(key);
+
+          if (existingPart) {
+
+            const existingPrice = existingPart.price && existingPart.price !== "-" ? existingPart.price : "";
+
+            const existingUrl = existingPart.url?.startsWith("/api/v1/vehicles/") ? "" : existingPart.url || "";
+
+            const nextPrice = existingPrice || input.price || "";
+
+            const nextUrl = existingUrl || input.url || "";
+
+            if ((nextPrice && nextPrice !== existingPrice) || (nextUrl && nextUrl !== existingUrl)) {
+
+              updates.set(existingPart.id, {
+
+                id: existingPart.id,
+
+                input: {
+
+                  articleNumber: existingPart.articleNumber || input.articleNumber || "",
+
+                  description: existingPart.description || input.description || "",
+
+                  price: nextPrice,
+
+                  url: nextUrl
+
+                }
+
+              });
+
+            }
+
+            return;
+
+          }
+
+          const current = importable.get(key);
+
+          if (current) {
+
+            importable.set(key, {
+
+              articleNumber: current.articleNumber || input.articleNumber || "",
+
+              description: current.description || input.description || "",
+
+              price: current.price || input.price || "",
+
+              url: current.url || input.url || ""
+
+            });
+
+            return;
+
+          }
+
+          importable.set(key, input);
+
+        });
+
+      });
+
+      if (importable.size === 0 && updates.size === 0) {
+
+        setMessage(t("vehicles.spareParts.importAllNone"));
+
+        return;
+
+      }
+
+      for (const update of updates.values()) {
+
+        await api.updateVehicleSparePart(selected.id, update.id, update.input);
+
+      }
+
+      for (const part of importable.values()) {
+
+        await api.createVehicleSparePart(selected.id, part);
+
+      }
+
+      await refreshSelectedVehicle(selected.id);
+
+      setMessage(t("vehicles.spareParts.importAllDone", { count: importable.size + updates.size }));
+
+    } catch (error) {
+
+      setMessage(error instanceof Error ? error.message : String(error));
+
+    } finally {
+
+      setImportAllSparePartsLoading(false);
+
+    }
+
+  };
+
+  const canImportAllAvailableSpareParts = Boolean(selected && sparePartLookupMode(selected) && selected.articleNumber?.trim());
+
+  const importAllAvailableSparePartsTitle = !selected
+
+    ? t("vehicles.spareParts.importAllNoVehicle")
+
+    : !sparePartLookupMode(selected)
+
+      ? t("vehicles.spareParts.importAllUnsupported")
+
+      : !selected.articleNumber?.trim()
+
+        ? t("vehicles.spareParts.importAllMissingArticle")
+
+        : t("vehicles.spareParts.importAllTitle");
+
+  const extractAttachmentSpareParts = async (attachment: VehicleAttachment) => {
+
+    if (!selected) return;
+
+    const edit = attachmentEdits[attachment.id] || { description: "", category: "", maintenanceId: "" };
+
+    setSaving(true);
+
+    setMessage("");
+
+    setSparePartSearchError("");
+
+    try {
+
+      await api.updateVehicleAttachment(selected.id, attachment.id, edit);
+
+      const localParts = await api.vehicleSparePartSuggestions(selected.id, attachment.id);
+
+      const candidates = localParts.filter((part) => Boolean(part.articleNumber || strictCleanSparePartDescription(part.description) || part.url));
+
+      const existingKeys = new Set((selected.spareParts || []).map((part) => sparePartImportKey(part)));
+
+      const importableParts: VehicleSparePartInput[] = [];
+
+      for (const part of candidates) {
+
+        const input: VehicleSparePartInput = {
+
+          articleNumber: part.articleNumber?.trim() || "",
+
+          description: strictCleanSparePartDescription(part.description) || part.description || "",
+
+          price: part.price?.trim() || "",
+
+          url: part.url?.trim().startsWith("/api/v1/vehicles/") ? "" : part.url?.trim() || ""
+
+        };
+
+        if (!input.articleNumber && !input.description && !input.url) continue;
+
+        const key = sparePartImportKey(input);
+
+        if (existingKeys.has(key)) continue;
+
+        existingKeys.add(key);
+
+        importableParts.push(input);
+
+      }
+
+      if (importableParts.length > 0) {
+
+        for (const part of importableParts) {
+
+          await api.createVehicleSparePart(selected.id, part);
+
+        }
+
+        setFoundSpareParts([]);
+
+        setSparePartSearchRan(false);
+
+        setSelectedFoundSpareParts({});
+
+        setMessage(t("vehicles.uploads.extractSparePartsDone", { count: importableParts.length }));
+
+      } else {
+
+        setFoundSpareParts(candidates);
+
+        setSparePartSearchRan(true);
+
+        setSelectedFoundSpareParts({});
+
+        setMessage(t("vehicles.uploads.extractSparePartsEmpty"));
+
+      }
+
+      await refreshSelectedVehicle(selected.id);
+
+      setActiveTab("spareParts");
+
+    } catch (error) {
+
+      setMessage(error instanceof Error ? error.message : String(error));
+
+    } finally {
+
+      setSaving(false);
+
+    }
+
+  };
+
+  const runSparePartSearch = async () => {
+
+    if (!selected) return;
+
+    const storedParts = (selected.spareParts || []).filter((part) => part.articleNumber?.trim());
+
+    if (storedParts.length === 0) {
+
+      setSparePartSearchError(t("vehicles.spareParts.searchDisabledEmpty"));
+
+      setSparePartSearchRan(true);
+
+      return;
+
+    }
+
+    if (!articleSearchEnabled()) {
+
+      setSparePartSearchError(t("vehicles.spareParts.searchDisabledSettings"));
 
       setSparePartSearchRan(true);
 
@@ -2258,78 +2744,129 @@ export function VehiclesView({ username }: { username: string }) {
 
     setSelectedFoundSpareParts({});
 
-    api
-      .vehicleSparePartSuggestions(selected.id)
-      .then((localParts) => {
+    const sparePartSearchSources = articleSearchSources().filter((source) => source === "manufacturer" || source === "catalogs");
 
-        const localSuggestions = localParts.filter(isStrictRealSparePartCandidate);
+    const searchInput = (part: VehicleSparePart) => ({
 
-        if (localSuggestions.length > 0) {
+      manufacturer: selected.manufacturer,
 
-          setFoundSpareParts(localSuggestions);
+      articleNumber: part.articleNumber || "",
 
-          setSelectedFoundSpareParts({});
+      name: "",
 
-          return null;
+      gauge: "",
 
-        }
+      searchSources: sparePartSearchSources.length > 0 ? sparePartSearchSources : ["manufacturer", "catalogs"],
 
-        if (!articleSearchEnabled()) {
+      fields: {
 
-          setSparePartSearchError("Keine passende Ersatzteilliste in den Beilagen gefunden. Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
+        manufacturer: selected.manufacturer || "",
 
-          return null;
+        articleNumber: part.articleNumber || ""
 
-        }
+      }
 
-        return api.articleSearch({
+    });
 
-          manufacturer: searchForm.manufacturer,
+    try {
 
-          articleNumber: searchForm.articleNumber,
+      const responses: { part: VehicleSparePart; response: ArticleSearchResponse }[] = [];
 
-          name: searchForm.name,
+      let failedSearches = 0;
 
-          gauge: searchForm.gauge,
+      for (let index = 0; index < storedParts.length; index += 3) {
 
-          searchSources: articleSearchSources(),
+        const batch = storedParts.slice(index, index + 3);
 
-          fields: vehicleFieldsForSearch(searchForm)
+        const batchResults = await Promise.allSettled(batch.map((part) => api.articleSearch(searchInput(part)).then((response) => ({ part, response }))));
+
+        batchResults.forEach((result) => {
+
+          if (result.status === "fulfilled") {
+
+            responses.push(result.value);
+
+          } else {
+
+            failedSearches += 1;
+
+          }
 
         });
 
-      })
-      .then((response) => {
-
-        if (!response) return;
-
-        const sanitized = sanitizeArticleSearchResponse(response);
+      }
 
         const parts = new Map<string, ArticleSearchSparePart>();
 
-        sanitized.results.forEach((result) => {
+        responses.forEach(({ part, response }) => {
 
-          (result.spareParts || []).forEach((part) => {
+          const sanitized = sanitizeArticleSearchResponse(response);
 
-            const key = `${part.articleNumber || ""}|${part.description || ""}|${part.url || ""}`.toLocaleLowerCase();
+          sanitized.results.forEach((result) => {
 
-            if (key !== "||" && !parts.has(key) && isStrictRealSparePartCandidate(part)) parts.set(key, part);
+            const resultSignal = `${result.title || ""} ${result.snippet || ""} ${result.url || ""}`.toLocaleLowerCase("de-DE");
+
+            (result.spareParts || []).forEach((candidate) => {
+
+              const candidateSignal = `${candidate.articleNumber || ""} ${candidate.description || ""} ${candidate.url || ""}`.toLocaleLowerCase("de-DE");
+
+              if (!sparePartSearchCandidateMatches(part, candidateSignal)) return;
+
+              const key = `${candidate.articleNumber || ""}|${candidate.description || ""}|${candidate.url || ""}`.toLocaleLowerCase("de-DE");
+
+              if (key !== "||" && !parts.has(key)) parts.set(key, candidate);
+
+            });
+
+            if (sparePartSearchCandidateMatches(part, resultSignal) && result.url) {
+
+              const fallback: ArticleSearchSparePart = {
+
+                articleNumber: part.articleNumber || "",
+
+                description: part.description || result.title || "",
+
+                price: part.price || "",
+
+                url: result.url,
+
+                source: result.source || sourceDisplayName(result.url)
+
+              };
+
+              const key = `${fallback.articleNumber || ""}|${fallback.description || ""}|${fallback.url || ""}`.toLocaleLowerCase("de-DE");
+
+              if (key !== "||" && !parts.has(key)) parts.set(key, fallback);
+
+            }
 
           });
 
         });
 
-        const nextParts = Array.from(parts.values());
-
-        setFoundSpareParts(nextParts);
+        setFoundSpareParts(Array.from(parts.values()));
 
         setSelectedFoundSpareParts({});
 
-      })
+      if (failedSearches > 0 && parts.size === 0) {
 
-      .catch((error: Error) => setSparePartSearchError(error.message))
+        setSparePartSearchError(t("vehicles.spareParts.searchFailed"));
 
-      .finally(() => setSparePartSearchLoading(false));
+      } else if (failedSearches > 0) {
+
+        setSparePartSearchError(t("vehicles.spareParts.searchPartialFailed", { count: failedSearches }));
+
+      }
+
+    } catch (error) {
+
+      setSparePartSearchError(error instanceof Error ? error.message : String(error));
+
+    } finally {
+
+      setSparePartSearchLoading(false);
+
+    }
 
   };
 
@@ -3433,6 +3970,7 @@ export function VehiclesView({ username }: { username: string }) {
     event?.preventDefault();
 
     const reportVehicles = reportSelection === "selected" ? selectedVisibleVehicles : sortedVehicles;
+    const reportName = `railkeeper-inventory-${reportMode}`;
 
     if (reportVehicles.length === 0) {
 
@@ -3441,6 +3979,9 @@ export function VehiclesView({ username }: { username: string }) {
       return;
 
     }
+
+    setReportCreating(true);
+    const reportWindow = reservePrintDocument(reportName, reportTitle.trim() || "Fahrzeugsammlung");
 
     try {
 
@@ -3460,13 +4001,17 @@ export function VehiclesView({ username }: { username: string }) {
 
       }, assets);
 
-      openPrintDocument(html, `railkeeper-inventory-${reportMode}`);
+      openPrintDocument(html, reportName, reportWindow);
 
       setReportDialogOpen(false);
 
     } catch (error) {
 
       setMessage(error instanceof Error ? error.message : "Report konnte nicht erstellt werden.");
+
+    } finally {
+
+      setReportCreating(false);
 
     }
 
@@ -3475,6 +4020,9 @@ export function VehiclesView({ username }: { username: string }) {
 
 
   const printVehicleReport = async (vehicle: Vehicle) => {
+
+    const reportName = `railkeeper-vehicle-${vehicle.id}`;
+    const reportWindow = reservePrintDocument(reportName, vehicle.name || vehicle.inventoryNumber || "Fahrzeugsammlung");
 
     try {
 
@@ -3494,37 +4042,13 @@ export function VehiclesView({ username }: { username: string }) {
 
       }, assets);
 
-      openPrintDocument(html, `railkeeper-vehicle-${completeVehicle.id}`);
+      openPrintDocument(html, reportName, reportWindow);
 
     } catch (error) {
 
       setMessage(error instanceof Error ? error.message : "Report konnte nicht erstellt werden.");
 
     }
-
-  };
-
-
-
-  const toggleSort = (key: SortKey) => {
-
-    setSort((current) => ({
-
-      key,
-
-      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
-
-    }));
-
-  };
-
-
-
-  const setInventoryViewMode = (modeName: InventoryViewMode) => {
-
-    setInventoryView(modeName);
-
-    window.localStorage.setItem(inventoryViewSettingKey, modeName);
 
   };
 
@@ -3882,7 +4406,7 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const openEdit = (vehicle: Vehicle) => {
+  const openEdit = (vehicle: Vehicle, tab: ModalTab = "model") => {
 
     api
 
@@ -3894,7 +4418,7 @@ export function VehiclesView({ username }: { username: string }) {
 
         setMode("edit");
 
-        setActiveTab("model");
+        setActiveTab(tab);
 
         setOpenSections({ model: true, details: false, vehicle: false });
 
@@ -3912,8 +4436,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   const openQrForVehicle = (vehicle: Vehicle) => {
 
-    setQrDialogOpen(true);
-
     setQrSvg("");
 
     setQrError("");
@@ -3926,13 +4448,7 @@ export function VehiclesView({ username }: { username: string }) {
 
         setSelectedDetail(detail);
 
-        setMode("view");
-
-        setActiveTab("model");
-
-        setOpenSections({ model: true, details: false, vehicle: false });
-
-        setModalOpen(true);
+        setQrDialogOpen(true);
 
         setQrSvg(await buildQrSvg(detail, vehicleToForm(detail)));
 
@@ -4209,6 +4725,8 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
+      vehicle = await api.vehicle(vehicle.id);
+
       setSelectedDetail(vehicle);
 
       setMode("edit");
@@ -4339,11 +4857,11 @@ export function VehiclesView({ username }: { username: string }) {
 
           <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); printVehicleReport(vehicle); }}><Printer size={14} />{t("overview.print")}</button>
 
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "uploads"); }}><Upload size={14} />Uploads</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "uploads"); }}><Upload size={14} />Uploads</button>
 
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "maintenance"); }}><Wrench size={14} />{t("vehicles.maintenance")}</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "maintenance"); }}><Wrench size={14} />{t("vehicles.maintenance")}</button>
 
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle, "spareParts"); }}><PackageSearch size={14} />{t("vehicles.tab.spareParts")}</button>
+          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "spareParts"); }}><PackageSearch size={14} />{t("vehicles.tab.spareParts")}</button>
 
           <span className="quick-menu-separator" role="separator" />
 
@@ -4485,6 +5003,8 @@ export function VehiclesView({ username }: { username: string }) {
 
         maintenanceFilter={maintenanceFilter}
 
+        qualityFilter={qualityFilter}
+
         manufacturerFilter={manufacturerFilter}
 
         categoryFilter={categoryFilter}
@@ -4524,6 +5044,8 @@ export function VehiclesView({ username }: { username: string }) {
         onInventoryFilterChange={setInventoryFilter}
 
         onMaintenanceFilterChange={setMaintenanceFilter}
+
+        onQualityFilterChange={setQualityFilter}
 
         onManufacturerFilterChange={setManufacturerFilter}
 
@@ -4570,6 +5092,8 @@ export function VehiclesView({ username }: { username: string }) {
           selectedCount={selectedVisibleVehicles.length}
 
           canUseSelected={someVisibleSelected}
+
+          creating={reportCreating}
 
           onReportModeChange={setReportMode}
 
@@ -4686,6 +5210,8 @@ export function VehiclesView({ username }: { username: string }) {
                 <VehicleModelTab
 
                   form={form}
+
+                  externalMappings={selected?.externalMappings || []}
 
                   readonly={readonly}
 
@@ -4933,6 +5459,8 @@ export function VehiclesView({ username }: { username: string }) {
 
                   onSaveAttachment={saveAttachment}
 
+                  onExtractAttachmentSpareParts={extractAttachmentSpareParts}
+
                   onDeleteAttachment={setAttachmentDeleteCandidate}
 
                   onSearchDocuments={runUploadDocumentSearch}
@@ -4993,17 +5521,25 @@ export function VehiclesView({ username }: { username: string }) {
 
                   saving={saving}
 
-                  searchLoading={sparePartSearchLoading}
-
-                  searchError={sparePartSearchError}
-
-                  searchRan={sparePartSearchRan}
-
                   sparePartForm={sparePartForm}
 
                   editingSparePartID={editingSparePartID}
 
-                  foundSpareParts={foundSpareParts}
+                  sparePartLookupLoadingID={sparePartLookupLoadingID}
+
+                  sparePartLookupErrors={sparePartLookupErrors}
+
+                  sparePartLookupResults={sparePartLookupResults}
+
+                  sparePartStatusLoading={sparePartStatusLoading}
+
+                  sparePartStatuses={sparePartStatuses}
+
+                  importAllSparePartsLoading={importAllSparePartsLoading}
+
+                  canImportAllSpareParts={canImportAllAvailableSpareParts}
+
+                  importAllSparePartsTitle={importAllAvailableSparePartsTitle}
 
                   onUpdateSparePartForm={updateSparePartForm}
 
@@ -5015,13 +5551,15 @@ export function VehiclesView({ username }: { username: string }) {
 
                   onDeleteSparePart={deleteSparePart}
 
-                  onSearchSpareParts={runSparePartSearch}
+                  onSearchSparePart={searchSingleSparePart}
 
-                  selectedFoundSpareParts={selectedFoundSpareParts}
+                  onApplySparePartLookup={applySparePartLookup}
 
-                  onToggleFoundSparePart={toggleFoundSparePart}
+                  onImportAllSpareParts={importAllAvailableSpareParts}
 
-                  onToggleAllFoundSpareParts={toggleAllFoundSpareParts}
+                  sparePartSort={sparePartSort}
+
+                  onToggleSparePartSort={toggleSparePartSort}
 
                 />
 

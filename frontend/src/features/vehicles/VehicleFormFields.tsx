@@ -2,6 +2,7 @@ import { QrCode } from "lucide-react";
 import { CreateVehicleRequest } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppDateInput } from "../../shared/ui/AppDateInput";
 import {
   acquiredFromOptions,
   acquisitionOptions,
@@ -248,7 +249,7 @@ export function VehicleOwnershipFields({
         </label>
         <label>
           {t("vehicle.field.purchaseDate")}
-          <input type="date" value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={readonly} />
+          <AppDateInput value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={readonly} />
         </label>
       </div>
 

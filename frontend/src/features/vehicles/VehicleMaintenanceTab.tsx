@@ -11,6 +11,7 @@ import { conditionRatings, maintenanceKinds, maintenanceStatuses } from "./vehic
 import { formatDate } from "./vehicleFormat";
 import { PendingArticleImage } from "./vehicleTransforms";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppDateInput } from "../../shared/ui/AppDateInput";
 
 export function VehicleMaintenanceTab({
   selected,
@@ -102,11 +103,11 @@ export function VehicleMaintenanceTab({
               </label>
               <label>
                 {t("vehicles.maintenance.dueDate")}
-                <input type="date" value={maintenanceForm.dueDate || ""} onChange={(event) => onUpdateMaintenanceForm({ dueDate: event.target.value })} disabled={readonly || saving} />
+                <AppDateInput value={maintenanceForm.dueDate || ""} onChange={(event) => onUpdateMaintenanceForm({ dueDate: event.target.value })} disabled={readonly || saving} />
               </label>
               <label>
                 {t("vehicles.maintenance.completedAt")}
-                <input type="date" value={maintenanceForm.completedAt || ""} onChange={(event) => onUpdateMaintenanceForm({ completedAt: event.target.value })} disabled={readonly || saving} />
+                <AppDateInput value={maintenanceForm.completedAt || ""} onChange={(event) => onUpdateMaintenanceForm({ completedAt: event.target.value })} disabled={readonly || saving} />
               </label>
               <label>
                 {t("vehicles.maintenance.cost")}

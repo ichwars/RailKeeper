@@ -1,4 +1,3 @@
-import type { FormEvent } from "react";
 import { Check, Download, ExternalLink, Printer, X } from "lucide-react";
 import { CreateVehicleRequest, ExhibitionEntry, ExhibitionList, Vehicle, VehicleAttachment } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -42,10 +41,7 @@ export function QrDialog({
         {error && <p className="form-message">{error}</p>}
         <button type="button" className="qr-preview-button" onClick={onPrint} disabled={!qrSvg} title={t("vehicles.qr.printView")}>
           {qrSvg ? (
-            <>
-              <span dangerouslySetInnerHTML={{ __html: qrSvg }} />
-              <img className="qr-preview-logo" src="/brand/railkeeper-mark.png" alt="" />
-            </>
+            <span dangerouslySetInnerHTML={{ __html: qrSvg }} />
           ) : (
             t("vehicles.qr.creating")
           )}
@@ -108,6 +104,7 @@ export function ReportDialog({
   reportIncludeImages,
   selectedCount,
   canUseSelected,
+  creating,
   onReportModeChange,
   onReportTitleChange,
   onReportSelectionChange,
@@ -123,18 +120,19 @@ export function ReportDialog({
   reportIncludeImages: boolean;
   selectedCount: number;
   canUseSelected: boolean;
+  creating: boolean;
   onReportModeChange: (value: "summary" | "details") => void;
   onReportTitleChange: (value: string) => void;
   onReportSelectionChange: (value: "all" | "selected") => void;
   onReportIncludeQRCodeChange: (value: boolean) => void;
   onReportIncludeImagesChange: (value: boolean) => void;
   onClose: () => void;
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onSubmit: () => void;
 }) {
   const { t } = useI18n();
   return (
     <div className="confirm-layer report-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.report.title")}>
-      <form className="report-dialog" onSubmit={onSubmit}>
+      <section className="report-dialog">
         <header className="report-dialog-head">
           <div>
             <Printer size={18} aria-hidden="true" />
@@ -184,15 +182,17 @@ export function ReportDialog({
           </fieldset>
         </div>
 
+        {creating && <p className="report-status">{t("vehicles.report.creating")}</p>}
+
         <footer className="report-dialog-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
             {t("vehicles.cancel")}
           </button>
-          <button type="submit" className="primary-button">
+          <button type="button" className="primary-button" onClick={onSubmit} disabled={creating}>
             {t("vehicles.report.create")}
           </button>
         </footer>
-      </form>
+      </section>
     </div>
   );
 }

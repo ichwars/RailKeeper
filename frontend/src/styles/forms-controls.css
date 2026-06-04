@@ -18,7 +18,7 @@
 
 .panel-head h2 {
   margin: 0;
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
 }
 
 .panel-title-inline {
@@ -51,8 +51,8 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .required-label {
@@ -133,6 +133,22 @@
   outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
+.vehicle-form .app-date input,
+.settings-form .app-date input,
+.search-field .app-date input {
+  min-height: 36px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 10px;
+  background: transparent;
+}
+
+.vehicle-form .app-date input:focus,
+.settings-form .app-date input:focus,
+.search-field .app-date input:focus {
+  outline: none;
+}
+
 .vehicle-form input:disabled,
 .vehicle-form select:disabled,
 .vehicle-form textarea:disabled,
@@ -147,9 +163,9 @@
   min-height: 180px;
   padding: 10px 11px;
   resize: vertical;
-  font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  font-size: 13px;
-  line-height: 1.45;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
 }
 
 .vehicle-form textarea {
@@ -194,8 +210,8 @@
   gap: 7px !important;
   align-self: end;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .coupling-same-field .switch-field,
@@ -306,16 +322,16 @@
 
 .inventory-list-head h2 {
   margin: 0;
-  font-size: 22px;
-  line-height: 30px;
+  font-size: var(--font-size-title-md);
+  line-height: var(--line-height-title-lg);
 }
 
 .inventory-list-head p {
   margin: 2px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-control-md);
 }
 
 .inventory-title-line {
@@ -355,8 +371,8 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
@@ -406,8 +422,8 @@
   border-radius: 8px;
   padding: 0 10px 0 12px;
   background: color-mix(in srgb, var(--panel) 88%, transparent);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .app-select.inventory-filter-select .app-select-options {
@@ -416,8 +432,8 @@
 
 .app-select.inventory-filter-select .app-select-option {
   min-height: 30px;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .inventory-filter-select:focus,
@@ -445,8 +461,8 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
 }
 
@@ -468,8 +484,8 @@
   padding: 0 12px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   white-space: nowrap;
 }
 
@@ -511,8 +527,8 @@
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .inventory-inline-switch input {
@@ -581,8 +597,8 @@
   background: color-mix(in srgb, var(--accent-bright) 34%, #fff);
   border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--line));
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .table-wrap {
@@ -604,8 +620,8 @@ td {
 th {
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -625,6 +641,16 @@ th {
 .inventory-table th:first-child,
 .inventory-table td:first-child {
   padding-left: 16px;
+}
+
+.inventory-table th.inventory-table-center,
+.inventory-table td.inventory-table-center {
+  text-align: center;
+}
+
+.inventory-table th.inventory-table-center .sort-button {
+  justify-content: center;
+  width: 100%;
 }
 
 .sort-button {
@@ -685,7 +711,7 @@ th .sort-button:focus-visible {
 }
 
 td {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .actions-cell {
@@ -732,8 +758,8 @@ td {
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
   text-align: left;
 }
 
@@ -827,13 +853,18 @@ td {
 }
 
 .inventory-card {
+  position: relative;
   display: grid;
   grid-template-rows: 168px auto;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   color: var(--text);
+}
+
+.inventory-card:has(.quick-menu) {
+  z-index: 5;
 }
 
 .inventory-card:hover {
@@ -847,8 +878,10 @@ td {
   height: 168px;
   margin: -1px -1px 0;
   place-items: center;
+  overflow: hidden;
   border: 0;
   border-bottom: 1px solid var(--line);
+  border-radius: 8px 8px 0 0;
   background: #fff;
   cursor: pointer;
 }
@@ -857,7 +890,7 @@ td {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: center top;
+  object-position: center center;
 }
 
 .inventory-card-body {
@@ -888,8 +921,8 @@ td {
 
 .inventory-card-title span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .inventory-card-gauge {
@@ -905,8 +938,8 @@ td {
 
 .inventory-card h3 {
   margin: 0;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-copy);
 }
 
 .inventory-card dl {
@@ -922,8 +955,8 @@ td {
 
 .inventory-card dt {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 900;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -931,8 +964,8 @@ td {
   margin: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -979,6 +1012,7 @@ td {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
 }
 
 .inventory-mobile-main {
@@ -999,8 +1033,8 @@ td {
 .inventory-mobile-main small {
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1008,8 +1042,8 @@ td {
 .inventory-mobile-main strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 14px;
-  line-height: 18px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-control-md);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -1028,8 +1062,8 @@ td {
   padding: 3px 7px;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-align: center;
 }
 
@@ -1061,13 +1095,13 @@ td {
 
 .detail-meta dt {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .detail-meta dd {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .empty-state {
@@ -1089,9 +1123,9 @@ td {
   border-radius: 6px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 9px;
-  font-weight: 750;
-  line-height: 1.15;
+  font-size: var(--font-size-3xs);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-tight);
   text-align: center;
 }
 
@@ -1099,7 +1133,7 @@ td {
   width: 76px;
   height: 56px;
   gap: 4px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
 }
 
 .inventory-thumb {
@@ -1108,7 +1142,7 @@ td {
   height: 40px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  object-fit: contain;
+  object-fit: cover;
   background: var(--input-bg);
 }
 
@@ -1118,13 +1152,13 @@ td {
 
 .module-card h2 {
   margin: 18px 0 8px;
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
 }
 
 .module-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--line-height-body);
 }
 
 .auth-page {
@@ -1174,14 +1208,14 @@ td {
 
 .auth-card h1 {
   margin-bottom: 10px;
-  font-size: 30px;
+  font-size: var(--font-size-title-xl);
   text-align: center;
 }
 
 .auth-card p {
   margin: 0 0 22px;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--line-height-body);
   text-align: center;
 }
 
@@ -1195,8 +1229,8 @@ td {
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .auth-form input {
@@ -1224,8 +1258,8 @@ td {
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .forgot-password-button:hover,
@@ -1237,8 +1271,8 @@ td {
 .auth-card .auth-hint {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
   text-align: center;
 }
 
@@ -1251,8 +1285,8 @@ td {
   padding: 0 12px;
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   color: var(--accent-strong);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
   text-decoration: none;
 }
 
@@ -1275,7 +1309,7 @@ td {
   color: #fff;
   cursor: pointer;
   font: inherit;
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
   box-shadow: 0 10px 22px rgba(65, 147, 16, 0.22);
 }
 
@@ -1291,7 +1325,7 @@ td {
 .form-message {
   margin: 0;
   color: var(--danger);
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .secondary-button,
@@ -1306,7 +1340,7 @@ td {
   padding: 0 14px;
   cursor: pointer;
   font: inherit;
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
 }
 
 .secondary-button {
@@ -1345,12 +1379,12 @@ td {
 }
 
 .icon-button.danger:hover {
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  background: transparent;
   color: var(--danger);
 }
 
 .icon-button.active {
-  background: var(--accent-soft);
+  background: transparent;
   color: var(--accent-strong);
 }
 

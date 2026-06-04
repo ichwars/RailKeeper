@@ -1,5 +1,5 @@
 import { useState, type DragEvent, type RefObject } from "react";
-import { ChevronDown, ChevronUp, Download, ExternalLink, Eye, FileText, Image, Save, Search, Star, Trash2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Download, ExternalLink, Eye, FileText, Image, PackageSearch, Save, Search, Star, Trash2, Upload, X } from "lucide-react";
 import { api, ArticleSearchDocument, Vehicle, VehicleAttachment, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
@@ -136,6 +136,7 @@ export function VehicleUploadsTab({
   onAttachmentUploadDescriptionChange,
   onUpdateAttachmentEdit,
   onSaveAttachment,
+  onExtractAttachmentSpareParts,
   onDeleteAttachment,
   onSearchDocuments,
   onImportDocument,
@@ -175,6 +176,7 @@ export function VehicleUploadsTab({
   onAttachmentUploadDescriptionChange: (value: string) => void;
   onUpdateAttachmentEdit: (id: string, patch: Partial<AttachmentEditState[string]>) => void;
   onSaveAttachment: (attachment: VehicleAttachment) => void;
+  onExtractAttachmentSpareParts: (attachment: VehicleAttachment) => void;
   onDeleteAttachment: (attachment: VehicleAttachment) => void;
   onSearchDocuments: () => void;
   onImportDocument: (document: ArticleSearchDocument) => void;
@@ -455,35 +457,34 @@ export function VehicleUploadsTab({
                   <div className="attachment-main">
                     <strong>{attachment.originalName}</strong>
                     <span>{attachment.category || t("vehicles.uploads.noCategory")} - {attachment.mimeType || "Datei"} - {formatFileSize(attachment.sizeBytes)}</span>
-                    <div className="attachment-edit-row">
-                      <AppSelect value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
-                        <option value="">{t("vehicles.uploads.category")}</option>
-                        {attachmentCategories.map((category) => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                      </AppSelect>
-                      <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder={t("vehicles.uploads.note")} />
-                    </div>
+                  </div>
+                  <div className="attachment-edit-row">
+                    <AppSelect value={edit.category} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { category: event.target.value })} disabled={readonly}>
+                      <option value="">{t("vehicles.uploads.category")}</option>
+                      {attachmentCategories.map((category) => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </AppSelect>
+                    <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder={t("vehicles.uploads.note")} />
                   </div>
                   <div className="attachment-actions">
-                    <button type="button" className="secondary-button" onClick={() => setPreviewAttachment(attachment)}>
-                      <Eye size={15} aria-hidden="true" />
-                      {t("vehicles.uploads.preview")}
+                    <button type="button" className="icon-button" onClick={() => setPreviewAttachment(attachment)} aria-label={t("vehicles.uploads.preview")} title={t("vehicles.uploads.preview")}>
+                      <Eye size={15} />
                     </button>
-                    <a className="secondary-button" href={downloadUrl}>
-                      <Download size={15} aria-hidden="true" />
-                      Download
+                    <a className="icon-button" href={downloadUrl} aria-label={t("vehicles.uploads.downloadAttachment")} title={t("vehicles.uploads.downloadAttachment")}>
+                      <Download size={15} />
                     </a>
                     <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openAttachment")} title={t("vehicles.uploads.openAttachment")}>
                       <ExternalLink size={15} />
                     </a>
-                    <button type="button" className="secondary-button" onClick={() => onSaveAttachment(attachment)} disabled={readonly || saving}>
-                      <Save size={15} aria-hidden="true" />
-                      {t("vehicles.save")}
+                    <button type="button" className="icon-button" onClick={() => onSaveAttachment(attachment)} disabled={readonly || saving} aria-label={t("vehicles.save")} title={t("vehicles.save")}>
+                      <Save size={15} />
                     </button>
-                    <button type="button" className="danger-button" onClick={() => onDeleteAttachment(attachment)} disabled={readonly || saving}>
-                      <Trash2 size={15} aria-hidden="true" />
-                      {t("vehicles.delete")}
+                    <button type="button" className="icon-button" onClick={() => onExtractAttachmentSpareParts(attachment)} disabled={readonly || saving} aria-label={t("vehicles.uploads.extractSpareParts")} title={t("vehicles.uploads.extractSpareParts")}>
+                      <PackageSearch size={15} />
+                    </button>
+                    <button type="button" className="icon-button danger" onClick={() => onDeleteAttachment(attachment)} disabled={readonly || saving} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 </article>

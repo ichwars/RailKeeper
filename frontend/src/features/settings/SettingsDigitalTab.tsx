@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Database, ListChecks, Power, PowerOff, RadioTower, RefreshCw, Save, Server, X } from "lucide-react";
-import { api, ECoSConnectionResult, ECoSLiveStatus, ECoSRawLocomotive, ECoSRawProbe } from "../../shared/api";
+import { api, DigitalCenterConnectionResult, ECoSConnectionResult, ECoSLiveStatus, ECoSRawLocomotive, ECoSRawProbe } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
 
@@ -28,8 +28,14 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   });
   const [ecosHost, setEcosHost] = useState(() => readLocalSetting(localSettingKeys.digitalEcosHost, ""));
   const [ecosPort, setEcosPort] = useState(() => readLocalSetting(localSettingKeys.digitalEcosPort, "15471"));
+  const [z21Enabled, setZ21Enabled] = useState(() => readLocalBool(localSettingKeys.digitalZ21Enabled, false));
+  const [z21Host, setZ21Host] = useState(() => readLocalSetting(localSettingKeys.digitalZ21Host, ""));
+  const [z21Port, setZ21Port] = useState(() => readLocalSetting(localSettingKeys.digitalZ21Port, "21105"));
+  const [cs3Enabled, setCS3Enabled] = useState(() => readLocalBool(localSettingKeys.digitalCS3Enabled, false));
+  const [cs3Host, setCS3Host] = useState(() => readLocalSetting(localSettingKeys.digitalCS3Host, ""));
+  const [cs3Port, setCS3Port] = useState(() => readLocalSetting(localSettingKeys.digitalCS3Port, "80"));
   const [busy, setBusy] = useState<BusyState>("idle");
-  const [connectionResult, setConnectionResult] = useState<ECoSConnectionResult | null>(null);
+  const [connectionResult, setConnectionResult] = useState<ECoSConnectionResult | DigitalCenterConnectionResult | null>(null);
   const [rawProbe, setRawProbe] = useState<ECoSRawProbe | null>(null);
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [message, setMessage] = useState("");
@@ -40,11 +46,60 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     port: Number(ecosPort) || 15471
   });
 
+  const providerEnabled = (providerId: DigitalProvider) => {
+    if (providerId === "ecos") return ecosEnabled;
+    if (providerId === "z21") return z21Enabled;
+    return cs3Enabled;
+  };
+
+  const providerHost = (providerId: DigitalProvider) => {
+    if (providerId === "ecos") return ecosHost.trim();
+    if (providerId === "z21") return z21Host.trim();
+    return cs3Host.trim();
+  };
+
+  const providerPort = (providerId: DigitalProvider) => {
+    if (providerId === "ecos") return ecosPort.trim() || "15471";
+    if (providerId === "z21") return z21Port.trim() || "21105";
+    return cs3Port.trim() || "80";
+  };
+
+  const providerInput = (providerId: DigitalProvider) => ({
+    host: providerHost(providerId),
+    port: Number(providerPort(providerId))
+  });
+
+  const providerConfigured = (providerId: DigitalProvider) => providerEnabled(providerId) && Boolean(providerHost(providerId));
+
+  const setActiveProviderEnabled = (enabled: boolean) => {
+    if (activeDialogProvider === "ecos") setEcosEnabled(enabled);
+    if (activeDialogProvider === "z21") setZ21Enabled(enabled);
+    if (activeDialogProvider === "cs3") setCS3Enabled(enabled);
+  };
+
+  const setActiveProviderHost = (host: string) => {
+    if (activeDialogProvider === "ecos") setEcosHost(host);
+    if (activeDialogProvider === "z21") setZ21Host(host);
+    if (activeDialogProvider === "cs3") setCS3Host(host);
+  };
+
+  const setActiveProviderPort = (port: string) => {
+    if (activeDialogProvider === "ecos") setEcosPort(port);
+    if (activeDialogProvider === "z21") setZ21Port(port);
+    if (activeDialogProvider === "cs3") setCS3Port(port);
+  };
+
   const rememberSettings = (nextProvider: DigitalProvider = provider) => {
     window.localStorage.setItem(localSettingKeys.digitalProvider, nextProvider);
     window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(ecosEnabled));
     window.localStorage.setItem(localSettingKeys.digitalEcosHost, ecosHost.trim());
     window.localStorage.setItem(localSettingKeys.digitalEcosPort, ecosPort.trim() || "15471");
+    window.localStorage.setItem(localSettingKeys.digitalZ21Enabled, String(z21Enabled));
+    window.localStorage.setItem(localSettingKeys.digitalZ21Host, z21Host.trim());
+    window.localStorage.setItem(localSettingKeys.digitalZ21Port, z21Port.trim() || "21105");
+    window.localStorage.setItem(localSettingKeys.digitalCS3Enabled, String(cs3Enabled));
+    window.localStorage.setItem(localSettingKeys.digitalCS3Host, cs3Host.trim());
+    window.localStorage.setItem(localSettingKeys.digitalCS3Port, cs3Port.trim() || "80");
     window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
   };
 
@@ -80,25 +135,29 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   };
 
   const saveAdapter = () => {
-    if (!activeDialogProvider || activeDialogProvider !== "ecos") return;
-    if (!ecosHost.trim()) {
+    if (!activeDialogProvider) return;
+    if (!providerHost(activeDialogProvider)) {
       setDialogMessage(t("settings.digital.hostRequired"));
       return;
     }
     setProvider(activeDialogProvider);
-    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(ecosEnabled));
     rememberSettings(activeDialogProvider);
     setMessage(t("settings.digital.saved"));
     closeAdapter();
   };
 
   const testConnection = async () => {
-    rememberSettings("ecos");
+    const testedProvider = activeDialogProvider || provider;
+    rememberSettings(testedProvider);
     setBusy("testing");
     setMessage("");
     setDialogMessage("");
     try {
-      const result = await api.testECoSConnection(ecosInput());
+      const result = testedProvider === "ecos"
+        ? await api.testECoSConnection(providerInput("ecos"))
+        : testedProvider === "z21"
+          ? await api.testZ21Connection(providerInput("z21"))
+          : await api.testCS3Connection(providerInput("cs3"));
       setConnectionResult(result);
       setMessage(result.message);
       setDialogMessage(result.message);
@@ -156,14 +215,17 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   };
 
   const providerLabel = (providerId: DigitalProvider) => t(`settings.digital.provider.${providerId}`);
-  const providerReady = provider === "ecos" && ecosEnabled && Boolean(ecosHost.trim());
+  const providerReady = providerConfigured(provider);
+  const ecosReady = provider === "ecos" && providerConfigured("ecos");
   const liveSince = liveStatus?.startedAt ? formatDateTime(liveStatus.startedAt) : t("settings.digital.notActive");
   const liveSeen = liveStatus?.lastSeenAt ? formatDateTime(liveStatus.lastSeenAt) : t("settings.digital.notSeen");
   const previewLocomotives = rawProbe?.locomotives.slice(0, 8) ?? [];
   const hiddenLocomotiveCount = rawProbe ? Math.max(rawProbe.locomotives.length - previewLocomotives.length, 0) : 0;
-  const dialogProviderActive = activeDialogProvider === "ecos";
-  const dialogCanTest = canManageUsers && dialogProviderActive;
-  const dialogCanSave = dialogProviderActive;
+  const connectionDetail = connectionResult
+    ? ("applicationVersion" in connectionResult && connectionResult.applicationVersion) || connectionResult.fields?.version || connectionResult.fields?.serialNumber || connectionResult.message
+    : t("settings.digital.noTest");
+  const dialogCanTest = canManageUsers && Boolean(activeDialogProvider);
+  const dialogCanSave = Boolean(activeDialogProvider);
 
   const formatLocomotiveFunctions = (locomotive: ECoSRawLocomotive) => {
     const count = locomotive.numberOfFunctions ?? locomotive.functions?.length ?? 0;
@@ -214,14 +276,14 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
               <strong>{providerLabel(provider)}</strong>
               <small>
                 {providerReady
-                  ? t("settings.digital.configuredEndpoint", { host: ecosHost.trim(), port: ecosPort.trim() || "15471" })
+                  ? t("settings.digital.configuredEndpoint", { host: providerHost(provider), port: providerPort(provider) })
                   : t("settings.digital.notConfigured")}
               </small>
             </article>
             <article className="digital-active-provider">
               <span className="settings-pill">{t("settings.digital.connection")}</span>
               <strong>{connectionResult?.connected ? t("settings.digital.connected") : t("settings.digital.notConnected")}</strong>
-              <small>{connectionResult?.applicationVersion || connectionResult?.message || t("settings.digital.noTest")}</small>
+              <small>{connectionDetail}</small>
             </article>
             <article className="digital-active-provider">
               <span className="settings-pill">{t("settings.digital.locomotives")}</span>
@@ -231,15 +293,15 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
           </div>
 
           <div className="settings-action-row digital-action-row">
-            <button type="button" className="secondary-button" onClick={() => openAdapter("ecos")}>
+            <button type="button" className="secondary-button" onClick={() => openAdapter(provider)}>
               <Server size={16} />
               {t("settings.digital.configure")}
             </button>
-            <button type="button" className="secondary-button" onClick={probeLocomotives} disabled={!canManageUsers || busy !== "idle" || !providerReady}>
+            <button type="button" className="secondary-button" onClick={probeLocomotives} disabled={!canManageUsers || busy !== "idle" || !ecosReady}>
               <ListChecks size={16} />
               {busy === "probing" ? t("settings.digital.fetchingLocomotives") : t("settings.digital.fetchLocomotives")}
             </button>
-            <button type="button" className="primary-button" onClick={startLive} disabled={!canManageUsers || busy !== "idle" || !providerReady || liveStatus?.connected}>
+            <button type="button" className="primary-button" onClick={startLive} disabled={!canManageUsers || busy !== "idle" || !ecosReady || liveStatus?.connected}>
               <Power size={16} />
               {busy === "starting" ? t("settings.digital.starting") : t("settings.digital.startLive")}
             </button>
@@ -340,11 +402,11 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                 >
                   <strong>
                     {providerLabel(providerId)}
-                    <span className={providerId === "ecos" && providerReady ? "work-status-badge compact active" : "work-status-badge compact open"}>
-                      {providerId === "ecos" && providerReady ? t("settings.digital.active") : t("settings.work.open")}
+                    <span className={providerConfigured(providerId) ? "work-status-badge compact active" : "work-status-badge compact open"}>
+                      {providerConfigured(providerId) ? t("settings.digital.active") : t("settings.work.open")}
                     </span>
                   </strong>
-                  <span>{providerId === "ecos" ? t("settings.digital.ecosReady") : t("settings.digital.futureProvider")}</span>
+                  <span>{providerId === "ecos" ? t("settings.digital.ecosReady") : t("settings.digital.adapterReady")}</span>
                 </button>
               ))}
             </div>
@@ -372,42 +434,42 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                   <span>{t("settings.digital.adminHelp")}</span>
                 </div>
               )}
-              {!dialogProviderActive ? (
-                <div className="digital-provider-note">
-                  <Server size={17} />
-                  <span>{t("settings.digital.futureProvider")} {t("settings.work.futureProviderNote")}</span>
-                </div>
-              ) : (
-                <>
-                  <label className="settings-toggle-row">
-                    <input type="checkbox" checked={ecosEnabled} onChange={(event) => setEcosEnabled(event.target.checked)} />
-                    <span>
-                      <strong>{t("settings.digital.enableEcos")}</strong>
-                      <small>{t("settings.digital.enableEcosHelp")}</small>
-                    </span>
-                  </label>
-                  <div className="settings-field-grid">
-                    <label>
-                      {t("settings.digital.ecos.host")}
-                      <input value={ecosHost} onChange={(event) => setEcosHost(event.target.value)} placeholder={t("settings.digital.ecos.hostPlaceholder")} />
-                    </label>
-                    <label>
-                      {t("settings.digital.ecos.port")}
-                      <input value={ecosPort} onChange={(event) => setEcosPort(event.target.value)} inputMode="numeric" placeholder="15471" />
-                    </label>
-                  </div>
-                </>
-              )}
+              <label className="settings-toggle-row">
+                <input type="checkbox" checked={activeDialogProvider ? providerEnabled(activeDialogProvider) : false} onChange={(event) => setActiveProviderEnabled(event.target.checked)} />
+                <span>
+                  <strong>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}`) : t("settings.digital.configure")}</strong>
+                  <small>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}.help`) : t("settings.digital.dialogSubtitle")}</small>
+                </span>
+              </label>
+              <div className="settings-field-grid">
+                <label>
+                  {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.host`) : t("settings.digital.ecos.host")}
+                  <input
+                    value={activeDialogProvider ? providerHost(activeDialogProvider) : ""}
+                    onChange={(event) => setActiveProviderHost(event.target.value)}
+                    placeholder={activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.hostPlaceholder`) : ""}
+                  />
+                </label>
+                <label>
+                  {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.port`) : t("settings.digital.ecos.port")}
+                  <input
+                    value={activeDialogProvider ? providerPort(activeDialogProvider) : ""}
+                    onChange={(event) => setActiveProviderPort(event.target.value)}
+                    inputMode="numeric"
+                    placeholder={activeDialogProvider === "z21" ? "21105" : activeDialogProvider === "cs3" ? "80" : "15471"}
+                  />
+                </label>
+              </div>
 
               {dialogMessage && <p className="form-message">{dialogMessage}</p>}
             </div>
 
             <footer className="modal-actions">
-              <button type="button" className="secondary-button" onClick={testConnection} disabled={!dialogCanTest || busy !== "idle" || !ecosHost.trim()}>
+              <button type="button" className="secondary-button" onClick={testConnection} disabled={!dialogCanTest || busy !== "idle" || !activeDialogProvider || !providerHost(activeDialogProvider)}>
                 <RefreshCw size={16} />
                 {busy === "testing" ? t("settings.digital.testing") : t("settings.digital.test")}
               </button>
-              <button type="button" className="primary-button" onClick={saveAdapter} disabled={!dialogCanSave || !ecosHost.trim()}>
+              <button type="button" className="primary-button" onClick={saveAdapter} disabled={!dialogCanSave || !activeDialogProvider || !providerHost(activeDialogProvider)}>
                 <Save size={16} />
                 {t("settings.digital.save")}
               </button>

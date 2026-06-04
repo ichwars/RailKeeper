@@ -145,6 +145,47 @@ type ECoSLiveStatus struct {
 	Message              string   `json:"message"`
 }
 
+type ECoSLocomotiveSyncInput struct {
+	Host     string                    `json:"host"`
+	Port     int                       `json:"port"`
+	ObjectID int                       `json:"objectId"`
+	Desired  ECoSLocomotiveSyncDesired `json:"desired"`
+	DryRun   bool                      `json:"dryRun"`
+	Confirm  bool                      `json:"confirm"`
+}
+
+type ECoSLocomotiveSyncDesired struct {
+	Name     string `json:"name,omitempty"`
+	Address  int    `json:"address,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+}
+
+type ECoSLocomotiveSyncSnapshot struct {
+	Name     string `json:"name,omitempty"`
+	Address  int    `json:"address,omitempty"`
+	Protocol string `json:"protocol,omitempty"`
+}
+
+type ECoSLocomotiveSyncChange struct {
+	Field   string `json:"field"`
+	Current string `json:"current"`
+	Desired string `json:"desired"`
+}
+
+type ECoSLocomotiveSyncResult struct {
+	Host     string                     `json:"host"`
+	Port     int                        `json:"port"`
+	ObjectID int                        `json:"objectId"`
+	DryRun   bool                       `json:"dryRun"`
+	Applied  bool                       `json:"applied"`
+	Current  ECoSLocomotiveSyncSnapshot `json:"current"`
+	Desired  ECoSLocomotiveSyncDesired  `json:"desired"`
+	Changes  []ECoSLocomotiveSyncChange `json:"changes"`
+	Commands []string                   `json:"commands,omitempty"`
+	RawLines []string                   `json:"rawLines,omitempty"`
+	Message  string                     `json:"message"`
+}
+
 func NewECoSService() *ECoSService {
 	timeout := 8 * time.Second
 	return &ECoSService{
@@ -332,6 +373,73 @@ func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionIn
 	result.Message = "ECoS-Verbindung erfolgreich."
 	result.RawLines = lines
 	result.Fields = fields
+	return result, nil
+}
+
+func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSyncInput) (*ECoSLocomotiveSyncResult, error) {
+	target, err := normalizeECoSInput(ECoSConnectionInput{Host: input.Host, Port: input.Port})
+	if err != nil {
+		return nil, err
+	}
+	if input.ObjectID <= 0 {
+		return nil, errors.New("ECoS-Objekt-ID ist erforderlich")
+	}
+
+	current, err := s.fetchLocomotiveDetails(ctx, target.Host, target.Port, input.ObjectID)
+	if err != nil {
+		return nil, err
+	}
+	desired := cleanECoSLocomotiveSyncDesired(input.Desired)
+	changes, command, err := buildECoSLocomotiveSyncCommand(input.ObjectID, current, desired)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &ECoSLocomotiveSyncResult{
+		Host:     target.Host,
+		Port:     target.Port,
+		ObjectID: input.ObjectID,
+		DryRun:   input.DryRun || !input.Confirm,
+		Current: ECoSLocomotiveSyncSnapshot{
+			Name:     current.Name,
+			Address:  current.Address,
+			Protocol: current.Protocol,
+		},
+		Desired: desired,
+		Changes: changes,
+		Message: "ECoS-Sync-Vorschau erstellt.",
+	}
+	if command != "" {
+		result.Commands = []string{command}
+	}
+	if len(changes) == 0 {
+		result.Message = "ECoS-Lok ist bereits synchron."
+		return result, nil
+	}
+	if result.DryRun {
+		return result, nil
+	}
+
+	probes, err := s.exchangeRequestedCommands(ctx, target.Host, target.Port, input.ObjectID, []struct {
+		command string
+		fields  []string
+	}{{command: command, fields: eCoSLocomotiveSyncFields(changes)}})
+	if err != nil {
+		return nil, err
+	}
+	if len(probes) == 0 {
+		return nil, errors.New("ECoS hat keine Schreibantwort geliefert")
+	}
+	probe := probes[0]
+	result.RawLines = probe.RawLines
+	if !probe.OK {
+		if probe.Error != "" {
+			return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", probe.Error)
+		}
+		return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", firstNonEmpty(probe.Status, "unbekannter Status"))
+	}
+	result.Applied = true
+	result.Message = "ECoS-Lok wurde geschrieben."
 	return result, nil
 }
 
@@ -1206,6 +1314,74 @@ func cleanECoSValue(value string) string {
 func parseECoSInt(value string) int {
 	parsed, _ := strconv.Atoi(cleanECoSValue(value))
 	return parsed
+}
+
+func cleanECoSLocomotiveSyncDesired(input ECoSLocomotiveSyncDesired) ECoSLocomotiveSyncDesired {
+	input.Name = strings.TrimSpace(input.Name)
+	input.Protocol = strings.TrimSpace(input.Protocol)
+	if input.Address < 0 {
+		input.Address = 0
+	}
+	return input
+}
+
+func buildECoSLocomotiveSyncCommand(objectID int, current *ECoSLocomotive, desired ECoSLocomotiveSyncDesired) ([]ECoSLocomotiveSyncChange, string, error) {
+	if current == nil {
+		return nil, "", errors.New("ECoS-Istwerte fehlen")
+	}
+	changes := []ECoSLocomotiveSyncChange{}
+	parts := []string{}
+	if desired.Name != "" && desired.Name != current.Name {
+		changes = append(changes, ECoSLocomotiveSyncChange{Field: "name", Current: current.Name, Desired: desired.Name})
+		parts = append(parts, "name["+quoteECoSString(desired.Name)+"]")
+	}
+	if desired.Address > 0 && desired.Address != current.Address {
+		changes = append(changes, ECoSLocomotiveSyncChange{Field: "address", Current: strconv.Itoa(current.Address), Desired: strconv.Itoa(desired.Address)})
+		parts = append(parts, fmt.Sprintf("addr[%d]", desired.Address))
+	}
+	if desired.Protocol != "" && desired.Protocol != current.Protocol {
+		if !isSafeECoSToken(desired.Protocol) {
+			return nil, "", errors.New("ECoS-Protokoll enthielt unzulässige Zeichen")
+		}
+		changes = append(changes, ECoSLocomotiveSyncChange{Field: "protocol", Current: current.Protocol, Desired: desired.Protocol})
+		parts = append(parts, "protocol["+desired.Protocol+"]")
+	}
+	if len(parts) == 0 {
+		return changes, "", nil
+	}
+	return changes, fmt.Sprintf("set(%d, %s)", objectID, strings.Join(parts, ", ")), nil
+}
+
+func eCoSLocomotiveSyncFields(changes []ECoSLocomotiveSyncChange) []string {
+	fields := make([]string, 0, len(changes))
+	for _, change := range changes {
+		switch change.Field {
+		case "address":
+			fields = append(fields, "addr")
+		default:
+			fields = append(fields, change.Field)
+		}
+	}
+	return fields
+}
+
+func quoteECoSString(value string) string {
+	value = strings.ReplaceAll(value, `\`, `\\`)
+	value = strings.ReplaceAll(value, `"`, `\"`)
+	return `"` + value + `"`
+}
+
+func isSafeECoSToken(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, char := range value {
+		if (char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '_' || char == '-' || char == '.' || char == ':' {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 func firstNonEmpty(values ...string) string {

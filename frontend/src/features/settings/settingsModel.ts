@@ -59,6 +59,12 @@ export const localSettingKeys = {
   digitalEcosEnabled: "railkeeper.ecos.enabled",
   digitalEcosHost: "railkeeper.ecos.host",
   digitalEcosPort: "railkeeper.ecos.port",
+  digitalZ21Enabled: "railkeeper.z21.enabled",
+  digitalZ21Host: "railkeeper.z21.host",
+  digitalZ21Port: "railkeeper.z21.port",
+  digitalCS3Enabled: "railkeeper.cs3.enabled",
+  digitalCS3Host: "railkeeper.cs3.host",
+  digitalCS3Port: "railkeeper.cs3.port",
   twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
 };
 

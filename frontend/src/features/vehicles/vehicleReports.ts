@@ -385,6 +385,45 @@ function writePrintWindow(printWindow: Window, html: string) {
   printWindow.focus();
 }
 
+function loadingReportHtml(title: string) {
+  return `<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8">
+    <title>${escapeHtml(title)}</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #101820;
+        background: #f4f7f5;
+      }
+      main {
+        text-align: center;
+      }
+      strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 18px;
+      }
+      span {
+        color: #60747b;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <strong>${escapeHtml(title)}</strong>
+      <span>Report wird vorbereitet...</span>
+    </main>
+  </body>
+</html>`;
+}
+
 function printHtmlFallback(html: string) {
   const iframe = document.createElement("iframe");
   iframe.title = "RailKeeper PDF Report";
@@ -409,7 +448,18 @@ function printHtmlFallback(html: string) {
   iframe.srcdoc = html;
 }
 
-export function openPrintDocument(html: string, name: string) {
+export function reservePrintDocument(name: string, title = "RailKeeper Report") {
+  const printWindow = window.open("", name, "width=1180,height=860");
+  if (!printWindow) return null;
+  writePrintWindow(printWindow, loadingReportHtml(title));
+  return printWindow;
+}
+
+export function openPrintDocument(html: string, name: string, reservedWindow?: Window | null) {
+  if (reservedWindow && !reservedWindow.closed) {
+    writePrintWindow(reservedWindow, html);
+    return;
+  }
   const printWindow = window.open("", name, "width=1180,height=860");
   if (printWindow) {
     writePrintWindow(printWindow, html);

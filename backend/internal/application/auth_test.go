@@ -2,8 +2,15 @@ package application_test
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base32"
+	"encoding/binary"
 	"errors"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"railkeeper/backend/internal/application"
 )
@@ -71,6 +78,68 @@ func TestLoginRejectsInvalidPassword(t *testing.T) {
 	}
 }
 
+func TestTwoFactorProtectsLogin(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	users, err := auth.ListUsers(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	userID := users[0].ID
+	prepared, err := auth.PrepareTwoFactor(ctx, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prepared.Secret == "" || prepared.OtpauthURL == "" {
+		t.Fatalf("expected setup secret and provisioning url, got %#v", prepared)
+	}
+	code := testTOTPCode(t, prepared.Secret, time.Now().UTC())
+	status, err := auth.EnableTwoFactor(ctx, userID, application.TwoFactorEnableInput{Code: code})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !status.Enabled {
+		t.Fatalf("expected enabled status, got %#v", status)
+	}
+	if _, err := auth.Login(ctx, application.LoginInput{Username: "admin", Password: "very-secure-password"}); !errors.Is(err, application.ErrTwoFactorRequired) {
+		t.Fatalf("expected two factor required, got %v", err)
+	}
+	result, err := auth.Login(ctx, application.LoginInput{
+		Username:      "admin",
+		Password:      "very-secure-password",
+		TwoFactorCode: testTOTPCode(t, prepared.Secret, time.Now().UTC()),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Session.TwoFactorEnabled {
+		t.Fatal("session should report enabled two-factor auth")
+	}
+	if err := auth.DisableTwoFactor(ctx, userID, result.SessionToken, application.TwoFactorDisableInput{
+		CurrentPassword: "very-secure-password",
+		Code:            testTOTPCode(t, prepared.Secret, time.Now().UTC()),
+	}); err != nil {
+		t.Fatal(err)
+	}
+	disabled, err := auth.TwoFactorStatus(ctx, userID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if disabled.Enabled || disabled.Prepared {
+		t.Fatalf("expected disabled and cleared two-factor auth, got %#v", disabled)
+	}
+}
+
 func TestPasswordResetRequestIsRecorded(t *testing.T) {
 	db := testDB(t)
 	ctx := context.Background()
@@ -99,6 +168,24 @@ func TestPasswordResetRequestIsRecorded(t *testing.T) {
 	if count != 1 {
 		t.Fatalf("expected one reset request, got %d", count)
 	}
+}
+
+func testTOTPCode(t *testing.T, secret string, at time.Time) string {
+	t.Helper()
+	key, err := base32.StdEncoding.WithPadding(base32.NoPadding).DecodeString(strings.ToUpper(strings.TrimSpace(secret)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var counter [8]byte
+	binary.BigEndian.PutUint64(counter[:], uint64(at.Unix()/30))
+	mac := hmac.New(sha1.New, key)
+	if _, err := mac.Write(counter[:]); err != nil {
+		t.Fatal(err)
+	}
+	sum := mac.Sum(nil)
+	offset := sum[len(sum)-1] & 0x0f
+	value := binary.BigEndian.Uint32(sum[offset:offset+4]) & 0x7fffffff
+	return fmt.Sprintf("%06d", value%1000000)
 }
 
 func TestPasswordResetChangesPasswordOnce(t *testing.T) {

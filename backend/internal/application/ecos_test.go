@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -138,6 +139,147 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 	}
 	if len(locomotive.CVs) != 4 || locomotive.CVs[2].Number != 8 || locomotive.CVs[2].Value != 151 {
 		t.Fatalf("expected structured CV values: %#v", locomotive.CVs)
+	}
+}
+
+func TestBuildECoSLocomotiveSyncCommand(t *testing.T) {
+	current := &ECoSLocomotive{Name: `BR "Alt"`, Address: 3, Protocol: "DCC128"}
+	changes, command, err := buildECoSLocomotiveSyncCommand(1001, current, ECoSLocomotiveSyncDesired{
+		Name:     `BR "Neu"`,
+		Address:  24,
+		Protocol: "MM27",
+	})
+	if err != nil {
+		t.Fatalf("build command failed: %v", err)
+	}
+	if len(changes) != 3 {
+		t.Fatalf("expected three changes, got %#v", changes)
+	}
+	expected := `set(1001, name["BR \"Neu\""], addr[24], protocol[MM27])`
+	if command != expected {
+		t.Fatalf("unexpected command:\n%s", command)
+	}
+}
+
+func TestECoSServiceSyncLocomotiveDryRunDoesNotWrite(t *testing.T) {
+	commands := []string{}
+	var mu sync.Mutex
+	listener := startECoSTestServer(t, func(command string) []string {
+		mu.Lock()
+		commands = append(commands, command)
+		mu.Unlock()
+		switch command {
+		case "request(1001, view)":
+			return []string{
+				"<REPLY request(1001, view)>",
+				"<END 0 (OK)>",
+			}
+		case "get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)":
+			return []string{
+				"<REPLY get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)>",
+				`1001 protocol[DCC128] name["BR 218"] addr[3]`,
+				"<END 0 (OK)>",
+			}
+		case "release(1001, view)":
+			return []string{
+				"<REPLY release(1001, view)>",
+				"<END 0 (OK)>",
+			}
+		default:
+			t.Fatalf("unexpected command: %s", command)
+		}
+		return nil
+	})
+	defer func() { _ = listener.Close() }()
+
+	host, port := splitTestAddress(t, listener.Addr().String())
+	service := NewECoSService()
+	result, err := service.SyncLocomotive(context.Background(), ECoSLocomotiveSyncInput{
+		Host:     host,
+		Port:     port,
+		ObjectID: 1001,
+		Desired: ECoSLocomotiveSyncDesired{
+			Name:     "BR 218 neu",
+			Address:  4,
+			Protocol: "DCC128",
+		},
+		DryRun:  true,
+		Confirm: false,
+	})
+	if err != nil {
+		t.Fatalf("sync dry run failed: %v", err)
+	}
+	if result.Applied || !result.DryRun || len(result.Changes) != 2 {
+		t.Fatalf("unexpected dry-run result: %#v", result)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	for _, command := range commands {
+		if strings.HasPrefix(command, "set(") {
+			t.Fatalf("dry run sent write command: %#v", commands)
+		}
+	}
+}
+
+func TestECoSServiceSyncLocomotiveWritesConfirmed(t *testing.T) {
+	var written string
+	var mu sync.Mutex
+	listener := startECoSTestServer(t, func(command string) []string {
+		switch command {
+		case "request(1001, view)":
+			return []string{
+				"<REPLY request(1001, view)>",
+				"<END 0 (OK)>",
+			}
+		case "get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)":
+			return []string{
+				"<REPLY get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)>",
+				`1001 protocol[DCC128] name["BR 218"] addr[3]`,
+				"<END 0 (OK)>",
+			}
+		case `set(1001, name["BR 218 neu"], addr[4])`:
+			mu.Lock()
+			written = command
+			mu.Unlock()
+			return []string{
+				`<REPLY set(1001, name["BR 218 neu"], addr[4])>`,
+				"<END 0 (OK)>",
+			}
+		case "release(1001, view)":
+			return []string{
+				"<REPLY release(1001, view)>",
+				"<END 0 (OK)>",
+			}
+		default:
+			t.Fatalf("unexpected command: %s", command)
+		}
+		return nil
+	})
+	defer func() { _ = listener.Close() }()
+
+	host, port := splitTestAddress(t, listener.Addr().String())
+	service := NewECoSService()
+	result, err := service.SyncLocomotive(context.Background(), ECoSLocomotiveSyncInput{
+		Host:     host,
+		Port:     port,
+		ObjectID: 1001,
+		Desired: ECoSLocomotiveSyncDesired{
+			Name:     "BR 218 neu",
+			Address:  4,
+			Protocol: "DCC128",
+		},
+		Confirm: true,
+	})
+	if err != nil {
+		t.Fatalf("sync write failed: %v", err)
+	}
+	if !result.Applied || result.DryRun {
+		t.Fatalf("unexpected write result: %#v", result)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if written == "" {
+		t.Fatal("expected set command to be written")
 	}
 }
 

@@ -32,8 +32,8 @@
   border-radius: 999px;
   background: var(--panel);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .function-summary strong {
@@ -78,7 +78,7 @@
   border-radius: 6px;
   background: var(--panel-subtle);
   color: var(--accent-strong);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .function-row input,
@@ -92,8 +92,8 @@
   background: var(--panel-subtle);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
-  font-weight: 750;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-strong);
 }
 
 .function-row .function-note-input {
@@ -197,8 +197,8 @@
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
   text-align: left;
 }
 
@@ -218,7 +218,7 @@
 
 .function-direction {
   min-height: 38px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .function-actions {
@@ -254,8 +254,8 @@
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .cv-description {
@@ -273,7 +273,7 @@
   background: #fff;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .cv-form input:focus,
@@ -288,6 +288,10 @@
   padding: 8px 10px;
 }
 
+.compact-table table th:last-child {
+  text-align: center;
+}
+
 .cv-file-controls {
   display: grid;
   grid-template-columns: minmax(180px, 260px) minmax(240px, 1fr);
@@ -297,8 +301,8 @@
 .cv-file-controls span {
   grid-column: 1 / -1;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .inline-actions {
@@ -351,8 +355,8 @@
 .cv-file-preview-list p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .cv-file-preview-list dl {
@@ -369,8 +373,8 @@
 
 .cv-file-preview-list dt {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 850;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
   text-transform: uppercase;
 }
 
@@ -380,7 +384,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .decoder-preview-image {
@@ -402,8 +406,8 @@
 
 .decoder-preview-image figcaption {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .decoder-preview-summary {
@@ -439,8 +443,8 @@
   padding: 0 12px;
   background: color-mix(in srgb, var(--accent-bright) 10%, var(--panel));
   color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-heavy);
 }
 
 .speed-profile-list {
@@ -479,13 +483,13 @@
 }
 
 .speed-profile-list strong {
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .speed-profile-list span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .speed-curve-summary {
@@ -506,8 +510,8 @@
 
 .speed-curve-summary span {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -515,8 +519,8 @@
   min-width: 0;
   overflow: hidden;
   color: var(--text);
-  font-size: 16px;
-  line-height: 1.2;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-tight);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -545,14 +549,14 @@
 .speed-chart-head h4 {
   margin: 0 0 3px;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .speed-chart-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .speed-chart-head > span {
@@ -561,8 +565,8 @@
   padding: 6px 9px;
   background: var(--panel-subtle);
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
@@ -590,14 +594,14 @@
 .speed-chart-label,
 .speed-chart-axis-title {
   fill: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .speed-chart-axis-title {
   fill: var(--text);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-heavy);
 }
 
 .speed-chart-area {
@@ -638,7 +642,7 @@
 .speed-curve-detail-grid h4 {
   margin: 0;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .speed-point-list {
@@ -664,21 +668,21 @@
 }
 
 .speed-point-list strong {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .speed-point-list em {
   color: var(--accent-strong);
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .speed-missing {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
-  line-height: 18px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
+  line-height: var(--line-height-control-md);
 }
 
 .cv-summary,
@@ -702,16 +706,16 @@
 .cv-summary span,
 .maintenance-summary span {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
 .cv-summary strong,
 .maintenance-summary strong {
   color: var(--text);
-  font-size: 20px;
-  line-height: 1;
+  font-size: var(--font-size-title-base);
+  line-height: var(--line-height-compact);
 }
 
 .cv-import-preview {
@@ -734,14 +738,14 @@
 .cv-import-head h4 {
   margin: 0 0 3px;
   color: var(--text);
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .cv-import-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .cv-import-badges,
@@ -759,8 +763,8 @@
   border-radius: 999px;
   background: var(--panel-subtle);
   color: var(--text);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
 }
 
 .cv-import-badges .danger {
@@ -824,13 +828,13 @@
 }
 
 .decoder-profile-list strong {
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .decoder-profile-list span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .maintenance-form {
@@ -843,8 +847,8 @@
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .maintenance-form input,
@@ -858,7 +862,15 @@
   background: #fff;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
+}
+
+.maintenance-form .app-date input {
+  min-height: 36px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 10px;
+  background: transparent;
 }
 
 .maintenance-form textarea {
@@ -924,13 +936,13 @@
 }
 
 .maintenance-card-head strong {
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .maintenance-card-head span:not(.maintenance-badge) {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -944,8 +956,8 @@
   padding: 0 10px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 900;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-heavy);
 }
 
 .maintenance-badge.faellig {
@@ -975,15 +987,15 @@
 .maintenance-meta dt {
   margin: 0 0 4px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
 .maintenance-meta dd {
   margin: 0;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1004,8 +1016,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent-bright) 12%, var(--panel-subtle));
   color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 
@@ -1017,7 +1029,7 @@
 .spare-parts-editor,
 .spare-parts-section {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1040,18 +1052,18 @@
 .spare-parts-search-head h3 {
   margin: 0;
   color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1.25;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-snug);
 }
 
 .spare-parts-search-head p {
   max-width: 430px;
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.45;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
 }
 
 .spare-parts-web-results {
@@ -1071,8 +1083,8 @@
 .spare-parts-section .compact-action {
   min-height: 34px;
   padding: 0 12px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   box-shadow: none;
 }
 
@@ -1084,7 +1096,7 @@
   gap: 10px;
   cursor: pointer;
   color: var(--text);
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
   list-style: none;
 }
 
@@ -1104,15 +1116,16 @@
 .spare-part-form {
   display: grid;
   grid-template-columns: minmax(120px, 0.45fr) minmax(220px, 1fr) minmax(100px, 0.35fr);
-  gap: 12px;
+  column-gap: 14px;
+  row-gap: 14px;
 }
 
 .spare-part-form label {
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .spare-part-form input {
@@ -1124,7 +1137,7 @@
   background: #fff;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .spare-part-form input:focus {
@@ -1134,6 +1147,10 @@
 
 .spare-part-link {
   grid-column: 1 / -1;
+}
+
+.spare-parts-editor .maintenance-actions {
+  padding-top: 8px;
 }
 
 .spare-parts-section .compact-table {
@@ -1149,7 +1166,7 @@
 }
 
 .spare-parts-found-table th {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   letter-spacing: 0;
 }
 
@@ -1168,23 +1185,108 @@
 .spare-parts-section .compact-table td {
   vertical-align: middle;
   color: color-mix(in srgb, var(--text) 88%, var(--muted));
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.35;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
 }
 
 .spare-parts-section .compact-table a,
 .document-chip-list a {
   color: var(--accent-strong);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   text-decoration: none;
+}
+
+.spare-parts-section .compact-table a.spare-part-link-icon {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  color: var(--accent-strong);
+}
+
+.spare-part-lookup-row td {
+  background: color-mix(in srgb, var(--accent-bright) 5%, var(--panel));
+}
+
+.spare-part-lookup-results {
+  display: grid;
+  gap: 6px;
+  max-width: 720px;
+}
+
+.spare-part-lookup-result {
+  display: grid;
+  grid-template-columns: minmax(54px, 90px) 24px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+}
+
+.icon-button.passive {
+  cursor: default;
+}
+
+.availability-icon {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--muted);
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 18%, transparent);
+}
+
+.availability-icon.available {
+  color: var(--accent-strong);
+  background: var(--accent-strong);
+}
+
+.availability-icon.limited {
+  color: #d6a21f;
+  background: #d6a21f;
+}
+
+.availability-icon.unavailable {
+  color: var(--danger);
+  background: var(--danger);
+}
+
+.availability-icon.unknown {
+  color: var(--muted);
+  background: var(--muted);
+}
+
+.availability-icon.loading {
+  color: var(--muted);
+  background: transparent;
+  border: 2px solid var(--muted);
+}
+
+.spare-part-lookup-result > span:first-child {
+  color: var(--text);
+  font-weight: var(--font-weight-bold);
+}
+
+.spare-part-lookup-result a {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .spare-parts-found-table td:nth-child(4),
 .spare-parts-found-table td:nth-child(5) {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
 }
 
 .document-chip-list {

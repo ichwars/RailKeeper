@@ -38,6 +38,7 @@ type ExhibitionListInput struct {
 type ExhibitionEntry struct {
 	ID             string `json:"id"`
 	ListID         string `json:"listId"`
+	VehicleID      string `json:"vehicleId,omitempty"`
 	Owner          string `json:"owner"`
 	ImageURL       string `json:"imageUrl,omitempty"`
 	LocomotiveName string `json:"locomotiveName"`
@@ -61,6 +62,7 @@ type ExhibitionEntry struct {
 }
 
 type ExhibitionEntryInput struct {
+	VehicleID      string `json:"vehicleId"`
 	Owner          string `json:"owner"`
 	ImageURL       string `json:"imageUrl"`
 	LocomotiveName string `json:"locomotiveName"`
@@ -193,6 +195,7 @@ func (s *ExhibitionService) ListEntries(ctx context.Context, listID string) ([]E
 	}
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, list_id, owner, image_url, locomotive_name,
+       COALESCE(vehicle_id, ''),
        COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
        COALESCE(day_scope, 'all'),
        dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
@@ -237,13 +240,13 @@ func (s *ExhibitionService) CreateEntry(ctx context.Context, listID string, inpu
 	now := time.Now().UTC().Format(time.RFC3339)
 	if _, err := s.db.ExecContext(ctx, `
 INSERT INTO exhibition_entries(
-  id, list_id, owner, image_url, locomotive_name,
+  id, list_id, owner, image_url, locomotive_name, vehicle_id,
   gattung, series, manufacturer, epoch, railway_company, day_scope,
   dt_decoder, decoder_number, decoder_type, adapter, sx_address, analog,
   function_keys, notes, sort_order, created_at, updated_at
 )
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, now); err != nil {
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, now); err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("create exhibition entry: %w", err)
 	}
 	return s.getEntry(ctx, listID, id)
@@ -268,11 +271,11 @@ func (s *ExhibitionService) UpdateEntry(ctx context.Context, listID, entryID str
 	if _, err := s.db.ExecContext(ctx, `
 UPDATE exhibition_entries
 SET owner=?, image_url=?, locomotive_name=?,
-    gattung=?, series=?, manufacturer=?, epoch=?, railway_company=?, day_scope=?,
+    vehicle_id=?, gattung=?, series=?, manufacturer=?, epoch=?, railway_company=?, day_scope=?,
     dt_decoder=?, decoder_number=?, decoder_type=?, adapter=?, sx_address=?, analog=?,
     function_keys=?, notes=?, sort_order=?, updated_at=?
 WHERE id=? AND list_id=?
-`, input.Owner, input.ImageURL, input.LocomotiveName, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, entryID, listID); err != nil {
+`, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, entryID, listID); err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("update exhibition entry: %w", err)
 	}
 	return s.getEntry(ctx, listID, entryID)
@@ -316,6 +319,7 @@ FROM exhibition_lists WHERE id=?
 func (s *ExhibitionService) getEntry(ctx context.Context, listID, entryID string) (ExhibitionEntry, error) {
 	row := s.db.QueryRowContext(ctx, `
 SELECT id, list_id, owner, image_url, locomotive_name,
+       COALESCE(vehicle_id, ''),
        COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
        COALESCE(day_scope, 'all'),
        dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
@@ -357,6 +361,7 @@ func scanExhibitionEntry(row exhibitionEntryScanner) (ExhibitionEntry, error) {
 		&entry.Owner,
 		&imageURL,
 		&entry.LocomotiveName,
+		&entry.VehicleID,
 		&entry.Gattung,
 		&entry.Series,
 		&entry.Manufacturer,
@@ -387,6 +392,7 @@ func scanExhibitionEntry(row exhibitionEntryScanner) (ExhibitionEntry, error) {
 }
 
 func normalizeExhibitionEntryInput(input ExhibitionEntryInput) ExhibitionEntryInput {
+	input.VehicleID = strings.TrimSpace(input.VehicleID)
 	input.Owner = strings.TrimSpace(input.Owner)
 	input.ImageURL = strings.TrimSpace(input.ImageURL)
 	input.LocomotiveName = strings.TrimSpace(input.LocomotiveName)

@@ -55,6 +55,8 @@ components:
           type: string
         password:
           type: string
+        twoFactorCode:
+          type: string
     ChangePasswordRequest:
       type: object
       required: [currentPassword, newPassword]
@@ -66,7 +68,7 @@ components:
           minLength: 12
     Session:
       type: object
-      required: [username, roles, csrfToken]
+      required: [username, roles, csrfToken, twoFactorEnabled]
       properties:
         username:
           type: string
@@ -75,6 +77,39 @@ components:
           items:
             type: string
         csrfToken:
+          type: string
+        twoFactorEnabled:
+          type: boolean
+    TwoFactorStatus:
+      type: object
+      required: [enabled, prepared]
+      properties:
+        enabled:
+          type: boolean
+        prepared:
+          type: boolean
+        enabledAt:
+          type: string
+          format: date-time
+        username:
+          type: string
+        otpauthUrl:
+          type: string
+        secret:
+          type: string
+    TwoFactorEnableRequest:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+    TwoFactorDisableRequest:
+      type: object
+      required: [currentPassword]
+      properties:
+        currentPassword:
+          type: string
+        code:
           type: string
     SessionRecord:
       type: object
@@ -107,7 +142,7 @@ components:
           type: string
     UserAccount:
       type: object
-      required: [id, username, roles, createdAt]
+      required: [id, username, roles, createdAt, twoFactorEnabled]
       properties:
         id:
           type: string
@@ -120,6 +155,8 @@ components:
         createdAt:
           type: string
           format: date-time
+        twoFactorEnabled:
+          type: boolean
     UserAccountInput:
       type: object
       required: [username, roles]
@@ -1100,6 +1137,78 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "401":
           description: Current password invalid or not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/two-factor:
+    get:
+      tags: [Auth]
+      responses:
+        "200":
+          description: Current user's two-factor status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorStatus"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/two-factor/setup:
+    post:
+      tags: [Auth]
+      responses:
+        "200":
+          description: Two-factor setup secret generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorStatus"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/two-factor/enable:
+    post:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorEnableRequest"
+      responses:
+        "200":
+          description: Two-factor authentication enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TwoFactorStatus"
+        "401":
+          description: Invalid two-factor code or not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /auth/two-factor/disable:
+    post:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TwoFactorDisableRequest"
+      responses:
+        "204":
+          description: Two-factor authentication disabled and other sessions revoked
+        "401":
+          description: Invalid password/code or not authenticated
           content:
             application/json:
               schema:
@@ -2413,6 +2522,45 @@ paths:
       responses:
         "200":
           description: Raw ECoS locomotive payload
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/ecos/locomotives/sync:
+    post:
+      tags: [DigitalCenters]
+      summary: Preview or write RailKeeper locomotive master data to an ECoS station
+      responses:
+        "200":
+          description: ECoS locomotive sync plan or write result
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/z21/test:
+    post:
+      tags: [DigitalCenters]
+      summary: Test a Roco/Fleischmann Z21 UDP connection
+      responses:
+        "200":
+          description: Z21 connection result
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/cs3/test:
+    post:
+      tags: [DigitalCenters]
+      summary: Test a Märklin CS3 HTTP connection
+      responses:
+        "200":
+          description: CS3 connection result
         "403":
           description: Admin role required
           content:

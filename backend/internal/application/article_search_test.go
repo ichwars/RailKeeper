@@ -626,6 +626,45 @@ func TestArticleSparePartFromRowRejectsDocumentRows(t *testing.T) {
 	}
 }
 
+func TestArticleSparePartsOnlyScrapeTrustedPageHTML(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V180", Gauge: "TT"}
+
+	if !shouldExtractPageSpareParts(input, "https://www.piko-shop.de/de/artikel/tt-diesellok-v180-47284.html") {
+		t.Fatal("manufacturer pages may expose spare-part HTML")
+	}
+	if !shouldExtractPageSpareParts(input, "https://www.modellbahn-fokus.de/product/TT/Piko/47284") {
+		t.Fatal("catalog pages may expose spare-part HTML")
+	}
+	if shouldExtractPageSpareParts(input, "https://www.modellbahnshop-lippe.com/piko-47284") {
+		t.Fatal("dealer pages must not be scraped for spare-part HTML")
+	}
+	if shouldExtractPageSpareParts(input, "https://www.ebay.de/itm/piko-47284") {
+		t.Fatal("marketplaces must not be scraped for spare-part HTML")
+	}
+}
+
+func TestSparePartDocumentsPreferManufacturerPDFs(t *testing.T) {
+	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284"}
+	documents := []ArticleSearchDocument{
+		{Title: "Shop Ersatzteile", URL: "https://www.modellbahnshop-lippe.com/download/47284-ersatzteile.pdf", Kind: "spare-parts"},
+		{Title: "Manual", URL: "https://www.piko-shop.de/download/47284-manual.pdf", Kind: "manual"},
+		{Title: "Ersatzteilliste", URL: "https://www.piko-shop.de/download/47284-ersatzteile.pdf", Kind: "spare-parts"},
+		{Title: "Explosionszeichnung", URL: "https://example.test/47284.png", Kind: "document"},
+	}
+
+	prioritized := prioritizedSparePartDocuments(input, documents)
+
+	if len(prioritized) != 3 {
+		t.Fatalf("expected only spare-part-like documents, got %#v", prioritized)
+	}
+	if prioritized[0].URL != "https://www.piko-shop.de/download/47284-ersatzteile.pdf" {
+		t.Fatalf("manufacturer spare-parts PDF should be first, got %#v", prioritized)
+	}
+	if prioritized[len(prioritized)-1].URL != "https://www.modellbahnshop-lippe.com/download/47284-ersatzteile.pdf" {
+		t.Fatalf("dealer document should stay behind manufacturer documents, got %#v", prioritized)
+	}
+}
+
 func TestArticleSparePartsFromDocumentTextRequiresMatchingArticleNumber(t *testing.T) {
 	text := `
 		PIKO Bedienungsanleitung 47284
@@ -674,5 +713,225 @@ func TestArticleSparePartsFromDocumentTextReadsPikoSpareList(t *testing.T) {
 		if numbers[number] == "" {
 			t.Fatalf("expected spare part %s in %#v", number, parts)
 		}
+	}
+}
+
+func TestPikoSparePartsFromHTMLReadsPriceLinkAndAvailability(t *testing.T) {
+	body := `<div class="artikel_ersatzteil__list"><div class="artikel_ersatzteil__list_item">
+<div class="artikel_ersatzteil__image"><a href="https://www.piko-shop.de/de/artikel/gehaeuse-bedr.m.fenster-34828.html"><img alt="Geh&auml;use bedr.m.Fenster"></a></div>
+<div class="artikel_ersatzteil__description"><h3>Geh&auml;use bedr.m.Fenster</h3> Artikelnummer: ET47284-08<br /></div>
+<div class="artikel_ersatzteil__prices"><div class="artikel_ersatzteil__price"> 32,30 € </div>
+<span class="element_artikel_delivery__availability_status lieferstatus lieferstatus1 availability1"> weniger als 10 verf&uuml;gbar (Auslieferung erfolgt innerhalb von 3 Werktagen) </span></div>
+</div></div>`
+
+	parts := pikoSparePartsFromHTML(body, "https://www.piko-shop.de/de/artikel/ersatzteil/xref_suchtext-47284.html")
+
+	if len(parts) != 1 {
+		t.Fatalf("expected one piko spare part, got %#v", parts)
+	}
+	if parts[0].ArticleNumber != "ET47284-08" || parts[0].Description != "Gehäuse bedr.m.Fenster" || parts[0].Price != "32.30" {
+		t.Fatalf("unexpected parsed spare part %#v", parts[0])
+	}
+	if parts[0].URL != "https://www.piko-shop.de/de/artikel/gehaeuse-bedr.m.fenster-34828.html" {
+		t.Fatalf("unexpected link %q", parts[0].URL)
+	}
+	if !strings.Contains(parts[0].Availability, "weniger als 10 verfügbar") {
+		t.Fatalf("unexpected availability %q", parts[0].Availability)
+	}
+}
+
+func TestRocoSparePartsFromHTMLReadsPriceLinkAndAvailability(t *testing.T) {
+	body := `<div class="row table-row-et">
+<div class="col-xs-6 col-sm-6 col-md-2 col-lg-2 tdList art-nr" style="text-align: left;">110904</div>
+<div class="col-xs-6 col-sm-6 col-md-4 col-lg-4 tdList art-bz" style="text-align: left;">Steuerung kpl. 43202 / 43327</div>
+<div class="col-xs-6 col-sm-6 col-md-2 col-lg-2 tdList art-pr" style="text-align: right;">106,00 &euro; </div>
+<div class="col-xs-6 col-sm-6 col-md-2 col-lg-2 tdList art-vf" style="text-align: right;">
+<img class="produkt-head-verfuegbarkeit" src="/static/verfuegbarkeit/lieferbar-gering.svg" alt="Auslaufartikel" title="Auslaufartikel! (geringe Menge lieferbar)">
+</div>
+</div>`
+
+	parts := rocoSparePartsFromHTML(body, "https://www.roco.cc/rde/ersatzteile?et=110904")
+
+	if len(parts) != 1 {
+		t.Fatalf("expected one roco spare part, got %#v", parts)
+	}
+	if parts[0].ArticleNumber != "110904" || parts[0].Description != "Steuerung kpl. 43202 / 43327" || parts[0].Price != "106.00" {
+		t.Fatalf("unexpected parsed spare part %#v", parts[0])
+	}
+	if parts[0].URL != "https://www.roco.cc/rde/ersatzteile?et=110904" {
+		t.Fatalf("unexpected link %q", parts[0].URL)
+	}
+	if !strings.Contains(parts[0].Availability, "geringe Menge lieferbar") {
+		t.Fatalf("unexpected availability %q", parts[0].Availability)
+	}
+}
+
+func TestRocoSparePartsFromHTMLReadsLiteralEuroPrice(t *testing.T) {
+	body := `<div class="row table-row-et">
+<div class="col-xs-6 col-sm-6 col-md-2 col-lg-2 tdList art-nr" style="text-align: left;">120735</div>
+<div class="col-xs-6 col-sm-6 col-md-4 col-lg-4 tdList art-bz" style="text-align: left;">Messingscheibe</div>
+<div class="col-xs-6 col-sm-6 col-md-2 col-lg-2 tdList art-pr" style="text-align: right;">12,25 € </div>
+<img class="produkt-head-verfuegbarkeit" title="Lieferbar">
+</div>`
+
+	parts := rocoSparePartsFromHTML(body, "https://www.roco.cc/rde/ersatzteile?et=36270")
+
+	if len(parts) != 1 {
+		t.Fatalf("expected one roco spare part, got %#v", parts)
+	}
+	if parts[0].Price != "12.25" {
+		t.Fatalf("expected literal euro price, got %#v", parts[0])
+	}
+}
+
+func TestArticleSparePartsFromDocumentTextReadsManufacturerFixtures(t *testing.T) {
+	tests := []struct {
+		name          string
+		articleNumber string
+		text          string
+		expected      map[string]string
+	}{
+		{
+			name:          "Roco",
+			articleNumber: "71399",
+			text: `
+				Roco Ersatzteilliste 71399 Dampflokomotive
+				Pos. Art.-Nr. Bezeichnung Preisgruppe
+				1 100644 Kupplung komplett 6
+				2 129524 Puffer gewölbt 4
+				3 85111 Haftreifen 8,4-10,3 mm 3
+			`,
+			expected: map[string]string{
+				"100644": "Kupplung komplett",
+				"129524": "Puffer gewölbt",
+				"85111":  "Haftreifen 8,4-10,3 mm",
+			},
+		},
+		{
+			name:          "Maerklin",
+			articleNumber: "39030",
+			text: `
+				Märklin Ersatzteile 39030
+				Bestell-Nr. Bezeichnung
+				E123456 Schleifer
+				E786790 Haftreifen
+				144133 Schraube M1,6 x 5
+			`,
+			expected: map[string]string{
+				"E123456": "Schleifer",
+				"E786790": "Haftreifen",
+				"144133":  "Schraube M1,6 x 5",
+			},
+		},
+		{
+			name:          "Tillig",
+			articleNumber: "04930",
+			text: `
+				TILLIG Ersatzteilliste TT-Modell 04930
+				Art.-Nr. Benennung
+				300980 Radsatz mit Zahnrad
+				322000 Kupplungsaufnahme
+				08828 Stromabnehmer rot
+			`,
+			expected: map[string]string{
+				"300980": "Radsatz mit Zahnrad",
+				"322000": "Kupplungsaufnahme",
+				"08828":  "Stromabnehmer rot",
+			},
+		},
+		{
+			name:          "ESU",
+			articleNumber: "31033",
+			text: `
+				ESU spare parts list 31033
+				item number description
+				51968 LokSound 5 decoder
+				54671 Speaker 11 x 15 mm
+				50708 Wheel contact spring
+			`,
+			expected: map[string]string{
+				"51968": "LokSound 5 decoder",
+				"54671": "Speaker 11 x 15 mm",
+				"50708": "Wheel contact spring",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			parts := articleSparePartsFromDocumentText(test.text, test.articleNumber, test.name+".pdf")
+			byNumber := map[string]string{}
+			for _, part := range parts {
+				byNumber[part.ArticleNumber] = part.Description
+			}
+			for number, description := range test.expected {
+				if byNumber[number] != description {
+					t.Fatalf("expected %s -> %q, got %#v", number, description, parts)
+				}
+			}
+		})
+	}
+}
+
+func TestArticleSparePartsFromScannedPDFUsesOCRFallback(t *testing.T) {
+	previousExtractor := pdfOCRTextExtractor
+	defer func() { pdfOCRTextExtractor = previousExtractor }()
+
+	called := false
+	pdfOCRTextExtractor = func(data []byte) string {
+		called = true
+		return `
+			47284 Gleichstrom DC
+			ERSATZTEILE DIESELLOKOMOTIVE BR 118_TT
+			Gehäuse, dekoriert 47284-08 13
+			Frontfenster 47284-10 9
+		`
+	}
+
+	scannedPDF := []byte("%PDF-1.4\n1 0 obj\n<< /Type /XObject /Subtype /Image /Width 1200 /Height 800 >>\nendobj\n%%EOF")
+	parts := ArticleSparePartsFromDocumentData(scannedPDF, "47284", "scan.pdf")
+
+	if !called {
+		t.Fatal("expected OCR fallback to be called for PDF without text layer")
+	}
+	if len(parts) != 2 {
+		t.Fatalf("expected OCR spare parts, got %#v", parts)
+	}
+	if parts[0].ArticleNumber != "47284-08" || parts[1].ArticleNumber != "47284-10" {
+		t.Fatalf("unexpected OCR spare parts %#v", parts)
+	}
+}
+
+func TestArticleSparePartsFromTextPDFSkipsOCRFallback(t *testing.T) {
+	previousExtractor := pdfOCRTextExtractor
+	defer func() { pdfOCRTextExtractor = previousExtractor }()
+
+	pdfOCRTextExtractor = func(data []byte) string {
+		t.Fatal("text PDFs should not call OCR fallback")
+		return ""
+	}
+
+	textPDF := []byte(`%PDF-1.4
+1 0 obj
+<< /Length 280 >>
+stream
+BT
+(47284 Gleichstrom DC) Tj
+0 -14 Td
+(ERSATZTEILE DIESELLOKOMOTIVE BR 118_TT) Tj
+0 -14 Td
+(Bezeichnung / Description ET-Nr. / spare part N° PG*) Tj
+0 -14 Td
+(Gehäuse, dekoriert 47284-08 13) Tj
+0 -14 Td
+(Frontfenster 47284-10 9) Tj
+ET
+endstream
+endobj
+%%EOF`)
+	parts := ArticleSparePartsFromDocumentData(textPDF, "47284", "text.pdf")
+
+	if len(parts) != 2 {
+		t.Fatalf("expected text-layer spare parts, got %#v", parts)
 	}
 }

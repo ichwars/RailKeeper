@@ -32,7 +32,7 @@ The project is designed for private collections, clubs and small workshops that 
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
-- ECoS live connection with locomotive/CV readout, import handoff into vehicle creation and external ID preparation
+- Digital command-station adapters: ECoS live read/write sync plus Z21 UDP and CS3 HTTP connection tests
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles, NMRA CV8 manufacturer master data and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle
@@ -154,6 +154,20 @@ RAILKEEPER_SMTP_TLS=starttls
 ```
 
 If SMTP is not configured, password reset links are not returned to the browser. For local recovery only, the backend writes the link to the server log.
+
+### Optional OCR for scanned spare-parts PDFs
+
+RailKeeper reads text-based PDF spare-parts lists directly. For scanned PDFs without a text layer,
+install either `ocrmypdf` or both `pdftoppm` and `tesseract` on the host and keep the tools available
+in `PATH`. The OCR fallback is used only when the built-in PDF text extraction does not find usable
+spare-parts text.
+
+```env
+RAILKEEPER_PDF_OCR=on
+RAILKEEPER_PDF_OCR_MAX_PAGES=4
+```
+
+Set `RAILKEEPER_PDF_OCR=off` to disable the fallback explicitly.
 
 ## Architecture
 

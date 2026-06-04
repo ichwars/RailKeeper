@@ -169,6 +169,7 @@ function vehicleFunctionsToExhibitionFunctions(functions?: VehicleFunction[]) {
 export function vehicleToExhibitionEntry(vehicle: Vehicle, owner: string): ExhibitionEntryInput {
   const image = primaryImage(vehicle.images);
   return {
+    vehicleId: vehicle.id,
     owner,
     imageUrl: image?.url || "",
     locomotiveName: vehicle.name,

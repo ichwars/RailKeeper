@@ -20,8 +20,8 @@
   border-bottom: 1px solid var(--line);
   background: var(--panel);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 850;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -36,7 +36,7 @@
   color: inherit;
   cursor: pointer;
   font: inherit;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
   text-transform: inherit;
 }
 
@@ -45,7 +45,7 @@
   max-width: 260px;
   overflow: hidden;
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -67,6 +67,15 @@
 
 .exhibition-entry-panel .exhibition-table td:last-child .table-actions {
   justify-content: flex-end;
+}
+
+.exhibition-entry-add-button {
+  color: var(--accent-strong);
+}
+
+.exhibition-entry-add-button:not(:disabled):hover,
+.exhibition-entry-add-button:not(:disabled):focus-visible {
+  color: var(--accent-bright);
 }
 
 .exhibition-loco-cell {
@@ -91,14 +100,14 @@
 
 .exhibition-control-stack dt {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .exhibition-control-stack dd {
   margin: 0;
   color: var(--text);
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .exhibition-function-grid {
@@ -123,15 +132,15 @@
   border-radius: 6px;
   background: var(--panel-subtle);
   color: var(--text);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .exhibition-function-pill strong {
   display: inline-flex;
   min-width: 20px;
   color: var(--text);
-  line-height: 1;
+  line-height: var(--line-height-compact);
 }
 
 .exhibition-function-icon {
@@ -160,19 +169,33 @@
   background: color-mix(in srgb, var(--accent-bright) 10%, transparent);
 }
 
-.exhibition-thumb,
+.exhibition-image-cell {
+  width: 148px;
+  min-width: 128px;
+}
+
+.exhibition-thumb {
+  display: block;
+  width: min(132px, 100%);
+  height: auto;
+  max-height: calc(var(--line-height-copy-lg) * 4);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  object-fit: contain;
+}
+
 .image-placeholder.mini {
   display: grid;
-  width: 54px;
-  height: 38px;
+  width: 72px;
+  height: 52px;
   place-items: center;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: var(--panel-subtle);
   color: var(--muted);
-  object-fit: cover;
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .compact-modal {
@@ -190,15 +213,15 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .field-warning {
   color: var(--danger);
-  font-size: 11px;
-  font-weight: 850;
-  line-height: 1.35;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
+  line-height: var(--line-height-normal);
 }
 
 .simple-form input,
@@ -212,6 +235,15 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
+}
+
+.simple-form .app-date input,
+.exhibition-entry-form .app-date input {
+  min-height: 36px;
+  border: 0;
+  border-radius: 0;
+  padding: 0 10px;
+  background: transparent;
 }
 
 .exhibition-entry-form textarea {
@@ -273,8 +305,8 @@
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
   cursor: pointer;
 }
 
@@ -296,7 +328,7 @@
 .exhibition-entry-form h3 {
   margin: 0;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .exhibition-entry-tabs {
@@ -352,8 +384,8 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .exhibition-image-source input {
@@ -404,7 +436,7 @@
 .confirm-card p {
   margin: 0 0 20px;
   color: var(--text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .confirm-actions {
@@ -422,23 +454,23 @@
 .exhibition-assign-dialog .form-head p {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .exhibition-assign-vehicle {
   margin: -6px 0 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .exhibition-assign-field {
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .exhibition-assign-field select {
@@ -466,8 +498,8 @@
   border-radius: 7px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .exhibition-assign-checks .check-ok {

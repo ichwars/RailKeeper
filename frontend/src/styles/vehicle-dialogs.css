@@ -21,7 +21,7 @@
 .article-search-box strong,
 .upload-head h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .article-search-box span,
@@ -29,7 +29,7 @@
 .empty-tab p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .article-search-actions {
@@ -86,17 +86,17 @@
 .barcode-search-dialog .form-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
-  line-height: 1.45;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
 }
 
 .barcode-input-label {
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .barcode-input-row {
@@ -130,8 +130,8 @@
   background: var(--panel);
   color: var(--text);
   font: inherit;
-  font-size: 15px;
-  font-weight: 850;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-black);
   letter-spacing: 0;
   padding: 0 12px;
 }
@@ -144,8 +144,8 @@
 .barcode-hint {
   margin: -4px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .barcode-camera-button {
@@ -177,16 +177,16 @@
   display: block;
   margin: 0 0 3px;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .barcode-camera-panel p,
 .barcode-scan-message {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.4;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-normal);
 }
 
 .barcode-search-actions {
@@ -195,9 +195,79 @@
   gap: 8px;
 }
 
-.compact-source-note {
-  max-width: none;
+.vehicle-source-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  overflow: hidden;
   margin: -4px 0 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-normal);
+}
+
+.vehicle-source-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 8px 10px;
+}
+
+.vehicle-source-cell + .vehicle-source-cell {
+  border-left: 1px solid var(--line);
+}
+
+.vehicle-source-cell svg {
+  flex: 0 0 auto;
+  color: var(--accent);
+}
+
+.vehicle-source-cell span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-source-cell a {
+  color: color-mix(in srgb, var(--text) 78%, var(--muted));
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+}
+
+.vehicle-source-cell a:hover {
+  color: var(--accent);
+}
+
+.vehicle-source-cell strong {
+  color: var(--text);
+}
+
+.vehicle-source-cell-digital {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+@media (max-width: 720px) {
+  .vehicle-source-strip {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vehicle-source-cell + .vehicle-source-cell {
+    border-top: 1px solid var(--line);
+    border-left: 0;
+  }
+
+  .vehicle-source-cell-digital {
+    justify-content: flex-start;
+    text-align: left;
+  }
 }
 
 .article-search-layer {
@@ -225,8 +295,8 @@
 .article-search-dialog .form-head p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .article-search-trace {
@@ -254,13 +324,13 @@
 .article-search-trace span,
 .article-search-trace summary {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .article-search-trace strong {
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .article-search-trace summary {
@@ -286,7 +356,7 @@
 .article-search-trace code {
   overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .article-dialog-state {
@@ -335,7 +405,7 @@
 }
 
 .article-result-card header strong {
-  font-size: 15px;
+  font-size: var(--font-size-lg);
   color: var(--text);
   overflow-wrap: anywhere;
 }
@@ -344,14 +414,14 @@
 .article-result-card p,
 .article-field-row small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .article-result-card p {
   margin: 0;
   color: var(--muted);
-  line-height: 1.5;
+  line-height: var(--line-height-body);
 }
 
 .article-result-card header .article-detail-trace {
@@ -361,7 +431,7 @@
   padding: 3px 8px;
   background: var(--soft-bg);
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .article-result-card header .article-detail-trace.loaded {
@@ -385,7 +455,7 @@
   padding: 0 10px;
   text-decoration: none;
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .inline-source-link {
@@ -394,7 +464,7 @@
   align-items: center;
   gap: 6px;
   color: var(--accent-strong);
-  font-weight: 800;
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .inline-source-link:hover {
@@ -460,8 +530,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--warm) 11%, var(--panel));
   color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .article-field-grid {
@@ -480,7 +550,7 @@
   border-radius: 7px;
   background: var(--panel-subtle);
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .article-field-row input {
@@ -501,7 +571,7 @@
 
 .article-field-row em {
   font-style: normal;
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
 }
 
 .article-field-row.conflict {
@@ -526,7 +596,7 @@
   margin: 0;
   padding: 10px 12px 0;
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .article-field-group table {
@@ -542,14 +612,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   color: var(--text);
 }
 
 .article-field-group th {
   background: var(--panel-subtle);
   color: var(--muted);
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .article-field-group tbody tr {
@@ -568,7 +638,7 @@
 }
 
 .article-status {
-  font-weight: 800;
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .article-status.empty {
@@ -615,13 +685,13 @@
 .qr-dialog .form-head p {
   margin: 5px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .qr-dialog .form-head .qr-dialog-meta {
   color: var(--text);
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .qr-preview-button {
@@ -638,20 +708,6 @@
 .qr-preview-button svg {
   width: 256px;
   height: 256px;
-}
-
-.qr-preview-logo {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 34px;
-  height: 34px;
-  padding: 4px;
-  border-radius: 8px;
-  background: #fff;
-  object-fit: contain;
-  transform: translate(-50%, -50%);
-  pointer-events: none;
 }
 
 .qr-dialog-actions {
@@ -695,7 +751,7 @@
 
 .report-dialog-head h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--font-size-lead);
 }
 
 .report-form-grid {
@@ -709,8 +765,8 @@
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .report-form-grid select,
@@ -738,8 +794,8 @@
 .report-choice-group legend {
   padding: 0 6px;
   color: var(--text);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .report-choice-group label {
@@ -752,6 +808,14 @@
 
 .report-choice-group input {
   accent-color: var(--accent);
+}
+
+.report-status {
+  margin: 0;
+  padding: 0 16px 12px;
+  color: var(--accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .report-dialog-actions {

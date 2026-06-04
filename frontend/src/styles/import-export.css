@@ -23,7 +23,7 @@
   background: color-mix(in srgb, var(--accent-bright) 7%, var(--panel-subtle));
   color: var(--accent-strong);
   cursor: pointer;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .file-drop.compact-drop {
@@ -87,8 +87,8 @@
 .ecos-section-head span {
   color: var(--muted);
   font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.45;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-normal);
 }
 
 .ecos-connection-grid {
@@ -103,8 +103,8 @@
   gap: 7px;
   min-width: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-connection-grid input {
@@ -116,7 +116,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .ecos-actions {
@@ -148,8 +148,8 @@
   border-radius: 999px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-status-strip .status-ok {
@@ -177,8 +177,8 @@
   padding: 10px 0;
   background: var(--panel);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .ecos-preview-toolbar .secondary-button {
@@ -195,7 +195,7 @@
 .ecos-detail-popover summary {
   color: var(--accent);
   cursor: pointer;
-  font-weight: 800;
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .ecos-detail-popover dl {
@@ -244,8 +244,8 @@
 .ecos-flow-note span {
   color: var(--muted);
   font-size: 0.82rem;
-  font-weight: 700;
-  line-height: 1.45;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-normal);
 }
 
 .ecos-busy-indicator {
@@ -259,8 +259,8 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-cv-review-panel {
@@ -340,7 +340,7 @@
 .ecos-cv-profile-card dt {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
@@ -348,7 +348,7 @@
   margin: 0;
   color: var(--text);
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
 }
 
@@ -411,7 +411,7 @@
   overflow-wrap: anywhere;
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .ecos-image-placeholder {
@@ -443,7 +443,7 @@
 .ecos-image-candidates dt {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
@@ -457,7 +457,7 @@
 .ecos-image-candidates dd span {
   color: var(--text);
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .ecos-image-candidates dd small {
@@ -490,7 +490,7 @@
   background: var(--panel-subtle);
   color: var(--muted);
   font-size: 0.74rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-worklist-table {
@@ -526,6 +526,37 @@
   font-size: 0.74rem;
 }
 
+.ecos-sync-preview {
+  display: grid;
+  gap: 3px;
+  margin-top: 7px;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+}
+
+.ecos-sync-preview.pending {
+  border-color: color-mix(in srgb, var(--warm) 44%, var(--line));
+}
+
+.ecos-sync-preview.applied,
+.ecos-sync-preview.clean {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+}
+
+.ecos-sync-preview small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: var(--line-height-normal);
+}
+
+.ecos-sync-preview strong {
+  margin-right: 5px;
+  color: var(--text);
+}
+
 .ecos-cv-review-table {
   max-height: 320px;
   overflow: auto;
@@ -535,7 +566,7 @@
   min-width: 220px;
   color: var(--muted);
   font-size: 0.78rem;
-  line-height: 1.35;
+  line-height: var(--line-height-normal);
 }
 
 .ecos-import-draft-dialog {
@@ -564,13 +595,13 @@
   border-radius: 999px;
   background: var(--panel-subtle);
   color: var(--text);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-draft-meta strong {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
 }
 
@@ -594,8 +625,8 @@
   display: grid;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-draft-grid label.unclear {
@@ -612,7 +643,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .ecos-draft-grid textarea {
@@ -643,7 +674,7 @@
 
 .ecos-draft-detected h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .ecos-draft-cv-grid {
@@ -663,14 +694,14 @@
   border-radius: 999px;
   background: var(--panel);
   color: var(--text);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   font-style: normal;
-  font-weight: 800;
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .ecos-draft-cv-grid strong {
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .ecos-draft-cv-preview {
@@ -689,8 +720,8 @@
 
 .ecos-draft-mapping-preview {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .ecos-unclear-field {
@@ -716,7 +747,7 @@
   background: var(--input-bg);
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .ecos-cv-status.new {
@@ -774,7 +805,7 @@
   padding: 10px 12px;
   cursor: pointer;
   color: var(--text);
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-raw-card summary span:first-child {
@@ -811,7 +842,7 @@
   margin: 0;
   color: var(--accent);
   font-size: 0.82rem;
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .ecos-raw-section-wide {
@@ -832,14 +863,14 @@
 .ecos-raw-definition-list dt {
   color: var(--muted);
   font-size: 0.73rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-raw-definition-list dd {
   margin: 0;
   overflow-wrap: anywhere;
   color: var(--text);
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-raw-function-grid {
@@ -887,7 +918,7 @@
   color: var(--text);
   font-size: 1rem;
   font-style: normal;
-  font-weight: 900;
+  font-weight: var(--font-weight-heavy);
 }
 
 .ecos-raw-attributes {
@@ -907,7 +938,7 @@
 .ecos-raw-attributes dt {
   color: var(--muted);
   font-size: 0.75rem;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
   text-transform: uppercase;
 }
 
@@ -924,7 +955,7 @@
   padding: 8px 0;
   color: var(--accent);
   cursor: pointer;
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
 }
 
 .ecos-raw-replies pre {
@@ -972,7 +1003,7 @@
 
 .update-decision-panel span {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .update-decision-panel pre {
@@ -985,7 +1016,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   white-space: pre-wrap;
 }
 
@@ -1029,14 +1060,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .column-mapping-grid small {
   flex: 0 0 auto;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 850;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
 }
 
 .column-mapping-grid select {
@@ -1048,7 +1079,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .master-transfer-actions {
@@ -1073,8 +1104,8 @@
   border-radius: 999px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .import-summary span.danger {
@@ -1105,7 +1136,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .import-row-error {
@@ -1143,21 +1174,21 @@
 }
 
 .import-change-panel strong {
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .import-change-panel span,
 .import-change-panel p {
   margin: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .import-change-panel table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .import-change-panel th,
@@ -1170,7 +1201,7 @@
 
 .import-change-panel th {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
 }
 
@@ -1215,19 +1246,19 @@
   border-radius: 999px;
   background: var(--panel);
   color: var(--text);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .import-function-grid strong {
   color: var(--accent);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .import-function-grid em {
   color: var(--accent-strong);
   font-style: normal;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .import-status {
@@ -1235,8 +1266,8 @@
   align-items: center;
   gap: 6px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .import-status.ok,

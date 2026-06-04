@@ -37,7 +37,7 @@
 
 .modal-head h2 {
   margin: 0;
-  font-size: 22px;
+  font-size: var(--font-size-title-md);
 }
 
 .modal-tabs {
@@ -56,8 +56,8 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .modal-tabs button.active,
@@ -96,8 +96,8 @@
   border-radius: 7px;
   background: var(--panel);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
   text-align: center;
 }
 
@@ -115,22 +115,22 @@
 .vehicle-read-title .eyebrow {
   margin: 0;
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
   text-transform: uppercase;
 }
 
 .vehicle-read-title h2 {
   margin: 0;
-  font-size: 25px;
-  line-height: 1.15;
+  font-size: var(--font-size-title-2xl);
+  line-height: var(--line-height-tight);
 }
 
 .vehicle-read-title p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .vehicle-read-chips {
@@ -145,8 +145,8 @@
   padding: 4px 8px;
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 850;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
 }
 
 .vehicle-read-actions {
@@ -173,7 +173,7 @@
 .vehicle-view-section h3 {
   margin: 0;
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .vehicle-view-section dl {
@@ -191,16 +191,16 @@
 
 .vehicle-view-section dt {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .vehicle-view-section dd {
   min-width: 0;
   margin: 0;
   color: var(--text);
-  font-size: 13px;
-  font-weight: 850;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-black);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -239,13 +239,13 @@
 
 .vehicle-view-list strong {
   color: var(--text);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .vehicle-view-list span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   overflow-wrap: anywhere;
 }
 
@@ -281,8 +281,8 @@
 .vehicle-view-gallery figcaption {
   margin-top: 6px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 750;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-strong);
   overflow-wrap: anywhere;
 }
 
@@ -319,8 +319,8 @@
   color: var(--text);
   cursor: pointer;
   font: inherit;
-  font-size: 14px;
-  font-weight: 850;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-black);
   text-align: left;
 }
 

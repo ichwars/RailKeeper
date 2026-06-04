@@ -19,6 +19,10 @@ func (s *VehicleService) SetImageLocalizer(localizer VehicleImageLocalizer) {
 }
 
 func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, error) {
+	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
+		return nil, err
+	}
+
 	like := "%" + strings.TrimSpace(query) + "%"
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,
@@ -114,11 +118,82 @@ ORDER BY updated_at DESC, inventory_number ASC
 }
 
 func (s *VehicleService) Get(ctx context.Context, id string) (*Vehicle, error) {
+	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
+		return nil, err
+	}
+
 	vehicle, err := s.get(ctx, strings.TrimSpace(id))
 	if err != nil {
 		return nil, err
 	}
 	return vehicle, nil
+}
+
+func (s *VehicleService) resetExpiredExhibitionFlags(ctx context.Context) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.ExecContext(ctx, `
+WITH expired_vehicle_ids AS (
+  SELECT DISTINCT e.vehicle_id
+  FROM exhibition_entries e
+  JOIN exhibition_lists l ON l.id = e.list_id
+  WHERE e.vehicle_id <> ''
+    AND date(l.list_date, '+1 day') <= date('now', 'localtime')
+),
+active_vehicle_ids AS (
+  SELECT DISTINCT e.vehicle_id
+  FROM exhibition_entries e
+  JOIN exhibition_lists l ON l.id = e.list_id
+  WHERE e.vehicle_id <> ''
+    AND date(l.list_date, '+1 day') > date('now', 'localtime')
+)
+UPDATE vehicles
+SET exhibition=0, updated_at=?
+WHERE exhibition=1
+  AND id IN (SELECT vehicle_id FROM expired_vehicle_ids)
+  AND id NOT IN (SELECT vehicle_id FROM active_vehicle_ids)
+`, now); err != nil {
+		return fmt.Errorf("reset expired exhibition flags: %w", err)
+	}
+
+	if _, err := s.db.ExecContext(ctx, `
+UPDATE vehicles
+SET exhibition=0, updated_at=?
+WHERE exhibition=1
+  AND EXISTS (
+    SELECT 1
+    FROM exhibition_entries e
+    JOIN exhibition_lists l ON l.id = e.list_id
+    WHERE e.vehicle_id = ''
+      AND date(l.list_date, '+1 day') <= date('now', 'localtime')
+      AND (
+        (e.decoder_number <> '' AND e.decoder_number = vehicles.digital_decoder_number)
+        OR (
+          e.locomotive_name <> ''
+          AND lower(trim(e.locomotive_name)) = lower(trim(vehicles.name))
+          AND (e.manufacturer = '' OR lower(trim(e.manufacturer)) = lower(trim(vehicles.manufacturer)))
+        )
+      )
+  )
+  AND NOT EXISTS (
+    SELECT 1
+    FROM exhibition_entries e
+    JOIN exhibition_lists l ON l.id = e.list_id
+    WHERE date(l.list_date, '+1 day') > date('now', 'localtime')
+      AND (
+        e.vehicle_id = vehicles.id
+        OR (e.decoder_number <> '' AND e.decoder_number = vehicles.digital_decoder_number)
+        OR (
+          e.locomotive_name <> ''
+          AND lower(trim(e.locomotive_name)) = lower(trim(vehicles.name))
+          AND (e.manufacturer = '' OR lower(trim(e.manufacturer)) = lower(trim(vehicles.manufacturer)))
+        )
+      )
+  )
+`, now); err != nil {
+		return fmt.Errorf("reset legacy expired exhibition flags: %w", err)
+	}
+
+	return nil
 }
 
 func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
@@ -1342,6 +1417,17 @@ func (s *VehicleService) CreateSparePart(ctx context.Context, vehicleID string, 
 	if _, err := s.Get(ctx, vehicleID); err != nil {
 		return nil, err
 	}
+	if existing, err := s.findDuplicateSparePart(ctx, vehicleID, input); err != nil {
+		return nil, err
+	} else if existing != nil {
+		merged := VehicleSparePartInput{
+			ArticleNumber: firstNonEmpty(existing.ArticleNumber, input.ArticleNumber),
+			Description:   firstNonEmpty(existing.Description, input.Description),
+			Price:         firstNonEmpty(existing.Price, input.Price),
+			URL:           firstNonEmpty(existing.URL, input.URL),
+		}
+		return s.UpdateSparePart(ctx, vehicleID, existing.ID, merged)
+	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	sparePart := VehicleSparePart{
@@ -1361,6 +1447,23 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?)
 		return nil, fmt.Errorf("create vehicle spare part: %w", err)
 	}
 	return &sparePart, nil
+}
+
+func (s *VehicleService) findDuplicateSparePart(ctx context.Context, vehicleID string, input VehicleSparePartInput) (*VehicleSparePart, error) {
+	key := vehicleSparePartDedupKey(input.ArticleNumber, input.Description, input.URL)
+	if key == "" {
+		return nil, nil
+	}
+	parts, err := s.loadVehicleSpareParts(ctx, vehicleID)
+	if err != nil {
+		return nil, err
+	}
+	for index := range parts {
+		if vehicleSparePartDedupKey(parts[index].ArticleNumber, parts[index].Description, parts[index].URL) == key {
+			return &parts[index], nil
+		}
+	}
+	return nil, nil
 }
 
 func (s *VehicleService) UpdateSparePart(ctx context.Context, vehicleID, sparePartID string, input VehicleSparePartInput) (*VehicleSparePart, error) {
@@ -2317,6 +2420,29 @@ func cleanVehicleSparePartInput(input VehicleSparePartInput) VehicleSparePartInp
 	input.Price = strings.TrimSpace(input.Price)
 	input.URL = strings.TrimSpace(input.URL)
 	return input
+}
+
+func vehicleSparePartDedupKey(articleNumber, description, link string) string {
+	article := strings.ToLower(strings.TrimSpace(articleNumber))
+	article = strings.TrimPrefix(article, "et")
+	article = strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= '0' && r <= '9' {
+			return r
+		}
+		return -1
+	}, article)
+	if article != "" {
+		return "article:" + article
+	}
+	link = strings.TrimRight(strings.ToLower(strings.TrimSpace(link)), "/")
+	if link != "" {
+		return "url:" + link
+	}
+	description = strings.ToLower(strings.TrimSpace(description))
+	if description != "" {
+		return "description:" + description
+	}
+	return ""
 }
 
 func isValidVehicleSparePartInput(input VehicleSparePartInput) bool {

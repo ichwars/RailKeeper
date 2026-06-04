@@ -20,10 +20,54 @@
   --function-symbol-border: rgba(11, 30, 38, 0.22);
   --function-symbol-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.72);
   --shadow: 0 18px 44px rgba(11, 30, 38, 0.08);
-  font-family: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  font-weight: 400;
+  --font-sans: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+  --font-size-3xs: 9px;
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 15px;
+  --font-size-xl: 16px;
+  --font-size-lead: 17px;
+  --font-size-title-sm: 18px;
+  --font-size-title-xs: 19px;
+  --font-size-title-base: 20px;
+  --font-size-title-md: 22px;
+  --font-size-title-lg: 24px;
+  --font-size-title-2xl: 25px;
+  --font-size-title-xl: 30px;
+  --font-size-display-sm: 32px;
+  --font-size-display: 42px;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 650;
+  --font-weight-bold: 700;
+  --font-weight-strong: 750;
+  --font-weight-extra-bold: 800;
+  --font-weight-black: 850;
+  --font-weight-heavy: 900;
+  --line-height-compact: 1;
+  --line-height-tight: 1.15;
+  --line-height-snug: 1.25;
+  --line-height-normal: 1.45;
+  --line-height-body: 1.5;
+  --line-height-relaxed: 1.55;
+  --line-height-title-sm: 24px;
+  --line-height-title-base: 26px;
+  --line-height-title-md: 28px;
+  --line-height-title-lg: 30px;
+  --line-height-title-mobile: 32px;
+  --line-height-title-xl: 36px;
+  --line-height-control-sm: 16px;
+  --line-height-control-md: 18px;
+  --line-height-copy: 20px;
+  --line-height-copy-lg: 22px;
+  font-family: var(--font-sans);
+  font-weight: var(--font-weight-regular);
   font-synthesis: none;
-  line-height: 1.5;
+  line-height: var(--line-height-body);
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -306,8 +350,8 @@ a {
   padding: 0 12px;
   border-radius: 6px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-bold);
 }
 
 .sidebar.collapsed .nav {
@@ -408,8 +452,8 @@ a {
 
 .sidebar-version {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
   text-align: center;
 }
 
@@ -430,9 +474,9 @@ a {
   background: color-mix(in srgb, var(--accent) 16%, transparent);
   box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 28%, transparent);
   color: var(--accent-strong);
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-extra-bold);
+  line-height: var(--line-height-compact);
 }
 
 .sidebar.collapsed .sidebar-update-badge {
@@ -515,15 +559,15 @@ a {
 .eyebrow {
   margin: 0 0 10px;
   color: var(--accent);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
   text-transform: uppercase;
 }
 
 h1 {
   max-width: 720px;
   margin: 0 0 14px;
-  font-size: 42px;
+  font-size: var(--font-size-display);
   line-height: 1.08;
 }
 
@@ -538,14 +582,14 @@ h1 {
 
 .inventory-head h1 {
   margin-bottom: 8px;
-  font-size: 30px;
-  line-height: 36px;
+  font-size: var(--font-size-title-xl);
+  line-height: var(--line-height-title-xl);
 }
 
 .inventory-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .new-vehicle-button {
@@ -559,8 +603,8 @@ h1 {
 .page-head p:last-child {
   margin: 0;
   color: var(--muted);
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: var(--font-size-lead);
+  line-height: var(--line-height-relaxed);
 }
 
 .module-grid,

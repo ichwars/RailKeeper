@@ -33,9 +33,53 @@ function numberValue(value?: string) {
   if (!value) {
     return 0;
   }
-  const normalized = value.replace(/[^\d,.-]/g, "").replace(/\./g, "").replace(",", ".");
+  const cleaned = value.replace(/[^\d,.-]/g, "");
+  const normalized = normalizeNumberText(cleaned);
   const parsed = Number.parseFloat(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeNumberText(value: string) {
+  const cleaned = value.trim();
+  const separators = [...cleaned.matchAll(/[,.]/g)].map((match) => ({ value: match[0], index: match.index ?? -1 }));
+
+  if (separators.length === 0) {
+    return cleaned;
+  }
+
+  const lastSeparator = separators[separators.length - 1];
+  const decimalSeparator = inferDecimalSeparator(cleaned, separators);
+  const chars = [...cleaned];
+
+  return chars
+    .filter((char, index) => {
+      if (char !== "." && char !== ",") {
+        return true;
+      }
+      return decimalSeparator && char === decimalSeparator && index === lastSeparator.index;
+    })
+    .map((char) => (char === decimalSeparator ? "." : char))
+    .join("");
+}
+
+function inferDecimalSeparator(value: string, separators: { value: string; index: number }[]) {
+  const kinds = new Set(separators.map((separator) => separator.value));
+  const last = separators[separators.length - 1];
+  const fractionLength = value.length - last.index - 1;
+
+  if (kinds.size > 1) {
+    return last.value;
+  }
+
+  if (separators.length > 1) {
+    return fractionLength > 0 && fractionLength <= 2 ? last.value : "";
+  }
+
+  if (fractionLength > 0 && fractionLength <= 2) {
+    return last.value;
+  }
+
+  return "";
 }
 
 function currency(value: number, language: string) {
@@ -163,16 +207,16 @@ export function OverviewView() {
     const categories = topEntries(vehicles.map((vehicle) => vehicle.category || t("overview.noCategory")));
     const gauges = topEntries(vehicles.map((vehicle) => vehicle.gauge || t("overview.noGauge")));
     const manufacturers = topEntries(vehicles.map((vehicle) => vehicle.manufacturer || t("overview.noManufacturer")));
-    const withArticleNumbers = vehicles.filter((vehicle) => vehicle.articleNumber).length;
-    const withEAN = vehicles.filter((vehicle) => vehicle.ean).length;
-    const withDecoderNumbers = vehicles.filter((vehicle) => vehicle.digitalDecoderNumber || vehicle.dtDecoderNumber).length;
-    const digitalWithoutDecoder = vehicles.filter((vehicle) => vehicle.digital && !vehicle.digitalDecoderNumber && !vehicle.dtDecoderNumber).length;
-    const documentedVehicles = vehicles.filter((vehicle) => vehicle.articleNumber && vehicle.ean && (vehicle.images || []).length > 0).length;
+    const withArticleNumbers = vehicles.filter((vehicle) => vehicle.articleNumber?.trim()).length;
+    const withEAN = vehicles.filter((vehicle) => vehicle.ean?.trim()).length;
+    const withDecoderNumbers = vehicles.filter((vehicle) => vehicle.digitalDecoderNumber?.trim() || vehicle.dtDecoderNumber?.trim()).length;
+    const digitalWithoutDecoder = vehicles.filter((vehicle) => vehicle.digital && !vehicle.digitalDecoderNumber?.trim() && !vehicle.dtDecoderNumber?.trim()).length;
+    const documentedVehicles = vehicles.filter((vehicle) => vehicle.articleNumber?.trim() && vehicle.ean?.trim() && (vehicle.images || []).length > 0).length;
     const dataGaps = [
-      { label: t("overview.gap.noMainImage"), count: vehicles.length - withImages, detail: t("overview.gap.noMainImageDetail") },
-      { label: t("overview.gap.noArticleNumber"), count: vehicles.length - withArticleNumbers, detail: t("overview.gap.noArticleNumberDetail") },
-      { label: t("overview.gap.noEan"), count: vehicles.length - withEAN, detail: t("overview.gap.noEanDetail") },
-      { label: t("overview.gap.digitalNoDecoder"), count: digitalWithoutDecoder, detail: t("overview.gap.digitalNoDecoderDetail") }
+      { id: "no-main-image", label: t("overview.gap.noMainImage"), count: vehicles.length - withImages, detail: t("overview.gap.noMainImageDetail") },
+      { id: "no-article-number", label: t("overview.gap.noArticleNumber"), count: vehicles.length - withArticleNumbers, detail: t("overview.gap.noArticleNumberDetail") },
+      { id: "no-ean", label: t("overview.gap.noEan"), count: vehicles.length - withEAN, detail: t("overview.gap.noEanDetail") },
+      { id: "digital-no-decoder", label: t("overview.gap.digitalNoDecoder"), count: digitalWithoutDecoder, detail: t("overview.gap.digitalNoDecoderDetail") }
     ].filter((gap) => gap.count > 0);
     return {
       totalValue,
@@ -231,26 +275,22 @@ export function OverviewView() {
 
       <section className="overview-hero panel">
         <div>
-          <span className="overview-icon"><Box size={20} aria-hidden="true" /></span>
-          <p>{t("overview.totalInventory")}</p>
+          <p className="overview-hero-title"><span className="overview-icon"><Box size={20} aria-hidden="true" /></span>{t("overview.totalInventory")}</p>
           <strong>{loading ? "..." : vehicles.length}</strong>
           <small>{t("overview.categoriesGauges", { categories: stats.categories.length, gauges: stats.gauges.length })}</small>
         </div>
         <div>
-          <span className="overview-icon"><Gauge size={20} aria-hidden="true" /></span>
-          <p>{t("overview.digitalization")}</p>
+          <p className="overview-hero-title"><span className="overview-icon"><Gauge size={20} aria-hidden="true" /></span>{t("overview.digitalization")}</p>
           <strong>{digitalShare}%</strong>
           <small>{t("overview.digitalAnalog", { digital: stats.digital, analog: stats.analog })}</small>
         </div>
         <div>
-          <span className="overview-icon"><BarChart3 size={20} aria-hidden="true" /></span>
-          <p>{t("overview.listValue")}</p>
+          <p className="overview-hero-title"><span className="overview-icon"><BarChart3 size={20} aria-hidden="true" /></span>{t("overview.listValue")}</p>
           <strong>{currency(stats.totalValue, language)}</strong>
           <small>{t("overview.listValueBasis")}</small>
         </div>
         <div className={stats.due > 0 ? "attention" : ""}>
-          <span className="overview-icon">{stats.due > 0 ? <AlertTriangle size={20} aria-hidden="true" /> : <Wrench size={20} aria-hidden="true" />}</span>
-          <p>{t("overview.maintenance")}</p>
+          <p className="overview-hero-title"><span className="overview-icon">{stats.due > 0 ? <AlertTriangle size={20} aria-hidden="true" /> : <Wrench size={20} aria-hidden="true" />}</span>{t("overview.maintenance")}</p>
           <strong>{stats.due}</strong>
           <small>{t("overview.maintenanceSummary", { upcoming: stats.upcoming, open: stats.openMaintenance })}</small>
         </div>
@@ -306,7 +346,7 @@ export function OverviewView() {
           ) : (
             <div className="action-gap-list">
               {stats.dataGaps.map((gap) => (
-                <a key={gap.label} href="/vehicles" className="action-gap">
+                <a key={gap.label} href={`/vehicles?gap=${gap.id}`} className="action-gap">
                   <span>
                     <strong>{gap.label}</strong>
                     <small>{gap.detail}</small>

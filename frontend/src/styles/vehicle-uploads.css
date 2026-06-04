@@ -31,7 +31,7 @@
 .cv-history-row td {
   background: color-mix(in srgb, var(--accent-bright) 8%, var(--panel));
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .cv-history-row details {
@@ -43,7 +43,7 @@
   width: max-content;
   cursor: pointer;
   color: var(--accent-strong);
-  font-weight: 800;
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .cv-history-list {
@@ -58,7 +58,7 @@
   border-radius: 6px;
   background: var(--panel);
   color: var(--text);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .empty-tab h3 {
@@ -96,7 +96,7 @@
   background: #fff;
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .upload-list {
@@ -108,8 +108,8 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
 }
 
 .pending-image-grid {
@@ -169,7 +169,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
 }
 
 .pending-image-card input {
@@ -182,8 +182,8 @@
   background: color-mix(in srgb, var(--input-bg) 88%, transparent);
   color: var(--text);
   font: inherit;
-  font-size: 9.5px;
-  font-weight: 500;
+  font-size: var(--font-size-3xs);
+  font-weight: var(--font-weight-medium);
 }
 
 .pending-image-card input:focus {
@@ -200,7 +200,7 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
-  font-size: 10.5px;
+  font-size: var(--font-size-2xs);
 }
 
 .upload-maintenance-select:focus,
@@ -211,8 +211,8 @@
 
 .pending-image-card figcaption > span {
   color: var(--accent-strong);
-  font-size: 9.5px;
-  font-weight: 650;
+  font-size: var(--font-size-3xs);
+  font-weight: var(--font-weight-semibold);
 }
 
 .image-card-actions,
@@ -254,14 +254,14 @@
 
 .attachment-list-head strong {
   color: var(--text);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .attachment-list-head span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .attachment-upload-zone {
@@ -287,13 +287,13 @@
 }
 
 .attachment-upload-zone strong {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .attachment-upload-zone span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .attachment-upload-fields {
@@ -312,8 +312,8 @@
   background: var(--panel);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
 }
 
 .attachment-upload-fields select:focus,
@@ -324,10 +324,10 @@
 
 .attachment-row {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   grid-template-areas:
-    "icon main"
-    "icon actions";
+    "icon main actions"
+    "icon edit edit";
   gap: 10px 14px;
   align-items: start;
   min-height: 92px;
@@ -342,13 +342,11 @@
   display: grid;
   place-items: center;
   gap: 4px;
-  width: 54px;
-  height: 54px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  width: 34px;
+  min-height: 34px;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
 }
 
 .attachment-main {
@@ -367,8 +365,8 @@
 
 .attachment-main span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .attachment-preview {
@@ -411,8 +409,8 @@
   gap: 8px;
   min-height: 120px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .attachment-preview-layer {
@@ -447,8 +445,8 @@
   margin: 0;
   overflow: hidden;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -478,9 +476,11 @@
 }
 
 .attachment-edit-row {
+  grid-area: edit;
   display: grid;
-  grid-template-columns: minmax(145px, 190px) minmax(160px, 210px) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 190px) minmax(220px, 1fr);
   gap: 8px;
+  max-width: 620px;
 }
 
 .attachment-edit-row select,
@@ -493,8 +493,8 @@
   background: var(--panel);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
-  font-weight: 750;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 .attachment-edit-row select:focus,
@@ -507,17 +507,14 @@
   grid-area: actions;
   display: flex;
   flex-wrap: wrap;
+  align-self: start;
   justify-content: flex-end;
-  gap: 8px;
+  gap: 2px;
 }
 
-.attachment-actions .secondary-button,
-.attachment-actions .danger-button {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  min-height: 32px;
-  padding: 0 10px;
+.attachment-actions .icon-button {
+  width: 32px;
+  height: 32px;
 }
 
 .web-document-section {
@@ -558,6 +555,6 @@
 
 .web-document-table a {
   color: var(--accent-strong);
-  font-weight: 850;
+  font-weight: var(--font-weight-black);
   text-decoration: none;
 }

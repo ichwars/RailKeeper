@@ -11,14 +11,20 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 )
 
 var ErrArticleSearchValidation = errors.New("article search validation failed")
+
+var pdfOCRTextExtractor = extractPDFOCRText
 
 type ArticleSearchInput struct {
 	Manufacturer        string            `json:"manufacturer"`
@@ -49,6 +55,7 @@ type ArticleSearchSparePart struct {
 	Price         string `json:"price,omitempty"`
 	URL           string `json:"url,omitempty"`
 	Source        string `json:"source,omitempty"`
+	Availability  string `json:"availability,omitempty"`
 }
 
 type ArticleSearchDocument struct {
@@ -140,6 +147,12 @@ func (s *ArticleSearchService) Search(ctx context.Context, input ArticleSearchIn
 	defer cancel()
 
 	results := []ArticleSearchResult{}
+	if pikoResult := s.searchPikoSpareParts(searchCtx, input); pikoResult != nil {
+		results = append(results, *pikoResult)
+	}
+	if rocoResult := s.searchRocoSpareParts(searchCtx, input); rocoResult != nil {
+		results = append(results, *rocoResult)
+	}
 	for _, adapter := range s.adapters {
 		adapterResults, err := adapter.Search(searchCtx, input, query)
 		if err != nil && len(results) == 0 {
@@ -519,6 +532,254 @@ func uniqueArticleSearchQueries(queries []articleSearchQuerySpec, limit int) []a
 	return out
 }
 
+func (s *ArticleSearchService) searchPikoSpareParts(ctx context.Context, input ArticleSearchInput) *ArticleSearchResult {
+	if s == nil || !isPikoManufacturer(input.Manufacturer) || input.Fields["sparePartLookup"] != "piko" {
+		return nil
+	}
+	searchText := pikoSparePartSearchText(input.ArticleNumber, input.Fields)
+	if searchText == "" {
+		return nil
+	}
+	client := http.DefaultClient
+	searchURL := "https://www.piko-shop.de/de/artikel/ersatzteil/xref_suchtext-" + url.PathEscape(searchText) + ".html"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("User-Agent", "RailKeeper/0.1 piko-spare-part-search")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	if err != nil || len(body) == 0 {
+		return nil
+	}
+	parts := pikoSparePartsFromHTML(string(body), resp.Request.URL.String())
+	if len(parts) == 0 {
+		return nil
+	}
+	return &ArticleSearchResult{
+		Source:  "PIKO",
+		Title:   "PIKO Ersatzteile " + searchText,
+		URL:     resp.Request.URL.String(),
+		Snippet: "Direkte PIKO Ersatzteilsuche",
+		Score:   1000,
+		Fields: map[string]ArticleSearchField{
+			"manufacturer":  {Label: "Hersteller", Value: "Piko", Confidence: 95},
+			"articleNumber": {Label: "Artikel-Nr.", Value: searchText, Confidence: 90},
+		},
+		SpareParts: parts,
+	}
+}
+
+func (s *ArticleSearchService) searchRocoSpareParts(ctx context.Context, input ArticleSearchInput) *ArticleSearchResult {
+	if s == nil || !isRocoManufacturer(input.Manufacturer) || input.Fields["sparePartLookup"] != "roco" {
+		return nil
+	}
+	searchText := rocoSparePartSearchText(input.ArticleNumber, input.Fields)
+	if searchText == "" {
+		return nil
+	}
+	client := http.DefaultClient
+	searchURL := "https://www.roco.cc/rde/ersatzteile?et=" + url.QueryEscape(searchText)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("User-Agent", "RailKeeper/0.1 roco-spare-part-search")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml")
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1024*1024))
+	if err != nil || len(body) == 0 {
+		return nil
+	}
+	parts := rocoSparePartsFromHTML(string(body), resp.Request.URL.String())
+	if len(parts) == 0 {
+		return nil
+	}
+	return &ArticleSearchResult{
+		Source:  "ROCO",
+		Title:   "ROCO Ersatzteile " + searchText,
+		URL:     resp.Request.URL.String(),
+		Snippet: "Direkte ROCO Ersatzteilsuche",
+		Score:   1000,
+		Fields: map[string]ArticleSearchField{
+			"manufacturer":  {Label: "Hersteller", Value: "Roco", Confidence: 95},
+			"articleNumber": {Label: "Artikel-Nr.", Value: searchText, Confidence: 90},
+		},
+		SpareParts: parts,
+	}
+}
+
+func isPikoManufacturer(manufacturer string) bool {
+	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
+	return manufacturer == "piko" || strings.Contains(manufacturer, "piko")
+}
+
+func isRocoManufacturer(manufacturer string) bool {
+	manufacturer = strings.ToLower(strings.TrimSpace(manufacturer))
+	return manufacturer == "roco" || strings.Contains(manufacturer, "roco")
+}
+
+func pikoSparePartSearchText(articleNumber string, fields map[string]string) string {
+	for _, value := range []string{
+		fields["vehicleArticleNumber"],
+		fields["modelArticleNumber"],
+		fields["locomotiveArticleNumber"],
+		fields["lokArticleNumber"],
+	} {
+		if digits := firstFiveDigits(value); digits != "" {
+			return digits
+		}
+	}
+	if digits := firstFiveDigits(articleNumber); digits != "" {
+		return digits
+	}
+	return ""
+}
+
+func rocoSparePartSearchText(articleNumber string, fields map[string]string) string {
+	for _, value := range []string{articleNumber, fields["articleNumber"], fields["sparePartArticleNumber"]} {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		return strings.ReplaceAll(value, "-", "")
+	}
+	return ""
+}
+
+func firstFiveDigits(value string) string {
+	digits := normalizedArticleNumber(value)
+	if len(digits) < 5 {
+		return ""
+	}
+	return digits[:5]
+}
+
+func pikoSparePartsFromHTML(body, pageURL string) []ArticleSearchSparePart {
+	seen := map[string]bool{}
+	parts := []ArticleSearchSparePart{}
+	for index, block := range strings.Split(body, `<div class="artikel_ersatzteil__list_item">`) {
+		if index == 0 {
+			continue
+		}
+		block = `<div class="artikel_ersatzteil__list_item">` + block
+		link := ""
+		if match := linkHrefAttrPattern.FindStringSubmatch(block); len(match) >= 2 {
+			link = resolveURL(pageURL, html.UnescapeString(match[1]))
+		}
+		description := ""
+		if match := pikoSparePartTitlePattern.FindStringSubmatch(block); len(match) >= 2 {
+			description = cleanHTML(match[1])
+		}
+		articleNumber := ""
+		if match := pikoSparePartNumberPattern.FindStringSubmatch(block); len(match) >= 2 {
+			articleNumber = strings.TrimSpace(html.UnescapeString(match[1]))
+		}
+		price := ""
+		if match := pikoSparePartPriceLoosePattern.FindStringSubmatch(block); len(match) >= 2 {
+			price = strings.ReplaceAll(strings.TrimSpace(match[1]), ",", ".")
+		}
+		availability := ""
+		if match := pikoSparePartAvailabilityPattern.FindStringSubmatch(block); len(match) >= 2 {
+			availability = cleanHTML(match[1])
+		}
+		if articleNumber == "" || (price == "" && link == "") {
+			continue
+		}
+		key := strings.ToLower(articleNumber + "|" + link)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		parts = append(parts, ArticleSearchSparePart{
+			ArticleNumber: articleNumber,
+			Description:   description,
+			Price:         price,
+			URL:           link,
+			Source:        "PIKO",
+			Availability:  availability,
+		})
+		if len(parts) >= 120 {
+			break
+		}
+	}
+	return parts
+}
+
+func rocoSparePartsFromHTML(body, pageURL string) []ArticleSearchSparePart {
+	seen := map[string]bool{}
+	parts := []ArticleSearchSparePart{}
+	for index, block := range strings.Split(body, `<div class="row table-row-et">`) {
+		if index == 0 {
+			continue
+		}
+		block = `<div class="row table-row-et">` + block
+		articleNumber := ""
+		if match := rocoSparePartNumberPattern.FindStringSubmatch(block); len(match) >= 2 {
+			articleNumber = cleanHTML(match[1])
+		}
+		description := ""
+		if match := rocoSparePartDescriptionPattern.FindStringSubmatch(block); len(match) >= 2 {
+			description = cleanHTML(match[1])
+		}
+		price := ""
+		if match := rocoSparePartPriceLoosePattern.FindStringSubmatch(block); len(match) >= 2 {
+			price = strings.ReplaceAll(strings.TrimSpace(match[1]), ",", ".")
+		}
+		availability := ""
+		if match := rocoSparePartAvailabilityPattern.FindStringSubmatch(block); len(match) >= 2 {
+			availability = cleanHTML(match[1])
+		}
+		if articleNumber == "" || (price == "" && availability == "") {
+			continue
+		}
+		link := rocoSparePartURL(pageURL, articleNumber)
+		key := strings.ToLower(articleNumber + "|" + link)
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		parts = append(parts, ArticleSearchSparePart{
+			ArticleNumber: articleNumber,
+			Description:   description,
+			Price:         price,
+			URL:           link,
+			Source:        "ROCO",
+			Availability:  availability,
+		})
+		if len(parts) >= 80 {
+			break
+		}
+	}
+	return parts
+}
+
+func rocoSparePartURL(pageURL, articleNumber string) string {
+	parsed, err := url.Parse(pageURL)
+	if err != nil {
+		return pageURL
+	}
+	parsed.RawQuery = url.Values{"et": []string{articleNumber}}.Encode()
+	return parsed.String()
+}
+
 func focusedArticleSearchQuery(input ArticleSearchInput) string {
 	parts := []string{}
 	for _, value := range []string{input.ArticleNumber, input.Manufacturer, input.Gauge} {
@@ -565,34 +826,44 @@ func duckDuckGoSearchURL(query string) string {
 }
 
 var (
-	resultBlockPattern          = regexp.MustCompile(`(?s)<div class="result results_links.*?</div>\s*</div>`)
-	resultLinkPattern           = regexp.MustCompile(`(?s)<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>`)
-	snippetPattern              = regexp.MustCompile(`(?s)<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div[^>]+class="result__snippet"[^>]*>(.*?)</div>`)
-	tagPattern                  = regexp.MustCompile(`(?s)<[^>]+>`)
-	scriptStylePattern          = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
-	pricePattern                = regexp.MustCompile(`(?i)(?:hersteller[-\s]*preis|preis|uvp)?[^\d]{0,20}(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
-	lengthPattern               = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,30}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
-	weightPattern               = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
-	tractionTirePattern         = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
-	eanPattern                  = regexp.MustCompile(`\b(\d{12,14})\b`)
-	epochPattern                = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)[^IVX]{0,16}(I{1,3}|IV|V|VI)\b`)
-	railwayPattern              = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|\x{00D6}BB|OeBB|BLS|SNCF|NS|FS)\b`)
-	adapterPattern              = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol|elektrische\s+schnittstelle)\b`)
-	powerPattern                = regexp.MustCompile(`(?i)\b(DC|AC|2-?Leiter|3-?Leiter|Gleichstrom|Wechselstrom)\b`)
-	digitalPositivePattern      = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
-	headlightDescriptionPattern = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|spitzenbeleuchtung|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,220})`)
-	lightingDescriptionPattern  = regexp.MustCompile(`(?i)(?:innenbeleuchtung|fuehrerstandsbeleuchtung|fuehrerstand|kabinenbeleuchtung|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
-	soundDescriptionPattern     = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|\bsound\b|sound\s+laut\s+artikeldaten|geräuschmodul|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
-	imageMetaPattern            = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
-	imageMetaAltPattern         = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
-	imageTagPattern             = regexp.MustCompile(`(?is)<img\b[^>]*>`)
-	linkTagPattern              = regexp.MustCompile(`(?is)<a\b[^>]*>.*?</a>`)
-	linkHrefAttrPattern         = regexp.MustCompile(`(?is)\bhref=["']([^"']+)["']`)
-	rowLikePattern              = regexp.MustCompile(`(?is)<(?:tr|li)\b[^>]*>.*?</(?:tr|li)>`)
-	sparePartArticlePattern     = regexp.MustCompile(`(?i)\b([A-Z]?\d{4,8}(?:[-/][A-Z0-9]+)?)\b`)
-	imageURLAttrPattern         = regexp.MustCompile(`(?is)\b(?:src|data-src|data-original|data-lazy-src|data-zoom-image)=["']([^"']+)["']`)
-	imageSrcSetAttrPattern      = regexp.MustCompile(`(?is)\b(?:srcset|data-srcset)=["']([^"']+)["']`)
-	metaDescriptionRegex        = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
+	resultBlockPattern               = regexp.MustCompile(`(?s)<div class="result results_links.*?</div>\s*</div>`)
+	resultLinkPattern                = regexp.MustCompile(`(?s)<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>(.*?)</a>`)
+	snippetPattern                   = regexp.MustCompile(`(?s)<a[^>]+class="result__snippet"[^>]*>(.*?)</a>|<div[^>]+class="result__snippet"[^>]*>(.*?)</div>`)
+	tagPattern                       = regexp.MustCompile(`(?s)<[^>]+>`)
+	scriptStylePattern               = regexp.MustCompile(`(?is)<script[^>]*>.*?</script>|<style[^>]*>.*?</style>|<noscript[^>]*>.*?</noscript>|<svg[^>]*>.*?</svg>`)
+	pricePattern                     = regexp.MustCompile(`(?i)(?:hersteller[-\s]*preis|preis|uvp)?[^\d]{0,20}(\d{1,4}(?:[,.]\d{2})?)\s?(?:eur|euro|\x{20AC})`)
+	lengthPattern                    = regexp.MustCompile(`(?i)(?:l[äa]nge|laenge|length|ma[ßs]|mass|lüp|luep|luep\.)[^\d]{0,30}(\d{2,4}(?:[,.]\d+)?)\s?(?:mm)?`)
+	weightPattern                    = regexp.MustCompile(`(?i)(?:gewicht|weight)[^\d]{0,18}(\d{1,5}(?:[,.]\d+)?)\s?g`)
+	tractionTirePattern              = regexp.MustCompile(`(?i)(?:haftreifen|traction\s*tire)[^\d]{0,18}(\d{1,2})`)
+	eanPattern                       = regexp.MustCompile(`\b(\d{12,14})\b`)
+	epochPattern                     = regexp.MustCompile(`(?i)(?:epoche|epoch|ep\.)[^IVX]{0,16}(I{1,3}|IV|V|VI)\b`)
+	railwayPattern                   = regexp.MustCompile(`\b(DB AG|DB|DRG|DR|SBB|\x{00D6}BB|OeBB|BLS|SNCF|NS|FS)\b`)
+	adapterPattern                   = regexp.MustCompile(`(?i)\b(NEM\s?651|NEM\s?652|NEM\s?658|PluX\s?16|PluX\s?22|MTC\s?21|Next\s?18|8-?polig|21-?polig|DSS\s?8pol|elektrische\s+schnittstelle)\b`)
+	powerPattern                     = regexp.MustCompile(`(?i)\b(DC|AC|2-?Leiter|3-?Leiter|Gleichstrom|Wechselstrom)\b`)
+	digitalPositivePattern           = regexp.MustCompile(`(?i)(?:\bdigital\s*[:=]\s*(?:ja|yes|true)\b|\bdigitaldecoder\b|\bsounddecoder\b|\bmit\s+(?:dcc\s+)?decoder\b)`)
+	headlightDescriptionPattern      = regexp.MustCompile(`(?i)(?:lichtwechsel|fahrlicht|spitzenlicht|spitzenbeleuchtung|schlusslicht)[^\n:;]{0,35}[:]\s*([^.;\n]{3,220})`)
+	lightingDescriptionPattern       = regexp.MustCompile(`(?i)(?:innenbeleuchtung|fuehrerstandsbeleuchtung|fuehrerstand|kabinenbeleuchtung|beleuchtung)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	soundDescriptionPattern          = regexp.MustCompile(`(?i)(?:soundgenerator|sounddecoder|\bsound\b|sound\s+laut\s+artikeldaten|geräuschmodul|geraeuschmodul|ger..uschmodul)[^\n:;]{0,35}[:]\s*([^.;\n]{3,180})`)
+	imageMetaPattern                 = regexp.MustCompile(`(?is)<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["'][^>]+content=["']([^"']+)["']`)
+	imageMetaAltPattern              = regexp.MustCompile(`(?is)<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image|thumbnail)["']`)
+	imageTagPattern                  = regexp.MustCompile(`(?is)<img\b[^>]*>`)
+	linkTagPattern                   = regexp.MustCompile(`(?is)<a\b[^>]*>.*?</a>`)
+	linkHrefAttrPattern              = regexp.MustCompile(`(?is)\bhref=["']([^"']+)["']`)
+	rowLikePattern                   = regexp.MustCompile(`(?is)<(?:tr|li)\b[^>]*>.*?</(?:tr|li)>`)
+	sparePartArticlePattern          = regexp.MustCompile(`(?i)\b([A-Z]?\d{4,8}(?:[-/][A-Z0-9]+)?)\b`)
+	pikoSparePartTitlePattern        = regexp.MustCompile(`(?is)<h3[^>]*>(.*?)</h3>`)
+	pikoSparePartNumberPattern       = regexp.MustCompile(`(?is)Artikelnummer:\s*([^<\s]+)`)
+	pikoSparePartPricePattern        = regexp.MustCompile(`(?is)<div class="artikel_ersatzteil__price">\s*(\d{1,4}(?:[,.]\d{2})?)\s*(?:€|&euro;|EUR)?\s*</div>`)
+	pikoSparePartAvailabilityPattern = regexp.MustCompile(`(?is)<span[^>]+(?:availability|lieferstatus)[^>]*>\s*(.*?)\s*</span>`)
+	rocoSparePartNumberPattern       = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-nr\b[^"]*"[^>]*>\s*([^<]+?)\s*</div>`)
+	rocoSparePartDescriptionPattern  = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-bz\b[^"]*"[^>]*>\s*(.*?)\s*</div>`)
+	rocoSparePartPricePattern        = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-pr\b[^"]*"[^>]*>\s*(\d{1,4}(?:[,.]\d{2})?)\s*(?:â‚¬|&euro;|EUR)?\s*</div>`)
+	rocoSparePartAvailabilityPattern = regexp.MustCompile(`(?is)<img[^>]+class="[^"]*\bprodukt-head-verfuegbarkeit\b[^"]*"[^>]+title=["']([^"']+)["']`)
+	pikoSparePartPriceLoosePattern   = regexp.MustCompile(`(?is)<div class="artikel_ersatzteil__price">\s*(\d{1,4}(?:[,.]\d{2})?)\s*[^<]{0,16}</div>`)
+	rocoSparePartPriceLoosePattern   = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-pr\b[^"]*"[^>]*>\s*(\d{1,4}(?:[,.]\d{2})?)\s*[^<]{0,16}</div>`)
+	imageURLAttrPattern              = regexp.MustCompile(`(?is)\b(?:src|data-src|data-original|data-lazy-src|data-zoom-image)=["']([^"']+)["']`)
+	imageSrcSetAttrPattern           = regexp.MustCompile(`(?is)\b(?:srcset|data-srcset)=["']([^"']+)["']`)
+	metaDescriptionRegex             = regexp.MustCompile(`(?is)<meta[^>]+(?:name|property)=["'](?:description|og:description)["'][^>]+content=["']([^"']+)["']`)
 )
 
 var manufacturerDomains = map[string][]string{
@@ -928,11 +1199,14 @@ func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Cont
 				results[index].Fields[key] = field
 			}
 		}
-		results[index].Images = articleImagesFromHTML(body, results[index].URL, results[index].Title)
-		results[index].SpareParts = articleSparePartsFromHTML(body, results[index].URL)
 		results[index].Documents = articleDocumentsFromHTML(body, results[index].URL)
 		documentSpareParts := a.articleSparePartsFromMatchingDocuments(ctx, input, results[index].Documents)
-		results[index].SpareParts = mergeArticleSpareParts(results[index].SpareParts, documentSpareParts, 80)
+		pageSpareParts := []ArticleSearchSparePart{}
+		if shouldExtractPageSpareParts(input, results[index].URL) {
+			pageSpareParts = articleSparePartsFromHTML(body, results[index].URL)
+		}
+		results[index].Images = articleImagesFromHTML(body, results[index].URL, results[index].Title)
+		results[index].SpareParts = mergeArticleSpareParts(documentSpareParts, pageSpareParts, 80)
 		results[index].Trace = ArticleSearchResultTrace{
 			DetailLoaded:     true,
 			DetailFields:     len(results[index].Fields) - fieldsBefore,
@@ -1054,13 +1328,20 @@ func articleSparePartsFromHTML(body, pageURL string) []ArticleSearchSparePart {
 	return parts
 }
 
+func shouldExtractPageSpareParts(input ArticleSearchInput, pageURL string) bool {
+	return isManufacturerPreferredURL(input, pageURL) || isCatalogURL(pageURL)
+}
+
 func (a *DuckDuckGoArticleSearchAdapter) articleSparePartsFromMatchingDocuments(ctx context.Context, input ArticleSearchInput, documents []ArticleSearchDocument) []ArticleSearchSparePart {
 	articleNumber := strings.TrimSpace(input.ArticleNumber)
 	if articleNumber == "" {
 		return nil
 	}
 	parts := []ArticleSearchSparePart{}
-	for _, document := range documents {
+	for index, document := range prioritizedSparePartDocuments(input, documents) {
+		if index >= 4 {
+			break
+		}
 		if len(parts) >= 80 || !looksLikeSparePartDocument(document) {
 			continue
 		}
@@ -1070,14 +1351,49 @@ func (a *DuckDuckGoArticleSearchAdapter) articleSparePartsFromMatchingDocuments(
 		if err != nil || len(data) == 0 {
 			continue
 		}
-		text := extractPDFText(data)
-		if !documentTextMatchesArticleNumber(text, articleNumber) {
-			continue
-		}
-		documentParts := articleSparePartsFromDocumentText(text, articleNumber, document.URL)
+		documentParts := ArticleSparePartsFromDocumentData(data, articleNumber, document.URL)
 		parts = mergeArticleSpareParts(parts, documentParts, 80)
 	}
 	return parts
+}
+
+func prioritizedSparePartDocuments(input ArticleSearchInput, documents []ArticleSearchDocument) []ArticleSearchDocument {
+	out := []ArticleSearchDocument{}
+	for _, document := range documents {
+		if looksLikeSparePartDocument(document) {
+			out = append(out, document)
+		}
+	}
+	sort.SliceStable(out, func(left, right int) bool {
+		leftScore := sparePartDocumentPriority(input, out[left])
+		rightScore := sparePartDocumentPriority(input, out[right])
+		if leftScore != rightScore {
+			return leftScore > rightScore
+		}
+		return strings.ToLower(out[left].Title+" "+out[left].URL) < strings.ToLower(out[right].Title+" "+out[right].URL)
+	})
+	return out
+}
+
+func sparePartDocumentPriority(input ArticleSearchInput, document ArticleSearchDocument) int {
+	score := 0
+	value := strings.ToLower(document.Kind + " " + document.Title + " " + document.URL)
+	if isManufacturerPreferredURL(input, document.URL) {
+		score += 100
+	}
+	if strings.Contains(value, ".pdf") {
+		score += 35
+	}
+	if containsAny(value, []string{"ersatzteil", "spare-parts", "spare parts", "et-blatt", "explosionszeichnung", "serviceblatt"}) {
+		score += 30
+	}
+	if containsAny(value, []string{"bedienungsanl", "bedienungsanleitung", "manual"}) {
+		score -= 15
+	}
+	if isDealerURL(document.URL) {
+		score -= 20
+	}
+	return score
 }
 
 func (a *DuckDuckGoArticleSearchAdapter) fetchArticleDocument(ctx context.Context, documentURL string) ([]byte, error) {
@@ -1140,7 +1456,7 @@ func ArticleSparePartsFromDocumentData(data []byte, articleNumber, source string
 	}
 	text := ""
 	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("%PDF")) {
-		text = extractPDFText(data)
+		text = extractPDFTextWithOCRFallback(data, articleNumber)
 	} else {
 		raw := string(data)
 		if strings.Contains(strings.ToLower(raw), "<html") || strings.Contains(strings.ToLower(raw), "<body") {
@@ -1190,6 +1506,8 @@ func looksLikeSparePartDescriptionFragment(line string) bool {
 	return !containsAny(lower, []string{
 		"ersatzteile", "spare parts", "pièces de rechange", "náhradní díly", "bezeichnung / description",
 		"et-nr", "spare part n", "preisgruppe", "price category", "bitte immer", "please order",
+		"bestell-nr", "bestell nr", "bestellnummer", "art.-nr", "art nr", "artikel-nr", "artikel nr",
+		"benennung", "item number", "description", "pos.", "position",
 	})
 }
 
@@ -1290,10 +1608,22 @@ func looksLikeRealArticleSparePart(description, price string) bool {
 
 func cleanConfirmedSparePartDescription(description string) string {
 	description = regexp.MustCompile(`(?i)\b(?:PG\*?|Preisgruppe|price category)\b\s*[:#-]?\s*\d{1,3}\s*$`).ReplaceAllString(description, "")
-	description = regexp.MustCompile(`\s+\d{1,3}\s*$`).ReplaceAllString(description, "")
-	description = regexp.MustCompile(`(?i)\b(?:ET-Nr\.?|spare part N.?|Bezeichnung / Description)\b`).ReplaceAllString(description, "")
+	description = stripTrailingSparePartPriceGroup(description)
+	description = regexp.MustCompile(`(?i)^\s*\d{1,3}\s+`).ReplaceAllString(description, "")
+	description = regexp.MustCompile(`(?i)\b(?:ET-Nr\.?|spare part N.?|Bezeichnung / Description|Bestell-Nr\.?|Bestellnummer|Art\.-Nr\.?|Artikel-Nr\.?|item number|description|Benennung)\b`).ReplaceAllString(description, "")
 	description = strings.Join(strings.Fields(description), " ")
 	return strings.Trim(description, " -:;,.|")
+}
+
+func stripTrailingSparePartPriceGroup(description string) string {
+	description = strings.TrimSpace(description)
+	if regexp.MustCompile(`(?i)(?:\bx|×)\s+\d{1,3}$`).MatchString(description) {
+		return description
+	}
+	if regexp.MustCompile(`(?i)\b(?:m\d+(?:[,.]\d+)?|gewinde)\s*x\s*\d{1,3}$`).MatchString(description) {
+		return description
+	}
+	return regexp.MustCompile(`\s+\d{1,3}\s*$`).ReplaceAllString(description, "")
 }
 
 func looksLikeConfirmedDocumentSparePart(description string) bool {
@@ -1414,6 +1744,141 @@ func extractPDFText(data []byte) string {
 		text = printablePDFText(data)
 	}
 	return normalizeWhitespacePreservingLines(repairMojibake(text))
+}
+
+func extractPDFTextWithOCRFallback(data []byte, articleNumber string) string {
+	text := extractPDFText(data)
+	if !needsPDFOCRFallback(text, articleNumber) {
+		return text
+	}
+	if ocrText := pdfOCRTextExtractor(data); ocrText != "" {
+		return ocrText
+	}
+	return text
+}
+
+func needsPDFOCRFallback(text, articleNumber string) bool {
+	text = normalizeWhitespacePreservingLines(text)
+	if text == "" || len([]rune(text)) < 40 {
+		return true
+	}
+	if documentTextMatchesArticleNumber(text, articleNumber) && looksLikeSparePartsDocumentText(text, articleNumber) {
+		return false
+	}
+	lower := strings.ToLower(text)
+	return !containsAny(lower, []string{
+		"ersatzteile", "ersatzteilliste", "spare parts", "pièces de rechange", "náhradní díly", "et-nr", "spare part n", "bezeichnung / description",
+	})
+}
+
+func extractPDFOCRText(data []byte) string {
+	if pdfOCRDisabled() || len(data) == 0 {
+		return ""
+	}
+	tempDir, err := os.MkdirTemp("", "railkeeper-pdf-ocr-*")
+	if err != nil {
+		return ""
+	}
+	defer func() { _ = os.RemoveAll(tempDir) }()
+
+	inputPath := filepath.Join(tempDir, "input.pdf")
+	if err := os.WriteFile(inputPath, data, 0o600); err != nil {
+		return ""
+	}
+	if text := extractPDFOCRTextWithOCRmyPDF(inputPath, tempDir); text != "" {
+		return text
+	}
+	return extractPDFOCRTextWithTesseract(inputPath, tempDir)
+}
+
+func pdfOCRDisabled() bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv("RAILKEEPER_PDF_OCR")))
+	return value == "0" || value == "false" || value == "off" || value == "disabled"
+}
+
+func extractPDFOCRTextWithOCRmyPDF(inputPath, tempDir string) string {
+	ocrmypdf, err := exec.LookPath("ocrmypdf")
+	if err != nil {
+		return ""
+	}
+	outputPath := filepath.Join(tempDir, "ocr.pdf")
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ocrmypdf, "--skip-text", "--optimize", "0", "--quiet", inputPath, outputPath)
+	if err := cmd.Run(); err != nil {
+		return ""
+	}
+	data, err := os.ReadFile(outputPath)
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+	return extractPDFText(data)
+}
+
+func extractPDFOCRTextWithTesseract(inputPath, tempDir string) string {
+	pdftoppm, err := exec.LookPath("pdftoppm")
+	if err != nil {
+		return ""
+	}
+	tesseract, err := exec.LookPath("tesseract")
+	if err != nil {
+		return ""
+	}
+	pageLimit := pdfOCRPageLimit()
+	prefix := filepath.Join(tempDir, "page")
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
+	defer cancel()
+	render := exec.CommandContext(ctx, pdftoppm, "-r", "200", "-png", "-f", "1", "-l", strconv.Itoa(pageLimit), inputPath, prefix)
+	if err := render.Run(); err != nil {
+		return ""
+	}
+	images, err := filepath.Glob(prefix + "-*.png")
+	if err != nil || len(images) == 0 {
+		return ""
+	}
+	sort.Strings(images)
+	if len(images) > pageLimit {
+		images = images[:pageLimit]
+	}
+	parts := []string{}
+	for _, imagePath := range images {
+		if text := runTesseractImageOCR(tesseract, imagePath); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	return normalizeWhitespacePreservingLines(repairMojibake(strings.Join(parts, "\n")))
+}
+
+func pdfOCRPageLimit() int {
+	value, err := strconv.Atoi(strings.TrimSpace(os.Getenv("RAILKEEPER_PDF_OCR_MAX_PAGES")))
+	if err != nil || value <= 0 {
+		return 4
+	}
+	if value > 12 {
+		return 12
+	}
+	return value
+}
+
+func runTesseractImageOCR(tesseract, imagePath string) string {
+	for _, language := range []string{"deu+eng", "eng", ""} {
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		args := []string{imagePath, "stdout"}
+		if language != "" {
+			args = append(args, "-l", language)
+		}
+		args = append(args, "--psm", "6")
+		output, err := exec.CommandContext(ctx, tesseract, args...).Output()
+		cancel()
+		if err != nil {
+			continue
+		}
+		text := normalizeWhitespacePreservingLines(repairMojibake(string(output)))
+		if text != "" {
+			return text
+		}
+	}
+	return ""
 }
 
 func pdfStreams(data []byte) [][]byte {

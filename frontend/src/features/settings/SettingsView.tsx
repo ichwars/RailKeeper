@@ -38,6 +38,7 @@ import {
   SMTPSettingsInput,
   SystemPrinters,
   StorageUsage,
+  TwoFactorStatus,
   UserAccount,
   VersionInfo
 } from "../../shared/api";
@@ -186,7 +187,12 @@ export function SettingsView({ username }: { username: string }) {
   const [smtpSaving, setSmtpSaving] = useState(false);
   const [smtpTesting, setSmtpTesting] = useState(false);
   const [smtpMessage, setSmtpMessage] = useState("");
-  const [twoFactorPrepared, setTwoFactorPrepared] = useState(() => readLocalBool(localSettingKeys.twoFactorPrepared, false));
+  const [twoFactorStatus, setTwoFactorStatus] = useState<TwoFactorStatus | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState("");
+  const [twoFactorPassword, setTwoFactorPassword] = useState("");
+  const [twoFactorLoading, setTwoFactorLoading] = useState(false);
+  const [twoFactorSaving, setTwoFactorSaving] = useState(false);
+  const [twoFactorMessage, setTwoFactorMessage] = useState("");
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
   const languageLocale = language === "de" ? "de-DE" : "en-US";
   const backupRestorePhrase = t("settings.backup.confirmPhrase");
@@ -309,6 +315,11 @@ export function SettingsView({ username }: { username: string }) {
     loadSessions();
     loadSMTPSettings();
   }, [activeSettingsTab, canManageUsers]);
+
+  useEffect(() => {
+    if (activeSettingsTab !== "auth") return;
+    loadTwoFactorStatus();
+  }, [activeSettingsTab]);
 
   useEffect(() => {
     if (activeSettingsTab !== "data" || loadedTypes[activeType]) return;
@@ -541,6 +552,16 @@ export function SettingsView({ username }: { username: string }) {
       .catch((error: Error) => setAuthMessage(error.message));
   };
 
+  const loadTwoFactorStatus = () => {
+    setTwoFactorLoading(true);
+    setTwoFactorMessage("");
+    api
+      .twoFactorStatus()
+      .then(setTwoFactorStatus)
+      .catch((error: Error) => setTwoFactorMessage(error.message))
+      .finally(() => setTwoFactorLoading(false));
+  };
+
   const loadUsersAndRoles = () => {
     setUsersLoading(true);
     setAuthMessage("");
@@ -648,8 +669,69 @@ export function SettingsView({ username }: { username: string }) {
       .finally(() => setSmtpTesting(false));
   };
 
+  const setupTwoFactor = () => {
+    setTwoFactorSaving(true);
+    setTwoFactorMessage("");
+    api
+      .setupTwoFactor()
+      .then((status) => {
+        setTwoFactorStatus(status);
+        setTwoFactorMessage(t("settings.auth.twoFactorSetupDone"));
+        if (canManageUsers) loadAuditLog();
+      })
+      .catch((error: Error) => setTwoFactorMessage(error.message))
+      .finally(() => setTwoFactorSaving(false));
+  };
+
+  const enableTwoFactor = () => {
+    const code = twoFactorCode.trim();
+    if (!code) {
+      setTwoFactorMessage(t("settings.auth.twoFactorCodeRequired"));
+      return;
+    }
+    setTwoFactorSaving(true);
+    setTwoFactorMessage("");
+    api
+      .enableTwoFactor({ code })
+      .then((status) => {
+        setTwoFactorStatus(status);
+        setTwoFactorCode("");
+        setTwoFactorMessage(t("settings.auth.twoFactorEnabled"));
+        loadCurrentSession();
+        if (canManageUsers) loadUsersAndRoles();
+        if (canManageUsers) loadAuditLog();
+      })
+      .catch((error: Error) => setTwoFactorMessage(error.message))
+      .finally(() => setTwoFactorSaving(false));
+  };
+
+  const disableTwoFactor = () => {
+    if (!twoFactorPassword.trim()) {
+      setTwoFactorMessage(t("settings.auth.twoFactorPasswordRequired"));
+      return;
+    }
+    setTwoFactorSaving(true);
+    setTwoFactorMessage("");
+    api
+      .disableTwoFactor({ currentPassword: twoFactorPassword, code: twoFactorCode })
+      .then(() => {
+        setTwoFactorStatus({ enabled: false, prepared: false });
+        setTwoFactorCode("");
+        setTwoFactorPassword("");
+        setTwoFactorMessage(t("settings.auth.twoFactorDisabled"));
+        loadCurrentSession();
+        if (canManageUsers) {
+          loadUsersAndRoles();
+          loadSessions();
+          loadAuditLog();
+        }
+      })
+      .catch((error: Error) => setTwoFactorMessage(error.message))
+      .finally(() => setTwoFactorSaving(false));
+  };
+
   const revokeSession = (session: SessionRecord) => {
-    if (!window.confirm(`Sitzung von ${session.username} widerrufen?`)) return;
+    if (!window.confirm(t("settings.sessions.revokeConfirm", { username: session.username }))) return;
     setSessionsMessage("");
     api
       .revokeSession(session.id)
@@ -664,11 +746,11 @@ export function SettingsView({ username }: { username: string }) {
     event.preventDefault();
     setPasswordMessage("");
     if (passwordForm.newPassword.length < 12) {
-      setPasswordMessage("Das neue Passwort muss mindestens 12 Zeichen lang sein.");
+      setPasswordMessage(t("settings.password.error.tooShort"));
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordMessage("Die neuen Passwörter stimmen nicht überein.");
+      setPasswordMessage(t("settings.password.error.mismatch"));
       return;
     }
     setPasswordSaving(true);
@@ -679,7 +761,7 @@ export function SettingsView({ username }: { username: string }) {
       })
       .then(() => {
         setPasswordForm(emptyPasswordForm);
-        setPasswordMessage("Passwort wurde geändert. Andere Sitzungen dieses Benutzers wurden widerrufen.");
+        setPasswordMessage(t("settings.password.changed"));
         loadSessions();
         loadAuditLog();
       })
@@ -746,7 +828,7 @@ export function SettingsView({ username }: { username: string }) {
   };
 
   const deleteUser = (user: UserAccount) => {
-    if (!window.confirm(`${user.username} löschen?`)) return;
+    if (!window.confirm(t("settings.users.deleteConfirm", { username: user.username }))) return;
     setAuthMessage("");
     api
       .deleteUser(user.id)
@@ -812,14 +894,14 @@ export function SettingsView({ username }: { username: string }) {
       metadata = JSON.parse(form.metadataText || "{}");
     } catch {
       setSaving(false);
-      setMessage("Interne Zusatzdaten müssen gültiges JSON sein.");
+      setMessage(t("settings.master.metadataInvalid"));
       return;
     }
 
     const cv8Decimal = isCV8ManufacturerData ? normalizeCV8Decimal(form.cvDecimal) : "";
     if (isCV8ManufacturerData && !cv8Decimal) {
       setSaving(false);
-      setMessage("Bitte eine gültige CV8-Decimal-ID zwischen 0 und 255 eintragen.");
+      setMessage(t("settings.master.cv8Invalid"));
       return;
     }
 
@@ -849,7 +931,7 @@ export function SettingsView({ username }: { username: string }) {
   };
 
   const deleteEntry = (entry: MasterDataEntry) => {
-    if (!window.confirm(`${entry.label} löschen?`)) return;
+    if (!window.confirm(t("settings.master.deleteConfirm", { label: entry.label }))) return;
 
     api
       .deleteMasterData(activeType, entry.key)
@@ -1781,10 +1863,18 @@ export function SettingsView({ username }: { username: string }) {
         <SettingsAuthTab
           t={t}
           currentSession={currentSession}
-          twoFactorPrepared={twoFactorPrepared}
-          setTwoFactorPrepared={setTwoFactorPrepared}
-          setLocalBool={setLocalBool}
-          twoFactorSettingKey={localSettingKeys.twoFactorPrepared}
+          twoFactorStatus={twoFactorStatus}
+          twoFactorCode={twoFactorCode}
+          setTwoFactorCode={setTwoFactorCode}
+          twoFactorPassword={twoFactorPassword}
+          setTwoFactorPassword={setTwoFactorPassword}
+          twoFactorLoading={twoFactorLoading}
+          twoFactorSaving={twoFactorSaving}
+          twoFactorMessage={twoFactorMessage}
+          loadTwoFactorStatus={loadTwoFactorStatus}
+          setupTwoFactor={setupTwoFactor}
+          enableTwoFactor={enableTwoFactor}
+          disableTwoFactor={disableTwoFactor}
           authMessage={authMessage}
           loadCurrentSession={loadCurrentSession}
           changePassword={changePassword}

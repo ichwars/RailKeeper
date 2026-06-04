@@ -22,6 +22,7 @@ import { formatDate } from "./vehicleFormat";
 import { maintenanceReminderText } from "./vehicleMaintenance";
 import { previewImageUrl, primaryImage, vehicleExhibitionEligible } from "./vehicleTransforms";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import type { InventoryQualityFilter } from "./vehicleViewModel";
 
 type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type InventoryViewMode = "table" | "cards";
@@ -43,6 +44,7 @@ type InventoryPanelProps = {
   inventoryView: InventoryViewMode;
   inventoryFilter: InventoryFilter;
   maintenanceFilter: MaintenanceFilter;
+  qualityFilter: InventoryQualityFilter;
   manufacturerFilter: string;
   categoryFilter: string;
   gattungFilter: string;
@@ -79,6 +81,7 @@ type InventoryPanelProps = {
   onInventoryViewChange: (value: InventoryViewMode) => void;
   onInventoryFilterChange: (value: InventoryFilter) => void;
   onMaintenanceFilterChange: (value: MaintenanceFilter) => void;
+  onQualityFilterChange: (value: InventoryQualityFilter) => void;
   onManufacturerFilterChange: (value: string) => void;
   onCategoryFilterChange: (value: string) => void;
   onGattungFilterChange: (value: string) => void;
@@ -103,6 +106,7 @@ export function VehicleInventoryPanel({
   inventoryView,
   inventoryFilter,
   maintenanceFilter,
+  qualityFilter,
   manufacturerFilter,
   categoryFilter,
   gattungFilter,
@@ -123,6 +127,7 @@ export function VehicleInventoryPanel({
   onInventoryViewChange,
   onInventoryFilterChange,
   onMaintenanceFilterChange,
+  onQualityFilterChange,
   onManufacturerFilterChange,
   onCategoryFilterChange,
   onGattungFilterChange,
@@ -139,6 +144,12 @@ export function VehicleInventoryPanel({
 }: InventoryPanelProps) {
   const { t } = useI18n();
   const gaugeCount = new Set(vehicles.map((vehicle) => vehicle.gauge).filter(Boolean)).size;
+  const qualityFilterLabels: Record<InventoryQualityFilter, string> = {
+    none: "",
+    missingArticleNumber: t("vehicles.filter.missingArticleNumber"),
+    missingEan: t("vehicles.filter.missingEan"),
+    digitalMissingDecoder: t("vehicles.filter.digitalMissingDecoder")
+  };
 
   return (
     <>
@@ -154,17 +165,10 @@ export function VehicleInventoryPanel({
       </section>
 
       <section className="inventory-status-row" aria-label={t("vehicles.status")}>
-        <article className={inventoryFilter === "all" && maintenanceFilter === "all" && !manufacturerFilter && !categoryFilter && !gattungFilter && !exhibitionReadyFilter ? "inventory-status-card active" : "inventory-status-card"}>
+        <article className={inventoryFilter === "all" && maintenanceFilter === "all" && qualityFilter === "none" && !manufacturerFilter && !categoryFilter && !gattungFilter && !exhibitionReadyFilter ? "inventory-status-card active" : "inventory-status-card"}>
           <button
             type="button"
-            onClick={() => {
-              onInventoryFilterChange("all");
-              onMaintenanceFilterChange("all");
-              onManufacturerFilterChange("");
-              onCategoryFilterChange("");
-              onGattungFilterChange("");
-              onExhibitionReadyFilterChange(false);
-            }}
+            onClick={onResetFilters}
             aria-label={t("vehicles.status.allAria")}
           >
             <span><PackageSearch size={16} aria-hidden="true" /></span>
@@ -194,15 +198,17 @@ export function VehicleInventoryPanel({
           </button>
         </article>
         <article className="inventory-status-card wide">
-          <span><Wrench size={16} aria-hidden="true" /></span>
-          <small>{t("vehicles.nextAppointment")}</small>
           {nextMaintenanceReminder ? (
             <button type="button" onClick={() => onOpenDetail(nextMaintenanceReminder.vehicle, "maintenance")}>
+              <span><Wrench size={16} aria-hidden="true" /></span>
+              <small>{t("vehicles.nextAppointment")}</small>
               <strong>{nextMaintenanceReminder.vehicle.inventoryNumber}</strong>
               <em>{nextMaintenanceReminder.entry.kind} · {maintenanceReminderText(nextMaintenanceReminder.daysUntilDue)} · {formatDate(nextMaintenanceReminder.entry.dueDate)}</em>
             </button>
           ) : (
             <>
+              <span><Wrench size={16} aria-hidden="true" /></span>
+              <small>{t("vehicles.nextAppointment")}</small>
               <strong>{t("vehicles.allQuiet")}</strong>
               <em>{t("vehicles.noDueMaintenance")}</em>
             </>
@@ -327,6 +333,19 @@ export function VehicleInventoryPanel({
               <BadgeCheck size={15} aria-hidden="true" />
               <span>{t("vehicles.filter.exhibitionReady")}</span>
             </button>
+
+            {qualityFilter !== "none" && (
+              <button
+                type="button"
+                className="inventory-filter-pill inventory-filter-toggle active"
+                onClick={() => onQualityFilterChange("none")}
+                aria-pressed="true"
+                title={qualityFilterLabels[qualityFilter]}
+              >
+                <AlertTriangle size={15} aria-hidden="true" />
+                <span>{qualityFilterLabels[qualityFilter]}</span>
+              </button>
+            )}
 
             {hasActiveInventoryFilters && (
               <>
@@ -463,10 +482,10 @@ export function VehicleInventoryPanel({
                       <th>{t("vehicles.image")}</th>
                       <th>{renderSortHeader("inventoryNumber")}</th>
                       <th>{renderSortHeader("manufacturer")}</th>
-                      <th>{renderSortHeader("articleNumber")}</th>
+                      <th className="inventory-table-center">{renderSortHeader("articleNumber")}</th>
                       <th>{renderSortHeader("name")}</th>
-                      <th>{renderSortHeader("gauge")}</th>
-                      <th>{renderSortHeader("epoch")}</th>
+                      <th className="inventory-table-center">{renderSortHeader("gauge")}</th>
+                      <th className="inventory-table-center">{renderSortHeader("epoch")}</th>
                       <th>{t("vehicle.field.exhibition")}</th>
                       <th className="actions-cell">{t("vehicles.actions")}</th>
                     </tr>
@@ -495,14 +514,14 @@ export function VehicleInventoryPanel({
                           </td>
                           <td>{vehicle.inventoryNumber}</td>
                           <td>{vehicle.manufacturer}</td>
-                          <td>{vehicle.articleNumber || "-"}</td>
+                          <td className="inventory-table-center">{vehicle.articleNumber || "-"}</td>
                           <td>
                             <button type="button" className="inventory-name-link" onClick={() => onOpenDetail(vehicle)}>
                               {vehicle.name}
                             </button>
                           </td>
-                          <td>{vehicle.gauge}</td>
-                          <td>{vehicle.epoch || "-"}</td>
+                          <td className="inventory-table-center">{vehicle.gauge}</td>
+                          <td className="inventory-table-center">{vehicle.epoch || "-"}</td>
                           <td>
                             <label
                               className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}

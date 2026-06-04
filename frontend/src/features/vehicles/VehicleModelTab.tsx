@@ -1,6 +1,6 @@
-import { Barcode, ChevronDown, ChevronUp, ExternalLink, PackageSearch } from "lucide-react";
+import { Barcode, ChevronDown, ChevronUp, ExternalLink, PackageSearch, RadioTower } from "lucide-react";
 import type { ReactNode } from "react";
-import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation } from "../../shared/api";
+import { CreateVehicleRequest, MasterDataEntry, MasterDataRelation, VehicleExternalMapping } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { RequiredLabel, VehicleDetailsFields, VehicleOwnershipFields } from "./VehicleFormFields";
@@ -25,12 +25,53 @@ type OpenSections = {
   vehicle: boolean;
 };
 
+type DigitalMappingDisplay = {
+  provider: string;
+  externalId: string;
+  protocol?: string;
+};
+
 function compactValue(value: unknown) {
   return String(value ?? "").trim();
 }
 
+function digitalProviderLabel(provider: string) {
+  const value = compactValue(provider);
+  const normalized = value.toLowerCase();
+
+  if (normalized === "ecos") {
+    return "ECoS";
+  }
+  if (normalized === "z21") {
+    return "Z21";
+  }
+  if (normalized === "cs3") {
+    return "CS3";
+  }
+
+  return value || "Digitalzentrale";
+}
+
+function digitalMappingFromDescription(description: string | undefined): DigitalMappingDisplay | null {
+  const value = compactValue(description);
+  const idMatch = value.match(/\b(ECoS|Z21|CS3)\s*[- ]?\s*ID\s*[:#]?\s*([A-Za-z0-9._:-]+)/i);
+
+  if (!idMatch) {
+    return null;
+  }
+
+  const protocolMatch = value.match(/\bProtokoll\s*[:#]?\s*([^\n\r,;]+)/i);
+
+  return {
+    provider: digitalProviderLabel(idMatch[1]),
+    externalId: idMatch[2],
+    protocol: compactValue(protocolMatch?.[1])
+  };
+}
+
 export function VehicleModelTab({
   form,
+  externalMappings,
   readonly,
   articleSearchLoading,
   canRunArticleSearch,
@@ -51,6 +92,7 @@ export function VehicleModelTab({
   onUpdateCouplingSame
 }: {
   form: CreateVehicleRequest;
+  externalMappings: VehicleExternalMapping[];
   readonly: boolean;
   articleSearchLoading: boolean;
   canRunArticleSearch: boolean;
@@ -71,6 +113,14 @@ export function VehicleModelTab({
   onUpdateCouplingSame: (couplingSame: boolean) => void;
 }) {
   const { t } = useI18n();
+  const externalMapping = externalMappings.find((mapping) => compactValue(mapping.externalId)) || externalMappings[0];
+  const digitalMapping: DigitalMappingDisplay | null = externalMapping
+    ? {
+        provider: digitalProviderLabel(externalMapping.provider),
+        externalId: externalMapping.externalId,
+        protocol: externalMapping.externalProtocol
+      }
+    : digitalMappingFromDescription(form.description);
 
   return (
     <div className="accordion-stack">
@@ -104,13 +154,30 @@ export function VehicleModelTab({
               </div>
             </div>
 
-            {form.articleSourceUrl && (
-              <p className="source-note compact-source-note">
-                <ExternalLink size={15} aria-hidden="true" />
-                <span>
-                  {t("vehicles.source")}: <a href={form.articleSourceUrl} target="_blank" rel="noreferrer">{sourceDisplayName(form.articleSourceUrl)}</a>
-                </span>
-              </p>
+            {(form.articleSourceUrl || digitalMapping) && (
+              <div className="vehicle-source-strip">
+                <div className="vehicle-source-cell">
+                  {form.articleSourceUrl && (
+                    <>
+                      <ExternalLink size={15} aria-hidden="true" />
+                      <span>
+                        {t("vehicles.source")}: <a href={form.articleSourceUrl} target="_blank" rel="noreferrer">{sourceDisplayName(form.articleSourceUrl)}</a>
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="vehicle-source-cell vehicle-source-cell-digital">
+                  {digitalMapping && (
+                    <>
+                      <RadioTower size={15} aria-hidden="true" />
+                      <span>
+                        {digitalMapping.provider}: <strong>ID {digitalMapping.externalId || "-"}</strong>
+                        {digitalMapping.protocol && <> · {digitalMapping.protocol}</>}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
             )}
 
             <div className="form-row">

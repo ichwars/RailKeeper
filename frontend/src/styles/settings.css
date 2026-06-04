@@ -15,21 +15,21 @@
   align-items: baseline;
   gap: 10px;
   margin: 0;
-  font-size: 30px;
-  line-height: 36px;
+  font-size: var(--font-size-title-xl);
+  line-height: var(--line-height-title-xl);
 }
 
 .settings-head h1 span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .settings-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-copy);
 }
 
 .settings-primary-tabs,
@@ -51,8 +51,8 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
 }
 
 .settings-primary-tabs button.active,
@@ -78,20 +78,20 @@
 }
 
 .settings-card h2 {
-  font-size: 22px;
-  line-height: 28px;
+  font-size: var(--font-size-title-md);
+  line-height: var(--line-height-title-md);
 }
 
 .settings-card h3 {
-  font-size: 16px;
-  line-height: 24px;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-title-sm);
 }
 
 .settings-card p {
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-copy);
 }
 
 .settings-dashboard-grid,
@@ -181,8 +181,8 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .settings-static-field span {
@@ -198,8 +198,8 @@
 
 .settings-static-field small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .settings-field-wide {
@@ -263,8 +263,8 @@
   gap: 6px;
   width: fit-content;
   color: var(--accent-strong);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
   text-decoration: none;
 }
 
@@ -307,8 +307,8 @@
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
 }
 
 .sidebar-order-list strong {
@@ -333,9 +333,9 @@
 .role-list span,
 .integration-list span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-control-md);
 }
 
 .settings-toggle-row.disabled {
@@ -367,8 +367,8 @@
   padding: 0 8px;
   background: color-mix(in srgb, var(--accent-bright) 14%, var(--panel-subtle));
   color: var(--accent-strong);
-  font-size: 11px;
-  font-weight: 900;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
 }
 
 .settings-pill.active {
@@ -400,9 +400,9 @@
   padding: 0 9px;
   background: color-mix(in srgb, var(--warm) 12%, var(--panel));
   color: var(--warm);
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   font-weight: 950;
-  line-height: 1;
+  line-height: var(--line-height-compact);
   white-space: nowrap;
 }
 
@@ -410,7 +410,7 @@
   min-height: 20px;
   margin-left: 8px;
   padding: 0 7px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
 }
 
 .work-status-badge.open {
@@ -447,14 +447,14 @@
 }
 
 .work-status-note strong {
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .work-status-note span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-control-md);
 }
 
 .work-status-note.open {
@@ -476,13 +476,13 @@
 }
 
 .storage-total strong {
-  font-size: 22px;
+  font-size: var(--font-size-title-md);
 }
 
 .storage-total span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .storage-list {
@@ -605,14 +605,14 @@
 
 .appearance-option strong {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .appearance-option small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-control-md);
 }
 
 .appearance-config-grid {
@@ -655,8 +655,8 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .auth-provider-tabs button.active {
@@ -723,9 +723,9 @@
 
 .auth-status-grid small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-control-md);
 }
 
 .current-user-card,
@@ -760,7 +760,7 @@
 }
 
 .account-summary-card strong {
-  font-size: 22px;
+  font-size: var(--font-size-title-md);
   line-height: 1.1;
 }
 
@@ -845,12 +845,12 @@
 
 .user-form h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .password-change-form h3 {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .user-form-head {
@@ -870,8 +870,8 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .password-field-grid input {
@@ -945,8 +945,8 @@
   display: grid;
   gap: 7px;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .digital-provider-note {
@@ -959,8 +959,8 @@
   border-radius: 8px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .digital-provider-note svg {
@@ -1004,14 +1004,14 @@
 }
 
 .digital-active-provider strong {
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
 }
 
 .digital-active-provider small {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-control-md);
 }
 
 .digital-status-grid {
@@ -1069,16 +1069,16 @@
 }
 
 .digital-loco-preview-head strong {
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .digital-loco-preview-head span:not(.settings-pill),
 .digital-loco-more,
 .digital-loco-empty {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-control-md);
 }
 
 .digital-loco-table {
@@ -1100,19 +1100,19 @@
   border-bottom: 1px solid var(--line);
   text-align: left;
   vertical-align: top;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .digital-loco-table th {
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
 }
 
 .digital-loco-table td {
   color: var(--text);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .digital-loco-table tr:last-child td {
@@ -1120,15 +1120,15 @@
 }
 
 .digital-status-grid strong {
-  font-size: 18px;
+  font-size: var(--font-size-title-sm);
 }
 
 .digital-status-grid small,
 .digital-roadmap-list span {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 17px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-control-md);
 }
 
 .digital-roadmap-list {
@@ -1159,8 +1159,8 @@
 .digital-adapter-dialog .modal-head p {
   margin: 0;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
 }
 
 .digital-adapter-form {
@@ -1242,14 +1242,14 @@
   border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
   background: var(--accent-soft);
   color: var(--text);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .inventory-number-settings code {
   justify-content: center;
   min-width: 118px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .compact-action {
@@ -1296,8 +1296,8 @@
   border-radius: 6px;
   background: color-mix(in srgb, var(--accent) 7%, #fff);
   color: var(--muted);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-copy);
 }
 
 .source-note svg {
@@ -1330,8 +1330,8 @@
 }
 
 .master-data-create strong {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .master-data-create .primary-button {
@@ -1348,7 +1348,7 @@
   background: var(--panel);
   color: var(--text);
   font: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   padding: 8px 10px;
 }
 
@@ -1370,8 +1370,8 @@
   background: var(--panel-subtle);
   color: var(--text);
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .symbol-upload-field input {
@@ -1393,8 +1393,8 @@
   border-radius: 8px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .symbol-preview-card img,
@@ -1426,8 +1426,8 @@
 .advanced-master-data summary {
   cursor: pointer;
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
 }
 
 .advanced-master-data .settings-form {
@@ -1476,8 +1476,8 @@
   border-radius: 999px;
   color: #b45309;
   background: color-mix(in srgb, #f59e0b 12%, transparent);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .master-data-table td {
@@ -1587,13 +1587,13 @@
   gap: 2px;
   min-width: 96px;
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 800;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .backup-summary-strip strong {
   color: var(--text);
-  font-size: 15px;
+  font-size: var(--font-size-lg);
 }
 
 .backup-summary-strip .icon-button {
@@ -1620,7 +1620,7 @@
 .file-picker-field {
   display: grid;
   gap: 6px;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .backup-file-field input {
@@ -1631,8 +1631,8 @@
   position: relative;
   min-width: 0;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .file-picker-shell {
@@ -1674,8 +1674,8 @@
 
 .inline-status {
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .backup-confirm-field {
@@ -1686,13 +1686,13 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--danger) 6%, var(--panel));
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .backup-confirm-field span {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
 }
 
 .backup-confirm-field input {
@@ -1709,8 +1709,8 @@
 .backup-validation-status {
   color: var(--muted);
   margin: 0;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
 }
 
 .backup-validation {
@@ -1733,7 +1733,7 @@
 }
 
 .backup-validation strong {
-  font-size: 14px;
+  font-size: var(--font-size-base);
 }
 
 .backup-validation dl {
@@ -1746,14 +1746,14 @@
 .backup-validation dt {
   color: var(--muted);
   text-transform: uppercase;
-  font-size: 10px;
-  font-weight: 900;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-heavy);
 }
 
 .backup-validation dd {
   margin: 0;
-  font-size: 13px;
-  font-weight: 800;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-extra-bold);
 }
 
 .backup-validation-list {
@@ -1775,7 +1775,7 @@
 }
 
 .backup-validation-list strong {
-  font-size: 12px;
+  font-size: var(--font-size-sm);
   text-transform: uppercase;
 }
 
@@ -1783,7 +1783,7 @@
   color: var(--muted);
   margin: 0;
   padding-left: 18px;
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .backup-note {
@@ -1793,7 +1793,7 @@
 .loading-cell {
   height: 68px;
   color: var(--muted);
-  font-size: 14px;
+  font-size: var(--font-size-base);
   text-align: center;
 }
 
@@ -1812,7 +1812,7 @@
   color: var(--muted);
   cursor: pointer;
   font: inherit;
-  font-weight: 750;
+  font-weight: var(--font-weight-strong);
 }
 
 .settings-tabs button.active,

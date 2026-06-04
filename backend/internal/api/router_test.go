@@ -45,11 +45,11 @@ func TestSecurityHeaders(t *testing.T) {
 	if headers.Get("X-Content-Type-Options") != "nosniff" {
 		t.Fatalf("missing nosniff header")
 	}
-	if headers.Get("X-Frame-Options") != "DENY" {
-		t.Fatalf("missing frame blocking header")
+	if headers.Get("X-Frame-Options") != "SAMEORIGIN" {
+		t.Fatalf("missing same-origin frame protection header")
 	}
-	if headers.Get("Content-Security-Policy") == "" {
-		t.Fatalf("missing content security policy")
+	if !strings.Contains(headers.Get("Content-Security-Policy"), "frame-ancestors 'self'") {
+		t.Fatalf("missing same-origin frame ancestor policy")
 	}
 }
 

@@ -1,6 +1,6 @@
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { History, KeyRound, Mail, Pencil, RefreshCw, Save, Send, Shield, Trash2, UserCog, Users, X } from "lucide-react";
-import type { AuditLogEntry, Role, Session, SessionRecord, SMTPSettings, SMTPSettingsInput, UserAccount } from "../../shared/api";
+import type { AuditLogEntry, Role, Session, SessionRecord, SMTPSettings, SMTPSettingsInput, TwoFactorStatus, UserAccount } from "../../shared/api";
 import { AppSelect } from "../../shared/ui/AppSelect";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
@@ -22,10 +22,18 @@ type PasswordFormState = {
 type SettingsAuthTabProps = {
   t: Translate;
   currentSession: Session | null;
-  twoFactorPrepared: boolean;
-  setTwoFactorPrepared: Dispatch<SetStateAction<boolean>>;
-  setLocalBool: (key: string, value: boolean, setter: (value: boolean) => void) => void;
-  twoFactorSettingKey: string;
+  twoFactorStatus: TwoFactorStatus | null;
+  twoFactorCode: string;
+  setTwoFactorCode: Dispatch<SetStateAction<string>>;
+  twoFactorPassword: string;
+  setTwoFactorPassword: Dispatch<SetStateAction<string>>;
+  twoFactorLoading: boolean;
+  twoFactorSaving: boolean;
+  twoFactorMessage: string;
+  loadTwoFactorStatus: () => void;
+  setupTwoFactor: () => void;
+  enableTwoFactor: () => void;
+  disableTwoFactor: () => void;
   authMessage: string;
   loadCurrentSession: () => void;
   changePassword: (event: FormEvent<HTMLFormElement>) => void;
@@ -75,10 +83,18 @@ type SettingsAuthTabProps = {
 export function SettingsAuthTab({
   t,
   currentSession,
-  twoFactorPrepared,
-  setTwoFactorPrepared,
-  setLocalBool,
-  twoFactorSettingKey,
+  twoFactorStatus,
+  twoFactorCode,
+  setTwoFactorCode,
+  twoFactorPassword,
+  setTwoFactorPassword,
+  twoFactorLoading,
+  twoFactorSaving,
+  twoFactorMessage,
+  loadTwoFactorStatus,
+  setupTwoFactor,
+  enableTwoFactor,
+  disableTwoFactor,
   authMessage,
   loadCurrentSession,
   changePassword,
@@ -126,6 +142,8 @@ export function SettingsAuthTab({
 }: SettingsAuthTabProps) {
   const currentRoles = currentSession?.roles || [];
   const userCountLabel = t("settings.users.count", { count: users.length });
+  const twoFactorEnabled = Boolean(twoFactorStatus?.enabled);
+  const twoFactorPrepared = Boolean(twoFactorStatus?.prepared);
 
   return (
         <section className="auth-settings-grid">
@@ -139,7 +157,7 @@ export function SettingsAuthTab({
             </div>
             <div className="auth-provider-tabs" aria-label={t("settings.auth.provider")}>
               <button type="button" className="active"><Mail size={15} /> {t("settings.auth.emailLocal")}</button>
-              <button type="button" disabled><KeyRound size={15} /> {t("settings.auth.twoFactor")}</button>
+              <button type="button" className={twoFactorEnabled ? "active" : ""} disabled={!twoFactorEnabled}><KeyRound size={15} /> {t("settings.auth.twoFactor")}</button>
             </div>
             <div className="auth-status-grid" aria-label={t("settings.auth.status")}>
               <article>
@@ -153,7 +171,9 @@ export function SettingsAuthTab({
                 <small>{currentSession?.username ? t("settings.auth.signedInAs", { username: currentSession.username }) : t("settings.auth.loading")}</small>
               </article>
               <article>
-                <span className={twoFactorPrepared ? "work-status-badge compact experimental" : "work-status-badge compact open"}>{twoFactorPrepared ? t("settings.auth.prepared") : t("settings.work.open")}</span>
+                <span className={twoFactorEnabled ? "settings-pill active" : twoFactorPrepared ? "work-status-badge compact experimental" : "work-status-badge compact open"}>
+                  {twoFactorEnabled ? t("common.active") : twoFactorPrepared ? t("settings.auth.prepared") : t("settings.work.open")}
+                </span>
                 <strong>{t("settings.auth.twoFactor")}</strong>
                 <small>{t("settings.auth.twoFactorHelp")}</small>
               </article>
@@ -168,16 +188,54 @@ export function SettingsAuthTab({
                 <span />
               </span>
             </label>
-            <label className="settings-toggle-row disabled">
+            <div className="settings-toggle-row">
               <span>
-                <strong>{t("settings.auth.twoFactorPrepare")}</strong>
-                <small>{t("settings.auth.twoFactorPrepareHelp")}</small>
+                <strong>{twoFactorEnabled ? t("settings.auth.twoFactorEnabledTitle") : t("settings.auth.twoFactorPrepare")}</strong>
+                <small>{twoFactorEnabled ? t("settings.auth.twoFactorActiveHelp") : t("settings.auth.twoFactorPrepareHelp")}</small>
               </span>
-              <span className="switch-field">
-                <input type="checkbox" checked={twoFactorPrepared} onChange={(event) => setLocalBool(twoFactorSettingKey, event.target.checked, setTwoFactorPrepared)} />
-                <span />
-              </span>
-            </label>
+              <button type="button" className="icon-button" onClick={loadTwoFactorStatus} disabled={twoFactorLoading || twoFactorSaving} aria-label={t("settings.session.refresh")} title={t("settings.session.refresh")}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+            {!twoFactorPrepared && (
+              <button type="button" className="secondary-button" onClick={setupTwoFactor} disabled={twoFactorSaving || twoFactorLoading}>
+                <KeyRound size={16} />
+                {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorSetup")}
+              </button>
+            )}
+            {twoFactorPrepared && !twoFactorEnabled && (
+              <div className="two-factor-setup-panel">
+                <label>
+                  {t("settings.auth.twoFactorSecret")}
+                  <input value={twoFactorStatus?.secret || ""} readOnly />
+                </label>
+                <label>
+                  {t("settings.auth.twoFactorCode")}
+                  <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
+                </label>
+                <button type="button" className="primary-button" onClick={enableTwoFactor} disabled={twoFactorSaving || !twoFactorCode.trim()}>
+                  <Shield size={16} />
+                  {t("settings.auth.twoFactorEnable")}
+                </button>
+              </div>
+            )}
+            {twoFactorEnabled && (
+              <div className="two-factor-setup-panel">
+                <label>
+                  {t("settings.auth.twoFactorCode")}
+                  <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
+                </label>
+                <label>
+                  {t("auth.password")}
+                  <input type="password" value={twoFactorPassword} autoComplete="current-password" onChange={(event) => setTwoFactorPassword(event.target.value)} />
+                </label>
+                <button type="button" className="secondary-button danger" onClick={disableTwoFactor} disabled={twoFactorSaving || !twoFactorPassword.trim()}>
+                  <X size={16} />
+                  {t("settings.auth.twoFactorDisable")}
+                </button>
+              </div>
+            )}
+            {twoFactorMessage && <p className="form-message">{twoFactorMessage}</p>}
             {authMessage && <p className="form-message">{authMessage}</p>}
           </section>
 
@@ -353,7 +411,6 @@ export function SettingsAuthTab({
                 </div>
               </div>
               <div className="user-management-toolbar">
-                <span className="work-status-badge design">{t("settings.work.designOpen")}</span>
                 <span className="settings-pill">{userCountLabel}</span>
                 {canManageUsers && (
                   <button type="button" className="secondary-button" onClick={startUserCreate}>
@@ -362,10 +419,6 @@ export function SettingsAuthTab({
                   </button>
                 )}
               </div>
-            </div>
-            <div className="work-status-note design">
-              <strong>{t("settings.work.userManagementTitle")}</strong>
-              <span>{t("settings.work.userManagementNote")}</span>
             </div>
 
             {!canManageUsers ? (

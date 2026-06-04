@@ -1,4 +1,5 @@
-import { ExternalLink, PackageSearch, Pencil, Save, Search, Trash2 } from "lucide-react";
+import { Fragment } from "react";
+import { ArrowUpDown, ExternalLink, PackageSearch, Pencil, Save, Search, Trash2 } from "lucide-react";
 import type {
   ArticleSearchSparePart,
   Vehicle,
@@ -67,53 +68,104 @@ export function shortSparePartSource(value?: string) {
     .trim() || source;
 }
 
+export type SparePartSortKey = "articleNumber" | "description" | "price" | "link";
+export type SparePartSortDirection = "asc" | "desc";
+
+function sparePartSortValue(part: VehicleSparePart, key: SparePartSortKey) {
+  if (key === "articleNumber") return part.articleNumber || "";
+  if (key === "description") return part.description || "";
+  if (key === "price") return part.price || "";
+  return part.url || "";
+}
+
+function availabilityTone(value?: string) {
+  const lower = String(value || "").toLocaleLowerCase("de-DE");
+  if (!lower) return "unknown";
+  if (lower.includes("nicht") || lower.includes("ausverkauft") || lower.includes("derzeit")) return "unavailable";
+  if (lower.includes("weniger") || lower.includes("knapp") || lower.includes("gering")) return "limited";
+  if (lower.includes("lieferbar") || lower.includes("verf") || lower.includes("lager")) return "available";
+  return "unknown";
+}
+
+function AvailabilityIcon({ value, label, loading = false }: { value?: string; label: string; loading?: boolean }) {
+  const tone = availabilityTone(value);
+  const title = value || label;
+  return <span className={`availability-icon ${loading ? "loading" : tone}`} role="img" aria-label={title} />;
+}
+
 export function VehicleSparePartsTab({
   selected,
   readonly,
   saving,
-  searchLoading,
-  searchError,
-  searchRan,
   sparePartForm,
   editingSparePartID,
-  foundSpareParts,
+  sparePartLookupLoadingID,
+  sparePartLookupErrors,
+  sparePartLookupResults,
+  sparePartStatusLoading,
+  sparePartStatuses,
+  importAllSparePartsLoading,
+  canImportAllSpareParts,
+  importAllSparePartsTitle,
   onUpdateSparePartForm,
   onResetSparePartForm,
   onSaveSparePart,
   onEditSparePart,
   onDeleteSparePart,
-  onSearchSpareParts,
-  selectedFoundSpareParts,
-  onToggleFoundSparePart,
-  onToggleAllFoundSpareParts,
+  onSearchSparePart,
+  onApplySparePartLookup,
+  onImportAllSpareParts,
+  sparePartSort,
+  onToggleSparePartSort,
 }: {
   selected: Vehicle | null;
   readonly: boolean;
   saving: boolean;
-  searchLoading: boolean;
-  searchError: string;
-  searchRan: boolean;
   sparePartForm: VehicleSparePartInput;
   editingSparePartID: string | null;
-  foundSpareParts: ArticleSearchSparePart[];
+  sparePartLookupLoadingID: string;
+  sparePartLookupErrors: Record<string, string>;
+  sparePartLookupResults: Record<string, ArticleSearchSparePart[]>;
+  sparePartStatusLoading: Record<string, boolean>;
+  sparePartStatuses: Record<string, ArticleSearchSparePart>;
+  importAllSparePartsLoading: boolean;
+  canImportAllSpareParts: boolean;
+  importAllSparePartsTitle: string;
   onUpdateSparePartForm: (patch: Partial<VehicleSparePartInput>) => void;
   onResetSparePartForm: () => void;
   onSaveSparePart: () => void;
   onEditSparePart: (part: VehicleSparePart) => void;
   onDeleteSparePart: (part: VehicleSparePart) => void;
-  onSearchSpareParts: () => void;
-  selectedFoundSpareParts: Record<string, boolean>;
-  onToggleFoundSparePart: (key: string, checked: boolean) => void;
-  onToggleAllFoundSpareParts: (checked: boolean) => void;
+  onSearchSparePart: (part: VehicleSparePart) => void;
+  onApplySparePartLookup: (part: VehicleSparePart, result: ArticleSearchSparePart) => void;
+  onImportAllSpareParts: () => void;
+  sparePartSort: { key: SparePartSortKey; direction: SparePartSortDirection };
+  onToggleSparePartSort: (key: SparePartSortKey) => void;
 }) {
   const { t } = useI18n();
   const storedParts = selected?.spareParts || [];
-  const selectedFoundCount = foundSpareParts.filter((part, index) => selectedFoundSpareParts[sparePartResultKey(part, index)]).length;
-  const allFoundSelected = foundSpareParts.length > 0 && selectedFoundCount === foundSpareParts.length;
+  const sortedStoredParts = [...storedParts].sort((left, right) => {
+    const result = sparePartSortValue(left, sparePartSort.key).localeCompare(sparePartSortValue(right, sparePartSort.key), "de-DE", {
+      numeric: true,
+      sensitivity: "base"
+    });
+    return sparePartSort.direction === "asc" ? result : -result;
+  });
+  const sortLabel = (key: SparePartSortKey, label: string) => (
+    <button
+      type="button"
+      className={`sort-button ${sparePartSort.key === key ? "active" : ""}`}
+      onClick={() => onToggleSparePartSort(key)}
+      aria-label={t("vehicles.sortBy", { field: label })}
+    >
+      {label}
+      <ArrowUpDown size={13} aria-hidden="true" />
+    </button>
+  );
 
   return (
     <section className="spare-parts-tab">
-      <details className="spare-parts-editor" open>
+      <details id="vehicle-spare-parts-editor" className="spare-parts-editor" open>
         <summary>
           <span>
             <PackageSearch size={18} aria-hidden="true" />
@@ -126,7 +178,7 @@ export function VehicleSparePartsTab({
             <div className="spare-part-form">
               <label>
                 {t("vehicles.spareParts.articleNumber")}
-                <input value={sparePartForm.articleNumber || ""} onChange={(event) => onUpdateSparePartForm({ articleNumber: event.target.value })} disabled={readonly || saving} />
+                <input id="vehicle-spare-part-article-number" value={sparePartForm.articleNumber || ""} onChange={(event) => onUpdateSparePartForm({ articleNumber: event.target.value })} disabled={readonly || saving} />
               </label>
               <label className="spare-part-description">
                 {t("vehicles.spareParts.description")}
@@ -162,6 +214,16 @@ export function VehicleSparePartsTab({
             <h3>{t("vehicles.spareParts.saved")}</h3>
             <p>{t("vehicles.spareParts.savedHelp")}</p>
           </div>
+          <button
+            type="button"
+            className="secondary-button compact-action"
+            onClick={onImportAllSpareParts}
+            disabled={!canImportAllSpareParts || readonly || saving || importAllSparePartsLoading}
+            title={importAllSparePartsTitle}
+          >
+            <PackageSearch size={15} aria-hidden="true" />
+            {importAllSparePartsLoading ? t("vehicles.spareParts.importAllLoading") : t("vehicles.spareParts.importAll")}
+          </button>
         </div>
         {selected && storedParts.length === 0 && <p className="empty-state compact">{t("vehicles.spareParts.empty")}</p>}
         {storedParts.length > 0 && (
@@ -169,104 +231,97 @@ export function VehicleSparePartsTab({
             <table>
               <thead>
                 <tr>
-                  <th>{t("vehicles.spareParts.articleNumber")}</th>
-                  <th>{t("vehicles.spareParts.description")}</th>
-                  <th>{t("vehicles.spareParts.price")}</th>
-                  <th>{t("vehicles.spareParts.link")}</th>
+                  <th>{sortLabel("articleNumber", t("vehicles.spareParts.articleNumber"))}</th>
+                  <th>{sortLabel("description", t("vehicles.spareParts.description"))}</th>
+                  <th>{sortLabel("price", t("vehicles.spareParts.price"))}</th>
+                  <th>{sortLabel("link", t("vehicles.spareParts.link"))}</th>
                   <th>{t("vehicles.actions")}</th>
                 </tr>
               </thead>
               <tbody>
-                {storedParts.map((part) => (
-                  <tr key={part.id}>
-                    <td>{part.articleNumber || "-"}</td>
-                    <td>{part.description || "-"}</td>
-                    <td>{part.price || "-"}</td>
-                    <td>
-                      {part.url ? <a href={part.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {t("vehicles.spareParts.open")}</a> : "-"}
-                    </td>
-                    <td>
-                      <div className="table-actions">
-                        <button type="button" className="icon-button" onClick={() => onEditSparePart(part)} disabled={readonly || saving} aria-label={t("vehicles.spareParts.edit")} title={t("vehicles.spareParts.edit")}>
-                          <Pencil size={15} />
-                        </button>
-                        <button type="button" className="icon-button danger" onClick={() => onDeleteSparePart(part)} disabled={readonly || saving} aria-label={t("vehicles.spareParts.delete")} title={t("vehicles.spareParts.delete")}>
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="spare-parts-section">
-        <div className="spare-parts-search-head">
-          <div>
-            <h3>{t("vehicles.spareParts.webTitle")}</h3>
-            <p>{t("vehicles.spareParts.webHelp")}</p>
-          </div>
-          <button type="button" className="secondary-button compact-action" onClick={onSearchSpareParts} disabled={!selected || readonly || searchLoading}>
-            <Search size={15} aria-hidden="true" />
-            {searchLoading ? t("vehicles.spareParts.searching") : t("vehicles.spareParts.search")}
-          </button>
-        </div>
-        {searchError && <p className="form-message">{searchError}</p>}
-        {searchRan && !searchLoading && foundSpareParts.length === 0 && <p className="empty-state compact">{t("vehicles.spareParts.noWebParts")}</p>}
-        {foundSpareParts.length > 0 && (
-          <div className="spare-parts-web-results">
-            <div className="spare-parts-web-actions">
-              <span className="selection-count">{t("vehicles.spareParts.selectedCount", { count: selectedFoundCount })}</span>
-            </div>
-            <div className="compact-table spare-parts-found-table">
-            <table>
-              <thead>
-                <tr>
-                  <th className="select-column">
-                    <input
-                      type="checkbox"
-                      checked={allFoundSelected}
-                      onChange={(event) => onToggleAllFoundSpareParts(event.target.checked)}
-                      disabled={readonly || saving || foundSpareParts.length === 0}
-                      aria-label={t("vehicles.spareParts.selectAll")}
-                    />
-                  </th>
-                  <th>{t("vehicles.spareParts.articleNumber")}</th>
-                  <th>{t("vehicles.spareParts.description")}</th>
-                  <th>{t("vehicles.spareParts.price")}</th>
-                  <th>{t("vehicles.articleSearch.source")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {foundSpareParts.map((part, index) => {
-                  const key = sparePartResultKey(part, index);
-                  const checked = Boolean(selectedFoundSpareParts[key]);
-                  const cleanDescription = strictCleanSparePartDescription(part.description) || part.description || "-";
-                  const source = shortSparePartSource(part.source) || part.source || "-";
+                {sortedStoredParts.map((part) => {
+                  const visibleUrl = part.url && !part.url.startsWith("/api/v1/vehicles/") ? part.url : "";
+                  const lookupResults = sparePartLookupResults[part.id] || [];
+                  const lookupError = sparePartLookupErrors[part.id] || "";
+                  const lookupRan = Object.prototype.hasOwnProperty.call(sparePartLookupResults, part.id);
+                  const lookupLoading = sparePartLookupLoadingID === part.id;
+                  const bestLookupResult = lookupResults[0];
+                  const statusLoading = Boolean(sparePartStatusLoading[part.id]);
+                  const statusResult = bestLookupResult || sparePartStatuses[part.id];
+                  const statusTitle = statusLoading ? t("vehicles.spareParts.statusChecking") : statusResult?.availability || t("vehicles.spareParts.availabilityUnknown");
                   return (
-                    <tr key={key}>
-                      <td className="select-column">
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={(event) => onToggleFoundSparePart(key, event.target.checked)}
-                          disabled={readonly || saving}
-                          aria-label={checked ? t("vehicles.spareParts.deselect") : t("vehicles.spareParts.select")}
-                        />
-                      </td>
-                      <td>{part.articleNumber || "-"}</td>
-                      <td>{cleanDescription}</td>
-                      <td>{part.price || "-"}</td>
-                      <td>{part.url ? <a href={part.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {source}</a> : source}</td>
-                    </tr>
+                    <Fragment key={part.id}>
+                      <tr>
+                        <td>{part.articleNumber || "-"}</td>
+                        <td>{part.description || "-"}</td>
+                        <td>{part.price || "-"}</td>
+                        <td>
+                          {visibleUrl ? (
+                            <a className="icon-button spare-part-link-icon" href={visibleUrl} target="_blank" rel="noreferrer" aria-label={t("vehicles.spareParts.open")} title={t("vehicles.spareParts.open")}>
+                              <ExternalLink size={15} />
+                            </a>
+                          ) : null}
+                        </td>
+                        <td>
+                          <div className="table-actions">
+                            <button type="button" className="icon-button" onClick={() => bestLookupResult && onApplySparePartLookup(part, bestLookupResult)} disabled={readonly || saving || !bestLookupResult} aria-label={t("vehicles.spareParts.applyFirstResult")} title={t("vehicles.spareParts.applyFirstResult")}>
+                              <Save size={15} />
+                            </button>
+                            <button type="button" className="icon-button" onClick={() => onSearchSparePart(part)} disabled={readonly || saving || lookupLoading || !part.articleNumber} aria-label={t("vehicles.spareParts.searchOne")} title={t("vehicles.spareParts.searchOne")}>
+                              <Search size={15} />
+                            </button>
+                            <span className="icon-button passive" title={statusTitle}>
+                              <AvailabilityIcon value={statusResult?.availability} label={t("vehicles.spareParts.availabilityUnknown")} loading={statusLoading} />
+                            </span>
+                            <button type="button" className="icon-button" onClick={() => onEditSparePart(part)} disabled={readonly || saving} aria-label={t("vehicles.spareParts.edit")} title={t("vehicles.spareParts.edit")}>
+                              <Pencil size={15} />
+                            </button>
+                            <button type="button" className="icon-button danger" onClick={() => onDeleteSparePart(part)} disabled={readonly || saving} aria-label={t("vehicles.spareParts.delete")} title={t("vehicles.spareParts.delete")}>
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {(lookupLoading || lookupError || lookupRan) && (
+                        <tr className="spare-part-lookup-row">
+                          <td colSpan={5}>
+                            {lookupLoading && <span className="source-note compact">{t("vehicles.spareParts.lookupLoading")}</span>}
+                            {lookupError && <p className="form-message">{lookupError}</p>}
+                            {!lookupLoading && !lookupError && lookupRan && lookupResults.length === 0 && <span className="empty-state compact">{t("vehicles.spareParts.lookupEmpty")}</span>}
+                            {lookupResults.length > 0 && (
+                              <div className="spare-part-lookup-results">
+                                {lookupResults.map((result, resultIndex) => {
+                                  const source = shortSparePartSource(result.source) || shortSparePartSource(result.url) || t("vehicles.articleSearch.source");
+                                  return (
+                                    <div key={`${result.url || result.articleNumber}-${resultIndex}`} className="spare-part-lookup-result">
+                                      <span>{result.price || "-"}</span>
+                                      <span title={result.availability || t("vehicles.spareParts.availabilityUnknown")}>
+                                        <AvailabilityIcon value={result.availability} label={t("vehicles.spareParts.availabilityUnknown")} />
+                                      </span>
+                                      {result.url ? (
+                                        <a href={result.url} target="_blank" rel="noreferrer" title={t("vehicles.spareParts.open")}>
+                                          <ExternalLink size={14} aria-hidden="true" />
+                                          {source}
+                                        </a>
+                                      ) : (
+                                        <span>{source}</span>
+                                      )}
+                                      <button type="button" className="icon-button" onClick={() => onApplySparePartLookup(part, result)} disabled={readonly || saving} aria-label={t("vehicles.spareParts.applyLookup")} title={t("vehicles.spareParts.applyLookup")}>
+                                        <Save size={15} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })}
               </tbody>
             </table>
-            </div>
           </div>
         )}
       </section>

@@ -11,12 +11,14 @@ export type CreateAdminRequest = {
 export type LoginRequest = {
   username: string;
   password: string;
+  twoFactorCode?: string;
 };
 
 export type Session = {
   username: string;
   roles: string[];
   csrfToken: string;
+  twoFactorEnabled: boolean;
 };
 
 export type Role = {
@@ -30,6 +32,7 @@ export type UserAccount = {
   email?: string;
   roles: string[];
   createdAt: string;
+  twoFactorEnabled: boolean;
 };
 
 export type UserAccountInput = {
@@ -57,6 +60,24 @@ export type PasswordResetConfirmRequest = {
 export type ChangePasswordInput = {
   currentPassword: string;
   newPassword: string;
+};
+
+export type TwoFactorStatus = {
+  enabled: boolean;
+  prepared: boolean;
+  enabledAt?: string;
+  username?: string;
+  otpauthUrl?: string;
+  secret?: string;
+};
+
+export type TwoFactorEnableInput = {
+  code: string;
+};
+
+export type TwoFactorDisableInput = {
+  currentPassword: string;
+  code: string;
 };
 
 export type SMTPSettings = {
@@ -570,6 +591,7 @@ export type ArticleSearchSparePart = {
   price?: string;
   url?: string;
   source?: string;
+  availability?: string;
 };
 
 export type ArticleSearchDocument = {
@@ -627,6 +649,21 @@ export type ArticleSearchResponse = {
 export type ECoSConnectionInput = {
   host: string;
   port?: number;
+};
+
+export type DigitalCenterConnectionInput = {
+  host: string;
+  port?: number;
+};
+
+export type DigitalCenterConnectionResult = {
+  provider: "z21" | "cs3" | string;
+  connected: boolean;
+  host: string;
+  port: number;
+  status?: string;
+  message: string;
+  fields?: Record<string, string>;
 };
 
 export type ECoSConnectionResult = {
@@ -703,6 +740,41 @@ export type ECoSLiveStatus = {
   eventsReceived: number;
   subscriptionCommands?: string[];
   error?: string;
+  message: string;
+};
+
+export type ECoSLocomotiveSyncInput = ECoSConnectionInput & {
+  vehicleId: string;
+  objectId?: number;
+  dryRun?: boolean;
+  confirm?: boolean;
+};
+
+export type ECoSLocomotiveSyncChange = {
+  field: "name" | "address" | "protocol" | string;
+  current: string;
+  desired: string;
+};
+
+export type ECoSLocomotiveSyncResult = {
+  host: string;
+  port: number;
+  objectId: number;
+  dryRun: boolean;
+  applied: boolean;
+  current: {
+    name?: string;
+    address?: number;
+    protocol?: string;
+  };
+  desired: {
+    name?: string;
+    address?: number;
+    protocol?: string;
+  };
+  changes: ECoSLocomotiveSyncChange[];
+  commands?: string[];
+  rawLines?: string[];
   message: string;
 };
 
@@ -807,6 +879,7 @@ export type ExhibitionListInput = {
 export type ExhibitionEntry = {
   id: string;
   listId: string;
+  vehicleId?: string;
   owner: string;
   imageUrl?: string;
   locomotiveName: string;
@@ -830,6 +903,7 @@ export type ExhibitionEntry = {
 };
 
 export type ExhibitionEntryInput = {
+  vehicleId?: string;
   owner: string;
   imageUrl?: string;
   locomotiveName: string;
@@ -851,6 +925,18 @@ export type ExhibitionEntryInput = {
 };
 
 let csrfToken = "";
+
+export class ApiError extends Error {
+  code: string;
+  status: number;
+
+  constructor(message: string, code: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
+}
 
 type RequestOptions = {
   retries?: number;
@@ -897,13 +983,15 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
 
       if (!response.ok) {
         let message = response.statusText;
+        let code = "request_failed";
         try {
           const body = await response.json();
+          code = body.error || code;
           message = body.message || body.error || message;
         } catch {
           // Keep the HTTP status text when the server did not return JSON.
         }
-        throw new Error(message);
+        throw new ApiError(message, code, response.status);
       }
 
       if (response.status === 204) {
@@ -964,6 +1052,21 @@ export const api = {
   changePassword: (input: ChangePasswordInput) =>
     request<void>("/auth/password", {
       method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  twoFactorStatus: () => request<TwoFactorStatus>("/auth/two-factor"),
+  setupTwoFactor: () =>
+    request<TwoFactorStatus>("/auth/two-factor/setup", {
+      method: "POST"
+    }),
+  enableTwoFactor: (input: TwoFactorEnableInput) =>
+    request<TwoFactorStatus>("/auth/two-factor/enable", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  disableTwoFactor: (input: TwoFactorDisableInput) =>
+    request<void>("/auth/two-factor/disable", {
+      method: "POST",
       body: JSON.stringify(input)
     }),
   roles: () => request<Role[]>("/roles"),
@@ -1143,9 +1246,9 @@ export const api = {
     }),
   vehicleSpareParts: (vehicleId: string) =>
     request<VehicleSparePart[]>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts`),
-  vehicleSparePartSuggestions: (vehicleId: string) =>
+  vehicleSparePartSuggestions: (vehicleId: string, attachmentId = "") =>
     request<ArticleSearchSparePart[]>(
-      `/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/suggestions`,
+      `/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/suggestions${attachmentId ? `?attachmentId=${encodeURIComponent(attachmentId)}` : ""}`,
       undefined,
       { timeoutMs: 15000 }
     ),
@@ -1264,6 +1367,15 @@ export const api = {
       { timeoutMs: 120000 }
     ),
   getECoSLiveStatus: () => request<ECoSLiveStatus>("/digital-centers/ecos/live/status"),
+  syncECoSLocomotive: (input: ECoSLocomotiveSyncInput) =>
+    request<ECoSLocomotiveSyncResult>(
+      "/digital-centers/ecos/locomotives/sync",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 30000 }
+    ),
   startECoSLive: (input: ECoSConnectionInput) =>
     request<ECoSLiveStatus>(
       "/digital-centers/ecos/live/start",
@@ -1277,6 +1389,24 @@ export const api = {
     request<ECoSLiveStatus>("/digital-centers/ecos/live/stop", {
       method: "POST"
     }),
+  testZ21Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterConnectionResult>(
+      "/digital-centers/z21/test",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 10000 }
+    ),
+  testCS3Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterConnectionResult>(
+      "/digital-centers/cs3/test",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 10000 }
+    ),
   backupExportUrl: () => "/api/v1/backup/export",
   validateBackup: (file: File) => {
     const form = new FormData();

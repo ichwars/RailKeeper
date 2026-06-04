@@ -2,13 +2,19 @@ package application
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha1"
 	"crypto/sha256"
 	"crypto/subtle"
 	"database/sql"
+	"encoding/base32"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
+	"math"
+	"net/url"
 	"strings"
 	"time"
 
@@ -26,6 +32,7 @@ var (
 	ErrDuplicateUser        = errors.New("user already exists")
 	ErrLastAdmin            = errors.New("last admin cannot be removed")
 	ErrPasswordResetInvalid = errors.New("password reset token invalid")
+	ErrTwoFactorRequired    = errors.New("two factor code required")
 )
 
 type AuthService struct {
@@ -35,8 +42,9 @@ type AuthService struct {
 const passwordResetTTL = 30 * time.Minute
 
 type LoginInput struct {
-	Username string
-	Password string
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	TwoFactorCode string `json:"twoFactorCode"`
 }
 
 type ChangePasswordInput struct {
@@ -44,10 +52,29 @@ type ChangePasswordInput struct {
 	NewPassword     string `json:"newPassword"`
 }
 
+type TwoFactorStatus struct {
+	Enabled    bool   `json:"enabled"`
+	Prepared   bool   `json:"prepared"`
+	EnabledAt  string `json:"enabledAt,omitempty"`
+	Username   string `json:"username,omitempty"`
+	OtpauthURL string `json:"otpauthUrl,omitempty"`
+	Secret     string `json:"secret,omitempty"`
+}
+
+type TwoFactorEnableInput struct {
+	Code string `json:"code"`
+}
+
+type TwoFactorDisableInput struct {
+	CurrentPassword string `json:"currentPassword"`
+	Code            string `json:"code"`
+}
+
 type SessionView struct {
-	Username  string   `json:"username"`
-	Roles     []string `json:"roles"`
-	CSRFToken string   `json:"csrfToken"`
+	Username         string   `json:"username"`
+	Roles            []string `json:"roles"`
+	CSRFToken        string   `json:"csrfToken"`
+	TwoFactorEnabled bool     `json:"twoFactorEnabled"`
 }
 
 type RoleView struct {
@@ -56,11 +83,12 @@ type RoleView struct {
 }
 
 type UserView struct {
-	ID        string   `json:"id"`
-	Username  string   `json:"username"`
-	Email     string   `json:"email,omitempty"`
-	Roles     []string `json:"roles"`
-	CreatedAt string   `json:"createdAt"`
+	ID               string   `json:"id"`
+	Username         string   `json:"username"`
+	Email            string   `json:"email,omitempty"`
+	Roles            []string `json:"roles"`
+	CreatedAt        string   `json:"createdAt"`
+	TwoFactorEnabled bool     `json:"twoFactorEnabled"`
 }
 
 type AuditLogEntry struct {
@@ -129,7 +157,7 @@ func NewAuthService(db *sql.DB) *AuthService {
 func (s *AuthService) ListUsers(ctx context.Context) ([]UserView, error) {
 	rows, err := s.db.QueryContext(
 		ctx,
-		`SELECT id, username, COALESCE(email, ''), created_at FROM users ORDER BY lower(username)`,
+		`SELECT id, username, COALESCE(email, ''), created_at, two_factor_enabled FROM users ORDER BY lower(username)`,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
@@ -139,7 +167,7 @@ func (s *AuthService) ListUsers(ctx context.Context) ([]UserView, error) {
 	users := []UserView{}
 	for rows.Next() {
 		var user UserView
-		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.TwoFactorEnabled); err != nil {
 			_ = rows.Close()
 			return nil, fmt.Errorf("scan user: %w", err)
 		}
@@ -358,6 +386,158 @@ func (s *AuthService) ChangeOwnPassword(ctx context.Context, userID, sessionToke
 	return nil
 }
 
+func (s *AuthService) TwoFactorStatus(ctx context.Context, userID string) (*TwoFactorStatus, error) {
+	var username, secret, enabledAt string
+	var enabled bool
+	if err := s.db.QueryRowContext(
+		ctx,
+		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled, COALESCE(two_factor_enabled_at, '')
+		   FROM users
+		  WHERE id=?`,
+		userID,
+	).Scan(&username, &secret, &enabled, &enabledAt); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("read two factor status: %w", err)
+	}
+	return &TwoFactorStatus{
+		Enabled:   enabled,
+		Prepared:  secret != "",
+		EnabledAt: enabledAt,
+		Username:  username,
+	}, nil
+}
+
+func (s *AuthService) PrepareTwoFactor(ctx context.Context, userID string) (*TwoFactorStatus, error) {
+	var username, existingSecret string
+	var enabled bool
+	if err := s.db.QueryRowContext(
+		ctx,
+		`SELECT username, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE id=?`,
+		userID,
+	).Scan(&username, &existingSecret, &enabled); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("read two factor user: %w", err)
+	}
+	if enabled {
+		return s.TwoFactorStatus(ctx, userID)
+	}
+
+	secret := existingSecret
+	if secret == "" {
+		var err error
+		secret, err = generateTOTPSecret()
+		if err != nil {
+			return nil, fmt.Errorf("generate two factor secret: %w", err)
+		}
+		if _, err := s.db.ExecContext(
+			ctx,
+			`UPDATE users SET two_factor_secret=?, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
+			secret,
+			userID,
+		); err != nil {
+			return nil, fmt.Errorf("store two factor secret: %w", err)
+		}
+		if err := s.audit(ctx, userID, "TwoFactorPrepared", "user", userID, "{}"); err != nil {
+			return nil, err
+		}
+	}
+
+	return &TwoFactorStatus{
+		Enabled:    enabled,
+		Prepared:   true,
+		Username:   username,
+		Secret:     secret,
+		OtpauthURL: totpProvisioningURI("RailKeeper", username, secret),
+	}, nil
+}
+
+func (s *AuthService) EnableTwoFactor(ctx context.Context, userID string, input TwoFactorEnableInput) (*TwoFactorStatus, error) {
+	var secret string
+	if err := s.db.QueryRowContext(ctx, `SELECT COALESCE(two_factor_secret, '') FROM users WHERE id=?`, userID).Scan(&secret); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrUserNotFound
+		}
+		return nil, fmt.Errorf("read two factor secret: %w", err)
+	}
+	if secret == "" || !verifyTOTPCode(secret, input.Code, time.Now().UTC()) {
+		_ = s.audit(ctx, userID, "TwoFactorEnableFailed", "user", userID, "{}")
+		return nil, ErrInvalidLogin
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.ExecContext(
+		ctx,
+		`UPDATE users SET two_factor_enabled=1, two_factor_enabled_at=? WHERE id=?`,
+		now,
+		userID,
+	); err != nil {
+		return nil, fmt.Errorf("enable two factor: %w", err)
+	}
+	if err := s.audit(ctx, userID, "TwoFactorEnabled", "user", userID, "{}"); err != nil {
+		return nil, err
+	}
+	return s.TwoFactorStatus(ctx, userID)
+}
+
+func (s *AuthService) DisableTwoFactor(ctx context.Context, userID, sessionToken string, input TwoFactorDisableInput) error {
+	var passwordHash, secret string
+	var enabled bool
+	if err := s.db.QueryRowContext(
+		ctx,
+		`SELECT password_hash, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE id=?`,
+		userID,
+	).Scan(&passwordHash, &secret, &enabled); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return ErrUserNotFound
+		}
+		return fmt.Errorf("read two factor user: %w", err)
+	}
+	if !verifyPassword(input.CurrentPassword, passwordHash) {
+		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
+		return ErrInvalidLogin
+	}
+	if enabled && !verifyTOTPCode(secret, input.Code, time.Now().UTC()) {
+		_ = s.audit(ctx, userID, "TwoFactorDisableFailed", "user", userID, "{}")
+		return ErrInvalidLogin
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin two factor disable: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			_ = tx.Rollback()
+		}
+	}()
+	if _, err = tx.ExecContext(
+		ctx,
+		`UPDATE users SET two_factor_secret=NULL, two_factor_enabled=0, two_factor_enabled_at=NULL WHERE id=?`,
+		userID,
+	); err != nil {
+		return fmt.Errorf("disable two factor: %w", err)
+	}
+	if _, err = tx.ExecContext(
+		ctx,
+		`UPDATE sessions SET revoked_at=? WHERE user_id=? AND token_hash<>? AND revoked_at IS NULL`,
+		time.Now().UTC().Format(time.RFC3339),
+		userID,
+		hashToken(sessionToken),
+	); err != nil {
+		return fmt.Errorf("revoke two factor sessions: %w", err)
+	}
+	if err = s.auditTx(ctx, tx, userID, "TwoFactorDisabled", "user", userID, "{}"); err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit two factor disable: %w", err)
+	}
+	return nil
+}
+
 func (s *AuthService) CreateUser(ctx context.Context, actorUserID string, input CreateUserInput) (*UserView, error) {
 	username := strings.TrimSpace(input.Username)
 	email := strings.TrimSpace(input.Email)
@@ -419,9 +599,9 @@ func (s *AuthService) GetUser(ctx context.Context, userID string) (*UserView, er
 	var user UserView
 	if err := s.db.QueryRowContext(
 		ctx,
-		`SELECT id, username, COALESCE(email, ''), created_at FROM users WHERE id=?`,
+		`SELECT id, username, COALESCE(email, ''), created_at, two_factor_enabled FROM users WHERE id=?`,
 		userID,
-	).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt); err != nil {
+	).Scan(&user.ID, &user.Username, &user.Email, &user.CreatedAt, &user.TwoFactorEnabled); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
@@ -709,15 +889,26 @@ func (s *AuthService) ResetPassword(ctx context.Context, input PasswordResetConf
 func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult, error) {
 	username := strings.TrimSpace(input.Username)
 
-	var userID, storedUsername, passwordHash string
+	var userID, storedUsername, passwordHash, twoFactorSecret string
+	var twoFactorEnabled bool
 	err := s.db.QueryRowContext(
 		ctx,
-		`SELECT id, username, password_hash FROM users WHERE username=?`,
+		`SELECT id, username, password_hash, COALESCE(two_factor_secret, ''), two_factor_enabled FROM users WHERE username=?`,
 		username,
-	).Scan(&userID, &storedUsername, &passwordHash)
+	).Scan(&userID, &storedUsername, &passwordHash, &twoFactorSecret, &twoFactorEnabled)
 	if err != nil || !verifyPassword(input.Password, passwordHash) {
 		_ = s.audit(ctx, "", "LoginFailed", "user", username, "{}")
 		return nil, ErrInvalidLogin
+	}
+	if twoFactorEnabled {
+		if strings.TrimSpace(input.TwoFactorCode) == "" {
+			_ = s.audit(ctx, userID, "LoginTwoFactorRequired", "user", userID, "{}")
+			return nil, ErrTwoFactorRequired
+		}
+		if !verifyTOTPCode(twoFactorSecret, input.TwoFactorCode, time.Now().UTC()) {
+			_ = s.audit(ctx, userID, "LoginTwoFactorFailed", "user", userID, "{}")
+			return nil, ErrInvalidLogin
+		}
 	}
 
 	roles, err := s.roles(ctx, userID)
@@ -753,9 +944,10 @@ func (s *AuthService) Login(ctx context.Context, input LoginInput) (*LoginResult
 		CSRFToken:    csrfToken,
 		ExpiresAt:    expiresAt,
 		Session: SessionView{
-			Username:  storedUsername,
-			Roles:     roles,
-			CSRFToken: csrfToken,
+			Username:         storedUsername,
+			Roles:            roles,
+			CSRFToken:        csrfToken,
+			TwoFactorEnabled: twoFactorEnabled,
 		},
 	}, nil
 }
@@ -767,7 +959,8 @@ func (s *AuthService) CurrentSession(ctx context.Context, sessionToken string) (
 	}
 
 	var username string
-	if err := s.db.QueryRowContext(ctx, `SELECT username FROM users WHERE id=?`, userID).Scan(&username); err != nil {
+	var twoFactorEnabled bool
+	if err := s.db.QueryRowContext(ctx, `SELECT username, two_factor_enabled FROM users WHERE id=?`, userID).Scan(&username, &twoFactorEnabled); err != nil {
 		return nil, fmt.Errorf("read session user: %w", err)
 	}
 
@@ -777,9 +970,10 @@ func (s *AuthService) CurrentSession(ctx context.Context, sessionToken string) (
 	}
 
 	return &SessionView{
-		Username:  username,
-		Roles:     roles,
-		CSRFToken: csrfToken,
+		Username:         username,
+		Roles:            roles,
+		CSRFToken:        csrfToken,
+		TwoFactorEnabled: twoFactorEnabled,
 	}, nil
 }
 
@@ -1055,6 +1249,68 @@ func (s *AuthService) auditTx(ctx context.Context, tx *sql.Tx, actorUserID, acti
 		return fmt.Errorf("write audit log: %w", err)
 	}
 	return nil
+}
+
+func generateTOTPSecret() (string, error) {
+	bytes := make([]byte, 20)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+	return base32.StdEncoding.WithPadding(base32.NoPadding).EncodeToString(bytes), nil
+}
+
+func verifyTOTPCode(secret, code string, now time.Time) bool {
+	normalized := normalizeTOTPCode(code)
+	if len(normalized) != 6 {
+		return false
+	}
+	for offset := int64(-1); offset <= 1; offset++ {
+		expected, err := totpCodeAt(secret, now.Add(time.Duration(offset)*30*time.Second))
+		if err != nil {
+			return false
+		}
+		if subtle.ConstantTimeCompare([]byte(normalized), []byte(expected)) == 1 {
+			return true
+		}
+	}
+	return false
+}
+
+func totpCodeAt(secret string, at time.Time) (string, error) {
+	decoder := base32.StdEncoding.WithPadding(base32.NoPadding)
+	key, err := decoder.DecodeString(strings.ToUpper(strings.TrimSpace(secret)))
+	if err != nil {
+		return "", err
+	}
+	var counter [8]byte
+	binary.BigEndian.PutUint64(counter[:], uint64(at.Unix()/30))
+	mac := hmac.New(sha1.New, key)
+	if _, err := mac.Write(counter[:]); err != nil {
+		return "", err
+	}
+	sum := mac.Sum(nil)
+	offset := sum[len(sum)-1] & 0x0f
+	value := binary.BigEndian.Uint32(sum[offset:offset+4]) & 0x7fffffff
+	code := value % uint32(math.Pow10(6))
+	return fmt.Sprintf("%06d", code), nil
+}
+
+func normalizeTOTPCode(code string) string {
+	code = strings.TrimSpace(code)
+	code = strings.ReplaceAll(code, " ", "")
+	code = strings.ReplaceAll(code, "-", "")
+	return code
+}
+
+func totpProvisioningURI(issuer, account, secret string) string {
+	label := issuer + ":" + account
+	query := url.Values{}
+	query.Set("secret", secret)
+	query.Set("issuer", issuer)
+	query.Set("algorithm", "SHA1")
+	query.Set("digits", "6")
+	query.Set("period", "30")
+	return "otpauth://totp/" + url.PathEscape(label) + "?" + query.Encode()
 }
 
 func verifyPassword(password, encoded string) bool {

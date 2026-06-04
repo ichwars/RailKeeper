@@ -14,58 +14,23 @@ export function qrPayload(vehicle: Vehicle | null, form: CreateVehicleRequest) {
   return lines.join("\n");
 }
 
-export function composeBrandedQrSvg(svg: string) {
-  const mark = `<rect x="111" y="111" width="34" height="34" rx="8" fill="#fff"/><image href="/brand/railkeeper-mark.png" x="115" y="115" width="26" height="26" preserveAspectRatio="xMidYMid meet"/>`;
-  return svg.replace("</svg>", `${mark}</svg>`);
-}
-
 export async function buildQrSvg(vehicle: Vehicle | null, formData: CreateVehicleRequest) {
   const QRCode = (await import("qrcode")).default;
-  const svg = await QRCode.toString(qrPayload(vehicle, formData), {
+  return QRCode.toString(qrPayload(vehicle, formData), {
     type: "svg",
     width: 256,
     margin: 2,
     color: { dark: "#0b1e26", light: "#ffffff" }
   });
-  return composeBrandedQrSvg(svg);
 }
 
 export async function buildBrandedQrPngDataUrl(payload: string, width = 768) {
   const QRCode = (await import("qrcode")).default;
-  const dataURL = await QRCode.toDataURL(payload, {
+  return QRCode.toDataURL(payload, {
     width,
     margin: 2,
     color: { dark: "#0b1e26", light: "#ffffff" }
   });
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = width;
-  const context = canvas.getContext("2d");
-  if (!context) return dataURL;
-  const qrImage = new window.Image();
-  await new Promise<void>((resolve, reject) => {
-    qrImage.onload = () => resolve();
-    qrImage.onerror = () => reject(new Error("QR-Code konnte nicht geladen werden."));
-    qrImage.src = dataURL;
-  });
-  context.drawImage(qrImage, 0, 0, width, width);
-  const logoImage = new window.Image();
-  await new Promise<void>((resolve) => {
-    logoImage.onload = () => resolve();
-    logoImage.onerror = () => resolve();
-    logoImage.src = "/brand/railkeeper-mark.png";
-  });
-  const plateSize = Math.round(width * 0.14);
-  const plateX = Math.round((width - plateSize) / 2);
-  const plateRadius = Math.round(plateSize * 0.18);
-  context.fillStyle = "#fff";
-  context.roundRect(plateX, plateX, plateSize, plateSize, plateRadius);
-  context.fill();
-  if (logoImage.complete && logoImage.naturalWidth > 0) {
-    const logoPadding = Math.round(plateSize * 0.12);
-    context.drawImage(logoImage, plateX + logoPadding, plateX + logoPadding, plateSize - logoPadding * 2, plateSize - logoPadding * 2);
-  }
-  return canvas.toDataURL("image/png");
 }
 
 export function downloadQrSvgFile(qrSvg: string, fileBase: string) {

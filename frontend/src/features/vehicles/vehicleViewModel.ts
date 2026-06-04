@@ -86,6 +86,7 @@ export type SortDirection = "asc" | "desc";
 export type InventoryViewMode = "table" | "cards";
 export type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages";
 export type MaintenanceFilter = "all" | "due" | "none";
+export type InventoryQualityFilter = "none" | "missingArticleNumber" | "missingEan" | "digitalMissingDecoder";
 export type InventoryReportMode = "summary" | "details";
 export type InventoryReportSelection = "all" | "selected";
 export type ECoSRequiredField = "manufacturer" | "name" | "gauge" | "category" | "gattung";
