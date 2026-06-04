@@ -54,6 +54,43 @@
   margin-bottom: 16px;
 }
 
+.ecos-disabled-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.ecos-disabled-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.ecos-disabled-content > div,
+.ecos-section-head > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ecos-disabled-content strong,
+.ecos-section-head strong {
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.ecos-disabled-content span,
+.ecos-section-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .ecos-connection-grid {
   display: grid;
   grid-template-columns: minmax(240px, 1fr) minmax(120px, 180px) auto;
@@ -189,6 +226,28 @@
   margin-top: 10px;
 }
 
+.ecos-flow-note {
+  display: grid;
+  gap: 4px;
+  max-width: 920px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.ecos-flow-note strong {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.ecos-flow-note span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .ecos-busy-indicator {
   display: inline-flex;
   align-items: center;
@@ -208,9 +267,9 @@
   display: grid;
   gap: 8px;
   padding: 12px;
-  border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--line));
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 7%, var(--panel));
+  background: var(--panel);
 }
 
 .ecos-cv-review-panel > p {
@@ -281,7 +340,7 @@
 .ecos-cv-profile-card dt {
   color: var(--muted);
   font-size: 0.72rem;
-  font-weight: 850;
+  font-weight: 650;
   text-transform: uppercase;
 }
 
@@ -289,23 +348,187 @@
   margin: 0;
   color: var(--text);
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.ecos-cv-review-table {
-  max-height: 320px;
+.ecos-image-review-panel {
+  display: grid;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.ecos-image-review-panel > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.ecos-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.ecos-image-card {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.ecos-image-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(82px, 1fr));
+  gap: 8px;
+}
+
+.ecos-image-strip figure {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+}
+
+.ecos-image-strip img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: contain;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--input-bg);
+}
+
+.ecos-image-strip figcaption,
+.ecos-image-placeholder {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 500;
+}
+
+.ecos-image-placeholder {
+  display: grid;
+  place-items: center;
+  min-height: 72px;
+  margin: 0;
+  padding: 10px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  background: var(--input-bg);
+  text-align: center;
+}
+
+.ecos-image-candidates {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+
+.ecos-image-candidates div {
+  display: grid;
+  grid-template-columns: minmax(54px, auto) minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  min-width: 0;
+}
+
+.ecos-image-candidates dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.ecos-image-candidates dd {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+}
+
+.ecos-image-candidates dd span {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.ecos-image-candidates dd small {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.ecos-worklist-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.ecos-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ecos-section-head > span {
+  flex: 0 0 auto;
+  min-height: 28px;
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.ecos-worklist-table {
+  max-height: 360px;
   overflow: auto;
 }
 
+.ecos-worklist-table table {
+  min-width: 980px;
+}
+
+.ecos-worklist-table td:first-child,
 .ecos-cv-review-table td:first-child {
   display: grid;
   gap: 2px;
 }
 
+.ecos-worklist-table small,
 .ecos-cv-review-table small {
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.ecos-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.ecos-row-actions .secondary-button {
+  min-height: 30px;
+  padding: 5px 8px;
+  font-size: 0.74rem;
+}
+
+.ecos-cv-review-table {
+  max-height: 320px;
+  overflow: auto;
 }
 
 .ecos-cv-interpretation {

@@ -172,6 +172,7 @@
   .transfer-actions,
   .settings-dashboard-grid,
   .auth-settings-grid,
+  .digital-settings-grid,
   .appearance-config-grid {
     grid-template-columns: 1fr;
   }
@@ -188,6 +189,18 @@
   .auth-settings-grid .role-settings-card {
     grid-column: auto;
     grid-row: auto;
+  }
+
+  .digital-command-card {
+    grid-column: auto;
+  }
+
+  .digital-loco-preview-head {
+    display: grid;
+  }
+
+  .digital-overview-grid {
+    grid-template-columns: 1fr;
   }
 
   .inventory-card {
@@ -212,6 +225,8 @@
 
   .user-management-grid,
   .account-security-grid,
+  .digital-provider-row,
+  .digital-adapter-dialog .settings-field-grid,
   .role-select-grid {
     grid-template-columns: 1fr;
   }
@@ -283,6 +298,8 @@
   .cv-form,
   .cv-file-controls,
   .cv-summary,
+  .speed-curve-summary,
+  .speed-curve-detail-grid,
   .maintenance-summary,
   .maintenance-form,
   .maintenance-meta,

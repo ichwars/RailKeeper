@@ -219,6 +219,15 @@ export type VehicleImageInput = {
   sortOrder?: number;
 };
 
+export type VehicleImageImportInput = {
+  url: string;
+  title?: string;
+  sourceUrl?: string;
+  maintenanceId?: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+};
+
 export type VehicleAttachment = {
   id: string;
   vehicleId: string;
@@ -536,6 +545,25 @@ export type ArticleSearchImage = {
   source: string;
 };
 
+export type ECoSImageCandidate = {
+  key: string;
+  value: string;
+  kind: "url" | "data" | "base64" | "id" | "reference" | string;
+  previewUrl?: string;
+  mimeType?: string;
+  transferable: boolean;
+};
+
+export type ECoSImageSuggestion = ArticleSearchImage & {
+  id: string;
+  thumbnailUrl?: string;
+  mimeType?: string;
+  ecosKey: string;
+  ecosKind: string;
+  rawValue: string;
+  isPrimary?: boolean;
+};
+
 export type ArticleSearchSparePart = {
   articleNumber: string;
   description: string;
@@ -644,6 +672,7 @@ export type ECoSRawLocomotive = {
     number: number;
     value: number;
   }>;
+  imageCandidates?: ECoSImageCandidate[];
   attributes?: Record<string, string[]>;
   supportedFields?: string[];
   missingFields?: string[];
@@ -658,6 +687,22 @@ export type ECoSRawProbe = {
   probeFields: string[];
   locomotives: ECoSRawLocomotive[];
   rawLines?: string[];
+  message: string;
+};
+
+export type ECoSLiveStatus = {
+  provider: string;
+  connected: boolean;
+  host?: string;
+  port?: number;
+  startedAt?: string;
+  lastSeenAt?: string;
+  lastMessage?: string;
+  blocksReceived: number;
+  repliesReceived: number;
+  eventsReceived: number;
+  subscriptionCommands?: string[];
+  error?: string;
   message: string;
 };
 
@@ -1030,6 +1075,15 @@ export const api = {
       { timeoutMs: 30000 }
     );
   },
+  importVehicleImageFromUrl: (vehicleId: string, input: VehicleImageImportInput) =>
+    request<VehicleImage>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/images/import-url`,
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 30000 }
+    ),
   deleteVehicleImage: (vehicleId: string, imageId: string) =>
     request<void>(`/vehicles/${encodeURIComponent(vehicleId)}/images/${encodeURIComponent(imageId)}`, {
       method: "DELETE"
@@ -1089,6 +1143,12 @@ export const api = {
     }),
   vehicleSpareParts: (vehicleId: string) =>
     request<VehicleSparePart[]>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts`),
+  vehicleSparePartSuggestions: (vehicleId: string) =>
+    request<ArticleSearchSparePart[]>(
+      `/vehicles/${encodeURIComponent(vehicleId)}/spare-parts/suggestions`,
+      undefined,
+      { timeoutMs: 15000 }
+    ),
   createVehicleSparePart: (vehicleId: string, input: VehicleSparePartInput) =>
     request<VehicleSparePart>(`/vehicles/${encodeURIComponent(vehicleId)}/spare-parts`, {
       method: "POST",
@@ -1203,6 +1263,20 @@ export const api = {
       },
       { timeoutMs: 120000 }
     ),
+  getECoSLiveStatus: () => request<ECoSLiveStatus>("/digital-centers/ecos/live/status"),
+  startECoSLive: (input: ECoSConnectionInput) =>
+    request<ECoSLiveStatus>(
+      "/digital-centers/ecos/live/start",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 10000 }
+    ),
+  stopECoSLive: () =>
+    request<ECoSLiveStatus>("/digital-centers/ecos/live/stop", {
+      method: "POST"
+    }),
   backupExportUrl: () => "/api/v1/backup/export",
   validateBackup: (file: File) => {
     const form = new FormData();

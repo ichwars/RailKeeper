@@ -1,5 +1,5 @@
-import type { DragEvent, RefObject } from "react";
-import { ChevronDown, ChevronUp, Download, ExternalLink, FileText, Image, Save, Search, Star, Trash2, Upload } from "lucide-react";
+import { useState, type DragEvent, type RefObject } from "react";
+import { ChevronDown, ChevronUp, Download, ExternalLink, Eye, FileText, Image, Save, Search, Star, Trash2, Upload, X } from "lucide-react";
 import { api, ArticleSearchDocument, Vehicle, VehicleAttachment, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
@@ -8,6 +8,100 @@ import { formatFileSize } from "./vehicleFormat";
 import { maintenanceOptionLabel } from "./vehicleMaintenance";
 import { AttachmentEditState, PendingArticleImage } from "./vehicleTransforms";
 import { AppSelect } from "../../shared/ui/AppSelect";
+
+export function webDocumentKey(document: ArticleSearchDocument, index: number) {
+  return `${document.url || document.title || "document"}-${index}`;
+}
+
+function attachmentPreviewKind(attachment: VehicleAttachment) {
+  const mimeType = (attachment.mimeType || "").toLowerCase();
+  const name = (attachment.originalName || "").toLowerCase();
+  if (mimeType.includes("pdf") || name.endsWith(".pdf")) return "pdf";
+  if (mimeType.startsWith("image/") || /\.(jpe?g|png|webp)$/i.test(name)) return "image";
+  if (
+    mimeType.startsWith("text/") ||
+    mimeType.includes("json") ||
+    mimeType.includes("xml") ||
+    /\.(txt|csv|json|xml|html?)$/i.test(name)
+  ) {
+    return "text";
+  }
+  return "unsupported";
+}
+
+function AttachmentPreviewFrame({ attachment, downloadUrl }: { attachment: VehicleAttachment; downloadUrl: string }) {
+  const { t } = useI18n();
+  const inlineUrl = `${downloadUrl}?inline=true`;
+  const kind = attachmentPreviewKind(attachment);
+
+  if (kind === "pdf") {
+    return (
+      <div className="attachment-preview pdf-preview">
+        <iframe src={inlineUrl} title={t("vehicles.uploads.previewTitle", { name: attachment.originalName })} />
+      </div>
+    );
+  }
+  if (kind === "image") {
+    return (
+      <div className="attachment-preview image-file-preview">
+        <img src={inlineUrl} alt={attachment.originalName} />
+      </div>
+    );
+  }
+  if (kind === "text") {
+    return (
+      <div className="attachment-preview text-file-preview">
+        <iframe src={inlineUrl} title={t("vehicles.uploads.previewTitle", { name: attachment.originalName })} sandbox="" />
+      </div>
+    );
+  }
+  return (
+    <div className="attachment-preview attachment-preview-empty">
+      <FileText size={18} aria-hidden="true" />
+      <span>{t("vehicles.uploads.previewUnavailable")}</span>
+    </div>
+  );
+}
+
+function AttachmentPreviewDialog({
+  vehicleId,
+  attachment,
+  onClose
+}: {
+  vehicleId: string;
+  attachment: VehicleAttachment;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
+  const downloadUrl = api.vehicleAttachmentDownloadUrl(vehicleId, attachment.id);
+
+  return (
+    <div className="confirm-layer attachment-preview-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.uploads.previewTitle", { name: attachment.originalName })}>
+      <section className="attachment-preview-dialog">
+        <div className="panel-head form-head">
+          <div>
+            <h2>{t("vehicles.uploads.preview")}</h2>
+            <p>{attachment.originalName}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
+            <X size={17} />
+          </button>
+        </div>
+        <AttachmentPreviewFrame attachment={attachment} downloadUrl={downloadUrl} />
+        <footer className="attachment-preview-actions">
+          <a className="secondary-button" href={downloadUrl}>
+            <Download size={15} aria-hidden="true" />
+            Download
+          </a>
+          <a className="secondary-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer">
+            <ExternalLink size={15} aria-hidden="true" />
+            {t("vehicles.uploads.openAttachment")}
+          </a>
+        </footer>
+      </section>
+    </div>
+  );
+}
 
 export function VehicleUploadsTab({
   selected,
@@ -20,13 +114,13 @@ export function VehicleUploadsTab({
   pendingArticleImages,
   attachmentDragActive,
   attachmentUploadCategory,
-  attachmentUploadMaintenanceID,
   attachmentUploadDescription,
   attachmentEdits,
   documentSearchLoading,
   documentSearchError,
   documentSearchRan,
   foundDocuments,
+  selectedDocuments,
   onImageUploadMaintenanceIDChange,
   onUploadImages,
   onPreviewImage,
@@ -39,13 +133,15 @@ export function VehicleUploadsTab({
   onAttachmentDrag,
   onAttachmentDrop,
   onAttachmentUploadCategoryChange,
-  onAttachmentUploadMaintenanceIDChange,
   onAttachmentUploadDescriptionChange,
   onUpdateAttachmentEdit,
   onSaveAttachment,
   onDeleteAttachment,
   onSearchDocuments,
-  onImportDocument
+  onImportDocument,
+  onImportSelectedDocuments,
+  onToggleDocument,
+  onToggleAllDocuments
 }: {
   selected: Vehicle | null;
   readonly: boolean;
@@ -57,13 +153,13 @@ export function VehicleUploadsTab({
   pendingArticleImages: PendingArticleImage[];
   attachmentDragActive: boolean;
   attachmentUploadCategory: string;
-  attachmentUploadMaintenanceID: string;
   attachmentUploadDescription: string;
   attachmentEdits: AttachmentEditState;
   documentSearchLoading: boolean;
   documentSearchError: string;
   documentSearchRan: boolean;
   foundDocuments: ArticleSearchDocument[];
+  selectedDocuments: Record<string, boolean>;
   onImageUploadMaintenanceIDChange: (value: string) => void;
   onUploadImages: (files: FileList | null) => void;
   onPreviewImage: (image: PendingArticleImage) => void;
@@ -76,17 +172,23 @@ export function VehicleUploadsTab({
   onAttachmentDrag: (event: DragEvent<HTMLElement>) => void;
   onAttachmentDrop: (event: DragEvent<HTMLElement>) => void;
   onAttachmentUploadCategoryChange: (value: string) => void;
-  onAttachmentUploadMaintenanceIDChange: (value: string) => void;
   onAttachmentUploadDescriptionChange: (value: string) => void;
   onUpdateAttachmentEdit: (id: string, patch: Partial<AttachmentEditState[string]>) => void;
   onSaveAttachment: (attachment: VehicleAttachment) => void;
   onDeleteAttachment: (attachment: VehicleAttachment) => void;
   onSearchDocuments: () => void;
   onImportDocument: (document: ArticleSearchDocument) => void;
+  onImportSelectedDocuments: () => void;
+  onToggleDocument: (document: ArticleSearchDocument, index: number, selected: boolean) => void;
+  onToggleAllDocuments: (selected: boolean) => void;
 }) {
   const { t } = useI18n();
+  const [previewAttachment, setPreviewAttachment] = useState<VehicleAttachment | null>(null);
 
   const importedAttachmentForDocument = (document: ArticleSearchDocument) => selected?.attachments?.find((attachment) => Boolean(document.url) && (attachment.description || "").includes(document.url));
+  const selectableDocuments = foundDocuments.filter((document) => document.url && !importedAttachmentForDocument(document));
+  const selectedDocumentCount = foundDocuments.filter((document, index) => document.url && !importedAttachmentForDocument(document) && selectedDocuments[webDocumentKey(document, index)]).length;
+  const allDocumentsSelected = selectableDocuments.length > 0 && selectedDocumentCount === selectableDocuments.length;
 
   return (
     <section className="uploads-tab">
@@ -233,12 +335,6 @@ export function VehicleUploadsTab({
                 <option key={category} value={category}>{category}</option>
               ))}
             </AppSelect>
-            <AppSelect value={attachmentUploadMaintenanceID} onChange={(event) => onAttachmentUploadMaintenanceIDChange(event.target.value)} disabled={readonly || !selected || saving}>
-              <option value="">{t("vehicles.uploads.noMaintenance")}</option>
-              {maintenanceEntries.map((entry) => (
-                <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
-              ))}
-            </AppSelect>
             <input
               value={attachmentUploadDescription}
               onChange={(event) => onAttachmentUploadDescriptionChange(event.target.value)}
@@ -258,14 +354,29 @@ export function VehicleUploadsTab({
               <Search size={15} aria-hidden="true" />
               {documentSearchLoading ? t("vehicles.uploads.webDocumentsSearching") : t("vehicles.uploads.webDocumentsSearch")}
             </button>
+            {foundDocuments.length > 0 && (
+              <button type="button" className="primary-button" onClick={onImportSelectedDocuments} disabled={readonly || saving || selectedDocumentCount === 0}>
+                {t("vehicles.uploads.webDocumentsImportSelected", { count: selectedDocumentCount })}
+              </button>
+            )}
           </div>
           {documentSearchError && <p className="form-message">{documentSearchError}</p>}
           {documentSearchRan && !documentSearchLoading && foundDocuments.length === 0 && <p className="empty-state compact">{t("vehicles.uploads.webDocumentsEmpty")}</p>}
+          {foundDocuments.length > 0 && <p className="source-note compact">{t("vehicles.uploads.webDocumentsFound", { count: foundDocuments.length })} · {t("vehicles.uploads.webDocumentsSelected", { count: selectedDocumentCount })}</p>}
           {foundDocuments.length > 0 && (
             <div className="compact-table web-document-table">
               <table>
                 <thead>
                   <tr>
+                    <th className="select-column">
+                      <input
+                        type="checkbox"
+                        checked={allDocumentsSelected}
+                        onChange={(event) => onToggleAllDocuments(event.target.checked)}
+                        disabled={readonly || saving || selectableDocuments.length === 0}
+                        aria-label={t("vehicles.uploads.webDocumentsSelectAll")}
+                      />
+                    </th>
                     <th>{t("vehicles.uploads.webDocument")}</th>
                     <th>{t("vehicles.spareParts.kind")}</th>
                     <th>{t("vehicles.articleSearch.source")}</th>
@@ -276,8 +387,19 @@ export function VehicleUploadsTab({
                   {foundDocuments.map((document, index) => {
                     const importedAttachment = importedAttachmentForDocument(document);
                     const downloadUrl = importedAttachment && selected ? api.vehicleAttachmentDownloadUrl(selected.id, importedAttachment.id) : "";
+                    const documentKey = webDocumentKey(document, index);
+                    const canSelectDocument = Boolean(document.url) && !importedAttachment;
                     return (
                       <tr key={`${document.url}-${index}`}>
+                        <td className="select-column">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedDocuments[documentKey]) && canSelectDocument}
+                            onChange={(event) => onToggleDocument(document, index, event.target.checked)}
+                            disabled={readonly || saving || !canSelectDocument}
+                            aria-label={t("vehicles.uploads.webDocumentSelect", { title: document.title || t("vehicles.uploads.webDocument") })}
+                          />
+                        </td>
                         <td><a href={document.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {document.title}</a></td>
                         <td>{document.kind || "-"}</td>
                         <td>{document.source || "-"}</td>
@@ -313,6 +435,10 @@ export function VehicleUploadsTab({
         )}
         {selected && selected.attachments && selected.attachments.length > 0 && (
           <div className="attachment-list">
+            <div className="attachment-list-head">
+              <strong>{t("vehicles.uploads.attachmentsStored", { count: selected.attachments.length })}</strong>
+              <span>{t("vehicles.uploads.attachmentsStoredHelp")}</span>
+            </div>
             {selected.attachments.map((attachment) => {
               const edit = attachmentEdits[attachment.id] || {
                 description: attachment.description || "",
@@ -336,25 +462,21 @@ export function VehicleUploadsTab({
                           <option key={category} value={category}>{category}</option>
                         ))}
                       </AppSelect>
-                      <AppSelect value={edit.maintenanceId} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { maintenanceId: event.target.value })} disabled={readonly}>
-                        <option value="">{t("vehicles.uploads.noMaintenance")}</option>
-                        {maintenanceEntries.map((entry) => (
-                          <option key={entry.id} value={entry.id}>{maintenanceOptionLabel(entry)}</option>
-                        ))}
-                      </AppSelect>
                       <input value={edit.description} onChange={(event) => onUpdateAttachmentEdit(attachment.id, { description: event.target.value })} disabled={readonly} placeholder={t("vehicles.uploads.note")} />
                     </div>
                   </div>
                   <div className="attachment-actions">
+                    <button type="button" className="secondary-button" onClick={() => setPreviewAttachment(attachment)}>
+                      <Eye size={15} aria-hidden="true" />
+                      {t("vehicles.uploads.preview")}
+                    </button>
                     <a className="secondary-button" href={downloadUrl}>
                       <Download size={15} aria-hidden="true" />
                       Download
                     </a>
-                    {attachment.mimeType?.includes("pdf") && (
-                      <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openPdf")} title={t("vehicles.uploads.openPdf")}>
-                        <ExternalLink size={15} />
-                      </a>
-                    )}
+                    <a className="icon-button" href={`${downloadUrl}?inline=true`} target="_blank" rel="noreferrer" aria-label={t("vehicles.uploads.openAttachment")} title={t("vehicles.uploads.openAttachment")}>
+                      <ExternalLink size={15} />
+                    </a>
                     <button type="button" className="secondary-button" onClick={() => onSaveAttachment(attachment)} disabled={readonly || saving}>
                       <Save size={15} aria-hidden="true" />
                       {t("vehicles.save")}
@@ -368,6 +490,13 @@ export function VehicleUploadsTab({
               );
             })}
           </div>
+        )}
+        {selected && previewAttachment && (
+          <AttachmentPreviewDialog
+            vehicleId={selected.id}
+            attachment={previewAttachment}
+            onClose={() => setPreviewAttachment(null)}
+          />
         )}
       </section>
     </section>

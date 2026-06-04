@@ -95,7 +95,8 @@
 }
 
 .settings-dashboard-grid,
-.auth-settings-grid {
+.auth-settings-grid,
+.digital-settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.85fr);
   gap: 14px;
@@ -103,7 +104,8 @@
 }
 
 .settings-card-stack,
-.auth-settings-grid {
+.auth-settings-grid,
+.digital-settings-grid {
   display: grid;
   gap: 14px;
 }
@@ -377,6 +379,92 @@
 .settings-pill.muted {
   background: var(--panel-subtle);
   color: var(--muted);
+}
+
+.settings-marker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.work-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  width: fit-content;
+  border: 1px solid color-mix(in srgb, var(--warm) 42%, var(--line));
+  border-radius: 999px;
+  padding: 0 9px;
+  background: color-mix(in srgb, var(--warm) 12%, var(--panel));
+  color: var(--warm);
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.work-status-badge.compact {
+  min-height: 20px;
+  margin-left: 8px;
+  padding: 0 7px;
+  font-size: 10px;
+}
+
+.work-status-badge.open {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+  background: color-mix(in srgb, var(--danger) 10%, var(--panel));
+  color: var(--danger);
+}
+
+.work-status-badge.experimental {
+  border-color: color-mix(in srgb, var(--warm) 42%, var(--line));
+  background: color-mix(in srgb, var(--warm) 12%, var(--panel));
+  color: var(--warm);
+}
+
+.work-status-badge.active {
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
+  color: var(--accent-strong);
+}
+
+.work-status-badge.design {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--line));
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  color: var(--accent-strong);
+}
+
+.work-status-note {
+  display: grid;
+  gap: 4px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--warm) 36%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--warm) 7%, var(--panel-subtle));
+}
+
+.work-status-note strong {
+  font-size: 13px;
+}
+
+.work-status-note span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 17px;
+}
+
+.work-status-note.open {
+  border-color: color-mix(in srgb, var(--danger) 34%, var(--line));
+  background: color-mix(in srgb, var(--danger) 6%, var(--panel-subtle));
+}
+
+.work-status-note.design {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--line));
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel-subtle));
 }
 
 .storage-total {
@@ -840,6 +928,254 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.digital-command-card {
+  grid-column: 1;
+}
+
+.digital-provider-row {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: end;
+}
+
+.digital-provider-row label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.digital-provider-note {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.digital-provider-note svg {
+  color: var(--accent-bright);
+  flex: 0 0 auto;
+}
+
+.digital-provider-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.digital-action-row {
+  justify-content: flex-start;
+}
+
+.digital-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.digital-active-provider {
+  display: grid;
+  gap: 5px;
+  min-height: 108px;
+  align-content: start;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.digital-active-provider.ready {
+  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-subtle));
+}
+
+.digital-active-provider strong {
+  font-size: 18px;
+}
+
+.digital-active-provider small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 17px;
+}
+
+.digital-status-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.digital-status-grid article,
+.digital-roadmap-list button {
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.digital-roadmap-list button {
+  width: 100%;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-roadmap-list button:hover,
+.digital-roadmap-list button:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 44%, var(--line));
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-subtle));
+  outline: none;
+}
+
+.digital-roadmap-list button.prepared {
+  opacity: 0.82;
+}
+
+.digital-loco-preview {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel-subtle));
+}
+
+.digital-loco-preview-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.digital-loco-preview-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.digital-loco-preview-head strong {
+  font-size: 15px;
+}
+
+.digital-loco-preview-head span:not(.settings-pill),
+.digital-loco-more,
+.digital-loco-empty {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 17px;
+}
+
+.digital-loco-table {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.digital-loco-table table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+}
+
+.digital-loco-table th,
+.digital-loco-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  font-size: 12px;
+}
+
+.digital-loco-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.digital-loco-table td {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.digital-loco-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.digital-status-grid strong {
+  font-size: 18px;
+}
+
+.digital-status-grid small,
+.digital-roadmap-list span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 17px;
+}
+
+.digital-roadmap-list {
+  display: grid;
+  gap: 10px;
+}
+
+.digital-roadmap-list button.active {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-subtle));
+}
+
+.digital-adapter-layer {
+  align-items: center;
+  padding: 24px;
+}
+
+.digital-adapter-dialog {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(88vh, 760px);
+}
+
+.digital-adapter-dialog .modal-head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.digital-adapter-dialog .modal-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.digital-adapter-form {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+}
+
+.digital-adapter-dialog .modal-actions {
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 68px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel-subtle) 72%, transparent);
 }
 
 .inventory-number-settings {

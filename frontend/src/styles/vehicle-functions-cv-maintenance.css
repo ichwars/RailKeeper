@@ -423,6 +423,264 @@
   color: var(--text);
 }
 
+.speed-curve-tab {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.speed-curve-source-badge {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: 999px;
+  padding: 0 12px;
+  background: color-mix(in srgb, var(--accent-bright) 10%, var(--panel));
+  color: var(--accent-strong);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.speed-profile-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.speed-profile-list button {
+  display: grid;
+  gap: 3px;
+  min-width: 170px;
+  max-width: 260px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.speed-profile-list button.active,
+.speed-profile-list button:hover {
+  border-color: color-mix(in srgb, var(--accent) 42%, var(--line));
+  background: color-mix(in srgb, var(--accent-bright) 9%, var(--panel));
+}
+
+.speed-profile-list strong,
+.speed-profile-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.speed-profile-list strong {
+  font-size: 13px;
+}
+
+.speed-profile-list span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.speed-curve-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.speed-curve-summary div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel-subtle);
+}
+
+.speed-curve-summary span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.speed-curve-summary strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.speed-chart-panel {
+  display: grid;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 8px;
+  padding: 12px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-bright) 7%, var(--panel)) 0%, var(--panel) 100%);
+}
+
+.speed-chart-panel.empty {
+  border-color: var(--line);
+  background: var(--panel-subtle);
+}
+
+.speed-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.speed-chart-head h4 {
+  margin: 0 0 3px;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.speed-chart-head p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.speed-chart-head > span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: var(--panel-subtle);
+  color: var(--accent-strong);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.speed-curve-chart {
+  width: 100%;
+  height: auto;
+  min-height: 260px;
+}
+
+.speed-chart-bg {
+  fill: color-mix(in srgb, var(--panel-subtle) 82%, #fff);
+  stroke: var(--line);
+}
+
+.speed-chart-grid,
+.speed-chart-step {
+  stroke: color-mix(in srgb, var(--line) 76%, transparent);
+  stroke-width: 1;
+}
+
+.speed-chart-step {
+  stroke-dasharray: 3 7;
+}
+
+.speed-chart-label,
+.speed-chart-axis-title {
+  fill: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.speed-chart-axis-title {
+  fill: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.speed-chart-area {
+  fill: color-mix(in srgb, var(--accent-bright) 22%, transparent);
+}
+
+.speed-chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+}
+
+.speed-chart-point {
+  fill: var(--panel);
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+}
+
+.speed-curve-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+
+.speed-curve-detail-grid article {
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--panel);
+}
+
+.speed-curve-detail-grid h4 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+}
+
+.speed-point-list {
+  display: grid;
+  gap: 7px;
+}
+
+.speed-point-list.compact {
+  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+}
+
+.speed-point-list span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 0 9px;
+  background: var(--panel-subtle);
+  color: var(--text);
+}
+
+.speed-point-list strong {
+  font-size: 12px;
+}
+
+.speed-point-list em {
+  color: var(--accent-strong);
+  font-style: normal;
+  font-weight: 900;
+}
+
+.speed-missing {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+}
+
 .cv-summary,
 .maintenance-summary {
   display: grid;
@@ -766,6 +1024,58 @@
   background: var(--panel);
 }
 
+.spare-parts-search-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.spare-parts-search-head > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.spare-parts-search-head h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.spare-parts-search-head p {
+  max-width: 430px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.spare-parts-web-results {
+  display: grid;
+  gap: 8px;
+}
+
+.spare-parts-web-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 0 2px;
+}
+
+.spare-parts-section .compact-action {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: none;
+}
+
 .spare-parts-editor summary {
   display: flex;
   min-height: 32px;
@@ -774,7 +1084,7 @@
   gap: 10px;
   cursor: pointer;
   color: var(--text);
-  font-weight: 900;
+  font-weight: 750;
   list-style: none;
 }
 
@@ -802,7 +1112,7 @@
   gap: 6px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .spare-part-form input {
@@ -834,15 +1144,47 @@
   min-width: 720px;
 }
 
+.spare-parts-found-table table {
+  min-width: 700px;
+}
+
+.spare-parts-found-table th {
+  font-size: 10px;
+  letter-spacing: 0;
+}
+
+.spare-parts-found-table .select-column {
+  width: 38px;
+  min-width: 38px;
+  text-align: center;
+}
+
+.spare-parts-found-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
 .spare-parts-section .compact-table td {
   vertical-align: middle;
+  color: color-mix(in srgb, var(--text) 88%, var(--muted));
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
 }
 
 .spare-parts-section .compact-table a,
 .document-chip-list a {
   color: var(--accent-strong);
-  font-weight: 850;
+  font-weight: 700;
   text-decoration: none;
+}
+
+.spare-parts-found-table td:nth-child(4),
+.spare-parts-found-table td:nth-child(5) {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .document-chip-list {

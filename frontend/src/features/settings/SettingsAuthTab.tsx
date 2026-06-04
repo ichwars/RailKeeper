@@ -153,7 +153,7 @@ export function SettingsAuthTab({
                 <small>{currentSession?.username ? t("settings.auth.signedInAs", { username: currentSession.username }) : t("settings.auth.loading")}</small>
               </article>
               <article>
-                <span className={twoFactorPrepared ? "settings-pill active" : "settings-pill muted"}>{twoFactorPrepared ? t("settings.auth.prepared") : t("settings.auth.open")}</span>
+                <span className={twoFactorPrepared ? "work-status-badge compact experimental" : "work-status-badge compact open"}>{twoFactorPrepared ? t("settings.auth.prepared") : t("settings.work.open")}</span>
                 <strong>{t("settings.auth.twoFactor")}</strong>
                 <small>{t("settings.auth.twoFactorHelp")}</small>
               </article>
@@ -353,6 +353,7 @@ export function SettingsAuthTab({
                 </div>
               </div>
               <div className="user-management-toolbar">
+                <span className="work-status-badge design">{t("settings.work.designOpen")}</span>
                 <span className="settings-pill">{userCountLabel}</span>
                 {canManageUsers && (
                   <button type="button" className="secondary-button" onClick={startUserCreate}>
@@ -361,6 +362,10 @@ export function SettingsAuthTab({
                   </button>
                 )}
               </div>
+            </div>
+            <div className="work-status-note design">
+              <strong>{t("settings.work.userManagementTitle")}</strong>
+              <span>{t("settings.work.userManagementNote")}</span>
             </div>
 
             {!canManageUsers ? (

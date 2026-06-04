@@ -1,6 +1,6 @@
 import type { FormEvent } from "react";
 import { Check, Download, ExternalLink, Printer, X } from "lucide-react";
-import { CreateVehicleRequest, ExhibitionEntry, ExhibitionList, Vehicle } from "../../shared/api";
+import { CreateVehicleRequest, ExhibitionEntry, ExhibitionList, Vehicle, VehicleAttachment } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { sourceDisplayName } from "./articleSearch";
 import { formatDate } from "./vehicleFormat";
@@ -310,6 +310,39 @@ export function DeleteVehicleDialog({
         <p>
           {vehicle.inventoryNumber} - {vehicle.name}
         </p>
+        <div className="confirm-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>
+            {t("vehicles.cancel")}
+          </button>
+          <button type="button" className="danger-button" onClick={onConfirm}>
+            {t("vehicles.delete")}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export function DeleteAttachmentDialog({
+  attachment,
+  onClose,
+  onConfirm
+}: {
+  attachment: VehicleAttachment;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <div className="confirm-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.uploads.deleteAttachmentAria")}>
+      <section className="confirm-card">
+        <div className="panel-head form-head">
+          <h2>{t("vehicles.uploads.deleteAttachmentTitle")}</h2>
+          <button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")}>
+            <X size={17} />
+          </button>
+        </div>
+        <p>{attachment.originalName}</p>
         <div className="confirm-actions">
           <button type="button" className="secondary-button" onClick={onClose}>
             {t("vehicles.cancel")}

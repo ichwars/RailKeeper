@@ -1,7 +1,10 @@
 package application
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"html"
@@ -928,6 +931,8 @@ func (a *DuckDuckGoArticleSearchAdapter) enrichResultsFromPages(ctx context.Cont
 		results[index].Images = articleImagesFromHTML(body, results[index].URL, results[index].Title)
 		results[index].SpareParts = articleSparePartsFromHTML(body, results[index].URL)
 		results[index].Documents = articleDocumentsFromHTML(body, results[index].URL)
+		documentSpareParts := a.articleSparePartsFromMatchingDocuments(ctx, input, results[index].Documents)
+		results[index].SpareParts = mergeArticleSpareParts(results[index].SpareParts, documentSpareParts, 80)
 		results[index].Trace = ArticleSearchResultTrace{
 			DetailLoaded:     true,
 			DetailFields:     len(results[index].Fields) - fieldsBefore,
@@ -1049,6 +1054,145 @@ func articleSparePartsFromHTML(body, pageURL string) []ArticleSearchSparePart {
 	return parts
 }
 
+func (a *DuckDuckGoArticleSearchAdapter) articleSparePartsFromMatchingDocuments(ctx context.Context, input ArticleSearchInput, documents []ArticleSearchDocument) []ArticleSearchSparePart {
+	articleNumber := strings.TrimSpace(input.ArticleNumber)
+	if articleNumber == "" {
+		return nil
+	}
+	parts := []ArticleSearchSparePart{}
+	for _, document := range documents {
+		if len(parts) >= 80 || !looksLikeSparePartDocument(document) {
+			continue
+		}
+		documentCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+		data, err := a.fetchArticleDocument(documentCtx, document.URL)
+		cancel()
+		if err != nil || len(data) == 0 {
+			continue
+		}
+		text := extractPDFText(data)
+		if !documentTextMatchesArticleNumber(text, articleNumber) {
+			continue
+		}
+		documentParts := articleSparePartsFromDocumentText(text, articleNumber, document.URL)
+		parts = mergeArticleSpareParts(parts, documentParts, 80)
+	}
+	return parts
+}
+
+func (a *DuckDuckGoArticleSearchAdapter) fetchArticleDocument(ctx context.Context, documentURL string) ([]byte, error) {
+	parsed, err := url.Parse(documentURL)
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return nil, fmt.Errorf("invalid article document url")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, documentURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", "RailKeeper/0.1 article-search")
+	req.Header.Set("Accept", "application/pdf,*/*;q=0.7")
+	req.Header.Set("Accept-Language", "de-DE,de;q=0.9,en;q=0.5")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("article document returned status %d", resp.StatusCode)
+	}
+	return io.ReadAll(io.LimitReader(resp.Body, 4*1024*1024))
+}
+
+func articleSparePartsFromDocumentText(text, articleNumber, documentURL string) []ArticleSearchSparePart {
+	if !looksLikeSparePartsDocumentText(text, articleNumber) {
+		return nil
+	}
+	text = sparePartsDocumentSection(text)
+	seen := map[string]bool{}
+	parts := []ArticleSearchSparePart{}
+	for _, row := range articleSparePartDocumentRows(text) {
+		part, ok := articleSparePartFromConfirmedDocumentRow(row, documentURL)
+		if !ok || normalizedArticleNumber(part.ArticleNumber) == normalizedArticleNumber(articleNumber) {
+			continue
+		}
+		if part.URL == "" {
+			part.URL = documentURL
+		}
+		key := normalizedArticleNumber(part.ArticleNumber)
+		if key == "" {
+			key = strings.ToLower(part.ArticleNumber + "|" + part.Description + "|" + part.URL)
+		}
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		parts = append(parts, part)
+		if len(parts) >= 80 {
+			break
+		}
+	}
+	return parts
+}
+
+func ArticleSparePartsFromDocumentData(data []byte, articleNumber, source string) []ArticleSearchSparePart {
+	if len(data) == 0 {
+		return nil
+	}
+	text := ""
+	if bytes.HasPrefix(bytes.TrimSpace(data), []byte("%PDF")) {
+		text = extractPDFText(data)
+	} else {
+		raw := string(data)
+		if strings.Contains(strings.ToLower(raw), "<html") || strings.Contains(strings.ToLower(raw), "<body") {
+			text = visibleArticleLines(raw)
+		} else {
+			text = normalizeWhitespacePreservingLines(raw)
+		}
+	}
+	return articleSparePartsFromDocumentText(text, articleNumber, source)
+}
+
+func articleSparePartDocumentRows(text string) []string {
+	text = repairMojibake(text)
+	rows := []string{}
+	previousDescription := ""
+	for _, line := range regexp.MustCompile(`[\n\r]+`).Split(text, -1) {
+		line = normalizeWhitespace(line)
+		if line == "" {
+			continue
+		}
+		match := sparePartArticlePattern.FindStringIndex(line)
+		if match != nil {
+			if match[0] == 0 && previousDescription != "" {
+				rows = append(rows, previousDescription+" "+line)
+			} else {
+				rows = append(rows, line)
+			}
+			previousDescription = ""
+			continue
+		}
+		rows = append(rows, line)
+		if looksLikeSparePartDescriptionFragment(line) {
+			previousDescription = line
+		} else {
+			previousDescription = ""
+		}
+	}
+	return rows
+}
+
+func looksLikeSparePartDescriptionFragment(line string) bool {
+	line = strings.TrimSpace(line)
+	if len([]rune(line)) < 4 || !regexp.MustCompile(`[A-Za-zÄÖÜäöüß]`).MatchString(line) {
+		return false
+	}
+	lower := strings.ToLower(line)
+	return !containsAny(lower, []string{
+		"ersatzteile", "spare parts", "pièces de rechange", "náhradní díly", "bezeichnung / description",
+		"et-nr", "spare part n", "preisgruppe", "price category", "bitte immer", "please order",
+	})
+}
+
 func articleSparePartFromRow(row, pageURL string) (ArticleSearchSparePart, bool) {
 	text := cleanHTML(row)
 	if len(text) < 6 {
@@ -1056,7 +1200,7 @@ func articleSparePartFromRow(row, pageURL string) (ArticleSearchSparePart, bool)
 	}
 	lower := strings.ToLower(text)
 	price := extractPrice(text)
-	if price == "" && !containsAny(lower, []string{"ersatzteil", "spare", "kuppl", "motor", "radsatz", "puffer", "decoder", "leiterplatte", "geh\u00e4use", "gehaeuse", "schraube", "stromabnehmer", "getriebe"}) {
+	if price == "" && !containsAny(lower, []string{"ersatzteil", "spare", "kuppl", "motor", "radsatz", "puffer", "decoder", "leiterplatte", "geh\u00e4use", "gehaeuse", "schraube", "stromabnehmer", "getriebe", "reifen", "haftreifen", "lautsprecher", "loudspeaker", "coupler", "speaker"}) {
 		return ArticleSearchSparePart{}, false
 	}
 	match := sparePartArticlePattern.FindStringSubmatch(text)
@@ -1068,8 +1212,10 @@ func articleSparePartFromRow(row, pageURL string) (ArticleSearchSparePart, bool)
 	if price != "" {
 		description = strings.TrimSpace(strings.Replace(description, price, " ", 1))
 	}
-	description = strings.Trim(description, " -:;,.\t")
-	description = regexp.MustCompile(`(?i)^(ersatzteil|spare part|artikel|art\\.?\\s*nr\\.?|nr\\.?)\\s*[:#-]*\\s*`).ReplaceAllString(description, "")
+	description = cleanArticleSparePartDescription(description)
+	if !looksLikeRealArticleSparePart(description, price) {
+		return ArticleSearchSparePart{}, false
+	}
 	if len(description) > 180 {
 		description = strings.TrimSpace(description[:180])
 	}
@@ -1081,6 +1227,539 @@ func articleSparePartFromRow(row, pageURL string) (ArticleSearchSparePart, bool)
 		return ArticleSearchSparePart{}, false
 	}
 	return ArticleSearchSparePart{ArticleNumber: number, Description: description, Price: price, URL: link, Source: sourceDisplayName(pageURL)}, true
+}
+
+func articleSparePartFromConfirmedDocumentRow(row, pageURL string) (ArticleSearchSparePart, bool) {
+	text := cleanHTML(row)
+	if len(text) < 6 {
+		return ArticleSearchSparePart{}, false
+	}
+	match := sparePartArticlePattern.FindStringSubmatch(text)
+	if len(match) < 2 {
+		return ArticleSearchSparePart{}, false
+	}
+	number := strings.TrimSpace(match[1])
+	if strings.Count(number, "-") > 1 || strings.Contains(number, "-90") {
+		return ArticleSearchSparePart{}, false
+	}
+	description := strings.TrimSpace(strings.Replace(text, match[0], " ", 1))
+	price := extractPrice(text)
+	if price != "" {
+		description = strings.TrimSpace(strings.Replace(description, price, " ", 1))
+	}
+	description = cleanArticleSparePartDescription(description)
+	description = cleanConfirmedSparePartDescription(description)
+	if !looksLikeConfirmedDocumentSparePart(description) {
+		return ArticleSearchSparePart{}, false
+	}
+	if len(description) > 180 {
+		description = strings.TrimSpace(description[:180])
+	}
+	return ArticleSearchSparePart{ArticleNumber: number, Description: description, Price: price, URL: pageURL, Source: sourceDisplayName(pageURL)}, true
+}
+
+func cleanArticleSparePartDescription(description string) string {
+	description = strings.Trim(description, " -:;,.\t")
+	replacements := []*regexp.Regexp{
+		regexp.MustCompile(`(?i)^(GER|DE|ENG|EN)\s*[:/-]\s*`),
+		regexp.MustCompile(`(?i)\b(ersatzteil|spare part|artikel|artikelnummer|nummer|number|no\.?|item number|item no\.?|art\.?\s*nr\.?|nr\.?)\s*[:#-]*\s*`),
+		regexp.MustCompile(`(?i)\b(preis|price)\s*[:#-]?\s*\d+(?:[,.]\d{1,2})?\s*(\x{20ac}|EUR)?`),
+		regexp.MustCompile(`(?i)\d+(?:[,.]\d{1,2})?\s*(\x{20ac}|EUR)`),
+		regexp.MustCompile(`(?i)\*?\s*\b(in den warenkorb|zum warenkorb hinzuf(?:\x{fc}|u|ue)gen|in den einkaufswagen|add to cart|add to shopping cart|add to basket|add to bag|ajouter au panier|anadir al carrito|aggiungi al carrello|in winkelwagen|toevoegen aan winkelwagen)\b`),
+	}
+	for _, pattern := range replacements {
+		description = pattern.ReplaceAllString(description, "")
+	}
+	description = strings.Join(strings.Fields(description), " ")
+	return strings.Trim(description, " -:;,.|")
+}
+
+func looksLikeRealArticleSparePart(description, price string) bool {
+	lower := strings.ToLower(description)
+	if len([]rune(strings.TrimSpace(description))) < 3 {
+		return false
+	}
+	if containsAny(lower, []string{"bedienungsanl", "bedienungsanleitung", "ersatzteilliste", "ersatzteilblatt", "spare parts list", "manual", "download", "katalog", "catalog", "et-blatt", "explosionszeichnung", "serviceblatt"}) {
+		return false
+	}
+	if price != "" {
+		return true
+	}
+	return containsAny(lower, []string{"kuppl", "lautsprecher", "decoder", "reifen", "haftreifen", "radsatz", "motor", "puffer", "schraube", "stromabnehmer", "getriebe", "geh\xC3\xA4use", "gehaeuse", "leiterplatte", "feder", "achse", "traction tire", "loudspeaker", "coupler", "speaker"})
+}
+
+func cleanConfirmedSparePartDescription(description string) string {
+	description = regexp.MustCompile(`(?i)\b(?:PG\*?|Preisgruppe|price category)\b\s*[:#-]?\s*\d{1,3}\s*$`).ReplaceAllString(description, "")
+	description = regexp.MustCompile(`\s+\d{1,3}\s*$`).ReplaceAllString(description, "")
+	description = regexp.MustCompile(`(?i)\b(?:ET-Nr\.?|spare part N.?|Bezeichnung / Description)\b`).ReplaceAllString(description, "")
+	description = strings.Join(strings.Fields(description), " ")
+	return strings.Trim(description, " -:;,.|")
+}
+
+func looksLikeConfirmedDocumentSparePart(description string) bool {
+	description = strings.TrimSpace(description)
+	if len([]rune(description)) < 3 || len([]rune(description)) > 180 {
+		return false
+	}
+	lower := strings.ToLower(description)
+	badTokens := []string{
+		"bedienungsanl", "bedienungsanleitung", "instructions for use", "manuel d", "návod", "ersatzteilliste", "spare parts list",
+		"piko spielwaren", "lutherstraße", "lutherstrasse", "germany", "www.", "http", "tel.", "telefon", "sicherheitshinweise",
+		"please note", "hinweis", "aviso", "uwaga", "nota:", "bei ersatzteilanforderung", "please order", "vollständige",
+		"preisgruppe", "price category", "nicht enthalten", "not included", "non compris", "neobsahuje",
+		"demontage", "disassembly", "einbau", "installing", "installation", "ölen sie", "oelen sie", "if used frequently",
+	}
+	if containsAny(lower, badTokens) {
+		return false
+	}
+	return regexp.MustCompile(`[A-Za-zÄÖÜäöüß]`).MatchString(description)
+}
+
+func looksLikeSparePartsDocumentText(text, articleNumber string) bool {
+	if !documentTextMatchesArticleNumber(text, articleNumber) {
+		return false
+	}
+	lower := strings.ToLower(text)
+	return containsAny(lower, []string{
+		"ersatzteile", "ersatzteilliste", "spare parts", "pièces de rechange", "náhradní díly", "et-nr", "spare part n", "bezeichnung / description",
+	})
+}
+
+func sparePartsDocumentSection(text string) string {
+	lower := strings.ToLower(text)
+	start := -1
+	for _, marker := range []string{"ersatzteile", "spare parts", "pièces de rechange", "náhradní díly", "bezeichnung / description"} {
+		if index := strings.Index(lower, marker); index >= 0 && (start < 0 || index < start) {
+			start = index
+		}
+	}
+	if start < 0 {
+		return text
+	}
+	section := text[start:]
+	sectionLower := strings.ToLower(section)
+	for _, marker := range []string{"\nsoundeinbau", "\ninstalling sound", "\ndecodereinbau", "\ninstalling decoder", "\nhaftreifenwechsel", "\nchange the traction tires"} {
+		if index := strings.Index(sectionLower, marker); index > 0 {
+			section = section[:index]
+			sectionLower = sectionLower[:index]
+		}
+	}
+	return section
+}
+
+func looksLikeSparePartDocument(document ArticleSearchDocument) bool {
+	lower := strings.ToLower(document.Kind + " " + document.Title + " " + document.URL)
+	return containsAny(lower, []string{"spare-parts", "ersatzteil", "ersatzteilliste", "spare", "et-blatt", "explosionszeichnung", "serviceblatt", "bedienungsanl", "manual"}) &&
+		strings.Contains(lower, ".pdf")
+}
+
+func documentTextMatchesArticleNumber(text, articleNumber string) bool {
+	needle := normalizedArticleNumber(articleNumber)
+	if needle == "" {
+		return false
+	}
+	return strings.Contains(normalizedArticleNumber(text), needle)
+}
+
+func normalizedArticleNumber(value string) string {
+	builder := strings.Builder{}
+	for _, char := range value {
+		if char >= '0' && char <= '9' {
+			builder.WriteRune(char)
+		}
+	}
+	return builder.String()
+}
+
+func mergeArticleSpareParts(base, extra []ArticleSearchSparePart, limit int) []ArticleSearchSparePart {
+	if limit <= 0 {
+		limit = 80
+	}
+	out := []ArticleSearchSparePart{}
+	seen := map[string]bool{}
+	add := func(part ArticleSearchSparePart) bool {
+		key := strings.ToLower(part.ArticleNumber + "|" + part.Description + "|" + part.URL)
+		if key == "||" || seen[key] {
+			return len(out) >= limit
+		}
+		seen[key] = true
+		out = append(out, part)
+		return len(out) >= limit
+	}
+	for _, part := range base {
+		if add(part) {
+			return out
+		}
+	}
+	for _, part := range extra {
+		if add(part) {
+			return out
+		}
+	}
+	return out
+}
+
+func extractPDFText(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	parts := []string{}
+	for _, stream := range pdfStreams(data) {
+		if text := pdfContentText(stream); text != "" {
+			parts = append(parts, text)
+		}
+	}
+	text := strings.Join(parts, "\n")
+	if text == "" {
+		text = printablePDFText(data)
+	}
+	return normalizeWhitespacePreservingLines(repairMojibake(text))
+}
+
+func pdfStreams(data []byte) [][]byte {
+	streamPattern := regexp.MustCompile(`(?s)(<<.*?>>)\s*stream\r?\n(.*?)\r?\nendstream`)
+	matches := streamPattern.FindAllSubmatch(data, -1)
+	streams := [][]byte{}
+	for _, match := range matches {
+		if len(match) < 3 {
+			continue
+		}
+		dictionary := strings.ToLower(string(match[1]))
+		stream := bytes.Trim(match[2], "\r\n")
+		if strings.Contains(dictionary, "flatedecode") {
+			reader, err := zlib.NewReader(bytes.NewReader(stream))
+			if err != nil {
+				continue
+			}
+			decoded, err := io.ReadAll(io.LimitReader(reader, 8*1024*1024))
+			_ = reader.Close()
+			if err == nil {
+				streams = append(streams, decoded)
+			}
+			continue
+		}
+		streams = append(streams, stream)
+	}
+	return streams
+}
+
+func pdfTextStrings(data []byte) []string {
+	raw := string(data)
+	out := []string{}
+	for _, value := range pdfLiteralStrings(raw) {
+		value = normalizeWhitespace(value)
+		if value != "" {
+			out = append(out, value)
+		}
+	}
+	for _, value := range pdfHexStrings(raw) {
+		value = normalizeWhitespace(value)
+		if value != "" {
+			out = append(out, value)
+		}
+	}
+	return out
+}
+
+func pdfContentText(data []byte) string {
+	raw := string(data)
+	if !strings.Contains(raw, "BT") || (!strings.Contains(raw, "Tj") && !strings.Contains(raw, "TJ")) {
+		return ""
+	}
+	builder := strings.Builder{}
+	newLine := func() {
+		current := builder.String()
+		if current != "" && !strings.HasSuffix(current, "\n") {
+			builder.WriteByte('\n')
+		}
+	}
+	space := func() {
+		current := builder.String()
+		if current != "" && !strings.HasSuffix(current, " ") && !strings.HasSuffix(current, "\n") {
+			builder.WriteByte(' ')
+		}
+	}
+	for _, line := range strings.Split(raw, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		if strings.Contains(line, " Tm") {
+			newLine()
+		}
+		if match := pdfTextMovePattern.FindStringSubmatch(line); len(match) == 3 {
+			x := parsePDFNumber(match[1])
+			y := parsePDFNumber(match[2])
+			if y < -0.2 || x < -15 {
+				newLine()
+			} else if x > 0.5 {
+				space()
+			}
+		}
+		text := pdfShowText(line)
+		if text == "" {
+			continue
+		}
+		if builder.Len() > 0 && !strings.HasSuffix(builder.String(), "\n") && needsPDFTextSpace(builder.String(), text) {
+			builder.WriteByte(' ')
+		}
+		builder.WriteString(text)
+	}
+	return builder.String()
+}
+
+var pdfTextMovePattern = regexp.MustCompile(`(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+Td\b`)
+
+func parsePDFNumber(value string) float64 {
+	var result float64
+	var sign float64 = 1
+	if strings.HasPrefix(value, "-") {
+		sign = -1
+		value = strings.TrimPrefix(value, "-")
+	}
+	parts := strings.SplitN(value, ".", 2)
+	for _, char := range parts[0] {
+		if char >= '0' && char <= '9' {
+			result = result*10 + float64(char-'0')
+		}
+	}
+	if len(parts) == 2 {
+		scale := 10.0
+		for _, char := range parts[1] {
+			if char >= '0' && char <= '9' {
+				result += float64(char-'0') / scale
+				scale *= 10
+			}
+		}
+	}
+	return result * sign
+}
+
+func needsPDFTextSpace(current, next string) bool {
+	last := []rune(strings.TrimRight(current, " \t"))
+	first := []rune(strings.TrimLeft(next, " \t"))
+	if len(last) == 0 || len(first) == 0 {
+		return false
+	}
+	return isPDFWordRune(last[len(last)-1]) && isPDFWordRune(first[0])
+}
+
+func isPDFWordRune(char rune) bool {
+	return char >= '0' && char <= '9' || char >= 'A' && char <= 'Z' || char >= 'a' && char <= 'z' || char >= 128
+}
+
+func pdfShowText(line string) string {
+	if !strings.Contains(line, "Tj") && !strings.Contains(line, "TJ") {
+		return ""
+	}
+	parts := []string{}
+	for index := 0; index < len(line); index++ {
+		switch line[index] {
+		case '(':
+			value, next := readPDFLiteral(line, index)
+			if next > index {
+				parts = append(parts, value)
+				index = next - 1
+			}
+		case '<':
+			if index+1 < len(line) && line[index+1] == '<' {
+				continue
+			}
+			value, next := readPDFHex(line, index)
+			if next > index {
+				parts = append(parts, value)
+				index = next - 1
+			}
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+func readPDFLiteral(raw string, start int) (string, int) {
+	depth := 1
+	escaped := false
+	for index := start + 1; index < len(raw); index++ {
+		char := raw[index]
+		if escaped {
+			escaped = false
+			continue
+		}
+		if char == '\\' {
+			escaped = true
+			continue
+		}
+		if char == '(' {
+			depth++
+			continue
+		}
+		if char == ')' {
+			depth--
+			if depth == 0 {
+				return decodePDFLiteralString(raw[start+1 : index]), index + 1
+			}
+		}
+	}
+	return "", start
+}
+
+func readPDFHex(raw string, start int) (string, int) {
+	end := strings.IndexByte(raw[start+1:], '>')
+	if end < 0 {
+		return "", start
+	}
+	end += start + 1
+	cleaned := regexp.MustCompile(`\s+`).ReplaceAllString(raw[start+1:end], "")
+	if len(cleaned) < 2 || len(cleaned)%2 == 1 {
+		return "", end + 1
+	}
+	decoded, err := hex.DecodeString(cleaned)
+	if err != nil || len(decoded) == 0 {
+		return "", end + 1
+	}
+	return decodePDFHexText(decoded), end + 1
+}
+
+func pdfLiteralStrings(raw string) []string {
+	out := []string{}
+	for index := 0; index < len(raw); index++ {
+		if raw[index] != '(' {
+			continue
+		}
+		start := index + 1
+		depth := 1
+		escaped := false
+		for index++; index < len(raw); index++ {
+			char := raw[index]
+			if escaped {
+				escaped = false
+				continue
+			}
+			if char == '\\' {
+				escaped = true
+				continue
+			}
+			if char == '(' {
+				depth++
+				continue
+			}
+			if char == ')' {
+				depth--
+				if depth == 0 {
+					out = append(out, decodePDFLiteralString(raw[start:index]))
+					break
+				}
+			}
+		}
+	}
+	return out
+}
+
+func decodePDFLiteralString(value string) string {
+	decoded := []byte{}
+	for index := 0; index < len(value); index++ {
+		char := value[index]
+		if char != '\\' || index+1 >= len(value) {
+			decoded = append(decoded, char)
+			continue
+		}
+		index++
+		switch value[index] {
+		case 'n', 'r', 't':
+			decoded = append(decoded, ' ')
+		case 'b', 'f':
+			continue
+		case '(', ')', '\\':
+			decoded = append(decoded, value[index])
+		default:
+			if value[index] >= '0' && value[index] <= '7' {
+				end := index + 1
+				for end < len(value) && end-index < 3 && value[end] >= '0' && value[end] <= '7' {
+					end++
+				}
+				octal := value[index:end]
+				var octalByte byte
+				for _, digit := range octal {
+					octalByte = octalByte*8 + byte(digit-'0')
+				}
+				decoded = append(decoded, octalByte)
+				index = end - 1
+				continue
+			}
+			decoded = append(decoded, value[index])
+		}
+	}
+	return decodePDFByteString(decoded)
+}
+
+func pdfHexStrings(raw string) []string {
+	matches := regexp.MustCompile(`<([0-9A-Fa-f\s]{4,})>`).FindAllStringSubmatch(raw, -1)
+	out := []string{}
+	for _, match := range matches {
+		if len(match) < 2 {
+			continue
+		}
+		cleaned := regexp.MustCompile(`\s+`).ReplaceAllString(match[1], "")
+		if len(cleaned)%2 == 1 {
+			cleaned += "0"
+		}
+		decoded, err := hex.DecodeString(cleaned)
+		if err != nil || len(decoded) == 0 {
+			continue
+		}
+		out = append(out, decodePDFHexText(decoded))
+	}
+	return out
+}
+
+func decodePDFHexText(data []byte) string {
+	if len(data) >= 2 && data[0] == 0xFE && data[1] == 0xFF {
+		builder := strings.Builder{}
+		for index := 2; index+1 < len(data); index += 2 {
+			r := rune(data[index])<<8 | rune(data[index+1])
+			if r >= 32 {
+				builder.WriteRune(r)
+			}
+		}
+		return builder.String()
+	}
+	return decodePDFByteString(data)
+}
+
+func decodePDFByteString(data []byte) string {
+	if utf8.Valid(data) {
+		return string(data)
+	}
+	builder := strings.Builder{}
+	for _, char := range data {
+		if char == 0 {
+			continue
+		}
+		builder.WriteRune(rune(char))
+	}
+	return builder.String()
+}
+
+func printablePDFText(data []byte) string {
+	builder := strings.Builder{}
+	for _, char := range string(data) {
+		if char == '\n' || char == '\r' || char == '\t' || char >= 32 && char < utf8.RuneSelf {
+			builder.WriteRune(char)
+		} else {
+			builder.WriteRune(' ')
+		}
+	}
+	return builder.String()
+}
+
+func normalizeWhitespacePreservingLines(value string) string {
+	lines := []string{}
+	for _, line := range regexp.MustCompile(`[\n\r]+`).Split(value, -1) {
+		line = normalizeWhitespace(line)
+		if line != "" {
+			lines = append(lines, line)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func looksLikeArticleDocument(tag, documentURL string) bool {

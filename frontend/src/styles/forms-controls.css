@@ -62,6 +62,10 @@
   color: var(--text);
 }
 
+.required-label.pending {
+  color: var(--muted);
+}
+
 .required-label.missing {
   color: var(--danger);
 }
@@ -91,6 +95,11 @@
   border-radius: 999px;
   background: var(--danger);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
+}
+
+.required-dot.pending {
+  background: color-mix(in srgb, var(--muted) 66%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 10%, transparent);
 }
 
 .required-dot.filled {

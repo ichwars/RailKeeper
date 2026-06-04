@@ -3,6 +3,7 @@ import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Pr
 import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { localSettingKeys } from "../settings/settingsModel";
 import {
   buildECoSVehicleDraftRow,
   ColumnMapping,
@@ -47,8 +48,13 @@ export function ImportExportView() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [importTable, setImportTable] = useState<ImportTablePreview | null>(null);
-  const [ecosHost, setEcosHost] = useState(window.localStorage.getItem("railkeeper.ecos.host") || "");
-  const [ecosPort, setEcosPort] = useState(window.localStorage.getItem("railkeeper.ecos.port") || "15471");
+  const [ecosHost, setEcosHost] = useState(window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "");
+  const [ecosPort, setEcosPort] = useState(window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471");
+  const [ecosEnabled, setEcosEnabled] = useState(() => {
+    const stored = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
+    if (stored !== null) return stored === "true";
+    return Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim());
+  });
   const [ecosBusy, setEcosBusy] = useState<ECoSBusyPhase>("idle");
   const [ecosResult, setEcosResult] = useState<ECoSConnectionResult | null>(null);
   const [ecosRawProbe, setEcosRawProbe] = useState<ECoSRawProbe | null>(null);
@@ -160,6 +166,21 @@ export function ImportExportView() {
         setMasterOptions({});
         setSymbols([]);
       });
+  }, []);
+
+  useEffect(() => {
+    const syncDigitalSettings = () => {
+      const storedEnabled = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
+      setEcosEnabled(storedEnabled !== null ? storedEnabled === "true" : Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim()));
+      setEcosHost(window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "");
+      setEcosPort(window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471");
+    };
+    window.addEventListener("storage", syncDigitalSettings);
+    window.addEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
+    return () => {
+      window.removeEventListener("storage", syncDigitalSettings);
+      window.removeEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
+    };
   }, []);
 
   const importSummary = useMemo(() => ({
@@ -384,8 +405,10 @@ export function ImportExportView() {
   });
 
   const rememberECoSSettings = () => {
-    window.localStorage.setItem("railkeeper.ecos.host", ecosHost.trim());
-    window.localStorage.setItem("railkeeper.ecos.port", ecosPort.trim() || "15471");
+    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(ecosEnabled));
+    window.localStorage.setItem(localSettingKeys.digitalEcosHost, ecosHost.trim());
+    window.localStorage.setItem(localSettingKeys.digitalEcosPort, ecosPort.trim() || "15471");
+    window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
   };
 
   const testECoSConnection = async () => {
@@ -441,6 +464,8 @@ export function ImportExportView() {
     const updatedSession = updateECoSImportSessionStatus(locomotive.objectId, "editing");
     const payload: ECoSVehicleDraftPayload = {
       source: "ecos",
+      mode: row.mode,
+      targetVehicleId: row.duplicateVehicleId,
       sourceSummary: {
         objectId: locomotive.objectId,
         name: locomotive.name || `ECoS ${locomotive.objectId}`,
@@ -449,9 +474,11 @@ export function ImportExportView() {
         profile: locomotive.profile || ""
       },
       vehicle: row.vehicle,
+      importedKeys: row.importedKeys,
       externalMapping: row.externalMapping || ecosExternalMapping(locomotive),
       cvValues: row.cvSuggestions || [],
       functionValues: row.functionSuggestions || [],
+      imageSuggestions: row.imageSuggestions || [],
       unclearFields,
       returnToEcos: updatedSession ? { sessionId: updatedSession.id, objectId: locomotive.objectId } : undefined
     };
@@ -474,23 +501,9 @@ export function ImportExportView() {
     setEcosMessage(t("importExport.ecos.skipped", { name: locomotive.name || `ECoS ${locomotive.objectId}` }));
   };
 
-  const addECoSProbeToImportReview = () => {
-    if (!ecosRawProbe || ecosRawProbe.locomotives.length === 0) {
-      setEcosMessage(t("importExport.ecos.noImportRows"));
-      return;
-    }
-    const ecosRows = ecosRawProbe.locomotives.map((locomotive) => buildECoSVehicleDraftRow(locomotive, vehicles, symbols, {
-      matched: issueLabels.ecosMatched,
-      missingManufacturer: issueLabels.missingManufacturer,
-      missingName: issueLabels.missingName,
-      missingGauge: issueLabels.missingGauge,
-      missingCategory: issueLabels.missingCategory,
-      missingGattung: issueLabels.missingGattung
-    }, cv8Manufacturers));
-    const nextIds = new Set(ecosRows.map((row) => row.id));
-    setImportTable(null);
-    setRows((current) => [...current.filter((row) => !nextIds.has(row.id)), ...ecosRows]);
-    setEcosMessage(t("importExport.ecos.reviewAdded", { count: ecosRows.length }));
+  const openDigitalSettings = () => {
+    window.history.pushState(null, "", "/settings?tab=digital");
+    window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   return (
@@ -551,12 +564,33 @@ export function ImportExportView() {
         </article>
       </section>
 
+      {!ecosEnabled ? (
+        <section className="panel transfer-panel ecos-panel ecos-disabled-panel">
+          <div className="panel-head">
+            <div>
+              <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.title")}</h2>
+              <p>{t("importExport.ecos.disabledSubtitle")}</p>
+            </div>
+          </div>
+          <div className="ecos-disabled-content">
+            <div>
+              <strong>{t("importExport.ecos.disabledTitle")}</strong>
+              <span>{t("importExport.ecos.disabledHelp")}</span>
+            </div>
+            <button type="button" className="primary-button" onClick={openDigitalSettings}>
+              <Database size={15} aria-hidden="true" />
+              {t("importExport.ecos.openSettings")}
+            </button>
+          </div>
+        </section>
+      ) : (
       <section className="panel transfer-panel ecos-panel">
         <div className="panel-head">
           <div>
             <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.title")}</h2>
             <p>{t("importExport.ecos.subtitle")}</p>
           </div>
+          <span className="settings-pill active">{t("settings.digital.active")}</span>
         </div>
         <div className="ecos-connection-grid">
           <label>
@@ -594,8 +628,10 @@ export function ImportExportView() {
           </p>
         )}
         {ecosMessage && <p className="form-message">{ecosMessage}</p>}
-        <p className="source-note backup-note">{t("importExport.ecos.note")}</p>
-        <p className="source-note backup-note">{t("importExport.ecos.mappingNote")}</p>
+        <div className="ecos-flow-note">
+          <strong>{t("importExport.ecos.flowTitle")}</strong>
+          <span>{t("importExport.ecos.flowNote")}</span>
+        </div>
         {ecosRawProbe && ecosRawProbe.locomotives.length > 0 && (
           <div className="ecos-preview-toolbar">
             <span>{t("importExport.ecos.reviewHint", { count: ecosRawProbe.locomotives.length })}</span>
@@ -609,14 +645,11 @@ export function ImportExportView() {
               <SkipForward size={15} aria-hidden="true" />
               {t("importExport.ecos.nextOpen")}
             </button>
-            <button type="button" className="secondary-button" onClick={addECoSProbeToImportReview} disabled={saving}>
-              <ClipboardCheck size={15} aria-hidden="true" />
-              {t("importExport.ecos.addToReview")}
-            </button>
           </div>
         )}
         {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive)}
       </section>
+      )}
 
 
       {importTable && (

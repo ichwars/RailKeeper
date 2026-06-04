@@ -1,7 +1,7 @@
 import type { AppView } from "../../app/App";
 import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
 
-export type SettingsTab = "general" | "data" | "importExport" | "appearance" | "auth";
+export type SettingsTab = "general" | "data" | "digital" | "importExport" | "appearance" | "auth";
 export type MasterDataType = {
   type: string;
 };
@@ -9,6 +9,7 @@ export type MasterDataType = {
 export const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
   { id: "general", labelKey: "settings.tabs.general" },
   { id: "data", labelKey: "settings.tabs.data" },
+  { id: "digital", labelKey: "settings.tabs.digital" },
   { id: "importExport", labelKey: "settings.tabs.importExport" },
   { id: "appearance", labelKey: "settings.tabs.appearance" },
   { id: "auth", labelKey: "settings.tabs.auth" }
@@ -54,6 +55,10 @@ export const localSettingKeys = {
   lightBackground: "railkeeper.settings.lightBackground",
   lightAccent: "railkeeper.settings.lightAccent",
   lightStyle: "railkeeper.settings.lightStyle",
+  digitalProvider: "railkeeper.settings.digitalProvider",
+  digitalEcosEnabled: "railkeeper.ecos.enabled",
+  digitalEcosHost: "railkeeper.ecos.host",
+  digitalEcosPort: "railkeeper.ecos.port",
   twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
 };
 

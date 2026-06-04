@@ -98,7 +98,7 @@ import { ArticleSearchDialog } from "./ArticleSearchDialog";
 
 import { BarcodeSearchDialog } from "./BarcodeSearchDialog";
 
-import { DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
+import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 
@@ -108,9 +108,11 @@ import { VehicleMaintenanceTab } from "./VehicleMaintenanceTab";
 
 import { VehicleModelTab } from "./VehicleModelTab";
 
-import { VehicleSparePartsTab, sparePartResultKey } from "./VehicleSparePartsTab";
+import { VehicleSparePartsTab, isStrictRealSparePartCandidate, sparePartResultKey, strictCleanSparePartDescription } from "./VehicleSparePartsTab";
 
-import { VehicleUploadsTab } from "./VehicleUploadsTab";
+import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
+
+import { VehicleUploadsTab, webDocumentKey } from "./VehicleUploadsTab";
 
 import { VehicleCVTab } from "./VehicleCVTab";
 
@@ -238,8 +240,6 @@ import {
 
   fieldValue,
 
-  hasArticleIdentity,
-
   hasArticleSearchCriteria,
 
   hasQrPayloadData,
@@ -335,6 +335,8 @@ export function VehiclesView({ username }: { username: string }) {
   });
 
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
+  const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
+  const [saveAttempted, setSaveAttempted] = useState(false);
 
   const [articleSearchOpen, setArticleSearchOpen] = useState(false);
 
@@ -364,8 +366,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [attachmentUploadDescription, setAttachmentUploadDescription] = useState("");
 
-  const [attachmentUploadMaintenanceID, setAttachmentUploadMaintenanceID] = useState("");
-
   const [attachmentDragActive, setAttachmentDragActive] = useState(false);
 
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
@@ -393,6 +393,7 @@ export function VehiclesView({ username }: { username: string }) {
   const [documentSearchRan, setDocumentSearchRan] = useState(false);
 
   const [foundUploadDocuments, setFoundUploadDocuments] = useState<ArticleSearchDocument[]>([]);
+  const [selectedUploadDocuments, setSelectedUploadDocuments] = useState<Record<string, boolean>>({});
 
   const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
 
@@ -594,29 +595,37 @@ export function VehiclesView({ username }: { username: string }) {
 
   const openECoSDraft = useCallback((draft: ECoSVehicleDraftPayload) => {
 
-    const nextForm = { ...emptyVehicle, ...draft.vehicle };
+    const draftImages: PendingArticleImage[] = (draft.imageSuggestions || []).map((image, index) => ({
 
-    setSelected(null);
+      ...image,
 
-    setMode("create");
+      id: image.id || `ecos-${draft.sourceSummary.objectId}-${index}`,
 
-    setForm(nextForm);
+      isPrimary: index === 0,
 
-    setPendingArticleImages([]);
+      maintenanceId: ""
 
-    setAttachmentEdits({});
+    }));
 
-    setImageUploadMaintenanceID("");
+    const mergeDraftImages = (current: PendingArticleImage[]) => {
 
-    setAttachmentUploadCategory("");
+      if (draftImages.length === 0) return current;
 
-    setAttachmentUploadDescription("");
+      const existing = new Set(current.map((image) => image.url));
 
-    setAttachmentUploadMaintenanceID("");
+      const next = [...current, ...draftImages.filter((image) => !existing.has(image.url))];
 
-    setAttachmentDragActive(false);
+      if (!next.some((image) => image.isPrimary) && next.length > 0) {
 
-    setFunctionEdits(Object.fromEntries((draft.functionValues || []).map((item) => [
+        next[0] = { ...next[0], isPrimary: true };
+
+      }
+
+      return next;
+
+    };
+
+    const draftFunctionEdits = Object.fromEntries((draft.functionValues || []).map((item) => [
 
       item.functionKey,
 
@@ -638,35 +647,123 @@ export function VehiclesView({ username }: { username: string }) {
 
       }
 
-    ])));
+    ]));
 
-    resetMaintenanceForm();
+    const applyDraftValues = (base: CreateVehicleRequest) => {
 
-    resetSparePartForm();
+      const next = { ...base };
 
-    resetSparePartSearch();
+      const keys = draft.importedKeys?.length
 
-    resetUploadDocumentSearch();
+        ? draft.importedKeys
 
-    resetCVForm();
+        : Object.keys(draft.vehicle) as (keyof CreateVehicleRequest)[];
 
-    setCVImportPreview(null);
+      keys.forEach((key) => {
 
-    setCVFileUploadPreview(null);
+        const value = draft.vehicle[key];
 
-    setEcosDraft(draft);
+        if (typeof value === "boolean" || (typeof value === "string" && value.trim() !== "")) {
 
-    setEcosUnclearFields(new Set(draft.unclearFields));
+          (next as Record<string, unknown>)[key] = value;
 
-    setShowConfiguredFunctionsOnly((draft.functionValues || []).length > 0);
+        }
 
-    setActiveTab("model");
+      });
 
-    setOpenSections({ model: true, details: false, vehicle: false });
+      return next;
 
-    setModalOpen(true);
+    };
 
-    setMessage(t("vehicles.ecosDraft.loaded"));
+    const finishOpen = () => {
+
+      resetMaintenanceForm();
+
+      resetSparePartForm();
+
+      resetSparePartSearch();
+
+      resetUploadDocumentSearch();
+
+      resetCVForm();
+
+      setCVImportPreview(null);
+
+      setCVFileUploadPreview(null);
+
+      setEcosDraft(draft);
+
+      setEcosUnclearFields(new Set(draft.unclearFields));
+
+      setShowConfiguredFunctionsOnly((draft.functionValues || []).length > 0);
+
+      setActiveTab("model");
+
+      setOpenSections({ model: true, details: false, vehicle: false });
+
+      setModalOpen(true);
+
+      setMessage(draft.mode === "update" ? t("vehicles.ecosDraft.loadedUpdate") : t("vehicles.ecosDraft.loaded"));
+
+    };
+
+    if (draft.mode === "update" && draft.targetVehicleId) {
+
+      api.vehicle(draft.targetVehicleId)
+
+        .then((detail) => {
+
+          setSelectedDetail(detail);
+
+          setPendingArticleImages((current) => mergeDraftImages(current));
+
+          setMode("edit");
+
+          setForm(applyDraftValues(vehicleToForm(detail)));
+
+          setFunctionEdits({
+
+            ...functionsToEditState(detail.functions),
+
+            ...draftFunctionEdits
+
+          });
+
+          finishOpen();
+
+        })
+
+        .catch((error: Error) => setMessage(error.message));
+
+      return;
+
+    }
+
+    const nextForm = applyDraftValues(emptyVehicle);
+
+    setSelected(null);
+
+    setMode("create");
+
+    setForm(nextForm);
+
+    setPendingArticleImages(mergeDraftImages([]));
+
+    setAttachmentEdits({});
+
+    setImageUploadMaintenanceID("");
+
+    setAttachmentUploadCategory("");
+
+    setAttachmentUploadDescription("");
+
+    setAttachmentDragActive(false);
+    setAttachmentDeleteCandidate(null);
+    setSaveAttempted(false);
+
+    setFunctionEdits(draftFunctionEdits);
+
+    finishOpen();
 
   }, [t]);
 
@@ -888,11 +985,21 @@ export function VehiclesView({ username }: { username: string }) {
 
   const someVisibleSelected = sortedVehicles.some((vehicle) => selectedVehicleIDs.has(vehicle.id));
 
-  const articleIdentityFilled = hasArticleIdentity(form);
-
   const canRunArticleSearch = hasArticleSearchCriteria(form);
 
   const canGenerateQr = hasQrPayloadData(selected, form);
+
+  const requiredModelFields = [
+    { key: "manufacturer" as const, label: t("vehicle.field.manufacturer"), value: form.manufacturer },
+    { key: "name" as const, label: t("vehicle.field.name"), value: form.name },
+    { key: "gauge" as const, label: t("vehicle.field.gauge"), value: form.gauge },
+    { key: "category" as const, label: t("vehicle.field.category"), value: form.category },
+    { key: "gattung" as const, label: t("vehicle.field.gattung"), value: form.gattung }
+  ];
+
+  const missingRequiredModelFields = requiredModelFields.filter((field) => !compactValue(field.value));
+
+  const showRequiredErrors = saveAttempted || Boolean(ecosDraft);
 
 
 
@@ -1169,6 +1276,7 @@ export function VehiclesView({ username }: { username: string }) {
     setCVImportPreview(null);
 
     setCVFileUploadPreview(null);
+    setSaveAttempted(false);
 
   };
 
@@ -1686,7 +1794,7 @@ export function VehiclesView({ username }: { username: string }) {
 
           attachmentUploadDescription,
 
-          attachmentUploadMaintenanceID
+          ""
 
         );
 
@@ -1795,6 +1903,7 @@ export function VehiclesView({ username }: { username: string }) {
     if (!selected) return;
 
     setSaving(true);
+    setAttachmentDeleteCandidate(null);
 
     api
 
@@ -1997,6 +2106,7 @@ export function VehiclesView({ username }: { username: string }) {
     setDocumentSearchRan(false);
 
     setFoundUploadDocuments([]);
+    setSelectedUploadDocuments({});
 
   };
 
@@ -2106,71 +2216,25 @@ export function VehiclesView({ username }: { username: string }) {
 
   };
 
+  const selectedFoundSparePartInputs = () => foundSpareParts
 
+    .filter((part, index) => selectedFoundSpareParts[sparePartResultKey(part, index)])
 
-  const adoptSelectedSpareParts = () => {
+    .map((part) => ({
 
-    if (!selected) return;
+      articleNumber: part.articleNumber || "",
 
-    const parts = foundSpareParts.filter((part, index) => selectedFoundSpareParts[sparePartResultKey(part, index)]);
+      description: strictCleanSparePartDescription(part.description) || part.description || "",
 
-    if (parts.length === 0) {
+      price: part.price || "",
 
-      setMessage(t("vehicles.spareParts.noneSelected"));
+      url: part.url || ""
 
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    Promise
-
-      .all(parts.map((part) => api.createVehicleSparePart(selected.id, {
-
-        articleNumber: part.articleNumber || "",
-
-        description: part.description || "",
-
-        price: part.price || "",
-
-        url: part.url || ""
-
-      })))
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setMessage(t("vehicles.spareParts.importedCount", { count: parts.length }));
-
-        setSelectedFoundSpareParts({});
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
+    }));
 
   const runSparePartSearch = () => {
 
     if (!selected) return;
-
-    if (!articleSearchEnabled()) {
-
-      setSparePartSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
-
-      setSparePartSearchRan(true);
-
-      return;
-
-    }
 
     const searchForm = vehicleToForm(selected);
 
@@ -2195,24 +2259,49 @@ export function VehiclesView({ username }: { username: string }) {
     setSelectedFoundSpareParts({});
 
     api
+      .vehicleSparePartSuggestions(selected.id)
+      .then((localParts) => {
 
-      .articleSearch({
+        const localSuggestions = localParts.filter(isStrictRealSparePartCandidate);
 
-        manufacturer: searchForm.manufacturer,
+        if (localSuggestions.length > 0) {
 
-        articleNumber: searchForm.articleNumber,
+          setFoundSpareParts(localSuggestions);
 
-        name: searchForm.name,
+          setSelectedFoundSpareParts({});
 
-        gauge: searchForm.gauge,
+          return null;
 
-        searchSources: articleSearchSources(),
+        }
 
-        fields: vehicleFieldsForSearch(searchForm)
+        if (!articleSearchEnabled()) {
+
+          setSparePartSearchError("Keine passende Ersatzteilliste in den Beilagen gefunden. Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
+
+          return null;
+
+        }
+
+        return api.articleSearch({
+
+          manufacturer: searchForm.manufacturer,
+
+          articleNumber: searchForm.articleNumber,
+
+          name: searchForm.name,
+
+          gauge: searchForm.gauge,
+
+          searchSources: articleSearchSources(),
+
+          fields: vehicleFieldsForSearch(searchForm)
+
+        });
 
       })
-
       .then((response) => {
+
+        if (!response) return;
 
         const sanitized = sanitizeArticleSearchResponse(response);
 
@@ -2224,7 +2313,7 @@ export function VehiclesView({ username }: { username: string }) {
 
             const key = `${part.articleNumber || ""}|${part.description || ""}|${part.url || ""}`.toLocaleLowerCase();
 
-            if (key !== "||" && !parts.has(key)) parts.set(key, part);
+            if (key !== "||" && !parts.has(key) && isStrictRealSparePartCandidate(part)) parts.set(key, part);
 
           });
 
@@ -2234,7 +2323,7 @@ export function VehiclesView({ username }: { username: string }) {
 
         setFoundSpareParts(nextParts);
 
-        setSelectedFoundSpareParts(Object.fromEntries(nextParts.map((part, index) => [sparePartResultKey(part, index), true])));
+        setSelectedFoundSpareParts({});
 
       })
 
@@ -2281,6 +2370,7 @@ export function VehiclesView({ username }: { username: string }) {
     setDocumentSearchRan(true);
 
     setFoundUploadDocuments([]);
+    setSelectedUploadDocuments({});
 
     api
 
@@ -2342,39 +2432,119 @@ export function VehiclesView({ username }: { username: string }) {
 
   };
 
+  const importFoundDocuments = (documents: ArticleSearchDocument[]) => {
 
+    if (!selected) return;
 
-  const importFoundDocument = (document: ArticleSearchDocument) => {
+    const importableDocuments = documents.filter((document) => document.url);
 
-    if (!selected || !document.url) return;
+    if (importableDocuments.length === 0) return;
 
     setSaving(true);
 
     setMessage("");
 
-    api
+    (async () => {
 
-      .importVehicleAttachmentFromUrl(selected.id, {
+      for (const document of importableDocuments) {
 
-        url: document.url,
+        await api.importVehicleAttachmentFromUrl(selected.id, {
 
-        title: document.title || "Dokument",
+          url: document.url,
 
-        description: `Quelle: ${document.source || document.url}\n${document.url}`,
+          title: document.title || "Dokument",
 
-        category: categoryForFoundDocument(document),
+          description: `Quelle: ${document.source || document.url}\n${document.url}`,
 
-        maintenanceId: attachmentUploadMaintenanceID || ""
+          category: categoryForFoundDocument(document),
 
-      })
+          maintenanceId: ""
+
+        });
+
+      }
+
+    })()
 
       .then(() => refreshSelectedVehicle(selected.id))
 
-      .then(() => setMessage(t("vehicles.uploads.webDocumentImported")))
+      .then(() => {
+
+        setSelectedUploadDocuments({});
+
+        setMessage(t(importableDocuments.length === 1 ? "vehicles.uploads.webDocumentImported" : "vehicles.uploads.webDocumentsImported", { count: importableDocuments.length }));
+
+      })
 
       .catch((error: Error) => setMessage(error.message))
 
       .finally(() => setSaving(false));
+
+  };
+
+
+
+  const importFoundDocument = (document: ArticleSearchDocument) => {
+
+    importFoundDocuments([document]);
+
+  };
+
+  const toggleFoundDocument = (document: ArticleSearchDocument, index: number, checked: boolean) => {
+
+    const key = webDocumentKey(document, index);
+
+    setSelectedUploadDocuments((current) => {
+
+      const next = { ...current };
+
+      if (checked) {
+
+        next[key] = true;
+
+      } else {
+
+        delete next[key];
+
+      }
+
+      return next;
+
+    });
+
+  };
+
+  const toggleAllFoundDocuments = (checked: boolean) => {
+
+    if (!checked) {
+
+      setSelectedUploadDocuments({});
+
+      return;
+
+    }
+
+    const existingDocumentUrls = new Set((selected?.attachments || []).map((attachment) => attachment.description || ""));
+
+    setSelectedUploadDocuments(Object.fromEntries(foundUploadDocuments.flatMap((document, index) => {
+
+      if (!document.url || Array.from(existingDocumentUrls).some((description) => description.includes(document.url))) {
+
+        return [];
+
+      }
+
+      return [[webDocumentKey(document, index), true]];
+
+    })));
+
+  };
+
+  const importSelectedFoundDocuments = () => {
+
+    const documents = foundUploadDocuments.filter((document, index) => selectedUploadDocuments[webDocumentKey(document, index)]);
+
+    importFoundDocuments(documents);
 
   };
 
@@ -3382,9 +3552,9 @@ export function VehiclesView({ username }: { username: string }) {
 
     setAttachmentUploadDescription("");
 
-    setAttachmentUploadMaintenanceID("");
-
     setAttachmentDragActive(false);
+    setAttachmentDeleteCandidate(null);
+    setSaveAttempted(false);
 
     setFunctionEdits({});
 
@@ -3438,9 +3608,9 @@ export function VehiclesView({ username }: { username: string }) {
 
     setAttachmentUploadDescription("");
 
-    setAttachmentUploadMaintenanceID("");
-
     setAttachmentDragActive(false);
+    setAttachmentDeleteCandidate(null);
+    setSaveAttempted(false);
 
     setFunctionEdits({});
 
@@ -3854,11 +4024,26 @@ export function VehiclesView({ username }: { username: string }) {
 
   };
 
+  const isRemotePendingImage = (image: PendingArticleImage) => !image.persisted && /^https?:\/\//i.test(image.url);
+
 
 
   const submit = async (event: FormEvent) => {
 
     event.preventDefault();
+    setSaveAttempted(true);
+
+    if (missingRequiredModelFields.length > 0) {
+
+      setActiveTab("model");
+
+      setOpenSections((current) => ({ ...current, model: true }));
+
+      setMessage(t("vehicles.requiredMissing", { fields: missingRequiredModelFields.map((field) => field.label).join(", ") }));
+
+      return;
+
+    }
 
     if (ecosDraft && ecosUnclearFields.size > 0) {
 
@@ -3878,7 +4063,11 @@ export function VehiclesView({ username }: { username: string }) {
 
     try {
 
-      const images = pendingArticleImages.map((image, index) => ({
+      const sparePartsToImport = selectedFoundSparePartInputs();
+
+      const remoteImages = pendingArticleImages.filter(isRemotePendingImage);
+
+      const images = pendingArticleImages.filter((image) => !isRemotePendingImage(image)).map((image, index) => ({
 
         id: image.persisted ? image.id : undefined,
 
@@ -3904,15 +4093,67 @@ export function VehiclesView({ username }: { username: string }) {
 
         : await api.createVehicle(payload);
 
+      if (remoteImages.length > 0) {
+
+        for (const [imageIndex, image] of remoteImages.entries()) {
+
+          await api.importVehicleImageFromUrl(vehicle.id, {
+
+            url: image.url,
+
+            title: image.title || "",
+
+            sourceUrl: image.source || image.url,
+
+            maintenanceId: image.maintenanceId || "",
+
+            isPrimary: Boolean(image.isPrimary),
+
+            sortOrder: images.length + imageIndex
+
+          });
+
+        }
+
+        vehicle = await api.vehicle(vehicle.id);
+
+      }
+
+      if (sparePartsToImport.length > 0) {
+
+        for (const part of sparePartsToImport) {
+
+          await api.createVehicleSparePart(vehicle.id, part);
+
+        }
+
+        setSelectedFoundSpareParts({});
+
+        vehicle = await api.vehicle(vehicle.id);
+
+      }
 
 
-      if (ecosDraft && mode === "create") {
+
+      if (ecosDraft && (mode === "create" || mode === "edit")) {
 
         await api.upsertVehicleExternalMapping(vehicle.id, ecosDraft.externalMapping);
 
+        const detailBeforeECoSValues = await api.vehicle(vehicle.id);
+
         for (const cvValue of ecosDraft.cvValues) {
 
-          await api.createVehicleCVValue(vehicle.id, cvValue);
+          const existing = (detailBeforeECoSValues.cvValues || []).find((entry) => cvValueKey(entry) === cvValueKey(cvValue));
+
+          if (existing) {
+
+            await api.updateVehicleCVValue(vehicle.id, existing.id, cvValue);
+
+          } else {
+
+            await api.createVehicleCVValue(vehicle.id, cvValue);
+
+          }
 
         }
 
@@ -3970,13 +4211,19 @@ export function VehiclesView({ username }: { username: string }) {
 
       setSelectedDetail(vehicle);
 
-      setMode("view");
+      setMode("edit");
+
+      setSaveAttempted(false);
 
       load();
 
       if (mode === "create") {
 
-        closeModal();
+        setMessage(t("vehicles.createdContinue"));
+
+      } else if (sparePartsToImport.length > 0) {
+
+        setMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
 
       }
 
@@ -4398,6 +4645,12 @@ export function VehiclesView({ username }: { username: string }) {
 
               </button>
 
+              <button type="button" className={activeTab === "speedCurve" ? "active" : ""} onClick={() => setActiveTab("speedCurve")}>
+
+                {t("vehicles.tab.speedCurve")}
+
+              </button>
+
               <button type="button" className={activeTab === "cv" ? "active" : ""} onClick={() => setActiveTab("cv")}>
 
                 CV
@@ -4440,7 +4693,7 @@ export function VehiclesView({ username }: { username: string }) {
 
                   canRunArticleSearch={canRunArticleSearch}
 
-                  articleIdentityFilled={articleIdentityFilled}
+                  showRequiredErrors={showRequiredErrors}
 
                   options={options}
 
@@ -4513,6 +4766,18 @@ export function VehiclesView({ username }: { username: string }) {
                   saveFunction={saveFunction}
 
                   deleteFunction={deleteFunction}
+
+                />
+
+              )}
+
+              {activeTab === "speedCurve" && (
+
+                <VehicleSpeedCurveTab
+
+                  selected={selected}
+
+                  ecosDraft={ecosDraft}
 
                 />
 
@@ -4624,8 +4889,6 @@ export function VehiclesView({ username }: { username: string }) {
 
                   attachmentUploadCategory={attachmentUploadCategory}
 
-                  attachmentUploadMaintenanceID={attachmentUploadMaintenanceID}
-
                   attachmentUploadDescription={attachmentUploadDescription}
 
                   attachmentEdits={attachmentEdits}
@@ -4637,6 +4900,8 @@ export function VehiclesView({ username }: { username: string }) {
                   documentSearchRan={documentSearchRan}
 
                   foundDocuments={foundUploadDocuments}
+
+                  selectedDocuments={selectedUploadDocuments}
 
                   onImageUploadMaintenanceIDChange={setImageUploadMaintenanceID}
 
@@ -4662,19 +4927,23 @@ export function VehiclesView({ username }: { username: string }) {
 
                   onAttachmentUploadCategoryChange={setAttachmentUploadCategory}
 
-                  onAttachmentUploadMaintenanceIDChange={setAttachmentUploadMaintenanceID}
-
                   onAttachmentUploadDescriptionChange={setAttachmentUploadDescription}
 
                   onUpdateAttachmentEdit={updateAttachmentEdit}
 
                   onSaveAttachment={saveAttachment}
 
-                  onDeleteAttachment={deleteAttachment}
+                  onDeleteAttachment={setAttachmentDeleteCandidate}
 
                   onSearchDocuments={runUploadDocumentSearch}
 
                   onImportDocument={importFoundDocument}
+
+                  onImportSelectedDocuments={importSelectedFoundDocuments}
+
+                  onToggleDocument={toggleFoundDocument}
+
+                  onToggleAllDocuments={toggleAllFoundDocuments}
 
                 />
 
@@ -4754,8 +5023,6 @@ export function VehiclesView({ username }: { username: string }) {
 
                   onToggleAllFoundSpareParts={toggleAllFoundSpareParts}
 
-                  onAdoptSelectedSpareParts={adoptSelectedSpareParts}
-
                 />
 
               )}            </div>
@@ -4774,7 +5041,7 @@ export function VehiclesView({ username }: { username: string }) {
 
               <button className="primary-button" disabled={saving}>
 
-                {saving ? t("vehicles.saving") : t("vehicles.save")}
+                {saving ? t("vehicles.saving") : mode === "create" ? t("vehicles.createAndContinue") : t("vehicles.saveChanges")}
 
               </button>
 
@@ -4909,6 +5176,22 @@ export function VehiclesView({ username }: { username: string }) {
           onClose={() => setDeleteCandidate(null)}
 
           onConfirm={confirmDelete}
+
+        />
+
+      )}
+
+
+
+      {attachmentDeleteCandidate && (
+
+        <DeleteAttachmentDialog
+
+          attachment={attachmentDeleteCandidate}
+
+          onClose={() => setAttachmentDeleteCandidate(null)}
+
+          onConfirm={() => deleteAttachment(attachmentDeleteCandidate)}
 
         />
 

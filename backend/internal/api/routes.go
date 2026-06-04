@@ -34,6 +34,9 @@ func apiRouteSpecs() []routeSpec {
 		{"PUT", "/api/v1/sessions/{id}/revoke"},
 		{"POST", "/api/v1/ecos/test"},
 		{"POST", "/api/v1/ecos/locomotives/raw"},
+		{"GET", "/api/v1/digital-centers/ecos/live/status"},
+		{"POST", "/api/v1/digital-centers/ecos/live/start"},
+		{"POST", "/api/v1/digital-centers/ecos/live/stop"},
 		{"GET", "/api/v1/vehicles"},
 		{"POST", "/api/v1/vehicles"},
 		{"GET", "/api/v1/vehicles/{id}"},
@@ -41,6 +44,7 @@ func apiRouteSpecs() []routeSpec {
 		{"DELETE", "/api/v1/vehicles/{id}"},
 		{"POST", "/api/v1/vehicles/{id}/external-mappings"},
 		{"POST", "/api/v1/vehicles/{id}/images"},
+		{"POST", "/api/v1/vehicles/{id}/images/import-url"},
 		{"DELETE", "/api/v1/vehicles/{id}/images/{imageID}"},
 		{"GET", "/api/v1/vehicles/{id}/images/{imageID}/file"},
 		{"GET", "/api/v1/vehicles/{id}/images/{imageID}/thumbnail"},
@@ -54,6 +58,7 @@ func apiRouteSpecs() []routeSpec {
 		{"PUT", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
 		{"DELETE", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
 		{"GET", "/api/v1/vehicles/{id}/spare-parts"},
+		{"GET", "/api/v1/vehicles/{id}/spare-parts/suggestions"},
 		{"POST", "/api/v1/vehicles/{id}/spare-parts"},
 		{"PUT", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
 		{"DELETE", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
@@ -141,6 +146,9 @@ func (a *App) registerAuthRoutes(mux *http.ServeMux) {
 func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/ecos/test", a.require("Admin", a.testECoSConnection))
 	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", a.require("Admin", a.probeECoSLocomotiveRaw))
+	mux.HandleFunc("GET /api/v1/digital-centers/ecos/live/status", a.require("Admin", a.eCoSLiveStatus))
+	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/start", a.require("Admin", a.startECoSLive))
+	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/stop", a.require("Admin", a.stopECoSLive))
 	mux.HandleFunc("GET /api/v1/vehicles", a.require("Viewer", a.listVehicles))
 	mux.HandleFunc("POST /api/v1/vehicles", a.require("Editor", a.createVehicle))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}", a.require("Viewer", a.getVehicle))
@@ -148,6 +156,7 @@ func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", a.require("Editor", a.deleteVehicle))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/external-mappings", a.require("Editor", a.upsertVehicleExternalMapping))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/images", a.require("Editor", a.uploadVehicleImage))
+	mux.HandleFunc("POST /api/v1/vehicles/{id}/images/import-url", a.require("Editor", a.importVehicleImageFromURL))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/images/{imageID}", a.require("Editor", a.deleteVehicleImage))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/file", a.require("Viewer", a.downloadVehicleImage))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/thumbnail", a.require("Viewer", a.downloadVehicleImageThumbnail))
@@ -161,6 +170,7 @@ func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.updateVehicleMaintenance))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.deleteVehicleMaintenance))
 	mux.HandleFunc("GET /api/v1/vehicles/{id}/spare-parts", a.require("Viewer", a.listVehicleSpareParts))
+	mux.HandleFunc("GET /api/v1/vehicles/{id}/spare-parts/suggestions", a.require("Viewer", a.suggestVehicleSpareParts))
 	mux.HandleFunc("POST /api/v1/vehicles/{id}/spare-parts", a.require("Editor", a.createVehicleSparePart))
 	mux.HandleFunc("PUT /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.updateVehicleSparePart))
 	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.deleteVehicleSparePart))

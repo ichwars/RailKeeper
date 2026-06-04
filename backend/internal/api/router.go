@@ -792,7 +792,7 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	result, err := a.authService.RequestPasswordReset(r.Context(), input)
 	if err != nil {
 		if errors.Is(err, application.ErrUserValidation) {
-			respondProblem(w, http.StatusBadRequest, "invalid_email", "Bitte eine gueltige E-Mail-Adresse angeben.")
+			respondProblem(w, http.StatusBadRequest, "invalid_email", "Bitte eine g?ltige E-Mail-Adresse angeben.")
 			return
 		}
 		a.logger.Error("password reset request failed", "error", err)
@@ -841,15 +841,15 @@ func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := a.authService.ResetPassword(r.Context(), input); err != nil {
 		if errors.Is(err, application.ErrUserValidation) {
-			respondProblem(w, http.StatusBadRequest, "invalid_password_reset", "Reset-Link und neues Passwort muessen gueltig sein.")
+			respondProblem(w, http.StatusBadRequest, "invalid_password_reset", "Reset-Link und neues Passwort m?ssen g?ltig sein.")
 			return
 		}
 		if errors.Is(err, application.ErrPasswordResetInvalid) {
-			respondProblem(w, http.StatusBadRequest, "invalid_reset_token", "Reset-Link ist ungueltig oder abgelaufen.")
+			respondProblem(w, http.StatusBadRequest, "invalid_reset_token", "Reset-Link ist ung?ltig oder abgelaufen.")
 			return
 		}
 		a.logger.Error("password reset confirmation failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort konnte nicht zurueckgesetzt werden.")
+		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort konnte nicht zur?ckgesetzt werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -1055,6 +1055,31 @@ func (a *App) probeECoSLocomotiveRaw(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, probe)
 }
 
+func (a *App) eCoSLiveStatus(w http.ResponseWriter, r *http.Request) {
+	respondJSON(w, http.StatusOK, a.ecosService.LiveStatus())
+}
+
+func (a *App) startECoSLive(w http.ResponseWriter, r *http.Request) {
+	var input application.ECoSConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	status, err := a.ecosService.StartLive(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadGateway, "ecos_live_start_failed", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, status)
+}
+
+func (a *App) stopECoSLive(w http.ResponseWriter, r *http.Request) {
+	status := a.ecosService.StopLive()
+	respondJSON(w, http.StatusOK, status)
+}
+
 func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	var input application.CreateVehicleInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -1240,7 +1265,8 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	}
 	req.Header.Set("User-Agent", "RailKeeper/0.1 image-fetch")
 	req.Header.Set("Accept", "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8")
-	client := &http.Client{Timeout: 6 * time.Second}
+	client := remoteDocumentHTTPClient(ctx)
+	client.Timeout = 6 * time.Second
 	resp, err := client.Do(req)
 	if err != nil {
 		return image, err
@@ -1423,12 +1449,12 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = file.Close() }()
 	if header.Size > a.maxImageBytes {
-		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gro?.")
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxImageBytes+1))
 	if err != nil || int64(len(data)) > a.maxImageBytes {
-		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gro?.")
 		return
 	}
 	mimeType := http.DetectContentType(data)
@@ -1476,6 +1502,63 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		}
 		a.logger.Error("image metadata create failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
+		return
+	}
+	respondJSON(w, http.StatusCreated, image)
+}
+
+type importVehicleImageInput struct {
+	URL           string `json:"url"`
+	Title         string `json:"title"`
+	SourceURL     string `json:"sourceUrl"`
+	MaintenanceID string `json:"maintenanceId"`
+	IsPrimary     bool   `json:"isPrimary"`
+	SortOrder     int    `json:"sortOrder"`
+}
+
+func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) {
+	var input importVehicleImageInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	input.URL = strings.TrimSpace(input.URL)
+	if input.URL == "" {
+		respondProblem(w, http.StatusBadRequest, "image_url_missing", "Eine Bild-URL ist erforderlich.")
+		return
+	}
+	vehicleID := r.PathValue("id")
+	localized, err := a.localizeVehicleImage(r.Context(), vehicleID, application.VehicleImageInput{
+		URL:           input.URL,
+		Title:         input.Title,
+		SourceURL:     input.SourceURL,
+		MaintenanceID: input.MaintenanceID,
+		IsPrimary:     input.IsPrimary,
+		SortOrder:     input.SortOrder,
+	})
+	if err != nil {
+		a.logger.Warn("remote image import failed", "url", input.URL, "error", err)
+		respondProblem(w, http.StatusBadGateway, "image_import_failed", "Bild konnte nicht heruntergeladen werden.")
+		return
+	}
+	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, localized)
+	if err != nil {
+		if fullPath, pathErr := confinedDataPath(a.dataDir, localized.StoragePath); pathErr == nil {
+			_ = os.Remove(fullPath)
+		}
+		if fullPath, pathErr := confinedDataPath(a.dataDir, localized.ThumbnailPath); pathErr == nil {
+			_ = os.Remove(fullPath)
+		}
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		if errors.Is(err, application.ErrVehicleValidation) {
+			respondProblem(w, http.StatusBadRequest, "image_invalid", "Bilddaten sind unvollst?ndig.")
+			return
+		}
+		a.logger.Error("remote image metadata create failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "image_import_failed", "Bild konnte nicht gespeichert werden.")
 		return
 	}
 	respondJSON(w, http.StatusCreated, image)
@@ -1647,7 +1730,7 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = file.Close() }()
 	originalName := cleanOriginalFileName(header.Filename)
 	if header.Size > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gro?.")
 		return
 	}
 	if isBlockedAttachmentName(originalName) {
@@ -1656,7 +1739,7 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
 	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gro?.")
 		return
 	}
 	if len(data) == 0 {
@@ -1728,7 +1811,7 @@ func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Requ
 	defer cancel()
 	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, input.URL, nil)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "attachment_url_invalid", "Dokument-URL ist ungueltig.")
+		respondProblem(w, http.StatusBadRequest, "attachment_url_invalid", "Dokument-URL ist ung?ltig.")
 		return
 	}
 	req.Header.Set("User-Agent", "RailKeeper/0.1 document-fetch")
@@ -1747,7 +1830,7 @@ func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Requ
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, a.maxAttachmentBytes+1))
 	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "attachment_too_large", "Die Datei ist zu gro?.")
 		return
 	}
 	if len(data) == 0 {
@@ -1802,7 +1885,7 @@ func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Requ
 			return
 		}
 		if errors.Is(err, application.ErrVehicleValidation) {
-			respondProblem(w, http.StatusBadRequest, "attachment_invalid", "Beilage ist unvollstaendig.")
+			respondProblem(w, http.StatusBadRequest, "attachment_invalid", "Beilage ist unvollst?ndig.")
 			return
 		}
 		a.logger.Error("remote attachment metadata create failed", "error", err)
@@ -1868,11 +1951,41 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 		w.Header().Set("Content-Type", attachment.MimeType)
 	}
 	disposition := "attachment"
-	if r.URL.Query().Get("inline") == "true" && strings.Contains(strings.ToLower(attachment.MimeType), "pdf") {
+	inlinePreview := r.URL.Query().Get("inline") == "true" && canPreviewAttachmentInline(attachment.MimeType, attachment.OriginalName)
+	if inlinePreview {
 		disposition = "inline"
+		if shouldSandboxInlineAttachment(attachment.MimeType, attachment.OriginalName) {
+			w.Header().Set("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self' data: blob:; style-src 'unsafe-inline'")
+		}
 	}
 	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": cleanOriginalFileName(attachment.OriginalName)}))
 	http.ServeFile(w, r, fullPath)
+}
+
+func canPreviewAttachmentInline(mimeType, fileName string) bool {
+	mimeType = strings.ToLower(strings.TrimSpace(mimeType))
+	fileName = strings.ToLower(strings.TrimSpace(fileName))
+	if strings.Contains(mimeType, "pdf") || strings.HasPrefix(mimeType, "image/") || strings.HasPrefix(mimeType, "text/") {
+		return true
+	}
+	if strings.Contains(mimeType, "json") || strings.Contains(mimeType, "xml") {
+		return true
+	}
+	switch path.Ext(fileName) {
+	case ".pdf", ".jpg", ".jpeg", ".png", ".webp", ".txt", ".csv", ".json", ".xml", ".html", ".htm":
+		return true
+	default:
+		return false
+	}
+}
+
+func shouldSandboxInlineAttachment(mimeType, fileName string) bool {
+	mimeType = strings.ToLower(strings.TrimSpace(mimeType))
+	fileName = strings.ToLower(strings.TrimSpace(fileName))
+	if strings.HasPrefix(mimeType, "text/html") || strings.HasSuffix(fileName, ".html") || strings.HasSuffix(fileName, ".htm") {
+		return true
+	}
+	return false
 }
 
 func (a *App) listVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
@@ -1899,7 +2012,7 @@ func (a *App) createVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation):
-			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollstaendig.")
+			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollst?ndig.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 		default:
@@ -1921,7 +2034,7 @@ func (a *App) updateVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation):
-			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollstaendig.")
+			respondProblem(w, http.StatusBadRequest, "maintenance_invalid", "Wartungseintrag ist unvollst?ndig.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "maintenance_not_found", "Maintenance entry not found.")
 		default:
@@ -1960,6 +2073,73 @@ func (a *App) listVehicleSpareParts(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, entries)
 }
 
+func (a *App) suggestVehicleSpareParts(w http.ResponseWriter, r *http.Request) {
+	vehicle, err := a.vehicleService.Get(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
+			return
+		}
+		a.logger.Error("spare part suggestion vehicle lookup failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "spare_part_suggestions_failed", "Ersatzteilvorschlaege konnten nicht geladen werden.")
+		return
+	}
+	articleNumber := strings.TrimSpace(vehicle.ArticleNumber)
+	if articleNumber == "" {
+		respondJSON(w, http.StatusOK, []application.ArticleSearchSparePart{})
+		return
+	}
+	seen := map[string]bool{}
+	suggestions := []application.ArticleSearchSparePart{}
+	for _, attachment := range vehicle.Attachments {
+		if len(suggestions) >= 80 || !looksLikeSparePartAttachment(attachment) {
+			continue
+		}
+		fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
+		if err != nil {
+			continue
+		}
+		file, err := os.Open(fullPath)
+		if err != nil {
+			continue
+		}
+		data, readErr := io.ReadAll(io.LimitReader(file, 12*1024*1024))
+		_ = file.Close()
+		if readErr != nil || len(data) == 0 {
+			continue
+		}
+		downloadURL := "/api/v1/vehicles/" + url.PathEscape(vehicle.ID) + "/attachments/" + url.PathEscape(attachment.ID) + "/download"
+		parts := application.ArticleSparePartsFromDocumentData(data, articleNumber, downloadURL)
+		for _, part := range parts {
+			part.Source = cleanOriginalFileName(attachment.OriginalName)
+			if part.URL == "" {
+				part.URL = downloadURL
+			}
+			key := strings.ToLower(part.ArticleNumber + "|" + part.Description + "|" + part.URL)
+			if key == "||" || seen[key] {
+				continue
+			}
+			seen[key] = true
+			suggestions = append(suggestions, part)
+			if len(suggestions) >= 80 {
+				break
+			}
+		}
+	}
+	respondJSON(w, http.StatusOK, suggestions)
+}
+
+func looksLikeSparePartAttachment(attachment application.VehicleAttachment) bool {
+	lower := strings.ToLower(attachment.Category + " " + attachment.OriginalName + " " + attachment.Description + " " + attachment.MimeType)
+	return strings.Contains(lower, "ersatzteil") ||
+		strings.Contains(lower, "spare") ||
+		strings.Contains(lower, "et-blatt") ||
+		strings.Contains(lower, "serviceblatt") ||
+		strings.Contains(lower, "bedienungsanl") ||
+		strings.Contains(lower, "manual") ||
+		strings.Contains(lower, "pdf")
+}
+
 func (a *App) createVehicleSparePart(w http.ResponseWriter, r *http.Request) {
 	var input application.VehicleSparePartInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -1970,7 +2150,7 @@ func (a *App) createVehicleSparePart(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation):
-			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollstaendig.")
+			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollst?ndig.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 		default:
@@ -1992,7 +2172,7 @@ func (a *App) updateVehicleSparePart(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case errors.Is(err, application.ErrVehicleValidation):
-			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollstaendig.")
+			respondProblem(w, http.StatusBadRequest, "spare_part_invalid", "Ersatzteil ist unvollst?ndig.")
 		case errors.Is(err, application.ErrVehicleNotFound):
 			respondProblem(w, http.StatusNotFound, "spare_part_not_found", "Spare part not found.")
 		default:
@@ -2011,7 +2191,7 @@ func (a *App) deleteVehicleSparePart(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("spare part delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "spare_part_delete_failed", "Ersatzteil konnte nicht geloescht werden.")
+		respondProblem(w, http.StatusInternalServerError, "spare_part_delete_failed", "Ersatzteil konnte nicht gel?scht werden.")
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
@@ -2196,7 +2376,7 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxAttachmentBytes+1))
 	if err != nil || int64(len(data)) > a.maxAttachmentBytes {
-		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "cv_file_too_large", "Die Datei ist zu gro?.")
 		return
 	}
 	if len(data) == 0 {
@@ -2364,12 +2544,12 @@ func (a *App) readBackupUpload(w http.ResponseWriter, r *http.Request) (*applica
 	}
 	defer func() { _ = file.Close() }()
 	if header.Size > maxBackupBytes {
-		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gro?.")
 		return nil, false
 	}
 	data, err := io.ReadAll(io.LimitReader(file, maxBackupBytes+1))
 	if err != nil || int64(len(data)) > maxBackupBytes {
-		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "backup_file_too_large", "Die Backup-Datei ist zu gro?.")
 		return nil, false
 	}
 
@@ -2433,12 +2613,12 @@ func (a *App) readMasterDataImportUpload(w http.ResponseWriter, r *http.Request)
 	}
 	defer func() { _ = file.Close() }()
 	if header.Size > maxMasterDataImportBytes {
-		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gro?.")
 		return nil, false
 	}
 	data, err := io.ReadAll(io.LimitReader(file, maxMasterDataImportBytes+1))
 	if err != nil || int64(len(data)) > maxMasterDataImportBytes {
-		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gross.")
+		respondProblem(w, http.StatusBadRequest, "master_data_file_too_large", "Die Stammdaten-Datei ist zu gro?.")
 		return nil, false
 	}
 	var doc application.MasterDataDocument

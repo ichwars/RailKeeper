@@ -2419,6 +2419,45 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digital-centers/ecos/live/status:
+    get:
+      tags: [DigitalCenters]
+      summary: Read the current ECoS live connection status
+      responses:
+        "200":
+          description: ECoS live connection status
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/ecos/live/start:
+    post:
+      tags: [DigitalCenters]
+      summary: Start an ECoS live connection and subscribe to base objects
+      responses:
+        "200":
+          description: ECoS live connection status
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/ecos/live/stop:
+    post:
+      tags: [DigitalCenters]
+      summary: Stop the active ECoS live connection
+      responses:
+        "200":
+          description: ECoS live connection status
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /master-data-all:
     get:
       tags: [MasterData]
@@ -2470,6 +2509,43 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicles/{id}/images/import-url:
+    post:
+      tags: [Vehicles]
+      summary: Import a remote image URL as a vehicle image
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                title:
+                  type: string
+                sourceUrl:
+                  type: string
+                maintenanceId:
+                  type: string
+                isPrimary:
+                  type: boolean
+                sortOrder:
+                  type: integer
+      responses:
+        "201":
+          description: Image imported
+        "400":
+          description: Invalid URL or unsupported image type
+        "502":
+          description: Remote image could not be downloaded
   /vehicles/{id}/images/{imageID}:
     delete:
       tags: [Vehicles]
@@ -2644,6 +2720,19 @@ paths:
       responses:
         "201":
           description: Spare part created
+  /vehicles/{id}/spare-parts/suggestions:
+    get:
+      tags: [Vehicles]
+      summary: Suggest spare parts from vehicle attachments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Suggested spare parts
   /vehicles/{id}/spare-parts/{sparePartID}:
     put:
       tags: [Vehicles]

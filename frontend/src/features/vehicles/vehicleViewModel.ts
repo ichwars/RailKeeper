@@ -2,6 +2,7 @@ import type {
   ArticleSearchInput,
   ArticleSearchResponse,
   CreateVehicleRequest,
+  ECoSImageSuggestion,
   ExhibitionEntry,
   ExhibitionList,
   MasterDataEntry,
@@ -79,7 +80,7 @@ export const emptyVehicle: CreateVehicleRequest = {
 };
 
 export type ModalMode = "create" | "view" | "edit";
-export type ModalTab = "model" | "control" | "cv" | "uploads" | "maintenance" | "spareParts";
+export type ModalTab = "model" | "control" | "speedCurve" | "cv" | "uploads" | "maintenance" | "spareParts";
 export type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 export type SortDirection = "asc" | "desc";
 export type InventoryViewMode = "table" | "cards";
@@ -90,6 +91,8 @@ export type InventoryReportSelection = "all" | "selected";
 export type ECoSRequiredField = "manufacturer" | "name" | "gauge" | "category" | "gattung";
 export type ECoSVehicleDraftPayload = {
   source: "ecos";
+  mode: "create" | "update";
+  targetVehicleId?: string;
   sourceSummary: {
     objectId: number;
     name: string;
@@ -98,9 +101,11 @@ export type ECoSVehicleDraftPayload = {
     profile: string;
   };
   vehicle: CreateVehicleRequest;
+  importedKeys: (keyof CreateVehicleRequest)[];
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
   functionValues: (VehicleFunctionInput & { functionKey: string })[];
+  imageSuggestions: ECoSImageSuggestion[];
   unclearFields: ECoSRequiredField[];
   returnToEcos?: {
     sessionId: string;

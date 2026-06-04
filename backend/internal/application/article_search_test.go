@@ -611,3 +611,68 @@ func TestArticleImagesReadLazyImagesAndSrcset(t *testing.T) {
 		t.Fatalf("unexpected srcset image selected: %#v", images)
 	}
 }
+
+func TestArticleSparePartDescriptionRemovesLabelsAndCartText(t *testing.T) {
+	description := cleanArticleSparePartDescription("Nummer: Replacement loudspeaker, oval * Add to shopping cart")
+
+	if description != "Replacement loudspeaker, oval" {
+		t.Fatalf("unexpected cleaned description %q", description)
+	}
+}
+
+func TestArticleSparePartFromRowRejectsDocumentRows(t *testing.T) {
+	if _, ok := articleSparePartFromRow("47284 Bedienungsanl./Ersatzteilliste", "https://www.piko-shop.de/download/47284.pdf"); ok {
+		t.Fatal("manual/spare-parts-list rows must not be treated as spare parts")
+	}
+}
+
+func TestArticleSparePartsFromDocumentTextRequiresMatchingArticleNumber(t *testing.T) {
+	text := `
+		PIKO Bedienungsanleitung 47284
+		47284 Bedienungsanl./Ersatzteilliste
+		56026 Haftreifen 10 x 6,4 mm (10 Stueck)
+		56333 Nummer: Replacement loudspeaker, oval * Add to shopping cart
+	`
+	parts := articleSparePartsFromDocumentText(text, "47284", "https://www.piko-shop.de/download/47284.pdf")
+
+	if len(parts) != 2 {
+		t.Fatalf("expected two real spare parts, got %#v", parts)
+	}
+	if parts[0].ArticleNumber != "56026" || parts[0].Description != "Haftreifen 10 x 6,4 mm (10 Stueck)" {
+		t.Fatalf("unexpected first part %#v", parts[0])
+	}
+	if parts[1].ArticleNumber != "56333" || strings.Contains(strings.ToLower(parts[1].Description), "nummer") || strings.Contains(strings.ToLower(parts[1].Description), "shopping cart") {
+		t.Fatalf("unexpected cleaned second part %#v", parts[1])
+	}
+
+	if parts := articleSparePartsFromDocumentText(text, "99999", "https://www.piko-shop.de/download/47284.pdf"); len(parts) != 0 {
+		t.Fatalf("wrong locomotive article number must block document extraction, got %#v", parts)
+	}
+}
+
+func TestArticleSparePartsFromDocumentTextReadsPikoSpareList(t *testing.T) {
+	text := `
+		47284 Gleichstrom DC
+		ERSATZTEILE DIESELLOKOMOTIVE BR 118_TT
+		Bezeichnung / Description ET-Nr. / spare part N° PG*
+		Gehäuse, dekoriert (mit Fenster) / Body, decorated (with Windows) 47284-08 13
+		Frontfenster / Front windows 47284-10 9
+		Klammer / Clamp 47280-37 6
+		Kurzkupplung / Short Coupling 46042
+		Decodertyp XP 5.1 / Decoder type XP 5.1 56502
+	`
+	parts := articleSparePartsFromDocumentText(text, "47284", "Ersatzteilliste-47284.pdf")
+
+	numbers := map[string]string{}
+	for _, part := range parts {
+		numbers[part.ArticleNumber] = part.Description
+		if strings.Contains(part.Description, "PG") || strings.HasSuffix(part.Description, " 13") {
+			t.Fatalf("description still contains table residue: %#v", part)
+		}
+	}
+	for _, number := range []string{"47284-08", "47284-10", "47280-37", "46042", "56502"} {
+		if numbers[number] == "" {
+			t.Fatalf("expected spare part %s in %#v", number, parts)
+		}
+	}
+}

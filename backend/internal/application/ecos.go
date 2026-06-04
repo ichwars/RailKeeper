@@ -3,18 +3,29 @@ package application
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"mime"
 	"net"
+	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	ecospkg "railkeeper/backend/internal/ecos"
 )
 
-const defaultECoSPort = 15471
+const defaultECoSPort = ecospkg.DefaultPort
 
 type ECoSService struct {
-	timeout time.Duration
+	timeout    time.Duration
+	client     ecospkg.Client
+	liveMu     sync.Mutex
+	liveCancel context.CancelFunc
+	liveStatus ECoSLiveStatus
 }
 
 type ECoSConnectionInput struct {
@@ -85,6 +96,7 @@ type ECoSRawLocomotive struct {
 	NumberOfFunctions int                   `json:"numberOfFunctions,omitempty"`
 	Functions         []ECoSFunction        `json:"functions,omitempty"`
 	CVs               []ECoSCVValue         `json:"cvs,omitempty"`
+	ImageCandidates   []ECoSImageCandidate  `json:"imageCandidates,omitempty"`
 	Attributes        map[string][]string   `json:"attributes,omitempty"`
 	SupportedFields   []string              `json:"supportedFields,omitempty"`
 	MissingFields     []string              `json:"missingFields,omitempty"`
@@ -108,8 +120,191 @@ type ECoSCVValue struct {
 	Value  int `json:"value"`
 }
 
+type ECoSImageCandidate struct {
+	Key          string `json:"key"`
+	Value        string `json:"value"`
+	Kind         string `json:"kind"`
+	PreviewURL   string `json:"previewUrl,omitempty"`
+	MimeType     string `json:"mimeType,omitempty"`
+	Transferable bool   `json:"transferable"`
+}
+
+type ECoSLiveStatus struct {
+	Provider             string   `json:"provider"`
+	Connected            bool     `json:"connected"`
+	Host                 string   `json:"host,omitempty"`
+	Port                 int      `json:"port,omitempty"`
+	StartedAt            string   `json:"startedAt,omitempty"`
+	LastSeenAt           string   `json:"lastSeenAt,omitempty"`
+	LastMessage          string   `json:"lastMessage,omitempty"`
+	BlocksReceived       int      `json:"blocksReceived"`
+	RepliesReceived      int      `json:"repliesReceived"`
+	EventsReceived       int      `json:"eventsReceived"`
+	SubscriptionCommands []string `json:"subscriptionCommands,omitempty"`
+	Error                string   `json:"error,omitempty"`
+	Message              string   `json:"message"`
+}
+
 func NewECoSService() *ECoSService {
-	return &ECoSService{timeout: 8 * time.Second}
+	timeout := 8 * time.Second
+	return &ECoSService{
+		timeout: timeout,
+		client:  ecospkg.NewClient(timeout),
+		liveStatus: ECoSLiveStatus{
+			Provider: "ecos",
+			Message:  "Keine ECoS-Live-Verbindung aktiv.",
+		},
+	}
+}
+
+func (s *ECoSService) StartLive(ctx context.Context, input ECoSConnectionInput) (*ECoSLiveStatus, error) {
+	target, err := normalizeECoSInput(input)
+	if err != nil {
+		return nil, err
+	}
+	client := s.eCoSClient()
+	conn, reader, err := client.Dial(ctx, ecospkg.Target{Host: target.Host, Port: target.Port})
+	if err != nil {
+		return nil, err
+	}
+
+	liveCtx, cancel := context.WithCancel(context.Background())
+	commands := eCoSLiveSubscriptionCommands()
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	s.liveMu.Lock()
+	s.stopLiveLocked()
+	s.liveCancel = cancel
+	s.liveStatus = ECoSLiveStatus{
+		Provider:             "ecos",
+		Connected:            true,
+		Host:                 target.Host,
+		Port:                 target.Port,
+		StartedAt:            now,
+		LastSeenAt:           now,
+		LastMessage:          "ECoS-Live-Verbindung gestartet.",
+		SubscriptionCommands: commands,
+		Message:              "ECoS-Live-Verbindung aktiv.",
+	}
+	status := s.liveStatus
+	s.liveMu.Unlock()
+
+	go s.runECoSLiveSession(liveCtx, conn, reader, client, commands)
+	return &status, nil
+}
+
+func (s *ECoSService) StopLive() ECoSLiveStatus {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	s.stopLiveLocked()
+	s.liveStatus.Connected = false
+	s.liveStatus.Message = "ECoS-Live-Verbindung beendet."
+	s.liveStatus.LastMessage = "Verbindung beendet."
+	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+	return s.liveStatus
+}
+
+func (s *ECoSService) LiveStatus() ECoSLiveStatus {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	return s.liveStatus
+}
+
+func (s *ECoSService) stopLiveLocked() {
+	if s.liveCancel != nil {
+		s.liveCancel()
+		s.liveCancel = nil
+	}
+}
+
+func (s *ECoSService) runECoSLiveSession(ctx context.Context, conn net.Conn, reader *bufio.Reader, client ecospkg.Client, commands []string) {
+	defer func() {
+		_ = conn.Close()
+		s.liveMu.Lock()
+		if s.liveStatus.Connected {
+			s.liveStatus.Connected = false
+			if s.liveStatus.Error == "" {
+				s.liveStatus.Message = "ECoS-Live-Verbindung wurde getrennt."
+			}
+		}
+		s.liveMu.Unlock()
+	}()
+
+	for _, command := range commands {
+		if err := client.Send(conn, command); err != nil {
+			s.updateLiveError(err)
+			return
+		}
+	}
+
+	buffer := []string{}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+		}
+		_ = conn.SetReadDeadline(time.Now().Add(750 * time.Millisecond))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				continue
+			}
+			s.updateLiveError(fmt.Errorf("ECoS-Live-Antwort konnte nicht gelesen werden: %w", err))
+			return
+		}
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		buffer = append(buffer, line)
+		if !ecospkg.HasBlockLine(line) {
+			s.updateLiveLine(line)
+			continue
+		}
+		blocks, err := ecospkg.ParseBlocks(buffer)
+		if err != nil {
+			s.updateLiveError(err)
+			buffer = []string{}
+			continue
+		}
+		s.updateLiveBlocks(blocks, line)
+		buffer = []string{}
+	}
+}
+
+func (s *ECoSService) updateLiveLine(line string) {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	s.liveStatus.LastMessage = line
+	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+}
+
+func (s *ECoSService) updateLiveBlocks(blocks []ecospkg.Block, lastLine string) {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	s.liveStatus.BlocksReceived += len(blocks)
+	for _, block := range blocks {
+		switch block.Kind {
+		case ecospkg.BlockEvent:
+			s.liveStatus.EventsReceived++
+		case ecospkg.BlockReply:
+			s.liveStatus.RepliesReceived++
+		}
+	}
+	s.liveStatus.LastMessage = lastLine
+	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+	s.liveStatus.Message = "ECoS-Live-Verbindung aktiv."
+}
+
+func (s *ECoSService) updateLiveError(err error) {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	s.liveStatus.Connected = false
+	s.liveStatus.Error = err.Error()
+	s.liveStatus.Message = "ECoS-Live-Verbindung ist unterbrochen."
+	s.liveStatus.LastMessage = err.Error()
+	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
 }
 
 func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionInput) (*ECoSConnectionResult, error) {
@@ -189,6 +384,7 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 		raw.SupportedFields = sortedECoSFieldNames(supported)
 		raw.MissingFields = sortedMissingECoSFieldNames(missing, supported)
 		raw.CVs = parseECoSCVValues(raw.Attributes)
+		raw.ImageCandidates = parseECoSImageCandidates(raw.Attributes)
 		raw.InterestingFields = interestingECoSFields(raw.Attributes)
 		rawLocomotives = append(rawLocomotives, raw)
 	}
@@ -247,53 +443,7 @@ func (s *ECoSService) fetchLocomotiveRawProbes(ctx context.Context, host string,
 }
 
 func (s *ECoSService) exchange(ctx context.Context, host string, port int, command string) ([]string, error) {
-	timeout := s.timeout
-	if timeout <= 0 {
-		timeout = 5 * time.Second
-	}
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	dialer := net.Dialer{Timeout: timeout}
-	conn, err := dialer.DialContext(ctx, "tcp", net.JoinHostPort(host, strconv.Itoa(port)))
-	if err != nil {
-		return nil, fmt.Errorf("ECoS nicht erreichbar: %w", err)
-	}
-	defer func() { _ = conn.Close() }()
-
-	if err := conn.SetDeadline(time.Now().Add(timeout)); err != nil {
-		return nil, fmt.Errorf("ECoS-Zeitlimit konnte nicht gesetzt werden: %w", err)
-	}
-	if _, err := fmt.Fprintf(conn, "%s\r\n", strings.TrimSpace(command)); err != nil {
-		return nil, fmt.Errorf("ECoS-Kommando konnte nicht gesendet werden: %w", err)
-	}
-
-	lines := []string{}
-	reader := bufio.NewReader(conn)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if netErr, ok := err.(net.Error); ok && netErr.Timeout() && len(lines) > 0 {
-				return lines, nil
-			}
-			return nil, fmt.Errorf("ECoS-Antwort konnte nicht gelesen werden: %w", err)
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		lines = append(lines, line)
-		if strings.HasPrefix(line, "<END") {
-			break
-		}
-		if len(lines) > 0 {
-			_ = conn.SetReadDeadline(time.Now().Add(250 * time.Millisecond))
-		}
-	}
-	if len(lines) == 0 {
-		return nil, errors.New("ECoS hat keine Antwort geliefert")
-	}
-	return lines, nil
+	return s.eCoSClient().Exchange(ctx, ecospkg.Target{Host: host, Port: port}, command)
 }
 
 func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string, port int, objectID int, commands []struct {
@@ -429,42 +579,39 @@ func (s *ECoSService) exchangeRequestedGet(ctx context.Context, host string, por
 }
 
 func readECoSReply(conn net.Conn, reader *bufio.Reader, timeout time.Duration) ([]string, error) {
-	if err := conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-		return nil, err
-	}
-	lines := []string{}
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			if netErr, ok := err.(net.Error); ok && netErr.Timeout() && len(lines) > 0 {
-				return lines, nil
-			}
-			return lines, err
-		}
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		lines = append(lines, line)
-		if strings.HasPrefix(line, "<END") {
-			return lines, nil
-		}
-	}
+	return ecospkg.ReadReply(conn, reader, timeout)
 }
 
 func normalizeECoSInput(input ECoSConnectionInput) (ECoSConnectionInput, error) {
-	host := strings.TrimSpace(input.Host)
-	if host == "" {
-		return ECoSConnectionInput{}, errors.New("ECoS-IP oder Hostname fehlt")
+	target, err := ecospkg.NormalizeTarget(input.Host, input.Port)
+	if err != nil {
+		return ECoSConnectionInput{}, err
 	}
-	port := input.Port
-	if port == 0 {
-		port = defaultECoSPort
+	return ECoSConnectionInput{Host: target.Host, Port: target.Port}, nil
+}
+
+func (s *ECoSService) eCoSClient() ecospkg.Client {
+	if s.client.Timeout <= 0 {
+		timeout := s.timeout
+		if timeout <= 0 {
+			timeout = 5 * time.Second
+		}
+		s.client = ecospkg.NewClient(timeout)
 	}
-	if port < 1 || port > 65535 {
-		return ECoSConnectionInput{}, errors.New("ECoS-Port muss zwischen 1 und 65535 liegen")
+	return s.client
+}
+
+func eCoSLiveSubscriptionCommands() []string {
+	return []string{
+		"request(1, view)",
+		"get(1, info, status)",
+		"request(10, view)",
+		"queryObjects(10, addr, name, protocol)",
+		"request(11, view)",
+		"queryObjects(11, addr, protocol, type, addrext, mode, symbol, name1, name2, name3, switching)",
+		"queryObjects(26, ports)",
+		"request(26, view)",
 	}
-	return ECoSConnectionInput{Host: host, Port: port}, nil
 }
 
 func eCoSRawProbeFields() []string {
@@ -560,6 +707,134 @@ func interestingECoSFields(attributes map[string][]string) []string {
 	}
 	sortStrings(interesting)
 	return interesting
+}
+
+func parseECoSImageCandidates(attributes map[string][]string) []ECoSImageCandidate {
+	candidates := []ECoSImageCandidate{}
+	seen := map[string]bool{}
+	for _, key := range sortedECoSImageAttributeKeys(attributes) {
+		for _, value := range attributes[key] {
+			candidate := classifyECoSImageCandidate(key, value)
+			if candidate.Value == "" {
+				continue
+			}
+			seenKey := strings.ToLower(candidate.Key + "::" + candidate.Value)
+			if seen[seenKey] {
+				continue
+			}
+			seen[seenKey] = true
+			candidates = append(candidates, candidate)
+		}
+	}
+	return candidates
+}
+
+func sortedECoSImageAttributeKeys(attributes map[string][]string) []string {
+	keys := []string{}
+	for key := range attributes {
+		if isECoSImageAttributeKey(key) {
+			keys = append(keys, key)
+		}
+	}
+	sortStrings(keys)
+	return keys
+}
+
+func isECoSImageAttributeKey(key string) bool {
+	normalized := strings.ToLower(strings.TrimSpace(key))
+	return normalized == "icon" ||
+		normalized == "image" ||
+		normalized == "picture" ||
+		normalized == "pic" ||
+		normalized == "userimage" ||
+		strings.Contains(normalized, "image") ||
+		strings.Contains(normalized, "picture")
+}
+
+func classifyECoSImageCandidate(key string, value string) ECoSImageCandidate {
+	value = cleanECoSValue(value)
+	candidate := ECoSImageCandidate{
+		Key:   strings.TrimSpace(key),
+		Value: value,
+		Kind:  "reference",
+	}
+	if value == "" {
+		return candidate
+	}
+	lower := strings.ToLower(value)
+	switch {
+	case strings.HasPrefix(lower, "data:image/"):
+		candidate.Kind = "data"
+		candidate.PreviewURL = value
+		candidate.MimeType = mimeFromDataURL(value)
+		candidate.Transferable = true
+	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
+		candidate.Kind = "url"
+		candidate.PreviewURL = value
+		candidate.MimeType = mime.TypeByExtension(filepath.Ext(value))
+		candidate.Transferable = true
+	case isIntegerText(value):
+		candidate.Kind = "id"
+	case strings.HasPrefix(strings.TrimSpace(value), "<svg"):
+		encoded := base64.StdEncoding.EncodeToString([]byte(value))
+		candidate.Kind = "data"
+		candidate.PreviewURL = "data:image/svg+xml;base64," + encoded
+		candidate.MimeType = "image/svg+xml"
+		candidate.Transferable = true
+	default:
+		previewURL, mimeType := imageDataURLFromBase64(value)
+		if previewURL != "" {
+			candidate.Kind = "base64"
+			candidate.PreviewURL = previewURL
+			candidate.MimeType = mimeType
+			candidate.Transferable = true
+		}
+	}
+	return candidate
+}
+
+func mimeFromDataURL(value string) string {
+	withoutPrefix := strings.TrimPrefix(value, "data:")
+	end := strings.Index(withoutPrefix, ";")
+	if end < 0 {
+		end = strings.Index(withoutPrefix, ",")
+	}
+	if end < 0 {
+		return ""
+	}
+	return withoutPrefix[:end]
+}
+
+func imageDataURLFromBase64(value string) (string, string) {
+	compact := strings.NewReplacer("\r", "", "\n", "", " ", "", "\t", "").Replace(strings.TrimSpace(value))
+	if len(compact) < 64 {
+		return "", ""
+	}
+	decoded, err := base64.StdEncoding.DecodeString(compact)
+	if err != nil {
+		decoded, err = base64.RawStdEncoding.DecodeString(compact)
+	}
+	if err != nil || len(decoded) == 0 {
+		return "", ""
+	}
+	mimeType := http.DetectContentType(decoded)
+	if !strings.HasPrefix(mimeType, "image/") {
+		return "", ""
+	}
+	return "data:" + mimeType + ";base64," + compact, mimeType
+}
+
+func isIntegerText(value string) bool {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return false
+	}
+	for _, char := range value {
+		if char < '0' || char > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func parseECoSCVValues(attributes map[string][]string) []ECoSCVValue {

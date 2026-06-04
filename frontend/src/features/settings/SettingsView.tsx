@@ -44,6 +44,7 @@ import {
 import { Language, useI18n } from "../../shared/i18n";
 import { applyStoredThemeOptions, applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
 import { SettingsAuthTab } from "./SettingsAuthTab";
+import { SettingsDigitalTab } from "./SettingsDigitalTab";
 
 import {
   applyVisibleMetadata,
@@ -94,7 +95,10 @@ const updateStatusChangedEvent = "railkeeper-update-status-changed";
 
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
-  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>("general");
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    return settingsTabs.some((item) => item.id === tab) ? tab as SettingsTab : "general";
+  });
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
@@ -295,9 +299,8 @@ export function SettingsView({ username }: { username: string }) {
   }, [activeSettingsTab, storageUsage, storageLoading]);
 
   useEffect(() => {
-    if (activeSettingsTab !== "auth") return;
     loadCurrentSession();
-  }, [activeSettingsTab]);
+  }, [username]);
 
   useEffect(() => {
     if (activeSettingsTab !== "auth" || !canManageUsers) return;
@@ -1670,6 +1673,10 @@ export function SettingsView({ username }: { username: string }) {
           </p>
           {backupMessage && <p className="form-message">{backupMessage}</p>}
         </section>
+      )}
+
+      {activeSettingsTab === "digital" && (
+        <SettingsDigitalTab canManageUsers={canManageUsers} formatDateTime={formatDateTime} />
       )}
 
       {activeSettingsTab === "appearance" && (

@@ -27,11 +27,12 @@ function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen") {
   );
 }
 
-export function RequiredLabel({ label, filled }: { label: string; filled: boolean }) {
+export function RequiredLabel({ label, filled, showError = false }: { label: string; filled: boolean; showError?: boolean }) {
+  const stateClass = filled ? "filled" : showError ? "missing" : "pending";
   return (
-    <span className={filled ? "required-label filled" : "required-label missing"}>
+    <span className={`required-label ${stateClass}`}>
       {label}
-      <span className={filled ? "required-dot filled" : "required-dot"} aria-hidden="true" />
+      <span className={`required-dot ${stateClass}`} aria-hidden="true" />
     </span>
   );
 }

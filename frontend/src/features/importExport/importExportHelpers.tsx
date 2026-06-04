@@ -1,4 +1,4 @@
-import { CreateVehicleRequest, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
+import { CreateVehicleRequest, ECoSImageSuggestion, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
 
 export type ImportRow = {
   id: string;
@@ -11,6 +11,7 @@ export type ImportRow = {
   externalMapping?: VehicleExternalMappingInput;
   functionSuggestions?: FunctionImportSuggestion[];
   cvSuggestions?: VehicleCVValueInput[];
+  imageSuggestions?: ECoSImageSuggestion[];
   vehicle: CreateVehicleRequest;
 };
 
@@ -26,8 +27,6 @@ export type ECoSMatch = {
 };
 
 export type ECoSMatchable = Pick<ECoSRawLocomotive, "objectId" | "name" | "address">;
-
-export type ECoSCVImportStatus = "new" | "changed" | "same" | "unmatched";
 
 export type ECoSCVDefinition = {
   number: number;
@@ -46,29 +45,10 @@ export type ECoSDecoderManufacturer = {
 
 export type ECoSDecoderManufacturerMap = Record<number, ECoSDecoderManufacturer>;
 
-export type ECoSDecoderProfileHint = {
-  locomotive: ECoSRawLocomotive;
-  manufacturerId?: number;
-  manufacturer?: ECoSDecoderManufacturer;
-  version?: number;
-  protocol: string;
-  profile: string;
-};
-
-export type ECoSCVImportRow = {
-  id: string;
-  locomotive: ECoSRawLocomotive;
-  match: ECoSMatch | null;
-  input: VehicleCVValueInput;
-  definition?: ECoSCVDefinition;
-  interpretation: string;
-  manufacturer?: ECoSDecoderManufacturer;
-  existingValue?: number;
-  status: ECoSCVImportStatus;
-};
-
 export type ECoSVehicleDraftPayload = {
   source: "ecos";
+  mode: "create" | "update";
+  targetVehicleId?: string;
   sourceSummary: {
     objectId: number;
     name: string;
@@ -77,9 +57,11 @@ export type ECoSVehicleDraftPayload = {
     profile: string;
   };
   vehicle: CreateVehicleRequest;
+  importedKeys: (keyof CreateVehicleRequest)[];
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
   functionValues: FunctionImportSuggestion[];
+  imageSuggestions: ECoSImageSuggestion[];
   unclearFields: VehicleImportField[];
   returnToEcos?: {
     sessionId: string;
@@ -259,7 +241,7 @@ export const columnAliases: Record<string, VehicleImportField> = {
   spurweite: "gauge",
   gauge: "gauge",
   nenngroesse: "gauge",
-  nenngrosse: "gauge",
+  "nenngröße": "gauge",
   nenngroessemassstab: "gauge",
   massstab: "gauge",
   masstab: "gauge",
@@ -441,8 +423,8 @@ export function defaultColumnMappings(table: string[][]): ColumnMapping[] {
 }
 
 export function csvEscape(value: unknown) {
-  const text = String(value ?? "");
-  return /[;"\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+  const text = String(value || "");
+  return /[;"\n\r]/.test(text) ?`"${text.replace(/"/g, '""')}"` : text;
 }
 
 export function parseDelimited(text: string, delimiter: string) {
@@ -536,7 +518,7 @@ export function detectDelimiter(text: string) {
   if (tab > semicolon && tab > comma) {
     return "\t";
   }
-  return semicolon >= comma ? ";" : ",";
+  return semicolon >= comma ?";" : ",";
 }
 
 export function importRowsFromTable(
@@ -574,7 +556,7 @@ export function importRowsFromTable(
     });
 
     const issues: string[] = [];
-    const duplicate = vehicle.inventoryNumber ? existingByInventory.get(vehicle.inventoryNumber.toLowerCase()) : undefined;
+    const duplicate = vehicle.inventoryNumber ?existingByInventory.get(vehicle.inventoryNumber.toLowerCase()) : undefined;
     if (!duplicate) {
       if (!vehicle.manufacturer) issues.push(labels.missingManufacturer);
       if (!vehicle.name) issues.push(labels.missingName);
@@ -589,8 +571,8 @@ export function importRowsFromTable(
     return {
       id: `row-${index + 1}`,
       selected: !duplicate && issues.length === 0,
-      mode: duplicate ? "update" as const : "create" as const,
-      status: duplicate ? "warning" as const : issues.length === 0 ? "ok" as const : "error" as const,
+      mode: duplicate ?"update" as const : "create" as const,
+      status: duplicate ?"warning" as const : issues.length === 0 ?"ok" as const : "error" as const,
       issues,
       importedKeys: Array.from(new Set(importedKeys)),
       duplicateVehicleId: duplicate?.id,
@@ -668,7 +650,7 @@ export function ecosExternalMapping(locomotive: ECoSMatchable & { protocol?: str
     provider: "ecos",
     externalId: String(locomotive.objectId),
     externalName: locomotive.name || "",
-    externalAddress: typeof locomotive.address === "number" ? String(locomotive.address) : "",
+    externalAddress: typeof locomotive.address === "number" ?String(locomotive.address) : "",
     externalProtocol: locomotive.protocol || "",
     syncStatus: "linked"
   };
@@ -690,7 +672,7 @@ export function formatECoSFunctions(locomotive: ECoSRawLocomotive) {
     return "-";
   }
   return functions
-    .map((fn) => `F${fn.index}${fn.description ? `:${fn.description}` : ""}${fn.active ? "*" : ""}`)
+    .map((fn) => `F${fn.index}${fn.description ?`:${fn.description}` : ""}${fn.active ?"*" : ""}`)
     .join(", ");
 }
 
@@ -721,7 +703,7 @@ export function symbolCodeSignal(symbol: MasterDataEntry) {
     metadata.fileName,
     metadata.originalName
   ]
-    .map((value) => String(value ?? ""))
+    .map((value) => String(value || ""))
     .join(" ");
 }
 
@@ -736,7 +718,39 @@ export function findSymbolByECoSCode(code: number, symbols: MasterDataEntry[]) {
   });
 }
 
+function findFallbackSymbolKey(...candidates: string[]) {
+  const normalized = candidates.map((value) => value.toLocaleLowerCase("de-DE"));
+  if (normalized.some((value) => value.includes("kuppl"))) return "coupling";
+  if (normalized.some((value) => value.includes("rauch") || value.includes("smoke"))) return "smoke";
+  if (normalized.some((value) => value.includes("horn") || value.includes("pfiff"))) return "horn";
+  if (normalized.some((value) => value.includes("sound") || value.includes("geraeusch") || value.includes("geräusch"))) return "sound";
+  if (normalized.some((value) => value.includes("licht") || value.includes("light"))) return "light";
+  if (normalized.some((value) => value.includes("warn"))) return "warning";
+  return "";
+}
+
+function eCoSFunctionFallbackByCode(index: number, code?: number): Partial<VehicleFunctionInput> {
+  switch (code) {
+    case 3:
+      return { name: index === 0 ?"Fahrlicht" : "Licht", symbolKey: "light", functionType: "licht" };
+    case 7:
+      return { name: "Rauch", symbolKey: "smoke", functionType: "rauch" };
+    case 33:
+      return { name: "Sound", symbolKey: "sound", functionType: "sound" };
+    case 38:
+      return { name: "Horn", symbolKey: "horn", functionType: "sound" };
+    case 773:
+      return { name: "Kupplung", symbolKey: "coupling", functionType: "kupplung" };
+    default:
+      return {};
+  }
+}
+
 export function fallbackECoSFunction(index: number, code?: number): Partial<VehicleFunctionInput> {
+  const byCode = eCoSFunctionFallbackByCode(index, code);
+  if (byCode.name || byCode.symbolKey || byCode.functionType) {
+    return byCode;
+  }
   if (index === 0 && (code === 3 || !code)) {
     return {
       name: "Fahrlicht",
@@ -748,9 +762,32 @@ export function fallbackECoSFunction(index: number, code?: number): Partial<Vehi
 }
 
 export function ecosFunctionSuggestions(locomotive: ECoSRawLocomotive, symbols: MasterDataEntry[]): FunctionImportSuggestion[] {
-  void locomotive;
-  void symbols;
-  return [];
+  return (locomotive.functions || [])
+    .filter((fn) => fn.index >= 0 && (fn.description || fn.active))
+    .map((fn) => {
+      const symbol = fn.description ?findSymbolByECoSCode(fn.description, symbols) : undefined;
+      const symbolLabel = symbol?.label || "";
+      const symbolKey = symbol?.key || "";
+      const fallback = fallbackECoSFunction(fn.index, fn.description);
+      const fallbackKey = fallback.symbolKey || findFallbackSymbolKey(symbolKey, symbolLabel);
+      const functionType = symbolKey
+        ?inferFunctionTypeFromSymbol(symbolKey, symbols, fallback.functionType || "standard")
+        : fallback.functionType || inferFunctionTypeFromSymbol(fallbackKey, symbols, "standard");
+      const name = symbolLabel || fallback.name || (fn.description ?`ECoS Funktion ${fn.description}` : `F${fn.index}`);
+      return {
+        functionKey: `F${fn.index}`,
+        name,
+        symbolKey: symbolKey || fallbackKey || "",
+        functionType,
+        mode: "dauer",
+        directionDependent: false,
+        notes: fn.description
+          ?`Aus ECoS funcdesc ${fn.description}${fn.active ?", aktuell aktiv" : ""}.`
+          : fn.active ?"Aus aktivem ECoS-Funktionsstatus abgeleitet." : "",
+        ecosDescription: fn.description,
+        active: fn.active
+      };
+    });
 }
 
 export function ecosCVSuggestions(locomotive: ECoSRawLocomotive): VehicleCVValueInput[] {
@@ -760,7 +797,7 @@ export function ecosCVSuggestions(locomotive: ECoSRawLocomotive): VehicleCVValue
   return cvs.map((cv) => {
     const definition = ecosStandardCVDefinitions[cv.number];
     const inferredDescription = cv.number === 8 && !findECoSCVValue(locomotive, 8) && typeof inferredManufacturerId === "number"
-      ? "Herstellerkennung: aus ECoS-Decoderprofil abgeleitet."
+      ?"Herstellerkennung: aus ECoS-Decoderprofil abgeleitet."
       : "";
     return {
       cvNumber: cv.number,
@@ -769,8 +806,8 @@ export function ecosCVSuggestions(locomotive: ECoSRawLocomotive): VehicleCVValue
       protocol: normalizeECoSProtocolForCV(locomotive.protocol),
       decoderProfile,
       description: inferredDescription || (definition
-        ? `${definition.label}: ${definition.description}`
-        : `ECoS ${locomotive.objectId}${locomotive.name ? ` - ${locomotive.name}` : ""}`)
+        ?`${definition.label}: ${definition.description}`
+        : `ECoS ${locomotive.objectId}${locomotive.name ?` - ${locomotive.name}` : ""}`)
     };
   });
 }
@@ -795,7 +832,12 @@ export const ecosRawKnownAttributes = new Set([
   "speedstep",
   "cv",
   "cvs",
-  "cvlist"
+  "cvlist",
+  "icon",
+  "image",
+  "pic",
+  "picture",
+  "userimage"
 ]);
 
 export function firstECoSAttribute(locomotive: ECoSRawLocomotive, key: string) {
@@ -841,6 +883,31 @@ export function rawECoSUnknownAttributes(locomotive: ECoSRawLocomotive) {
   return Object.entries(locomotive.attributes || {})
     .filter(([key, values]) => values.length > 0 && !ecosRawKnownAttributes.has(key.toLowerCase()))
     .sort(([left], [right]) => left.localeCompare(right));
+}
+
+export function formatECoSImageValue(value: string) {
+  const trimmed = String(value || "").trim();
+  return trimmed.length > 70 ?`${trimmed.slice(0, 70)}...` : trimmed;
+}
+
+export function ecosImageSuggestions(locomotive: ECoSRawLocomotive): ECoSImageSuggestion[] {
+  return (locomotive.imageCandidates || [])
+    .filter((candidate) => candidate.transferable && candidate.previewUrl)
+    .map((candidate, index) => {
+      const source = candidate.kind === "url" ?candidate.previewUrl || "" : `ECoS ${locomotive.objectId} / ${candidate.key}`;
+      return {
+        id: `ecos-${locomotive.objectId}-${candidate.key}-${index}`,
+        url: candidate.previewUrl || "",
+        thumbnailUrl: candidate.previewUrl,
+        title: `${locomotive.name || `ECoS ${locomotive.objectId}`} - ${candidate.key}`,
+        source,
+        mimeType: candidate.mimeType || "",
+        ecosKey: candidate.key,
+        ecosKind: candidate.kind,
+        rawValue: candidate.value,
+        isPrimary: index === 0
+      };
+    });
 }
 
 export function normalizeECoSProtocolForCV(protocol?: string) {
@@ -931,13 +998,13 @@ function cv8NumberFromMetadataValue(value: unknown) {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim()) {
     const parsed = Number.parseInt(value.trim(), 10);
-    return Number.isFinite(parsed) ? parsed : undefined;
+    return Number.isFinite(parsed) ?parsed : undefined;
   }
   return undefined;
 }
 
 function normalizeCV8ManufacturerId(value: number | undefined) {
-  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 255 ? value : undefined;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 255 ?value : undefined;
 }
 
 function cv8ManufacturerIdFromEntry(entry: MasterDataEntry) {
@@ -949,16 +1016,16 @@ function cv8ManufacturerIdFromEntry(entry: MasterDataEntry) {
   if (typeof metadataId === "number") return metadataId;
 
   const keyMatch = entry.key.match(/(?:^|-)0*(\d{1,3})$/);
-  const keyId = keyMatch ? normalizeCV8ManufacturerId(Number.parseInt(keyMatch[1], 10)) : undefined;
+  const keyId = keyMatch ?normalizeCV8ManufacturerId(Number.parseInt(keyMatch[1], 10)) : undefined;
   if (typeof keyId === "number") return keyId;
 
   const labelMatch = entry.label.match(/^\s*(\d{1,3})\s*-/);
-  return labelMatch ? normalizeCV8ManufacturerId(Number.parseInt(labelMatch[1], 10)) : undefined;
+  return labelMatch ?normalizeCV8ManufacturerId(Number.parseInt(labelMatch[1], 10)) : undefined;
 }
 
 function cv8StringMetadata(entry: MasterDataEntry, key: string) {
   const value = entry.metadata?.[key];
-  return typeof value === "string" && value.trim() ? value.trim() : "";
+  return typeof value === "string" && value.trim() ?value.trim() : "";
 }
 
 function cv8ManufacturerNameFromEntry(entry: MasterDataEntry) {
@@ -1114,34 +1181,13 @@ export function getECoSDecoderManufacturer(locomotive: ECoSRawLocomotive, manufa
   return manufacturers[manufacturerId];
 }
 
-function formatECoSDecoderManufacturer(manufacturer: ECoSDecoderManufacturer, manufacturerId: number) {
-  const country = manufacturer.country ? ` [${manufacturer.country}]` : "";
-  return `${manufacturer.name}${country} (CV8 ${manufacturerId})`;
-}
-
-export function buildECoSDecoderProfileHints(raw: ECoSRawProbe | null, manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers): ECoSDecoderProfileHint[] {
-  if (!raw) return [];
-  return raw.locomotives
-    .map((locomotive) => {
-      const manufacturerId = inferECoSDecoderManufacturerId(locomotive);
-      return {
-        locomotive,
-        manufacturerId,
-        manufacturer: typeof manufacturerId === "number" ? manufacturers[manufacturerId] : undefined,
-        version: findECoSCVValue(locomotive, 7),
-        protocol: normalizeECoSProtocolForCV(locomotive.protocol),
-        profile: locomotive.profile || ""
-      };
-    });
-}
-
 export function interpretECoSCV29(value: number) {
   const flags = [
-    value & 1 ? "Fahrtrichtung invertiert" : "Fahrtrichtung normal",
-    value & 2 ? "28/128 Fahrstufen" : "14 Fahrstufen",
-    value & 4 ? "Analogbetrieb erlaubt" : "nur Digitalbetrieb",
-    value & 16 ? "freie Geschwindigkeitstabelle" : "3-Punkt-Kennlinie",
-    value & 32 ? "lange Adresse aktiv" : "kurze Adresse aktiv"
+    value & 1 ?"Fahrtrichtung invertiert" : "Fahrtrichtung normal",
+    value & 2 ?"28/128 Fahrstufen" : "14 Fahrstufen",
+    value & 4 ?"Analogbetrieb erlaubt" : "nur Digitalbetrieb",
+    value & 16 ?"freie Geschwindigkeitstabelle" : "3-Punkt-Kennlinie",
+    value & 32 ?"lange Adresse aktiv" : "kurze Adresse aktiv"
   ];
   if (value & 8) {
     flags.push("Bit 3 herstellerabhängig gesetzt");
@@ -1161,11 +1207,11 @@ export function interpretECoSLongAddress(locomotive: ECoSRawLocomotive) {
 export function interpretECoSCV(cvNumber: number, value: number, locomotive: ECoSRawLocomotive, manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers) {
   if (cvNumber === 8) {
     const manufacturer = getECoSDecoderManufacturer(locomotive, manufacturers);
-    return manufacturer ? `${manufacturer.name} (${value})` : `Unbekannte Herstellerkennung (${value})`;
+    return manufacturer ?`${manufacturer.name} (${value})` : `Unbekannte Herstellerkennung (${value})`;
   }
   if (cvNumber === 17 || cvNumber === 18) {
     const longAddress = interpretECoSLongAddress(locomotive);
-    return longAddress ? `Lange Adresse ${longAddress}` : "Lange Adresse unvollstaendig";
+    return longAddress ?`Lange Adresse ${longAddress}` : "Lange Adresse unvollst?ndig";
   }
   if (cvNumber === 29) {
     return interpretECoSCV29(value);
@@ -1177,55 +1223,7 @@ export function interpretECoSCV(cvNumber: number, value: number, locomotive: ECo
   return "-";
 }
 
-export function cvPreviewKey(cvNumber: number, decoderProfile?: string) {
-  return `${cvNumber}::${(decoderProfile || "").trim().toLocaleLowerCase("de-DE")}`;
-}
-
-export function buildECoSCVImportRows(raw: ECoSRawProbe | null, vehicles: Vehicle[], manufacturers: ECoSDecoderManufacturerMap = ecosDecoderManufacturers): ECoSCVImportRow[] {
-  if (!raw) return [];
-  return raw.locomotives.flatMap((locomotive) => {
-    const cvs = eCoSCVValuesWithInferredManufacturer(locomotive);
-    if (cvs.length === 0) return [];
-    const match = findECoSMatch(locomotive, vehicles);
-    const decoderProfile = locomotive.profile || "";
-    const existingByExactKey = new Map((match?.vehicle.cvValues || []).map((entry) => [cvPreviewKey(entry.cvNumber, entry.decoderProfile), entry]));
-    const existingByNumber = new Map((match?.vehicle.cvValues || []).map((entry) => [entry.cvNumber, entry]));
-    return cvs.map((cv) => {
-      const definition = ecosStandardCVDefinitions[cv.number];
-      const input: VehicleCVValueInput = {
-        cvNumber: cv.number,
-        value: cv.value,
-        category: definition?.category || inferECoSCVCategory(cv.number),
-        protocol: normalizeECoSProtocolForCV(locomotive.protocol),
-        decoderProfile,
-        description: definition
-          ? `${definition.label}: ${definition.description}`
-          : `ECoS ${locomotive.objectId}${locomotive.name ? ` - ${locomotive.name}` : ""}`
-      };
-      const existing = existingByExactKey.get(cvPreviewKey(input.cvNumber, input.decoderProfile)) || existingByNumber.get(input.cvNumber);
-      const status: ECoSCVImportStatus = !match
-        ? "unmatched"
-        : !existing
-          ? "new"
-          : existing.value === input.value
-            ? "same"
-            : "changed";
-      return {
-        id: `${locomotive.objectId}-${cv.number}`,
-        locomotive,
-        match,
-        input,
-        definition,
-        interpretation: interpretECoSCV(cv.number, cv.value, locomotive, manufacturers),
-        manufacturer: getECoSDecoderManufacturer(locomotive, manufacturers),
-        existingValue: existing?.value,
-        status
-      };
-    });
-  });
-}
-
-export function renderECoSCVImportPreview(
+export function renderECoSWorklist(
   raw: ECoSRawProbe | null,
   vehicles: Vehicle[],
   t: Translate,
@@ -1234,101 +1232,136 @@ export function renderECoSCVImportPreview(
   sessionStatuses?: ECoSImportSession["statuses"],
   onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
 ) {
-  const rows = buildECoSCVImportRows(raw, vehicles, manufacturers);
-  const profileHints = buildECoSDecoderProfileHints(raw, manufacturers);
-  if (rows.length === 0 && profileHints.length === 0) {
+  if (!raw || raw.locomotives.length === 0) {
     return null;
   }
-  const matchedLocomotives = new Set(rows.filter((row) => row.match).map((row) => row.locomotive.objectId)).size;
-  const changedRows = rows.filter((row) => row.status === "new" || row.status === "changed").length;
   return (
-    <section className="ecos-cv-review-panel">
-      <div className="ecos-preview-toolbar">
-        <span>{t("importExport.ecos.cvReview.title")}</span>
-        <span>{t("importExport.ecos.cvReview.summary", { count: rows.length, matched: matchedLocomotives, changed: changedRows })}</span>
-      </div>
-      <p>{t("importExport.ecos.cvReview.subtitle")}</p>
-      {profileHints.length > 0 && (
-        <div className="ecos-cv-profile-grid" aria-label={t("importExport.ecos.cvReview.decoderProfiles")}>
-          {profileHints.map((hint) => {
-            const status = sessionStatuses?.[String(hint.locomotive.objectId)]?.status || "open";
-            return (
-              <div key={hint.locomotive.objectId} className={`ecos-cv-profile-card ${status}`} title={t("importExport.ecos.openVehicleDraft")}>
-                <div className="ecos-card-head">
-                  <strong>{hint.locomotive.name || `ECoS ${hint.locomotive.objectId}`}</strong>
-                  <span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span>
-                </div>
-                <dl>
-                  <div>
-                    <dt>{t("importExport.ecos.cvReview.manufacturer")}</dt>
-                    <dd>
-                      {typeof hint.manufacturerId === "number"
-                        ? hint.manufacturer
-                          ? formatECoSDecoderManufacturer(hint.manufacturer, hint.manufacturerId)
-                          : t("importExport.ecos.cvReview.unknownManufacturer", { id: hint.manufacturerId })
-                        : t("importExport.ecos.cvReview.missingManufacturerCV")}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>{t("importExport.ecos.cvReview.version")}</dt>
-                    <dd>{typeof hint.version === "number" ? hint.version : "-"}</dd>
-                  </div>
-                  <div>
-                    <dt>{t("importExport.ecos.cvReview.profileHint")}</dt>
-                    <dd>{[hint.manufacturer?.name, hint.profile, hint.protocol].filter(Boolean).join(" - ") || "-"}</dd>
-                  </div>
-                </dl>
-                <div className="ecos-card-actions">
-                  <button type="button" className="secondary-button" onClick={() => onOpenVehicleDraft?.(hint.locomotive)} disabled={status === "saved"}>
-                    {t("importExport.ecos.openVehicleDraft")}
-                  </button>
-                  <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(hint.locomotive)} disabled={status === "saved" || status === "skipped"}>
-                    {t("importExport.ecos.skip")}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+    <section className="ecos-worklist-panel">
+      <div className="ecos-section-head">
+        <div>
+          <strong>{t("importExport.ecos.worklist.title")}</strong>
+          <span>{t("importExport.ecos.worklist.subtitle")}</span>
         </div>
-      )}
-      {rows.length > 0 && <div className="table-wrap ecos-cv-review-table">
+        <span>{t("importExport.ecos.locoCount", { count: raw.locomotives.length })}</span>
+      </div>
+      <div className="table-wrap ecos-worklist-table">
         <table>
           <thead>
             <tr>
-              <th>{t("importExport.ecos.cvReview.locomotive")}</th>
-              <th>{t("importExport.ecos.cvReview.match")}</th>
-              <th>CV</th>
-              <th>{t("importExport.ecos.cvReview.meaning")}</th>
-              <th>{t("importExport.ecos.cvReview.ecosValue")}</th>
-              <th>{t("importExport.ecos.cvReview.interpretation")}</th>
-              <th>{t("importExport.ecos.cvReview.railkeeperValue")}</th>
-              <th>{t("importExport.ecos.cvReview.category")}</th>
-              <th>{t("importExport.ecos.cvReview.protocol")}</th>
-              <th>{t("importExport.ecos.cvReview.status")}</th>
+              <th>{t("importExport.ecos.worklist.locomotive")}</th>
+              <th>{t("importExport.ecos.worklist.match")}</th>
+              <th>{t("importExport.ecos.worklist.decoder")}</th>
+              <th>{t("importExport.ecos.worklist.values")}</th>
+              <th>{t("importExport.ecos.worklist.status")}</th>
+              <th>{t("importExport.ecos.worklist.actions")}</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <strong>{row.locomotive.name || `ECoS ${row.locomotive.objectId}`}</strong>
-                  <small>#{row.locomotive.objectId}{row.locomotive.address ? ` · ${row.locomotive.address}` : ""}</small>
-                </td>
-                <td>{row.match ? `${row.match.vehicle.inventoryNumber} · ${row.match.vehicle.name}` : t("importExport.ecos.cvReview.noMatch")}</td>
-                <td>{row.input.cvNumber}</td>
-                <td>{row.definition?.label || "-"}</td>
-                <td>{row.input.value}</td>
-                <td className="ecos-cv-interpretation">{row.interpretation}</td>
-                <td>{row.existingValue ?? "-"}</td>
-                <td>{row.input.category || "-"}</td>
-                <td>{row.input.protocol || "-"}</td>
-                <td><span className={`ecos-cv-status ${row.status}`}>{t(`importExport.ecos.cvReview.status.${row.status}`)}</span></td>
-              </tr>
-            ))}
+            {raw.locomotives.map((locomotive) => {
+              const status = sessionStatuses?.[String(locomotive.objectId)]?.status || "open";
+              const match = findECoSMatch(locomotive, vehicles);
+              const actionLabel = match ?t("importExport.ecos.updateVehicleDraft") : t("importExport.ecos.openVehicleDraft");
+              const manufacturer = getECoSDecoderManufacturer(locomotive, manufacturers);
+              const cvCount = eCoSCVValuesWithInferredManufacturer(locomotive).length;
+              const imageCount = ecosImageSuggestions(locomotive).length;
+              return (
+                <tr key={locomotive.objectId}>
+                  <td>
+                    <strong>{locomotive.name || `ECoS ${locomotive.objectId}`}</strong>
+                    <small>#{locomotive.objectId}{typeof locomotive.address === "number" ?` · ${locomotive.address}` : ""}</small>
+                  </td>
+                  <td>{match ?`${match.vehicle.inventoryNumber} · ${match.vehicle.name}` : t("importExport.ecos.noMatch")}</td>
+                  <td>{[manufacturer?.name, locomotive.profile, normalizeECoSProtocolForCV(locomotive.protocol)].filter(Boolean).join(" · ") || "-"}</td>
+                  <td>{t("importExport.ecos.worklist.valueSummary", { cvs: cvCount, images: imageCount })}</td>
+                  <td><span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span></td>
+                  <td>
+                    <div className="ecos-row-actions">
+                      <button type="button" className="secondary-button" onClick={() => onOpenVehicleDraft?.(locomotive)} disabled={status === "saved"}>
+                        {actionLabel}
+                      </button>
+                      <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(locomotive)} disabled={status === "saved" || status === "skipped"}>
+                        {t("importExport.ecos.skip")}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>}
-      <p className="source-note backup-note">{t("importExport.ecos.cvReview.note")}</p>
+      </div>
+    </section>
+  );
+}
+
+export function renderECoSImagePreview(
+  raw: ECoSRawProbe | null,
+  vehicles: Vehicle[],
+  t: Translate,
+  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
+  sessionStatuses?: ECoSImportSession["statuses"],
+  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
+) {
+  const locomotives = (raw?.locomotives || []).filter((locomotive) => (locomotive.imageCandidates || []).length > 0);
+  if (locomotives.length === 0) {
+    return null;
+  }
+  const transferableCount = locomotives.reduce((sum, locomotive) => sum + ecosImageSuggestions(locomotive).length, 0);
+  return (
+    <section className="ecos-image-review-panel">
+      <div className="ecos-preview-toolbar">
+        <span>{t("importExport.ecos.images.title")}</span>
+        <span>{t("importExport.ecos.images.summary", { count: locomotives.length, transferable: transferableCount })}</span>
+      </div>
+      <p>{t("importExport.ecos.images.subtitle")}</p>
+      <div className="ecos-image-grid">
+        {locomotives.map((locomotive) => {
+          const status = sessionStatuses?.[String(locomotive.objectId)]?.status || "open";
+          const match = findECoSMatch(locomotive, vehicles);
+          const actionLabel = match ?t("importExport.ecos.updateVehicleDraft") : t("importExport.ecos.openVehicleDraft");
+          const suggestions = ecosImageSuggestions(locomotive);
+          return (
+            <div key={locomotive.objectId} className={`ecos-image-card ${status}`}>
+              <div className="ecos-card-head">
+                <strong>{locomotive.name || `ECoS ${locomotive.objectId}`}</strong>
+                <span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span>
+              </div>
+              {suggestions.length > 0 ?(
+                <div className="ecos-image-strip">
+                  {suggestions.map((image) => (
+                    <figure key={image.id}>
+                      <img src={image.thumbnailUrl || image.url} alt="" />
+                      <figcaption>{image.ecosKey}</figcaption>
+                    </figure>
+                  ))}
+                </div>
+              ) : (
+                <p className="ecos-image-placeholder">{t("importExport.ecos.images.noTransferable")}</p>
+              )}
+              <dl className="ecos-image-candidates">
+                {(locomotive.imageCandidates || []).map((candidate, index) => (
+                  <div key={`${candidate.key}-${index}`}>
+                    <dt>{candidate.key}</dt>
+                    <dd>
+                      <span>{t(`importExport.ecos.images.kind.${candidate.kind}`)}</span>
+                      <small>{formatECoSImageValue(candidate.value)}</small>
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <div className="ecos-card-actions">
+                <button type="button" className="secondary-button" onClick={() => onOpenVehicleDraft?.(locomotive)} disabled={status === "saved"}>
+                  {actionLabel}
+                </button>
+                <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(locomotive)} disabled={status === "saved" || status === "skipped"}>
+                  {t("importExport.ecos.skip")}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p className="source-note backup-note">{t("importExport.ecos.images.note")}</p>
     </section>
   );
 }
@@ -1351,7 +1384,12 @@ export function renderECoSRawProbe(
         <span>{raw.message}</span>
         <span>{t("importExport.ecos.rawProbeFields", { count: raw.probeFields.length })}</span>
       </div>
-      {raw.locomotives.length === 0 ? <p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : renderECoSCVImportPreview(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
+      {raw.locomotives.length === 0 ?<p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : (
+        <>
+          {renderECoSImagePreview(raw, vehicles, t, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
+          {renderECoSWorklist(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
+        </>
+      )}
       <p className="source-note backup-note">{t("importExport.ecos.rawNote")}</p>
     </div>
   );
@@ -1363,7 +1401,7 @@ export function mergeExternalMapping(vehicle: Vehicle, mapping: VehicleExternalM
 }
 
 export function findECoSMatch(locomotive: ECoSMatchable, vehicles: Vehicle[]): ECoSMatch | null {
-  const address = typeof locomotive.address === "number" ? String(locomotive.address) : "";
+  const address = typeof locomotive.address === "number" ?String(locomotive.address) : "";
   const objectId = String(locomotive.objectId);
   const name = comparableECoSName(locomotive.name || "");
   for (const vehicle of vehicles) {
@@ -1410,16 +1448,16 @@ export function buildECoSVehicleDraftRow(
   const protocol = normalizeECoSProtocolForCV(locomotive.protocol);
   const decoderProfile = [manufacturer?.name, locomotive.profile].filter(Boolean).join(" ");
   const vehicle: CreateVehicleRequest = match
-    ? vehicleToRequest(match.vehicle)
+    ?vehicleToRequest(match.vehicle)
     : {
         manufacturer: "",
         name: locomotive.name || `ECoS ${locomotive.objectId}`,
         gauge: "",
         category: "Lokomotive",
         digital: true,
-        digitalDecoderNumber: typeof locomotive.address === "number" ? String(locomotive.address) : "",
+        digitalDecoderNumber: typeof locomotive.address === "number" ?String(locomotive.address) : "",
         decoderType: decoderProfile,
-        description: `ECoS-ID ${locomotive.objectId}${protocol ? `, Protokoll ${protocol}` : ""}`
+        description: `ECoS-ID ${locomotive.objectId}${protocol ?`, Protokoll ${protocol}` : ""}`
       };
 
   vehicle.digital = true;
@@ -1430,7 +1468,7 @@ export function buildECoSVehicleDraftRow(
     vehicle.decoderType = decoderProfile;
   }
   if (!vehicle.description) {
-    vehicle.description = `ECoS-ID ${locomotive.objectId}${protocol ? `, Protokoll ${protocol}` : ""}`;
+    vehicle.description = `ECoS-ID ${locomotive.objectId}${protocol ?`, Protokoll ${protocol}` : ""}`;
   }
 
   const issues: string[] = [];
@@ -1447,14 +1485,15 @@ export function buildECoSVehicleDraftRow(
   return {
     id: `ecos-raw-${locomotive.objectId}`,
     selected: Boolean(match),
-    mode: match ? "update" : "create",
-    status: match ? "warning" : issues.length ? "error" : "ok",
+    mode: match ?"update" : "create",
+    status: match ?"warning" : issues.length ?"error" : "ok",
     issues,
     importedKeys: ["name", "category", "digital", "digitalDecoderNumber", "decoderType", "description"],
     duplicateVehicleId: match?.vehicle.id,
     externalMapping: ecosExternalMapping(locomotive),
     functionSuggestions: ecosFunctionSuggestions(locomotive, symbols),
     cvSuggestions: ecosCVSuggestions(locomotive),
+    imageSuggestions: ecosImageSuggestions(locomotive),
     vehicle
   };
 }
@@ -1472,7 +1511,7 @@ export function mergeImportedVehicle(existing: Vehicle, incoming: CreateVehicleR
 
 export function displayImportValue(value: unknown, yes = "ja", no = "nein") {
   if (typeof value === "boolean") {
-    return value ? yes : no;
+    return value ?yes : no;
   }
   if (typeof value === "string") {
     return value.trim() || "-";
@@ -1484,7 +1523,7 @@ export function valuesEqual(current: unknown, incoming: unknown) {
   if (typeof current === "boolean" || typeof incoming === "boolean") {
     return Boolean(current) === Boolean(incoming);
   }
-  return String(current ?? "").trim() === String(incoming ?? "").trim();
+  return String(current || "").trim() === String(incoming || "").trim();
 }
 
 export function getImportChanges(
@@ -1509,7 +1548,7 @@ export function getImportChanges(
         label: fieldLabel(key),
         current: currentText,
         incoming: incomingText,
-        status: valuesEqual(current, incoming) ? "same" : currentText === "-" ? "fill" : "overwrite"
+        status: valuesEqual(current, incoming) ?"same" : currentText === "-" ?"fill" : "overwrite"
       };
     });
 }
@@ -1534,7 +1573,7 @@ export function downloadText(fileName: string, content: string, type: string) {
 }
 
 export function htmlEscape(value: unknown) {
-  return String(value ?? "")
+  return String(value || "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
@@ -1564,7 +1603,7 @@ export function printInventory(
       <td>${htmlEscape(vehicle.gauge)}</td>
       <td>${htmlEscape(vehicle.epoch)}</td>
       <td>${htmlEscape(vehicle.category)}</td>
-      <td>${vehicle.digital ? "digital" : "analog"}</td>
+      <td>${vehicle.digital ?"digital" : "analog"}</td>
       <td>${htmlEscape(vehicle.listPrice)}</td>
     </tr>
   `).join("");
@@ -1595,7 +1634,7 @@ export function printInventory(
         <header>
           <div>
             <h1>${htmlEscape(t("importExport.print.title"))}</h1>
-            <p>${htmlEscape(t("importExport.print.footer", { date: new Date().toLocaleString(language === "en" ? "en-US" : "de-DE") }))}</p>
+            <p>${htmlEscape(t("importExport.print.footer", { date: new Date().toLocaleString(language === "en" ?"en-US" : "de-DE") }))}</p>
           </div>
           <div class="stats">
             <span>${htmlEscape(t("importExport.print.summary", { total: vehicles.length, digital, analog }))}</span>

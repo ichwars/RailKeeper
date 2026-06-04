@@ -1,4 +1,4 @@
-import { Check, ExternalLink, PackageSearch, Pencil, Save, Search, Trash2 } from "lucide-react";
+import { ExternalLink, PackageSearch, Pencil, Save, Search, Trash2 } from "lucide-react";
 import type {
   ArticleSearchSparePart,
   Vehicle,
@@ -9,6 +9,62 @@ import { useI18n } from "../../shared/i18n";
 
 export function sparePartResultKey(part: ArticleSearchSparePart, index: number) {
   return `${part.articleNumber || ""}|${part.description || ""}|${part.url || ""}|${index}`.toLocaleLowerCase();
+}
+
+export function cleanSparePartDescription(value: string) {
+  return String(value || "")
+    .replace(/\b(?:Artikelnummer|Artikel-Nr\.?|Art\.?\s*Nr\.?|Nr\.?|Nummer|Number|No\.?|Item number|Item no\.?)\s*[:#-]?\s*/gi, "")
+    .replace(/\b(?:Preis|Price)\s*[:#-]?\s*\d+(?:[,.]\d{1,2})?\s*(?:€|EUR)?/gi, "")
+    .replace(/\d+(?:[,.]\d{1,2})?\s*(?:€|EUR)/gi, "")
+    .replace(/\*\s*In den Warenkorb\b/gi, "")
+    .replace(/\bIn den Warenkorb\b/gi, "")
+    .replace(/\bAdd to cart\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*[-·|]\s*$/g, "")
+    .trim();
+}
+
+export function strictCleanSparePartDescription(value: string) {
+  return String(value || "")
+    .replace(/^(?:GER|DE|ENG|EN)\s*[:/-]\s*/i, "")
+    .replace(/\b(?:Artikelnummer|Artikel-Nr\.?|Art\.?\s*Nr\.?|Nr\.?|Nummer|Number|No\.?|Item number|Item no\.?)\s*[:#-]?\s*/gi, "")
+    .replace(/\b(?:Preis|Price)\s*[:#-]?\s*\d+(?:[,.]\d{1,2})?\s*(?:\u20ac|EUR)?/gi, "")
+    .replace(/\d+(?:[,.]\d{1,2})?\s*(?:\u20ac|EUR)/gi, "")
+    .replace(/\*?\s*\b(?:In den Warenkorb|Zum Warenkorb hinzuf(?:u|ue)gen|In den Einkaufswagen|Add to cart|Add to shopping cart|Add to basket|Add to bag|Ajouter au panier|Anadir al carrito|Aggiungi al carrello|In winkelwagen|Toevoegen aan winkelwagen)\b/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s*[-\u00b7|]\s*$/g, "")
+    .trim();
+}
+
+export function isRealSparePartCandidate(part: ArticleSearchSparePart) {
+  const description = strictCleanSparePartDescription(part.description);
+  const signal = `${part.articleNumber || ""} ${description} ${part.url || ""}`.toLocaleLowerCase("de-DE");
+  if (!description || description.length < 3) return false;
+  if (/\b(bedienungsanl|bedienungsanleitung|ersatzteilliste|ersatzteilblatt|spare parts list|manual|download|katalog|catalog|et-blatt|explosionszeichnung|serviceblatt)\b/i.test(signal)) {
+    return false;
+  }
+  return Boolean(part.price || /\b(kuppl|lautsprecher|decoder|reifen|haftreifen|radsatz|rad|motor|puffer|schraube|stromabnehmer|getriebe|geh(?:ae|ä)use|leiterplatte|feder|achse|traction tire|loudspeaker|coupler|speaker)\b/i.test(signal));
+}
+
+export function isStrictRealSparePartCandidate(part: ArticleSearchSparePart) {
+  const description = strictCleanSparePartDescription(part.description);
+  const signal = `${part.articleNumber || ""} ${description} ${part.url || ""}`.toLocaleLowerCase("de-DE");
+  if (!description || description.length < 3) return false;
+  if (/\b(bedienungsanl|bedienungsanleitung|ersatzteilliste|ersatzteilblatt|spare parts list|manual|download|katalog|catalog|et-blatt|explosionszeichnung|serviceblatt)\b/i.test(signal)) {
+    return false;
+  }
+  return Boolean(part.price || /\b(kuppl|lautsprecher|decoder|reifen|haftreifen|radsatz|rad|motor|puffer|schraube|stromabnehmer|getriebe|geh(?:ae|\u00e4)use|leiterplatte|feder|achse|traction tire|loudspeaker|coupler|speaker)\b/i.test(signal));
+}
+
+export function shortSparePartSource(value?: string) {
+  const source = String(value || "").trim();
+  if (!source) return "";
+  return source
+    .replace(/^www\./i, "")
+    .replace(/\.(de|com|eu|net|org)$/i, "")
+    .replace(/-shop$/i, "")
+    .replace(/shop$/i, "")
+    .trim() || source;
 }
 
 export function VehicleSparePartsTab({
@@ -30,7 +86,6 @@ export function VehicleSparePartsTab({
   selectedFoundSpareParts,
   onToggleFoundSparePart,
   onToggleAllFoundSpareParts,
-  onAdoptSelectedSpareParts,
 }: {
   selected: Vehicle | null;
   readonly: boolean;
@@ -50,7 +105,6 @@ export function VehicleSparePartsTab({
   selectedFoundSpareParts: Record<string, boolean>;
   onToggleFoundSparePart: (key: string, checked: boolean) => void;
   onToggleAllFoundSpareParts: (checked: boolean) => void;
-  onAdoptSelectedSpareParts: () => void;
 }) {
   const { t } = useI18n();
   const storedParts = selected?.spareParts || [];
@@ -150,36 +204,36 @@ export function VehicleSparePartsTab({
       </section>
 
       <section className="spare-parts-section">
-        <div className="upload-head compact">
+        <div className="spare-parts-search-head">
           <div>
             <h3>{t("vehicles.spareParts.webTitle")}</h3>
             <p>{t("vehicles.spareParts.webHelp")}</p>
           </div>
-          <button type="button" className="secondary-button" onClick={onSearchSpareParts} disabled={!selected || readonly || searchLoading}>
+          <button type="button" className="secondary-button compact-action" onClick={onSearchSpareParts} disabled={!selected || readonly || searchLoading}>
             <Search size={15} aria-hidden="true" />
             {searchLoading ? t("vehicles.spareParts.searching") : t("vehicles.spareParts.search")}
           </button>
-          {foundSpareParts.length > 0 && (
-            <>
-              <span className="selection-count">{t("vehicles.spareParts.selectedCount", { count: selectedFoundCount })}</span>
-              <button type="button" className="secondary-button" onClick={() => onToggleAllFoundSpareParts(!allFoundSelected)} disabled={readonly || saving}>
-                {allFoundSelected ? t("vehicles.spareParts.selectNone") : t("vehicles.spareParts.selectAll")}
-              </button>
-              <button type="button" className="primary-button" onClick={onAdoptSelectedSpareParts} disabled={readonly || saving || selectedFoundCount === 0}>
-                <Save size={15} aria-hidden="true" />
-                {t("vehicles.spareParts.adoptSelected")}
-              </button>
-            </>
-          )}
         </div>
         {searchError && <p className="form-message">{searchError}</p>}
         {searchRan && !searchLoading && foundSpareParts.length === 0 && <p className="empty-state compact">{t("vehicles.spareParts.noWebParts")}</p>}
         {foundSpareParts.length > 0 && (
-          <div className="compact-table">
+          <div className="spare-parts-web-results">
+            <div className="spare-parts-web-actions">
+              <span className="selection-count">{t("vehicles.spareParts.selectedCount", { count: selectedFoundCount })}</span>
+            </div>
+            <div className="compact-table spare-parts-found-table">
             <table>
               <thead>
                 <tr>
-                  <th>{t("vehicles.spareParts.select")}</th>
+                  <th className="select-column">
+                    <input
+                      type="checkbox"
+                      checked={allFoundSelected}
+                      onChange={(event) => onToggleAllFoundSpareParts(event.target.checked)}
+                      disabled={readonly || saving || foundSpareParts.length === 0}
+                      aria-label={t("vehicles.spareParts.selectAll")}
+                    />
+                  </th>
                   <th>{t("vehicles.spareParts.articleNumber")}</th>
                   <th>{t("vehicles.spareParts.description")}</th>
                   <th>{t("vehicles.spareParts.price")}</th>
@@ -190,29 +244,29 @@ export function VehicleSparePartsTab({
                 {foundSpareParts.map((part, index) => {
                   const key = sparePartResultKey(part, index);
                   const checked = Boolean(selectedFoundSpareParts[key]);
+                  const cleanDescription = strictCleanSparePartDescription(part.description) || part.description || "-";
+                  const source = shortSparePartSource(part.source) || part.source || "-";
                   return (
                     <tr key={key}>
-                      <td>
-                        <button
-                          type="button"
-                          className={checked ? "selection-toggle active" : "selection-toggle"}
-                          aria-pressed={checked}
-                          aria-label={checked ? t("vehicles.spareParts.deselect") : t("vehicles.spareParts.select")}
-                          onClick={() => onToggleFoundSparePart(key, !checked)}
+                      <td className="select-column">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(event) => onToggleFoundSparePart(key, event.target.checked)}
                           disabled={readonly || saving}
-                        >
-                          <Check size={15} aria-hidden="true" />
-                        </button>
+                          aria-label={checked ? t("vehicles.spareParts.deselect") : t("vehicles.spareParts.select")}
+                        />
                       </td>
                       <td>{part.articleNumber || "-"}</td>
-                      <td>{part.description || "-"}</td>
+                      <td>{cleanDescription}</td>
                       <td>{part.price || "-"}</td>
-                      <td>{part.url ? <a href={part.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {part.source || t("vehicles.spareParts.open")}</a> : part.source || "-"}</td>
+                      <td>{part.url ? <a href={part.url} target="_blank" rel="noreferrer"><ExternalLink size={14} /> {source}</a> : source}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
+            </div>
           </div>
         )}
       </section>

@@ -109,7 +109,7 @@
   border-radius: 8px;
   color: var(--muted);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .pending-image-grid {
@@ -183,7 +183,7 @@
   color: var(--text);
   font: inherit;
   font-size: 9.5px;
-  font-weight: 700;
+  font-weight: 500;
 }
 
 .pending-image-card input:focus {
@@ -212,7 +212,7 @@
 .pending-image-card figcaption > span {
   color: var(--accent-strong);
   font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .image-card-actions,
@@ -241,6 +241,27 @@
 .attachment-list {
   display: grid;
   gap: 10px;
+}
+
+.attachment-list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 2px;
+}
+
+.attachment-list-head strong {
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.attachment-list-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .attachment-upload-zone {
@@ -277,7 +298,7 @@
 
 .attachment-upload-fields {
   display: grid;
-  grid-template-columns: minmax(150px, 190px) minmax(160px, 210px) minmax(0, 1fr);
+  grid-template-columns: minmax(150px, 210px) minmax(0, 1fr);
   gap: 8px;
 }
 
@@ -292,7 +313,7 @@
   color: var(--text);
   font: inherit;
   font-size: 13px;
-  font-weight: 750;
+  font-weight: 500;
 }
 
 .attachment-upload-fields select:focus,
@@ -327,7 +348,7 @@
   border-radius: 8px;
   color: var(--muted);
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .attachment-main {
@@ -347,7 +368,113 @@
 .attachment-main span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
+}
+
+.attachment-preview {
+  overflow: hidden;
+  min-height: 460px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 92%, #fff);
+}
+
+.attachment-preview iframe,
+.attachment-preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 460px;
+  border: 0;
+  background: #fff;
+}
+
+.attachment-preview img {
+  object-fit: contain;
+}
+
+.text-file-preview iframe {
+  background: #fff;
+}
+
+.pdf-preview {
+  min-height: 560px;
+}
+
+.pdf-preview iframe {
+  min-height: 560px;
+}
+
+.attachment-preview-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 120px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.attachment-preview-layer {
+  z-index: 80;
+}
+
+.attachment-preview-dialog {
+  width: min(1040px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  display: grid;
+  grid-template-rows: auto minmax(260px, 1fr) auto;
+  gap: 12px;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.attachment-preview-dialog .form-head {
+  margin-bottom: 0;
+}
+
+.attachment-preview-dialog .form-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.attachment-preview-dialog .form-head p {
+  margin: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-preview-dialog .attachment-preview {
+  min-height: 0;
+  max-height: none;
+}
+
+.attachment-preview-dialog .attachment-preview iframe,
+.attachment-preview-dialog .attachment-preview img {
+  min-height: min(62vh, 620px);
+}
+
+.attachment-preview-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.attachment-preview-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  padding: 0 12px;
 }
 
 .attachment-edit-row {
@@ -415,6 +542,18 @@
 
 .web-document-table table {
   min-width: 680px;
+}
+
+.web-document-table .select-column {
+  width: 38px;
+  min-width: 38px;
+  text-align: center;
+}
+
+.web-document-table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
 }
 
 .web-document-table a {
