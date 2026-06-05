@@ -19,6 +19,16 @@ By default Compose uses:
 RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:latest
 ```
 
+`latest` tracks stable version tags. Beta releases are published as GitHub
+Prereleases and can be pinned explicitly:
+
+```env
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.15-beta.1
+```
+
+The moving `beta` tag tracks the newest prerelease. The moving `edge` tag tracks
+pushes to `main` and is intended only for development smoke tests.
+
 For a fixed release, set the image tag in `.env` before pulling:
 
 ```env

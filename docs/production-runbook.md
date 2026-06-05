@@ -109,6 +109,45 @@ Rollback:
 
 3. Wenn Migrationen bereits angewendet wurden, nur mit vorherigem Datenbackup zurückrollen.
 
+## Beta-Releases
+
+Beta-Versionen werden mit einem Prerelease-Tag veröffentlicht, zum Beispiel:
+
+```text
+v0.1.15-beta.1
+```
+
+Der Windows-Portable-Workflow markiert solche Tags automatisch als GitHub Prerelease.
+Der Docker-Workflow setzt für stabile Versionstags `latest`, für Prerelease-Tags
+zusätzlich `beta`. Pushes auf `main` erzeugen nur den beweglichen `edge`-Kanal und
+keinen produktiven `latest`-Tag.
+
+Beta-Installation per Docker:
+
+```env
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.15-beta.1
+```
+
+Alternativ kann für fortlaufende Beta-Tests der bewegliche Kanal verwendet werden:
+
+```env
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:beta
+```
+
+Vor jedem Beta-Test:
+
+- App-Backup exportieren.
+- Optional Volume-/Dateisystem-Backup erstellen.
+- Release Notes und bekannte Risiken lesen.
+- Bei Migrationen prüfen, ob ein Rollback nur mit Datenbackup möglich ist.
+
+Nach jedem Beta-Test:
+
+- `/health` prüfen.
+- Login, Fahrzeugliste und Fahrzeugdetail testen.
+- Import/Export und Backup-Validierung smoke-testen.
+- Audit Log auf Fehler prüfen.
+
 ## Security Settings
 
 Empfohlene produktive Einstellungen:

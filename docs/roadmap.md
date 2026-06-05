@@ -76,21 +76,26 @@
 1. ESU LokProgrammer import
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
    - keep expanding supported export formats when real samples become available
-2. Settings and system integration
+2. Digital command-station adapters
+   - finish the Z21 adapter beyond the current UDP connection test where useful
+   - evaluate Intellibox 3 as a Z21-compatible provider first
+   - evaluate Intellibox 3 LocoNet-over-TCP for data that Z21 does not expose
+   - defer Intellibox 2 USB/COM-Port support until the Windows-local workflow and Docker limitations are clear
+3. Settings and system integration
    - decide how far print jobs should be automated beyond the browser system dialog
    - decide which authentication options should become functional instead of informational
    - keep storage usage, backup and restore visible without making settings feel overloaded
-3. Exhibition hardening
+4. Exhibition hardening
    - add backend-side duplicate address validation for exhibition entries, matching the current UI warning for DCC/SX address conflicts
    - decide whether duplicate exhibition addresses should be warning-only or blocked at database/API level
-4. Ongoing Bambuddy-inspired design polish
+5. Ongoing Bambuddy-inspired design polish
    - continue refining dense toolbar/table layouts without boxed hover effects
    - keep icon buttons transparent by default with color-only hover feedback
    - review mobile navigation after the collapsible desktop sidebar work
    - continue checking table, card and modal readability in dark mode
    - refine maintenance placement and visual hierarchy in the inventory area
    - adapt Bambuddy-style row context menus further where they add clear value
-5. Vehicle action depth
+6. Vehicle action depth
    - evaluate direct upload shortcuts in the quick menu where useful
    - keep destructive actions separated and confirmed
    - later upload polish: drag sorting for vehicle images
