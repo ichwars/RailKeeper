@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -132,17 +131,24 @@ func TestCreateVehicleImageThumbnailSupportsWebP(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	app := &App{dataDir: t.TempDir()}
+	dataDir := t.TempDir()
+	db := testRouterDBWithDataDir(t, dataDir)
+	blobs := application.NewFileBlobService(db, dataDir)
+	app := &App{dataDir: dataDir, fileBlobs: blobs}
 
-	thumbnailPath, err := app.createVehicleImageThumbnail(data, "vehicle-1", "side.webp")
+	thumbnailBlobID, err := app.createVehicleImageThumbnail(t.Context(), data, "side.webp")
 	if err != nil {
 		t.Fatalf("expected webp thumbnail: %v", err)
 	}
-	if !strings.HasSuffix(thumbnailPath, "-thumb.jpg") {
-		t.Fatalf("expected jpeg thumbnail path, got %q", thumbnailPath)
+	if thumbnailBlobID == "" {
+		t.Fatalf("expected jpeg thumbnail blob id")
 	}
-	if _, err := os.Stat(filepath.Join(app.dataDir, thumbnailPath)); err != nil {
-		t.Fatalf("expected thumbnail file: %v", err)
+	thumbnailData, err := blobs.Load(t.Context(), thumbnailBlobID)
+	if err != nil {
+		t.Fatalf("expected thumbnail blob: %v", err)
+	}
+	if contentType := http.DetectContentType(thumbnailData); contentType != "image/jpeg" {
+		t.Fatalf("expected jpeg thumbnail, got %q", contentType)
 	}
 }
 
@@ -430,6 +436,7 @@ func TestBackupValidateEndpoint(t *testing.T) {
 	setup := application.NewSetupService(db)
 	auth := application.NewAuthService(db)
 	backupService := application.NewBackupService(db, dataDir)
+	fileBlobs := application.NewFileBlobService(db, dataDir)
 	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
 		Username: "admin",
 		Email:    "admin@example.test",
@@ -446,7 +453,7 @@ func TestBackupValidateEndpoint(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	router := NewRouter(Config{SetupService: setup, AuthService: auth, BackupService: backupService, DataDir: dataDir})
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, BackupService: backupService, FileBlobService: fileBlobs, DataDir: dataDir})
 	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

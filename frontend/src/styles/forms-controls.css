@@ -1411,3 +1411,8 @@ td {
   padding: 18px;
   background: rgba(16, 24, 20, 0.52);
 }
+
+.confirm-layer > section,
+.confirm-layer > form {
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+}

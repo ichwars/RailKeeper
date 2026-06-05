@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Database, ListChecks, Power, PowerOff, RadioTower, RefreshCw, Save, Server, X } from "lucide-react";
-import { api, DigitalCenterConnectionResult, ECoSConnectionResult, ECoSLiveStatus, ECoSRawLocomotive, ECoSRawProbe } from "../../shared/api";
+import { Database, Monitor, MonitorOff, Power, PowerOff, RadioTower, RefreshCw, Save, Server, X } from "lucide-react";
+import { api, DigitalCenterConnectionResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
 
@@ -36,7 +36,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   const [cs3Port, setCS3Port] = useState(() => readLocalSetting(localSettingKeys.digitalCS3Port, "80"));
   const [busy, setBusy] = useState<BusyState>("idle");
   const [connectionResult, setConnectionResult] = useState<ECoSConnectionResult | DigitalCenterConnectionResult | null>(null);
-  const [rawProbe, setRawProbe] = useState<ECoSRawProbe | null>(null);
+  const [locomotiveSummary, setLocomotiveSummary] = useState<ECoSLocomotiveSummary | null>(null);
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [message, setMessage] = useState("");
   const [dialogMessage, setDialogMessage] = useState("");
@@ -71,6 +71,30 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
 
   const providerConfigured = (providerId: DigitalProvider) => providerEnabled(providerId) && Boolean(providerHost(providerId));
 
+  const currentDigitalSettings = (nextProvider: DigitalProvider = provider): DigitalCenterSettings => ({
+    provider: nextProvider,
+    ecos: { enabled: ecosEnabled, host: ecosHost.trim(), port: ecosPort.trim() || "15471" },
+    z21: { enabled: z21Enabled, host: z21Host.trim(), port: z21Port.trim() || "21105" },
+    cs3: { enabled: cs3Enabled, host: cs3Host.trim(), port: cs3Port.trim() || "80" }
+  });
+
+  const applyDigitalSettings = (settings: DigitalCenterSettings) => {
+    const nextProvider = digitalProviders.includes(settings.provider) ? settings.provider : "ecos";
+    setProvider(nextProvider);
+    setEcosEnabled(Boolean(settings.ecos?.enabled));
+    setEcosHost(settings.ecos?.host || "");
+    setEcosPort(settings.ecos?.port || "15471");
+    setZ21Enabled(Boolean(settings.z21?.enabled));
+    setZ21Host(settings.z21?.host || "");
+    setZ21Port(settings.z21?.port || "21105");
+    setCS3Enabled(Boolean(settings.cs3?.enabled));
+    setCS3Host(settings.cs3?.host || "");
+    setCS3Port(settings.cs3?.port || "80");
+  };
+
+  const hasDigitalConfig = (settings: DigitalCenterSettings) =>
+    Boolean(settings.ecos?.host || settings.z21?.host || settings.cs3?.host || settings.ecos?.enabled || settings.z21?.enabled || settings.cs3?.enabled);
+
   const setActiveProviderEnabled = (enabled: boolean) => {
     if (activeDialogProvider === "ecos") setEcosEnabled(enabled);
     if (activeDialogProvider === "z21") setZ21Enabled(enabled);
@@ -90,17 +114,19 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   };
 
   const rememberSettings = (nextProvider: DigitalProvider = provider) => {
+    const settings = currentDigitalSettings(nextProvider);
     window.localStorage.setItem(localSettingKeys.digitalProvider, nextProvider);
-    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(ecosEnabled));
-    window.localStorage.setItem(localSettingKeys.digitalEcosHost, ecosHost.trim());
-    window.localStorage.setItem(localSettingKeys.digitalEcosPort, ecosPort.trim() || "15471");
-    window.localStorage.setItem(localSettingKeys.digitalZ21Enabled, String(z21Enabled));
-    window.localStorage.setItem(localSettingKeys.digitalZ21Host, z21Host.trim());
-    window.localStorage.setItem(localSettingKeys.digitalZ21Port, z21Port.trim() || "21105");
-    window.localStorage.setItem(localSettingKeys.digitalCS3Enabled, String(cs3Enabled));
-    window.localStorage.setItem(localSettingKeys.digitalCS3Host, cs3Host.trim());
-    window.localStorage.setItem(localSettingKeys.digitalCS3Port, cs3Port.trim() || "80");
+    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(settings.ecos.enabled));
+    window.localStorage.setItem(localSettingKeys.digitalEcosHost, settings.ecos.host);
+    window.localStorage.setItem(localSettingKeys.digitalEcosPort, settings.ecos.port);
+    window.localStorage.setItem(localSettingKeys.digitalZ21Enabled, String(settings.z21.enabled));
+    window.localStorage.setItem(localSettingKeys.digitalZ21Host, settings.z21.host);
+    window.localStorage.setItem(localSettingKeys.digitalZ21Port, settings.z21.port);
+    window.localStorage.setItem(localSettingKeys.digitalCS3Enabled, String(settings.cs3.enabled));
+    window.localStorage.setItem(localSettingKeys.digitalCS3Host, settings.cs3.host);
+    window.localStorage.setItem(localSettingKeys.digitalCS3Port, settings.cs3.port);
     window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
+    void api.updateDigitalSettings(settings).then(applyDigitalSettings).catch(() => undefined);
   };
 
   const refreshLiveStatus = async (nextBusy: BusyState = "refreshing") => {
@@ -120,6 +146,19 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
 
   useEffect(() => {
     if (canManageUsers) {
+      api
+        .digitalSettings()
+        .then((settings) => {
+          if (hasDigitalConfig(settings)) {
+            applyDigitalSettings(settings);
+            return;
+          }
+          const localSettings = currentDigitalSettings();
+          if (hasDigitalConfig(localSettings)) {
+            void api.updateDigitalSettings(localSettings).then(applyDigitalSettings).catch(() => undefined);
+          }
+        })
+        .catch(() => undefined);
       void refreshLiveStatus("idle");
     }
   }, [canManageUsers]);
@@ -142,6 +181,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     }
     setProvider(activeDialogProvider);
     rememberSettings(activeDialogProvider);
+    setLocomotiveSummary(null);
     setMessage(t("settings.digital.saved"));
     closeAdapter();
   };
@@ -170,18 +210,26 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     }
   };
 
-  const probeLocomotives = async () => {
+  const countLocomotives = async (silent = false) => {
     rememberSettings("ecos");
-    setBusy("probing");
-    setMessage("");
+    if (!silent) {
+      setBusy("probing");
+      setMessage("");
+    }
     try {
-      const probe = await api.probeECoSLocomotiveRaw(ecosInput());
-      setRawProbe(probe);
-      setMessage(t("settings.digital.locomotiveProbeDone", { count: probe.locomotives.length }));
+      const summary = await api.countECoSLocomotives(ecosInput());
+      setLocomotiveSummary(summary);
+      if (!silent) {
+        setMessage(t("settings.digital.locomotiveProbeDone", { count: summary.count }));
+      }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+      if (!silent) {
+        setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+      }
     } finally {
-      setBusy("idle");
+      if (!silent) {
+        setBusy("idle");
+      }
     }
   };
 
@@ -189,10 +237,14 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     rememberSettings("ecos");
     setBusy("starting");
     setMessage("");
+    setLocomotiveSummary(null);
     try {
       const status = await api.startECoSLive(ecosInput());
       setLiveStatus(status);
       setMessage(status.message);
+      if (status.connected) {
+        void countLocomotives(true);
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
     } finally {
@@ -219,23 +271,19 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   const ecosReady = provider === "ecos" && providerConfigured("ecos");
   const liveSince = liveStatus?.startedAt ? formatDateTime(liveStatus.startedAt) : t("settings.digital.notActive");
   const liveSeen = liveStatus?.lastSeenAt ? formatDateTime(liveStatus.lastSeenAt) : t("settings.digital.notSeen");
-  const previewLocomotives = rawProbe?.locomotives.slice(0, 8) ?? [];
-  const hiddenLocomotiveCount = rawProbe ? Math.max(rawProbe.locomotives.length - previewLocomotives.length, 0) : 0;
+  const connectionConnected = Boolean(connectionResult?.connected || liveStatus?.connected);
   const connectionDetail = connectionResult
     ? ("applicationVersion" in connectionResult && connectionResult.applicationVersion) || connectionResult.fields?.version || connectionResult.fields?.serialNumber || connectionResult.message
+    : liveStatus?.connected
+      ? t("settings.digital.liveActive")
     : t("settings.digital.noTest");
   const dialogCanTest = canManageUsers && Boolean(activeDialogProvider);
   const dialogCanSave = Boolean(activeDialogProvider);
 
-  const formatLocomotiveFunctions = (locomotive: ECoSRawLocomotive) => {
-    const count = locomotive.numberOfFunctions ?? locomotive.functions?.length ?? 0;
-    return count > 0 ? String(count) : "-";
-  };
-  const formatLocomotiveCVs = (locomotive: ECoSRawLocomotive) => {
-    const values = locomotive.cvs?.slice(0, 4).map((cv) => `${cv.number}=${cv.value}`) ?? [];
-    if (values.length === 0) return "-";
-    return locomotive.cvs && locomotive.cvs.length > values.length ? `${values.join(", ")} ...` : values.join(", ");
-  };
+  useEffect(() => {
+    if (!liveStatus?.connected || !ecosReady || locomotiveSummary || busy !== "idle") return;
+    void countLocomotives(true);
+  }, [liveStatus?.connected, ecosReady, locomotiveSummary, busy]);
 
   return (
     <>
@@ -249,12 +297,20 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                 <p>{t("settings.digital.subtitle")}</p>
               </div>
             </div>
-            <div className="settings-marker-row">
-              <span className={providerReady ? "settings-pill active" : "settings-pill muted"}>
-                {providerReady ? t("settings.digital.active") : t("settings.digital.inactive")}
+            <div className="settings-marker-row digital-state-icons">
+              <span
+                className={providerReady ? "digital-state-icon active" : "digital-state-icon inactive"}
+                aria-label={providerReady ? t("settings.digital.active") : t("settings.digital.inactive")}
+                title={providerReady ? t("settings.digital.active") : t("settings.digital.inactive")}
+              >
+                <span className="digital-state-dot" />
               </span>
-              <span className={liveStatus?.connected ? "settings-pill active" : "settings-pill muted"}>
-                {liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}
+              <span
+                className={liveStatus?.connected ? "digital-state-icon monitor active" : "digital-state-icon monitor inactive"}
+                aria-label={liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}
+                title={liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}
+              >
+                {liveStatus?.connected ? <Monitor size={17} /> : <MonitorOff size={17} />}
               </span>
             </div>
           </div>
@@ -272,7 +328,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
 
           <div className="digital-overview-grid">
             <article className={providerReady ? "digital-active-provider ready" : "digital-active-provider"}>
-              <span className="settings-pill">{t("settings.digital.configuredTitle")}</span>
+              <span className="digital-card-label">{t("settings.digital.configuredTitle")}</span>
               <strong>{providerLabel(provider)}</strong>
               <small>
                 {providerReady
@@ -281,14 +337,14 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
               </small>
             </article>
             <article className="digital-active-provider">
-              <span className="settings-pill">{t("settings.digital.connection")}</span>
-              <strong>{connectionResult?.connected ? t("settings.digital.connected") : t("settings.digital.notConnected")}</strong>
+              <span className="digital-card-label">{t("settings.digital.connection")}</span>
+              <strong>{connectionConnected ? t("settings.digital.connected") : t("settings.digital.notConnected")}</strong>
               <small>{connectionDetail}</small>
             </article>
             <article className="digital-active-provider">
-              <span className="settings-pill">{t("settings.digital.locomotives")}</span>
-              <strong>{rawProbe?.locomotives.length ?? 0}</strong>
-              <small>{rawProbe ? rawProbe.message : t("settings.digital.noLocomotiveProbe")}</small>
+              <span className="digital-card-label">{t("settings.digital.locomotives")}</span>
+              <strong>{locomotiveSummary?.count ?? 0}</strong>
+              <small>{locomotiveSummary ? locomotiveSummary.message : t("settings.digital.noLocomotiveProbe")}</small>
             </article>
           </div>
 
@@ -297,68 +353,24 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
               <Server size={16} />
               {t("settings.digital.configure")}
             </button>
-            <button type="button" className="secondary-button" onClick={probeLocomotives} disabled={!canManageUsers || busy !== "idle" || !ecosReady}>
-              <ListChecks size={16} />
-              {busy === "probing" ? t("settings.digital.fetchingLocomotives") : t("settings.digital.fetchLocomotives")}
-            </button>
-            <button type="button" className="primary-button" onClick={startLive} disabled={!canManageUsers || busy !== "idle" || !ecosReady || liveStatus?.connected}>
-              <Power size={16} />
-              {busy === "starting" ? t("settings.digital.starting") : t("settings.digital.startLive")}
-            </button>
-            <button type="button" className="secondary-button" onClick={stopLive} disabled={!canManageUsers || busy !== "idle" || !liveStatus?.connected}>
-              <PowerOff size={16} />
-              {busy === "stopping" ? t("settings.digital.stopping") : t("settings.digital.stopLive")}
+            <button
+              type="button"
+              className={liveStatus?.connected ? "secondary-button" : "primary-button"}
+              onClick={liveStatus?.connected ? stopLive : startLive}
+              disabled={!canManageUsers || busy !== "idle" || (!liveStatus?.connected && !ecosReady)}
+            >
+              {liveStatus?.connected ? <PowerOff size={16} /> : <Power size={16} />}
+              {busy === "starting"
+                ? t("settings.digital.starting")
+                : busy === "stopping"
+                  ? t("settings.digital.stopping")
+                  : liveStatus?.connected
+                    ? t("settings.digital.stopLive")
+                    : t("settings.digital.startLive")}
             </button>
           </div>
 
           {message && <p className="form-message">{message}</p>}
-
-          {rawProbe && (
-            <section className="digital-loco-preview" aria-live="polite">
-              <div className="digital-loco-preview-head">
-                <div>
-                  <strong>{t("settings.digital.locomotivePreviewTitle")}</strong>
-                  <span>{t("settings.digital.locomotivePreviewSubtitle", { host: rawProbe.host, port: rawProbe.port })}</span>
-                </div>
-                <span className="settings-pill active">{t("settings.digital.locomotiveCount", { count: rawProbe.locomotives.length })}</span>
-              </div>
-              {previewLocomotives.length > 0 ? (
-                <>
-                  <div className="digital-loco-table">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>{t("settings.digital.objectId")}</th>
-                          <th>{t("settings.digital.name")}</th>
-                          <th>{t("settings.digital.address")}</th>
-                          <th>{t("settings.digital.protocol")}</th>
-                          <th>{t("settings.digital.functions")}</th>
-                          <th>{t("settings.digital.cvs")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {previewLocomotives.map((locomotive) => (
-                          <tr key={locomotive.objectId}>
-                            <td>{locomotive.objectId}</td>
-                            <td>{locomotive.name || "-"}</td>
-                            <td>{locomotive.address ?? "-"}</td>
-                            <td>{locomotive.protocol || "-"}</td>
-                            <td>{formatLocomotiveFunctions(locomotive)}</td>
-                            <td>{formatLocomotiveCVs(locomotive)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {hiddenLocomotiveCount > 0 && (
-                    <p className="digital-loco-more">{t("settings.digital.moreLocomotives", { count: hiddenLocomotiveCount })}</p>
-                  )}
-                </>
-              ) : (
-                <p className="digital-loco-empty">{t("settings.digital.noLocomotives")}</p>
-              )}
-            </section>
-          )}
         </section>
 
         <aside className="settings-card-stack">
@@ -402,7 +414,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                 >
                   <strong>
                     {providerLabel(providerId)}
-                    <span className={providerConfigured(providerId) ? "work-status-badge compact active" : "work-status-badge compact open"}>
+                    <span className={providerConfigured(providerId) ? "digital-provider-state active" : "digital-provider-state inactive"}>
+                      <span />
                       {providerConfigured(providerId) ? t("settings.digital.active") : t("settings.work.open")}
                     </span>
                   </strong>
@@ -434,12 +447,12 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                   <span>{t("settings.digital.adminHelp")}</span>
                 </div>
               )}
-              <label className="settings-toggle-row">
-                <input type="checkbox" checked={activeDialogProvider ? providerEnabled(activeDialogProvider) : false} onChange={(event) => setActiveProviderEnabled(event.target.checked)} />
-                <span>
+              <label className="settings-toggle-row digital-enable-row">
+                <span className="digital-enable-main">
+                  <input type="checkbox" checked={activeDialogProvider ? providerEnabled(activeDialogProvider) : false} onChange={(event) => setActiveProviderEnabled(event.target.checked)} />
                   <strong>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}`) : t("settings.digital.configure")}</strong>
-                  <small>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}.help`) : t("settings.digital.dialogSubtitle")}</small>
                 </span>
+                <small>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}.help`) : t("settings.digital.dialogSubtitle")}</small>
               </label>
               <div className="settings-field-grid">
                 <label>

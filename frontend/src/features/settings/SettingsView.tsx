@@ -1,6 +1,6 @@
 ﻿import { FormEvent, useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import {
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Database,
@@ -14,6 +14,7 @@ import {
   Mail,
   Palette,
   Pencil,
+  Plus,
   RefreshCw,
   Shield,
   ShieldAlert,
@@ -21,6 +22,7 @@ import {
   Upload,
   UserCog,
   Users,
+  Wrench,
   X
 } from "lucide-react";
 import type { AppView } from "../../app/App";
@@ -43,7 +45,7 @@ import {
   VersionInfo
 } from "../../shared/api";
 import { Language, useI18n } from "../../shared/i18n";
-import { applyStoredThemeOptions, applyThemePreference, readThemePreference, ThemePreference } from "../../shared/theme";
+import { applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey, ThemePreference } from "../../shared/theme";
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 
@@ -94,6 +96,49 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 
 const updateStatusChangedEvent = "railkeeper-update-status-changed";
 
+const emptyInventorySchemeDraft = {
+  category: "",
+  prefix: "RK",
+  nextNumber: 1,
+  padding: 6,
+  active: true
+};
+
+type SettingsConfirmDialog = {
+  title: string;
+  body?: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+};
+
+type MasterDataSortDirection = "asc" | "desc";
+
+type MasterDataSortState = {
+  key: string;
+  direction: MasterDataSortDirection;
+};
+
+type MasterDataTableColumn = {
+  key: string;
+  label: string;
+  align?: "left" | "center" | "right";
+  wrap?: boolean;
+  sortable?: boolean;
+  sortValue?: (entry: MasterDataEntry) => string | number;
+  render: (entry: MasterDataEntry) => ReactNode;
+};
+
+const compareMasterDataValues = (left: string | number | undefined, right: string | number | undefined) => {
+  if (typeof left === "number" && typeof right === "number") {
+    return left - right;
+  }
+  return String(left ?? "").localeCompare(String(right ?? ""), "de-DE", {
+    numeric: true,
+    sensitivity: "base"
+  });
+};
+
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
   const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(() => {
@@ -109,6 +154,7 @@ export function SettingsView({ username }: { username: string }) {
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [masterDataSort, setMasterDataSort] = useState<MasterDataSortState>({ key: "name", direction: "asc" });
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(
     () => window.localStorage.getItem(articleSearchSettingKey) !== "false"
   );
@@ -117,6 +163,7 @@ export function SettingsView({ username }: { username: string }) {
   const [inventorySchemes, setInventorySchemes] = useState<InventoryNumberScheme[]>([]);
   const [inventorySchemesLoading, setInventorySchemesLoading] = useState(false);
   const [inventorySchemesMessage, setInventorySchemesMessage] = useState("");
+  const [newInventoryScheme, setNewInventoryScheme] = useState(emptyInventorySchemeDraft);
   const [backupFile, setBackupFile] = useState<File | null>(null);
   const [backupValidation, setBackupValidation] = useState<BackupValidationResult | null>(null);
   const [backupMessage, setBackupMessage] = useState("");
@@ -137,9 +184,7 @@ export function SettingsView({ username }: { username: string }) {
   const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
   const [timeFormat, setTimeFormat] = useState(() => readLocalSetting(localSettingKeys.timeFormat, "system"));
   const [defaultPrinter, setDefaultPrinter] = useState(() => readLocalSetting(localSettingKeys.defaultPrinter, "system-dialog"));
-  const [updateChecks, setUpdateChecks] = useState(() => readLocalBool(localSettingKeys.updateChecks, true));
   const [betaUpdates, setBetaUpdates] = useState(() => readLocalBool(localSettingKeys.betaUpdates, false));
-  const [ignoredUpdate, setIgnoredUpdate] = useState(() => readLocalSetting(localSettingKeys.ignoredUpdate, ""));
   const [darkBackground, setDarkBackground] = useState(() => readLocalSetting(localSettingKeys.darkBackground, "neutral"));
   const [darkAccent, setDarkAccent] = useState(() => readLocalSetting(localSettingKeys.darkAccent, "green"));
   const [darkStyle, setDarkStyle] = useState(() => readLocalSetting(localSettingKeys.darkStyle, "classic"));
@@ -152,6 +197,7 @@ export function SettingsView({ username }: { username: string }) {
   const [storageUsage, setStorageUsage] = useState<StorageUsage | null>(null);
   const [storageMessage, setStorageMessage] = useState("");
   const [storageLoading, setStorageLoading] = useState(false);
+  const [storageOptimizing, setStorageOptimizing] = useState(false);
   const [systemPrinters, setSystemPrinters] = useState<SystemPrinters | null>(null);
   const [currentSession, setCurrentSession] = useState<Session | null>(null);
   const [authMessage, setAuthMessage] = useState("");
@@ -193,6 +239,7 @@ export function SettingsView({ username }: { username: string }) {
   const [twoFactorLoading, setTwoFactorLoading] = useState(false);
   const [twoFactorSaving, setTwoFactorSaving] = useState(false);
   const [twoFactorMessage, setTwoFactorMessage] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<SettingsConfirmDialog | null>(null);
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
   const languageLocale = language === "de" ? "de-DE" : "en-US";
   const backupRestorePhrase = t("settings.backup.confirmPhrase");
@@ -235,7 +282,6 @@ export function SettingsView({ username }: { username: string }) {
       size: formatBytes(bytes)
     });
   const versionStatusLabel = (info: VersionInfo) => {
-    if (info.updateAvailable && info.latestVersion === ignoredUpdate) return t("settings.updates.status.ignored");
     if (info.updateAvailable) return t("settings.updates.status.updateAvailable");
     if (info.status === "current") return betaUpdates ? t("settings.updates.status.currentBeta") : t("settings.updates.status.current");
     if (info.status === "no_release") return t("settings.updates.status.noRelease");
@@ -249,10 +295,9 @@ export function SettingsView({ username }: { username: string }) {
     return message;
   };
   const updateVersionLabel = (version?: string) => version?.replace(/^v/i, "") || t("settings.unknown");
-  const updateCheckedAtLabel = versionInfo?.checkedAt
+  const updateCheckedAtLabel = versionInfo?.checkedAt && versionInfo.status !== "local"
     ? t("settings.updates.checkedAt", { date: formatDateTime(versionInfo.checkedAt) })
     : t("settings.updates.notChecked");
-  const updateIgnored = Boolean(versionInfo?.updateAvailable && versionInfo.latestVersion && versionInfo.latestVersion === ignoredUpdate);
   const activeDataLabel = masterLabel(activeDataType.type);
   const activeDataDescription = masterDescription(activeDataType.type);
   const storageFileCount = useMemo(
@@ -264,7 +309,6 @@ export function SettingsView({ username }: { username: string }) {
   const isSymbolData = activeType === "symbols";
   const isManufacturerData = activeType === "manufacturer";
   const isCV8ManufacturerData = activeType === "cv8_manufacturer";
-  const masterDataColumnCount = isCV8ManufacturerData ? 7 : isManufacturerData ? 7 : isSymbolData ? 5 : 4;
 
   const filteredItems = useMemo(() => {
     const needle = search.trim().toLocaleLowerCase("de-DE");
@@ -279,6 +323,7 @@ export function SettingsView({ username }: { username: string }) {
     setForm(emptyForm);
     setSearch("");
     setMessage("");
+    setMasterDataSort({ key: "name", direction: "asc" });
   }, [activeType]);
 
   useEffect(() => {
@@ -290,6 +335,70 @@ export function SettingsView({ username }: { username: string }) {
     const prefs = readSidebarPrefs(username);
     setSidebarOrder(prefs.order);
     setSidebarHidden(prefs.hidden);
+  }, [username]);
+
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .profileSettings()
+      .then(({ settings }) => {
+        if (cancelled) return;
+        const store = (key: string, setter?: (value: string) => void) => {
+          const value = settings[key];
+          if (value === undefined) return;
+          window.localStorage.setItem(key, value);
+          setter?.(value);
+        };
+        store(localSettingKeys.defaultView, (value) => setDefaultView(value === "inventory" ? "vehicles" : value));
+        store(localSettingKeys.dateFormat, setDateFormat);
+        store(localSettingKeys.timeFormat, setTimeFormat);
+        store(localSettingKeys.defaultPrinter, setDefaultPrinter);
+        store(localSettingKeys.betaUpdates, (value) => setBetaUpdates(value === "true"));
+        store(themePreferenceKey, (value) => {
+          if (value === "system" || value === "light" || value === "dark") {
+            setDesign(value);
+            applyThemePreference(value);
+          }
+        });
+        store(localSettingKeys.darkBackground, setDarkBackground);
+        store(localSettingKeys.darkAccent, setDarkAccent);
+        store(localSettingKeys.darkStyle, setDarkStyle);
+        store(localSettingKeys.lightBackground, setLightBackground);
+        store(localSettingKeys.lightAccent, setLightAccent);
+        store(localSettingKeys.lightStyle, setLightStyle);
+        applyStoredThemeOptions();
+        store(articleSearchSettingKey, (value) => setArticleSearchEnabled(value !== "false"));
+        const sourceValue = settings[articleSearchSourcesSettingKey];
+        if (sourceValue) {
+          try {
+            const sources = JSON.parse(sourceValue) as string[];
+            if (Array.isArray(sources)) {
+              window.localStorage.setItem(articleSearchSourcesSettingKey, sourceValue);
+              setArticleSearchSources(sources);
+            }
+          } catch {
+            // Ignore malformed profile settings and keep the local fallback.
+          }
+        }
+        const sidebarValue = settings[sidebarPrefsKey(username)];
+        if (sidebarValue) {
+          try {
+            const prefs = JSON.parse(sidebarValue) as { order?: AppView[]; hidden?: AppView[] };
+            const nextOrder = Array.isArray(prefs.order) ? prefs.order : [];
+            const nextHidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
+            window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
+            setSidebarOrder(nextOrder);
+            setSidebarHidden(nextHidden);
+            window.dispatchEvent(new Event(sidebarOrderChangedEvent));
+          } catch {
+            // Ignore malformed profile settings and keep the local fallback.
+          }
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
   }, [username]);
 
   useEffect(() => {
@@ -407,9 +516,14 @@ export function SettingsView({ username }: { username: string }) {
     reader.readAsDataURL(file);
   };
 
+  const saveProfileSetting = (key: string, value: string) => {
+    void api.updateProfileSettings({ [key]: value }).catch(() => undefined);
+  };
+
   const setLocalSetting = (key: string, value: string, setter: (value: string) => void) => {
     setter(value);
     window.localStorage.setItem(key, value);
+    saveProfileSetting(key, value);
     if (key.startsWith("railkeeper.settings.dark") || key.startsWith("railkeeper.settings.light")) {
       applyStoredThemeOptions();
     }
@@ -418,12 +532,15 @@ export function SettingsView({ username }: { username: string }) {
   const setLocalBool = (key: string, value: boolean, setter: (value: boolean) => void) => {
     setter(value);
     window.localStorage.setItem(key, String(value));
+    saveProfileSetting(key, String(value));
   };
 
   const saveSidebarPrefs = (nextOrder: AppView[], nextHidden: AppView[]) => {
     setSidebarOrder(nextOrder);
     setSidebarHidden(nextHidden);
-    window.localStorage.setItem(sidebarPrefsKey(username), JSON.stringify({ order: nextOrder, hidden: nextHidden }));
+    const value = JSON.stringify({ order: nextOrder, hidden: nextHidden });
+    window.localStorage.setItem(sidebarPrefsKey(username), value);
+    saveProfileSetting(sidebarPrefsKey(username), value);
     window.dispatchEvent(new Event(sidebarOrderChangedEvent));
   };
 
@@ -455,12 +572,15 @@ export function SettingsView({ username }: { username: string }) {
   const updateArticleSearchEnabled = (enabled: boolean) => {
     setArticleSearchEnabled(enabled);
     window.localStorage.setItem(articleSearchSettingKey, String(enabled));
+    saveProfileSetting(articleSearchSettingKey, String(enabled));
   };
   const updateArticleSearchSource = (source: string, enabled: boolean) => {
     setArticleSearchSources((current) => {
       const next = enabled ? [...new Set([...current, source])] : current.filter((item) => item !== source);
       const normalized = next.length > 0 ? next : ["web"];
-      window.localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(normalized));
+      const value = JSON.stringify(normalized);
+      window.localStorage.setItem(articleSearchSourcesSettingKey, value);
+      saveProfileSetting(articleSearchSourcesSettingKey, value);
       return normalized;
     });
   };
@@ -468,57 +588,25 @@ export function SettingsView({ username }: { username: string }) {
   const updateDesign = (preference: ThemePreference) => {
     setDesign(preference);
     applyThemePreference(preference);
+    saveProfileSetting(themePreferenceKey, preference);
   };
 
   const loadVersionInfo = (forceCheck = false, includeBeta = betaUpdates) => {
-    const shouldCheck = forceCheck || updateChecks;
     setVersionLoading(true);
     setVersionMessage("");
     api
-      .version(shouldCheck, includeBeta)
+      .version(forceCheck, includeBeta)
       .then((info) => {
         setVersionInfo(info);
         setVersionMessage(info.message || t("settings.updates.message.reachable", { version: info.version || t("settings.unknown") }));
-        window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: shouldCheck } }));
+        window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck } }));
       })
       .catch((error: Error) => setVersionMessage(error.message))
       .finally(() => setVersionLoading(false));
   };
 
-  const updateUpdateChecks = (enabled: boolean) => {
-    setLocalBool(localSettingKeys.updateChecks, enabled, setUpdateChecks);
-    window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: enabled } }));
-    if (enabled) {
-      loadVersionInfo(true);
-    }
-  };
-
   const updateBetaUpdates = (enabled: boolean) => {
     setLocalBool(localSettingKeys.betaUpdates, enabled, setBetaUpdates);
-    window.dispatchEvent(new CustomEvent(updateStatusChangedEvent, { detail: { forceCheck: updateChecks } }));
-    if (updateChecks) {
-      loadVersionInfo(true, enabled);
-    }
-  };
-
-  const installUpdate = () => {
-    const target = versionInfo?.assetUrl || versionInfo?.releaseUrl;
-    if (!target) {
-      setVersionMessage(t("settings.updates.message.noInstallTarget"));
-      return;
-    }
-    window.open(target, "_blank", "noopener,noreferrer");
-    setVersionMessage(t("settings.updates.message.installOpened"));
-  };
-
-  const ignoreUpdate = () => {
-    if (!versionInfo?.latestVersion) {
-      return;
-    }
-    window.localStorage.setItem(localSettingKeys.ignoredUpdate, versionInfo.latestVersion);
-    setIgnoredUpdate(versionInfo.latestVersion);
-    setVersionMessage(t("settings.updates.message.ignored", { version: versionInfo.latestVersion }));
-    window.dispatchEvent(new Event(updateStatusChangedEvent));
   };
 
   const loadStorageUsage = () => {
@@ -531,14 +619,29 @@ export function SettingsView({ username }: { username: string }) {
       .finally(() => setStorageLoading(false));
   };
 
+  const optimizeStorage = () => {
+    setStorageOptimizing(true);
+    setStorageMessage("");
+    api
+      .optimizeStorage()
+      .then((result) => {
+        setStorageMessage(t("settings.storage.optimizeDone", { bytes: formatBytes(result.reclaimedBytes) }));
+        loadStorageUsage();
+      })
+      .catch((error: Error) => setStorageMessage(error.message))
+      .finally(() => setStorageOptimizing(false));
+  };
+
   const loadSystemPrinters = () => {
     api
       .systemPrinters()
       .then((result) => {
         setSystemPrinters(result);
         if (defaultPrinter === "system-dialog" && result.defaultPrinter) {
-          setDefaultPrinter(`printer:${result.defaultPrinter}`);
-          window.localStorage.setItem(localSettingKeys.defaultPrinter, `printer:${result.defaultPrinter}`);
+          const value = `printer:${result.defaultPrinter}`;
+          setDefaultPrinter(value);
+          window.localStorage.setItem(localSettingKeys.defaultPrinter, value);
+          saveProfileSetting(localSettingKeys.defaultPrinter, value);
         }
       })
       .catch(() => undefined);
@@ -669,7 +772,7 @@ export function SettingsView({ username }: { username: string }) {
       .finally(() => setSmtpTesting(false));
   };
 
-  const setupTwoFactor = () => {
+  const setupTwoFactor = (onPrepared?: (status: TwoFactorStatus) => void) => {
     setTwoFactorSaving(true);
     setTwoFactorMessage("");
     api
@@ -678,12 +781,13 @@ export function SettingsView({ username }: { username: string }) {
         setTwoFactorStatus(status);
         setTwoFactorMessage(t("settings.auth.twoFactorSetupDone"));
         if (canManageUsers) loadAuditLog();
+        onPrepared?.(status);
       })
       .catch((error: Error) => setTwoFactorMessage(error.message))
       .finally(() => setTwoFactorSaving(false));
   };
 
-  const enableTwoFactor = () => {
+  const enableTwoFactor = (onEnabled?: (status: TwoFactorStatus) => void) => {
     const code = twoFactorCode.trim();
     if (!code) {
       setTwoFactorMessage(t("settings.auth.twoFactorCodeRequired"));
@@ -694,18 +798,20 @@ export function SettingsView({ username }: { username: string }) {
     api
       .enableTwoFactor({ code })
       .then((status) => {
-        setTwoFactorStatus(status);
+        setTwoFactorStatus({ ...status, enabled: true, prepared: true });
         setTwoFactorCode("");
         setTwoFactorMessage(t("settings.auth.twoFactorEnabled"));
         loadCurrentSession();
+        loadTwoFactorStatus();
         if (canManageUsers) loadUsersAndRoles();
         if (canManageUsers) loadAuditLog();
+        onEnabled?.({ ...status, enabled: true, prepared: true });
       })
       .catch((error: Error) => setTwoFactorMessage(error.message))
       .finally(() => setTwoFactorSaving(false));
   };
 
-  const disableTwoFactor = () => {
+  const disableTwoFactor = (onDisabled?: () => void) => {
     if (!twoFactorPassword.trim()) {
       setTwoFactorMessage(t("settings.auth.twoFactorPasswordRequired"));
       return;
@@ -725,21 +831,35 @@ export function SettingsView({ username }: { username: string }) {
           loadSessions();
           loadAuditLog();
         }
+        onDisabled?.();
       })
       .catch((error: Error) => setTwoFactorMessage(error.message))
       .finally(() => setTwoFactorSaving(false));
   };
 
+  const confirmSettingsAction = () => {
+    const action = confirmDialog?.onConfirm;
+    setConfirmDialog(null);
+    action?.();
+  };
+
   const revokeSession = (session: SessionRecord) => {
-    if (!window.confirm(t("settings.sessions.revokeConfirm", { username: session.username }))) return;
-    setSessionsMessage("");
-    api
-      .revokeSession(session.id)
-      .then(() => {
-        loadSessions();
-        loadAuditLog();
-      })
-      .catch((error: Error) => setSessionsMessage(error.message));
+    setConfirmDialog({
+      title: t("settings.sessions.revoke"),
+      body: t("settings.sessions.revokeConfirm", { username: session.username }),
+      confirmLabel: t("settings.sessions.revoke"),
+      danger: true,
+      onConfirm: () => {
+        setSessionsMessage("");
+        api
+          .revokeSession(session.id)
+          .then(() => {
+            loadSessions();
+            loadAuditLog();
+          })
+          .catch((error: Error) => setSessionsMessage(error.message));
+      }
+    });
   };
 
   const changePassword = (event: FormEvent) => {
@@ -796,10 +916,17 @@ export function SettingsView({ username }: { username: string }) {
     });
   };
 
-  const saveUser = (event: FormEvent) => {
+  const saveUser = (event: FormEvent, onSaved?: () => void) => {
     event.preventDefault();
     setUserSaving(true);
     setAuthMessage("");
+
+    const passwordTouched = userForm.password.length > 0 || userForm.confirmPassword.length > 0;
+    if ((!editingUser || passwordTouched) && userForm.password.length < 12) {
+      setUserSaving(false);
+      setAuthMessage(t("settings.users.passwordTooShort"));
+      return;
+    }
 
     if (userForm.password !== userForm.confirmPassword) {
       setUserSaving(false);
@@ -822,24 +949,32 @@ export function SettingsView({ username }: { username: string }) {
         loadUsersAndRoles();
         loadAuditLog();
         loadCurrentSession();
+        onSaved?.();
       })
       .catch((error: Error) => setAuthMessage(error.message))
       .finally(() => setUserSaving(false));
   };
 
   const deleteUser = (user: UserAccount) => {
-    if (!window.confirm(t("settings.users.deleteConfirm", { username: user.username }))) return;
-    setAuthMessage("");
-    api
-      .deleteUser(user.id)
-      .then(() => {
-        if (editingUser?.id === user.id) {
-          startUserCreate();
-        }
-        loadUsersAndRoles();
-        loadAuditLog();
-      })
-      .catch((error: Error) => setAuthMessage(error.message));
+    setConfirmDialog({
+      title: t("vehicles.delete"),
+      body: t("settings.users.deleteConfirm", { username: user.username }),
+      confirmLabel: t("vehicles.delete"),
+      danger: true,
+      onConfirm: () => {
+        setAuthMessage("");
+        api
+          .deleteUser(user.id)
+          .then(() => {
+            if (editingUser?.id === user.id) {
+              startUserCreate();
+            }
+            loadUsersAndRoles();
+            loadAuditLog();
+          })
+          .catch((error: Error) => setAuthMessage(error.message));
+      }
+    });
   };
 
   const loadInventorySchemes = () => {
@@ -856,6 +991,30 @@ export function SettingsView({ username }: { username: string }) {
     setInventorySchemes((current) =>
       current.map((scheme) => (scheme.category === category ? { ...scheme, ...patch } : scheme))
     );
+  };
+
+  const updateNewInventoryScheme = (patch: Partial<typeof emptyInventorySchemeDraft>) => {
+    setNewInventoryScheme((current) => ({ ...current, ...patch }));
+  };
+
+  const inventorySchemePreview = (prefix: string, nextNumber: number, padding: number) =>
+    `${prefix.trim() || "RK"}-${String(Math.max(1, Number(nextNumber) || 1)).padStart(Math.max(1, Number(padding) || 6), "0")}`;
+
+  const createInventoryScheme = () => {
+    setInventorySchemesMessage("");
+    api
+      .createInventoryNumberScheme({
+        category: newInventoryScheme.category,
+        prefix: newInventoryScheme.prefix,
+        nextNumber: Number(newInventoryScheme.nextNumber) || 1,
+        padding: Number(newInventoryScheme.padding) || 6,
+        active: newInventoryScheme.active
+      })
+      .then((created) => {
+        setInventorySchemes((current) => [...current, created]);
+        setNewInventoryScheme(emptyInventorySchemeDraft);
+      })
+      .catch((error: Error) => setInventorySchemesMessage(error.message));
   };
 
   const saveInventoryScheme = (scheme: InventoryNumberScheme) => {
@@ -931,17 +1090,23 @@ export function SettingsView({ username }: { username: string }) {
   };
 
   const deleteEntry = (entry: MasterDataEntry) => {
-    if (!window.confirm(t("settings.master.deleteConfirm", { label: entry.label }))) return;
-
-    api
-      .deleteMasterData(activeType, entry.key)
-      .then(() => {
-        if (editing?.key === entry.key) {
-          startCreate();
-        }
-        reloadActiveType();
-      })
-      .catch((error: Error) => setMessage(error.message));
+    setConfirmDialog({
+      title: t("vehicles.delete"),
+      body: t("settings.master.deleteConfirm", { label: entry.label }),
+      confirmLabel: t("vehicles.delete"),
+      danger: true,
+      onConfirm: () => {
+        api
+          .deleteMasterData(activeType, entry.key)
+          .then(() => {
+            if (editing?.key === entry.key) {
+              startCreate();
+            }
+            reloadActiveType();
+          })
+          .catch((error: Error) => setMessage(error.message));
+      }
+    });
   };
 
   const selectBackupFile = (file: File | null) => {
@@ -972,25 +1137,30 @@ export function SettingsView({ username }: { username: string }) {
       setBackupMessage(t("settings.backup.error.confirmRequired", { phrase: backupRestorePhrase }));
       return;
     }
-    if (!window.confirm(t("settings.backup.confirmRestore"))) {
-      return;
-    }
-    setBackupSaving(true);
-    setBackupMessage("");
-    api
-      .restoreBackup(backupFile)
-      .then((result) => {
-        setBackupMessage(t("settings.backup.restored", { rows: result.restoredRows, files: result.restoredFiles }));
-        setLoadedTypes({});
-        setItemsByType({});
-        setBackupFile(null);
-        setBackupValidation(null);
-        setBackupRestoreConfirm("");
-        setBackupFileInputKey((current) => current + 1);
-        loadStorageUsage();
-      })
-      .catch((error: Error) => setBackupMessage(error.message))
-      .finally(() => setBackupSaving(false));
+    setConfirmDialog({
+      title: t("settings.backup.restoreButton"),
+      body: t("settings.backup.confirmRestore"),
+      confirmLabel: t("settings.backup.restoreButton"),
+      danger: true,
+      onConfirm: () => {
+        setBackupSaving(true);
+        setBackupMessage("");
+        api
+          .restoreBackup(backupFile)
+          .then((result) => {
+            setBackupMessage(t("settings.backup.restored", { rows: result.restoredRows, files: result.restoredFiles }));
+            setLoadedTypes({});
+            setItemsByType({});
+            setBackupFile(null);
+            setBackupValidation(null);
+            setBackupRestoreConfirm("");
+            setBackupFileInputKey((current) => current + 1);
+            loadStorageUsage();
+          })
+          .catch((error: Error) => setBackupMessage(error.message))
+          .finally(() => setBackupSaving(false));
+      }
+    });
   };
 
   const importMasterData = () => {
@@ -998,24 +1168,169 @@ export function SettingsView({ username }: { username: string }) {
       setMasterDataMessage(t("settings.masterTransfer.fileMissing"));
       return;
     }
-    if (!window.confirm(t("settings.masterTransfer.confirm"))) {
-      return;
-    }
-    setMasterDataSaving(true);
-    setMasterDataMessage("");
-    api
-      .importMasterData(masterDataFile)
-      .then((result) => {
-        setMasterDataMessage(t("settings.masterTransfer.imported", { entries: result.importedEntries, relations: result.importedRelations }));
-        setLoadedTypes({});
-        setItemsByType({});
-        setMasterDataFile(null);
-        setMasterDataFileInputKey((current) => current + 1);
-        setSearch("");
-      })
-      .catch((error: Error) => setMasterDataMessage(error.message))
-      .finally(() => setMasterDataSaving(false));
+    setConfirmDialog({
+      title: t("settings.masterTransfer.upload"),
+      body: t("settings.masterTransfer.confirm"),
+      confirmLabel: t("settings.masterTransfer.upload"),
+      danger: true,
+      onConfirm: () => {
+        setMasterDataSaving(true);
+        setMasterDataMessage("");
+        api
+          .importMasterData(masterDataFile)
+          .then((result) => {
+            setMasterDataMessage(t("settings.masterTransfer.imported", { entries: result.importedEntries, relations: result.importedRelations }));
+            setLoadedTypes({});
+            setItemsByType({});
+            setMasterDataFile(null);
+            setMasterDataFileInputKey((current) => current + 1);
+            setSearch("");
+          })
+          .catch((error: Error) => setMasterDataMessage(error.message))
+          .finally(() => setMasterDataSaving(false));
+      }
+    });
   };
+
+  const toggleMasterDataSort = (key: string) => {
+    setMasterDataSort((current) => ({
+      key,
+      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
+    }));
+  };
+
+  const masterDataColumns: MasterDataTableColumn[] = [];
+  if (isSymbolData) {
+    masterDataColumns.push({
+      key: "symbol",
+      label: t("settings.data.symbol"),
+      align: "center",
+      sortable: false,
+      render: (entry) => {
+        const symbolImage = masterDataImage(entry);
+        return symbolImage ? <img className="master-data-symbol-preview" src={symbolImage} alt="" /> : "-";
+      }
+    });
+  }
+  masterDataColumns.push({
+    key: "name",
+    label: isCV8ManufacturerData ? t("settings.data.cv8Manufacturer") : t("settings.data.name"),
+    sortValue: (entry) => isCV8ManufacturerData ? cv8NameText(entry) : entry.label,
+    render: (entry) => (
+      <>
+        <strong>{isCV8ManufacturerData ? cv8NameText(entry) : entry.label}</strong>
+        {isManufacturerData && manufacturerNeedsWebsiteReview(entry) && <span className="master-data-warning">{t("settings.data.wikiSourceWarning")}</span>}
+      </>
+    )
+  });
+  if (isManufacturerData) {
+    masterDataColumns.push(
+      {
+        key: "nominal-scales",
+        label: t("settings.data.nominalScales"),
+        align: "center",
+        sortValue: (entry) => nominalScalesText(entry),
+        render: (entry) => nominalScalesText(entry) || "-"
+      },
+      {
+        key: "manufacturer-website",
+        label: t("settings.data.manufacturerWebsite"),
+        wrap: true,
+        sortValue: (entry) => manufacturerWebsite(entry),
+        render: (entry) => manufacturerWebsite(entry) || "-"
+      },
+      {
+        key: "search-domains",
+        label: t("settings.data.searchDomains"),
+        wrap: true,
+        sortValue: (entry) => manufacturerSearchDomainsText(entry),
+        render: (entry) => manufacturerSearchDomainsText(entry) || "-"
+      }
+    );
+  }
+  if (isCV8ManufacturerData) {
+    masterDataColumns.push(
+      {
+        key: "cv8-decimal",
+        label: t("settings.data.cv8Decimal"),
+        align: "center",
+        sortValue: (entry) => Number(cv8DecimalText(entry)) || 0,
+        render: (entry) => <code>{cv8DecimalText(entry) || "-"}</code>
+      },
+      {
+        key: "cv8-binary",
+        label: t("settings.data.cv8Binary"),
+        align: "center",
+        sortValue: (entry) => cv8BinaryText(entry),
+        render: (entry) => <code>{cv8BinaryText(entry) || "-"}</code>
+      },
+      {
+        key: "cv8-hex",
+        label: t("settings.data.cv8Hex"),
+        align: "center",
+        sortValue: (entry) => cv8HexText(entry),
+        render: (entry) => <code>{cv8HexText(entry) || "-"}</code>
+      },
+      {
+        key: "cv8-country",
+        label: t("settings.data.cv8Country"),
+        align: "center",
+        sortValue: (entry) => cv8CountryText(entry),
+        render: (entry) => cv8CountryText(entry) || "-"
+      }
+    );
+  }
+  if (!isSymbolData && !isCV8ManufacturerData) {
+    masterDataColumns.push({
+      key: "link",
+      label: t("settings.data.link"),
+      align: "center",
+      sortValue: (entry) => isManufacturerData ? manufacturerWebsite(entry) : entry.sourceUrl || "",
+      render: (entry) => {
+        const website = manufacturerWebsite(entry);
+        const link = isManufacturerData ? (website ? { href: website, title: t("settings.data.openManufacturerWebsite") } : null) : externalLink(entry);
+        return link ? (
+          <a className="table-icon-link" href={link.href} target="_blank" rel="noreferrer" aria-label={link.title} title={link.title}>
+            <ExternalLink size={16} />
+          </a>
+        ) : "-";
+      }
+    });
+  }
+  if (isSymbolData) {
+    masterDataColumns.push({
+      key: "description",
+      label: t("settings.data.description"),
+      wrap: true,
+      sortValue: (entry) => metadataString(entry, "description"),
+      render: (entry) => metadataString(entry, "description") || "-"
+    });
+  }
+  masterDataColumns.push({
+    key: "actions",
+    label: t("settings.data.actions"),
+    align: "right",
+    sortable: false,
+    render: (entry) => (
+      <div className="table-actions">
+        <button type="button" className="icon-button" onClick={() => startEdit(entry)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
+          <Pencil size={16} />
+        </button>
+        <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+    )
+  });
+  const activeSortColumn =
+    masterDataColumns.find((column) => column.key === masterDataSort.key && column.sortable !== false && column.sortValue) ||
+    masterDataColumns.find((column) => column.key === "name" && column.sortValue);
+  const sortedItems = activeSortColumn?.sortValue
+    ? [...filteredItems].sort((left, right) => {
+      const result = compareMasterDataValues(activeSortColumn.sortValue?.(left), activeSortColumn.sortValue?.(right));
+      return masterDataSort.direction === "asc" ? result : -result;
+    })
+    : filteredItems;
 
   return (
     <>
@@ -1157,6 +1472,41 @@ export function SettingsView({ username }: { username: string }) {
                     </tr>
                   </thead>
                   <tbody>
+                    <tr className="inventory-scheme-create-row">
+                      <td>
+                        <input
+                          value={newInventoryScheme.category}
+                          onChange={(event) => updateNewInventoryScheme({ category: event.target.value })}
+                          placeholder={t("settings.inventoryNumbers.newCategory")}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          value={newInventoryScheme.prefix}
+                          onChange={(event) => updateNewInventoryScheme({ prefix: event.target.value })}
+                          placeholder={t("settings.inventoryNumbers.newPrefix")}
+                        />
+                      </td>
+                      <td>
+                        <input type="number" min={1} value={newInventoryScheme.nextNumber} onChange={(event) => updateNewInventoryScheme({ nextNumber: Number(event.target.value) })} />
+                      </td>
+                      <td>
+                        <input type="number" min={1} max={12} value={newInventoryScheme.padding} onChange={(event) => updateNewInventoryScheme({ padding: Number(event.target.value) })} />
+                      </td>
+                      <td>
+                        <label className="switch-field" aria-label={t("settings.inventoryNumbers.newActiveAria")}>
+                          <input type="checkbox" checked={newInventoryScheme.active} onChange={(event) => updateNewInventoryScheme({ active: event.target.checked })} />
+                          <span />
+                        </label>
+                      </td>
+                      <td><code>{inventorySchemePreview(newInventoryScheme.prefix, newInventoryScheme.nextNumber, newInventoryScheme.padding)}</code></td>
+                      <td>
+                        <button type="button" className="secondary-button compact-action" onClick={createInventoryScheme} disabled={!newInventoryScheme.category.trim() || !newInventoryScheme.prefix.trim()}>
+                          <Plus size={15} />
+                          {t("settings.inventoryNumbers.create")}
+                        </button>
+                      </td>
+                    </tr>
                     {inventorySchemesLoading && inventorySchemes.length === 0 ? (
                       <tr>
                         <td colSpan={7} className="loading-cell">{t("settings.inventoryNumbers.loading")}</td>
@@ -1241,16 +1591,6 @@ export function SettingsView({ username }: { username: string }) {
               </div>
               <label className="settings-toggle-row">
                 <span>
-                  <strong>{t("settings.updates.check")}</strong>
-                  <small>{t("settings.updates.checkHelp")}</small>
-                </span>
-                <span className="switch-field">
-                  <input type="checkbox" checked={updateChecks} onChange={(event) => updateUpdateChecks(event.target.checked)} />
-                  <span />
-                </span>
-              </label>
-              <label className="settings-toggle-row">
-                <span>
                   <strong>{t("settings.updates.beta")}</strong>
                   <small>{t("settings.updates.betaHelp")}</small>
                 </span>
@@ -1267,7 +1607,7 @@ export function SettingsView({ username }: { username: string }) {
                   <small>{updateCheckedAtLabel}</small>
                 </p>
                 {versionInfo?.status && (
-                  <span className={`settings-pill ${versionInfo.updateAvailable && !updateIgnored ? "active" : ["unavailable", "no_release"].includes(versionInfo.status) || updateIgnored ? "muted" : ""}`}>
+                  <span className={`settings-pill ${versionInfo.updateAvailable ? "active" : ["unavailable", "no_release"].includes(versionInfo.status) ? "muted" : ""}`}>
                     {versionStatusLabel(versionInfo)}
                   </span>
                 )}
@@ -1282,23 +1622,12 @@ export function SettingsView({ username }: { username: string }) {
                   {t("settings.updates.openRelease")}
                 </a>
               )}
-              {versionInfo?.updateAvailable && !updateIgnored && (
+              {versionInfo?.updateAvailable && (
                 <div className="update-decision-panel">
                   <div>
                     <strong>{t("settings.updates.decisionTitle", { version: versionInfo.latestVersion || "" })}</strong>
-                    <span>{versionInfo.assetName ? t("settings.updates.asset", { name: versionInfo.assetName }) : t("settings.updates.noAsset")}</span>
                   </div>
                   {versionInfo.releaseNotes && <pre>{versionInfo.releaseNotes}</pre>}
-                  <div className="settings-action-row">
-                    <button type="button" className="primary-button" onClick={installUpdate}>
-                      <Download size={15} />
-                      {t("settings.updates.install")}
-                    </button>
-                    <button type="button" className="secondary-button" onClick={ignoreUpdate}>
-                      <X size={15} />
-                      {t("settings.updates.ignore")}
-                    </button>
-                  </div>
                 </div>
               )}
               {versionMessage && <p className="form-message">{localizedStatusMessage(versionMessage)}</p>}
@@ -1310,9 +1639,14 @@ export function SettingsView({ username }: { username: string }) {
                   <HardDrive size={17} />
                   <h2>{t("settings.storage.title")}</h2>
                 </div>
-                <button type="button" className="icon-button" onClick={loadStorageUsage} aria-label={t("settings.storage.refresh")} title={t("settings.data.refresh")} disabled={storageLoading}>
-                  <RefreshCw size={16} />
-                </button>
+                <div className="settings-card-actions">
+                  <button type="button" className="icon-button subtle-icon-action" onClick={optimizeStorage} aria-label={t("settings.storage.optimize")} title={t("settings.storage.optimize")} disabled={storageLoading || storageOptimizing}>
+                    <Wrench size={15} />
+                  </button>
+                  <button type="button" className="icon-button" onClick={loadStorageUsage} aria-label={t("settings.storage.refresh")} title={t("settings.data.refresh")} disabled={storageLoading || storageOptimizing}>
+                    <RefreshCw size={16} />
+                  </button>
+                </div>
               </div>
               <p>{t("settings.storage.subtitle")}</p>
               <div className="storage-total">
@@ -1390,6 +1724,7 @@ export function SettingsView({ username }: { username: string }) {
                   {isManufacturerData && (
                     <>
                       <input
+                        className="master-data-input-compact"
                         value={form.nominalScalesText}
                         onChange={(event) => update({ nominalScalesText: event.target.value })}
                         placeholder={t("settings.data.nominalPlaceholder")}
@@ -1499,83 +1834,58 @@ export function SettingsView({ username }: { username: string }) {
                   <table>
                     <thead>
                       <tr>
-                        <th>{t("settings.data.actions")}</th>
-                        {isSymbolData && <th>{t("settings.data.symbol")}</th>}
-                        <th>{isCV8ManufacturerData ? t("settings.data.cv8Manufacturer") : t("settings.data.name")}</th>
-                        {isManufacturerData && <th>{t("settings.data.nominalScales")}</th>}
-                        {isManufacturerData && <th>{t("settings.data.manufacturerWebsite")}</th>}
-                        {isManufacturerData && <th>{t("settings.data.searchDomains")}</th>}
-                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Decimal")}</th>}
-                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Binary")}</th>}
-                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Hex")}</th>}
-                        {isCV8ManufacturerData && <th>{t("settings.data.cv8Country")}</th>}
-                        {!isSymbolData && !isCV8ManufacturerData && <th>{t("settings.data.link")}</th>}
-                        {isSymbolData && <th>{t("settings.data.description")}</th>}
-                        <th>Status</th>
+                        {masterDataColumns.map((column) => {
+                          const isActiveSort = activeSortColumn?.key === column.key;
+                          const className = [
+                            `master-data-col-${column.key}`,
+                            column.align ? `is-${column.align}` : "",
+                            column.wrap ? "is-wrapped" : ""
+                          ].filter(Boolean).join(" ");
+                          return (
+                            <th
+                              key={column.key}
+                              className={className}
+                              aria-sort={isActiveSort ? (masterDataSort.direction === "asc" ? "ascending" : "descending") : "none"}
+                            >
+                              {column.sortable === false || !column.sortValue ? (
+                                column.label
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={`sort-button ${isActiveSort ? "active" : ""}`}
+                                  onClick={() => toggleMasterDataSort(column.key)}
+                                >
+                                  <span>{column.label}</span>
+                                  {isActiveSort && masterDataSort.direction === "asc" ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                                </button>
+                              )}
+                            </th>
+                          );
+                        })}
                       </tr>
                     </thead>
                     <tbody>
                       {loading ? (
                         <tr>
-                          <td colSpan={masterDataColumnCount} className="loading-cell">Lade aus lokaler Stammdatenbank...</td>
+                          <td colSpan={masterDataColumns.length} className="loading-cell">Lade aus lokaler Stammdatenbank...</td>
                         </tr>
                       ) : filteredItems.length === 0 ? (
                         <tr>
-                          <td colSpan={masterDataColumnCount} className="loading-cell">{t("settings.data.noEntries")}</td>
+                          <td colSpan={masterDataColumns.length} className="loading-cell">{t("settings.data.noEntries")}</td>
                         </tr>
                       ) : (
-                        filteredItems.map((entry) => {
-                          const website = manufacturerWebsite(entry);
-                          const link = isManufacturerData ? (website ? { href: website, title: t("settings.data.openManufacturerWebsite") } : null) : externalLink(entry);
-                          const symbolImage = masterDataImage(entry);
-                          return (
-                            <tr key={entry.id}>
-                              <td>
-                                <div className="table-actions">
-                                  <button type="button" className="icon-button" onClick={() => startEdit(entry)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                                    <Pencil size={16} />
-                                  </button>
-                                  <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                                    <Trash2 size={16} />
-                                  </button>
-                                </div>
-                              </td>
-                              {isSymbolData && (
-                                <td>
-                                  {symbolImage ? <img className="master-data-symbol-preview" src={symbolImage} alt="" /> : "-"}
-                                </td>
-                              )}
-                              <td>
-                                <strong>{isCV8ManufacturerData ? cv8NameText(entry) : entry.label}</strong>
-                                {isManufacturerData && manufacturerNeedsWebsiteReview(entry) && <span className="master-data-warning">{t("settings.data.wikiSourceWarning")}</span>}
-                              </td>
-                              {isManufacturerData && <td>{nominalScalesText(entry) || "-"}</td>}
-                              {isManufacturerData && <td>{manufacturerWebsite(entry) || "-"}</td>}
-                              {isManufacturerData && <td>{manufacturerSearchDomainsText(entry) || "-"}</td>}
-                              {isCV8ManufacturerData && <td><code>{cv8DecimalText(entry) || "-"}</code></td>}
-                              {isCV8ManufacturerData && <td><code>{cv8BinaryText(entry) || "-"}</code></td>}
-                              {isCV8ManufacturerData && <td><code>{cv8HexText(entry) || "-"}</code></td>}
-                              {isCV8ManufacturerData && <td>{cv8CountryText(entry) || "-"}</td>}
-                              {!isSymbolData && !isCV8ManufacturerData && (
-                                <td>
-                                  {link ? (
-                                    <a className="table-icon-link" href={link.href} target="_blank" rel="noreferrer" aria-label={link.title} title={link.title}>
-                                      <ExternalLink size={16} />
-                                    </a>
-                                  ) : "-"}
-                                </td>
-                              )}
-                              {isSymbolData && <td>{metadataString(entry, "description") || "-"}</td>}
-                              <td>
-                                {entry.active ? (
-                                  <CheckCircle2 className="status-icon active" size={17} aria-label="Aktiv" />
-                                ) : (
-                                  <span className="status-icon inactive" aria-label="Inaktiv" title="Inaktiv" />
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })
+                        sortedItems.map((entry) => (
+                          <tr key={entry.id}>
+                            {masterDataColumns.map((column) => {
+                              const className = [
+                                `master-data-col-${column.key}`,
+                                column.align ? `is-${column.align}` : "",
+                                column.wrap ? "is-wrapped" : ""
+                              ].filter(Boolean).join(" ");
+                              return <td key={column.key} className={className}>{column.render(entry)}</td>;
+                            })}
+                          </tr>
+                        ))
                       )}
                     </tbody>
                   </table>
@@ -1641,9 +1951,6 @@ export function SettingsView({ username }: { username: string }) {
                   <h3>{t("settings.backup.export.title")}</h3>
                   <p>{t("settings.backup.export.subtitle")}</p>
                 </div>
-                <a className="icon-button" href={api.backupExportUrl()} aria-label={t("settings.backup.download")} title={t("settings.backup.download")}>
-                  <Download size={16} />
-                </a>
               </div>
               <div className="backup-summary-strip">
                 <span>
@@ -1658,6 +1965,10 @@ export function SettingsView({ username }: { username: string }) {
                   <RefreshCw size={15} />
                 </button>
               </div>
+              <a className="primary-button backup-export-button" href={api.backupExportUrl()} download>
+                <Download size={17} />
+                {t("settings.backup.create")}
+              </a>
             </section>
 
             <section className="backup-box warning">
@@ -1871,7 +2182,6 @@ export function SettingsView({ username }: { username: string }) {
           twoFactorLoading={twoFactorLoading}
           twoFactorSaving={twoFactorSaving}
           twoFactorMessage={twoFactorMessage}
-          loadTwoFactorStatus={loadTwoFactorStatus}
           setupTwoFactor={setupTwoFactor}
           enableTwoFactor={enableTwoFactor}
           disableTwoFactor={disableTwoFactor}
@@ -1920,6 +2230,28 @@ export function SettingsView({ username }: { username: string }) {
           auditLogMessage={auditLogMessage}
           roleDescription={roleDescription}
         />
+      )}
+
+      {confirmDialog && (
+        <div className="confirm-layer" role="dialog" aria-modal="true" aria-label={confirmDialog.title}>
+          <section className="confirm-card">
+            <div className="panel-head form-head">
+              <h2>{confirmDialog.title}</h2>
+              <button type="button" className="icon-button" onClick={() => setConfirmDialog(null)} aria-label={t("vehicles.close")}>
+                <X size={17} />
+              </button>
+            </div>
+            {confirmDialog.body && <p>{confirmDialog.body}</p>}
+            <div className="confirm-actions">
+              <button type="button" className="secondary-button" onClick={() => setConfirmDialog(null)}>
+                {t("vehicles.cancel")}
+              </button>
+              <button type="button" className={confirmDialog.danger ? "danger-button" : "primary-button"} onClick={confirmSettingsAction}>
+                {confirmDialog.confirmLabel}
+              </button>
+            </div>
+          </section>
+        </div>
       )}
 
     </>

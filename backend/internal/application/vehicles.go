@@ -841,7 +841,7 @@ func (s *VehicleService) attachImages(ctx context.Context, vehicles []Vehicle) e
 
 func (s *VehicleService) loadVehicleImages(ctx context.Context, vehicleID string) ([]VehicleImage, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT id, vehicle_id, url, COALESCE(title, ''), COALESCE(source_url, ''), COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(maintenance_id, ''), is_primary, sort_order, created_at, COALESCE(updated_at, '')
+SELECT id, vehicle_id, url, COALESCE(title, ''), COALESCE(source_url, ''), COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), is_primary, sort_order, created_at, COALESCE(updated_at, '')
 FROM vehicle_images
 WHERE vehicle_id=?
 ORDER BY is_primary DESC, sort_order ASC, created_at ASC
@@ -855,7 +855,7 @@ ORDER BY is_primary DESC, sort_order ASC, created_at ASC
 	for rows.Next() {
 		var image VehicleImage
 		var isPrimary int
-		if err := rows.Scan(&image.ID, &image.VehicleID, &image.URL, &image.Title, &image.SourceURL, &image.FileName, &image.MimeType, &image.StoragePath, &image.ThumbnailPath, &image.MaintenanceID, &isPrimary, &image.SortOrder, &image.CreatedAt, &image.UpdatedAt); err != nil {
+		if err := rows.Scan(&image.ID, &image.VehicleID, &image.URL, &image.Title, &image.SourceURL, &image.FileName, &image.MimeType, &image.StoragePath, &image.ThumbnailPath, &image.BlobID, &image.ThumbnailBlobID, &image.MaintenanceID, &isPrimary, &image.SortOrder, &image.CreatedAt, &image.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan vehicle image: %w", err)
 		}
 		image.IsPrimary = isPrimary == 1
@@ -931,7 +931,7 @@ func (s *VehicleService) attachCVData(ctx context.Context, vehicles []Vehicle) e
 func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, input VehicleImageInput) (*VehicleImage, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleImageInput(input)
-	if vehicleID == "" || input.FileName == "" || input.MimeType == "" || input.StoragePath == "" {
+	if vehicleID == "" || input.FileName == "" || input.MimeType == "" || (input.StoragePath == "" && input.BlobID == "") {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
@@ -944,21 +944,23 @@ func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, inpu
 	now := time.Now().UTC().Format(time.RFC3339)
 	imageID := randomID()
 	image := VehicleImage{
-		ID:            imageID,
-		VehicleID:     vehicleID,
-		URL:           "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/file",
-		ThumbnailURL:  "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/thumbnail",
-		Title:         input.Title,
-		SourceURL:     input.SourceURL,
-		FileName:      input.FileName,
-		MimeType:      input.MimeType,
-		StoragePath:   input.StoragePath,
-		ThumbnailPath: input.ThumbnailPath,
-		MaintenanceID: input.MaintenanceID,
-		IsPrimary:     input.IsPrimary,
-		SortOrder:     input.SortOrder,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		ID:              imageID,
+		VehicleID:       vehicleID,
+		URL:             "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/file",
+		ThumbnailURL:    "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/thumbnail",
+		Title:           input.Title,
+		SourceURL:       input.SourceURL,
+		FileName:        input.FileName,
+		MimeType:        input.MimeType,
+		StoragePath:     input.StoragePath,
+		ThumbnailPath:   input.ThumbnailPath,
+		BlobID:          input.BlobID,
+		ThumbnailBlobID: input.ThumbnailBlobID,
+		MaintenanceID:   input.MaintenanceID,
+		IsPrimary:       input.IsPrimary,
+		SortOrder:       input.SortOrder,
+		CreatedAt:       now,
+		UpdatedAt:       now,
 	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -983,9 +985,9 @@ func (s *VehicleService) CreateImage(ctx context.Context, vehicleID string, inpu
 		image.SortOrder = existingCount
 	}
 	if _, err := tx.ExecContext(ctx, `
-INSERT INTO vehicle_images(id, vehicle_id, url, title, source_url, file_name, mime_type, storage_path, thumbnail_path, maintenance_id, is_primary, sort_order, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, image.ID, image.VehicleID, image.URL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, image.ThumbnailPath, image.MaintenanceID, boolToInt(image.IsPrimary), image.SortOrder, image.CreatedAt, image.UpdatedAt); err != nil {
+INSERT INTO vehicle_images(id, vehicle_id, url, title, source_url, file_name, mime_type, storage_path, thumbnail_path, blob_id, thumbnail_blob_id, maintenance_id, is_primary, sort_order, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, image.ID, image.VehicleID, image.URL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, image.ThumbnailPath, image.BlobID, image.ThumbnailBlobID, image.MaintenanceID, boolToInt(image.IsPrimary), image.SortOrder, image.CreatedAt, image.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle image: %w", err)
 	}
 	if err := tx.Commit(); err != nil {
@@ -998,7 +1000,7 @@ func (s *VehicleService) GetImage(ctx context.Context, vehicleID, imageID string
 	var image VehicleImage
 	var isPrimary int
 	err := s.db.QueryRowContext(ctx, `
-SELECT id, vehicle_id, url, COALESCE(title, ''), COALESCE(source_url, ''), COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(maintenance_id, ''), is_primary, sort_order, created_at, COALESCE(updated_at, '')
+SELECT id, vehicle_id, url, COALESCE(title, ''), COALESCE(source_url, ''), COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), is_primary, sort_order, created_at, COALESCE(updated_at, '')
 FROM vehicle_images
 WHERE id=? AND vehicle_id=?
 `, strings.TrimSpace(imageID), strings.TrimSpace(vehicleID)).Scan(
@@ -1011,6 +1013,8 @@ WHERE id=? AND vehicle_id=?
 		&image.MimeType,
 		&image.StoragePath,
 		&image.ThumbnailPath,
+		&image.BlobID,
+		&image.ThumbnailBlobID,
 		&image.MaintenanceID,
 		&isPrimary,
 		&image.SortOrder,
@@ -1085,7 +1089,7 @@ func (s *VehicleService) ImageFileReferenceCount(ctx context.Context, storagePat
 func (s *VehicleService) loadVehicleAttachments(ctx context.Context, vehicleID string) ([]VehicleAttachment, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(maintenance_id, ''), created_at, updated_at
+       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), COALESCE(maintenance_id, ''), created_at, updated_at
 FROM vehicle_attachments
 WHERE vehicle_id=?
 ORDER BY created_at ASC
@@ -1108,6 +1112,7 @@ ORDER BY created_at ASC
 			&attachment.MimeType,
 			&attachment.SizeBytes,
 			&attachment.StoragePath,
+			&attachment.BlobID,
 			&attachment.MaintenanceID,
 			&attachment.CreatedAt,
 			&attachment.UpdatedAt,
@@ -1125,7 +1130,7 @@ ORDER BY created_at ASC
 func (s *VehicleService) CreateAttachment(ctx context.Context, vehicleID string, input VehicleAttachmentInput) (*VehicleAttachment, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleAttachmentInput(input)
-	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || input.StoragePath == "" {
+	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || (input.StoragePath == "" && input.BlobID == "") {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
@@ -1146,14 +1151,15 @@ func (s *VehicleService) CreateAttachment(ctx context.Context, vehicleID string,
 		MimeType:      input.MimeType,
 		SizeBytes:     input.SizeBytes,
 		StoragePath:   input.StoragePath,
+		BlobID:        input.BlobID,
 		MaintenanceID: input.MaintenanceID,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO vehicle_attachments(id, vehicle_id, file_name, original_name, description, category, mime_type, size_bytes, storage_path, maintenance_id, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, attachment.ID, attachment.VehicleID, attachment.FileName, attachment.OriginalName, attachment.Description, attachment.Category, attachment.MimeType, attachment.SizeBytes, attachment.StoragePath, attachment.MaintenanceID, attachment.CreatedAt, attachment.UpdatedAt); err != nil {
+INSERT INTO vehicle_attachments(id, vehicle_id, file_name, original_name, description, category, mime_type, size_bytes, storage_path, blob_id, maintenance_id, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, attachment.ID, attachment.VehicleID, attachment.FileName, attachment.OriginalName, attachment.Description, attachment.Category, attachment.MimeType, attachment.SizeBytes, attachment.StoragePath, attachment.BlobID, attachment.MaintenanceID, attachment.CreatedAt, attachment.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle attachment: %w", err)
 	}
 	return &attachment, nil
@@ -1191,7 +1197,7 @@ func (s *VehicleService) GetAttachment(ctx context.Context, vehicleID, attachmen
 	var attachment VehicleAttachment
 	err := s.db.QueryRowContext(ctx, `
 SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(category, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(maintenance_id, ''), created_at, updated_at
+       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), COALESCE(maintenance_id, ''), created_at, updated_at
 FROM vehicle_attachments
 WHERE id=? AND vehicle_id=?
 `, strings.TrimSpace(attachmentID), strings.TrimSpace(vehicleID)).Scan(
@@ -1204,6 +1210,7 @@ WHERE id=? AND vehicle_id=?
 		&attachment.MimeType,
 		&attachment.SizeBytes,
 		&attachment.StoragePath,
+		&attachment.BlobID,
 		&attachment.MaintenanceID,
 		&attachment.CreatedAt,
 		&attachment.UpdatedAt,
@@ -1956,7 +1963,7 @@ func (s *VehicleService) ListCVFiles(ctx context.Context, vehicleID string) ([]V
 func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, input VehicleCVFileInput) (*VehicleCVFile, error) {
 	vehicleID = strings.TrimSpace(vehicleID)
 	input = cleanVehicleCVFileInput(input)
-	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || input.StoragePath == "" {
+	if vehicleID == "" || input.FileName == "" || input.OriginalName == "" || (input.StoragePath == "" && input.BlobID == "") {
 		return nil, ErrVehicleValidation
 	}
 	if _, err := s.Get(ctx, vehicleID); err != nil {
@@ -1973,13 +1980,14 @@ func (s *VehicleService) CreateCVFile(ctx context.Context, vehicleID string, inp
 		MimeType:       input.MimeType,
 		SizeBytes:      input.SizeBytes,
 		StoragePath:    input.StoragePath,
+		BlobID:         input.BlobID,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO vehicle_cv_files(id, vehicle_id, file_name, original_name, description, decoder_profile, mime_type, size_bytes, storage_path, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, file.ID, file.VehicleID, file.FileName, file.OriginalName, file.Description, file.DecoderProfile, file.MimeType, file.SizeBytes, file.StoragePath, file.CreatedAt, file.UpdatedAt); err != nil {
+INSERT INTO vehicle_cv_files(id, vehicle_id, file_name, original_name, description, decoder_profile, mime_type, size_bytes, storage_path, blob_id, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, file.ID, file.VehicleID, file.FileName, file.OriginalName, file.Description, file.DecoderProfile, file.MimeType, file.SizeBytes, file.StoragePath, file.BlobID, file.CreatedAt, file.UpdatedAt); err != nil {
 		return nil, fmt.Errorf("create vehicle cv file: %w", err)
 	}
 	return &file, nil
@@ -1989,7 +1997,7 @@ func (s *VehicleService) GetCVFile(ctx context.Context, vehicleID, fileID string
 	var file VehicleCVFile
 	err := s.db.QueryRowContext(ctx, `
 SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), created_at, updated_at
 FROM vehicle_cv_files
 WHERE id=? AND vehicle_id=?
 `, strings.TrimSpace(fileID), strings.TrimSpace(vehicleID)).Scan(
@@ -2002,6 +2010,7 @@ WHERE id=? AND vehicle_id=?
 		&file.MimeType,
 		&file.SizeBytes,
 		&file.StoragePath,
+		&file.BlobID,
 		&file.CreatedAt,
 		&file.UpdatedAt,
 	)
@@ -2036,7 +2045,7 @@ func (s *VehicleService) DeleteCVFile(ctx context.Context, vehicleID, fileID str
 func (s *VehicleService) loadVehicleCVFiles(ctx context.Context, vehicleID string) ([]VehicleCVFile, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, vehicle_id, file_name, original_name, COALESCE(description, ''), COALESCE(decoder_profile, ''),
-       COALESCE(mime_type, ''), size_bytes, storage_path, created_at, updated_at
+       COALESCE(mime_type, ''), size_bytes, storage_path, COALESCE(blob_id, ''), created_at, updated_at
 FROM vehicle_cv_files
 WHERE vehicle_id=?
 ORDER BY created_at ASC
@@ -2059,6 +2068,7 @@ ORDER BY created_at ASC
 			&file.MimeType,
 			&file.SizeBytes,
 			&file.StoragePath,
+			&file.BlobID,
 			&file.CreatedAt,
 			&file.UpdatedAt,
 		); err != nil {
@@ -2099,19 +2109,21 @@ func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images
 			image.MimeType = meta.MimeType
 			image.StoragePath = meta.StoragePath
 			image.ThumbnailPath = meta.ThumbnailPath
+			image.BlobID = meta.BlobID
+			image.ThumbnailBlobID = meta.ThumbnailBlobID
 		}
 		sortOrder := image.SortOrder
 		if sortOrder == 0 {
 			sortOrder = index
 		}
 		imageURL := image.URL
-		if image.StoragePath != "" {
+		if image.StoragePath != "" || image.BlobID != "" {
 			imageURL = "/api/v1/vehicles/" + vehicleID + "/images/" + imageID + "/file"
 		}
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO vehicle_images(id, vehicle_id, url, title, source_url, file_name, mime_type, storage_path, thumbnail_path, maintenance_id, is_primary, sort_order, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, imageID, vehicleID, imageURL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, image.ThumbnailPath, image.MaintenanceID, boolToInt(image.IsPrimary), sortOrder, createdAt, now); err != nil {
+INSERT INTO vehicle_images(id, vehicle_id, url, title, source_url, file_name, mime_type, storage_path, thumbnail_path, blob_id, thumbnail_blob_id, maintenance_id, is_primary, sort_order, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, imageID, vehicleID, imageURL, image.Title, image.SourceURL, image.FileName, image.MimeType, image.StoragePath, image.ThumbnailPath, image.BlobID, image.ThumbnailBlobID, image.MaintenanceID, boolToInt(image.IsPrimary), sortOrder, createdAt, now); err != nil {
 			return fmt.Errorf("insert vehicle image: %w", err)
 		}
 	}
@@ -2138,19 +2150,21 @@ func ensureVehicleMaintenanceID(ctx context.Context, query queryRower, vehicleID
 }
 
 type vehicleImageMeta struct {
-	ID            string
-	URL           string
-	FileName      string
-	MimeType      string
-	StoragePath   string
-	ThumbnailPath string
-	MaintenanceID string
-	CreatedAt     string
+	ID              string
+	URL             string
+	FileName        string
+	MimeType        string
+	StoragePath     string
+	ThumbnailPath   string
+	BlobID          string
+	ThumbnailBlobID string
+	MaintenanceID   string
+	CreatedAt       string
 }
 
 func existingVehicleImageMeta(ctx context.Context, tx *sql.Tx, vehicleID string) (map[string]vehicleImageMeta, error) {
 	rows, err := tx.QueryContext(ctx, `
-SELECT id, url, COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(maintenance_id, ''), created_at
+SELECT id, url, COALESCE(file_name, ''), COALESCE(mime_type, ''), COALESCE(storage_path, ''), COALESCE(thumbnail_path, ''), COALESCE(blob_id, ''), COALESCE(thumbnail_blob_id, ''), COALESCE(maintenance_id, ''), created_at
 FROM vehicle_images
 WHERE vehicle_id=?
 `, vehicleID)
@@ -2161,7 +2175,7 @@ WHERE vehicle_id=?
 	out := map[string]vehicleImageMeta{}
 	for rows.Next() {
 		var meta vehicleImageMeta
-		if err := rows.Scan(&meta.ID, &meta.URL, &meta.FileName, &meta.MimeType, &meta.StoragePath, &meta.ThumbnailPath, &meta.MaintenanceID, &meta.CreatedAt); err != nil {
+		if err := rows.Scan(&meta.ID, &meta.URL, &meta.FileName, &meta.MimeType, &meta.StoragePath, &meta.ThumbnailPath, &meta.BlobID, &meta.ThumbnailBlobID, &meta.MaintenanceID, &meta.CreatedAt); err != nil {
 			return nil, fmt.Errorf("scan existing vehicle image metadata: %w", err)
 		}
 		out[meta.ID] = meta
@@ -2174,8 +2188,9 @@ WHERE vehicle_id=?
 }
 
 func (s *VehicleService) nextInventoryNumber(ctx context.Context, tx *sql.Tx, vehicleCategory string) (string, error) {
-	category := inventoryCategoryForVehicle(vehicleCategory)
-	scheme, err := s.inventoryNumberSchemeForUpdate(ctx, tx, category)
+	requestedCategory := cleanInventoryCategory(vehicleCategory)
+	fallbackCategory := inventoryCategoryForVehicle(vehicleCategory)
+	scheme, err := s.inventoryNumberSchemeForUpdate(ctx, tx, requestedCategory, fallbackCategory)
 	if err != nil {
 		return "", err
 	}
@@ -2198,10 +2213,31 @@ WHERE category=?
 		next++
 	}
 
-	return "", fmt.Errorf("next inventory number: exhausted attempts for %s", category)
+	return "", fmt.Errorf("next inventory number: exhausted attempts for %s", scheme.Category)
 }
 
-func (s *VehicleService) inventoryNumberSchemeForUpdate(ctx context.Context, tx *sql.Tx, category string) (*InventoryNumberScheme, error) {
+func (s *VehicleService) inventoryNumberSchemeForUpdate(ctx context.Context, tx *sql.Tx, category string, fallbackCategory string) (*InventoryNumberScheme, error) {
+	if category != "" {
+		if scheme, err := s.readActiveInventoryNumberScheme(ctx, tx, category); err == nil {
+			return scheme, nil
+		} else if !errors.Is(err, ErrInventoryNumberNotFound) {
+			return nil, err
+		}
+	}
+	if fallbackCategory != "" && fallbackCategory != category {
+		if scheme, err := s.readActiveInventoryNumberScheme(ctx, tx, fallbackCategory); err == nil {
+			return scheme, nil
+		} else if !errors.Is(err, ErrInventoryNumberNotFound) {
+			return nil, err
+		}
+	}
+	if fallbackCategory != "Fahrzeug" && category != "Fahrzeug" {
+		return s.readActiveInventoryNumberScheme(ctx, tx, "Fahrzeug")
+	}
+	return nil, ErrInventoryNumberNotFound
+}
+
+func (s *VehicleService) readActiveInventoryNumberScheme(ctx context.Context, tx *sql.Tx, category string) (*InventoryNumberScheme, error) {
 	var scheme InventoryNumberScheme
 	var active int
 	err := tx.QueryRowContext(ctx, `
@@ -2218,22 +2254,6 @@ WHERE category=? AND active=1
 		&scheme.CreatedAt,
 		&scheme.UpdatedAt,
 	)
-	if errors.Is(err, sql.ErrNoRows) && category != "Fahrzeug" {
-		err = tx.QueryRowContext(ctx, `
-SELECT id, category, prefix, next_number, padding, active, created_at, updated_at
-FROM inventory_number_schemes
-WHERE category='Fahrzeug' AND active=1
-`).Scan(
-			&scheme.ID,
-			&scheme.Category,
-			&scheme.Prefix,
-			&scheme.NextNumber,
-			&scheme.Padding,
-			&active,
-			&scheme.CreatedAt,
-			&scheme.UpdatedAt,
-		)
-	}
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrInventoryNumberNotFound
@@ -2360,6 +2380,8 @@ func cleanVehicleImageInput(image VehicleImageInput) VehicleImageInput {
 	image.MimeType = strings.TrimSpace(image.MimeType)
 	image.StoragePath = strings.TrimSpace(image.StoragePath)
 	image.ThumbnailPath = strings.TrimSpace(image.ThumbnailPath)
+	image.BlobID = strings.TrimSpace(image.BlobID)
+	image.ThumbnailBlobID = strings.TrimSpace(image.ThumbnailBlobID)
 	image.MaintenanceID = strings.TrimSpace(image.MaintenanceID)
 	return image
 }
@@ -2371,6 +2393,7 @@ func cleanVehicleAttachmentInput(input VehicleAttachmentInput) VehicleAttachment
 	input.Category = strings.TrimSpace(input.Category)
 	input.MimeType = strings.TrimSpace(input.MimeType)
 	input.StoragePath = strings.TrimSpace(input.StoragePath)
+	input.BlobID = strings.TrimSpace(input.BlobID)
 	input.MaintenanceID = strings.TrimSpace(input.MaintenanceID)
 	return input
 }
@@ -2537,6 +2560,7 @@ func cleanVehicleCVFileInput(input VehicleCVFileInput) VehicleCVFileInput {
 	input.DecoderProfile = strings.TrimSpace(input.DecoderProfile)
 	input.MimeType = strings.TrimSpace(input.MimeType)
 	input.StoragePath = strings.TrimSpace(input.StoragePath)
+	input.BlobID = strings.TrimSpace(input.BlobID)
 	return input
 }
 
@@ -2586,29 +2610,31 @@ func vehicleImagesFromInput(vehicleID string, images []VehicleImageInput, now st
 			sortOrder = index
 		}
 		out = append(out, VehicleImage{
-			ID:            image.ID,
-			VehicleID:     vehicleID,
-			URL:           image.URL,
-			Title:         image.Title,
-			SourceURL:     image.SourceURL,
-			FileName:      image.FileName,
-			MimeType:      image.MimeType,
-			StoragePath:   image.StoragePath,
-			ThumbnailPath: image.ThumbnailPath,
-			MaintenanceID: image.MaintenanceID,
-			IsPrimary:     image.IsPrimary,
-			SortOrder:     sortOrder,
-			CreatedAt:     now,
+			ID:              image.ID,
+			VehicleID:       vehicleID,
+			URL:             image.URL,
+			Title:           image.Title,
+			SourceURL:       image.SourceURL,
+			FileName:        image.FileName,
+			MimeType:        image.MimeType,
+			StoragePath:     image.StoragePath,
+			ThumbnailPath:   image.ThumbnailPath,
+			BlobID:          image.BlobID,
+			ThumbnailBlobID: image.ThumbnailBlobID,
+			MaintenanceID:   image.MaintenanceID,
+			IsPrimary:       image.IsPrimary,
+			SortOrder:       sortOrder,
+			CreatedAt:       now,
 		})
 	}
 	return out
 }
 
 func withVehicleImageURLs(image VehicleImage) VehicleImage {
-	if image.StoragePath != "" {
+	if image.StoragePath != "" || image.BlobID != "" {
 		image.URL = "/api/v1/vehicles/" + image.VehicleID + "/images/" + image.ID + "/file"
 	}
-	if image.ThumbnailPath != "" {
+	if image.ThumbnailPath != "" || image.ThumbnailBlobID != "" {
 		image.ThumbnailURL = "/api/v1/vehicles/" + image.VehicleID + "/images/" + image.ID + "/thumbnail"
 	}
 	return image

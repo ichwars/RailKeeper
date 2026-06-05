@@ -185,6 +185,7 @@
   .auth-settings-grid .current-user-settings-card,
   .auth-settings-grid .user-management-card,
   .auth-settings-grid .session-management-card,
+  .auth-settings-grid .auth-side-stack,
   .auth-settings-grid .smtp-settings-card,
   .auth-settings-grid .role-settings-card {
     grid-column: auto;

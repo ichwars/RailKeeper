@@ -12,11 +12,14 @@ func apiRouteSpecs() []routeSpec {
 		{"GET", "/health"},
 		{"GET", "/api/v1/version"},
 		{"GET", "/api/v1/system/storage"},
+		{"POST", "/api/v1/system/storage/optimize"},
 		{"GET", "/api/v1/system/printers"},
 		{"GET", "/api/v1/system/audit-log"},
 		{"GET", "/api/v1/system/smtp"},
 		{"PUT", "/api/v1/system/smtp"},
 		{"POST", "/api/v1/system/smtp/test"},
+		{"GET", "/api/v1/system/digital-settings"},
+		{"PUT", "/api/v1/system/digital-settings"},
 		{"GET", "/api/v1/setup/status"},
 		{"POST", "/api/v1/setup/admin"},
 		{"POST", "/api/v1/auth/login"},
@@ -24,6 +27,8 @@ func apiRouteSpecs() []routeSpec {
 		{"POST", "/api/v1/auth/password-reset/confirm"},
 		{"POST", "/api/v1/auth/logout"},
 		{"GET", "/api/v1/auth/session"},
+		{"GET", "/api/v1/profile/settings"},
+		{"PUT", "/api/v1/profile/settings"},
 		{"PUT", "/api/v1/auth/password"},
 		{"GET", "/api/v1/auth/two-factor"},
 		{"POST", "/api/v1/auth/two-factor/setup"},
@@ -37,6 +42,7 @@ func apiRouteSpecs() []routeSpec {
 		{"GET", "/api/v1/sessions"},
 		{"PUT", "/api/v1/sessions/{id}/revoke"},
 		{"POST", "/api/v1/ecos/test"},
+		{"POST", "/api/v1/ecos/locomotives/count"},
 		{"POST", "/api/v1/ecos/locomotives/raw"},
 		{"POST", "/api/v1/digital-centers/ecos/locomotives/sync"},
 		{"POST", "/api/v1/digital-centers/z21/test"},
@@ -82,6 +88,7 @@ func apiRouteSpecs() []routeSpec {
 		{"GET", "/api/v1/vehicles/{id}/cv-files/{cvFileID}/download"},
 		{"POST", "/api/v1/article-search"},
 		{"GET", "/api/v1/inventory-number-schemes"},
+		{"POST", "/api/v1/inventory-number-schemes"},
 		{"PUT", "/api/v1/inventory-number-schemes/{category}"},
 		{"GET", "/api/v1/master-data-all"},
 		{"GET", "/api/v1/master-data/export"},
@@ -125,11 +132,14 @@ func (a *App) registerHealthRoutes(mux *http.ServeMux) {
 func (a *App) registerSystemRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/version", a.versionInfo)
 	mux.HandleFunc("GET /api/v1/system/storage", a.require("Admin", a.systemStorage))
+	mux.HandleFunc("POST /api/v1/system/storage/optimize", a.require("Admin", a.optimizeSystemStorage))
 	mux.HandleFunc("GET /api/v1/system/printers", a.require("Admin", a.systemPrinters))
 	mux.HandleFunc("GET /api/v1/system/audit-log", a.require("Admin", a.systemAuditLog))
 	mux.HandleFunc("GET /api/v1/system/smtp", a.require("Admin", a.getSMTPSettings))
 	mux.HandleFunc("PUT /api/v1/system/smtp", a.require("Admin", a.updateSMTPSettings))
 	mux.HandleFunc("POST /api/v1/system/smtp/test", a.require("Admin", a.testSMTPSettings))
+	mux.HandleFunc("GET /api/v1/system/digital-settings", a.require("Admin", a.getDigitalSettings))
+	mux.HandleFunc("PUT /api/v1/system/digital-settings", a.require("Admin", a.updateDigitalSettings))
 }
 
 func (a *App) registerAuthRoutes(mux *http.ServeMux) {
@@ -140,6 +150,8 @@ func (a *App) registerAuthRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/auth/password-reset/confirm", a.confirmPasswordReset)
 	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
 	mux.HandleFunc("GET /api/v1/auth/session", a.session)
+	mux.HandleFunc("GET /api/v1/profile/settings", a.require("Viewer", a.getProfileSettings))
+	mux.HandleFunc("PUT /api/v1/profile/settings", a.require("Viewer", a.updateProfileSettings))
 	mux.HandleFunc("PUT /api/v1/auth/password", a.require("Viewer", a.changePassword))
 	mux.HandleFunc("GET /api/v1/auth/two-factor", a.require("Viewer", a.twoFactorStatus))
 	mux.HandleFunc("POST /api/v1/auth/two-factor/setup", a.require("Viewer", a.setupTwoFactor))
@@ -156,6 +168,7 @@ func (a *App) registerAuthRoutes(mux *http.ServeMux) {
 
 func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/ecos/test", a.require("Admin", a.testECoSConnection))
+	mux.HandleFunc("POST /api/v1/ecos/locomotives/count", a.require("Admin", a.countECoSLocomotives))
 	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", a.require("Admin", a.probeECoSLocomotiveRaw))
 	mux.HandleFunc("POST /api/v1/digital-centers/ecos/locomotives/sync", a.require("Admin", a.syncECoSLocomotive))
 	mux.HandleFunc("POST /api/v1/digital-centers/z21/test", a.require("Admin", a.testZ21Connection))
@@ -204,6 +217,7 @@ func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 func (a *App) registerImportExportRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/article-search", a.require("Viewer", a.searchArticleData))
 	mux.HandleFunc("GET /api/v1/inventory-number-schemes", a.require("Viewer", a.listInventoryNumberSchemes))
+	mux.HandleFunc("POST /api/v1/inventory-number-schemes", a.require("Editor", a.createInventoryNumberScheme))
 	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", a.require("Editor", a.updateInventoryNumberScheme))
 	mux.HandleFunc("GET /api/v1/master-data-all", a.require("Viewer", a.listAllMasterData))
 	mux.HandleFunc("GET /api/v1/master-data/export", a.require("Admin", a.exportMasterData))

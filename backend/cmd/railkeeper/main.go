@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	version               = "0.1.12"
+	version               = "0.1.13"
 	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 )
 
@@ -73,6 +73,11 @@ func main() {
 		logger.Error("master data seed failed", "error", err)
 		os.Exit(1)
 	}
+	fileBlobService := application.NewFileBlobService(db, dataDir)
+	if err = fileBlobService.MigrateFilesystemBlobs(context.Background()); err != nil {
+		logger.Error("file blob migration failed", "error", err)
+		os.Exit(1)
+	}
 
 	masterDataService := application.NewMasterDataService(db)
 	if err = masterDataService.WarmCache(context.Background()); err != nil {
@@ -96,9 +101,12 @@ func main() {
 		ArticleSearch:               application.NewArticleSearchService(masterDataService),
 		InventoryNumbers:            application.NewInventoryNumberService(db),
 		BackupService:               application.NewBackupService(db, dataDir),
+		FileBlobService:             fileBlobService,
+		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
 		ECoSService:                 application.NewECoSService(),
 		RateLimitService:            application.NewRateLimitService(db),
+		SettingsService:             application.NewSettingsService(db),
 		PasswordResetMailer:         passwordResetMailer,
 		SMTPSettingsService:         application.NewSMTPSettingsService(db, smtpConfig, publicURL),
 		PublicURL:                   publicURL,

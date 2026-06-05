@@ -92,7 +92,7 @@ func buildPasswordResetMessage(from, toEmail, resetURL, expiresAt string) string
 	if expiresAt != "" {
 		body += "\r\nGültig bis: " + expiresAt
 	}
-	body += "\r\n\r\nFalls du die Ruecksetzung nicht angefordert hast, kannst du diese E-Mail ignorieren.\r\n"
+	body += "\r\n\r\nFalls du die Rücksetzung nicht angefordert hast, kannst du diese E-Mail ignorieren.\r\n"
 	return buildSMTPMessage(from, toEmail, "RailKeeper Passwort zurücksetzen", body)
 }
 

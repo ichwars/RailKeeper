@@ -97,7 +97,7 @@ Rollback:
 1. In `.env` ein bekannt funktionierendes Image setzen, zum Beispiel:
 
    ```env
-   RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.12
+   RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.13
    ```
 
 2. Container neu ziehen und starten:

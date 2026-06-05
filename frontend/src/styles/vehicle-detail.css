@@ -16,6 +16,7 @@
   width: min(920px, 100%);
   max-height: min(86vh, 760px);
   overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
   border-radius: 8px;
   background: var(--panel);
   box-shadow: 0 24px 90px rgba(0, 0, 0, 0.32);

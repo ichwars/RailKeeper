@@ -1,6 +1,6 @@
 import { ChangeEvent, Fragment, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, SkipForward, Upload } from "lucide-react";
-import { api, CreateVehicleRequest, ECoSConnectionResult, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
+import { api, CreateVehicleRequest, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { localSettingKeys } from "../settings/settingsModel";
@@ -56,6 +56,25 @@ export function ImportExportView() {
     if (stored !== null) return stored === "true";
     return Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim());
   });
+  const [digitalSettings, setDigitalSettings] = useState<DigitalCenterSettings>(() => ({
+    provider: "ecos",
+    ecos: {
+      enabled: ecosEnabled,
+      host: window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "",
+      port: window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471"
+    },
+    z21: {
+      enabled: window.localStorage.getItem(localSettingKeys.digitalZ21Enabled) === "true",
+      host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
+      port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
+    },
+    cs3: {
+      enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",
+      host: window.localStorage.getItem(localSettingKeys.digitalCS3Host) || "",
+      port: window.localStorage.getItem(localSettingKeys.digitalCS3Port) || "80"
+    }
+  }));
+  const [ecosLiveStatus, setEcosLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [ecosBusy, setEcosBusy] = useState<ECoSBusyPhase>("idle");
   const [ecosResult, setEcosResult] = useState<ECoSConnectionResult | null>(null);
   const [ecosRawProbe, setEcosRawProbe] = useState<ECoSRawProbe | null>(null);
@@ -63,6 +82,7 @@ export function ImportExportView() {
   const [ecosSyncPlans, setEcosSyncPlans] = useState<Record<string, ECoSLocomotiveSyncResult>>({});
   const [ecosSyncBusyObjectId, setEcosSyncBusyObjectId] = useState<number | null>(null);
   const [ecosMessage, setEcosMessage] = useState("");
+  const [ecosAutoFetchedFromLive, setEcosAutoFetchedFromLive] = useState(false);
   const fieldLabel = (key: VehicleImportField) => t(`vehicle.field.${key}`);
   const issueLabels = {
     missingManufacturer: t("importExport.issue.missingManufacturer"),
@@ -100,6 +120,43 @@ export function ImportExportView() {
     return locomotives.find((locomotive) => (statuses[String(locomotive.objectId)]?.status || "open") === "open")
       || locomotives.find((locomotive) => ["editing", "error"].includes(statuses[String(locomotive.objectId)]?.status || ""));
   }, [ecosRawProbe, ecosSession]);
+
+  const activeDigitalProviders = useMemo(() => [
+    digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim() ? "ecos" : "",
+    digitalSettings.z21?.enabled && digitalSettings.z21.host.trim() ? "z21" : "",
+    digitalSettings.cs3?.enabled && digitalSettings.cs3.host.trim() ? "cs3" : ""
+  ].filter(Boolean), [digitalSettings]);
+  const hasActiveDigitalCenter = activeDigitalProviders.length > 0;
+  const ecosActive = Boolean(digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim());
+  const ecosConnectionReady = Boolean(ecosResult?.connected || ecosLiveStatus?.connected);
+  const activeUnsupportedProviders = (["z21", "cs3"] as const).filter((providerId) =>
+    digitalSettings[providerId]?.enabled && digitalSettings[providerId].host.trim()
+  );
+
+  const applyDigitalSettings = (settings: DigitalCenterSettings) => {
+    const nextSettings: DigitalCenterSettings = {
+      provider: settings.provider || "ecos",
+      ecos: {
+        enabled: Boolean(settings.ecos?.enabled),
+        host: settings.ecos?.host || "",
+        port: settings.ecos?.port || "15471"
+      },
+      z21: {
+        enabled: Boolean(settings.z21?.enabled),
+        host: settings.z21?.host || "",
+        port: settings.z21?.port || "21105"
+      },
+      cs3: {
+        enabled: Boolean(settings.cs3?.enabled),
+        host: settings.cs3?.host || "",
+        port: settings.cs3?.port || "80"
+      }
+    };
+    setDigitalSettings(nextSettings);
+    setEcosEnabled(nextSettings.ecos.enabled);
+    setEcosHost(nextSettings.ecos.host);
+    setEcosPort(nextSettings.ecos.port);
+  };
 
   const rememberECoSImportSession = (session: ECoSImportSession) => {
     const next = { ...session, updatedAt: new Date().toISOString() };
@@ -172,19 +229,74 @@ export function ImportExportView() {
   }, []);
 
   useEffect(() => {
-    const syncDigitalSettings = () => {
-      const storedEnabled = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
-      setEcosEnabled(storedEnabled !== null ? storedEnabled === "true" : Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim()));
-      setEcosHost(window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "");
-      setEcosPort(window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471");
+    let cancelled = false;
+    const syncDigitalSettings = async () => {
+      try {
+        const settings = await api.digitalSettings();
+        if (!cancelled) {
+          applyDigitalSettings(settings);
+        }
+      } catch {
+        if (cancelled) return;
+        const storedEnabled = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
+        applyDigitalSettings({
+          provider: "ecos",
+          ecos: {
+            enabled: storedEnabled !== null ? storedEnabled === "true" : Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim()),
+            host: window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "",
+            port: window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471"
+          },
+          z21: {
+            enabled: window.localStorage.getItem(localSettingKeys.digitalZ21Enabled) === "true",
+            host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
+            port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
+          },
+          cs3: {
+            enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",
+            host: window.localStorage.getItem(localSettingKeys.digitalCS3Host) || "",
+            port: window.localStorage.getItem(localSettingKeys.digitalCS3Port) || "80"
+          }
+        });
+      }
     };
+    void syncDigitalSettings();
     window.addEventListener("storage", syncDigitalSettings);
     window.addEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
     return () => {
+      cancelled = true;
       window.removeEventListener("storage", syncDigitalSettings);
       window.removeEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const refreshLiveStatus = async () => {
+      try {
+        const status = await api.getECoSLiveStatus();
+        if (cancelled) return;
+        setEcosLiveStatus(status);
+        if (status.connected) {
+          setEcosResult({
+            connected: true,
+            host: status.host || ecosHost,
+            port: status.port || Number(ecosPort) || 15471,
+            message: status.message
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setEcosLiveStatus(null);
+        }
+      }
+    };
+    void refreshLiveStatus();
+    const timer = window.setInterval(refreshLiveStatus, 15000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [ecosHost, ecosPort]);
 
   const importSummary = useMemo(() => ({
     total: rows.length,
@@ -435,7 +547,7 @@ export function ImportExportView() {
   };
 
   const probeECoSRawData = async () => {
-    if (!ecosResult?.connected) {
+    if (!ecosActive) {
       setEcosMessage(t("importExport.ecos.connectFirst"));
       return;
     }
@@ -444,10 +556,15 @@ export function ImportExportView() {
     setEcosRawProbe(null);
     setEcosSyncPlans({});
     try {
-      rememberECoSSettings();
       const probe = await api.probeECoSLocomotiveRaw(ecosInput());
       setEcosRawProbe(probe);
       createECoSImportSession(probe);
+      setEcosResult({
+        connected: true,
+        host: probe.host,
+        port: probe.port,
+        message: probe.message
+      });
       setEcosMessage(probe.message);
     } catch (error) {
       setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
@@ -540,6 +657,14 @@ export function ImportExportView() {
     }
   };
 
+  useEffect(() => {
+    if (!ecosActive || !ecosLiveStatus?.connected || ecosAutoFetchedFromLive || ecosRawProbe || ecosSession || ecosBusy !== "idle") {
+      return;
+    }
+    setEcosAutoFetchedFromLive(true);
+    void probeECoSRawData();
+  }, [ecosActive, ecosLiveStatus?.connected, ecosAutoFetchedFromLive, ecosRawProbe, ecosSession, ecosBusy]);
+
   const openDigitalSettings = () => {
     window.history.pushState(null, "", "/settings?tab=digital");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -603,7 +728,7 @@ export function ImportExportView() {
         </article>
       </section>
 
-      {!ecosEnabled ? (
+      {!hasActiveDigitalCenter ? (
         <section className="panel transfer-panel ecos-panel ecos-disabled-panel">
           <div className="panel-head">
             <div>
@@ -623,6 +748,8 @@ export function ImportExportView() {
           </div>
         </section>
       ) : (
+      <>
+      {ecosActive && (
       <section className="panel transfer-panel ecos-panel">
         <div className="panel-head">
           <div>
@@ -634,36 +761,31 @@ export function ImportExportView() {
         <div className="ecos-connection-grid">
           <label>
             {t("importExport.ecos.host")}
-            <input value={ecosHost} onChange={(event) => setEcosHost(event.target.value)} placeholder={t("importExport.ecos.hostPlaceholder")} />
+            <input value={ecosHost} readOnly placeholder={t("importExport.ecos.hostPlaceholder")} />
           </label>
           <label>
             {t("importExport.ecos.port")}
-            <input value={ecosPort} onChange={(event) => setEcosPort(event.target.value)} inputMode="numeric" placeholder="15471" />
+            <input value={ecosPort} readOnly inputMode="numeric" placeholder="15471" />
           </label>
           <div className="ecos-actions">
-            <button type="button" className="secondary-button" onClick={testECoSConnection} disabled={ecosBusy !== "idle" || !ecosHost.trim()}>
-              <Check size={15} aria-hidden="true" />
-              {t("importExport.ecos.connect")}
+            <button type="button" className="primary-button" onClick={probeECoSRawData} disabled={ecosBusy !== "idle" || !ecosHost.trim()}>
+              <Download size={15} aria-hidden="true" />
+              {t("importExport.ecos.fetchData")}
             </button>
-            {ecosResult?.connected && (
-              <button type="button" className="primary-button" onClick={probeECoSRawData} disabled={ecosBusy !== "idle" || !ecosHost.trim()}>
-                <Download size={15} aria-hidden="true" />
-                {t("importExport.ecos.fetchData")}
-              </button>
-            )}
           </div>
         </div>
         <div className="ecos-status-strip">
-          <span className={ecosResult?.connected ? "status-ok" : ecosResult ? "status-error" : ""}>
-            {ecosResult ? (ecosResult.connected ? t("importExport.ecos.connected") : t("importExport.ecos.notConnected")) : t("importExport.ecos.idle")}
+          <span className={ecosConnectionReady ? "status-ok" : ""}>
+            {ecosConnectionReady ? t("importExport.ecos.liveActive") : t("importExport.ecos.liveInactive")}
           </span>
           {ecosResult?.status && <span>{t("importExport.ecos.status", { status: ecosResult.status })}</span>}
           {ecosResult?.protocolVersion && <span>{t("importExport.ecos.protocol", { version: ecosResult.protocolVersion })}</span>}
           {ecosResult?.applicationVersion && <span>{t("importExport.ecos.application", { version: ecosResult.applicationVersion })}</span>}
+          {ecosLiveStatus?.lastSeenAt && <span>{t("settings.digital.lastSeen", { value: ecosLiveStatus.lastSeenAt })}</span>}
         </div>
         {ecosBusy !== "idle" && (
           <p className="ecos-busy-indicator">
-            {ecosBusy === "connecting" ? t("importExport.ecos.connecting") : t("importExport.ecos.fetching")}
+            {t("importExport.ecos.fetching")}
           </p>
         )}
         {ecosMessage && <p className="form-message">{ecosMessage}</p>}
@@ -688,6 +810,19 @@ export function ImportExportView() {
         )}
         {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive, syncECoSLocomotive, ecosSyncPlans, ecosSyncBusyObjectId)}
       </section>
+      )}
+      {activeUnsupportedProviders.map((providerId) => (
+        <section key={providerId} className="panel transfer-panel ecos-panel ecos-disabled-panel">
+          <div className="panel-head">
+            <div>
+              <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.activeUnsupportedTitle")} {t(`settings.digital.provider.${providerId}`)}</h2>
+              <p>{t("importExport.ecos.activeUnsupportedSubtitle")}</p>
+            </div>
+            <span className="settings-pill active">{t("settings.digital.active")}</span>
+          </div>
+        </section>
+      ))}
+      </>
       )}
 
 

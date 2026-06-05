@@ -18,7 +18,11 @@ import (
 	ecospkg "railkeeper/backend/internal/ecos"
 )
 
-const defaultECoSPort = ecospkg.DefaultPort
+const (
+	defaultECoSPort      = ecospkg.DefaultPort
+	eCoSLiveIdleTimeout  = 20 * time.Minute
+	eCoSLiveReadDeadline = 750 * time.Millisecond
+)
 
 type ECoSService struct {
 	timeout    time.Duration
@@ -81,6 +85,13 @@ type ECoSRawProbe struct {
 	Locomotives []ECoSRawLocomotive `json:"locomotives"`
 	RawLines    []string            `json:"rawLines,omitempty"`
 	Message     string              `json:"message"`
+}
+
+type ECoSLocomotiveSummary struct {
+	Host    string `json:"host"`
+	Port    int    `json:"port"`
+	Count   int    `json:"count"`
+	Message string `json:"message"`
 }
 
 type ECoSRawLocomotive struct {
@@ -248,6 +259,7 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 func (s *ECoSService) LiveStatus() ECoSLiveStatus {
 	s.liveMu.Lock()
 	defer s.liveMu.Unlock()
+	s.stopIdleLiveLocked(time.Now().UTC())
 	return s.liveStatus
 }
 
@@ -285,10 +297,13 @@ func (s *ECoSService) runECoSLiveSession(ctx context.Context, conn net.Conn, rea
 			return
 		default:
 		}
-		_ = conn.SetReadDeadline(time.Now().Add(750 * time.Millisecond))
+		_ = conn.SetReadDeadline(time.Now().Add(eCoSLiveReadDeadline))
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
+				if s.stopIdleLiveFromMonitor(time.Now().UTC()) {
+					return
+				}
 				continue
 			}
 			s.updateLiveError(fmt.Errorf("ECoS-Live-Antwort konnte nicht gelesen werden: %w", err))
@@ -312,6 +327,28 @@ func (s *ECoSService) runECoSLiveSession(ctx context.Context, conn net.Conn, rea
 		s.updateLiveBlocks(blocks, line)
 		buffer = []string{}
 	}
+}
+
+func (s *ECoSService) stopIdleLiveFromMonitor(now time.Time) bool {
+	s.liveMu.Lock()
+	defer s.liveMu.Unlock()
+	return s.stopIdleLiveLocked(now)
+}
+
+func (s *ECoSService) stopIdleLiveLocked(now time.Time) bool {
+	if !s.liveStatus.Connected || s.liveStatus.LastSeenAt == "" {
+		return false
+	}
+	lastSeen, err := time.Parse(time.RFC3339, s.liveStatus.LastSeenAt)
+	if err != nil || now.Sub(lastSeen) < eCoSLiveIdleTimeout {
+		return false
+	}
+	s.stopLiveLocked()
+	s.liveStatus.Connected = false
+	s.liveStatus.Error = ""
+	s.liveStatus.Message = "ECoS-Live-Monitoring nach 20 Minuten ohne Aktivität automatisch beendet."
+	s.liveStatus.LastMessage = s.liveStatus.Message
+	return true
 }
 
 func (s *ECoSService) updateLiveLine(line string) {
@@ -503,6 +540,24 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 		Locomotives: rawLocomotives,
 		RawLines:    lines,
 		Message:     fmt.Sprintf("%d ECoS-Lokomotiven roh geprüft.", len(rawLocomotives)),
+	}, nil
+}
+
+func (s *ECoSService) CountLocomotives(ctx context.Context, input ECoSConnectionInput) (*ECoSLocomotiveSummary, error) {
+	target, err := normalizeECoSInput(input)
+	if err != nil {
+		return nil, err
+	}
+	lines, err := s.exchange(ctx, target.Host, target.Port, "queryObjects(10, addr, name, protocol)")
+	if err != nil {
+		return nil, err
+	}
+	count := len(parseECoSLocomotives(lines))
+	return &ECoSLocomotiveSummary{
+		Host:    target.Host,
+		Port:    target.Port,
+		Count:   count,
+		Message: fmt.Sprintf("%d ECoS-Lokdatensätze gefunden.", count),
 	}, nil
 }
 

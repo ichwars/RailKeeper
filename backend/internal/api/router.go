@@ -47,9 +47,12 @@ type Config struct {
 	ArticleSearch               *application.ArticleSearchService
 	InventoryNumbers            *application.InventoryNumberService
 	BackupService               *application.BackupService
+	FileBlobService             *application.FileBlobService
+	DatabaseMaintenance         *application.DatabaseMaintenanceService
 	ExhibitionService           *application.ExhibitionService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
+	SettingsService             *application.SettingsService
 	RateLimitService            *application.RateLimitService
 	PasswordResetMailer         application.PasswordResetMailer
 	SMTPSettingsService         *application.SMTPSettingsService
@@ -73,9 +76,12 @@ type App struct {
 	articleSearch               *application.ArticleSearchService
 	inventoryNumbers            *application.InventoryNumberService
 	backupService               *application.BackupService
+	fileBlobs                   *application.FileBlobService
+	databaseMaintenance         *application.DatabaseMaintenanceService
 	exhibitionService           *application.ExhibitionService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
+	settingsService             *application.SettingsService
 	passwordResetMailer         application.PasswordResetMailer
 	smtpSettingsService         *application.SMTPSettingsService
 	publicURL                   string
@@ -106,9 +112,12 @@ func NewRouter(config Config) http.Handler {
 		articleSearch:               config.ArticleSearch,
 		inventoryNumbers:            config.InventoryNumbers,
 		backupService:               config.BackupService,
+		fileBlobs:                   config.FileBlobService,
+		databaseMaintenance:         config.DatabaseMaintenance,
 		exhibitionService:           config.ExhibitionService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
+		settingsService:             config.SettingsService,
 		passwordResetMailer:         config.PasswordResetMailer,
 		smtpSettingsService:         config.SMTPSettingsService,
 		publicURL:                   strings.TrimRight(strings.TrimSpace(config.PublicURL), "/"),
@@ -509,6 +518,20 @@ func (a *App) systemStorage(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (a *App) optimizeSystemStorage(w http.ResponseWriter, r *http.Request) {
+	if a.databaseMaintenance == nil {
+		respondProblem(w, http.StatusInternalServerError, "storage_optimize_unavailable", "Datenbankoptimierung ist nicht konfiguriert.")
+		return
+	}
+	result, err := a.databaseMaintenance.Optimize(r.Context())
+	if err != nil {
+		a.logger.Error("database optimize failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "storage_optimize_failed", "Datenbank konnte nicht optimiert werden.")
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
 func (a *App) systemPrinters(w http.ResponseWriter, r *http.Request) {
 	response := discoverSystemPrinters()
 	respondJSON(w, http.StatusOK, response)
@@ -816,7 +839,7 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		a.logger.Error("password reset request failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort-Ruecksetzung konnte nicht vorgemerkt werden.")
+		respondProblem(w, http.StatusInternalServerError, "password_reset_failed", "Passwort-Zurücksetzung konnte nicht vorbereitet werden.")
 		return
 	}
 	if result.ResetToken != "" {
@@ -1073,6 +1096,22 @@ func (a *App) probeECoSLocomotiveRaw(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, probe)
+}
+
+func (a *App) countECoSLocomotives(w http.ResponseWriter, r *http.Request) {
+	var input application.ECoSConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	summary, err := a.ecosService.CountLocomotives(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadGateway, "ecos_locomotive_count_failed", err.Error())
+		return
+	}
+
+	respondJSON(w, http.StatusOK, summary)
 }
 
 func (a *App) syncECoSLocomotive(w http.ResponseWriter, r *http.Request) {
@@ -1360,7 +1399,7 @@ func (a *App) localizeVehicleImages(ctx context.Context, vehicleID string, image
 	out := make([]application.VehicleImageInput, len(images))
 	copy(out, images)
 	for index, image := range out {
-		if image.StoragePath != "" || !strings.HasPrefix(strings.ToLower(image.URL), "http") {
+		if image.StoragePath != "" || image.BlobID != "" || !strings.HasPrefix(strings.ToLower(image.URL), "http") {
 			continue
 		}
 		localized, err := a.localizeVehicleImage(ctx, vehicleID, image)
@@ -1404,18 +1443,11 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 		return image, fmt.Errorf("image type %s is not allowed", mimeType)
 	}
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), remoteImageFileName(image, mimeType))
-	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", storageName)
-	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	blobID, err := a.storeFileBlob(ctx, data)
 	if err != nil {
 		return image, err
 	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		return image, err
-	}
-	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
-		return image, err
-	}
-	thumbnailPath, err := a.createVehicleImageThumbnail(data, vehicleID, storageName)
+	thumbnailBlobID, err := a.createVehicleImageThumbnail(ctx, data, storageName)
 	if err != nil {
 		a.logger.Warn("image thumbnail skipped", "url", image.URL, "error", err)
 	}
@@ -1424,8 +1456,8 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	}
 	image.FileName = storageName
 	image.MimeType = mimeType
-	image.StoragePath = storagePath
-	image.ThumbnailPath = thumbnailPath
+	image.BlobID = blobID
+	image.ThumbnailBlobID = thumbnailBlobID
 	return image, nil
 }
 
@@ -1584,38 +1616,29 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	}
 	vehicleID := r.PathValue("id")
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(header.Filename))
-	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", storageName)
-	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	blobID, err := a.storeFileBlob(r.Context(), data)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "image_path_invalid", "Bild konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		a.logger.Error("image directory create failed", "error", err)
+		a.logger.Error("image blob write failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
 		return
 	}
-	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
-		a.logger.Error("image write failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "image_upload_failed", "Bild konnte nicht gespeichert werden.")
-		return
-	}
-	thumbnailPath, err := a.createVehicleImageThumbnail(data, vehicleID, storageName)
+	thumbnailBlobID, err := a.createVehicleImageThumbnail(r.Context(), data, storageName)
 	if err != nil {
 		a.logger.Warn("image thumbnail skipped", "file", header.Filename, "error", err)
 	}
 	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, application.VehicleImageInput{
-		Title:         r.FormValue("title"),
-		SourceURL:     r.FormValue("sourceUrl"),
-		FileName:      storageName,
-		MimeType:      mimeType,
-		StoragePath:   storagePath,
-		ThumbnailPath: thumbnailPath,
-		MaintenanceID: r.FormValue("maintenanceId"),
-		IsPrimary:     strings.EqualFold(r.FormValue("isPrimary"), "true"),
+		Title:           r.FormValue("title"),
+		SourceURL:       r.FormValue("sourceUrl"),
+		FileName:        storageName,
+		MimeType:        mimeType,
+		BlobID:          blobID,
+		ThumbnailBlobID: thumbnailBlobID,
+		MaintenanceID:   r.FormValue("maintenanceId"),
+		IsPrimary:       strings.EqualFold(r.FormValue("isPrimary"), "true"),
 	})
 	if err != nil {
-		_ = os.Remove(fullPath)
+		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
+		a.deleteFileBlobIfUnreferenced(r.Context(), thumbnailBlobID)
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -1663,6 +1686,8 @@ func (a *App) importVehicleImageFromURL(w http.ResponseWriter, r *http.Request) 
 	}
 	image, err := a.vehicleService.CreateImage(r.Context(), vehicleID, localized)
 	if err != nil {
+		a.deleteFileBlobIfUnreferenced(r.Context(), localized.BlobID)
+		a.deleteFileBlobIfUnreferenced(r.Context(), localized.ThumbnailBlobID)
 		if fullPath, pathErr := confinedDataPath(a.dataDir, localized.StoragePath); pathErr == nil {
 			_ = os.Remove(fullPath)
 		}
@@ -1701,6 +1726,8 @@ func (a *App) deleteVehicleImage(w http.ResponseWriter, r *http.Request) {
 	}
 	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.StoragePath)
 	a.removeVehicleImageFileIfUnreferenced(r.Context(), image.ThumbnailPath)
+	a.deleteFileBlobIfUnreferenced(r.Context(), image.BlobID)
+	a.deleteFileBlobIfUnreferenced(r.Context(), image.ThumbnailBlobID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -1721,6 +1748,39 @@ func (a *App) removeVehicleImageFileIfUnreferenced(ctx context.Context, storageP
 	}
 }
 
+func (a *App) storeFileBlob(ctx context.Context, data []byte) (string, error) {
+	if a.fileBlobs == nil {
+		return "", errors.New("file blob service is not configured")
+	}
+	return a.fileBlobs.Store(ctx, data)
+}
+
+func (a *App) loadFileBlob(ctx context.Context, blobID string) ([]byte, error) {
+	if a.fileBlobs == nil {
+		return nil, errors.New("file blob service is not configured")
+	}
+	return a.fileBlobs.Load(ctx, blobID)
+}
+
+func (a *App) deleteFileBlobIfUnreferenced(ctx context.Context, blobID string) {
+	if blobID == "" || a.fileBlobs == nil {
+		return
+	}
+	if err := a.fileBlobs.DeleteIfUnreferenced(ctx, blobID); err != nil {
+		a.logger.Warn("file blob cleanup failed", "blobID", blobID, "error", err)
+	}
+}
+
+func serveFileBytes(w http.ResponseWriter, r *http.Request, data []byte, mimeType, disposition, fileName string) {
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
+	if fileName != "" {
+		w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": cleanOriginalFileName(fileName)}))
+	}
+	http.ServeContent(w, r, fileName, time.Now().UTC(), bytes.NewReader(data))
+}
+
 func (a *App) downloadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	image, err := a.vehicleService.GetImage(r.Context(), r.PathValue("id"), r.PathValue("imageID"))
 	if err != nil {
@@ -1730,6 +1790,16 @@ func (a *App) downloadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		}
 		a.logger.Error("image lookup failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "image_download_failed", "Bild konnte nicht geladen werden.")
+		return
+	}
+	if image.BlobID != "" {
+		data, err := a.loadFileBlob(r.Context(), image.BlobID)
+		if err != nil {
+			a.logger.Error("image blob load failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "image_download_failed", "Bild konnte nicht geladen werden.")
+			return
+		}
+		serveFileBytes(w, r, data, image.MimeType, "inline", path.Base(image.FileName))
 		return
 	}
 	if image.StoragePath == "" {
@@ -1759,6 +1829,16 @@ func (a *App) downloadVehicleImageThumbnail(w http.ResponseWriter, r *http.Reque
 		respondProblem(w, http.StatusInternalServerError, "image_thumbnail_failed", "Bildvorschau konnte nicht geladen werden.")
 		return
 	}
+	if image.ThumbnailBlobID != "" {
+		data, err := a.loadFileBlob(r.Context(), image.ThumbnailBlobID)
+		if err != nil {
+			a.logger.Error("image thumbnail blob load failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "image_thumbnail_failed", "Bildvorschau konnte nicht geladen werden.")
+			return
+		}
+		serveFileBytes(w, r, data, "image/jpeg", "inline", strings.TrimSuffix(path.Base(image.FileName), path.Ext(image.FileName))+"-thumb.jpg")
+		return
+	}
 	if image.ThumbnailPath == "" {
 		a.downloadVehicleImage(w, r)
 		return
@@ -1773,30 +1853,17 @@ func (a *App) downloadVehicleImageThumbnail(w http.ResponseWriter, r *http.Reque
 	http.ServeFile(w, r, fullPath)
 }
 
-func (a *App) createVehicleImageThumbnail(data []byte, vehicleID, storageName string) (string, error) {
+func (a *App) createVehicleImageThumbnail(ctx context.Context, data []byte, storageName string) (string, error) {
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return "", err
 	}
 	thumb := scaleImageToFit(src, 360, 240)
-	thumbnailName := strings.TrimSuffix(storageName, path.Ext(storageName)) + "-thumb.jpg"
-	thumbnailPath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "images", "thumbs", thumbnailName)
-	fullPath, err := confinedDataPath(a.dataDir, thumbnailPath)
-	if err != nil {
+	var out bytes.Buffer
+	if err = jpeg.Encode(&out, thumb, &jpeg.Options{Quality: 82}); err != nil {
 		return "", err
 	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		return "", err
-	}
-	out, err := os.Create(fullPath)
-	if err != nil {
-		return "", err
-	}
-	defer func() { _ = out.Close() }()
-	if err = jpeg.Encode(out, thumb, &jpeg.Options{Quality: 82}); err != nil {
-		return "", err
-	}
-	return thumbnailPath, nil
+	return a.storeFileBlob(ctx, out.Bytes())
 }
 
 func scaleImageToFit(src image.Image, maxWidth, maxHeight int) image.Image {
@@ -1877,19 +1944,9 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	}
 	vehicleID := r.PathValue("id")
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
-	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), storageName)
-	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	blobID, err := a.storeFileBlob(r.Context(), data)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "attachment_path_invalid", "Beilage konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		a.logger.Error("attachment directory create failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
-		a.logger.Error("attachment write failed", "error", err)
+		a.logger.Error("attachment blob write failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "attachment_upload_failed", "Beilage konnte nicht gespeichert werden.")
 		return
 	}
@@ -1900,11 +1957,11 @@ func (a *App) uploadVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 		Category:      r.FormValue("category"),
 		MimeType:      mimeType,
 		SizeBytes:     int64(len(data)),
-		StoragePath:   storagePath,
+		BlobID:        blobID,
 		MaintenanceID: r.FormValue("maintenanceId"),
 	})
 	if err != nil {
-		_ = os.Remove(fullPath)
+		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -1968,19 +2025,9 @@ func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Requ
 	}
 	vehicleID := r.PathValue("id")
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
-	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), storageName)
-	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	blobID, err := a.storeFileBlob(r.Context(), data)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "attachment_path_invalid", "Beilage konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		a.logger.Error("remote attachment directory create failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "attachment_import_failed", "Dokument konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
-		a.logger.Error("remote attachment write failed", "error", err)
+		a.logger.Error("remote attachment blob write failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "attachment_import_failed", "Dokument konnte nicht gespeichert werden.")
 		return
 	}
@@ -1995,11 +2042,11 @@ func (a *App) importVehicleAttachmentFromURL(w http.ResponseWriter, r *http.Requ
 		Category:      category,
 		MimeType:      mimeType,
 		SizeBytes:     int64(len(data)),
-		StoragePath:   storagePath,
+		BlobID:        blobID,
 		MaintenanceID: strings.TrimSpace(input.MaintenanceID),
 	})
 	if err != nil {
-		_ = os.Remove(fullPath)
+		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -2048,6 +2095,7 @@ func (a *App) deleteVehicleAttachment(w http.ResponseWriter, r *http.Request) {
 	if fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath); err == nil {
 		_ = os.Remove(fullPath)
 	}
+	a.deleteFileBlobIfUnreferenced(r.Context(), attachment.BlobID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -2062,11 +2110,6 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 		respondProblem(w, http.StatusInternalServerError, "attachment_download_failed", "Beilage konnte nicht geladen werden.")
 		return
 	}
-	fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
-	if err != nil {
-		respondProblem(w, http.StatusInternalServerError, "attachment_path_invalid", "Beilage konnte nicht geladen werden.")
-		return
-	}
 	if attachment.MimeType != "" {
 		w.Header().Set("Content-Type", attachment.MimeType)
 	}
@@ -2079,6 +2122,21 @@ func (a *App) downloadVehicleAttachment(w http.ResponseWriter, r *http.Request) 
 		}
 	}
 	w.Header().Set("Content-Disposition", mime.FormatMediaType(disposition, map[string]string{"filename": cleanOriginalFileName(attachment.OriginalName)}))
+	if attachment.BlobID != "" {
+		data, err := a.loadFileBlob(r.Context(), attachment.BlobID)
+		if err != nil {
+			a.logger.Error("attachment blob load failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "attachment_download_failed", "Beilage konnte nicht geladen werden.")
+			return
+		}
+		http.ServeContent(w, r, attachment.FileName, time.Now().UTC(), bytes.NewReader(data))
+		return
+	}
+	fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
+	if err != nil {
+		respondProblem(w, http.StatusInternalServerError, "attachment_path_invalid", "Beilage konnte nicht geladen werden.")
+		return
+	}
 	http.ServeFile(w, r, fullPath)
 }
 
@@ -2106,6 +2164,36 @@ func shouldSandboxInlineAttachment(mimeType, fileName string) bool {
 		return true
 	}
 	return false
+}
+
+func (a *App) readAttachmentData(ctx context.Context, attachment application.VehicleAttachment, maxBytes int64) ([]byte, error) {
+	if attachment.BlobID != "" {
+		data, err := a.loadFileBlob(ctx, attachment.BlobID)
+		if err != nil {
+			return nil, err
+		}
+		if maxBytes > 0 && int64(len(data)) > maxBytes {
+			return nil, fmt.Errorf("attachment blob exceeds read limit")
+		}
+		return data, nil
+	}
+	fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
+	if err != nil {
+		return nil, err
+	}
+	file, err := os.Open(fullPath)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = file.Close() }()
+	data, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if maxBytes > 0 && int64(len(data)) > maxBytes {
+		return nil, fmt.Errorf("attachment file exceeds read limit")
+	}
+	return data, nil
 }
 
 func (a *App) listVehicleMaintenance(w http.ResponseWriter, r *http.Request) {
@@ -2219,17 +2307,8 @@ func (a *App) suggestVehicleSpareParts(w http.ResponseWriter, r *http.Request) {
 		if len(suggestions) >= 80 || !looksLikeSparePartAttachment(attachment) {
 			continue
 		}
-		fullPath, err := confinedDataPath(a.dataDir, attachment.StoragePath)
-		if err != nil {
-			continue
-		}
-		file, err := os.Open(fullPath)
-		if err != nil {
-			continue
-		}
-		data, readErr := io.ReadAll(io.LimitReader(file, 12*1024*1024))
-		_ = file.Close()
-		if readErr != nil || len(data) == 0 {
+		data, err := a.readAttachmentData(r.Context(), attachment, 12*1024*1024)
+		if err != nil || len(data) == 0 {
 			continue
 		}
 		downloadURL := "/api/v1/vehicles/" + url.PathEscape(vehicle.ID) + "/attachments/" + url.PathEscape(attachment.ID) + "/download"
@@ -2514,19 +2593,9 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	}
 	vehicleID := r.PathValue("id")
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), safeAttachmentFileName(originalName))
-	storagePath := filepath.Join("uploads", "vehicles", safePathSegment(vehicleID), "cv", storageName)
-	fullPath, err := confinedDataPath(a.dataDir, storagePath)
+	blobID, err := a.storeFileBlob(r.Context(), data)
 	if err != nil {
-		respondProblem(w, http.StatusBadRequest, "cv_file_path_invalid", "CV-Datei konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
-		a.logger.Error("cv file directory create failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
-		return
-	}
-	if err = os.WriteFile(fullPath, data, 0o600); err != nil {
-		a.logger.Error("cv file write failed", "error", err)
+		a.logger.Error("cv file blob write failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "cv_file_upload_failed", "CV-Datei konnte nicht gespeichert werden.")
 		return
 	}
@@ -2538,10 +2607,10 @@ func (a *App) uploadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		DecoderProfile: decoderProfile,
 		MimeType:       mimeType,
 		SizeBytes:      int64(len(data)),
-		StoragePath:    storagePath,
+		BlobID:         blobID,
 	})
 	if err != nil {
-		_ = os.Remove(fullPath)
+		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
 		if errors.Is(err, application.ErrVehicleNotFound) {
 			respondProblem(w, http.StatusNotFound, "vehicle_not_found", "Vehicle not found.")
 			return
@@ -2567,6 +2636,7 @@ func (a *App) deleteVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 	if fullPath, err := confinedDataPath(a.dataDir, file.StoragePath); err == nil {
 		_ = os.Remove(fullPath)
 	}
+	a.deleteFileBlobIfUnreferenced(r.Context(), file.BlobID)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -2581,15 +2651,25 @@ func (a *App) downloadVehicleCVFile(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "cv_file_download_failed", "CV-Datei konnte nicht geladen werden.")
 		return
 	}
+	if file.MimeType != "" {
+		w.Header().Set("Content-Type", file.MimeType)
+	}
+	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": cleanOriginalFileName(file.OriginalName)}))
+	if file.BlobID != "" {
+		data, err := a.loadFileBlob(r.Context(), file.BlobID)
+		if err != nil {
+			a.logger.Error("cv file blob load failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "cv_file_download_failed", "CV-Datei konnte nicht geladen werden.")
+			return
+		}
+		http.ServeContent(w, r, file.FileName, time.Now().UTC(), bytes.NewReader(data))
+		return
+	}
 	fullPath, err := confinedDataPath(a.dataDir, file.StoragePath)
 	if err != nil {
 		respondProblem(w, http.StatusInternalServerError, "cv_file_path_invalid", "CV-Datei konnte nicht geladen werden.")
 		return
 	}
-	if file.MimeType != "" {
-		w.Header().Set("Content-Type", file.MimeType)
-	}
-	w.Header().Set("Content-Disposition", mime.FormatMediaType("attachment", map[string]string{"filename": cleanOriginalFileName(file.OriginalName)}))
 	http.ServeFile(w, r, fullPath)
 }
 
@@ -2628,6 +2708,13 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 			respondProblem(w, http.StatusInternalServerError, "backup_restore_failed", "Backup konnte nicht wiederhergestellt werden.")
 		}
 		return
+	}
+	if a.fileBlobs != nil {
+		if err := a.fileBlobs.MigrateFilesystemBlobs(r.Context()); err != nil {
+			a.logger.Error("backup restore blob migration failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "backup_restore_failed", "Backup konnte nicht wiederhergestellt werden.")
+			return
+		}
 	}
 	if a.masterDataService != nil {
 		if err := a.masterDataService.WarmCache(r.Context()); err != nil {
@@ -2953,6 +3040,30 @@ func (a *App) listInventoryNumberSchemes(w http.ResponseWriter, r *http.Request)
 	}
 
 	respondJSON(w, http.StatusOK, schemes)
+}
+
+func (a *App) createInventoryNumberScheme(w http.ResponseWriter, r *http.Request) {
+	var input application.InventoryNumberSchemeCreateInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	scheme, err := a.inventoryNumbers.Create(r.Context(), input)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrInventoryNumberValidation):
+			respondProblem(w, http.StatusBadRequest, "inventory_number_validation", "Category, prefix, next number and padding are required.")
+		case errors.Is(err, application.ErrInventoryNumberConflict):
+			respondProblem(w, http.StatusConflict, "inventory_number_scheme_exists", "Inventory number scheme already exists.")
+		default:
+			a.logger.Error("inventory number scheme create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "inventory_number_scheme_create_failed", "Could not create inventory number scheme.")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, scheme)
 }
 
 func (a *App) updateInventoryNumberScheme(w http.ResponseWriter, r *http.Request) {

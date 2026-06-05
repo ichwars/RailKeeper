@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
 import { History, KeyRound, Mail, Pencil, RefreshCw, Save, Send, Shield, Trash2, UserCog, Users, X } from "lucide-react";
 import type { AuditLogEntry, Role, Session, SessionRecord, SMTPSettings, SMTPSettingsInput, TwoFactorStatus, UserAccount } from "../../shared/api";
@@ -30,10 +31,9 @@ type SettingsAuthTabProps = {
   twoFactorLoading: boolean;
   twoFactorSaving: boolean;
   twoFactorMessage: string;
-  loadTwoFactorStatus: () => void;
-  setupTwoFactor: () => void;
-  enableTwoFactor: () => void;
-  disableTwoFactor: () => void;
+  setupTwoFactor: (onPrepared?: (status: TwoFactorStatus) => void) => void;
+  enableTwoFactor: (onEnabled?: (status: TwoFactorStatus) => void) => void;
+  disableTwoFactor: (onDisabled?: () => void) => void;
   authMessage: string;
   loadCurrentSession: () => void;
   changePassword: (event: FormEvent<HTMLFormElement>) => void;
@@ -54,7 +54,7 @@ type SettingsAuthTabProps = {
   canManageUsers: boolean;
   startUserCreate: () => void;
   editingUser: UserAccount | null;
-  saveUser: (event: FormEvent<HTMLFormElement>) => void;
+  saveUser: (event: FormEvent<HTMLFormElement>, onSaved?: () => void) => void;
   userForm: UserFormState;
   setUserForm: Dispatch<SetStateAction<UserFormState>>;
   availableRoles: Role[];
@@ -91,7 +91,6 @@ export function SettingsAuthTab({
   twoFactorLoading,
   twoFactorSaving,
   twoFactorMessage,
-  loadTwoFactorStatus,
   setupTwoFactor,
   enableTwoFactor,
   disableTwoFactor,
@@ -140,10 +139,98 @@ export function SettingsAuthTab({
   auditLogMessage,
   roleDescription
 }: SettingsAuthTabProps) {
+  const [userDialogOpen, setUserDialogOpen] = useState(false);
+  const [twoFactorDialogOpen, setTwoFactorDialogOpen] = useState(false);
+  const [twoFactorDialogMode, setTwoFactorDialogMode] = useState<"setup" | "disable">("setup");
+  const [twoFactorQrCode, setTwoFactorQrCode] = useState("");
   const currentRoles = currentSession?.roles || [];
   const userCountLabel = t("settings.users.count", { count: users.length });
-  const twoFactorEnabled = Boolean(twoFactorStatus?.enabled);
-  const twoFactorPrepared = Boolean(twoFactorStatus?.prepared);
+  const twoFactorEnabled = Boolean(twoFactorStatus?.enabled || currentSession?.twoFactorEnabled);
+  const passwordTouched = userForm.password.length > 0 || userForm.confirmPassword.length > 0;
+  const passwordRequired = !editingUser;
+  const userPasswordTooShort = (passwordRequired || passwordTouched) && userForm.password.length < 12;
+  const userPasswordMismatch = passwordTouched && userForm.password !== userForm.confirmPassword;
+  const userPasswordMessage = passwordTouched && userPasswordTooShort
+    ? t("settings.users.passwordTooShort")
+    : userPasswordMismatch
+      ? t("setup.passwordMismatch")
+      : "";
+  const canSaveUser =
+    !userSaving &&
+    userForm.username.trim().length > 0 &&
+    userForm.roles.length > 0 &&
+    !userPasswordTooShort &&
+    !userPasswordMismatch;
+
+  const openUserCreateDialog = () => {
+    startUserCreate();
+    setUserDialogOpen(true);
+  };
+
+  const openUserEditDialog = (user: UserAccount) => {
+    startUserEdit(user);
+    setUserDialogOpen(true);
+  };
+
+  const closeUserDialog = () => {
+    setUserDialogOpen(false);
+    startUserCreate();
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (!twoFactorDialogOpen || twoFactorDialogMode !== "setup" || !twoFactorStatus?.otpauthUrl) {
+      setTwoFactorQrCode("");
+      return () => {
+        active = false;
+      };
+    }
+    import("qrcode")
+      .then((module) => module.default.toDataURL(twoFactorStatus.otpauthUrl || "", {
+        width: 220,
+        margin: 2,
+        color: {
+          dark: "#0b1114",
+          light: "#ffffff"
+        }
+      }))
+      .then((dataUrl) => {
+        if (active) setTwoFactorQrCode(dataUrl);
+      })
+      .catch(() => {
+        if (active) setTwoFactorQrCode("");
+      });
+    return () => {
+      active = false;
+    };
+  }, [twoFactorDialogMode, twoFactorDialogOpen, twoFactorStatus?.otpauthUrl]);
+
+  const openTwoFactorSetupDialog = () => {
+    setTwoFactorDialogMode("setup");
+    setTwoFactorPassword("");
+    setupTwoFactor(() => setTwoFactorDialogOpen(true));
+  };
+
+  const openTwoFactorDisableDialog = () => {
+    setTwoFactorDialogMode("disable");
+    setTwoFactorCode("");
+    setTwoFactorPassword("");
+    setTwoFactorDialogOpen(true);
+  };
+
+  const closeTwoFactorDialog = () => {
+    setTwoFactorDialogOpen(false);
+    setTwoFactorCode("");
+    setTwoFactorPassword("");
+  };
+
+  const toggleTwoFactor = (checked: boolean) => {
+    if (checked) {
+      if (!twoFactorEnabled) openTwoFactorSetupDialog();
+      return;
+    }
+    if (twoFactorEnabled) openTwoFactorDisableDialog();
+  };
 
   return (
         <section className="auth-settings-grid">
@@ -155,15 +242,11 @@ export function SettingsAuthTab({
                 <p>{t("settings.auth.subtitle")}</p>
               </div>
             </div>
-            <div className="auth-provider-tabs" aria-label={t("settings.auth.provider")}>
-              <button type="button" className="active"><Mail size={15} /> {t("settings.auth.emailLocal")}</button>
-              <button type="button" className={twoFactorEnabled ? "active" : ""} disabled={!twoFactorEnabled}><KeyRound size={15} /> {t("settings.auth.twoFactor")}</button>
-            </div>
             <div className="auth-status-grid" aria-label={t("settings.auth.status")}>
               <article>
-                <span className="settings-pill active">{t("common.active")}</span>
+                <span className={twoFactorEnabled ? "settings-pill muted" : "settings-pill active"}>{twoFactorEnabled ? t("settings.auth.inactive") : t("common.active")}</span>
                 <strong>{t("settings.auth.local")}</strong>
-                <small>{t("settings.auth.localHelp")}</small>
+                <small>{twoFactorEnabled ? t("settings.auth.localDisabledHelp") : t("settings.auth.localHelp")}</small>
               </article>
               <article>
                 <span className="settings-pill">{t("common.roles", { count: currentSession?.roles.length || 0 })}</span>
@@ -171,8 +254,8 @@ export function SettingsAuthTab({
                 <small>{currentSession?.username ? t("settings.auth.signedInAs", { username: currentSession.username }) : t("settings.auth.loading")}</small>
               </article>
               <article>
-                <span className={twoFactorEnabled ? "settings-pill active" : twoFactorPrepared ? "work-status-badge compact experimental" : "work-status-badge compact open"}>
-                  {twoFactorEnabled ? t("common.active") : twoFactorPrepared ? t("settings.auth.prepared") : t("settings.work.open")}
+                <span className={twoFactorEnabled ? "settings-pill active" : "settings-pill muted"}>
+                  {twoFactorEnabled ? t("common.active") : t("settings.auth.inactive")}
                 </span>
                 <strong>{t("settings.auth.twoFactor")}</strong>
                 <small>{t("settings.auth.twoFactorHelp")}</small>
@@ -181,159 +264,213 @@ export function SettingsAuthTab({
             <label className="settings-toggle-row">
               <span>
                 <strong>{t("settings.auth.local")}</strong>
-                <small>{t("settings.auth.localToggleHelp")}</small>
+                <small>{twoFactorEnabled ? t("settings.auth.localDisabledHelp") : t("settings.auth.localToggleHelp")}</small>
               </span>
               <span className="switch-field">
-                <input type="checkbox" checked readOnly disabled />
+                <input type="checkbox" checked={!twoFactorEnabled} readOnly disabled />
                 <span />
               </span>
             </label>
-            <div className="settings-toggle-row">
+            <label className="settings-toggle-row">
               <span>
                 <strong>{twoFactorEnabled ? t("settings.auth.twoFactorEnabledTitle") : t("settings.auth.twoFactorPrepare")}</strong>
                 <small>{twoFactorEnabled ? t("settings.auth.twoFactorActiveHelp") : t("settings.auth.twoFactorPrepareHelp")}</small>
               </span>
-              <button type="button" className="icon-button" onClick={loadTwoFactorStatus} disabled={twoFactorLoading || twoFactorSaving} aria-label={t("settings.session.refresh")} title={t("settings.session.refresh")}>
-                <RefreshCw size={16} />
-              </button>
-            </div>
-            {!twoFactorPrepared && (
-              <button type="button" className="secondary-button" onClick={setupTwoFactor} disabled={twoFactorSaving || twoFactorLoading}>
-                <KeyRound size={16} />
-                {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorSetup")}
-              </button>
-            )}
-            {twoFactorPrepared && !twoFactorEnabled && (
-              <div className="two-factor-setup-panel">
-                <label>
-                  {t("settings.auth.twoFactorSecret")}
-                  <input value={twoFactorStatus?.secret || ""} readOnly />
-                </label>
-                <label>
-                  {t("settings.auth.twoFactorCode")}
-                  <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
-                </label>
-                <button type="button" className="primary-button" onClick={enableTwoFactor} disabled={twoFactorSaving || !twoFactorCode.trim()}>
-                  <Shield size={16} />
-                  {t("settings.auth.twoFactorEnable")}
-                </button>
-              </div>
-            )}
-            {twoFactorEnabled && (
-              <div className="two-factor-setup-panel">
-                <label>
-                  {t("settings.auth.twoFactorCode")}
-                  <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
-                </label>
-                <label>
-                  {t("auth.password")}
-                  <input type="password" value={twoFactorPassword} autoComplete="current-password" onChange={(event) => setTwoFactorPassword(event.target.value)} />
-                </label>
-                <button type="button" className="secondary-button danger" onClick={disableTwoFactor} disabled={twoFactorSaving || !twoFactorPassword.trim()}>
-                  <X size={16} />
-                  {t("settings.auth.twoFactorDisable")}
-                </button>
-              </div>
-            )}
+              <span className="switch-field">
+                <input
+                  type="checkbox"
+                  checked={twoFactorEnabled}
+                  onChange={(event) => toggleTwoFactor(event.target.checked)}
+                  disabled={twoFactorSaving || twoFactorLoading}
+                />
+                <span />
+              </span>
+            </label>
             {twoFactorMessage && <p className="form-message">{twoFactorMessage}</p>}
             {authMessage && <p className="form-message">{authMessage}</p>}
           </section>
 
-          <section className="panel settings-card settings-tool-card smtp-settings-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <Mail size={18} />
-                <div>
-                  <h2>{t("settings.smtp.title")}</h2>
-                  <p>{t("settings.smtp.subtitle")}</p>
+          {twoFactorDialogOpen && (
+            <div className="modal-layer two-factor-dialog-layer" role="dialog" aria-modal="true" aria-label={twoFactorDialogMode === "setup" ? t("settings.auth.twoFactorDialogTitle") : t("settings.auth.twoFactorDisableDialogTitle")}>
+              <section className="vehicle-modal compact-modal two-factor-dialog">
+                <header className="modal-head">
+                  <div>
+                    <h2>{twoFactorDialogMode === "setup" ? t("settings.auth.twoFactorDialogTitle") : t("settings.auth.twoFactorDisableDialogTitle")}</h2>
+                    <p>{twoFactorDialogMode === "setup" ? t("settings.auth.twoFactorDialogSubtitle") : t("settings.auth.twoFactorDisableDialogSubtitle")}</p>
+                  </div>
+                  <button type="button" className="icon-button" onClick={closeTwoFactorDialog} aria-label={t("vehicles.cancel")} title={t("vehicles.cancel")}>
+                    <X size={18} />
+                  </button>
+                </header>
+                <div className="modal-body two-factor-dialog-body">
+                  {twoFactorDialogMode === "setup" ? (
+                    <>
+                      <div className="two-factor-qr-panel">
+                        {twoFactorQrCode ? (
+                          <img src={twoFactorQrCode} alt={t("settings.auth.twoFactorQrAlt")} />
+                        ) : (
+                          <div className="two-factor-qr-placeholder">{t("settings.auth.twoFactorQrLoading")}</div>
+                        )}
+                        <small>{t("settings.auth.twoFactorQrHelp")}</small>
+                      </div>
+                      <label>
+                        {t("settings.auth.twoFactorSecret")}
+                        <input value={twoFactorStatus?.secret || ""} readOnly />
+                      </label>
+                      <label>
+                        {t("settings.auth.twoFactorCode")}
+                        <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        {t("settings.auth.twoFactorCode")}
+                        <input value={twoFactorCode} inputMode="numeric" autoComplete="one-time-code" onChange={(event) => setTwoFactorCode(event.target.value)} />
+                      </label>
+                      <label>
+                        {t("auth.password")}
+                        <input type="password" value={twoFactorPassword} autoComplete="current-password" onChange={(event) => setTwoFactorPassword(event.target.value)} />
+                      </label>
+                    </>
+                  )}
+                  {twoFactorMessage && <p className="form-message">{twoFactorMessage}</p>}
                 </div>
-              </div>
-              <button type="button" className="icon-button" onClick={loadSMTPSettings} disabled={!canManageUsers || smtpLoading} aria-label={t("settings.smtp.refresh")} title={t("settings.smtp.refresh")}>
-                <RefreshCw size={16} />
-              </button>
+                <footer className="modal-actions">
+                  <button type="button" className="secondary-button" onClick={closeTwoFactorDialog}>
+                    {t("vehicles.cancel")}
+                  </button>
+                  {twoFactorDialogMode === "setup" ? (
+                    <button type="button" className="primary-button" onClick={() => enableTwoFactor(() => setTwoFactorDialogOpen(false))} disabled={twoFactorSaving || !twoFactorCode.trim()}>
+                      <Shield size={16} />
+                      {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorEnable")}
+                    </button>
+                  ) : (
+                    <button type="button" className="secondary-button danger" onClick={() => disableTwoFactor(() => setTwoFactorDialogOpen(false))} disabled={twoFactorSaving || !twoFactorPassword.trim()}>
+                      <X size={16} />
+                      {twoFactorSaving ? t("vehicles.saving") : t("settings.auth.twoFactorDisable")}
+                    </button>
+                  )}
+                </footer>
+              </section>
             </div>
-            {!canManageUsers ? (
-              <div className="current-user-card">
-                <strong>{t("settings.users.adminRequired")}</strong>
-                <span>{t("settings.smtp.adminHelp")}</span>
+          )}
+
+          <div className="auth-side-stack">
+            <section className="panel settings-card settings-tool-card smtp-settings-card">
+              <div className="settings-section-head">
+                <div className="settings-card-title">
+                  <Mail size={18} />
+                  <div>
+                    <h2>{t("settings.smtp.title")}</h2>
+                    <p>{t("settings.smtp.subtitle")}</p>
+                  </div>
+                </div>
+                <button type="button" className="icon-button" onClick={loadSMTPSettings} disabled={!canManageUsers || smtpLoading} aria-label={t("settings.smtp.refresh")} title={t("settings.smtp.refresh")}>
+                  <RefreshCw size={16} />
+                </button>
               </div>
-            ) : (
-              <form className="settings-form" onSubmit={saveSMTPSettings}>
-                <label className="settings-toggle-row smtp-toggle-row">
-                  <span>
-                    <strong>{t("settings.smtp.enabled")}</strong>
-                    <small>{t("settings.smtp.enabledHelp")}</small>
-                  </span>
-                  <span className="switch-field">
-                    <input type="checkbox" checked={smtpForm.enabled} onChange={(event) => setSmtpForm((current) => ({ ...current, enabled: event.target.checked }))} />
-                    <span />
-                  </span>
-                </label>
-                <div className="settings-field-grid">
-                  <label>
-                    {t("settings.smtp.publicUrl")}
-                    <input value={smtpForm.publicUrl} onChange={(event) => setSmtpForm((current) => ({ ...current, publicUrl: event.target.value }))} placeholder="http://localhost:8080" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.host")}
-                    <input value={smtpForm.host} onChange={(event) => setSmtpForm((current) => ({ ...current, host: event.target.value }))} placeholder="smtp.example.com" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.port")}
-                    <input inputMode="numeric" value={smtpForm.port} onChange={(event) => setSmtpForm((current) => ({ ...current, port: event.target.value }))} placeholder="587" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.tlsMode")}
-                    <AppSelect value={smtpForm.tlsMode} onChange={(event) => setSmtpForm((current) => ({ ...current, tlsMode: event.target.value }))}>
-                      <option value="starttls">STARTTLS</option>
-                      <option value="implicit">{t("settings.smtp.tlsImplicit")}</option>
-                      <option value="none">{t("settings.smtp.tlsNone")}</option>
-                    </AppSelect>
-                  </label>
-                  <label>
-                    {t("settings.smtp.from")}
-                    <input type="email" value={smtpForm.from} onChange={(event) => setSmtpForm((current) => ({ ...current, from: event.target.value }))} placeholder="railkeeper@example.com" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.username")}
-                    <input value={smtpForm.username} onChange={(event) => setSmtpForm((current) => ({ ...current, username: event.target.value }))} autoComplete="username" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.password")}
-                    <input type="password" value={smtpForm.password} onChange={(event) => setSmtpForm((current) => ({ ...current, password: event.target.value, clearPassword: false }))} placeholder={smtpSettings?.passwordConfigured ? t("settings.smtp.passwordKeep") : ""} autoComplete="new-password" />
-                  </label>
-                  <label>
-                    {t("settings.smtp.testRecipient")}
-                    <input type="email" value={smtpForm.testRecipient} onChange={(event) => setSmtpForm((current) => ({ ...current, testRecipient: event.target.value }))} placeholder="admin@example.com" />
-                  </label>
+              {!canManageUsers ? (
+                <div className="current-user-card">
+                  <strong>{t("settings.users.adminRequired")}</strong>
+                  <span>{t("settings.smtp.adminHelp")}</span>
                 </div>
-                <label className="settings-toggle-row smtp-toggle-row smtp-clear-password-row">
-                  <span>
-                    <strong>{t("settings.smtp.clearPassword")}</strong>
-                    <small>{smtpSettings?.passwordConfigured ? t("settings.smtp.passwordConfigured") : t("settings.smtp.passwordMissing")}</small>
-                  </span>
-                  <span className="switch-field">
-                    <input type="checkbox" checked={Boolean(smtpForm.clearPassword)} onChange={(event) => setSmtpForm((current) => ({ ...current, clearPassword: event.target.checked, password: event.target.checked ? "" : current.password }))} disabled={!smtpSettings?.passwordConfigured} />
-                    <span />
-                  </span>
-                </label>
-                <div className="settings-action-row">
-                  <span className={smtpForm.enabled ? "settings-pill active" : "settings-pill muted"}>
-                    {smtpForm.enabled ? t("common.active") : t("settings.smtp.disabled")}
-                  </span>
-                  <button type="submit" className="primary-button" disabled={smtpSaving || smtpLoading}>
-                    <Save size={16} />
-                    {smtpSaving ? t("vehicles.saving") : t("vehicles.save")}
-                  </button>
-                  <button type="button" className="secondary-button" onClick={testSMTPSettings} disabled={smtpTesting || smtpLoading || !smtpForm.testRecipient.trim()}>
-                    <Send size={16} />
-                    {smtpTesting ? t("settings.smtp.testing") : t("settings.smtp.test")}
-                  </button>
+              ) : (
+                <form className="settings-form" onSubmit={saveSMTPSettings}>
+                  <label className="settings-toggle-row smtp-toggle-row">
+                    <span>
+                      <strong>{t("settings.smtp.enabled")}</strong>
+                      <small>{t("settings.smtp.enabledHelp")}</small>
+                    </span>
+                    <span className="switch-field">
+                      <input type="checkbox" checked={smtpForm.enabled} onChange={(event) => setSmtpForm((current) => ({ ...current, enabled: event.target.checked }))} />
+                      <span />
+                    </span>
+                  </label>
+                  <div className="settings-field-grid">
+                    <label>
+                      {t("settings.smtp.publicUrl")}
+                      <input value={smtpForm.publicUrl} onChange={(event) => setSmtpForm((current) => ({ ...current, publicUrl: event.target.value }))} placeholder="http://localhost:8080" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.host")}
+                      <input value={smtpForm.host} onChange={(event) => setSmtpForm((current) => ({ ...current, host: event.target.value }))} placeholder="smtp.example.com" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.port")}
+                      <input inputMode="numeric" value={smtpForm.port} onChange={(event) => setSmtpForm((current) => ({ ...current, port: event.target.value }))} placeholder="587" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.tlsMode")}
+                      <AppSelect value={smtpForm.tlsMode} onChange={(event) => setSmtpForm((current) => ({ ...current, tlsMode: event.target.value }))}>
+                        <option value="starttls">STARTTLS</option>
+                        <option value="implicit">{t("settings.smtp.tlsImplicit")}</option>
+                        <option value="none">{t("settings.smtp.tlsNone")}</option>
+                      </AppSelect>
+                    </label>
+                    <label>
+                      {t("settings.smtp.from")}
+                      <input type="email" value={smtpForm.from} onChange={(event) => setSmtpForm((current) => ({ ...current, from: event.target.value }))} placeholder="railkeeper@example.com" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.username")}
+                      <input value={smtpForm.username} onChange={(event) => setSmtpForm((current) => ({ ...current, username: event.target.value }))} autoComplete="username" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.password")}
+                      <input type="password" value={smtpForm.password} onChange={(event) => setSmtpForm((current) => ({ ...current, password: event.target.value, clearPassword: false }))} placeholder={smtpSettings?.passwordConfigured ? t("settings.smtp.passwordKeep") : ""} autoComplete="new-password" />
+                    </label>
+                    <label>
+                      {t("settings.smtp.testRecipient")}
+                      <input type="email" value={smtpForm.testRecipient} onChange={(event) => setSmtpForm((current) => ({ ...current, testRecipient: event.target.value }))} placeholder="admin@example.com" />
+                    </label>
+                  </div>
+                  <label className="settings-toggle-row smtp-toggle-row smtp-clear-password-row">
+                    <span>
+                      <strong>{t("settings.smtp.clearPassword")}</strong>
+                      <small>{smtpSettings?.passwordConfigured ? t("settings.smtp.passwordConfigured") : t("settings.smtp.passwordMissing")}</small>
+                    </span>
+                    <span className="switch-field">
+                      <input type="checkbox" checked={Boolean(smtpForm.clearPassword)} onChange={(event) => setSmtpForm((current) => ({ ...current, clearPassword: event.target.checked, password: event.target.checked ? "" : current.password }))} disabled={!smtpSettings?.passwordConfigured} />
+                      <span />
+                    </span>
+                  </label>
+                  <div className="settings-action-row">
+                    <span className={smtpForm.enabled ? "settings-pill active" : "settings-pill muted"}>
+                      {smtpForm.enabled ? t("common.active") : t("settings.smtp.disabled")}
+                    </span>
+                    <button type="submit" className="primary-button" disabled={smtpSaving || smtpLoading}>
+                      <Save size={16} />
+                      {smtpSaving ? t("vehicles.saving") : t("vehicles.save")}
+                    </button>
+                    <button type="button" className="secondary-button" onClick={testSMTPSettings} disabled={smtpTesting || smtpLoading || !smtpForm.testRecipient.trim()}>
+                      <Send size={16} />
+                      {smtpTesting ? t("settings.smtp.testing") : t("settings.smtp.test")}
+                    </button>
+                  </div>
+                  {smtpMessage && <p className="form-message">{smtpMessage}</p>}
+                </form>
+              )}
+            </section>
+
+            <section className="panel settings-card settings-tool-card role-settings-card">
+              <div className="settings-section-head">
+                <div className="settings-card-title">
+                  <Users size={18} />
+                  <h2>{t("settings.roles.title")}</h2>
                 </div>
-                {smtpMessage && <p className="form-message">{smtpMessage}</p>}
-              </form>
-            )}
-          </section>
+                <span className="settings-pill active">{t("common.active")}</span>
+              </div>
+              <div className="role-list">
+                {(availableRoles.length > 0 ? availableRoles.map((role) => role.name) : ["Admin", "Editor", "Viewer", "Messe"]).map((role) => (
+                  <article key={role}>
+                    <strong>{role}</strong>
+                    <span>{roleDescription(role)}</span>
+                  </article>
+                ))}
+              </div>
+            </section>
+          </div>
 
           {!canManageUsers && <section className="panel settings-card settings-tool-card current-user-settings-card">
             <div className="settings-section-head">
@@ -406,14 +543,16 @@ export function SettingsAuthTab({
               <div className="settings-card-title">
                 <Users size={18} />
                 <div>
-                  <h2>{t("settings.users.title")}</h2>
+                  <h2 className="settings-title-with-pill">
+                    {t("settings.users.title")}
+                    <span className="settings-pill">{userCountLabel}</span>
+                  </h2>
                   <p>{t("settings.users.subtitle")}</p>
                 </div>
               </div>
               <div className="user-management-toolbar">
-                <span className="settings-pill">{userCountLabel}</span>
                 {canManageUsers && (
-                  <button type="button" className="secondary-button" onClick={startUserCreate}>
+                  <button type="button" className="secondary-button" onClick={openUserCreateDialog}>
                     <UserCog size={16} />
                     {t("settings.users.new")}
                   </button>
@@ -428,72 +567,6 @@ export function SettingsAuthTab({
               </div>
             ) : (
               <div className="user-management-grid">
-                <form className="settings-form user-form" onSubmit={saveUser}>
-                  <div className="user-form-head">
-                    <h3>{editingUser ? t("settings.users.edit") : t("settings.users.create")}</h3>
-                    {editingUser && <span className="settings-pill active">{editingUser.username}</span>}
-                  </div>
-                  <label>
-                    {t("settings.users.username")}
-                    <input
-                      value={userForm.username}
-                      onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))}
-                      placeholder={t("settings.users.usernamePlaceholder")}
-                    />
-                  </label>
-                  <label>
-                    {t("auth.email")}
-                    <input
-                      type="email"
-                      value={userForm.email}
-                      onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
-                      placeholder={t("settings.users.emailPlaceholder")}
-                    />
-                  </label>
-                  <label>
-                    {t("auth.password")}
-                    <input
-                      type="password"
-                      value={userForm.password}
-                      onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
-                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
-                      autoComplete="new-password"
-                    />
-                  </label>
-                  <label>
-                    {t("settings.users.passwordConfirm")}
-                    <input
-                      type="password"
-                      value={userForm.confirmPassword}
-                      onChange={(event) => setUserForm((current) => ({ ...current, confirmPassword: event.target.value }))}
-                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
-                      autoComplete="new-password"
-                    />
-                  </label>
-                  <div className="role-select-grid" aria-label={t("settings.users.roles")}>
-                    {availableRoles.map((role) => (
-                      <label className="checkbox-field" key={role.id}>
-                        <input
-                          type="checkbox"
-                          checked={userForm.roles.includes(role.name)}
-                          onChange={(event) => toggleUserRole(role.name, event.target.checked)}
-                        />
-                        {role.name}
-                      </label>
-                    ))}
-                  </div>
-                  <div className="settings-action-row">
-                    <button type="submit" className="primary-button" disabled={userSaving || userForm.roles.length === 0}>
-                      {userSaving ? t("vehicles.saving") : t("vehicles.save")}
-                    </button>
-                    {editingUser && (
-                      <button type="button" className="secondary-button" onClick={startUserCreate}>
-                        {t("vehicles.cancel")}
-                      </button>
-                    )}
-                  </div>
-                </form>
-
                 <div className="table-wrap settings-inline-table user-table">
                   <table>
                     <thead>
@@ -528,7 +601,7 @@ export function SettingsAuthTab({
                             <td>{formatDateTime(user.createdAt)}</td>
                             <td>
                               <div className="table-actions">
-                                <button type="button" className="icon-button" onClick={() => startUserEdit(user)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
+                                <button type="button" className="icon-button" onClick={() => openUserEditDialog(user)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
                                   <Pencil size={16} />
                                 </button>
                                 <button type="button" className="icon-button danger" onClick={() => deleteUser(user)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
@@ -545,6 +618,86 @@ export function SettingsAuthTab({
               </div>
             )}
           </section>
+
+          {canManageUsers && userDialogOpen && (
+            <div className="modal-layer user-dialog-layer" role="dialog" aria-modal="true" aria-label={editingUser ? t("settings.users.edit") : t("settings.users.create")}>
+              <form className="vehicle-modal compact-modal user-dialog" onSubmit={(event) => saveUser(event, () => setUserDialogOpen(false))}>
+                <header className="modal-head">
+                  <div>
+                    <h2>{editingUser ? t("settings.users.edit") : t("settings.users.create")}</h2>
+                    {editingUser && <p>{editingUser.username}</p>}
+                  </div>
+                  <button type="button" className="icon-button" onClick={closeUserDialog} aria-label={t("vehicles.cancel")} title={t("vehicles.cancel")}>
+                    <X size={18} />
+                  </button>
+                </header>
+                <div className="modal-body settings-form user-form user-dialog-body">
+                  <label>
+                    {t("settings.users.username")}
+                    <input
+                      value={userForm.username}
+                      onChange={(event) => setUserForm((current) => ({ ...current, username: event.target.value }))}
+                      placeholder={t("settings.users.usernamePlaceholder")}
+                    />
+                  </label>
+                  <label>
+                    {t("auth.email")}
+                    <input
+                      type="email"
+                      value={userForm.email}
+                      onChange={(event) => setUserForm((current) => ({ ...current, email: event.target.value }))}
+                      placeholder={t("settings.users.emailPlaceholder")}
+                    />
+                  </label>
+                  <label>
+                    {t("auth.password")}
+                    <input
+                      type="password"
+                      value={userForm.password}
+                      onChange={(event) => setUserForm((current) => ({ ...current, password: event.target.value }))}
+                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
+                      autoComplete="new-password"
+                      minLength={passwordRequired || passwordTouched ? 12 : undefined}
+                    />
+                  </label>
+                  <label>
+                    {t("settings.users.passwordConfirm")}
+                    <input
+                      type="password"
+                      value={userForm.confirmPassword}
+                      onChange={(event) => setUserForm((current) => ({ ...current, confirmPassword: event.target.value }))}
+                      placeholder={editingUser ? t("settings.users.passwordPlaceholderEdit") : t("settings.users.passwordPlaceholderNew")}
+                      autoComplete="new-password"
+                      minLength={passwordRequired || passwordTouched ? 12 : undefined}
+                    />
+                  </label>
+                  <div className="role-select-grid" aria-label={t("settings.users.roles")}>
+                    {availableRoles.map((role) => (
+                      <label className="checkbox-field" key={role.id}>
+                        <input
+                          type="checkbox"
+                          checked={userForm.roles.includes(role.name)}
+                          onChange={(event) => toggleUserRole(role.name, event.target.checked)}
+                        />
+                        {role.name}
+                      </label>
+                    ))}
+                  </div>
+                  {userPasswordMessage && <p className="form-message">{userPasswordMessage}</p>}
+                  {authMessage && <p className="form-message">{authMessage}</p>}
+                </div>
+                <footer className="modal-actions">
+                  <button type="button" className="secondary-button" onClick={closeUserDialog}>
+                    {t("vehicles.cancel")}
+                  </button>
+                  <button type="submit" className="primary-button" disabled={!canSaveUser}>
+                    <Save size={16} />
+                    {userSaving ? t("vehicles.saving") : t("vehicles.save")}
+                  </button>
+                </footer>
+              </form>
+            </div>
+          )}
 
           <section className="panel settings-card settings-tool-card session-management-card">
             <div className="settings-section-head">
@@ -664,24 +817,6 @@ export function SettingsAuthTab({
                 {auditLogMessage && <p className="form-message">{auditLogMessage}</p>}
               </>
             )}
-          </section>
-
-          <section className="panel settings-card settings-tool-card role-settings-card">
-            <div className="settings-section-head">
-              <div className="settings-card-title">
-                <Users size={18} />
-                <h2>{t("settings.roles.title")}</h2>
-              </div>
-              <span className="settings-pill active">{t("common.active")}</span>
-            </div>
-            <div className="role-list">
-              {(availableRoles.length > 0 ? availableRoles.map((role) => role.name) : ["Admin", "Editor", "Viewer", "Messe"]).map((role) => (
-                <article key={role}>
-                  <strong>{role}</strong>
-                  <span>{roleDescription(role)}</span>
-                </article>
-              ))}
-            </div>
           </section>
 
         </section>

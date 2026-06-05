@@ -38,6 +38,11 @@ type InventoryNumberSchemeInput struct {
 	Active     bool   `json:"active"`
 }
 
+type InventoryNumberSchemeCreateInput struct {
+	Category string `json:"category"`
+	InventoryNumberSchemeInput
+}
+
 func NewInventoryNumberService(db *sql.DB) *InventoryNumberService {
 	return &InventoryNumberService{db: db}
 }
@@ -72,6 +77,31 @@ ORDER BY
 		return nil, fmt.Errorf("iterate inventory number schemes: %w", err)
 	}
 	return out, nil
+}
+
+func (s *InventoryNumberService) Create(ctx context.Context, input InventoryNumberSchemeCreateInput) (*InventoryNumberScheme, error) {
+	category := cleanInventoryCategory(input.Category)
+	schemeInput := cleanInventoryNumberSchemeInput(input.InventoryNumberSchemeInput)
+	if category == "" || schemeInput.Prefix == "" || schemeInput.NextNumber < 1 || schemeInput.Padding < 1 || schemeInput.Padding > 12 {
+		return nil, ErrInventoryNumberValidation
+	}
+
+	var existing int
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM inventory_number_schemes WHERE category=?`, category).Scan(&existing); err != nil {
+		return nil, fmt.Errorf("check inventory number scheme: %w", err)
+	}
+	if existing > 0 {
+		return nil, ErrInventoryNumberConflict
+	}
+
+	now := time.Now().UTC().Format(time.RFC3339)
+	if _, err := s.db.ExecContext(ctx, `
+INSERT INTO inventory_number_schemes(id, category, prefix, next_number, padding, active, created_at, updated_at)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+`, randomID(), category, schemeInput.Prefix, schemeInput.NextNumber, schemeInput.Padding, boolToInt(schemeInput.Active), now, now); err != nil {
+		return nil, fmt.Errorf("create inventory number scheme: %w", err)
+	}
+	return s.get(ctx, category)
 }
 
 func (s *InventoryNumberService) Update(ctx context.Context, category string, input InventoryNumberSchemeInput) (*InventoryNumberScheme, error) {

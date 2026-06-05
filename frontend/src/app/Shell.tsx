@@ -4,7 +4,7 @@ import { BarChart3, Box, Bug, CalendarDays, ChevronLeft, ChevronRight, FileInput
 import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
-import { applyThemePreference, readThemePreference, type ThemePreference } from "../shared/theme";
+import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
 
 const navItems = [
   { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
@@ -18,9 +18,7 @@ const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
 const sidebarOrderKey = "railkeeper.settings.sidebarOrder";
 const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
 const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
-const updateChecksKey = "railkeeper.settings.updateChecks";
 const betaUpdatesKey = "railkeeper.settings.betaUpdates";
-const ignoredUpdateKey = "railkeeper.settings.ignoredUpdate";
 export const updateStatusChangedEvent = "railkeeper-update-status-changed";
 
 type SidebarPrefs = {
@@ -133,18 +131,39 @@ export function Shell({
   }, [roles, username]);
 
   useEffect(() => {
+    let cancelled = false;
+    api
+      .profileSettings()
+      .then(({ settings }) => {
+        if (cancelled) return;
+        const sidebarValue = settings[sidebarPrefsKey(username)];
+        if (sidebarValue) {
+          window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
+          setOrderedNavItems(readNavItems(roles, username));
+        }
+        const themeValue = settings[themePreferenceKey];
+        if (themeValue === "system" || themeValue === "light" || themeValue === "dark") {
+          setTheme(themeValue);
+          applyThemePreference(themeValue);
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [roles, username]);
+
+  useEffect(() => {
     let mounted = true;
 
     const loadVersion = (forceCheck = false) => {
-      const checkForUpdates = readLocalBool(updateChecksKey, true);
       const includeBeta = readLocalBool(betaUpdatesKey, false);
       api
-        .version(forceCheck || checkForUpdates, includeBeta)
+        .version(forceCheck, includeBeta)
         .then((info) => {
           if (!mounted) return;
-          const ignoredUpdate = window.localStorage.getItem(ignoredUpdateKey) || "";
           setAppVersion(info.version);
-          setUpdateAvailable(Boolean(info.updateAvailable && info.latestVersion && info.latestVersion !== ignoredUpdate));
+          setUpdateAvailable(Boolean(forceCheck && info.updateAvailable && info.latestVersion));
         })
         .catch(() => {
           if (!mounted) return;
@@ -190,6 +209,7 @@ export function Shell({
     const nextTheme: ThemePreference = theme === "dark" ? "light" : theme === "light" ? "system" : "dark";
     setTheme(nextTheme);
     applyThemePreference(nextTheme);
+    void api.updateProfileSettings({ [themePreferenceKey]: nextTheme }).catch(() => undefined);
   }
 
   function toggleSidebarCollapsed() {

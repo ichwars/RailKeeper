@@ -73,12 +73,14 @@ type BackupValidationTable struct {
 
 var backupTableOrder = []string{
 	"app_settings",
+	"user_settings",
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
 	"vehicles",
 	"inventory_number_history",
 	"vehicle_external_mappings",
+	"file_blobs",
 	"vehicle_images",
 	"vehicle_attachments",
 	"vehicle_maintenance",
@@ -93,8 +95,10 @@ var backupTableOrder = []string{
 
 var optionalBackupTables = map[string]struct{}{
 	"app_settings":              {},
+	"user_settings":             {},
 	"exhibition_lists":          {},
 	"exhibition_entries":        {},
+	"file_blobs":                {},
 	"vehicle_external_mappings": {},
 	"vehicle_spare_parts":       {},
 }
@@ -309,7 +313,7 @@ func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[st
 		}
 		row := map[string]any{}
 		for i, column := range columns {
-			row[column] = normalizeBackupValue(values[i])
+			row[column] = normalizeBackupValue(table, column, values[i])
 		}
 		out = append(out, row)
 	}
@@ -443,7 +447,11 @@ func insertBackupRow(ctx context.Context, tx *sql.Tx, table string, allowedColum
 	values := make([]any, len(columns))
 	for i, column := range columns {
 		placeholders[i] = "?"
-		values[i] = normalizeImportValue(row[column])
+		value, err := normalizeImportValue(table, column, row[column])
+		if err != nil {
+			return false, err
+		}
+		values[i] = value
 	}
 
 	query := "INSERT INTO " + quoteIdentifier(table) +
@@ -455,27 +463,40 @@ func insertBackupRow(ctx context.Context, tx *sql.Tx, table string, allowedColum
 	return true, nil
 }
 
-func normalizeBackupValue(value any) any {
+func normalizeBackupValue(table, column string, value any) any {
 	switch typed := value.(type) {
 	case []byte:
+		if table == "file_blobs" && column == "data" {
+			return base64.StdEncoding.EncodeToString(typed)
+		}
 		return string(typed)
 	default:
 		return typed
 	}
 }
 
-func normalizeImportValue(value any) any {
+func normalizeImportValue(table, column string, value any) (any, error) {
+	if table == "file_blobs" && column == "data" {
+		if encoded, ok := value.(string); ok {
+			decoded, err := base64.StdEncoding.DecodeString(encoded)
+			if err != nil {
+				return nil, ErrBackupInvalid
+			}
+			return decoded, nil
+		}
+		return nil, ErrBackupInvalid
+	}
 	switch typed := value.(type) {
 	case json.Number:
 		if intValue, err := typed.Int64(); err == nil {
-			return intValue
+			return intValue, nil
 		}
 		if floatValue, err := typed.Float64(); err == nil {
-			return floatValue
+			return floatValue, nil
 		}
-		return typed.String()
+		return typed.String(), nil
 	default:
-		return typed
+		return typed, nil
 	}
 }
 

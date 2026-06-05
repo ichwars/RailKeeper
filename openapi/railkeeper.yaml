@@ -277,6 +277,37 @@ components:
         recipient:
           type: string
           format: email
+    SettingsPayload:
+      type: object
+      required: [settings]
+      properties:
+        settings:
+          type: object
+          additionalProperties:
+            type: string
+    DigitalProviderSettings:
+      type: object
+      required: [enabled, host, port]
+      properties:
+        enabled:
+          type: boolean
+        host:
+          type: string
+        port:
+          type: string
+    DigitalCenterSettings:
+      type: object
+      required: [provider, ecos, z21, cs3]
+      properties:
+        provider:
+          type: string
+          enum: [ecos, z21, cs3]
+        ecos:
+          $ref: "#/components/schemas/DigitalProviderSettings"
+        z21:
+          $ref: "#/components/schemas/DigitalProviderSettings"
+        cs3:
+          $ref: "#/components/schemas/DigitalProviderSettings"
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]
@@ -322,6 +353,19 @@ components:
           items:
             $ref: "#/components/schemas/StorageUsageCategory"
         updatedAt:
+          type: string
+          format: date-time
+    StorageOptimizeResult:
+      type: object
+      required: [beforeBytes, afterBytes, reclaimedBytes, optimizedAt]
+      properties:
+        beforeBytes:
+          type: integer
+        afterBytes:
+          type: integer
+        reclaimedBytes:
+          type: integer
+        optimizedAt:
           type: string
           format: date-time
     Vehicle:
@@ -753,6 +797,14 @@ components:
           maximum: 12
         active:
           type: boolean
+    InventoryNumberSchemeCreateInput:
+      allOf:
+        - $ref: "#/components/schemas/InventoryNumberSchemeInput"
+        - type: object
+          required: [category]
+          properties:
+            category:
+              type: string
     ArticleSearchInput:
       type: object
       properties:
@@ -1213,6 +1265,49 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /profile/settings:
+    get:
+      tags: [Auth]
+      responses:
+        "200":
+          description: Current user's profile settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsPayload"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsPayload"
+      responses:
+        "200":
+          description: Updated profile settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettingsPayload"
+        "400":
+          description: Invalid settings payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /version:
     get:
       tags: [System]
@@ -1260,6 +1355,22 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StorageUsage"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/storage/optimize:
+    post:
+      tags: [System]
+      responses:
+        "200":
+          description: Database optimized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageOptimizeResult"
         "403":
           description: Admin role required
           content:
@@ -1535,6 +1646,49 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/digital-settings:
+    get:
+      tags: [System]
+      responses:
+        "200":
+          description: Server-wide digital center settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterSettings"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [System]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterSettings"
+      responses:
+        "200":
+          description: Updated digital center settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterSettings"
+        "400":
+          description: Invalid digital center settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
           content:
             application/json:
               schema:
@@ -1828,6 +1982,33 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InventoryNumberScheme"
+    post:
+      tags: [InventoryNumbers]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InventoryNumberSchemeCreateInput"
+      responses:
+        "201":
+          description: Inventory number scheme created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InventoryNumberScheme"
+        "400":
+          description: Invalid inventory number scheme
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Inventory number scheme already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /inventory-number-schemes/{category}:
     put:
       tags: [InventoryNumbers]
@@ -2522,6 +2703,19 @@ paths:
       responses:
         "200":
           description: Raw ECoS locomotive payload
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /ecos/locomotives/count:
+    post:
+      tags: [Vehicles]
+      summary: Count locomotive objects from an ECoS station without detailed probing
+      responses:
+        "200":
+          description: ECoS locomotive count
         "403":
           description: Admin role required
           content:

@@ -107,6 +107,23 @@ export type SMTPTestRequest = {
   recipient: string;
 };
 
+export type SettingsPayload = {
+  settings: Record<string, string>;
+};
+
+export type DigitalProviderSettings = {
+  enabled: boolean;
+  host: string;
+  port: string;
+};
+
+export type DigitalCenterSettings = {
+  provider: "ecos" | "z21" | "cs3";
+  ecos: DigitalProviderSettings;
+  z21: DigitalProviderSettings;
+  cs3: DigitalProviderSettings;
+};
+
 export type SessionRecord = {
   id: string;
   userId: string;
@@ -545,6 +562,10 @@ export type InventoryNumberSchemeInput = {
   active: boolean;
 };
 
+export type InventoryNumberSchemeCreateInput = InventoryNumberSchemeInput & {
+  category: string;
+};
+
 export type ArticleSearchInput = {
   manufacturer?: string;
   articleNumber?: string;
@@ -727,6 +748,13 @@ export type ECoSRawProbe = {
   message: string;
 };
 
+export type ECoSLocomotiveSummary = {
+  host: string;
+  port: number;
+  count: number;
+  message: string;
+};
+
 export type ECoSLiveStatus = {
   provider: string;
   connected: boolean;
@@ -830,6 +858,13 @@ export type StorageUsage = {
   totalBytes: number;
   categories: StorageUsageCategory[];
   updatedAt: string;
+};
+
+export type StorageOptimizeResult = {
+  beforeBytes: number;
+  afterBytes: number;
+  reclaimedBytes: number;
+  optimizedAt: string;
 };
 
 export type SystemPrinter = {
@@ -1045,6 +1080,12 @@ export const api = {
     csrfToken = session.csrfToken || readCookie("rk_csrf");
     return session;
   },
+  profileSettings: () => request<SettingsPayload>("/profile/settings"),
+  updateProfileSettings: (settings: Record<string, string>) =>
+    request<SettingsPayload>("/profile/settings", {
+      method: "PUT",
+      body: JSON.stringify({ settings })
+    }),
   logout: async () => {
     await request<void>("/auth/logout", { method: "POST" });
     csrfToken = "";
@@ -1097,6 +1138,7 @@ export const api = {
       { timeoutMs: 10000 }
     ),
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
+  optimizeStorage: () => request<StorageOptimizeResult>("/system/storage/optimize", { method: "POST" }, { timeoutMs: 120000 }),
   systemPrinters: () => request<SystemPrinters>("/system/printers", {}, { timeoutMs: 10000 }),
   auditLog: (limit = 50) => request<AuditLogResponse>(`/system/audit-log?limit=${encodeURIComponent(String(limit))}`, {}, { timeoutMs: 10000 }),
   smtpSettings: () => request<SMTPSettings>("/system/smtp", {}, { timeoutMs: 10000 }),
@@ -1110,6 +1152,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }, { timeoutMs: 30000 }),
+  digitalSettings: () => request<DigitalCenterSettings>("/system/digital-settings", {}, { timeoutMs: 10000 }),
+  updateDigitalSettings: (input: DigitalCenterSettings) =>
+    request<DigitalCenterSettings>("/system/digital-settings", {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
   exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
   exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
   createExhibitionList: (input: ExhibitionListInput) =>
@@ -1329,6 +1377,11 @@ export const api = {
   vehicleCVFileDownloadUrl: (vehicleId: string, cvFileId: string) =>
     `/api/v1/vehicles/${encodeURIComponent(vehicleId)}/cv-files/${encodeURIComponent(cvFileId)}/download`,
   inventoryNumberSchemes: () => request<InventoryNumberScheme[]>("/inventory-number-schemes"),
+  createInventoryNumberScheme: (input: InventoryNumberSchemeCreateInput) =>
+    request<InventoryNumberScheme>("/inventory-number-schemes", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
   updateInventoryNumberScheme: (category: string, input: InventoryNumberSchemeInput) =>
     request<InventoryNumberScheme>(`/inventory-number-schemes/${encodeURIComponent(category)}`, {
       method: "PUT",
@@ -1365,6 +1418,15 @@ export const api = {
         body: JSON.stringify(input)
       },
       { timeoutMs: 120000 }
+    ),
+  countECoSLocomotives: (input: ECoSConnectionInput) =>
+    request<ECoSLocomotiveSummary>(
+      "/ecos/locomotives/count",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 10000 }
     ),
   getECoSLiveStatus: () => request<ECoSLiveStatus>("/digital-centers/ecos/live/status"),
   syncECoSLocomotive: (input: ECoSLocomotiveSyncInput) =>

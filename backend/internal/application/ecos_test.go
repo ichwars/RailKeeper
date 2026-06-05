@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestParseECoSLocomotives(t *testing.T) {
@@ -139,6 +140,59 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 	}
 	if len(locomotive.CVs) != 4 || locomotive.CVs[2].Number != 8 || locomotive.CVs[2].Value != 151 {
 		t.Fatalf("expected structured CV values: %#v", locomotive.CVs)
+	}
+}
+
+func TestECoSServiceCountLocomotivesUsesOnlyObjectList(t *testing.T) {
+	commands := []string{}
+	var mu sync.Mutex
+	listener := startECoSTestServer(t, func(command string) []string {
+		mu.Lock()
+		commands = append(commands, command)
+		mu.Unlock()
+		if command != "queryObjects(10, addr, name, protocol)" {
+			t.Fatalf("unexpected command: %s", command)
+		}
+		return []string{
+			"<REPLY queryObjects(10, addr, name, protocol)>",
+			`1001 addr[3] name["BR 218"] protocol[DCC128]`,
+			`1002 addr[24] name["V 180"] protocol[MM27]`,
+			"<END 0 (OK)>",
+		}
+	})
+	defer func() { _ = listener.Close() }()
+
+	host, port := splitTestAddress(t, listener.Addr().String())
+	service := NewECoSService()
+	summary, err := service.CountLocomotives(context.Background(), ECoSConnectionInput{Host: host, Port: port})
+	if err != nil {
+		t.Fatalf("count failed: %v", err)
+	}
+	if summary.Count != 2 {
+		t.Fatalf("unexpected count: %#v", summary)
+	}
+	mu.Lock()
+	defer mu.Unlock()
+	if len(commands) != 1 {
+		t.Fatalf("expected one lightweight command, got %#v", commands)
+	}
+}
+
+func TestECoSLiveStatusStopsIdleSession(t *testing.T) {
+	service := NewECoSService()
+	service.liveStatus = ECoSLiveStatus{
+		Provider:   "ecos",
+		Connected:  true,
+		LastSeenAt: time.Now().UTC().Add(-(eCoSLiveIdleTimeout + time.Minute)).Format(time.RFC3339),
+		Message:    "ECoS-Live-Verbindung aktiv.",
+	}
+
+	status := service.LiveStatus()
+	if status.Connected {
+		t.Fatalf("expected idle live session to be stopped: %#v", status)
+	}
+	if !strings.Contains(status.Message, "automatisch beendet") {
+		t.Fatalf("expected automatic timeout message, got %q", status.Message)
 	}
 }
 

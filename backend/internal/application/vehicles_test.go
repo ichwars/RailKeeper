@@ -47,6 +47,37 @@ func TestCreateVehicleUsesCategoryInventoryNumberScheme(t *testing.T) {
 	}
 }
 
+func TestCreateVehicleUsesCustomInventoryNumberScheme(t *testing.T) {
+	db := testDB(t)
+	inventoryNumbers := application.NewInventoryNumberService(db)
+	if _, err := inventoryNumbers.Create(context.Background(), application.InventoryNumberSchemeCreateInput{
+		Category: "Güterwagen",
+		InventoryNumberSchemeInput: application.InventoryNumberSchemeInput{
+			Prefix:     "RK-GW",
+			NextNumber: 3,
+			Padding:    4,
+			Active:     true,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewVehicleService(db)
+
+	vehicle, err := service.Create(context.Background(), application.CreateVehicleInput{
+		Manufacturer: "Tillig",
+		Name:         "Offener Güterwagen",
+		Gauge:        "TT",
+		Category:     "Güterwagen",
+		Gattung:      "Güterwagen",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if vehicle.InventoryNumber != "RK-GW-0003" {
+		t.Fatalf("unexpected inventory number %q", vehicle.InventoryNumber)
+	}
+}
+
 func TestCreateVehicleDoesNotUseAccessoryInventoryNumberScheme(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)

@@ -42,3 +42,37 @@ func TestInventoryNumberSchemeListAndUpdate(t *testing.T) {
 		t.Fatalf("unexpected preview %q", updated.Preview)
 	}
 }
+
+func TestInventoryNumberSchemeCreate(t *testing.T) {
+	db := testDB(t)
+	service := application.NewInventoryNumberService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.InventoryNumberSchemeCreateInput{
+		Category: "Güterwagen",
+		InventoryNumberSchemeInput: application.InventoryNumberSchemeInput{
+			Prefix:     "rk-gw",
+			NextNumber: 7,
+			Padding:    4,
+			Active:     true,
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.Category != "Güterwagen" || created.Prefix != "RK-GW" || created.Preview != "RK-GW-0007" {
+		t.Fatalf("unexpected created scheme: %#v", created)
+	}
+
+	if _, err := service.Create(ctx, application.InventoryNumberSchemeCreateInput{
+		Category: "Güterwagen",
+		InventoryNumberSchemeInput: application.InventoryNumberSchemeInput{
+			Prefix:     "RK-GW",
+			NextNumber: 8,
+			Padding:    4,
+			Active:     true,
+		},
+	}); err != application.ErrInventoryNumberConflict {
+		t.Fatalf("expected duplicate scheme conflict, got %v", err)
+	}
+}

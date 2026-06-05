@@ -19,6 +19,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	vehicles := application.NewVehicleService(db)
 	masterData := application.NewMasterDataService(db)
 	backup := application.NewBackupService(db, dataDir)
+	fileBlobs := application.NewFileBlobService(db, dataDir)
 	exhibition := application.NewExhibitionService(db)
 	router := NewRouter(Config{
 		DataDir:           dataDir,
@@ -27,6 +28,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 		VehicleService:    vehicles,
 		MasterDataService: masterData,
 		BackupService:     backup,
+		FileBlobService:   fileBlobs,
 		ExhibitionService: exhibition,
 	})
 

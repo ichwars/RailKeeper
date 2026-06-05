@@ -283,6 +283,11 @@ a {
   padding: 22px 20px;
   background: var(--solid-bg);
   border-right: 1px solid var(--line-strong);
+  scrollbar-width: none;
+}
+
+.sidebar::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar.collapsed {
@@ -523,6 +528,7 @@ a {
 
 .main {
   width: 100%;
+  min-width: 0;
   padding: 40px 32px;
 }
 
