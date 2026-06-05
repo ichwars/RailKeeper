@@ -65,6 +65,16 @@ RailKeeper is built around operational views instead of marketing pages:
 
 ## Quick Start
 
+### Windows Portable
+
+Download the Windows portable ZIP from a release, extract it completely and start:
+
+```text
+start-railkeeper.bat
+```
+
+RailKeeper runs locally without installation or additional software and stores its database, uploads and backups in the `data` folder next to `RailKeeper.exe`. It can also be started from a USB stick, but for daily use the extracted folder should live on the local computer because this is faster and safer for the SQLite database.
+
 ### Docker Compose
 
 ```bash
@@ -136,6 +146,14 @@ npm run build
 ```
 
 The production runtime serves the built frontend from `frontend/dist`.
+
+Create a Windows portable package:
+
+```powershell
+.\tools\build_windows_portable.ps1
+```
+
+The script builds the frontend, cross-compiles `RailKeeper.exe` for Windows x64 and creates `dist\windows-portable\RailKeeper-windows-x64-v<version>.zip`.
 
 Useful local defaults:
 
