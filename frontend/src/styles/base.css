@@ -253,6 +253,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
 }
@@ -265,6 +266,8 @@ a {
 .layout {
   display: grid;
   grid-template-columns: 248px minmax(0, 1fr);
+  width: 100%;
+  overflow-x: hidden;
   min-height: 100vh;
 }
 

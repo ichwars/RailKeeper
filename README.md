@@ -47,6 +47,12 @@ The project is designed for private collections, clubs and small workshops that 
 
 RailKeeper is built around operational views instead of marketing pages:
 
+| Overview | Inventory |
+| --- | --- |
+| ![RailKeeper overview dashboard](docs/screenshots/overview.png) | ![RailKeeper inventory grid](docs/screenshots/inventory.png) |
+| Import/Export | Authentication Settings |
+| ![RailKeeper import and export workspace](docs/screenshots/import-export.png) | ![RailKeeper authentication settings](docs/screenshots/settings-auth.png) |
+
 - **Overview** for inventory, value, maintenance and data quality
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
 - **Exhibition List** for fair/show operations
