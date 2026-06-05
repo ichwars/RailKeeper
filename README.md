@@ -53,6 +53,10 @@ RailKeeper is built around operational views instead of marketing pages:
 | Import/Export | Authentication Settings |
 | ![RailKeeper import and export workspace](docs/screenshots/import-export.png) | ![RailKeeper authentication settings](docs/screenshots/settings-auth.png) |
 
+| Article Web Search | Spare Parts Search | Decoder Speed Curve |
+| --- | --- | --- |
+| ![RailKeeper article web search with product details](docs/screenshots/search_product_details.png) | ![RailKeeper spare parts search and vehicle parts list](docs/screenshots/spare_parts_search.png) | ![RailKeeper decoder speed performance curve](docs/screenshots/speed-performance_curve.png) |
+
 - **Overview** for inventory, value, maintenance and data quality
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
 - **Exhibition List** for fair/show operations
