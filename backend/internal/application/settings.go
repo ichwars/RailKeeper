@@ -27,10 +27,11 @@ type DigitalProviderSettings struct {
 }
 
 type DigitalCenterSettings struct {
-	Provider string                  `json:"provider"`
-	ECoS     DigitalProviderSettings `json:"ecos"`
-	Z21      DigitalProviderSettings `json:"z21"`
-	CS3      DigitalProviderSettings `json:"cs3"`
+	Provider    string                  `json:"provider"`
+	ECoS        DigitalProviderSettings `json:"ecos"`
+	Z21         DigitalProviderSettings `json:"z21"`
+	Intellibox3 DigitalProviderSettings `json:"intellibox3"`
+	CS3         DigitalProviderSettings `json:"cs3"`
 }
 
 func NewSettingsService(db *sql.DB) *SettingsService {
@@ -112,16 +113,19 @@ func (s *SettingsService) UpdateDigitalSettings(ctx context.Context, input Digit
 	}
 	now := time.Now().UTC().Format(time.RFC3339)
 	values := map[string]string{
-		"digital.provider":     input.Provider,
-		"digital.ecos.enabled": strconv.FormatBool(input.ECoS.Enabled),
-		"digital.ecos.host":    input.ECoS.Host,
-		"digital.ecos.port":    input.ECoS.Port,
-		"digital.z21.enabled":  strconv.FormatBool(input.Z21.Enabled),
-		"digital.z21.host":     input.Z21.Host,
-		"digital.z21.port":     input.Z21.Port,
-		"digital.cs3.enabled":  strconv.FormatBool(input.CS3.Enabled),
-		"digital.cs3.host":     input.CS3.Host,
-		"digital.cs3.port":     input.CS3.Port,
+		"digital.provider":            input.Provider,
+		"digital.ecos.enabled":        strconv.FormatBool(input.ECoS.Enabled),
+		"digital.ecos.host":           input.ECoS.Host,
+		"digital.ecos.port":           input.ECoS.Port,
+		"digital.z21.enabled":         strconv.FormatBool(input.Z21.Enabled),
+		"digital.z21.host":            input.Z21.Host,
+		"digital.z21.port":            input.Z21.Port,
+		"digital.intellibox3.enabled": strconv.FormatBool(input.Intellibox3.Enabled),
+		"digital.intellibox3.host":    input.Intellibox3.Host,
+		"digital.intellibox3.port":    input.Intellibox3.Port,
+		"digital.cs3.enabled":         strconv.FormatBool(input.CS3.Enabled),
+		"digital.cs3.host":            input.CS3.Host,
+		"digital.cs3.port":            input.CS3.Port,
 	}
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -183,6 +187,11 @@ func digitalSettingsFromValues(values map[string]string) *DigitalCenterSettings 
 			Host:    values["digital.z21.host"],
 			Port:    values["digital.z21.port"],
 		},
+		Intellibox3: DigitalProviderSettings{
+			Enabled: values["digital.intellibox3.enabled"] == "true",
+			Host:    values["digital.intellibox3.host"],
+			Port:    values["digital.intellibox3.port"],
+		},
 		CS3: DigitalProviderSettings{
 			Enabled: values["digital.cs3.enabled"] == "true",
 			Host:    values["digital.cs3.host"],
@@ -199,6 +208,7 @@ func normalizeDigitalSettings(input DigitalCenterSettings) DigitalCenterSettings
 	}
 	input.ECoS = normalizeProviderSettings(input.ECoS, "15471")
 	input.Z21 = normalizeProviderSettings(input.Z21, "21105")
+	input.Intellibox3 = normalizeProviderSettings(input.Intellibox3, "21105")
 	input.CS3 = normalizeProviderSettings(input.CS3, "80")
 	return input
 }
@@ -213,7 +223,7 @@ func normalizeProviderSettings(input DigitalProviderSettings, defaultPort string
 }
 
 func validDigitalProvider(provider string) bool {
-	return provider == "ecos" || provider == "z21" || provider == "cs3"
+	return provider == "ecos" || provider == "z21" || provider == "intellibox3" || provider == "cs3"
 }
 
 func valueOr(value, fallback string) string {

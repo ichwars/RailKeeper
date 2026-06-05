@@ -46,6 +46,9 @@ func apiRouteSpecs() []routeSpec {
 		{"POST", "/api/v1/ecos/locomotives/raw"},
 		{"POST", "/api/v1/digital-centers/ecos/locomotives/sync"},
 		{"POST", "/api/v1/digital-centers/z21/test"},
+		{"POST", "/api/v1/digital-centers/z21/probe"},
+		{"POST", "/api/v1/digital-centers/intellibox3/test"},
+		{"POST", "/api/v1/digital-centers/intellibox3/probe"},
 		{"POST", "/api/v1/digital-centers/cs3/test"},
 		{"GET", "/api/v1/digital-centers/ecos/live/status"},
 		{"POST", "/api/v1/digital-centers/ecos/live/start"},
@@ -172,6 +175,9 @@ func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", a.require("Admin", a.probeECoSLocomotiveRaw))
 	mux.HandleFunc("POST /api/v1/digital-centers/ecos/locomotives/sync", a.require("Admin", a.syncECoSLocomotive))
 	mux.HandleFunc("POST /api/v1/digital-centers/z21/test", a.require("Admin", a.testZ21Connection))
+	mux.HandleFunc("POST /api/v1/digital-centers/z21/probe", a.require("Admin", a.probeZ21Connection))
+	mux.HandleFunc("POST /api/v1/digital-centers/intellibox3/test", a.require("Admin", a.testIntellibox3Connection))
+	mux.HandleFunc("POST /api/v1/digital-centers/intellibox3/probe", a.require("Admin", a.probeIntellibox3Connection))
 	mux.HandleFunc("POST /api/v1/digital-centers/cs3/test", a.require("Admin", a.testCS3Connection))
 	mux.HandleFunc("GET /api/v1/digital-centers/ecos/live/status", a.require("Admin", a.eCoSLiveStatus))
 	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/start", a.require("Admin", a.startECoSLive))

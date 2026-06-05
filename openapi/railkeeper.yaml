@@ -297,14 +297,16 @@ components:
           type: string
     DigitalCenterSettings:
       type: object
-      required: [provider, ecos, z21, cs3]
+      required: [provider, ecos, z21, intellibox3, cs3]
       properties:
         provider:
           type: string
-          enum: [ecos, z21, cs3]
+          enum: [ecos, z21, intellibox3, cs3]
         ecos:
           $ref: "#/components/schemas/DigitalProviderSettings"
         z21:
+          $ref: "#/components/schemas/DigitalProviderSettings"
+        intellibox3:
           $ref: "#/components/schemas/DigitalProviderSettings"
         cs3:
           $ref: "#/components/schemas/DigitalProviderSettings"
@@ -2742,6 +2744,45 @@ paths:
       responses:
         "200":
           description: Z21 connection result
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/z21/probe:
+    post:
+      tags: [DigitalCenters]
+      summary: Read diagnostic packets from a Roco/Fleischmann Z21 UDP connection
+      responses:
+        "200":
+          description: Z21 diagnostic command results
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/intellibox3/test:
+    post:
+      tags: [DigitalCenters]
+      summary: Test a Uhlenbrock Intellibox 3 Z21-compatible UDP connection
+      responses:
+        "200":
+          description: Intellibox 3 connection result
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/intellibox3/probe:
+    post:
+      tags: [DigitalCenters]
+      summary: Read diagnostic packets from a Uhlenbrock Intellibox 3 Z21-compatible UDP connection
+      responses:
+        "200":
+          description: Intellibox 3 diagnostic command results
         "403":
           description: Admin role required
           content:

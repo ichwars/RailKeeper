@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -19,6 +20,8 @@ const (
 	defaultZ21Port        = 21105
 	defaultCS3Port        = 80
 	z21LANGetSerialNumber = 0x0010
+	z21LANGetCode         = 0x0018
+	z21LANGetHWInfo       = 0x001A
 )
 
 type DigitalCenterService struct {
@@ -41,6 +44,34 @@ type DigitalCenterConnectionResult struct {
 	Fields    map[string]string `json:"fields,omitempty"`
 }
 
+type DigitalCenterProbeResult struct {
+	Provider  string                            `json:"provider"`
+	Connected bool                              `json:"connected"`
+	Host      string                            `json:"host"`
+	Port      int                               `json:"port"`
+	Message   string                            `json:"message"`
+	Fields    map[string]string                 `json:"fields,omitempty"`
+	Commands  []DigitalCenterProbeCommandResult `json:"commands"`
+}
+
+type DigitalCenterProbeCommandResult struct {
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	CommandHex  string            `json:"commandHex"`
+	ResponseHex string            `json:"responseHex,omitempty"`
+	Header      string            `json:"header,omitempty"`
+	PayloadHex  string            `json:"payloadHex,omitempty"`
+	OK          bool              `json:"ok"`
+	Error       string            `json:"error,omitempty"`
+	Fields      map[string]string `json:"fields,omitempty"`
+}
+
+type z21ProbeCommand struct {
+	name        string
+	description string
+	header      uint16
+}
+
 func NewDigitalCenterService() *DigitalCenterService {
 	timeout := 4 * time.Second
 	return &DigitalCenterService{
@@ -50,20 +81,36 @@ func NewDigitalCenterService() *DigitalCenterService {
 }
 
 func (s *DigitalCenterService) TestZ21Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterConnectionResult, error) {
+	return s.testZ21CompatibleConnection(ctx, input, "z21", "Z21")
+}
+
+func (s *DigitalCenterService) TestIntellibox3Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterConnectionResult, error) {
+	return s.testZ21CompatibleConnection(ctx, input, "intellibox3", "Intellibox 3")
+}
+
+func (s *DigitalCenterService) ProbeZ21Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterProbeResult, error) {
+	return s.probeZ21CompatibleConnection(ctx, input, "z21", "Z21")
+}
+
+func (s *DigitalCenterService) ProbeIntellibox3Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterProbeResult, error) {
+	return s.probeZ21CompatibleConnection(ctx, input, "intellibox3", "Intellibox 3")
+}
+
+func (s *DigitalCenterService) testZ21CompatibleConnection(ctx context.Context, input DigitalCenterConnectionInput, provider, label string) (*DigitalCenterConnectionResult, error) {
 	target, err := normalizeDigitalCenterInput(input, defaultZ21Port)
 	if err != nil {
 		return nil, err
 	}
 	result := &DigitalCenterConnectionResult{
-		Provider: "z21",
+		Provider: provider,
 		Host:     target.Host,
 		Port:     target.Port,
-		Message:  "Z21 nicht erreichbar.",
+		Message:  fmt.Sprintf("%s nicht erreichbar.", label),
 		Fields:   map[string]string{},
 	}
 	response, err := s.exchangeZ21UDP(ctx, target, z21SerialNumberCommand())
 	if err != nil {
-		result.Message = fmt.Sprintf("Z21 nicht erreichbar: %v", err)
+		result.Message = fmt.Sprintf("%s nicht erreichbar: %v", label, err)
 		return result, nil
 	}
 	header, payload, err := parseZ21Packet(response)
@@ -73,9 +120,65 @@ func (s *DigitalCenterService) TestZ21Connection(ctx context.Context, input Digi
 	}
 	result.Connected = true
 	result.Status = fmt.Sprintf("0x%04X", header)
-	result.Message = "Z21-Verbindung erfolgreich."
+	result.Message = fmt.Sprintf("%s-Verbindung erfolgreich.", label)
 	if header == z21LANGetSerialNumber && len(payload) >= 4 {
 		result.Fields["serialNumber"] = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(payload[:4])), 10)
+	}
+	return result, nil
+}
+
+func (s *DigitalCenterService) probeZ21CompatibleConnection(ctx context.Context, input DigitalCenterConnectionInput, provider, label string) (*DigitalCenterProbeResult, error) {
+	target, err := normalizeDigitalCenterInput(input, defaultZ21Port)
+	if err != nil {
+		return nil, err
+	}
+	result := &DigitalCenterProbeResult{
+		Provider: provider,
+		Host:     target.Host,
+		Port:     target.Port,
+		Message:  fmt.Sprintf("%s-Diagnose ohne Antwort.", label),
+		Fields:   map[string]string{},
+		Commands: []DigitalCenterProbeCommandResult{},
+	}
+	for _, probe := range []z21ProbeCommand{
+		{name: "LAN_GET_SERIAL_NUMBER", description: "Seriennummer der Zentrale", header: z21LANGetSerialNumber},
+		{name: "LAN_GET_CODE", description: "Z21-Zentralencode bzw. Protokollkennung", header: z21LANGetCode},
+		{name: "LAN_GET_HWINFO", description: "Hardware- und Firmware-Rohdaten", header: z21LANGetHWInfo},
+	} {
+		command := z21HeaderCommand(probe.header)
+		commandResult := DigitalCenterProbeCommandResult{
+			Name:        probe.name,
+			Description: probe.description,
+			CommandHex:  formatHex(command),
+			Fields:      map[string]string{},
+		}
+		response, err := s.exchangeZ21UDP(ctx, target, command)
+		if err != nil {
+			commandResult.Error = err.Error()
+			result.Commands = append(result.Commands, commandResult)
+			continue
+		}
+		commandResult.ResponseHex = formatHex(response)
+		header, payload, err := parseZ21Packet(response)
+		if err != nil {
+			commandResult.Error = err.Error()
+			result.Commands = append(result.Commands, commandResult)
+			continue
+		}
+		commandResult.OK = true
+		commandResult.Header = fmt.Sprintf("0x%04X", header)
+		commandResult.PayloadHex = formatHex(payload)
+		commandResult.Fields = decodeZ21ProbeFields(header, payload)
+		for key, value := range commandResult.Fields {
+			result.Fields[key] = value
+		}
+		result.Connected = true
+		result.Commands = append(result.Commands, commandResult)
+	}
+	if result.Connected {
+		result.Message = fmt.Sprintf("%s-Diagnose abgeschlossen.", label)
+	} else if len(result.Commands) > 0 {
+		result.Message = fmt.Sprintf("%s-Diagnose ohne verwertbare Antwort.", label)
 	}
 	return result, nil
 }
@@ -210,10 +313,43 @@ func normalizeDigitalCenterInput(input DigitalCenterConnectionInput, defaultPort
 }
 
 func z21SerialNumberCommand() []byte {
+	return z21HeaderCommand(z21LANGetSerialNumber)
+}
+
+func z21HeaderCommand(header uint16) []byte {
 	packet := make([]byte, 4)
 	binary.LittleEndian.PutUint16(packet[0:2], 4)
-	binary.LittleEndian.PutUint16(packet[2:4], z21LANGetSerialNumber)
+	binary.LittleEndian.PutUint16(packet[2:4], header)
 	return packet
+}
+
+func decodeZ21ProbeFields(header uint16, payload []byte) map[string]string {
+	fields := map[string]string{}
+	switch header {
+	case z21LANGetSerialNumber:
+		if len(payload) >= 4 {
+			fields["serialNumber"] = strconv.FormatUint(uint64(binary.LittleEndian.Uint32(payload[:4])), 10)
+		}
+	case z21LANGetCode:
+		if len(payload) >= 1 {
+			fields["centralCode"] = fmt.Sprintf("%d (0x%02X)", payload[0], payload[0])
+		}
+	case z21LANGetHWInfo:
+		if len(payload) >= 4 {
+			fields["hardwareTypeRaw"] = fmt.Sprintf("0x%08X", binary.LittleEndian.Uint32(payload[:4]))
+		}
+		if len(payload) >= 8 {
+			fields["firmwareVersionRaw"] = fmt.Sprintf("0x%08X", binary.LittleEndian.Uint32(payload[4:8]))
+		}
+	}
+	return fields
+}
+
+func formatHex(data []byte) string {
+	if len(data) == 0 {
+		return ""
+	}
+	return strings.ToUpper(hex.EncodeToString(data))
 }
 
 func parseZ21Packet(packet []byte) (uint16, []byte, error) {

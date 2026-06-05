@@ -118,9 +118,10 @@ export type DigitalProviderSettings = {
 };
 
 export type DigitalCenterSettings = {
-  provider: "ecos" | "z21" | "cs3";
+  provider: "ecos" | "z21" | "intellibox3" | "cs3";
   ecos: DigitalProviderSettings;
   z21: DigitalProviderSettings;
+  intellibox3: DigitalProviderSettings;
   cs3: DigitalProviderSettings;
 };
 
@@ -685,6 +686,28 @@ export type DigitalCenterConnectionResult = {
   status?: string;
   message: string;
   fields?: Record<string, string>;
+};
+
+export type DigitalCenterProbeCommandResult = {
+  name: string;
+  description: string;
+  commandHex: string;
+  responseHex?: string;
+  header?: string;
+  payloadHex?: string;
+  ok: boolean;
+  error?: string;
+  fields?: Record<string, string>;
+};
+
+export type DigitalCenterProbeResult = {
+  provider: "z21" | "intellibox3" | string;
+  connected: boolean;
+  host: string;
+  port: number;
+  message: string;
+  fields?: Record<string, string>;
+  commands: DigitalCenterProbeCommandResult[];
 };
 
 export type ECoSConnectionResult = {
@@ -1459,6 +1482,33 @@ export const api = {
         body: JSON.stringify(input)
       },
       { timeoutMs: 10000 }
+    ),
+  probeZ21Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterProbeResult>(
+      "/digital-centers/z21/probe",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 15000 }
+    ),
+  testIntellibox3Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterConnectionResult>(
+      "/digital-centers/intellibox3/test",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 10000 }
+    ),
+  probeIntellibox3Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterProbeResult>(
+      "/digital-centers/intellibox3/probe",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 15000 }
     ),
   testCS3Connection: (input: DigitalCenterConnectionInput) =>
     request<DigitalCenterConnectionResult>(

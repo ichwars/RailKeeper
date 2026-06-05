@@ -68,6 +68,11 @@ export function ImportExportView() {
       host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
       port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
     },
+    intellibox3: {
+      enabled: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Enabled) === "true",
+      host: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Host) || "",
+      port: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Port) || "21105"
+    },
     cs3: {
       enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",
       host: window.localStorage.getItem(localSettingKeys.digitalCS3Host) || "",
@@ -124,12 +129,13 @@ export function ImportExportView() {
   const activeDigitalProviders = useMemo(() => [
     digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim() ? "ecos" : "",
     digitalSettings.z21?.enabled && digitalSettings.z21.host.trim() ? "z21" : "",
+    digitalSettings.intellibox3?.enabled && digitalSettings.intellibox3.host.trim() ? "intellibox3" : "",
     digitalSettings.cs3?.enabled && digitalSettings.cs3.host.trim() ? "cs3" : ""
   ].filter(Boolean), [digitalSettings]);
   const hasActiveDigitalCenter = activeDigitalProviders.length > 0;
   const ecosActive = Boolean(digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim());
   const ecosConnectionReady = Boolean(ecosResult?.connected || ecosLiveStatus?.connected);
-  const activeUnsupportedProviders = (["z21", "cs3"] as const).filter((providerId) =>
+  const activeUnsupportedProviders = (["z21", "intellibox3", "cs3"] as const).filter((providerId) =>
     digitalSettings[providerId]?.enabled && digitalSettings[providerId].host.trim()
   );
 
@@ -145,6 +151,11 @@ export function ImportExportView() {
         enabled: Boolean(settings.z21?.enabled),
         host: settings.z21?.host || "",
         port: settings.z21?.port || "21105"
+      },
+      intellibox3: {
+        enabled: Boolean(settings.intellibox3?.enabled),
+        host: settings.intellibox3?.host || "",
+        port: settings.intellibox3?.port || "21105"
       },
       cs3: {
         enabled: Boolean(settings.cs3?.enabled),
@@ -250,6 +261,11 @@ export function ImportExportView() {
             enabled: window.localStorage.getItem(localSettingKeys.digitalZ21Enabled) === "true",
             host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
             port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
+          },
+          intellibox3: {
+            enabled: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Enabled) === "true",
+            host: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Host) || "",
+            port: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Port) || "21105"
           },
           cs3: {
             enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",

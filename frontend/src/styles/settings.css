@@ -1403,6 +1403,157 @@
   text-align: left;
 }
 
+.digital-probe-panel {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.digital-probe-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.digital-probe-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.digital-probe-head strong {
+  font-size: var(--font-size-md);
+}
+
+.digital-probe-head span {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.digital-probe-state {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-extra-bold);
+  white-space: nowrap;
+}
+
+.digital-probe-state.active {
+  color: #15803d;
+  background: color-mix(in srgb, #22c55e 10%, transparent);
+}
+
+.digital-probe-state.inactive {
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+}
+
+.digital-probe-fields,
+.digital-probe-command-body dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.digital-probe-fields div,
+.digital-probe-command-body dl div {
+  display: grid;
+  grid-template-columns: minmax(108px, 0.35fr) minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.digital-probe-fields dt,
+.digital-probe-command-body dt {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-extra-bold);
+}
+
+.digital-probe-fields dd,
+.digital-probe-command-body dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.digital-probe-command-list {
+  display: grid;
+  gap: 8px;
+}
+
+.digital-probe-command {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--input-bg);
+}
+
+.digital-probe-command summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.digital-probe-command summary span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.digital-probe-command summary small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.digital-probe-command summary em {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-extra-bold);
+}
+
+.digital-probe-command-body {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
+}
+
+.digital-probe-command code {
+  display: inline-block;
+  max-width: 100%;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted) 10%, transparent);
+  font-size: var(--font-size-xs);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.digital-probe-error {
+  margin: 0;
+  color: var(--danger);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
 .digital-adapter-dialog .modal-actions {
   align-items: center;
   justify-content: flex-end;

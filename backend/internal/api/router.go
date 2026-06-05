@@ -1225,6 +1225,48 @@ func (a *App) testZ21Connection(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, result)
 }
 
+func (a *App) probeZ21Connection(w http.ResponseWriter, r *http.Request) {
+	var input application.DigitalCenterConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterService.ProbeZ21Connection(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "digital_center_validation", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) testIntellibox3Connection(w http.ResponseWriter, r *http.Request) {
+	var input application.DigitalCenterConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterService.TestIntellibox3Connection(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "digital_center_validation", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
+func (a *App) probeIntellibox3Connection(w http.ResponseWriter, r *http.Request) {
+	var input application.DigitalCenterConnectionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterService.ProbeIntellibox3Connection(r.Context(), input)
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "digital_center_validation", err.Error())
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
 func (a *App) testCS3Connection(w http.ResponseWriter, r *http.Request) {
 	var input application.DigitalCenterConnectionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
