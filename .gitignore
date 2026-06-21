@@ -23,6 +23,7 @@ backend/data/
 *.db-shm
 *.db-wal
 docs/*.pdf
+web-praesentation/
 
 # Environment
 .env
