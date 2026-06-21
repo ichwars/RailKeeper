@@ -44,14 +44,45 @@ func TestFrontendAPIAdapterUsesDocumentedRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, rawPath := range frontendAPIPaths(string(data)) {
-		path := strings.TrimPrefix(rawPath, "/api/v1")
-		path = strings.Split(path, "?")[0]
-		if path == "" {
+	for _, operation := range frontendAPIOperations(string(data)) {
+		if operation.Path == "" {
 			continue
 		}
-		if !openAPIPathExists(operations, path) {
-			t.Fatalf("frontend API adapter uses undocumented path %s", rawPath)
+		if !openAPIOperationExists(operations, operation) {
+			t.Fatalf("frontend API adapter uses undocumented operation %s %s", operation.Method, operation.Path)
+		}
+	}
+}
+
+type frontendAPIOperation struct {
+	Method string
+	Path   string
+}
+
+func TestFrontendAPIOperationsIncludeHTTPMethods(t *testing.T) {
+	source := `
+const api = {
+  current: () => request<UserSession>("/auth/session"),
+  update: () => request<UserSession>("/auth/password", { method: "PUT" }),
+  dynamic: (id: string) => request<void>(` + "`/sessions/${encodeURIComponent(id)}/revoke`" + `, {
+    method: "PUT"
+  })
+};
+`
+
+	operations := frontendAPIOperations(source)
+
+	expected := []frontendAPIOperation{
+		{Method: "GET", Path: "/auth/session"},
+		{Method: "PUT", Path: "/auth/password"},
+		{Method: "PUT", Path: "/sessions/{}/revoke"},
+	}
+	if len(operations) != len(expected) {
+		t.Fatalf("expected %#v, got %#v", expected, operations)
+	}
+	for index, operation := range expected {
+		if operations[index] != operation {
+			t.Fatalf("expected operation %d to be %#v, got %#v", index, operation, operations[index])
 		}
 	}
 }
@@ -86,32 +117,45 @@ func readOpenAPIOperations(t *testing.T) map[string]map[string]bool {
 	return operations
 }
 
-func frontendAPIPaths(source string) []string {
+func frontendAPIOperations(source string) []frontendAPIOperation {
 	seen := map[string]bool{}
-	paths := []string{}
-	for _, path := range extractRequestPaths(source) {
+	operations := []frontendAPIOperation{}
+	for _, operation := range extractRequestOperations(source) {
+		path := operation.Path
 		normalized := normalizeFrontendPath(path)
-		if normalized == "" || seen[normalized] {
+		if normalized == "" {
 			continue
 		}
-		seen[normalized] = true
-		paths = append(paths, normalized)
+		operation.Path = normalized
+		operation.Method = normalizeHTTPMethod(operation.Method)
+		key := operation.Method + " " + operation.Path
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		operations = append(operations, operation)
 	}
 
 	apiV1Literal := regexp.MustCompile("`/api/v1[^`]+`|\"/api/v1[^\"]+\"")
 	for _, match := range apiV1Literal.FindAllString(source, -1) {
 		normalized := normalizeFrontendPath(strings.Trim(match, "`\""))
-		if normalized == "" || seen[normalized] {
+		if normalized == "" {
 			continue
 		}
-		seen[normalized] = true
-		paths = append(paths, normalized)
+		operation := frontendAPIOperation{Method: "GET", Path: normalized}
+		key := operation.Method + " " + operation.Path
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		operations = append(operations, operation)
 	}
-	return paths
+	return operations
 }
 
-func extractRequestPaths(source string) []string {
-	paths := []string{}
+func extractRequestOperations(source string) []frontendAPIOperation {
+	methodPattern := regexp.MustCompile(`method:\s*["'](GET|POST|PUT|DELETE|PATCH)["']`)
+	paths := []frontendAPIOperation{}
 	searchFrom := 0
 	for {
 		index := strings.Index(source[searchFrom:], "request<")
@@ -137,7 +181,13 @@ func extractRequestPaths(source string) []string {
 		}
 		path, next := readQuotedPath(source, cursor, quote)
 		if strings.HasPrefix(path, "/") {
-			paths = append(paths, path)
+			method := "GET"
+			if callEnd := findCallEnd(source, index+argumentStart); callEnd > next {
+				if match := methodPattern.FindStringSubmatch(source[next:callEnd]); len(match) == 2 {
+					method = match[1]
+				}
+			}
+			paths = append(paths, frontendAPIOperation{Method: method, Path: path})
 		}
 		searchFrom = next
 	}
@@ -156,6 +206,46 @@ func readQuotedPath(source string, start int, quote byte) (string, int) {
 		builder.WriteByte(source[cursor])
 	}
 	return builder.String(), len(source)
+}
+
+func findCallEnd(source string, openParen int) int {
+	depth := 0
+	quote := byte(0)
+	for cursor := openParen; cursor < len(source); cursor++ {
+		current := source[cursor]
+		if quote != 0 {
+			if current == '\\' {
+				cursor++
+				continue
+			}
+			if current == quote {
+				quote = 0
+			}
+			continue
+		}
+		if current == '"' || current == '\'' || current == '`' {
+			quote = current
+			continue
+		}
+		switch current {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return cursor
+			}
+		}
+	}
+	return len(source)
+}
+
+func normalizeHTTPMethod(method string) string {
+	method = strings.ToUpper(strings.TrimSpace(method))
+	if method == "" {
+		return "GET"
+	}
+	return method
 }
 
 func normalizeFrontendPath(path string) string {
@@ -196,10 +286,10 @@ func stripTemplateExpressions(path string) string {
 	return builder.String()
 }
 
-func openAPIPathExists(operations map[string]map[string]bool, frontendPath string) bool {
+func openAPIOperationExists(operations map[string]map[string]bool, operation frontendAPIOperation) bool {
 	for contractPath := range operations {
-		if pathShapeMatches(contractPath, frontendPath) {
-			return true
+		if pathShapeMatches(contractPath, operation.Path) {
+			return operations[contractPath][operation.Method]
 		}
 	}
 	return false
@@ -214,8 +304,11 @@ func pathShapeMatches(contractPath, frontendPath string) bool {
 	for index := range contractParts {
 		contractDynamic := strings.HasPrefix(contractParts[index], "{") && strings.HasSuffix(contractParts[index], "}")
 		frontendDynamic := frontendParts[index] == "{}"
-		if contractDynamic || frontendDynamic {
+		if contractDynamic && frontendDynamic {
 			continue
+		}
+		if contractDynamic || frontendDynamic {
+			return false
 		}
 		if contractParts[index] != frontendParts[index] {
 			return false
