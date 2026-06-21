@@ -290,6 +290,54 @@ func TestChangePasswordEndpoint(t *testing.T) {
 	}
 }
 
+func TestLogoutRequiresCSRF(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	router := NewRouter(Config{SetupService: setup, AuthService: auth})
+	loginBody := bytes.NewBufferString(`{"username":"admin","password":"very-secure-password"}`)
+	loginRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", loginBody)
+	loginRequest.Header.Set("Content-Type", "application/json")
+	loginResponse := httptest.NewRecorder()
+	router.ServeHTTP(loginResponse, loginRequest)
+	if loginResponse.Code != http.StatusOK {
+		t.Fatalf("expected login success, got %d", loginResponse.Code)
+	}
+
+	logoutWithoutCSRF := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	for _, cookie := range loginResponse.Result().Cookies() {
+		logoutWithoutCSRF.AddCookie(cookie)
+	}
+	missingCSRFResponse := httptest.NewRecorder()
+	router.ServeHTTP(missingCSRFResponse, logoutWithoutCSRF)
+	if missingCSRFResponse.Code != http.StatusForbidden {
+		t.Fatalf("expected logout without csrf to be rejected, got %d", missingCSRFResponse.Code)
+	}
+
+	var session application.SessionView
+	if err := json.NewDecoder(loginResponse.Body).Decode(&session); err != nil {
+		t.Fatal(err)
+	}
+	logoutWithCSRF := httptest.NewRequest(http.MethodPost, "/api/v1/auth/logout", nil)
+	logoutWithCSRF.Header.Set("X-CSRF-Token", session.CSRFToken)
+	for _, cookie := range loginResponse.Result().Cookies() {
+		logoutWithCSRF.AddCookie(cookie)
+	}
+	successResponse := httptest.NewRecorder()
+	router.ServeHTTP(successResponse, logoutWithCSRF)
+	if successResponse.Code != http.StatusNoContent {
+		t.Fatalf("expected logout with csrf to succeed, got %d: %s", successResponse.Code, successResponse.Body.String())
+	}
+}
+
 func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 	db := testRouterDB(t)
 	setup := application.NewSetupService(db)

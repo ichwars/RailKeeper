@@ -3254,8 +3254,7 @@ func (a *App) csrf(next http.Handler) http.Handler {
 		if r.URL.Path == "/api/v1/setup/admin" ||
 			r.URL.Path == "/api/v1/auth/login" ||
 			r.URL.Path == "/api/v1/auth/password-reset" ||
-			r.URL.Path == "/api/v1/auth/password-reset/confirm" ||
-			r.URL.Path == "/api/v1/auth/logout" {
+			r.URL.Path == "/api/v1/auth/password-reset/confirm" {
 			next.ServeHTTP(w, r)
 			return
 		}
