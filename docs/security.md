@@ -31,7 +31,7 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 - attachment storage path confinement to the configured data directory
 - external article, image and document fetches require public HTTP(S) URLs and reject private, loopback, link-local, multicast and unspecified targets before redirects and TCP dial
 - static asset cache separation from API responses
-- security headers: `nosniff`, `same-origin` referrer policy, frame blocking, permissions policy and CSP
+- security headers: `nosniff`, `same-origin` referrer policy, frame blocking, CSP and permissions policy with camera limited to same-origin barcode scanning while microphone and geolocation stay disabled
 
 ## Operational Notes
 

@@ -51,6 +51,13 @@ func TestSecurityHeaders(t *testing.T) {
 	if !strings.Contains(headers.Get("Content-Security-Policy"), "frame-ancestors 'self'") {
 		t.Fatalf("missing same-origin frame ancestor policy")
 	}
+	permissionsPolicy := headers.Get("Permissions-Policy")
+	if !strings.Contains(permissionsPolicy, "camera=(self)") {
+		t.Fatalf("camera must be available to same-origin barcode scanner, got %q", permissionsPolicy)
+	}
+	if !strings.Contains(permissionsPolicy, "microphone=()") || !strings.Contains(permissionsPolicy, "geolocation=()") {
+		t.Fatalf("expected microphone and geolocation to stay disabled, got %q", permissionsPolicy)
+	}
 }
 
 func TestConfinedDataPathRejectsEscapes(t *testing.T) {
