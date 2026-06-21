@@ -72,8 +72,6 @@ type BackupValidationTable struct {
 }
 
 var backupTableOrder = []string{
-	"app_settings",
-	"user_settings",
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
@@ -94,8 +92,6 @@ var backupTableOrder = []string{
 }
 
 var optionalBackupTables = map[string]struct{}{
-	"app_settings":              {},
-	"user_settings":             {},
 	"exhibition_lists":          {},
 	"exhibition_entries":        {},
 	"file_blobs":                {},
@@ -155,12 +151,19 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		return nil, ErrBackupInvalid
 	}
 
+	stagedFiles, err := s.stageRestoreFiles(doc.Files)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = os.RemoveAll(stagedFiles.root) }()
+
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin backup restore: %w", err)
 	}
+	committed := false
 	defer func() {
-		if err != nil {
+		if !committed {
 			_ = tx.Rollback()
 		}
 	}()
@@ -194,15 +197,17 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		result.RestoredTables++
 	}
 
-	if err = tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit backup restore: %w", err)
-	}
-
-	restoredFiles, err := s.restoreFiles(doc.Files)
+	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
 		return nil, err
 	}
-	result.RestoredFiles = restoredFiles
+	if err = tx.Commit(); err != nil {
+		uploadsSwap.rollback()
+		return nil, fmt.Errorf("commit backup restore: %w", err)
+	}
+	committed = true
+	uploadsSwap.cleanup()
+	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
 }
@@ -364,46 +369,123 @@ func (s *BackupService) exportFiles() ([]BackupFile, error) {
 	return files, nil
 }
 
-func (s *BackupService) restoreFiles(files []BackupFile) (int, error) {
-	uploadsDir := filepath.Join(s.dataDir, "uploads")
-	if err := os.RemoveAll(uploadsDir); err != nil {
-		return 0, fmt.Errorf("clear uploads: %w", err)
+type stagedRestoreFiles struct {
+	root          string
+	uploadsDir    string
+	restoredFiles int
+}
+
+func (s *BackupService) stageRestoreFiles(files []BackupFile) (*stagedRestoreFiles, error) {
+	if err := os.MkdirAll(s.dataDir, 0o755); err != nil {
+		return nil, fmt.Errorf("prepare restore data directory: %w", err)
+	}
+	root := filepath.Join(s.dataDir, ".restore-staging-"+randomID())
+	uploadsDir := filepath.Join(root, "uploads")
+	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create restore staging directory: %w", err)
 	}
 
-	restored := 0
+	staged := &stagedRestoreFiles{root: root, uploadsDir: uploadsDir}
+	cleanup := true
+	defer func() {
+		if cleanup {
+			_ = os.RemoveAll(root)
+		}
+	}()
+
 	for _, file := range files {
 		if err := validateBackupFilePath(file.Path); err != nil {
-			return restored, err
+			return nil, err
 		}
 		data, err := base64.StdEncoding.DecodeString(file.ContentBase64)
 		if err != nil {
-			return restored, ErrBackupInvalid
+			return nil, ErrBackupInvalid
 		}
 		sum := sha256.Sum256(data)
 		if file.SHA256 != "" && !strings.EqualFold(file.SHA256, hex.EncodeToString(sum[:])) {
-			return restored, ErrBackupInvalid
+			return nil, ErrBackupInvalid
 		}
-		target := filepath.Join(s.dataDir, filepath.FromSlash(file.Path))
-		base, err := filepath.Abs(s.dataDir)
+		relative := strings.TrimPrefix(pathClean(file.Path), "uploads/")
+		absTarget, err := confinedChildPath(uploadsDir, relative)
 		if err != nil {
-			return restored, err
-		}
-		absTarget, err := filepath.Abs(target)
-		if err != nil {
-			return restored, err
-		}
-		if absTarget != base && !strings.HasPrefix(absTarget, base+string(os.PathSeparator)) {
-			return restored, ErrBackupPath
+			return nil, err
 		}
 		if err := os.MkdirAll(filepath.Dir(absTarget), 0o755); err != nil {
-			return restored, fmt.Errorf("create restore directory: %w", err)
+			return nil, fmt.Errorf("create restore staging directory: %w", err)
 		}
 		if err := os.WriteFile(absTarget, data, 0o600); err != nil {
-			return restored, fmt.Errorf("restore file: %w", err)
+			return nil, fmt.Errorf("stage restore file: %w", err)
 		}
-		restored++
+		staged.restoredFiles++
 	}
-	return restored, nil
+	cleanup = false
+	return staged, nil
+}
+
+type uploadsRestoreSwap struct {
+	uploadsDir string
+	backupDir  string
+	hadUploads bool
+	replaced   bool
+}
+
+func (s *BackupService) replaceUploadsWithStaged(staged *stagedRestoreFiles) (*uploadsRestoreSwap, error) {
+	uploadsDir := filepath.Join(s.dataDir, "uploads")
+	swap := &uploadsRestoreSwap{
+		uploadsDir: uploadsDir,
+		backupDir:  filepath.Join(s.dataDir, ".restore-uploads-backup-"+randomID()),
+	}
+
+	if _, err := os.Stat(uploadsDir); err == nil {
+		swap.hadUploads = true
+		if err := os.Rename(uploadsDir, swap.backupDir); err != nil {
+			return nil, fmt.Errorf("stage current uploads: %w", err)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return nil, fmt.Errorf("inspect uploads directory: %w", err)
+	}
+
+	if err := os.Rename(staged.uploadsDir, uploadsDir); err != nil {
+		if swap.hadUploads {
+			_ = os.Rename(swap.backupDir, uploadsDir)
+		}
+		return nil, fmt.Errorf("activate restored uploads: %w", err)
+	}
+	swap.replaced = true
+	return swap, nil
+}
+
+func (s *uploadsRestoreSwap) rollback() {
+	if s == nil || !s.replaced {
+		return
+	}
+	_ = os.RemoveAll(s.uploadsDir)
+	if s.hadUploads {
+		_ = os.Rename(s.backupDir, s.uploadsDir)
+	}
+}
+
+func (s *uploadsRestoreSwap) cleanup() {
+	if s == nil || !s.hadUploads {
+		return
+	}
+	_ = os.RemoveAll(s.backupDir)
+}
+
+func confinedChildPath(baseDir, relativePath string) (string, error) {
+	base, err := filepath.Abs(baseDir)
+	if err != nil {
+		return "", err
+	}
+	target := filepath.Join(baseDir, filepath.FromSlash(relativePath))
+	absTarget, err := filepath.Abs(target)
+	if err != nil {
+		return "", err
+	}
+	if absTarget != base && !strings.HasPrefix(absTarget, base+string(os.PathSeparator)) {
+		return "", ErrBackupPath
+	}
+	return absTarget, nil
 }
 
 func tableColumns(ctx context.Context, tx *sql.Tx, table string) (map[string]bool, error) {

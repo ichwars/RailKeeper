@@ -170,6 +170,58 @@ func TestBackupExcludesAuthenticationTables(t *testing.T) {
 	}
 }
 
+func TestBackupExcludesLocalSettingsAndCredentials(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	setup := application.NewSetupService(db)
+	if err := setup.CreateAdmin(ctx, application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var userID string
+	if err := db.QueryRowContext(ctx, `SELECT id FROM users WHERE username='admin'`).Scan(&userID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO app_settings(key, value, updated_at)
+VALUES
+  ('smtp.password', 'secret-smtp-password', '2026-06-21T00:00:00Z'),
+  ('digital.ecos.host', '192.168.178.44', '2026-06-21T00:00:00Z')
+`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO user_settings(user_id, key, value, updated_at)
+VALUES(?, 'sidebar.order', '["settings","vehicles"]', '2026-06-21T00:00:00Z')
+`, userID); err != nil {
+		t.Fatal(err)
+	}
+
+	backupService := application.NewBackupService(db, dataDir)
+	backup, err := backupService.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"app_settings", "user_settings"} {
+		if _, ok := backup.Tables[table]; ok {
+			t.Fatalf("backup should not export local settings table %q", table)
+		}
+	}
+	data, err := json.Marshal(backup)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{"smtp.password", "secret-smtp-password", "digital.ecos.host", "192.168.178.44", "sidebar.order"} {
+		if strings.Contains(string(data), secret) {
+			t.Fatalf("backup should not contain local setting %q", secret)
+		}
+	}
+}
+
 func TestBackupCoversAllApplicationDataTables(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -192,6 +244,7 @@ ORDER BY name
 	defer func() { _ = rows.Close() }()
 
 	excluded := map[string]bool{
+		"app_settings":            true,
 		"audit_logs":              true,
 		"password_reset_requests": true,
 		"rate_limit_attempts":     true,
@@ -199,6 +252,7 @@ ORDER BY name
 		"schema_migrations":       true,
 		"sessions":                true,
 		"user_roles":              true,
+		"user_settings":           true,
 		"users":                   true,
 	}
 	for rows.Next() {
@@ -247,6 +301,8 @@ func TestBackupValidationWarnsAboutIgnoredAuthenticationTables(t *testing.T) {
 		doc.Tables[table] = []map[string]any{}
 	}
 	doc.Tables["users"] = []map[string]any{{"id": "user-1", "password_hash": "secret"}}
+	doc.Tables["app_settings"] = []map[string]any{{"key": "smtp.password", "value": "secret"}}
+	doc.Tables["user_settings"] = []map[string]any{{"user_id": "user-1", "key": "sidebar.order", "value": "[]"}}
 
 	result, err := service.Validate(context.Background(), doc)
 	if err != nil {
@@ -257,6 +313,9 @@ func TestBackupValidationWarnsAboutIgnoredAuthenticationTables(t *testing.T) {
 	}
 	if !containsWarning(result.Warnings, "Unbekannte Tabelle users") {
 		t.Fatalf("expected ignored users table warning, got %#v", result.Warnings)
+	}
+	if !containsWarning(result.Warnings, "Unbekannte Tabelle app_settings") || !containsWarning(result.Warnings, "Unbekannte Tabelle user_settings") {
+		t.Fatalf("expected ignored local settings table warning, got %#v", result.Warnings)
 	}
 }
 
@@ -299,6 +358,81 @@ func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	}
 }
 
+func TestBackupRestoreLeavesDatabaseAndUploadsUntouchedWhenFileStagingFails(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	vehicles := application.NewVehicleService(db)
+	existing, err := vehicles.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko",
+		Name:         "Bestehende Lok",
+		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	existingUpload := filepath.Join(dataDir, "uploads", "vehicles", existing.ID, "manual.pdf")
+	if err := os.MkdirAll(filepath.Dir(existingUpload), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(existingUpload, []byte("existing manual"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vehicleRows := backup.Tables["vehicles"]
+	if len(vehicleRows) != 1 {
+		t.Fatalf("expected exported vehicle row, got %#v", vehicleRows)
+	}
+	restoredRow := map[string]any{}
+	for key, value := range vehicleRows[0] {
+		restoredRow[key] = value
+	}
+	restoredRow["id"] = "restored-vehicle"
+	restoredRow["name"] = "Restored Lok"
+	backup.Tables["vehicles"] = []map[string]any{restoredRow}
+	backup.Files = []application.BackupFile{
+		{
+			Path:          "uploads/conflict",
+			SizeBytes:     4,
+			ContentBase64: "ZmlsZQ==",
+		},
+		{
+			Path:          "uploads/conflict/nested.txt",
+			SizeBytes:     6,
+			ContentBase64: "bmVzdGVk",
+		},
+	}
+
+	_, err = service.Import(ctx, backup)
+	if err == nil {
+		t.Fatal("expected conflicting backup file paths to fail restore")
+	}
+	restored, err := vehicles.Get(ctx, existing.ID)
+	if err != nil {
+		t.Fatalf("existing vehicle should remain after failed restore: %v", err)
+	}
+	if restored.Name != "Bestehende Lok" {
+		t.Fatalf("existing vehicle changed after failed restore: %#v", restored)
+	}
+	if _, err := vehicles.Get(ctx, "restored-vehicle"); !errors.Is(err, application.ErrVehicleNotFound) {
+		t.Fatalf("restored vehicle should not be committed after failed restore, got %v", err)
+	}
+	data, err := os.ReadFile(existingUpload)
+	if err != nil {
+		t.Fatalf("existing upload should remain after failed restore: %v", err)
+	}
+	if string(data) != "existing manual" {
+		t.Fatalf("existing upload changed after failed restore: %q", string(data))
+	}
+}
+
 func TestBackupValidationReportsIncompatibleDocuments(t *testing.T) {
 	db := testDB(t)
 	service := application.NewBackupService(db, t.TempDir())
@@ -335,7 +469,6 @@ func backupDocumentTablesWithout(excludedTables ...string) map[string][]map[stri
 	}
 	tables := map[string][]map[string]any{}
 	for _, table := range []string{
-		"app_settings",
 		"master_data_entries",
 		"master_data_relations",
 		"inventory_number_schemes",

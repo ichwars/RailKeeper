@@ -7,7 +7,7 @@ Dieses Runbook beschreibt den sicheren Betrieb einer kleinen RailKeeper-Installa
 - RailKeeper läuft als einzelner Container hinter einem Reverse Proxy mit HTTPS.
 - SQLite-Datenbank, Uploads und Backups liegen im persistenten Docker-Volume `railkeeper_data` oder in einem explizit gesicherten Host-Verzeichnis.
 - Updates werden über GHCR-Images bezogen und erst nach Backup und kurzem Smoke-Test produktiv genutzt.
-- Benutzer, Sessions, Rate Limits und Audit Logs bleiben lokal und werden nicht über App-Backups wiederhergestellt.
+- Benutzer, Sessions, Rate Limits, Audit Logs und lokale Einstellungen bleiben lokal und werden nicht über App-Backups wiederhergestellt.
 
 ## Erstinstallation
 
@@ -63,7 +63,7 @@ Regelmäßiger Ablauf:
 Restore-Grundsätze:
 
 - App-Backups importieren Fahrzeug-, Stammdaten-, Wartungs-, CV-, Upload- und Ausstellungsdaten.
-- Lokale Benutzer, Rollen, Sessions, Rate Limits, Audit Logs und Passwort-Hashes werden bewusst nicht importiert.
+- Lokale Benutzer, Rollen, Sessions, Rate Limits, Audit Logs, Passwort-Hashes, SMTP-/System- und Benutzereinstellungen werden bewusst nicht importiert.
 - Vor Restore immer die Backup-Validierung ausführen.
 - Restore nur mit bewusst bestätigter, aktueller Sicherung durchführen.
 
