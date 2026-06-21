@@ -20,6 +20,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"railkeeper/backend/internal/safefetch"
 )
 
 var ErrArticleSearchValidation = errors.New("article search validation failed")
@@ -124,7 +126,7 @@ func NewArticleSearchService(masterData ...*MasterDataService) *ArticleSearchSer
 	}
 	return &ArticleSearchService{
 		adapters: []ArticleSearchAdapter{
-			NewDuckDuckGoArticleSearchAdapter(http.DefaultClient),
+			NewDuckDuckGoArticleSearchAdapter(nil),
 		},
 		timeout:    10 * time.Second,
 		masterData: masterDataService,
@@ -380,7 +382,7 @@ type DuckDuckGoArticleSearchAdapter struct {
 
 func NewDuckDuckGoArticleSearchAdapter(client *http.Client) *DuckDuckGoArticleSearchAdapter {
 	if client == nil {
-		client = http.DefaultClient
+		client = safefetch.NewHTTPClient(context.Background(), safefetch.Options{Timeout: 10 * time.Second})
 	}
 	return &DuckDuckGoArticleSearchAdapter{client: client}
 }
@@ -540,7 +542,7 @@ func (s *ArticleSearchService) searchPikoSpareParts(ctx context.Context, input A
 	if searchText == "" {
 		return nil
 	}
-	client := http.DefaultClient
+	client := safefetch.NewHTTPClient(ctx, safefetch.Options{Timeout: 10 * time.Second})
 	searchURL := "https://www.piko-shop.de/de/artikel/ersatzteil/xref_suchtext-" + url.PathEscape(searchText) + ".html"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
 	if err != nil {
@@ -587,7 +589,7 @@ func (s *ArticleSearchService) searchRocoSpareParts(ctx context.Context, input A
 	if searchText == "" {
 		return nil
 	}
-	client := http.DefaultClient
+	client := safefetch.NewHTTPClient(ctx, safefetch.Options{Timeout: 10 * time.Second})
 	searchURL := "https://www.roco.cc/rde/ersatzteile?et=" + url.QueryEscape(searchText)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, searchURL, nil)
 	if err != nil {
@@ -1256,6 +1258,9 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticlePage(ctx context.Context, p
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
 		return "", "", fmt.Errorf("invalid article page url")
 	}
+	if !safefetch.IsPublicHTTPURL(ctx, pageURL) {
+		return "", "", fmt.Errorf("article page url is not public http(s)")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, pageURL, nil)
 	if err != nil {
 		return "", "", err
@@ -1400,6 +1405,9 @@ func (a *DuckDuckGoArticleSearchAdapter) fetchArticleDocument(ctx context.Contex
 	parsed, err := url.Parse(documentURL)
 	if err != nil || parsed.Scheme == "" || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 		return nil, fmt.Errorf("invalid article document url")
+	}
+	if !safefetch.IsPublicHTTPURL(ctx, documentURL) {
+		return nil, fmt.Errorf("article document url is not public http(s)")
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, documentURL, nil)
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -107,22 +108,34 @@ func TestAttachmentSafetyHelpers(t *testing.T) {
 }
 
 func TestRemoteDocumentHTTPClientDoesNotFollowPrivateRedirect(t *testing.T) {
+	client := remoteDocumentHTTPClient(t.Context())
+	initial := httptest.NewRequest(http.MethodGet, "https://example.com/manual.pdf", nil)
+	redirect := httptest.NewRequest(http.MethodGet, "http://127.0.0.1/private.pdf", nil)
+
+	err := client.CheckRedirect(redirect, []*http.Request{initial})
+	if !errors.Is(err, http.ErrUseLastResponse) {
+		t.Fatalf("expected private redirect to be returned without following, got %v", err)
+	}
+}
+
+func TestRemoteDocumentHTTPClientRejectsPrivateInitialURLBeforeRequest(t *testing.T) {
+	requested := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "http://127.0.0.1/private.pdf", http.StatusFound)
+		requested = true
+		_, _ = w.Write([]byte("private document"))
 	}))
 	defer server.Close()
 
 	client := remoteDocumentHTTPClient(t.Context())
 	resp, err := client.Get(server.URL)
-	if err != nil {
-		t.Fatalf("unexpected client error: %v", err)
+	if resp != nil {
+		defer func() { _ = resp.Body.Close() }()
 	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.Request.URL.String() != server.URL {
-		t.Fatalf("client followed private redirect to %s", resp.Request.URL.String())
+	if err == nil {
+		t.Fatal("expected private document URL to be rejected")
 	}
-	if resp.StatusCode != http.StatusFound {
-		t.Fatalf("expected redirect response to be returned, got %d", resp.StatusCode)
+	if requested {
+		t.Fatal("private document URL should not be requested")
 	}
 }
 

@@ -29,6 +29,7 @@ import (
 	_ "golang.org/x/image/webp"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/safefetch"
 )
 
 type Config struct {
@@ -1577,54 +1578,11 @@ func attachmentCategoryForRemoteDocument(fileName, title string) string {
 }
 
 func isPublicImageURL(ctx context.Context, value string) bool {
-	parsed, err := url.Parse(value)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Hostname() == "" {
-		return false
-	}
-	host := strings.ToLower(parsed.Hostname())
-	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
-		return false
-	}
-	if ip := net.ParseIP(host); ip != nil {
-		return isPublicIP(ip)
-	}
-	lookupCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
-	addresses, err := net.DefaultResolver.LookupIPAddr(lookupCtx, host)
-	if err != nil || len(addresses) == 0 {
-		return false
-	}
-	for _, address := range addresses {
-		if !isPublicIP(address.IP) {
-			return false
-		}
-	}
-	return true
-}
-
-func isPublicIP(ip net.IP) bool {
-	return ip != nil &&
-		!ip.IsLoopback() &&
-		!ip.IsPrivate() &&
-		!ip.IsLinkLocalUnicast() &&
-		!ip.IsLinkLocalMulticast() &&
-		!ip.IsMulticast() &&
-		!ip.IsUnspecified()
+	return safefetch.IsPublicHTTPURL(ctx, value)
 }
 
 func remoteDocumentHTTPClient(ctx context.Context) *http.Client {
-	return &http.Client{
-		Timeout: 10 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if len(via) >= 5 {
-				return http.ErrUseLastResponse
-			}
-			if !isPublicImageURL(ctx, req.URL.String()) {
-				return http.ErrUseLastResponse
-			}
-			return nil
-		},
-	}
+	return safefetch.NewHTTPClient(ctx, safefetch.Options{Timeout: 10 * time.Second, MaxRedirects: 5})
 }
 
 func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {

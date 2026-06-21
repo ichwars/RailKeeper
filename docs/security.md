@@ -29,6 +29,7 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 - executable attachment extension blocklist
 - server-side MIME detection for attachments
 - attachment storage path confinement to the configured data directory
+- external article, image and document fetches require public HTTP(S) URLs and reject private, loopback, link-local, multicast and unspecified targets before redirects and TCP dial
 - static asset cache separation from API responses
 - security headers: `nosniff`, `same-origin` referrer policy, frame blocking, permissions policy and CSP
 

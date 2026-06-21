@@ -2,6 +2,8 @@ package application
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -87,6 +89,44 @@ func TestArticleSearchResponseIncludesSearchTrace(t *testing.T) {
 func TestArticleSearchDetailLoadErrorMessage(t *testing.T) {
 	if detailLoadError(nil, "") != "empty response" {
 		t.Fatalf("expected empty response marker")
+	}
+}
+
+func TestArticleSearchFetchPageRejectsPrivateURLBeforeRequest(t *testing.T) {
+	requested := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = true
+		_, _ = w.Write([]byte("<html><title>private</title></html>"))
+	}))
+	defer server.Close()
+
+	adapter := NewDuckDuckGoArticleSearchAdapter(server.Client())
+	body, finalURL, err := adapter.fetchArticlePage(t.Context(), server.URL)
+
+	if err == nil {
+		t.Fatalf("expected private article page URL to be rejected, got body=%q finalURL=%q", body, finalURL)
+	}
+	if requested {
+		t.Fatal("private article page URL should not be requested")
+	}
+}
+
+func TestArticleSearchFetchDocumentRejectsPrivateURLBeforeRequest(t *testing.T) {
+	requested := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requested = true
+		_, _ = w.Write([]byte("%PDF-1.7"))
+	}))
+	defer server.Close()
+
+	adapter := NewDuckDuckGoArticleSearchAdapter(server.Client())
+	data, err := adapter.fetchArticleDocument(t.Context(), server.URL+"/manual.pdf")
+
+	if err == nil {
+		t.Fatalf("expected private article document URL to be rejected, got %d bytes", len(data))
+	}
+	if requested {
+		t.Fatal("private article document URL should not be requested")
 	}
 }
 
