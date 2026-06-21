@@ -2580,7 +2580,7 @@ paths:
       summary: Export a local RailKeeper backup
       responses:
         "200":
-          description: Backup JSON containing app data and upload files. Local users, sessions, rate limits, audit logs and password hashes are excluded.
+          description: Backup JSON containing app data and upload files. Local users, sessions, rate limits, audit logs, password hashes, app settings and user settings are excluded.
           content:
             application/json:
               schema:
