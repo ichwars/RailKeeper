@@ -14,6 +14,7 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,
+    maxWorkers: 1,
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

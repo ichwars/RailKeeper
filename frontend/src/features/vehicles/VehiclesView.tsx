@@ -1,4 +1,4 @@
-import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
 
@@ -136,17 +136,7 @@ import {
 
 import type { CVFileUploadPreview, CVImportPreview } from "./cvImport";
 
-import {
-
-  attachmentCategoryForFile,
-
-  isAllowedImageFile,
-
-  isBlockedAttachmentFile,
-
-  isBlockedCVFile
-
-} from "./vehicleFiles";
+import { isBlockedCVFile } from "./vehicleFiles";
 
 import {
 
@@ -162,8 +152,6 @@ import { InventoryReportAssets, inventoryReportHtml, openPrintDocument, reserveP
 
 import {
 
-  attachmentsToEditState,
-
   functionsToEditState,
 
   normalizedText,
@@ -174,11 +162,7 @@ import {
 
   primaryImage,
 
-  uploadedImageToPending,
-
   vehicleExhibitionEligible,
-
-  vehicleImagesToPending,
 
   vehicleToExhibitionEntry,
 
@@ -186,7 +170,7 @@ import {
 
 } from "./vehicleTransforms";
 
-import type { AttachmentEditState, FunctionEditState } from "./vehicleTransforms";
+import type { FunctionEditState } from "./vehicleTransforms";
 
 
 
@@ -234,6 +218,7 @@ import {
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
 import { useVehicleEditorController } from "./useVehicleEditorController";
 import { useArticleSearchController } from "./useArticleSearchController";
+import { useVehicleMediaController } from "./useVehicleMediaController";
 
 import type {
 
@@ -254,8 +239,6 @@ import type {
   MaintenanceFilter,
 
   MasterDataOptions,
-
-  ModalMode,
 
   ModalTab,
 
@@ -280,21 +263,6 @@ export function VehiclesView({ username }: { username: string }) {
   const [loading, setLoading] = useState(false);
 
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
-  const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
-  const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
-
-  const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
-
-  const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
-
-  const [imageUploadMaintenanceID, setImageUploadMaintenanceID] = useState("");
-
-  const [attachmentUploadCategory, setAttachmentUploadCategory] = useState("");
-
-  const [attachmentUploadDescription, setAttachmentUploadDescription] = useState("");
-
-  const [attachmentDragActive, setAttachmentDragActive] = useState(false);
-
   const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
 
   const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
@@ -361,10 +329,6 @@ export function VehiclesView({ username }: { username: string }) {
   const [ecosDraft, setEcosDraft] = useState<ECoSVehicleDraftPayload | null>(null);
 
   const [ecosUnclearFields, setEcosUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
-
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-
-  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
 
   const cvFileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -438,13 +402,7 @@ export function VehiclesView({ username }: { username: string }) {
     onReset: (reason) => {
       setEcosDraft(null);
       setEcosUnclearFields(new Set());
-      setPendingArticleImages([]);
-      setAttachmentEdits({});
-      setImageUploadMaintenanceID("");
-      setAttachmentUploadCategory("");
-      setAttachmentUploadDescription("");
-      setAttachmentDragActive(false);
-      setAttachmentDeleteCandidate(null);
+      resetVehicleMedia(reason === "close");
       setFunctionEdits({});
       resetMaintenanceForm();
       resetSparePartForm();
@@ -453,13 +411,11 @@ export function VehiclesView({ username }: { username: string }) {
       resetCVForm();
       setCVImportPreview(null);
       setCVFileUploadPreview(null);
-      if (reason === "close") setPreviewImage(null);
     },
     onDetailLoaded: (detail) => {
       setEcosDraft(null);
       setEcosUnclearFields(new Set());
-      setPendingArticleImages(vehicleImagesToPending(detail));
-      setAttachmentEdits(attachmentsToEditState(detail.attachments));
+      loadVehicleMedia(detail);
       setFunctionEdits(functionsToEditState(detail.functions));
       setEditingMaintenanceID(null);
       setMaintenanceForm(emptyMaintenanceForm);
@@ -473,6 +429,57 @@ export function VehiclesView({ username }: { username: string }) {
       setCVForm(emptyCVForm);
       setCVImportPreview(null);
       setCVFileUploadPreview(null);
+    }
+  });
+  const {
+    state: {
+      attachmentDeleteCandidate,
+      pendingImages: pendingArticleImages,
+      previewImage,
+      attachmentEdits,
+      imageUploadMaintenanceId: imageUploadMaintenanceID,
+      attachmentUploadCategory,
+      attachmentUploadDescription,
+      attachmentDragActive
+    },
+    refs: { imageInputRef, attachmentInputRef },
+    setters: {
+      setAttachmentDeleteCandidate,
+      setPendingImages: setPendingArticleImages,
+      setPreviewImage,
+      setAttachmentEdits,
+      setImageUploadMaintenanceId: setImageUploadMaintenanceID,
+      setAttachmentUploadCategory,
+      setAttachmentUploadDescription,
+      setAttachmentDragActive
+    },
+    commands: {
+      reset: resetVehicleMedia,
+      loadDetail: loadVehicleMedia,
+      addImages: addPendingImages,
+      setPrimaryPendingImage,
+      updatePendingImageTitle,
+      updatePendingImageMaintenance,
+      movePendingImage,
+      removePendingImage,
+      uploadImages,
+      uploadAttachment,
+      onAttachmentDrag,
+      onAttachmentDrop,
+      updateAttachmentEdit,
+      saveAttachment,
+      deleteAttachment
+    }
+  } = useVehicleMediaController({
+    selected,
+    readonly,
+    saving,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    onImageUploadComplete: () => {
+      setCVFileProfile("");
+      setCVFileDescription("");
     }
   });
   const {
@@ -506,16 +513,7 @@ export function VehiclesView({ username }: { username: string }) {
     updateForm: update,
     onMessage: setMessage,
     t,
-    addImages: (images) => {
-      setPendingArticleImages((current) => {
-        const existing = new Set(current.map((image) => image.url));
-        const next = [...current, ...images.filter((image) => !existing.has(image.url))];
-        if (!next.some((image) => image.isPrimary) && next.length > 0) {
-          next[0] = { ...next[0], isPrimary: true };
-        }
-        return next;
-      });
-    }
+    addImages: addPendingImages
   });
   const {
     allVisibleSelected,
@@ -1024,112 +1022,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const setPrimaryPendingImage = (id: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === id })));
-
-  };
-
-
-
-  const updatePendingImageTitle = (id: string, title: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, title } : image)));
-
-  };
-
-
-
-  const updatePendingImageMaintenance = (id: string, maintenanceId: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, maintenanceId } : image)));
-
-  };
-
-
-
-  const movePendingImage = (id: string, direction: -1 | 1) => {
-
-    setPendingArticleImages((current) => {
-
-      const index = current.findIndex((image) => image.id === id);
-
-      const target = index + direction;
-
-      if (index < 0 || target < 0 || target >= current.length) return current;
-
-      const next = [...current];
-
-      [next[index], next[target]] = [next[target], next[index]];
-
-      return next;
-
-    });
-
-  };
-
-
-
-  const removePendingImage = (image: PendingArticleImage) => {
-
-    if (image.maintenanceId) {
-
-      setMessage("Bild ist mit einer Wartung verkn?pft. Bitte zuerst die Verkn?pfung entfernen und speichern.");
-
-      return;
-
-    }
-
-    const removeFromState = () => {
-
-      setPendingArticleImages((current) => {
-
-        const next = current.filter((entry) => entry.id !== image.id);
-
-        if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
-
-          next[0] = { ...next[0], isPrimary: true };
-
-        }
-
-        return next;
-
-      });
-
-    };
-
-
-
-    if (selected && image.persisted) {
-
-      setSaving(true);
-
-      api
-
-        .deleteVehicleImage(selected.id, image.id)
-
-        .then(() => {
-
-          removeFromState();
-
-          refreshSelectedVehicle(selected.id);
-
-        })
-
-        .catch((error: Error) => setMessage(error.message))
-
-        .finally(() => setSaving(false));
-
-      return;
-
-    }
-
-    removeFromState();
-
-  };
-
-
-
   const refreshSelectedVehicle = (vehicleID = selected?.id) => {
 
     if (!vehicleID) return Promise.resolve();
@@ -1147,249 +1039,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const uploadImages = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const invalid = uploadFiles.find((file) => !isAllowedImageFile(file));
-
-    if (invalid) {
-
-      setMessage(`${invalid.name} ist kein erlaubtes Bildformat.`);
-
-      if (imageInputRef.current) {
-
-        imageInputRef.current.value = "";
-
-      }
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        const image = await api.uploadVehicleImage(selected.id, file, file.name, pendingArticleImages.length === 0, imageUploadMaintenanceID);
-
-        setPendingArticleImages((current) => {
-
-          const next = [...current, uploadedImageToPending(image)];
-
-          if (!next.some((entry) => entry.isPrimary) && next.length > 0) {
-
-            next[0] = { ...next[0], isPrimary: true };
-
-          }
-
-          return next;
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVFileProfile("");
-
-        setCVFileDescription("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (imageInputRef.current) {
-
-          imageInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const uploadAttachment = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const blocked = uploadFiles.find(isBlockedAttachmentFile);
-
-    if (blocked) {
-
-      setMessage(`${blocked.name} ist als Beilage nicht erlaubt. Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.`);
-
-      if (attachmentInputRef.current) {
-
-        attachmentInputRef.current.value = "";
-
-      }
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        await api.uploadVehicleAttachment(
-
-          selected.id,
-
-          file,
-
-          attachmentUploadCategory || attachmentCategoryForFile(file),
-
-          attachmentUploadDescription,
-
-          ""
-
-        );
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (attachmentInputRef.current) {
-
-          attachmentInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const onAttachmentDrag = (event: DragEvent<HTMLElement>) => {
-
-    event.preventDefault();
-
-    event.stopPropagation();
-
-    if (readonly || !selected || saving) return;
-
-    setAttachmentDragActive(event.type === "dragenter" || event.type === "dragover");
-
-  };
-
-
-
-  const onAttachmentDrop = (event: DragEvent<HTMLElement>) => {
-
-    event.preventDefault();
-
-    event.stopPropagation();
-
-    setAttachmentDragActive(false);
-
-    if (readonly || !selected || saving) return;
-
-    uploadAttachment(event.dataTransfer.files);
-
-  };
-
-
-
-  const updateAttachmentEdit = (attachmentID: string, patch: Partial<{ description: string; category: string; maintenanceId: string }>) => {
-
-    setAttachmentEdits((current) => ({
-
-      ...current,
-
-      [attachmentID]: {
-
-        description: current[attachmentID]?.description || "",
-
-        category: current[attachmentID]?.category || "",
-
-        maintenanceId: current[attachmentID]?.maintenanceId || "",
-
-        ...patch
-
-      }
-
-    }));
-
-  };
-
-
-
-  const saveAttachment = (attachment: VehicleAttachment) => {
-
-    if (!selected) return;
-
-    const edit = attachmentEdits[attachment.id] || { description: "", category: "", maintenanceId: "" };
-
-    setSaving(true);
-
-    api
-
-      .updateVehicleAttachment(selected.id, attachment.id, edit)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteAttachment = (attachment: VehicleAttachment) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-    setAttachmentDeleteCandidate(null);
-
-    api
-
-      .deleteVehicleAttachment(selected.id, attachment.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
 
   };
 
