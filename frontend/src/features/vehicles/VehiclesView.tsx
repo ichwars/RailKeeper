@@ -60,12 +60,6 @@ import {
 
   VehicleAttachment,
 
-  VehicleCVFile,
-
-  VehicleCVValue,
-
-  VehicleCVValueInput,
-
   VehicleExternalMappingInput,
 
   VehicleFunctionInput,
@@ -102,27 +96,15 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 
 import {
 
-  buildCVImportPreview,
-
-  commonDecoderProfiles,
-
   cvValueKey,
-
-  cvValuesFromImport,
 
   functionKeys,
 
   functionMappingsFromImport,
 
-  isValidCVValueInput,
-
   isValidFunctionMapping
 
 } from "./cvImport";
-
-import type { CVFileUploadPreview, CVImportPreview } from "./cvImport";
-
-import { isBlockedCVFile } from "./vehicleFiles";
 
 import { maintenanceIsDue } from "./vehicleMaintenance";
 
@@ -162,8 +144,6 @@ import {
 
   compactValue,
 
-  emptyCVForm,
-
   emptyFunctionEdit,
 
   emptyOptions,
@@ -197,6 +177,8 @@ import { useArticleSearchController } from "./useArticleSearchController";
 import { useVehicleMediaController } from "./useVehicleMediaController";
 import { useVehicleMaintenanceController } from "./useVehicleMaintenanceController";
 import { useVehicleSparePartsController } from "./useVehicleSparePartsController";
+import { useVehicleCVController } from "./useVehicleCVController";
+import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
 
 import type {
 
@@ -254,25 +236,9 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [showConfiguredFunctionsOnly, setShowConfiguredFunctionsOnly] = useState(false);
 
-  const [cvForm, setCVForm] = useState<VehicleCVValueInput>(emptyCVForm);
-
-  const [editingCVID, setEditingCVID] = useState<string | null>(null);
-
-  const [cvFileProfile, setCVFileProfile] = useState("");
-
-  const [cvFileDescription, setCVFileDescription] = useState("");
-
-  const [cvImportPreview, setCVImportPreview] = useState<CVImportPreview | null>(null);
-
-  const [cvFileUploadPreview, setCVFileUploadPreview] = useState<CVFileUploadPreview | null>(null);
-
   const [ecosDraft, setEcosDraft] = useState<ECoSVehicleDraftPayload | null>(null);
 
   const [ecosUnclearFields, setEcosUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
-
-  const cvFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const cvImportInputRef = useRef<HTMLInputElement | null>(null);
 
   const functionImportInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -346,9 +312,8 @@ export function VehiclesView({ username }: { username: string }) {
       resetSparePartForm();
       resetSparePartSearch();
       resetUploadDocumentSearch();
-      resetCVForm();
-      setCVImportPreview(null);
-      setCVFileUploadPreview(null);
+      resetCVController();
+      resetDecoderFiles();
     },
     onDetailLoaded: (detail) => {
       setEcosDraft(null);
@@ -357,10 +322,8 @@ export function VehiclesView({ username }: { username: string }) {
       setFunctionEdits(functionsToEditState(detail.functions));
       resetMaintenanceForm();
       resetSparePartDetail();
-      setEditingCVID(null);
-      setCVForm(emptyCVForm);
-      setCVImportPreview(null);
-      setCVFileUploadPreview(null);
+      resetCVController();
+      resetDecoderFiles();
     }
   });
   const {
@@ -480,6 +443,66 @@ export function VehiclesView({ username }: { username: string }) {
     onOpenSpareParts: () => setActiveTab("spareParts"),
     refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
     t
+  });
+  const {
+    state: {
+      form: cvForm,
+      editingId: editingCVID,
+      importPreview: cvImportPreview,
+      summary: cvSummary,
+      importStats: cvImportStats,
+      storedDecoderProfiles,
+      decoderProfileOptions
+    },
+    refs: { importInputRef: cvImportInputRef },
+    commands: {
+      updateForm: updateCVForm,
+      resetForm: resetCVForm,
+      reset: resetCVController,
+      edit: editCVValue,
+      save: saveCVValue,
+      remove: deleteCVValue,
+      exportValues: exportCVValues,
+      importValues: importCVValues,
+      toggleImportRow: toggleCVImportRow,
+      selectImportRows: selectCVImportRows,
+      applyImportPreview: applyCVImportPreview,
+      setImportPreview: setCVImportPreview,
+      discardImportPreview: discardCVImportPreview
+    }
+  } = useVehicleCVController({
+    selected,
+    decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+  });
+  const {
+    state: {
+      fileProfile: cvFileProfile,
+      fileDescription: cvFileDescription,
+      uploadPreview: cvFileUploadPreview,
+      previewStats: cvFilePreviewStats
+    },
+    refs: { fileInputRef: cvFileInputRef },
+    commands: {
+      reset: resetDecoderFiles,
+      uploadFiles: uploadCVFiles,
+      updateFileProfile: setCVFileProfile,
+      updateFileDescription: setCVFileDescription,
+      applyFirstSuggestion: applyFirstCVFileSuggestion,
+      previewValuesForImport: previewCVFileValuesForImport,
+      applyFunctionSuggestions: applyCVFileFunctionSuggestions,
+      confirmUpload: confirmCVFileUpload,
+      discardUploadPreview: discardCVFileUploadPreview,
+      remove: deleteCVFile
+    }
+  } = useVehicleDecoderFilesController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    onImportPreview: setCVImportPreview,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
   });
   const {
     state: {
@@ -747,11 +770,9 @@ export function VehiclesView({ username }: { username: string }) {
 
       resetUploadDocumentSearch();
 
-      resetCVForm();
+      resetCVController();
 
-      setCVImportPreview(null);
-
-      setCVFileUploadPreview(null);
+      resetDecoderFiles();
 
       setEcosDraft(draft);
 
@@ -1490,556 +1511,6 @@ export function VehiclesView({ username }: { username: string }) {
         }
 
       });
-
-  };
-
-
-
-  const updateCVForm = (patch: Partial<VehicleCVValueInput>) => {
-
-    setCVForm((current) => ({ ...current, ...patch }));
-
-  };
-
-
-
-  const resetCVForm = () => {
-
-    setCVForm(emptyCVForm);
-
-    setEditingCVID(null);
-
-  };
-
-
-
-  const editCVValue = (value: VehicleCVValue) => {
-
-    setCVForm({
-
-      cvNumber: value.cvNumber,
-
-      value: value.value,
-
-      description: value.description || "",
-
-      category: value.category || "",
-
-      protocol: value.protocol || "",
-
-      decoderProfile: value.decoderProfile || "",
-
-      sourceFileId: value.sourceFileId || ""
-
-    });
-
-    setEditingCVID(value.id);
-
-  };
-
-
-
-  const saveCVValue = () => {
-
-    if (!selected) return;
-
-    const payload = {
-
-      ...cvForm,
-
-      cvNumber: Number(cvForm.cvNumber),
-
-      value: Number(cvForm.value)
-
-    };
-
-    if (!isValidCVValueInput(payload)) {
-
-      setMessage("CV-Nummer muss 1-1024 und Wert 0-255 sein.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    const existing = !editingCVID
-
-      ? (selected.cvValues || []).find((entry) => cvValueKey(entry) === cvValueKey(payload))
-
-      : undefined;
-
-    const action = editingCVID
-
-      ? api.updateVehicleCVValue(selected.id, editingCVID, payload)
-
-      : existing
-
-        ? api.updateVehicleCVValue(selected.id, existing.id, payload)
-
-        : api.createVehicleCVValue(selected.id, payload);
-
-    action
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => resetCVForm())
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteCVValue = (value: VehicleCVValue) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleCVValue(selected.id, value.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const exportCVValues = () => {
-
-    if (!selected) return;
-
-    const payload = {
-
-      vehicle: {
-
-        inventoryNumber: selected.inventoryNumber,
-
-        name: selected.name,
-
-        decoder: form.digitalDecoderNumber || form.dtDecoderNumber || ""
-
-      },
-
-      cvValues: selected.cvValues || []
-
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-
-    const url = URL.createObjectURL(blob);
-
-    const anchor = document.createElement("a");
-
-    anchor.href = url;
-
-    anchor.download = `${selected.inventoryNumber || "railkeeper"}-cv.json`;
-
-    anchor.click();
-
-    URL.revokeObjectURL(url);
-
-  };
-
-
-
-  const importCVValues = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const [file] = Array.from(files);
-
-    setSaving(true);
-
-    setMessage("");
-
-    file
-
-      .text()
-
-      .then(cvValuesFromImport)
-
-      .then((values) => {
-
-        const preview = buildCVImportPreview(file.name, values, selected.cvValues || []);
-
-        if (!preview.rows.some((row) => row.status !== "invalid")) {
-
-          throw new Error("Keine g?ltigen CV-Werte gefunden.");
-
-        }
-
-        setCVImportPreview(preview);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (cvImportInputRef.current) {
-
-          cvImportInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const toggleCVImportRow = (id: string, selectedRow: boolean) => {
-
-    setCVImportPreview((current) => current ? {
-
-      ...current,
-
-      rows: current.rows.map((row) => row.id === id ? { ...row, selected: selectedRow } : row)
-
-    } : current);
-
-  };
-
-
-
-  const selectCVImportRows = (modeName: "all" | "none" | "empty") => {
-
-    setCVImportPreview((current) => current ? {
-
-      ...current,
-
-      rows: current.rows.map((row) => ({
-
-        ...row,
-
-        selected: row.status !== "invalid" && (
-
-          modeName === "all" ||
-
-          (modeName === "empty" && row.status === "new")
-
-        )
-
-      }))
-
-    } : current);
-
-  };
-
-
-
-  const applyCVImportPreview = () => {
-
-    if (!selected || !cvImportPreview) return;
-
-    const rows = cvImportPreview.rows.filter((row) => row.selected && row.status !== "invalid");
-
-    if (rows.length === 0) {
-
-      setMessage("Keine CV-Werte f?r den Import ausgew?hlt.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const row of rows) {
-
-        if (row.existing) {
-
-          await api.updateVehicleCVValue(selected.id, row.existing.id, row.input);
-
-        } else {
-
-          await api.createVehicleCVValue(selected.id, row.input);
-
-        }
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVImportPreview(null);
-
-        setMessage(`${rows.length} CV-Wert${rows.length === 1 ? "" : "e"} übernommen.`);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const uploadCVFiles = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const blocked = uploadFiles.find(isBlockedCVFile);
-
-    if (blocked) {
-
-      setMessage(`${blocked.name} ist als CV-Datei nicht erlaubt. Erlaubt sind JSON, CSV, TXT, XML, Z21, ESU, ESUX, LokProgrammer und ZIP.`);
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    Promise.all(uploadFiles.map((file) => api.previewVehicleCVFile(file)))
-
-      .then((previews) => {
-
-        setCVFileUploadPreview({ files: uploadFiles, previews });
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (cvFileInputRef.current) {
-
-          cvFileInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const applyFirstCVFileSuggestion = () => {
-
-    const suggestion = cvFileUploadPreview?.previews.find((preview) => preview.hasMetadata);
-
-    if (!suggestion) return;
-
-    if (suggestion.suggestedDecoderProfile) {
-
-      setCVFileProfile(suggestion.suggestedDecoderProfile);
-
-    }
-
-    if (suggestion.suggestedDescription) {
-
-      setCVFileDescription(suggestion.suggestedDescription);
-
-    }
-
-  };
-
-
-
-  const previewCVFileValuesForImport = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const values = cvFileUploadPreview.previews.flatMap((preview) =>
-
-      (preview.suggestedCvValues || []).map((value) => ({
-
-        cvNumber: value.cvNumber,
-
-        value: value.value,
-
-        description: value.description || "",
-
-        category: value.category || "",
-
-        protocol: value.protocol || "",
-
-        decoderProfile: preview.suggestedDecoderProfile || cvFileProfile || preview.decoder || preview.projectName || "",
-
-        sourceFileId: ""
-
-      }))
-
-    );
-
-    const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
-
-    if (!preview.rows.some((row) => row.status !== "invalid")) {
-
-      setMessage("Keine g?ltigen CV-Werte in der Decoder-Vorschau gefunden.");
-
-      return;
-
-    }
-
-    setCVImportPreview(preview);
-
-    setMessage(`${values.length} erkannte CV-Werte f?r die Pr?fung vorbereitet.`);
-
-  };
-
-
-
-  const applyCVFileFunctionSuggestions = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const mappings = cvFileUploadPreview.previews.flatMap((preview) =>
-
-      (preview.suggestedFunctions || []).map((mapping) => ({
-
-        functionKey: mapping.functionKey,
-
-        name: mapping.name || "",
-
-        symbolKey: "",
-
-        functionType: mapping.functionType || "standard",
-
-        mode: "dauer",
-
-        directionDependent: false,
-
-        notes: preview.fileName
-
-      }))
-
-    );
-
-    const valid = Array.from(new Map(mappings.filter(isValidFunctionMapping).map((mapping) => [mapping.functionKey, mapping])).values());
-
-    if (valid.length === 0) {
-
-      setMessage("Keine g?ltigen Funktionstasten in der Decoder-Vorschau gefunden.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const row of valid) {
-
-        await api.updateVehicleFunction(selected.id, row.functionKey, {
-
-          name: row.name || "",
-
-          symbolKey: row.symbolKey || "",
-
-          functionType: row.functionType || "standard",
-
-          mode: row.mode || "dauer",
-
-          directionDependent: Boolean(row.directionDependent),
-
-          notes: row.notes || ""
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => setMessage(`${valid.length} Funktionstaste${valid.length === 1 ? "" : "n"} aus der Decoder-Vorschau übernommen.`))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const confirmCVFileUpload = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const uploadFiles = cvFileUploadPreview.files;
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        await api.uploadVehicleCVFile(selected.id, file, cvFileProfile, cvFileDescription);
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVFileUploadPreview(null);
-
-        setMessage(`${uploadFiles.length} CV-Datei${uploadFiles.length === 1 ? "" : "en"} gespeichert.`);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteCVFile = (file: VehicleCVFile) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleCVFile(selected.id, file.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
 
   };
 
@@ -2945,56 +2416,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   };
 
-  const cvSummary = {
-
-    values: selected?.cvValues?.length || 0,
-
-    files: selected?.cvFiles?.length || 0,
-
-    profiles: new Set([
-
-      ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
-
-      ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
-
-    ]).size
-
-  };
-
-  const cvImportStats = {
-
-    selected: cvImportPreview?.rows.filter((row) => row.selected && row.status !== "invalid").length || 0,
-
-    new: cvImportPreview?.rows.filter((row) => row.status === "new").length || 0,
-
-    changed: cvImportPreview?.rows.filter((row) => row.status === "changed").length || 0,
-
-    same: cvImportPreview?.rows.filter((row) => row.status === "same").length || 0,
-
-    invalid: cvImportPreview?.rows.filter((row) => row.status === "invalid").length || 0
-
-  };
-
-  const cvFilePreviewStats = {
-
-    cvValues: cvFileUploadPreview?.previews.reduce((sum, preview) => sum + (preview.suggestedCvValues?.length || 0), 0) || 0,
-
-    functions: cvFileUploadPreview?.previews.reduce((sum, preview) => sum + (preview.suggestedFunctions?.length || 0), 0) || 0
-
-  };
-
-  const storedDecoderProfiles = Array.from(new Set([
-
-    ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
-
-    ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
-
-  ])).sort((a, b) => a.localeCompare(b, "de-DE"));
-
-  const decoderProfileOptions = Array.from(new Set([...commonDecoderProfiles, ...storedDecoderProfiles]));
-
-
-
   return (
 
     <>
@@ -3369,7 +2790,7 @@ export function VehiclesView({ username }: { username: string }) {
 
                   applyCVImportPreview={applyCVImportPreview}
 
-                  discardCVImportPreview={() => setCVImportPreview(null)}
+                  discardCVImportPreview={discardCVImportPreview}
 
                   toggleCVImportRow={toggleCVImportRow}
 
@@ -3397,7 +2818,7 @@ export function VehiclesView({ username }: { username: string }) {
 
                   confirmCVFileUpload={confirmCVFileUpload}
 
-                  discardCVFileUploadPreview={() => setCVFileUploadPreview(null)}
+                  discardCVFileUploadPreview={discardCVFileUploadPreview}
 
                   deleteCVFile={deleteCVFile}
 
