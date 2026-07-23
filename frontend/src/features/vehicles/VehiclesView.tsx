@@ -74,10 +74,6 @@ import {
 
   VehicleFunctionInput,
 
-  VehicleMaintenance,
-
-  VehicleMaintenanceInput,
-
   VehicleSparePart,
 
   VehicleSparePartInput,
@@ -138,13 +134,7 @@ import type { CVFileUploadPreview, CVImportPreview } from "./cvImport";
 
 import { isBlockedCVFile } from "./vehicleFiles";
 
-import {
-
-  maintenanceIsDue,
-
-  todayISODate
-
-} from "./vehicleMaintenance";
+import { maintenanceIsDue } from "./vehicleMaintenance";
 
 import { buildBrandedQrPngDataUrl, buildQrSvg, downloadQrPngFile, downloadQrSvgFile, printQrSvgLabel, qrPayload } from "./vehicleQr";
 
@@ -186,8 +176,6 @@ import {
 
   emptyFunctionEdit,
 
-  emptyMaintenanceForm,
-
   emptySparePartForm,
 
   emptyOptions,
@@ -219,6 +207,7 @@ import { useVehicleInventoryController } from "./useVehicleInventoryController";
 import { useVehicleEditorController } from "./useVehicleEditorController";
 import { useArticleSearchController } from "./useArticleSearchController";
 import { useVehicleMediaController } from "./useVehicleMediaController";
+import { useVehicleMaintenanceController } from "./useVehicleMaintenanceController";
 
 import type {
 
@@ -263,10 +252,6 @@ export function VehiclesView({ username }: { username: string }) {
   const [loading, setLoading] = useState(false);
 
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
-  const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
-
-  const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
-
   const [sparePartForm, setSparePartForm] = useState<VehicleSparePartInput>(emptySparePartForm);
 
   const [editingSparePartID, setEditingSparePartID] = useState<string | null>(null);
@@ -417,8 +402,7 @@ export function VehiclesView({ username }: { username: string }) {
       setEcosUnclearFields(new Set());
       loadVehicleMedia(detail);
       setFunctionEdits(functionsToEditState(detail.functions));
-      setEditingMaintenanceID(null);
-      setMaintenanceForm(emptyMaintenanceForm);
+      resetMaintenanceForm();
       resetSparePartForm();
       resetSparePartSearch();
       setSparePartStatusLoading({});
@@ -481,6 +465,25 @@ export function VehiclesView({ username }: { username: string }) {
       setCVFileProfile("");
       setCVFileDescription("");
     }
+  });
+  const {
+    state: {
+      form: maintenanceForm,
+      editingId: editingMaintenanceID
+    },
+    commands: {
+      updateForm: updateMaintenanceForm,
+      resetForm: resetMaintenanceForm,
+      edit: editMaintenance,
+      save: saveMaintenance,
+      complete: completeMaintenance,
+      remove: deleteMaintenance
+    }
+  } = useVehicleMaintenanceController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
   });
   const {
     state: {
@@ -1039,150 +1042,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const updateMaintenanceForm = (patch: Partial<VehicleMaintenanceInput>) => {
-
-    setMaintenanceForm((current) => ({ ...current, ...patch }));
-
-  };
-
-
-
-  const resetMaintenanceForm = () => {
-
-    setMaintenanceForm(emptyMaintenanceForm);
-
-    setEditingMaintenanceID(null);
-
-  };
-
-
-
-  const editMaintenance = (entry: VehicleMaintenance) => {
-
-    setMaintenanceForm({
-
-      kind: entry.kind || "Wartung",
-
-      status: entry.status || "geplant",
-
-      conditionRating: entry.conditionRating || "",
-
-      dueDate: entry.dueDate || "",
-
-      completedAt: entry.completedAt || "",
-
-      cost: entry.cost || "",
-
-      notes: entry.notes || ""
-
-    });
-
-    setEditingMaintenanceID(entry.id);
-
-  };
-
-
-
-  const saveMaintenance = () => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    const payload: VehicleMaintenanceInput = {
-
-      ...maintenanceForm,
-
-      status: maintenanceForm.status === "f?llig" ? "faellig" : maintenanceForm.status,
-
-      cost: maintenanceForm.cost?.trim().replace(/\s*?$/, "") || "",
-
-      completedAt: maintenanceForm.status === "erledigt" && !maintenanceForm.completedAt ? todayISODate() : maintenanceForm.completedAt
-
-    };
-
-    const action = editingMaintenanceID
-
-      ? api.updateVehicleMaintenance(selected.id, editingMaintenanceID, payload)
-
-      : api.createVehicleMaintenance(selected.id, payload);
-
-    action
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => resetMaintenanceForm())
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const completeMaintenance = (entry: VehicleMaintenance) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .updateVehicleMaintenance(selected.id, entry.id, {
-
-        kind: entry.kind,
-
-        status: "erledigt",
-
-        conditionRating: entry.conditionRating || "",
-
-        dueDate: entry.dueDate || "",
-
-        completedAt: entry.completedAt || todayISODate(),
-
-        cost: entry.cost || "",
-
-        notes: entry.notes || ""
-
-      })
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteMaintenance = (entry: VehicleMaintenance) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleMaintenance(selected.id, entry.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
 
   };
 
