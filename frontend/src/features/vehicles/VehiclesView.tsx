@@ -256,6 +256,7 @@ import {
 
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
+import { useVehicleEditorController } from "./useVehicleEditorController";
 
 import type {
 
@@ -293,8 +294,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
-
   const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
 
   const [query, setQuery] = useState("");
@@ -303,30 +302,8 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [loading, setLoading] = useState(false);
 
-  const [saving, setSaving] = useState(false);
-
-  const [selected, setSelected] = useState<Vehicle | null>(null);
-
-  const [mode, setMode] = useState<ModalMode>("create");
-
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const [activeTab, setActiveTab] = useState<ModalTab>("model");
-
-  const [openSections, setOpenSections] = useState({
-
-    model: true,
-
-    details: false,
-
-    vehicle: false
-
-  });
-
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
-  const [saveAttempted, setSaveAttempted] = useState(false);
-
   const [articleSearchOpen, setArticleSearchOpen] = useState(false);
 
   const [articleSearchLoading, setArticleSearchLoading] = useState(false);
@@ -459,6 +436,84 @@ export function VehiclesView({ username }: { username: string }) {
   const [exhibitionAssignment, setExhibitionAssignment] = useState<ExhibitionAssignment | null>(null);
 
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+  const {
+    state: {
+      form,
+      saving,
+      selected,
+      mode,
+      modalOpen,
+      activeTab,
+      openSections,
+      saveAttempted,
+      readonly
+    },
+    setters: {
+      setForm,
+      setSaving,
+      setSelected,
+      setMode,
+      setModalOpen,
+      setActiveTab,
+      setOpenSections,
+      setSaveAttempted
+    },
+    commands: {
+      update,
+      setSelectedDetail,
+      updateCategory,
+      updateCouplingFront,
+      updateCouplingSame,
+      openCreate,
+      closeModal,
+      openDetail,
+      openEdit,
+      toggleSection
+    }
+  } = useVehicleEditorController({
+    options,
+    onMessage: setMessage,
+    onFormChange: (nextForm) => syncECoSUnclearFields(nextForm),
+    onReset: (reason) => {
+      setEcosDraft(null);
+      setEcosUnclearFields(new Set());
+      setPendingArticleImages([]);
+      setAttachmentEdits({});
+      setImageUploadMaintenanceID("");
+      setAttachmentUploadCategory("");
+      setAttachmentUploadDescription("");
+      setAttachmentDragActive(false);
+      setAttachmentDeleteCandidate(null);
+      setFunctionEdits({});
+      resetMaintenanceForm();
+      resetSparePartForm();
+      resetSparePartSearch();
+      resetUploadDocumentSearch();
+      resetCVForm();
+      setCVImportPreview(null);
+      setCVFileUploadPreview(null);
+      if (reason === "close") setPreviewImage(null);
+    },
+    onDetailLoaded: (detail) => {
+      setEcosDraft(null);
+      setEcosUnclearFields(new Set());
+      setPendingArticleImages(vehicleImagesToPending(detail));
+      setAttachmentEdits(attachmentsToEditState(detail.attachments));
+      setFunctionEdits(functionsToEditState(detail.functions));
+      setEditingMaintenanceID(null);
+      setMaintenanceForm(emptyMaintenanceForm);
+      resetSparePartForm();
+      resetSparePartSearch();
+      setSparePartStatusLoading({});
+      setSparePartStatuses({});
+      setImportAllSparePartsLoading(false);
+      sparePartStatusCheckKeyRef.current = "";
+      setEditingCVID(null);
+      setCVForm(emptyCVForm);
+      setCVImportPreview(null);
+      setCVFileUploadPreview(null);
+    }
+  });
   const {
     allVisibleSelected,
     categoryFilter,
@@ -932,10 +987,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const readonly = mode === "view";
-
-
-
   const syncECoSUnclearFields = (nextForm: CreateVehicleRequest) => {
 
     setEcosUnclearFields((current) => {
@@ -967,123 +1018,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
   const ecosFieldClass = (field: ECoSRequiredField) => (ecosDraft && ecosUnclearFields.has(field) ? "ecos-unclear-field" : "");
-
-
-
-  const update = (patch: Partial<CreateVehicleRequest>) => {
-
-    setForm((current) => {
-
-      const next = { ...current, ...patch };
-
-      syncECoSUnclearFields(next);
-
-      return next;
-
-    });
-
-  };
-
-
-
-  const setSelectedDetail = (detail: Vehicle) => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setSelected(detail);
-
-    setForm(vehicleToForm(detail));
-
-    setPendingArticleImages(vehicleImagesToPending(detail));
-
-    setAttachmentEdits(attachmentsToEditState(detail.attachments));
-
-    setFunctionEdits(functionsToEditState(detail.functions));
-
-    setEditingMaintenanceID(null);
-
-    setMaintenanceForm(emptyMaintenanceForm);
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    setSparePartStatusLoading({});
-
-    setSparePartStatuses({});
-
-    setImportAllSparePartsLoading(false);
-
-    sparePartStatusCheckKeyRef.current = "";
-
-    setEditingCVID(null);
-
-    setCVForm(emptyCVForm);
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-    setSaveAttempted(false);
-
-  };
-
-
-
-  const updateCategory = (category: string) => {
-
-    const categoryKey = options.categories.find((entry) => optionValue(entry) === category)?.key;
-
-    const allowed = new Set(
-
-      options.categoryRelations
-
-        .filter((relation) => relation.parentKey === categoryKey)
-
-        .map((relation) => relation.childKey)
-
-    );
-
-    const currentGattung = options.gattungen.find((entry) => optionValue(entry) === form.gattung);
-
-    update({
-
-      category,
-
-      gattung: currentGattung && allowed.has(currentGattung.key) ? form.gattung : ""
-
-    });
-
-  };
-
-
-
-  const updateCouplingFront = (couplingFront: string) => {
-
-    update({
-
-      couplingFront,
-
-      couplingRear: form.couplingSame ? couplingFront : form.couplingRear
-
-    });
-
-  };
-
-
-
-  const updateCouplingSame = (couplingSame: boolean) => {
-
-    update({
-
-      couplingSame,
-
-      couplingRear: couplingSame ? form.couplingFront : form.couplingRear
-
-    });
-
-  };
 
 
 
@@ -4054,112 +3988,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const openCreate = () => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setSelected(null);
-
-    setMode("create");
-
-    setForm(emptyVehicle);
-
-    setPendingArticleImages([]);
-
-    setAttachmentEdits({});
-
-    setImageUploadMaintenanceID("");
-
-    setAttachmentUploadCategory("");
-
-    setAttachmentUploadDescription("");
-
-    setAttachmentDragActive(false);
-    setAttachmentDeleteCandidate(null);
-    setSaveAttempted(false);
-
-    setFunctionEdits({});
-
-    resetMaintenanceForm();
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    resetUploadDocumentSearch();
-
-    resetCVForm();
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-
-    setActiveTab("model");
-
-    setOpenSections({ model: true, details: false, vehicle: false });
-
-    setModalOpen(true);
-
-    setMessage("");
-
-  };
-
-
-
-  const closeModal = () => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setModalOpen(false);
-
-    setSelected(null);
-
-    setMode("create");
-
-    setForm(emptyVehicle);
-
-    setPendingArticleImages([]);
-
-    setAttachmentEdits({});
-
-    setImageUploadMaintenanceID("");
-
-    setAttachmentUploadCategory("");
-
-    setAttachmentUploadDescription("");
-
-    setAttachmentDragActive(false);
-    setAttachmentDeleteCandidate(null);
-    setSaveAttempted(false);
-
-    setFunctionEdits({});
-
-    resetMaintenanceForm();
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    resetUploadDocumentSearch();
-
-    resetCVForm();
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-
-    setPreviewImage(null);
-
-    setMessage("");
-
-  };
-
-
-
   const updateVehicleExhibitionFlag = (vehicle: Vehicle, exhibition: boolean) => {
 
     setMessage("");
@@ -4378,62 +4206,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const openDetail = (vehicle: Vehicle, tab: ModalTab = "model") => {
-
-    api
-
-      .vehicle(vehicle.id)
-
-      .then((detail) => {
-
-        setSelectedDetail(detail);
-
-        setMode("view");
-
-        setActiveTab(tab);
-
-        setOpenSections({ model: true, details: false, vehicle: false });
-
-        setModalOpen(true);
-
-        setMessage("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const openEdit = (vehicle: Vehicle, tab: ModalTab = "model") => {
-
-    api
-
-      .vehicle(vehicle.id)
-
-      .then((detail) => {
-
-        setSelectedDetail(detail);
-
-        setMode("edit");
-
-        setActiveTab(tab);
-
-        setOpenSections({ model: true, details: false, vehicle: false });
-
-        setModalOpen(true);
-
-        setMessage("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
   const openQrForVehicle = (vehicle: Vehicle) => {
 
     setQrSvg("");
@@ -4455,14 +4227,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setQrError(error.message));
-
-  };
-
-
-
-  const toggleSection = (section: keyof typeof openSections) => {
-
-    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
 
   };
 
