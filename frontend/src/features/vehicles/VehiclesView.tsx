@@ -44,8 +44,6 @@ import {
 
   api,
 
-  ArticleSearchDocument,
-
   CreateVehicleRequest,
 
   ExhibitionEntry,
@@ -88,7 +86,7 @@ import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 
-import { VehicleUploadsTab, webDocumentKey } from "./VehicleUploadsTab";
+import { VehicleUploadsTab } from "./VehicleUploadsTab";
 
 import { VehicleCVTab } from "./VehicleCVTab";
 
@@ -138,10 +136,6 @@ import type { FunctionEditState } from "./vehicleTransforms";
 
 import {
 
-  articleSearchEnabled,
-
-  articleSearchSources,
-
   compactValue,
 
   emptyFunctionEdit,
@@ -164,11 +158,7 @@ import {
 
   inferFunctionTypeFromSymbol,
 
-  optionValue,
-
-  sanitizeArticleSearchResponse,
-
-  vehicleFieldsForSearch
+  optionValue
 
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
@@ -179,6 +169,7 @@ import { useVehicleMaintenanceController } from "./useVehicleMaintenanceControll
 import { useVehicleSparePartsController } from "./useVehicleSparePartsController";
 import { useVehicleCVController } from "./useVehicleCVController";
 import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
+import { useVehicleDocumentsController } from "./useVehicleDocumentsController";
 
 import type {
 
@@ -223,15 +214,6 @@ export function VehiclesView({ username }: { username: string }) {
   const [loading, setLoading] = useState(false);
 
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
-  const [documentSearchLoading, setDocumentSearchLoading] = useState(false);
-
-  const [documentSearchError, setDocumentSearchError] = useState("");
-
-  const [documentSearchRan, setDocumentSearchRan] = useState(false);
-
-  const [foundUploadDocuments, setFoundUploadDocuments] = useState<ArticleSearchDocument[]>([]);
-  const [selectedUploadDocuments, setSelectedUploadDocuments] = useState<Record<string, boolean>>({});
-
   const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
 
   const [showConfiguredFunctionsOnly, setShowConfiguredFunctionsOnly] = useState(false);
@@ -503,6 +485,29 @@ export function VehiclesView({ username }: { username: string }) {
     onMessage: setMessage,
     onImportPreview: setCVImportPreview,
     refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+  });
+  const {
+    state: {
+      loading: documentSearchLoading,
+      error: documentSearchError,
+      ran: documentSearchRan,
+      documents: foundUploadDocuments,
+      selectedDocuments: selectedUploadDocuments
+    },
+    commands: {
+      reset: resetUploadDocumentSearch,
+      search: runUploadDocumentSearch,
+      importOne: importFoundDocument,
+      importSelected: importSelectedFoundDocuments,
+      toggle: toggleFoundDocument,
+      toggleAll: toggleAllFoundDocuments
+    }
+  } = useVehicleDocumentsController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    t
   });
   const {
     state: {
@@ -1059,234 +1064,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const resetUploadDocumentSearch = () => {
-
-    setDocumentSearchLoading(false);
-
-    setDocumentSearchError("");
-
-    setDocumentSearchRan(false);
-
-    setFoundUploadDocuments([]);
-    setSelectedUploadDocuments({});
-
-  };
-
-
-
-  const runUploadDocumentSearch = () => {
-
-    if (!selected) return;
-
-    if (!articleSearchEnabled()) {
-
-      setDocumentSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
-
-      setDocumentSearchRan(true);
-
-      return;
-
-    }
-
-    const searchForm = vehicleToForm(selected);
-
-    if (!hasArticleSearchCriteria(searchForm)) {
-
-      setDocumentSearchError(t("vehicles.articleSearch.missingInput"));
-
-      setDocumentSearchRan(true);
-
-      return;
-
-    }
-
-    setDocumentSearchLoading(true);
-
-    setDocumentSearchError("");
-
-    setDocumentSearchRan(true);
-
-    setFoundUploadDocuments([]);
-    setSelectedUploadDocuments({});
-
-    api
-
-      .articleSearch({
-
-        manufacturer: searchForm.manufacturer,
-
-        articleNumber: searchForm.articleNumber,
-
-        name: searchForm.name,
-
-        gauge: searchForm.gauge,
-
-        searchSources: articleSearchSources(),
-
-        fields: vehicleFieldsForSearch(searchForm)
-
-      })
-
-      .then((response) => {
-
-        const sanitized = sanitizeArticleSearchResponse(response);
-
-        const documents = new Map<string, ArticleSearchDocument>();
-
-        sanitized.results.forEach((result) => {
-
-          (result.documents || []).forEach((document) => {
-
-            const key = (document.url || document.title || "").toLocaleLowerCase();
-
-            if (key && !documents.has(key)) documents.set(key, document);
-
-          });
-
-        });
-
-        setFoundUploadDocuments(Array.from(documents.values()));
-
-      })
-
-      .catch((error: Error) => setDocumentSearchError(error.message))
-
-      .finally(() => setDocumentSearchLoading(false));
-
-  };
-
-
-
-  const categoryForFoundDocument = (document: ArticleSearchDocument) => {
-
-    const signal = `${document.kind || ""} ${document.title || ""}`.toLocaleLowerCase("de-DE");
-
-    if (signal.includes("spare") || signal.includes("ersatzteil") || signal.includes("et-blatt")) return "Ersatzteilliste";
-
-    if (signal.includes("manual") || signal.includes("anleitung") || signal.includes("bedienung")) return "Anleitung";
-
-    return "Dokumentation";
-
-  };
-
-  const importFoundDocuments = (documents: ArticleSearchDocument[]) => {
-
-    if (!selected) return;
-
-    const importableDocuments = documents.filter((document) => document.url);
-
-    if (importableDocuments.length === 0) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const document of importableDocuments) {
-
-        await api.importVehicleAttachmentFromUrl(selected.id, {
-
-          url: document.url,
-
-          title: document.title || "Dokument",
-
-          description: `Quelle: ${document.source || document.url}\n${document.url}`,
-
-          category: categoryForFoundDocument(document),
-
-          maintenanceId: ""
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setSelectedUploadDocuments({});
-
-        setMessage(t(importableDocuments.length === 1 ? "vehicles.uploads.webDocumentImported" : "vehicles.uploads.webDocumentsImported", { count: importableDocuments.length }));
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const importFoundDocument = (document: ArticleSearchDocument) => {
-
-    importFoundDocuments([document]);
-
-  };
-
-  const toggleFoundDocument = (document: ArticleSearchDocument, index: number, checked: boolean) => {
-
-    const key = webDocumentKey(document, index);
-
-    setSelectedUploadDocuments((current) => {
-
-      const next = { ...current };
-
-      if (checked) {
-
-        next[key] = true;
-
-      } else {
-
-        delete next[key];
-
-      }
-
-      return next;
-
-    });
-
-  };
-
-  const toggleAllFoundDocuments = (checked: boolean) => {
-
-    if (!checked) {
-
-      setSelectedUploadDocuments({});
-
-      return;
-
-    }
-
-    const existingDocumentUrls = new Set((selected?.attachments || []).map((attachment) => attachment.description || ""));
-
-    setSelectedUploadDocuments(Object.fromEntries(foundUploadDocuments.flatMap((document, index) => {
-
-      if (!document.url || Array.from(existingDocumentUrls).some((description) => description.includes(document.url))) {
-
-        return [];
-
-      }
-
-      return [[webDocumentKey(document, index), true]];
-
-    })));
-
-  };
-
-  const importSelectedFoundDocuments = () => {
-
-    const documents = foundUploadDocuments.filter((document, index) => selectedUploadDocuments[webDocumentKey(document, index)]);
-
-    importFoundDocuments(documents);
 
   };
 

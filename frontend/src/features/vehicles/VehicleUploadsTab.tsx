@@ -7,11 +7,8 @@ import { attachmentAccept, attachmentCategories, imageAccept } from "./vehicleFi
 import { formatFileSize } from "./vehicleFormat";
 import { maintenanceOptionLabel } from "./vehicleMaintenance";
 import { AttachmentEditState, PendingArticleImage } from "./vehicleTransforms";
+import { webDocumentKey } from "./vehicleDocuments";
 import { AppSelect } from "../../shared/ui/AppSelect";
-
-export function webDocumentKey(document: ArticleSearchDocument, index: number) {
-  return `${document.url || document.title || "document"}-${index}`;
-}
 
 function attachmentPreviewKind(attachment: VehicleAttachment) {
   const mimeType = (attachment.mimeType || "").toLowerCase();
