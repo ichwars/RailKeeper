@@ -594,7 +594,7 @@ func printersFromEnv() systemPrintersResponse {
 }
 
 func printersFromLPStat() systemPrintersResponse {
-	namesOut, err := exec.Command("lpstat", "-e").Output()
+	namesOut, err := exec.CommandContext(context.Background(), "lpstat", "-e").Output()
 	if err != nil {
 		return systemPrintersResponse{
 			Status:   "unavailable",
@@ -603,7 +603,7 @@ func printersFromLPStat() systemPrintersResponse {
 		}
 	}
 	defaultPrinter := ""
-	if defaultOut, err := exec.Command("lpstat", "-d").Output(); err == nil {
+	if defaultOut, err := exec.CommandContext(context.Background(), "lpstat", "-d").Output(); err == nil {
 		defaultPrinter = parseLPStatDefault(string(defaultOut))
 	}
 	printers := printersFromNames(strings.Fields(string(namesOut)), defaultPrinter)
@@ -617,7 +617,7 @@ func printersFromLPStat() systemPrintersResponse {
 
 func printersFromPowerShell() systemPrintersResponse {
 	script := `Get-CimInstance Win32_Printer | Select-Object Name,Default | ConvertTo-Json -Compress`
-	output, err := exec.Command("powershell", "-NoProfile", "-Command", script).Output()
+	output, err := exec.CommandContext(context.Background(), "powershell", "-NoProfile", "-Command", script).Output()
 	if err != nil {
 		return systemPrintersResponse{
 			Status:   "unavailable",
@@ -2858,15 +2858,6 @@ func safeAttachmentFileName(value string) string {
 	value = strings.Trim(value, ".-")
 	if value == "" {
 		return "beilage"
-	}
-	return value
-}
-
-func safePathSegment(value string) string {
-	value = safeFileNamePattern.ReplaceAllString(strings.TrimSpace(value), "-")
-	value = strings.Trim(value, ".-")
-	if value == "" {
-		return "unknown"
 	}
 	return value
 }

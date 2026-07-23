@@ -12,7 +12,7 @@ foundation are independent and come first. Refactoring starts only after the aff
 tests, stays inside the existing Go packages and React feature structure, and moves one coherent
 responsibility at a time.
 
-**Tech Stack:** GitHub Actions, Dependabot, CodeQL, govulncheck, npm audit, golangci-lint, Go 1.25,
+**Tech Stack:** GitHub Actions, Dependabot, CodeQL, govulncheck, npm audit, golangci-lint, Go 1.26.5,
 React 19, TypeScript 6, Vite 8, Vitest, Testing Library, jsdom.
 
 ## Global Constraints

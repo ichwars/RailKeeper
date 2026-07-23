@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -29,7 +30,7 @@ func OpenSQLite(dataDir string) (*sql.DB, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
+	if err := db.PingContext(context.Background()); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("ping sqlite: %w", err)
 	}
@@ -47,7 +48,8 @@ func Migrate(db *sql.DB, migrationsDir string) error {
 		return errors.New("migrations directory is required")
 	}
 
-	if _, err := db.Exec(`
+	ctx := context.Background()
+	if _, err := db.ExecContext(ctx, `
 CREATE TABLE IF NOT EXISTS schema_migrations (
   version TEXT PRIMARY KEY,
   applied_at TEXT NOT NULL
@@ -71,7 +73,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 	for _, file := range files {
 		version := strings.TrimSuffix(file, ".sql")
-		applied, err := migrationApplied(db, version)
+		applied, err := migrationApplied(ctx, db, version)
 		if err != nil {
 			return err
 		}
@@ -84,17 +86,18 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 			return fmt.Errorf("read migration %s: %w", file, err)
 		}
 
-		tx, err := db.Begin()
+		tx, err := db.BeginTx(ctx, nil)
 		if err != nil {
 			return fmt.Errorf("begin migration %s: %w", file, err)
 		}
 
-		if _, err = tx.Exec(string(body)); err != nil {
+		if _, err = tx.ExecContext(ctx, string(body)); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("apply migration %s: %w", file, err)
 		}
 
-		if _, err = tx.Exec(
+		if _, err = tx.ExecContext(
+			ctx,
 			`INSERT INTO schema_migrations(version, applied_at) VALUES(?, ?)`,
 			version,
 			time.Now().UTC().Format(time.RFC3339),
@@ -112,8 +115,10 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 }
 
 func SeedRoles(db *sql.DB) error {
+	ctx := context.Background()
 	for _, role := range []string{"Admin", "Editor", "Viewer", "Messe"} {
-		if _, err := db.Exec(
+		if _, err := db.ExecContext(
+			ctx,
 			`INSERT INTO roles(id, name) VALUES(?, ?) ON CONFLICT(name) DO NOTHING`,
 			randomID(),
 			role,
@@ -124,9 +129,9 @@ func SeedRoles(db *sql.DB) error {
 	return nil
 }
 
-func migrationApplied(db *sql.DB, version string) (bool, error) {
+func migrationApplied(ctx context.Context, db *sql.DB, version string) (bool, error) {
 	var count int
-	if err := db.QueryRow(`SELECT COUNT(*) FROM schema_migrations WHERE version=?`, version).Scan(&count); err != nil {
+	if err := db.QueryRowContext(ctx, `SELECT COUNT(*) FROM schema_migrations WHERE version=?`, version).Scan(&count); err != nil {
 		return false, fmt.Errorf("check migration %s: %w", version, err)
 	}
 	return count > 0, nil

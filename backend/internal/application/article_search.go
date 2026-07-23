@@ -855,11 +855,9 @@ var (
 	sparePartArticlePattern          = regexp.MustCompile(`(?i)\b([A-Z]?\d{4,8}(?:[-/][A-Z0-9]+)?)\b`)
 	pikoSparePartTitlePattern        = regexp.MustCompile(`(?is)<h3[^>]*>(.*?)</h3>`)
 	pikoSparePartNumberPattern       = regexp.MustCompile(`(?is)Artikelnummer:\s*([^<\s]+)`)
-	pikoSparePartPricePattern        = regexp.MustCompile(`(?is)<div class="artikel_ersatzteil__price">\s*(\d{1,4}(?:[,.]\d{2})?)\s*(?:€|&euro;|EUR)?\s*</div>`)
 	pikoSparePartAvailabilityPattern = regexp.MustCompile(`(?is)<span[^>]+(?:availability|lieferstatus)[^>]*>\s*(.*?)\s*</span>`)
 	rocoSparePartNumberPattern       = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-nr\b[^"]*"[^>]*>\s*([^<]+?)\s*</div>`)
 	rocoSparePartDescriptionPattern  = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-bz\b[^"]*"[^>]*>\s*(.*?)\s*</div>`)
-	rocoSparePartPricePattern        = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-pr\b[^"]*"[^>]*>\s*(\d{1,4}(?:[,.]\d{2})?)\s*(?:â‚¬|&euro;|EUR)?\s*</div>`)
 	rocoSparePartAvailabilityPattern = regexp.MustCompile(`(?is)<img[^>]+class="[^"]*\bprodukt-head-verfuegbarkeit\b[^"]*"[^>]+title=["']([^"']+)["']`)
 	pikoSparePartPriceLoosePattern   = regexp.MustCompile(`(?is)<div class="artikel_ersatzteil__price">\s*(\d{1,4}(?:[,.]\d{2})?)\s*[^<]{0,16}</div>`)
 	rocoSparePartPriceLoosePattern   = regexp.MustCompile(`(?is)<div[^>]+class="[^"]*\bart-pr\b[^"]*"[^>]*>\s*(\d{1,4}(?:[,.]\d{2})?)\s*[^<]{0,16}</div>`)
@@ -1159,7 +1157,7 @@ func articleNameTokenScore(name, haystack string) int {
 func uniqueSearchTokens(value string) []string {
 	tokens := []string{}
 	for _, token := range strings.FieldsFunc(strings.ToLower(value), func(r rune) bool {
-		return !(r >= 'a' && r <= 'z') && !(r >= '0' && r <= '9') && r != 'ä' && r != 'ö' && r != 'ü' && r != 'ß'
+		return (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != 'ä' && r != 'ö' && r != 'ü' && r != 'ß'
 	}) {
 		if len(token) >= 3 {
 			tokens = append(tokens, token)
@@ -1916,24 +1914,6 @@ func pdfStreams(data []byte) [][]byte {
 	return streams
 }
 
-func pdfTextStrings(data []byte) []string {
-	raw := string(data)
-	out := []string{}
-	for _, value := range pdfLiteralStrings(raw) {
-		value = normalizeWhitespace(value)
-		if value != "" {
-			out = append(out, value)
-		}
-	}
-	for _, value := range pdfHexStrings(raw) {
-		value = normalizeWhitespace(value)
-		if value != "" {
-			out = append(out, value)
-		}
-	}
-	return out
-}
-
 func pdfContentText(data []byte) string {
 	raw := string(data)
 	if !strings.Contains(raw, "BT") || (!strings.Contains(raw, "Tj") && !strings.Contains(raw, "TJ")) {
@@ -2092,41 +2072,6 @@ func readPDFHex(raw string, start int) (string, int) {
 	return decodePDFHexText(decoded), end + 1
 }
 
-func pdfLiteralStrings(raw string) []string {
-	out := []string{}
-	for index := 0; index < len(raw); index++ {
-		if raw[index] != '(' {
-			continue
-		}
-		start := index + 1
-		depth := 1
-		escaped := false
-		for index++; index < len(raw); index++ {
-			char := raw[index]
-			if escaped {
-				escaped = false
-				continue
-			}
-			if char == '\\' {
-				escaped = true
-				continue
-			}
-			if char == '(' {
-				depth++
-				continue
-			}
-			if char == ')' {
-				depth--
-				if depth == 0 {
-					out = append(out, decodePDFLiteralString(raw[start:index]))
-					break
-				}
-			}
-		}
-	}
-	return out
-}
-
 func decodePDFLiteralString(value string) string {
 	decoded := []byte{}
 	for index := 0; index < len(value); index++ {
@@ -2162,26 +2107,6 @@ func decodePDFLiteralString(value string) string {
 		}
 	}
 	return decodePDFByteString(decoded)
-}
-
-func pdfHexStrings(raw string) []string {
-	matches := regexp.MustCompile(`<([0-9A-Fa-f\s]{4,})>`).FindAllStringSubmatch(raw, -1)
-	out := []string{}
-	for _, match := range matches {
-		if len(match) < 2 {
-			continue
-		}
-		cleaned := regexp.MustCompile(`\s+`).ReplaceAllString(match[1], "")
-		if len(cleaned)%2 == 1 {
-			cleaned += "0"
-		}
-		decoded, err := hex.DecodeString(cleaned)
-		if err != nil || len(decoded) == 0 {
-			continue
-		}
-		out = append(out, decodePDFHexText(decoded))
-	}
-	return out
 }
 
 func decodePDFHexText(data []byte) string {
