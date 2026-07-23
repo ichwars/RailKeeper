@@ -46,13 +46,7 @@ import {
 
   ArticleSearchDocument,
 
-  ArticleSearchImage,
-
-  ArticleSearchInput,
-
   ArticleSearchResponse,
-
-  ArticleSearchResult,
 
   ArticleSearchSparePart,
 
@@ -118,23 +112,7 @@ import { VehicleCVTab } from "./VehicleCVTab";
 
 import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 
-import {
-
-  ArticleFieldKey,
-
-  articleSelectionKey,
-
-  articleValueForForm,
-
-  currentArticleValue,
-
-  imageSelectionKey,
-
-  isArticleFieldKey,
-
-  sourceDisplayName,
-
-} from "./articleSearch";
+import { sourceDisplayName } from "./articleSearch";
 
 import {
 
@@ -246,8 +224,6 @@ import {
 
   inferFunctionTypeFromSymbol,
 
-  isBadArticleValue,
-
   optionValue,
 
   sanitizeArticleSearchResponse,
@@ -257,6 +233,7 @@ import {
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
 import { useVehicleEditorController } from "./useVehicleEditorController";
+import { useArticleSearchController } from "./useArticleSearchController";
 
 import type {
 
@@ -304,22 +281,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
-  const [articleSearchOpen, setArticleSearchOpen] = useState(false);
-
-  const [articleSearchLoading, setArticleSearchLoading] = useState(false);
-
-  const [articleSearchResponse, setArticleSearchResponse] = useState<ArticleSearchResponse | null>(null);
-
-  const [articleSearchError, setArticleSearchError] = useState("");
-
-  const [barcodeSearchOpen, setBarcodeSearchOpen] = useState(false);
-
-  const [barcodeSearchValue, setBarcodeSearchValue] = useState("");
-
-  const [selectedArticleFields, setSelectedArticleFields] = useState<Record<string, boolean>>({});
-
-  const [selectedArticleImages, setSelectedArticleImages] = useState<Record<string, boolean>>({});
-
   const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
 
   const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
@@ -512,6 +473,48 @@ export function VehiclesView({ username }: { username: string }) {
       setCVForm(emptyCVForm);
       setCVImportPreview(null);
       setCVFileUploadPreview(null);
+    }
+  });
+  const {
+    state: {
+      open: articleSearchOpen,
+      loading: articleSearchLoading,
+      response: articleSearchResponse,
+      error: articleSearchError,
+      barcodeOpen: barcodeSearchOpen,
+      barcodeValue: barcodeSearchValue,
+      selectedFields: selectedArticleFields,
+      selectedImages: selectedArticleImages
+    },
+    setters: {
+      setOpen: setArticleSearchOpen,
+      setBarcodeOpen: setBarcodeSearchOpen,
+      setBarcodeValue: setBarcodeSearchValue
+    },
+    commands: {
+      run: runArticleSearch,
+      openBarcode: openBarcodeSearch,
+      submitBarcode: submitBarcodeSearch,
+      toggleField: toggleArticleField,
+      toggleImage: toggleArticleImage,
+      applyResult: applyArticleResult
+    }
+  } = useArticleSearchController({
+    form,
+    pendingImageCount: pendingArticleImages.length,
+    replaceForm: setForm,
+    updateForm: update,
+    onMessage: setMessage,
+    t,
+    addImages: (images) => {
+      setPendingArticleImages((current) => {
+        const existing = new Set(current.map((image) => image.url));
+        const next = [...current, ...images.filter((image) => !existing.has(image.url))];
+        if (!next.some((image) => image.isPrimary) && next.length > 0) {
+          next[0] = { ...next[0], isPrimary: true };
+        }
+        return next;
+      });
     }
   });
   const {
@@ -1018,216 +1021,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
   const ecosFieldClass = (field: ECoSRequiredField) => (ecosDraft && ecosUnclearFields.has(field) ? "ecos-unclear-field" : "");
-
-
-
-  const runArticleSearch = (searchForm = form, searchInput?: ArticleSearchInput) => {
-
-    if (!articleSearchEnabled()) {
-
-      setArticleSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
-
-      setArticleSearchOpen(true);
-
-      setArticleSearchResponse(null);
-
-      return;
-
-    }
-
-
-
-    if (!hasArticleSearchCriteria(searchForm, searchInput)) {
-
-      setArticleSearchOpen(false);
-
-      setArticleSearchLoading(false);
-
-      setArticleSearchResponse(null);
-
-      setArticleSearchError(t("vehicles.articleSearch.missingInput"));
-
-      setMessage(t("vehicles.articleSearch.missingInput"));
-
-      return;
-
-    }
-
-
-
-    setArticleSearchOpen(true);
-
-    setArticleSearchLoading(true);
-
-    setArticleSearchError("");
-
-    setArticleSearchResponse(null);
-
-    setSelectedArticleFields({});
-
-    setSelectedArticleImages({});
-
-
-
-    api
-
-      .articleSearch(searchInput ?? {
-
-        manufacturer: searchForm.manufacturer,
-
-        articleNumber: searchForm.articleNumber,
-
-        name: searchForm.name,
-
-        gauge: searchForm.gauge,
-
-        searchSources: articleSearchSources(),
-
-        fields: vehicleFieldsForSearch(searchForm)
-
-      })
-
-      .then((response) => {
-
-        const sanitized = sanitizeArticleSearchResponse(response);
-
-        setArticleSearchResponse(sanitized);
-
-        const initialSelection: Record<string, boolean> = {};
-
-        sanitized.results.forEach((result, index) => {
-
-          Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
-
-            initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(searchForm, key);
-
-          });
-
-        });
-
-        setSelectedArticleFields(initialSelection);
-
-      })
-
-      .catch((error: Error) => setArticleSearchError(error.message))
-
-      .finally(() => setArticleSearchLoading(false));
-
-  };
-
-
-
-  const openBarcodeSearch = () => {
-
-    setBarcodeSearchValue(form.ean || "");
-
-    setBarcodeSearchOpen(true);
-
-  };
-
-
-
-  const submitBarcodeSearch = (event: FormEvent<HTMLFormElement>) => {
-
-    event.preventDefault();
-
-    const code = barcodeSearchValue.trim();
-
-    if (!code) {
-
-      setMessage("Bitte einen Barcode oder eine EAN eingeben.");
-
-      return;
-
-    }
-
-    const nextForm = { ...form, ean: code };
-
-    setForm(nextForm);
-
-    setBarcodeSearchOpen(false);
-
-    runArticleSearch(nextForm, {
-
-      searchSources: articleSearchSources(),
-
-      fields: {
-
-        ean: code
-
-      }
-
-    });
-
-  };
-
-
-
-  const toggleArticleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
-
-    setSelectedArticleFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
-
-  };
-
-
-
-  const toggleArticleImage = (result: ArticleSearchResult, index: number, image: ArticleSearchImage, checked: boolean) => {
-
-    setSelectedArticleImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
-
-  };
-
-
-
-  const applyArticleResult = (result: ArticleSearchResult) => {
-
-    const patch: Partial<CreateVehicleRequest> = {};
-
-    const foundResultIndex = articleSearchResponse?.results.findIndex((entry) => entry.url === result.url) ?? 0;
-
-    const resultIndex = foundResultIndex >= 0 ? foundResultIndex : 0;
-
-    Object.entries(result.fields).forEach(([key, field]) => {
-
-      if (!isArticleFieldKey(key) || !selectedArticleFields[articleSelectionKey(result, key, resultIndex)]) return;
-
-      if (isBadArticleValue(key, field.value)) return;
-
-      Object.assign(patch, { [key]: articleValueForForm(key, field.value) });
-
-    });
-
-    const selectedImages = (result.images || [])
-
-      .filter((image) => selectedArticleImages[imageSelectionKey(result, image, resultIndex)])
-
-      .map((image, imageIndex) => ({ ...image, id: `${result.url}-${image.url}`, isPrimary: pendingArticleImages.length === 0 && imageIndex === 0 }));
-
-    if (selectedImages.length > 0) {
-
-      setPendingArticleImages((current) => {
-
-        const existing = new Set(current.map((image) => image.url));
-
-        const next = [...current, ...selectedImages.filter((image) => !existing.has(image.url))];
-
-        if (!next.some((image) => image.isPrimary) && next.length > 0) {
-
-          next[0] = { ...next[0], isPrimary: true };
-
-        }
-
-        return next;
-
-      });
-
-    }
-
-    update(patch);
-
-    setArticleSearchOpen(false);
-
-  };
 
 
 
