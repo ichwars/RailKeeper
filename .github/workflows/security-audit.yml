@@ -49,8 +49,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high | tee -a "$GITHUB_STEP_SUMMARY"
 
   report:
-    name: Report scheduled audit failure
-    if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
+    name: Reconcile scheduled audit issue
+    if: always() && github.event_name == 'schedule'
     needs:
       - govulncheck
       - npm-audit
@@ -65,26 +65,51 @@ jobs:
           script: |
             const title = "Security audit requires attention";
             const runURL = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const body = `The scheduled dependency audit failed. Review the workflow run: ${runURL}`;
             const { data: issues } = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: "open",
+              state: "all",
               per_page: 100
             });
             const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
-            if (existing) {
+            const failed = ${{ contains(needs.*.result, 'failure') }};
+            if (failed) {
+              const body = `The scheduled dependency audit failed. Review the workflow run: ${runURL}`;
+              if (existing) {
+                if (existing.state !== "open") {
+                  await github.rest.issues.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: existing.number,
+                    state: "open"
+                  });
+                }
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body
+                });
+              } else {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title,
+                  body
+                });
+              }
+            } else if (existing?.state === "open") {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: existing.number,
-                body
+                body: `The scheduled dependency audit is healthy again. Successful run: ${runURL}`
               });
-            } else {
-              await github.rest.issues.create({
+              await github.rest.issues.update({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                title,
-                body
+                issue_number: existing.number,
+                state: "closed",
+                state_reason: "completed"
               });
             }
