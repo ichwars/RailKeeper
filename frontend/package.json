@@ -8,24 +8,24 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@zxing/browser": "^0.2.0",
-    "lucide-react": "1.14.0",
+    "@zxing/browser": "^0.2.1",
+    "lucide-react": "1.26.0",
     "qrcode": "^1.5.4",
-    "react": "19.2.6",
-    "react-dom": "19.2.6"
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^7.0.0",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/qrcode": "^1.5.6",
-    "@types/react": "19.2.14",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "@vitejs/plugin-react": "6.0.1",
+    "@vitejs/plugin-react": "6.0.4",
     "@vitest/coverage-v8": "^4.1.10",
     "jsdom": "^29.1.1",
     "typescript": "6.0.3",
-    "vite": "8.0.11",
+    "vite": "8.1.5",
     "vitest": "^4.1.10"
   }
 }
