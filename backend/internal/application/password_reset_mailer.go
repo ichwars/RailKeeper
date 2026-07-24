@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"mime"
 	"net"
@@ -44,9 +45,11 @@ func NewSMTPPasswordResetMailer(config SMTPPasswordResetMailConfig) (*SMTPPasswo
 	if config.Host == "" || config.From == "" {
 		return nil, nil
 	}
-	if _, err := mail.ParseAddress(config.From); err != nil {
+	from, err := canonicalMailbox(config.From)
+	if err != nil {
 		return nil, fmt.Errorf("parse smtp from address: %w", err)
 	}
+	config.From = from
 	switch config.TLSMode {
 	case "starttls", "implicit", "none":
 	default:
@@ -59,8 +62,8 @@ func (m *SMTPPasswordResetMailer) SendPasswordReset(ctx context.Context, toEmail
 	if m == nil {
 		return nil
 	}
-	toEmail = strings.TrimSpace(toEmail)
-	if _, err := mail.ParseAddress(toEmail); err != nil {
+	toEmail, err := canonicalMailbox(toEmail)
+	if err != nil {
 		return fmt.Errorf("parse reset recipient: %w", err)
 	}
 
@@ -72,8 +75,8 @@ func (m *SMTPPasswordResetMailer) SendTest(ctx context.Context, toEmail string) 
 	if m == nil {
 		return nil
 	}
-	toEmail = strings.TrimSpace(toEmail)
-	if _, err := mail.ParseAddress(toEmail); err != nil {
+	toEmail, err := canonicalMailbox(toEmail)
+	if err != nil {
 		return fmt.Errorf("parse test recipient: %w", err)
 	}
 
@@ -108,6 +111,14 @@ func buildSMTPMessage(from, toEmail, subjectText, body string) string {
 		"Content-Transfer-Encoding: 8bit",
 	}
 	return strings.Join(headers, "\r\n") + "\r\n\r\n" + body
+}
+
+func canonicalMailbox(value string) (string, error) {
+	address, err := mail.ParseAddress(strings.TrimSpace(value))
+	if err != nil || address == nil || strings.ContainsAny(address.Address, "\r\n") {
+		return "", errors.New("invalid email address")
+	}
+	return address.Address, nil
 }
 
 func sendSMTP(ctx context.Context, config SMTPPasswordResetMailConfig, toEmail string, message []byte) error {
