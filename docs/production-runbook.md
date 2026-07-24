@@ -168,6 +168,10 @@ RAILKEEPER_SMTP_FROM=railkeeper@example.test
 RAILKEEPER_SMTP_TLS=starttls
 ```
 
+Passwort-Reset-Mails werden nur mit einer gültigen HTTP(S)-Adresse in
+`RAILKEEPER_PUBLIC_URL` beziehungsweise im Feld "Öffentliche URL" der SMTP-Einstellungen
+versendet. Der eingehende `Host`-Header wird nicht für Links in E-Mails verwendet.
+
 Prüfpunkte:
 
 - Kein Standard-Admin existiert.

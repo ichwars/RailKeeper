@@ -21,12 +21,14 @@ import (
 )
 
 type capturePasswordResetMailer struct {
+	sent      bool
 	to        string
 	resetURL  string
 	expiresAt string
 }
 
 func (m *capturePasswordResetMailer) SendPasswordReset(_ context.Context, toEmail, resetURL, expiresAt string) error {
+	m.sent = true
 	m.to = toEmail
 	m.resetURL = resetURL
 	m.expiresAt = expiresAt
@@ -351,9 +353,14 @@ func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 	}
 
 	mailer := &capturePasswordResetMailer{}
-	router := NewRouter(Config{SetupService: setup, AuthService: auth, PasswordResetMailer: mailer})
+	router := NewRouter(Config{
+		SetupService:        setup,
+		AuthService:         auth,
+		PasswordResetMailer: mailer,
+		PublicURL:           "https://railkeeper.example.test",
+	})
 	resetRequest := httptest.NewRequest(http.MethodPost, "/api/v1/auth/password-reset", bytes.NewBufferString(`{"email":"admin@example.test"}`))
-	resetRequest.Host = "railkeeper.test"
+	resetRequest.Host = "attacker.example.test"
 	resetResponse := httptest.NewRecorder()
 	router.ServeHTTP(resetResponse, resetRequest)
 	if resetResponse.Code != http.StatusAccepted {
@@ -372,6 +379,9 @@ func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 	resetURL, err := url.Parse(mailer.resetURL)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if resetURL.Scheme != "https" || resetURL.Host != "railkeeper.example.test" {
+		t.Fatalf("expected configured public URL, got %q", mailer.resetURL)
 	}
 	token := resetURL.Query().Get("token")
 	if token == "" {
@@ -395,6 +405,37 @@ func TestPasswordResetEndpointCompletesPasswordChange(t *testing.T) {
 	router.ServeHTTP(newLogin, httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", bytes.NewBufferString(`{"username":"admin","password":"new-secure-password"}`)))
 	if newLogin.Code != http.StatusOK {
 		t.Fatalf("expected new password to work, got %d", newLogin.Code)
+	}
+}
+
+func TestPasswordResetEmailRequiresConfiguredPublicURL(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin",
+		Email:    "admin@example.test",
+		Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	mailer := &capturePasswordResetMailer{}
+	router := NewRouter(Config{SetupService: setup, AuthService: auth, PasswordResetMailer: mailer})
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/auth/password-reset",
+		bytes.NewBufferString(`{"email":"admin@example.test"}`),
+	)
+	request.Host = "attacker.example.test"
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("expected reset request success, got %d: %s", response.Code, response.Body.String())
+	}
+	if mailer.sent {
+		t.Fatalf("password reset email must not use an untrusted request host, got %q", mailer.resetURL)
 	}
 }
 
