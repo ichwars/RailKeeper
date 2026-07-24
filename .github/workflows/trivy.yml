@@ -1,0 +1,44 @@
+name: Trivy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "23 4 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repository:
+    name: Repository security scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Scan dependencies, configuration, and secrets
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-repository.sarif
+          exit-code: 1
+
+      - name: Upload Trivy results
+        if: >-
+          always() && (github.event_name != 'pull_request' ||
+          github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-repository.sarif
+          category: trivy-repository
