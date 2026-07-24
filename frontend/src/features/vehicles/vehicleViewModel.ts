@@ -252,6 +252,32 @@ export function optionValue(entry: MasterDataEntry) {
   return entry.label;
 }
 
+export function gattungenForCategory(options: MasterDataOptions, category: string | undefined) {
+  const categoryKey = options.categories.find((entry) => optionValue(entry) === category)?.key;
+  if (!categoryKey) return options.gattungen;
+
+  const allowed = new Set(
+    options.categoryRelations
+      .filter((relation) => relation.parentKey === categoryKey)
+      .map((relation) => relation.childKey)
+  );
+  return options.gattungen.filter((entry) => allowed.has(entry.key));
+}
+
+export function missingVehicleModelFieldLabels(
+  form: CreateVehicleRequest,
+  t: (key: string) => string
+) {
+  const fields: Array<{ label: string; value: string | undefined }> = [
+    { label: t("vehicle.field.manufacturer"), value: form.manufacturer },
+    { label: t("vehicle.field.name"), value: form.name },
+    { label: t("vehicle.field.gauge"), value: form.gauge },
+    { label: t("vehicle.field.category"), value: form.category },
+    { label: t("vehicle.field.gattung"), value: form.gattung }
+  ];
+  return fields.filter((field) => !compactValue(field.value)).map((field) => field.label);
+}
+
 export function valueForSort(vehicle: Vehicle, key: SortKey) {
   return (vehicle[key] || "").toLocaleLowerCase("de-DE");
 }
