@@ -29,6 +29,7 @@ jobs:
           scan-ref: .
           scanners: vuln,misconfig,secret
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           ignore-unfixed: true
           format: sarif
           output: trivy-repository.sarif

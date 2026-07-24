@@ -64,6 +64,7 @@ jobs:
           scanners: vuln
           vuln-type: os,library
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           ignore-unfixed: false
           format: sarif
           output: trivy-image.sarif
