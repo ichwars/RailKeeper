@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -116,22 +117,26 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if result.ResetToken != "" {
-		resetURL := a.passwordResetURL(r, result.ResetToken)
 		mailer := a.passwordResetMailer
+		mailerBaseURL := a.publicURL
 		if a.smtpSettingsService != nil {
 			settingsMailer, publicURL, err := a.smtpSettingsService.EffectiveMailer(r.Context())
 			if err != nil {
 				a.logger.Error("smtp settings invalid", "error", err)
 			} else if settingsMailer != nil {
 				mailer = settingsMailer
-				resetURL = a.passwordResetURLWithBase(r, result.ResetToken, publicURL)
+				mailerBaseURL = publicURL
 			}
 		}
 		if mailer != nil {
-			if err := mailer.SendPasswordReset(r.Context(), input.Email, resetURL, result.ExpiresAt); err != nil {
+			resetURL, err := configuredPasswordResetURL(result.ResetToken, mailerBaseURL)
+			if err != nil {
+				a.logger.Error("password reset email disabled because public URL is invalid", "error", err)
+			} else if err := mailer.SendPasswordReset(r.Context(), input.Email, resetURL, result.ExpiresAt); err != nil {
 				a.logger.Error("password reset email failed", "error", err)
 			}
 		} else {
+			resetURL := a.passwordResetURL(r, result.ResetToken)
 			a.logger.Warn("password reset email disabled; link is available in server log for local recovery only", "reset_url", resetURL)
 		}
 	}
@@ -172,23 +177,15 @@ func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) passwordResetURL(r *http.Request, token string) string {
-	return a.passwordResetURLWithBase(r, token, a.publicURL)
-}
-
-func (a *App) passwordResetURLWithBase(r *http.Request, token string, baseURL string) string {
-	if strings.TrimSpace(baseURL) != "" {
-		u, err := url.Parse(strings.TrimRight(strings.TrimSpace(baseURL), "/"))
-		if err == nil {
-			u.Path = "/password-reset"
-			query := u.Query()
-			query.Set("token", token)
-			u.RawQuery = query.Encode()
-			return u.String()
-		}
+	if resetURL, err := configuredPasswordResetURL(token, a.publicURL); err == nil {
+		return resetURL
 	}
+
 	scheme := "http"
 	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwarded != "" {
-		scheme = strings.Split(forwarded, ",")[0]
+		if strings.EqualFold(strings.Split(forwarded, ",")[0], "https") {
+			scheme = "https"
+		}
 	} else if r.TLS != nil {
 		scheme = "https"
 	}
@@ -201,6 +198,28 @@ func (a *App) passwordResetURLWithBase(r *http.Request, token string, baseURL st
 	query.Set("token", token)
 	u.RawQuery = query.Encode()
 	return u.String()
+}
+
+func configuredPasswordResetURL(token, baseURL string) (string, error) {
+	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if baseURL == "" {
+		return "", errors.New("public URL is required for password reset email")
+	}
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return "", fmt.Errorf("parse public URL: %w", err)
+	}
+	if (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || u.User != nil {
+		return "", errors.New("public URL must be an HTTP(S) origin without credentials")
+	}
+	u.Path = "/password-reset"
+	u.RawPath = ""
+	u.RawQuery = ""
+	u.Fragment = ""
+	query := u.Query()
+	query.Set("token", token)
+	u.RawQuery = query.Encode()
+	return u.String(), nil
 }
 
 type smtpTestRequest struct {

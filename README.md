@@ -181,6 +181,10 @@ RAILKEEPER_SMTP_FROM=railkeeper@example.test
 RAILKEEPER_SMTP_TLS=starttls
 ```
 
+Password-reset emails are sent only when `RAILKEEPER_PUBLIC_URL` or the public URL stored in the
+Admin UI is a valid HTTP(S) origin. RailKeeper never derives emailed reset links from the request
+`Host` header.
+
 If SMTP is not configured, password reset links are not returned to the browser. For local recovery only, the backend writes the link to the server log.
 
 ### Optional OCR for scanned spare-parts PDFs
