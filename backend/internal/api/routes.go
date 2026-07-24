@@ -2,251 +2,156 @@ package api
 
 import "net/http"
 
+type routeAccess string
+
+const (
+	routeAccessPublic routeAccess = "public"
+	routeAccessAdmin  routeAccess = "Admin"
+	routeAccessEditor routeAccess = "Editor"
+	routeAccessViewer routeAccess = "Viewer"
+	routeAccessMesse  routeAccess = "Messe"
+)
+
+type routeHandler func(*App, http.ResponseWriter, *http.Request)
+type routeAuthorizer func(*App, http.HandlerFunc) http.HandlerFunc
+
 type routeSpec struct {
-	Method string
-	Path   string
+	Method    string
+	Path      string
+	Access    routeAccess
+	Handler   routeHandler
+	Authorize routeAuthorizer
 }
 
 func apiRouteSpecs() []routeSpec {
 	return []routeSpec{
-		{"GET", "/health"},
-		{"GET", "/api/v1/version"},
-		{"GET", "/api/v1/system/storage"},
-		{"POST", "/api/v1/system/storage/optimize"},
-		{"GET", "/api/v1/system/printers"},
-		{"GET", "/api/v1/system/audit-log"},
-		{"GET", "/api/v1/system/smtp"},
-		{"PUT", "/api/v1/system/smtp"},
-		{"POST", "/api/v1/system/smtp/test"},
-		{"GET", "/api/v1/system/digital-settings"},
-		{"PUT", "/api/v1/system/digital-settings"},
-		{"GET", "/api/v1/setup/status"},
-		{"POST", "/api/v1/setup/admin"},
-		{"POST", "/api/v1/auth/login"},
-		{"POST", "/api/v1/auth/password-reset"},
-		{"POST", "/api/v1/auth/password-reset/confirm"},
-		{"POST", "/api/v1/auth/logout"},
-		{"GET", "/api/v1/auth/session"},
-		{"GET", "/api/v1/profile/settings"},
-		{"PUT", "/api/v1/profile/settings"},
-		{"PUT", "/api/v1/auth/password"},
-		{"GET", "/api/v1/auth/two-factor"},
-		{"POST", "/api/v1/auth/two-factor/setup"},
-		{"POST", "/api/v1/auth/two-factor/enable"},
-		{"POST", "/api/v1/auth/two-factor/disable"},
-		{"GET", "/api/v1/roles"},
-		{"GET", "/api/v1/users"},
-		{"POST", "/api/v1/users"},
-		{"PUT", "/api/v1/users/{id}"},
-		{"DELETE", "/api/v1/users/{id}"},
-		{"GET", "/api/v1/sessions"},
-		{"PUT", "/api/v1/sessions/{id}/revoke"},
-		{"POST", "/api/v1/ecos/test"},
-		{"POST", "/api/v1/ecos/locomotives/count"},
-		{"POST", "/api/v1/ecos/locomotives/raw"},
-		{"POST", "/api/v1/digital-centers/ecos/locomotives/sync"},
-		{"POST", "/api/v1/digital-centers/z21/test"},
-		{"POST", "/api/v1/digital-centers/z21/probe"},
-		{"POST", "/api/v1/digital-centers/intellibox3/test"},
-		{"POST", "/api/v1/digital-centers/intellibox3/probe"},
-		{"POST", "/api/v1/digital-centers/cs3/test"},
-		{"GET", "/api/v1/digital-centers/ecos/live/status"},
-		{"POST", "/api/v1/digital-centers/ecos/live/start"},
-		{"POST", "/api/v1/digital-centers/ecos/live/stop"},
-		{"GET", "/api/v1/vehicles"},
-		{"POST", "/api/v1/vehicles"},
-		{"GET", "/api/v1/vehicles/{id}"},
-		{"PUT", "/api/v1/vehicles/{id}"},
-		{"DELETE", "/api/v1/vehicles/{id}"},
-		{"POST", "/api/v1/vehicles/{id}/external-mappings"},
-		{"POST", "/api/v1/vehicles/{id}/images"},
-		{"POST", "/api/v1/vehicles/{id}/images/import-url"},
-		{"DELETE", "/api/v1/vehicles/{id}/images/{imageID}"},
-		{"GET", "/api/v1/vehicles/{id}/images/{imageID}/file"},
-		{"GET", "/api/v1/vehicles/{id}/images/{imageID}/thumbnail"},
-		{"POST", "/api/v1/vehicles/{id}/attachments"},
-		{"PUT", "/api/v1/vehicles/{id}/attachments/{attachmentID}"},
-		{"DELETE", "/api/v1/vehicles/{id}/attachments/{attachmentID}"},
-		{"GET", "/api/v1/vehicles/{id}/attachments/{attachmentID}/download"},
-		{"POST", "/api/v1/vehicles/{id}/attachments/import-url"},
-		{"GET", "/api/v1/vehicles/{id}/maintenance"},
-		{"POST", "/api/v1/vehicles/{id}/maintenance"},
-		{"PUT", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
-		{"DELETE", "/api/v1/vehicles/{id}/maintenance/{maintenanceID}"},
-		{"GET", "/api/v1/vehicles/{id}/spare-parts"},
-		{"GET", "/api/v1/vehicles/{id}/spare-parts/suggestions"},
-		{"POST", "/api/v1/vehicles/{id}/spare-parts"},
-		{"PUT", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
-		{"DELETE", "/api/v1/vehicles/{id}/spare-parts/{sparePartID}"},
-		{"GET", "/api/v1/vehicles/{id}/functions"},
-		{"PUT", "/api/v1/vehicles/{id}/functions/{functionKey}"},
-		{"DELETE", "/api/v1/vehicles/{id}/functions/{functionKey}"},
-		{"GET", "/api/v1/vehicles/{id}/cv-values"},
-		{"POST", "/api/v1/vehicles/{id}/cv-values"},
-		{"PUT", "/api/v1/vehicles/{id}/cv-values/{cvValueID}"},
-		{"DELETE", "/api/v1/vehicles/{id}/cv-values/{cvValueID}"},
-		{"POST", "/api/v1/cv-files/preview"},
-		{"POST", "/api/v1/vehicles/{id}/cv-files"},
-		{"DELETE", "/api/v1/vehicles/{id}/cv-files/{cvFileID}"},
-		{"GET", "/api/v1/vehicles/{id}/cv-files/{cvFileID}/download"},
-		{"POST", "/api/v1/article-search"},
-		{"GET", "/api/v1/inventory-number-schemes"},
-		{"POST", "/api/v1/inventory-number-schemes"},
-		{"PUT", "/api/v1/inventory-number-schemes/{category}"},
-		{"GET", "/api/v1/master-data-all"},
-		{"GET", "/api/v1/master-data/export"},
-		{"POST", "/api/v1/master-data/import"},
-		{"GET", "/api/v1/master-data/{type}"},
-		{"POST", "/api/v1/master-data/{type}"},
-		{"PUT", "/api/v1/master-data/{type}/{key}"},
-		{"DELETE", "/api/v1/master-data/{type}/{key}"},
-		{"GET", "/api/v1/master-data-relations"},
-		{"GET", "/api/v1/backup/export"},
-		{"POST", "/api/v1/backup/validate"},
-		{"POST", "/api/v1/backup/restore"},
-		{"GET", "/api/v1/exhibition-lists"},
-		{"POST", "/api/v1/exhibition-lists"},
-		{"GET", "/api/v1/exhibition-lists/{id}"},
-		{"PUT", "/api/v1/exhibition-lists/{id}"},
-		{"DELETE", "/api/v1/exhibition-lists/{id}"},
-		{"PUT", "/api/v1/exhibition-lists/{id}/lock"},
-		{"GET", "/api/v1/exhibition-lists/{id}/entries"},
-		{"POST", "/api/v1/exhibition-lists/{id}/entries"},
-		{"PUT", "/api/v1/exhibition-lists/{id}/entries/{entryID}"},
-		{"DELETE", "/api/v1/exhibition-lists/{id}/entries/{entryID}"},
+		{http.MethodGet, "/health", routeAccessPublic, (*App).health, nil},
+		{http.MethodGet, "/api/v1/version", routeAccessPublic, (*App).versionInfo, nil},
+		{http.MethodGet, "/api/v1/system/storage", routeAccessAdmin, (*App).systemStorage, nil},
+		{http.MethodPost, "/api/v1/system/storage/optimize", routeAccessAdmin, (*App).optimizeSystemStorage, nil},
+		{http.MethodGet, "/api/v1/system/printers", routeAccessAdmin, (*App).systemPrinters, nil},
+		{http.MethodGet, "/api/v1/system/audit-log", routeAccessAdmin, (*App).systemAuditLog, nil},
+		{http.MethodGet, "/api/v1/system/smtp", routeAccessAdmin, (*App).getSMTPSettings, nil},
+		{http.MethodPut, "/api/v1/system/smtp", routeAccessAdmin, (*App).updateSMTPSettings, nil},
+		{http.MethodPost, "/api/v1/system/smtp/test", routeAccessAdmin, (*App).testSMTPSettings, nil},
+		{http.MethodGet, "/api/v1/system/digital-settings", routeAccessAdmin, (*App).getDigitalSettings, nil},
+		{http.MethodPut, "/api/v1/system/digital-settings", routeAccessAdmin, (*App).updateDigitalSettings, nil},
+		{http.MethodGet, "/api/v1/setup/status", routeAccessPublic, (*App).setupStatus, nil},
+		{http.MethodPost, "/api/v1/setup/admin", routeAccessPublic, (*App).createAdmin, nil},
+		{http.MethodPost, "/api/v1/auth/login", routeAccessPublic, (*App).login, nil},
+		{http.MethodPost, "/api/v1/auth/password-reset", routeAccessPublic, (*App).requestPasswordReset, nil},
+		{http.MethodPost, "/api/v1/auth/password-reset/confirm", routeAccessPublic, (*App).confirmPasswordReset, nil},
+		{http.MethodPost, "/api/v1/auth/logout", routeAccessPublic, (*App).logout, nil},
+		{http.MethodGet, "/api/v1/auth/session", routeAccessPublic, (*App).session, nil},
+		{http.MethodGet, "/api/v1/profile/settings", routeAccessViewer, (*App).getProfileSettings, nil},
+		{http.MethodPut, "/api/v1/profile/settings", routeAccessViewer, (*App).updateProfileSettings, nil},
+		{http.MethodPut, "/api/v1/auth/password", routeAccessViewer, (*App).changePassword, nil},
+		{http.MethodGet, "/api/v1/auth/two-factor", routeAccessViewer, (*App).twoFactorStatus, nil},
+		{http.MethodPost, "/api/v1/auth/two-factor/setup", routeAccessViewer, (*App).setupTwoFactor, nil},
+		{http.MethodPost, "/api/v1/auth/two-factor/enable", routeAccessViewer, (*App).enableTwoFactor, nil},
+		{http.MethodPost, "/api/v1/auth/two-factor/disable", routeAccessViewer, (*App).disableTwoFactor, nil},
+		{http.MethodGet, "/api/v1/roles", routeAccessAdmin, (*App).listRoles, nil},
+		{http.MethodGet, "/api/v1/users", routeAccessAdmin, (*App).listUsers, nil},
+		{http.MethodPost, "/api/v1/users", routeAccessAdmin, (*App).createUser, nil},
+		{http.MethodPut, "/api/v1/users/{id}", routeAccessAdmin, (*App).updateUser, nil},
+		{http.MethodDelete, "/api/v1/users/{id}", routeAccessAdmin, (*App).deleteUser, nil},
+		{http.MethodGet, "/api/v1/sessions", routeAccessAdmin, (*App).listSessions, nil},
+		{http.MethodPut, "/api/v1/sessions/{id}/revoke", routeAccessAdmin, (*App).revokeSession, nil},
+		{http.MethodPost, "/api/v1/ecos/test", routeAccessAdmin, (*App).testECoSConnection, nil},
+		{http.MethodPost, "/api/v1/ecos/locomotives/count", routeAccessAdmin, (*App).countECoSLocomotives, nil},
+		{http.MethodPost, "/api/v1/ecos/locomotives/raw", routeAccessAdmin, (*App).probeECoSLocomotiveRaw, nil},
+		{http.MethodPost, "/api/v1/digital-centers/ecos/locomotives/sync", routeAccessAdmin, (*App).syncECoSLocomotive, nil},
+		{http.MethodPost, "/api/v1/digital-centers/z21/test", routeAccessAdmin, (*App).testZ21Connection, nil},
+		{http.MethodPost, "/api/v1/digital-centers/z21/probe", routeAccessAdmin, (*App).probeZ21Connection, nil},
+		{http.MethodPost, "/api/v1/digital-centers/intellibox3/test", routeAccessAdmin, (*App).testIntellibox3Connection, nil},
+		{http.MethodPost, "/api/v1/digital-centers/intellibox3/probe", routeAccessAdmin, (*App).probeIntellibox3Connection, nil},
+		{http.MethodPost, "/api/v1/digital-centers/cs3/test", routeAccessAdmin, (*App).testCS3Connection, nil},
+		{http.MethodGet, "/api/v1/digital-centers/ecos/live/status", routeAccessAdmin, (*App).eCoSLiveStatus, nil},
+		{http.MethodPost, "/api/v1/digital-centers/ecos/live/start", routeAccessAdmin, (*App).startECoSLive, nil},
+		{http.MethodPost, "/api/v1/digital-centers/ecos/live/stop", routeAccessAdmin, (*App).stopECoSLive, nil},
+		{http.MethodGet, "/api/v1/vehicles", routeAccessViewer, (*App).listVehicles, nil},
+		{http.MethodPost, "/api/v1/vehicles", routeAccessEditor, (*App).createVehicle, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}", routeAccessViewer, (*App).getVehicle, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}", routeAccessEditor, (*App).updateVehicle, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}", routeAccessEditor, (*App).deleteVehicle, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/external-mappings", routeAccessEditor, (*App).upsertVehicleExternalMapping, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/images", routeAccessEditor, (*App).uploadVehicleImage, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/images/import-url", routeAccessEditor, (*App).importVehicleImageFromURL, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/images/{imageID}", routeAccessEditor, (*App).deleteVehicleImage, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/images/{imageID}/file", routeAccessViewer, (*App).downloadVehicleImage, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/images/{imageID}/thumbnail", routeAccessViewer, (*App).downloadVehicleImageThumbnail, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/attachments", routeAccessEditor, (*App).uploadVehicleAttachment, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}/attachments/{attachmentID}", routeAccessEditor, (*App).updateVehicleAttachment, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/attachments/{attachmentID}", routeAccessEditor, (*App).deleteVehicleAttachment, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/attachments/{attachmentID}/download", routeAccessViewer, (*App).downloadVehicleAttachment, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/attachments/import-url", routeAccessEditor, (*App).importVehicleAttachmentFromURL, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/maintenance", routeAccessViewer, (*App).listVehicleMaintenance, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/maintenance", routeAccessEditor, (*App).createVehicleMaintenance, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}/maintenance/{maintenanceID}", routeAccessEditor, (*App).updateVehicleMaintenance, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/maintenance/{maintenanceID}", routeAccessEditor, (*App).deleteVehicleMaintenance, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/spare-parts", routeAccessViewer, (*App).listVehicleSpareParts, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/spare-parts/suggestions", routeAccessViewer, (*App).suggestVehicleSpareParts, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/spare-parts", routeAccessEditor, (*App).createVehicleSparePart, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}/spare-parts/{sparePartID}", routeAccessEditor, (*App).updateVehicleSparePart, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/spare-parts/{sparePartID}", routeAccessEditor, (*App).deleteVehicleSparePart, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/functions", routeAccessViewer, (*App).listVehicleFunctions, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}/functions/{functionKey}", routeAccessEditor, (*App).upsertVehicleFunction, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/functions/{functionKey}", routeAccessEditor, (*App).deleteVehicleFunction, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/cv-values", routeAccessViewer, (*App).listVehicleCVValues, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/cv-values", routeAccessEditor, (*App).createVehicleCVValue, nil},
+		{http.MethodPut, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).updateVehicleCVValue, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-values/{cvValueID}", routeAccessEditor, (*App).deleteVehicleCVValue, nil},
+		{http.MethodPost, "/api/v1/cv-files/preview", routeAccessEditor, (*App).previewVehicleCVFile, nil},
+		{http.MethodPost, "/api/v1/vehicles/{id}/cv-files", routeAccessEditor, (*App).uploadVehicleCVFile, nil},
+		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-files/{cvFileID}", routeAccessEditor, (*App).deleteVehicleCVFile, nil},
+		{http.MethodGet, "/api/v1/vehicles/{id}/cv-files/{cvFileID}/download", routeAccessViewer, (*App).downloadVehicleCVFile, nil},
+		{http.MethodPost, "/api/v1/article-search", routeAccessViewer, (*App).searchArticleData, nil},
+		{http.MethodGet, "/api/v1/inventory-number-schemes", routeAccessViewer, (*App).listInventoryNumberSchemes, nil},
+		{http.MethodPost, "/api/v1/inventory-number-schemes", routeAccessEditor, (*App).createInventoryNumberScheme, nil},
+		{http.MethodPut, "/api/v1/inventory-number-schemes/{category}", routeAccessEditor, (*App).updateInventoryNumberScheme, nil},
+		{http.MethodGet, "/api/v1/master-data-all", routeAccessViewer, (*App).listAllMasterData, nil},
+		{http.MethodGet, "/api/v1/master-data/export", routeAccessAdmin, (*App).exportMasterData, nil},
+		{http.MethodPost, "/api/v1/master-data/import", routeAccessAdmin, (*App).importMasterData, nil},
+		{http.MethodGet, "/api/v1/master-data/{type}", routeAccessViewer, (*App).listMasterData, authorizeMasterDataRead},
+		{http.MethodPost, "/api/v1/master-data/{type}", routeAccessEditor, (*App).createMasterData, nil},
+		{http.MethodPut, "/api/v1/master-data/{type}/{key}", routeAccessEditor, (*App).updateMasterData, nil},
+		{http.MethodDelete, "/api/v1/master-data/{type}/{key}", routeAccessEditor, (*App).deleteMasterData, nil},
+		{http.MethodGet, "/api/v1/master-data-relations", routeAccessViewer, (*App).listMasterDataRelations, nil},
+		{http.MethodGet, "/api/v1/backup/export", routeAccessAdmin, (*App).exportBackup, nil},
+		{http.MethodPost, "/api/v1/backup/validate", routeAccessAdmin, (*App).validateBackup, nil},
+		{http.MethodPost, "/api/v1/backup/restore", routeAccessAdmin, (*App).restoreBackup, nil},
+		{http.MethodGet, "/api/v1/exhibition-lists", routeAccessMesse, (*App).listExhibitionLists, nil},
+		{http.MethodPost, "/api/v1/exhibition-lists", routeAccessAdmin, (*App).createExhibitionList, nil},
+		{http.MethodGet, "/api/v1/exhibition-lists/{id}", routeAccessMesse, (*App).getExhibitionList, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}", routeAccessAdmin, (*App).updateExhibitionList, nil},
+		{http.MethodDelete, "/api/v1/exhibition-lists/{id}", routeAccessAdmin, (*App).deleteExhibitionList, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}/lock", routeAccessAdmin, (*App).setExhibitionListLocked, nil},
+		{http.MethodGet, "/api/v1/exhibition-lists/{id}/entries", routeAccessMesse, (*App).listExhibitionEntries, nil},
+		{http.MethodPost, "/api/v1/exhibition-lists/{id}/entries", routeAccessMesse, (*App).createExhibitionEntry, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}/entries/{entryID}", routeAccessMesse, (*App).updateExhibitionEntry, nil},
+		{http.MethodDelete, "/api/v1/exhibition-lists/{id}/entries/{entryID}", routeAccessAdmin, (*App).deleteExhibitionEntry, nil},
 	}
 }
 
 func (a *App) registerRoutes(mux *http.ServeMux) {
-	a.registerHealthRoutes(mux)
-	a.registerSystemRoutes(mux)
-	a.registerAuthRoutes(mux)
-	a.registerVehicleRoutes(mux)
-	a.registerImportExportRoutes(mux)
-	a.registerExhibitionRoutes(mux)
+	for _, route := range apiRouteSpecs() {
+		route := route
+		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			route.Handler(a, w, r)
+		})
+		if route.Authorize != nil {
+			handler = route.Authorize(a, handler)
+		} else if route.Access != routeAccessPublic {
+			handler = a.require(string(route.Access), handler)
+		}
+		mux.HandleFunc(route.Method+" "+route.Path, handler)
+	}
 }
 
-func (a *App) registerHealthRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		respondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
-	})
+func authorizeMasterDataRead(a *App, next http.HandlerFunc) http.HandlerFunc {
+	return a.requireMasterDataRead(next)
 }
 
-func (a *App) registerSystemRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/v1/version", a.versionInfo)
-	mux.HandleFunc("GET /api/v1/system/storage", a.require("Admin", a.systemStorage))
-	mux.HandleFunc("POST /api/v1/system/storage/optimize", a.require("Admin", a.optimizeSystemStorage))
-	mux.HandleFunc("GET /api/v1/system/printers", a.require("Admin", a.systemPrinters))
-	mux.HandleFunc("GET /api/v1/system/audit-log", a.require("Admin", a.systemAuditLog))
-	mux.HandleFunc("GET /api/v1/system/smtp", a.require("Admin", a.getSMTPSettings))
-	mux.HandleFunc("PUT /api/v1/system/smtp", a.require("Admin", a.updateSMTPSettings))
-	mux.HandleFunc("POST /api/v1/system/smtp/test", a.require("Admin", a.testSMTPSettings))
-	mux.HandleFunc("GET /api/v1/system/digital-settings", a.require("Admin", a.getDigitalSettings))
-	mux.HandleFunc("PUT /api/v1/system/digital-settings", a.require("Admin", a.updateDigitalSettings))
-}
-
-func (a *App) registerAuthRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/v1/setup/status", a.setupStatus)
-	mux.HandleFunc("POST /api/v1/setup/admin", a.createAdmin)
-	mux.HandleFunc("POST /api/v1/auth/login", a.login)
-	mux.HandleFunc("POST /api/v1/auth/password-reset", a.requestPasswordReset)
-	mux.HandleFunc("POST /api/v1/auth/password-reset/confirm", a.confirmPasswordReset)
-	mux.HandleFunc("POST /api/v1/auth/logout", a.logout)
-	mux.HandleFunc("GET /api/v1/auth/session", a.session)
-	mux.HandleFunc("GET /api/v1/profile/settings", a.require("Viewer", a.getProfileSettings))
-	mux.HandleFunc("PUT /api/v1/profile/settings", a.require("Viewer", a.updateProfileSettings))
-	mux.HandleFunc("PUT /api/v1/auth/password", a.require("Viewer", a.changePassword))
-	mux.HandleFunc("GET /api/v1/auth/two-factor", a.require("Viewer", a.twoFactorStatus))
-	mux.HandleFunc("POST /api/v1/auth/two-factor/setup", a.require("Viewer", a.setupTwoFactor))
-	mux.HandleFunc("POST /api/v1/auth/two-factor/enable", a.require("Viewer", a.enableTwoFactor))
-	mux.HandleFunc("POST /api/v1/auth/two-factor/disable", a.require("Viewer", a.disableTwoFactor))
-	mux.HandleFunc("GET /api/v1/roles", a.require("Admin", a.listRoles))
-	mux.HandleFunc("GET /api/v1/users", a.require("Admin", a.listUsers))
-	mux.HandleFunc("POST /api/v1/users", a.require("Admin", a.createUser))
-	mux.HandleFunc("PUT /api/v1/users/{id}", a.require("Admin", a.updateUser))
-	mux.HandleFunc("DELETE /api/v1/users/{id}", a.require("Admin", a.deleteUser))
-	mux.HandleFunc("GET /api/v1/sessions", a.require("Admin", a.listSessions))
-	mux.HandleFunc("PUT /api/v1/sessions/{id}/revoke", a.require("Admin", a.revokeSession))
-}
-
-func (a *App) registerVehicleRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/ecos/test", a.require("Admin", a.testECoSConnection))
-	mux.HandleFunc("POST /api/v1/ecos/locomotives/count", a.require("Admin", a.countECoSLocomotives))
-	mux.HandleFunc("POST /api/v1/ecos/locomotives/raw", a.require("Admin", a.probeECoSLocomotiveRaw))
-	mux.HandleFunc("POST /api/v1/digital-centers/ecos/locomotives/sync", a.require("Admin", a.syncECoSLocomotive))
-	mux.HandleFunc("POST /api/v1/digital-centers/z21/test", a.require("Admin", a.testZ21Connection))
-	mux.HandleFunc("POST /api/v1/digital-centers/z21/probe", a.require("Admin", a.probeZ21Connection))
-	mux.HandleFunc("POST /api/v1/digital-centers/intellibox3/test", a.require("Admin", a.testIntellibox3Connection))
-	mux.HandleFunc("POST /api/v1/digital-centers/intellibox3/probe", a.require("Admin", a.probeIntellibox3Connection))
-	mux.HandleFunc("POST /api/v1/digital-centers/cs3/test", a.require("Admin", a.testCS3Connection))
-	mux.HandleFunc("GET /api/v1/digital-centers/ecos/live/status", a.require("Admin", a.eCoSLiveStatus))
-	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/start", a.require("Admin", a.startECoSLive))
-	mux.HandleFunc("POST /api/v1/digital-centers/ecos/live/stop", a.require("Admin", a.stopECoSLive))
-	mux.HandleFunc("GET /api/v1/vehicles", a.require("Viewer", a.listVehicles))
-	mux.HandleFunc("POST /api/v1/vehicles", a.require("Editor", a.createVehicle))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}", a.require("Viewer", a.getVehicle))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}", a.require("Editor", a.updateVehicle))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}", a.require("Editor", a.deleteVehicle))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/external-mappings", a.require("Editor", a.upsertVehicleExternalMapping))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/images", a.require("Editor", a.uploadVehicleImage))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/images/import-url", a.require("Editor", a.importVehicleImageFromURL))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/images/{imageID}", a.require("Editor", a.deleteVehicleImage))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/file", a.require("Viewer", a.downloadVehicleImage))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/images/{imageID}/thumbnail", a.require("Viewer", a.downloadVehicleImageThumbnail))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments", a.require("Editor", a.uploadVehicleAttachment))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/attachments/{attachmentID}", a.require("Editor", a.updateVehicleAttachment))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/attachments/{attachmentID}", a.require("Editor", a.deleteVehicleAttachment))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/attachments/{attachmentID}/download", a.require("Viewer", a.downloadVehicleAttachment))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/attachments/import-url", a.require("Editor", a.importVehicleAttachmentFromURL))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/maintenance", a.require("Viewer", a.listVehicleMaintenance))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/maintenance", a.require("Editor", a.createVehicleMaintenance))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.updateVehicleMaintenance))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/maintenance/{maintenanceID}", a.require("Editor", a.deleteVehicleMaintenance))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/spare-parts", a.require("Viewer", a.listVehicleSpareParts))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/spare-parts/suggestions", a.require("Viewer", a.suggestVehicleSpareParts))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/spare-parts", a.require("Editor", a.createVehicleSparePart))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.updateVehicleSparePart))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/spare-parts/{sparePartID}", a.require("Editor", a.deleteVehicleSparePart))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/functions", a.require("Viewer", a.listVehicleFunctions))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/functions/{functionKey}", a.require("Editor", a.upsertVehicleFunction))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/functions/{functionKey}", a.require("Editor", a.deleteVehicleFunction))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-values", a.require("Viewer", a.listVehicleCVValues))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-values", a.require("Editor", a.createVehicleCVValue))
-	mux.HandleFunc("PUT /api/v1/vehicles/{id}/cv-values/{cvValueID}", a.require("Editor", a.updateVehicleCVValue))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-values/{cvValueID}", a.require("Editor", a.deleteVehicleCVValue))
-	mux.HandleFunc("POST /api/v1/cv-files/preview", a.require("Editor", a.previewVehicleCVFile))
-	mux.HandleFunc("POST /api/v1/vehicles/{id}/cv-files", a.require("Editor", a.uploadVehicleCVFile))
-	mux.HandleFunc("DELETE /api/v1/vehicles/{id}/cv-files/{cvFileID}", a.require("Editor", a.deleteVehicleCVFile))
-	mux.HandleFunc("GET /api/v1/vehicles/{id}/cv-files/{cvFileID}/download", a.require("Viewer", a.downloadVehicleCVFile))
-}
-
-func (a *App) registerImportExportRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /api/v1/article-search", a.require("Viewer", a.searchArticleData))
-	mux.HandleFunc("GET /api/v1/inventory-number-schemes", a.require("Viewer", a.listInventoryNumberSchemes))
-	mux.HandleFunc("POST /api/v1/inventory-number-schemes", a.require("Editor", a.createInventoryNumberScheme))
-	mux.HandleFunc("PUT /api/v1/inventory-number-schemes/{category}", a.require("Editor", a.updateInventoryNumberScheme))
-	mux.HandleFunc("GET /api/v1/master-data-all", a.require("Viewer", a.listAllMasterData))
-	mux.HandleFunc("GET /api/v1/master-data/export", a.require("Admin", a.exportMasterData))
-	mux.HandleFunc("POST /api/v1/master-data/import", a.require("Admin", a.importMasterData))
-	mux.HandleFunc("GET /api/v1/master-data/{type}", a.requireMasterDataRead(a.listMasterData))
-	mux.HandleFunc("POST /api/v1/master-data/{type}", a.require("Editor", a.createMasterData))
-	mux.HandleFunc("PUT /api/v1/master-data/{type}/{key}", a.require("Editor", a.updateMasterData))
-	mux.HandleFunc("DELETE /api/v1/master-data/{type}/{key}", a.require("Editor", a.deleteMasterData))
-	mux.HandleFunc("GET /api/v1/master-data-relations", a.require("Viewer", a.listMasterDataRelations))
-	mux.HandleFunc("GET /api/v1/backup/export", a.require("Admin", a.exportBackup))
-	mux.HandleFunc("POST /api/v1/backup/validate", a.require("Admin", a.validateBackup))
-	mux.HandleFunc("POST /api/v1/backup/restore", a.require("Admin", a.restoreBackup))
-}
-
-func (a *App) registerExhibitionRoutes(mux *http.ServeMux) {
-	mux.HandleFunc("GET /api/v1/exhibition-lists", a.require("Messe", a.listExhibitionLists))
-	mux.HandleFunc("POST /api/v1/exhibition-lists", a.require("Admin", a.createExhibitionList))
-	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}", a.require("Messe", a.getExhibitionList))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}", a.require("Admin", a.updateExhibitionList))
-	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}", a.require("Admin", a.deleteExhibitionList))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/lock", a.require("Admin", a.setExhibitionListLocked))
-	mux.HandleFunc("GET /api/v1/exhibition-lists/{id}/entries", a.require("Messe", a.listExhibitionEntries))
-	mux.HandleFunc("POST /api/v1/exhibition-lists/{id}/entries", a.require("Messe", a.createExhibitionEntry))
-	mux.HandleFunc("PUT /api/v1/exhibition-lists/{id}/entries/{entryID}", a.require("Messe", a.updateExhibitionEntry))
-	mux.HandleFunc("DELETE /api/v1/exhibition-lists/{id}/entries/{entryID}", a.require("Admin", a.deleteExhibitionEntry))
+func (a *App) health(w http.ResponseWriter, _ *http.Request) {
+	respondJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
