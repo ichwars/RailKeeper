@@ -111,12 +111,12 @@ func (s *DigitalCenterService) testZ21CompatibleConnection(ctx context.Context, 
 	response, err := s.exchangeZ21UDP(ctx, target, z21SerialNumberCommand())
 	if err != nil {
 		result.Message = fmt.Sprintf("%s nicht erreichbar: %v", label, err)
-		return result, nil
+		return result, nil //nolint:nilerr // Connection failures are returned as preview results.
 	}
 	header, payload, err := parseZ21Packet(response)
 	if err != nil {
 		result.Message = err.Error()
-		return result, nil
+		return result, nil //nolint:nilerr // Protocol failures are returned as preview results.
 	}
 	result.Connected = true
 	result.Status = fmt.Sprintf("0x%04X", header)
@@ -307,7 +307,7 @@ func normalizeDigitalCenterInput(input DigitalCenterConnectionInput, defaultPort
 		port = defaultPort
 	}
 	if port < 1 || port > 65535 {
-		return DigitalCenterConnectionInput{}, errors.New("Port muss zwischen 1 und 65535 liegen")
+		return DigitalCenterConnectionInput{}, errors.New("Port muss zwischen 1 und 65535 liegen") //nolint:staticcheck // User-facing German validation text.
 	}
 	return DigitalCenterConnectionInput{Host: host, Port: port}, nil
 }

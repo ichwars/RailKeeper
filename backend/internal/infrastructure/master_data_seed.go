@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -55,7 +56,8 @@ func SeedMasterData(db *sql.DB, seedsDir string) error {
 	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	tx, err := db.Begin()
+	ctx := context.Background()
+	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin master data seed: %w", err)
 	}
@@ -70,7 +72,7 @@ func SeedMasterData(db *sql.DB, seedsDir string) error {
 		if err != nil {
 			return fmt.Errorf("marshal metadata for %s: %w", item.ID, err)
 		}
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(ctx, `
 INSERT INTO master_data_entries(id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(type, key) DO NOTHING
@@ -80,7 +82,7 @@ ON CONFLICT(type, key) DO NOTHING
 	}
 
 	for _, relation := range seed.Relations {
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(ctx, `
 INSERT INTO master_data_relations(id, parent_type, parent_key, child_type, child_key, sort_order, created_at)
 VALUES(?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(parent_type, parent_key, child_type, child_key) DO NOTHING

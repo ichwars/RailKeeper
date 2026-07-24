@@ -399,7 +399,7 @@ func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionIn
 	}
 	if err != nil {
 		result.Message = err.Error()
-		return result, nil
+		return result, nil //nolint:nilerr // Connection failures are returned as preview results.
 	}
 	fields := parseECoSFields(lines)
 	result.Connected = true
@@ -1145,44 +1145,6 @@ func parseECoSLocomotives(lines []string) []ECoSLocomotive {
 		}
 	}
 	return locomotives
-}
-
-func mergeECoSLocomotive(target *ECoSLocomotive, source *ECoSLocomotive) {
-	if source == nil {
-		return
-	}
-	if source.Name != "" {
-		target.Name = source.Name
-	}
-	if source.Address != 0 {
-		target.Address = source.Address
-	}
-	if source.Protocol != "" {
-		target.Protocol = source.Protocol
-	}
-	if source.Profile != "" {
-		target.Profile = source.Profile
-	}
-	target.Speed = source.Speed
-	target.SpeedStep = source.SpeedStep
-	target.Direction = source.Direction
-	if source.FunctionSet != "" {
-		target.FunctionSet = source.FunctionSet
-	}
-	if source.NumberOfFunctions != 0 {
-		target.NumberOfFunctions = source.NumberOfFunctions
-	}
-	if len(source.Functions) > 0 {
-		target.Functions = source.Functions
-	}
-	if len(source.Attributes) > 0 {
-		if target.Attributes == nil {
-			target.Attributes = map[string][]string{}
-		}
-		for key, values := range source.Attributes {
-			target.Attributes[key] = append(target.Attributes[key], values...)
-		}
-	}
 }
 
 func mergeECoSRawLocomotive(target *ECoSRawLocomotive, source ECoSLocomotive) {

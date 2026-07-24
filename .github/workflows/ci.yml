@@ -5,6 +5,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -18,6 +21,21 @@ jobs:
         working-directory: backend
         run: go test ./...
 
+  backend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Lint backend
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.11.4
+          working-directory: backend
+          args: --config=../.golangci.yml
+
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -30,6 +48,9 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
+      - name: Test frontend
+        working-directory: frontend
+        run: npm run test:coverage
       - name: Build frontend
         working-directory: frontend
         run: npm run build

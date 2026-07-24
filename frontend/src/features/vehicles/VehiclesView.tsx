@@ -1,4 +1,4 @@
-import { DragEvent, FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
 
@@ -44,18 +44,6 @@ import {
 
   api,
 
-  ArticleSearchDocument,
-
-  ArticleSearchImage,
-
-  ArticleSearchInput,
-
-  ArticleSearchResponse,
-
-  ArticleSearchResult,
-
-  ArticleSearchSparePart,
-
   CreateVehicleRequest,
 
   ExhibitionEntry,
@@ -70,23 +58,9 @@ import {
 
   VehicleAttachment,
 
-  VehicleCVFile,
-
-  VehicleCVValue,
-
-  VehicleCVValueInput,
-
   VehicleExternalMappingInput,
 
   VehicleFunctionInput,
-
-  VehicleMaintenance,
-
-  VehicleMaintenanceInput,
-
-  VehicleSparePart,
-
-  VehicleSparePartInput,
 
   Vehicle
 
@@ -108,11 +82,11 @@ import { VehicleMaintenanceTab } from "./VehicleMaintenanceTab";
 
 import { VehicleModelTab } from "./VehicleModelTab";
 
-import { VehicleSparePartsTab, sparePartResultKey, strictCleanSparePartDescription, type SparePartSortKey, type SparePartSortDirection } from "./VehicleSparePartsTab";
+import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 
-import { VehicleUploadsTab, webDocumentKey } from "./VehicleUploadsTab";
+import { VehicleUploadsTab } from "./VehicleUploadsTab";
 
 import { VehicleCVTab } from "./VehicleCVTab";
 
@@ -120,71 +94,23 @@ import { VehicleReadOnlyView } from "./VehicleReadOnlyView";
 
 import {
 
-  ArticleFieldKey,
-
-  articleSelectionKey,
-
-  articleValueForForm,
-
-  currentArticleValue,
-
-  imageSelectionKey,
-
-  isArticleFieldKey,
-
-  sourceDisplayName,
-
-} from "./articleSearch";
-
-import {
-
-  buildCVImportPreview,
-
-  commonDecoderProfiles,
-
   cvValueKey,
-
-  cvValuesFromImport,
 
   functionKeys,
 
   functionMappingsFromImport,
 
-  isValidCVValueInput,
-
   isValidFunctionMapping
 
 } from "./cvImport";
 
-import type { CVFileUploadPreview, CVImportPreview } from "./cvImport";
-
-import {
-
-  attachmentCategoryForFile,
-
-  isAllowedImageFile,
-
-  isBlockedAttachmentFile,
-
-  isBlockedCVFile
-
-} from "./vehicleFiles";
-
-import {
-
-  maintenanceIsDue,
-
-  todayISODate
-
-} from "./vehicleMaintenance";
+import { maintenanceIsDue } from "./vehicleMaintenance";
 
 import { buildBrandedQrPngDataUrl, buildQrSvg, downloadQrPngFile, downloadQrSvgFile, printQrSvgLabel, qrPayload } from "./vehicleQr";
 
 import { InventoryReportAssets, inventoryReportHtml, openPrintDocument, reservePrintDocument } from "./vehicleReports";
 
 import {
-
-  attachmentsToEditState,
 
   functionsToEditState,
 
@@ -196,11 +122,7 @@ import {
 
   primaryImage,
 
-  uploadedImageToPending,
-
   vehicleExhibitionEligible,
-
-  vehicleImagesToPending,
 
   vehicleToExhibitionEntry,
 
@@ -208,25 +130,15 @@ import {
 
 } from "./vehicleTransforms";
 
-import type { AttachmentEditState, FunctionEditState } from "./vehicleTransforms";
+import type { FunctionEditState } from "./vehicleTransforms";
 
 
 
 import {
 
-  articleSearchEnabled,
-
-  articleSearchSources,
-
   compactValue,
 
-  emptyCVForm,
-
   emptyFunctionEdit,
-
-  emptyMaintenanceForm,
-
-  emptySparePartForm,
 
   emptyOptions,
 
@@ -246,16 +158,18 @@ import {
 
   inferFunctionTypeFromSymbol,
 
-  isBadArticleValue,
-
-  optionValue,
-
-  sanitizeArticleSearchResponse,
-
-  vehicleFieldsForSearch
+  optionValue
 
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
+import { useVehicleEditorController } from "./useVehicleEditorController";
+import { useArticleSearchController } from "./useArticleSearchController";
+import { useVehicleMediaController } from "./useVehicleMediaController";
+import { useVehicleMaintenanceController } from "./useVehicleMaintenanceController";
+import { useVehicleSparePartsController } from "./useVehicleSparePartsController";
+import { useVehicleCVController } from "./useVehicleCVController";
+import { useVehicleDecoderFilesController } from "./useVehicleDecoderFilesController";
+import { useVehicleDocumentsController } from "./useVehicleDocumentsController";
 
 import type {
 
@@ -277,8 +191,6 @@ import type {
 
   MasterDataOptions,
 
-  ModalMode,
-
   ModalTab,
 
   SortKey
@@ -293,8 +205,6 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
 
-  const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
-
   const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
 
   const [query, setQuery] = useState("");
@@ -303,138 +213,16 @@ export function VehiclesView({ username }: { username: string }) {
 
   const [loading, setLoading] = useState(false);
 
-  const [saving, setSaving] = useState(false);
-
-  const [selected, setSelected] = useState<Vehicle | null>(null);
-
-  const [mode, setMode] = useState<ModalMode>("create");
-
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const [activeTab, setActiveTab] = useState<ModalTab>("model");
-
-  const [openSections, setOpenSections] = useState({
-
-    model: true,
-
-    details: false,
-
-    vehicle: false
-
-  });
-
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
-  const [attachmentDeleteCandidate, setAttachmentDeleteCandidate] = useState<VehicleAttachment | null>(null);
-  const [saveAttempted, setSaveAttempted] = useState(false);
-
-  const [articleSearchOpen, setArticleSearchOpen] = useState(false);
-
-  const [articleSearchLoading, setArticleSearchLoading] = useState(false);
-
-  const [articleSearchResponse, setArticleSearchResponse] = useState<ArticleSearchResponse | null>(null);
-
-  const [articleSearchError, setArticleSearchError] = useState("");
-
-  const [barcodeSearchOpen, setBarcodeSearchOpen] = useState(false);
-
-  const [barcodeSearchValue, setBarcodeSearchValue] = useState("");
-
-  const [selectedArticleFields, setSelectedArticleFields] = useState<Record<string, boolean>>({});
-
-  const [selectedArticleImages, setSelectedArticleImages] = useState<Record<string, boolean>>({});
-
-  const [pendingArticleImages, setPendingArticleImages] = useState<PendingArticleImage[]>([]);
-
-  const [previewImage, setPreviewImage] = useState<PendingArticleImage | null>(null);
-
-  const [attachmentEdits, setAttachmentEdits] = useState<AttachmentEditState>({});
-
-  const [imageUploadMaintenanceID, setImageUploadMaintenanceID] = useState("");
-
-  const [attachmentUploadCategory, setAttachmentUploadCategory] = useState("");
-
-  const [attachmentUploadDescription, setAttachmentUploadDescription] = useState("");
-
-  const [attachmentDragActive, setAttachmentDragActive] = useState(false);
-
-  const [maintenanceForm, setMaintenanceForm] = useState<VehicleMaintenanceInput>(emptyMaintenanceForm);
-
-  const [editingMaintenanceID, setEditingMaintenanceID] = useState<string | null>(null);
-
-  const [sparePartForm, setSparePartForm] = useState<VehicleSparePartInput>(emptySparePartForm);
-
-  const [editingSparePartID, setEditingSparePartID] = useState<string | null>(null);
-
-  const [sparePartSearchLoading, setSparePartSearchLoading] = useState(false);
-
-  const [sparePartSearchError, setSparePartSearchError] = useState("");
-
-  const [sparePartSearchRan, setSparePartSearchRan] = useState(false);
-
-  const [foundSpareParts, setFoundSpareParts] = useState<ArticleSearchSparePart[]>([]);
-
-  const [selectedFoundSpareParts, setSelectedFoundSpareParts] = useState<Record<string, boolean>>({});
-
-  const [sparePartSort, setSparePartSort] = useState<{ key: SparePartSortKey; direction: SparePartSortDirection }>({
-
-    key: "articleNumber",
-
-    direction: "asc"
-
-  });
-
-  const [sparePartLookupLoadingID, setSparePartLookupLoadingID] = useState("");
-
-  const [sparePartLookupErrors, setSparePartLookupErrors] = useState<Record<string, string>>({});
-
-  const [sparePartLookupResults, setSparePartLookupResults] = useState<Record<string, ArticleSearchSparePart[]>>({});
-
-  const [sparePartStatusLoading, setSparePartStatusLoading] = useState<Record<string, boolean>>({});
-
-  const [sparePartStatuses, setSparePartStatuses] = useState<Record<string, ArticleSearchSparePart>>({});
-
-  const [importAllSparePartsLoading, setImportAllSparePartsLoading] = useState(false);
-
-  const [documentSearchLoading, setDocumentSearchLoading] = useState(false);
-
-  const [documentSearchError, setDocumentSearchError] = useState("");
-
-  const [documentSearchRan, setDocumentSearchRan] = useState(false);
-
-  const [foundUploadDocuments, setFoundUploadDocuments] = useState<ArticleSearchDocument[]>([]);
-  const [selectedUploadDocuments, setSelectedUploadDocuments] = useState<Record<string, boolean>>({});
-
   const [functionEdits, setFunctionEdits] = useState<FunctionEditState>({});
 
   const [showConfiguredFunctionsOnly, setShowConfiguredFunctionsOnly] = useState(false);
-
-  const [cvForm, setCVForm] = useState<VehicleCVValueInput>(emptyCVForm);
-
-  const [editingCVID, setEditingCVID] = useState<string | null>(null);
-
-  const [cvFileProfile, setCVFileProfile] = useState("");
-
-  const [cvFileDescription, setCVFileDescription] = useState("");
-
-  const [cvImportPreview, setCVImportPreview] = useState<CVImportPreview | null>(null);
-
-  const [cvFileUploadPreview, setCVFileUploadPreview] = useState<CVFileUploadPreview | null>(null);
 
   const [ecosDraft, setEcosDraft] = useState<ECoSVehicleDraftPayload | null>(null);
 
   const [ecosUnclearFields, setEcosUnclearFields] = useState<Set<ECoSRequiredField>>(() => new Set());
 
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-
-  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
-
-  const cvFileInputRef = useRef<HTMLInputElement | null>(null);
-
-  const cvImportInputRef = useRef<HTMLInputElement | null>(null);
-
   const functionImportInputRef = useRef<HTMLInputElement | null>(null);
-
-  const sparePartStatusCheckKeyRef = useRef("");
 
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
 
@@ -459,6 +247,301 @@ export function VehiclesView({ username }: { username: string }) {
   const [exhibitionAssignment, setExhibitionAssignment] = useState<ExhibitionAssignment | null>(null);
 
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+  const {
+    state: {
+      form,
+      saving,
+      selected,
+      mode,
+      modalOpen,
+      activeTab,
+      openSections,
+      saveAttempted,
+      readonly
+    },
+    setters: {
+      setForm,
+      setSaving,
+      setSelected,
+      setMode,
+      setModalOpen,
+      setActiveTab,
+      setOpenSections,
+      setSaveAttempted
+    },
+    commands: {
+      update,
+      setSelectedDetail,
+      updateCategory,
+      updateCouplingFront,
+      updateCouplingSame,
+      openCreate,
+      closeModal,
+      openDetail,
+      openEdit,
+      toggleSection
+    }
+  } = useVehicleEditorController({
+    options,
+    onMessage: setMessage,
+    onFormChange: (nextForm) => syncECoSUnclearFields(nextForm),
+    onReset: (reason) => {
+      setEcosDraft(null);
+      setEcosUnclearFields(new Set());
+      resetVehicleMedia(reason === "close");
+      setFunctionEdits({});
+      resetMaintenanceForm();
+      resetSparePartForm();
+      resetSparePartSearch();
+      resetUploadDocumentSearch();
+      resetCVController();
+      resetDecoderFiles();
+    },
+    onDetailLoaded: (detail) => {
+      setEcosDraft(null);
+      setEcosUnclearFields(new Set());
+      loadVehicleMedia(detail);
+      setFunctionEdits(functionsToEditState(detail.functions));
+      resetMaintenanceForm();
+      resetSparePartDetail();
+      resetCVController();
+      resetDecoderFiles();
+    }
+  });
+  const {
+    state: {
+      attachmentDeleteCandidate,
+      pendingImages: pendingArticleImages,
+      previewImage,
+      attachmentEdits,
+      imageUploadMaintenanceId: imageUploadMaintenanceID,
+      attachmentUploadCategory,
+      attachmentUploadDescription,
+      attachmentDragActive
+    },
+    refs: { imageInputRef, attachmentInputRef },
+    setters: {
+      setAttachmentDeleteCandidate,
+      setPendingImages: setPendingArticleImages,
+      setPreviewImage,
+      setAttachmentEdits,
+      setImageUploadMaintenanceId: setImageUploadMaintenanceID,
+      setAttachmentUploadCategory,
+      setAttachmentUploadDescription,
+      setAttachmentDragActive
+    },
+    commands: {
+      reset: resetVehicleMedia,
+      loadDetail: loadVehicleMedia,
+      addImages: addPendingImages,
+      setPrimaryPendingImage,
+      updatePendingImageTitle,
+      updatePendingImageMaintenance,
+      movePendingImage,
+      removePendingImage,
+      uploadImages,
+      uploadAttachment,
+      onAttachmentDrag,
+      onAttachmentDrop,
+      updateAttachmentEdit,
+      saveAttachment,
+      deleteAttachment
+    }
+  } = useVehicleMediaController({
+    selected,
+    readonly,
+    saving,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    onImageUploadComplete: () => {
+      setCVFileProfile("");
+      setCVFileDescription("");
+    }
+  });
+  const {
+    state: {
+      form: maintenanceForm,
+      editingId: editingMaintenanceID
+    },
+    commands: {
+      updateForm: updateMaintenanceForm,
+      resetForm: resetMaintenanceForm,
+      edit: editMaintenance,
+      save: saveMaintenance,
+      complete: completeMaintenance,
+      remove: deleteMaintenance
+    }
+  } = useVehicleMaintenanceController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+  });
+  const {
+    state: {
+      form: sparePartForm,
+      editingId: editingSparePartID,
+      searchLoading: sparePartSearchLoading,
+      searchError: sparePartSearchError,
+      searchRan: sparePartSearchRan,
+      foundParts: foundSpareParts,
+      selectedFoundParts: selectedFoundSpareParts,
+      sort: sparePartSort,
+      lookupLoadingId: sparePartLookupLoadingID,
+      lookupErrors: sparePartLookupErrors,
+      lookupResults: sparePartLookupResults,
+      statusLoading: sparePartStatusLoading,
+      statuses: sparePartStatuses,
+      importAllLoading: importAllSparePartsLoading,
+      canImportAll: canImportAllAvailableSpareParts,
+      importAllTitle: importAllAvailableSparePartsTitle
+    },
+    commands: {
+      updateForm: updateSparePartForm,
+      resetForm: resetSparePartForm,
+      resetSearch: resetSparePartSearch,
+      resetDetail: resetSparePartDetail,
+      edit: editSparePart,
+      save: saveSparePart,
+      remove: deleteSparePart,
+      toggleFound: toggleFoundSparePart,
+      toggleAllFound: toggleAllFoundSpareParts,
+      toggleSort: toggleSparePartSort,
+      selectedInputs: selectedFoundSparePartInputs,
+      clearSelectedFound: clearSelectedFoundSpareParts,
+      searchSingle: searchSingleSparePart,
+      applyLookup: applySparePartLookup,
+      importAll: importAllAvailableSpareParts,
+      extractAttachment: extractAttachmentSpareParts,
+      runSearch: runSparePartSearch
+    }
+  } = useVehicleSparePartsController({
+    selected,
+    active: activeTab === "spareParts",
+    attachmentEdits,
+    setSaving,
+    onMessage: setMessage,
+    onOpenSpareParts: () => setActiveTab("spareParts"),
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    t
+  });
+  const {
+    state: {
+      form: cvForm,
+      editingId: editingCVID,
+      importPreview: cvImportPreview,
+      summary: cvSummary,
+      importStats: cvImportStats,
+      storedDecoderProfiles,
+      decoderProfileOptions
+    },
+    refs: { importInputRef: cvImportInputRef },
+    commands: {
+      updateForm: updateCVForm,
+      resetForm: resetCVForm,
+      reset: resetCVController,
+      edit: editCVValue,
+      save: saveCVValue,
+      remove: deleteCVValue,
+      exportValues: exportCVValues,
+      importValues: importCVValues,
+      toggleImportRow: toggleCVImportRow,
+      selectImportRows: selectCVImportRows,
+      applyImportPreview: applyCVImportPreview,
+      setImportPreview: setCVImportPreview,
+      discardImportPreview: discardCVImportPreview
+    }
+  } = useVehicleCVController({
+    selected,
+    decoderNumber: form.digitalDecoderNumber || form.dtDecoderNumber || "",
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+  });
+  const {
+    state: {
+      fileProfile: cvFileProfile,
+      fileDescription: cvFileDescription,
+      uploadPreview: cvFileUploadPreview,
+      previewStats: cvFilePreviewStats
+    },
+    refs: { fileInputRef: cvFileInputRef },
+    commands: {
+      reset: resetDecoderFiles,
+      uploadFiles: uploadCVFiles,
+      updateFileProfile: setCVFileProfile,
+      updateFileDescription: setCVFileDescription,
+      applyFirstSuggestion: applyFirstCVFileSuggestion,
+      previewValuesForImport: previewCVFileValuesForImport,
+      applyFunctionSuggestions: applyCVFileFunctionSuggestions,
+      confirmUpload: confirmCVFileUpload,
+      discardUploadPreview: discardCVFileUploadPreview,
+      remove: deleteCVFile
+    }
+  } = useVehicleDecoderFilesController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    onImportPreview: setCVImportPreview,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId)
+  });
+  const {
+    state: {
+      loading: documentSearchLoading,
+      error: documentSearchError,
+      ran: documentSearchRan,
+      documents: foundUploadDocuments,
+      selectedDocuments: selectedUploadDocuments
+    },
+    commands: {
+      reset: resetUploadDocumentSearch,
+      search: runUploadDocumentSearch,
+      importOne: importFoundDocument,
+      importSelected: importSelectedFoundDocuments,
+      toggle: toggleFoundDocument,
+      toggleAll: toggleAllFoundDocuments
+    }
+  } = useVehicleDocumentsController({
+    selected,
+    setSaving,
+    onMessage: setMessage,
+    refreshSelectedVehicle: (vehicleId) => refreshSelectedVehicle(vehicleId),
+    t
+  });
+  const {
+    state: {
+      open: articleSearchOpen,
+      loading: articleSearchLoading,
+      response: articleSearchResponse,
+      error: articleSearchError,
+      barcodeOpen: barcodeSearchOpen,
+      barcodeValue: barcodeSearchValue,
+      selectedFields: selectedArticleFields,
+      selectedImages: selectedArticleImages
+    },
+    setters: {
+      setOpen: setArticleSearchOpen,
+      setBarcodeOpen: setBarcodeSearchOpen,
+      setBarcodeValue: setBarcodeSearchValue
+    },
+    commands: {
+      run: runArticleSearch,
+      openBarcode: openBarcodeSearch,
+      submitBarcode: submitBarcodeSearch,
+      toggleField: toggleArticleField,
+      toggleImage: toggleArticleImage,
+      applyResult: applyArticleResult
+    }
+  } = useArticleSearchController({
+    form,
+    pendingImageCount: pendingArticleImages.length,
+    replaceForm: setForm,
+    updateForm: update,
+    onMessage: setMessage,
+    t,
+    addImages: addPendingImages
+  });
   const {
     allVisibleSelected,
     categoryFilter,
@@ -692,11 +775,9 @@ export function VehiclesView({ username }: { username: string }) {
 
       resetUploadDocumentSearch();
 
-      resetCVForm();
+      resetCVController();
 
-      setCVImportPreview(null);
-
-      setCVFileUploadPreview(null);
+      resetDecoderFiles();
 
       setEcosDraft(draft);
 
@@ -932,10 +1013,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const readonly = mode === "view";
-
-
-
   const syncECoSUnclearFields = (nextForm: CreateVehicleRequest) => {
 
     setEcosUnclearFields((current) => {
@@ -970,439 +1047,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const update = (patch: Partial<CreateVehicleRequest>) => {
-
-    setForm((current) => {
-
-      const next = { ...current, ...patch };
-
-      syncECoSUnclearFields(next);
-
-      return next;
-
-    });
-
-  };
-
-
-
-  const setSelectedDetail = (detail: Vehicle) => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setSelected(detail);
-
-    setForm(vehicleToForm(detail));
-
-    setPendingArticleImages(vehicleImagesToPending(detail));
-
-    setAttachmentEdits(attachmentsToEditState(detail.attachments));
-
-    setFunctionEdits(functionsToEditState(detail.functions));
-
-    setEditingMaintenanceID(null);
-
-    setMaintenanceForm(emptyMaintenanceForm);
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    setSparePartStatusLoading({});
-
-    setSparePartStatuses({});
-
-    setImportAllSparePartsLoading(false);
-
-    sparePartStatusCheckKeyRef.current = "";
-
-    setEditingCVID(null);
-
-    setCVForm(emptyCVForm);
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-    setSaveAttempted(false);
-
-  };
-
-
-
-  const updateCategory = (category: string) => {
-
-    const categoryKey = options.categories.find((entry) => optionValue(entry) === category)?.key;
-
-    const allowed = new Set(
-
-      options.categoryRelations
-
-        .filter((relation) => relation.parentKey === categoryKey)
-
-        .map((relation) => relation.childKey)
-
-    );
-
-    const currentGattung = options.gattungen.find((entry) => optionValue(entry) === form.gattung);
-
-    update({
-
-      category,
-
-      gattung: currentGattung && allowed.has(currentGattung.key) ? form.gattung : ""
-
-    });
-
-  };
-
-
-
-  const updateCouplingFront = (couplingFront: string) => {
-
-    update({
-
-      couplingFront,
-
-      couplingRear: form.couplingSame ? couplingFront : form.couplingRear
-
-    });
-
-  };
-
-
-
-  const updateCouplingSame = (couplingSame: boolean) => {
-
-    update({
-
-      couplingSame,
-
-      couplingRear: couplingSame ? form.couplingFront : form.couplingRear
-
-    });
-
-  };
-
-
-
-  const runArticleSearch = (searchForm = form, searchInput?: ArticleSearchInput) => {
-
-    if (!articleSearchEnabled()) {
-
-      setArticleSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
-
-      setArticleSearchOpen(true);
-
-      setArticleSearchResponse(null);
-
-      return;
-
-    }
-
-
-
-    if (!hasArticleSearchCriteria(searchForm, searchInput)) {
-
-      setArticleSearchOpen(false);
-
-      setArticleSearchLoading(false);
-
-      setArticleSearchResponse(null);
-
-      setArticleSearchError(t("vehicles.articleSearch.missingInput"));
-
-      setMessage(t("vehicles.articleSearch.missingInput"));
-
-      return;
-
-    }
-
-
-
-    setArticleSearchOpen(true);
-
-    setArticleSearchLoading(true);
-
-    setArticleSearchError("");
-
-    setArticleSearchResponse(null);
-
-    setSelectedArticleFields({});
-
-    setSelectedArticleImages({});
-
-
-
-    api
-
-      .articleSearch(searchInput ?? {
-
-        manufacturer: searchForm.manufacturer,
-
-        articleNumber: searchForm.articleNumber,
-
-        name: searchForm.name,
-
-        gauge: searchForm.gauge,
-
-        searchSources: articleSearchSources(),
-
-        fields: vehicleFieldsForSearch(searchForm)
-
-      })
-
-      .then((response) => {
-
-        const sanitized = sanitizeArticleSearchResponse(response);
-
-        setArticleSearchResponse(sanitized);
-
-        const initialSelection: Record<string, boolean> = {};
-
-        sanitized.results.forEach((result, index) => {
-
-          Object.keys(result.fields).filter(isArticleFieldKey).forEach((key) => {
-
-            initialSelection[articleSelectionKey(result, key, index)] = !currentArticleValue(searchForm, key);
-
-          });
-
-        });
-
-        setSelectedArticleFields(initialSelection);
-
-      })
-
-      .catch((error: Error) => setArticleSearchError(error.message))
-
-      .finally(() => setArticleSearchLoading(false));
-
-  };
-
-
-
-  const openBarcodeSearch = () => {
-
-    setBarcodeSearchValue(form.ean || "");
-
-    setBarcodeSearchOpen(true);
-
-  };
-
-
-
-  const submitBarcodeSearch = (event: FormEvent<HTMLFormElement>) => {
-
-    event.preventDefault();
-
-    const code = barcodeSearchValue.trim();
-
-    if (!code) {
-
-      setMessage("Bitte einen Barcode oder eine EAN eingeben.");
-
-      return;
-
-    }
-
-    const nextForm = { ...form, ean: code };
-
-    setForm(nextForm);
-
-    setBarcodeSearchOpen(false);
-
-    runArticleSearch(nextForm, {
-
-      searchSources: articleSearchSources(),
-
-      fields: {
-
-        ean: code
-
-      }
-
-    });
-
-  };
-
-
-
-  const toggleArticleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
-
-    setSelectedArticleFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
-
-  };
-
-
-
-  const toggleArticleImage = (result: ArticleSearchResult, index: number, image: ArticleSearchImage, checked: boolean) => {
-
-    setSelectedArticleImages((current) => ({ ...current, [imageSelectionKey(result, image, index)]: checked }));
-
-  };
-
-
-
-  const applyArticleResult = (result: ArticleSearchResult) => {
-
-    const patch: Partial<CreateVehicleRequest> = {};
-
-    const foundResultIndex = articleSearchResponse?.results.findIndex((entry) => entry.url === result.url) ?? 0;
-
-    const resultIndex = foundResultIndex >= 0 ? foundResultIndex : 0;
-
-    Object.entries(result.fields).forEach(([key, field]) => {
-
-      if (!isArticleFieldKey(key) || !selectedArticleFields[articleSelectionKey(result, key, resultIndex)]) return;
-
-      if (isBadArticleValue(key, field.value)) return;
-
-      Object.assign(patch, { [key]: articleValueForForm(key, field.value) });
-
-    });
-
-    const selectedImages = (result.images || [])
-
-      .filter((image) => selectedArticleImages[imageSelectionKey(result, image, resultIndex)])
-
-      .map((image, imageIndex) => ({ ...image, id: `${result.url}-${image.url}`, isPrimary: pendingArticleImages.length === 0 && imageIndex === 0 }));
-
-    if (selectedImages.length > 0) {
-
-      setPendingArticleImages((current) => {
-
-        const existing = new Set(current.map((image) => image.url));
-
-        const next = [...current, ...selectedImages.filter((image) => !existing.has(image.url))];
-
-        if (!next.some((image) => image.isPrimary) && next.length > 0) {
-
-          next[0] = { ...next[0], isPrimary: true };
-
-        }
-
-        return next;
-
-      });
-
-    }
-
-    update(patch);
-
-    setArticleSearchOpen(false);
-
-  };
-
-
-
-  const setPrimaryPendingImage = (id: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => ({ ...image, isPrimary: image.id === id })));
-
-  };
-
-
-
-  const updatePendingImageTitle = (id: string, title: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, title } : image)));
-
-  };
-
-
-
-  const updatePendingImageMaintenance = (id: string, maintenanceId: string) => {
-
-    setPendingArticleImages((current) => current.map((image) => (image.id === id ? { ...image, maintenanceId } : image)));
-
-  };
-
-
-
-  const movePendingImage = (id: string, direction: -1 | 1) => {
-
-    setPendingArticleImages((current) => {
-
-      const index = current.findIndex((image) => image.id === id);
-
-      const target = index + direction;
-
-      if (index < 0 || target < 0 || target >= current.length) return current;
-
-      const next = [...current];
-
-      [next[index], next[target]] = [next[target], next[index]];
-
-      return next;
-
-    });
-
-  };
-
-
-
-  const removePendingImage = (image: PendingArticleImage) => {
-
-    if (image.maintenanceId) {
-
-      setMessage("Bild ist mit einer Wartung verkn?pft. Bitte zuerst die Verkn?pfung entfernen und speichern.");
-
-      return;
-
-    }
-
-    const removeFromState = () => {
-
-      setPendingArticleImages((current) => {
-
-        const next = current.filter((entry) => entry.id !== image.id);
-
-        if (next.length > 0 && !next.some((entry) => entry.isPrimary)) {
-
-          next[0] = { ...next[0], isPrimary: true };
-
-        }
-
-        return next;
-
-      });
-
-    };
-
-
-
-    if (selected && image.persisted) {
-
-      setSaving(true);
-
-      api
-
-        .deleteVehicleImage(selected.id, image.id)
-
-        .then(() => {
-
-          removeFromState();
-
-          refreshSelectedVehicle(selected.id);
-
-        })
-
-        .catch((error: Error) => setMessage(error.message))
-
-        .finally(() => setSaving(false));
-
-      return;
-
-    }
-
-    removeFromState();
-
-  };
-
-
-
   const refreshSelectedVehicle = (vehicleID = selected?.id) => {
 
     if (!vehicleID) return Promise.resolve();
@@ -1420,1668 +1064,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const uploadImages = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const invalid = uploadFiles.find((file) => !isAllowedImageFile(file));
-
-    if (invalid) {
-
-      setMessage(`${invalid.name} ist kein erlaubtes Bildformat.`);
-
-      if (imageInputRef.current) {
-
-        imageInputRef.current.value = "";
-
-      }
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        const image = await api.uploadVehicleImage(selected.id, file, file.name, pendingArticleImages.length === 0, imageUploadMaintenanceID);
-
-        setPendingArticleImages((current) => {
-
-          const next = [...current, uploadedImageToPending(image)];
-
-          if (!next.some((entry) => entry.isPrimary) && next.length > 0) {
-
-            next[0] = { ...next[0], isPrimary: true };
-
-          }
-
-          return next;
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVFileProfile("");
-
-        setCVFileDescription("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (imageInputRef.current) {
-
-          imageInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const uploadAttachment = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const blocked = uploadFiles.find(isBlockedAttachmentFile);
-
-    if (blocked) {
-
-      setMessage(`${blocked.name} ist als Beilage nicht erlaubt. Erlaubt sind PDF, TXT, CSV, JSON, XML, ZIP sowie JPG, PNG und WebP.`);
-
-      if (attachmentInputRef.current) {
-
-        attachmentInputRef.current.value = "";
-
-      }
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        await api.uploadVehicleAttachment(
-
-          selected.id,
-
-          file,
-
-          attachmentUploadCategory || attachmentCategoryForFile(file),
-
-          attachmentUploadDescription,
-
-          ""
-
-        );
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (attachmentInputRef.current) {
-
-          attachmentInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const onAttachmentDrag = (event: DragEvent<HTMLElement>) => {
-
-    event.preventDefault();
-
-    event.stopPropagation();
-
-    if (readonly || !selected || saving) return;
-
-    setAttachmentDragActive(event.type === "dragenter" || event.type === "dragover");
-
-  };
-
-
-
-  const onAttachmentDrop = (event: DragEvent<HTMLElement>) => {
-
-    event.preventDefault();
-
-    event.stopPropagation();
-
-    setAttachmentDragActive(false);
-
-    if (readonly || !selected || saving) return;
-
-    uploadAttachment(event.dataTransfer.files);
-
-  };
-
-
-
-  const updateAttachmentEdit = (attachmentID: string, patch: Partial<{ description: string; category: string; maintenanceId: string }>) => {
-
-    setAttachmentEdits((current) => ({
-
-      ...current,
-
-      [attachmentID]: {
-
-        description: current[attachmentID]?.description || "",
-
-        category: current[attachmentID]?.category || "",
-
-        maintenanceId: current[attachmentID]?.maintenanceId || "",
-
-        ...patch
-
-      }
-
-    }));
-
-  };
-
-
-
-  const saveAttachment = (attachment: VehicleAttachment) => {
-
-    if (!selected) return;
-
-    const edit = attachmentEdits[attachment.id] || { description: "", category: "", maintenanceId: "" };
-
-    setSaving(true);
-
-    api
-
-      .updateVehicleAttachment(selected.id, attachment.id, edit)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteAttachment = (attachment: VehicleAttachment) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-    setAttachmentDeleteCandidate(null);
-
-    api
-
-      .deleteVehicleAttachment(selected.id, attachment.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const updateMaintenanceForm = (patch: Partial<VehicleMaintenanceInput>) => {
-
-    setMaintenanceForm((current) => ({ ...current, ...patch }));
-
-  };
-
-
-
-  const resetMaintenanceForm = () => {
-
-    setMaintenanceForm(emptyMaintenanceForm);
-
-    setEditingMaintenanceID(null);
-
-  };
-
-
-
-  const editMaintenance = (entry: VehicleMaintenance) => {
-
-    setMaintenanceForm({
-
-      kind: entry.kind || "Wartung",
-
-      status: entry.status || "geplant",
-
-      conditionRating: entry.conditionRating || "",
-
-      dueDate: entry.dueDate || "",
-
-      completedAt: entry.completedAt || "",
-
-      cost: entry.cost || "",
-
-      notes: entry.notes || ""
-
-    });
-
-    setEditingMaintenanceID(entry.id);
-
-  };
-
-
-
-  const saveMaintenance = () => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    const payload: VehicleMaintenanceInput = {
-
-      ...maintenanceForm,
-
-      status: maintenanceForm.status === "f?llig" ? "faellig" : maintenanceForm.status,
-
-      cost: maintenanceForm.cost?.trim().replace(/\s*?$/, "") || "",
-
-      completedAt: maintenanceForm.status === "erledigt" && !maintenanceForm.completedAt ? todayISODate() : maintenanceForm.completedAt
-
-    };
-
-    const action = editingMaintenanceID
-
-      ? api.updateVehicleMaintenance(selected.id, editingMaintenanceID, payload)
-
-      : api.createVehicleMaintenance(selected.id, payload);
-
-    action
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => resetMaintenanceForm())
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const completeMaintenance = (entry: VehicleMaintenance) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .updateVehicleMaintenance(selected.id, entry.id, {
-
-        kind: entry.kind,
-
-        status: "erledigt",
-
-        conditionRating: entry.conditionRating || "",
-
-        dueDate: entry.dueDate || "",
-
-        completedAt: entry.completedAt || todayISODate(),
-
-        cost: entry.cost || "",
-
-        notes: entry.notes || ""
-
-      })
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteMaintenance = (entry: VehicleMaintenance) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleMaintenance(selected.id, entry.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const updateSparePartForm = (patch: Partial<VehicleSparePartInput>) => {
-
-    setSparePartForm((current) => ({ ...current, ...patch }));
-
-  };
-
-
-
-  const resetSparePartForm = () => {
-
-    setSparePartForm(emptySparePartForm);
-
-    setEditingSparePartID(null);
-
-  };
-
-
-
-  const resetSparePartSearch = () => {
-
-    setSparePartSearchLoading(false);
-
-    setSparePartSearchError("");
-
-    setSparePartSearchRan(false);
-
-    setFoundSpareParts([]);
-
-    setSelectedFoundSpareParts({});
-
-  };
-
-
-
-  const resetUploadDocumentSearch = () => {
-
-    setDocumentSearchLoading(false);
-
-    setDocumentSearchError("");
-
-    setDocumentSearchRan(false);
-
-    setFoundUploadDocuments([]);
-    setSelectedUploadDocuments({});
-
-  };
-
-
-
-  const editSparePart = (part: VehicleSparePart) => {
-
-    setSparePartForm({
-
-      articleNumber: part.articleNumber || "",
-
-      description: part.description || "",
-
-      price: part.price || "",
-
-      url: part.url?.startsWith("/api/v1/vehicles/") ? "" : part.url || ""
-
-    });
-
-    setEditingSparePartID(part.id);
-
-    window.setTimeout(() => {
-
-      const editor = document.getElementById("vehicle-spare-parts-editor") as HTMLDetailsElement | null;
-
-      editor?.scrollIntoView({ behavior: "smooth", block: "start" });
-
-      if (editor) editor.open = true;
-
-      document.getElementById("vehicle-spare-part-article-number")?.focus({ preventScroll: true });
-
-    }, 0);
-
-  };
-
-
-
-  const saveSparePart = () => {
-
-    if (!selected) return;
-
-    const payload: VehicleSparePartInput = {
-
-      articleNumber: sparePartForm.articleNumber?.trim() || "",
-
-      description: sparePartForm.description?.trim() || "",
-
-      price: sparePartForm.price?.trim() || "",
-
-      url: sparePartForm.url?.trim() || ""
-
-    };
-
-    if (!payload.articleNumber && !payload.description && !payload.url) {
-
-      setMessage(t("vehicles.spareParts.incomplete"));
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    const action = editingSparePartID
-
-      ? api.updateVehicleSparePart(selected.id, editingSparePartID, payload)
-
-      : api.createVehicleSparePart(selected.id, payload);
-
-    action
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => resetSparePartForm())
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteSparePart = (part: VehicleSparePart) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleSparePart(selected.id, part.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const toggleFoundSparePart = (key: string, checked: boolean) => {
-
-    setSelectedFoundSpareParts((current) => ({ ...current, [key]: checked }));
-
-  };
-
-
-
-  const toggleAllFoundSpareParts = (checked: boolean) => {
-
-    setSelectedFoundSpareParts(Object.fromEntries(foundSpareParts.map((part, index) => [sparePartResultKey(part, index), checked])));
-
-  };
-
-  const toggleSparePartSort = (key: SparePartSortKey) => {
-
-    setSparePartSort((current) => ({
-
-      key,
-
-      direction: current.key === key && current.direction === "asc" ? "desc" : "asc"
-
-    }));
-
-  };
-
-  const selectedFoundSparePartInputs = () => foundSpareParts
-
-    .filter((part, index) => selectedFoundSpareParts[sparePartResultKey(part, index)])
-
-    .map((part) => ({
-
-      articleNumber: part.articleNumber || "",
-
-      description: strictCleanSparePartDescription(part.description) || part.description || "",
-
-      price: part.price || "",
-
-      url: part.url || ""
-
-    }));
-
-  const sparePartImportKey = (part: VehicleSparePartInput) => {
-
-    const articleNumber = part.articleNumber?.trim() || "";
-
-    const description = part.description?.trim() || "";
-
-    const url = part.url?.trim() || "";
-
-    return (articleNumber || description ? `${articleNumber}|${description}` : `|${url}`).toLocaleLowerCase("de-DE");
-
-  };
-
-  const sparePartCatalogKey = (part: VehicleSparePartInput | VehicleSparePart | ArticleSearchSparePart) => {
-
-    const article = normalizedText(part.articleNumber || "").replace(/^et(?=\d)/, "").replace(/[^a-z0-9]/g, "");
-
-    if (article) return `article:${article}`;
-
-    const description = normalizedText(part.description || "").replace(/[^a-z0-9]/g, "");
-
-    if (description) return `description:${description}`;
-
-    const urlValue = "url" in part ? part.url : "";
-
-    return `url:${normalizedSparePartUrl(urlValue)}`;
-
-  };
-
-  const sparePartSearchCandidateMatches = (part: VehicleSparePart, signal: string) => {
-
-    const normalizedSignal = normalizedText(signal);
-
-    const compactSignal = normalizedSignal.replace(/[^a-z0-9]/g, "");
-
-    const articleNumber = normalizedText(part.articleNumber || "");
-
-    const compactArticleNumber = articleNumber.replace(/[^a-z0-9]/g, "");
-
-    if (articleNumber) return normalizedSignal.includes(articleNumber) || Boolean(compactArticleNumber && compactSignal.includes(compactArticleNumber));
-
-    const descriptionTokens = normalizedText(part.description || "")
-
-      .split(/\s+/)
-
-      .filter((token) => token.length >= 4);
-
-    return descriptionTokens.length > 0 && descriptionTokens.slice(0, 4).some((token) => normalizedSignal.includes(token));
-
-  };
-
-  const sparePartSearchSourcesForLookup = () => {
-
-    const sources = articleSearchSources().filter((source) => source === "manufacturer" || source === "catalogs");
-
-    return sources.length > 0 ? sources : ["manufacturer", "catalogs"];
-
-  };
-
-  const isPikoVehicle = (vehicle: Vehicle) => vehicle.manufacturer.trim().toLocaleLowerCase("de-DE").includes("piko");
-
-  const isRocoVehicle = (vehicle: Vehicle) => vehicle.manufacturer.trim().toLocaleLowerCase("de-DE").includes("roco");
-
-  const sparePartLookupMode = (vehicle: Vehicle) => {
-
-    if (isPikoVehicle(vehicle)) return "piko";
-
-    if (isRocoVehicle(vehicle)) return "roco";
-
-    return "";
-
-  };
-
-  const visibleSparePartUrl = (part: VehicleSparePart) => part.url && !part.url.startsWith("/api/v1/vehicles/") ? part.url : "";
-
-  const normalizedSparePartUrl = (value?: string) => String(value || "").trim().replace(/\/+$/, "").toLocaleLowerCase("de-DE");
-
-  const sparePartLookupCandidates = (part: VehicleSparePart, response: ArticleSearchResponse) => {
-
-    const sanitized = sanitizeArticleSearchResponse(response);
-
-    const parts = new Map<string, ArticleSearchSparePart>();
-
-    sanitized.results.forEach((result) => {
-
-      const resultSignal = `${result.title || ""} ${result.snippet || ""} ${result.url || ""}`.toLocaleLowerCase("de-DE");
-
-      (result.spareParts || []).forEach((candidate) => {
-
-        const candidateSignal = `${candidate.articleNumber || ""} ${candidate.description || ""} ${candidate.url || ""}`.toLocaleLowerCase("de-DE");
-
-        if (!sparePartSearchCandidateMatches(part, candidateSignal)) return;
-
-        const key = `${candidate.price || ""}|${candidate.url || ""}`.toLocaleLowerCase("de-DE");
-
-        if (key !== "|" && !parts.has(key)) parts.set(key, candidate);
-
-      });
-
-      if (sparePartSearchCandidateMatches(part, resultSignal) && result.url) {
-
-        const fallback: ArticleSearchSparePart = {
-
-          articleNumber: part.articleNumber || "",
-
-          description: part.description || result.title || "",
-
-          price: "",
-
-          url: result.url,
-
-          source: result.source || sourceDisplayName(result.url)
-
-        };
-
-        const key = `${fallback.price || ""}|${fallback.url || ""}`.toLocaleLowerCase("de-DE");
-
-        if (key !== "|" && !parts.has(key)) parts.set(key, fallback);
-
-      }
-
-    });
-
-    return Array.from(parts.values())
-      .filter((candidate) => candidate.price || candidate.url)
-      .sort((left, right) => {
-        const priceRank = Number(Boolean(right.price)) - Number(Boolean(left.price));
-        if (priceRank !== 0) return priceRank;
-        const availabilityRank = Number(Boolean(right.availability)) - Number(Boolean(left.availability));
-        if (availabilityRank !== 0) return availabilityRank;
-        return Number(Boolean(right.url)) - Number(Boolean(left.url));
-      })
-      .slice(0, 5);
-
-  };
-
-  const sparePartStatusCandidate = (part: VehicleSparePart, response: ArticleSearchResponse) => {
-
-    const candidates = sanitizeArticleSearchResponse(response).results.flatMap((result) => result.spareParts || []);
-
-    const partKey = sparePartCatalogKey(part);
-
-    const partUrl = normalizedSparePartUrl(part.url);
-
-    return candidates.find((candidate) => sparePartCatalogKey(candidate) === partKey) ||
-      candidates.find((candidate) => partUrl && normalizedSparePartUrl(candidate.url) === partUrl) ||
-      sparePartLookupCandidates(part, response)[0];
-
-  };
-
-  const refreshSparePartStatuses = async (vehicle: Vehicle) => {
-
-    const linkedParts = (vehicle.spareParts || []).filter((part) => visibleSparePartUrl(part));
-
-    if (linkedParts.length === 0 || !articleSearchEnabled()) return;
-
-    const nextLoading = Object.fromEntries(linkedParts.map((part) => [part.id, true]));
-
-    setSparePartStatusLoading((current) => ({ ...current, ...nextLoading }));
-
-    try {
-
-      const lookupMode = sparePartLookupMode(vehicle);
-
-      if (lookupMode) {
-
-        const response = await api.articleSearch({
-
-          manufacturer: vehicle.manufacturer,
-
-          articleNumber: vehicle.articleNumber || linkedParts[0]?.articleNumber || "",
-
-          name: "",
-
-          gauge: "",
-
-          searchSources: sparePartSearchSourcesForLookup(),
-
-          fields: {
-
-            manufacturer: vehicle.manufacturer || "",
-
-            articleNumber: vehicle.articleNumber || linkedParts[0]?.articleNumber || "",
-
-            vehicleArticleNumber: vehicle.articleNumber || "",
-
-            sparePartLookup: lookupMode
-
-          }
-
-        });
-
-        const nextStatuses: Record<string, ArticleSearchSparePart> = {};
-
-        linkedParts.forEach((part) => {
-
-          const candidate = sparePartStatusCandidate(part, response);
-
-          if (candidate?.availability || candidate?.price || candidate?.url) nextStatuses[part.id] = candidate;
-
-        });
-
-        setSparePartStatuses((current) => ({ ...current, ...nextStatuses }));
-
-        return;
-
-      }
-
-      const batch = linkedParts.filter((part) => part.articleNumber?.trim()).slice(0, 4);
-
-      const results = await Promise.allSettled(batch.map((part) =>
-
-        api.articleSearch({
-
-          manufacturer: vehicle.manufacturer,
-
-          articleNumber: part.articleNumber || "",
-
-          name: "",
-
-          gauge: "",
-
-          searchSources: sparePartSearchSourcesForLookup(),
-
-          fields: {
-
-            manufacturer: vehicle.manufacturer || "",
-
-            articleNumber: part.articleNumber || "",
-
-            vehicleArticleNumber: vehicle.articleNumber || "",
-
-            sparePartLookup: lookupMode
-
-          }
-
-        }).then((response) => ({ part, response }))
-
-      ));
-
-      const nextStatuses: Record<string, ArticleSearchSparePart> = {};
-
-      results.forEach((result) => {
-
-        if (result.status !== "fulfilled") return;
-
-        const candidate = sparePartStatusCandidate(result.value.part, result.value.response);
-
-        if (candidate?.availability || candidate?.price || candidate?.url) nextStatuses[result.value.part.id] = candidate;
-
-      });
-
-      setSparePartStatuses((current) => ({ ...current, ...nextStatuses }));
-
-    } finally {
-
-      setSparePartStatusLoading((current) => {
-
-        const next = { ...current };
-
-        linkedParts.forEach((part) => delete next[part.id]);
-
-        return next;
-
-      });
-
-    }
-
-  };
-
-  useEffect(() => {
-
-    if (activeTab !== "spareParts" || !selected) return;
-
-    const linkedParts = (selected.spareParts || []).filter((part) => visibleSparePartUrl(part));
-
-    if (linkedParts.length === 0) return;
-
-    const statusKey = `${selected.id}|${selected.articleNumber}|${selected.manufacturer}|${linkedParts.map((part) => `${part.id}:${part.articleNumber}:${part.url}`).join("|")}`;
-
-    if (sparePartStatusCheckKeyRef.current === statusKey) return;
-
-    sparePartStatusCheckKeyRef.current = statusKey;
-
-    refreshSparePartStatuses(selected).catch(() => {
-
-      setSparePartStatusLoading({});
-
-    });
-
-  }, [activeTab, selected]);
-
-  const searchSingleSparePart = async (part: VehicleSparePart) => {
-
-    if (!selected || !part.articleNumber?.trim()) return;
-
-    if (!articleSearchEnabled()) {
-
-      setSparePartLookupErrors((current) => ({ ...current, [part.id]: t("vehicles.spareParts.searchDisabledSettings") }));
-
-      setSparePartLookupResults((current) => ({ ...current, [part.id]: [] }));
-
-      return;
-
-    }
-
-    setSparePartLookupLoadingID(part.id);
-
-    setSparePartLookupErrors((current) => ({ ...current, [part.id]: "" }));
-
-    setSparePartLookupResults((current) => ({ ...current, [part.id]: [] }));
-
-    try {
-
-      const response = await api.articleSearch({
-
-        manufacturer: selected.manufacturer,
-
-        articleNumber: part.articleNumber || "",
-
-        name: "",
-
-        gauge: "",
-
-        searchSources: sparePartSearchSourcesForLookup(),
-
-        fields: {
-
-          manufacturer: selected.manufacturer || "",
-
-          articleNumber: part.articleNumber || "",
-
-          vehicleArticleNumber: selected.articleNumber || "",
-
-          sparePartLookup: sparePartLookupMode(selected)
-
-        }
-
-      });
-
-      setSparePartLookupResults((current) => ({ ...current, [part.id]: sparePartLookupCandidates(part, response) }));
-
-    } catch (error) {
-
-      setSparePartLookupErrors((current) => ({
-
-        ...current,
-
-        [part.id]: error instanceof Error ? error.message : String(error)
-
-      }));
-
-    } finally {
-
-      setSparePartLookupLoadingID("");
-
-    }
-
-  };
-
-  const applySparePartLookup = (part: VehicleSparePart, result: ArticleSearchSparePart) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    const pricedResult = result.price
-      ? result
-      : (sparePartLookupResults[part.id] || []).find((candidate) => candidate.price) || result;
-
-    api
-
-      .updateVehicleSparePart(selected.id, part.id, {
-
-        articleNumber: part.articleNumber || "",
-
-        description: part.description || "",
-
-        price: result.price || pricedResult.price || part.price || "",
-
-        url: pricedResult.url || result.url || part.url || ""
-
-      })
-
-      .then(() => {
-
-        setSparePartLookupResults((current) => {
-
-          const next = { ...current };
-
-          delete next[part.id];
-
-          return next;
-
-        });
-
-        setSparePartLookupErrors((current) => {
-
-          const next = { ...current };
-
-          delete next[part.id];
-
-          return next;
-
-        });
-
-        return refreshSelectedVehicle(selected.id);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-  const importAllAvailableSpareParts = async () => {
-
-    if (!selected) return;
-
-    const lookupMode = sparePartLookupMode(selected);
-
-    if (!lookupMode || !selected.articleNumber?.trim()) return;
-
-    if (!articleSearchEnabled()) {
-
-      setMessage(t("vehicles.spareParts.searchDisabledSettings"));
-
-      return;
-
-    }
-
-    setImportAllSparePartsLoading(true);
-
-    setMessage("");
-
-    try {
-
-      const response = await api.articleSearch({
-
-        manufacturer: selected.manufacturer,
-
-        articleNumber: selected.articleNumber || "",
-
-        name: "",
-
-        gauge: "",
-
-        searchSources: sparePartSearchSourcesForLookup(),
-
-        fields: {
-
-          manufacturer: selected.manufacturer || "",
-
-          articleNumber: selected.articleNumber || "",
-
-          vehicleArticleNumber: selected.articleNumber || "",
-
-          sparePartLookup: lookupMode
-
-        }
-
-      });
-
-      const sanitized = sanitizeArticleSearchResponse(response);
-
-      const existingPartsByKey = new Map((selected.spareParts || []).map((part) => [sparePartCatalogKey(part), part]));
-
-      const importable = new Map<string, VehicleSparePartInput>();
-
-      const updates = new Map<string, { id: string; input: VehicleSparePartInput }>();
-
-      sanitized.results.forEach((result) => {
-
-        (result.spareParts || []).forEach((part) => {
-
-          const input: VehicleSparePartInput = {
-
-            articleNumber: part.articleNumber?.trim() || "",
-
-            description: strictCleanSparePartDescription(part.description || "") || part.description || "",
-
-            price: part.price?.trim() || "",
-
-            url: part.url?.trim() || result.url || ""
-
-          };
-
-          const key = sparePartCatalogKey(input);
-
-          if (key === "url:") return;
-
-          const existingPart = existingPartsByKey.get(key);
-
-          if (existingPart) {
-
-            const existingPrice = existingPart.price && existingPart.price !== "-" ? existingPart.price : "";
-
-            const existingUrl = existingPart.url?.startsWith("/api/v1/vehicles/") ? "" : existingPart.url || "";
-
-            const nextPrice = existingPrice || input.price || "";
-
-            const nextUrl = existingUrl || input.url || "";
-
-            if ((nextPrice && nextPrice !== existingPrice) || (nextUrl && nextUrl !== existingUrl)) {
-
-              updates.set(existingPart.id, {
-
-                id: existingPart.id,
-
-                input: {
-
-                  articleNumber: existingPart.articleNumber || input.articleNumber || "",
-
-                  description: existingPart.description || input.description || "",
-
-                  price: nextPrice,
-
-                  url: nextUrl
-
-                }
-
-              });
-
-            }
-
-            return;
-
-          }
-
-          const current = importable.get(key);
-
-          if (current) {
-
-            importable.set(key, {
-
-              articleNumber: current.articleNumber || input.articleNumber || "",
-
-              description: current.description || input.description || "",
-
-              price: current.price || input.price || "",
-
-              url: current.url || input.url || ""
-
-            });
-
-            return;
-
-          }
-
-          importable.set(key, input);
-
-        });
-
-      });
-
-      if (importable.size === 0 && updates.size === 0) {
-
-        setMessage(t("vehicles.spareParts.importAllNone"));
-
-        return;
-
-      }
-
-      for (const update of updates.values()) {
-
-        await api.updateVehicleSparePart(selected.id, update.id, update.input);
-
-      }
-
-      for (const part of importable.values()) {
-
-        await api.createVehicleSparePart(selected.id, part);
-
-      }
-
-      await refreshSelectedVehicle(selected.id);
-
-      setMessage(t("vehicles.spareParts.importAllDone", { count: importable.size + updates.size }));
-
-    } catch (error) {
-
-      setMessage(error instanceof Error ? error.message : String(error));
-
-    } finally {
-
-      setImportAllSparePartsLoading(false);
-
-    }
-
-  };
-
-  const canImportAllAvailableSpareParts = Boolean(selected && sparePartLookupMode(selected) && selected.articleNumber?.trim());
-
-  const importAllAvailableSparePartsTitle = !selected
-
-    ? t("vehicles.spareParts.importAllNoVehicle")
-
-    : !sparePartLookupMode(selected)
-
-      ? t("vehicles.spareParts.importAllUnsupported")
-
-      : !selected.articleNumber?.trim()
-
-        ? t("vehicles.spareParts.importAllMissingArticle")
-
-        : t("vehicles.spareParts.importAllTitle");
-
-  const extractAttachmentSpareParts = async (attachment: VehicleAttachment) => {
-
-    if (!selected) return;
-
-    const edit = attachmentEdits[attachment.id] || { description: "", category: "", maintenanceId: "" };
-
-    setSaving(true);
-
-    setMessage("");
-
-    setSparePartSearchError("");
-
-    try {
-
-      await api.updateVehicleAttachment(selected.id, attachment.id, edit);
-
-      const localParts = await api.vehicleSparePartSuggestions(selected.id, attachment.id);
-
-      const candidates = localParts.filter((part) => Boolean(part.articleNumber || strictCleanSparePartDescription(part.description) || part.url));
-
-      const existingKeys = new Set((selected.spareParts || []).map((part) => sparePartImportKey(part)));
-
-      const importableParts: VehicleSparePartInput[] = [];
-
-      for (const part of candidates) {
-
-        const input: VehicleSparePartInput = {
-
-          articleNumber: part.articleNumber?.trim() || "",
-
-          description: strictCleanSparePartDescription(part.description) || part.description || "",
-
-          price: part.price?.trim() || "",
-
-          url: part.url?.trim().startsWith("/api/v1/vehicles/") ? "" : part.url?.trim() || ""
-
-        };
-
-        if (!input.articleNumber && !input.description && !input.url) continue;
-
-        const key = sparePartImportKey(input);
-
-        if (existingKeys.has(key)) continue;
-
-        existingKeys.add(key);
-
-        importableParts.push(input);
-
-      }
-
-      if (importableParts.length > 0) {
-
-        for (const part of importableParts) {
-
-          await api.createVehicleSparePart(selected.id, part);
-
-        }
-
-        setFoundSpareParts([]);
-
-        setSparePartSearchRan(false);
-
-        setSelectedFoundSpareParts({});
-
-        setMessage(t("vehicles.uploads.extractSparePartsDone", { count: importableParts.length }));
-
-      } else {
-
-        setFoundSpareParts(candidates);
-
-        setSparePartSearchRan(true);
-
-        setSelectedFoundSpareParts({});
-
-        setMessage(t("vehicles.uploads.extractSparePartsEmpty"));
-
-      }
-
-      await refreshSelectedVehicle(selected.id);
-
-      setActiveTab("spareParts");
-
-    } catch (error) {
-
-      setMessage(error instanceof Error ? error.message : String(error));
-
-    } finally {
-
-      setSaving(false);
-
-    }
-
-  };
-
-  const runSparePartSearch = async () => {
-
-    if (!selected) return;
-
-    const storedParts = (selected.spareParts || []).filter((part) => part.articleNumber?.trim());
-
-    if (storedParts.length === 0) {
-
-      setSparePartSearchError(t("vehicles.spareParts.searchDisabledEmpty"));
-
-      setSparePartSearchRan(true);
-
-      return;
-
-    }
-
-    if (!articleSearchEnabled()) {
-
-      setSparePartSearchError(t("vehicles.spareParts.searchDisabledSettings"));
-
-      setSparePartSearchRan(true);
-
-      return;
-
-    }
-
-    setSparePartSearchLoading(true);
-
-    setSparePartSearchError("");
-
-    setSparePartSearchRan(true);
-
-    setFoundSpareParts([]);
-
-    setSelectedFoundSpareParts({});
-
-    const sparePartSearchSources = articleSearchSources().filter((source) => source === "manufacturer" || source === "catalogs");
-
-    const searchInput = (part: VehicleSparePart) => ({
-
-      manufacturer: selected.manufacturer,
-
-      articleNumber: part.articleNumber || "",
-
-      name: "",
-
-      gauge: "",
-
-      searchSources: sparePartSearchSources.length > 0 ? sparePartSearchSources : ["manufacturer", "catalogs"],
-
-      fields: {
-
-        manufacturer: selected.manufacturer || "",
-
-        articleNumber: part.articleNumber || ""
-
-      }
-
-    });
-
-    try {
-
-      const responses: { part: VehicleSparePart; response: ArticleSearchResponse }[] = [];
-
-      let failedSearches = 0;
-
-      for (let index = 0; index < storedParts.length; index += 3) {
-
-        const batch = storedParts.slice(index, index + 3);
-
-        const batchResults = await Promise.allSettled(batch.map((part) => api.articleSearch(searchInput(part)).then((response) => ({ part, response }))));
-
-        batchResults.forEach((result) => {
-
-          if (result.status === "fulfilled") {
-
-            responses.push(result.value);
-
-          } else {
-
-            failedSearches += 1;
-
-          }
-
-        });
-
-      }
-
-        const parts = new Map<string, ArticleSearchSparePart>();
-
-        responses.forEach(({ part, response }) => {
-
-          const sanitized = sanitizeArticleSearchResponse(response);
-
-          sanitized.results.forEach((result) => {
-
-            const resultSignal = `${result.title || ""} ${result.snippet || ""} ${result.url || ""}`.toLocaleLowerCase("de-DE");
-
-            (result.spareParts || []).forEach((candidate) => {
-
-              const candidateSignal = `${candidate.articleNumber || ""} ${candidate.description || ""} ${candidate.url || ""}`.toLocaleLowerCase("de-DE");
-
-              if (!sparePartSearchCandidateMatches(part, candidateSignal)) return;
-
-              const key = `${candidate.articleNumber || ""}|${candidate.description || ""}|${candidate.url || ""}`.toLocaleLowerCase("de-DE");
-
-              if (key !== "||" && !parts.has(key)) parts.set(key, candidate);
-
-            });
-
-            if (sparePartSearchCandidateMatches(part, resultSignal) && result.url) {
-
-              const fallback: ArticleSearchSparePart = {
-
-                articleNumber: part.articleNumber || "",
-
-                description: part.description || result.title || "",
-
-                price: part.price || "",
-
-                url: result.url,
-
-                source: result.source || sourceDisplayName(result.url)
-
-              };
-
-              const key = `${fallback.articleNumber || ""}|${fallback.description || ""}|${fallback.url || ""}`.toLocaleLowerCase("de-DE");
-
-              if (key !== "||" && !parts.has(key)) parts.set(key, fallback);
-
-            }
-
-          });
-
-        });
-
-        setFoundSpareParts(Array.from(parts.values()));
-
-        setSelectedFoundSpareParts({});
-
-      if (failedSearches > 0 && parts.size === 0) {
-
-        setSparePartSearchError(t("vehicles.spareParts.searchFailed"));
-
-      } else if (failedSearches > 0) {
-
-        setSparePartSearchError(t("vehicles.spareParts.searchPartialFailed", { count: failedSearches }));
-
-      }
-
-    } catch (error) {
-
-      setSparePartSearchError(error instanceof Error ? error.message : String(error));
-
-    } finally {
-
-      setSparePartSearchLoading(false);
-
-    }
-
-  };
-
-
-
-
-
-  const runUploadDocumentSearch = () => {
-
-    if (!selected) return;
-
-    if (!articleSearchEnabled()) {
-
-      setDocumentSearchError("Die Artikeldaten-Websuche ist in den Einstellungen deaktiviert.");
-
-      setDocumentSearchRan(true);
-
-      return;
-
-    }
-
-    const searchForm = vehicleToForm(selected);
-
-    if (!hasArticleSearchCriteria(searchForm)) {
-
-      setDocumentSearchError(t("vehicles.articleSearch.missingInput"));
-
-      setDocumentSearchRan(true);
-
-      return;
-
-    }
-
-    setDocumentSearchLoading(true);
-
-    setDocumentSearchError("");
-
-    setDocumentSearchRan(true);
-
-    setFoundUploadDocuments([]);
-    setSelectedUploadDocuments({});
-
-    api
-
-      .articleSearch({
-
-        manufacturer: searchForm.manufacturer,
-
-        articleNumber: searchForm.articleNumber,
-
-        name: searchForm.name,
-
-        gauge: searchForm.gauge,
-
-        searchSources: articleSearchSources(),
-
-        fields: vehicleFieldsForSearch(searchForm)
-
-      })
-
-      .then((response) => {
-
-        const sanitized = sanitizeArticleSearchResponse(response);
-
-        const documents = new Map<string, ArticleSearchDocument>();
-
-        sanitized.results.forEach((result) => {
-
-          (result.documents || []).forEach((document) => {
-
-            const key = (document.url || document.title || "").toLocaleLowerCase();
-
-            if (key && !documents.has(key)) documents.set(key, document);
-
-          });
-
-        });
-
-        setFoundUploadDocuments(Array.from(documents.values()));
-
-      })
-
-      .catch((error: Error) => setDocumentSearchError(error.message))
-
-      .finally(() => setDocumentSearchLoading(false));
-
-  };
-
-
-
-  const categoryForFoundDocument = (document: ArticleSearchDocument) => {
-
-    const signal = `${document.kind || ""} ${document.title || ""}`.toLocaleLowerCase("de-DE");
-
-    if (signal.includes("spare") || signal.includes("ersatzteil") || signal.includes("et-blatt")) return "Ersatzteilliste";
-
-    if (signal.includes("manual") || signal.includes("anleitung") || signal.includes("bedienung")) return "Anleitung";
-
-    return "Dokumentation";
-
-  };
-
-  const importFoundDocuments = (documents: ArticleSearchDocument[]) => {
-
-    if (!selected) return;
-
-    const importableDocuments = documents.filter((document) => document.url);
-
-    if (importableDocuments.length === 0) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const document of importableDocuments) {
-
-        await api.importVehicleAttachmentFromUrl(selected.id, {
-
-          url: document.url,
-
-          title: document.title || "Dokument",
-
-          description: `Quelle: ${document.source || document.url}\n${document.url}`,
-
-          category: categoryForFoundDocument(document),
-
-          maintenanceId: ""
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setSelectedUploadDocuments({});
-
-        setMessage(t(importableDocuments.length === 1 ? "vehicles.uploads.webDocumentImported" : "vehicles.uploads.webDocumentsImported", { count: importableDocuments.length }));
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const importFoundDocument = (document: ArticleSearchDocument) => {
-
-    importFoundDocuments([document]);
-
-  };
-
-  const toggleFoundDocument = (document: ArticleSearchDocument, index: number, checked: boolean) => {
-
-    const key = webDocumentKey(document, index);
-
-    setSelectedUploadDocuments((current) => {
-
-      const next = { ...current };
-
-      if (checked) {
-
-        next[key] = true;
-
-      } else {
-
-        delete next[key];
-
-      }
-
-      return next;
-
-    });
-
-  };
-
-  const toggleAllFoundDocuments = (checked: boolean) => {
-
-    if (!checked) {
-
-      setSelectedUploadDocuments({});
-
-      return;
-
-    }
-
-    const existingDocumentUrls = new Set((selected?.attachments || []).map((attachment) => attachment.description || ""));
-
-    setSelectedUploadDocuments(Object.fromEntries(foundUploadDocuments.flatMap((document, index) => {
-
-      if (!document.url || Array.from(existingDocumentUrls).some((description) => description.includes(document.url))) {
-
-        return [];
-
-      }
-
-      return [[webDocumentKey(document, index), true]];
-
-    })));
-
-  };
-
-  const importSelectedFoundDocuments = () => {
-
-    const documents = foundUploadDocuments.filter((document, index) => selectedUploadDocuments[webDocumentKey(document, index)]);
-
-    importFoundDocuments(documents);
 
   };
 
@@ -3311,556 +1293,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const updateCVForm = (patch: Partial<VehicleCVValueInput>) => {
-
-    setCVForm((current) => ({ ...current, ...patch }));
-
-  };
-
-
-
-  const resetCVForm = () => {
-
-    setCVForm(emptyCVForm);
-
-    setEditingCVID(null);
-
-  };
-
-
-
-  const editCVValue = (value: VehicleCVValue) => {
-
-    setCVForm({
-
-      cvNumber: value.cvNumber,
-
-      value: value.value,
-
-      description: value.description || "",
-
-      category: value.category || "",
-
-      protocol: value.protocol || "",
-
-      decoderProfile: value.decoderProfile || "",
-
-      sourceFileId: value.sourceFileId || ""
-
-    });
-
-    setEditingCVID(value.id);
-
-  };
-
-
-
-  const saveCVValue = () => {
-
-    if (!selected) return;
-
-    const payload = {
-
-      ...cvForm,
-
-      cvNumber: Number(cvForm.cvNumber),
-
-      value: Number(cvForm.value)
-
-    };
-
-    if (!isValidCVValueInput(payload)) {
-
-      setMessage("CV-Nummer muss 1-1024 und Wert 0-255 sein.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    const existing = !editingCVID
-
-      ? (selected.cvValues || []).find((entry) => cvValueKey(entry) === cvValueKey(payload))
-
-      : undefined;
-
-    const action = editingCVID
-
-      ? api.updateVehicleCVValue(selected.id, editingCVID, payload)
-
-      : existing
-
-        ? api.updateVehicleCVValue(selected.id, existing.id, payload)
-
-        : api.createVehicleCVValue(selected.id, payload);
-
-    action
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => resetCVForm())
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteCVValue = (value: VehicleCVValue) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleCVValue(selected.id, value.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const exportCVValues = () => {
-
-    if (!selected) return;
-
-    const payload = {
-
-      vehicle: {
-
-        inventoryNumber: selected.inventoryNumber,
-
-        name: selected.name,
-
-        decoder: form.digitalDecoderNumber || form.dtDecoderNumber || ""
-
-      },
-
-      cvValues: selected.cvValues || []
-
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-
-    const url = URL.createObjectURL(blob);
-
-    const anchor = document.createElement("a");
-
-    anchor.href = url;
-
-    anchor.download = `${selected.inventoryNumber || "railkeeper"}-cv.json`;
-
-    anchor.click();
-
-    URL.revokeObjectURL(url);
-
-  };
-
-
-
-  const importCVValues = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const [file] = Array.from(files);
-
-    setSaving(true);
-
-    setMessage("");
-
-    file
-
-      .text()
-
-      .then(cvValuesFromImport)
-
-      .then((values) => {
-
-        const preview = buildCVImportPreview(file.name, values, selected.cvValues || []);
-
-        if (!preview.rows.some((row) => row.status !== "invalid")) {
-
-          throw new Error("Keine g?ltigen CV-Werte gefunden.");
-
-        }
-
-        setCVImportPreview(preview);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (cvImportInputRef.current) {
-
-          cvImportInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const toggleCVImportRow = (id: string, selectedRow: boolean) => {
-
-    setCVImportPreview((current) => current ? {
-
-      ...current,
-
-      rows: current.rows.map((row) => row.id === id ? { ...row, selected: selectedRow } : row)
-
-    } : current);
-
-  };
-
-
-
-  const selectCVImportRows = (modeName: "all" | "none" | "empty") => {
-
-    setCVImportPreview((current) => current ? {
-
-      ...current,
-
-      rows: current.rows.map((row) => ({
-
-        ...row,
-
-        selected: row.status !== "invalid" && (
-
-          modeName === "all" ||
-
-          (modeName === "empty" && row.status === "new")
-
-        )
-
-      }))
-
-    } : current);
-
-  };
-
-
-
-  const applyCVImportPreview = () => {
-
-    if (!selected || !cvImportPreview) return;
-
-    const rows = cvImportPreview.rows.filter((row) => row.selected && row.status !== "invalid");
-
-    if (rows.length === 0) {
-
-      setMessage("Keine CV-Werte f?r den Import ausgew?hlt.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const row of rows) {
-
-        if (row.existing) {
-
-          await api.updateVehicleCVValue(selected.id, row.existing.id, row.input);
-
-        } else {
-
-          await api.createVehicleCVValue(selected.id, row.input);
-
-        }
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVImportPreview(null);
-
-        setMessage(`${rows.length} CV-Wert${rows.length === 1 ? "" : "e"} übernommen.`);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const uploadCVFiles = (files: FileList | null) => {
-
-    if (!selected || !files || files.length === 0) return;
-
-    const uploadFiles = Array.from(files);
-
-    const blocked = uploadFiles.find(isBlockedCVFile);
-
-    if (blocked) {
-
-      setMessage(`${blocked.name} ist als CV-Datei nicht erlaubt. Erlaubt sind JSON, CSV, TXT, XML, Z21, ESU, ESUX, LokProgrammer und ZIP.`);
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    Promise.all(uploadFiles.map((file) => api.previewVehicleCVFile(file)))
-
-      .then((previews) => {
-
-        setCVFileUploadPreview({ files: uploadFiles, previews });
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => {
-
-        setSaving(false);
-
-        if (cvFileInputRef.current) {
-
-          cvFileInputRef.current.value = "";
-
-        }
-
-      });
-
-  };
-
-
-
-  const applyFirstCVFileSuggestion = () => {
-
-    const suggestion = cvFileUploadPreview?.previews.find((preview) => preview.hasMetadata);
-
-    if (!suggestion) return;
-
-    if (suggestion.suggestedDecoderProfile) {
-
-      setCVFileProfile(suggestion.suggestedDecoderProfile);
-
-    }
-
-    if (suggestion.suggestedDescription) {
-
-      setCVFileDescription(suggestion.suggestedDescription);
-
-    }
-
-  };
-
-
-
-  const previewCVFileValuesForImport = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const values = cvFileUploadPreview.previews.flatMap((preview) =>
-
-      (preview.suggestedCvValues || []).map((value) => ({
-
-        cvNumber: value.cvNumber,
-
-        value: value.value,
-
-        description: value.description || "",
-
-        category: value.category || "",
-
-        protocol: value.protocol || "",
-
-        decoderProfile: preview.suggestedDecoderProfile || cvFileProfile || preview.decoder || preview.projectName || "",
-
-        sourceFileId: ""
-
-      }))
-
-    );
-
-    const preview = buildCVImportPreview("Decoder-Datei-Vorschau", values, selected.cvValues || []);
-
-    if (!preview.rows.some((row) => row.status !== "invalid")) {
-
-      setMessage("Keine g?ltigen CV-Werte in der Decoder-Vorschau gefunden.");
-
-      return;
-
-    }
-
-    setCVImportPreview(preview);
-
-    setMessage(`${values.length} erkannte CV-Werte f?r die Pr?fung vorbereitet.`);
-
-  };
-
-
-
-  const applyCVFileFunctionSuggestions = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const mappings = cvFileUploadPreview.previews.flatMap((preview) =>
-
-      (preview.suggestedFunctions || []).map((mapping) => ({
-
-        functionKey: mapping.functionKey,
-
-        name: mapping.name || "",
-
-        symbolKey: "",
-
-        functionType: mapping.functionType || "standard",
-
-        mode: "dauer",
-
-        directionDependent: false,
-
-        notes: preview.fileName
-
-      }))
-
-    );
-
-    const valid = Array.from(new Map(mappings.filter(isValidFunctionMapping).map((mapping) => [mapping.functionKey, mapping])).values());
-
-    if (valid.length === 0) {
-
-      setMessage("Keine g?ltigen Funktionstasten in der Decoder-Vorschau gefunden.");
-
-      return;
-
-    }
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const row of valid) {
-
-        await api.updateVehicleFunction(selected.id, row.functionKey, {
-
-          name: row.name || "",
-
-          symbolKey: row.symbolKey || "",
-
-          functionType: row.functionType || "standard",
-
-          mode: row.mode || "dauer",
-
-          directionDependent: Boolean(row.directionDependent),
-
-          notes: row.notes || ""
-
-        });
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => setMessage(`${valid.length} Funktionstaste${valid.length === 1 ? "" : "n"} aus der Decoder-Vorschau übernommen.`))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const confirmCVFileUpload = () => {
-
-    if (!selected || !cvFileUploadPreview) return;
-
-    const uploadFiles = cvFileUploadPreview.files;
-
-    setSaving(true);
-
-    setMessage("");
-
-    (async () => {
-
-      for (const file of uploadFiles) {
-
-        await api.uploadVehicleCVFile(selected.id, file, cvFileProfile, cvFileDescription);
-
-      }
-
-    })()
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .then(() => {
-
-        setCVFileUploadPreview(null);
-
-        setMessage(`${uploadFiles.length} CV-Datei${uploadFiles.length === 1 ? "" : "en"} gespeichert.`);
-
-      })
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
-  const deleteCVFile = (file: VehicleCVFile) => {
-
-    if (!selected) return;
-
-    setSaving(true);
-
-    setMessage("");
-
-    api
-
-      .deleteVehicleCVFile(selected.id, file.id)
-
-      .then(() => refreshSelectedVehicle(selected.id))
-
-      .catch((error: Error) => setMessage(error.message))
-
-      .finally(() => setSaving(false));
-
-  };
-
-
-
   const generateQr = async () => {
 
     if (!hasQrPayloadData(selected, form)) {
@@ -4049,112 +1481,6 @@ export function VehiclesView({ username }: { username: string }) {
       setMessage(error instanceof Error ? error.message : "Report konnte nicht erstellt werden.");
 
     }
-
-  };
-
-
-
-  const openCreate = () => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setSelected(null);
-
-    setMode("create");
-
-    setForm(emptyVehicle);
-
-    setPendingArticleImages([]);
-
-    setAttachmentEdits({});
-
-    setImageUploadMaintenanceID("");
-
-    setAttachmentUploadCategory("");
-
-    setAttachmentUploadDescription("");
-
-    setAttachmentDragActive(false);
-    setAttachmentDeleteCandidate(null);
-    setSaveAttempted(false);
-
-    setFunctionEdits({});
-
-    resetMaintenanceForm();
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    resetUploadDocumentSearch();
-
-    resetCVForm();
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-
-    setActiveTab("model");
-
-    setOpenSections({ model: true, details: false, vehicle: false });
-
-    setModalOpen(true);
-
-    setMessage("");
-
-  };
-
-
-
-  const closeModal = () => {
-
-    setEcosDraft(null);
-
-    setEcosUnclearFields(new Set());
-
-    setModalOpen(false);
-
-    setSelected(null);
-
-    setMode("create");
-
-    setForm(emptyVehicle);
-
-    setPendingArticleImages([]);
-
-    setAttachmentEdits({});
-
-    setImageUploadMaintenanceID("");
-
-    setAttachmentUploadCategory("");
-
-    setAttachmentUploadDescription("");
-
-    setAttachmentDragActive(false);
-    setAttachmentDeleteCandidate(null);
-    setSaveAttempted(false);
-
-    setFunctionEdits({});
-
-    resetMaintenanceForm();
-
-    resetSparePartForm();
-
-    resetSparePartSearch();
-
-    resetUploadDocumentSearch();
-
-    resetCVForm();
-
-    setCVImportPreview(null);
-
-    setCVFileUploadPreview(null);
-
-    setPreviewImage(null);
-
-    setMessage("");
 
   };
 
@@ -4378,62 +1704,6 @@ export function VehiclesView({ username }: { username: string }) {
 
 
 
-  const openDetail = (vehicle: Vehicle, tab: ModalTab = "model") => {
-
-    api
-
-      .vehicle(vehicle.id)
-
-      .then((detail) => {
-
-        setSelectedDetail(detail);
-
-        setMode("view");
-
-        setActiveTab(tab);
-
-        setOpenSections({ model: true, details: false, vehicle: false });
-
-        setModalOpen(true);
-
-        setMessage("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
-  const openEdit = (vehicle: Vehicle, tab: ModalTab = "model") => {
-
-    api
-
-      .vehicle(vehicle.id)
-
-      .then((detail) => {
-
-        setSelectedDetail(detail);
-
-        setMode("edit");
-
-        setActiveTab(tab);
-
-        setOpenSections({ model: true, details: false, vehicle: false });
-
-        setModalOpen(true);
-
-        setMessage("");
-
-      })
-
-      .catch((error: Error) => setMessage(error.message));
-
-  };
-
-
-
   const openQrForVehicle = (vehicle: Vehicle) => {
 
     setQrSvg("");
@@ -4455,14 +1725,6 @@ export function VehiclesView({ username }: { username: string }) {
       })
 
       .catch((error: Error) => setQrError(error.message));
-
-  };
-
-
-
-  const toggleSection = (section: keyof typeof openSections) => {
-
-    setOpenSections((current) => ({ ...current, [section]: !current[section] }));
 
   };
 
@@ -4643,7 +1905,7 @@ export function VehiclesView({ username }: { username: string }) {
 
         }
 
-        setSelectedFoundSpareParts({});
+        clearSelectedFoundSpareParts();
 
         vehicle = await api.vehicle(vehicle.id);
 
@@ -4930,56 +2192,6 @@ export function VehiclesView({ username }: { username: string }) {
     light: configuredFunctionKeys.filter((functionKey) => functionEdit(functionKey).functionType === "licht").length
 
   };
-
-  const cvSummary = {
-
-    values: selected?.cvValues?.length || 0,
-
-    files: selected?.cvFiles?.length || 0,
-
-    profiles: new Set([
-
-      ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
-
-      ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
-
-    ]).size
-
-  };
-
-  const cvImportStats = {
-
-    selected: cvImportPreview?.rows.filter((row) => row.selected && row.status !== "invalid").length || 0,
-
-    new: cvImportPreview?.rows.filter((row) => row.status === "new").length || 0,
-
-    changed: cvImportPreview?.rows.filter((row) => row.status === "changed").length || 0,
-
-    same: cvImportPreview?.rows.filter((row) => row.status === "same").length || 0,
-
-    invalid: cvImportPreview?.rows.filter((row) => row.status === "invalid").length || 0
-
-  };
-
-  const cvFilePreviewStats = {
-
-    cvValues: cvFileUploadPreview?.previews.reduce((sum, preview) => sum + (preview.suggestedCvValues?.length || 0), 0) || 0,
-
-    functions: cvFileUploadPreview?.previews.reduce((sum, preview) => sum + (preview.suggestedFunctions?.length || 0), 0) || 0
-
-  };
-
-  const storedDecoderProfiles = Array.from(new Set([
-
-    ...(selected?.cvValues || []).map((value) => value.decoderProfile).filter((profile): profile is string => Boolean(profile)),
-
-    ...(selected?.cvFiles || []).map((file) => file.decoderProfile).filter((profile): profile is string => Boolean(profile))
-
-  ])).sort((a, b) => a.localeCompare(b, "de-DE"));
-
-  const decoderProfileOptions = Array.from(new Set([...commonDecoderProfiles, ...storedDecoderProfiles]));
-
-
 
   return (
 
@@ -5355,7 +2567,7 @@ export function VehiclesView({ username }: { username: string }) {
 
                   applyCVImportPreview={applyCVImportPreview}
 
-                  discardCVImportPreview={() => setCVImportPreview(null)}
+                  discardCVImportPreview={discardCVImportPreview}
 
                   toggleCVImportRow={toggleCVImportRow}
 
@@ -5383,7 +2595,7 @@ export function VehiclesView({ username }: { username: string }) {
 
                   confirmCVFileUpload={confirmCVFileUpload}
 
-                  discardCVFileUploadPreview={() => setCVFileUploadPreview(null)}
+                  discardCVFileUploadPreview={discardCVFileUploadPreview}
 
                   deleteCVFile={deleteCVFile}
 

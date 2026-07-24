@@ -26,8 +26,17 @@ const (
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
-		resp, err := http.Get("http://127.0.0.1:8080/health")
-		if err != nil || resp.StatusCode > http.StatusOK {
+		request, err := http.NewRequestWithContext(context.Background(), http.MethodGet, "http://127.0.0.1:8080/health", nil)
+		if err != nil {
+			os.Exit(1)
+		}
+		resp, err := http.DefaultClient.Do(request)
+		if err != nil {
+			os.Exit(1)
+		}
+		statusCode := resp.StatusCode
+		_ = resp.Body.Close()
+		if statusCode > http.StatusOK {
 			os.Exit(1)
 		}
 		return
@@ -186,7 +195,8 @@ func executableDir() string {
 }
 
 func listen(addr string, allowFallback bool) (net.Listener, string, error) {
-	listener, err := net.Listen("tcp", addr)
+	listenConfig := net.ListenConfig{}
+	listener, err := listenConfig.Listen(context.Background(), "tcp", addr)
 	if err == nil {
 		return listener, browserURL(listener.Addr().String()), nil
 	}
@@ -203,7 +213,7 @@ func listen(addr string, allowFallback bool) (net.Listener, string, error) {
 	}
 	for nextPort := port + 1; nextPort <= port+10; nextPort++ {
 		nextAddr := net.JoinHostPort(host, strconv.Itoa(nextPort))
-		listener, listenErr := net.Listen("tcp", nextAddr)
+		listener, listenErr := listenConfig.Listen(context.Background(), "tcp", nextAddr)
 		if listenErr == nil {
 			return listener, browserURL(listener.Addr().String()), nil
 		}
@@ -249,7 +259,7 @@ func openBrowser(logger *slog.Logger, appURL string) {
 		command = "xdg-open"
 		args = []string{appURL}
 	}
-	if err := exec.Command(command, args...).Start(); err != nil {
+	if err := exec.CommandContext(context.Background(), command, args...).Start(); err != nil {
 		logger.Warn("browser open failed", "error", err, "url", appURL)
 	}
 }

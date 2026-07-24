@@ -69,7 +69,7 @@ func (s *SMTPSettingsService) Get(ctx context.Context) (*SMTPSettings, error) {
 }
 
 func (s *SMTPSettingsService) Update(ctx context.Context, input SMTPSettingsInput) (*SMTPSettings, error) {
-	if s == nil || s.db == nil {
+	if s.db == nil {
 		return nil, ErrSMTPSettingsValidation
 	}
 	currentConfig, _, _, err := s.effectiveConfig(ctx)
@@ -163,7 +163,7 @@ func (s *SMTPSettingsService) effectiveConfig(ctx context.Context) (SMTPPassword
 	if config.TLSMode == "" {
 		config.TLSMode = "starttls"
 	}
-	if s == nil || s.db == nil {
+	if s.db == nil {
 		return config, publicURL, enabled, nil
 	}
 

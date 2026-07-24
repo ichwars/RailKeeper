@@ -1,0 +1,29 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - errcheck
+    - govet
+    - ineffassign
+    - misspell
+    - nilerr
+    - noctx
+    - staticcheck
+    - unused
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - noctx
+      - text: "`Konfiguration` is a misspelling"
+        linters:
+          - misspell
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

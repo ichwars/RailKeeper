@@ -1,0 +1,90 @@
+name: Security Audit
+
+on:
+  pull_request:
+    paths:
+      - backend/go.mod
+      - backend/go.sum
+      - frontend/package.json
+      - frontend/package-lock.json
+      - .github/workflows/security-audit.yml
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  govulncheck:
+    name: Go vulnerability audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+      - name: Scan reachable Go vulnerabilities
+        working-directory: backend
+        run: govulncheck ./... | tee -a "$GITHUB_STEP_SUMMARY"
+
+  npm-audit:
+    name: npm runtime dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+      - name: Scan runtime dependencies
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high | tee -a "$GITHUB_STEP_SUMMARY"
+
+  report:
+    name: Report scheduled audit failure
+    if: always() && github.event_name == 'schedule' && contains(needs.*.result, 'failure')
+    needs:
+      - govulncheck
+      - npm-audit
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Create or update audit issue
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const title = "Security audit requires attention";
+            const runURL = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = `The scheduled dependency audit failed. Review the workflow run: ${runURL}`;
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              per_page: 100
+            });
+            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
+            if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body
+              });
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body
+              });
+            }

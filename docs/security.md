@@ -40,6 +40,26 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 - Do not expose the service directly to the internet without a reverse proxy and TLS.
 - Article search fetches third-party pages and should be considered untrusted input; results are suggestions and require explicit user selection.
 
+## Mandatory Invariants
+
+- Every API route declares its server-side access role explicitly.
+- Every state-changing API request remains CSRF-protected.
+- Authorization changes include negative-path tests for unauthenticated and insufficient roles.
+- External URLs use the shared safe-fetch path, including redirect and network-target validation.
+- Filesystem paths derived from input remain confined to the configured data directory.
+- Application backups continue to exclude users, credentials, sessions and other local auth data.
+- Password changes and administrative resets revoke the affected sessions as documented.
+
+## Automated Checks
+
+- CodeQL analyzes Go and JavaScript/TypeScript changes.
+- Dependabot monitors Go modules, npm, Docker and GitHub Actions dependencies.
+- `govulncheck` and `npm audit` scan dependencies on a schedule.
+- `golangci-lint`, backend tests, frontend tests and the frontend production build gate changes.
+
+Security findings must be reported privately as described in the repository-level
+[`SECURITY.md`](../SECURITY.md).
+
 ## Open Hardening Work
 
 - optional public read-only vehicle pages with explicit per-item enablement

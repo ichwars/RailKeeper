@@ -1035,7 +1035,7 @@ func hasExactRole(roles []string, role string) bool {
 func (s *AuthService) Logout(ctx context.Context, sessionToken string) error {
 	userID, _, err := s.sessionUser(ctx, sessionToken)
 	if err != nil {
-		return nil
+		return nil //nolint:nilerr // Logout is intentionally idempotent for invalid sessions.
 	}
 
 	if _, err := s.db.ExecContext(
