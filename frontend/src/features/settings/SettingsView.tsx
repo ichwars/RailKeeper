@@ -1377,6 +1377,7 @@ export function SettingsView({ username }: { username: string }) {
                   <AppSelect value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
+                    <option value="accessories">{t("nav.accessories")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>

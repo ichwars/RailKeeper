@@ -6,18 +6,19 @@ import { api, Session } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 
-export type AppView = "overview" | "vehicles" | "exhibition" | "importExport" | "settings";
+export type AppView = "overview" | "vehicles" | "accessories" | "exhibition" | "importExport" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
 const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesView })));
+const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesView").then((module) => ({ default: module.AccessoriesView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 function configuredStartView(): AppView {
   const stored = window.localStorage.getItem(defaultViewSettingKey);
-  if (stored === "vehicles" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
+  if (stored === "vehicles" || stored === "accessories" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
     return stored;
   }
   if (stored === "inventory") {
@@ -29,6 +30,7 @@ function configuredStartView(): AppView {
 function pathForView(nextView: AppView) {
   if (nextView === "overview") return "/overview";
   if (nextView === "vehicles") return "/vehicles";
+  if (nextView === "accessories") return "/accessories";
   if (nextView === "exhibition") return "/exhibition";
   if (nextView === "importExport") return "/import-export";
   if (nextView === "settings") return "/settings";
@@ -41,6 +43,9 @@ function currentView(): AppView {
   }
   if (window.location.pathname.startsWith("/vehicles")) {
     return "vehicles";
+  }
+  if (window.location.pathname.startsWith("/accessories")) {
+    return "accessories";
   }
   if (window.location.pathname.startsWith("/exhibition")) {
     return "exhibition";
@@ -56,7 +61,7 @@ function currentView(): AppView {
 
 function canAccessView(view: AppView, roles: string[]) {
   if (roles.includes("Admin")) return true;
-  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer");
+  const canUseInventory = roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner");
   const canUseExhibition = roles.includes("Messe");
   if (view === "exhibition") return canUseExhibition;
   return canUseInventory;
@@ -64,7 +69,7 @@ function canAccessView(view: AppView, roles: string[]) {
 
 function firstAllowedView(roles: string[]): AppView {
   if (roles.includes("Admin")) return "overview";
-  if (roles.includes("Editor") || roles.includes("Viewer")) return "overview";
+  if (roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner")) return "overview";
   if (roles.includes("Messe")) return "exhibition";
   return "overview";
 }
@@ -182,6 +187,7 @@ export function App() {
       <Suspense fallback={<ViewLoading />}>
         {effectiveView === "overview" && <OverviewView />}
         {effectiveView === "vehicles" && <VehiclesView username={session.username} />}
+        {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
         {effectiveView === "importExport" && <ImportExportView />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
