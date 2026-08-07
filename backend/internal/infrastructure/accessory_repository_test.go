@@ -23,12 +23,6 @@ func TestAccessoryServicePersistsCatalogAndPreventsLocationCycles(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := service.CreateProduct(ctx, application.CreateAccessoryProductInput{
-		Manufacturer: "tillig", ArticleNumber: "83125", Name: "Duplicate", Category: "Track",
-		TrackingMode: domain.AccessoryTrackingModeQuantity,
-	}, "editor-1"); !errors.Is(err, application.ErrAccessoryConflict) {
-		t.Fatalf("expected duplicate product conflict, got %v", err)
-	}
 	for _, name := range []string{"Unnumbered A", "Unnumbered B"} {
 		if _, err := service.CreateProduct(ctx, application.CreateAccessoryProductInput{
 			Manufacturer: "Tillig", Name: name, Category: "Zubehör",

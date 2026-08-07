@@ -94,6 +94,10 @@ var backupTableOrder = []string{
 	"accessory_products",
 	"accessory_stock",
 	"accessory_assets",
+	"accessory_product_attributes",
+	"accessory_stock_movements",
+	"accessory_purchases",
+	"accessory_documents",
 	"layouts",
 	"layout_units",
 	"plan_variants",
@@ -107,11 +111,15 @@ var backupTableOrder = []string{
 }
 
 var legacyOptionalBackupTables = map[string]struct{}{
-	"exhibition_lists":          {},
-	"exhibition_entries":        {},
-	"file_blobs":                {},
-	"vehicle_external_mappings": {},
-	"vehicle_spare_parts":       {},
+	"exhibition_lists":             {},
+	"exhibition_entries":           {},
+	"file_blobs":                   {},
+	"vehicle_external_mappings":    {},
+	"vehicle_spare_parts":          {},
+	"accessory_product_attributes": {},
+	"accessory_stock_movements":    {},
+	"accessory_purchases":          {},
+	"accessory_documents":          {},
 }
 
 var stageOneBackupTables = map[string]struct{}{

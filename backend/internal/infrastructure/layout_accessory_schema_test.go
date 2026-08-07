@@ -123,6 +123,121 @@ INSERT INTO accessory_installations(
 	}
 }
 
+func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
+	db, err := infrastructure.OpenSQLite(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if err := infrastructure.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, table := range []string{
+		"accessory_product_attributes", "accessory_stock_movements", "accessory_purchases", "accessory_documents",
+	} {
+		var count int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("missing article management table %q", table)
+		}
+	}
+
+	for _, index := range []string{
+		"ix_accessory_products_article_lookup", "ix_accessory_products_article_type",
+		"ix_accessory_products_archived", "ix_accessory_products_ean",
+	} {
+		var count int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=?`, index).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("missing article management index %q", index)
+		}
+	}
+	var legacyArticleIndex int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='ux_accessory_products_article'`).
+		Scan(&legacyArticleIndex); err != nil {
+		t.Fatal(err)
+	}
+	if legacyArticleIndex != 0 {
+		t.Fatal("legacy unique article index still exists")
+	}
+
+	if _, err := db.Exec(`INSERT INTO accessory_products(
+  id, manufacturer, name, category, tracking_mode, created_at, updated_at
+) VALUES('article-2', 'Tillig', 'Gleis', 'track', 'quantity', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+
+	statements := []string{
+		`INSERT INTO accessory_products(
+           id, manufacturer, name, category, tracking_mode, inventory_strategy, created_at, updated_at
+         ) VALUES('article-1', 'Tillig', 'Gleis', 'track', 'quantity', 'unsupported', 'now', 'now')`,
+		`INSERT INTO accessory_product_attributes(
+           id, product_id, attribute_key, value_type, text_value, number_value, created_at, updated_at
+         ) VALUES('attribute-1', 'article-2', 'lengthMm', 'text', '120', 120, 'now', 'now')`,
+		`INSERT INTO accessory_stock_movements(
+           id, product_id, location_id, movement_type, quantity, created_at
+         ) VALUES('movement-1', 'article-2', 'location-2', 'unsupported', 1, 'now')`,
+	}
+	for _, statement := range statements {
+		expectConstraintFailure(t, db, statement)
+	}
+
+	assertMasterDataCount(t, db, "article_type", 8)
+	assertMasterDataCount(t, db, "article_subtype", 54)
+	assertMasterDataCount(t, db, "stock_unit", 5)
+	assertMasterDataCount(t, db, "controlled_field_kind", 6)
+
+	assertSchemaColumn(t, db, "accessory_assets", "purchase_id")
+	for _, table := range []string{"accessory_reservations", "accessory_installations"} {
+		for _, column := range []string{"placement", "digital_address", "decoder_output", "connection", "wiring_notes"} {
+			assertSchemaColumn(t, db, table, column)
+		}
+	}
+}
+
+func assertMasterDataCount(t *testing.T, db *sql.DB, entryType string, want int) {
+	t.Helper()
+	var got int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM master_data_entries WHERE type=?`, entryType).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("master data count for %s: got %d, want %d", entryType, got, want)
+	}
+}
+
+func assertSchemaColumn(t *testing.T, db *sql.DB, table, want string) {
+	t.Helper()
+	rows, err := db.Query(`SELECT name FROM pragma_table_info(?)`, table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var got string
+		if err := rows.Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got == want {
+			return
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
+	}
+	t.Fatalf("missing column %s.%s", table, want)
+}
+
 func expectConstraintFailure(t *testing.T, db *sql.DB, statement string) {
 	t.Helper()
 	if _, err := db.Exec(statement); err == nil {
