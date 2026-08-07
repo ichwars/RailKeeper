@@ -117,19 +117,34 @@ type UpdateStorageLocationInput struct {
 	CreateStorageLocationInput
 }
 
-type AccessoryRepository interface {
-	ListProducts(context.Context, string) ([]AccessoryProduct, error)
+type AccessoryCatalogRepository interface {
+	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
 	GetProduct(context.Context, string) (*AccessoryProduct, error)
+	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
 	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
 	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
+}
+
+type AccessoryLocationRepository interface {
 	ListLocations(context.Context) ([]StorageLocation, error)
 	CreateLocation(context.Context, CreateStorageLocationInput, string) (*StorageLocation, error)
 	UpdateLocation(context.Context, string, UpdateStorageLocationInput, string) (*StorageLocation, error)
+}
+
+type AccessoryInventoryRepository interface {
 	AdjustStock(context.Context, string, StockAdjustmentInput, string) (*AccessoryStockSummary, error)
 	GetStock(context.Context, string) (*AccessoryStockSummary, error)
 	ListAssets(context.Context, string) ([]AccessoryAsset, error)
 	CreateAsset(context.Context, string, CreateAccessoryAssetInput, string) (*AccessoryAsset, error)
 	UpdateAsset(context.Context, string, UpdateAccessoryAssetInput, string) (*AccessoryAsset, error)
+}
+
+type AccessoryRepository interface {
+	AccessoryCatalogRepository
+	AccessoryLocationRepository
+	AccessoryInventoryRepository
+	// ListProducts remains until the legacy accessory route moves to ListArticles.
+	ListProducts(context.Context, string) ([]AccessoryProduct, error)
 }
 
 type AccessoryService struct {

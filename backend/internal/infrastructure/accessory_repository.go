@@ -43,6 +43,17 @@ ORDER BY manufacturer COLLATE NOCASE, name COLLATE NOCASE, id`, query, query, qu
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate accessory products: %w", err)
 	}
+	productIDs := make([]string, len(products))
+	for index := range products {
+		productIDs[index] = products[index].ID
+	}
+	attributes, err := loadAccessoryAttributes(ctx, r.db, productIDs)
+	if err != nil {
+		return nil, err
+	}
+	for index := range products {
+		products[index].Attributes = attributes[products[index].ID]
+	}
 	return products, nil
 }
 
@@ -54,6 +65,11 @@ func (r *AccessoryRepository) GetProduct(ctx context.Context, id string) (*appli
 	if err != nil {
 		return nil, fmt.Errorf("get accessory product: %w", err)
 	}
+	attributes, err := loadAccessoryAttributes(ctx, r.db, []string{id})
+	if err != nil {
+		return nil, err
+	}
+	product.Attributes = attributes[id]
 	return product, nil
 }
 
@@ -63,28 +79,39 @@ func (r *AccessoryRepository) CreateProduct(
 	actor string,
 ) (*application.AccessoryProduct, error) {
 	now := timestamp()
-	product := &application.AccessoryProduct{
-		ID: randomID(), Manufacturer: input.Manufacturer, ArticleNumber: input.ArticleNumber,
-		Name: input.Name, Category: input.Category, TrackingMode: input.TrackingMode,
-		Description: input.Description, CreatedAt: now, UpdatedAt: now,
-	}
+	productID := randomID()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		gauges, alternativeNumbers, keywords, err := accessoryProductJSON(input)
+		if err != nil {
+			return err
+		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_products(
-  id, manufacturer, article_number, name, category, tracking_mode, description, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)`, product.ID, product.Manufacturer, product.ArticleNumber,
-			product.Name, product.Category, product.TrackingMode, product.Description, now, now); err != nil {
+	  id, manufacturer, article_number, name, category, tracking_mode, description,
+	  ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
+	  stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
+	  alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
+	  created_at, updated_at
+	) VALUES(?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), 'unknown'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			productID, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
+			input.Description, input.EAN, input.ManufacturerStatus, input.ArticleType, input.Subtype, gauges,
+			input.Scale, input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy,
+			input.ManufacturerURL, input.ProductURL, alternativeNumbers, keywords, input.CompatibilityNotes,
+			input.InternalNotes, boolToInt(input.Archived), now, now); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory product: %w", err)
 		}
-		return writeAccessoryAudit(ctx, tx, "AccessoryProductCreated", "accessory_product", product.ID, actor, now, "{}")
+		if err := replaceAccessoryAttributes(ctx, tx, productID, input.Attributes, now); err != nil {
+			return err
+		}
+		return writeAccessoryAudit(ctx, tx, "AccessoryProductCreated", "accessory_product", productID, actor, now, "{}")
 	})
 	if err != nil {
 		return nil, err
 	}
-	return product, nil
+	return r.GetProduct(ctx, productID)
 }
 
 func (r *AccessoryRepository) UpdateProduct(
@@ -118,11 +145,21 @@ SELECT
 				return application.ErrAccessoryConflict
 			}
 		}
+		gauges, alternativeNumbers, keywords, err := accessoryProductJSON(input.CreateAccessoryProductInput)
+		if err != nil {
+			return err
+		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE accessory_products
-SET manufacturer=?, article_number=?, name=?, category=?, tracking_mode=?, description=?, updated_at=?
+SET manufacturer=?, article_number=?, name=?, category=?, tracking_mode=?, description=?, ean=?,
+    manufacturer_status=COALESCE(NULLIF(?, ''), 'unknown'), article_type=?, subtype=?, gauges_json=?, scale=?,
+    package_quantity=?, stock_unit=?, minimum_stock=?, inventory_strategy=?, manufacturer_url=?, product_url=?,
+    alternative_numbers_json=?, keywords_json=?, compatibility_notes=?, internal_notes=?, archived=?, updated_at=?
 WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
-			input.Description, now, id)
+			input.Description, input.EAN, input.ManufacturerStatus, input.ArticleType, input.Subtype, gauges, input.Scale,
+			input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy, input.ManufacturerURL,
+			input.ProductURL, alternativeNumbers, keywords, input.CompatibilityNotes, input.InternalNotes,
+			boolToInt(input.Archived), now, id)
 		if err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
@@ -130,6 +167,9 @@ WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category
 			return fmt.Errorf("update accessory product: %w", err)
 		}
 		if err := requireAccessoryUpdated(result); err != nil {
+			return err
+		}
+		if err := replaceAccessoryAttributes(ctx, tx, id, input.Attributes, now); err != nil {
 			return err
 		}
 		return writeAccessoryAudit(ctx, tx, "AccessoryProductUpdated", "accessory_product", id, actor, now, "{}")
@@ -253,14 +293,39 @@ UPDATE storage_locations SET parent_id=NULLIF(?, ''), name=?, description=?, arc
 	return location, nil
 }
 
-const accessoryProductSelect = `SELECT id, manufacturer, article_number, name, category, tracking_mode, description, created_at, updated_at FROM accessory_products`
+const accessoryProductSelect = `SELECT
+  id, manufacturer, article_number, name, category, tracking_mode, description,
+  ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
+  stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
+  alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
+  created_at, updated_at
+FROM accessory_products`
 
 const storageLocationSelect = `SELECT id, COALESCE(parent_id, ''), name, description, archived, created_at, updated_at FROM storage_locations`
 
 func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, error) {
 	product := &application.AccessoryProduct{}
+	var gauges, alternativeNumbers, keywords string
+	var archived int
 	err := scanner.Scan(&product.ID, &product.Manufacturer, &product.ArticleNumber, &product.Name,
-		&product.Category, &product.TrackingMode, &product.Description, &product.CreatedAt, &product.UpdatedAt)
+		&product.Category, &product.TrackingMode, &product.Description, &product.EAN, &product.ManufacturerStatus,
+		&product.ArticleType, &product.Subtype, &gauges, &product.Scale, &product.PackageQuantity,
+		&product.StockUnit, &product.MinimumStock, &product.InventoryStrategy, &product.ManufacturerURL,
+		&product.ProductURL, &alternativeNumbers, &keywords, &product.CompatibilityNotes, &product.InternalNotes,
+		&archived, &product.CreatedAt, &product.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	if err := decodeAccessoryStringArray(gauges, &product.Gauges); err != nil {
+		return nil, err
+	}
+	if err := decodeAccessoryStringArray(alternativeNumbers, &product.AlternativeNumbers); err != nil {
+		return nil, err
+	}
+	if err := decodeAccessoryStringArray(keywords, &product.Keywords); err != nil {
+		return nil, err
+	}
+	product.Archived = archived != 0
 	return product, err
 }
 
