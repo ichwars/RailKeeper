@@ -27,7 +27,7 @@ func TestAPIRoutesDeclareAccess(t *testing.T) {
 		}
 		switch route.Access {
 		case routeAccessPublic, routeAccessAdmin, routeAccessEditor, routeAccessViewer, routeAccessMesse,
-			routeAccessPlanner:
+			routeAccessPlanner, routeAccessEditorOrPlanner:
 		default:
 			t.Fatalf("route %s %s has invalid access %q", route.Method, route.Path, route.Access)
 		}
@@ -53,11 +53,12 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 	messe := loginRouteTestUser(t, auth, "messe", "messe-password")
 	planner := loginRouteTestUser(t, auth, "planner", "planner-password")
 	insufficient := map[routeAccess]*application.LoginResult{
-		routeAccessAdmin:   viewer,
-		routeAccessEditor:  planner,
-		routeAccessViewer:  messe,
-		routeAccessMesse:   viewer,
-		routeAccessPlanner: viewer,
+		routeAccessAdmin:           viewer,
+		routeAccessEditor:          planner,
+		routeAccessViewer:          messe,
+		routeAccessMesse:           viewer,
+		routeAccessPlanner:         viewer,
+		routeAccessEditorOrPlanner: viewer,
 	}
 
 	app := &App{authService: auth, logger: slog.Default()}

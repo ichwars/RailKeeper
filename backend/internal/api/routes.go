@@ -5,12 +5,13 @@ import "net/http"
 type routeAccess string
 
 const (
-	routeAccessPublic  routeAccess = "public"
-	routeAccessAdmin   routeAccess = "Admin"
-	routeAccessEditor  routeAccess = "Editor"
-	routeAccessViewer  routeAccess = "Viewer"
-	routeAccessMesse   routeAccess = "Messe"
-	routeAccessPlanner routeAccess = "Planner"
+	routeAccessPublic          routeAccess = "public"
+	routeAccessAdmin           routeAccess = "Admin"
+	routeAccessEditor          routeAccess = "Editor"
+	routeAccessViewer          routeAccess = "Viewer"
+	routeAccessMesse           routeAccess = "Messe"
+	routeAccessPlanner         routeAccess = "Planner"
+	routeAccessEditorOrPlanner routeAccess = "EditorOrPlanner"
 )
 
 type routeHandler func(*App, http.ResponseWriter, *http.Request)
@@ -116,6 +117,14 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/accessory-products/{id}/assets", routeAccessViewer, (*App).listAccessoryAssets, nil},
 		{http.MethodPost, "/api/v1/accessory-products/{id}/assets", routeAccessEditor, (*App).createAccessoryAsset, nil},
 		{http.MethodPut, "/api/v1/accessory-assets/{id}", routeAccessEditor, (*App).updateAccessoryAsset, nil},
+		{http.MethodGet, "/api/v1/accessory-products/{id}/allocation-summary", routeAccessViewer, (*App).getAccessoryAllocationSummary, nil},
+		{http.MethodGet, "/api/v1/accessory-reservations", routeAccessViewer, (*App).listAccessoryReservations, nil},
+		{http.MethodPost, "/api/v1/accessory-reservations", routeAccessEditorOrPlanner, (*App).createAccessoryReservation, nil},
+		{http.MethodPost, "/api/v1/accessory-reservations/{id}/cancel", routeAccessEditorOrPlanner, (*App).cancelAccessoryReservation, nil},
+		{http.MethodGet, "/api/v1/accessory-installations", routeAccessViewer, (*App).listAccessoryInstallations, nil},
+		{http.MethodPost, "/api/v1/accessory-installations", routeAccessEditor, (*App).createAccessoryInstallation, nil},
+		{http.MethodPost, "/api/v1/accessory-installations/{id}/remove", routeAccessEditor, (*App).removeAccessoryInstallation, nil},
+		{http.MethodPut, "/api/v1/accessory-installations/{id}/condition", routeAccessEditor, (*App).updateAccessoryInstallationCondition, nil},
 		{http.MethodGet, "/api/v1/storage-locations", routeAccessViewer, (*App).listStorageLocations, nil},
 		{http.MethodPost, "/api/v1/storage-locations", routeAccessEditor, (*App).createStorageLocation, nil},
 		{http.MethodPut, "/api/v1/storage-locations/{id}", routeAccessEditor, (*App).updateStorageLocation, nil},
@@ -169,6 +178,8 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 		})
 		if route.Authorize != nil {
 			handler = route.Authorize(a, handler)
+		} else if route.Access == routeAccessEditorOrPlanner {
+			handler = a.requireAny([]string{"Editor", "Planner"}, handler)
 		} else if route.Access != routeAccessPublic {
 			handler = a.require(string(route.Access), handler)
 		}
