@@ -527,6 +527,7 @@ export const enTranslations: Record<string, string> = {
     "settings.role.Editor": "Edit inventory, master data, maintenance, uploads and CV data.",
     "settings.role.Viewer": "Read-only access to inventory and master data.",
     "settings.role.Messe": "Access to exhibition lists, entries and exhibition print.",
+    "settings.role.Planner": "Manage layouts, modules, setups and plan revisions.",
     "settings.auditAction.Login": "Login",
     "settings.auditAction.Logout": "Logout",
     "settings.auditAction.LoginFailed": "Failed login",

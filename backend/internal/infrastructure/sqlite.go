@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 
 func SeedRoles(db *sql.DB) error {
 	ctx := context.Background()
-	for _, role := range []string{"Admin", "Editor", "Viewer", "Messe"} {
+	for _, role := range []string{"Admin", "Editor", "Viewer", "Messe", "Planner"} {
 		if _, err := db.ExecContext(
 			ctx,
 			`INSERT INTO roles(id, name) VALUES(?, ?) ON CONFLICT(name) DO NOTHING`,
