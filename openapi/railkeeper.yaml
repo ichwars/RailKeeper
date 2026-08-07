@@ -24,6 +24,11 @@ components:
       type: apiKey
       in: cookie
       name: rk_session
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required together with the session cookie for API mutations.
   schemas:
     Problem:
       type: object
@@ -1161,7 +1166,7 @@ components:
           enum: [ready, maintenance_due, defective, unknown]
         lifecycle:
           type: string
-          enum: [stored, reserved, installed, maintenance, retired]
+          enum: [stored, maintenance, retired]
         storageLocationId:
           type: string
         purchaseDate:
@@ -1286,7 +1291,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/AccessoryAllocationTarget"
         - type: object
-          required: [productId, sourceLocationId, quantity, condition]
+          required: [productId, sourceLocationId, quantity]
           properties:
             reservationId:
               type: string
@@ -1315,6 +1320,16 @@ components:
           type: string
         notes:
           type: string
+      oneOf:
+        - properties:
+            disposition:
+              const: stored
+          required: [storageLocationId]
+        - properties:
+            disposition:
+              enum: [maintenance, defective, retired]
+          not:
+            required: [storageLocationId]
     AccessoryInstallationConditionInput:
       type: object
       required: [condition]
@@ -1391,9 +1406,6 @@ components:
           type: string
         archived:
           type: boolean
-        expectedVersion:
-          type: integer
-          minimum: 1
     UpdateLayoutInput:
       allOf:
         - $ref: "#/components/schemas/LayoutInput"
@@ -1454,9 +1466,6 @@ components:
           minimum: 0
         archived:
           type: boolean
-        expectedVersion:
-          type: integer
-          minimum: 1
     UpdateLayoutUnitInput:
       allOf:
         - $ref: "#/components/schemas/LayoutUnitInput"
@@ -1534,9 +1543,6 @@ components:
           type: string
         description:
           type: string
-        expectedVersion:
-          type: integer
-          minimum: 1
         archived:
           type: boolean
         units:
@@ -2632,6 +2638,7 @@ paths:
       description: Planner, Editor, or Admin role required.
       security:
         - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2651,6 +2658,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product, location, target, or asset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Insufficient or conflicting accessory stock
           content:
@@ -2664,6 +2677,7 @@ paths:
       description: Planner, Editor, or Admin role required.
       security:
         - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -2716,6 +2730,7 @@ paths:
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2735,6 +2750,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product, location, target, asset, or reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Insufficient or conflicting accessory stock
           content:
@@ -2748,6 +2769,7 @@ paths:
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -2792,6 +2814,7 @@ paths:
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
