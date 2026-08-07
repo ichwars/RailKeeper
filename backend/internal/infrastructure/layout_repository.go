@@ -235,6 +235,14 @@ func (r *LayoutRepository) SaveConfiguration(
 		id = randomID()
 	}
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		if input.ID != "" && layoutID == "" {
+			if err := tx.QueryRowContext(ctx, `SELECT layout_id FROM layout_configurations WHERE id=?`, input.ID).
+				Scan(&layoutID); errors.Is(err, sql.ErrNoRows) {
+				return application.ErrLayoutNotFound
+			} else if err != nil {
+				return fmt.Errorf("read layout configuration parent: %w", err)
+			}
+		}
 		exists, err := recordExists(ctx, tx, "layouts", layoutID)
 		if err != nil {
 			return err

@@ -233,10 +233,11 @@ func (s *LayoutService) SaveConfiguration(ctx context.Context, layoutID string, 
 		}
 		seen[unit.UnitID] = struct{}{}
 	}
-	if strings.TrimSpace(layoutID) == "" || input.Name == "" || (input.ID != "" && input.ExpectedVersion < 1) {
+	layoutID = strings.TrimSpace(layoutID)
+	if (layoutID == "" && input.ID == "") || input.Name == "" || (input.ID != "" && input.ExpectedVersion < 1) {
 		return nil, ErrLayoutValidation
 	}
-	return s.repository.SaveConfiguration(ctx, strings.TrimSpace(layoutID), input, actor)
+	return s.repository.SaveConfiguration(ctx, layoutID, input, actor)
 }
 
 func cleanLayoutInput(input CreateLayoutInput) CreateLayoutInput {

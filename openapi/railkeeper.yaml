@@ -16,6 +16,7 @@ tags:
   - name: Backup
   - name: Audit
   - name: Exhibition
+  - name: Layouts
 components:
   securitySchemes:
     sessionCookie:
@@ -999,6 +1000,288 @@ components:
           type: integer
         rowCount:
           type: integer
+    Layout:
+      type: object
+      required: [id, name, kind, gauge, scale, version, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [private, club]
+        gauge:
+          type: string
+        scale:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutInput:
+      type: object
+      required: [name, kind, gauge, scale]
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [private, club]
+        gauge:
+          type: string
+        scale:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+        expectedVersion:
+          type: integer
+          minimum: 1
+    UpdateLayoutInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    LayoutUnit:
+      type: object
+      required: [id, layoutId, name, kind, widthMm, heightMm, version, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        layoutId:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [baseboard, module, segment, area]
+        ownerLabel:
+          type: string
+        widthMm:
+          type: number
+          minimum: 0
+        heightMm:
+          type: number
+          minimum: 0
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutUnitInput:
+      type: object
+      required: [name, kind]
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [baseboard, module, segment, area]
+        ownerLabel:
+          type: string
+        widthMm:
+          type: number
+          minimum: 0
+        heightMm:
+          type: number
+          minimum: 0
+        archived:
+          type: boolean
+        expectedVersion:
+          type: integer
+          minimum: 1
+    UpdateLayoutUnitInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutUnitInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    ConfigurationUnit:
+      type: object
+      required: [unitId, positionXMm, positionYMm, rotationDegrees, sortOrder]
+      properties:
+        unitId:
+          type: string
+        planRevisionId:
+          type: string
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        sortOrder:
+          type: integer
+          minimum: 0
+    ConfigurationUnitInput:
+      type: object
+      required: [unitId]
+      properties:
+        unitId:
+          type: string
+        planRevisionId:
+          type: string
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+    LayoutConfiguration:
+      type: object
+      required: [id, layoutId, name, version, archived, units, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        layoutId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfigurationUnit"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutConfigurationInput:
+      type: object
+      required: [name, units]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        expectedVersion:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/ConfigurationUnitInput"
+    UpdateLayoutConfigurationInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutConfigurationInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    PlanRevision:
+      type: object
+      required: [id, variantId, revisionNumber, status, version, createdBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        variantId:
+          type: string
+        revisionNumber:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [draft, review, published, archived]
+        baseRevisionId:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        createdBy:
+          type: string
+        publishedBy:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PlanVariant:
+      type: object
+      required: [id, layoutUnitId, name, archived, revisions, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+        revisions:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanRevision"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PlanVariantInput:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    PlanRevisionInput:
+      type: object
+      properties:
+        baseRevisionId:
+          type: string
+    PlanRevisionTransitionInput:
+      type: object
+      required: [expectedVersion]
+      properties:
+        expectedVersion:
+          type: integer
+          minimum: 1
     ExhibitionList:
       type: object
       required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
@@ -1691,6 +1974,354 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layouts:
+    get:
+      tags: [Layouts]
+      summary: List layouts
+      responses:
+        "200":
+          description: Layout list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Layout"
+    post:
+      tags: [Layouts]
+      summary: Create a layout
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutInput"
+      responses:
+        "201":
+          description: Layout created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Layout"
+        "400":
+          description: Invalid layout data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layouts/{id}:
+    get:
+      tags: [Layouts]
+      summary: Get a layout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Layout detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Layout"
+        "404":
+          description: Layout not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [Layouts]
+      summary: Update a layout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutInput"
+      responses:
+        "200":
+          description: Layout updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Layout"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layouts/{id}/units:
+    get:
+      tags: [Layouts]
+      summary: List units in a layout
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Layout unit list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutUnit"
+    post:
+      tags: [Layouts]
+      summary: Create a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutUnitInput"
+      responses:
+        "201":
+          description: Layout unit created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnit"
+  /layout-units/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutUnitInput"
+      responses:
+        "200":
+          description: Layout unit updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnit"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layouts/{id}/configurations:
+    get:
+      tags: [Layouts]
+      summary: List layout configurations
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Layout configuration list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutConfiguration"
+    post:
+      tags: [Layouts]
+      summary: Create a layout configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutConfigurationInput"
+      responses:
+        "201":
+          description: Layout configuration created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutConfiguration"
+  /layout-configurations/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a layout configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutConfigurationInput"
+      responses:
+        "200":
+          description: Layout configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutConfiguration"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/plan-variants:
+    get:
+      tags: [Layouts]
+      summary: List plan variants and revisions
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Plan variant list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PlanVariant"
+    post:
+      tags: [Layouts]
+      summary: Create a plan variant
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanVariantInput"
+      responses:
+        "201":
+          description: Plan variant created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanVariant"
+  /plan-variants/{id}/revisions:
+    post:
+      tags: [Layouts]
+      summary: Create a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRevisionInput"
+      responses:
+        "201":
+          description: Draft revision created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRevision"
+  /plan-revisions/{id}/submit:
+    post:
+      tags: [Layouts]
+      summary: Submit a draft revision for review
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRevisionTransitionInput"
+      responses:
+        "200":
+          description: Revision submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRevision"
+        "409":
+          description: Revision is immutable or has changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/publish:
+    post:
+      tags: [Layouts]
+      summary: Publish a draft or reviewed revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRevisionTransitionInput"
+      responses:
+        "200":
+          description: Revision published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanRevision"
+        "409":
+          description: Revision is immutable or has changed
           content:
             application/json:
               schema:
