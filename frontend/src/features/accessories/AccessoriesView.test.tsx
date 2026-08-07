@@ -2,7 +2,14 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryProduct } from "../../shared/api";
+import {
+  api,
+  type AccessoryInstallation,
+  type AccessoryProduct,
+  type AccessoryReservation,
+  type Layout,
+  type LayoutUnit
+} from "../../shared/api";
 import { AccessoriesView } from "./AccessoriesView";
 
 function deferred<T>() {
@@ -31,6 +38,28 @@ const individualProduct: AccessoryProduct = {
   trackingMode: "individual"
 };
 
+const layout: Layout = {
+  id: "layout-1", name: "Clubanlage Bahnhof", kind: "club", gauge: "TT", scale: "1:120", version: 1,
+  archived: false, createdAt: "2026-08-07T10:00:00Z", updatedAt: "2026-08-07T10:00:00Z"
+};
+
+const layoutUnit: LayoutUnit = {
+  id: "unit-1", layoutId: "layout-1", name: "Bahnhofsmodul", kind: "module", widthMm: 1200,
+  heightMm: 500, version: 1, archived: false, createdAt: "2026-08-07T10:00:00Z",
+  updatedAt: "2026-08-07T10:00:00Z"
+};
+
+const reservation: AccessoryReservation = {
+  id: "reservation-1", productId: "product-1", locationId: "location-1", quantity: 2, layoutId: "layout-1",
+  status: "active", createdBy: "planner", createdAt: "2026-08-07T10:00:00Z",
+  updatedAt: "2026-08-07T10:00:00Z"
+};
+
+const installation: AccessoryInstallation = {
+  id: "installation-1", productId: "product-1", sourceLocationId: "location-1", quantity: 2,
+  layoutId: "layout-1", condition: "ready", installedBy: "editor", installedAt: "2026-08-07T10:00:00Z"
+};
+
 describe("AccessoriesView", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -42,6 +71,11 @@ describe("AccessoriesView", () => {
       totalQuantity: 5, locations: [{ locationId: "location-1", locationName: "Werkstatt", quantity: 5,
         updatedAt: "2026-08-07T10:00:00Z" }] });
     vi.spyOn(api, "accessoryAssets").mockResolvedValue([]);
+    vi.spyOn(api, "vehicles").mockResolvedValue([]);
+    vi.spyOn(api, "layouts").mockResolvedValue([layout]);
+    vi.spyOn(api, "layoutUnits").mockResolvedValue([layoutUnit]);
+    vi.spyOn(api, "accessoryReservations").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryInstallations").mockResolvedValue([]);
     vi.spyOn(api, "accessoryAllocationSummary").mockResolvedValue({ productId: "product-1", owned: 5,
       stored: 5, reserved: 0, installed: 0, available: 5, missing: 0 });
   });
@@ -53,7 +87,7 @@ describe("AccessoriesView", () => {
     expect(await screen.findByText(quantityProduct.name)).toBeInTheDocument();
     expect(api.accessoryProducts).toHaveBeenCalledWith("");
     expect(api.storageLocations).toHaveBeenCalledOnce();
-    expect(api.accessoryStock).toHaveBeenCalledWith("product-1");
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledWith("product-1"));
     expect(screen.queryByText("Produkt anlegen")).not.toBeInTheDocument();
   });
 
@@ -184,6 +218,60 @@ describe("AccessoriesView", () => {
       inventoryNumber: "RK-Z-0001", lifecycle: "stored", condition: "ready", purchasePrice: "24.90",
       notes: "Schaltdecoder für Bahnhof"
     })));
+  });
+
+  it("lets planners create and cancel reservations but not installations", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.accessoryReservations).mockResolvedValue([reservation]);
+    vi.spyOn(api, "createAccessoryReservation").mockResolvedValue(reservation);
+    vi.spyOn(api, "cancelAccessoryReservation").mockResolvedValue({ ...reservation, status: "cancelled" });
+    render(<AccessoriesView roles={["Planner"]} />);
+    await screen.findByText(quantityProduct.name);
+
+    await user.click(screen.getByRole("tab", { name: "Reservierungen" }));
+    await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(api.createAccessoryReservation).toHaveBeenCalledWith(expect.objectContaining({
+      productId: "product-1", layoutId: "layout-1", locationId: "location-1", quantity: 1
+    })));
+
+    await user.click(screen.getByRole("button", { name: "Stornieren" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(api.cancelAccessoryReservation).toHaveBeenCalledWith("reservation-1"));
+
+    await user.click(screen.getByRole("tab", { name: "Einbauhistorie" }));
+    expect(screen.queryByText("Zubehör einbauen")).not.toBeInTheDocument();
+  });
+
+  it("lets editors record and remove installations with confirmation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.accessoryInstallations).mockResolvedValue([installation]);
+    vi.spyOn(api, "createAccessoryInstallation").mockResolvedValue(installation);
+    vi.spyOn(api, "updateAccessoryInstallationCondition").mockResolvedValue({ ...installation,
+      condition: "maintenance_due" });
+    vi.spyOn(api, "removeAccessoryInstallation").mockResolvedValue({ ...installation,
+      removedAt: "2026-08-07T11:00:00Z", removedBy: "editor", removalDisposition: "stored" });
+    render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByText(quantityProduct.name);
+
+    await user.click(screen.getByRole("tab", { name: "Einbauhistorie" }));
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(api.createAccessoryInstallation).toHaveBeenCalledWith(expect.objectContaining({
+      productId: "product-1", layoutId: "layout-1", sourceLocationId: "location-1", quantity: 1
+    })));
+
+    await user.click(screen.getByRole("button", { name: "Zustand speichern" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(api.updateAccessoryInstallationCondition)
+      .toHaveBeenCalledWith("installation-1", { condition: "ready" }));
+
+    await user.click(screen.getByRole("button", { name: "Ausbauen" }));
+    await user.click(screen.getAllByRole("button", { name: "Ausbauen" })[1]);
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(api.removeAccessoryInstallation).toHaveBeenCalledWith("installation-1", {
+      disposition: "stored", storageLocationId: "location-1", notes: undefined
+    }));
   });
 
   it("shows loading failures", async () => {

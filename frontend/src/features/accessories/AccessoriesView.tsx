@@ -5,16 +5,23 @@ import {
   api,
   type AccessoryAllocationSummary,
   type AccessoryAsset,
+  type AccessoryInstallation,
   type AccessoryProduct,
+  type AccessoryReservation,
   type AccessoryStockSummary,
-  type StorageLocation
+  type Layout,
+  type LayoutUnit,
+  type StorageLocation,
+  type Vehicle
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
-import { AccessoryProductsPanel } from "./AccessoryProductsPanel";
+import { AccessoryInstallationsPanel } from "./AccessoryInstallationsPanel";
 import { AccessoryLocationsPanel } from "./AccessoryLocationsPanel";
+import { AccessoryProductsPanel } from "./AccessoryProductsPanel";
+import { AccessoryReservationsPanel } from "./AccessoryReservationsPanel";
 import { AccessoryStockPanel } from "./AccessoryStockPanel";
 
-type AccessoryTab = "products" | "locations" | "stock" | "assets";
+type AccessoryTab = "products" | "locations" | "stock" | "assets" | "reservations" | "installations";
 
 export function AccessoriesView({ roles }: { roles: string[] }) {
   const [products, setProducts] = useState<AccessoryProduct[]>([]);
@@ -24,6 +31,11 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
   const [stock, setStock] = useState<AccessoryStockSummary | null>(null);
   const [assets, setAssets] = useState<AccessoryAsset[]>([]);
   const [summary, setSummary] = useState<AccessoryAllocationSummary | null>(null);
+  const [reservations, setReservations] = useState<AccessoryReservation[]>([]);
+  const [installations, setInstallations] = useState<AccessoryInstallation[]>([]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [layouts, setLayouts] = useState<Layout[]>([]);
+  const [units, setUnits] = useState<LayoutUnit[]>([]);
   const [tab, setTab] = useState<AccessoryTab>("products");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
@@ -31,6 +43,7 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
   const { t } = useI18n();
   const genericError = t("accessories.error.generic");
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
+  const canReserve = canEdit || roles.includes("Planner");
   const selected = products.find((product) => product.id === selectedID) || null;
 
   const searchProducts = useCallback(async (query: string) => {
@@ -55,11 +68,18 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
   useEffect(() => {
     let active = true;
     setLoading(true);
-    Promise.all([api.accessoryProducts(""), api.storageLocations()])
-      .then(([nextProducts, nextLocations]) => {
+    const layoutTargets = api.layouts().then(async (nextLayouts) => ({
+      layouts: nextLayouts,
+      units: (await Promise.all(nextLayouts.map((layout) => api.layoutUnits(layout.id)))).flat()
+    }));
+    Promise.all([api.accessoryProducts(""), api.storageLocations(), api.vehicles(), layoutTargets])
+      .then(([nextProducts, nextLocations, nextVehicles, nextTargets]) => {
         if (!active) return;
         setProducts(nextProducts);
         setLocations(nextLocations);
+        setVehicles(nextVehicles);
+        setLayouts(nextTargets.layouts);
+        setUnits(nextTargets.units);
         setSelectedID(nextProducts[0]?.id || "");
       })
       .catch((reason: Error) => active && setMessage(reason.message))
@@ -70,17 +90,20 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
   const loadSelected = useCallback(async () => {
     const request = ++detailRequest.current;
     if (!selected) {
-      setStock(null); setAssets([]); setSummary(null); return;
+      setStock(null); setAssets([]); setSummary(null); setReservations([]); setInstallations([]); return;
     }
     setMessage("");
     try {
-      const [nextStock, nextAssets, nextSummary] = await Promise.all([
+      const [nextStock, nextAssets, nextSummary, nextReservations, nextInstallations] = await Promise.all([
         api.accessoryStock(selected.id),
         selected.trackingMode === "individual" ? api.accessoryAssets(selected.id) : Promise.resolve([]),
-        api.accessoryAllocationSummary(selected.id)
+        api.accessoryAllocationSummary(selected.id),
+        api.accessoryReservations(selected.id),
+        api.accessoryInstallations(selected.id)
       ]);
       if (request !== detailRequest.current) return;
       setStock(nextStock); setAssets(nextAssets); setSummary(nextSummary);
+      setReservations(nextReservations); setInstallations(nextInstallations);
     } catch (reason) {
       if (request !== detailRequest.current) return;
       setMessage(reason instanceof Error ? reason.message : genericError);
@@ -108,7 +131,8 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
         <div key={key}><span>{t(`accessories.summary.${key}`)}</span><strong>{summary[key]}</strong></div>)}
     </section> : null}
     <div className="accessory-tabs" role="tablist" aria-label={t("accessories.tabs.label")}>
-      {(["products", "locations", "stock", "assets"] as const).map((item) => <button key={item} type="button"
+      {(["products", "locations", "stock", "assets", "reservations", "installations"] as const).map((item) =>
+        <button key={item} type="button"
         role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
         {item === "products" ? <PackageOpen size={15} /> : null}{t(`accessories.tabs.${item}`)}
       </button>)}
@@ -118,7 +142,15 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
       onSaved={async (product) => {
         setProductQuery(""); await searchProducts(""); setSelectedID(product.id);
       }} /> : tab === "locations" ? <AccessoryLocationsPanel locations={locations} canEdit={canEdit}
-        onChanged={loadLocations} /> : <AccessoryStockPanel mode={tab} product={selected} stock={stock} assets={assets}
-      locations={locations} canEdit={canEdit} onChanged={loadSelected} />}
+        onChanged={loadLocations} /> : tab === "stock" || tab === "assets"
+        ? <AccessoryStockPanel key={selected?.id || "none"} mode={tab} product={selected}
+        stock={stock} assets={assets} locations={locations} canEdit={canEdit} onChanged={loadSelected} />
+        : tab === "reservations" ? <AccessoryReservationsPanel key={selected?.id || "none"} product={selected}
+          reservations={reservations}
+          assets={assets} locations={locations} vehicles={vehicles} layouts={layouts} units={units}
+          canReserve={canReserve} onChanged={loadSelected} />
+          : <AccessoryInstallationsPanel key={selected?.id || "none"} product={selected} reservations={reservations}
+            installations={installations} assets={assets} locations={locations} vehicles={vehicles}
+            layouts={layouts} units={units} canInstall={canEdit} onChanged={loadSelected} />}
   </>;
 }
