@@ -13,6 +13,7 @@ import {
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
+import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
 
 export function AccessoryStockPanel({ mode, product, stock, assets, locations, canEdit, onChanged }: {
   mode: "stock" | "assets";
@@ -29,7 +30,9 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const { t } = useI18n();
   if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-  const effectiveLocationID = locationID || locations[0]?.id || "";
+  const activeLocations = activeAccessoryLocations(locations);
+  const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
+    ? locationID : activeLocations[0]?.id || "";
 
   const submitStock = (event: FormEvent) => {
     event.preventDefault();
@@ -69,7 +72,8 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
             {canEdit ? <form className="accessory-form" onSubmit={submitStock}>
               <h3>{t("accessories.stock.adjust")}</h3>
               <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
-                {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+                {activeLocations.map((location) => <option key={location.id} value={location.id}>
+                  {accessoryLocationPath(location, locations)}</option>)}
               </AppSelect></label>
               <label>{t("accessories.field.delta")}<input type="number" required value={delta}
                 onChange={(event) => setDelta(event.target.value)} /></label>
@@ -99,7 +103,8 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
             <label>{t("accessories.field.serialNumber")}<input value={asset.serialNumber || ""}
               onChange={(event) => setAsset((current) => ({ ...current, serialNumber: event.target.value }))} /></label>
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
-              {locations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+              {activeLocations.map((location) => <option key={location.id} value={location.id}>
+                {accessoryLocationPath(location, locations)}</option>)}
             </AppSelect></label>
             <label>{t("accessories.field.condition")}<AppSelect value={asset.condition || "ready"}
               onChange={(event) => setAsset((current) => ({ ...current,

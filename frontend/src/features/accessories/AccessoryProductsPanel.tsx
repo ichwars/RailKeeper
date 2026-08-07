@@ -15,15 +15,17 @@ const emptyProduct: AccessoryProductInput = {
   description: ""
 };
 
-export function AccessoryProductsPanel({ products, selectedID, canEdit, onSelect, onSearch, onSaved }: {
+export function AccessoryProductsPanel({ products, selectedID, query, canEdit, onSelect, onQueryChange, onSearch,
+  onSaved }: {
   products: AccessoryProduct[];
   selectedID: string;
+  query: string;
   canEdit: boolean;
   onSelect: (id: string) => void;
+  onQueryChange: (query: string) => void;
   onSearch: (query: string) => Promise<void>;
   onSaved: (product: AccessoryProduct) => Promise<void>;
 }) {
-  const [query, setQuery] = useState("");
   const [form, setForm] = useState<AccessoryProductInput>(emptyProduct);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
@@ -78,7 +80,7 @@ export function AccessoryProductsPanel({ products, selectedID, canEdit, onSelect
           <label>
             <span className="sr-only">{t("accessories.search.label")}</span>
             <input aria-label={t("accessories.search.label")} value={query}
-              onChange={(event) => setQuery(event.target.value)} placeholder={t("accessories.search.placeholder")} />
+              onChange={(event) => onQueryChange(event.target.value)} placeholder={t("accessories.search.placeholder")} />
           </label>
           <button type="submit" className="secondary-button">{t("common.search")}</button>
         </form>

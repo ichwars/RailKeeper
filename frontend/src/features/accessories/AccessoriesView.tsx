@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { PackageOpen, RefreshCw } from "lucide-react";
 
 import {
@@ -11,20 +11,23 @@ import {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AccessoryProductsPanel } from "./AccessoryProductsPanel";
+import { AccessoryLocationsPanel } from "./AccessoryLocationsPanel";
 import { AccessoryStockPanel } from "./AccessoryStockPanel";
 
-type AccessoryTab = "products" | "stock" | "assets";
+type AccessoryTab = "products" | "locations" | "stock" | "assets";
 
 export function AccessoriesView({ roles }: { roles: string[] }) {
   const [products, setProducts] = useState<AccessoryProduct[]>([]);
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [selectedID, setSelectedID] = useState("");
+  const [productQuery, setProductQuery] = useState("");
   const [stock, setStock] = useState<AccessoryStockSummary | null>(null);
   const [assets, setAssets] = useState<AccessoryAsset[]>([]);
   const [summary, setSummary] = useState<AccessoryAllocationSummary | null>(null);
   const [tab, setTab] = useState<AccessoryTab>("products");
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const detailRequest = useRef(0);
   const { t } = useI18n();
   const genericError = t("accessories.error.generic");
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
@@ -36,6 +39,14 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
       const next = await api.accessoryProducts(query);
       setProducts(next);
       setSelectedID((current) => next.some((product) => product.id === current) ? current : next[0]?.id || "");
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : genericError);
+    }
+  }, [genericError]);
+
+  const loadLocations = useCallback(async () => {
+    try {
+      setLocations(await api.storageLocations());
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : genericError);
     }
@@ -57,6 +68,7 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
   }, []);
 
   const loadSelected = useCallback(async () => {
+    const request = ++detailRequest.current;
     if (!selected) {
       setStock(null); setAssets([]); setSummary(null); return;
     }
@@ -67,20 +79,27 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
         selected.trackingMode === "individual" ? api.accessoryAssets(selected.id) : Promise.resolve([]),
         api.accessoryAllocationSummary(selected.id)
       ]);
+      if (request !== detailRequest.current) return;
       setStock(nextStock); setAssets(nextAssets); setSummary(nextSummary);
     } catch (reason) {
+      if (request !== detailRequest.current) return;
       setMessage(reason instanceof Error ? reason.message : genericError);
     }
   }, [genericError, selected]);
 
-  useEffect(() => { void loadSelected(); }, [loadSelected]);
+  useEffect(() => {
+    void loadSelected();
+    return () => { detailRequest.current += 1; };
+  }, [loadSelected]);
 
   if (loading) return <section className="panel"><p>{t("accessories.loading")}</p></section>;
 
   return <>
     <section className="inventory-head accessory-head">
       <div><p className="eyebrow">{t("accessories.eyebrow")}</p><h1>{t("accessories.title")}</h1><p>{t("accessories.subtitle")}</p></div>
-      <button type="button" className="icon-button" onClick={() => { void searchProducts(""); void loadSelected(); }}
+      <button type="button" className="icon-button" onClick={() => {
+        setProductQuery(""); void searchProducts(""); void loadSelected();
+      }}
         aria-label={t("common.refresh")} title={t("common.refresh")}><RefreshCw size={16} /></button>
     </section>
     {message ? <p className="form-message">{message}</p> : null}
@@ -89,15 +108,17 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
         <div key={key}><span>{t(`accessories.summary.${key}`)}</span><strong>{summary[key]}</strong></div>)}
     </section> : null}
     <div className="accessory-tabs" role="tablist" aria-label={t("accessories.tabs.label")}>
-      {(["products", "stock", "assets"] as const).map((item) => <button key={item} type="button"
+      {(["products", "locations", "stock", "assets"] as const).map((item) => <button key={item} type="button"
         role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
         {item === "products" ? <PackageOpen size={15} /> : null}{t(`accessories.tabs.${item}`)}
       </button>)}
     </div>
-    {tab === "products" ? <AccessoryProductsPanel products={products} selectedID={selectedID} canEdit={canEdit}
-      onSelect={setSelectedID} onSearch={searchProducts} onSaved={async (product) => {
-        await searchProducts(""); setSelectedID(product.id);
-      }} /> : <AccessoryStockPanel mode={tab} product={selected} stock={stock} assets={assets}
+    {tab === "products" ? <AccessoryProductsPanel products={products} selectedID={selectedID} query={productQuery}
+      canEdit={canEdit} onSelect={setSelectedID} onQueryChange={setProductQuery} onSearch={searchProducts}
+      onSaved={async (product) => {
+        setProductQuery(""); await searchProducts(""); setSelectedID(product.id);
+      }} /> : tab === "locations" ? <AccessoryLocationsPanel locations={locations} canEdit={canEdit}
+        onChanged={loadLocations} /> : <AccessoryStockPanel mode={tab} product={selected} stock={stock} assets={assets}
       locations={locations} canEdit={canEdit} onChanged={loadSelected} />}
   </>;
 }

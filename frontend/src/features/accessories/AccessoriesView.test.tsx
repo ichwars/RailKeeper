@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type AccessoryProduct } from "../../shared/api";
 import { AccessoriesView } from "./AccessoriesView";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((next) => { resolve = next; });
+  return { promise, resolve };
+}
+
 const quantityProduct: AccessoryProduct = {
   id: "product-1",
   manufacturer: "Tillig",
@@ -70,6 +76,58 @@ describe("AccessoriesView", () => {
     await waitFor(() => expect(api.createAccessoryProduct).toHaveBeenCalledWith(expect.objectContaining({
       manufacturer: "Tillig", articleNumber: "83102", name: "Gebogenes Gleis", category: "Gleismaterial"
     })));
+  });
+
+  it("preserves the product search when switching tabs", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Viewer"]} />);
+    await screen.findByText(quantityProduct.name);
+
+    await user.type(screen.getByLabelText("Produkte suchen"), "Tillig TT");
+    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
+    await user.click(screen.getByRole("tab", { name: "Produkte" }));
+
+    expect(screen.getByLabelText("Produkte suchen")).toHaveValue("Tillig TT");
+  });
+
+  it("creates the first storage location", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.storageLocations).mockResolvedValue([]);
+    vi.spyOn(api, "createStorageLocation").mockResolvedValue({ id: "location-new", name: "Werkstatt",
+      archived: false, createdAt: "2026-08-07T10:00:00Z", updatedAt: "2026-08-07T10:00:00Z" });
+    render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByText(quantityProduct.name);
+
+    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
+    await user.type(screen.getByLabelText("Bezeichnung"), "Werkstatt");
+    await user.click(screen.getByRole("button", { name: "Lagerort speichern" }));
+
+    await waitFor(() => expect(api.createStorageLocation).toHaveBeenCalledWith({
+      name: "Werkstatt", parentId: undefined, description: undefined
+    }));
+  });
+
+  it("ignores stale product detail responses", async () => {
+    const user = userEvent.setup();
+    const staleStock = deferred<Awaited<ReturnType<typeof api.accessoryStock>>>();
+    const staleSummary = deferred<Awaited<ReturnType<typeof api.accessoryAllocationSummary>>>();
+    vi.mocked(api.accessoryProducts).mockResolvedValue([quantityProduct, individualProduct]);
+    vi.mocked(api.accessoryStock).mockImplementation((id) => id === "product-1" ? staleStock.promise
+      : Promise.resolve({ productId: "product-2", trackingMode: "individual", totalQuantity: 1, locations: [] }));
+    vi.mocked(api.accessoryAllocationSummary).mockImplementation((id) => id === "product-1" ? staleSummary.promise
+      : Promise.resolve({ productId: "product-2", owned: 1, stored: 1, reserved: 0, installed: 0,
+        available: 1, missing: 0 }));
+    render(<AccessoriesView roles={["Viewer"]} />);
+    await screen.findByText(individualProduct.name);
+
+    await user.click(screen.getByText(individualProduct.name).closest("button")!);
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledWith("product-2"));
+    staleStock.resolve({ productId: "product-1", trackingMode: "quantity", totalQuantity: 99, locations: [] });
+    staleSummary.resolve({ productId: "product-1", owned: 99, stored: 99, reserved: 0, installed: 0,
+      available: 99, missing: 0 });
+
+    await waitFor(() => expect(screen.getByRole("region", { name: "Bestandszusammenfassung" }))
+      .not.toHaveTextContent("99"));
   });
 
   it("updates the selected product for editors", async () => {
