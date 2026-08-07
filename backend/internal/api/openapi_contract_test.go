@@ -39,17 +39,45 @@ func TestOpenAPIDocumentsRegisteredAPIRoutes(t *testing.T) {
 
 func TestFrontendAPIAdapterUsesDocumentedRoutes(t *testing.T) {
 	operations := readOpenAPIOperations(t)
-	data, err := os.ReadFile(filepath.Join("..", "..", "..", "frontend", "src", "shared", "api.ts"))
+	files, err := filepath.Glob(filepath.Join("..", "..", "..", "frontend", "src", "shared", "api*.ts"))
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	for _, operation := range frontendAPIOperations(string(data)) {
-		if operation.Path == "" {
+	for _, file := range files {
+		if strings.HasSuffix(file, ".test.ts") {
 			continue
 		}
-		if !openAPIOperationExists(operations, operation) {
-			t.Fatalf("frontend API adapter uses undocumented operation %s %s", operation.Method, operation.Path)
+		data, readErr := os.ReadFile(file)
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		for _, operation := range frontendAPIOperations(string(data)) {
+			if operation.Path != "" && !openAPIOperationExists(operations, operation) {
+				t.Fatalf("%s uses undocumented operation %s %s", filepath.Base(file), operation.Method, operation.Path)
+			}
+		}
+	}
+}
+
+func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	want := []string{
+		"Layout", "LayoutInput", "UpdateLayoutInput", "LayoutUnit", "LayoutUnitInput",
+		"UpdateLayoutUnitInput", "LayoutConfiguration", "LayoutConfigurationInput",
+		"UpdateLayoutConfigurationInput", "PlanVariant", "PlanVariantInput", "PlanRevision",
+		"PlanRevisionInput", "PlanRevisionTransitionInput", "AccessoryProduct", "AccessoryProductInput",
+		"StorageLocation", "StorageLocationInput", "AccessoryStockSummary", "AccessoryStockAdjustmentInput",
+		"AccessoryAsset", "AccessoryAssetInput", "AccessoryAllocationTarget", "AccessoryReservation",
+		"AccessoryReservationInput", "AccessoryInstallation", "AccessoryInstallationInput",
+		"AccessoryInstallationRemovalInput", "AccessoryInstallationConditionInput", "AccessoryAllocationSummary",
+	}
+	for _, schema := range want {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
 		}
 	}
 }
@@ -66,7 +94,8 @@ const api = {
   update: () => request<UserSession>("/auth/password", { method: "PUT" }),
   dynamic: (id: string) => request<void>(` + "`/sessions/${encodeURIComponent(id)}/revoke`" + `, {
     method: "PUT"
-  })
+  }),
+  helper: () => request<void>("/layouts", json("POST", input))
 };
 `
 
@@ -76,6 +105,7 @@ const api = {
 		{Method: "GET", Path: "/auth/session"},
 		{Method: "PUT", Path: "/auth/password"},
 		{Method: "PUT", Path: "/sessions/{}/revoke"},
+		{Method: "POST", Path: "/layouts"},
 	}
 	if len(operations) != len(expected) {
 		t.Fatalf("expected %#v, got %#v", expected, operations)
@@ -155,6 +185,7 @@ func frontendAPIOperations(source string) []frontendAPIOperation {
 
 func extractRequestOperations(source string) []frontendAPIOperation {
 	methodPattern := regexp.MustCompile(`method:\s*["'](GET|POST|PUT|DELETE|PATCH)["']`)
+	jsonHelperPattern := regexp.MustCompile(`json\(\s*["'](POST|PUT|PATCH)["']`)
 	paths := []frontendAPIOperation{}
 	searchFrom := 0
 	for {
@@ -183,7 +214,10 @@ func extractRequestOperations(source string) []frontendAPIOperation {
 		if strings.HasPrefix(path, "/") {
 			method := "GET"
 			if callEnd := findCallEnd(source, index+argumentStart); callEnd > next {
-				if match := methodPattern.FindStringSubmatch(source[next:callEnd]); len(match) == 2 {
+				call := source[next:callEnd]
+				if match := methodPattern.FindStringSubmatch(call); len(match) == 2 {
+					method = match[1]
+				} else if match := jsonHelperPattern.FindStringSubmatch(call); len(match) == 2 {
 					method = match[1]
 				}
 			}
