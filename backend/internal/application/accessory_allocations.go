@@ -50,6 +50,7 @@ type AccessoryInstallation struct {
 	RemovedAt          string                             `json:"removedAt,omitempty"`
 	RemovalDisposition domain.AccessoryRemovalDisposition `json:"removalDisposition,omitempty"`
 	Notes              string                             `json:"notes,omitempty"`
+	RemovalNotes       string                             `json:"removalNotes,omitempty"`
 }
 
 type CreateAccessoryInstallationInput struct {

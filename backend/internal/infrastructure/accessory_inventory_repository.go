@@ -171,11 +171,16 @@ func (r *AccessoryRepository) UpdateAsset(
 ) (*application.AccessoryAsset, error) {
 	now := timestamp()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
-		var productID string
-		if err := tx.QueryRowContext(ctx, `SELECT product_id FROM accessory_assets WHERE id=?`, id).Scan(&productID); errors.Is(err, sql.ErrNoRows) {
+		var currentLifecycle domain.AccessoryLifecycle
+		if err := tx.QueryRowContext(ctx, `SELECT lifecycle_state FROM accessory_assets WHERE id=?`, id).
+			Scan(&currentLifecycle); errors.Is(err, sql.ErrNoRows) {
 			return application.ErrAccessoryNotFound
 		} else if err != nil {
-			return fmt.Errorf("read accessory asset product: %w", err)
+			return fmt.Errorf("read accessory asset lifecycle: %w", err)
+		}
+		if currentLifecycle == domain.AccessoryLifecycleReserved ||
+			currentLifecycle == domain.AccessoryLifecycleInstalled {
+			return application.ErrAccessoryConflict
 		}
 		if err := requireStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
 			return err

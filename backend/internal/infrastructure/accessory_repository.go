@@ -101,11 +101,17 @@ func (r *AccessoryRepository) UpdateProduct(
 		}
 		if currentMode != input.TrackingMode {
 			var dependentCount int
-			query := `SELECT COALESCE(SUM(quantity), 0) FROM accessory_stock WHERE product_id=?`
+			query := `
+SELECT
+  COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0) +
+  COALESCE((SELECT SUM(quantity) FROM accessory_reservations WHERE product_id=? AND status='active'), 0) +
+  COALESCE((SELECT SUM(quantity) FROM accessory_installations WHERE product_id=? AND removed_at IS NULL), 0)`
+			args := []any{id, id, id}
 			if currentMode == domain.AccessoryTrackingModeIndividual {
 				query = `SELECT COUNT(*) FROM accessory_assets WHERE product_id=?`
+				args = []any{id}
 			}
-			if err := tx.QueryRowContext(ctx, query, id).Scan(&dependentCount); err != nil {
+			if err := tx.QueryRowContext(ctx, query, args...).Scan(&dependentCount); err != nil {
 				return fmt.Errorf("check accessory tracking mode change: %w", err)
 			}
 			if dependentCount > 0 {
