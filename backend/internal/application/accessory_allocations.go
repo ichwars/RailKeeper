@@ -126,7 +126,7 @@ func (s *AccessoryAllocationService) CreateReservation(
 ) (*AccessoryReservation, error) {
 	input = cleanReservationInput(input)
 	if input.ProductID == "" || input.LocationID == "" || input.Quantity <= 0 ||
-		!input.AllocationTargetInput.valid() || (input.AssetID != "" && input.Quantity != 1) {
+		!input.valid() || (input.AssetID != "" && input.Quantity != 1) {
 		return nil, ErrAccessoryValidation
 	}
 	return s.repository.CreateReservation(ctx, input, actor)
@@ -161,7 +161,7 @@ func (s *AccessoryAllocationService) Install(
 		input.Condition = domain.AccessoryConditionUnknown
 	}
 	if input.ProductID == "" || input.SourceLocationID == "" || input.Quantity <= 0 ||
-		!input.AllocationTargetInput.valid() || !input.Condition.Valid() ||
+		!input.valid() || !input.Condition.Valid() ||
 		(input.AssetID != "" && input.Quantity != 1) {
 		return nil, ErrAccessoryValidation
 	}
@@ -212,7 +212,7 @@ func cleanReservationInput(input CreateAccessoryReservationInput) CreateAccessor
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.LocationID = strings.TrimSpace(input.LocationID)
-	input.AllocationTargetInput = input.AllocationTargetInput.clean()
+	input.AllocationTargetInput = input.clean()
 	input.Note = strings.TrimSpace(input.Note)
 	return input
 }
@@ -222,7 +222,7 @@ func cleanInstallationInput(input CreateAccessoryInstallationInput) CreateAccess
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.SourceLocationID = strings.TrimSpace(input.SourceLocationID)
-	input.AllocationTargetInput = input.AllocationTargetInput.clean()
+	input.AllocationTargetInput = input.clean()
 	input.Notes = strings.TrimSpace(input.Notes)
 	return input
 }
