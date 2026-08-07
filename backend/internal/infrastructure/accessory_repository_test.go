@@ -130,13 +130,13 @@ func TestAccessoryServiceSeparatesQuantityAndIndividualInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stock, err := service.AdjustStock(ctx, quantityProduct.ID, application.StockAdjustmentInput{
+	_, err = service.AdjustStock(ctx, quantityProduct.ID, application.StockAdjustmentInput{
 		LocationID: location.ID, Delta: 5,
 	}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
-	stock, err = service.AdjustStock(ctx, quantityProduct.ID, application.StockAdjustmentInput{
+	stock, err := service.AdjustStock(ctx, quantityProduct.ID, application.StockAdjustmentInput{
 		LocationID: location.ID, Delta: -2,
 	}, "editor-1")
 	if err != nil {
