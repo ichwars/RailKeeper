@@ -74,6 +74,25 @@ func (status AccessoryReservationStatus) Valid() bool {
 	}
 }
 
+type AccessoryRemovalDisposition string
+
+const (
+	AccessoryRemovalStored      AccessoryRemovalDisposition = "stored"
+	AccessoryRemovalMaintenance AccessoryRemovalDisposition = "maintenance"
+	AccessoryRemovalDefective   AccessoryRemovalDisposition = "defective"
+	AccessoryRemovalRetired     AccessoryRemovalDisposition = "retired"
+)
+
+func (disposition AccessoryRemovalDisposition) Valid() bool {
+	switch disposition {
+	case AccessoryRemovalStored, AccessoryRemovalMaintenance, AccessoryRemovalDefective,
+		AccessoryRemovalRetired:
+		return true
+	default:
+		return false
+	}
+}
+
 type AllocationTarget struct {
 	VehicleID    string
 	LayoutID     string
