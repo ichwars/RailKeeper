@@ -293,7 +293,7 @@ func removeAccessoryAsset(
 	input application.RemoveAccessoryInstallationInput,
 	now string,
 ) error {
-	lifecycle := domain.AccessoryLifecycleMaintenance
+	var lifecycle domain.AccessoryLifecycle
 	condition := installation.Condition
 	locationID := ""
 	switch input.Disposition {
