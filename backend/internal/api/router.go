@@ -29,6 +29,7 @@ type Config struct {
 	ExhibitionService           *application.ExhibitionService
 	LayoutService               *application.LayoutService
 	AccessoryService            *application.AccessoryService
+	AccessoryAllocationService  *application.AccessoryAllocationService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
 	SettingsService             *application.SettingsService
@@ -60,6 +61,7 @@ type App struct {
 	exhibitionService           *application.ExhibitionService
 	layoutService               *application.LayoutService
 	accessoryService            *application.AccessoryService
+	accessoryAllocationService  *application.AccessoryAllocationService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
 	settingsService             *application.SettingsService
@@ -98,6 +100,7 @@ func NewRouter(config Config) http.Handler {
 		exhibitionService:           config.ExhibitionService,
 		layoutService:               config.LayoutService,
 		accessoryService:            config.AccessoryService,
+		accessoryAllocationService:  config.AccessoryAllocationService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
 		settingsService:             config.SettingsService,

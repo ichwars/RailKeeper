@@ -24,6 +24,11 @@ components:
       type: apiKey
       in: cookie
       name: rk_session
+    csrfHeader:
+      type: apiKey
+      in: header
+      name: X-CSRF-Token
+      description: Required together with the session cookie for API mutations.
   schemas:
     Problem:
       type: object
@@ -1161,7 +1166,7 @@ components:
           enum: [ready, maintenance_due, defective, unknown]
         lifecycle:
           type: string
-          enum: [stored, reserved, installed, maintenance, retired]
+          enum: [stored, maintenance, retired]
         storageLocationId:
           type: string
         purchaseDate:
@@ -1172,6 +1177,190 @@ components:
           type: string
         notes:
           type: string
+    AccessoryAllocationTarget:
+      type: object
+      properties:
+        vehicleId:
+          type: string
+        layoutId:
+          type: string
+        layoutUnitId:
+          type: string
+      oneOf:
+        - required: [vehicleId]
+          not:
+            anyOf:
+              - required: [layoutId]
+              - required: [layoutUnitId]
+        - required: [layoutId]
+          not:
+            anyOf:
+              - required: [vehicleId]
+              - required: [layoutUnitId]
+        - required: [layoutUnitId]
+          not:
+            anyOf:
+              - required: [vehicleId]
+              - required: [layoutId]
+    AccessoryReservation:
+      allOf:
+        - $ref: "#/components/schemas/AccessoryAllocationTarget"
+        - type: object
+          required: [id, productId, locationId, quantity, status, createdBy, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+            productId:
+              type: string
+            assetId:
+              type: string
+            locationId:
+              type: string
+            quantity:
+              type: integer
+              minimum: 1
+            status:
+              type: string
+              enum: [active, fulfilled, cancelled]
+            note:
+              type: string
+            createdBy:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    AccessoryReservationInput:
+      allOf:
+        - $ref: "#/components/schemas/AccessoryAllocationTarget"
+        - type: object
+          required: [productId, locationId, quantity]
+          properties:
+            productId:
+              type: string
+            assetId:
+              type: string
+            locationId:
+              type: string
+            quantity:
+              type: integer
+              minimum: 1
+            note:
+              type: string
+    AccessoryInstallation:
+      allOf:
+        - $ref: "#/components/schemas/AccessoryAllocationTarget"
+        - type: object
+          required:
+            [id, productId, sourceLocationId, quantity, condition, installedBy, installedAt]
+          properties:
+            id:
+              type: string
+            productId:
+              type: string
+            assetId:
+              type: string
+            sourceLocationId:
+              type: string
+            quantity:
+              type: integer
+              minimum: 1
+            condition:
+              type: string
+              enum: [ready, maintenance_due, defective, unknown]
+            installedBy:
+              type: string
+            installedAt:
+              type: string
+              format: date-time
+            removedBy:
+              type: string
+            removedAt:
+              type: string
+              format: date-time
+            removalDisposition:
+              type: string
+              enum: [stored, maintenance, defective, retired]
+            notes:
+              type: string
+            removalNotes:
+              type: string
+    AccessoryInstallationInput:
+      allOf:
+        - $ref: "#/components/schemas/AccessoryAllocationTarget"
+        - type: object
+          required: [productId, sourceLocationId, quantity]
+          properties:
+            reservationId:
+              type: string
+            productId:
+              type: string
+            assetId:
+              type: string
+            sourceLocationId:
+              type: string
+            quantity:
+              type: integer
+              minimum: 1
+            condition:
+              type: string
+              enum: [ready, maintenance_due, defective, unknown]
+            notes:
+              type: string
+    AccessoryInstallationRemovalInput:
+      type: object
+      required: [disposition]
+      properties:
+        disposition:
+          type: string
+          enum: [stored, maintenance, defective, retired]
+        storageLocationId:
+          type: string
+        notes:
+          type: string
+      oneOf:
+        - properties:
+            disposition:
+              const: stored
+          required: [storageLocationId]
+        - properties:
+            disposition:
+              enum: [maintenance, defective, retired]
+          not:
+            required: [storageLocationId]
+    AccessoryInstallationConditionInput:
+      type: object
+      required: [condition]
+      properties:
+        condition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+    AccessoryAllocationSummary:
+      type: object
+      required: [productId, owned, stored, reserved, installed, available, missing]
+      properties:
+        productId:
+          type: string
+        owned:
+          type: integer
+          minimum: 0
+        stored:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        installed:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+          minimum: 0
+        missing:
+          type: integer
+          minimum: 0
     Layout:
       type: object
       required: [id, name, kind, gauge, scale, version, archived, createdAt, updatedAt]
@@ -1217,9 +1406,6 @@ components:
           type: string
         archived:
           type: boolean
-        expectedVersion:
-          type: integer
-          minimum: 1
     UpdateLayoutInput:
       allOf:
         - $ref: "#/components/schemas/LayoutInput"
@@ -1280,9 +1466,6 @@ components:
           minimum: 0
         archived:
           type: boolean
-        expectedVersion:
-          type: integer
-          minimum: 1
     UpdateLayoutUnitInput:
       allOf:
         - $ref: "#/components/schemas/LayoutUnitInput"
@@ -1360,9 +1543,6 @@ components:
           type: string
         description:
           type: string
-        expectedVersion:
-          type: integer
-          minimum: 1
         archived:
           type: boolean
         units:
@@ -2401,6 +2581,273 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Accessory asset conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/allocation-summary:
+    get:
+      tags: [Accessories]
+      summary: Get owned, stored, reserved, installed, available, and missing quantities
+      description: Viewer, Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessory allocation summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryAllocationSummary"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-reservations:
+    get:
+      tags: [Accessories]
+      summary: List accessory reservations
+      description: Viewer, Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessory reservation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryReservation"
+    post:
+      tags: [Accessories]
+      summary: Reserve accessory stock or an individual asset
+      description: Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryReservationInput"
+      responses:
+        "201":
+          description: Accessory reservation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryReservation"
+        "400":
+          description: Invalid reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product, location, target, or asset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Insufficient or conflicting accessory stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-reservations/{id}/cancel:
+    post:
+      tags: [Accessories]
+      summary: Cancel an active accessory reservation
+      description: Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled accessory reservation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryReservation"
+        "404":
+          description: Accessory reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory reservation is no longer active
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-installations:
+    get:
+      tags: [Accessories]
+      summary: List accessory installation history
+      description: Viewer, Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: productId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessory installation list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryInstallation"
+    post:
+      tags: [Accessories]
+      summary: Install accessory stock or an individual asset
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryInstallationInput"
+      responses:
+        "201":
+          description: Accessory installation created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryInstallation"
+        "400":
+          description: Invalid installation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product, location, target, asset, or reservation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Insufficient or conflicting accessory stock
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-installations/{id}/remove:
+    post:
+      tags: [Accessories]
+      summary: Remove an active accessory installation
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryInstallationRemovalInput"
+      responses:
+        "200":
+          description: Closed accessory installation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryInstallation"
+        "400":
+          description: Invalid removal disposition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory installation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory installation is already closed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-installations/{id}/condition:
+    put:
+      tags: [Accessories]
+      summary: Update the condition of an installed accessory
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryInstallationConditionInput"
+      responses:
+        "200":
+          description: Updated accessory installation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryInstallation"
+        "400":
+          description: Invalid condition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory installation not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory installation is already closed
           content:
             application/json:
               schema:

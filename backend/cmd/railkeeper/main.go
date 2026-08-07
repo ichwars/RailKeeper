@@ -124,7 +124,9 @@ func main() {
 		os.Exit(1)
 	}
 	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	accessoryService := application.NewAccessoryService(infrastructure.NewAccessoryRepository(db))
+	accessoryRepository := infrastructure.NewAccessoryRepository(db)
+	accessoryService := application.NewAccessoryService(accessoryRepository)
+	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
 
 	handler := api.NewRouter(api.Config{
 		Version:                     version,
@@ -147,6 +149,7 @@ func main() {
 		ExhibitionService:           application.NewExhibitionService(db),
 		LayoutService:               layoutService,
 		AccessoryService:            accessoryService,
+		AccessoryAllocationService:  accessoryAllocationService,
 		ECoSService:                 application.NewECoSService(),
 		RateLimitService:            application.NewRateLimitService(db),
 		SettingsService:             application.NewSettingsService(db),
