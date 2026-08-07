@@ -23,7 +23,7 @@ func (r *LayoutRepository) ListLayouts(ctx context.Context) ([]application.Layou
 	if err != nil {
 		return nil, fmt.Errorf("list layouts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	layouts := []application.Layout{}
 	for rows.Next() {
@@ -107,7 +107,7 @@ func (r *LayoutRepository) ListUnits(ctx context.Context, layoutID string) ([]ap
 	if err != nil {
 		return nil, fmt.Errorf("list layout units: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	units := []application.LayoutUnit{}
 	for rows.Next() {
@@ -346,7 +346,7 @@ FROM layout_configuration_units WHERE configuration_id=? ORDER BY sort_order, un
 	if err != nil {
 		return nil, fmt.Errorf("list layout configuration units: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	units := []application.ConfigurationUnit{}
 	for rows.Next() {
 		unit := application.ConfigurationUnit{}

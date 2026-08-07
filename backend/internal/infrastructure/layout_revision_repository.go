@@ -234,7 +234,7 @@ func (r *LayoutRepository) listPlanRevisions(ctx context.Context, variantID stri
 	if err != nil {
 		return nil, fmt.Errorf("list plan revisions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	revisions := []application.PlanRevision{}
 	for rows.Next() {
 		revision, err := scanPlanRevision(rows)

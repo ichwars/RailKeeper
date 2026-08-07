@@ -78,8 +78,7 @@ func TestLayoutServicePublishesImmutableRevisionHistory(t *testing.T) {
 	if _, err := service.PublishRevision(ctx, second.ID, second.Version+1, "planner-1"); !errors.Is(err, application.ErrPlanRevisionConflict) {
 		t.Fatalf("expected plan revision conflict, got %v", err)
 	}
-	second, err = service.PublishRevision(ctx, second.ID, second.Version, "planner-1")
-	if err != nil {
+	if _, err := service.PublishRevision(ctx, second.ID, second.Version, "planner-1"); err != nil {
 		t.Fatal(err)
 	}
 	variants, err := service.ListVariants(ctx, unit.ID)
@@ -147,7 +146,7 @@ func TestLayoutServiceWritesAuditTrail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	actions := []string{}
 	for rows.Next() {
 		var action string
