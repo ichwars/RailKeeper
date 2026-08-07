@@ -16,6 +16,7 @@ tags:
   - name: Backup
   - name: Audit
   - name: Exhibition
+  - name: Accessories
   - name: Layouts
 components:
   securitySchemes:
@@ -1000,6 +1001,177 @@ components:
           type: integer
         rowCount:
           type: integer
+    AccessoryProduct:
+      type: object
+      required: [id, manufacturer, name, category, trackingMode, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        trackingMode:
+          type: string
+          enum: [quantity, individual]
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AccessoryProductInput:
+      type: object
+      required: [manufacturer, name, category, trackingMode]
+      properties:
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        trackingMode:
+          type: string
+          enum: [quantity, individual]
+        description:
+          type: string
+    StorageLocation:
+      type: object
+      required: [id, name, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        parentId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    StorageLocationInput:
+      type: object
+      required: [name]
+      properties:
+        parentId:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+    AccessoryStockLevel:
+      type: object
+      required: [locationId, locationName, quantity, updatedAt]
+      properties:
+        locationId:
+          type: string
+        locationName:
+          type: string
+        quantity:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+    AccessoryStockSummary:
+      type: object
+      required: [productId, trackingMode, totalQuantity, locations]
+      properties:
+        productId:
+          type: string
+        trackingMode:
+          type: string
+          enum: [quantity, individual]
+        totalQuantity:
+          type: integer
+          minimum: 0
+        locations:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryStockLevel"
+    AccessoryStockAdjustmentInput:
+      type: object
+      required: [locationId, delta]
+      properties:
+        locationId:
+          type: string
+        delta:
+          type: integer
+          not:
+            const: 0
+    AccessoryAsset:
+      type: object
+      required: [id, productId, condition, lifecycle, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        inventoryNumber:
+          type: string
+        serialNumber:
+          type: string
+        condition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        lifecycle:
+          type: string
+          enum: [stored, reserved, installed, maintenance, retired]
+        storageLocationId:
+          type: string
+        purchaseDate:
+          type: string
+        purchasePrice:
+          type: string
+        warrantyUntil:
+          type: string
+        notes:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AccessoryAssetInput:
+      type: object
+      properties:
+        inventoryNumber:
+          type: string
+        serialNumber:
+          type: string
+        condition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        lifecycle:
+          type: string
+          enum: [stored, reserved, installed, maintenance, retired]
+        storageLocationId:
+          type: string
+        purchaseDate:
+          type: string
+        purchasePrice:
+          type: string
+        warrantyUntil:
+          type: string
+        notes:
+          type: string
     Layout:
       type: object
       required: [id, name, kind, gauge, scale, version, archived, createdAt, updatedAt]
@@ -1974,6 +2146,343 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products:
+    get:
+      tags: [Accessories]
+      summary: List or search accessory products
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessory product list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryProduct"
+    post:
+      tags: [Accessories]
+      summary: Create an accessory product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryProductInput"
+      responses:
+        "201":
+          description: Accessory product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryProduct"
+        "400":
+          description: Invalid accessory data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory product conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Accessories]
+      summary: Get an accessory product
+      responses:
+        "200":
+          description: Accessory product detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryProduct"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [Accessories]
+      summary: Update an accessory product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryProductInput"
+      responses:
+        "200":
+          description: Accessory product updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryProduct"
+        "400":
+          description: Invalid accessory data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory product conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/stock:
+    get:
+      tags: [Accessories]
+      summary: Get stock levels for an accessory product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Accessory stock summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryStockSummary"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/stock-adjustments:
+    post:
+      tags: [Accessories]
+      summary: Adjust quantity stock for an accessory product
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryStockAdjustmentInput"
+      responses:
+        "200":
+          description: Updated accessory stock summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryStockSummary"
+        "400":
+          description: Invalid stock adjustment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Insufficient stock or incompatible tracking mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/assets:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Accessories]
+      summary: List individually tracked assets for an accessory product
+      responses:
+        "200":
+          description: Accessory asset list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryAsset"
+        "409":
+          description: Product does not use individual tracking
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Accessories]
+      summary: Create an individually tracked accessory asset
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryAssetInput"
+      responses:
+        "201":
+          description: Accessory asset created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryAsset"
+        "400":
+          description: Invalid accessory asset data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Asset conflicts with existing data or tracking mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-assets/{id}:
+    put:
+      tags: [Accessories]
+      summary: Update an individually tracked accessory asset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryAssetInput"
+      responses:
+        "200":
+          description: Accessory asset updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryAsset"
+        "400":
+          description: Invalid accessory asset data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory asset not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory asset conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /storage-locations:
+    get:
+      tags: [Accessories]
+      summary: List storage locations
+      responses:
+        "200":
+          description: Storage location list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/StorageLocation"
+    post:
+      tags: [Accessories]
+      summary: Create a storage location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageLocationInput"
+      responses:
+        "201":
+          description: Storage location created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageLocation"
+        "400":
+          description: Invalid storage location data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Storage location conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /storage-locations/{id}:
+    put:
+      tags: [Accessories]
+      summary: Update a storage location
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StorageLocationInput"
+      responses:
+        "200":
+          description: Storage location updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageLocation"
+        "400":
+          description: Invalid storage location hierarchy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Storage location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Storage location conflicts with existing data
           content:
             application/json:
               schema:

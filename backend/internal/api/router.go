@@ -28,6 +28,7 @@ type Config struct {
 	DatabaseMaintenance         *application.DatabaseMaintenanceService
 	ExhibitionService           *application.ExhibitionService
 	LayoutService               *application.LayoutService
+	AccessoryService            *application.AccessoryService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
 	SettingsService             *application.SettingsService
@@ -58,6 +59,7 @@ type App struct {
 	databaseMaintenance         *application.DatabaseMaintenanceService
 	exhibitionService           *application.ExhibitionService
 	layoutService               *application.LayoutService
+	accessoryService            *application.AccessoryService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
 	settingsService             *application.SettingsService
@@ -95,6 +97,7 @@ func NewRouter(config Config) http.Handler {
 		databaseMaintenance:         config.DatabaseMaintenance,
 		exhibitionService:           config.ExhibitionService,
 		layoutService:               config.LayoutService,
+		accessoryService:            config.AccessoryService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
 		settingsService:             config.SettingsService,
