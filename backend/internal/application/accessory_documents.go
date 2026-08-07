@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"unicode"
 )
@@ -156,15 +155,13 @@ func (s *AccessoryDocumentService) DeleteDocument(ctx context.Context, id, actor
 	return s.blobs.DeleteIfUnreferenced(ctx, blobID)
 }
 
-var safeAccessoryDocumentFileName = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._-]*$`)
-
 func ValidateAccessoryDocumentUpload(metadata AccessoryDocumentUploadMetadata, maxSize int64) error {
-	fileName := strings.TrimSpace(metadata.FileName)
-	originalName := strings.TrimSpace(metadata.OriginalName)
+	fileName := metadata.FileName
+	originalName := metadata.OriginalName
 	mimeType := normalizeAccessoryDocumentMime(metadata.MimeType)
 	if metadata.SizeBytes <= 0 || maxSize <= 0 || metadata.SizeBytes > maxSize ||
 		!metadata.Category.Valid() || (metadata.IsPrimary && metadata.Category != AccessoryDocumentImage) ||
-		!validAccessoryDocumentBaseName(fileName, true) || !validAccessoryDocumentBaseName(originalName, false) ||
+		!validAccessoryDocumentBaseName(fileName) || !validAccessoryDocumentBaseName(originalName) ||
 		blockedAccessoryDocumentExtension(fileName) || blockedAccessoryDocumentExtension(originalName) ||
 		blockedAccessoryDocumentMime(mimeType) || !accessoryDocumentExtensionMatchesMime(fileName, mimeType) ||
 		!accessoryDocumentExtensionMatchesMime(originalName, mimeType) {
@@ -176,20 +173,29 @@ func ValidateAccessoryDocumentUpload(metadata AccessoryDocumentUploadMetadata, m
 func cleanAccessoryDocumentInput(input CreateAccessoryDocumentInput) CreateAccessoryDocumentInput {
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.FileBlobID = strings.TrimSpace(input.FileBlobID)
-	input.FileName = strings.TrimSpace(input.FileName)
-	input.OriginalName = strings.TrimSpace(input.OriginalName)
 	input.Description = strings.TrimSpace(input.Description)
 	input.Category = AccessoryDocumentCategory(strings.TrimSpace(string(input.Category)))
 	input.MimeType = normalizeAccessoryDocumentMime(input.MimeType)
 	return input
 }
 
-func validAccessoryDocumentBaseName(value string, restricted bool) bool {
-	if value == "" || value == "." || value == ".." || strings.ContainsAny(value, `/\`) ||
-		filepath.Base(value) != value || strings.IndexFunc(value, unicode.IsControl) >= 0 {
+func validAccessoryDocumentBaseName(value string) bool {
+	if value == "" || value == "." || value == ".." ||
+		strings.ContainsAny(value, `/\<>:"|?*`) || strings.IndexFunc(value, unicode.IsControl) >= 0 ||
+		strings.HasSuffix(value, ".") || strings.HasSuffix(value, " ") {
 		return false
 	}
-	return !restricted || safeAccessoryDocumentFileName.MatchString(value)
+	stem, _, _ := strings.Cut(value, ".")
+	stem = strings.ToUpper(stem)
+	switch stem {
+	case "CON", "PRN", "AUX", "NUL":
+		return false
+	}
+	if len(stem) == 4 && (strings.HasPrefix(stem, "COM") || strings.HasPrefix(stem, "LPT")) &&
+		stem[3] >= '1' && stem[3] <= '9' {
+		return false
+	}
+	return true
 }
 
 func blockedAccessoryDocumentExtension(value string) bool {
@@ -204,7 +210,8 @@ func blockedAccessoryDocumentExtension(value string) bool {
 func blockedAccessoryDocumentMime(value string) bool {
 	return strings.Contains(value, "x-msdownload") || strings.Contains(value, "x-dosexec") ||
 		strings.Contains(value, "x-sh") || strings.Contains(value, "javascript") ||
-		strings.Contains(value, "ecmascript") || strings.Contains(value, "x-msdos-program")
+		strings.Contains(value, "ecmascript") || strings.Contains(value, "x-msdos-program") ||
+		value == "text/html" || value == "application/xhtml+xml"
 }
 
 func normalizeAccessoryDocumentMime(value string) string {
@@ -224,9 +231,14 @@ func accessoryDocumentExtensionMatchesMime(fileName, mimeType string) bool {
 	case ".zip":
 		return mimeType == "application/zip" || mimeType == "application/x-zip-compressed" ||
 			mimeType == "application/octet-stream"
-	case ".txt", ".csv", ".json", ".xml":
-		return strings.HasPrefix(mimeType, "text/") || mimeType == "application/json" ||
-			mimeType == "application/xml"
+	case ".txt":
+		return mimeType == "text/plain"
+	case ".csv":
+		return mimeType == "text/csv" || mimeType == "application/csv"
+	case ".json":
+		return mimeType == "application/json"
+	case ".xml":
+		return mimeType == "application/xml" || mimeType == "text/xml"
 	default:
 		return false
 	}

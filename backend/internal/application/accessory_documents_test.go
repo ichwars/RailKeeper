@@ -51,6 +51,107 @@ func TestAccessoryDocumentUploadMetadataValidation(t *testing.T) {
 	}
 }
 
+func TestAccessoryDocumentUploadRejectsUnsafeBasenamesForBothFields(t *testing.T) {
+	valid := application.AccessoryDocumentUploadMetadata{
+		FileName: "manual.pdf", OriginalName: "Anleitung.pdf",
+		Category: application.AccessoryDocumentManual, MimeType: "application/pdf", SizeBytes: 8,
+	}
+	invalidNames := []struct {
+		name  string
+		value string
+	}{
+		{"empty", ""},
+		{"dot", "."},
+		{"dot dot", ".."},
+		{"forward slash", "folder/manual.pdf"},
+		{"backslash", `folder\manual.pdf`},
+		{"control character", "manual\n.pdf"},
+		{"less than", "manual<copy>.pdf"},
+		{"greater than", "manual>copy.pdf"},
+		{"colon", "manual:copy.pdf"},
+		{"quote", `manual"copy.pdf`},
+		{"pipe", "manual|copy.pdf"},
+		{"question mark", "manual?.pdf"},
+		{"asterisk", "manual*.pdf"},
+		{"trailing dot", "manual.pdf."},
+		{"trailing space", "manual.pdf "},
+		{"reserved con", "CON.pdf"},
+		{"reserved prn case insensitive", "prn.PDF"},
+		{"reserved aux", "AUX.pdf"},
+		{"reserved nul", "NUL.pdf"},
+		{"reserved com lower bound", "COM1.pdf"},
+		{"reserved com upper bound", "com9.pdf"},
+		{"reserved lpt lower bound", "LPT1.pdf"},
+		{"reserved lpt upper bound", "lpt9.pdf"},
+	}
+	fields := []struct {
+		name string
+		set  func(application.AccessoryDocumentUploadMetadata, string) application.AccessoryDocumentUploadMetadata
+	}{
+		{"file name", withDocumentFileName},
+		{"original name", withDocumentOriginalName},
+	}
+	for _, field := range fields {
+		for _, invalid := range invalidNames {
+			t.Run(field.name+"/"+invalid.name, func(t *testing.T) {
+				metadata := field.set(valid, invalid.value)
+				if err := application.ValidateAccessoryDocumentUpload(metadata, 8); !errors.Is(err, application.ErrAccessoryValidation) {
+					t.Fatalf("unsafe basename %q was accepted", invalid.value)
+				}
+			})
+		}
+	}
+
+	unicodeNames := valid
+	unicodeNames.FileName = "Pläne-äöü.pdf"
+	unicodeNames.OriginalName = "Änderungsplan 東京.pdf"
+	if err := application.ValidateAccessoryDocumentUpload(unicodeNames, 8); err != nil {
+		t.Fatalf("safe Unicode basenames rejected: %v", err)
+	}
+}
+
+func TestAccessoryDocumentUploadUsesExtensionSpecificMIMETypes(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileName string
+		mimeType string
+		valid    bool
+	}{
+		{"txt", "notes.txt", "text/plain", true},
+		{"csv text", "parts.csv", "text/csv", true},
+		{"csv application", "parts.csv", "application/csv", true},
+		{"json", "decoder.json", "application/json", true},
+		{"xml application", "decoder.xml", "application/xml", true},
+		{"xml text", "decoder.xml", "text/xml", true},
+		{"csv with json", "parts.csv", "application/json", false},
+		{"json with text plain", "decoder.json", "text/plain", false},
+		{"txt with html", "notes.txt", "text/html", false},
+		{"xml with json", "decoder.xml", "application/json", false},
+		{"csv with html", "parts.csv", "text/html", false},
+		{"json with html", "decoder.json", "text/html", false},
+		{"xml with html", "decoder.xml", "text/html", false},
+		{"txt with script", "notes.txt", "application/javascript", false},
+		{"csv with script", "parts.csv", "text/javascript", false},
+		{"json with script", "decoder.json", "application/ecmascript", false},
+		{"xml with script", "decoder.xml", "application/javascript", false},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			metadata := application.AccessoryDocumentUploadMetadata{
+				FileName: test.fileName, OriginalName: test.fileName,
+				Category: application.AccessoryDocumentOther, MimeType: test.mimeType, SizeBytes: 8,
+			}
+			err := application.ValidateAccessoryDocumentUpload(metadata, 8)
+			if test.valid && err != nil {
+				t.Fatalf("valid extension/MIME pair rejected: %v", err)
+			}
+			if !test.valid && !errors.Is(err, application.ErrAccessoryValidation) {
+				t.Fatalf("invalid extension/MIME pair accepted: %s + %s", test.fileName, test.mimeType)
+			}
+		})
+	}
+}
+
 func TestAccessoryDocumentDeleteRemovesMetadataBeforeUnreferencedBlob(t *testing.T) {
 	repository := &accessoryDocumentRepositorySpy{blobID: "blob-1"}
 	cleaner := &accessoryBlobCleanerSpy{repository: repository}
