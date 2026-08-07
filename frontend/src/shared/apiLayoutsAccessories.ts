@@ -44,8 +44,8 @@ export type LayoutUnitInput = {
   name: string;
   kind: LayoutUnitKind;
   ownerLabel?: string;
-  widthMm: number;
-  heightMm: number;
+  widthMm?: number;
+  heightMm?: number;
   archived?: boolean;
 };
 
@@ -58,6 +58,14 @@ export type ConfigurationUnit = {
   positionYMm: number;
   rotationDegrees: number;
   sortOrder: number;
+};
+
+export type ConfigurationUnitInput = {
+  unitId: string;
+  planRevisionId?: string;
+  positionXMm?: number;
+  positionYMm?: number;
+  rotationDegrees?: number;
 };
 
 export type LayoutConfiguration = {
@@ -76,7 +84,7 @@ export type LayoutConfigurationInput = {
   name: string;
   description?: string;
   archived?: boolean;
-  units: ConfigurationUnit[];
+  units: ConfigurationUnitInput[];
 };
 
 export type LayoutConfigurationUpdateInput = LayoutConfigurationInput & { expectedVersion: number };
@@ -249,11 +257,13 @@ export type AccessoryInstallationInput = AllocationTarget & {
   notes?: string;
 };
 
-export type AccessoryInstallationRemovalInput = {
-  disposition: AccessoryRemovalDisposition;
-  storageLocationId?: string;
-  notes?: string;
-};
+export type AccessoryInstallationRemovalInput =
+  | { disposition: "stored"; storageLocationId: string; notes?: string }
+  | {
+      disposition: Exclude<AccessoryRemovalDisposition, "stored">;
+      storageLocationId?: never;
+      notes?: string;
+    };
 
 export type AccessoryInstallationConditionInput = { condition: AccessoryCondition };
 

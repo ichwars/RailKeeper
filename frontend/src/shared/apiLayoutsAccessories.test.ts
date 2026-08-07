@@ -29,8 +29,6 @@ describe("layout and accessory API client", () => {
       name: "Modul 1",
       kind: "module" as const,
       ownerLabel: "Daniel",
-      widthMm: 1000,
-      heightMm: 500,
       archived: false
     };
     const configurationInput = {
@@ -43,8 +41,7 @@ describe("layout and accessory API client", () => {
         planRevisionId: "revision/1",
         positionXMm: 10,
         positionYMm: 20,
-        rotationDegrees: 90,
-        sortOrder: 0
+        rotationDegrees: 90
       }]
     };
 
