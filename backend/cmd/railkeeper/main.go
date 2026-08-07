@@ -123,6 +123,7 @@ func main() {
 		logger.Error("master data cache warmup failed", "error", err)
 		os.Exit(1)
 	}
+	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 
 	handler := api.NewRouter(api.Config{
 		Version:                     version,
@@ -143,6 +144,7 @@ func main() {
 		FileBlobService:             fileBlobService,
 		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
+		LayoutService:               layoutService,
 		ECoSService:                 application.NewECoSService(),
 		RateLimitService:            application.NewRateLimitService(db),
 		SettingsService:             application.NewSettingsService(db),

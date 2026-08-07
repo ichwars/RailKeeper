@@ -27,6 +27,7 @@ type Config struct {
 	FileBlobService             *application.FileBlobService
 	DatabaseMaintenance         *application.DatabaseMaintenanceService
 	ExhibitionService           *application.ExhibitionService
+	LayoutService               *application.LayoutService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
 	SettingsService             *application.SettingsService
@@ -56,6 +57,7 @@ type App struct {
 	fileBlobs                   *application.FileBlobService
 	databaseMaintenance         *application.DatabaseMaintenanceService
 	exhibitionService           *application.ExhibitionService
+	layoutService               *application.LayoutService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
 	settingsService             *application.SettingsService
@@ -92,6 +94,7 @@ func NewRouter(config Config) http.Handler {
 		fileBlobs:                   config.FileBlobService,
 		databaseMaintenance:         config.DatabaseMaintenance,
 		exhibitionService:           config.ExhibitionService,
+		layoutService:               config.LayoutService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
 		settingsService:             config.SettingsService,
