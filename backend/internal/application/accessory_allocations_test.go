@@ -16,6 +16,15 @@ type accessoryAllocationRepositorySpy struct {
 	removed              RemoveAccessoryInstallationInput
 	conditionID          string
 	condition            UpdateAccessoryInstallationConditionInput
+	historyProductID     string
+}
+
+func (s *accessoryAllocationRepositorySpy) GetUsageHistory(
+	_ context.Context,
+	productID string,
+) (*AccessoryUsageHistory, error) {
+	s.historyProductID = productID
+	return &AccessoryUsageHistory{ProductID: productID, Events: []AccessoryUsageEvent{}}, nil
 }
 
 func (s *accessoryAllocationRepositorySpy) ListReservations(
@@ -123,27 +132,50 @@ func TestAccessoryAllocationServiceNormalizesReservationAndInstallation(t *testi
 	if _, err := service.CreateReservation(t.Context(), CreateAccessoryReservationInput{
 		ProductID: " product-1 ", AssetID: " asset-1 ", LocationID: " location-1 ", Quantity: 1,
 		AllocationTargetInput: AllocationTargetInput{LayoutUnitID: " unit-1 "}, Note: " planned ",
+		Placement: " signal bridge ", DigitalAddress: " 42 ", DecoderOutput: " A1 ",
+		Connection: " terminal 3 ", WiringNotes: " blue wire ",
 	}, "planner-1"); err != nil {
 		t.Fatal(err)
 	}
 	reservation := repository.createdReservation
 	if reservation.ProductID != "product-1" || reservation.AssetID != "asset-1" ||
 		reservation.LocationID != "location-1" || reservation.LayoutUnitID != "unit-1" ||
-		reservation.Note != "planned" {
+		reservation.Note != "planned" || reservation.Placement != "signal bridge" ||
+		reservation.DigitalAddress != "42" || reservation.DecoderOutput != "A1" ||
+		reservation.Connection != "terminal 3" || reservation.WiringNotes != "blue wire" {
 		t.Fatalf("reservation was not normalized: %#v", reservation)
 	}
 
 	installation, err := service.Install(t.Context(), CreateAccessoryInstallationInput{
 		ReservationID: " reservation-1 ", ProductID: " product-1 ", SourceLocationID: " location-1 ",
 		Quantity: 2, AllocationTargetInput: AllocationTargetInput{LayoutID: " layout-1 "}, Notes: " installed ",
+		Placement: " platform 1 ", DigitalAddress: " 17 ", DecoderOutput: " B2 ",
+		Connection: " bus 1 ", WiringNotes: " yellow wire ",
 	}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if installation.Condition != domain.AccessoryConditionUnknown ||
 		repository.installed.ReservationID != "reservation-1" || repository.installed.LayoutID != "layout-1" ||
-		repository.installed.Notes != "installed" {
+		repository.installed.Notes != "installed" || repository.installed.Placement != "platform 1" ||
+		repository.installed.DigitalAddress != "17" || repository.installed.DecoderOutput != "B2" ||
+		repository.installed.Connection != "bus 1" || repository.installed.WiringNotes != "yellow wire" {
 		t.Fatalf("installation was not normalized and defaulted: %#v", repository.installed)
+	}
+}
+
+func TestAccessoryAllocationServiceGetsNormalizedUsageHistory(t *testing.T) {
+	repository := &accessoryAllocationRepositorySpy{}
+	service := NewAccessoryAllocationService(repository)
+	history, err := service.GetUsageHistory(t.Context(), " product-1 ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repository.historyProductID != "product-1" || history.ProductID != "product-1" {
+		t.Fatalf("unexpected usage history request: %#v", history)
+	}
+	if _, err := service.GetUsageHistory(t.Context(), " "); !errors.Is(err, ErrAccessoryValidation) {
+		t.Fatalf("expected empty product id rejection, got %v", err)
 	}
 }
 

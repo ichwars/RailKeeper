@@ -74,11 +74,13 @@ func (r *AccessoryRepository) CreateReservation(
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_reservations(
   id, product_id, asset_id, location_id, quantity, vehicle_id, layout_id, layout_unit_id,
-  status, note, created_by, created_at, updated_at
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?)`,
+  status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
+  connection, wiring_notes
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			reservationID, input.ProductID, input.AssetID, input.LocationID, input.Quantity,
 			input.VehicleID, input.LayoutID, input.LayoutUnitID, domain.AccessoryReservationActive,
-			input.Note, actor, now, now); err != nil {
+			input.Note, actor, now, now, input.Placement, input.DigitalAddress, input.DecoderOutput,
+			input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
@@ -308,14 +310,17 @@ func requireAllocationTarget(
 
 const accessoryReservationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), location_id, quantity,
 COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''),
-status, note, created_by, created_at, updated_at FROM accessory_reservations`
+status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
+connection, wiring_notes FROM accessory_reservations`
 
 func scanAccessoryReservation(scanner rowScanner) (*application.AccessoryReservation, error) {
 	reservation := &application.AccessoryReservation{}
 	err := scanner.Scan(&reservation.ID, &reservation.ProductID, &reservation.AssetID,
 		&reservation.LocationID, &reservation.Quantity, &reservation.VehicleID, &reservation.LayoutID,
 		&reservation.LayoutUnitID, &reservation.Status, &reservation.Note, &reservation.CreatedBy,
-		&reservation.CreatedAt, &reservation.UpdatedAt)
+		&reservation.CreatedAt, &reservation.UpdatedAt, &reservation.Placement,
+		&reservation.DigitalAddress, &reservation.DecoderOutput, &reservation.Connection,
+		&reservation.WiringNotes)
 	return reservation, err
 }
 

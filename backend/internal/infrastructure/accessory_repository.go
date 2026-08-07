@@ -70,6 +70,20 @@ func (r *AccessoryRepository) GetProduct(ctx context.Context, id string) (*appli
 		return nil, err
 	}
 	product.Attributes = attributes[id]
+	var primaryDocumentID string
+	err = r.db.QueryRowContext(ctx, `
+SELECT id FROM accessory_documents
+WHERE product_id=? AND category='image' AND is_primary=1`, id).Scan(&primaryDocumentID)
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return nil, fmt.Errorf("get accessory product primary image: %w", err)
+	}
+	if primaryDocumentID != "" {
+		product.PrimaryImageURL = fmt.Sprintf(
+			"/api/v1/accessory-products/%s/documents/%s/download",
+			product.ID,
+			primaryDocumentID,
+		)
+	}
 	return product, nil
 }
 

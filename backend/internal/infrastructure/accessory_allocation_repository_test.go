@@ -31,7 +31,8 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 
 	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
-		AllocationTargetInput: target, Note: "Bauabschnitt West",
+		AllocationTargetInput: target, Note: "Bauabschnitt West", Placement: "Signalbrücke",
+		DigitalAddress: "42", DecoderOutput: "A1", Connection: "Klemme 3", WiringNotes: "blau",
 	}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +57,8 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 3, AllocationTargetInput: target,
-		Condition: domain.AccessoryConditionReady,
+		Condition: domain.AccessoryConditionReady, Placement: "Signalbrücke montiert",
+		DigitalAddress: "43", DecoderOutput: "A2", Connection: "Klemme 4", WiringNotes: "gelb",
 	}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +69,21 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	}
 	if len(reservations) != 1 || reservations[0].Status != domain.AccessoryReservationFulfilled {
 		t.Fatalf("reservation was not fulfilled: %#v", reservations)
+	}
+	if reservations[0].Placement != "Signalbrücke" || reservations[0].DigitalAddress != "42" ||
+		reservations[0].DecoderOutput != "A1" || reservations[0].Connection != "Klemme 3" ||
+		reservations[0].WiringNotes != "blau" {
+		t.Fatalf("reservation technical data was not retained: %#v", reservations[0])
+	}
+	if installation.Placement != "Signalbrücke montiert" || installation.DigitalAddress != "43" ||
+		installation.DecoderOutput != "A2" || installation.Connection != "Klemme 4" ||
+		installation.WiringNotes != "gelb" {
+		t.Fatalf("installation technical data was not retained: %#v", installation)
+	}
+	if _, err := fixture.allocations.UpdateInstallationCondition(ctx, installation.ID,
+		application.UpdateAccessoryInstallationConditionInput{Condition: domain.AccessoryConditionMaintenanceDue},
+		"editor-2"); err != nil {
+		t.Fatal(err)
 	}
 	assertAllocationSummary(t, fixture.allocations, fixture.quantityProduct.ID, application.AccessoryAllocationSummary{
 		Owned: 5, Stored: 2, Reserved: 0, Installed: 3, Available: 2, Missing: 0,
@@ -82,6 +99,41 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	}
 	if removed.RemovalDisposition != domain.AccessoryRemovalStored || removed.RemovedAt == "" {
 		t.Fatalf("installation was not closed: %#v", removed)
+	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_reservations SET created_at='2026-01-01T10:00:00Z'
+WHERE id=?`, reservation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_installations
+SET installed_at='2026-01-01T11:00:00Z', removed_at='2026-01-01T13:00:00Z' WHERE id=?`, installation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_installation_condition_history
+SET changed_at='2026-01-01T12:00:00Z' WHERE installation_id=?`, installation.ID); err != nil {
+		t.Fatal(err)
+	}
+	history, err := fixture.allocations.GetUsageHistory(ctx, fixture.quantityProduct.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantTypes := []application.AccessoryUsageEventType{
+		application.AccessoryUsageRemoval,
+		application.AccessoryUsageConditionChanged,
+		application.AccessoryUsageInstallation,
+		application.AccessoryUsageReservation,
+	}
+	if len(history.Events) != len(wantTypes) {
+		t.Fatalf("unexpected usage history: %#v", history.Events)
+	}
+	for index, want := range wantTypes {
+		if history.Events[index].Type != want {
+			t.Fatalf("usage event %d: got %q, want %q (%#v)", index, history.Events[index].Type, want, history.Events)
+		}
+	}
+	if history.Events[1].PreviousCondition != domain.AccessoryConditionReady ||
+		history.Events[1].Condition != domain.AccessoryConditionMaintenanceDue ||
+		history.Events[1].Actor != "editor-2" {
+		t.Fatalf("condition history lost domain data: %#v", history.Events[1])
 	}
 	assertAllocationSummary(t, fixture.allocations, fixture.quantityProduct.ID, application.AccessoryAllocationSummary{
 		Owned: 5, Stored: 5, Reserved: 0, Installed: 0, Available: 5, Missing: 0,

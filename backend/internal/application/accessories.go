@@ -42,6 +42,7 @@ type AccessoryProduct struct {
 	InternalNotes      string                            `json:"internalNotes,omitempty"`
 	Archived           bool                              `json:"archived"`
 	Attributes         []domain.AccessoryAttributeValue  `json:"attributes"`
+	PrimaryImageURL    string                            `json:"primaryImageUrl,omitempty"`
 	CreatedAt          string                            `json:"createdAt"`
 	UpdatedAt          string                            `json:"updatedAt"`
 }

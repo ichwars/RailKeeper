@@ -102,8 +102,9 @@ func (s *FileBlobService) DeleteIfUnreferenced(ctx context.Context, id string) e
 SELECT
   (SELECT COUNT(*) FROM vehicle_images WHERE blob_id=? OR thumbnail_blob_id=?) +
   (SELECT COUNT(*) FROM vehicle_attachments WHERE blob_id=?) +
-  (SELECT COUNT(*) FROM vehicle_cv_files WHERE blob_id=?)
-`, id, id, id, id).Scan(&count); err != nil {
+  (SELECT COUNT(*) FROM vehicle_cv_files WHERE blob_id=?) +
+  (SELECT COUNT(*) FROM accessory_documents WHERE file_blob_id=?)
+`, id, id, id, id, id).Scan(&count); err != nil {
 		return fmt.Errorf("count file blob references: %w", err)
 	}
 	if count > 0 {

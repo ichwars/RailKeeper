@@ -125,16 +125,26 @@ CREATE TABLE accessory_documents (
   id TEXT PRIMARY KEY,
   product_id TEXT NOT NULL,
   file_blob_id TEXT NOT NULL,
-  category TEXT NOT NULL DEFAULT 'other',
-  name TEXT NOT NULL DEFAULT '',
+  file_name TEXT NOT NULL,
+  original_name TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'other'
+    CHECK (category IN ('invoice', 'delivery_note', 'manual', 'data_sheet', 'floor_plan', 'image', 'other')),
+  mime_type TEXT NOT NULL,
+  size_bytes INTEGER NOT NULL CHECK (size_bytes > 0),
   is_primary INTEGER NOT NULL DEFAULT 0 CHECK (is_primary IN (0, 1)),
+  created_by TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
   FOREIGN KEY (product_id) REFERENCES accessory_products(id) ON DELETE CASCADE,
-  FOREIGN KEY (file_blob_id) REFERENCES file_blobs(id) ON DELETE RESTRICT
+  FOREIGN KEY (file_blob_id) REFERENCES file_blobs(id) ON DELETE RESTRICT,
+  CHECK (is_primary = 0 OR category = 'image')
 );
 
 CREATE INDEX ix_accessory_documents_product ON accessory_documents(product_id);
 CREATE INDEX ix_accessory_documents_blob ON accessory_documents(file_blob_id);
+CREATE UNIQUE INDEX ux_accessory_documents_primary_image
+  ON accessory_documents(product_id) WHERE category = 'image' AND is_primary = 1;
 
 ALTER TABLE accessory_assets ADD COLUMN purchase_id TEXT REFERENCES accessory_purchases(id) ON DELETE SET NULL;
 CREATE INDEX ix_accessory_assets_purchase ON accessory_assets(purchase_id);
@@ -150,6 +160,21 @@ ALTER TABLE accessory_installations ADD COLUMN digital_address TEXT NOT NULL DEF
 ALTER TABLE accessory_installations ADD COLUMN decoder_output TEXT NOT NULL DEFAULT '';
 ALTER TABLE accessory_installations ADD COLUMN connection TEXT NOT NULL DEFAULT '';
 ALTER TABLE accessory_installations ADD COLUMN wiring_notes TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE accessory_installation_condition_history (
+  id TEXT PRIMARY KEY,
+  installation_id TEXT NOT NULL,
+  previous_condition TEXT NOT NULL
+    CHECK (previous_condition IN ('ready', 'maintenance_due', 'defective', 'unknown')),
+  condition_state TEXT NOT NULL
+    CHECK (condition_state IN ('ready', 'maintenance_due', 'defective', 'unknown')),
+  changed_by TEXT NOT NULL DEFAULT '',
+  changed_at TEXT NOT NULL,
+  FOREIGN KEY (installation_id) REFERENCES accessory_installations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_accessory_installation_condition_history_installation
+  ON accessory_installation_condition_history(installation_id, changed_at);
 
 INSERT OR IGNORE INTO master_data_entries(
   id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at

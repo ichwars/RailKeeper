@@ -108,10 +108,12 @@ UPDATE accessory_reservations SET status=?, updated_at=? WHERE id=? AND status=?
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_installations(
   id, product_id, asset_id, source_location_id, quantity, vehicle_id, layout_id, layout_unit_id,
-  condition_state, installed_by, installed_at, notes
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?)`,
+  condition_state, installed_by, installed_at, notes, placement, digital_address, decoder_output,
+  connection, wiring_notes
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			installationID, input.ProductID, input.AssetID, input.SourceLocationID, input.Quantity,
-			input.VehicleID, input.LayoutID, input.LayoutUnitID, input.Condition, actor, now, input.Notes); err != nil {
+			input.VehicleID, input.LayoutID, input.LayoutUnitID, input.Condition, actor, now, input.Notes,
+			input.Placement, input.DigitalAddress, input.DecoderOutput, input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
@@ -231,6 +233,12 @@ UPDATE accessory_installations SET condition_state=? WHERE id=? AND removed_at I
 		if err := requireAccessoryConflictFreeUpdate(result); err != nil {
 			return err
 		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO accessory_installation_condition_history(
+  id, installation_id, previous_condition, condition_state, changed_by, changed_at
+) VALUES(?, ?, ?, ?, ?, ?)`, randomID(), id, installation.Condition, input.Condition, actor, now); err != nil {
+			return fmt.Errorf("record installation condition history: %w", err)
+		}
 		if installation.AssetID != "" {
 			result, err = tx.ExecContext(ctx, `
 UPDATE accessory_assets SET condition_state=?, updated_at=? WHERE id=?`, input.Condition, now,
@@ -346,7 +354,8 @@ func reservationMatchesInstallation(
 const accessoryInstallationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), source_location_id, quantity,
 COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''), condition_state,
 installed_by, installed_at, COALESCE(removed_by, ''), COALESCE(removed_at, ''),
-COALESCE(removal_disposition, ''), notes, removal_notes FROM accessory_installations`
+COALESCE(removal_disposition, ''), notes, removal_notes, placement, digital_address, decoder_output,
+connection, wiring_notes FROM accessory_installations`
 
 func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstallation, error) {
 	installation := &application.AccessoryInstallation{}
@@ -355,7 +364,8 @@ func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstal
 		&installation.LayoutID, &installation.LayoutUnitID, &installation.Condition,
 		&installation.InstalledBy, &installation.InstalledAt, &installation.RemovedBy,
 		&installation.RemovedAt, &installation.RemovalDisposition, &installation.Notes,
-		&installation.RemovalNotes)
+		&installation.RemovalNotes, &installation.Placement, &installation.DigitalAddress,
+		&installation.DecoderOutput, &installation.Connection, &installation.WiringNotes)
 	return installation, err
 }
 

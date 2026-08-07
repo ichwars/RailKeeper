@@ -136,6 +136,7 @@ func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
 
 	for _, table := range []string{
 		"accessory_product_attributes", "accessory_stock_movements", "accessory_purchases", "accessory_documents",
+		"accessory_installation_condition_history",
 	} {
 		var count int
 		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).Scan(&count); err != nil {
@@ -149,6 +150,7 @@ func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
 	for _, index := range []string{
 		"ix_accessory_products_article_lookup", "ix_accessory_products_article_type",
 		"ix_accessory_products_archived", "ix_accessory_products_ean",
+		"ux_accessory_documents_primary_image",
 	} {
 		var count int
 		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name=?`, index).Scan(&count); err != nil {
@@ -177,6 +179,12 @@ VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 		t.Fatal(err)
 	}
 	assertSchemaColumn(t, db, "accessory_product_attributes", "unit")
+	for _, column := range []string{
+		"file_name", "original_name", "description", "category", "mime_type", "size_bytes",
+		"is_primary", "created_by", "created_at", "updated_at",
+	} {
+		assertSchemaColumn(t, db, "accessory_documents", column)
+	}
 	if _, err := db.Exec(`INSERT INTO accessory_product_attributes(
   id, product_id, attribute_key, value_type, number_value, unit, created_at, updated_at
 ) VALUES('attribute-with-unit', 'article-2', 'lengthMm', 'number', 120, 'mm', 'now', 'now')`); err != nil {
