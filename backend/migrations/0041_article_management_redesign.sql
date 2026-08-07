@@ -45,6 +45,7 @@ CREATE TABLE accessory_product_attributes (
   )),
   text_value TEXT,
   number_value REAL,
+  unit TEXT,
   boolean_value INTEGER CHECK (boolean_value IS NULL OR boolean_value IN (0, 1)),
   date_value TEXT,
   single_select_value TEXT,
@@ -54,17 +55,22 @@ CREATE TABLE accessory_product_attributes (
   FOREIGN KEY (product_id) REFERENCES accessory_products(id) ON DELETE CASCADE,
   UNIQUE (product_id, attribute_key),
   CHECK (
-    (value_type = 'text' AND text_value IS NOT NULL AND number_value IS NULL AND boolean_value IS NULL
+    (value_type = 'text' AND text_value IS NOT NULL AND number_value IS NULL AND unit IS NULL
+      AND boolean_value IS NULL
       AND date_value IS NULL AND single_select_value IS NULL AND multi_select_value IS NULL)
     OR (value_type = 'number' AND text_value IS NULL AND number_value IS NOT NULL AND boolean_value IS NULL
       AND date_value IS NULL AND single_select_value IS NULL AND multi_select_value IS NULL)
-    OR (value_type = 'boolean' AND text_value IS NULL AND number_value IS NULL AND boolean_value IS NOT NULL
+    OR (value_type = 'boolean' AND text_value IS NULL AND number_value IS NULL AND unit IS NULL
+      AND boolean_value IS NOT NULL
       AND date_value IS NULL AND single_select_value IS NULL AND multi_select_value IS NULL)
-    OR (value_type = 'date' AND text_value IS NULL AND number_value IS NULL AND boolean_value IS NULL
+    OR (value_type = 'date' AND text_value IS NULL AND number_value IS NULL AND unit IS NULL
+      AND boolean_value IS NULL
       AND date_value IS NOT NULL AND single_select_value IS NULL AND multi_select_value IS NULL)
-    OR (value_type = 'single_select' AND text_value IS NULL AND number_value IS NULL AND boolean_value IS NULL
+    OR (value_type = 'single_select' AND text_value IS NULL AND number_value IS NULL AND unit IS NULL
+      AND boolean_value IS NULL
       AND date_value IS NULL AND single_select_value IS NOT NULL AND multi_select_value IS NULL)
-    OR (value_type = 'multi_select' AND text_value IS NULL AND number_value IS NULL AND boolean_value IS NULL
+    OR (value_type = 'multi_select' AND text_value IS NULL AND number_value IS NULL AND unit IS NULL
+      AND boolean_value IS NULL
       AND date_value IS NULL AND single_select_value IS NULL AND multi_select_value IS NOT NULL)
   )
 );

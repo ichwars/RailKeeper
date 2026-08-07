@@ -17,6 +17,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	service, _ := testAccessoryService(t)
 	text := "TT Modellgleis"
 	length := 166.0
+	unit := "mm"
 	input := application.CreateAccessoryProductInput{
 		Manufacturer: "Tillig", ArticleNumber: "83101", Name: "Straight track", Category: "Track",
 		Description: "Description", EAN: "4012500831012", ManufacturerStatus: "available",
@@ -28,7 +29,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 		CompatibilityNotes: "compatible", InternalNotes: "internal", Archived: true,
 		Attributes: []domain.AccessoryAttributeValue{
 			{Key: "trackSystem", Kind: domain.AccessoryAttributeText, TextValue: &text},
-			{Key: "lengthMm", Kind: domain.AccessoryAttributeNumber, NumberValue: &length},
+			{Key: "lengthMm", Kind: domain.AccessoryAttributeNumber, NumberValue: &length, Unit: &unit},
 		},
 	}
 	created, err := service.CreateProduct(t.Context(), input, "editor-1")
@@ -51,10 +52,15 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 		!loaded.Archived {
 		t.Fatalf("full product did not round trip:\ninput=%#v\nloaded=%#v", input, loaded)
 	}
+	if loaded.Attributes[1].Unit == nil || *loaded.Attributes[1].Unit != "mm" {
+		t.Fatalf("create/get lost numeric attribute unit: %#v", loaded.Attributes[1])
+	}
 
 	input.Name = "Updated track"
 	input.Archived = false
 	input.Attributes = input.Attributes[1:]
+	updatedUnit := "cm"
+	input.Attributes[0].Unit = &updatedUnit
 	updated, err := service.UpdateProduct(t.Context(), created.ID,
 		application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1")
 	if err != nil {
@@ -62,6 +68,9 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	}
 	if updated.Name != input.Name || updated.Archived || !reflect.DeepEqual(updated.Attributes, input.Attributes) {
 		t.Fatalf("full update did not round trip: %#v", updated)
+	}
+	if updated.Attributes[0].Unit == nil || *updated.Attributes[0].Unit != "cm" {
+		t.Fatalf("update/get lost numeric attribute unit: %#v", updated.Attributes[0])
 	}
 }
 
@@ -121,7 +130,7 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	}
 	trackSystem := "TT Modellgleis"
 	track := create(application.CreateAccessoryProductInput{
-		Manufacturer: "Tillig", ArticleNumber: "83125", EAN: "4012500831258", Name: "Right turnout",
+		Manufacturer: "Z-Tillig", ArticleNumber: "83125", EAN: "4012500831258", Name: "Right turnout",
 		Category: "Track", ArticleType: domain.AccessoryArticleTrack, Subtype: "track:turnout", Gauges: []string{"TT"},
 		PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
 		Attributes: []domain.AccessoryAttributeValue{
@@ -196,16 +205,16 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	assertIDs(application.AccessoryArticleListQuery{LocationID: alpha.ID}, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleAvailable,
-	}}, track.ID, signal.ID)
+	}}, signal.ID, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleReserved,
-	}}, track.ID, signal.ID)
+	}}, signal.ID, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleInstalled,
-	}}, track.ID, signal.ID)
+	}}, signal.ID, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleReserved, application.AccessoryArticleInstalled,
-	}}, track.ID, signal.ID)
+	}}, signal.ID, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleMaintenanceDue,
 	}}, signal.ID)
@@ -217,7 +226,7 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	}}, archived.ID)
 
 	for sortKey, ascending := range map[string][]string{
-		"article": {track.ID, signal.ID}, "type": {track.ID, signal.ID},
+		"article": {signal.ID, track.ID}, "type": {track.ID, signal.ID},
 		"gauge": {signal.ID, track.ID}, "stock": {signal.ID, track.ID},
 		"storage": {track.ID, signal.ID}, "updatedAt": {track.ID, signal.ID},
 	} {
@@ -229,8 +238,8 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 		}
 	}
 
-	result := assertIDs(application.AccessoryArticleListQuery{}, track.ID, signal.ID)
-	trackItem := result.Items[0]
+	result := assertIDs(application.AccessoryArticleListQuery{}, signal.ID, track.ID)
+	trackItem := result.Items[1]
 	if trackItem.Owned != 14 || trackItem.Available != 7 || trackItem.Reserved != 3 ||
 		trackItem.Installed != 4 || !trackItem.HasUsageHistory ||
 		!reflect.DeepEqual(trackItem.LocationNames, []string{"Alpha shelf", "Beta shelf"}) ||
@@ -242,11 +251,11 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 		result.Metrics.LocationCount != 2 || result.Metrics.CareHintCount != 0 {
 		t.Fatalf("unexpected global metrics: %#v", result.Metrics)
 	}
-	filtered := assertIDs(application.AccessoryArticleListQuery{Manufacturer: "Tillig"}, track.ID)
+	filtered := assertIDs(application.AccessoryArticleListQuery{Manufacturer: "Z-Tillig"}, track.ID)
 	if filtered.Metrics != result.Metrics {
 		t.Fatalf("metrics changed with table filter: %#v != %#v", filtered.Metrics, result.Metrics)
 	}
-	if !reflect.DeepEqual(result.FilterOptions.Manufacturers, []string{"Tillig", "Viessmann"}) ||
+	if !reflect.DeepEqual(result.FilterOptions.Manufacturers, []string{"Viessmann", "Z-Tillig"}) ||
 		len(result.FilterOptions.StorageLocations) != 2 {
 		t.Fatalf("unexpected filter options: %#v", result.FilterOptions)
 	}

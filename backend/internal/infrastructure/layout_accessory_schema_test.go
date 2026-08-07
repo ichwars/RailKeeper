@@ -176,6 +176,12 @@ func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
 VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 		t.Fatal(err)
 	}
+	assertSchemaColumn(t, db, "accessory_product_attributes", "unit")
+	if _, err := db.Exec(`INSERT INTO accessory_product_attributes(
+  id, product_id, attribute_key, value_type, number_value, unit, created_at, updated_at
+) VALUES('attribute-with-unit', 'article-2', 'lengthMm', 'number', 120, 'mm', 'now', 'now')`); err != nil {
+		t.Fatalf("number attribute unit must be nullable text: %v", err)
+	}
 
 	statements := []string{
 		`INSERT INTO accessory_products(
@@ -184,6 +190,9 @@ VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 		`INSERT INTO accessory_product_attributes(
            id, product_id, attribute_key, value_type, text_value, number_value, created_at, updated_at
          ) VALUES('attribute-1', 'article-2', 'lengthMm', 'text', '120', 120, 'now', 'now')`,
+		`INSERT INTO accessory_product_attributes(
+           id, product_id, attribute_key, value_type, text_value, unit, created_at, updated_at
+         ) VALUES('attribute-unit-text', 'article-2', 'trackSystem', 'text', 'TT', 'mm', 'now', 'now')`,
 		`INSERT INTO accessory_stock_movements(
            id, product_id, location_id, movement_type, quantity, created_at
          ) VALUES('movement-1', 'article-2', 'location-2', 'unsupported', 1, 'now')`,

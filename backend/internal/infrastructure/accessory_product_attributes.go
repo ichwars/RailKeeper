@@ -53,12 +53,15 @@ func replaceAccessoryAttributes(
 	}
 	for _, attribute := range attributes {
 		var textValue, dateValue, singleSelectValue, multiSelectValue any
-		var numberValue, booleanValue any
+		var numberValue, unit, booleanValue any
 		switch attribute.Kind {
 		case domain.AccessoryAttributeText:
 			textValue = *attribute.TextValue
 		case domain.AccessoryAttributeNumber:
 			numberValue = *attribute.NumberValue
+			if attribute.Unit != nil {
+				unit = *attribute.Unit
+			}
 		case domain.AccessoryAttributeBoolean:
 			booleanValue = boolToInt(*attribute.BooleanValue)
 		case domain.AccessoryAttributeDate:
@@ -74,10 +77,10 @@ func replaceAccessoryAttributes(
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_product_attributes(
-  id, product_id, attribute_key, value_type, text_value, number_value, boolean_value,
+  id, product_id, attribute_key, value_type, text_value, number_value, unit, boolean_value,
   date_value, single_select_value, multi_select_value, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, randomID(), productID, attribute.Key, attribute.Kind,
-			textValue, numberValue, booleanValue, dateValue, singleSelectValue, multiSelectValue, now, now); err != nil {
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, randomID(), productID, attribute.Key, attribute.Kind,
+			textValue, numberValue, unit, booleanValue, dateValue, singleSelectValue, multiSelectValue, now, now); err != nil {
 			return fmt.Errorf("insert accessory attribute: %w", err)
 		}
 	}
@@ -104,7 +107,7 @@ func loadAccessoryAttributes(
 		result[id] = []domain.AccessoryAttributeValue{}
 	}
 	rows, err := queryer.QueryContext(ctx, `
-SELECT product_id, attribute_key, value_type, text_value, number_value, boolean_value,
+SELECT product_id, attribute_key, value_type, text_value, number_value, unit, boolean_value,
        date_value, single_select_value, multi_select_value
 FROM accessory_product_attributes
 WHERE product_id IN (`+placeholders+`)
@@ -116,10 +119,10 @@ ORDER BY product_id, rowid`, args...)
 	for rows.Next() {
 		var productID string
 		var attribute domain.AccessoryAttributeValue
-		var text, date, single, multi sql.NullString
+		var text, unit, date, single, multi sql.NullString
 		var number sql.NullFloat64
 		var boolean sql.NullInt64
-		if err := rows.Scan(&productID, &attribute.Key, &attribute.Kind, &text, &number, &boolean,
+		if err := rows.Scan(&productID, &attribute.Key, &attribute.Kind, &text, &number, &unit, &boolean,
 			&date, &single, &multi); err != nil {
 			return nil, fmt.Errorf("scan accessory attribute: %w", err)
 		}
@@ -128,6 +131,9 @@ ORDER BY product_id, rowid`, args...)
 			attribute.TextValue = &text.String
 		case domain.AccessoryAttributeNumber:
 			attribute.NumberValue = &number.Float64
+			if unit.Valid {
+				attribute.Unit = &unit.String
+			}
 		case domain.AccessoryAttributeBoolean:
 			value := boolean.Int64 != 0
 			attribute.BooleanValue = &value

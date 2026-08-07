@@ -269,13 +269,11 @@ WHERE archived=0 AND TRIM(manufacturer)<>'' ORDER BY manufacturer COLLATE NOCASE
 	if err != nil {
 		return fmt.Errorf("list accessory manufacturer filters: %w", err)
 	}
-	for rows.Next() {
-		var value string
-		if err := rows.Scan(&value); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		options.Manufacturers = append(options.Manufacturers, value)
+	if err := appendAccessoryStringFilterOptions(
+		rows, "accessory manufacturer filters", &options.Manufacturers,
+	); err != nil {
+		_ = rows.Close()
+		return err
 	}
 	_ = rows.Close()
 	rows, err = r.db.QueryContext(ctx, `SELECT DISTINCT article_type FROM accessory_products
@@ -283,13 +281,11 @@ WHERE archived=0 AND TRIM(article_type)<>'' ORDER BY article_type COLLATE NOCASE
 	if err != nil {
 		return fmt.Errorf("list accessory type filters: %w", err)
 	}
-	for rows.Next() {
-		var value domain.AccessoryArticleType
-		if err := rows.Scan(&value); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		options.ArticleTypes = append(options.ArticleTypes, value)
+	if err := appendAccessoryStringFilterOptions(
+		rows, "accessory article type filters", &options.ArticleTypes,
+	); err != nil {
+		_ = rows.Close()
+		return err
 	}
 	_ = rows.Close()
 	rows, err = r.db.QueryContext(ctx, `SELECT DISTINCT gauge.value
@@ -298,13 +294,9 @@ WHERE product.archived=0 ORDER BY gauge.value COLLATE NOCASE`)
 	if err != nil {
 		return fmt.Errorf("list accessory gauge filters: %w", err)
 	}
-	for rows.Next() {
-		var value string
-		if err := rows.Scan(&value); err != nil {
-			_ = rows.Close()
-			return err
-		}
-		options.Gauges = append(options.Gauges, value)
+	if err := appendAccessoryStringFilterOptions(rows, "accessory gauge filters", &options.Gauges); err != nil {
+		_ = rows.Close()
+		return err
 	}
 	_ = rows.Close()
 	rows, err = r.db.QueryContext(ctx, `SELECT id, name FROM storage_locations
@@ -321,6 +313,30 @@ WHERE archived=0 ORDER BY name COLLATE NOCASE, id`)
 		options.StorageLocations = append(options.StorageLocations, option)
 	}
 	return rows.Err()
+}
+
+type accessoryFilterRows interface {
+	Next() bool
+	Scan(...any) error
+	Err() error
+}
+
+func appendAccessoryStringFilterOptions[T ~string](
+	rows accessoryFilterRows,
+	label string,
+	options *[]T,
+) error {
+	for rows.Next() {
+		var value T
+		if err := rows.Scan(&value); err != nil {
+			return fmt.Errorf("scan %s: %w", label, err)
+		}
+		*options = append(*options, value)
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate %s: %w", label, err)
+	}
+	return nil
 }
 
 func (r *AccessoryRepository) FindDuplicateCandidates(
