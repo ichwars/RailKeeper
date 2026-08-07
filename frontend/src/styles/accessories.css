@@ -154,6 +154,33 @@
   gap: 8px;
 }
 
+.accessory-row-actions,
+.accessory-side-forms {
+  display: grid;
+  gap: 8px;
+}
+
+.accessory-row-actions {
+  justify-items: start;
+}
+
+.accessory-side-forms {
+  gap: 18px;
+}
+
+.accessory-target-summary {
+  margin: 0;
+  border-left: 3px solid var(--accent);
+  padding: 7px 10px;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: var(--text);
+}
+
+.accessory-removal-form {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
