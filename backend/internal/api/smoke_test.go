@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
@@ -21,6 +22,9 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	backup := application.NewBackupService(db, dataDir)
 	fileBlobs := application.NewFileBlobService(db, dataDir)
 	exhibition := application.NewExhibitionService(db)
+	accessoryRepository := infrastructure.NewAccessoryRepository(db)
+	accessories := application.NewAccessoryService(accessoryRepository)
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 	router := NewRouter(Config{
 		DataDir:           dataDir,
 		SetupService:      setup,
@@ -30,6 +34,11 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 		BackupService:     backup,
 		FileBlobService:   fileBlobs,
 		ExhibitionService: exhibition,
+		AccessoryService:  accessories,
+		AccessoryAllocationService: application.NewAccessoryAllocationService(
+			accessoryRepository,
+		),
+		LayoutService: layouts,
 	})
 
 	doJSON(t, router, http.MethodPost, "/api/v1/setup/admin", `{"username":"admin","email":"admin@example.test","password":"very-secure-password"}`, nil, http.StatusCreated)
@@ -48,6 +57,8 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	}
 
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"viewer","email":"viewer@example.test","password":"viewer-secure-password","roles":["Viewer"]}`, adminSession, adminCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"editor","email":"editor@example.test","password":"editor-secure-password","roles":["Editor"]}`, adminSession, adminCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"planner","email":"planner@example.test","password":"planner-secure-password","roles":["Planner"]}`, adminSession, adminCookies, http.StatusCreated)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"messe","email":"messe@example.test","password":"messe-secure-password","roles":["Messe"]}`, adminSession, adminCookies, http.StatusCreated)
 	createVehicleResponse := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Piko","name":"BR 118","gauge":"H0","category":"Lokomotive","gattung":"Diesellok"}`, adminSession, adminCookies, http.StatusCreated)
 	var vehicle application.Vehicle
@@ -103,7 +114,44 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", viewerCookies, http.StatusOK)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Roco","name":"V 200","gauge":"H0","category":"Lokomotive","gattung":"Diesellok"}`, viewerSession, viewerCookies, http.StatusForbidden)
 
+	editorSession, editorCookies := loginTestUser(t, router, "editor", "editor-secure-password")
+	plannerSession, plannerCookies := loginTestUser(t, router, "planner", "planner-secure-password")
 	messeSession, messeCookies := loginTestUser(t, router, "messe", "messe-secure-password")
+	roleSessions := []struct {
+		name    string
+		session application.SessionView
+		cookies []*http.Cookie
+	}{
+		{name: "Admin", session: adminSession, cookies: adminCookies},
+		{name: "Editor", session: editorSession, cookies: editorCookies},
+		{name: "Viewer", session: viewerSession, cookies: viewerCookies},
+		{name: "Planner", session: plannerSession, cookies: plannerCookies},
+	}
+	for _, path := range []string{
+		"/api/v1/vehicles", "/api/v1/accessory-products", "/api/v1/storage-locations",
+		"/api/v1/accessory-reservations", "/api/v1/accessory-installations", "/api/v1/layouts",
+	} {
+		for _, actor := range roleSessions {
+			t.Run(actor.name+" reads "+path, func(t *testing.T) {
+				doJSON(t, router, http.MethodGet, path, "", actor.cookies, http.StatusOK)
+			})
+		}
+		doJSON(t, router, http.MethodGet, path, "", messeCookies, http.StatusForbidden)
+	}
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/accessory-products",
+		`{"manufacturer":"Tillig","articleNumber":"83101","name":"Gerades Gleis","category":"Gleismaterial","trackingMode":"quantity"}`,
+		editorSession, editorCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/layouts",
+		`{"name":"Clubanlage","kind":"club","gauge":"TT","scale":"1:120"}`,
+		plannerSession, plannerCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/plan-revisions/missing/publish",
+		`{"expectedVersion":1}`, editorSession, editorCookies, http.StatusForbidden)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/accessory-installations", `{}`,
+		plannerSession, plannerCookies, http.StatusForbidden)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/layouts",
+		`{"name":"Viewer layout","kind":"private","gauge":"TT","scale":"1:120"}`,
+		viewerSession, viewerCookies, http.StatusForbidden)
+
 	doJSON(t, router, http.MethodGet, "/api/v1/exhibition-lists", "", messeCookies, http.StatusOK)
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", messeCookies, http.StatusForbidden)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/exhibition-lists", `{"designation":"Leipzig 2026","date":"2026-05-12"}`, messeSession, messeCookies, http.StatusForbidden)

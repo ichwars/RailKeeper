@@ -17,7 +17,10 @@ import (
 	"time"
 )
 
-const backupFormat = "railkeeper-backup"
+const (
+	backupFormat  = "railkeeper-backup"
+	backupVersion = 2
+)
 
 var (
 	ErrBackupInvalid = errors.New("backup invalid")
@@ -103,12 +106,15 @@ var backupTableOrder = []string{
 	"exhibition_entries",
 }
 
-var optionalBackupTables = map[string]struct{}{
-	"exhibition_lists":           {},
-	"exhibition_entries":         {},
-	"file_blobs":                 {},
-	"vehicle_external_mappings":  {},
-	"vehicle_spare_parts":        {},
+var legacyOptionalBackupTables = map[string]struct{}{
+	"exhibition_lists":          {},
+	"exhibition_entries":        {},
+	"file_blobs":                {},
+	"vehicle_external_mappings": {},
+	"vehicle_spare_parts":       {},
+}
+
+var stageOneBackupTables = map[string]struct{}{
 	"storage_locations":          {},
 	"accessory_products":         {},
 	"accessory_stock":            {},
@@ -134,7 +140,7 @@ func (s *BackupService) Export(ctx context.Context) (*BackupDocument, error) {
 
 	doc := &BackupDocument{
 		Format:    backupFormat,
-		Version:   1,
+		Version:   backupVersion,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		Tables:    map[string][]map[string]any{},
 		Files:     []BackupFile{},
@@ -184,6 +190,10 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin backup restore: %w", err)
+	}
+	if _, err = tx.ExecContext(ctx, "PRAGMA defer_foreign_keys = ON"); err != nil {
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("defer backup restore foreign keys: %w", err)
 	}
 	committed := false
 	defer func() {
@@ -261,7 +271,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	if doc.Format != backupFormat {
 		result.Errors = append(result.Errors, "Backup-Format wird nicht unterstützt.")
 	}
-	if doc.Version != 1 {
+	if doc.Version < 1 || doc.Version > backupVersion {
 		result.Errors = append(result.Errors, "Backup-Version wird nicht unterstützt.")
 	}
 	if err := validateBackupFiles(doc.Files); err != nil {
@@ -280,7 +290,7 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		rows, exists := doc.Tables[table]
 		item := BackupValidationTable{Name: table, Rows: len(rows), Missing: !exists}
 		if !exists {
-			if _, optional := optionalBackupTables[table]; optional {
+			if backupTableOptional(doc.Version, table) {
 				result.Warnings = append(result.Warnings, fmt.Sprintf("Optionale Tabelle %s fehlt im Backup und wird leer wiederhergestellt.", table))
 			} else {
 				result.Errors = append(result.Errors, fmt.Sprintf("Tabelle %s fehlt im Backup.", table))
@@ -316,6 +326,14 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 
 	return finishBackupValidation(result), nil
+}
+
+func backupTableOptional(version int, table string) bool {
+	if _, optional := legacyOptionalBackupTables[table]; optional {
+		return true
+	}
+	_, stageOneTable := stageOneBackupTables[table]
+	return version == 1 && stageOneTable
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {

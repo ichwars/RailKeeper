@@ -381,6 +381,9 @@ function printList(
 export function ExhibitionView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
   const canManageLists = hasAdmin(roles);
+  const canReadInventoryMasterData = roles.some((role) =>
+    role === "Admin" || role === "Editor" || role === "Viewer" || role === "Planner"
+  );
   const [lists, setLists] = useState<ExhibitionList[]>([]);
   const [selectedID, setSelectedID] = useState("");
   const [entries, setEntries] = useState<ExhibitionEntry[]>([]);
@@ -448,6 +451,10 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   }, []);
 
   useEffect(() => {
+    if (!canReadInventoryMasterData) {
+      setMasterDataOptions(emptyExhibitionOptions);
+      return;
+    }
     api.masterDataAll(true)
       .then((entriesByType) => setMasterDataOptions({
         manufacturers: entriesByType.manufacturer || [],
@@ -456,7 +463,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
         gattungen: entriesByType.vehicle_gattung || []
       }))
       .catch((error: Error) => setMessage(error.message));
-  }, []);
+  }, [canReadInventoryMasterData]);
 
   useEffect(() => {
     if (!selectedID) {
