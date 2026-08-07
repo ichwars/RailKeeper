@@ -37,4 +37,9 @@ describe("i18n", () => {
   it("returns the key when no translation exists", () => {
     expect(translate("en", "missing.translation.key")).toBe("missing.translation.key");
   });
+
+  it("keeps German and English translation keys in parity", async () => {
+    const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
+    expect(Object.keys(deTranslations).sort()).toEqual(Object.keys(enTranslations).sort());
+  });
 });
