@@ -1,3 +1,7 @@
+import { createLayoutsAccessoriesAPI } from "./apiLayoutsAccessories";
+
+export * from "./apiLayoutsAccessories";
+
 export type SetupStatus = {
   setupRequired: boolean;
 };
@@ -1074,6 +1078,7 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
 }
 
 export const api = {
+  ...createLayoutsAccessoriesAPI(request),
   setupStatus: () => request<SetupStatus>("/setup/status"),
   createAdmin: (input: CreateAdminRequest) =>
     request<{ status: string }>("/setup/admin", {
