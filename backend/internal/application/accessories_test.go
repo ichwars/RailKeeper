@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"railkeeper/backend/internal/domain"
@@ -17,6 +18,74 @@ type accessoryRepositorySpy struct {
 	stockAdjustment StockAdjustmentInput
 	createdAsset    CreateAccessoryAssetInput
 	updatedAsset    UpdateAccessoryAssetInput
+}
+
+func stringPointer(value string) *string { return &value }
+
+func TestAccessoryServiceDerivesCompatibilityArticleDefaults(t *testing.T) {
+	repository := &accessoryRepositorySpy{}
+	service := NewAccessoryService(repository)
+
+	if _, err := service.CreateProduct(t.Context(), CreateAccessoryProductInput{
+		Manufacturer: " Tillig ", Name: " Gleis ", Category: " Gleismaterial ",
+		TrackingMode: domain.AccessoryTrackingModeQuantity,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	product := repository.createdProduct
+	if product.ArticleType != domain.AccessoryArticleOther || product.Subtype != "Gleismaterial" ||
+		product.InventoryStrategy != domain.AccessoryInventoryQuantity || product.PackageQuantity != 1 ||
+		product.StockUnit != "piece" {
+		t.Fatalf("unexpected compatibility defaults: %#v", product)
+	}
+}
+
+func TestAccessoryServiceValidatesAndNormalizesArticleCore(t *testing.T) {
+	repository := &accessoryRepositorySpy{}
+	service := NewAccessoryService(repository)
+	text := " TT Modellgleis "
+	length := 166.0
+	valid := CreateAccessoryProductInput{
+		Manufacturer: " Tillig ", ArticleNumber: " 83101 ", Name: " Straight track ", Category: " Track ",
+		TrackingMode: domain.AccessoryTrackingModeQuantity,
+		ArticleType:  domain.AccessoryArticleTrack, Subtype: " track:straight ", Gauges: []string{" TT ", "", "TT"},
+		PackageQuantity: 2, StockUnit: " piece ", MinimumStock: 0,
+		InventoryStrategy:  domain.AccessoryInventoryQuantityLaterIndividual,
+		AlternativeNumbers: []string{" 83101-A ", "83101-A"}, Keywords: []string{" track ", "Track", ""},
+		Attributes: []domain.AccessoryAttributeValue{
+			{Key: " trackSystem ", Kind: domain.AccessoryAttributeText, TextValue: &text},
+			{Key: "lengthMm", Kind: domain.AccessoryAttributeNumber, NumberValue: &length, Unit: stringPointer(" mm ")},
+		},
+	}
+	if _, err := service.CreateProduct(t.Context(), valid, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	product := repository.createdProduct
+	if product.Subtype != "track:straight" || !slices.Equal(product.Gauges, []string{"TT"}) ||
+		!slices.Equal(product.AlternativeNumbers, []string{"83101-A"}) ||
+		!slices.Equal(product.Keywords, []string{"track"}) || product.Attributes[0].Key != "trackSystem" ||
+		*product.Attributes[0].TextValue != "TT Modellgleis" || *product.Attributes[1].Unit != "mm" {
+		t.Fatalf("unexpected normalized article input: %#v", product)
+	}
+
+	invalid := []CreateAccessoryProductInput{
+		{Manufacturer: "Tillig", Name: "Missing new subtype", Category: "Track", TrackingMode: domain.AccessoryTrackingModeQuantity,
+			ArticleType: domain.AccessoryArticleTrack, InventoryStrategy: domain.AccessoryInventoryQuantity},
+		{Manufacturer: "Tillig", Name: "Wrong subtype", Category: "Track", TrackingMode: domain.AccessoryTrackingModeQuantity,
+			ArticleType: domain.AccessoryArticleTrack, Subtype: "signal:main", InventoryStrategy: domain.AccessoryInventoryQuantity, PackageQuantity: 1, StockUnit: "piece"},
+		{Manufacturer: "Tillig", Name: "Missing package", Category: "Track", TrackingMode: domain.AccessoryTrackingModeQuantity,
+			ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight", InventoryStrategy: domain.AccessoryInventoryQuantity, StockUnit: "piece"},
+		{Manufacturer: "Tillig", Name: "Negative minimum", Category: "Track", TrackingMode: domain.AccessoryTrackingModeQuantity,
+			ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight", InventoryStrategy: domain.AccessoryInventoryQuantity, PackageQuantity: 1, StockUnit: "piece", MinimumStock: -1},
+		{Manufacturer: "Tillig", Name: "Mismatched attribute", Category: "Track", TrackingMode: domain.AccessoryTrackingModeQuantity,
+			ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight", InventoryStrategy: domain.AccessoryInventoryQuantity, PackageQuantity: 1, StockUnit: "piece",
+			Attributes: []domain.AccessoryAttributeValue{{Key: "custom", Kind: domain.AccessoryAttributeText, TextValue: &text}}},
+	}
+	for _, input := range invalid {
+		if _, err := service.CreateProduct(t.Context(), input, "editor-1"); !errors.Is(err, ErrAccessoryValidation) {
+			t.Fatalf("expected article validation error for %#v, got %v", input, err)
+		}
+	}
 }
 
 func (spy *accessoryRepositorySpy) CreateProduct(

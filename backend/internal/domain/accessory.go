@@ -18,6 +18,57 @@ func (mode AccessoryTrackingMode) Valid() bool {
 	return mode == AccessoryTrackingModeQuantity || mode == AccessoryTrackingModeIndividual
 }
 
+type AccessoryInventoryStrategy string
+
+const (
+	AccessoryInventoryQuantity                AccessoryInventoryStrategy = "quantity"
+	AccessoryInventoryIndividual              AccessoryInventoryStrategy = "individual"
+	AccessoryInventoryQuantityLaterIndividual AccessoryInventoryStrategy = "quantity_later_individual"
+)
+
+func (strategy AccessoryInventoryStrategy) Valid() bool {
+	return strategy == AccessoryInventoryQuantity || strategy == AccessoryInventoryIndividual ||
+		strategy == AccessoryInventoryQuantityLaterIndividual
+}
+
+func (strategy AccessoryInventoryStrategy) TrackingMode() AccessoryTrackingMode {
+	if strategy == AccessoryInventoryIndividual {
+		return AccessoryTrackingModeIndividual
+	}
+	return AccessoryTrackingModeQuantity
+}
+
+func InventoryStrategyFromTrackingMode(mode AccessoryTrackingMode) AccessoryInventoryStrategy {
+	if mode == AccessoryTrackingModeIndividual {
+		return AccessoryInventoryIndividual
+	}
+	return AccessoryInventoryQuantity
+}
+
+type AccessoryArticleType string
+
+const (
+	AccessoryArticleTrack               AccessoryArticleType = "track"
+	AccessoryArticleSignal              AccessoryArticleType = "signal"
+	AccessoryArticleDecoder             AccessoryArticleType = "decoder"
+	AccessoryArticleElectricalControl   AccessoryArticleType = "electrical_control"
+	AccessoryArticleBuildingEquipment   AccessoryArticleType = "building_equipment"
+	AccessoryArticleLandscapeConsumable AccessoryArticleType = "landscape_consumable"
+	AccessoryArticleLighting            AccessoryArticleType = "lighting"
+	AccessoryArticleOther               AccessoryArticleType = "other"
+)
+
+func (articleType AccessoryArticleType) Valid() bool {
+	switch articleType {
+	case AccessoryArticleTrack, AccessoryArticleSignal, AccessoryArticleDecoder,
+		AccessoryArticleElectricalControl, AccessoryArticleBuildingEquipment,
+		AccessoryArticleLandscapeConsumable, AccessoryArticleLighting, AccessoryArticleOther:
+		return true
+	default:
+		return false
+	}
+}
+
 type AccessoryCondition string
 
 const (
