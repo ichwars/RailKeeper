@@ -6,19 +6,20 @@ import { api, Session } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 
-export type AppView = "overview" | "vehicles" | "accessories" | "exhibition" | "importExport" | "settings";
+export type AppView = "overview" | "vehicles" | "accessories" | "layouts" | "exhibition" | "importExport" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
 const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then((module) => ({ default: module.VehiclesView })));
 const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesView").then((module) => ({ default: module.AccessoriesView })));
+const LayoutsView = lazy(() => import("../features/layouts/LayoutsView").then((module) => ({ default: module.LayoutsView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 function configuredStartView(): AppView {
   const stored = window.localStorage.getItem(defaultViewSettingKey);
-  if (stored === "vehicles" || stored === "accessories" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
+  if (stored === "vehicles" || stored === "accessories" || stored === "layouts" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
     return stored;
   }
   if (stored === "inventory") {
@@ -31,6 +32,7 @@ function pathForView(nextView: AppView) {
   if (nextView === "overview") return "/overview";
   if (nextView === "vehicles") return "/vehicles";
   if (nextView === "accessories") return "/accessories";
+  if (nextView === "layouts") return "/layouts";
   if (nextView === "exhibition") return "/exhibition";
   if (nextView === "importExport") return "/import-export";
   if (nextView === "settings") return "/settings";
@@ -46,6 +48,9 @@ function currentView(): AppView {
   }
   if (window.location.pathname.startsWith("/accessories")) {
     return "accessories";
+  }
+  if (window.location.pathname.startsWith("/layouts")) {
+    return "layouts";
   }
   if (window.location.pathname.startsWith("/exhibition")) {
     return "exhibition";
@@ -188,6 +193,7 @@ export function App() {
         {effectiveView === "overview" && <OverviewView />}
         {effectiveView === "vehicles" && <VehiclesView username={session.username} />}
         {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}
+        {effectiveView === "layouts" && <LayoutsView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
         {effectiveView === "importExport" && <ImportExportView />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
