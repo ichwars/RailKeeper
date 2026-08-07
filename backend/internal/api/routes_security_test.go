@@ -26,7 +26,8 @@ func TestAPIRoutesDeclareAccess(t *testing.T) {
 			t.Fatalf("route %s %s has no handler", route.Method, route.Path)
 		}
 		switch route.Access {
-		case routeAccessPublic, routeAccessAdmin, routeAccessEditor, routeAccessViewer, routeAccessMesse:
+		case routeAccessPublic, routeAccessAdmin, routeAccessEditor, routeAccessViewer, routeAccessMesse,
+			routeAccessPlanner:
 		default:
 			t.Fatalf("route %s %s has invalid access %q", route.Method, route.Path, route.Access)
 		}
@@ -42,6 +43,7 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 	for _, user := range []application.CreateUserInput{
 		{Username: "viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
 		{Username: "messe", Password: "messe-password", Roles: []string{"Messe"}},
+		{Username: "planner", Password: "planner-password", Roles: []string{"Planner"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
 			t.Fatal(err)
@@ -49,11 +51,13 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 	}
 	viewer := loginRouteTestUser(t, auth, "viewer", "viewer-password")
 	messe := loginRouteTestUser(t, auth, "messe", "messe-password")
+	planner := loginRouteTestUser(t, auth, "planner", "planner-password")
 	insufficient := map[routeAccess]*application.LoginResult{
-		routeAccessAdmin:  viewer,
-		routeAccessEditor: viewer,
-		routeAccessViewer: messe,
-		routeAccessMesse:  viewer,
+		routeAccessAdmin:   viewer,
+		routeAccessEditor:  planner,
+		routeAccessViewer:  messe,
+		routeAccessMesse:   viewer,
+		routeAccessPlanner: viewer,
 	}
 
 	app := &App{authService: auth, logger: slog.Default()}

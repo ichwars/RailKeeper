@@ -1018,7 +1018,8 @@ func (s *AuthService) ValidateCSRF(ctx context.Context, sessionToken, csrfToken 
 
 func hasRole(roles []string, role string) bool {
 	if role == "Viewer" {
-		return hasExactRole(roles, "Viewer") || hasExactRole(roles, "Editor") || hasExactRole(roles, "Admin")
+		return hasExactRole(roles, "Viewer") || hasExactRole(roles, "Editor") ||
+			hasExactRole(roles, "Planner") || hasExactRole(roles, "Admin")
 	}
 	return hasExactRole(roles, role)
 }

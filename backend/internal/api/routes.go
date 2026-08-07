@@ -5,11 +5,12 @@ import "net/http"
 type routeAccess string
 
 const (
-	routeAccessPublic routeAccess = "public"
-	routeAccessAdmin  routeAccess = "Admin"
-	routeAccessEditor routeAccess = "Editor"
-	routeAccessViewer routeAccess = "Viewer"
-	routeAccessMesse  routeAccess = "Messe"
+	routeAccessPublic  routeAccess = "public"
+	routeAccessAdmin   routeAccess = "Admin"
+	routeAccessEditor  routeAccess = "Editor"
+	routeAccessViewer  routeAccess = "Viewer"
+	routeAccessMesse   routeAccess = "Messe"
+	routeAccessPlanner routeAccess = "Planner"
 )
 
 type routeHandler func(*App, http.ResponseWriter, *http.Request)

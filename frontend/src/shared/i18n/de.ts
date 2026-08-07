@@ -527,6 +527,7 @@ export const deTranslations: Record<string, string> = {
     "settings.role.Editor": "Bestand, Stammdaten, Wartung, Uploads und CV-Daten bearbeiten.",
     "settings.role.Viewer": "Lesender Zugriff auf Bestand und Stammdaten.",
     "settings.role.Messe": "Zugriff auf Messelisten, Einträge und Messe-Druck.",
+    "settings.role.Planner": "Anlagen, Module, Aufbauten und Planrevisionen verwalten.",
     "settings.auditAction.Login": "Anmeldung",
     "settings.auditAction.Logout": "Abmeldung",
     "settings.auditAction.LoginFailed": "Fehlgeschlagene Anmeldung",
