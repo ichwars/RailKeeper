@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -541,6 +542,421 @@ func TestAccessoryServiceWritesMinimalAuditDetails(t *testing.T) {
 	}
 	if count != 4 {
 		t.Fatalf("expected 4 audit entries, got %d", count)
+	}
+}
+
+func TestAccessoryStockMovementJournalsAdjustmentsAndRollsBackInsufficientStock(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Stock shelf")
+	product := createAccessoryTestProduct(t, service, "Stock movement", domain.AccessoryInventoryQuantity)
+
+	if _, err := service.AdjustStock(ctx, product.ID, application.StockAdjustmentInput{
+		LocationID: location.ID, Delta: 4,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.AdjustStock(ctx, product.ID, application.StockAdjustmentInput{
+		LocationID: location.ID, Delta: -5,
+	}, "editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected insufficient stock, got %v", err)
+	}
+
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 1 || movements[0].MovementType != "adjustment" ||
+		movements[0].Quantity != 4 || movements[0].LocationID != location.ID ||
+		movements[0].Actor != "editor-1" {
+		t.Fatalf("unexpected adjustment journal: %#v", movements)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 4})
+	assertAccessoryAuditCount(t, db, "AccessoryStockAdjusted", 1)
+}
+
+func TestAccessoryTransferStockWritesPairedMovementsAndRollsBack(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	source := createAccessoryTestLocation(t, service, "Source shelf")
+	destination := createAccessoryTestLocation(t, service, "Destination shelf")
+	product := createAccessoryTestProduct(t, service, "Transferred stock", domain.AccessoryInventoryQuantity)
+	if _, err := service.AdjustStock(ctx, product.ID, application.StockAdjustmentInput{
+		LocationID: source.ID, Delta: 5,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := service.TransferStock(ctx, product.ID, application.TransferAccessoryStockInput{
+		FromLocationID: source.ID, ToLocationID: destination.ID, Quantity: 3, Note: "layout preparation",
+	}, "editor-2"); err != nil {
+		t.Fatal(err)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{source.ID: 2, destination.ID: 3})
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := findAccessoryMovement(t, movements, "transfer_out")
+	in := findAccessoryMovement(t, movements, "transfer_in")
+	if out.Quantity != -3 || out.LocationID != source.ID || in.Quantity != 3 ||
+		in.LocationID != destination.ID || out.SourceType != "transfer" ||
+		out.SourceID == "" || out.SourceID != in.SourceID || out.Note != "layout preparation" ||
+		in.Note != "layout preparation" || out.Actor != "editor-2" || in.Actor != "editor-2" {
+		t.Fatalf("unexpected transfer journal: out=%#v in=%#v", out, in)
+	}
+	assertAccessoryAuditCount(t, db, "AccessoryStockTransferred", 1)
+
+	before := len(movements)
+	if _, err := service.TransferStock(ctx, product.ID, application.TransferAccessoryStockInput{
+		FromLocationID: source.ID, ToLocationID: destination.ID, Quantity: 3,
+	}, "editor-2"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected failed over-transfer, got %v", err)
+	}
+	after, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(after) != before {
+		t.Fatalf("failed transfer wrote movements: before=%d after=%d", before, len(after))
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{source.ID: 2, destination.ID: 3})
+	assertAccessoryAuditCount(t, db, "AccessoryStockTransferred", 1)
+
+	if _, err := service.UpdateLocation(ctx, destination.ID, application.UpdateStorageLocationInput{
+		CreateStorageLocationInput: application.CreateStorageLocationInput{Name: destination.Name, Archived: true},
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.TransferStock(ctx, product.ID, application.TransferAccessoryStockInput{
+		FromLocationID: source.ID, ToLocationID: destination.ID, Quantity: 1,
+	}, "editor-2"); !errors.Is(err, application.ErrAccessoryConflict) {
+		t.Fatalf("expected archived destination rejection, got %v", err)
+	}
+}
+
+func TestAccessoryPurchaseRecordsUnbookedAndBooksQuantityStock(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Purchase shelf")
+	product := createAccessoryTestProduct(t, service, "Purchased stock", domain.AccessoryInventoryQuantity)
+
+	unbooked, err := service.CreatePurchase(ctx, product.ID, application.CreateAccessoryPurchaseInput{
+		PurchasedAt: "2026-08-01", Supplier: "Dealer", Quantity: 2, UnitPrice: "3.50",
+		Currency: "EUR", InvoiceNumber: "INV-1", WarrantyUntil: "2028-08-01", Notes: "ordered",
+	}, "buyer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unbooked.BookToStock || unbooked.StorageLocationID != "" || unbooked.InvoiceNumber != "INV-1" {
+		t.Fatalf("unexpected unbooked purchase: %#v", unbooked)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{})
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 0 {
+		t.Fatalf("unbooked purchase changed physical stock: %#v", movements)
+	}
+
+	booked, err := service.CreatePurchase(ctx, product.ID, application.CreateAccessoryPurchaseInput{
+		PurchasedAt: "2026-08-02", Supplier: "Dealer", Quantity: 3, UnitPrice: "4.25",
+		Currency: "EUR", InvoiceNumber: "INV-2", StorageLocationID: location.ID,
+		BookToStock: true, Notes: "received",
+	}, "buyer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 3})
+	movements, err = service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	purchaseMovement := findAccessoryMovement(t, movements, "purchase")
+	if purchaseMovement.Quantity != 3 || purchaseMovement.LocationID != location.ID ||
+		purchaseMovement.SourceType != "purchase" || purchaseMovement.SourceID != booked.ID ||
+		purchaseMovement.Actor != "buyer-1" || purchaseMovement.Note != "received" {
+		t.Fatalf("unexpected purchase movement: %#v", purchaseMovement)
+	}
+	purchases, err := service.ListPurchases(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(purchases) != 2 || purchases[0].ID != booked.ID || purchases[1].ID != unbooked.ID {
+		t.Fatalf("unexpected purchase history: %#v", purchases)
+	}
+	assertAccessoryAuditCount(t, db, "AccessoryPurchaseCreated", 2)
+}
+
+func TestAccessoryPurchaseBooksIndividualAssetsWithoutQuantityStock(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Decoder shelf")
+	product := createAccessoryTestProduct(t, service, "Purchased decoder", domain.AccessoryInventoryIndividual)
+
+	purchase, err := service.CreatePurchase(ctx, product.ID, application.CreateAccessoryPurchaseInput{
+		PurchasedAt: "2026-08-03", Supplier: "Decoder dealer", Quantity: 2, UnitPrice: "49.95",
+		Currency: "EUR", InvoiceNumber: "D-42", WarrantyUntil: "2028-08-03",
+		StorageLocationID: location.ID, BookToStock: true,
+	}, "buyer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assets, err := service.ListAssets(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 2 {
+		t.Fatalf("expected two purchased assets, got %#v", assets)
+	}
+	for _, asset := range assets {
+		if asset.PurchaseID != purchase.ID || asset.PurchaseDate != "2026-08-03" ||
+			asset.PurchasePrice != "49.95" || asset.WarrantyUntil != "2028-08-03" ||
+			asset.StorageLocationID != location.ID || asset.Lifecycle != domain.AccessoryLifecycleStored {
+			t.Fatalf("unexpected purchased asset: %#v", asset)
+		}
+	}
+	stock, err := service.GetStock(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stock.TotalQuantity != 0 || len(stock.Locations) != 0 {
+		t.Fatalf("individual purchase also created quantity stock: %#v", stock)
+	}
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 0 {
+		t.Fatalf("individual purchase wrote quantity movements: %#v", movements)
+	}
+	assertAccessoryAuditCount(t, db, "AccessoryPurchaseCreated", 1)
+}
+
+func TestAccessoryPurchaseBooksHybridQuantityStock(t *testing.T) {
+	service, _ := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Hybrid purchase shelf")
+	product := createAccessoryTestProduct(t, service, "Purchased hybrid",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+
+	purchase, err := service.CreatePurchase(ctx, product.ID, application.CreateAccessoryPurchaseInput{
+		PurchasedAt: "2026-08-04", Quantity: 2, StorageLocationID: location.ID, BookToStock: true,
+	}, "buyer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 2})
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	movement := findAccessoryMovement(t, movements, "purchase")
+	if movement.Quantity != 2 || movement.SourceID != purchase.ID {
+		t.Fatalf("unexpected hybrid purchase movement: %#v", movement)
+	}
+	assets, err := service.ListAssets(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 0 {
+		t.Fatalf("hybrid purchase individualized assets eagerly: %#v", assets)
+	}
+}
+
+func TestAccessoryIndividualizationConsumesHybridStockAndRollsBackConflicts(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Hybrid shelf")
+	product := createAccessoryTestProduct(t, service, "Hybrid decoder",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	if _, err := service.AdjustStock(ctx, product.ID, application.StockAdjustmentInput{
+		LocationID: location.ID, Delta: 2,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	asset, err := service.Individualize(ctx, product.ID, application.IndividualizeAccessoryInput{
+		LocationID: location.ID, Asset: application.CreateAccessoryAssetInput{
+			InventoryNumber: "HYB-1", SerialNumber: "SER-1", PurchaseDate: "2026-08-01",
+			PurchasePrice: "25.00", WarrantyUntil: "2028-08-01",
+		},
+	}, "editor-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if asset.StorageLocationID != location.ID || asset.Lifecycle != domain.AccessoryLifecycleStored {
+		t.Fatalf("unexpected individualized asset: %#v", asset)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 1})
+	assets, err := service.ListAssets(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 1 || assets[0].ID != asset.ID {
+		t.Fatalf("hybrid asset listing failed: %#v", assets)
+	}
+	if _, err := service.CreateAsset(ctx, product.ID, application.CreateAccessoryAssetInput{
+		InventoryNumber: "HYB-DIRECT", StorageLocationID: location.ID,
+	}, "editor-2"); !errors.Is(err, application.ErrAccessoryTrackingMode) {
+		t.Fatalf("direct hybrid asset creation must stay disabled, got %v", err)
+	}
+	movements, err := service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	individualization := findAccessoryMovement(t, movements, "individualization")
+	if individualization.Quantity != -1 || individualization.LocationID != location.ID ||
+		individualization.SourceType != "asset" || individualization.SourceID != asset.ID ||
+		individualization.Actor != "editor-2" {
+		t.Fatalf("unexpected individualization movement: %#v", individualization)
+	}
+
+	beforeMovements := len(movements)
+	if _, err := service.Individualize(ctx, product.ID, application.IndividualizeAccessoryInput{
+		LocationID: location.ID, Asset: application.CreateAccessoryAssetInput{InventoryNumber: "HYB-1"},
+	}, "editor-2"); !errors.Is(err, application.ErrAccessoryConflict) {
+		t.Fatalf("expected duplicate inventory conflict, got %v", err)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 1})
+	movements, err = service.ListStockMovements(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != beforeMovements {
+		t.Fatalf("failed individualization left a movement: %#v", movements)
+	}
+	assertAccessoryAuditCount(t, db, "AccessoryAssetIndividualized", 1)
+}
+
+func TestAccessoryConcurrentIndividualizationNeverProducesNegativeStock(t *testing.T) {
+	service, _ := testAccessoryService(t)
+	ctx := t.Context()
+	location := createAccessoryTestLocation(t, service, "Concurrent shelf")
+	product := createAccessoryTestProduct(t, service, "Concurrent hybrid",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	if _, err := service.AdjustStock(ctx, product.ID, application.StockAdjustmentInput{
+		LocationID: location.ID, Delta: 1,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	start := make(chan struct{})
+	errorsByCall := make(chan error, 2)
+	var wait sync.WaitGroup
+	for _, inventoryNumber := range []string{"CON-1", "CON-2"} {
+		wait.Add(1)
+		go func(number string) {
+			defer wait.Done()
+			<-start
+			_, err := service.Individualize(ctx, product.ID, application.IndividualizeAccessoryInput{
+				LocationID: location.ID,
+				Asset:      application.CreateAccessoryAssetInput{InventoryNumber: number},
+			}, "editor-1")
+			errorsByCall <- err
+		}(inventoryNumber)
+	}
+	close(start)
+	wait.Wait()
+	close(errorsByCall)
+	successes, insufficient := 0, 0
+	for err := range errorsByCall {
+		switch {
+		case err == nil:
+			successes++
+		case errors.Is(err, application.ErrAccessoryInsufficientStock):
+			insufficient++
+		default:
+			t.Fatalf("unexpected concurrent decrement error: %v", err)
+		}
+	}
+	if successes != 1 || insufficient != 1 {
+		t.Fatalf("unexpected concurrent results: successes=%d insufficient=%d", successes, insufficient)
+	}
+	assertAccessoryTestStock(t, service, product.ID, map[string]int{location.ID: 0})
+	assets, err := service.ListAssets(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 1 {
+		t.Fatalf("concurrent decrement created %d assets", len(assets))
+	}
+}
+
+func createAccessoryTestLocation(
+	t *testing.T,
+	service *application.AccessoryService,
+	name string,
+) *application.StorageLocation {
+	t.Helper()
+	location, err := service.CreateLocation(t.Context(), application.CreateStorageLocationInput{Name: name}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return location
+}
+
+func createAccessoryTestProduct(
+	t *testing.T,
+	service *application.AccessoryService,
+	name string,
+	strategy domain.AccessoryInventoryStrategy,
+) *application.AccessoryProduct {
+	t.Helper()
+	product, err := service.CreateProduct(t.Context(), application.CreateAccessoryProductInput{
+		Manufacturer: "Test", Name: name, Category: "Other", ArticleType: domain.AccessoryArticleOther,
+		Subtype: "other", PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: strategy,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return product
+}
+
+func assertAccessoryTestStock(
+	t *testing.T,
+	service *application.AccessoryService,
+	productID string,
+	want map[string]int,
+) {
+	t.Helper()
+	stock, err := service.GetStock(t.Context(), productID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := make(map[string]int, len(stock.Locations))
+	for _, level := range stock.Locations {
+		got[level.LocationID] = level.Quantity
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected stock: got %#v, want %#v", got, want)
+	}
+}
+
+func findAccessoryMovement(
+	t *testing.T,
+	movements []application.AccessoryStockMovement,
+	movementType string,
+) application.AccessoryStockMovement {
+	t.Helper()
+	for _, movement := range movements {
+		if movement.MovementType == movementType {
+			return movement
+		}
+	}
+	t.Fatalf("movement %q not found in %#v", movementType, movements)
+	return application.AccessoryStockMovement{}
+}
+
+func assertAccessoryAuditCount(t *testing.T, db *sql.DB, action string, want int) {
+	t.Helper()
+	var got int
+	if err := db.QueryRowContext(t.Context(), `SELECT COUNT(*) FROM audit_logs WHERE action=?`, action).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != want {
+		t.Fatalf("audit count for %s: got %d, want %d", action, got, want)
 	}
 }
 

@@ -43,7 +43,7 @@ func (r *AccessoryRepository) Install(
 	now := timestamp()
 	installationID := randomID()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
-		mode, err := accessoryTrackingMode(ctx, tx, input.ProductID)
+		strategy, err := accessoryInventoryStrategy(ctx, tx, input.ProductID)
 		if err != nil {
 			return err
 		}
@@ -63,11 +63,15 @@ func (r *AccessoryRepository) Install(
 				return application.ErrAccessoryConflict
 			}
 		}
-		switch mode {
-		case domain.AccessoryTrackingModeQuantity:
-			if input.AssetID != "" {
-				return application.ErrAccessoryTrackingMode
+		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
+		if err != nil {
+			return err
+		}
+		if usesAsset {
+			if err := installAccessoryAsset(ctx, tx, input, reservation != nil, now); err != nil {
+				return err
 			}
+		} else {
 			if reservation == nil {
 				available, err := availableAccessoryQuantity(ctx, tx, input.ProductID, input.SourceLocationID)
 				if err != nil {
@@ -89,15 +93,6 @@ WHERE product_id=? AND location_id=? AND quantity>=?`, input.Quantity, now, inpu
 			} else if affected == 0 {
 				return application.ErrAccessoryInsufficientStock
 			}
-		case domain.AccessoryTrackingModeIndividual:
-			if input.AssetID == "" {
-				return application.ErrAccessoryTrackingMode
-			}
-			if err := installAccessoryAsset(ctx, tx, input, reservation != nil, now); err != nil {
-				return err
-			}
-		default:
-			return application.ErrAccessoryTrackingMode
 		}
 		if reservation != nil {
 			result, err := tx.ExecContext(ctx, `
@@ -121,6 +116,12 @@ INSERT INTO accessory_installations(
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory installation: %w", err)
+		}
+		if !usesAsset {
+			if err := insertAccessoryStockMovement(ctx, tx, input.ProductID, input.SourceLocationID,
+				"installation", -input.Quantity, "installation", installationID, actor, "", now); err != nil {
+				return err
+			}
 		}
 		details, err := allocationAuditDetails(input.Quantity, input.AllocationTargetInput, "")
 		if err != nil {
@@ -150,7 +151,11 @@ func (r *AccessoryRepository) RemoveInstallation(
 		if installation.RemovedAt != "" {
 			return application.ErrAccessoryConflict
 		}
-		mode, err := accessoryTrackingMode(ctx, tx, installation.ProductID)
+		strategy, err := accessoryInventoryStrategy(ctx, tx, installation.ProductID)
+		if err != nil {
+			return err
+		}
+		usesAsset, err := accessoryAllocationUsesAsset(strategy, installation.AssetID)
 		if err != nil {
 			return err
 		}
@@ -159,7 +164,7 @@ func (r *AccessoryRepository) RemoveInstallation(
 				return err
 			}
 		}
-		if mode == domain.AccessoryTrackingModeQuantity {
+		if !usesAsset {
 			if input.Disposition == domain.AccessoryRemovalStored {
 				if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
@@ -182,6 +187,12 @@ WHERE id=? AND removed_at IS NULL`, actor, now, input.Disposition, input.Notes, 
 		}
 		if err := requireAccessoryConflictFreeUpdate(result); err != nil {
 			return err
+		}
+		if !usesAsset && input.Disposition == domain.AccessoryRemovalStored {
+			if err := insertAccessoryStockMovement(ctx, tx, installation.ProductID, input.StorageLocationID,
+				"removal", installation.Quantity, "installation", id, actor, "", now); err != nil {
+				return err
+			}
 		}
 		details, err := allocationAuditDetails(installation.Quantity,
 			installation.AllocationTargetInput, input.Disposition)

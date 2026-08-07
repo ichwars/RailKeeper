@@ -26,9 +26,35 @@ type StockAdjustmentInput struct {
 	Delta      int    `json:"delta"`
 }
 
+type TransferAccessoryStockInput struct {
+	FromLocationID string `json:"fromLocationId"`
+	ToLocationID   string `json:"toLocationId"`
+	Quantity       int    `json:"quantity"`
+	Note           string `json:"note"`
+}
+
+type IndividualizeAccessoryInput struct {
+	LocationID string                    `json:"locationId"`
+	Asset      CreateAccessoryAssetInput `json:"asset"`
+}
+
+type AccessoryStockMovement struct {
+	ID           string `json:"id"`
+	ProductID    string `json:"productId"`
+	LocationID   string `json:"locationId"`
+	MovementType string `json:"movementType"`
+	Quantity     int    `json:"quantity"`
+	SourceType   string `json:"sourceType,omitempty"`
+	SourceID     string `json:"sourceId,omitempty"`
+	Actor        string `json:"actor,omitempty"`
+	Note         string `json:"note,omitempty"`
+	CreatedAt    string `json:"createdAt"`
+}
+
 type AccessoryAsset struct {
 	ID                string                    `json:"id"`
 	ProductID         string                    `json:"productId"`
+	PurchaseID        string                    `json:"purchaseId,omitempty"`
 	InventoryNumber   string                    `json:"inventoryNumber,omitempty"`
 	SerialNumber      string                    `json:"serialNumber,omitempty"`
 	Condition         domain.AccessoryCondition `json:"condition"`
@@ -73,11 +99,47 @@ func (s *AccessoryService) AdjustStock(
 }
 
 func (s *AccessoryService) GetStock(ctx context.Context, productID string) (*AccessoryStockSummary, error) {
-	return s.repository.GetStock(ctx, strings.TrimSpace(productID))
+	productID = strings.TrimSpace(productID)
+	if productID == "" {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.GetStock(ctx, productID)
+}
+
+func (s *AccessoryService) ListStockMovements(
+	ctx context.Context,
+	productID string,
+) ([]AccessoryStockMovement, error) {
+	productID = strings.TrimSpace(productID)
+	if productID == "" {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.ListStockMovements(ctx, productID)
+}
+
+func (s *AccessoryService) TransferStock(
+	ctx context.Context,
+	productID string,
+	input TransferAccessoryStockInput,
+	actor string,
+) (*AccessoryStockSummary, error) {
+	productID = strings.TrimSpace(productID)
+	input.FromLocationID = strings.TrimSpace(input.FromLocationID)
+	input.ToLocationID = strings.TrimSpace(input.ToLocationID)
+	input.Note = strings.TrimSpace(input.Note)
+	if productID == "" || input.FromLocationID == "" || input.ToLocationID == "" ||
+		input.FromLocationID == input.ToLocationID || input.Quantity <= 0 {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.TransferStock(ctx, productID, input, actor)
 }
 
 func (s *AccessoryService) ListAssets(ctx context.Context, productID string) ([]AccessoryAsset, error) {
-	return s.repository.ListAssets(ctx, strings.TrimSpace(productID))
+	productID = strings.TrimSpace(productID)
+	if productID == "" {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.ListAssets(ctx, productID)
 }
 
 func (s *AccessoryService) CreateAsset(
@@ -108,6 +170,25 @@ func (s *AccessoryService) UpdateAsset(
 	return s.repository.UpdateAsset(ctx, id, input, actor)
 }
 
+func (s *AccessoryService) Individualize(
+	ctx context.Context,
+	productID string,
+	input IndividualizeAccessoryInput,
+	actor string,
+) (*AccessoryAsset, error) {
+	productID = strings.TrimSpace(productID)
+	input.LocationID = strings.TrimSpace(input.LocationID)
+	input.Asset = cleanAccessoryAssetInput(input.Asset)
+	input.Asset.StorageLocationID = input.LocationID
+	if productID == "" || input.LocationID == "" || !validAccessoryAssetInput(input.Asset) ||
+		input.Asset.Lifecycle != domain.AccessoryLifecycleStored ||
+		!validOptionalAccessoryDate(input.Asset.PurchaseDate) ||
+		!validOptionalAccessoryDate(input.Asset.WarrantyUntil) {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.Individualize(ctx, productID, input, actor)
+}
+
 func cleanAccessoryAssetInput(input CreateAccessoryAssetInput) CreateAccessoryAssetInput {
 	input.InventoryNumber = strings.TrimSpace(input.InventoryNumber)
 	input.SerialNumber = strings.TrimSpace(input.SerialNumber)
@@ -128,5 +209,7 @@ func cleanAccessoryAssetInput(input CreateAccessoryAssetInput) CreateAccessoryAs
 func validAccessoryAssetInput(input CreateAccessoryAssetInput) bool {
 	return input.Condition.Valid() && input.Lifecycle.Valid() &&
 		input.Lifecycle != domain.AccessoryLifecycleReserved &&
-		input.Lifecycle != domain.AccessoryLifecycleInstalled
+		input.Lifecycle != domain.AccessoryLifecycleInstalled &&
+		validOptionalAccessoryDate(input.PurchaseDate) &&
+		validOptionalAccessoryDate(input.WarrantyUntil)
 }

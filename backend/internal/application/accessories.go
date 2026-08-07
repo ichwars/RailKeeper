@@ -134,9 +134,14 @@ type AccessoryLocationRepository interface {
 type AccessoryInventoryRepository interface {
 	AdjustStock(context.Context, string, StockAdjustmentInput, string) (*AccessoryStockSummary, error)
 	GetStock(context.Context, string) (*AccessoryStockSummary, error)
+	ListStockMovements(context.Context, string) ([]AccessoryStockMovement, error)
+	TransferStock(context.Context, string, TransferAccessoryStockInput, string) (*AccessoryStockSummary, error)
 	ListAssets(context.Context, string) ([]AccessoryAsset, error)
 	CreateAsset(context.Context, string, CreateAccessoryAssetInput, string) (*AccessoryAsset, error)
 	UpdateAsset(context.Context, string, UpdateAccessoryAssetInput, string) (*AccessoryAsset, error)
+	Individualize(context.Context, string, IndividualizeAccessoryInput, string) (*AccessoryAsset, error)
+	ListPurchases(context.Context, string) ([]AccessoryPurchase, error)
+	CreatePurchase(context.Context, string, CreateAccessoryPurchaseInput, string) (*AccessoryPurchase, error)
 }
 
 type AccessoryRepository interface {

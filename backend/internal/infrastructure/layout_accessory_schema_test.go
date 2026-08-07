@@ -207,10 +207,38 @@ VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 	assertMasterDataCount(t, db, "controlled_field_kind", 6)
 
 	assertSchemaColumn(t, db, "accessory_assets", "purchase_id")
+	for _, column := range []string{"currency", "invoice_number", "warranty_until", "booked_to_stock"} {
+		assertSchemaColumn(t, db, "accessory_purchases", column)
+	}
+	assertSchemaMissingColumn(t, db, "accessory_purchases", "order_number")
+	expectConstraintFailure(t, db, `INSERT INTO accessory_purchases(
+  id, product_id, quantity, purchased_at, booked_to_stock, created_at, updated_at
+) VALUES('invalid-booking-state', 'article-2', 1, '2026-08-01', 2, 'now', 'now')`)
 	for _, table := range []string{"accessory_reservations", "accessory_installations"} {
 		for _, column := range []string{"placement", "digital_address", "decoder_output", "connection", "wiring_notes"} {
 			assertSchemaColumn(t, db, table, column)
 		}
+	}
+}
+
+func assertSchemaMissingColumn(t *testing.T, db *sql.DB, table, unwanted string) {
+	t.Helper()
+	rows, err := db.Query(`SELECT name FROM pragma_table_info(?)`, table)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var got string
+		if err := rows.Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got == unwanted {
+			t.Fatalf("unexpected column %q on table %q", unwanted, table)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatal(err)
 	}
 }
 

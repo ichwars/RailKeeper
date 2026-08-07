@@ -11,13 +11,16 @@ import (
 
 type accessoryRepositorySpy struct {
 	AccessoryRepository
-	createdProduct  CreateAccessoryProductInput
-	updatedProduct  UpdateAccessoryProductInput
-	createdLocation CreateStorageLocationInput
-	updatedLocation UpdateStorageLocationInput
-	stockAdjustment StockAdjustmentInput
-	createdAsset    CreateAccessoryAssetInput
-	updatedAsset    UpdateAccessoryAssetInput
+	createdProduct    CreateAccessoryProductInput
+	updatedProduct    UpdateAccessoryProductInput
+	createdLocation   CreateStorageLocationInput
+	updatedLocation   UpdateStorageLocationInput
+	stockAdjustment   StockAdjustmentInput
+	stockTransfer     TransferAccessoryStockInput
+	createdAsset      CreateAccessoryAssetInput
+	updatedAsset      UpdateAccessoryAssetInput
+	individualization IndividualizeAccessoryInput
+	purchase          CreateAccessoryPurchaseInput
 }
 
 func stringPointer(value string) *string { return &value }
@@ -283,5 +286,23 @@ func TestAccessoryServiceDefaultsAndValidatesAssetState(t *testing.T) {
 	if repository.updatedAsset.InventoryNumber != "Z-0002" ||
 		repository.updatedAsset.Lifecycle != domain.AccessoryLifecycleMaintenance {
 		t.Fatalf("unexpected normalized asset update: %#v", repository.updatedAsset)
+	}
+}
+
+func TestAccessoryServiceValidatesAssetDates(t *testing.T) {
+	service := NewAccessoryService(&accessoryRepositorySpy{})
+	for _, input := range []CreateAccessoryAssetInput{
+		{PurchaseDate: "08/01/2026"},
+		{PurchaseDate: "2026-02-30"},
+		{WarrantyUntil: "2028/08/01"},
+	} {
+		if _, err := service.CreateAsset(t.Context(), "product-1", input, "editor-1"); !errors.Is(err, ErrAccessoryValidation) {
+			t.Fatalf("expected asset date validation error for %#v, got %v", input, err)
+		}
+		if _, err := service.UpdateAsset(t.Context(), "asset-1", UpdateAccessoryAssetInput{
+			CreateAccessoryAssetInput: input,
+		}, "editor-1"); !errors.Is(err, ErrAccessoryValidation) {
+			t.Fatalf("expected asset update date validation error for %#v, got %v", input, err)
+		}
 	}
 }
