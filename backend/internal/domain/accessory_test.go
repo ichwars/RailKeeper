@@ -30,6 +30,11 @@ func TestAccessoryEnumsAcceptOnlyDefinedValues(t *testing.T) {
 		{"reservation fulfilled", domain.AccessoryReservationFulfilled.Valid(), true},
 		{"reservation cancelled", domain.AccessoryReservationCancelled.Valid(), true},
 		{"reservation invalid", domain.AccessoryReservationStatus("closed").Valid(), false},
+		{"removal stored", domain.AccessoryRemovalStored.Valid(), true},
+		{"removal maintenance", domain.AccessoryRemovalMaintenance.Valid(), true},
+		{"removal defective", domain.AccessoryRemovalDefective.Valid(), true},
+		{"removal retired", domain.AccessoryRemovalRetired.Valid(), true},
+		{"removal invalid", domain.AccessoryRemovalDisposition("sold").Valid(), false},
 	}
 
 	for _, test := range tests {
