@@ -193,6 +193,16 @@ func TestAccessoryServiceDefaultsAndValidatesAssetState(t *testing.T) {
 	}, "editor-1"); !errors.Is(err, ErrAccessoryValidation) {
 		t.Fatalf("expected asset state validation error, got %v", err)
 	}
+	for _, lifecycle := range []domain.AccessoryLifecycle{
+		domain.AccessoryLifecycleReserved,
+		domain.AccessoryLifecycleInstalled,
+	} {
+		if _, err := service.CreateAsset(t.Context(), "product-1", CreateAccessoryAssetInput{
+			Condition: domain.AccessoryConditionReady, Lifecycle: lifecycle,
+		}, "editor-1"); !errors.Is(err, ErrAccessoryValidation) {
+			t.Fatalf("expected allocation-owned lifecycle %q to be rejected, got %v", lifecycle, err)
+		}
+	}
 	if _, err := service.UpdateAsset(t.Context(), " asset-1 ", UpdateAccessoryAssetInput{
 		CreateAccessoryAssetInput: CreateAccessoryAssetInput{
 			InventoryNumber: " Z-0002 ", Condition: domain.AccessoryConditionReady,

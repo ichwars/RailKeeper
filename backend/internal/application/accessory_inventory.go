@@ -126,5 +126,7 @@ func cleanAccessoryAssetInput(input CreateAccessoryAssetInput) CreateAccessoryAs
 }
 
 func validAccessoryAssetInput(input CreateAccessoryAssetInput) bool {
-	return input.Condition.Valid() && input.Lifecycle.Valid()
+	return input.Condition.Valid() && input.Lifecycle.Valid() &&
+		input.Lifecycle != domain.AccessoryLifecycleReserved &&
+		input.Lifecycle != domain.AccessoryLifecycleInstalled
 }
