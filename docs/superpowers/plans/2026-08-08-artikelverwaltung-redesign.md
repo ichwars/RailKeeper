@@ -166,7 +166,7 @@ func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
   - `building_equipment`: `epoch`, `dimensions`, `footprint`, `material`, `constructionType`, `partCount`, `difficulty`, `lightingOptions`, `floorPlanAvailable`
   - `landscape_consumable`: `material`, `color`, `season`, `content`, `contentUnit`, `fiberOrGrainSize`, `coverage`, `suitableScales`, `safetyNotes`
   - `lighting`: `lightColor`, `colorTemperatureK`, `voltage`, `currentMa`, `powerType`, `ledCount`, `dimmable`, `dimensions`, `mounting`
-- [ ] Expand `AccessoryProduct` and input models with the common-core fields and `[]AccessoryAttributeValue`. Add an explicit pre-save duplicate check instead of rejecting normalized manufacturer/article-number matches:
+- [ ] Expand `AccessoryProduct` and input models with the common-core fields and `[]AccessoryAttributeValue`. Define the request/result types for the explicit pre-save duplicate check; Task 3 connects them to the catalogue query so no interface depends on types introduced by a later task:
 
 ```go
 type AccessoryDuplicateCheckInput struct {
@@ -177,17 +177,6 @@ type AccessoryDuplicateCheckInput struct {
 
 type AccessoryDuplicateCheckResult struct {
 	Candidates []AccessoryDuplicateCandidate `json:"candidates"`
-}
-```
-- [ ] Split the repository interface by capability so product work does not further grow the inventory interface:
-
-```go
-type AccessoryCatalogRepository interface {
-	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
-	GetProduct(context.Context, string) (*AccessoryProduct, error)
-	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
-	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
-	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
 }
 ```
 
@@ -220,10 +209,23 @@ type AccessoryOverviewMetrics struct {
 }
 ```
 
+- [ ] Split the repository interface by capability now that the catalogue query types exist:
+
+```go
+type AccessoryCatalogRepository interface {
+	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
+	GetProduct(context.Context, string) (*AccessoryProduct, error)
+	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
+	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
+	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
+}
+```
+
 - [ ] Build parameterized SQL with an explicit sort-key whitelist. Never interpolate raw request values. Use aggregate subqueries for quantity stock, assets, active reservations, active installations, storage names, and `hasUsageHistory`.
 - [ ] Define care hints as missing manufacturer, article number, article type, gauge for gauge-relevant types, or stock unit. Return the per-row count and global count.
 - [ ] Load typed attributes with one batched query for the returned product IDs, not one query per product.
 - [ ] Add tests proving the duplicate lookup ignores the current product during update and returns variants without preventing save.
+- [ ] Add `AccessoryService.CheckDuplicateProducts`, trim and normalize its input, and return candidates without converting equality into `ErrAccessoryConflict`.
 - [ ] Run `go test ./internal/infrastructure ./internal/application -run 'AccessoryArticle|AccessoryOverview|Duplicate'`; expect PASS.
 - [ ] Commit: `git add backend/internal/infrastructure/accessory_repository.go backend/internal/infrastructure/accessory_repository_test.go backend/internal/infrastructure/accessory_article_query.go backend/internal/application/accessory_overview.go backend/internal/application/accessory_overview_test.go && git commit -m "feat: query article overview"`
 
