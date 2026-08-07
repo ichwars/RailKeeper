@@ -1378,6 +1378,7 @@ export function SettingsView({ username }: { username: string }) {
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="accessories">{t("nav.accessories")}</option>
+                    <option value="layouts">{t("nav.layouts")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>
