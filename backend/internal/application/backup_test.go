@@ -71,6 +71,9 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if backup.Version != 2 {
+		t.Fatalf("expected backup version 2, got %d", backup.Version)
+	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
 	}
@@ -128,6 +131,72 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 	if restoredList.Designation != list.Designation || len(restoredList.Entries) != 1 || restoredList.Entries[0].ID != entry.ID {
 		t.Fatalf("unexpected restored exhibition list: %#v", restoredList)
+	}
+}
+
+func TestBackupVersionTwoRoundTripPreservesStageOneDataReferences(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	vehicle, err := application.NewVehicleService(db).Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Tillig", Name: "V 100", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedStageOneBackupData(t, db, vehicle.ID)
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 2 {
+		t.Fatalf("expected version 2 export, got %d", backup.Version)
+	}
+	for _, table := range stageOneBackupTableNames() {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected stage-one table %q in backup", table)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layouts SET name = 'Changed after export' WHERE id = 'layout-1'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+
+	var layoutName, baseRevisionID, configurationRevisionID, reservationVehicleID, installationUnitID string
+	if err := db.QueryRowContext(ctx, `SELECT name FROM layouts WHERE id = 'layout-1'`).Scan(&layoutName); err != nil {
+		t.Fatal(err)
+	}
+	if layoutName != "Clubanlage Falkenstein" {
+		t.Fatalf("expected exported layout name after restore, got %q", layoutName)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT base_revision_id FROM plan_revisions WHERE id = 'revision-2'`).Scan(&baseRevisionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT plan_revision_id FROM layout_configuration_units WHERE configuration_id = 'configuration-1'`).Scan(&configurationRevisionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT vehicle_id FROM accessory_reservations WHERE id = 'reservation-1'`).Scan(&reservationVehicleID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT layout_unit_id FROM accessory_installations WHERE id = 'installation-1'`).Scan(&installationUnitID); err != nil {
+		t.Fatal(err)
+	}
+	if baseRevisionID != "revision-1" || configurationRevisionID != "revision-1" ||
+		reservationVehicleID != vehicle.ID || installationUnitID != "unit-1" {
+		t.Fatalf("stage-one references changed after restore: base=%q configuration=%q reservation=%q installation=%q",
+			baseRevisionID, configurationRevisionID, reservationVehicleID, installationUnitID)
+	}
+	rows, err := db.QueryContext(ctx, `PRAGMA foreign_key_check`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = rows.Close() }()
+	if rows.Next() {
+		t.Fatal("expected no foreign-key violations after version 2 restore")
 	}
 }
 
@@ -340,6 +409,53 @@ func TestBackupValidationAllowsMissingOptionalExhibitionTables(t *testing.T) {
 	}
 }
 
+func TestBackupVersionOneWithoutStageOneTablesRemainsImportable(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format:  "railkeeper-backup",
+		Version: 1,
+		Tables:  backupDocumentTablesWithout(),
+	}
+
+	result, err := service.Validate(context.Background(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected version 1 backup without stage-one tables to remain compatible, got %#v", result)
+	}
+	for _, table := range stageOneBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
+	if _, err := service.Import(context.Background(), doc); err != nil {
+		t.Fatalf("expected compatible version 1 backup to import, got %v", err)
+	}
+}
+
+func TestBackupVersionTwoRequiresStageOneTables(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format:  "railkeeper-backup",
+		Version: 2,
+		Tables:  backupDocumentTablesWithout(),
+	}
+
+	result, err := service.Validate(context.Background(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Compatible {
+		t.Fatalf("expected incomplete version 2 backup to be rejected")
+	}
+	if !containsWarning(result.Errors, "Tabelle storage_locations fehlt") {
+		t.Fatalf("expected missing stage-one table error, got %#v", result.Errors)
+	}
+}
+
 func TestBackupRejectsUnsafeFilePath(t *testing.T) {
 	db := testDB(t)
 	service := application.NewBackupService(db, t.TempDir())
@@ -491,6 +607,50 @@ func backupDocumentTablesWithout(excludedTables ...string) map[string][]map[stri
 		}
 	}
 	return tables
+}
+
+func stageOneBackupTableNames() []string {
+	return []string{
+		"storage_locations", "accessory_products", "accessory_stock", "accessory_assets", "layouts",
+		"layout_units", "plan_variants", "plan_revisions", "layout_configurations",
+		"layout_configuration_units", "accessory_reservations", "accessory_installations",
+	}
+}
+
+func seedStageOneBackupData(t *testing.T, db *sql.DB, vehicleID string) {
+	t.Helper()
+	_, err := db.Exec(`
+INSERT INTO storage_locations(id, parent_id, name, description, created_at, updated_at) VALUES
+  ('location-root', NULL, 'Club depot', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
+  ('location-child', 'location-root', 'Track box', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO accessory_products(id, manufacturer, article_number, name, category, tracking_mode, description, created_at, updated_at) VALUES
+  ('product-quantity', 'Tillig', '83101', 'Straight track', 'track', 'quantity', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
+  ('product-individual', 'ESU', '59610', 'LokSound decoder', 'decoder', 'individual', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+  VALUES ('product-quantity', 'location-child', 12, '2026-08-07T18:00:00Z');
+INSERT INTO accessory_assets(id, product_id, inventory_number, condition_state, lifecycle_state, storage_location_id, created_at, updated_at)
+  VALUES ('asset-1', 'product-individual', 'RK-ZUB-0001', 'ready', 'stored', 'location-child', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO layouts(id, name, kind, gauge, scale, description, version, archived, created_at, updated_at)
+  VALUES ('layout-1', 'Clubanlage Falkenstein', 'club', 'TT', '1:120', '', 1, 0, '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO layout_units(id, layout_id, name, kind, owner_label, width_mm, height_mm, version, archived, created_at, updated_at)
+  VALUES ('unit-1', 'layout-1', 'Station module', 'module', 'Club', 1200, 500, 1, 0, '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO plan_variants(id, layout_unit_id, name, description, archived, created_at, updated_at)
+  VALUES ('variant-1', 'unit-1', 'Exhibition operation', '', 0, '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO plan_revisions(id, variant_id, revision_number, status, base_revision_id, version, created_by, published_by, published_at, created_at, updated_at) VALUES
+  ('revision-1', 'variant-1', 1, 'published', NULL, 2, 'planner-1', 'planner-1', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
+  ('revision-2', 'variant-1', 2, 'draft', 'revision-1', 1, 'planner-1', NULL, NULL, '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO layout_configurations(id, layout_id, name, description, version, archived, created_at, updated_at)
+  VALUES ('configuration-1', 'layout-1', 'Autumn exhibition', '', 1, 0, '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO layout_configuration_units(configuration_id, unit_id, plan_revision_id, position_x_mm, position_y_mm, rotation_degrees, sort_order)
+  VALUES ('configuration-1', 'unit-1', 'revision-1', 250, 100, 90, 0);
+INSERT INTO accessory_reservations(id, product_id, location_id, quantity, vehicle_id, status, note, created_by, created_at, updated_at)
+  VALUES ('reservation-1', 'product-quantity', 'location-child', 2, ?, 'active', '', 'planner-1', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO accessory_installations(id, product_id, source_location_id, quantity, layout_unit_id, condition_state, installed_by, installed_at, notes, removal_notes)
+  VALUES ('installation-1', 'product-quantity', 'location-child', 3, 'unit-1', 'ready', 'editor-1', '2026-08-07T18:00:00Z', '', '');
+`, vehicleID)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func backupTestDB(t *testing.T, dataDir string) *sql.DB {
