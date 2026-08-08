@@ -4,6 +4,16 @@ import type { AccessoryOverviewMetrics } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { ArticleOverviewStatusFilter } from "./useArticleOverview";
 
+type MetricCard = {
+  key: string;
+  icon: typeof Boxes;
+  label: string;
+  value: string;
+  active: boolean;
+  action?: () => void;
+  actionLabel?: string;
+};
+
 export function ArticleMetrics({
   metrics,
   activeStatus,
@@ -16,7 +26,7 @@ export function ArticleMetrics({
   onStatusChange: (status: ArticleOverviewStatusFilter) => void;
 }) {
   const { t } = useI18n();
-  const cards = [
+  const cards: MetricCard[] = [
     {
       key: "articles",
       icon: Boxes,
@@ -58,9 +68,7 @@ export function ArticleMetrics({
       icon: AlertTriangle,
       label: t("accessories.metrics.care"),
       value: t("accessories.metrics.careValue", { count: metrics.careHintCount }),
-      active: activeStatus === "maintenance_due",
-      action: () => onStatusChange("maintenance_due"),
-      actionLabel: t("accessories.metrics.filterCare")
+      active: false
     }
   ];
 
@@ -68,13 +76,19 @@ export function ArticleMetrics({
     <section className="article-metrics" aria-label={t("accessories.metrics.label")}>
       {cards.map(({ key, icon: Icon, label, value, active, action, actionLabel }) => (
         <article key={key} data-testid="article-metric" className={active ? "article-metric active" : "article-metric"}>
-          <button type="button" onClick={action} aria-pressed={active} aria-label={actionLabel}>
+          {action ? <button type="button" onClick={action} aria-pressed={active} aria-label={actionLabel}>
             <span className="article-metric-icon"><Icon size={17} aria-hidden="true" /></span>
             <span className="article-metric-copy">
               <small>{label}</small>
               <strong>{value}</strong>
             </span>
-          </button>
+          </button> : <div className="article-metric-content">
+            <span className="article-metric-icon"><Icon size={17} aria-hidden="true" /></span>
+            <span className="article-metric-copy">
+              <small>{label}</small>
+              <strong>{value}</strong>
+            </span>
+          </div>}
         </article>
       ))}
     </section>

@@ -37,7 +37,8 @@
   background: color-mix(in srgb, var(--accent) 5%, var(--panel));
 }
 
-.article-metric > button {
+.article-metric > button,
+.article-metric-content {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -56,6 +57,10 @@
 .article-metric > button:hover,
 .article-metric > button:focus-visible {
   color: var(--accent-strong);
+}
+
+.article-metric-content {
+  cursor: default;
 }
 
 .article-metric > button:focus-visible {
@@ -155,6 +160,10 @@
   overflow-x: auto;
 }
 
+.article-table-wrap.menu-open {
+  padding-bottom: 48px;
+}
+
 .article-table {
   width: 100%;
   min-width: 980px;
@@ -229,18 +238,22 @@
   max-width: 0;
 }
 
-.article-name-button {
+.article-name-button,
+.article-name-content {
   display: grid;
   width: 100%;
   min-width: 0;
   gap: 2px;
-  border: 0;
   padding: 0;
-  background: transparent;
   color: inherit;
-  cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.article-name-button {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
 }
 
 .article-name-button:hover strong,
@@ -256,6 +269,8 @@
 
 .article-name-button span,
 .article-name-button small,
+.article-name-content span,
+.article-name-content small,
 .article-table td > small,
 .article-stock-cell small,
 .article-storage-cell small {

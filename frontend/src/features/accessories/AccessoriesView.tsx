@@ -16,8 +16,8 @@ type AccessoriesViewProps = {
 
 export function AccessoriesView({
   roles,
-  onCreateArticle = () => undefined,
-  onOpenArticle = () => undefined
+  onCreateArticle,
+  onOpenArticle
 }: AccessoriesViewProps) {
   const canRead = roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
@@ -29,13 +29,14 @@ export function AccessoriesView({
   }
 
   const openArticle = (article: AccessoryArticleListItem, mode: ArticleOpenMode) => {
-    onOpenArticle(article.id, mode);
+    onOpenArticle?.(article.id, mode);
   };
 
   const isFirstLoad = overview.loading && overview.data.items.length === 0;
   const hasNoArticles = overview.data.items.length === 0 &&
     overview.data.metrics.articleCount === 0 && !overview.hasActiveFilters;
   const hasNoResults = overview.data.items.length === 0 && !hasNoArticles;
+  const showErrorOnly = Boolean(overview.error) && overview.data.items.length === 0;
 
   return (
     <>
@@ -63,12 +64,12 @@ export function AccessoriesView({
           onReset={overview.resetFilters}
         />
         {overview.error ? <p className="form-message" role="alert">{overview.error}</p> : null}
-        {isFirstLoad ? (
+        {showErrorOnly ? null : isFirstLoad ? (
           <p className="empty-state">{t("accessories.overview.loading")}</p>
         ) : hasNoArticles ? (
           <div className="empty-state article-empty-state">
             <p>{t("accessories.overview.empty")}</p>
-            {canEdit ? (
+            {canEdit && onCreateArticle ? (
               <button type="button" className="primary-button" onClick={onCreateArticle}>
                 {t("accessories.overview.createFirst")}
               </button>
@@ -90,8 +91,8 @@ export function AccessoriesView({
             direction={overview.direction}
             canEdit={canEdit}
             onSort={overview.setSort}
-            onView={(article) => openArticle(article, "view")}
-            onEdit={(article) => openArticle(article, "edit")}
+            onView={onOpenArticle ? (article) => openArticle(article, "view") : undefined}
+            onEdit={onOpenArticle ? (article) => openArticle(article, "edit") : undefined}
             onArchive={(article) => overview.archiveArticle(article.id)}
             onRestore={(article) => overview.restoreArticle(article.id)}
           />

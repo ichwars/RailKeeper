@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Eye, MoreHorizontal, Pencil } from "lucide-react";
 
 import type {
@@ -14,8 +14,8 @@ type ArticleTableProps = {
   direction: AccessorySortDirection;
   canEdit: boolean;
   onSort: (sort: AccessoryArticleSort) => void;
-  onView: (article: AccessoryArticleListItem) => void;
-  onEdit: (article: AccessoryArticleListItem) => void;
+  onView?: (article: AccessoryArticleListItem) => void;
+  onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
 };
@@ -40,24 +40,72 @@ export function ArticleTable({
   onRestore
 }: ArticleTableProps) {
   const [openMenuID, setOpenMenuID] = useState("");
+  const [activeMenuIndex, setActiveMenuIndex] = useState(0);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const triggerRefs = useRef(new Map<string, HTMLButtonElement>());
   const { t } = useI18n();
+
+  const restoreTriggerFocus = (articleID: string) => {
+    triggerRefs.current.get(articleID)?.focus();
+  };
+
+  const closeMenu = (restoreFocus: boolean) => {
+    const articleID = openMenuID;
+    setOpenMenuID("");
+    if (restoreFocus && articleID) restoreTriggerFocus(articleID);
+  };
+
+  const focusMenuItem = (index: number) => {
+    const items = Array.from(menuRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']") || []);
+    if (items.length === 0) return;
+    const nextIndex = (index + items.length) % items.length;
+    setActiveMenuIndex(nextIndex);
+    items[nextIndex]?.focus();
+  };
+
+  useLayoutEffect(() => {
+    if (openMenuID) focusMenuItem(0);
+  }, [openMenuID]);
 
   useEffect(() => {
     if (!openMenuID) return;
-    const closeMenu = (event: PointerEvent) => {
+    const closeOnOutsidePointer = (event: PointerEvent) => {
       if (event.target instanceof Element && event.target.closest(".article-overflow")) return;
-      setOpenMenuID("");
+      closeMenu(false);
     };
     const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpenMenuID("");
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeMenu(true);
+      }
     };
-    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [openMenuID]);
+
+  const handleMenuKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const itemCount = menuRef.current?.querySelectorAll("[role='menuitem']").length || 0;
+    if (itemCount === 0) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusMenuItem(activeMenuIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusMenuItem(activeMenuIndex - 1);
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      focusMenuItem(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      focusMenuItem(itemCount - 1);
+    } else if (event.key === "Tab") {
+      closeMenu(false);
+    }
+  };
 
   const renderSortHeader = ({ sort: columnSort, key }: { sort: AccessoryArticleSort; key: string }) => {
     const active = sort === columnSort;
@@ -81,7 +129,7 @@ export function ArticleTable({
   };
 
   return (
-    <div className="table-wrap article-table-wrap">
+    <div className={openMenuID ? "table-wrap article-table-wrap menu-open" : "table-wrap article-table-wrap"}>
       <table className="article-table">
         <thead>
           <tr>
@@ -99,11 +147,15 @@ export function ArticleTable({
             return (
               <tr key={article.id} className={article.archived ? "archived" : ""}>
                 <td className="article-main-cell">
-                  <button type="button" className="article-name-button" onClick={() => onView(article)}>
+                  {onView ? <button type="button" className="article-name-button" onClick={() => onView(article)}>
                     <strong className="article-truncate" title={article.name}>{article.name}</strong>
                     <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
                     <small>{article.articleNumber || t("common.none")}</small>
-                  </button>
+                  </button> : <div className="article-name-content">
+                    <strong className="article-truncate" title={article.name}>{article.name}</strong>
+                    <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
+                    <small>{article.articleNumber || t("common.none")}</small>
+                  </div>}
                 </td>
                 <td>
                   <strong>{t(`accessories.articleType.${article.articleType}`)}</strong>
@@ -126,21 +178,28 @@ export function ArticleTable({
                 </td>
                 <td className="actions-cell">
                   <div className="table-actions article-row-actions">
-                    <button type="button" className="icon-button article-action-button" onClick={() => onView(article)}
+                    {onView ? <button type="button" className="icon-button article-action-button" onClick={() => onView(article)}
                       aria-label={viewLabel} title={t("accessories.actions.view")}>
                       <Eye size={16} aria-hidden="true" />
-                    </button>
+                    </button> : null}
                     {canEdit ? (
                       <>
-                        <button type="button" className="icon-button article-action-button" onClick={() => onEdit(article)}
+                        {onEdit ? <button type="button" className="icon-button article-action-button" onClick={() => onEdit(article)}
                           aria-label={editLabel} title={t("accessories.actions.edit")}>
                           <Pencil size={16} aria-hidden="true" />
-                        </button>
+                        </button> : null}
                         <div className="article-overflow">
                           <button
+                            ref={(node) => {
+                              if (node) triggerRefs.current.set(article.id, node);
+                              else triggerRefs.current.delete(article.id);
+                            }}
                             type="button"
                             className="icon-button article-action-button"
-                            onClick={() => setOpenMenuID((current) => current === article.id ? "" : article.id)}
+                            onClick={() => {
+                              setActiveMenuIndex(0);
+                              setOpenMenuID((current) => current === article.id ? "" : article.id);
+                            }}
                             aria-label={moreLabel}
                             title={t("accessories.actions.more")}
                             aria-haspopup="menu"
@@ -149,12 +208,14 @@ export function ArticleTable({
                             <MoreHorizontal size={17} aria-hidden="true" />
                           </button>
                           {openMenuID === article.id ? (
-                            <div className="article-action-menu" role="menu">
+                            <div ref={menuRef} className="article-action-menu" role="menu"
+                              onKeyDown={handleMenuKeyDown}>
                               <button
                                 type="button"
                                 role="menuitem"
+                                tabIndex={activeMenuIndex === 0 ? 0 : -1}
                                 onClick={() => {
-                                  setOpenMenuID("");
+                                  closeMenu(false);
                                   void (article.archived ? onRestore(article) : onArchive(article));
                                 }}
                               >

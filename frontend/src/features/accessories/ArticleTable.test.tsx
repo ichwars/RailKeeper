@@ -26,6 +26,13 @@ const article: AccessoryArticleListItem = {
   attributes: []
 };
 
+const secondArticle: AccessoryArticleListItem = {
+  ...article,
+  id: "article-2",
+  articleNumber: "5220",
+  name: "Lichtsignal"
+};
+
 describe("ArticleTable", () => {
   it("renders the exact approved columns and semantic sortable headers", async () => {
     const onSort = vi.fn();
@@ -99,5 +106,50 @@ describe("ArticleTable", () => {
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Artikel ansehen/ })).toBeInTheDocument();
+  });
+
+  it("moves focus into the correct row menu and returns it on Escape", async () => {
+    const user = userEvent.setup();
+    render(
+      <ArticleTable items={[article, secondArticle]} sort="article" direction="asc" canEdit
+        onSort={vi.fn()} onView={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />
+    );
+    const triggers = screen.getAllByRole("button", { name: /Weitere Aktionen/ });
+
+    await user.click(triggers[1]!);
+    const menuItem = screen.getByRole("menuitem", { name: "Artikel archivieren" });
+    expect(menuItem).toHaveFocus();
+    expect(menuItem).toHaveAttribute("tabindex", "0");
+    expect(screen.getByRole("menu").closest(".article-table-wrap")).toHaveClass("menu-open");
+
+    await user.keyboard("{ArrowDown}{ArrowUp}{Home}{End}");
+    expect(menuItem).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(triggers[1]).toHaveFocus();
+  });
+
+  it("closes the menu on Tab or outside click without returning focus to the old trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <div>
+        <ArticleTable items={[article]} sort="article" direction="asc" canEdit onSort={vi.fn()}
+          onView={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />
+        <button type="button">Nach Tabelle</button>
+      </div>
+    );
+    const trigger = screen.getByRole("button", { name: /Weitere Aktionen/ });
+
+    await user.click(trigger);
+    expect(screen.getByRole("menuitem")).toHaveFocus();
+    await user.tab();
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(trigger).not.toHaveFocus();
+
+    await user.click(trigger);
+    expect(screen.getByRole("menuitem")).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Nach Tabelle" }));
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nach Tabelle" })).toHaveFocus();
   });
 });

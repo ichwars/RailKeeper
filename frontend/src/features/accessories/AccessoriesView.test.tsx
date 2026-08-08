@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,6 +66,9 @@ describe("AccessoriesView", () => {
     expect(screen.getByText("81 frei · 7 Lagerorte")).toBeInTheDocument();
     expect(screen.getByText("6 reserviert · 14 eingebaut")).toBeInTheDocument();
     expect(screen.getByText("3 unvollständig")).toBeInTheDocument();
+    const careMetric = screen.getByText("3 unvollständig").closest("article");
+    expect(careMetric).not.toBeNull();
+    expect(within(careMetric!).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Kartenansicht/i)).not.toBeInTheDocument();
     expect(screen.getByText("1 Ergebnis")).toBeInTheDocument();
@@ -124,6 +127,24 @@ describe("AccessoriesView", () => {
     expect(screen.getByRole("button", { name: "Status" })).toHaveTextContent("Alle Status");
   });
 
+  it("keeps care hints informational and maps maintenance due only from the status filter", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Viewer"]} />);
+    await screen.findByText("Gerades Modellgleis");
+    const initialCalls = vi.mocked(api.accessoryArticles).mock.calls.length;
+
+    await user.click(screen.getByText("3 unvollständig"));
+    expect(api.accessoryArticles).toHaveBeenCalledTimes(initialCalls);
+    expect(screen.queryByRole("button", { name: "Pflegehinweise filtern" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Status" }));
+    await user.click(screen.getByRole("option", { name: "Wartung fällig" }));
+    await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith(expect.objectContaining({
+      statuses: ["maintenance_due"]
+    })));
+    expect(screen.getByRole("button", { name: "Status" })).toHaveTextContent("Wartung fällig");
+  });
+
   it("shows loading, error, no-article, and no-result states", async () => {
     const pending = deferred<AccessoryArticleListResult>();
     vi.mocked(api.accessoryArticles).mockReturnValueOnce(pending.promise);
@@ -132,14 +153,17 @@ describe("AccessoriesView", () => {
     unmount();
 
     vi.mocked(api.accessoryArticles).mockRejectedValueOnce(new Error("Artikel nicht erreichbar"));
-    const errorView = render(<AccessoriesView roles={["Viewer"]} />);
+    const errorView = render(<AccessoriesView roles={["Editor"]} onCreateArticle={vi.fn()} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("Artikel nicht erreichbar");
+    expect(screen.queryByText("Noch keine Artikel vorhanden.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Keine Artikel entsprechen den aktiven Filtern.")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ersten Artikel anlegen" })).not.toBeInTheDocument();
     errorView.unmount();
 
     vi.mocked(api.accessoryArticles).mockResolvedValueOnce({ ...overview, items: [], metrics: {
       ...overview.metrics, articleCount: 0
     } });
-    const emptyView = render(<AccessoriesView roles={["Editor"]} />);
+    const emptyView = render(<AccessoriesView roles={["Editor"]} onCreateArticle={vi.fn()} />);
     expect(await screen.findByText("Noch keine Artikel vorhanden.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ersten Artikel anlegen" })).toBeInTheDocument();
     emptyView.unmount();
@@ -171,6 +195,17 @@ describe("AccessoriesView", () => {
     expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
     expect(screen.getByText("Schreibgeschützter Zugriff: Sie können Artikel ansehen, aber nicht ändern.")).toBeInTheDocument();
+  });
+
+  it("renders no inert create, view, edit, or article-name actions without a Task 11 controller", async () => {
+    render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel ansehen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel bearbeiten/ })).not.toBeInTheDocument();
+    expect(screen.getByText("Gerades Modellgleis").closest("button")).toBeNull();
+    expect(screen.getByRole("button", { name: /Weitere Aktionen/ })).toBeInTheDocument();
   });
 
   it("renders no article workspace and performs no request for Messe", () => {
