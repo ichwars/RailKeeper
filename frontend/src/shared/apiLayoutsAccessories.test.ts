@@ -171,6 +171,99 @@ describe("layout and accessory API client", () => {
     ]);
   });
 
+  it("encodes article filters as repeated query parameters with stable sorting", async () => {
+    await api.accessoryArticles({
+      query: "Tillig & TT",
+      articleTypes: ["track", "lighting"],
+      manufacturer: "Märklin / Trix",
+      gauges: ["TT", "H0 + H0e"],
+      statuses: ["available", "maintenance_due"],
+      locationId: "room/1",
+      sort: "updatedAt",
+      direction: "desc"
+    });
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "/api/v1/accessory-products?query=Tillig+%26+TT&articleType=track&articleType=lighting" +
+      "&manufacturer=M%C3%A4rklin+%2F+Trix&gauge=TT&gauge=H0+%2B+H0e" +
+      "&status=available&status=maintenance_due&locationId=room%2F1&sort=updatedAt&direction=desc"
+    );
+  });
+
+  it("calls article purchase, transfer, individualization, archive, restore, and history routes", async () => {
+    const purchase = {
+      purchasedAt: "2026-08-08",
+      supplier: "Fachhändler",
+      quantity: 2,
+      unitPrice: "12.90",
+      currency: "EUR",
+      invoiceNumber: "R-1",
+      warrantyUntil: "2028-08-08",
+      storageLocationId: "location/1",
+      bookToStock: true,
+      notes: "Vereinsbedarf"
+    };
+    const transfer = {
+      fromLocationId: "location/1",
+      toLocationId: "location/2",
+      quantity: 1,
+      note: "Umbuchung"
+    };
+    const individualization = {
+      locationId: "location/2",
+      asset: {
+        inventoryNumber: "RK-1",
+        condition: "ready" as const,
+        lifecycle: "stored" as const,
+        storageLocationId: "location/2"
+      }
+    };
+
+    await api.accessoryPurchases("product/1");
+    await api.createAccessoryPurchase("product/1", purchase);
+    await api.accessoryStockMovements("product/1");
+    await api.transferAccessoryStock("product/1", transfer);
+    await api.individualizeAccessoryProduct("product/1", individualization);
+    await api.archiveAccessoryProduct("product/1");
+    await api.restoreAccessoryProduct("product/1");
+    await api.accessoryUsageHistory("product/1");
+
+    expectRequests([
+      ["GET", "/api/v1/accessory-products/product%2F1/purchases"],
+      ["POST", "/api/v1/accessory-products/product%2F1/purchases", purchase],
+      ["GET", "/api/v1/accessory-products/product%2F1/stock-movements"],
+      ["POST", "/api/v1/accessory-products/product%2F1/stock-transfers", transfer],
+      ["POST", "/api/v1/accessory-products/product%2F1/individualizations", individualization],
+      ["POST", "/api/v1/accessory-products/product%2F1/archive"],
+      ["POST", "/api/v1/accessory-products/product%2F1/restore"],
+      ["GET", "/api/v1/accessory-products/product%2F1/usage-history"]
+    ]);
+  });
+
+  it("uploads article documents as multipart form data without a content-type override", async () => {
+    const file = new File(["invoice"], "Rechnung 1.pdf", { type: "application/pdf" });
+
+    await api.uploadAccessoryDocument("product/1", {
+      file,
+      category: "invoice",
+      description: "Originalrechnung",
+      isPrimary: false
+    });
+
+    const [url, init] = fetchMock.mock.calls[0] ?? [];
+    expect(url).toBe("/api/v1/accessory-products/product%2F1/documents");
+    expect(init.method).toBe("POST");
+    expect(init.body).toBeInstanceOf(FormData);
+    if (!(init.body instanceof FormData)) throw new Error("expected multipart form data");
+    const form = init.body;
+    expect(form.get("file")).toBe(file);
+    expect(form.get("category")).toBe("invoice");
+    expect(form.get("description")).toBe("Originalrechnung");
+    expect(form.get("isPrimary")).toBe("false");
+    expect(init.headers["Content-Type"]).toBeUndefined();
+    expect(init.headers["X-CSRF-Token"]).toBe("client-test-token");
+  });
+
   function expectRequests(expected: Array<[string, string, object?]>) {
     expect(fetchMock).toHaveBeenCalledTimes(expected.length);
     expected.forEach(([method, path, body], index) => {

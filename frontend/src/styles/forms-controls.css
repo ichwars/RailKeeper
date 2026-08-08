@@ -173,6 +173,207 @@
   font-family: inherit;
 }
 
+.app-field {
+  position: relative;
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.app-field-label {
+  color: var(--text);
+}
+
+.app-field-help,
+.app-field-error {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-normal);
+}
+
+.app-field-help {
+  color: var(--muted);
+}
+
+.app-field-error {
+  color: var(--danger);
+}
+
+.app-text-input input,
+.app-number-input input,
+.app-file-picker-control,
+.app-multi-select-trigger {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.app-text-input input,
+.app-number-input input {
+  padding: 0 11px;
+}
+
+.app-text-input input:focus,
+.app-number-input input:focus,
+.app-file-picker-trigger:focus-visible,
+.app-file-picker-clear:focus-visible,
+.app-multi-select-trigger:focus-visible,
+.app-multi-select-option:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  outline-offset: 1px;
+}
+
+.app-field.has-error input,
+.app-field.has-error .app-file-picker-control,
+.app-field.has-error .app-multi-select-trigger {
+  border-color: color-mix(in srgb, var(--danger) 72%, var(--line));
+  background: color-mix(in srgb, var(--danger) 8%, var(--input-bg));
+}
+
+.app-text-input input:disabled,
+.app-number-input input:disabled,
+.app-file-picker-trigger:disabled,
+.app-file-picker-clear:disabled,
+.app-multi-select-trigger:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.app-text-input input:read-only,
+.app-number-input input:read-only,
+.app-file-picker[aria-readonly="true"] .app-file-picker-control,
+.app-multi-select-trigger[aria-readonly="true"] {
+  background: color-mix(in srgb, var(--muted) 7%, var(--input-bg));
+}
+
+.app-file-picker-control {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 4px;
+}
+
+.app-file-picker-trigger,
+.app-file-picker-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+
+.app-file-picker-trigger {
+  gap: 7px;
+  min-height: 30px;
+  padding: 0 8px;
+  color: var(--text);
+}
+
+.app-file-picker-clear {
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+}
+
+.app-file-picker-trigger:hover,
+.app-file-picker-clear:hover {
+  color: var(--accent-strong);
+}
+
+.app-file-picker-name {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--text);
+  font-weight: var(--font-weight-normal);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-file-picker-name.empty,
+.app-multi-select-trigger .empty {
+  color: var(--muted);
+}
+
+.app-multi-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 10px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.app-multi-select-control {
+  position: relative;
+}
+
+.app-multi-select-trigger > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-multi-select-options {
+  position: absolute;
+  z-index: 130;
+  top: calc(100% + 4px);
+  right: 0;
+  left: 0;
+  display: grid;
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.app-multi-select-option {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 0;
+  border-radius: 5px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.app-multi-select-option:hover,
+.app-multi-select-option:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent-strong);
+}
+
+.app-multi-select-option.selected {
+  color: var(--accent-strong);
+}
+
+.app-multi-select-option:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .checkbox-field {
   display: flex !important;
   grid-template-columns: auto 1fr;
