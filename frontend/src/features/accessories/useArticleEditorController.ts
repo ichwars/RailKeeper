@@ -94,6 +94,7 @@ export function useArticleEditorController({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [resourceError, setResourceError] = useState("");
   const [hasUsageHistory, setHasUsageHistory] = useState(false);
   const [returnFocusTo, setReturnFocusTo] = useState<HTMLElement | null>(null);
   const [resources, setResources] = useState<ArticleEditorResources>(emptyResources);
@@ -134,6 +135,7 @@ export function useArticleEditorController({
     setSubdraftDirtyState({});
     setCloseConfirmationOpen(false);
     setError("");
+    setResourceError("");
   };
 
   const isCurrent = useCallback((generation: number) =>
@@ -149,12 +151,12 @@ export function useArticleEditorController({
     if (hasUsage) setHasUsageHistory(true);
     if (result.errors.length > 0) {
       setResourcesStale(true);
-      setError(result.errors[0].message);
+      setResourceError(result.errors[0].message);
       if (rejectOnFailure) throw result.errors[0];
       return;
     }
     setResourcesStale(false);
-    if (rejectOnFailure) setError("");
+    if (rejectOnFailure) setResourceError("");
   }, [isCurrent]);
 
   const openCreate = () => {
@@ -177,7 +179,7 @@ export function useArticleEditorController({
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
     }).catch((reason) => {
-      if (isCurrent(generation)) setError(errorMessage(reason));
+      if (isCurrent(generation)) setResourceError(errorMessage(reason));
     });
   };
 
@@ -356,7 +358,8 @@ export function useArticleEditorController({
     closeConfirmationOpen,
     loading,
     saving,
-    error,
+    error: error || resourceError,
+    resourceError,
     hasUsageHistory,
     returnFocusTo,
     resources,

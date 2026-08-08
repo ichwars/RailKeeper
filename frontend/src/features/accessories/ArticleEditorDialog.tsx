@@ -26,6 +26,7 @@ export type ArticleEditorDialogProps = {
   saving: boolean;
   loading: boolean;
   error: string;
+  resourceError: string;
   fieldErrors: ArticleEditorFieldErrors;
   tabErrors: ArticleEditorTabErrors;
   duplicateCandidates: AccessoryDuplicateCandidate[];
@@ -180,12 +181,14 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </> : null}
       </div>
       <footer className="modal-actions article-editor-actions">
-        {props.error ? <div className="article-editor-resource-error">
-          <p className="form-message" role="alert">{props.error}</p>
+        {props.resourceError ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{props.resourceError}</p>
           {props.resourcesStale ? <button type="button" className="secondary-button"
             onClick={() => void props.onRetryResources().catch(() => undefined)}>
             {t("accessories.editor.retryResources")}</button> : null}
         </div> : null}
+        {props.error && props.error !== props.resourceError
+          ? <p className="form-message" role="alert">{props.error}</p> : null}
         <button type="button" className="secondary-button" onClick={props.onRequestClose}>
           {readOnly ? t("common.close") : t("common.cancel")}
         </button>

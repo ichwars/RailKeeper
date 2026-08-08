@@ -304,6 +304,30 @@ describe("useArticleEditorController", () => {
     expect(result.current.error).toBe("");
   });
 
+  it("keeps a later save error visible when retry clears only the stale resource error", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(result.current.resources.stock).toEqual(stock("article-1", 0)));
+    vi.mocked(api.accessoryStock).mockRejectedValueOnce(new Error("Bestand veraltet"));
+    await act(async () => {
+      try { await result.current.refreshResources(); } catch { /* expected */ }
+    });
+    expect(result.current.error).toBe("Bestand veraltet");
+    expect(result.current.resourceError).toBe("Bestand veraltet");
+    expect(result.current.resourcesStale).toBe(true);
+
+    vi.mocked(api.updateAccessoryArticle).mockRejectedValueOnce(new Error("Speichern fehlgeschlagen"));
+    await act(async () => result.current.submit());
+    expect(result.current.error).toBe("Speichern fehlgeschlagen");
+    expect(result.current.resourceError).toBe("Bestand veraltet");
+
+    await act(async () => result.current.retryResources());
+
+    expect(result.current.resourcesStale).toBe(false);
+    expect(result.current.resourceError).toBe("");
+    expect(result.current.error).toBe("Speichern fehlgeschlagen");
+  });
+
   it("binds duplicate confirmation to the checked immutable draft", async () => {
     const duplicateCheck = deferred<{ candidates: Array<{
       id: string; manufacturer: string; articleNumber: string; name: string; articleType: "track"; subtype: string;

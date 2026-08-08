@@ -23,6 +23,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     saving: false,
     loading: false,
     error: "",
+    resourceError: "",
     fieldErrors: {},
     tabErrors: {},
     duplicateCandidates: [],
@@ -205,7 +206,8 @@ describe("ArticleEditorDialog", () => {
     const onRetryResources = vi.fn().mockRejectedValue(new Error("Weiterhin nicht verfügbar"));
     render(<ArticleEditorDialog {...props({
       mode: "edit", article: persistedArticle, activeTab: "stock", resourcesStale: true,
-      error: "Bestand konnte nicht aktualisiert werden", onRetryResources
+      error: "Bestand konnte nicht aktualisiert werden",
+      resourceError: "Bestand konnte nicht aktualisiert werden", onRetryResources
     })} />);
 
     expect(screen.queryByRole("button", { name: "Reservierung anlegen" })).not.toBeInTheDocument();
