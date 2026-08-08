@@ -91,6 +91,29 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsMasterDataValidationResponses(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, operation := range []struct {
+		path   string
+		method string
+	}{
+		{path: "/master-data/{type}", method: "post"},
+		{path: "/master-data/{type}/{key}", method: "put"},
+		{path: "/master-data/{type}/{key}", method: "delete"},
+	} {
+		pathBlock := openAPIIndentedBlock(t, contract, operation.path, 2)
+		methodBlock := openAPIIndentedBlock(t, pathBlock, operation.method, 4)
+		if !strings.Contains(methodBlock, `        "400":`) ||
+			!strings.Contains(methodBlock, `$ref: "#/components/schemas/Problem"`) {
+			t.Errorf("%s %s is missing its 400 Problem response: %s", operation.method, operation.path, methodBlock)
+		}
+	}
+}
+
 func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

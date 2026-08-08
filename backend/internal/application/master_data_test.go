@@ -3,10 +3,150 @@ package application_test
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 )
+
+func TestMasterDataImportPreservesArticleTypesForLegacyDocuments(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+
+	result, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{
+			"vehicle_category": {{Key: "lok", Label: "Lok", Active: true}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.ImportedTypes != 1 || result.ImportedEntries != 1 {
+		t.Fatalf("preserved article types were reported as imported: %#v", result)
+	}
+	articleTypes, err := service.List(ctx, "article_type", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := masterDataKeys(articleTypes); !reflect.DeepEqual(got, authoritativeArticleTypeKeys()) {
+		t.Fatalf("legacy import changed authoritative article types: %#v", got)
+	}
+}
+
+func TestMasterDataImportRejectsMalformedArticleTypesBeforeMutation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func([]application.MasterDataEntry) []application.MasterDataEntry
+	}{
+		{name: "partial", mutate: func(entries []application.MasterDataEntry) []application.MasterDataEntry {
+			return entries[:len(entries)-1]
+		}},
+		{name: "extra", mutate: func(entries []application.MasterDataEntry) []application.MasterDataEntry {
+			return append(entries, application.MasterDataEntry{Key: "custom", Label: "Custom", Active: true})
+		}},
+		{name: "duplicate", mutate: func(entries []application.MasterDataEntry) []application.MasterDataEntry {
+			return append(entries, entries[0])
+		}},
+		{name: "renamed", mutate: func(entries []application.MasterDataEntry) []application.MasterDataEntry {
+			entries[0].Key = "renamed"
+			return entries
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			db := testDB(t)
+			service := application.NewMasterDataService(db)
+			active := true
+			if _, err := service.Create(ctx, "epoch", application.MasterDataInput{
+				Key: "sentinel", Label: "Sentinel", Active: &active,
+			}); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := db.ExecContext(ctx, `
+CREATE TRIGGER reject_master_data_mutation
+BEFORE DELETE ON master_data_entries
+BEGIN
+  SELECT RAISE(FAIL, 'mutation reached');
+END`); err != nil {
+				t.Fatal(err)
+			}
+
+			entries := test.mutate(currentArticleTypes(t, service))
+			_, err := service.Import(ctx, &application.MasterDataDocument{
+				Format: "railkeeper-master-data", Version: 1,
+				Entries: map[string][]application.MasterDataEntry{"article_type": entries},
+			})
+			if !errors.Is(err, application.ErrMasterDataValidation) {
+				t.Fatalf("expected protected article-type validation, got %v", err)
+			}
+			if _, err := service.Get(ctx, "epoch", "sentinel"); err != nil {
+				t.Fatalf("preflight failure mutated sentinel data: %v", err)
+			}
+		})
+	}
+}
+
+func TestMasterDataImportChangesOnlyMutableArticleTypeFields(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+	entries := currentArticleTypes(t, service)
+	before, err := service.Get(ctx, "article_type", "track")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for index := range entries {
+		if entries[index].Key != "track" {
+			continue
+		}
+		entries[index].ID = "malicious-id"
+		entries[index].Label = "Gleismaterial"
+		entries[index].Active = false
+		entries[index].SortOrder = 999
+		entries[index].SourceURL = "https://malicious.invalid"
+		entries[index].Metadata = map[string]any{"note": "mutable"}
+		entries[index].CreatedAt = "2000-01-01T00:00:00Z"
+	}
+	if _, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{"article_type": entries},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	after, err := service.Get(ctx, "article_type", "track")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.ID != before.ID || after.SourceURL != before.SourceURL || after.CreatedAt != before.CreatedAt {
+		t.Fatalf("import changed stable article-type fields: before=%#v after=%#v", before, after)
+	}
+	if after.Label != "Gleismaterial" || after.Active || after.SortOrder != 999 ||
+		after.Metadata["note"] != "mutable" {
+		t.Fatalf("import did not update mutable article-type fields: %#v", after)
+	}
+}
+
+func currentArticleTypes(t *testing.T, service *application.MasterDataService) []application.MasterDataEntry {
+	t.Helper()
+	entries, err := service.List(context.Background(), "article_type", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return entries
+}
+
+func masterDataKeys(entries []application.MasterDataEntry) []string {
+	keys := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		keys = append(keys, entry.Key)
+	}
+	return keys
+}
+
+func authoritativeArticleTypeKeys() []string {
+	return []string{"track", "signal", "decoder", "electrical_control", "building_equipment",
+		"landscape_consumable", "lighting", "other"}
+}
 
 func TestMasterDataServiceProtectsStandardArticleTypeKeys(t *testing.T) {
 	ctx := context.Background()

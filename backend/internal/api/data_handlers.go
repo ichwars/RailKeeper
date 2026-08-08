@@ -15,6 +15,8 @@ import (
 	"railkeeper/backend/internal/application"
 )
 
+const masterDataProtectedMessage = "Standard article type keys cannot be created, changed, or deleted."
+
 func (a *App) exportBackup(w http.ResponseWriter, r *http.Request) {
 	backup, err := a.backupService.Export(r.Context())
 	if err != nil {
@@ -398,6 +400,10 @@ func (a *App) createMasterData(w http.ResponseWriter, r *http.Request) {
 
 	item, err := a.masterDataService.Create(r.Context(), r.PathValue("type"), input)
 	if err != nil {
+		if errors.Is(err, application.ErrMasterDataProtected) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
+			return
+		}
 		if errors.Is(err, application.ErrMasterDataValidation) {
 			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
 			return
@@ -420,6 +426,8 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 	item, err := a.masterDataService.Update(r.Context(), r.PathValue("type"), r.PathValue("key"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrMasterDataProtected):
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
 		case errors.Is(err, application.ErrMasterDataValidation):
 			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
 		case errors.Is(err, application.ErrMasterDataNotFound):
@@ -436,6 +444,10 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
 	if err := a.masterDataService.Delete(r.Context(), r.PathValue("type"), r.PathValue("key")); err != nil {
+		if errors.Is(err, application.ErrMasterDataProtected) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
+			return
+		}
 		if errors.Is(err, application.ErrMasterDataValidation) {
 			respondProblem(w, http.StatusBadRequest, "master_data_validation", "This master data entry cannot be deleted.")
 			return

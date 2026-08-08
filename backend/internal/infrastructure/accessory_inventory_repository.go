@@ -434,26 +434,37 @@ func requireActiveStorageLocation(ctx context.Context, queryer accessoryQueryer,
 	if id == "" {
 		return nil
 	}
-	var count, archived int
-	if err := queryer.QueryRowContext(ctx, `
-WITH RECURSIVE location_chain(id, parent_id, archived, path) AS (
-  SELECT id, parent_id, archived, ',' || id || ',' FROM storage_locations WHERE id=?
-  UNION ALL
-  SELECT parent.id, parent.parent_id, parent.archived, chain.path || parent.id || ','
-  FROM storage_locations parent
-  JOIN location_chain chain ON parent.id=chain.parent_id
-  WHERE instr(chain.path, ',' || parent.id || ',')=0
-)
-SELECT COUNT(*), COALESCE(MAX(archived), 0) FROM location_chain`, id).Scan(&count, &archived); err != nil {
-		return fmt.Errorf("read accessory storage location: %w", err)
+	const maxStorageLocationDepth = 256
+	visited := make(map[string]bool, 8)
+	currentID := id
+	for depth := 0; depth < maxStorageLocationDepth; depth++ {
+		if visited[currentID] {
+			return application.ErrAccessoryConflict
+		}
+		visited[currentID] = true
+		var parentID sql.NullString
+		var archived int
+		err := queryer.QueryRowContext(ctx,
+			`SELECT parent_id, archived FROM storage_locations WHERE id=?`, currentID).
+			Scan(&parentID, &archived)
+		if errors.Is(err, sql.ErrNoRows) {
+			if depth == 0 {
+				return application.ErrAccessoryNotFound
+			}
+			return application.ErrAccessoryConflict
+		}
+		if err != nil {
+			return fmt.Errorf("read accessory storage location: %w", err)
+		}
+		if archived != 0 {
+			return application.ErrAccessoryConflict
+		}
+		if !parentID.Valid {
+			return nil
+		}
+		currentID = parentID.String
 	}
-	if count == 0 {
-		return application.ErrAccessoryNotFound
-	}
-	if archived != 0 {
-		return application.ErrAccessoryConflict
-	}
-	return nil
+	return application.ErrAccessoryConflict
 }
 
 func insertAccessoryStockMovement(

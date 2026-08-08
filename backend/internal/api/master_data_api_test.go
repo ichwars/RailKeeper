@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -22,12 +23,28 @@ func TestMasterDataAPIProtectsStandardArticleTypeKeys(t *testing.T) {
 	}
 	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
 
-	doAuthedJSON(t, router, http.MethodPost, "/api/v1/master-data/article_type",
+	create := doAuthedJSON(t, router, http.MethodPost, "/api/v1/master-data/article_type",
 		`{"key":"custom","label":"Custom","active":true}`, session, cookies, http.StatusBadRequest)
-	doAuthedJSON(t, router, http.MethodPut, "/api/v1/master-data/article_type/track",
+	keyChange := doAuthedJSON(t, router, http.MethodPut, "/api/v1/master-data/article_type/track",
 		`{"key":"renamed","label":"Gleismaterial","active":true}`, session, cookies, http.StatusBadRequest)
 	doAuthedJSON(t, router, http.MethodPut, "/api/v1/master-data/article_type/track",
 		`{"label":"Gleismaterial","active":false}`, session, cookies, http.StatusOK)
-	doAuthedJSON(t, router, http.MethodDelete, "/api/v1/master-data/article_type/track",
+	deleteResponse := doAuthedJSON(t, router, http.MethodDelete, "/api/v1/master-data/article_type/track",
 		"", session, cookies, http.StatusBadRequest)
+
+	for name, response := range map[string]struct {
+		body []byte
+	}{
+		"create":     {body: create.Body.Bytes()},
+		"key change": {body: keyChange.Body.Bytes()},
+		"delete":     {body: deleteResponse.Body.Bytes()},
+	} {
+		var problem map[string]string
+		if err := json.Unmarshal(response.body, &problem); err != nil {
+			t.Fatalf("%s: decode problem: %v", name, err)
+		}
+		if problem["message"] != "Standard article type keys cannot be created, changed, or deleted." {
+			t.Fatalf("%s: unexpected validation message %q", name, problem["message"])
+		}
+	}
 }

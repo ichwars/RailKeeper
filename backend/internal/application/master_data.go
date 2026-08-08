@@ -15,10 +15,16 @@ import (
 var (
 	ErrMasterDataValidation = errors.New("master data validation failed")
 	ErrMasterDataNotFound   = errors.New("master data not found")
+	ErrMasterDataProtected  = fmt.Errorf("%w: standard article type keys are protected", ErrMasterDataValidation)
 )
 
 const masterDataExportFormat = "railkeeper-master-data"
 const standardArticleType = "article_type"
+
+var standardArticleTypeKeys = []string{
+	"track", "signal", "decoder", "electrical_control", "building_equipment",
+	"landscape_consumable", "lighting", "other",
+}
 
 type MasterDataService struct {
 	db      *sql.DB
@@ -169,7 +175,10 @@ FROM master_data_entries`
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {
 	typeName = strings.TrimSpace(typeName)
 	input = cleanMasterDataInput(input)
-	if typeName == "" || typeName == standardArticleType || input.Label == "" {
+	if typeName == standardArticleType {
+		return nil, ErrMasterDataProtected
+	}
+	if typeName == "" || input.Label == "" {
 		return nil, ErrMasterDataValidation
 	}
 	if input.Key == "" {
@@ -242,7 +251,7 @@ func (s *MasterDataService) Update(ctx context.Context, typeName, key string, in
 		return nil, ErrMasterDataValidation
 	}
 	if typeName == standardArticleType && input.Key != "" && input.Key != key {
-		return nil, ErrMasterDataValidation
+		return nil, ErrMasterDataProtected
 	}
 	active := true
 	if input.Active != nil {
@@ -279,7 +288,7 @@ func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) er
 	typeName = strings.TrimSpace(typeName)
 	key = strings.TrimSpace(key)
 	if typeName == standardArticleType {
-		return ErrMasterDataValidation
+		return ErrMasterDataProtected
 	}
 	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, typeName, key)
 	if err != nil {
@@ -344,6 +353,26 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 {
 		return nil, ErrMasterDataValidation
 	}
+	importedArticleTypes, err := validateImportedArticleTypes(doc.Entries)
+	if err != nil {
+		return nil, err
+	}
+	currentArticleTypes, err := s.List(ctx, standardArticleType, false)
+	if err != nil {
+		return nil, fmt.Errorf("read authoritative article types: %w", err)
+	}
+	articleTypes, err := prepareImportedArticleTypes(currentArticleTypes, importedArticleTypes)
+	if err != nil {
+		return nil, err
+	}
+	entriesByType := make(map[string][]MasterDataEntry, len(doc.Entries)+1)
+	for typeName, entries := range doc.Entries {
+		if strings.TrimSpace(typeName) != standardArticleType {
+			entriesByType[typeName] = entries
+		}
+	}
+	entriesByType[standardArticleType] = articleTypes
+	articleTypesWereImported := len(importedArticleTypes) > 0
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -360,7 +389,7 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := &MasterDataImportResult{ImportedTypes: len(doc.Entries)}
-	for typeName, entries := range doc.Entries {
+	for typeName, entries := range entriesByType {
 		typeName = strings.TrimSpace(typeName)
 		for _, entry := range entries {
 			entryType := typeName
@@ -401,7 +430,9 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder, strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt); err != nil {
 				return nil, fmt.Errorf("insert imported master data entry: %w", err)
 			}
-			result.ImportedEntries++
+			if typeName != standardArticleType || articleTypesWereImported {
+				result.ImportedEntries++
+			}
 		}
 	}
 
@@ -431,6 +462,73 @@ VALUES(?, ?, ?, ?, ?, ?, ?)
 	}
 	s.invalidateCache()
 	return result, nil
+}
+
+func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([]MasterDataEntry, error) {
+	entries := []MasterDataEntry{}
+	for typeName, typedEntries := range entriesByType {
+		if strings.TrimSpace(typeName) == standardArticleType {
+			entries = append(entries, typedEntries...)
+		}
+	}
+	if len(entries) == 0 {
+		return nil, nil
+	}
+	if len(entries) != len(standardArticleTypeKeys) {
+		return nil, ErrMasterDataProtected
+	}
+	expected := make(map[string]bool, len(standardArticleTypeKeys))
+	for _, key := range standardArticleTypeKeys {
+		expected[key] = true
+	}
+	seen := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		key := strings.TrimSpace(entry.Key)
+		entryType := strings.TrimSpace(entry.Type)
+		if !expected[key] || seen[key] || (entryType != "" && entryType != standardArticleType) {
+			return nil, ErrMasterDataProtected
+		}
+		if strings.TrimSpace(entry.Label) == "" {
+			return nil, ErrMasterDataValidation
+		}
+		seen[key] = true
+	}
+	return entries, nil
+}
+
+func prepareImportedArticleTypes(
+	current []MasterDataEntry,
+	imported []MasterDataEntry,
+) ([]MasterDataEntry, error) {
+	if len(current) != len(standardArticleTypeKeys) {
+		return nil, ErrMasterDataProtected
+	}
+	byKey := make(map[string]MasterDataEntry, len(current))
+	for _, entry := range current {
+		byKey[entry.Key] = entry
+	}
+	for _, key := range standardArticleTypeKeys {
+		if _, ok := byKey[key]; !ok {
+			return nil, ErrMasterDataProtected
+		}
+	}
+	if len(imported) == 0 {
+		return current, nil
+	}
+	for _, entry := range imported {
+		currentEntry := byKey[strings.TrimSpace(entry.Key)]
+		currentEntry.Label = strings.TrimSpace(entry.Label)
+		currentEntry.Active = entry.Active
+		currentEntry.SortOrder = entry.SortOrder
+		currentEntry.Metadata = entry.Metadata
+		currentEntry.UpdatedAt = ""
+		byKey[currentEntry.Key] = currentEntry
+	}
+	prepared := make([]MasterDataEntry, 0, len(standardArticleTypeKeys))
+	for _, key := range standardArticleTypeKeys {
+		prepared = append(prepared, byKey[key])
+	}
+	return prepared, nil
 }
 
 type masterDataScanner interface {
