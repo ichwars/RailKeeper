@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { useState } from "react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -107,6 +108,30 @@ describe("ArticlePurchaseDocumentsTab", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Löschen fehlgeschlagen");
     expect(screen.getByText("Rechnung.pdf")).toBeInTheDocument();
+  });
+
+  it("focuses the stable documents heading after a successful document delete refresh", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "deleteAccessoryDocument").mockResolvedValue(undefined);
+    const document = { id: "doc-1", productId: article.id, originalName: "Rechnung.pdf", fileName: "doc.pdf",
+      category: "invoice" as const, mimeType: "application/pdf", sizeBytes: 100, isPrimary: false,
+      createdBy: "admin", createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z" };
+    function Harness() {
+      const [documents, setDocuments] = useState([document]);
+      return <ArticlePurchaseDocumentsTab article={article} disabled={false}
+        onChanged={async () => setDocuments([])} onDirtyChange={vi.fn()} resources={{
+          locations: [], stock: null, movements: [], assets: [], purchases: [], documents,
+          reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+        }} />;
+    }
+    render(<Harness />);
+    const documentsHeading = screen.getByRole("heading", { name: "Dokumente" });
+
+    await user.click(screen.getByRole("button", { name: "Dokument löschen: Rechnung.pdf" }));
+    await user.click(screen.getByRole("button", { name: "Löschen" }));
+
+    await waitFor(() => expect(screen.queryByText("Rechnung.pdf")).not.toBeInTheDocument());
+    expect(documentsHeading).toHaveFocus();
   });
 
   it("marks the first uploaded product image primary and preserves its draft after failure", async () => {

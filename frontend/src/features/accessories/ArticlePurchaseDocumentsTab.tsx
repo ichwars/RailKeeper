@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Download, FileText, Image as ImageIcon, ShoppingCart, Trash2 } from "lucide-react";
 
 import {
@@ -46,6 +46,7 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
+  const documentsHeadingRef = useRef<HTMLHeadingElement | null>(null);
   const locations = activeStorageLocations(resources.locations);
   const locationId = locations.some((location) => location.id === purchase.storageLocationId)
     ? purchase.storageLocationId || "" : locations[0]?.id || "";
@@ -108,6 +109,7 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
       body: t("accessories.editor.documents.deleteBody", { name }),
       confirmLabel: t("common.delete"),
       dangerous: true,
+      successReturnFocusRef: documentsHeadingRef,
       run: () => api.deleteAccessoryDocument(article.id, documentId),
       afterSuccess: onChanged
     });
@@ -190,7 +192,8 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     </section>
 
     <section className="article-editor-section">
-      <div className="panel-head"><FileText size={17} aria-hidden="true" /><h3>{t("accessories.editor.documents.title")}</h3></div>
+      <div className="panel-head"><FileText size={17} aria-hidden="true" />
+        <h3 ref={documentsHeadingRef} tabIndex={-1}>{t("accessories.editor.documents.title")}</h3></div>
       <div className="article-editor-split">
         <div className="article-document-list">{resources.documents.map((document) => <article key={document.id}>
           <div><strong>{document.originalName}</strong><small>{t(`accessories.editor.documentCategory.${document.category}`)}</small></div>

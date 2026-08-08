@@ -11,6 +11,8 @@ export type AccessoryPendingAction = {
   cancelLabel?: string;
   confirmLabel?: string;
   dangerous?: boolean;
+  returnFocusRef?: { readonly current: HTMLElement | null };
+  successReturnFocusRef?: { readonly current: HTMLElement | null };
 };
 
 const focusableSelector = "button:not([disabled]), input:not([disabled]), textarea:not([disabled]), " +
@@ -26,12 +28,14 @@ export function AccessoryConfirmDialog({ action, onClose }: {
   const anchorRef = useRef<HTMLSpanElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const invokerRef = useRef<HTMLElement | null>(null);
+  const succeededRef = useRef(false);
   const { t } = useI18n();
   const isOpen = Boolean(action);
 
   useEffect(() => {
     if (!isOpen) return;
     setError("");
+    succeededRef.current = false;
     invokerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const parentDialog = anchorRef.current?.closest<HTMLElement>("[role='dialog']") || null;
     const previousAriaHidden = parentDialog?.getAttribute("aria-hidden") ?? null;
@@ -45,7 +49,11 @@ export function AccessoryConfirmDialog({ action, onClose }: {
         else parentDialog.setAttribute("aria-hidden", previousAriaHidden);
         if (!previouslyInert) parentDialog.removeAttribute("inert");
       }
-      invokerRef.current?.focus();
+      const explicitTarget = succeededRef.current
+        ? action?.successReturnFocusRef?.current || action?.returnFocusRef?.current
+        : action?.returnFocusRef?.current;
+      const returnTarget = explicitTarget || invokerRef.current;
+      if (returnTarget?.isConnected) returnTarget.focus();
     };
   }, [isOpen]);
 
@@ -56,12 +64,13 @@ export function AccessoryConfirmDialog({ action, onClose }: {
     setError("");
     try {
       await action.run();
-      onClose();
       try {
         await action.afterSuccess?.();
       } catch {
         // The owning resource controller exposes refresh failures and retry state.
       }
+      succeededRef.current = true;
+      onClose();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {

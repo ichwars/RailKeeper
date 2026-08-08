@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarClock } from "lucide-react";
 
@@ -48,6 +48,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
   const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const { t } = useI18n();
   const activeLocations = activeStorageLocations(locations);
   const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
@@ -92,6 +93,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   const cancel = (reservation: AccessoryReservation) => setAction({
     title: t("accessories.reservations.cancelTitle"),
     body: t("accessories.reservations.cancelBody"),
+    successReturnFocusRef: headingRef,
     run: async () => { await api.cancelAccessoryReservation(reservation.id); },
     afterSuccess: onChanged
   });
@@ -99,7 +101,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   return <>
     <section className="panel accessory-stock-panel">
       <div className="panel-head"><CalendarClock size={17} aria-hidden="true" />
-        <h2>{t("accessories.reservations.title")}</h2>
+        <h2 ref={headingRef} tabIndex={-1}>{t("accessories.reservations.title")}</h2>
       </div>
       <div className="accessory-work-grid">
         <div className="table-wrap"><table><thead><tr>

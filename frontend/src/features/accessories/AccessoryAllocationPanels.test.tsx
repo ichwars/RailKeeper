@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -6,6 +7,7 @@ import {
   api,
   type AccessoryAsset,
   type AccessoryArticle,
+  type AccessoryInstallation,
   type AccessoryReservation,
   type Layout,
   type StorageLocation
@@ -32,6 +34,10 @@ const reservation: AccessoryReservation = {
   placement: "Bahnhof West", digitalAddress: "17", decoderOutput: "A2", connection: "J3",
   wiringNotes: "blau/gelb", status: "active", createdBy: "planner",
   createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+};
+const installation: AccessoryInstallation = {
+  id: "installation-1", productId: article.id, sourceLocationId: location.id, quantity: 1,
+  condition: "ready", layoutId: layout.id, installedBy: "editor", installedAt: "2026-08-08T08:00:00Z"
 };
 const asset: AccessoryAsset = {
   id: "asset-1", productId: article.id, inventoryNumber: "RK-83101-001", condition: "ready",
@@ -82,6 +88,25 @@ describe("accessory allocation forms", () => {
     await user.click(screen.getByRole("button", { name: "Bestätigen" }));
 
     await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
+  });
+
+  it("focuses the stable reservations heading after a successful cancellation refresh", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "cancelAccessoryReservation").mockResolvedValue({} as never);
+    function Harness() {
+      const [reservations, setReservations] = useState([reservation]);
+      return <AccessoryReservationsPanel article={article} reservations={reservations} assets={[]}
+        locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canReserve
+        onChanged={async () => setReservations([])} onDirtyChange={vi.fn()} />;
+    }
+    render(<Harness />);
+    const heading = screen.getByRole("heading", { name: "Reservierungen" });
+
+    await user.click(screen.getByRole("button", { name: "Stornieren" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Stornieren" })).not.toBeInTheDocument());
+    expect(heading).toHaveFocus();
   });
 
   it("lets hybrid stock reserve free quantity even when a stored asset exists", async () => {
@@ -138,6 +163,26 @@ describe("accessory allocation forms", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ layoutId: "layout-1", placement: "Bahnhof West",
       digitalAddress: "17", decoderOutput: "A2", connection: "J3", wiringNotes: "blau/gelb" }));
     expect(screen.queryByRole("button", { name: "Bestandsquelle" })).not.toBeInTheDocument();
+  });
+
+  it("focuses the stable installations heading after a successful removal refresh", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "removeAccessoryInstallation").mockResolvedValue({} as never);
+    function Harness() {
+      const [installations, setInstallations] = useState([installation]);
+      return <AccessoryInstallationsPanel article={article} reservations={[]} installations={installations}
+        assets={[]} locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canInstall
+        onChanged={async () => setInstallations([])} onDirtyChange={vi.fn()} />;
+    }
+    render(<Harness />);
+    const heading = screen.getByRole("heading", { name: "Einbau und Historie" });
+
+    await user.click(screen.getByRole("button", { name: "Ausbauen" }));
+    await user.click(screen.getAllByRole("button", { name: "Ausbauen" })[1]!);
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Ausbauen" })).not.toBeInTheDocument());
+    expect(heading).toHaveFocus();
   });
 
   it("lets hybrid stock install quantity and asset through separate direct allocation modes", async () => {

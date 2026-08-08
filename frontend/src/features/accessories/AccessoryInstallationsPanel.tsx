@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Wrench } from "lucide-react";
 
@@ -61,6 +61,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const [removalLocationID, setRemovalLocationID] = useState("");
   const [removalNotes, setRemovalNotes] = useState("");
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const { t, language } = useI18n();
   const activeReservations = reservations.filter((reservation) => reservation.status === "active");
   const activeLocations = activeStorageLocations(locations);
@@ -155,6 +156,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
     setAction({
       title: t("accessories.installations.removeTitle"),
       body: t("accessories.installations.removeBody"),
+      successReturnFocusRef: headingRef,
       run: async () => {
         const input = disposition === "stored"
           ? { disposition, storageLocationId: effectiveRemovalLocationID, notes: removalNotes || undefined }
@@ -169,7 +171,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   return <>
     <section className="panel accessory-stock-panel">
       <div className="panel-head"><Wrench size={17} aria-hidden="true" />
-        <h2>{t("accessories.installations.title")}</h2>
+        <h2 ref={headingRef} tabIndex={-1}>{t("accessories.installations.title")}</h2>
       </div>
       <div className="accessory-work-grid">
         <div className="table-wrap"><table><thead><tr>

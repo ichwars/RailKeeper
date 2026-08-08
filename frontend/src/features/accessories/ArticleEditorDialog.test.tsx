@@ -378,12 +378,26 @@ describe("ArticleEditorDialog", () => {
       onChange
     })} />);
 
-    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    const articleTypeTrigger = screen.getByRole("button", { name: "Artikelart" });
+    await user.click(articleTypeTrigger);
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    await user.keyboard("{Escape}");
+
+    expect(articleTypeTrigger).toHaveFocus();
+
+    await user.click(articleTypeTrigger);
     await user.click(screen.getByRole("option", { name: "Signal" }));
     await user.click(screen.getByRole("button", { name: "Weiter bearbeiten" }));
 
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Artikelart" })).toHaveTextContent("Gleis");
+    expect(articleTypeTrigger).toHaveTextContent("Gleis");
+    expect(articleTypeTrigger).toHaveFocus();
+
+    await user.click(articleTypeTrigger);
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    await user.click(screen.getByRole("button", { name: "Fachwerte verwerfen" }));
+
+    expect(articleTypeTrigger).toHaveFocus();
   });
 
   it("prompts before clearing a non-empty subtype even without subject attributes", async () => {

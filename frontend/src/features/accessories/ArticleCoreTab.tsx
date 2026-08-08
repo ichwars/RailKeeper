@@ -1,3 +1,5 @@
+import type { Ref } from "react";
+
 import type {
   AccessoryArticle,
   AccessoryArticleType,
@@ -27,6 +29,7 @@ export function ArticleCoreTab({
   subtypeEntries,
   subtypeEntriesLoading = false,
   subtypeEntriesError = "",
+  articleTypeTriggerRef,
   onChange
 }: {
   form: ArticleEditorForm;
@@ -40,6 +43,7 @@ export function ArticleCoreTab({
   subtypeEntries: MasterDataEntry[];
   subtypeEntriesLoading?: boolean;
   subtypeEntriesError?: string;
+  articleTypeTriggerRef?: Ref<HTMLButtonElement>;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
@@ -78,6 +82,7 @@ export function ArticleCoreTab({
         <label className="app-field">
           <span className="app-field-label">{t("accessories.toolbar.articleType")}</span>
           <AppSelect value={form.articleType} disabled={disabled || articleTypeDisabled}
+            triggerRef={articleTypeTriggerRef}
             aria-label={t("accessories.toolbar.articleType")}
             onChange={(event) => onChange({ articleType: event.target.value as AccessoryArticleType })}>
             {typeOptions.map((option) => <option key={option.value} value={option.value}

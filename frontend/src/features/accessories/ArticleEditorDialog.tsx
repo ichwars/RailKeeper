@@ -98,6 +98,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
   const layerRef = useRef<HTMLDivElement | null>(null);
   const viewInitialFocusRef = useRef<HTMLButtonElement | null>(null);
+  const articleTypeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const tabListRef = useRef<HTMLElement | null>(null);
   const [pendingArticleType, setPendingArticleType] = useState<AccessoryArticleType | null>(null);
   const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
@@ -254,6 +255,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               subtypeEntries={props.subtypeEntries}
               subtypeEntriesLoading={props.subtypeEntriesLoading}
               subtypeEntriesError={props.subtypeEntriesError}
+              articleTypeTriggerRef={articleTypeTriggerRef}
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
@@ -350,6 +352,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       cancelLabel: t("accessories.editor.typeChange.keep"),
       confirmLabel: t("accessories.editor.typeChange.discard"),
       dangerous: true,
+      returnFocusRef: articleTypeTriggerRef,
       run: confirmArticleTypeChange
     } : null} onClose={() => setPendingArticleType(null)} />
   </div>;

@@ -1,5 +1,20 @@
 import { Check, ChevronDown } from "lucide-react";
-import { ButtonHTMLAttributes, CSSProperties, Children, Fragment, KeyboardEvent, ReactNode, isValidElement, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  ButtonHTMLAttributes,
+  CSSProperties,
+  Children,
+  Fragment,
+  KeyboardEvent,
+  ReactNode,
+  type Ref,
+  isValidElement,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { createPortal } from "react-dom";
 
 export type AppSelectChangeEvent = { target: { value: string } };
@@ -21,9 +36,11 @@ type AppSelectProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children" |
   children: ReactNode;
   onChange?: (event: AppSelectChangeEvent) => void;
   required?: boolean;
+  triggerRef?: Ref<HTMLButtonElement>;
 };
 
-export function AppSelect({ value, children, onChange, className = "", disabled, required, ...buttonProps }: AppSelectProps) {
+export function AppSelect({ value, children, onChange, className = "", disabled, required, triggerRef,
+  ...buttonProps }: AppSelectProps) {
   const listID = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -210,6 +227,7 @@ export function AppSelect({ value, children, onChange, className = "", disabled,
   return (
     <div ref={rootRef} className={`app-select ${open ? "open" : ""} ${disabled ? "disabled" : ""} ${className}`.trim()}>
       <button
+        ref={triggerRef}
         {...buttonProps}
         type="button"
         className="app-select-trigger"
