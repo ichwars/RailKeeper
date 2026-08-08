@@ -239,7 +239,7 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
         ) : null}
       </div>
       <select
-        className="visually-hidden"
+        hidden
         name={name}
         multiple
         value={value}

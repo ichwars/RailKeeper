@@ -111,7 +111,7 @@ The list query accepts `query`, repeated `articleType`, `manufacturer`, repeated
 - Modify: `backend/internal/infrastructure/layout_accessory_schema_test.go`
 - Create: `backend/internal/infrastructure/article_management_migration_test.go`
 
-- [ ] Add a failing migration test that starts at migration 0040, inserts one quantity product, one individual product, stock, an asset, a reservation, and an installation, applies 0041, and asserts every original ID and relation still exists.
+- [x] Add a failing migration test that starts at migration 0040, inserts one quantity product, one individual product, stock, an asset, a reservation, and an installation, applies 0041, and asserts every original ID and relation still exists.
 
 ```go
 func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
@@ -125,14 +125,14 @@ func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
 }
 ```
 
-- [ ] Run `go test ./internal/infrastructure -run 'TestArticleManagementMigration'`; expect failure because migration 0041 does not exist.
-- [ ] Add columns to `accessory_products`: `ean`, `manufacturer_status`, `article_type`, `subtype`, `gauges_json`, `scale`, `package_quantity`, `stock_unit`, `minimum_stock`, `inventory_strategy`, `manufacturer_url`, `product_url`, `alternative_numbers_json`, `keywords_json`, `compatibility_notes`, `internal_notes`, and `archived`. Backfill `subtype=category`, infer `inventory_strategy` from legacy `tracking_mode`, and set `article_type='other'` for legacy rows.
-- [ ] Drop `ux_accessory_products_article`; create a non-unique normalized lookup index on manufacturer and article number plus indexes for article type, archive state, and EAN.
-- [ ] Create `accessory_product_attributes` with a typed-value check that permits exactly the columns matching `text`, `number`, `boolean`, `date`, `single_select`, or `multi_select`.
-- [ ] Create `accessory_stock_movements` with `movement_type` values `purchase`, `adjustment`, `transfer_in`, `transfer_out`, `individualization`, `installation`, and `removal`; include quantity, location, source type/ID, actor, note, and timestamp.
-- [ ] Create `accessory_purchases` and `accessory_documents`. Documents reference `file_blobs`; purchases reference product and optional destination location.
-- [ ] Add nullable `purchase_id` to `accessory_assets`. Add exact placement, digital address, decoder output, connection, and wiring-note columns to reservations/installations without changing the existing target XOR rules.
-- [ ] Seed generic master data entries for the eight article types and these subtype keys:
+- [x] Run `go test ./internal/infrastructure -run 'TestArticleManagementMigration'`; expect failure because migration 0041 does not exist.
+- [x] Add columns to `accessory_products`: `ean`, `manufacturer_status`, `article_type`, `subtype`, `gauges_json`, `scale`, `package_quantity`, `stock_unit`, `minimum_stock`, `inventory_strategy`, `manufacturer_url`, `product_url`, `alternative_numbers_json`, `keywords_json`, `compatibility_notes`, `internal_notes`, and `archived`. Backfill `subtype=category`, infer `inventory_strategy` from legacy `tracking_mode`, and set `article_type='other'` for legacy rows.
+- [x] Drop `ux_accessory_products_article`; create a non-unique normalized lookup index on manufacturer and article number plus indexes for article type, archive state, and EAN.
+- [x] Create `accessory_product_attributes` with a typed-value check that permits exactly the columns matching `text`, `number`, `boolean`, `date`, `single_select`, or `multi_select`.
+- [x] Create `accessory_stock_movements` with `movement_type` values `purchase`, `adjustment`, `transfer_in`, `transfer_out`, `individualization`, `installation`, and `removal`; include quantity, location, source type/ID, actor, note, and timestamp.
+- [x] Create `accessory_purchases` and `accessory_documents`. Documents reference `file_blobs`; purchases reference product and optional destination location.
+- [x] Add nullable `purchase_id` to `accessory_assets`. Add exact placement, digital address, decoder output, connection, and wiring-note columns to reservations/installations without changing the existing target XOR rules.
+- [x] Seed generic master data entries for the eight article types and these subtype keys:
   - `track`: `straight`, `curve`, `flex`, `turnout`, `crossing`, `double_slip`, `transition`, `buffer_stop`
   - `signal`: `light`, `semaphore`, `main`, `distant`, `block`, `entry`, `exit`, `shunting`
   - `decoder`: `locomotive`, `function`, `accessory`, `switching`, `servo`, `feedback`
@@ -141,10 +141,10 @@ func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
   - `landscape_consumable`: `grass`, `scatter`, `tree`, `water`, `paint`, `adhesive`, `ballast`, `wire`, `cable`, `fastener`
   - `lighting`: `lamp`, `led`, `light_strip`, `building_lighting`, `effect_lighting`
   - `other`: `other`
-- [ ] Seed stock units `piece`, `pack`, `meter`, `gram`, `milliliter` and controlled field kinds `text`, `number`, `boolean`, `date`, `single_select`, `multi_select`. Use deterministic IDs derived from the entry keys.
-- [ ] Extend the schema test to assert the new tables, indexes, checks, and seed counts.
-- [ ] Run `go test ./internal/infrastructure -run 'TestArticleManagementMigration|TestLayoutAccessorySchema'`; expect PASS.
-- [ ] Commit: `git add backend/migrations/0041_article_management_redesign.sql backend/internal/infrastructure/layout_accessory_schema_test.go backend/internal/infrastructure/article_management_migration_test.go && git commit -m "feat: add article management schema"`
+- [x] Seed stock units `piece`, `pack`, `meter`, `gram`, `milliliter` and controlled field kinds `text`, `number`, `boolean`, `date`, `single_select`, `multi_select`. Use deterministic IDs derived from the entry keys.
+- [x] Extend the schema test to assert the new tables, indexes, checks, and seed counts.
+- [x] Run `go test ./internal/infrastructure -run 'TestArticleManagementMigration|TestLayoutAccessorySchema'`; expect PASS.
+- [x] Commit: `git add backend/migrations/0041_article_management_redesign.sql backend/internal/infrastructure/layout_accessory_schema_test.go backend/internal/infrastructure/article_management_migration_test.go && git commit -m "feat: add article management schema"`
 
 ### Task 2: Define article types, field validation, and duplicate warnings
 
@@ -157,8 +157,8 @@ func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
 - Modify: `backend/internal/application/accessories.go`
 - Modify: `backend/internal/application/accessories_test.go`
 
-- [ ] Add table-driven failing tests for all three inventory strategies, all eight article types, the typed attribute union, permitted standard keys, and custom fields allowed only for `other`.
-- [ ] Define the standard field catalog in Go. The exact keys are:
+- [x] Add table-driven failing tests for all three inventory strategies, all eight article types, the typed attribute union, permitted standard keys, and custom fields allowed only for `other`.
+- [x] Define the standard field catalog in Go. The exact keys are:
   - `track`: `trackSystem`, `lengthMm`, `radiusMm`, `angleDegrees`, `direction`, `frogAngleDegrees`, `sleeperType`, `railHeightMm`, `roadbed`, `connectionCount`, `digitalReady`
   - `signal`: `prototype`, `epoch`, `aspects`, `ledCount`, `heightMm`, `voltageAC`, `voltageDC`, `mounting`, `driveType`, `integratedDecoder`, `controlModule`
   - `decoder`: `interface`, `protocols`, `functionOutputs`, `motorCurrentMa`, `outputCurrentMa`, `totalCurrentMa`, `railCom`, `susi`, `servoOutputs`, `dimensions`, `firmware`
@@ -166,7 +166,7 @@ func TestArticleManagementMigrationPreservesAccessoryFoundation(t *testing.T) {
   - `building_equipment`: `epoch`, `dimensions`, `footprint`, `material`, `constructionType`, `partCount`, `difficulty`, `lightingOptions`, `floorPlanAvailable`
   - `landscape_consumable`: `material`, `color`, `season`, `content`, `contentUnit`, `fiberOrGrainSize`, `coverage`, `suitableScales`, `safetyNotes`
   - `lighting`: `lightColor`, `colorTemperatureK`, `voltage`, `currentMa`, `powerType`, `ledCount`, `dimmable`, `dimensions`, `mounting`
-- [ ] Expand `AccessoryProduct` and input models with the common-core fields and `[]AccessoryAttributeValue`. Define the request/result types for the explicit pre-save duplicate check; Task 3 connects them to the catalogue query so no interface depends on types introduced by a later task:
+- [x] Expand `AccessoryProduct` and input models with the common-core fields and `[]AccessoryAttributeValue`. Define the request/result types for the explicit pre-save duplicate check; Task 3 connects them to the catalogue query so no interface depends on types introduced by a later task:
 
 ```go
 type AccessoryDuplicateCheckInput struct {
@@ -180,9 +180,9 @@ type AccessoryDuplicateCheckResult struct {
 }
 ```
 
-- [ ] Validate required core fields, article-type/subtype consistency, standard attribute kinds, positive package quantity, non-negative minimum stock, and normalized arrays. Preserve a clear `ErrAccessoryValidation` result.
-- [ ] Run `go test ./internal/domain ./internal/application -run 'Accessory|Article'`; expect PASS.
-- [ ] Commit: `git add backend/internal/domain/accessory.go backend/internal/domain/accessory_attributes.go backend/internal/domain/accessory_test.go backend/internal/domain/accessory_attributes_test.go backend/internal/application/accessories.go backend/internal/application/accessories_test.go && git commit -m "feat: define typed article catalog"`
+- [x] Validate required core fields, article-type/subtype consistency, standard attribute kinds, positive package quantity, non-negative minimum stock, and normalized arrays. Preserve a clear `ErrAccessoryValidation` result.
+- [x] Run `go test ./internal/domain ./internal/application -run 'Accessory|Article'`; expect PASS.
+- [x] Commit: `git add backend/internal/domain/accessory.go backend/internal/domain/accessory_attributes.go backend/internal/domain/accessory_test.go backend/internal/domain/accessory_attributes_test.go backend/internal/application/accessories.go backend/internal/application/accessories_test.go && git commit -m "feat: define typed article catalog"`
 
 ### Task 3: Implement the filterable article catalogue and global metrics
 
@@ -194,8 +194,8 @@ type AccessoryDuplicateCheckResult struct {
 - Create: `backend/internal/application/accessory_overview.go`
 - Create: `backend/internal/application/accessory_overview_test.go`
 
-- [ ] Add failing repository tests covering search by manufacturer/article number/EAN/name, each filter, every sort key and direction, archived visibility, multiple locations, and a product with mixed reserved/installed amounts.
-- [ ] Implement `AccessoryArticleListQuery`, `AccessoryArticleListResult`, and `AccessoryOverviewMetrics`. Metrics must be global and computed independently from table selection:
+- [x] Add failing repository tests covering search by manufacturer/article number/EAN/name, each filter, every sort key and direction, archived visibility, multiple locations, and a product with mixed reserved/installed amounts.
+- [x] Implement `AccessoryArticleListQuery`, `AccessoryArticleListResult`, and `AccessoryOverviewMetrics`. Metrics must be global and computed independently from table selection:
 
 ```go
 type AccessoryOverviewMetrics struct {
@@ -209,7 +209,7 @@ type AccessoryOverviewMetrics struct {
 }
 ```
 
-- [ ] Split the repository interface by capability now that the catalogue query types exist:
+- [x] Split the repository interface by capability now that the catalogue query types exist:
 
 ```go
 type AccessoryCatalogRepository interface {
@@ -221,13 +221,13 @@ type AccessoryCatalogRepository interface {
 }
 ```
 
-- [ ] Build parameterized SQL with an explicit sort-key whitelist. Never interpolate raw request values. Use aggregate subqueries for quantity stock, assets, active reservations, active installations, storage names, and `hasUsageHistory`.
-- [ ] Define care hints as missing manufacturer, article number, article type, gauge for gauge-relevant types, or stock unit. Return the per-row count and global count.
-- [ ] Load typed attributes with one batched query for the returned product IDs, not one query per product.
-- [ ] Add tests proving the duplicate lookup ignores the current product during update and returns variants without preventing save.
-- [ ] Add `AccessoryService.CheckDuplicateProducts`, trim and normalize its input, and return candidates without converting equality into `ErrAccessoryConflict`.
-- [ ] Run `go test ./internal/infrastructure ./internal/application -run 'AccessoryArticle|AccessoryOverview|Duplicate'`; expect PASS.
-- [ ] Commit: `git add backend/internal/infrastructure/accessory_repository.go backend/internal/infrastructure/accessory_repository_test.go backend/internal/infrastructure/accessory_article_query.go backend/internal/application/accessory_overview.go backend/internal/application/accessory_overview_test.go && git commit -m "feat: query article overview"`
+- [x] Build parameterized SQL with an explicit sort-key whitelist. Never interpolate raw request values. Use aggregate subqueries for quantity stock, assets, active reservations, active installations, storage names, and `hasUsageHistory`.
+- [x] Define care hints as missing manufacturer, article number, article type, gauge for gauge-relevant types, or stock unit. Return the per-row count and global count.
+- [x] Load typed attributes with one batched query for the returned product IDs, not one query per product.
+- [x] Add tests proving the duplicate lookup ignores the current product during update and returns variants without preventing save.
+- [x] Add `AccessoryService.CheckDuplicateProducts`, trim and normalize its input, and return candidates without converting equality into `ErrAccessoryConflict`.
+- [x] Run `go test ./internal/infrastructure ./internal/application -run 'AccessoryArticle|AccessoryOverview|Duplicate'`; expect PASS.
+- [x] Commit: `git add backend/internal/infrastructure/accessory_repository.go backend/internal/infrastructure/accessory_repository_test.go backend/internal/infrastructure/accessory_article_query.go backend/internal/application/accessory_overview.go backend/internal/application/accessory_overview_test.go && git commit -m "feat: query article overview"`
 
 ### Task 4: Make purchases, stock movements, transfers, and individualization transactional
 
@@ -240,8 +240,8 @@ type AccessoryCatalogRepository interface {
 - Modify: `backend/internal/infrastructure/accessory_inventory_repository.go`
 - Modify: `backend/internal/infrastructure/accessory_repository_test.go`
 
-- [ ] Add failing application/repository tests for manual adjustment journals, transfers, quantity purchases, individual purchases, hybrid individualization, insufficient stock rollback, and concurrent decrements that never produce negative stock.
-- [ ] Introduce these commands:
+- [x] Add failing application/repository tests for manual adjustment journals, transfers, quantity purchases, individual purchases, hybrid individualization, insufficient stock rollback, and concurrent decrements that never produce negative stock.
+- [x] Introduce these commands:
 
 ```go
 type TransferAccessoryStockInput struct {
@@ -270,13 +270,13 @@ type IndividualizeAccessoryInput struct {
 }
 ```
 
-- [ ] Extend the repository with `ListStockMovements`, `TransferStock`, `ListPurchases`, `CreatePurchase`, and `Individualize`. All mutating methods receive the actor and write audit entries.
-- [ ] Make adjustment insert a movement in the same transaction. Make transfer decrement and increment with paired movement rows in one transaction.
-- [ ] Make a booked quantity/hybrid purchase create the purchase, increment stock, and create a purchase movement atomically. Make a booked individual purchase create the requested number of stored assets, linked by `purchase_id`, atomically.
-- [ ] Allow individualization only for `quantity_later_individual`. Lock through the SQLite write transaction, decrement one unit from the chosen location, create one stored asset, and write an `individualization` movement. Roll back all writes on any conflict.
-- [ ] Keep reservations availability-only. Installation/removal continue to own physical movement and must write journal rows without double counting.
-- [ ] Run `go test ./internal/application ./internal/infrastructure -run 'Purchase|StockMovement|Transfer|Individualiz|Concurrent'`; expect PASS.
-- [ ] Commit: `git add backend/internal/application/accessory_inventory.go backend/internal/application/accessory_inventory_test.go backend/internal/application/accessory_purchases.go backend/internal/application/accessory_purchases_test.go backend/internal/infrastructure/accessory_inventory_repository.go backend/internal/infrastructure/accessory_repository_test.go && git commit -m "feat: add transactional article inventory"`
+- [x] Extend the repository with `ListStockMovements`, `TransferStock`, `ListPurchases`, `CreatePurchase`, and `Individualize`. All mutating methods receive the actor and write audit entries.
+- [x] Make adjustment insert a movement in the same transaction. Make transfer decrement and increment with paired movement rows in one transaction.
+- [x] Make a booked quantity/hybrid purchase create the purchase, increment stock, and create a purchase movement atomically. Make a booked individual purchase create the requested number of stored assets, linked by `purchase_id`, atomically.
+- [x] Allow individualization only for `quantity_later_individual`. Lock through the SQLite write transaction, decrement one unit from the chosen location, create one stored asset, and write an `individualization` movement. Roll back all writes on any conflict.
+- [x] Keep reservations availability-only. Installation/removal continue to own physical movement and must write journal rows without double counting.
+- [x] Run `go test ./internal/application ./internal/infrastructure -run 'Purchase|StockMovement|Transfer|Individualiz|Concurrent'`; expect PASS.
+- [x] Commit: `git add backend/internal/application/accessory_inventory.go backend/internal/application/accessory_inventory_test.go backend/internal/application/accessory_purchases.go backend/internal/application/accessory_purchases_test.go backend/internal/infrastructure/accessory_inventory_repository.go backend/internal/infrastructure/accessory_repository_test.go && git commit -m "feat: add transactional article inventory"`
 
 ### Task 5: Add article documents and complete usage history
 
@@ -293,14 +293,14 @@ type IndividualizeAccessoryInput struct {
 - Modify: `backend/internal/application/file_blobs.go`
 - Create: `backend/internal/application/file_blobs_test.go`
 
-- [ ] Add failing tests for safe article document metadata, file-blob reference retention/deletion, reservation placement, installation technical data, condition events, removal result, and history remaining visible after removal.
-- [ ] Define document categories `invoice`, `delivery_note`, `manual`, `data_sheet`, `floor_plan`, `image`, and `other`; enforce the existing upload size, extension, executable, MIME, and path-confinement rules.
-- [ ] Store document metadata in `accessory_documents` and bytes in `file_blobs`. Image documents carry `is_primary`; the full product response exposes the primary document download URL as `primaryImageUrl`. Update `FileBlobService` reference counting, filesystem migration checks, and cleanup so an article document can never orphan or prematurely delete a blob.
-- [ ] Expand reservation/installation inputs with `placement`, `digitalAddress`, `decoderOutput`, `connection`, and `wiringNotes`. Keep decoder CVs out of product attributes.
-- [ ] Add `AccessoryUsageHistory` that merges reservations, installations, condition changes, and removals in descending timestamp order. Do not include pure stock movements.
-- [ ] Keep `hasUsageHistory=true` once any reservation or installation row exists, regardless of current status.
-- [ ] Run `go test ./internal/application ./internal/infrastructure -run 'AccessoryDocument|AccessoryUsage|FileBlob|Allocation|Installation'`; expect PASS.
-- [ ] Commit: `git add backend/internal/application/accessory_documents.go backend/internal/application/accessory_documents_test.go backend/internal/infrastructure/accessory_document_repository.go backend/internal/application/accessory_allocations.go backend/internal/application/accessory_allocations_test.go backend/internal/infrastructure/accessory_allocation_repository.go backend/internal/infrastructure/accessory_installation_repository.go backend/internal/infrastructure/accessory_allocation_repository_test.go backend/internal/application/file_blobs.go backend/internal/application/file_blobs_test.go && git commit -m "feat: add article documents and usage history"`
+- [x] Add failing tests for safe article document metadata, file-blob reference retention/deletion, reservation placement, installation technical data, condition events, removal result, and history remaining visible after removal.
+- [x] Define document categories `invoice`, `delivery_note`, `manual`, `data_sheet`, `floor_plan`, `image`, and `other`; enforce the existing upload size, extension, executable, MIME, and path-confinement rules.
+- [x] Store document metadata in `accessory_documents` and bytes in `file_blobs`. Image documents carry `is_primary`; the full product response exposes the primary document download URL as `primaryImageUrl`. Update `FileBlobService` reference counting, filesystem migration checks, and cleanup so an article document can never orphan or prematurely delete a blob.
+- [x] Expand reservation/installation inputs with `placement`, `digitalAddress`, `decoderOutput`, `connection`, and `wiringNotes`. Keep decoder CVs out of product attributes.
+- [x] Add `AccessoryUsageHistory` that merges reservations, installations, condition changes, and removals in descending timestamp order. Do not include pure stock movements.
+- [x] Keep `hasUsageHistory=true` once any reservation or installation row exists, regardless of current status.
+- [x] Run `go test ./internal/application ./internal/infrastructure -run 'AccessoryDocument|AccessoryUsage|FileBlob|Allocation|Installation'`; expect PASS.
+- [x] Commit: `git add backend/internal/application/accessory_documents.go backend/internal/application/accessory_documents_test.go backend/internal/infrastructure/accessory_document_repository.go backend/internal/application/accessory_allocations.go backend/internal/application/accessory_allocations_test.go backend/internal/infrastructure/accessory_allocation_repository.go backend/internal/infrastructure/accessory_installation_repository.go backend/internal/infrastructure/accessory_allocation_repository_test.go backend/internal/application/file_blobs.go backend/internal/application/file_blobs_test.go && git commit -m "feat: add article documents and usage history"`
 
 ### Task 6: Publish the complete role-safe API and OpenAPI contract
 
@@ -316,9 +316,9 @@ type IndividualizeAccessoryInput struct {
 - Modify: `backend/internal/api/openapi_contract_test.go`
 - Modify: `openapi/railkeeper.yaml`
 
-- [ ] Add failing route tests for Admin, Editor, Planner, Viewer, and Messe on every new read/write endpoint, including missing CSRF on writes. Assert Messe gets 403 throughout.
-- [ ] Change `GET /accessory-products` to return `{items, metrics, filters}` and parse the approved list query. Keep `GET /accessory-products/{id}` as the full editor payload.
-- [ ] Add endpoints:
+- [x] Add failing route tests for Admin, Editor, Planner, Viewer, and Messe on every new read/write endpoint, including missing CSRF on writes. Assert Messe gets 403 throughout.
+- [x] Change `GET /accessory-products` to return `{items, metrics, filters}` and parse the approved list query. Keep `GET /accessory-products/{id}` as the full editor payload.
+- [x] Add endpoints:
   - `POST /accessory-products/duplicate-check`
   - `POST /accessory-products/{id}/archive`
   - `POST /accessory-products/{id}/restore`
@@ -330,11 +330,11 @@ type IndividualizeAccessoryInput struct {
   - `GET|PUT|DELETE /accessory-products/{id}/documents/{documentID}`
   - `GET /accessory-products/{id}/documents/{documentID}/download`
   - `GET /accessory-products/{id}/usage-history`
-- [ ] Protect catalogue, stock, purchase, asset, document, and installation writes with `routeAccessEditor`; reservations remain `routeAccessEditorOrPlanner`; all article reads use `routeAccessViewer`, which excludes Messe.
-- [ ] Return 400 for invalid field/type combinations, 404 for missing IDs, 409 for insufficient stock or state conflicts, and 413/415 for rejected uploads. Duplicate check returns candidate rows with 200; create/update may still save a confirmed duplicate and never return 409 solely for manufacturer/article-number equality.
-- [ ] Document every request/response schema, query enum, multipart upload, role behavior, and problem code in OpenAPI. Extend the OpenAPI contract test to require each route and schema.
-- [ ] Run `go test ./internal/api -run 'Accessory|OpenAPI|Route'`; expect PASS.
-- [ ] Commit: `git add backend/internal/api/routes.go backend/internal/api/accessory_handlers.go backend/internal/api/accessory_handlers_test.go backend/internal/api/accessory_allocation_handlers.go backend/internal/api/accessory_allocation_handlers_test.go backend/internal/api/accessory_document_handlers.go backend/internal/api/accessory_document_handlers_test.go backend/internal/api/openapi_contract_test.go openapi/railkeeper.yaml && git commit -m "feat: expose article management api"`
+- [x] Protect catalogue, stock, purchase, asset, document, and installation writes with `routeAccessEditor`; reservations remain `routeAccessEditorOrPlanner`; all article reads use `routeAccessViewer`, which excludes Messe.
+- [x] Return 400 for invalid field/type combinations, 404 for missing IDs, 409 for insufficient stock or state conflicts, and 413/415 for rejected uploads. Duplicate check returns candidate rows with 200; create/update may still save a confirmed duplicate and never return 409 solely for manufacturer/article-number equality.
+- [x] Document every request/response schema, query enum, multipart upload, role behavior, and problem code in OpenAPI. Extend the OpenAPI contract test to require each route and schema.
+- [x] Run `go test ./internal/api -run 'Accessory|OpenAPI|Route'`; expect PASS.
+- [x] Commit: `git add backend/internal/api/routes.go backend/internal/api/accessory_handlers.go backend/internal/api/accessory_handlers_test.go backend/internal/api/accessory_allocation_handlers.go backend/internal/api/accessory_allocation_handlers_test.go backend/internal/api/accessory_document_handlers.go backend/internal/api/accessory_document_handlers_test.go backend/internal/api/openapi_contract_test.go openapi/railkeeper.yaml && git commit -m "feat: expose article management api"`
 
 ### Task 7: Preserve all article data in backup version 3
 
@@ -343,13 +343,13 @@ type IndividualizeAccessoryInput struct {
 - Modify: `backend/internal/application/backup.go`
 - Modify: `backend/internal/application/backup_test.go`
 
-- [ ] Add a failing round-trip test that exports and restores product attributes, purchases, documents and blob bytes, movements, individual items, reservations, installations, and removed usage history.
-- [ ] Set `backupVersion = 3`. Add the new tables to `backupTableOrder` after their parent tables and before dependent usage tables.
-- [ ] Keep version-1 and version-2 documents valid. Mark version-3 tables optional only when validating older versions, not when validating a version-3 backup.
-- [ ] Verify restore preflight rejects future versions and malformed typed attributes before deleting or replacing existing application data.
-- [ ] Assert authentication, sessions, password hashes, rate limits, and audit logs remain excluded.
-- [ ] Run `go test ./internal/application -run 'Backup'`; expect PASS.
-- [ ] Commit: `git add backend/internal/application/backup.go backend/internal/application/backup_test.go && git commit -m "feat: include article management in backups"`
+- [x] Add a failing round-trip test that exports and restores product attributes, purchases, documents and blob bytes, movements, individual items, reservations, installations, and removed usage history.
+- [x] Set `backupVersion = 3`. Add the new tables to `backupTableOrder` after their parent tables and before dependent usage tables.
+- [x] Keep version-1 and version-2 documents valid. Mark version-3 tables optional only when validating older versions, not when validating a version-3 backup.
+- [x] Verify restore preflight rejects future versions and malformed typed attributes before deleting or replacing existing application data.
+- [x] Assert authentication, sessions, password hashes, rate limits, and audit logs remain excluded.
+- [x] Run `go test ./internal/application -run 'Backup'`; expect PASS.
+- [x] Commit: `git add backend/internal/application/backup.go backend/internal/application/backup_test.go && git commit -m "feat: include article management in backups"`
 
 ### Task 8: Extend the typed frontend API and app-owned controls
 
@@ -368,14 +368,14 @@ type IndividualizeAccessoryInput struct {
 - Create: `frontend/src/shared/ui/AppMultiSelect.test.tsx`
 - Modify: `frontend/src/styles/forms-controls.css`
 
-- [ ] Add failing API tests for URL encoding, repeated filters, sort/direction, multipart documents, purchase creation, transfer, individualization, archive/restore, and history.
-- [ ] Replace the old product type with the target interfaces from this plan. Use discriminated unions for attribute values and write inputs. Do not use `any` or unchecked casts.
-- [ ] Add app-owned text, number, file, and multi-select shells with labels, help, errors, disabled/read-only state, described-by wiring, focus styling, and forwarded refs. `AppNumberInput` exposes a string to preserve incomplete decimal input and parses only on submit.
-- [ ] Keep hidden native file input and keyboard-operable trigger inside `AppFilePicker`; expose chosen filename and a clear action. Keep native text/number semantics inside the styled shells.
-- [ ] Add all new API methods to `createLayoutsAccessoriesAPI` and re-export types through `api.ts`.
-- [ ] Run `npm.cmd run test:run -- src/shared/apiLayoutsAccessories.test.ts src/shared/ui/AppTextInput.test.tsx src/shared/ui/AppNumberInput.test.tsx src/shared/ui/AppFilePicker.test.tsx src/shared/ui/AppMultiSelect.test.tsx`; expect PASS.
-- [ ] Run `npm.cmd run build`; expect `tsc -b && vite build` to exit 0.
-- [ ] Commit: `git add frontend/src/shared/apiLayoutsAccessories.ts frontend/src/shared/apiLayoutsAccessories.test.ts frontend/src/shared/api.ts frontend/src/shared/ui/AppTextInput.tsx frontend/src/shared/ui/AppTextInput.test.tsx frontend/src/shared/ui/AppNumberInput.tsx frontend/src/shared/ui/AppNumberInput.test.tsx frontend/src/shared/ui/AppFilePicker.tsx frontend/src/shared/ui/AppFilePicker.test.tsx frontend/src/shared/ui/AppMultiSelect.tsx frontend/src/shared/ui/AppMultiSelect.test.tsx frontend/src/styles/forms-controls.css && git commit -m "feat: add typed article ui controls"`
+- [x] Add failing API tests for URL encoding, repeated filters, sort/direction, multipart documents, purchase creation, transfer, individualization, archive/restore, and history.
+- [x] Replace the old product type with the target interfaces from this plan. Use discriminated unions for attribute values and write inputs. Do not use `any` or unchecked casts.
+- [x] Add app-owned text, number, file, and multi-select shells with labels, help, errors, disabled/read-only state, described-by wiring, focus styling, and forwarded refs. `AppNumberInput` exposes a string to preserve incomplete decimal input and parses only on submit.
+- [x] Keep hidden native file input and keyboard-operable trigger inside `AppFilePicker`; expose chosen filename and a clear action. Keep native text/number semantics inside the styled shells.
+- [x] Add all new API methods to `createLayoutsAccessoriesAPI` and re-export types through `api.ts`.
+- [x] Run `npm.cmd run test:run -- src/shared/apiLayoutsAccessories.test.ts src/shared/ui/AppTextInput.test.tsx src/shared/ui/AppNumberInput.test.tsx src/shared/ui/AppFilePicker.test.tsx src/shared/ui/AppMultiSelect.test.tsx`; expect PASS.
+- [x] Run `npm.cmd run build`; expect `tsc -b && vite build` to exit 0.
+- [x] Commit: `git add frontend/src/shared/apiLayoutsAccessories.ts frontend/src/shared/apiLayoutsAccessories.test.ts frontend/src/shared/api.ts frontend/src/shared/ui/AppTextInput.tsx frontend/src/shared/ui/AppTextInput.test.tsx frontend/src/shared/ui/AppNumberInput.tsx frontend/src/shared/ui/AppNumberInput.test.tsx frontend/src/shared/ui/AppFilePicker.tsx frontend/src/shared/ui/AppFilePicker.test.tsx frontend/src/shared/ui/AppMultiSelect.tsx frontend/src/shared/ui/AppMultiSelect.test.tsx frontend/src/styles/forms-controls.css && git commit -m "feat: add typed article ui controls"`
 
 ### Task 9: Move storage locations and article master data into Settings
 
@@ -393,13 +393,13 @@ type IndividualizeAccessoryInput struct {
 - Modify: `frontend/src/shared/i18n/de.ts`
 - Modify: `frontend/src/shared/i18n/en.ts`
 
-- [ ] Add failing settings tests that open `Einstellungen → Artikelverwaltung`, manage a hierarchical location, and show manufacturer, unit, type/subtype, and controlled custom-field sections.
-- [ ] Add `articleManagement` to `SettingsTab` and `settingsTabs`. Mount `ArticleManagementSettings` from `SettingsView` without adding more state to the already large central settings component.
-- [ ] Reuse the existing generic master-data API for `manufacturer`, `accessory_unit`, `accessory_type`, `accessory_subtype`, and `accessory_custom_field`. Standard type keys remain stable; settings may change labels/active state, not their keys. Admin/Editor may mutate locations and article master data; Planner/Viewer receive the same understandable read-only presentation.
-- [ ] Move location create/edit/archive/reactivate UI into `StorageLocationsSettings`. Keep parent-cycle and archived-parent errors visible.
-- [ ] Remove every storage-location administration link or form from the accessory feature. Selection controls remain in article filters and dialogs.
-- [ ] Run `npm.cmd run test:run -- src/features/settings/SettingsView.test.tsx src/features/settings/ArticleManagementSettings.test.tsx src/features/settings/storageLocations.test.ts`; expect PASS.
-- [ ] Commit: `git add -A frontend/src/features/settings frontend/src/features/accessories/AccessoryLocationsPanel.tsx frontend/src/features/accessories/accessoryLocations.ts frontend/src/features/accessories/accessoryLocations.test.ts frontend/src/styles/settings.css frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: move article settings into settings"`
+- [x] Add failing settings tests that open `Einstellungen → Artikelverwaltung`, manage a hierarchical location, and show manufacturer, unit, type/subtype, and controlled custom-field sections.
+- [x] Add `articleManagement` to `SettingsTab` and `settingsTabs`. Mount `ArticleManagementSettings` from `SettingsView` without adding more state to the already large central settings component.
+- [x] Reuse the existing generic master-data API for `manufacturer`, `accessory_unit`, `accessory_type`, `accessory_subtype`, and `accessory_custom_field`. Standard type keys remain stable; settings may change labels/active state, not their keys. Admin/Editor may mutate locations and article master data; Planner/Viewer receive the same understandable read-only presentation.
+- [x] Move location create/edit/archive/reactivate UI into `StorageLocationsSettings`. Keep parent-cycle and archived-parent errors visible.
+- [x] Remove every storage-location administration link or form from the accessory feature. Selection controls remain in article filters and dialogs.
+- [x] Run `npm.cmd run test:run -- src/features/settings/SettingsView.test.tsx src/features/settings/ArticleManagementSettings.test.tsx src/features/settings/storageLocations.test.ts`; expect PASS.
+- [x] Commit: `git add -A frontend/src/features/settings frontend/src/features/accessories/AccessoryLocationsPanel.tsx frontend/src/features/accessories/accessoryLocations.ts frontend/src/features/accessories/accessoryLocations.test.ts frontend/src/styles/settings.css frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: move article settings into settings"`
 
 ### Task 10: Replace accessory subpages with the article overview table
 
@@ -421,15 +421,15 @@ type IndividualizeAccessoryInput struct {
 - Modify: `frontend/src/shared/i18n/de.ts`
 - Modify: `frontend/src/shared/i18n/en.ts`
 
-- [ ] Add failing tests for `Fahrzeugbestand`/`Artikelübersicht`, no accessory tab list, no card toggle, global metrics, instant search, each filter, filter reset, result count, empty/error/loading states, and viewer/planner read-only explanation.
-- [ ] Implement a single article overview composed from the focused components above. Do not retain invisible product selection state.
-- [ ] Render the four approved compact metric panels. Clicking a metric may set a visible filter but must never depend on row selection.
-- [ ] Render only the table columns `Artikel`, `Art / Unterart`, `Spur`, `Bestand`, `Lagerung`, and `Aktionen`.
-- [ ] Make sortable headers real buttons with `aria-sort` on their `th`. Preserve active sort key and direction in `useArticleOverview`.
-- [ ] Add transparent `Eye`, `Pencil`, and `MoreHorizontal` action buttons with localized accessible names and tooltips. The menu contains archive/restore. Hide write actions for Viewer/Planner while preserving view.
-- [ ] Make `+ Neuer Artikel` and `Ersten Artikel anlegen` available only to Admin/Editor. Long manufacturer/name/location text must truncate with an accessible full-value tooltip.
-- [ ] Run `npm.cmd run test:run -- src/app/Shell.test.tsx src/features/accessories/AccessoriesView.test.tsx src/features/accessories/ArticleTable.test.tsx src/features/accessories/useArticleOverview.test.tsx`; expect PASS.
-- [ ] Commit: `git add -A frontend/src/app/Shell.tsx frontend/src/app/Shell.test.tsx frontend/src/features/accessories frontend/src/styles/accessories.css frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: build article overview"`
+- [x] Add failing tests for `Fahrzeugbestand`/`Artikelübersicht`, no accessory tab list, no card toggle, global metrics, instant search, each filter, filter reset, result count, empty/error/loading states, and viewer/planner read-only explanation.
+- [x] Implement a single article overview composed from the focused components above. Do not retain invisible product selection state.
+- [x] Render the four approved compact metric panels. Clicking a metric may set a visible filter but must never depend on row selection.
+- [x] Render only the table columns `Artikel`, `Art / Unterart`, `Spur`, `Bestand`, `Lagerung`, and `Aktionen`.
+- [x] Make sortable headers real buttons with `aria-sort` on their `th`. Preserve active sort key and direction in `useArticleOverview`.
+- [x] Add transparent `Eye`, `Pencil`, and `MoreHorizontal` action buttons with localized accessible names and tooltips. The menu contains archive/restore. Hide write actions for Viewer/Planner while preserving view.
+- [x] Make `+ Neuer Artikel` and `Ersten Artikel anlegen` available only to Admin/Editor. Long manufacturer/name/location text must truncate with an accessible full-value tooltip.
+- [x] Run `npm.cmd run test:run -- src/app/Shell.test.tsx src/features/accessories/AccessoriesView.test.tsx src/features/accessories/ArticleTable.test.tsx src/features/accessories/useArticleOverview.test.tsx`; expect PASS.
+- [x] Commit: `git add -A frontend/src/app/Shell.tsx frontend/src/app/Shell.test.tsx frontend/src/features/accessories frontend/src/styles/accessories.css frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: build article overview"`
 
 ### Task 11: Build the shared create, view, and edit article dialog
 
@@ -450,15 +450,15 @@ type IndividualizeAccessoryInput struct {
 - Modify: `frontend/src/features/accessories/AccessoriesView.tsx`
 - Modify: `frontend/src/styles/accessories.css`
 
-- [ ] Add failing dialog tests for create/view/edit modes, focus trap and return, tab persistence, dirty-close confirmation, whole-form validation, tab error badges, pre-save duplicate warning confirmation, and failed-save value preservation.
-- [ ] Mirror `VehicleEditorDialog` structure with one modal shell and horizontal tabs. Fixed tabs are `article`, `stock`, and `purchaseDocuments`; append exactly one subject tab; append `usageHistory` only when `hasUsageHistory` is true.
-- [ ] In `ArticleCoreTab`, render the approved common fields and a collapsed `Weitere Angaben`. Keep product links, alternate numbers, keywords, compatibility, and internal notes there. Never put placement, target, digital address, or wiring there.
-- [ ] In `ArticleStockTab`, integrate strategy, minimum stock, locations, adjustment, transfer, individual items, hybrid individualization, and a compact stock journal. Location controls select only.
-- [ ] In `ArticlePurchaseDocumentsTab`, separate purchase entry/list from safe document upload/list. A booked purchase must submit one command, not a client-side purchase followed by a second stock request.
-- [ ] In `ArticleUsageHistoryTab`, show current reservations/installations first and chronological history below. Reuse and reshape the current reservation/installation components instead of duplicating their domain logic.
-- [ ] Disable every form control in view mode. Planner can create/cancel reservations only; Admin/Editor can perform all mutations; Viewer is read-only.
-- [ ] Run `npm.cmd run test:run -- src/features/accessories/ArticleEditorDialog.test.tsx src/features/accessories/useArticleEditorController.test.tsx src/features/accessories/AccessoriesView.test.tsx`; expect PASS.
-- [ ] Commit: `git add -A frontend/src/features/accessories frontend/src/styles/accessories.css && git commit -m "feat: add article editor workflow"`
+- [x] Add failing dialog tests for create/view/edit modes, focus trap and return, tab persistence, dirty-close confirmation, whole-form validation, tab error badges, pre-save duplicate warning confirmation, and failed-save value preservation.
+- [x] Mirror `VehicleEditorDialog` structure with one modal shell and horizontal tabs. Fixed tabs are `article`, `stock`, and `purchaseDocuments`; append exactly one subject tab; append `usageHistory` only when `hasUsageHistory` is true.
+- [x] In `ArticleCoreTab`, render the approved common fields and a collapsed `Weitere Angaben`. Keep product links, alternate numbers, keywords, compatibility, and internal notes there. Never put placement, target, digital address, or wiring there.
+- [x] In `ArticleStockTab`, integrate strategy, minimum stock, locations, adjustment, transfer, individual items, hybrid individualization, and a compact stock journal. Location controls select only.
+- [x] In `ArticlePurchaseDocumentsTab`, separate purchase entry/list from safe document upload/list. A booked purchase must submit one command, not a client-side purchase followed by a second stock request.
+- [x] In `ArticleUsageHistoryTab`, show current reservations/installations first and chronological history below. Reuse and reshape the current reservation/installation components instead of duplicating their domain logic.
+- [x] Disable every form control in view mode. Planner can create/cancel reservations only; Admin/Editor can perform all mutations; Viewer is read-only.
+- [x] Run `npm.cmd run test:run -- src/features/accessories/ArticleEditorDialog.test.tsx src/features/accessories/useArticleEditorController.test.tsx src/features/accessories/AccessoriesView.test.tsx`; expect PASS.
+- [x] Commit: `git add -A frontend/src/features/accessories frontend/src/styles/accessories.css && git commit -m "feat: add article editor workflow"`
 
 ### Task 12: Implement the dynamic subject tab and controlled custom fields
 
@@ -473,13 +473,13 @@ type IndividualizeAccessoryInput struct {
 - Modify: `frontend/src/shared/i18n/de.ts`
 - Modify: `frontend/src/shared/i18n/en.ts`
 
-- [ ] Add failing tests proving each of the eight article types renders only its own field definitions, changing type warns before discarding values, and `other` supports only configured typed custom fields.
-- [ ] Encode the exact field keys from Task 2 in a readonly registry. Each definition contains `key`, `kind`, label key, optional help key, optional unit/options, and validation bounds. TypeScript must fail compilation if a registry uses an unsupported kind.
-- [ ] Render one `ArticleSubjectTab` using the registry and app-owned controls. Do not create eight separate page tabs or eight mostly duplicate form components.
-- [ ] For `other`, load active `accessory_custom_field` master data. Respect text, number+unit, boolean, date, single-select, and multi-select kinds and their configured options.
-- [ ] Add a fixture test for Tillig TT Modellgleis 83101 with article number, TT gauge, track system, straight subtype, length, connections, package/unit, stock location, and quantity.
-- [ ] Run `npm.cmd run test:run -- src/features/accessories/articleTypeFields.test.ts src/features/accessories/ArticleSubjectTab.test.tsx src/features/accessories/ArticleEditorDialog.test.tsx`; expect PASS.
-- [ ] Commit: `git add frontend/src/features/accessories/articleTypeFields.ts frontend/src/features/accessories/articleTypeFields.test.ts frontend/src/features/accessories/ArticleSubjectTab.tsx frontend/src/features/accessories/ArticleSubjectTab.test.tsx frontend/src/features/accessories/ArticleEditorDialog.tsx frontend/src/features/accessories/articleEditorModel.ts frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: add typed article subject fields"`
+- [x] Add failing tests proving each of the eight article types renders only its own field definitions, changing type warns before discarding values, and `other` supports only configured typed custom fields.
+- [x] Encode the exact field keys from Task 2 in a readonly registry. Each definition contains `key`, `kind`, label key, optional help key, optional unit/options, and validation bounds. TypeScript must fail compilation if a registry uses an unsupported kind.
+- [x] Render one `ArticleSubjectTab` using the registry and app-owned controls. Do not create eight separate page tabs or eight mostly duplicate form components.
+- [x] For `other`, load active `accessory_custom_field` master data. Respect text, number+unit, boolean, date, single-select, and multi-select kinds and their configured options.
+- [x] Add a fixture test for Tillig TT Modellgleis 83101 with article number, TT gauge, track system, straight subtype, length, connections, package/unit, stock location, and quantity.
+- [x] Run `npm.cmd run test:run -- src/features/accessories/articleTypeFields.test.ts src/features/accessories/ArticleSubjectTab.test.tsx src/features/accessories/ArticleEditorDialog.test.tsx`; expect PASS.
+- [x] Commit: `git add frontend/src/features/accessories/articleTypeFields.ts frontend/src/features/accessories/articleTypeFields.test.ts frontend/src/features/accessories/ArticleSubjectTab.tsx frontend/src/features/accessories/ArticleSubjectTab.test.tsx frontend/src/features/accessories/ArticleEditorDialog.tsx frontend/src/features/accessories/articleEditorModel.ts frontend/src/shared/i18n/de.ts frontend/src/shared/i18n/en.ts && git commit -m "feat: add typed article subject fields"`
 
 ### Task 13: Complete integration, accessibility, visual QA, and cleanup
 
@@ -494,16 +494,16 @@ type IndividualizeAccessoryInput struct {
 - Modify: `backend/internal/api/openapi_contract_test.go`
 - Modify: `docs/superpowers/specs/2026-08-08-artikelverwaltung-redesign-design.md`
 
-- [ ] Add one frontend integration test that creates the Tillig article, books a purchase into stock, individualizes one unit, reserves and installs it, then verifies `Verwendung & Historie` remains visible after removal.
-- [ ] Add read-only integration coverage for Planner, Viewer, and Messe. Messe must never receive the route/view; Planner may reserve but cannot mutate product, stock, purchase, document, asset, or installation data.
-- [ ] Search and remove old UI concepts: `rg -n "Einzelobjekt|Products|Produkte|accessories.tabs|Karten|card view" frontend/src`. Expected result: no obsolete user-facing accessory navigation or view toggle.
-- [ ] Run `gofmt -w` on every changed Go file.
-- [ ] Run backend verification from `backend`: `go test ./...`; expect PASS.
-- [ ] Run frontend verification from `frontend`: `npm.cmd run test:run`; expect PASS.
-- [ ] Run frontend production build: `npm.cmd run build`; expect exit code 0.
-- [ ] Run `git diff --check`; expect no output.
-- [ ] Start the local app using the documented repo-local `GOCACHE`, then visually verify `/accessories` and `/settings?tab=articleManagement` at desktop and mobile widths in German/English and light/dark themes.
-- [ ] Visual acceptance checklist:
+- [x] Add one frontend integration test that creates the Tillig article, books a purchase into stock, individualizes one unit, reserves and installs it, then verifies `Verwendung & Historie` remains visible after removal.
+- [x] Add read-only integration coverage for Planner, Viewer, and Messe. Messe must never receive the route/view; Planner may reserve but cannot mutate product, stock, purchase, document, asset, or installation data.
+- [x] Search and remove old UI concepts: `rg -n "Einzelobjekt|Products|Produkte|accessories.tabs|Karten|card view" frontend/src`. Expected result: no obsolete user-facing accessory navigation or view toggle.
+- [x] Run `gofmt -w` on every changed Go file.
+- [x] Run backend verification from `backend`: `go test ./...`; expect PASS.
+- [x] Run frontend verification from `frontend`: `npm.cmd run test:run`; expect PASS.
+- [x] Run frontend production build: `npm.cmd run build`; expect exit code 0.
+- [x] Run `git diff --check`; expect no output.
+- [x] Start the local app using the documented repo-local `GOCACHE`, then visually verify `/accessories` and `/settings?tab=articleManagement` at desktop and mobile widths in German/English and light/dark themes.
+- [x] Visual acceptance checklist:
   - table-only overview, no submenus or view switch
   - sortable headers and right-aligned action column
   - restrained typography and aligned controls
@@ -512,14 +512,14 @@ type IndividualizeAccessoryInput struct {
   - one dynamic subject tab
   - conditional usage/history tab
   - storage administration only in Settings
-- [ ] Update the design spec status to `Implemented and verified` only after all automated and visual checks pass.
-- [ ] Commit: `git add backend frontend openapi docs/superpowers/specs/2026-08-08-artikelverwaltung-redesign-design.md && git commit -m "test: verify article management redesign"`
+- [x] Update the design spec status to `Implemented and verified` only after all automated and visual checks pass.
+- [x] Commit: `git add backend frontend openapi docs/superpowers/specs/2026-08-08-artikelverwaltung-redesign-design.md && git commit -m "test: verify article management redesign"`
 
 ## Final Delivery Gate
 
-- [ ] Confirm `git status --short` contains no generated output, local data, caches, or `.superpowers/` staging.
-- [ ] Confirm the OpenAPI path inventory equals the registered article routes.
-- [ ] Confirm a version-2 backup validates and restores, and a version-3 round-trip preserves every new article table and blob.
-- [ ] Confirm no quantity can become negative and no unit is counted as both quantity and individual item.
-- [ ] Confirm all 13 acceptance criteria in the approved specification have an automated test or an explicit visual-check result.
-- [ ] Prepare the PR summary in German and English with screenshots of overview, create dialog, dynamic Tillig track fields, and Settings storage locations.
+- [x] Confirm `git status --short` contains no generated output, local data, caches, or `.superpowers/` staging.
+- [x] Confirm the OpenAPI path inventory equals the registered article routes.
+- [x] Confirm a version-2 backup validates and restores, and a version-3 round-trip preserves every new article table and blob.
+- [x] Confirm no quantity can become negative and no unit is counted as both quantity and individual item.
+- [x] Confirm all 13 acceptance criteria in the approved specification have an automated test or an explicit visual-check result.
+- [x] Prepare the PR summary in German and English with screenshots of overview, create dialog, dynamic Tillig track fields, and Settings storage locations.

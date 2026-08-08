@@ -33,7 +33,9 @@ describe("AppMultiSelect", () => {
     const trigger = screen.getByRole("button", { name: "Spurweiten TT" });
     expect(ref.current).toBe(trigger);
     expect(trigger).toHaveTextContent("TT");
-    expect(document.querySelector("select[multiple]")).toHaveClass("visually-hidden");
+    const nativeSelect = document.querySelector("select[multiple]");
+    expect(nativeSelect).toHaveAttribute("hidden");
+    expect(nativeSelect).not.toHaveClass("visually-hidden");
 
     await user.click(trigger);
     const listbox = screen.getByRole("listbox", { name: "Spurweiten" });
