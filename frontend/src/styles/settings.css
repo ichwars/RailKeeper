@@ -75,6 +75,15 @@
   white-space: nowrap;
 }
 
+.settings-data-groups {
+  margin-bottom: 8px;
+}
+
+.settings-data-types button {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+}
+
 .settings-card {
   display: grid;
   gap: 22px;

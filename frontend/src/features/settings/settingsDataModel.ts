@@ -36,6 +36,14 @@ function includesValue<T extends string>(values: readonly T[], value: string | n
   return value !== null && values.some((candidate) => candidate === value);
 }
 
+export function isGeneralDataType(value: string): value is GeneralDataType {
+  return includesValue(generalDataTypes, value);
+}
+
+export function isArticleDataType(value: string): value is ArticleDataType {
+  return includesValue(articleDataTypes, value);
+}
+
 export function readSettingsLocation(search: string): SettingsLocation {
   const query = new URLSearchParams(search);
   const requestedTab = query.get("tab");

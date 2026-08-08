@@ -1,9 +1,10 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api, type MasterDataEntry, type StorageLocation } from "../../shared/api";
-import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import { ArticleManagementSettings, type ArticleDataSection } from "./ArticleManagementSettings";
 import { StorageLocationsSettings } from "./StorageLocationsSettings";
 
 function deferred<T>() {
@@ -40,6 +41,23 @@ const locations: StorageLocation[] = [
   { ...locationBase, id: "archive", name: "Altlager", archived: true }
 ];
 
+function ArticleManagementHarness({
+  roles,
+  initialSection = "stock_unit"
+}: {
+  roles: string[];
+  initialSection?: ArticleDataSection;
+}) {
+  const [activeSection, setActiveSection] = useState<ArticleDataSection>(initialSection);
+  return (
+    <ArticleManagementSettings
+      roles={roles}
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+    />
+  );
+}
+
 describe("ArticleManagementSettings", () => {
   beforeEach(() => {
     const entries: Record<string, MasterDataEntry[]> = {
@@ -55,10 +73,10 @@ describe("ArticleManagementSettings", () => {
 
   it("loads every article master-data category and provides a useful read-only view", async () => {
     const user = userEvent.setup();
-    render(<ArticleManagementSettings roles={["Viewer"]} />);
+    render(<ArticleManagementHarness roles={["Viewer"]} />);
 
-    expect(await screen.findByText("Tillig")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Hersteller" })).toBeInTheDocument();
+    expect(await screen.findByText("Stück")).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Hersteller" })).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Bestandseinheiten" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Artikelarten und Unterarten" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Kontrollierte Zusatzfelder" })).toBeInTheDocument();
@@ -66,8 +84,6 @@ describe("ArticleManagementSettings", () => {
     expect(screen.getByText(/Änderungen sind nur für Admins und Editoren möglich/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /anlegen/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "Bestandseinheiten" }));
-    expect(await screen.findByText("Stück")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Artikelarten und Unterarten" }));
     expect(await screen.findByText("Gleis")).toBeInTheDocument();
     expect(screen.getByText("Gerade")).toBeInTheDocument();
@@ -77,9 +93,8 @@ describe("ArticleManagementSettings", () => {
     expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
     expect(api.storageLocations).toHaveBeenCalledOnce();
 
-    await waitFor(() => expect(api.masterData).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(api.masterData).toHaveBeenCalledTimes(4));
     expect(vi.mocked(api.masterData).mock.calls.map(([type]) => type)).toEqual([
-      "manufacturer",
       "stock_unit",
       "article_type",
       "accessory_subtype",
@@ -88,30 +103,29 @@ describe("ArticleManagementSettings", () => {
   });
 
   it.each(["Planner", "Viewer"])("keeps the article settings read-only for %s", async (role) => {
-    render(<ArticleManagementSettings roles={[role]} />);
+    render(<ArticleManagementHarness roles={[role]} />);
 
-    expect(await screen.findByText("Tillig")).toBeInTheDocument();
+    expect(await screen.findByText("Stück")).toBeInTheDocument();
     expect(screen.getByText(/Änderungen sind nur für Admins und Editoren möglich/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /bearbeiten|archivieren|anlegen/i })).not.toBeInTheDocument();
   });
 
   it("renders semantic section tabs and supports keyboard navigation", async () => {
     const user = userEvent.setup();
-    render(<ArticleManagementSettings roles={["Viewer"]} />);
+    render(<ArticleManagementHarness roles={["Viewer"]} />);
 
     expect(screen.getByRole("tablist", { name: "Bereiche der Artikelverwaltung" })).toBeInTheDocument();
-    const manufacturers = screen.getByRole("tab", { name: "Hersteller" });
     const units = screen.getByRole("tab", { name: "Bestandseinheiten" });
     const locationsTab = screen.getByRole("tab", { name: "Lagerorte" });
-    expect(manufacturers).toHaveAttribute("aria-selected", "true");
-    expect(units).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("tabpanel", { name: "Hersteller" })).toBeInTheDocument();
-
-    manufacturers.focus();
-    await user.keyboard("{ArrowRight}");
-    expect(units).toHaveFocus();
     expect(units).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel", { name: "Bestandseinheiten" })).toBeInTheDocument();
+
+    units.focus();
+    await user.keyboard("{ArrowRight}");
+    const types = screen.getByRole("tab", { name: "Artikelarten und Unterarten" });
+    expect(types).toHaveFocus();
+    expect(types).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel", { name: "Artikelarten und Unterarten" })).toBeInTheDocument();
 
     await user.keyboard("{End}");
     expect(locationsTab).toHaveFocus();
@@ -120,17 +134,17 @@ describe("ArticleManagementSettings", () => {
 
   it("settles the active location request when an earlier master-data request finishes late", async () => {
     const user = userEvent.setup();
-    const manufacturerRequest = deferred<MasterDataEntry[]>();
-    vi.mocked(api.masterData).mockImplementation((type) => type === "manufacturer"
-      ? manufacturerRequest.promise
+    const stockUnitRequest = deferred<MasterDataEntry[]>();
+    vi.mocked(api.masterData).mockImplementation((type) => type === "stock_unit"
+      ? stockUnitRequest.promise
       : Promise.resolve([]));
     vi.mocked(api.storageLocations).mockResolvedValue(locations);
-    render(<ArticleManagementSettings roles={["Viewer"]} />);
+    render(<ArticleManagementHarness roles={["Viewer"]} />);
 
     await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
     expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
 
-    manufacturerRequest.resolve([entry("manufacturer", "tillig", "Tillig")]);
+    stockUnitRequest.resolve([entry("stock_unit", "piece", "Piece")]);
     await waitFor(() => expect(screen.queryByText("Artikeldaten werden geladen..."))
       .not.toBeInTheDocument());
   });
@@ -141,7 +155,7 @@ describe("ArticleManagementSettings", () => {
     vi.mocked(api.storageLocations)
       .mockRejectedValueOnce(new Error("Lagerorte konnten nicht geladen werden."))
       .mockImplementationOnce(() => retryRequest.promise);
-    render(<ArticleManagementSettings roles={["Viewer"]} />);
+    render(<ArticleManagementHarness roles={["Viewer"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Lagerorte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Lagerorte konnten nicht geladen werden.");
@@ -156,7 +170,7 @@ describe("ArticleManagementSettings", () => {
   it("updates a standard article type without allowing its key to change", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "updateMasterData").mockResolvedValue(entry("article_type", "track", "Gleismaterial"));
-    render(<ArticleManagementSettings roles={["Editor"]} />);
+    render(<ArticleManagementHarness roles={["Editor"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     expect(within(screen.getByRole("region", { name: "Artikelarten" }))
@@ -180,7 +194,7 @@ describe("ArticleManagementSettings", () => {
   it("shows a localized standard label without persisting it as an override", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "updateMasterData").mockResolvedValue(entry("article_type", "track", "Track"));
-    render(<ArticleManagementSettings roles={["Editor"]} />);
+    render(<ArticleManagementHarness roles={["Editor"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
@@ -200,7 +214,7 @@ describe("ArticleManagementSettings", () => {
       ...entry(type, key, input.label),
       active: input.active ?? true
     }));
-    render(<ArticleManagementSettings roles={["Editor"]} />);
+    render(<ArticleManagementHarness roles={["Editor"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     await screen.findByText("Gleis");
@@ -226,7 +240,7 @@ describe("ArticleManagementSettings", () => {
       ...entry("accessory_custom_field", "color", "Farbe"),
       metadata: { kind: "single_select", options: ["Rot", "Grün"] }
     });
-    render(<ArticleManagementSettings roles={["Admin"]} />);
+    render(<ArticleManagementHarness roles={["Admin"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Kontrollierte Zusatzfelder" }));
     await screen.findByText("Material");

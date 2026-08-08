@@ -1,23 +1,23 @@
 import { Archive, ArchiveRestore, Pencil, Plus, X } from "lucide-react";
-import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { api, type MasterDataEntry, type MasterDataInput, type StorageLocation } from "../../shared/api";
 import { masterDataDisplayLabel, masterDataPersistedLabel } from "../../shared/articleMasterDataLabels";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
+import { SettingsTabList } from "./SettingsTabList";
 import { StorageLocationsSettings } from "./StorageLocationsSettings";
 
-type ArticleSettingsSection = "manufacturers" | "units" | "types" | "customFields" | "locations";
-type MasterDataType = "manufacturer" | "stock_unit" | "article_type" | "accessory_subtype" |
+export type ArticleDataSection = "stock_unit" | "types" | "customFields" | "locations";
+type MasterDataType = "stock_unit" | "article_type" | "accessory_subtype" |
   "accessory_custom_field";
 type CustomFieldKind = "text" | "number" | "boolean" | "date" | "single_select" | "multi_select";
 
-const sections: ArticleSettingsSection[] = ["manufacturers", "units", "types", "customFields", "locations"];
+const sections: ArticleDataSection[] = ["stock_unit", "types", "customFields", "locations"];
 
-const typesBySection: Record<ArticleSettingsSection, MasterDataType[]> = {
-  manufacturers: ["manufacturer"],
-  units: ["stock_unit"],
+const typesBySection: Record<ArticleDataSection, MasterDataType[]> = {
+  stock_unit: ["stock_unit"],
   types: ["article_type", "accessory_subtype"],
   customFields: ["accessory_custom_field"],
   locations: []
@@ -248,14 +248,23 @@ function MasterDataSettingsSection({
   );
 }
 
-export function ArticleManagementSettings({ roles }: { roles: string[] }) {
+export type ArticleManagementSettingsProps = {
+  roles: string[];
+  activeSection: ArticleDataSection;
+  onSectionChange: (section: ArticleDataSection) => void;
+};
+
+export function ArticleManagementSettings({
+  roles,
+  activeSection,
+  onSectionChange
+}: ArticleManagementSettingsProps) {
   const { t } = useI18n();
   const canRead = roles.some((role) => ["Admin", "Editor", "Planner", "Viewer"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
-  const [activeSection, setActiveSection] = useState<ArticleSettingsSection>("manufacturers");
   const [entriesByType, setEntriesByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
-  const [loadingSection, setLoadingSection] = useState<ArticleSettingsSection | null>(null);
+  const [loadingSection, setLoadingSection] = useState<ArticleDataSection | null>(null);
   const [masterMessage, setMasterMessage] = useState("");
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [locationsLoaded, setLocationsLoaded] = useState(false);
@@ -264,7 +273,6 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
   const [locationsMessage, setLocationsMessage] = useState("");
   const masterRequestID = useRef(0);
   const locationRequestID = useRef(0);
-  const sectionTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const loadStorageLocations = useCallback(async () => {
     const requestID = ++locationRequestID.current;
@@ -316,7 +324,7 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
     void loadStorageLocations();
   }, [activeSection, canRead, loadStorageLocations, locationsAttempted, locationsLoaded]);
 
-  const selectSection = (section: ArticleSettingsSection) => {
+  const selectSection = (section: ArticleDataSection) => {
     masterRequestID.current += 1;
     setLoadingSection(null);
     if (activeSection === "locations" && section !== "locations") {
@@ -324,19 +332,7 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
       setLocationsLoading(false);
       if (!locationsLoaded) setLocationsAttempted(false);
     }
-    setActiveSection(section);
-  };
-
-  const handleSectionKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    let nextIndex: number | null = null;
-    if (event.key === "ArrowRight") nextIndex = (index + 1) % sections.length;
-    if (event.key === "ArrowLeft") nextIndex = (index - 1 + sections.length) % sections.length;
-    if (event.key === "Home") nextIndex = 0;
-    if (event.key === "End") nextIndex = sections.length - 1;
-    if (nextIndex === null) return;
-    event.preventDefault();
-    selectSection(sections[nextIndex]);
-    sectionTabRefs.current[nextIndex]?.focus();
+    onSectionChange(section);
   };
 
   const updateEntry = (type: MasterDataType, entry: MasterDataEntry) => {
@@ -353,34 +349,22 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
   );
 
   return (
-    <section className="article-management-settings" aria-labelledby="article-management-title">
-      <div className="settings-section-head">
-        <div>
-          <h2 id="article-management-title">{t("settings.articleManagement.title")}</h2>
-          <p>{t("settings.articleManagement.subtitle")}</p>
-        </div>
-      </div>
+    <section className="article-management-settings" aria-label={t("settings.articleManagement.sections")}>
       {!canRead ? <p className="settings-read-only-note">{t("settings.articleManagement.unavailable")}</p> : (
         <>
           {!canEdit && <p className="settings-read-only-note">{t("settings.articleManagement.readOnly")}</p>}
-          <div className="settings-secondary-tabs article-management-tabs" role="tablist"
-            aria-label={t("settings.articleManagement.sections") }>
-            {sections.map((section, index) => (
-              <button key={section} type="button" role="tab"
-                ref={(element) => { sectionTabRefs.current[index] = element; }}
-                id={`article-management-tab-${section}`}
-                className={activeSection === section ? "active" : ""}
-                aria-selected={activeSection === section}
-                aria-controls="article-management-active-panel"
-                tabIndex={activeSection === section ? 0 : -1}
-                onClick={() => selectSection(section)}
-                onKeyDown={(event) => handleSectionKeyDown(event, index)}>
-                {t(`settings.articleManagement.section.${section}`)}
-              </button>
-            ))}
-          </div>
+          <SettingsTabList
+            ariaLabel={t("settings.articleManagement.sections")}
+            options={sections.map((section) => ({
+              id: section,
+              label: t(`settings.articleManagement.section.${section === "stock_unit" ? "units" : section}`)
+            }))}
+            value={activeSection}
+            onChange={selectSection}
+            className="article-management-tabs"
+          />
           <div id="article-management-active-panel" role="tabpanel"
-            aria-labelledby={`article-management-tab-${activeSection}`}
+            aria-label={t(`settings.articleManagement.section.${activeSection === "stock_unit" ? "units" : activeSection}`)}
             className="article-management-panel">
             {masterMessage && <p className="form-message" role="alert">{masterMessage}</p>}
             {activeSection === "locations" && locationsMessage && <div className="form-message" role="alert">
@@ -393,8 +377,7 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
             {loadingSection === activeSection ?
               <p className="loading-cell">{t("settings.articleManagement.loading")}</p> : (
               <div className="article-management-section">
-                {activeSection === "manufacturers" && renderMasterData("manufacturer")}
-                {activeSection === "units" && renderMasterData("stock_unit")}
+                {activeSection === "stock_unit" && renderMasterData("stock_unit")}
                 {activeSection === "types" && <>
                   {renderMasterData("article_type")}
                   {renderMasterData("accessory_subtype")}
