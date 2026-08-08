@@ -11,17 +11,19 @@ import (
 
 type accessoryRepositorySpy struct {
 	AccessoryRepository
-	createdProduct    CreateAccessoryProductInput
-	updatedProduct    UpdateAccessoryProductInput
-	createdLocation   CreateStorageLocationInput
-	updatedLocation   UpdateStorageLocationInput
-	stockAdjustment   StockAdjustmentInput
-	stockTransfer     TransferAccessoryStockInput
-	createdAsset      CreateAccessoryAssetInput
-	updatedAsset      UpdateAccessoryAssetInput
-	individualization IndividualizeAccessoryInput
-	purchase          CreateAccessoryPurchaseInput
-	activeSubtypeKeys map[string]bool
+	createdProduct        CreateAccessoryProductInput
+	updatedProduct        UpdateAccessoryProductInput
+	createdLocation       CreateStorageLocationInput
+	updatedLocation       UpdateStorageLocationInput
+	stockAdjustment       StockAdjustmentInput
+	stockTransfer         TransferAccessoryStockInput
+	createdAsset          CreateAccessoryAssetInput
+	updatedAsset          UpdateAccessoryAssetInput
+	individualization     IndividualizeAccessoryInput
+	purchase              CreateAccessoryPurchaseInput
+	activeSubtypeKeys     map[string]bool
+	activeArticleTypeKeys map[domain.AccessoryArticleType]bool
+	currentProduct        *AccessoryProduct
 }
 
 func stringPointer(value string) *string { return &value }
@@ -49,6 +51,79 @@ func (spy *accessoryRepositorySpy) AccessorySubtypeActive(_ context.Context, key
 		return spy.activeSubtypeKeys[key], nil
 	}
 	return key == "track:straight" || key == "other:other", nil
+}
+
+func (spy *accessoryRepositorySpy) AccessoryArticleTypeActive(
+	_ context.Context,
+	key domain.AccessoryArticleType,
+) (bool, error) {
+	if spy.activeArticleTypeKeys != nil {
+		return spy.activeArticleTypeKeys[key], nil
+	}
+	return key == domain.AccessoryArticleTrack || key == domain.AccessoryArticleOther, nil
+}
+
+func (spy *accessoryRepositorySpy) GetProduct(_ context.Context, _ string) (*AccessoryProduct, error) {
+	if spy.currentProduct != nil {
+		copy := *spy.currentProduct
+		return &copy, nil
+	}
+	return &AccessoryProduct{
+		ArticleType: domain.AccessoryArticleOther,
+		Subtype:     "other:other",
+	}, nil
+}
+
+func TestAccessoryServiceEnforcesAuthoritativeArticleTypeLifecycle(t *testing.T) {
+	valid := func(articleType domain.AccessoryArticleType, subtype string) CreateAccessoryProductInput {
+		return CreateAccessoryProductInput{
+			Manufacturer: "Tillig", Name: "Article", Category: subtype,
+			TrackingMode: domain.AccessoryTrackingModeQuantity, ArticleType: articleType, Subtype: subtype,
+			PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		}
+	}
+	repository := &accessoryRepositorySpy{
+		activeArticleTypeKeys: map[domain.AccessoryArticleType]bool{
+			domain.AccessoryArticleTrack:  true,
+			domain.AccessoryArticleSignal: false,
+		},
+		activeSubtypeKeys: map[string]bool{
+			"track:straight":        true,
+			"signal:legacy":         false,
+			"signal:inactive_other": false,
+		},
+	}
+	service := NewAccessoryService(repository)
+
+	if _, err := service.CreateProduct(t.Context(), valid(domain.AccessoryArticleSignal, "signal:legacy"), "editor"); !errors.Is(err, ErrAccessoryValidation) {
+		t.Fatalf("create accepted inactive article type: %v", err)
+	}
+	if _, err := service.CreateProduct(t.Context(), valid(domain.AccessoryArticleTrack, "track:straight"), "editor"); err != nil {
+		t.Fatalf("create rejected active configured type and subtype: %v", err)
+	}
+
+	repository.currentProduct = &AccessoryProduct{
+		ID: "historical", ArticleType: domain.AccessoryArticleSignal, Subtype: "signal:legacy",
+	}
+	if _, err := service.UpdateProduct(t.Context(), "historical", UpdateAccessoryProductInput{
+		CreateAccessoryProductInput: valid(domain.AccessoryArticleSignal, "signal:legacy"),
+	}, "editor"); err != nil {
+		t.Fatalf("update rejected unchanged historical inactive type and subtype: %v", err)
+	}
+	if _, err := service.UpdateProduct(t.Context(), "historical", UpdateAccessoryProductInput{
+		CreateAccessoryProductInput: valid(domain.AccessoryArticleSignal, "signal:inactive_other"),
+	}, "editor"); !errors.Is(err, ErrAccessoryValidation) {
+		t.Fatalf("update accepted switch to inactive subtype: %v", err)
+	}
+
+	repository.currentProduct = &AccessoryProduct{
+		ID: "active", ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight",
+	}
+	if _, err := service.UpdateProduct(t.Context(), "active", UpdateAccessoryProductInput{
+		CreateAccessoryProductInput: valid(domain.AccessoryArticleSignal, "signal:legacy"),
+	}, "editor"); !errors.Is(err, ErrAccessoryValidation) {
+		t.Fatalf("update accepted switch to inactive article type: %v", err)
+	}
 }
 
 func TestAccessoryServiceValidatesAndNormalizesArticleCore(t *testing.T) {

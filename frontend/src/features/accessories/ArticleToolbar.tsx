@@ -1,20 +1,10 @@
 import { Search, X } from "lucide-react";
 
-import type { AccessoryArticleFilterOptions, AccessoryArticleType } from "../../shared/api";
+import type { AccessoryArticleFilterOptions, MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import type { ArticleOverviewFilters } from "./useArticleOverview";
-
-const articleTypes: readonly AccessoryArticleType[] = [
-  "track",
-  "signal",
-  "decoder",
-  "electrical_control",
-  "building_equipment",
-  "landscape_consumable",
-  "lighting",
-  "other"
-];
+import { articleTypeLabel, articleTypeOrder } from "./articleTypes";
 
 const statusOptions = [
   "available",
@@ -27,7 +17,7 @@ const statusOptions = [
 ] as const;
 
 function articleTypeFromControl(value: string): ArticleOverviewFilters["articleType"] {
-  return articleTypes.find((type) => type === value) || "";
+  return articleTypeOrder.find((type) => type === value) || "";
 }
 
 function statusFromControl(value: string): ArticleOverviewFilters["status"] {
@@ -37,6 +27,7 @@ function statusFromControl(value: string): ArticleOverviewFilters["status"] {
 export function ArticleToolbar({
   filters,
   options,
+  articleTypeEntries,
   resultCount,
   hasActiveFilters,
   onFilterChange,
@@ -44,13 +35,14 @@ export function ArticleToolbar({
 }: {
   filters: ArticleOverviewFilters;
   options: AccessoryArticleFilterOptions;
+  articleTypeEntries: MasterDataEntry[];
   resultCount: number;
   hasActiveFilters: boolean;
   onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
   onReset: () => void;
 }) {
   const { t } = useI18n();
-  const availableTypes = articleTypes.filter((type) => options.articleTypes.includes(type));
+  const availableTypes = articleTypeOrder.filter((type) => options.articleTypes.includes(type));
 
   return (
     <div className="article-toolbar" aria-label={t("accessories.toolbar.label")}>
@@ -75,7 +67,7 @@ export function ArticleToolbar({
         >
           <option value="">{t("accessories.toolbar.allArticleTypes")}</option>
           {availableTypes.map((type) => (
-            <option key={type} value={type}>{t(`accessories.articleType.${type}`)}</option>
+            <option key={type} value={type}>{articleTypeLabel(type, articleTypeEntries, t)}</option>
           ))}
         </AppSelect>
         <AppSelect

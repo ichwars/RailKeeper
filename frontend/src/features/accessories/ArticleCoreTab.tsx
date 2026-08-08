@@ -11,11 +11,7 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import type { ArticleEditorFieldErrors, ArticleEditorForm } from "./articleEditorModel";
 import { articleSubtypeOptions } from "./articleSubtypes";
-
-const articleTypes: AccessoryArticleType[] = [
-  "track", "signal", "decoder", "electrical_control", "building_equipment",
-  "landscape_consumable", "lighting", "other"
-];
+import { articleTypeOptions } from "./articleTypes";
 const statuses: AccessoryManufacturerStatus[] = ["announced", "available", "discontinued", "unknown"];
 const gauges = ["Z", "N", "TT", "H0", "H0m", "H0e", "0", "1", "G"];
 
@@ -26,6 +22,7 @@ export function ArticleCoreTab({
   disabled,
   articleTypeDisabled = false,
   otherArticleTypeDisabled = false,
+  articleTypeEntries,
   subtypeEntries,
   subtypeEntriesLoading = false,
   subtypeEntriesError = "",
@@ -37,12 +34,14 @@ export function ArticleCoreTab({
   disabled: boolean;
   articleTypeDisabled?: boolean;
   otherArticleTypeDisabled?: boolean;
+  articleTypeEntries: MasterDataEntry[];
   subtypeEntries: MasterDataEntry[];
   subtypeEntriesLoading?: boolean;
   subtypeEntriesError?: string;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
+  const typeOptions = articleTypeOptions(articleTypeEntries, article?.articleType || null, t);
   const subtypeOptions = articleSubtypeOptions(form.articleType, form.subtype, subtypeEntries, t);
   return (
     <section className="article-editor-tab article-core-tab" aria-label={t("accessories.editor.tabs.article")}>
@@ -79,9 +78,9 @@ export function ArticleCoreTab({
           <AppSelect value={form.articleType} disabled={disabled || articleTypeDisabled}
             aria-label={t("accessories.toolbar.articleType")}
             onChange={(event) => onChange({ articleType: event.target.value as AccessoryArticleType })}>
-            {articleTypes.map((type) => <option key={type} value={type}
-              disabled={type === "other" && otherArticleTypeDisabled}>
-              {t(`accessories.articleType.${type}`)}</option>)}
+            {typeOptions.map((option) => <option key={option.value} value={option.value}
+              disabled={!option.active || (option.value === "other" && otherArticleTypeDisabled)}>
+              {option.label}</option>)}
           </AppSelect>
         </label>
         <label className="app-field">

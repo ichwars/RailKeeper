@@ -1644,6 +1644,8 @@ export const deTranslations: Record<string, string> = {
     "accessories.editor.detailRequired": "Der Artikel konnte nicht geladen werden und kann nicht gespeichert werden.",
     "accessories.editor.retryResources": "Daten erneut laden",
     "accessories.editor.retryCustomFields": "Zusatzfelder erneut laden",
+    "accessories.editor.articleTypes.loadError": "Artikelarten konnten nicht geladen werden.",
+    "accessories.editor.articleTypes.retry": "Artikelarten erneut laden",
     "accessories.editor.subtypes.loadError": "Unterarten konnten nicht geladen werden.",
     "accessories.editor.subtypes.retry": "Unterarten erneut laden",
     "accessories.editor.tabs.label": "Bereiche des Artikeldialogs",

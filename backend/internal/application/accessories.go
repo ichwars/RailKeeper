@@ -121,6 +121,7 @@ type UpdateStorageLocationInput struct {
 type AccessoryCatalogRepository interface {
 	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
 	GetProduct(context.Context, string) (*AccessoryProduct, error)
+	AccessoryArticleTypeActive(context.Context, domain.AccessoryArticleType) (bool, error)
 	AccessorySubtypeActive(context.Context, string) (bool, error)
 	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
 	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
@@ -177,7 +178,7 @@ func (s *AccessoryService) CreateProduct(
 	actor string,
 ) (*AccessoryProduct, error) {
 	input = cleanAccessoryProductInput(input)
-	if err := s.validateAccessoryProductInput(ctx, input); err != nil {
+	if err := s.validateAccessoryProductInput(ctx, input, nil); err != nil {
 		return nil, err
 	}
 	return s.repository.CreateProduct(ctx, input, actor)
@@ -194,7 +195,11 @@ func (s *AccessoryService) UpdateProduct(
 	if id == "" {
 		return nil, ErrAccessoryValidation
 	}
-	if err := s.validateAccessoryProductInput(ctx, input.CreateAccessoryProductInput); err != nil {
+	current, err := s.repository.GetProduct(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.validateAccessoryProductInput(ctx, input.CreateAccessoryProductInput, current); err != nil {
 		return nil, err
 	}
 	return s.repository.UpdateProduct(ctx, id, input, actor)
@@ -284,9 +289,24 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 func (s *AccessoryService) validateAccessoryProductInput(
 	ctx context.Context,
 	input CreateAccessoryProductInput,
+	current *AccessoryProduct,
 ) error {
 	if !validAccessoryProductInput(input) {
 		return ErrAccessoryValidation
+	}
+	typeUnchanged := current != nil && current.ArticleType == input.ArticleType
+	if !typeUnchanged {
+		active, err := s.repository.AccessoryArticleTypeActive(ctx, input.ArticleType)
+		if err != nil {
+			return err
+		}
+		if !active {
+			return ErrAccessoryValidation
+		}
+	}
+	subtypeUnchanged := typeUnchanged && current.Subtype == input.Subtype
+	if subtypeUnchanged {
+		return nil
 	}
 	active, err := s.repository.AccessorySubtypeActive(ctx, input.Subtype)
 	if err != nil {

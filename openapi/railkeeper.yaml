@@ -4103,7 +4103,7 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Reserve accessory stock or an individual asset
+      summary: Reserve accessory stock or an individual item
       description: Planner, Editor, or Admin role required.
       security:
         - sessionCookie: []
@@ -4213,7 +4213,7 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Install accessory stock or an individual asset
+      summary: Install accessory stock or an individual item
       description: Editor or Admin role required.
       security:
         - sessionCookie: []

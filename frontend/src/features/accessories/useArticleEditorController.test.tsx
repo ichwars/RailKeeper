@@ -56,6 +56,11 @@ const productionSubtype: MasterDataEntry = {
   active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
   updatedAt: "2026-08-08T08:00:00Z"
 };
+const productionArticleType: MasterDataEntry = {
+  id: "article-type-track", type: "article_type", key: "track", label: "Gleismaterial",
+  active: false, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -116,6 +121,26 @@ describe("useArticleEditorController", () => {
     await act(async () => result.current.retrySubtypeEntries());
     expect(result.current.subtypeEntriesError).toBe("");
     expect(result.current.subtypeEntries).toEqual([productionSubtype]);
+  });
+
+  it("loads article types including inactive entries and retries failures", async () => {
+    vi.mocked(api.masterData)
+      .mockImplementation(async (type) => type === "article_type" ? [productionArticleType] : []);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+    expect(api.masterData).toHaveBeenCalledWith("article_type");
+    expect(result.current.articleTypeEntries).toEqual([productionArticleType]);
+
+    vi.mocked(api.masterData).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => result.current.retryArticleTypeEntries());
+    expect(result.current.articleTypeEntriesError).toBe("Artikelarten konnten nicht geladen werden.");
+
+    vi.mocked(api.masterData).mockResolvedValueOnce([productionArticleType]);
+    await act(async () => result.current.retryArticleTypeEntries());
+    expect(result.current.articleTypeEntriesError).toBe("");
+    expect(result.current.articleTypeEntries).toEqual([productionArticleType]);
   });
 
   it("does not request asset resources or stale the editor for a quantity article", async () => {

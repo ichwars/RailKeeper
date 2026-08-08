@@ -28,6 +28,7 @@ export function AccessoriesView({
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
+  const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
   const { t } = useI18n();
 
   useEffect(() => {
@@ -35,6 +36,9 @@ export function AccessoriesView({
     let active = true;
     void api.masterData("accessory_subtype").then((entries) => {
       if (active) setSubtypeEntries(entries);
+    }).catch(() => undefined);
+    void api.masterData("article_type").then((entries) => {
+      if (active) setArticleTypeEntries(entries);
     }).catch(() => undefined);
     return () => { active = false; };
   }, [canRead]);
@@ -76,6 +80,7 @@ export function AccessoriesView({
         <ArticleToolbar
           filters={overview.filters}
           options={overview.data.filters}
+          articleTypeEntries={articleTypeEntries}
           resultCount={overview.data.items.length}
           hasActiveFilters={overview.hasActiveFilters}
           onFilterChange={overview.setFilter}
@@ -105,6 +110,7 @@ export function AccessoriesView({
         ) : (
           <ArticleTable
             items={overview.data.items}
+            articleTypeEntries={articleTypeEntries}
             subtypeEntries={subtypeEntries}
             sort={overview.sort}
             direction={overview.direction}
@@ -134,6 +140,9 @@ export function AccessoriesView({
         customFields={editor.customFields}
         customFieldsLoading={editor.customFieldsLoading}
         customFieldsError={editor.customFieldsError}
+        articleTypeEntries={editor.articleTypeEntries}
+        articleTypeEntriesLoading={editor.articleTypeEntriesLoading}
+        articleTypeEntriesError={editor.articleTypeEntriesError}
         subtypeEntries={editor.subtypeEntries}
         subtypeEntriesLoading={editor.subtypeEntriesLoading}
         subtypeEntriesError={editor.subtypeEntriesError}
@@ -154,6 +163,7 @@ export function AccessoriesView({
         onResourcesChanged={editor.refreshResources}
         onRetryResources={editor.retryResources}
         onRetryCustomFields={editor.retryCustomFields}
+        onRetryArticleTypeEntries={editor.retryArticleTypeEntries}
         onRetrySubtypeEntries={editor.retrySubtypeEntries}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}

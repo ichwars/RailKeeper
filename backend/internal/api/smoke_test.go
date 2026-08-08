@@ -157,6 +157,85 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/exhibition-lists", `{"designation":"Leipzig 2026","date":"2026-05-12"}`, messeSession, messeCookies, http.StatusForbidden)
 }
 
+func TestBackupRestoreRefreshesPrefilledMasterDataCache(t *testing.T) {
+	dataDir := t.TempDir()
+	db := testRouterDBWithDataDir(t, dataDir)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	masterData := application.NewMasterDataService(db)
+	backup := application.NewBackupService(db, dataDir)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin", Email: "admin@example.test", Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{
+		DataDir: dataDir, SetupService: setup, AuthService: auth,
+		MasterDataService: masterData, BackupService: backup,
+	})
+	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
+	active := true
+	if _, err := masterData.Update(t.Context(), "article_type", "track", application.MasterDataInput{
+		Label: "Restored track label", Active: &active,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	document, err := backup.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	backupBytes, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := masterData.Update(t.Context(), "article_type", "track", application.MasterDataInput{
+		Label: "Stale cached label", Active: &active,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := masterData.ListAll(t.Context(), false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := masterData.ListAll(t.Context(), true); err != nil {
+		t.Fatal(err)
+	}
+
+	doAuthedMultipart(t, router, "/api/v1/backup/restore", "railkeeper-backup.json", backupBytes,
+		session, cookies, http.StatusOK)
+
+	allResponse := doJSON(t, router, http.MethodGet, "/api/v1/master-data-all", "", cookies, http.StatusOK)
+	var all map[string][]application.MasterDataEntry
+	if err := json.NewDecoder(allResponse.Body).Decode(&all); err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataLabel(t, all["article_type"], "track", "Restored track label")
+
+	exported := doJSON(t, router, http.MethodGet, "/api/v1/master-data/export", "", cookies, http.StatusOK)
+	var masterDocument application.MasterDataDocument
+	if err := json.NewDecoder(exported.Body).Decode(&masterDocument); err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataLabel(t, masterDocument.Entries["article_type"], "track", "Restored track label")
+	cached, err := masterData.ListAll(t.Context(), false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataLabel(t, cached["article_type"], "track", "Restored track label")
+}
+
+func assertMasterDataLabel(t *testing.T, entries []application.MasterDataEntry, key, want string) {
+	t.Helper()
+	for _, entry := range entries {
+		if entry.Key == key {
+			if entry.Label != want {
+				t.Fatalf("master data %s label = %q, want %q", key, entry.Label, want)
+			}
+			return
+		}
+	}
+	t.Fatalf("master data %s missing", key)
+}
+
 func doJSON(t *testing.T, router http.Handler, method, target, body string, cookies []*http.Cookie, want int) *httptest.ResponseRecorder {
 	t.Helper()
 	request := httptest.NewRequest(method, target, bytes.NewBufferString(body))

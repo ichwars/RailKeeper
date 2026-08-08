@@ -50,16 +50,16 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if a.masterDataService != nil {
+		if err := a.masterDataService.RefreshCache(r.Context()); err != nil {
+			a.logger.Error("master data cache refresh after backup restore failed", "error", err)
+		}
+	}
 	if a.fileBlobs != nil {
 		if err := a.fileBlobs.MigrateFilesystemBlobs(r.Context()); err != nil {
 			a.logger.Error("backup restore blob migration failed", "error", err)
 			respondProblem(w, http.StatusInternalServerError, "backup_restore_failed", "Backup konnte nicht wiederhergestellt werden.")
 			return
-		}
-	}
-	if a.masterDataService != nil {
-		if err := a.masterDataService.WarmCache(r.Context()); err != nil {
-			a.logger.Error("master data cache refresh after backup restore failed", "error", err)
 		}
 	}
 	respondJSON(w, http.StatusOK, result)
@@ -143,7 +143,7 @@ func (a *App) importMasterData(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusInternalServerError, "master_data_import_failed", "Stammdaten konnten nicht importiert werden.")
 		return
 	}
-	if err := a.masterDataService.WarmCache(r.Context()); err != nil {
+	if err := a.masterDataService.RefreshCache(r.Context()); err != nil {
 		a.logger.Error("master data cache refresh after import failed", "error", err)
 	}
 	respondJSON(w, http.StatusOK, result)

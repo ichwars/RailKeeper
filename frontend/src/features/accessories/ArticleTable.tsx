@@ -9,10 +9,12 @@ import type {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { articleSubtypeLabel } from "./articleSubtypes";
+import { articleTypeLabel } from "./articleTypes";
 
 type ArticleTableProps = {
   items: AccessoryArticleListItem[];
   subtypeEntries?: MasterDataEntry[];
+  articleTypeEntries?: MasterDataEntry[];
   sort: AccessoryArticleSort;
   direction: AccessorySortDirection;
   canEdit: boolean;
@@ -34,6 +36,7 @@ const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
 export function ArticleTable({
   items,
   subtypeEntries = [],
+  articleTypeEntries = [],
   sort,
   direction,
   canEdit,
@@ -162,7 +165,7 @@ export function ArticleTable({
                   </div>}
                 </td>
                 <td>
-                  <strong>{t(`accessories.articleType.${article.articleType}`)}</strong>
+                  <strong>{articleTypeLabel(article.articleType, articleTypeEntries, t)}</strong>
                   <small>{article.subtype
                     ? articleSubtypeLabel(article.articleType, article.subtype, subtypeEntries, t)
                     : t("common.none")}</small>

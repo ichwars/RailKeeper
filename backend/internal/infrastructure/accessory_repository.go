@@ -100,6 +100,22 @@ SELECT EXISTS(
 	return active, nil
 }
 
+func (r *AccessoryRepository) AccessoryArticleTypeActive(
+	ctx context.Context,
+	key domain.AccessoryArticleType,
+) (bool, error) {
+	var active bool
+	if err := r.db.QueryRowContext(ctx, `
+SELECT EXISTS(
+  SELECT 1 FROM master_data_entries
+  WHERE type='article_type' AND key=? AND active=1
+)
+`, key).Scan(&active); err != nil {
+		return false, fmt.Errorf("check active accessory article type: %w", err)
+	}
+	return active, nil
+}
+
 func (r *AccessoryRepository) CreateProduct(
 	ctx context.Context,
 	input application.CreateAccessoryProductInput,

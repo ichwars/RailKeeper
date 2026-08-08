@@ -19,6 +19,30 @@ const subtypeEntries: MasterDataEntry[] = [
   { id: "signal", type: "accessory_subtype", key: "signal:main", label: "Main", active: true,
     sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }
 ];
+const articleTypeEntries: MasterDataEntry[] = [
+  { id: "track", type: "article_type", key: "track", label: "Track", active: true,
+    sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "signal", type: "article_type", key: "signal", label: "Signal", active: true,
+    sortOrder: 20, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "decoder", type: "article_type", key: "decoder", label: "Decoder", active: true,
+    sortOrder: 30, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "electrical_control", type: "article_type", key: "electrical_control", label: "Electrical control",
+    active: true, sortOrder: 40, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+    updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "building_equipment", type: "article_type", key: "building_equipment", label: "Building equipment",
+    active: true, sortOrder: 50, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+    updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "landscape_consumable", type: "article_type", key: "landscape_consumable",
+    label: "Landscape consumable", active: true, sortOrder: 60, metadata: {},
+    createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "lighting", type: "article_type", key: "lighting", label: "Lighting", active: true,
+    sortOrder: 70, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "other", type: "article_type", key: "other", label: "Other", active: true,
+    sortOrder: 80, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }
+];
+const configuredArticleTypeEntries = articleTypeEntries.map((entry) => entry.key === "signal"
+  ? { ...entry, label: "Formsignal" }
+  : entry.key === "decoder" ? { ...entry, active: false } : entry);
 
 const persistedArticle = {
   id: "article-1", manufacturer: "Tillig", articleNumber: "83101", name: "Gleis", category: "straight",
@@ -52,6 +76,9 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     customFields: [],
     customFieldsLoading: false,
     customFieldsError: "",
+    articleTypeEntries,
+    articleTypeEntriesLoading: false,
+    articleTypeEntriesError: "",
     subtypeEntries,
     subtypeEntriesLoading: false,
     subtypeEntriesError: "",
@@ -67,6 +94,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     onResourcesChanged: vi.fn(),
     onRetryResources: vi.fn(),
     onRetryCustomFields: vi.fn().mockResolvedValue(undefined),
+    onRetryArticleTypeEntries: vi.fn().mockResolvedValue(undefined),
     onRetrySubtypeEntries: vi.fn().mockResolvedValue(undefined),
     onSubdraftDirty: vi.fn(),
     ...overrides
@@ -88,6 +116,40 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("dialog", { name: "Artikel ansehen" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
+  });
+
+  it("uses active configured article types and keeps only the current inactive historical type", async () => {
+    const user = userEvent.setup();
+    const view = render(<ArticleEditorDialog {...props({ articleTypeEntries: configuredArticleTypeEntries })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    expect(screen.getByRole("option", { name: "Gleis" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Formsignal" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Decoder" })).not.toBeInTheDocument();
+
+    view.rerender(<ArticleEditorDialog {...props({
+      mode: "edit",
+      articleTypeEntries: configuredArticleTypeEntries,
+      article: { ...persistedArticle, articleType: "decoder", subtype: "decoder:locomotive" },
+      form: { ...emptyArticleEditorForm(), articleType: "decoder", subtype: "decoder:locomotive" },
+      activeTab: "subject"
+    })} />);
+    expect(screen.getByRole("tab", { name: "Fachangaben: Decoder" })).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Artikel" }));
+    view.rerender(<ArticleEditorDialog {...props({
+      mode: "edit",
+      articleTypeEntries: configuredArticleTypeEntries,
+      article: { ...persistedArticle, articleType: "decoder", subtype: "decoder:locomotive" },
+      form: { ...emptyArticleEditorForm(), articleType: "decoder", subtype: "decoder:locomotive" }
+    })} />);
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    expect(screen.getByRole("option", { name: "Decoder" })).toBeDisabled();
+
+    view.rerender(<ArticleEditorDialog {...props({
+      articleTypeEntries: configuredArticleTypeEntries,
+      form: { ...emptyArticleEditorForm(), articleType: "signal" }, activeTab: "subject"
+    })} />);
+    expect(screen.getByRole("tab", { name: "Fachangaben: Formsignal" })).toBeInTheDocument();
   });
 
   it("uses a controlled localized subtype select filtered by article type and preserves custom labels", async () => {

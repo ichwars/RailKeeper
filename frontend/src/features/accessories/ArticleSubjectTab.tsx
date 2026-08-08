@@ -18,6 +18,7 @@ import {
   type ArticleSubjectFieldDefinition,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
+import { articleTypeLabel } from "./articleTypes";
 
 type SubjectDefinition = ArticleSubjectFieldDefinition | CustomArticleSubjectFieldDefinition;
 
@@ -48,6 +49,7 @@ export function ArticleSubjectTab({
   active = true,
   customFieldEntries,
   customFields,
+  articleTypeEntries = [],
   loading = false,
   loadError: externalLoadError = "",
   subjectFieldErrors = {},
@@ -59,6 +61,7 @@ export function ArticleSubjectTab({
   active?: boolean;
   customFieldEntries?: readonly MasterDataEntry[];
   customFields?: readonly CustomArticleSubjectFieldDefinition[];
+  articleTypeEntries?: readonly MasterDataEntry[];
   loading?: boolean;
   loadError?: string;
   subjectFieldErrors?: Readonly<Record<string, string>>;
@@ -185,7 +188,9 @@ export function ArticleSubjectTab({
   };
 
   return <section className="article-editor-tab article-subject-tab" data-testid="article-subject-tab"
-    aria-label={t("accessories.editor.tabs.subject", { type: t(`accessories.articleType.${form.articleType}`) })}>
+    aria-label={t("accessories.editor.tabs.subject", {
+      type: articleTypeLabel(form.articleType, articleTypeEntries, t)
+    })}>
     {error ? <p className="form-message" role="alert">{error}</p> : null}
     {loading || loadingCustomFields ? <p className="loading-cell">{t("accessories.subject.customLoading")}</p> : null}
     {(!customFields && externalLoadError) || loadError

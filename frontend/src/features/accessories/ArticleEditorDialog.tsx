@@ -27,6 +27,7 @@ import {
   compatibleNumberDraftsForType,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
+import { articleTypeLabel } from "./articleTypes";
 
 export type ArticleEditorDialogProps = {
   mode: ArticleEditorMode;
@@ -44,6 +45,9 @@ export type ArticleEditorDialogProps = {
   customFields: readonly CustomArticleSubjectFieldDefinition[];
   customFieldsLoading: boolean;
   customFieldsError: string;
+  articleTypeEntries: MasterDataEntry[];
+  articleTypeEntriesLoading: boolean;
+  articleTypeEntriesError: string;
   subtypeEntries: MasterDataEntry[];
   subtypeEntriesLoading: boolean;
   subtypeEntriesError: string;
@@ -64,6 +68,7 @@ export type ArticleEditorDialogProps = {
   onResourcesChanged: () => Promise<void>;
   onRetryResources: () => Promise<void>;
   onRetryCustomFields: () => Promise<void>;
+  onRetryArticleTypeEntries: () => Promise<void>;
   onRetrySubtypeEntries: () => Promise<void>;
   onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
@@ -88,13 +93,14 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const title = props.mode === "create"
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
+  const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
   const tabs: Array<{ key: ArticleEditorTab; label: string; subject?: boolean }> = [
     { key: "article", label: t("accessories.editor.tabs.article") },
     { key: "stock", label: t("accessories.editor.tabs.stock") },
     { key: "purchaseDocuments", label: t("accessories.editor.tabs.purchaseDocuments") },
     {
       key: "subject",
-      label: t("accessories.editor.tabs.subject", { type: t(`accessories.articleType.${props.form.articleType}`) }),
+      label: t("accessories.editor.tabs.subject", { type: configuredArticleTypeLabel }),
       subject: true
     },
     ...(props.hasUsageHistory
@@ -216,8 +222,10 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
-              disabled={readOnly} articleTypeDisabled={props.customFieldsLoading}
+              disabled={readOnly} articleTypeDisabled={props.customFieldsLoading ||
+                props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)}
               otherArticleTypeDisabled={Boolean(props.customFieldsError)}
+              articleTypeEntries={props.articleTypeEntries}
               subtypeEntries={props.subtypeEntries}
               subtypeEntriesLoading={props.subtypeEntriesLoading}
               subtypeEntriesError={props.subtypeEntriesError}
@@ -243,6 +251,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
             <ArticleSubjectTab form={props.form} disabled={readOnly} error={props.fieldErrors.attributes}
               active={props.activeTab === "subject"} customFields={props.customFields}
+              articleTypeEntries={props.articleTypeEntries}
               loading={props.customFieldsLoading} loadError={props.customFieldsError}
               subjectFieldErrors={props.subjectFieldErrors} onChange={props.onChange} />
           </div>
@@ -265,6 +274,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
             onClick={() => void props.onRetryCustomFields().catch(() => undefined)}>
             {t("accessories.editor.retryCustomFields")}</button>
         </div> : null}
+        {props.articleTypeEntriesError ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{props.articleTypeEntriesError}</p>
+          <button type="button" className="secondary-button" disabled={props.articleTypeEntriesLoading}
+            onClick={() => void props.onRetryArticleTypeEntries().catch(() => undefined)}>
+            {t("accessories.editor.articleTypes.retry")}</button>
+        </div> : null}
         {props.subtypeEntriesError ? <div className="article-editor-resource-error">
           <p className="form-message" role="alert">{props.subtypeEntriesError}</p>
           <button type="button" className="secondary-button" disabled={props.subtypeEntriesLoading}
@@ -278,7 +293,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </button>
         {!readOnly ? <button type="button" className="primary-button"
           disabled={props.saving || props.loading || (props.form.articleType === "other" &&
-            (props.customFieldsLoading || Boolean(props.customFieldsError)))}
+            (props.customFieldsLoading || Boolean(props.customFieldsError))) ||
+            ((props.mode === "create" || props.article?.articleType !== props.form.articleType) &&
+              (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)))}
           onClick={() => void props.onSubmit()}>
           {props.saving ? t("common.saving") : props.mode === "create"
             ? t("accessories.editor.createAction") : t("accessories.editor.saveAction")}

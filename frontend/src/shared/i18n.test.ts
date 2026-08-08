@@ -50,7 +50,7 @@ describe("i18n", () => {
       .map(([, value]) => value)
       .join("\n");
 
-    expect(accessoryValues(enTranslations)).not.toMatch(/individual assets?/i);
+    expect(accessoryValues(enTranslations)).not.toMatch(/individual (?:assets?|tracked devices)/i);
     expect(accessoryValues(deTranslations)).not.toMatch(/Einzelobjekt/i);
   });
 });

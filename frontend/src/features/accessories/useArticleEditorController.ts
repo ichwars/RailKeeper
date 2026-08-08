@@ -98,6 +98,9 @@ export function useArticleEditorController({
   const [customFields, setCustomFields] = useState<CustomArticleSubjectFieldDefinition[]>([]);
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldsError, setCustomFieldsError] = useState("");
+  const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
+  const [articleTypeEntriesLoading, setArticleTypeEntriesLoading] = useState(false);
+  const [articleTypeEntriesError, setArticleTypeEntriesError] = useState("");
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const [subtypeEntriesLoading, setSubtypeEntriesLoading] = useState(false);
   const [subtypeEntriesError, setSubtypeEntriesError] = useState("");
@@ -180,6 +183,19 @@ export function useArticleEditorController({
     }
   }, [isCurrent, t]);
 
+  const loadArticleTypeEntries = useCallback(async (generation: number) => {
+    setArticleTypeEntriesLoading(true);
+    setArticleTypeEntriesError("");
+    try {
+      const entries = await api.masterData("article_type");
+      if (isCurrent(generation)) setArticleTypeEntries(entries);
+    } catch {
+      if (isCurrent(generation)) setArticleTypeEntriesError(t("accessories.editor.articleTypes.loadError"));
+    } finally {
+      if (isCurrent(generation)) setArticleTypeEntriesLoading(false);
+    }
+  }, [isCurrent, t]);
+
   const loadResources = useCallback(async (
     loadedArticle: AccessoryArticle,
     generation: number,
@@ -220,6 +236,7 @@ export function useArticleEditorController({
     resetTransientState();
     setIsOpen(true);
     void loadCustomFields(generation);
+    void loadArticleTypeEntries(generation);
     void loadSubtypeEntries(generation);
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
@@ -246,6 +263,7 @@ export function useArticleEditorController({
     setIsOpen(true);
     setLoading(true);
     void loadCustomFields(generation);
+    void loadArticleTypeEntries(generation);
     void loadSubtypeEntries(generation);
     void api.accessoryArticle(id).then((loaded) => {
       if (!isCurrent(generation)) return;
@@ -310,6 +328,9 @@ export function useArticleEditorController({
     setCustomFields([]);
     setCustomFieldsLoading(false);
     setCustomFieldsError("");
+    setArticleTypeEntries([]);
+    setArticleTypeEntriesLoading(false);
+    setArticleTypeEntriesError("");
     setSubtypeEntries([]);
     setSubtypeEntriesLoading(false);
     setSubtypeEntriesError("");
@@ -424,6 +445,10 @@ export function useArticleEditorController({
     await loadSubtypeEntries(generationRef.current);
   };
 
+  const retryArticleTypeEntries = async () => {
+    await loadArticleTypeEntries(generationRef.current);
+  };
+
   const setSubdraftDirty = (scope: string, dirty: boolean) => {
     setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
@@ -440,6 +465,9 @@ export function useArticleEditorController({
     customFields,
     customFieldsLoading,
     customFieldsError,
+    articleTypeEntries,
+    articleTypeEntriesLoading,
+    articleTypeEntriesError,
     subtypeEntries,
     subtypeEntriesLoading,
     subtypeEntriesError,
@@ -469,6 +497,7 @@ export function useArticleEditorController({
     refreshResources,
     retryResources,
     retryCustomFields,
+    retryArticleTypeEntries,
     retrySubtypeEntries,
     setSubdraftDirty
   };

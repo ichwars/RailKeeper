@@ -136,6 +136,25 @@ func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	if strings.Contains(contract, "individual asset") {
+		t.Fatal("OpenAPI still exposes the obsolete individual asset terminology")
+	}
+	for _, summary := range []string{
+		"summary: Reserve accessory stock or an individual item",
+		"summary: Install accessory stock or an individual item",
+	} {
+		if !strings.Contains(contract, summary) {
+			t.Errorf("OpenAPI is missing %q", summary)
+		}
+	}
+}
+
 func TestOpenAPIArticlePathInventoryMatchesRegisteredRoutes(t *testing.T) {
 	operations := readOpenAPIOperations(t)
 	registered := map[string]map[string]bool{}

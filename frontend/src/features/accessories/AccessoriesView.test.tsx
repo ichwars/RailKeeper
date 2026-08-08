@@ -60,6 +60,19 @@ const straightSubtype: MasterDataEntry = {
   active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
   updatedAt: "2026-08-08T08:00:00Z"
 };
+const renamedInactiveTrackType: MasterDataEntry = {
+  id: "article-type-track", type: "article_type", key: "track", label: "Gleismaterial", active: false,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+};
+const standardArticleTypes: MasterDataEntry[] = [
+  ["track", "Track"], ["signal", "Signal"], ["decoder", "Decoder"],
+  ["electrical_control", "Electrical control"], ["building_equipment", "Building equipment"],
+  ["landscape_consumable", "Landscape consumable"], ["lighting", "Lighting"], ["other", "Other"]
+].map(([key, label], index) => ({
+  id: `article-type-${key}`, type: "article_type", key: key!, label: label!, active: true,
+  sortOrder: (index + 1) * 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+}));
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -72,7 +85,8 @@ describe("AccessoriesView", () => {
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
-      type === "accessory_subtype" ? [straightSubtype] : []);
+      type === "accessory_subtype" ? [straightSubtype]
+        : type === "article_type" ? standardArticleTypes : []);
     vi.spyOn(api, "archiveAccessoryProduct").mockResolvedValue({} as never);
     vi.spyOn(api, "restoreAccessoryProduct").mockResolvedValue({} as never);
   });
@@ -103,6 +117,18 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Viewer"]} />);
     expect(await screen.findByText("1 article · 1 type")).toBeInTheDocument();
     setLanguage("de");
+  });
+
+  it("uses renamed inactive result types in the table and filter", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.masterData).mockImplementation(async (type) =>
+      type === "accessory_subtype" ? [straightSubtype]
+        : type === "article_type" ? [renamedInactiveTrackType] : []);
+    render(<AccessoriesView roles={["Viewer"]} />);
+
+    expect(await screen.findByText("Gleismaterial")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    expect(screen.getByRole("option", { name: "Gleismaterial" })).toBeInTheDocument();
   });
 
   it("searches instantly, maps every visible filter, and resets them", async () => {
@@ -300,7 +326,8 @@ describe("AccessoriesView", () => {
     vi.mocked(api.accessoryArticles).mockImplementation(async () => currentOverview());
     vi.mocked(api.storageLocations).mockResolvedValue([location]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
-      type === "accessory_subtype" ? [straightSubtype] : []);
+      type === "accessory_subtype" ? [straightSubtype]
+        : type === "article_type" ? standardArticleTypes : []);
     vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
     vi.spyOn(api, "createAccessoryArticle").mockImplementation(async (input) => {
       article = {

@@ -87,12 +87,25 @@ func NewMasterDataService(db *sql.DB) *MasterDataService {
 }
 
 func (s *MasterDataService) WarmCache(ctx context.Context) error {
-	if _, err := s.ListAll(ctx, false); err != nil {
+	return s.RefreshCache(ctx)
+}
+
+func (s *MasterDataService) RefreshCache(ctx context.Context) error {
+	s.invalidateCache()
+	allEntries, err := s.loadAll(ctx, false)
+	if err != nil {
 		return err
 	}
-	if _, err := s.ListAll(ctx, true); err != nil {
+	activeEntries, err := s.loadAll(ctx, true)
+	if err != nil {
 		return err
 	}
+	s.cacheMu.Lock()
+	s.cache = map[bool]map[string][]MasterDataEntry{
+		false: cloneMasterDataMap(allEntries),
+		true:  cloneMasterDataMap(activeEntries),
+	}
+	s.cacheMu.Unlock()
 	return nil
 }
 
@@ -141,6 +154,19 @@ func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[s
 	}
 	s.cacheMu.RUnlock()
 
+	out, err := s.loadAll(ctx, activeOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	s.cacheMu.Lock()
+	s.cache[activeOnly] = cloneMasterDataMap(out)
+	s.cacheMu.Unlock()
+
+	return cloneMasterDataMap(out), nil
+}
+
+func (s *MasterDataService) loadAll(ctx context.Context, activeOnly bool) (map[string][]MasterDataEntry, error) {
 	query := `
 SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
 FROM master_data_entries`
@@ -167,11 +193,7 @@ FROM master_data_entries`
 		return nil, fmt.Errorf("iterate all master data: %w", err)
 	}
 
-	s.cacheMu.Lock()
-	s.cache[activeOnly] = cloneMasterDataMap(out)
-	s.cacheMu.Unlock()
-
-	return cloneMasterDataMap(out), nil
+	return out, nil
 }
 
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {

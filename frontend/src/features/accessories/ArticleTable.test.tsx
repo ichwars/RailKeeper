@@ -40,6 +40,10 @@ const subtypes: MasterDataEntry[] = [{
   id: "custom", type: "accessory_subtype", key: "track:club_profile", label: "Club profile", active: true,
   sortOrder: 20, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
 }];
+const articleTypes: MasterDataEntry[] = [{
+  id: "track", type: "article_type", key: "track", label: "Gleismaterial", active: false,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}];
 
 describe("ArticleTable", () => {
   it("renders the exact approved columns and semantic sortable headers", async () => {
@@ -100,6 +104,14 @@ describe("ArticleTable", () => {
       canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
     expect(screen.getByText("Werkstattgerade")).toBeInTheDocument();
     setLanguage("de");
+  });
+
+  it("uses the configured article type label even when the result type is inactive", () => {
+    render(<ArticleTable items={[article]} articleTypeEntries={articleTypes} sort="article" direction="asc"
+      canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
+
+    expect(screen.getByText("Gleismaterial")).toBeInTheDocument();
+    expect(screen.queryByText("Gleis")).not.toBeInTheDocument();
   });
 
   it("localizes canonical subtype keys returned by the backend", () => {
