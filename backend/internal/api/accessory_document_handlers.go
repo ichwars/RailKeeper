@@ -220,7 +220,7 @@ func parseOptionalAccessoryBoolean(value string) (bool, bool) {
 func normalizeAccessoryDocumentMime(fileName string, data []byte) (string, bool) {
 	switch strings.ToLower(filepath.Ext(fileName)) {
 	case ".json":
-		return "application/json", json.Valid(data)
+		return "application/json", utf8.Valid(data) && json.Valid(data)
 	case ".csv":
 		if !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0 || json.Valid(data) || validAccessoryXML(data) {
 			return "", false

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -303,6 +304,49 @@ func TestAccessoryArticleListRejectsInvalidRawGaugeValues(t *testing.T) {
 	legitimate := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
 		"/api/v1/accessory-products?gauge=Schmalspur%20(750%20mm)", nil, true)
 	assertStatus(t, legitimate, http.StatusOK)
+}
+
+func TestAccessoryArticleListRejectsInvalidRawScalarFilters(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	filters := []struct {
+		name      string
+		parameter string
+		maxRunes  int
+	}{
+		{name: "query", parameter: "query", maxRunes: 200},
+		{name: "manufacturer", parameter: "manufacturer", maxRunes: 200},
+		{name: "location", parameter: "locationId", maxRunes: 128},
+	}
+	for _, filter := range filters {
+		filter := filter
+		t.Run(filter.name, func(t *testing.T) {
+			tests := map[string]string{
+				"repeated":      filter.parameter + "=first&" + filter.parameter + "=second",
+				"empty":         filter.parameter + "=",
+				"whitespace":    filter.parameter + "=%20%20",
+				"invalid UTF-8": filter.parameter + "=%FF",
+				"control":       filter.parameter + "=%0A",
+				"too long":      filter.parameter + "=" + url.QueryEscape(strings.Repeat("Ä", filter.maxRunes+1)),
+			}
+			for name, rawQuery := range tests {
+				t.Run(name, func(t *testing.T) {
+					response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+						"/api/v1/accessory-products?"+rawQuery, nil, true)
+					assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
+				})
+			}
+		})
+	}
+
+	for _, rawQuery := range []string{
+		"query=" + url.QueryEscape("Märklin Übergang"),
+		"manufacturer=" + url.QueryEscape("Česká železnice"),
+		"locationId=" + url.QueryEscape("Lager Süd"),
+	} {
+		response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+			"/api/v1/accessory-products?"+rawQuery, nil, true)
+		assertStatus(t, response, http.StatusOK)
+	}
 }
 
 func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividualization(t *testing.T) {

@@ -2975,8 +2975,14 @@ paths:
       parameters:
         - name: query
           in: query
+          description: >-
+            Optional free-text filter. When present, it must be supplied at most once. Its raw value
+            must contain no more than 200 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
           schema:
             type: string
+            minLength: 1
+            maxLength: 200
         - name: articleType
           in: query
           style: form
@@ -2987,12 +2993,19 @@ paths:
               $ref: "#/components/schemas/AccessoryArticleType"
         - name: gauge
           in: query
+          description: >-
+            Repeatable gauge labels. Each raw label must contain no more than 128 Unicode characters
+            and must not contain control characters; after trimming, at least one character must remain.
           style: form
           explode: true
           schema:
             type: array
             items:
               type: string
+              minLength: 1
+              maxLength: 128
+              description: >-
+                A gauge label of 1 to 128 Unicode characters that must not contain control characters.
         - name: status
           in: query
           style: form
@@ -3004,12 +3017,24 @@ paths:
               enum: [available, reserved, installed, maintenance_due, defective, archived]
         - name: manufacturer
           in: query
+          description: >-
+            Optional manufacturer filter. When present, it must be supplied at most once. Its raw value
+            must contain no more than 200 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
           schema:
             type: string
+            minLength: 1
+            maxLength: 200
         - name: locationId
           in: query
+          description: >-
+            Optional storage-location filter. When present, it must be supplied at most once. Its raw
+            value must contain no more than 128 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
           schema:
             type: string
+            minLength: 1
+            maxLength: 128
         - name: sort
           in: query
           schema:

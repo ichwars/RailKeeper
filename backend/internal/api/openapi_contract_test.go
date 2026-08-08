@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -149,6 +150,52 @@ func TestOpenAPIArticleSchemasMatchRuntimeSemantics(t *testing.T) {
 			t.Errorf("document download contract is missing %s", contentType)
 		}
 	}
+}
+
+func TestOpenAPIArticleListDocumentsValidatedStringFilters(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	articleList := openAPIIndentedBlock(t, string(data), "/accessory-products", 2)
+	for _, expectation := range []struct {
+		name      string
+		maxLength int
+		scalar    bool
+	}{
+		{name: "query", maxLength: 200, scalar: true},
+		{name: "manufacturer", maxLength: 200, scalar: true},
+		{name: "locationId", maxLength: 128, scalar: true},
+		{name: "gauge", maxLength: 128},
+	} {
+		parameter := openAPIParameterBlock(t, articleList, expectation.name)
+		for _, fragment := range []string{
+			"minLength: 1", fmt.Sprintf("maxLength: %d", expectation.maxLength),
+			"must not contain control characters",
+		} {
+			if !strings.Contains(parameter, fragment) {
+				t.Errorf("%s parameter is missing %q: %s", expectation.name, fragment, parameter)
+			}
+		}
+		if expectation.scalar && !strings.Contains(parameter, "must be supplied at most once") {
+			t.Errorf("%s parameter does not document scalar cardinality: %s", expectation.name, parameter)
+		}
+	}
+}
+
+func openAPIParameterBlock(t *testing.T, operation, name string) string {
+	t.Helper()
+	marker := "        - name: " + name + "\n"
+	start := strings.Index(operation, marker)
+	if start < 0 {
+		t.Fatalf("OpenAPI parameter %s is missing", name)
+	}
+	remainder := operation[start+len(marker):]
+	end := strings.Index(remainder, "        - name: ")
+	if end < 0 {
+		end = len(remainder)
+	}
+	return marker + remainder[:end]
 }
 
 func openAPIIndentedBlock(t *testing.T, contract, heading string, indent int) string {

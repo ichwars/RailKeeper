@@ -155,6 +155,27 @@ func TestAccessoryDocumentUploadNormalizesContentAwareTextFormats(t *testing.T) 
 	}
 }
 
+func TestAccessoryDocumentUploadRejectsInvalidUTF8JSONBeforeBlobStorage(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	var before int
+	if err := fixture.db.QueryRow(`SELECT COUNT(*) FROM file_blobs`).Scan(&before); err != nil {
+		t.Fatal(err)
+	}
+	invalidUTF8JSON := append([]byte(`{"value":"`), 0xff)
+	invalidUTF8JSON = append(invalidUTF8JSON, []byte(`"}`)...)
+	response := accessoryMultipartRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost,
+		"/api/v1/accessory-products/"+fixture.product.ID+"/documents", "invalid.json", invalidUTF8JSON,
+		map[string]string{"category": "data_sheet"}, true)
+	assertProblem(t, response, http.StatusUnsupportedMediaType, "accessory_document_type_unsupported")
+	var after int
+	if err := fixture.db.QueryRow(`SELECT COUNT(*) FROM file_blobs`).Scan(&after); err != nil {
+		t.Fatal(err)
+	}
+	if after != before {
+		t.Fatalf("file blob count changed after invalid UTF-8 JSON: before=%d after=%d", before, after)
+	}
+}
+
 func TestAccessoryDocumentUploadCleansBlobWhenProductIsMissing(t *testing.T) {
 	fixture := newAccessoryAPIFixture(t, 1024*1024)
 	var before int

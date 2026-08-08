@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/domain"
@@ -11,6 +15,27 @@ import (
 
 func (a *App) listAccessoryProducts(w http.ResponseWriter, r *http.Request) {
 	values := r.URL.Query()
+	query, valid := parseAccessoryArticleListQuery(values)
+	if !valid {
+		a.accessoryError(w, application.ErrAccessoryValidation, "list accessory products")
+		return
+	}
+	products, err := a.accessoryService.ListArticles(r.Context(), query)
+	if err != nil {
+		a.accessoryError(w, err, "list accessory products")
+		return
+	}
+	respondJSON(w, http.StatusOK, products)
+}
+
+func parseAccessoryArticleListQuery(values url.Values) (application.AccessoryArticleListQuery, bool) {
+	query, validQuery := parseAccessoryArticleScalar(values, "query", 200)
+	manufacturer, validManufacturer := parseAccessoryArticleScalar(values, "manufacturer", 200)
+	locationID, validLocationID := parseAccessoryArticleScalar(values, "locationId", 128)
+	if !validQuery || !validManufacturer || !validLocationID {
+		return application.AccessoryArticleListQuery{}, false
+	}
+
 	articleTypes := make([]domain.AccessoryArticleType, len(values["articleType"]))
 	for index, value := range values["articleType"] {
 		articleTypes[index] = domain.AccessoryArticleType(value)
@@ -19,21 +44,32 @@ func (a *App) listAccessoryProducts(w http.ResponseWriter, r *http.Request) {
 	for index, value := range values["status"] {
 		statuses[index] = application.AccessoryArticleStatus(value)
 	}
-	products, err := a.accessoryService.ListArticles(r.Context(), application.AccessoryArticleListQuery{
-		Query:        values.Get("query"),
+	return application.AccessoryArticleListQuery{
+		Query:        query,
 		ArticleTypes: articleTypes,
 		Gauges:       values["gauge"],
 		Statuses:     statuses,
-		Manufacturer: values.Get("manufacturer"),
-		LocationID:   values.Get("locationId"),
+		Manufacturer: manufacturer,
+		LocationID:   locationID,
 		Sort:         values.Get("sort"),
 		Direction:    values.Get("direction"),
-	})
-	if err != nil {
-		a.accessoryError(w, err, "list accessory products")
-		return
+	}, true
+}
+
+func parseAccessoryArticleScalar(values url.Values, name string, maxRunes int) (string, bool) {
+	rawValues, present := values[name]
+	if !present {
+		return "", true
 	}
-	respondJSON(w, http.StatusOK, products)
+	if len(rawValues) != 1 {
+		return "", false
+	}
+	rawValue := rawValues[0]
+	if !utf8.ValidString(rawValue) || strings.TrimSpace(rawValue) == "" ||
+		utf8.RuneCountInString(rawValue) > maxRunes || strings.IndexFunc(rawValue, unicode.IsControl) >= 0 {
+		return "", false
+	}
+	return strings.TrimSpace(rawValue), true
 }
 
 func (a *App) checkAccessoryProductDuplicates(w http.ResponseWriter, r *http.Request) {
