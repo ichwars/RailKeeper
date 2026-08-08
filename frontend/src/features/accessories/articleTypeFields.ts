@@ -22,6 +22,8 @@ export type CustomArticleSubjectFieldDefinition = Omit<ArticleSubjectFieldDefini
   label: string;
 };
 
+export type ArticleSubjectValidationIssue = "invalidValue" | "invalidOption" | "invalidStep";
+
 const field = (
   key: string,
   kind: ArticleSubjectFieldKind,
@@ -188,19 +190,59 @@ export function compatibleNumberDraftsForType(
 export function subjectValuesAreValid(
   articleType: AccessoryArticleType,
   attributes: readonly AccessoryAttributeValue[],
-  numberDrafts: Readonly<Record<string, string>>
+  numberDrafts: Readonly<Record<string, string>>,
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
 ): boolean {
-  const definitions = new Map(articleTypeFieldRegistry[articleType].map((definition) => [definition.key, definition]));
-  if (articleType !== "other" && attributes.some((attribute) => definitions.get(attribute.key)?.kind !== attribute.kind)) {
-    return false;
+  return Object.keys(subjectValidationIssues(articleType, attributes, numberDrafts, customFields)).length === 0;
+}
+
+function numericIssue(
+  value: number,
+  definition: ArticleSubjectFieldDefinition | CustomArticleSubjectFieldDefinition
+): ArticleSubjectValidationIssue | undefined {
+  if (!Number.isFinite(value) || (definition.min !== undefined && value < definition.min) ||
+      (definition.max !== undefined && value > definition.max)) return "invalidValue";
+  if (definition.step === undefined) return undefined;
+  const quotient = (value - (definition.min ?? 0)) / definition.step;
+  const tolerance = 1e-9 * Math.max(1, Math.abs(quotient));
+  return Math.abs(quotient - Math.round(quotient)) <= tolerance ? undefined : "invalidStep";
+}
+
+export function subjectValidationIssues(
+  articleType: AccessoryArticleType,
+  attributes: readonly AccessoryAttributeValue[],
+  numberDrafts: Readonly<Record<string, string>>,
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+): Record<string, ArticleSubjectValidationIssue> {
+  const definitions = new Map(fieldDefinitionsForType(articleType, customFields)
+    .map((definition) => [definition.key, definition]));
+  const issues: Record<string, ArticleSubjectValidationIssue> = {};
+  for (const attribute of attributes) {
+    const definition = definitions.get(attribute.key);
+    if (!definition || definition.kind !== attribute.kind) {
+      issues[attribute.key] = "invalidValue";
+      continue;
+    }
+    if (attribute.kind === "single_select" || attribute.kind === "multi_select") {
+      const allowed = new Set(definition.options || []);
+      const values = attribute.optionValues;
+      if (values.length === 0 || (attribute.kind === "single_select" && values.length !== 1) ||
+          values.some((option) => !allowed.has(option)) ||
+          new Set(values).size !== values.length) issues[attribute.key] = "invalidOption";
+    } else if (attribute.kind === "number" && !(attribute.key in numberDrafts)) {
+      const issue = numericIssue(attribute.numberValue, definition);
+      if (issue) issues[attribute.key] = issue;
+    }
   }
-  return Object.entries(numberDrafts).every(([key, draft]) => {
-    if (draft.trim() === "") return true;
-    const numberValue = Number(draft.replace(",", "."));
-    if (!Number.isFinite(numberValue)) return false;
+  for (const [key, draft] of Object.entries(numberDrafts)) {
+    if (draft.trim() === "") continue;
     const definition = definitions.get(key);
-    return (articleType === "other" || definition?.kind === "number") &&
-      (definition?.min === undefined || numberValue >= definition.min) &&
-      (definition?.max === undefined || numberValue <= definition.max);
-  });
+    if (!definition || definition.kind !== "number") {
+      issues[key] = "invalidValue";
+      continue;
+    }
+    const issue = numericIssue(Number(draft.replace(",", ".")), definition);
+    if (issue) issues[key] = issue;
+  }
+  return issues;
 }

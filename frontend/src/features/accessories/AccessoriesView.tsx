@@ -117,6 +117,10 @@ export function AccessoriesView({
         resourceError={editor.resourceError}
         fieldErrors={editor.fieldErrors}
         tabErrors={editor.tabErrors}
+        subjectFieldErrors={editor.subjectFieldErrors}
+        customFields={editor.customFields}
+        customFieldsLoading={editor.customFieldsLoading}
+        customFieldsError={editor.customFieldsError}
         duplicateCandidates={editor.duplicateCandidates}
         closeConfirmationOpen={editor.closeConfirmationOpen}
         permissions={editor.permissions}

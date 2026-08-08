@@ -31,6 +31,10 @@ import {
   type ArticleEditorTabErrors
 } from "./articleEditorModel";
 import { fetchArticleEditorResourcePatch } from "./articleEditorResources";
+import {
+  customFieldDefinitions,
+  type CustomArticleSubjectFieldDefinition
+} from "./articleTypeFields";
 
 export type ArticleEditorPermissions = {
   canEdit: boolean;
@@ -89,6 +93,10 @@ export function useArticleEditorController({
   const [activeTab, setActiveTab] = useState<ArticleEditorTab>("article");
   const [fieldErrors, setFieldErrors] = useState<ArticleEditorFieldErrors>({});
   const [tabErrors, setTabErrors] = useState<ArticleEditorTabErrors>({});
+  const [subjectFieldErrors, setSubjectFieldErrors] = useState<Record<string, string>>({});
+  const [customFields, setCustomFields] = useState<CustomArticleSubjectFieldDefinition[]>([]);
+  const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
+  const [customFieldsError, setCustomFieldsError] = useState("");
   const [duplicateCandidates, setDuplicateCandidates] = useState<AccessoryDuplicateCandidate[]>([]);
   const [closeConfirmationOpen, setCloseConfirmationOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -130,6 +138,7 @@ export function useArticleEditorController({
     setActiveTab("article");
     setFieldErrors({});
     setTabErrors({});
+    setSubjectFieldErrors({});
     setDuplicateCandidates([]);
     setDuplicateDraft(null);
     setSubdraftDirtyState({});
@@ -140,6 +149,18 @@ export function useArticleEditorController({
 
   const isCurrent = useCallback((generation: number) =>
     mountedRef.current && generationRef.current === generation, []);
+
+  const loadCustomFields = useCallback((generation: number) => {
+    setCustomFieldsLoading(true);
+    setCustomFieldsError("");
+    void api.masterData("accessory_custom_field", true).then((entries) => {
+      if (isCurrent(generation)) setCustomFields(customFieldDefinitions(entries));
+    }).catch(() => {
+      if (isCurrent(generation)) setCustomFieldsError(t("accessories.subject.customLoadError"));
+    }).finally(() => {
+      if (isCurrent(generation)) setCustomFieldsLoading(false);
+    });
+  }, [isCurrent, t]);
 
   const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
     const request = ++resourceRequestRef.current;
@@ -176,6 +197,7 @@ export function useArticleEditorController({
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
     setIsOpen(true);
+    loadCustomFields(generation);
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
     }).catch((reason) => {
@@ -200,6 +222,7 @@ export function useArticleEditorController({
     setResourcesStale(false);
     setIsOpen(true);
     setLoading(true);
+    loadCustomFields(generation);
     void api.accessoryArticle(id).then((loaded) => {
       if (!isCurrent(generation)) return;
       const next = articleToEditorForm(loaded);
@@ -219,12 +242,25 @@ export function useArticleEditorController({
     if (saving || duplicateCandidates.length > 0) return;
     const nextForm = { ...form, ...patch };
     setForm(nextForm);
+    const validation = validateArticleEditorForm(nextForm, {
+      required: t("accessories.editor.validation.required"),
+      positive: t("accessories.editor.validation.positive"),
+      nonnegative: t("accessories.editor.validation.nonnegative"),
+      invalidSubject: t("accessories.editor.validation.invalidSubject"),
+      invalidOption: t("accessories.editor.validation.invalidOption"),
+      invalidStep: t("accessories.editor.validation.invalidStep")
+    }, customFields);
     setFieldErrors((current) => {
       const next = { ...current };
       Object.keys(patch).forEach((key) => delete next[key as keyof ArticleEditorForm]);
+      if (current.attributes) {
+        if (validation.fieldErrors.attributes) next.attributes = validation.fieldErrors.attributes;
+        else delete next.attributes;
+      }
       return next;
     });
-    const validation = validateArticleEditorForm(nextForm);
+    setSubjectFieldErrors((current) => Object.keys(current).length > 0
+      ? validation.subjectFieldErrors : current);
     setTabErrors((current) => {
       const next = { ...current };
       (Object.keys(current) as ArticleEditorTab[]).forEach((tab) => {
@@ -246,6 +282,9 @@ export function useArticleEditorController({
     setLoading(false);
     setResources(emptyResources());
     setResourcesStale(false);
+    setCustomFields([]);
+    setCustomFieldsLoading(false);
+    setCustomFieldsError("");
   };
 
   const requestClose = () => {
@@ -265,7 +304,7 @@ export function useArticleEditorController({
     setSaving(true);
     setError("");
     try {
-      const input = articleEditorWriteInput(draft);
+      const input = articleEditorWriteInput(draft, customFields);
       const saved = mode === "edit" && article
         ? await api.updateAccessoryArticle(article.id, input)
         : await api.createAccessoryArticle(input);
@@ -289,10 +328,13 @@ export function useArticleEditorController({
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
       nonnegative: t("accessories.editor.validation.nonnegative"),
-      invalidSubject: t("accessories.editor.validation.invalidSubject")
-    });
+      invalidSubject: t("accessories.editor.validation.invalidSubject"),
+      invalidOption: t("accessories.editor.validation.invalidOption"),
+      invalidStep: t("accessories.editor.validation.invalidStep")
+    }, customFields);
     setFieldErrors(validation.fieldErrors);
     setTabErrors(validation.tabErrors);
+    setSubjectFieldErrors(validation.subjectFieldErrors);
     const firstInvalidTab = (["article", "stock", "purchaseDocuments", "subject"] as const)
       .find((tab) => validation.tabErrors[tab]);
     if (firstInvalidTab) {
@@ -355,6 +397,10 @@ export function useArticleEditorController({
     activeTab,
     fieldErrors,
     tabErrors,
+    subjectFieldErrors,
+    customFields,
+    customFieldsLoading,
+    customFieldsError,
     duplicateCandidates,
     closeConfirmationOpen,
     loading,

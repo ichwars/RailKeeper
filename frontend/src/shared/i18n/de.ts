@@ -1596,6 +1596,8 @@ export const deTranslations: Record<string, string> = {
     "accessories.editor.validation.positive": "Muss größer als 0 sein",
     "accessories.editor.validation.nonnegative": "Darf nicht negativ sein",
     "accessories.editor.validation.invalidSubject": "Fachwert ist ungültig",
+    "accessories.editor.validation.invalidOption": "Auswahl ist ungültig",
+    "accessories.editor.validation.invalidStep": "Wert entspricht nicht der Schrittweite",
     "accessories.editor.fields.ean": "EAN oder GTIN",
     "accessories.editor.fields.productImage": "Produktbild",
     "accessories.editor.fields.noProductImage": "Kein Produktbild",

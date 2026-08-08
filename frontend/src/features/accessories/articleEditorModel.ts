@@ -4,9 +4,14 @@ import type {
   AccessoryArticleType,
   AccessoryArticleWriteInput,
   AccessoryInventoryStrategy,
-  AccessoryManufacturerStatus
+  AccessoryManufacturerStatus,
+  AccessoryPurchaseInput
 } from "../../shared/api";
-import { articleTypeFieldRegistry, subjectValuesAreValid } from "./articleTypeFields";
+import {
+  fieldDefinitionsForType,
+  subjectValidationIssues,
+  type CustomArticleSubjectFieldDefinition
+} from "./articleTypeFields";
 
 export type ArticleEditorMode = "create" | "view" | "edit";
 export type ArticleEditorTab = "article" | "stock" | "purchaseDocuments" | "subject" | "usageHistory";
@@ -39,6 +44,7 @@ export type ArticleEditorForm = {
 
 export type ArticleEditorFieldErrors = Partial<Record<keyof ArticleEditorForm, string>>;
 export type ArticleEditorTabErrors = Partial<Record<ArticleEditorTab, boolean>>;
+export type ArticleSubjectFieldErrors = Record<string, string>;
 
 export function emptyArticleEditorForm(): ArticleEditorForm {
   return {
@@ -100,9 +106,15 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
 const splitValues = (value: string) => value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 const optional = (value: string) => value.trim() || undefined;
 
-export function articleEditorWriteInput(form: ArticleEditorForm): AccessoryArticleWriteInput {
+export function articleEditorWriteInput(
+  form: ArticleEditorForm,
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+): AccessoryArticleWriteInput {
+  if (Object.keys(subjectValidationIssues(
+    form.articleType, form.attributes, form.attributeNumberDrafts, customFields
+  )).length > 0) throw new Error("invalid subject values");
   const inventoryStrategy = form.inventoryStrategy;
-  const numberDefinitions = new Map(articleTypeFieldRegistry[form.articleType]
+  const numberDefinitions = new Map(fieldDefinitionsForType(form.articleType, customFields)
     .filter((definition) => definition.kind === "number").map((definition) => [definition.key, definition]));
   const numberDraftKeys = new Set(Object.keys(form.attributeNumberDrafts));
   const attributes: AccessoryAttributeValue[] = form.attributes.filter((attribute) =>
@@ -143,17 +155,37 @@ export function articleEditorWriteInput(form: ArticleEditorForm): AccessoryArtic
   };
 }
 
-export function validateArticleEditorForm(form: ArticleEditorForm, messages = {
-  required: "Pflichtfeld",
-  positive: "Muss größer als 0 sein",
-  nonnegative: "Darf nicht negativ sein",
-  invalidSubject: "Fachwert ist ungültig"
-}): {
+export function articlePurchaseWriteInput(
+  purchase: AccessoryPurchaseInput,
+  quantityDraft: string,
+  locationId: string
+): AccessoryPurchaseInput {
+  return {
+    ...purchase,
+    quantity: Number(quantityDraft),
+    storageLocationId: purchase.bookToStock ? locationId : undefined
+  };
+}
+
+export function validateArticleEditorForm(
+  form: ArticleEditorForm,
+  messages = {
+    required: "Pflichtfeld",
+    positive: "Muss größer als 0 sein",
+    nonnegative: "Darf nicht negativ sein",
+    invalidSubject: "Fachwert ist ungültig",
+    invalidOption: "Auswahl ist ungültig",
+    invalidStep: "Wert entspricht nicht der Schrittweite"
+  },
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+): {
   fieldErrors: ArticleEditorFieldErrors;
   tabErrors: ArticleEditorTabErrors;
+  subjectFieldErrors: ArticleSubjectFieldErrors;
 } {
   const fieldErrors: ArticleEditorFieldErrors = {};
   const tabErrors: ArticleEditorTabErrors = {};
+  const subjectFieldErrors: ArticleSubjectFieldErrors = {};
   if (!form.manufacturer.trim()) fieldErrors.manufacturer = messages.required;
   if (!form.name.trim()) fieldErrors.name = messages.required;
   if (!form.subtype.trim()) fieldErrors.subtype = messages.required;
@@ -164,14 +196,21 @@ export function validateArticleEditorForm(form: ArticleEditorForm, messages = {
   if (!Number.isFinite(Number(form.minimumStock)) || Number(form.minimumStock) < 0) {
     fieldErrors.minimumStock = messages.nonnegative;
   }
-  if (!subjectValuesAreValid(form.articleType, form.attributes, form.attributeNumberDrafts)) {
+  const subjectIssues = subjectValidationIssues(
+    form.articleType, form.attributes, form.attributeNumberDrafts, customFields
+  );
+  for (const [key, issue] of Object.entries(subjectIssues)) {
+    subjectFieldErrors[key] = issue === "invalidOption" ? messages.invalidOption
+      : issue === "invalidStep" ? messages.invalidStep : messages.invalidSubject;
+  }
+  if (Object.keys(subjectFieldErrors).length > 0) {
     fieldErrors.attributes = messages.invalidSubject;
   }
   if (fieldErrors.manufacturer || fieldErrors.name || fieldErrors.subtype || fieldErrors.stockUnit ||
       fieldErrors.packageQuantity) tabErrors.article = true;
   if (fieldErrors.minimumStock) tabErrors.stock = true;
   if (fieldErrors.attributes) tabErrors.subject = true;
-  return { fieldErrors, tabErrors };
+  return { fieldErrors, tabErrors, subjectFieldErrors };
 }
 
 export function isArticleEditorDirty(form: ArticleEditorForm, initial: ArticleEditorForm): boolean {

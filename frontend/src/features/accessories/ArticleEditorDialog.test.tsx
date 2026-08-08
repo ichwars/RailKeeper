@@ -4,6 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { ArticleEditorDialog, type ArticleEditorDialogProps } from "./ArticleEditorDialog";
+import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
+
+const customFields: CustomArticleSubjectFieldDefinition[] = [
+  { key: "material", kind: "text", label: "Material" },
+  { key: "lengthMm", kind: "number", label: "Länge", unit: "mm", step: 0.1 }
+];
 
 const persistedArticle = {
   id: "article-1", manufacturer: "Tillig", articleNumber: "83101", name: "Gleis", category: "straight",
@@ -34,6 +40,10 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
       reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
     },
     resourcesStale: false,
+    customFields: [],
+    customFieldsLoading: false,
+    customFieldsError: "",
+    subjectFieldErrors: {},
     onChange: vi.fn(),
     onTabChange: vi.fn(),
     onSubmit: vi.fn(),
@@ -133,6 +143,68 @@ describe("ArticleEditorDialog", () => {
 
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByRole("button", { name: "Artikelart" })).toHaveTextContent("Gleis");
+  });
+
+  it("prompts before clearing a non-empty subtype even without subject attributes", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "straight" },
+      onChange
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    expect(screen.getByRole("dialog", { name: "Artikelart ändern" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Weiter bearbeiten" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("textbox", { name: "Unterart" })).toHaveValue("straight");
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    await user.click(screen.getByRole("button", { name: "Fachwerte verwerfen" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ articleType: "signal", subtype: "" }));
+  });
+
+  it("prompts when a non-empty incompatible draft is hidden beside an empty compatible draft", async () => {
+    const user = userEvent.setup();
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track",
+        attributeNumberDrafts: { ledCount: "", radiusMm: "12" } }
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Beleuchtung" }));
+
+    expect(screen.getByRole("dialog", { name: "Artikelart ändern" })).toBeInTheDocument();
+  });
+
+  it("preserves values compatible with loaded active custom fields when switching to other", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ArticleEditorDialog {...props({
+      customFields,
+      form: {
+        ...emptyArticleEditorForm(), articleType: "landscape_consumable", subtype: "grass",
+        attributes: [
+          { key: "material", kind: "text", textValue: "Naturfaser" },
+          { key: "content", kind: "number", numberValue: 20 }
+        ],
+        attributeNumberDrafts: { content: "20", lengthMm: "166" }
+      },
+      onChange
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Sonstiger Artikel" }));
+    await user.click(screen.getByRole("button", { name: "Fachwerte verwerfen" }));
+
+    expect(onChange).toHaveBeenCalledWith({
+      articleType: "other",
+      subtype: "",
+      attributes: [{ key: "material", kind: "text", textValue: "Naturfaser" }],
+      attributeNumberDrafts: { lengthMm: "166" }
+    });
   });
 
   it("shows tab error badges and mounts usage history only for a real signal", () => {

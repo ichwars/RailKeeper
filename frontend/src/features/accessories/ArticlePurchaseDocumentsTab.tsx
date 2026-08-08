@@ -16,6 +16,7 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import type { ArticleEditorResources } from "./useArticleEditorController";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
+import { articlePurchaseWriteInput } from "./articleEditorModel";
 
 const today = () => {
   const value = new Date();
@@ -59,11 +60,9 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     setBusy(true);
     setError("");
     try {
-      await api.createAccessoryPurchase(article.id, {
-        ...purchase,
-        quantity: Number(purchaseQuantity),
-        storageLocationId: purchase.bookToStock ? locationId : undefined
-      });
+      await api.createAccessoryPurchase(article.id, articlePurchaseWriteInput(
+        purchase, purchaseQuantity, locationId
+      ));
       setPurchase(emptyPurchase());
       setPurchaseQuantity("1");
       await onChanged().catch(() => undefined);

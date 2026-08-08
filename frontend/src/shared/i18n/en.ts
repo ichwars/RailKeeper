@@ -1596,6 +1596,8 @@ export const enTranslations: Record<string, string> = {
     "accessories.editor.validation.positive": "Must be greater than 0",
     "accessories.editor.validation.nonnegative": "Must not be negative",
     "accessories.editor.validation.invalidSubject": "Technical value is invalid",
+    "accessories.editor.validation.invalidOption": "Selection is invalid",
+    "accessories.editor.validation.invalidStep": "Value does not match the required increment",
     "accessories.editor.fields.ean": "EAN or GTIN",
     "accessories.editor.fields.productImage": "Product image",
     "accessories.editor.fields.noProductImage": "No product image",

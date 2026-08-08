@@ -17,7 +17,11 @@ import type {
 } from "./articleEditorModel";
 import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
-import { compatibleAttributesForType, compatibleNumberDraftsForType } from "./articleTypeFields";
+import {
+  compatibleAttributesForType,
+  compatibleNumberDraftsForType,
+  type CustomArticleSubjectFieldDefinition
+} from "./articleTypeFields";
 
 export type ArticleEditorDialogProps = {
   mode: ArticleEditorMode;
@@ -31,6 +35,10 @@ export type ArticleEditorDialogProps = {
   resourceError: string;
   fieldErrors: ArticleEditorFieldErrors;
   tabErrors: ArticleEditorTabErrors;
+  subjectFieldErrors: Record<string, string>;
+  customFields: readonly CustomArticleSubjectFieldDefinition[];
+  customFieldsLoading: boolean;
+  customFieldsError: string;
   duplicateCandidates: AccessoryDuplicateCandidate[];
   closeConfirmationOpen: boolean;
   permissions: ArticleEditorPermissions;
@@ -89,11 +97,15 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       props.onChange(patch);
       return;
     }
-    const compatibleAttributes = compatibleAttributesForType(nextType, props.form.attributes);
-    const compatibleDrafts = compatibleNumberDraftsForType(nextType, props.form.attributeNumberDrafts);
+    const compatibleAttributes = compatibleAttributesForType(nextType, props.form.attributes, props.customFields);
+    const compatibleDrafts = compatibleNumberDraftsForType(
+      nextType, props.form.attributeNumberDrafts, props.customFields
+    );
     const draftCount = Object.values(props.form.attributeNumberDrafts).filter((draft) => draft.trim() !== "").length;
-    const discardsValues = compatibleAttributes.length !== props.form.attributes.length ||
-      Object.keys(compatibleDrafts).length !== draftCount;
+    const compatibleDraftCount = Object.values(compatibleDrafts).filter((draft) => draft.trim() !== "").length;
+    const discardsValues = props.form.subtype.trim() !== "" ||
+      compatibleAttributes.length !== props.form.attributes.length ||
+      compatibleDraftCount !== draftCount;
     if (discardsValues) {
       setPendingArticleType(nextType);
       return;
@@ -107,10 +119,11 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     props.onChange({
       articleType: pendingArticleType,
       subtype: "",
-      attributes: compatibleAttributesForType(pendingArticleType, props.form.attributes),
+      attributes: compatibleAttributesForType(pendingArticleType, props.form.attributes, props.customFields),
       attributeNumberDrafts: compatibleNumberDraftsForType(
         pendingArticleType,
-        props.form.attributeNumberDrafts
+        props.form.attributeNumberDrafts,
+        props.customFields
       )
     });
     setPendingArticleType(null);
@@ -184,7 +197,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
-              disabled={readOnly} onChange={changeCore} />
+              disabled={readOnly} articleTypeDisabled={props.customFieldsLoading || Boolean(props.customFieldsError)}
+              onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
             <ArticleStockTab article={props.article} form={props.form} errors={props.fieldErrors}
@@ -205,7 +219,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           </div>
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
             <ArticleSubjectTab form={props.form} disabled={readOnly} error={props.fieldErrors.attributes}
-              active={props.activeTab === "subject"} onChange={props.onChange} />
+              active={props.activeTab === "subject"} customFields={props.customFields}
+              loading={props.customFieldsLoading} loadError={props.customFieldsError}
+              subjectFieldErrors={props.subjectFieldErrors} onChange={props.onChange} />
           </div>
           {props.hasUsageHistory && props.article ? <div hidden={props.activeTab !== "usageHistory"}
             aria-hidden={props.activeTab !== "usageHistory"}>
@@ -225,7 +241,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         <button type="button" className="secondary-button" onClick={props.onRequestClose}>
           {readOnly ? t("common.close") : t("common.cancel")}
         </button>
-        {!readOnly ? <button type="button" className="primary-button" disabled={props.saving || props.loading}
+        {!readOnly ? <button type="button" className="primary-button"
+          disabled={props.saving || props.loading || (props.form.articleType === "other" &&
+            (props.customFieldsLoading || Boolean(props.customFieldsError)))}
           onClick={() => void props.onSubmit()}>
           {props.saving ? t("common.saving") : props.mode === "create"
             ? t("accessories.editor.createAction") : t("accessories.editor.saveAction")}

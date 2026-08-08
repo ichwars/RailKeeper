@@ -48,11 +48,34 @@ describe("articleEditorModel", () => {
       required: "Pflichtfeld",
       positive: "Positiv",
       nonnegative: "Nicht negativ",
-      invalidSubject: "Fachwert ungültig"
+      invalidSubject: "Fachwert ungültig",
+      invalidOption: "Auswahl ungültig",
+      invalidStep: "Schrittweite ungültig"
     });
 
     expect(validation.fieldErrors.attributes).toBe("Fachwert ungültig");
     expect(validation.tabErrors.subject).toBe(true);
     expect(form.attributeNumberDrafts.lengthMm).toBe(".");
+  });
+
+  it("rejects invalid subject values before serialization and serializes valid decimal steps", () => {
+    const invalid = {
+      ...emptyArticleEditorForm(),
+      manufacturer: "Tillig",
+      name: "Gleis",
+      articleType: "track" as const,
+      subtype: "straight",
+      attributeNumberDrafts: { connectionCount: "1.5" }
+    };
+    expect(() => articleEditorWriteInput(invalid)).toThrow("invalid subject values");
+
+    const valid = {
+      ...invalid,
+      attributeNumberDrafts: { angleDegrees: "0,3", connectionCount: "2" }
+    };
+    expect(articleEditorWriteInput(valid).attributes).toEqual([
+      { key: "angleDegrees", kind: "number", numberValue: 0.3, unit: "°" },
+      { key: "connectionCount", kind: "number", numberValue: 2 }
+    ]);
   });
 });

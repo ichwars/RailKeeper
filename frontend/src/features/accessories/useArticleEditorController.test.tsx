@@ -58,6 +58,7 @@ describe("useArticleEditorController", () => {
     vi.spyOn(api, "createAccessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "updateAccessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
+    vi.spyOn(api, "masterData").mockResolvedValue([]);
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
     vi.spyOn(api, "layouts").mockResolvedValue([]);
     vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
@@ -361,6 +362,33 @@ describe("useArticleEditorController", () => {
 
     expect(result.current.fieldErrors.manufacturer).toBeUndefined();
     expect(result.current.tabErrors.article).toBeUndefined();
+  });
+
+  it("retains actionable errors for remaining invalid subject fields after one field is edited", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    act(() => result.current.changeForm({
+      manufacturer: "Tillig",
+      name: "Gleis",
+      articleType: "track",
+      subtype: "straight",
+      attributes: [{ key: "direction", kind: "single_select", optionValues: ["up"] }],
+      attributeNumberDrafts: { connectionCount: "1.5" }
+    }));
+    await act(async () => result.current.submit());
+    expect(result.current.subjectFieldErrors).toMatchObject({
+      direction: expect.any(String),
+      connectionCount: expect.any(String)
+    });
+
+    act(() => result.current.changeForm({
+      attributes: [{ key: "direction", kind: "single_select", optionValues: ["left"] }]
+    }));
+
+    expect(result.current.subjectFieldErrors.direction).toBeUndefined();
+    expect(result.current.subjectFieldErrors.connectionCount).toEqual(expect.any(String));
+    expect(result.current.fieldErrors.attributes).toEqual(expect.any(String));
+    expect(result.current.tabErrors.subject).toBe(true);
   });
 
   it("treats non-empty tab subdrafts as dirty until their successful reset", async () => {

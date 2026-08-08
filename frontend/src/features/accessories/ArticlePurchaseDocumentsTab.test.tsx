@@ -32,6 +32,33 @@ describe("ArticlePurchaseDocumentsTab", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  it("maps the Tillig fixture quantity and stock location into the booked purchase API input", async () => {
+    const user = userEvent.setup();
+    const createPurchase = vi.spyOn(api, "createAccessoryPurchase").mockResolvedValue({} as never);
+    render(<ArticlePurchaseDocumentsTab article={{ ...article, articleNumber: "83101", attributes: [
+      { key: "trackSystem", kind: "text", textValue: "Tillig TT Modellgleis" },
+      { key: "lengthMm", kind: "number", numberValue: 166, unit: "mm" },
+      { key: "connectionCount", kind: "number", numberValue: 2 }
+    ] }} disabled={false} onChanged={vi.fn()} resources={{
+      locations: [{ id: "location-track-shelf", name: "Gleislager", parentId: undefined, archived: false,
+        createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }],
+      stock: null, movements: [], assets: [], purchases: [], documents: [], reservations: [],
+      installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+    }} onDirtyChange={vi.fn()} />);
+
+    const quantity = screen.getByRole("spinbutton", { name: "Menge" });
+    await user.clear(quantity);
+    await user.type(quantity, "12");
+    await user.click(screen.getByRole("checkbox", { name: "Kauf bestandswirksam buchen" }));
+    await user.click(screen.getByRole("button", { name: "Kauf buchen" }));
+
+    expect(createPurchase).toHaveBeenCalledWith("article-1", expect.objectContaining({
+      quantity: 12,
+      storageLocationId: "location-track-shelf",
+      bookToStock: true
+    }));
+  });
+
   it("resets a committed purchase before a failed refresh so the original draft cannot be submitted twice", async () => {
     const user = userEvent.setup();
     const createPurchase = vi.spyOn(api, "createAccessoryPurchase").mockResolvedValue({} as never);

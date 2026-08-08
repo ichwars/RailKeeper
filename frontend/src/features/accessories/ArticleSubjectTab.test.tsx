@@ -138,4 +138,18 @@ describe("ArticleSubjectTab", () => {
     expect(screen.getAllByRole("checkbox").every((control) => control.hasAttribute("disabled"))).toBe(true);
     expect(screen.getAllByRole("button").every((control) => control.hasAttribute("disabled"))).toBe(true);
   });
+
+  it("keeps a long configured label in the responsive subject-grid contract", () => {
+    const longLabel = "Sehr lange kontrollierte Zusatzfeldbezeichnung für schmale Artikeldialoge";
+    const { container } = render(<ArticleSubjectTab
+      form={{ ...emptyArticleEditorForm(), articleType: "other" }}
+      disabled={false}
+      customFieldEntries={[customField("long_label", longLabel, "text")]}
+      onChange={vi.fn()}
+    />);
+
+    expect(screen.getByRole("textbox", { name: longLabel })).toBeInTheDocument();
+    expect(container.querySelector(".article-subject-grid")).toHaveClass("article-editor-grid");
+    expect(screen.getByText(longLabel)).toHaveTextContent(longLabel);
+  });
 });

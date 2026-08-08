@@ -423,6 +423,11 @@
   gap: 10px 12px;
 }
 
+.article-subject-grid > .app-field {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .article-editor-image {
   display: grid;
   width: 118px;

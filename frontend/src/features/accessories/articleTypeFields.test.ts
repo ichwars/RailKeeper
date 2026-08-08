@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import type { AccessoryArticleType, MasterDataEntry } from "../../shared/api";
-import { articleEditorWriteInput, emptyArticleEditorForm } from "./articleEditorModel";
+import {
+  articleEditorWriteInput,
+  articlePurchaseWriteInput,
+  emptyArticleEditorForm
+} from "./articleEditorModel";
 import {
   articleTypeFieldRegistry,
   compatibleAttributesForType,
@@ -79,6 +83,34 @@ describe("articleTypeFields", () => {
     expect(subjectValuesAreValid("track", [], { firmware: "1" })).toBe(false);
   });
 
+  it("validates standard option membership and numeric steps with decimal tolerance", () => {
+    expect(subjectValuesAreValid("track", [
+      { key: "direction", kind: "single_select", optionValues: ["up"] }
+    ], {})).toBe(false);
+    expect(subjectValuesAreValid("signal", [
+      { key: "aspects", kind: "multi_select", optionValues: ["stop", "unknown"] }
+    ], {})).toBe(false);
+    expect(subjectValuesAreValid("track", [], { connectionCount: "2.5" })).toBe(false);
+    expect(subjectValuesAreValid("track", [], { angleDegrees: "0.3" })).toBe(true);
+  });
+
+  it("validates controlled custom option membership", () => {
+    const definitions = customFieldDefinitions([customEntry({
+      key: "color",
+      label: "Farbe",
+      metadata: { kind: "single_select", options: ["red", "green"] }
+    })]);
+    expect(subjectValuesAreValid("other", [
+      { key: "color", kind: "single_select", optionValues: ["blue"] }
+    ], {}, definitions)).toBe(false);
+    expect(subjectValuesAreValid("other", [
+      { key: "color", kind: "single_select", optionValues: ["green"] }
+    ], {}, definitions)).toBe(true);
+    expect(subjectValuesAreValid("other", [], { lengthMm: "1.25" }, [
+      { key: "lengthMm", kind: "number", label: "Länge", step: 0.5 }
+    ])).toBe(false);
+  });
+
   it("accepts only active, well-formed controlled custom fields", () => {
     expect(customFieldDefinitions([
       customEntry(),
@@ -111,8 +143,10 @@ describe("articleTypeFields", () => {
       manufacturer: "Tillig", articleNumber: "83101", articleType: "track", subtype: "straight",
       gauges: ["TT"], packageQuantity: 1, stockUnit: "piece", attributes: form.attributes
     });
-    expect({ locationId: "location-track-shelf", quantity: 12 }).toEqual({
-      locationId: "location-track-shelf", quantity: 12
+    expect(articlePurchaseWriteInput({
+      purchasedAt: "2026-08-08", quantity: 1, currency: "EUR", bookToStock: true
+    }, "12", "location-track-shelf")).toMatchObject({
+      quantity: 12, storageLocationId: "location-track-shelf", bookToStock: true
     });
   });
 });

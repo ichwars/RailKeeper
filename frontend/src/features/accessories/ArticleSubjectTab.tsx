@@ -47,6 +47,10 @@ export function ArticleSubjectTab({
   error,
   active = true,
   customFieldEntries,
+  customFields,
+  loading = false,
+  loadError: externalLoadError = "",
+  subjectFieldErrors = {},
   onChange
 }: {
   form: ArticleEditorForm;
@@ -54,6 +58,10 @@ export function ArticleSubjectTab({
   error?: string;
   active?: boolean;
   customFieldEntries?: readonly MasterDataEntry[];
+  customFields?: readonly CustomArticleSubjectFieldDefinition[];
+  loading?: boolean;
+  loadError?: string;
+  subjectFieldErrors?: Readonly<Record<string, string>>;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
@@ -66,7 +74,7 @@ export function ArticleSubjectTab({
   }, [customFieldEntries]);
 
   useEffect(() => {
-    if (!active || form.articleType !== "other" || customFieldEntries) return;
+    if (!active || form.articleType !== "other" || customFieldEntries || customFields) return;
     let current = true;
     setLoadingCustomFields(true);
     setLoadError("");
@@ -78,9 +86,10 @@ export function ArticleSubjectTab({
       if (current) setLoadingCustomFields(false);
     });
     return () => { current = false; };
-  }, [active, customFieldEntries, form.articleType, t]);
+  }, [active, customFieldEntries, customFields, form.articleType, t]);
 
-  const customDefinitions = useMemo(() => customFieldDefinitions(loadedCustomFields), [loadedCustomFields]);
+  const customDefinitions = useMemo(() => customFields || customFieldDefinitions(loadedCustomFields),
+    [customFields, loadedCustomFields]);
   const definitions = fieldDefinitionsForType(form.articleType, customDefinitions);
   const labelFor = (definition: SubjectDefinition) => {
     const label = isCustomDefinition(definition) ? definition.label : t(definition.labelKey);
@@ -106,21 +115,22 @@ export function ArticleSubjectTab({
     const value = attributeFor(form.attributes, definition);
     const label = labelFor(definition);
     const helpText = !isCustomDefinition(definition) && definition.helpKey ? t(definition.helpKey) : undefined;
+    const fieldError = subjectFieldErrors[definition.key];
     switch (definition.kind) {
     case "text":
-      return <AppTextInput key={definition.key} label={label} helpText={helpText} disabled={disabled}
+      return <AppTextInput key={definition.key} label={label} helpText={helpText} error={fieldError} disabled={disabled}
         value={value?.kind === "text" ? value.textValue : ""}
         onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,
           event.target.value ? { key: definition.key, kind: "text", textValue: event.target.value } : null,
           definition.key) })} />;
     case "number":
-      return <AppNumberInput key={definition.key} label={label} helpText={helpText} disabled={disabled}
+      return <AppNumberInput key={definition.key} label={label} helpText={helpText} error={fieldError} disabled={disabled}
         min={definition.min} max={definition.max} step={definition.step || "any"}
         value={form.attributeNumberDrafts[definition.key] ??
           (value?.kind === "number" ? String(value.numberValue) : "")}
         onValueChange={(draft) => setNumber(definition, draft)} />;
     case "boolean":
-      return <label key={definition.key} className="app-field article-checkbox">
+      return <label key={definition.key} className={`app-field article-checkbox ${fieldError ? "has-error" : ""}`}>
         <span className="app-field-label">{label}</span>
         <span><input type="checkbox" disabled={disabled}
           aria-label={label}
@@ -128,23 +138,25 @@ export function ArticleSubjectTab({
           onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,
             { key: definition.key, kind: "boolean", booleanValue: event.target.checked }, definition.key) })} />
         {t("accessories.subject.booleanHint")}</span>
+        {fieldError ? <span className="app-field-error" role="alert">{fieldError}</span> : null}
       </label>;
     case "date": {
       const id = `article-subject-${definition.key}`;
-      return <label key={definition.key} className="app-field" htmlFor={id}>
+      return <label key={definition.key} className={`app-field ${fieldError ? "has-error" : ""}`} htmlFor={id}>
         <span className="app-field-label">{label}</span>
-        <AppDateInput id={id} aria-label={label} disabled={disabled}
+        <AppDateInput id={id} aria-label={label} aria-invalid={fieldError ? true : undefined} disabled={disabled}
           value={value?.kind === "date" ? value.dateValue : ""}
           onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,
             event.target.value ? { key: definition.key, kind: "date", dateValue: event.target.value } : null,
             definition.key) })} />
+        {fieldError ? <span className="app-field-error" role="alert">{fieldError}</span> : null}
       </label>;
     }
     case "single_select":
-      return <label key={definition.key} className="app-field">
+      return <label key={definition.key} className={`app-field ${fieldError ? "has-error" : ""}`}>
         <span className="app-field-label">{label}</span>
         <AppSelect value={value?.kind === "single_select" ? value.optionValues[0] : ""}
-          disabled={disabled} aria-label={label}
+          disabled={disabled} aria-label={label} aria-invalid={fieldError ? true : undefined}
           onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,
             event.target.value ? { key: definition.key, kind: "single_select",
               optionValues: [event.target.value] } : null, definition.key) })}>
@@ -152,9 +164,10 @@ export function ArticleSubjectTab({
           {(definition.options || []).map((option) =>
             <option key={option} value={option}>{optionLabel(definition, option)}</option>)}
         </AppSelect>
+        {fieldError ? <span className="app-field-error" role="alert">{fieldError}</span> : null}
       </label>;
     case "multi_select":
-      return <AppMultiSelect key={definition.key} label={label} helpText={helpText} disabled={disabled}
+      return <AppMultiSelect key={definition.key} label={label} helpText={helpText} error={fieldError} disabled={disabled}
         value={value?.kind === "multi_select" ? value.optionValues : []}
         options={(definition.options || []).map((option) => ({
           value: option,
@@ -170,10 +183,10 @@ export function ArticleSubjectTab({
   return <section className="article-editor-tab article-subject-tab" data-testid="article-subject-tab"
     aria-label={t("accessories.editor.tabs.subject", { type: t(`accessories.articleType.${form.articleType}`) })}>
     {error ? <p className="form-message" role="alert">{error}</p> : null}
-    {loadingCustomFields ? <p className="loading-cell">{t("accessories.subject.customLoading")}</p> : null}
-    {loadError ? <p className="form-message" role="alert">{loadError}</p> : null}
-    {!loadingCustomFields && !loadError && definitions.length === 0
+    {loading || loadingCustomFields ? <p className="loading-cell">{t("accessories.subject.customLoading")}</p> : null}
+    {externalLoadError || loadError ? <p className="form-message" role="alert">{externalLoadError || loadError}</p> : null}
+    {!loading && !loadingCustomFields && !externalLoadError && !loadError && definitions.length === 0
       ? <p className="article-editor-hint">{t("accessories.subject.empty")}</p>
-      : <div className="article-editor-grid">{definitions.map(renderField)}</div>}
+      : <div className="article-editor-grid article-subject-grid">{definitions.map(renderField)}</div>}
   </section>;
 }
