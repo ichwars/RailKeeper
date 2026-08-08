@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-08
 
-**Status:** Implemented and verified
+**Status:** Approved follow-up in implementation
 
 **Geltungsbereich:** Artikelverwaltung und zugehörige Einstellungen
 
@@ -421,6 +421,24 @@ Erforderlich sind außerdem:
 - verständliche Auswahlzustände,
 - Prüfung langer deutscher Texte,
 - Prüfung in hellem und dunklem Design sowie bei Desktop- und Mobilbreiten.
+
+### Lokalisierte Artikelstammdaten und Bereichsreiter
+
+Standardwerte der Artikelverwaltung werden anhand ihres stabilen Schlüssels in der aktiven Sprache
+angezeigt. Das gilt für Bestandseinheiten, Artikelarten und die mitgelieferten Unterarten. Technische
+Schlüssel bleiben unverändert sichtbar. Benutzerdefinierte Einträge sowie bewusst umbenannte
+Standardwerte werden nicht übersetzt, sondern exakt mit ihrer gespeicherten Bezeichnung angezeigt.
+
+Beim Bearbeiten eines noch unveränderten Standardwertes darf die lokalisierte Anzeige nicht als
+sprachgebundene Überschreibung gespeichert werden. Bleibt der lokalisierte Entwurf unverändert, wird
+weiterhin die kanonische Standardbezeichnung persistiert. Eine bewusste Texteingabe wird dagegen als
+benutzerdefinierte Bezeichnung übernommen.
+
+Die Bereiche `Hersteller`, `Bestandseinheiten`, `Artikelarten und Unterarten`, `Kontrollierte
+Zusatzfelder` und `Lagerorte` bilden eine flache Tab-Navigation. Sie verwendet `tablist`, `tab` und
+`tabpanel`, kennzeichnet den aktiven Reiter mit `aria-selected` und unterstützt Pfeiltasten sowie
+`Home` und `End`. Auf schmalen Ansichten bleibt die Reihenfolge horizontal scrollbar, statt die
+Reiter als große Schaltflächen umzubrechen.
 
 ## Speicherung, API und Backup
 
