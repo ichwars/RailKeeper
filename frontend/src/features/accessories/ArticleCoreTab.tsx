@@ -107,7 +107,8 @@ export function ArticleCoreTab({
           onValueChange={(value) => onChange({ gauges: value })} />
         <AppTextInput label={t("accessories.editor.fields.scale")} disabled={disabled}
           value={form.scale} onChange={(event) => onChange({ scale: event.target.value })} />
-        <AppNumberInput label={t("accessories.editor.fields.packageQuantity")} required min="0.001" step="any"
+        <AppNumberInput label={t("accessories.editor.fields.packageQuantity")} required min="1" step="1"
+          inputMode="numeric"
           disabled={disabled} value={form.packageQuantity} error={errors.packageQuantity}
           onValueChange={(value) => onChange({ packageQuantity: value })} />
         <AppTextInput label={t("accessories.editor.fields.stockUnit")} required disabled={disabled}

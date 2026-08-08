@@ -118,6 +118,16 @@ describe("ArticleEditorDialog", () => {
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
   });
 
+  it("uses whole-number browser constraints for package quantity and minimum stock", () => {
+    const view = render(<ArticleEditorDialog {...props()} />);
+    expect(screen.getByRole("spinbutton", { name: "Verpackungseinheit" })).toHaveAttribute("min", "1");
+    expect(screen.getByRole("spinbutton", { name: "Verpackungseinheit" })).toHaveAttribute("step", "1");
+
+    view.rerender(<ArticleEditorDialog {...props({ activeTab: "stock" })} />);
+    expect(screen.getByRole("spinbutton", { name: "Mindestbestand" })).toHaveAttribute("min", "0");
+    expect(screen.getByRole("spinbutton", { name: "Mindestbestand" })).toHaveAttribute("step", "1");
+  });
+
   it("uses active configured article types and keeps only the current inactive historical type", async () => {
     const user = userEvent.setup();
     const view = render(<ArticleEditorDialog {...props({ articleTypeEntries: configuredArticleTypeEntries })} />);
@@ -476,6 +486,51 @@ describe("ArticleEditorDialog", () => {
     trigger.remove();
   });
 
+  it("uses only enabled view controls for forward and reverse focus traversal", async () => {
+    const user = userEvent.setup();
+    render(<ArticleEditorDialog {...props({
+      mode: "view",
+      article: persistedArticle,
+      permissions: { canEdit: false, canManageStock: false, canReserve: false, canInstall: false }
+    })} />);
+
+    const headerClose = screen.getByRole("button", { name: "Dialog schließen" });
+    const footerClose = screen.getByRole("button", { name: "Schließen" });
+    expect(headerClose).toHaveFocus();
+
+    await user.tab();
+    expect(screen.getByRole("tab", { name: "Artikel" })).toHaveFocus();
+    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
+
+    headerClose.focus();
+    await user.tab({ shift: true });
+    expect(footerClose).toHaveFocus();
+  });
+
+  it("keeps the Planner reservation workflow reachable through the view focus trap", async () => {
+    const user = userEvent.setup();
+    render(<ArticleEditorDialog {...props({
+      mode: "view",
+      article: persistedArticle,
+      activeTab: "stock",
+      permissions: { canEdit: false, canManageStock: false, canReserve: true, canInstall: false },
+      resources: {
+        ...props().resources,
+        locations: [{ id: "location-1", name: "Lager", archived: false,
+          createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }],
+        layouts: [{ id: "layout-1", name: "Vereinsanlage", kind: "club", gauge: "TT", scale: "1:120",
+          description: "", version: 1, archived: false,
+          createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }]
+      }
+    })} />);
+
+    const saveReservation = screen.getByRole("button", { name: "Reservierung anlegen" });
+    for (let index = 0; index < 30 && document.activeElement !== saveReservation; index += 1) {
+      await user.tab();
+    }
+    expect(saveReservation).toHaveFocus();
+  });
+
   it("renders dirty-close and duplicate confirmations without replacing form values", async () => {
     const user = userEvent.setup();
     const onConfirmClose = vi.fn();
@@ -531,6 +586,42 @@ describe("ArticleEditorDialog", () => {
     expect(screen.queryByRole("tab", { name: "Verwendung & Historie" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reservierung anlegen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Einbau erfassen" })).toBeInTheDocument();
+  });
+
+  it("shows the primary uploaded image from refreshed document resources", () => {
+    render(<ArticleEditorDialog {...props({
+      mode: "edit",
+      article: persistedArticle,
+      resources: {
+        ...props().resources,
+        documents: [{ id: "image-1", productId: persistedArticle.id, originalName: "Front.png",
+          fileName: "front.png", category: "image", mimeType: "image/png", sizeBytes: 100,
+          isPrimary: true, createdBy: "admin", createdAt: "2026-08-08T09:00:00Z",
+          updatedAt: "2026-08-08T09:00:00Z" }]
+      }
+    })} />);
+
+    expect(screen.getByRole("img", { name: "Produktbild" })).toHaveAttribute(
+      "src", "/api/v1/accessory-products/article-1/documents/image-1/download"
+    );
+  });
+
+  it("prefers a refreshed primary document over the stale article image URL", () => {
+    render(<ArticleEditorDialog {...props({
+      mode: "edit",
+      article: { ...persistedArticle, primaryImageUrl: "/old-primary.png" },
+      resources: {
+        ...props().resources,
+        documents: [{ id: "image-2", productId: persistedArticle.id, originalName: "Neu.png",
+          fileName: "new.png", category: "image", mimeType: "image/png", sizeBytes: 100,
+          isPrimary: true, createdBy: "admin", createdAt: "2026-08-08T10:00:00Z",
+          updatedAt: "2026-08-08T10:00:00Z" }]
+      }
+    })} />);
+
+    expect(screen.getByRole("img", { name: "Produktbild" })).toHaveAttribute(
+      "src", "/api/v1/accessory-products/article-1/documents/image-2/download"
+    );
   });
 
   it("moves edit focus only after detail loading finishes", () => {

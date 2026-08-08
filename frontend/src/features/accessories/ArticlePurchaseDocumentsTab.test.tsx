@@ -108,4 +108,46 @@ describe("ArticlePurchaseDocumentsTab", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Löschen fehlgeschlagen");
     expect(screen.getByText("Rechnung.pdf")).toBeInTheDocument();
   });
+
+  it("marks the first uploaded product image primary and preserves its draft after failure", async () => {
+    const user = userEvent.setup();
+    const upload = vi.spyOn(api, "uploadAccessoryDocument").mockRejectedValue(new Error("Upload fehlgeschlagen"));
+    render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} resources={{ locations: [], stock: null, movements: [], assets: [], purchases: [],
+        documents: [], reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+    const image = new File(["image"], "produkt.png", { type: "image/png" });
+
+    await user.upload(screen.getByLabelText("Datei", { selector: "input" }), image);
+    await user.click(screen.getByRole("button", { name: "Dokumentart" }));
+    await user.click(screen.getByRole("option", { name: "Produktbild" }));
+    await user.type(screen.getByRole("textbox", { name: "Beschreibung" }), "Vorderansicht");
+    await user.click(screen.getByRole("button", { name: "Dokument hochladen" }));
+
+    expect(upload).toHaveBeenCalledWith(article.id, {
+      file: image, category: "image", description: "Vorderansicht", isPrimary: true
+    });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Upload fehlgeschlagen");
+    expect(screen.getByText("produkt.png")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Dokumentart" })).toHaveTextContent("Produktbild");
+    expect(screen.getByRole("textbox", { name: "Beschreibung" })).toHaveValue("Vorderansicht");
+  });
+
+  it("offers an explicit primary-image action for another uploaded image", async () => {
+    const user = userEvent.setup();
+    const update = vi.spyOn(api, "updateAccessoryDocument").mockResolvedValue({} as never);
+    const onChanged = vi.fn().mockResolvedValue(undefined);
+    render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={onChanged}
+      onDirtyChange={vi.fn()} resources={{ locations: [], stock: null, movements: [], assets: [], purchases: [],
+        documents: [{ id: "image-2", productId: article.id, originalName: "Seite.png", fileName: "seite.png",
+          category: "image", mimeType: "image/png", sizeBytes: 100, isPrimary: false, createdBy: "admin",
+          createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z" }],
+        reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: [] }} />);
+
+    await user.click(screen.getByRole("button", { name: "Als Produktbild verwenden: Seite.png" }));
+
+    expect(update).toHaveBeenCalledWith(article.id, "image-2", {
+      category: "image", description: undefined, isPrimary: true
+    });
+    expect(onChanged).toHaveBeenCalledOnce();
+  });
 });

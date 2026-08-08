@@ -33,7 +33,8 @@ export function ArticleStockTab({ article, form, errors, resources, disabled, ca
           <option value="quantity_later_individual">{t("accessories.editor.strategy.hybrid")}</option>
         </AppSelect>
       </label>
-      <AppNumberInput label={t("accessories.editor.fields.minimumStock")} min="0" step="any" disabled={disabled}
+      <AppNumberInput label={t("accessories.editor.fields.minimumStock")} min="0" step="1" inputMode="numeric"
+        disabled={disabled}
         value={form.minimumStock} error={errors.minimumStock}
         onValueChange={(value) => onChange({ minimumStock: value })} />
     </div>

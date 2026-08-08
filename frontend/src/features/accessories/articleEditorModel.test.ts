@@ -48,6 +48,7 @@ describe("articleEditorModel", () => {
       required: "Pflichtfeld",
       positive: "Positiv",
       nonnegative: "Nicht negativ",
+      integer: "Ganzzahlig",
       invalidSubject: "Fachwert ungültig",
       invalidOption: "Auswahl ungültig",
       invalidStep: "Schrittweite ungültig"
@@ -77,6 +78,31 @@ describe("articleEditorModel", () => {
       { key: "angleDegrees", kind: "number", numberValue: 0.3, unit: "°" },
       { key: "connectionCount", kind: "number", numberValue: 2 }
     ]);
+  });
+
+  it("rejects decimal package and minimum quantities without changing their raw drafts", () => {
+    const form = {
+      ...emptyArticleEditorForm(),
+      packageQuantity: "1.5",
+      minimumStock: "2,5"
+    };
+
+    const validation = validateArticleEditorForm(form, {
+      required: "Required",
+      positive: "Positive",
+      nonnegative: "Nonnegative",
+      integer: "Enter a whole number",
+      invalidSubject: "Invalid subject",
+      invalidOption: "Invalid option",
+      invalidStep: "Invalid step"
+    });
+
+    expect(() => articleEditorWriteInput(form)).toThrow("invalid article quantities");
+    expect(validation.fieldErrors.packageQuantity).toBe("Enter a whole number");
+    expect(validation.fieldErrors.minimumStock).toBe("Enter a whole number");
+    expect(validation.tabErrors).toEqual({ article: true, stock: true });
+    expect(form.packageQuantity).toBe("1.5");
+    expect(form.minimumStock).toBe("2,5");
   });
 
   it("roundtrips only historical inactive custom attributes owned by the loaded edit snapshot", () => {

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Download, FileText, ShoppingCart, Trash2 } from "lucide-react";
+import { Download, FileText, Image as ImageIcon, ShoppingCart, Trash2 } from "lucide-react";
 
 import {
   api,
@@ -51,6 +51,8 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     ? purchase.storageLocationId || "" : locations[0]?.id || "";
   const purchaseDirty = purchaseQuantity !== "1" || JSON.stringify(purchase) !== JSON.stringify(emptyPurchase());
   const documentDirty = Boolean(file || description || category !== "other");
+  const hasPrimaryImage = Boolean(article?.primaryImageUrl || resources.documents.some((document) =>
+    document.category === "image" && document.isPrimary));
 
   useEffect(() => onDirtyChange(purchaseDirty || documentDirty), [documentDirty, onDirtyChange, purchaseDirty]);
 
@@ -79,7 +81,12 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     setBusy(true);
     setError("");
     try {
-      await api.uploadAccessoryDocument(article.id, { file, category, description: description.trim() || undefined });
+      await api.uploadAccessoryDocument(article.id, {
+        file,
+        category,
+        description: description.trim() || undefined,
+        ...(category === "image" ? { isPrimary: !hasPrimaryImage } : {})
+      });
       setFile(null);
       setCategory("other");
       setDescription("");
@@ -101,6 +108,22 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
       run: () => api.deleteAccessoryDocument(article.id, documentId),
       afterSuccess: onChanged
     });
+  };
+
+  const makePrimaryImage = async (documentId: string, documentDescription?: string) => {
+    if (!article) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.updateAccessoryDocument(article.id, documentId, {
+        category: "image", description: documentDescription, isPrimary: true
+      });
+      await onChanged().catch(() => undefined);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (!article) return <section className="article-editor-tab">
@@ -169,6 +192,13 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
         <div className="article-document-list">{resources.documents.map((document) => <article key={document.id}>
           <div><strong>{document.originalName}</strong><small>{t(`accessories.editor.documentCategory.${document.category}`)}</small></div>
           <div className="article-row-actions">
+            {!disabled && document.category === "image" && !document.isPrimary ? <button type="button"
+              className="icon-button" disabled={busy}
+              aria-label={t("accessories.editor.documents.makePrimaryNamed", { name: document.originalName })}
+              title={t("accessories.editor.documents.makePrimaryNamed", { name: document.originalName })}
+              onClick={() => void makePrimaryImage(document.id, document.description)}>
+              <ImageIcon size={16} aria-hidden="true" />
+            </button> : null}
             <a className="icon-button" href={api.accessoryDocumentDownloadPath(article.id, document.id)}
               aria-label={t("accessories.editor.documents.downloadNamed", { name: document.originalName })}
               title={t("accessories.editor.documents.downloadNamed", { name: document.originalName })}>

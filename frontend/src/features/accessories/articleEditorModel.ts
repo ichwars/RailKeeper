@@ -105,6 +105,7 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
 
 const splitValues = (value: string) => value.split(/[\n,]/).map((item) => item.trim()).filter(Boolean);
 const optional = (value: string) => value.trim() || undefined;
+const editorNumber = (value: string) => Number(value.replace(",", "."));
 
 export function articleEditorWriteInput(
   form: ArticleEditorForm,
@@ -114,6 +115,12 @@ export function articleEditorWriteInput(
   if (Object.keys(subjectValidationIssues(
     form.articleType, form.attributes, form.attributeNumberDrafts, customFields, historicalAttributes
   )).length > 0) throw new Error("invalid subject values");
+  const packageQuantity = editorNumber(form.packageQuantity);
+  const minimumStock = editorNumber(form.minimumStock);
+  if (!Number.isInteger(packageQuantity) || packageQuantity <= 0 ||
+      !Number.isInteger(minimumStock) || minimumStock < 0) {
+    throw new Error("invalid article quantities");
+  }
   const inventoryStrategy = form.inventoryStrategy;
   const numberDefinitions = new Map(fieldDefinitionsForType(form.articleType, customFields)
     .filter((definition) => definition.kind === "number").map((definition) => [definition.key, definition]));
@@ -141,9 +148,9 @@ export function articleEditorWriteInput(
     subtype: form.subtype.trim(),
     gauges: form.gauges,
     scale: optional(form.scale),
-    packageQuantity: Number(form.packageQuantity),
+    packageQuantity,
     stockUnit: form.stockUnit.trim(),
-    minimumStock: Number(form.minimumStock),
+    minimumStock,
     inventoryStrategy,
     manufacturerUrl: optional(form.manufacturerUrl),
     productUrl: optional(form.productUrl),
@@ -174,6 +181,7 @@ export function validateArticleEditorForm(
     required: "Pflichtfeld",
     positive: "Muss größer als 0 sein",
     nonnegative: "Darf nicht negativ sein",
+    integer: "Nur ganze Zahlen sind zulässig",
     invalidSubject: "Fachwert ist ungültig",
     invalidOption: "Auswahl ist ungültig",
     invalidStep: "Wert entspricht nicht der Schrittweite"
@@ -192,11 +200,17 @@ export function validateArticleEditorForm(
   if (!form.name.trim()) fieldErrors.name = messages.required;
   if (!form.subtype.trim()) fieldErrors.subtype = messages.required;
   if (!form.stockUnit.trim()) fieldErrors.stockUnit = messages.required;
-  if (!Number.isFinite(Number(form.packageQuantity)) || Number(form.packageQuantity) <= 0) {
+  const packageQuantity = editorNumber(form.packageQuantity);
+  const minimumStock = editorNumber(form.minimumStock);
+  if (!Number.isFinite(packageQuantity) || packageQuantity <= 0) {
     fieldErrors.packageQuantity = messages.positive;
+  } else if (!Number.isInteger(packageQuantity)) {
+    fieldErrors.packageQuantity = messages.integer;
   }
-  if (!Number.isFinite(Number(form.minimumStock)) || Number(form.minimumStock) < 0) {
+  if (!Number.isFinite(minimumStock) || minimumStock < 0) {
     fieldErrors.minimumStock = messages.nonnegative;
+  } else if (!Number.isInteger(minimumStock)) {
+    fieldErrors.minimumStock = messages.integer;
   }
   const subjectIssues = subjectValidationIssues(
     form.articleType, form.attributes, form.attributeNumberDrafts, customFields, historicalAttributes

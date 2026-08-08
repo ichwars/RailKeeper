@@ -1,8 +1,9 @@
 import { StrictMode, type PropsWithChildren } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api, type AccessoryArticle, type AccessoryStockSummary, type MasterDataEntry } from "../../shared/api";
+import { setLanguage } from "../../shared/i18n";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { useArticleEditorController } from "./useArticleEditorController";
 
@@ -81,6 +82,8 @@ function deferred<T>() {
 }
 
 describe("useArticleEditorController", () => {
+  afterEach(() => setLanguage("de"));
+
   beforeEach(() => {
     vi.spyOn(api, "accessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
@@ -114,6 +117,41 @@ describe("useArticleEditorController", () => {
     expect(result.current.tabErrors).toEqual({ article: true, stock: true });
     expect(result.current.activeTab).toBe("article");
     expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+  });
+
+  it("keeps a German decimal package draft and blocks the API save", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+    act(() => result.current.changeForm({
+      manufacturer: "Tillig", name: "Gleis", subtype: "straight", packageQuantity: "1.5"
+    }));
+
+    await act(async () => result.current.submit());
+
+    expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+    expect(result.current.form.packageQuantity).toBe("1.5");
+    expect(result.current.fieldErrors.packageQuantity).toBe("Nur ganze Zahlen sind zulässig");
+    expect(result.current.tabErrors.article).toBe(true);
+    expect(result.current.activeTab).toBe("article");
+  });
+
+  it("keeps an English decimal minimum-stock draft and selects the stock error tab", async () => {
+    setLanguage("en");
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+    act(() => result.current.changeForm({
+      manufacturer: "Tillig", name: "Track", subtype: "straight", minimumStock: "2.5"
+    }));
+
+    await act(async () => result.current.submit());
+
+    expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+    expect(result.current.form.minimumStock).toBe("2.5");
+    expect(result.current.fieldErrors.minimumStock).toBe("Enter a whole number");
+    expect(result.current.tabErrors.stock).toBe(true);
+    expect(result.current.activeTab).toBe("stock");
   });
 
   it("loads production-normalized accessory subtype master data and retries failures", async () => {

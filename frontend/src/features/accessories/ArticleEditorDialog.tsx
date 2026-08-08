@@ -7,6 +7,7 @@ import type {
   AccessoryDuplicateCandidate,
   MasterDataEntry
 } from "../../shared/api";
+import { api } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
@@ -75,15 +76,28 @@ export type ArticleEditorDialogProps = {
 
 const focusableSelector = [
   "button:not([disabled])",
-  "input:not([disabled])",
+  "input:not([disabled]):not([type='hidden'])",
+  "select:not([disabled])",
   "textarea:not([disabled])",
   "a[href]",
+  "details > summary:first-of-type",
+  "[contenteditable='true']",
   "[tabindex]:not([tabindex='-1'])"
 ].join(",");
+
+function focusableElements(container: HTMLElement | null): HTMLElement[] {
+  if (!container) return [];
+  return Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter((element) => {
+    if (element.tabIndex < 0 || element.closest("[hidden], [aria-hidden='true'], [inert]")) return false;
+    const style = window.getComputedStyle(element);
+    return style.display !== "none" && style.visibility !== "hidden";
+  });
+}
 
 export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const viewInitialFocusRef = useRef<HTMLButtonElement | null>(null);
   const tabListRef = useRef<HTMLElement | null>(null);
   const [pendingArticleType, setPendingArticleType] = useState<AccessoryArticleType | null>(null);
   const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
@@ -94,6 +108,14 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
   const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
+  const primaryImageDocument = props.resources.documents.find((document) =>
+    document.category === "image" && document.isPrimary);
+  const displayedArticle = props.article && primaryImageDocument
+    ? {
+        ...props.article,
+        primaryImageUrl: api.accessoryDocumentDownloadPath(props.article.id, primaryImageDocument.id)
+      }
+    : props.article;
   const createTypeConfigurationUnavailable = props.mode === "create" &&
     (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError));
   const tabs: Array<{ key: ArticleEditorTab; label: string; subject?: boolean }> = [
@@ -150,9 +172,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
 
   useEffect(() => {
     if (props.loading) return;
-    const initial = layerRef.current?.querySelector<HTMLElement>(
-      props.mode === "view" ? "[data-article-dialog-close]" : "[data-article-initial-focus]"
-    );
+    const initial = props.mode === "view"
+      ? viewInitialFocusRef.current
+      : layerRef.current?.querySelector<HTMLElement>("[data-article-initial-focus]");
     initial?.focus();
   }, [props.loading, props.mode]);
 
@@ -175,14 +197,13 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       props.onRequestClose();
       return;
     }
-    if (event.key !== "Tab" || props.closeConfirmationOpen || props.duplicateCandidates.length > 0) return;
-    const focusable = Array.from(layerRef.current?.querySelectorAll<HTMLElement>(focusableSelector) || [])
-      .filter((element) => !element.closest("[aria-hidden='true']"));
+    if (event.key !== "Tab" || confirmationPending) return;
+    const focusable = focusableElements(layerRef.current);
     if (focusable.length === 0) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
     const target = event.target as HTMLElement;
-    if (!event.shiftKey && target.hasAttribute("data-article-dialog-close")) {
+    if (props.mode !== "view" && !event.shiftKey && target.hasAttribute("data-article-dialog-close")) {
       event.preventDefault();
       layerRef.current?.querySelector<HTMLElement>("[data-article-initial-focus]")?.focus();
       return;
@@ -204,7 +225,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     <section className="vehicle-modal article-editor-dialog">
       <header className="modal-head">
         <div><h2>{title}</h2>{props.article ? <p>{props.article.manufacturer} · {props.article.articleNumber}</p> : null}</div>
-        <button type="button" className="icon-button" data-article-dialog-close onClick={props.onRequestClose}
+        <button ref={viewInitialFocusRef} type="button" className="icon-button" data-article-dialog-close
+          onClick={props.onRequestClose}
           aria-label={t("accessories.editor.close")} title={t("accessories.editor.close")}>
           <X size={18} aria-hidden="true" />
         </button>
@@ -223,7 +245,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {props.loading ? <p className="empty-state">{t("accessories.editor.loading")}</p> : null}
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
-            <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
+            <ArticleCoreTab form={props.form} article={displayedArticle} errors={props.fieldErrors}
               disabled={readOnly} articleTypeDisabled={props.customFieldsLoading ||
                 props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)}
               typeDependentDisabled={createTypeConfigurationUnavailable}

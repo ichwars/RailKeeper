@@ -306,6 +306,7 @@ export function useArticleEditorController({
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
       nonnegative: t("accessories.editor.validation.nonnegative"),
+      integer: t("accessories.editor.validation.integer"),
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
       invalidStep: t("accessories.editor.validation.invalidStep")
@@ -400,6 +401,7 @@ export function useArticleEditorController({
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
       nonnegative: t("accessories.editor.validation.nonnegative"),
+      integer: t("accessories.editor.validation.integer"),
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
       invalidStep: t("accessories.editor.validation.invalidStep")
