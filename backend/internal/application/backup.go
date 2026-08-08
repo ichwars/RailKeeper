@@ -16,6 +16,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/domain"
 )
 
 const (
@@ -112,41 +114,46 @@ var backupTableOrder = []string{
 	"exhibition_entries",
 }
 
-var backupTableIntroducedVersion = map[string]int{
-	"master_data_entries":                      1,
-	"master_data_relations":                    1,
-	"inventory_number_schemes":                 1,
-	"file_blobs":                               1,
-	"storage_locations":                        2,
-	"vehicles":                                 1,
-	"inventory_number_history":                 1,
-	"vehicle_external_mappings":                1,
-	"vehicle_images":                           1,
-	"vehicle_attachments":                      1,
-	"vehicle_maintenance":                      1,
-	"vehicle_spare_parts":                      1,
-	"vehicle_functions":                        1,
-	"vehicle_cv_files":                         1,
-	"vehicle_cv_values":                        1,
-	"vehicle_cv_value_history":                 1,
-	"accessory_products":                       2,
-	"accessory_product_attributes":             3,
-	"accessory_purchases":                      3,
-	"accessory_stock":                          2,
-	"accessory_stock_movements":                3,
-	"accessory_assets":                         2,
-	"accessory_documents":                      3,
-	"layouts":                                  2,
-	"layout_units":                             2,
-	"plan_variants":                            2,
-	"plan_revisions":                           2,
-	"layout_configurations":                    2,
-	"layout_configuration_units":               2,
-	"accessory_reservations":                   2,
-	"accessory_installations":                  2,
-	"accessory_installation_condition_history": 3,
-	"exhibition_lists":                         1,
-	"exhibition_entries":                       1,
+type backupTableVersionPolicy struct {
+	introduced int
+	required   int
+}
+
+var backupTableVersions = map[string]backupTableVersionPolicy{
+	"master_data_entries":                      {introduced: 1, required: 1},
+	"master_data_relations":                    {introduced: 1, required: 1},
+	"inventory_number_schemes":                 {introduced: 1, required: 1},
+	"file_blobs":                               {introduced: 1, required: 3},
+	"storage_locations":                        {introduced: 2, required: 2},
+	"vehicles":                                 {introduced: 1, required: 1},
+	"inventory_number_history":                 {introduced: 1, required: 1},
+	"vehicle_external_mappings":                {introduced: 1, required: 3},
+	"vehicle_images":                           {introduced: 1, required: 1},
+	"vehicle_attachments":                      {introduced: 1, required: 1},
+	"vehicle_maintenance":                      {introduced: 1, required: 1},
+	"vehicle_spare_parts":                      {introduced: 1, required: 3},
+	"vehicle_functions":                        {introduced: 1, required: 1},
+	"vehicle_cv_files":                         {introduced: 1, required: 1},
+	"vehicle_cv_values":                        {introduced: 1, required: 1},
+	"vehicle_cv_value_history":                 {introduced: 1, required: 1},
+	"accessory_products":                       {introduced: 2, required: 2},
+	"accessory_product_attributes":             {introduced: 3, required: 3},
+	"accessory_purchases":                      {introduced: 3, required: 3},
+	"accessory_stock":                          {introduced: 2, required: 2},
+	"accessory_stock_movements":                {introduced: 3, required: 3},
+	"accessory_assets":                         {introduced: 2, required: 2},
+	"accessory_documents":                      {introduced: 3, required: 3},
+	"layouts":                                  {introduced: 2, required: 2},
+	"layout_units":                             {introduced: 2, required: 2},
+	"plan_variants":                            {introduced: 2, required: 2},
+	"plan_revisions":                           {introduced: 2, required: 2},
+	"layout_configurations":                    {introduced: 2, required: 2},
+	"layout_configuration_units":               {introduced: 2, required: 2},
+	"accessory_reservations":                   {introduced: 2, required: 2},
+	"accessory_installations":                  {introduced: 2, required: 2},
+	"accessory_installation_condition_history": {introduced: 3, required: 3},
+	"exhibition_lists":                         {introduced: 1, required: 3},
+	"exhibition_entries":                       {introduced: 1, required: 3},
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {
@@ -338,15 +345,8 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
 		}
 		if table == "accessory_product_attributes" {
-			for index, row := range rows {
-				if err := validateBackupAccessoryProductAttribute(row); err != nil {
-					result.Errors = append(result.Errors, fmt.Sprintf(
-						"Tabelle accessory_product_attributes enthält in Zeile %d ungültige Attributdaten: %v",
-						index+1,
-						err,
-					))
-				}
-			}
+			result.Errors = append(result.Errors,
+				validateBackupAccessoryProductAttributes(rows, doc.Tables["accessory_products"])...)
 		}
 		result.Tables = append(result.Tables, item)
 	}
@@ -360,8 +360,93 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 }
 
 func backupTableOptional(version int, table string) bool {
-	introducedVersion, known := backupTableIntroducedVersion[table]
-	return known && version < introducedVersion
+	policy, known := backupTableVersions[table]
+	return known && (version < policy.introduced || version < policy.required)
+}
+
+func validateBackupAccessoryProductAttributes(
+	attributeRows []map[string]any,
+	productRows []map[string]any,
+) []string {
+	productTypes := make(map[string]domain.AccessoryArticleType, len(productRows))
+	for _, row := range productRows {
+		productID, productIDValid := backupNonEmptyString(row["id"])
+		articleType, articleTypeValid := backupNonEmptyString(row["article_type"])
+		if productIDValid && articleTypeValid {
+			productTypes[productID] = domain.AccessoryArticleType(articleType)
+		}
+	}
+
+	attributesByProduct := map[string][]domain.AccessoryAttributeValue{}
+	validationErrors := []string{}
+	for index, row := range attributeRows {
+		if err := validateBackupAccessoryProductAttribute(row); err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält in Zeile %d ungültige Attributdaten: %v",
+				index+1,
+				err,
+			))
+			continue
+		}
+		productID, _ := backupNonEmptyString(row["product_id"])
+		attributesByProduct[productID] = append(attributesByProduct[productID],
+			backupDomainAccessoryAttribute(row))
+	}
+
+	productIDs := make([]string, 0, len(attributesByProduct))
+	for productID := range attributesByProduct {
+		productIDs = append(productIDs, productID)
+	}
+	sort.Strings(productIDs)
+	for _, productID := range productIDs {
+		articleType, exists := productTypes[productID]
+		if !exists {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes verweist auf Produkt %s ohne gültigen article_type.",
+				productID,
+			))
+			continue
+		}
+		if err := domain.ValidateAccessoryAttributeValues(articleType, attributesByProduct[productID]); err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält für Produkt %s ungültige Attributdaten: %v",
+				productID,
+				err,
+			))
+		}
+	}
+	return validationErrors
+}
+
+func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttributeValue {
+	key, _ := backupNonEmptyString(row["attribute_key"])
+	valueType, _ := backupNonEmptyString(row["value_type"])
+	attribute := domain.AccessoryAttributeValue{
+		Key:  key,
+		Kind: domain.AccessoryAttributeKind(valueType),
+	}
+	if unit, ok := row["unit"].(string); ok {
+		attribute.Unit = &unit
+	}
+	switch attribute.Kind {
+	case domain.AccessoryAttributeText:
+		value := row["text_value"].(string)
+		attribute.TextValue = &value
+	case domain.AccessoryAttributeNumber:
+		value := 0.0
+		attribute.NumberValue = &value
+	case domain.AccessoryAttributeBoolean:
+		value := false
+		attribute.BooleanValue = &value
+	case domain.AccessoryAttributeDate:
+		value := row["date_value"].(string)
+		attribute.DateValue = &value
+	case domain.AccessoryAttributeSingleSelect:
+		attribute.OptionValues = []string{row["single_select_value"].(string)}
+	case domain.AccessoryAttributeMultiSelect:
+		_ = json.Unmarshal([]byte(row["multi_select_value"].(string)), &attribute.OptionValues)
+	}
+	return attribute
 }
 
 func validateBackupAccessoryProductAttribute(row map[string]any) error {

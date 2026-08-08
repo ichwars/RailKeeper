@@ -653,25 +653,52 @@ func backupDocumentTablesThroughVersion(version int) map[string][]map[string]any
 	return tables
 }
 
-func TestBackupVersionOneRequiresTablesIntroducedInVersionOne(t *testing.T) {
-	db := backupTestDB(t, t.TempDir())
-	service := application.NewBackupService(db, t.TempDir())
-	doc := &application.BackupDocument{
-		Format:  "railkeeper-backup",
-		Version: 1,
-		Tables:  backupDocumentTablesWithout("exhibition_lists", "exhibition_entries"),
-	}
+func TestBackupLegacyOptionalTablesRemainCompatibleUntilVersionThree(t *testing.T) {
+	legacyOptionalTables := legacyOptionalBackupTableNames()
+	for _, test := range []struct {
+		name           string
+		version        int
+		wantCompatible bool
+	}{
+		{name: "version one", version: 1, wantCompatible: true},
+		{name: "version two", version: 2, wantCompatible: true},
+		{name: "version three", version: 3, wantCompatible: false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db := backupTestDB(t, t.TempDir())
+			service := application.NewBackupService(db, t.TempDir())
+			tables := backupDocumentTablesThroughVersion(test.version)
+			for _, table := range legacyOptionalTables {
+				delete(tables, table)
+			}
+			doc := &application.BackupDocument{
+				Format: "railkeeper-backup", Version: test.version, Tables: tables,
+			}
 
-	result, err := service.Validate(context.Background(), doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if result.Compatible {
-		t.Fatalf("expected backup without version-one tables to be rejected, got %#v", result)
-	}
-	if !containsWarning(result.Errors, "Tabelle exhibition_lists fehlt") ||
-		!containsWarning(result.Errors, "Tabelle exhibition_entries fehlt") {
-		t.Fatalf("expected required table errors, got %#v", result.Errors)
+			result, err := service.Validate(context.Background(), doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Compatible != test.wantCompatible {
+				t.Fatalf("compatibility=%t, want %t: %#v", result.Compatible, test.wantCompatible, result)
+			}
+			for _, table := range legacyOptionalTables {
+				messages := result.Warnings
+				prefix := "Optionale Tabelle "
+				if !test.wantCompatible {
+					messages = result.Errors
+					prefix = "Tabelle "
+				}
+				if !containsWarning(messages, prefix+table+" fehlt") {
+					t.Fatalf("expected version %d missing-table result for %s: %#v", test.version, table, result)
+				}
+			}
+			if test.wantCompatible {
+				if _, err := service.Import(context.Background(), doc); err != nil {
+					t.Fatalf("expected version %d legacy backup to import: %v", test.version, err)
+				}
+			}
+		})
 	}
 }
 
@@ -820,10 +847,10 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 	value := 12.5
 	unit := "mm"
 	product, err := accessories.CreateProduct(ctx, application.CreateAccessoryProductInput{
-		Manufacturer: "Test", Name: "Sentinel article", Category: "other", ArticleType: domain.AccessoryArticleOther,
-		Subtype: "other", PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		Manufacturer: "Test", Name: "Sentinel article", Category: "straight", ArticleType: domain.AccessoryArticleTrack,
+		Subtype: "straight", PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
 		Attributes: []domain.AccessoryAttributeValue{{
-			Key: "customLength", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
+			Key: "lengthMm", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
 		}},
 	}, "editor-1")
 	if err != nil {
@@ -843,28 +870,55 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		assertBackupSentinels(t, ctx, vehicleService, accessories, sentinel.ID, product.ID)
 	})
 
-	t.Run("malformed typed attribute", func(t *testing.T) {
-		doc, err := service.Export(ctx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		rows := doc.Tables["accessory_product_attributes"]
-		if len(rows) != 1 {
-			t.Fatalf("expected one attribute row, got %#v", rows)
-		}
-		rows[0]["value_type"] = "text"
-		validation, err := service.Validate(ctx, doc)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if validation.Compatible || !containsWarning(validation.Errors, "accessory_product_attributes") {
-			t.Fatalf("expected semantic attribute validation error, got %#v", validation)
-		}
-		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
-			t.Fatalf("expected malformed attribute rejection, got %v", err)
-		}
-		assertBackupSentinels(t, ctx, vehicleService, accessories, sentinel.ID, product.ID)
-	})
+	for _, test := range []struct {
+		name   string
+		mutate func(map[string]any)
+	}{
+		{
+			name: "structural union mismatch",
+			mutate: func(row map[string]any) {
+				row["value_type"] = "text"
+			},
+		},
+		{
+			name: "standard key kind mismatch",
+			mutate: func(row map[string]any) {
+				row["value_type"] = "text"
+				row["text_value"] = "12.5"
+				row["number_value"] = nil
+				row["unit"] = nil
+			},
+		},
+		{
+			name: "custom key on standard article type",
+			mutate: func(row map[string]any) {
+				row["attribute_key"] = "customLength"
+			},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			doc, err := service.Export(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			rows := doc.Tables["accessory_product_attributes"]
+			if len(rows) != 1 {
+				t.Fatalf("expected one attribute row, got %#v", rows)
+			}
+			test.mutate(rows[0])
+			validation, err := service.Validate(ctx, doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if validation.Compatible || !containsWarning(validation.Errors, "accessory_product_attributes") {
+				t.Fatalf("expected semantic attribute validation error, got %#v", validation)
+			}
+			if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
+				t.Fatalf("expected malformed attribute rejection, got %v", err)
+			}
+			assertBackupSentinels(t, ctx, vehicleService, accessories, sentinel.ID, product.ID)
+		})
+	}
 }
 
 func TestBackupRejectsUnsafeFilePath(t *testing.T) {
@@ -1033,6 +1087,13 @@ func versionThreeBackupTableNames() []string {
 	return []string{
 		"accessory_product_attributes", "accessory_purchases", "accessory_documents",
 		"accessory_stock_movements", "accessory_installation_condition_history",
+	}
+}
+
+func legacyOptionalBackupTableNames() []string {
+	return []string{
+		"file_blobs", "vehicle_external_mappings", "vehicle_spare_parts",
+		"exhibition_lists", "exhibition_entries",
 	}
 }
 
