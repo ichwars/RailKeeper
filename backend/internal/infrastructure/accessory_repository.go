@@ -194,6 +194,36 @@ WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category
 	return r.GetProduct(ctx, id)
 }
 
+func (r *AccessoryRepository) SetProductArchived(
+	ctx context.Context,
+	id string,
+	archived bool,
+	actor string,
+) (*application.AccessoryProduct, error) {
+	now := timestamp()
+	action := "AccessoryProductRestored"
+	if archived {
+		action = "AccessoryProductArchived"
+	}
+	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx,
+			`UPDATE accessory_products SET archived=?, updated_at=? WHERE id=?`,
+			boolToInt(archived), now, id,
+		)
+		if err != nil {
+			return fmt.Errorf("set accessory product archived: %w", err)
+		}
+		if err := requireAccessoryUpdated(result); err != nil {
+			return err
+		}
+		return writeAccessoryAudit(ctx, tx, action, "accessory_product", id, actor, now, "{}")
+	})
+	if err != nil {
+		return nil, err
+	}
+	return r.GetProduct(ctx, id)
+}
+
 func (r *AccessoryRepository) ListLocations(ctx context.Context) ([]application.StorageLocation, error) {
 	rows, err := r.db.QueryContext(ctx, storageLocationSelect+` ORDER BY name COLLATE NOCASE, id`)
 	if err != nil {

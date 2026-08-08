@@ -1,10 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure"
 )
 
@@ -105,8 +108,15 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 	assertStatus(t, quantityResponse, http.StatusCreated)
 	var quantityProduct application.AccessoryProduct
 	decodeResponse(t, quantityResponse, &quantityProduct)
-	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
-		"/api/v1/accessory-products?query=Tillig", nil, true), http.StatusOK)
+	listResponse := layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/accessory-products?query=Tillig", nil, true)
+	assertStatus(t, listResponse, http.StatusOK)
+	var listResult application.AccessoryArticleListResult
+	decodeResponse(t, listResponse, &listResult)
+	if len(listResult.Items) != 1 || listResult.Items[0].ID != quantityProduct.ID ||
+		listResult.Metrics.ArticleCount != 1 || len(listResult.FilterOptions.Manufacturers) != 1 {
+		t.Fatalf("unexpected article list response: %#v", listResult)
+	}
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/accessory-products/"+quantityProduct.ID, nil, true), http.StatusOK)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodPut,
@@ -161,4 +171,219 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 		"/api/v1/accessory-products/missing", nil, true), http.StatusNotFound, "accessory_not_found")
 	assertProblem(t, layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
 		map[string]any{"name": "Invalid"}, true), http.StatusBadRequest, "accessory_validation")
+}
+
+func TestAccessoryArticleRoutesEnforceRoleAndCSRFForEveryNewEndpoint(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	productPath := "/api/v1/accessory-products/" + fixture.product.ID
+	hybridPath := "/api/v1/accessory-products/" + fixture.hybridProduct.ID
+
+	type routeCase struct {
+		name       string
+		method     string
+		path       string
+		body       any
+		wantEditor int
+		multipart  bool
+	}
+	readCases := []routeCase{
+		{name: "catalogue", method: http.MethodGet, path: "/api/v1/accessory-products", wantEditor: http.StatusOK},
+		{name: "product", method: http.MethodGet, path: productPath, wantEditor: http.StatusOK},
+		{name: "stock movements", method: http.MethodGet, path: productPath + "/stock-movements", wantEditor: http.StatusOK},
+		{name: "purchases", method: http.MethodGet, path: productPath + "/purchases", wantEditor: http.StatusOK},
+		{name: "documents", method: http.MethodGet, path: productPath + "/documents", wantEditor: http.StatusOK},
+		{name: "document", method: http.MethodGet, path: productPath + "/documents/missing", wantEditor: http.StatusNotFound},
+		{name: "document download", method: http.MethodGet, path: productPath + "/documents/missing/download", wantEditor: http.StatusNotFound},
+		{name: "usage history", method: http.MethodGet, path: productPath + "/usage-history", wantEditor: http.StatusOK},
+	}
+	for _, testCase := range readCases {
+		t.Run("read/"+testCase.name, func(t *testing.T) {
+			for role, session := range fixture.sessions {
+				response := layoutRequest(t, fixture.router, session, testCase.method, testCase.path, nil, true)
+				want := testCase.wantEditor
+				if role == "messe" {
+					want = http.StatusForbidden
+				}
+				if response.Code != want {
+					t.Fatalf("%s %s %s: got %d, want %d: %s", role, testCase.method, testCase.path,
+						response.Code, want, response.Body.String())
+				}
+			}
+		})
+	}
+
+	writeCases := []routeCase{
+		{name: "duplicate check", method: http.MethodPost, path: "/api/v1/accessory-products/duplicate-check",
+			body: map[string]any{"manufacturer": "Tillig", "articleNumber": "83101"}, wantEditor: http.StatusOK},
+		{name: "archive", method: http.MethodPost, path: productPath + "/archive", wantEditor: http.StatusOK},
+		{name: "restore", method: http.MethodPost, path: productPath + "/restore", wantEditor: http.StatusOK},
+		{name: "stock transfer", method: http.MethodPost, path: productPath + "/stock-transfers",
+			body: map[string]any{"fromLocationId": fixture.locationA.ID, "toLocationId": fixture.locationB.ID,
+				"quantity": 1}, wantEditor: http.StatusOK},
+		{name: "purchase", method: http.MethodPost, path: productPath + "/purchases",
+			body: map[string]any{"purchasedAt": "2026-08-08", "quantity": 1}, wantEditor: http.StatusCreated},
+		{name: "individualization", method: http.MethodPost, path: hybridPath + "/individualizations",
+			body: map[string]any{"locationId": fixture.locationA.ID,
+				"asset": map[string]any{"condition": "ready", "lifecycle": "stored"}}, wantEditor: http.StatusCreated},
+		{name: "document upload", method: http.MethodPost, path: productPath + "/documents",
+			wantEditor: http.StatusCreated, multipart: true},
+		{name: "document update", method: http.MethodPut, path: productPath + "/documents/missing",
+			body: map[string]any{"category": "manual"}, wantEditor: http.StatusNotFound},
+		{name: "document delete", method: http.MethodDelete, path: productPath + "/documents/missing",
+			wantEditor: http.StatusNotFound},
+	}
+	for _, testCase := range writeCases {
+		t.Run("write/"+testCase.name, func(t *testing.T) {
+			for role, session := range fixture.sessions {
+				response := accessoryRouteCaseRequest(t, fixture.router, session, testCase, true)
+				want := http.StatusForbidden
+				if role == "admin" || role == "editor" {
+					want = testCase.wantEditor
+				}
+				if response.Code != want {
+					t.Fatalf("%s %s %s: got %d, want %d: %s", role, testCase.method, testCase.path,
+						response.Code, want, response.Body.String())
+				}
+			}
+			editorWithoutCSRF := accessoryRouteCaseRequest(
+				t, fixture.router, fixture.sessions["editor"], testCase, false,
+			)
+			assertProblem(t, editorWithoutCSRF, http.StatusForbidden, "csrf_required")
+		})
+	}
+}
+
+func TestAccessoryArticleListParsesApprovedQueryAndRejectsInvalidEnums(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+		"/api/v1/accessory-products?query=Modell&manufacturer=Tillig&articleType=track&articleType=other"+
+			"&gauge=TT&gauge=H0&status=available&status=reserved&locationId="+fixture.locationA.ID+
+			"&sort=stock&direction=desc", nil, true)
+	assertStatus(t, response, http.StatusOK)
+	if !bytes.Contains(response.Body.Bytes(), []byte(`"filters"`)) ||
+		bytes.Contains(response.Body.Bytes(), []byte(`"filterOptions"`)) {
+		t.Fatalf("article list must expose filters: %s", response.Body.String())
+	}
+	var result application.AccessoryArticleListResult
+	decodeResponse(t, response, &result)
+	if len(result.Items) != 1 || result.Items[0].ID != fixture.product.ID || result.Metrics.ArticleCount != 2 {
+		t.Fatalf("unexpected filtered list: %#v", result)
+	}
+
+	for name, query := range map[string]string{
+		"article type": "articleType=invalid",
+		"status":       "status=invalid",
+		"sort":         "sort=invalid",
+		"direction":    "direction=sideways",
+	} {
+		t.Run(name, func(t *testing.T) {
+			invalid := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+				"/api/v1/accessory-products?"+query, nil, true)
+			assertProblem(t, invalid, http.StatusBadRequest, "accessory_validation")
+		})
+	}
+}
+
+func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividualization(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	editor := fixture.sessions["editor"]
+	productPath := "/api/v1/accessory-products/" + fixture.product.ID
+
+	duplicate := layoutRequest(t, fixture.router, editor, http.MethodPost,
+		"/api/v1/accessory-products/duplicate-check",
+		map[string]any{"manufacturer": " Tillig ", "articleNumber": " 83101 "}, true)
+	assertStatus(t, duplicate, http.StatusOK)
+	var duplicateResult application.AccessoryDuplicateCheckResult
+	decodeResponse(t, duplicate, &duplicateResult)
+	if len(duplicateResult.Candidates) != 1 || duplicateResult.Candidates[0].ID != fixture.product.ID {
+		t.Fatalf("unexpected duplicate result: %#v", duplicateResult)
+	}
+	createdDuplicate := layoutRequest(t, fixture.router, editor, http.MethodPost, "/api/v1/accessory-products",
+		typedAccessoryProductInput("Tillig", "83101", "Confirmed variant", domain.AccessoryInventoryQuantity), true)
+	assertStatus(t, createdDuplicate, http.StatusCreated)
+
+	for _, endpoint := range []string{"archive", "archive", "restore", "restore"} {
+		response := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/"+endpoint, nil, true)
+		assertStatus(t, response, http.StatusOK)
+		var product application.AccessoryProduct
+		decodeResponse(t, response, &product)
+		if product.Archived != (endpoint == "archive") {
+			t.Fatalf("%s returned archived=%t", endpoint, product.Archived)
+		}
+	}
+	var archiveAuditCount int
+	if err := fixture.db.QueryRow(`SELECT COUNT(*) FROM audit_logs
+		WHERE target_type='accessory_product' AND target_id=?
+		AND action IN ('AccessoryProductArchived', 'AccessoryProductRestored')`, fixture.product.ID).
+		Scan(&archiveAuditCount); err != nil {
+		t.Fatal(err)
+	}
+	if archiveAuditCount != 4 {
+		t.Fatalf("archive/restore audit count=%d, want 4", archiveAuditCount)
+	}
+	assertProblem(t, layoutRequest(t, fixture.router, editor, http.MethodPost,
+		"/api/v1/accessory-products/missing/archive", nil, true),
+		http.StatusNotFound, "accessory_not_found")
+
+	transfer := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/stock-transfers",
+		map[string]any{"fromLocationId": fixture.locationA.ID, "toLocationId": fixture.locationB.ID,
+			"quantity": 3, "note": "Move"}, true)
+	assertStatus(t, transfer, http.StatusOK)
+	var stock application.AccessoryStockSummary
+	decodeResponse(t, transfer, &stock)
+	if stock.TotalQuantity != 20 || len(stock.Locations) != 2 {
+		t.Fatalf("unexpected transferred stock: %#v", stock)
+	}
+	movements := layoutRequest(t, fixture.router, editor, http.MethodGet, productPath+"/stock-movements", nil, true)
+	assertStatus(t, movements, http.StatusOK)
+	var journal []application.AccessoryStockMovement
+	decodeResponse(t, movements, &journal)
+	if len(journal) < 3 {
+		t.Fatalf("stock journal missing transfer rows: %#v", journal)
+	}
+
+	purchase := layoutRequest(t, fixture.router, editor, http.MethodPost, productPath+"/purchases",
+		map[string]any{"purchasedAt": "2026-08-08", "supplier": "Dealer", "quantity": 2,
+			"storageLocationId": fixture.locationB.ID, "bookToStock": true, "currency": "eur"}, true)
+	assertStatus(t, purchase, http.StatusCreated)
+	purchases := layoutRequest(t, fixture.router, editor, http.MethodGet, productPath+"/purchases", nil, true)
+	assertStatus(t, purchases, http.StatusOK)
+	var purchaseList []application.AccessoryPurchase
+	decodeResponse(t, purchases, &purchaseList)
+	if len(purchaseList) != 1 || purchaseList[0].Currency != "EUR" {
+		t.Fatalf("unexpected purchases: %#v", purchaseList)
+	}
+
+	individualized := layoutRequest(t, fixture.router, editor, http.MethodPost,
+		"/api/v1/accessory-products/"+fixture.hybridProduct.ID+"/individualizations",
+		map[string]any{"locationId": fixture.locationA.ID,
+			"asset": map[string]any{"inventoryNumber": "RK-Z-9001", "condition": "ready", "lifecycle": "stored"}}, true)
+	assertStatus(t, individualized, http.StatusCreated)
+	var asset application.AccessoryAsset
+	decodeResponse(t, individualized, &asset)
+	if asset.ProductID != fixture.hybridProduct.ID || asset.StorageLocationID != fixture.locationA.ID {
+		t.Fatalf("unexpected individualized asset: %#v", asset)
+	}
+}
+
+func accessoryRouteCaseRequest(
+	t *testing.T,
+	router http.Handler,
+	session *application.LoginResult,
+	testCase struct {
+		name       string
+		method     string
+		path       string
+		body       any
+		wantEditor int
+		multipart  bool
+	},
+	withCSRF bool,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	if testCase.multipart {
+		return accessoryMultipartRequest(t, router, session, testCase.method, testCase.path, "manual.pdf",
+			[]byte("%PDF-1.7\nexample"), map[string]string{"category": "manual"}, withCSRF)
+	}
+	return layoutRequest(t, router, session, testCase.method, testCase.path, testCase.body, withCSRF)
 }

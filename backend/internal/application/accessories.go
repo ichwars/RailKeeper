@@ -124,6 +124,7 @@ type AccessoryCatalogRepository interface {
 	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
 	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
 	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
+	SetProductArchived(context.Context, string, bool, string) (*AccessoryProduct, error)
 }
 
 type AccessoryLocationRepository interface {
@@ -193,6 +194,19 @@ func (s *AccessoryService) UpdateProduct(
 		return nil, ErrAccessoryValidation
 	}
 	return s.repository.UpdateProduct(ctx, id, input, actor)
+}
+
+func (s *AccessoryService) SetProductArchived(
+	ctx context.Context,
+	id string,
+	archived bool,
+	actor string,
+) (*AccessoryProduct, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.SetProductArchived(ctx, id, archived, actor)
 }
 
 func (s *AccessoryService) ListLocations(ctx context.Context) ([]StorageLocation, error) {

@@ -75,7 +75,7 @@ type StorageLocationOption struct {
 type AccessoryArticleListResult struct {
 	Items         []AccessoryArticleListItem    `json:"items"`
 	Metrics       AccessoryOverviewMetrics      `json:"metrics"`
-	FilterOptions AccessoryArticleFilterOptions `json:"filterOptions"`
+	FilterOptions AccessoryArticleFilterOptions `json:"filters"`
 }
 
 func (s *AccessoryService) ListArticles(

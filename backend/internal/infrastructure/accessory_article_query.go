@@ -290,7 +290,8 @@ WHERE archived=0 AND TRIM(article_type)<>'' ORDER BY article_type COLLATE NOCASE
 	_ = rows.Close()
 	rows, err = r.db.QueryContext(ctx, `SELECT DISTINCT gauge.value
 FROM accessory_products product, json_each(product.gauges_json) gauge
-WHERE product.archived=0 ORDER BY gauge.value COLLATE NOCASE`)
+WHERE product.archived=0 AND gauge.value IS NOT NULL
+ORDER BY gauge.value COLLATE NOCASE`)
 	if err != nil {
 		return fmt.Errorf("list accessory gauge filters: %w", err)
 	}

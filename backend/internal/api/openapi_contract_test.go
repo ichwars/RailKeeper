@@ -74,10 +74,40 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 		"AccessoryAsset", "AccessoryAssetInput", "AccessoryAllocationTarget", "AccessoryReservation",
 		"AccessoryReservationInput", "AccessoryInstallation", "AccessoryInstallationInput",
 		"AccessoryInstallationRemovalInput", "AccessoryInstallationConditionInput", "AccessoryAllocationSummary",
+		"AccessoryArticleListItem", "AccessoryOverviewMetrics", "AccessoryArticleFilterOptions",
+		"AccessoryArticleListResult", "AccessoryAttributeValue", "AccessoryTextAttribute",
+		"AccessoryNumberAttribute", "AccessoryBooleanAttribute", "AccessoryDateAttribute",
+		"AccessorySingleSelectAttribute", "AccessoryMultiSelectAttribute", "AccessoryDuplicateCheckInput",
+		"AccessoryDuplicateCandidate", "AccessoryDuplicateCheckResult", "AccessoryStockMovement",
+		"AccessoryStockTransferInput", "AccessoryPurchase", "AccessoryPurchaseInput",
+		"AccessoryIndividualizationInput", "AccessoryDocument", "AccessoryDocumentUpdateInput",
+		"AccessoryUsageEvent", "AccessoryUsageHistory",
 	}
 	for _, schema := range want {
 		if !strings.Contains(contract, "    "+schema+":\n") {
 			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+}
+
+func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	fragments := []string{
+		"name: articleType\n", "name: gauge\n", "name: status\n", "style: form\n", "explode: true\n",
+		"enum: [available, reserved, installed, maintenance_due, defective, archived]",
+		"enum: [article, type, gauge, stock, storage, updatedAt]", "enum: [asc, desc]",
+		"multipart/form-data:", "format: binary", "application/octet-stream:",
+		"AccessoryArticleListResult", "AccessoryDuplicateCheckResult", "AccessoryStockSummary",
+		"AccessoryStockMovement", "AccessoryPurchase", "AccessoryDocument", "AccessoryUsageHistory",
+		"discriminator:", "propertyName: kind", `"400":`, `"403":`, `"404":`, `"409":`, `"413":`, `"415":`,
+	}
+	for _, fragment := range fragments {
+		if !strings.Contains(contract, fragment) {
+			t.Errorf("OpenAPI article contract is missing %q", fragment)
 		}
 	}
 }

@@ -6,15 +6,47 @@ import (
 	"net/http"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 )
 
 func (a *App) listAccessoryProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := a.accessoryService.ListProducts(r.Context(), r.URL.Query().Get("query"))
+	values := r.URL.Query()
+	articleTypes := make([]domain.AccessoryArticleType, len(values["articleType"]))
+	for index, value := range values["articleType"] {
+		articleTypes[index] = domain.AccessoryArticleType(value)
+	}
+	statuses := make([]application.AccessoryArticleStatus, len(values["status"]))
+	for index, value := range values["status"] {
+		statuses[index] = application.AccessoryArticleStatus(value)
+	}
+	products, err := a.accessoryService.ListArticles(r.Context(), application.AccessoryArticleListQuery{
+		Query:        values.Get("query"),
+		ArticleTypes: articleTypes,
+		Gauges:       values["gauge"],
+		Statuses:     statuses,
+		Manufacturer: values.Get("manufacturer"),
+		LocationID:   values.Get("locationId"),
+		Sort:         values.Get("sort"),
+		Direction:    values.Get("direction"),
+	})
 	if err != nil {
 		a.accessoryError(w, err, "list accessory products")
 		return
 	}
 	respondJSON(w, http.StatusOK, products)
+}
+
+func (a *App) checkAccessoryProductDuplicates(w http.ResponseWriter, r *http.Request) {
+	var input application.AccessoryDuplicateCheckInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	result, err := a.accessoryService.CheckDuplicateProducts(r.Context(), input)
+	if err != nil {
+		a.accessoryError(w, err, "check accessory product duplicates")
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
 }
 
 func (a *App) createAccessoryProduct(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +84,25 @@ func (a *App) updateAccessoryProduct(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, product)
 }
 
+func (a *App) archiveAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	a.setAccessoryProductArchived(w, r, true)
+}
+
+func (a *App) restoreAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	a.setAccessoryProductArchived(w, r, false)
+}
+
+func (a *App) setAccessoryProductArchived(w http.ResponseWriter, r *http.Request, archived bool) {
+	product, err := a.accessoryService.SetProductArchived(
+		r.Context(), r.PathValue("id"), archived, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "set accessory product archived")
+		return
+	}
+	respondJSON(w, http.StatusOK, product)
+}
+
 func (a *App) getAccessoryStock(w http.ResponseWriter, r *http.Request) {
 	stock, err := a.accessoryService.GetStock(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -72,6 +123,69 @@ func (a *App) adjustAccessoryStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, stock)
+}
+
+func (a *App) listAccessoryStockMovements(w http.ResponseWriter, r *http.Request) {
+	movements, err := a.accessoryService.ListStockMovements(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.accessoryError(w, err, "list accessory stock movements")
+		return
+	}
+	respondJSON(w, http.StatusOK, movements)
+}
+
+func (a *App) transferAccessoryStock(w http.ResponseWriter, r *http.Request) {
+	var input application.TransferAccessoryStockInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	stock, err := a.accessoryService.TransferStock(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "transfer accessory stock")
+		return
+	}
+	respondJSON(w, http.StatusOK, stock)
+}
+
+func (a *App) listAccessoryPurchases(w http.ResponseWriter, r *http.Request) {
+	purchases, err := a.accessoryService.ListPurchases(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.accessoryError(w, err, "list accessory purchases")
+		return
+	}
+	respondJSON(w, http.StatusOK, purchases)
+}
+
+func (a *App) createAccessoryPurchase(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateAccessoryPurchaseInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	purchase, err := a.accessoryService.CreatePurchase(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "create accessory purchase")
+		return
+	}
+	respondJSON(w, http.StatusCreated, purchase)
+}
+
+func (a *App) individualizeAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	var input application.IndividualizeAccessoryInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	asset, err := a.accessoryService.Individualize(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "individualize accessory product")
+		return
+	}
+	respondJSON(w, http.StatusCreated, asset)
 }
 
 func (a *App) listAccessoryAssets(w http.ResponseWriter, r *http.Request) {

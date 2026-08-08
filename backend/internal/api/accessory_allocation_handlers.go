@@ -99,3 +99,12 @@ func (a *App) getAccessoryAllocationSummary(w http.ResponseWriter, r *http.Reque
 	}
 	respondJSON(w, http.StatusOK, summary)
 }
+
+func (a *App) getAccessoryUsageHistory(w http.ResponseWriter, r *http.Request) {
+	history, err := a.accessoryAllocationService.GetUsageHistory(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.accessoryError(w, err, "get accessory usage history")
+		return
+	}
+	respondJSON(w, http.StatusOK, history)
+}

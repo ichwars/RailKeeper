@@ -127,6 +127,7 @@ func main() {
 	accessoryRepository := infrastructure.NewAccessoryRepository(db)
 	accessoryService := application.NewAccessoryService(accessoryRepository)
 	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
+	accessoryDocumentService := application.NewAccessoryDocumentService(accessoryRepository, fileBlobService)
 
 	handler := api.NewRouter(api.Config{
 		Version:                     version,
@@ -150,6 +151,7 @@ func main() {
 		LayoutService:               layoutService,
 		AccessoryService:            accessoryService,
 		AccessoryAllocationService:  accessoryAllocationService,
+		AccessoryDocumentService:    accessoryDocumentService,
 		ECoSService:                 application.NewECoSService(),
 		RateLimitService:            application.NewRateLimitService(db),
 		SettingsService:             application.NewSettingsService(db),
