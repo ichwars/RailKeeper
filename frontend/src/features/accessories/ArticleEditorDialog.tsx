@@ -94,6 +94,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
   const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
+  const createTypeConfigurationUnavailable = props.mode === "create" &&
+    (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError));
   const tabs: Array<{ key: ArticleEditorTab; label: string; subject?: boolean }> = [
     { key: "article", label: t("accessories.editor.tabs.article") },
     { key: "stock", label: t("accessories.editor.tabs.stock") },
@@ -224,6 +226,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
               disabled={readOnly} articleTypeDisabled={props.customFieldsLoading ||
                 props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)}
+              typeDependentDisabled={createTypeConfigurationUnavailable}
               otherArticleTypeDisabled={Boolean(props.customFieldsError)}
               articleTypeEntries={props.articleTypeEntries}
               subtypeEntries={props.subtypeEntries}
@@ -249,7 +252,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               onDirtyChange={(dirty) => props.onSubdraftDirty("purchaseDocuments", dirty)} />
           </div>
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
-            <ArticleSubjectTab form={props.form} disabled={readOnly} error={props.fieldErrors.attributes}
+            <ArticleSubjectTab form={props.form} disabled={readOnly || createTypeConfigurationUnavailable}
+              error={props.fieldErrors.attributes}
               active={props.activeTab === "subject"} customFields={props.customFields}
               articleTypeEntries={props.articleTypeEntries}
               loading={props.customFieldsLoading} loadError={props.customFieldsError}

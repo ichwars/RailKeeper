@@ -21,6 +21,7 @@ export function ArticleCoreTab({
   errors,
   disabled,
   articleTypeDisabled = false,
+  typeDependentDisabled = false,
   otherArticleTypeDisabled = false,
   articleTypeEntries,
   subtypeEntries,
@@ -33,6 +34,7 @@ export function ArticleCoreTab({
   errors: ArticleEditorFieldErrors;
   disabled: boolean;
   articleTypeDisabled?: boolean;
+  typeDependentDisabled?: boolean;
   otherArticleTypeDisabled?: boolean;
   articleTypeEntries: MasterDataEntry[];
   subtypeEntries: MasterDataEntry[];
@@ -88,7 +90,7 @@ export function ArticleCoreTab({
           <AppSelect value={form.subtype} aria-label={t("accessories.editor.fields.subtype")}
             required aria-invalid={Boolean(errors.subtype)}
             aria-describedby={errors.subtype ? "article-editor-subtype-error" : undefined}
-            disabled={disabled || subtypeEntriesLoading || Boolean(subtypeEntriesError)}
+            disabled={disabled || typeDependentDisabled || subtypeEntriesLoading || Boolean(subtypeEntriesError)}
             onChange={(event) => onChange({ subtype: event.target.value })}>
             <option value="">{t("accessories.editor.fields.selectSubtype")}</option>
             {subtypeOptions.map((option) => <option key={option.value} value={option.value}>

@@ -355,6 +355,9 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 			result.Errors = append(result.Errors,
 				validateBackupAccessoryProductAttributes(rows, doc.Tables["accessory_products"])...)
 		}
+		if table == "master_data_entries" && doc.Version >= 3 {
+			result.Errors = append(result.Errors, validateBackupProtectedArticleTypes(rows)...)
+		}
 		result.Tables = append(result.Tables, item)
 	}
 	for table := range doc.Tables {
@@ -364,6 +367,23 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 
 	return finishBackupValidation(result), nil
+}
+
+func validateBackupProtectedArticleTypes(rows []map[string]any) []string {
+	entries := make([]MasterDataEntry, 0, len(standardArticleTypeKeys))
+	for _, row := range rows {
+		typeName, valid := backupNonEmptyString(row["type"])
+		if !valid || typeName != standardArticleType {
+			continue
+		}
+		key, _ := backupNonEmptyString(row["key"])
+		label, _ := backupNonEmptyString(row["label"])
+		entries = append(entries, MasterDataEntry{Type: typeName, Key: key, Label: label})
+	}
+	if err := validateProtectedArticleTypes(entries, true); err != nil {
+		return []string{"Tabelle master_data_entries enthält keine gültige vollständige Artikelarten-Konfiguration."}
+	}
+	return nil
 }
 
 func backupTableOptional(version int, table string) bool {

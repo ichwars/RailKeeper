@@ -1645,6 +1645,7 @@ export const enTranslations: Record<string, string> = {
     "accessories.editor.retryResources": "Reload data",
     "accessories.editor.retryCustomFields": "Reload custom fields",
     "accessories.editor.articleTypes.loadError": "Article types could not be loaded.",
+    "accessories.editor.articleTypes.noneActive": "No active article type is configured.",
     "accessories.editor.articleTypes.retry": "Reload article types",
     "accessories.editor.subtypes.loadError": "Subtypes could not be loaded.",
     "accessories.editor.subtypes.retry": "Reload subtypes",

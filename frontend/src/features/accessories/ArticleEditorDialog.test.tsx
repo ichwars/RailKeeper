@@ -234,6 +234,22 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("button", { name: "Unterart" })).toBeDisabled();
   });
 
+  it("disables type-dependent create controls until authoritative article types are loaded", () => {
+    const view = render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track" },
+      articleTypeEntriesLoading: true
+    })} />);
+
+    expect(screen.getByRole("button", { name: "Unterart" })).toBeDisabled();
+    view.rerender(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track" },
+      activeTab: "subject",
+      articleTypeEntriesLoading: true
+    })} />);
+    expect(screen.getByRole("textbox", { name: "Gleissystem" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Artikel anlegen" })).toBeDisabled();
+  });
+
   it("shows custom-field retry, allows switching to a standard type, and only blocks other save", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();

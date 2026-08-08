@@ -3528,7 +3528,7 @@ paths:
   /accessory-products/{id}/individualizations:
     post:
       tags: [Accessories]
-      summary: Convert one hybrid quantity unit into an individually tracked asset
+      summary: Convert one hybrid quantity unit into an individual item
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
@@ -3547,7 +3547,7 @@ paths:
               $ref: "#/components/schemas/AccessoryIndividualizationInput"
       responses:
         "201":
-          description: Individually tracked asset created
+          description: Individual item created
           content:
             application/json:
               schema:
@@ -3585,13 +3585,13 @@ paths:
           type: string
     get:
       tags: [Accessories]
-      summary: List individually tracked assets for an accessory product
+      summary: List individual items for an accessory product
       description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
       security:
         - sessionCookie: []
       responses:
         "200":
-          description: Accessory asset list
+          description: Individual item list
           content:
             application/json:
               schema:
@@ -3618,7 +3618,7 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Create an individually tracked accessory asset
+      summary: Create an individual item
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
@@ -3631,13 +3631,13 @@ paths:
               $ref: "#/components/schemas/AccessoryAssetInput"
       responses:
         "201":
-          description: Accessory asset created
+          description: Individual item created
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryAsset"
         "400":
-          description: Invalid accessory asset data
+          description: Invalid individual item data
           content:
             application/json:
               schema:
@@ -3663,7 +3663,7 @@ paths:
   /accessory-assets/{id}:
     put:
       tags: [Accessories]
-      summary: Update an individually tracked accessory asset
+      summary: Update an individual item
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
@@ -3682,13 +3682,13 @@ paths:
               $ref: "#/components/schemas/AccessoryAssetInput"
       responses:
         "200":
-          description: Accessory asset updated
+          description: Individual item updated
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryAsset"
         "400":
-          description: Invalid accessory asset data
+          description: Invalid individual item data
           content:
             application/json:
               schema:
@@ -3700,13 +3700,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "404":
-          description: Accessory asset not found
+          description: Individual item not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "409":
-          description: Accessory asset conflicts with existing data
+          description: Individual item conflicts with existing data
           content:
             application/json:
               schema:

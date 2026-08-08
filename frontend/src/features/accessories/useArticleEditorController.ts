@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   api,
   type AccessoryArticle,
+  type AccessoryArticleType,
   type AccessoryAsset,
   type AccessoryDocument,
   type AccessoryDuplicateCandidate,
@@ -36,6 +37,7 @@ import {
   customFieldDefinitions,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
+import { articleTypeOrder } from "./articleTypes";
 
 export type ArticleEditorPermissions = {
   canEdit: boolean;
@@ -119,6 +121,7 @@ export function useArticleEditorController({
   const [subdraftDirty, setSubdraftDirtyState] = useState<Record<string, boolean>>({});
   const [sessionKey, setSessionKey] = useState(0);
   const generationRef = useRef(0);
+  const createGenerationRef = useRef<number | null>(null);
   const resourceRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
@@ -188,7 +191,19 @@ export function useArticleEditorController({
     setArticleTypeEntriesError("");
     try {
       const entries = await api.masterData("article_type");
-      if (isCurrent(generation)) setArticleTypeEntries(entries);
+      if (!isCurrent(generation)) return;
+      setArticleTypeEntries(entries);
+      if (createGenerationRef.current === generation) {
+        const activeEntry = entries.find((entry) => entry.type === "article_type" && entry.active &&
+          articleTypeOrder.some((articleType) => articleType === entry.key));
+        if (!activeEntry) {
+          setArticleTypeEntriesError(t("accessories.editor.articleTypes.noneActive"));
+          return;
+        }
+        const articleType = activeEntry.key as AccessoryArticleType;
+        setForm((current) => ({ ...current, articleType }));
+        setInitialForm((current) => ({ ...current, articleType }));
+      }
     } catch {
       if (isCurrent(generation)) setArticleTypeEntriesError(t("accessories.editor.articleTypes.loadError"));
     } finally {
@@ -220,6 +235,7 @@ export function useArticleEditorController({
 
   const openCreate = () => {
     const generation = ++generationRef.current;
+    createGenerationRef.current = generation;
     resourceRequestRef.current += 1;
     setSessionKey(generation);
     const next = emptyArticleEditorForm();
@@ -247,6 +263,7 @@ export function useArticleEditorController({
 
   const openArticle = (id: string, nextMode: Exclude<ArticleEditorMode, "create">, usageSignal: boolean) => {
     const generation = ++generationRef.current;
+    createGenerationRef.current = null;
     resourceRequestRef.current += 1;
     setSessionKey(generation);
     const empty = emptyArticleEditorForm();
@@ -315,6 +332,7 @@ export function useArticleEditorController({
 
   const closeNow = () => {
     generationRef.current += 1;
+    createGenerationRef.current = null;
     resourceRequestRef.current += 1;
     setIsOpen(false);
     setCloseConfirmationOpen(false);
@@ -375,6 +393,8 @@ export function useArticleEditorController({
       return;
     }
     if (form.articleType === "other" && (customFieldsLoading || customFieldsError)) return;
+    if ((mode === "create" || article?.articleType !== form.articleType) &&
+      (articleTypeEntriesLoading || articleTypeEntriesError)) return;
     const historicalAttributes = mode === "edit" && article?.articleType === "other" ? article.attributes : [];
     const validation = validateArticleEditorForm(form, {
       required: t("accessories.editor.validation.required"),

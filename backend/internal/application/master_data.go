@@ -29,9 +29,10 @@ var standardArticleTypeKeys = []string{
 }
 
 type MasterDataService struct {
-	db      *sql.DB
-	cacheMu sync.RWMutex
-	cache   map[bool]map[string][]MasterDataEntry
+	db             *sql.DB
+	cacheMu        sync.RWMutex
+	cache          map[bool]map[string][]MasterDataEntry
+	snapshotLoader func(context.Context) (map[string][]MasterDataEntry, error)
 }
 
 type MasterDataEntry struct {
@@ -80,10 +81,19 @@ type MasterDataImportResult struct {
 }
 
 func NewMasterDataService(db *sql.DB) *MasterDataService {
-	return &MasterDataService{
-		db:    db,
-		cache: map[bool]map[string][]MasterDataEntry{},
+	return newMasterDataService(db, nil)
+}
+
+func newMasterDataService(
+	db *sql.DB,
+	loader func(context.Context) (map[string][]MasterDataEntry, error),
+) *MasterDataService {
+	if loader == nil {
+		loader = func(ctx context.Context) (map[string][]MasterDataEntry, error) {
+			return loadMasterDataSnapshot(ctx, db)
+		}
 	}
+	return &MasterDataService{db: db, cache: map[bool]map[string][]MasterDataEntry{}, snapshotLoader: loader}
 }
 
 func (s *MasterDataService) WarmCache(ctx context.Context) error {
@@ -91,21 +101,13 @@ func (s *MasterDataService) WarmCache(ctx context.Context) error {
 }
 
 func (s *MasterDataService) RefreshCache(ctx context.Context) error {
-	s.invalidateCache()
-	allEntries, err := s.loadAll(ctx, false)
-	if err != nil {
-		return err
-	}
-	activeEntries, err := s.loadAll(ctx, true)
-	if err != nil {
-		return err
-	}
 	s.cacheMu.Lock()
-	s.cache = map[bool]map[string][]MasterDataEntry{
-		false: cloneMasterDataMap(allEntries),
-		true:  cloneMasterDataMap(activeEntries),
+	defer s.cacheMu.Unlock()
+	snapshot, err := s.snapshotLoader(ctx)
+	if err != nil {
+		return err
 	}
-	s.cacheMu.Unlock()
+	s.cache = masterDataCaches(snapshot)
 	return nil
 }
 
@@ -154,28 +156,26 @@ func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[s
 	}
 	s.cacheMu.RUnlock()
 
-	out, err := s.loadAll(ctx, activeOnly)
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	if cached, ok := s.cache[activeOnly]; ok {
+		return cloneMasterDataMap(cached), nil
+	}
+	snapshot, err := s.snapshotLoader(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	s.cacheMu.Lock()
-	s.cache[activeOnly] = cloneMasterDataMap(out)
-	s.cacheMu.Unlock()
-
-	return cloneMasterDataMap(out), nil
+	s.cache = masterDataCaches(snapshot)
+	return cloneMasterDataMap(s.cache[activeOnly]), nil
 }
 
-func (s *MasterDataService) loadAll(ctx context.Context, activeOnly bool) (map[string][]MasterDataEntry, error) {
+func loadMasterDataSnapshot(ctx context.Context, db *sql.DB) (map[string][]MasterDataEntry, error) {
 	query := `
 SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
 FROM master_data_entries`
-	if activeOnly {
-		query += " WHERE active=1"
-	}
 	query += " ORDER BY type ASC, active DESC, sort_order ASC, label ASC"
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("list all master data: %w", err)
 	}
@@ -508,11 +508,18 @@ func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([
 			}
 		}
 	}
-	if len(entries) == 0 {
-		return nil, nil
+	if err := validateProtectedArticleTypes(entries, false); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+func validateProtectedArticleTypes(entries []MasterDataEntry, required bool) error {
+	if len(entries) == 0 && !required {
+		return nil
 	}
 	if len(entries) != len(standardArticleTypeKeys) {
-		return nil, ErrMasterDataProtected
+		return ErrMasterDataProtected
 	}
 	expected := make(map[string]bool, len(standardArticleTypeKeys))
 	for _, key := range standardArticleTypeKeys {
@@ -522,14 +529,14 @@ func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([
 	for _, entry := range entries {
 		key := strings.TrimSpace(entry.Key)
 		if !expected[key] || seen[key] {
-			return nil, ErrMasterDataProtected
+			return ErrMasterDataProtected
 		}
 		if strings.TrimSpace(entry.Label) == "" {
-			return nil, ErrMasterDataValidation
+			return ErrMasterDataValidation
 		}
 		seen[key] = true
 	}
-	return entries, nil
+	return nil
 }
 
 func effectiveMasterDataType(bucketType string, entry MasterDataEntry) string {
@@ -630,6 +637,21 @@ func cloneMasterDataMap(input map[string][]MasterDataEntry) map[string][]MasterD
 		out[key] = append([]MasterDataEntry(nil), entries...)
 	}
 	return out
+}
+
+func masterDataCaches(snapshot map[string][]MasterDataEntry) map[bool]map[string][]MasterDataEntry {
+	active := make(map[string][]MasterDataEntry, len(snapshot))
+	for typeName, entries := range snapshot {
+		for _, entry := range entries {
+			if entry.Active {
+				active[typeName] = append(active[typeName], entry)
+			}
+		}
+	}
+	return map[bool]map[string][]MasterDataEntry{
+		false: cloneMasterDataMap(snapshot),
+		true:  active,
+	}
 }
 
 func scanMasterDataEntry(scanner masterDataScanner) (MasterDataEntry, error) {

@@ -61,6 +61,17 @@ const productionArticleType: MasterDataEntry = {
   active: false, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
   updatedAt: "2026-08-08T08:00:00Z"
 };
+const activeSignalArticleType: MasterDataEntry = {
+  id: "article-type-signal", type: "article_type", key: "signal", label: "Club signal",
+  active: true, sortOrder: 20, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
+const inactiveOtherArticleType: MasterDataEntry = {
+  id: "article-type-other", type: "article_type", key: "other", label: "Other",
+  active: false, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
+const activeOtherArticleType: MasterDataEntry = { ...inactiveOtherArticleType, active: true };
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -76,7 +87,9 @@ describe("useArticleEditorController", () => {
     vi.spyOn(api, "createAccessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "updateAccessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
-    vi.spyOn(api, "masterData").mockResolvedValue([]);
+    vi.spyOn(api, "masterData").mockImplementation(async (type) => type === "article_type"
+      ? [activeOtherArticleType]
+      : []);
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
     vi.spyOn(api, "layouts").mockResolvedValue([]);
     vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
@@ -125,22 +138,82 @@ describe("useArticleEditorController", () => {
 
   it("loads article types including inactive entries and retries failures", async () => {
     vi.mocked(api.masterData)
-      .mockImplementation(async (type) => type === "article_type" ? [productionArticleType] : []);
+      .mockImplementation(async (type) => type === "article_type"
+        ? [productionArticleType, activeOtherArticleType]
+        : []);
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
 
     await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
     expect(api.masterData).toHaveBeenCalledWith("article_type");
-    expect(result.current.articleTypeEntries).toEqual([productionArticleType]);
+    expect(result.current.articleTypeEntries).toEqual([productionArticleType, activeOtherArticleType]);
 
     vi.mocked(api.masterData).mockRejectedValueOnce(new Error("offline"));
     await act(async () => result.current.retryArticleTypeEntries());
     expect(result.current.articleTypeEntriesError).toBe("Artikelarten konnten nicht geladen werden.");
 
-    vi.mocked(api.masterData).mockResolvedValueOnce([productionArticleType]);
+    vi.mocked(api.masterData).mockResolvedValueOnce([productionArticleType, activeOtherArticleType]);
     await act(async () => result.current.retryArticleTypeEntries());
     expect(result.current.articleTypeEntriesError).toBe("");
-    expect(result.current.articleTypeEntries).toEqual([productionArticleType]);
+    expect(result.current.articleTypeEntries).toEqual([productionArticleType, activeOtherArticleType]);
+  });
+
+  it("selects the first active configured article type for create without losing a concurrent draft", async () => {
+    const articleTypes = deferred<MasterDataEntry[]>();
+    vi.mocked(api.masterData).mockImplementation((type) => type === "article_type"
+      ? articleTypes.promise
+      : Promise.resolve([]));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openCreate());
+    act(() => result.current.changeForm({ manufacturer: "Draft manufacturer" }));
+    expect(result.current.form.articleType).toBe("other");
+    expect(result.current.articleTypeEntriesLoading).toBe(true);
+
+    await act(async () => articleTypes.resolve([
+      inactiveOtherArticleType,
+      activeSignalArticleType,
+      { ...activeSignalArticleType, id: "article-type-track", key: "track", label: "Renamed track", sortOrder: 30 }
+    ]));
+
+    expect(result.current.form.articleType).toBe("signal");
+    expect(result.current.form.manufacturer).toBe("Draft manufacturer");
+    expect(result.current.articleTypeEntriesError).toBe("");
+  });
+
+  it("blocks create with a visible configuration error when no article type is active", async () => {
+    vi.mocked(api.masterData).mockImplementation(async (type) => type === "article_type"
+      ? [productionArticleType, inactiveOtherArticleType]
+      : []);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+
+    expect(result.current.articleTypeEntriesError).toBe("Keine aktive Artikelart ist konfiguriert.");
+    act(() => result.current.changeForm({ manufacturer: "Tillig", name: "Draft", subtype: "other" }));
+    await act(async () => result.current.submit());
+    expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+  });
+
+  it("preserves the create draft and applies the active default after article-type retry", async () => {
+    vi.mocked(api.masterData).mockImplementation(async (type) => {
+      if (type === "article_type") throw new Error("offline");
+      return [];
+    });
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    act(() => result.current.changeForm({ name: "Preserved draft" }));
+    await waitFor(() => expect(result.current.articleTypeEntriesError).not.toBe(""));
+
+    vi.mocked(api.masterData).mockImplementation(async (type) => type === "article_type"
+      ? [activeSignalArticleType]
+      : []);
+    await act(async () => result.current.retryArticleTypeEntries());
+
+    expect(result.current.articleTypeEntriesError).toBe("");
+    expect(result.current.form.name).toBe("Preserved draft");
+    expect(result.current.form.articleType).toBe("signal");
   });
 
   it("does not request asset resources or stale the editor for a quantity article", async () => {
@@ -192,6 +265,7 @@ describe("useArticleEditorController", () => {
     vi.mocked(api.createAccessoryArticle).mockRejectedValueOnce(new Error("Netzwerkfehler"));
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
     act(() => result.current.changeForm({
       manufacturer: "Viessmann",
       articleNumber: "4011",
@@ -243,9 +317,14 @@ describe("useArticleEditorController", () => {
   });
 
   it("owns custom-field load failure, blocks only other save, and preserves drafts across retry", async () => {
-    vi.mocked(api.masterData)
-      .mockRejectedValueOnce(new Error("Konfiguration nicht verfügbar"))
-      .mockResolvedValueOnce([]);
+    let customFieldLoads = 0;
+    vi.mocked(api.masterData).mockImplementation(async (type) => {
+      if (type === "article_type") return [activeOtherArticleType];
+      if (type === "accessory_custom_field" && customFieldLoads++ === 0) {
+        throw new Error("Konfiguration nicht verfügbar");
+      }
+      return [];
+    });
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
     act(() => result.current.changeForm({
@@ -471,6 +550,7 @@ describe("useArticleEditorController", () => {
     vi.mocked(api.checkAccessoryArticleDuplicates).mockReturnValueOnce(duplicateCheck.promise);
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
     act(() => result.current.changeForm({ manufacturer: "Tillig", articleNumber: "83101", name: "Gleis",
       articleType: "track", subtype: "straight" }));
 
@@ -503,6 +583,7 @@ describe("useArticleEditorController", () => {
   it("retains actionable errors for remaining invalid subject fields after one field is edited", async () => {
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
     act(() => result.current.changeForm({
       manufacturer: "Tillig",
       name: "Gleis",

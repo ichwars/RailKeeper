@@ -75,6 +75,48 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	}
 }
 
+func TestAccessoryArticleUpdatesMigrationStyleUnknownSubtypeOnlyWhenUnchanged(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO accessory_products(
+  id, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
+  gauges_json, package_quantity, stock_unit, minimum_stock, inventory_strategy, created_at, updated_at
+) VALUES(
+  'legacy-migrated', 'Faller', '180001', 'Legacy accessory', 'legacy-category', 'quantity',
+  'other', 'legacy-category', '[]', 1, 'piece', 0, 'quantity', '2026-01-01', '2026-01-01'
+)`); err != nil {
+		t.Fatal(err)
+	}
+
+	input := application.CreateAccessoryProductInput{
+		Manufacturer: "Faller", ArticleNumber: "180001", Name: "Updated legacy accessory",
+		Category: "legacy-category", TrackingMode: domain.AccessoryTrackingModeQuantity,
+		ArticleType: domain.AccessoryArticleOther, Subtype: "legacy-category", PackageQuantity: 1,
+		StockUnit: "piece", MinimumStock: 0, InventoryStrategy: domain.AccessoryInventoryQuantity,
+	}
+	updated, err := service.UpdateProduct(ctx, "legacy-migrated",
+		application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1")
+	if err != nil {
+		t.Fatalf("unchanged migration-style subtype blocked unrelated update: %v", err)
+	}
+	if updated.Name != input.Name || updated.Subtype != "other:legacy-category" {
+		t.Fatalf("legacy subtype was not canonically persisted: %#v", updated)
+	}
+
+	input.Subtype = "different-unknown"
+	if _, err := service.UpdateProduct(ctx, "legacy-migrated",
+		application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1"); !errors.Is(err, application.ErrAccessoryValidation) {
+		t.Fatalf("changed unknown subtype was accepted: %v", err)
+	}
+	input.ArticleType = domain.AccessoryArticleTrack
+	input.Subtype = "legacy-category"
+	if _, err := service.UpdateProduct(ctx, "legacy-migrated",
+		application.UpdateAccessoryProductInput{CreateAccessoryProductInput: input}, "editor-1"); !errors.Is(err, application.ErrAccessoryValidation) {
+		t.Fatalf("unknown subtype was accepted across article types: %v", err)
+	}
+}
+
 func TestAccessoryArticleDuplicateLookupExcludesCurrentAndAllowsVariants(t *testing.T) {
 	service, _ := testAccessoryService(t)
 	create := func(name, subtype string) *application.AccessoryProduct {

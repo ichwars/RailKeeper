@@ -142,8 +142,11 @@ func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {
 		t.Fatal(err)
 	}
 	contract := string(data)
-	if strings.Contains(contract, "individual asset") {
-		t.Fatal("OpenAPI still exposes the obsolete individual asset terminology")
+	obsoleteIndividualItemTerms := regexp.MustCompile(
+		`(?i)\b(?:individual asset|individually tracked asset|accessory asset)s?\b`,
+	)
+	if obsoleteIndividualItemTerms.MatchString(contract) {
+		t.Fatal("OpenAPI still exposes obsolete individual-item terminology")
 	}
 	for _, summary := range []string{
 		"summary: Reserve accessory stock or an individual item",

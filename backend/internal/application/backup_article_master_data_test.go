@@ -104,6 +104,83 @@ func TestVersionThreeBackupRestoresConfiguredArticleMasterDataExactly(t *testing
 	}
 }
 
+func TestVersionThreeBackupRejectsInvalidProtectedArticleTypesBeforeMutation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func([]map[string]any) []map[string]any
+	}{
+		{name: "missing", mutate: func(rows []map[string]any) []map[string]any {
+			return rows[1:]
+		}},
+		{name: "extra", mutate: func(rows []map[string]any) []map[string]any {
+			return append(rows, map[string]any{
+				"id": "article-type-custom", "type": "article_type", "key": "custom", "label": "Custom",
+				"active": int64(1), "sort_order": int64(999), "source_url": "", "metadata_json": "{}",
+				"created_at": "2026-01-01", "updated_at": "2026-01-01",
+			})
+		}},
+		{name: "duplicate", mutate: func(rows []map[string]any) []map[string]any {
+			duplicate := cloneBackupRow(rows[0])
+			duplicate["id"] = "duplicate-article-type"
+			return append(rows, duplicate)
+		}},
+		{name: "cross bucket", mutate: func(rows []map[string]any) []map[string]any {
+			rows[0]["type"] = "vehicle_category"
+			return rows
+		}},
+		{name: "key mismatch", mutate: func(rows []map[string]any) []map[string]any {
+			rows[0]["key"] = "renamed"
+			return rows
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			db := backupTestDB(t, t.TempDir())
+			service := application.NewBackupService(db, t.TempDir())
+			doc, err := service.Export(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			articleRows := []map[string]any{}
+			otherRows := []map[string]any{}
+			for _, row := range doc.Tables["master_data_entries"] {
+				copy := cloneBackupRow(row)
+				if copy["type"] == "article_type" {
+					articleRows = append(articleRows, copy)
+				} else {
+					otherRows = append(otherRows, copy)
+				}
+			}
+			if len(articleRows) != 8 {
+				t.Fatalf("expected eight exported article types, got %d", len(articleRows))
+			}
+			doc.Tables["master_data_entries"] = append(otherRows, test.mutate(articleRows)...)
+
+			masterData := application.NewMasterDataService(db)
+			active := true
+			if _, err := masterData.Create(ctx, "epoch", application.MasterDataInput{
+				Key: "target-only", Label: "Target only", Active: &active,
+			}); err != nil {
+				t.Fatal(err)
+			}
+
+			validation, err := service.Validate(ctx, doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if validation.Compatible {
+				t.Fatalf("invalid protected article types validated: %#v", validation)
+			}
+			if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
+				t.Fatalf("invalid protected article types imported: %v", err)
+			}
+			if _, err := masterData.Get(ctx, "epoch", "target-only"); err != nil {
+				t.Fatalf("failed preflight mutated target data: %v", err)
+			}
+		})
+	}
+}
+
 func TestLegacyBackupRestoreReleasesTransactionWhenCurrentArticleTypesAreInvalid(t *testing.T) {
 	ctx := context.Background()
 	db := backupTestDB(t, t.TempDir())
@@ -141,4 +218,12 @@ func backupVersionName(version int) string {
 		return "version one"
 	}
 	return "version two"
+}
+
+func cloneBackupRow(row map[string]any) map[string]any {
+	copy := make(map[string]any, len(row))
+	for key, value := range row {
+		copy[key] = value
+	}
+	return copy
 }

@@ -294,7 +294,13 @@ func (s *AccessoryService) validateAccessoryProductInput(
 	if !validAccessoryProductInput(input) {
 		return ErrAccessoryValidation
 	}
-	typeUnchanged := current != nil && current.ArticleType == input.ArticleType
+	currentArticleType := domain.AccessoryArticleType("")
+	currentSubtype := ""
+	if current != nil {
+		currentArticleType = domain.AccessoryArticleType(strings.TrimSpace(string(current.ArticleType)))
+		currentSubtype = normalizeAccessorySubtype(currentArticleType, strings.TrimSpace(current.Subtype))
+	}
+	typeUnchanged := current != nil && currentArticleType == input.ArticleType
 	if !typeUnchanged {
 		active, err := s.repository.AccessoryArticleTypeActive(ctx, input.ArticleType)
 		if err != nil {
@@ -304,7 +310,7 @@ func (s *AccessoryService) validateAccessoryProductInput(
 			return ErrAccessoryValidation
 		}
 	}
-	subtypeUnchanged := typeUnchanged && current.Subtype == input.Subtype
+	subtypeUnchanged := typeUnchanged && currentSubtype == input.Subtype
 	if subtypeUnchanged {
 		return nil
 	}
