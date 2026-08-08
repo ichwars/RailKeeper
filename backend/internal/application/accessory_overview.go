@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"railkeeper/backend/internal/domain"
 )
@@ -85,6 +87,9 @@ func (s *AccessoryService) ListArticles(
 	query.Query = strings.TrimSpace(query.Query)
 	query.Manufacturer = strings.TrimSpace(query.Manufacturer)
 	query.LocationID = strings.TrimSpace(query.LocationID)
+	if !validAccessoryGaugeFilters(query.Gauges) {
+		return nil, ErrAccessoryValidation
+	}
 	query.Gauges = cleanStringArray(query.Gauges)
 	if query.Sort == "" {
 		query.Sort = "article"
@@ -96,6 +101,16 @@ func (s *AccessoryService) ListArticles(
 		return nil, ErrAccessoryValidation
 	}
 	return s.repository.ListArticles(ctx, query)
+}
+
+func validAccessoryGaugeFilters(values []string) bool {
+	for _, value := range values {
+		if !utf8.ValidString(value) || strings.TrimSpace(value) == "" || utf8.RuneCountInString(value) > 128 ||
+			strings.IndexFunc(value, unicode.IsControl) >= 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *AccessoryService) CheckDuplicateProducts(

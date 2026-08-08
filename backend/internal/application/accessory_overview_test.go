@@ -61,7 +61,7 @@ func TestAccessoryOverviewNormalizesQuery(t *testing.T) {
 	spy := &accessoryCatalogSpy{}
 	service := NewAccessoryService(spy)
 	_, err := service.ListArticles(t.Context(), AccessoryArticleListQuery{
-		Query: "  83125 ", Manufacturer: " Tillig ", Gauges: []string{" TT ", "", "TT"},
+		Query: "  83125 ", Manufacturer: " Tillig ", Gauges: []string{" TT ", "TT"},
 		LocationID: " shelf-1 ", Sort: "", Direction: "",
 	})
 	if err != nil {

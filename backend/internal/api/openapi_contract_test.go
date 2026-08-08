@@ -112,6 +112,74 @@ func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIArticleSchemasMatchRuntimeSemantics(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+
+	usageEvent := openAPIIndentedBlock(t, contract, "AccessoryUsageEvent", 4)
+	if !strings.Contains(usageEvent,
+		"enum: [reservation, installation, condition_changed, removal]") {
+		t.Errorf("usage event enum does not match runtime: %s", usageEvent)
+	}
+
+	asset := openAPIIndentedBlock(t, contract, "AccessoryAsset", 4)
+	if !strings.Contains(asset, "purchaseId:") {
+		t.Errorf("AccessoryAsset schema is missing purchaseId: %s", asset)
+	}
+
+	document := openAPIIndentedBlock(t, contract, "AccessoryDocument", 4)
+	if strings.Contains(document, "fileBlobId:") {
+		t.Errorf("AccessoryDocument exposes internal fileBlobId: %s", document)
+	}
+
+	download := openAPIIndentedBlock(
+		t, contract, "/accessory-products/{id}/documents/{documentID}/download", 2,
+	)
+	successStart := strings.Index(download, `        "200":`)
+	successEnd := strings.Index(download, `        "403":`)
+	if successStart < 0 || successEnd <= successStart {
+		t.Fatalf("document download success response is malformed: %s", download)
+	}
+	downloadSuccess := download[successStart:successEnd]
+	for _, contentType := range []string{"application/pdf:", "application/json:", "text/plain:", "image/png:"} {
+		if !strings.Contains(downloadSuccess, contentType) {
+			t.Errorf("document download contract is missing %s", contentType)
+		}
+	}
+}
+
+func openAPIIndentedBlock(t *testing.T, contract, heading string, indent int) string {
+	t.Helper()
+	lines := strings.Split(contract, "\n")
+	prefix := strings.Repeat(" ", indent) + heading + ":"
+	start := -1
+	for index, line := range lines {
+		if line == prefix {
+			start = index
+			break
+		}
+	}
+	if start < 0 {
+		t.Fatalf("OpenAPI block %s is missing", heading)
+	}
+	end := len(lines)
+	for index := start + 1; index < len(lines); index++ {
+		line := lines[index]
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lineIndent := len(line) - len(strings.TrimLeft(line, " "))
+		if lineIndent <= indent {
+			end = index
+			break
+		}
+	}
+	return strings.Join(lines[start:end], "\n")
+}
+
 type frontendAPIOperation struct {
 	Method string
 	Path   string

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -282,6 +283,26 @@ func TestAccessoryArticleListParsesApprovedQueryAndRejectsInvalidEnums(t *testin
 			assertProblem(t, invalid, http.StatusBadRequest, "accessory_validation")
 		})
 	}
+}
+
+func TestAccessoryArticleListRejectsInvalidRawGaugeValues(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	for name, query := range map[string]string{
+		"empty":      "gauge=",
+		"whitespace": "gauge=%20%20",
+		"control":    "gauge=%0A",
+		"too long":   "gauge=" + strings.Repeat("G", 129),
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+				"/api/v1/accessory-products?"+query, nil, true)
+			assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
+		})
+	}
+
+	legitimate := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+		"/api/v1/accessory-products?gauge=Schmalspur%20(750%20mm)", nil, true)
+	assertStatus(t, legitimate, http.StatusOK)
 }
 
 func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividualization(t *testing.T) {

@@ -33,7 +33,7 @@ func (category AccessoryDocumentCategory) Valid() bool {
 type AccessoryDocument struct {
 	ID           string                    `json:"id"`
 	ProductID    string                    `json:"productId"`
-	FileBlobID   string                    `json:"fileBlobId"`
+	FileBlobID   string                    `json:"-"`
 	FileName     string                    `json:"fileName"`
 	OriginalName string                    `json:"originalName"`
 	Description  string                    `json:"description,omitempty"`

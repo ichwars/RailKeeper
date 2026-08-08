@@ -1,12 +1,19 @@
 package api
 
 import (
+	"bytes"
+	"encoding/csv"
+	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"io"
 	"mime"
+	"mime/multipart"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"railkeeper/backend/internal/application"
 )
@@ -43,7 +50,7 @@ func (a *App) uploadAccessoryDocument(w http.ResponseWriter, r *http.Request) {
 	)
 	if err := r.ParseMultipartForm(a.maxAttachmentBytes); err != nil {
 		var maxBytesError *http.MaxBytesError
-		if errors.As(err, &maxBytesError) {
+		if errors.As(err, &maxBytesError) || errors.Is(err, multipart.ErrMessageTooLarge) {
 			respondProblem(w, http.StatusRequestEntityTooLarge, "accessory_document_too_large",
 				"Accessory document exceeds the upload limit.")
 			return
@@ -94,7 +101,12 @@ func (a *App) uploadAccessoryDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	originalName := header.Filename
-	mimeType := http.DetectContentType(data)
+	mimeType, valid := normalizeAccessoryDocumentMime(originalName, data)
+	if !valid {
+		respondProblem(w, http.StatusUnsupportedMediaType, "accessory_document_type_unsupported",
+			"Accessory document file type is not supported.")
+		return
+	}
 	metadata := application.AccessoryDocumentUploadMetadata{
 		FileName: originalName, OriginalName: originalName, Category: category,
 		MimeType: mimeType, SizeBytes: int64(len(data)), IsPrimary: isPrimary,
@@ -203,4 +215,31 @@ func parseOptionalAccessoryBoolean(value string) (bool, bool) {
 	}
 	parsed, err := strconv.ParseBool(value)
 	return parsed, err == nil
+}
+
+func normalizeAccessoryDocumentMime(fileName string, data []byte) (string, bool) {
+	switch strings.ToLower(filepath.Ext(fileName)) {
+	case ".json":
+		return "application/json", json.Valid(data)
+	case ".csv":
+		if !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0 || json.Valid(data) || validAccessoryXML(data) {
+			return "", false
+		}
+		rows, err := csv.NewReader(bytes.NewReader(data)).ReadAll()
+		return "text/csv", err == nil && len(rows) > 0
+	case ".xml":
+		return "application/xml", validAccessoryXML(data)
+	default:
+		return http.DetectContentType(data), true
+	}
+}
+
+func validAccessoryXML(data []byte) bool {
+	if !utf8.Valid(data) || bytes.IndexByte(data, 0) >= 0 {
+		return false
+	}
+	var document struct {
+		XMLName xml.Name
+	}
+	return xml.Unmarshal(data, &document) == nil && document.XMLName.Local != ""
 }
