@@ -63,6 +63,18 @@
   color: var(--text);
 }
 
+.settings-tab-list {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+.settings-tab-list button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
 .settings-card {
   display: grid;
   gap: 22px;
