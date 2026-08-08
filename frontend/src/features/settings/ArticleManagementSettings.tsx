@@ -1,7 +1,8 @@
 import { Archive, ArchiveRestore, Pencil, Plus, X } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { api, type MasterDataEntry, type MasterDataInput, type StorageLocation } from "../../shared/api";
+import { masterDataDisplayLabel, masterDataPersistedLabel } from "../../shared/articleMasterDataLabels";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
@@ -70,7 +71,7 @@ function MasterDataSettingsSection({
     setCreating(false);
     setEditing(entry);
     setKey(entry.key);
-    setLabel(entry.label);
+    setLabel(masterDataDisplayLabel(entry, t));
     setMessage("");
     const kind = entry.metadata.kind;
     setFieldKind(typeof kind === "string" ? kind as CustomFieldKind : "text");
@@ -92,7 +93,7 @@ function MasterDataSettingsSection({
     try {
       const result = editing
         ? await api.updateMasterData(type, editing.key, {
-            ...entryInput(editing, label),
+            ...entryInput(editing, masterDataPersistedLabel(editing, label, t)),
             metadata: type === "accessory_custom_field" ? customFieldMetadata : editing.metadata
           })
         : await api.createMasterData(type, {
@@ -212,23 +213,24 @@ function MasterDataSettingsSection({
               <tr><td colSpan={canEdit ? 4 : 3} className="loading-cell">
                 {t("settings.articleManagement.empty")}
               </td></tr>
-            ) : entries.map((entry) => (
-              <tr key={entry.id} className={entry.active ? "" : "muted-row"}>
-                <td><strong>{entry.label}</strong></td>
+            ) : entries.map((entry) => {
+              const displayLabel = masterDataDisplayLabel(entry, t);
+              return <tr key={entry.id} className={entry.active ? "" : "muted-row"}>
+                <td><strong>{displayLabel}</strong></td>
                 <td><code>{entry.key}</code></td>
                 <td>{t(entry.active ? "settings.articleManagement.active" : "settings.articleManagement.inactive")}</td>
                 {canEdit && (
                   <td className="is-right">
                     <div className="settings-card-actions">
                       <button type="button" className="icon-button" onClick={() => startEditing(entry)}
-                        aria-label={t("settings.articleManagement.edit", { label: entry.label })}
+                        aria-label={t("settings.articleManagement.edit", { label: displayLabel })}
                         title={t("settings.articleManagement.editShort")}>
                         <Pencil size={15} aria-hidden="true" />
                       </button>
                       <button type="button" className="icon-button" onClick={() => void setActive(entry, !entry.active)}
                         disabled={busy}
                         aria-label={t(entry.active ? "settings.articleManagement.archive" :
-                          "settings.articleManagement.reactivate", { label: entry.label })}
+                          "settings.articleManagement.reactivate", { label: displayLabel })}
                         title={t(entry.active ? "settings.articleManagement.archiveShort" :
                           "settings.articleManagement.reactivateShort")}>
                         {entry.active ? <Archive size={15} aria-hidden="true" /> :
@@ -237,8 +239,8 @@ function MasterDataSettingsSection({
                     </div>
                   </td>
                 )}
-              </tr>
-            ))}
+              </tr>;
+            })}
           </tbody>
         </table>
       </div>
@@ -262,6 +264,7 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
   const [locationsMessage, setLocationsMessage] = useState("");
   const masterRequestID = useRef(0);
   const locationRequestID = useRef(0);
+  const sectionTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   const loadStorageLocations = useCallback(async () => {
     const requestID = ++locationRequestID.current;
@@ -324,6 +327,18 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
     setActiveSection(section);
   };
 
+  const handleSectionKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % sections.length;
+    if (event.key === "ArrowLeft") nextIndex = (index - 1 + sections.length) % sections.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = sections.length - 1;
+    if (nextIndex === null) return;
+    event.preventDefault();
+    selectSection(sections[nextIndex]);
+    sectionTabRefs.current[nextIndex]?.focus();
+  };
+
   const updateEntry = (type: MasterDataType, entry: MasterDataEntry) => {
     setEntriesByType((current) => ({
       ...current,
@@ -348,38 +363,50 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
       {!canRead ? <p className="settings-read-only-note">{t("settings.articleManagement.unavailable")}</p> : (
         <>
           {!canEdit && <p className="settings-read-only-note">{t("settings.articleManagement.readOnly")}</p>}
-          <nav className="settings-tabs article-management-tabs" aria-label={t("settings.articleManagement.sections") }>
-            {sections.map((section) => (
-              <button key={section} type="button" className={activeSection === section ? "active" : ""}
-                aria-pressed={activeSection === section} onClick={() => selectSection(section)}>
+          <div className="settings-secondary-tabs article-management-tabs" role="tablist"
+            aria-label={t("settings.articleManagement.sections") }>
+            {sections.map((section, index) => (
+              <button key={section} type="button" role="tab"
+                ref={(element) => { sectionTabRefs.current[index] = element; }}
+                id={`article-management-tab-${section}`}
+                className={activeSection === section ? "active" : ""}
+                aria-selected={activeSection === section}
+                aria-controls="article-management-active-panel"
+                tabIndex={activeSection === section ? 0 : -1}
+                onClick={() => selectSection(section)}
+                onKeyDown={(event) => handleSectionKeyDown(event, index)}>
                 {t(`settings.articleManagement.section.${section}`)}
               </button>
             ))}
-          </nav>
-          {masterMessage && <p className="form-message" role="alert">{masterMessage}</p>}
-          {activeSection === "locations" && locationsMessage && <div className="form-message" role="alert">
-            <span>{locationsMessage}</span>{" "}
-            <button type="button" className="secondary-button compact-action"
-              onClick={() => void loadStorageLocations()}>
-              {t("settings.articleManagement.locations.retry")}
-            </button>
-          </div>}
-          {loadingSection === activeSection ?
-            <p className="loading-cell">{t("settings.articleManagement.loading")}</p> : (
-            <div className="article-management-section">
-              {activeSection === "manufacturers" && renderMasterData("manufacturer")}
-              {activeSection === "units" && renderMasterData("stock_unit")}
-              {activeSection === "types" && <>
-                {renderMasterData("article_type")}
-                {renderMasterData("accessory_subtype")}
-              </>}
-              {activeSection === "customFields" && renderMasterData("accessory_custom_field")}
-              {activeSection === "locations" && (locationsLoading || (!locationsLoaded && !locationsAttempted) ?
-                <p className="loading-cell">{t("settings.articleManagement.locations.loading")}</p> :
-                !locationsMessage && <StorageLocationsSettings locations={locations} canEdit={canEdit}
-                  onChanged={loadStorageLocations} />)}
-            </div>
-          )}
+          </div>
+          <div id="article-management-active-panel" role="tabpanel"
+            aria-labelledby={`article-management-tab-${activeSection}`}
+            className="article-management-panel">
+            {masterMessage && <p className="form-message" role="alert">{masterMessage}</p>}
+            {activeSection === "locations" && locationsMessage && <div className="form-message" role="alert">
+              <span>{locationsMessage}</span>{" "}
+              <button type="button" className="secondary-button compact-action"
+                onClick={() => void loadStorageLocations()}>
+                {t("settings.articleManagement.locations.retry")}
+              </button>
+            </div>}
+            {loadingSection === activeSection ?
+              <p className="loading-cell">{t("settings.articleManagement.loading")}</p> : (
+              <div className="article-management-section">
+                {activeSection === "manufacturers" && renderMasterData("manufacturer")}
+                {activeSection === "units" && renderMasterData("stock_unit")}
+                {activeSection === "types" && <>
+                  {renderMasterData("article_type")}
+                  {renderMasterData("accessory_subtype")}
+                </>}
+                {activeSection === "customFields" && renderMasterData("accessory_custom_field")}
+                {activeSection === "locations" && (locationsLoading || (!locationsLoaded && !locationsAttempted) ?
+                  <p className="loading-cell">{t("settings.articleManagement.locations.loading")}</p> :
+                  !locationsMessage && <StorageLocationsSettings locations={locations} canEdit={canEdit}
+                    onChanged={loadStorageLocations} />)}
+              </div>
+            )}
+          </div>
         </>
       )}
     </section>

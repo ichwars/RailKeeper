@@ -1,4 +1,5 @@
 import type { AccessoryArticleType, MasterDataEntry } from "../../shared/api";
+import { masterDataDisplayLabel } from "../../shared/articleMasterDataLabels";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -13,17 +14,6 @@ export const articleTypeOrder = [
   "other"
 ] as const satisfies readonly AccessoryArticleType[];
 
-const seededLabels: Record<AccessoryArticleType, string> = {
-  track: "Track",
-  signal: "Signal",
-  decoder: "Decoder",
-  electrical_control: "Electrical control",
-  building_equipment: "Building equipment",
-  landscape_consumable: "Landscape consumable",
-  lighting: "Lighting",
-  other: "Other"
-};
-
 export type ArticleTypeOption = {
   value: AccessoryArticleType;
   label: string;
@@ -36,11 +26,7 @@ export function articleTypeLabel(
   t: Translate
 ): string {
   const configured = entries.find((entry) => entry.type === "article_type" && entry.key === articleType);
-  const configuredLabel = configured?.label.trim();
-  if (!configuredLabel || configuredLabel === seededLabels[articleType]) {
-    return t(`accessories.articleType.${articleType}`);
-  }
-  return configuredLabel;
+  return configured ? masterDataDisplayLabel(configured, t) : t(`accessories.articleType.${articleType}`);
 }
 
 export function articleTypeOptions(

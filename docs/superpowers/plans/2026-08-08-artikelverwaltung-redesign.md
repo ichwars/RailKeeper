@@ -535,7 +535,7 @@ type IndividualizeAccessoryInput struct {
   localized edit draft is left unchanged.
 - Preserves: raw labels for manufacturers, custom fields, custom subtypes, and renamed standards.
 
-- [ ] Add failing shared-helper tests for German and English standard units, article types and
+- [x] Add failing shared-helper tests for German and English standard units, article types and
   subtypes, plus unchanged custom and renamed labels.
 
 ```ts
@@ -547,26 +547,26 @@ expect(masterDataDisplayLabel(subtype("track:club_profile", "Vereinsprofil"), de
   .toBe("Vereinsprofil");
 ```
 
-- [ ] Run `npm.cmd run test:run -- src/shared/articleMasterDataLabels.test.ts`; expect RED because the
+- [x] Run `npm.cmd run test:run -- src/shared/articleMasterDataLabels.test.ts`; expect RED because the
   shared label owner does not exist.
-- [ ] Implement the shared standard-label registry and delegate the existing article type/subtype
+- [x] Implement the shared standard-label registry and delegate the existing article type/subtype
   helpers to it. Only translate when the stored label still equals the canonical seeded label.
-- [ ] Add failing settings tests that assert localized table/action labels, canonical persistence for
+- [x] Add failing settings tests that assert localized table/action labels, canonical persistence for
   an unchanged localized edit, and verbatim persistence for a deliberate rename.
-- [ ] Replace the boxed section navigation with `settings-secondary-tabs`, `role="tablist"`,
+- [x] Replace the boxed section navigation with `settings-secondary-tabs`, `role="tablist"`,
   `role="tab"`, `aria-selected`, roving `tabIndex`, arrow/Home/End navigation, and one labelled
   `tabpanel`.
-- [ ] Remove the obsolete boxed `.settings-tabs` rules. Keep `.article-management-tabs` on one
+- [x] Remove the obsolete boxed `.settings-tabs` rules. Keep `.article-management-tabs` on one
   horizontally scrollable line at mobile widths.
-- [ ] Run `npm.cmd run test:run -- src/shared/articleMasterDataLabels.test.ts
+- [x] Run `npm.cmd run test:run -- src/shared/articleMasterDataLabels.test.ts
   src/features/settings/ArticleManagementSettings.test.tsx
   src/features/accessories/articleTypes.test.ts src/features/accessories/ArticleTable.test.tsx`; expect
   PASS.
-- [ ] Run `npm.cmd run test:run` and `npm.cmd run build`; expect PASS.
-- [ ] Rebuild and verify `/settings?tab=articleManagement` in German and English at desktop and mobile
+- [x] Run `npm.cmd run test:run` and `npm.cmd run build`; expect PASS.
+- [x] Rebuild and verify `/settings?tab=articleManagement` in German and English at desktop and mobile
   widths. Confirm one semantic tablist, localized standards, raw custom labels, no overflow, and no
   console errors.
-- [ ] Restore the design-spec status to `Implemented and verified`, run `git diff --check`, and commit
+- [x] Restore the design-spec status to `Implemented and verified`, run `git diff --check`, and commit
   the scoped files with `fix: localize article settings tabs`.
 
 ## Final Delivery Gate

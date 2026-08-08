@@ -2237,31 +2237,6 @@
   text-align: center;
 }
 
-.settings-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.settings-tabs button {
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 0 12px;
-  background: var(--panel);
-  color: var(--muted);
-  cursor: pointer;
-  font: inherit;
-  font-weight: var(--font-weight-strong);
-}
-
-.settings-tabs button.active,
-.settings-tabs button:hover {
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
-  color: var(--accent-strong);
-}
-
 .article-management-settings,
 .article-management-section {
   display: grid;
@@ -2269,9 +2244,22 @@
   gap: 16px;
 }
 
+.article-management-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
 .article-management-tabs button {
-  max-width: 240px;
-  white-space: normal;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.article-management-panel {
+  display: grid;
+  min-width: 0;
+  gap: 16px;
 }
 
 .settings-read-only-note {
@@ -2387,10 +2375,5 @@
   .article-master-data-form,
   .storage-location-settings-grid {
     grid-template-columns: minmax(0, 1fr);
-  }
-
-  .article-management-tabs button {
-    flex: 1 1 160px;
-    max-width: none;
   }
 }

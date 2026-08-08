@@ -44,9 +44,9 @@ describe("ArticleManagementSettings", () => {
   beforeEach(() => {
     const entries: Record<string, MasterDataEntry[]> = {
       manufacturer: [entry("manufacturer", "tillig", "Tillig")],
-      stock_unit: [entry("stock_unit", "piece", "Stück")],
-      article_type: [entry("article_type", "track", "Gleis")],
-      accessory_subtype: [entry("accessory_subtype", "track:straight", "Gerade")],
+      stock_unit: [entry("stock_unit", "piece", "Piece")],
+      article_type: [entry("article_type", "track", "Track")],
+      accessory_subtype: [entry("accessory_subtype", "track:straight", "Straight")],
       accessory_custom_field: [entry("accessory_custom_field", "material", "Material")]
     };
     vi.spyOn(api, "masterData").mockImplementation(async (type) => entries[type] || []);
@@ -58,22 +58,22 @@ describe("ArticleManagementSettings", () => {
     render(<ArticleManagementSettings roles={["Viewer"]} />);
 
     expect(await screen.findByText("Tillig")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Hersteller" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Bestandseinheiten" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Artikelarten und Unterarten" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Kontrollierte Zusatzfelder" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Lagerorte" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Hersteller" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Bestandseinheiten" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Artikelarten und Unterarten" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Kontrollierte Zusatzfelder" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Lagerorte" })).toBeInTheDocument();
     expect(screen.getByText(/Änderungen sind nur für Admins und Editoren möglich/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /anlegen/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Bestandseinheiten" }));
+    await user.click(screen.getByRole("tab", { name: "Bestandseinheiten" }));
     expect(await screen.findByText("Stück")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Artikelarten und Unterarten" }));
+    await user.click(screen.getByRole("tab", { name: "Artikelarten und Unterarten" }));
     expect(await screen.findByText("Gleis")).toBeInTheDocument();
     expect(screen.getByText("Gerade")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Kontrollierte Zusatzfelder" }));
+    await user.click(screen.getByRole("tab", { name: "Kontrollierte Zusatzfelder" }));
     expect(await screen.findByText("Material")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Lagerorte" }));
+    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
     expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
     expect(api.storageLocations).toHaveBeenCalledOnce();
 
@@ -95,18 +95,27 @@ describe("ArticleManagementSettings", () => {
     expect(screen.queryByRole("button", { name: /bearbeiten|archivieren|anlegen/i })).not.toBeInTheDocument();
   });
 
-  it("marks the active article-management section accessibly", async () => {
+  it("renders semantic section tabs and supports keyboard navigation", async () => {
     const user = userEvent.setup();
     render(<ArticleManagementSettings roles={["Viewer"]} />);
 
-    const manufacturers = screen.getByRole("button", { name: "Hersteller" });
-    const locationsButton = screen.getByRole("button", { name: "Lagerorte" });
-    expect(manufacturers).toHaveAttribute("aria-pressed", "true");
-    expect(locationsButton).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByRole("tablist", { name: "Bereiche der Artikelverwaltung" })).toBeInTheDocument();
+    const manufacturers = screen.getByRole("tab", { name: "Hersteller" });
+    const units = screen.getByRole("tab", { name: "Bestandseinheiten" });
+    const locationsTab = screen.getByRole("tab", { name: "Lagerorte" });
+    expect(manufacturers).toHaveAttribute("aria-selected", "true");
+    expect(units).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("tabpanel", { name: "Hersteller" })).toBeInTheDocument();
 
-    await user.click(locationsButton);
-    expect(manufacturers).toHaveAttribute("aria-pressed", "false");
-    expect(locationsButton).toHaveAttribute("aria-pressed", "true");
+    manufacturers.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(units).toHaveFocus();
+    expect(units).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel", { name: "Bestandseinheiten" })).toBeInTheDocument();
+
+    await user.keyboard("{End}");
+    expect(locationsTab).toHaveFocus();
+    expect(locationsTab).toHaveAttribute("aria-selected", "true");
   });
 
   it("settles the active location request when an earlier master-data request finishes late", async () => {
@@ -118,7 +127,7 @@ describe("ArticleManagementSettings", () => {
     vi.mocked(api.storageLocations).mockResolvedValue(locations);
     render(<ArticleManagementSettings roles={["Viewer"]} />);
 
-    await user.click(screen.getByRole("button", { name: "Lagerorte" }));
+    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
     expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
 
     manufacturerRequest.resolve([entry("manufacturer", "tillig", "Tillig")]);
@@ -134,7 +143,7 @@ describe("ArticleManagementSettings", () => {
       .mockImplementationOnce(() => retryRequest.promise);
     render(<ArticleManagementSettings roles={["Viewer"]} />);
 
-    await user.click(await screen.findByRole("button", { name: "Lagerorte" }));
+    await user.click(await screen.findByRole("tab", { name: "Lagerorte" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Lagerorte konnten nicht geladen werden.");
     expect(api.storageLocations).toHaveBeenCalledTimes(1);
 
@@ -149,7 +158,7 @@ describe("ArticleManagementSettings", () => {
     vi.spyOn(api, "updateMasterData").mockResolvedValue(entry("article_type", "track", "Gleismaterial"));
     render(<ArticleManagementSettings roles={["Editor"]} />);
 
-    await user.click(await screen.findByRole("button", { name: "Artikelarten und Unterarten" }));
+    await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     expect(within(screen.getByRole("region", { name: "Artikelarten" }))
       .queryByRole("button", { name: "Eintrag anlegen" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
@@ -168,6 +177,23 @@ describe("ArticleManagementSettings", () => {
     ));
   });
 
+  it("shows a localized standard label without persisting it as an override", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "updateMasterData").mockResolvedValue(entry("article_type", "track", "Track"));
+    render(<ArticleManagementSettings roles={["Editor"]} />);
+
+    await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
+    await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
+    expect(screen.getByRole("textbox", { name: "Bezeichnung" })).toHaveValue("Gleis");
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    await waitFor(() => expect(api.updateMasterData).toHaveBeenCalledWith(
+      "article_type",
+      "track",
+      expect.objectContaining({ label: "Track" })
+    ));
+  });
+
   it("preserves an active-state toggle when saving an editor that was already open", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "updateMasterData").mockImplementation(async (type, key, input) => ({
@@ -176,7 +202,7 @@ describe("ArticleManagementSettings", () => {
     }));
     render(<ArticleManagementSettings roles={["Editor"]} />);
 
-    await user.click(await screen.findByRole("button", { name: "Artikelarten und Unterarten" }));
+    await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     await screen.findByText("Gleis");
     await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
     await user.click(screen.getByRole("button", { name: "Gleis archivieren" }));
@@ -202,7 +228,7 @@ describe("ArticleManagementSettings", () => {
     });
     render(<ArticleManagementSettings roles={["Admin"]} />);
 
-    await user.click(await screen.findByRole("button", { name: "Kontrollierte Zusatzfelder" }));
+    await user.click(await screen.findByRole("tab", { name: "Kontrollierte Zusatzfelder" }));
     await screen.findByText("Material");
     await user.click(screen.getByRole("button", { name: "Eintrag anlegen" }));
     await user.type(screen.getByRole("textbox", { name: "Schlüssel" }), "color");

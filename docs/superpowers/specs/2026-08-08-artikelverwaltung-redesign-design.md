@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-08
 
-**Status:** Approved follow-up in implementation
+**Status:** Implemented and verified
 
 **Geltungsbereich:** Artikelverwaltung und zugehörige Einstellungen
 
