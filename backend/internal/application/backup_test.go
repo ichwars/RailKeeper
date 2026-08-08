@@ -1024,6 +1024,79 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 	}
 }
 
+func TestBackupRoundTripPreservesValidInactiveControlledAttributes(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	active := true
+	masterData := application.NewMasterDataService(db)
+	definition, err := masterData.Create(ctx, "accessory_custom_field", application.MasterDataInput{
+		Key: "customLength", Label: "Custom length", Active: &active,
+		Metadata: map[string]any{"kind": "number", "unit": "mm", "min": 10.0, "max": 20.0},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository := infrastructure.NewAccessoryRepository(db)
+	accessories := application.NewAccessoryService(repository)
+	value, unit := 12.5, "mm"
+	product, err := accessories.CreateProduct(ctx, application.CreateAccessoryProductInput{
+		Manufacturer: "Test", Name: "Historical custom article", Category: "other",
+		ArticleType: domain.AccessoryArticleOther, Subtype: "other:other", PackageQuantity: 1,
+		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		Attributes: []domain.AccessoryAttributeValue{{
+			Key: "customLength", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
+		}},
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	inactive := false
+	if _, err := masterData.Update(ctx, "accessory_custom_field", definition.Key, application.MasterDataInput{
+		Label: definition.Label, Active: &inactive, Metadata: definition.Metadata,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	validation, err := service.Validate(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !validation.Compatible {
+		t.Fatalf("valid inactive historical attribute backup rejected: %#v", validation.Errors)
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE accessory_products SET name='Changed after export' WHERE id=?`,
+		product.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+
+	restored, err := accessories.GetProduct(ctx, product.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.Name != "Historical custom article" || len(restored.Attributes) != 1 ||
+		restored.Attributes[0].Key != "customLength" || restored.Attributes[0].NumberValue == nil ||
+		*restored.Attributes[0].NumberValue != value || restored.Attributes[0].Unit == nil ||
+		*restored.Attributes[0].Unit != unit {
+		t.Fatalf("inactive historical attribute changed during restore: %#v", restored)
+	}
+	restoredDefinition, err := masterData.Get(ctx, "accessory_custom_field", definition.Key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredDefinition.Active {
+		t.Fatalf("inactive custom definition reactivated during restore: %#v", restoredDefinition)
+	}
+}
+
 func TestBackupPreflightRejectsInvalidControlledCustomAttributesBeforeMutation(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -1112,9 +1185,6 @@ func TestBackupPreflightRejectsInvalidControlledCustomAttributesBeforeMutation(t
 		}},
 		{name: "undefined key", mutate: func(t *testing.T, doc *application.BackupDocument) {
 			customAttribute(t, doc)["attribute_key"] = "undefined"
-		}},
-		{name: "inactive definition", mutate: func(t *testing.T, doc *application.BackupDocument) {
-			customDefinition(t, doc)["active"] = int64(0)
 		}},
 		{name: "kind mismatch", mutate: func(t *testing.T, doc *application.BackupDocument) {
 			row := customAttribute(t, doc)

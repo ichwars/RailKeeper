@@ -547,9 +547,7 @@ func backupControlledAccessoryAttributeDefinitions(
 			))
 			continue
 		}
-		if definition.Active {
-			definitions = append(definitions, definition)
-		}
+		definitions = append(definitions, definition)
 	}
 	return definitions, validationErrors
 }

@@ -359,7 +359,10 @@ func (r *AccessoryRepository) Individualize(
 		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE accessory_stock SET quantity=quantity-1, updated_at=?
-WHERE product_id=? AND location_id=? AND quantity>=1`, now, productID, input.LocationID)
+WHERE product_id=? AND location_id=? AND quantity-1>=(
+  SELECT COALESCE(SUM(quantity), 0) FROM accessory_reservations
+  WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'
+)`, now, productID, input.LocationID, productID, input.LocationID)
 		if err != nil {
 			return fmt.Errorf("decrement individualized accessory stock: %w", err)
 		}

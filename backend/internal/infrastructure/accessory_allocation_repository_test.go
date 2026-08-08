@@ -559,6 +559,81 @@ func TestAccessoryStockTransferCannotConsumeReservedQuantity(t *testing.T) {
 		map[string]int{fixture.location.ID: 3, destination.ID: 2})
 }
 
+func TestAccessoryIndividualizationCannotConsumeReservedQuantityAtSource(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	source := fixture.location
+	other := createAccessoryTestLocation(t, fixture.accessories, "Other individualization shelf")
+	hybrid := createAccessoryTestProduct(t, fixture.accessories, "Reserved hybrid",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	for _, locationID := range []string{source.ID, other.ID} {
+		if _, err := fixture.accessories.AdjustStock(ctx, hybrid.ID, application.StockAdjustmentInput{
+			LocationID: locationID, Delta: 1,
+		}, "editor-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, LocationID: source.ID, Quantity: 1,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.Individualize(ctx, hybrid.ID,
+		application.IndividualizeAccessoryInput{
+			LocationID: source.ID,
+			Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-RESERVED-1"},
+		}, "editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved source individualization rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, hybrid.ID, map[string]int{source.ID: 1, other.ID: 1})
+	assets, err := fixture.accessories.ListAssets(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 0 {
+		t.Fatalf("failed individualization created assets: %#v", assets)
+	}
+	movements, err := fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 2 {
+		t.Fatalf("failed individualization wrote a movement: %#v", movements)
+	}
+
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: hybrid.ID, LocationID: other.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := fixture.accessories.Individualize(ctx, hybrid.ID,
+		application.IndividualizeAccessoryInput{
+			LocationID: source.ID,
+			Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-RELEASED-1"},
+		}, "editor-1")
+	if err != nil {
+		t.Fatalf("released source individualization failed: %v", err)
+	}
+	if asset.StorageLocationID != source.ID {
+		t.Fatalf("individualized asset has wrong source location: %#v", asset)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, hybrid.ID, map[string]int{source.ID: 0, other.ID: 1})
+	movements, err = fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 3 || findAllocationMovement(t, movements, "individualization").LocationID != source.ID {
+		t.Fatalf("released individualization movement missing: %#v", movements)
+	}
+}
+
 func findAllocationMovement(
 	t *testing.T,
 	movements []application.AccessoryStockMovement,
