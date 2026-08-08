@@ -48,3 +48,31 @@ func TestMasterDataAPIProtectsStandardArticleTypeKeys(t *testing.T) {
 		}
 	}
 }
+
+func TestMasterDataAPIReportsControlledCustomFieldMetadataValidation(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	router := NewRouter(Config{
+		SetupService: setup, AuthService: auth,
+		MasterDataService: application.NewMasterDataService(db),
+	})
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin", Email: "admin@example.test", Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session, cookies := loginTestUser(t, router, "admin", "very-secure-password")
+
+	response := doAuthedJSON(t, router, http.MethodPost, "/api/v1/master-data/accessory_custom_field",
+		`{"key":"invalid","label":"Invalid","active":true,"metadata":{}}`,
+		session, cookies, http.StatusBadRequest)
+	var problem map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem["error"] != "master_data_validation" ||
+		problem["message"] != `master data validation failed: custom field "invalid" requires a valid kind` {
+		t.Fatalf("unexpected controlled field problem: %#v", problem)
+	}
+}

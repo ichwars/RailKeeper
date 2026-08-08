@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -232,6 +233,126 @@ func TestAccessoryArticleRoutesUseActiveConfiguredSubtypeMasterData(t *testing.T
 				articleInput(name, subtype), true)
 			assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
 		})
+	}
+}
+
+func TestAccessoryArticleRoutesEnforceControlledCustomFieldsForDirectClients(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "editor", Password: "editor-password", Roles: []string{"Editor"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session := loginRouteTestUser(t, auth, "editor", "editor-password")
+	masterData := application.NewMasterDataService(db)
+	active := true
+	fields := []application.MasterDataInput{
+		{Key: "text", Label: "Text", Active: &active, Metadata: map[string]any{"kind": "text"}},
+		{Key: "number", Label: "Number", Active: &active, Metadata: map[string]any{
+			"kind": "number", "unit": "mm", "min": 10, "max": 20,
+		}},
+		{Key: "boolean", Label: "Boolean", Active: &active, Metadata: map[string]any{"kind": "boolean"}},
+		{Key: "date", Label: "Date", Active: &active, Metadata: map[string]any{"kind": "date"}},
+		{Key: "single", Label: "Single", Active: &active, Metadata: map[string]any{
+			"kind": "single_select", "options": []string{"DCC", "MM"},
+		}},
+		{Key: "multi", Label: "Multi", Active: &active, Metadata: map[string]any{
+			"kind": "multi_select", "options": []string{"DCC", "MM"},
+		}},
+	}
+	for _, field := range fields {
+		if _, err := masterData.Create(t.Context(), "accessory_custom_field", field); err != nil {
+			t.Fatal(err)
+		}
+	}
+	router := NewRouter(Config{
+		AuthService: auth, AccessoryService: application.NewAccessoryService(infrastructure.NewAccessoryRepository(db)),
+	})
+	validAttributes := []map[string]any{
+		{"key": "text", "kind": "text", "textValue": "Club"},
+		{"key": "number", "kind": "number", "numberValue": 12.5, "unit": "mm"},
+		{"key": "boolean", "kind": "boolean", "booleanValue": false},
+		{"key": "date", "kind": "date", "dateValue": "2026-08-08"},
+		{"key": "single", "kind": "single_select", "optionValues": []string{"DCC"}},
+		{"key": "multi", "kind": "multi_select", "optionValues": []string{"DCC", "MM"}},
+	}
+	articleInput := func(name string, attributes []map[string]any) map[string]any {
+		return map[string]any{
+			"manufacturer": "Club", "articleNumber": name, "name": name, "category": "other",
+			"articleType": "other", "subtype": "other", "packageQuantity": 1, "stockUnit": "piece",
+			"inventoryStrategy": "quantity", "attributes": attributes,
+		}
+	}
+	create := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+		articleInput("controlled", validAttributes), true)
+	assertStatus(t, create, http.StatusCreated)
+	var product application.AccessoryProduct
+	decodeResponse(t, create, &product)
+
+	invalid := []struct {
+		name       string
+		attributes []map[string]any
+		message    string
+	}{
+		{"undefined", []map[string]any{{"key": "unknown", "kind": "text", "textValue": "x"}}, "undefined"},
+		{"kind", []map[string]any{{"key": "text", "kind": "number", "numberValue": 12}}, "requires"},
+		{"unit", []map[string]any{{"key": "number", "kind": "number", "numberValue": 12, "unit": "cm"}}, "unit"},
+		{"bounds", []map[string]any{{"key": "number", "kind": "number", "numberValue": 9, "unit": "mm"}}, "bounds"},
+		{"date", []map[string]any{{"key": "date", "kind": "date", "dateValue": "08.08.2026"}}, "date"},
+		{"option", []map[string]any{{"key": "single", "kind": "single_select", "optionValues": []string{"MFX"}}}, "option"},
+		{"duplicate key", []map[string]any{
+			{"key": "text", "kind": "text", "textValue": "x"},
+			{"key": "text", "kind": "text", "textValue": "x"},
+		}, "duplicate"},
+		{"duplicate option", []map[string]any{{
+			"key": "multi", "kind": "multi_select", "optionValues": []string{"DCC", "DCC"},
+		}}, "duplicate"},
+	}
+	for _, test := range invalid {
+		t.Run(test.name, func(t *testing.T) {
+			response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+				articleInput(test.name, test.attributes), true)
+			assertAccessoryValidationMessage(t, response, test.message)
+		})
+	}
+
+	textField, err := masterData.Get(t.Context(), "accessory_custom_field", "text")
+	if err != nil {
+		t.Fatal(err)
+	}
+	inactive := false
+	if _, err := masterData.Update(t.Context(), "accessory_custom_field", "text", application.MasterDataInput{
+		Label: "Renamed historical text", Active: &inactive, Metadata: textField.Metadata,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	unchanged := articleInput("renamed article", validAttributes)
+	response := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/accessory-products/"+product.ID, unchanged, true)
+	assertStatus(t, response, http.StatusOK)
+	changedAttributes := append([]map[string]any(nil), validAttributes...)
+	changedAttributes[0] = map[string]any{"key": "text", "kind": "text", "textValue": "Changed"}
+	response = layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/accessory-products/"+product.ID, articleInput("mutation", changedAttributes), true)
+	assertAccessoryValidationMessage(t, response, "inactive custom attribute")
+	duplicateHistorical := append(append([]map[string]any(nil), validAttributes...), validAttributes[0])
+	response = layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/accessory-products/"+product.ID, articleInput("duplicate historical", duplicateHistorical), true)
+	assertAccessoryValidationMessage(t, response, "duplicate")
+}
+
+func assertAccessoryValidationMessage(t *testing.T, response *httptest.ResponseRecorder, contains string) {
+	t.Helper()
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400: %s", response.Code, response.Body.String())
+	}
+	var problem map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem["error"] != "accessory_validation" || !strings.Contains(problem["message"], contains) {
+		t.Fatalf("unexpected validation problem: %#v", problem)
 	}
 }
 

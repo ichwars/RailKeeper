@@ -405,7 +405,7 @@ func (a *App) createMasterData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, application.ErrMasterDataValidation) {
-			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataValidationMessage(err))
 			return
 		}
 		a.logger.Error("master data create failed", "error", err)
@@ -429,7 +429,7 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, application.ErrMasterDataProtected):
 			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
 		case errors.Is(err, application.ErrMasterDataValidation):
-			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataValidationMessage(err))
 		case errors.Is(err, application.ErrMasterDataNotFound):
 			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
 		default:
@@ -440,6 +440,13 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, item)
+}
+
+func masterDataValidationMessage(err error) string {
+	if err != application.ErrMasterDataValidation {
+		return err.Error()
+	}
+	return "Label is required."
 }
 
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {

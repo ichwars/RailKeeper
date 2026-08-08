@@ -3,7 +3,9 @@ package domain
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
+	"time"
 )
 
 var ErrAccessoryAttributeValidation = errors.New("accessory attribute validation failed")
@@ -41,11 +43,21 @@ type AccessoryAttributeValue struct {
 }
 
 type AccessoryAttributeDefinition struct {
-	Key  string                 `json:"key"`
-	Kind AccessoryAttributeKind `json:"kind"`
+	Key     string                 `json:"key"`
+	Kind    AccessoryAttributeKind `json:"kind"`
+	Active  bool                   `json:"active"`
+	Unit    string                 `json:"unit,omitempty"`
+	Minimum *float64               `json:"minimum,omitempty"`
+	Maximum *float64               `json:"maximum,omitempty"`
+	Options []string               `json:"options,omitempty"`
 }
 
-var standardAccessoryAttributeDefinitions = map[AccessoryArticleType][]AccessoryAttributeDefinition{
+type standardAccessoryAttributeDefinition struct {
+	Key  string
+	Kind AccessoryAttributeKind
+}
+
+var standardAccessoryAttributeDefinitions = map[AccessoryArticleType][]standardAccessoryAttributeDefinition{
 	AccessoryArticleTrack: {
 		{"trackSystem", AccessoryAttributeText}, {"lengthMm", AccessoryAttributeNumber},
 		{"radiusMm", AccessoryAttributeNumber}, {"angleDegrees", AccessoryAttributeNumber},
@@ -102,7 +114,11 @@ var standardAccessoryAttributeDefinitions = map[AccessoryArticleType][]Accessory
 
 func StandardAccessoryAttributeDefinitions(articleType AccessoryArticleType) []AccessoryAttributeDefinition {
 	definitions := standardAccessoryAttributeDefinitions[articleType]
-	return append([]AccessoryAttributeDefinition(nil), definitions...)
+	out := make([]AccessoryAttributeDefinition, len(definitions))
+	for index, definition := range definitions {
+		out[index] = AccessoryAttributeDefinition{Key: definition.Key, Kind: definition.Kind}
+	}
+	return out
 }
 
 func ValidateAccessoryAttributeValues(articleType AccessoryArticleType, values []AccessoryAttributeValue) error {
@@ -131,6 +147,125 @@ func ValidateAccessoryAttributeValues(articleType AccessoryArticleType, values [
 		}
 	}
 	return nil
+}
+
+func ValidateControlledAccessoryAttributeValues(
+	values []AccessoryAttributeValue,
+	definitions []AccessoryAttributeDefinition,
+) error {
+	definitionsByKey := make(map[string]AccessoryAttributeDefinition, len(definitions))
+	for _, definition := range definitions {
+		if err := definition.Validate(); err != nil {
+			return err
+		}
+		if _, exists := definitionsByKey[definition.Key]; exists {
+			return fmt.Errorf("%w: duplicate definition %q", ErrAccessoryAttributeValidation, definition.Key)
+		}
+		definitionsByKey[definition.Key] = definition
+	}
+
+	seen := make(map[string]struct{}, len(values))
+	for _, value := range values {
+		if err := value.Validate(); err != nil {
+			return err
+		}
+		if _, exists := seen[value.Key]; exists {
+			return fmt.Errorf("%w: duplicate key %q", ErrAccessoryAttributeValidation, value.Key)
+		}
+		seen[value.Key] = struct{}{}
+		definition, exists := definitionsByKey[value.Key]
+		if !exists {
+			return fmt.Errorf("%w: undefined controlled key %q", ErrAccessoryAttributeValidation, value.Key)
+		}
+		if value.Kind != definition.Kind {
+			return fmt.Errorf("%w: key %q requires %q", ErrAccessoryAttributeValidation, value.Key, definition.Kind)
+		}
+		if err := definition.validateValue(value); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (definition AccessoryAttributeDefinition) Validate() error {
+	if strings.TrimSpace(definition.Key) == "" || definition.Key != strings.TrimSpace(definition.Key) ||
+		!definition.Kind.Valid() {
+		return fmt.Errorf("%w: invalid controlled definition", ErrAccessoryAttributeValidation)
+	}
+	if definition.Kind != AccessoryAttributeNumber &&
+		(definition.Unit != "" || definition.Minimum != nil || definition.Maximum != nil) {
+		return fmt.Errorf("%w: numeric constraints require number kind", ErrAccessoryAttributeValidation)
+	}
+	if definition.Kind == AccessoryAttributeNumber {
+		if definition.Unit != strings.TrimSpace(definition.Unit) ||
+			!validAccessoryAttributeBound(definition.Minimum) || !validAccessoryAttributeBound(definition.Maximum) {
+			return fmt.Errorf("%w: invalid numeric definition", ErrAccessoryAttributeValidation)
+		}
+		if definition.Minimum != nil && definition.Maximum != nil && *definition.Minimum > *definition.Maximum {
+			return fmt.Errorf("%w: minimum exceeds maximum", ErrAccessoryAttributeValidation)
+		}
+	}
+	isSelect := definition.Kind == AccessoryAttributeSingleSelect || definition.Kind == AccessoryAttributeMultiSelect
+	if isSelect != (len(definition.Options) > 0) {
+		return fmt.Errorf("%w: selection options are invalid", ErrAccessoryAttributeValidation)
+	}
+	seen := make(map[string]struct{}, len(definition.Options))
+	for _, option := range definition.Options {
+		if option == "" || option != strings.TrimSpace(option) {
+			return fmt.Errorf("%w: selection option is invalid", ErrAccessoryAttributeValidation)
+		}
+		if _, exists := seen[option]; exists {
+			return fmt.Errorf("%w: duplicate selection option %q", ErrAccessoryAttributeValidation, option)
+		}
+		seen[option] = struct{}{}
+	}
+	return nil
+}
+
+func (definition AccessoryAttributeDefinition) validateValue(value AccessoryAttributeValue) error {
+	switch value.Kind {
+	case AccessoryAttributeNumber:
+		if definition.Unit == "" {
+			if value.Unit != nil && *value.Unit != "" {
+				return fmt.Errorf("%w: key %q does not accept a unit", ErrAccessoryAttributeValidation, value.Key)
+			}
+		} else if value.Unit == nil || *value.Unit != definition.Unit {
+			return fmt.Errorf("%w: key %q requires unit %q", ErrAccessoryAttributeValidation, value.Key, definition.Unit)
+		}
+		if value.NumberValue == nil || math.IsNaN(*value.NumberValue) || math.IsInf(*value.NumberValue, 0) ||
+			(definition.Minimum != nil && *value.NumberValue < *definition.Minimum) ||
+			(definition.Maximum != nil && *value.NumberValue > *definition.Maximum) {
+			return fmt.Errorf("%w: key %q is outside configured bounds", ErrAccessoryAttributeValidation, value.Key)
+		}
+	case AccessoryAttributeDate:
+		if value.DateValue == nil {
+			return fmt.Errorf("%w: key %q requires a date", ErrAccessoryAttributeValidation, value.Key)
+		}
+		if parsed, err := time.Parse("2006-01-02", *value.DateValue); err != nil ||
+			parsed.Format("2006-01-02") != *value.DateValue {
+			return fmt.Errorf("%w: key %q requires an ISO date", ErrAccessoryAttributeValidation, value.Key)
+		}
+	case AccessoryAttributeSingleSelect, AccessoryAttributeMultiSelect:
+		allowed := make(map[string]struct{}, len(definition.Options))
+		for _, option := range definition.Options {
+			allowed[option] = struct{}{}
+		}
+		seen := make(map[string]struct{}, len(value.OptionValues))
+		for _, option := range value.OptionValues {
+			if _, exists := allowed[option]; !exists {
+				return fmt.Errorf("%w: key %q contains unsupported option %q", ErrAccessoryAttributeValidation, value.Key, option)
+			}
+			if _, exists := seen[option]; exists {
+				return fmt.Errorf("%w: key %q contains duplicate option %q", ErrAccessoryAttributeValidation, value.Key, option)
+			}
+			seen[option] = struct{}{}
+		}
+	}
+	return nil
+}
+
+func validAccessoryAttributeBound(value *float64) bool {
+	return value == nil || (!math.IsNaN(*value) && !math.IsInf(*value, 0))
 }
 
 func (value AccessoryAttributeValue) Validate() error {

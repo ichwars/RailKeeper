@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/domain"
@@ -23,6 +24,7 @@ type accessoryRepositorySpy struct {
 	purchase              CreateAccessoryPurchaseInput
 	activeSubtypeKeys     map[string]bool
 	activeArticleTypeKeys map[domain.AccessoryArticleType]bool
+	customAttributes      []domain.AccessoryAttributeDefinition
 	currentProduct        *AccessoryProduct
 }
 
@@ -61,6 +63,12 @@ func (spy *accessoryRepositorySpy) AccessoryArticleTypeActive(
 		return spy.activeArticleTypeKeys[key], nil
 	}
 	return key == domain.AccessoryArticleTrack || key == domain.AccessoryArticleOther, nil
+}
+
+func (spy *accessoryRepositorySpy) AccessoryCustomAttributeDefinitions(
+	context.Context,
+) ([]domain.AccessoryAttributeDefinition, error) {
+	return append([]domain.AccessoryAttributeDefinition(nil), spy.customAttributes...), nil
 }
 
 func (spy *accessoryRepositorySpy) GetProduct(_ context.Context, _ string) (*AccessoryProduct, error) {
@@ -173,6 +181,95 @@ func TestAccessoryServiceValidatesAndNormalizesArticleCore(t *testing.T) {
 		}
 	}
 }
+
+func TestAccessoryServiceEnforcesControlledCustomAttributeDefinitions(t *testing.T) {
+	text := "Club"
+	number := 12.5
+	boolean := false
+	date := "2026-08-08"
+	repository := &accessoryRepositorySpy{customAttributes: []domain.AccessoryAttributeDefinition{
+		{Key: "text", Kind: domain.AccessoryAttributeText, Active: true},
+		{Key: "number", Kind: domain.AccessoryAttributeNumber, Active: true, Unit: "mm", Minimum: floatPointer(10), Maximum: floatPointer(20)},
+		{Key: "boolean", Kind: domain.AccessoryAttributeBoolean, Active: true},
+		{Key: "date", Kind: domain.AccessoryAttributeDate, Active: true},
+		{Key: "single", Kind: domain.AccessoryAttributeSingleSelect, Active: true, Options: []string{"DCC", "MM"}},
+		{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, Active: true, Options: []string{"DCC", "MM"}},
+	}}
+	service := NewAccessoryService(repository)
+	input := validOtherAccessoryProductInput([]domain.AccessoryAttributeValue{
+		{Key: "text", Kind: domain.AccessoryAttributeText, TextValue: &text},
+		{Key: "number", Kind: domain.AccessoryAttributeNumber, NumberValue: &number, Unit: stringPointer("mm")},
+		{Key: "boolean", Kind: domain.AccessoryAttributeBoolean, BooleanValue: &boolean},
+		{Key: "date", Kind: domain.AccessoryAttributeDate, DateValue: &date},
+		{Key: "single", Kind: domain.AccessoryAttributeSingleSelect, OptionValues: []string{"DCC"}},
+		{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, OptionValues: []string{"DCC", "MM"}},
+	})
+	if _, err := service.CreateProduct(t.Context(), input, "editor"); err != nil {
+		t.Fatalf("configured custom attributes rejected: %v", err)
+	}
+
+	wrongKind := validOtherAccessoryProductInput([]domain.AccessoryAttributeValue{{
+		Key: "text", Kind: domain.AccessoryAttributeNumber, NumberValue: &number,
+	}})
+	if _, err := service.CreateProduct(t.Context(), wrongKind, "editor"); !errors.Is(err, ErrAccessoryValidation) || !strings.Contains(err.Error(), "requires") {
+		t.Fatalf("incompatible custom kind error = %v", err)
+	}
+	undefined := validOtherAccessoryProductInput([]domain.AccessoryAttributeValue{{
+		Key: "undefined", Kind: domain.AccessoryAttributeText, TextValue: &text,
+	}})
+	if _, err := service.CreateProduct(t.Context(), undefined, "editor"); !errors.Is(err, ErrAccessoryValidation) || !strings.Contains(err.Error(), "undefined") {
+		t.Fatalf("undefined custom field error = %v", err)
+	}
+}
+
+func TestAccessoryServicePreservesOnlyExactHistoricalInactiveCustomAttributes(t *testing.T) {
+	oldValue := "Legacy"
+	changedValue := "Changed"
+	inactive := domain.AccessoryAttributeDefinition{
+		Key: "retired", Kind: domain.AccessoryAttributeText, Active: false,
+	}
+	currentAttribute := domain.AccessoryAttributeValue{
+		Key: "retired", Kind: domain.AccessoryAttributeText, TextValue: &oldValue,
+	}
+	repository := &accessoryRepositorySpy{
+		customAttributes: []domain.AccessoryAttributeDefinition{inactive},
+		currentProduct: &AccessoryProduct{
+			ID: "historical", ArticleType: domain.AccessoryArticleOther, Subtype: "other:other",
+			Attributes: []domain.AccessoryAttributeValue{currentAttribute},
+		},
+	}
+	service := NewAccessoryService(repository)
+
+	unchanged := UpdateAccessoryProductInput{CreateAccessoryProductInput: validOtherAccessoryProductInput(
+		[]domain.AccessoryAttributeValue{currentAttribute})}
+	if _, err := service.UpdateProduct(t.Context(), "historical", unchanged, "editor"); err != nil {
+		t.Fatalf("unchanged historical inactive custom value rejected: %v", err)
+	}
+
+	for name, attributes := range map[string][]domain.AccessoryAttributeValue{
+		"changed": {{Key: "retired", Kind: domain.AccessoryAttributeText, TextValue: &changedValue}},
+		"removed": {},
+		"new use": {{Key: "retired", Kind: domain.AccessoryAttributeText, TextValue: &oldValue},
+			{Key: "retired-new", Kind: domain.AccessoryAttributeText, TextValue: &oldValue}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			input := UpdateAccessoryProductInput{CreateAccessoryProductInput: validOtherAccessoryProductInput(attributes)}
+			if _, err := service.UpdateProduct(t.Context(), "historical", input, "editor"); !errors.Is(err, ErrAccessoryValidation) {
+				t.Fatalf("inactive custom attribute mutation error = %v", err)
+			}
+		})
+	}
+}
+
+func validOtherAccessoryProductInput(attributes []domain.AccessoryAttributeValue) CreateAccessoryProductInput {
+	return CreateAccessoryProductInput{
+		Manufacturer: "Club", Name: "Other article", Category: "other", ArticleType: domain.AccessoryArticleOther,
+		Subtype: "other:other", PackageQuantity: 1, StockUnit: "piece",
+		InventoryStrategy: domain.AccessoryInventoryQuantity, Attributes: attributes,
+	}
+}
+
+func floatPointer(value float64) *float64 { return &value }
 
 func (spy *accessoryRepositorySpy) CreateProduct(
 	_ context.Context,

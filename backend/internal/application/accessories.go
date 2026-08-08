@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
+	"reflect"
 	"strings"
 
 	"railkeeper/backend/internal/domain"
@@ -123,6 +125,7 @@ type AccessoryCatalogRepository interface {
 	GetProduct(context.Context, string) (*AccessoryProduct, error)
 	AccessoryArticleTypeActive(context.Context, domain.AccessoryArticleType) (bool, error)
 	AccessorySubtypeActive(context.Context, string) (bool, error)
+	AccessoryCustomAttributeDefinitions(context.Context) ([]domain.AccessoryAttributeDefinition, error)
 	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
 	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
 	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
@@ -267,7 +270,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	input.Gauges = cleanStringArray(input.Gauges)
 	input.AlternativeNumbers = cleanStringArray(input.AlternativeNumbers)
 	input.Keywords = cleanStringArray(input.Keywords)
-	input.Attributes = cleanAccessoryAttributes(input.Attributes)
+	input.Attributes = cleanAccessoryAttributes(input.Attributes, input.ArticleType == domain.AccessoryArticleOther)
 	if legacyInput {
 		input.ArticleType = domain.AccessoryArticleOther
 		input.Subtype = "other:other"
@@ -294,6 +297,11 @@ func (s *AccessoryService) validateAccessoryProductInput(
 	if !validAccessoryProductInput(input) {
 		return ErrAccessoryValidation
 	}
+	if input.ArticleType != domain.AccessoryArticleOther {
+		if err := domain.ValidateAccessoryAttributeValues(input.ArticleType, input.Attributes); err != nil {
+			return ErrAccessoryValidation
+		}
+	}
 	currentArticleType := domain.AccessoryArticleType("")
 	currentSubtype := ""
 	if current != nil {
@@ -310,6 +318,11 @@ func (s *AccessoryService) validateAccessoryProductInput(
 			return ErrAccessoryValidation
 		}
 	}
+	if input.ArticleType == domain.AccessoryArticleOther {
+		if err := s.validateControlledAccessoryAttributes(ctx, input.Attributes, current); err != nil {
+			return err
+		}
+	}
 	subtypeUnchanged := typeUnchanged && currentSubtype == input.Subtype
 	if subtypeUnchanged {
 		return nil
@@ -324,11 +337,68 @@ func (s *AccessoryService) validateAccessoryProductInput(
 	return nil
 }
 
+func (s *AccessoryService) validateControlledAccessoryAttributes(
+	ctx context.Context,
+	values []domain.AccessoryAttributeValue,
+	current *AccessoryProduct,
+) error {
+	if err := domain.ValidateAccessoryAttributeValues(domain.AccessoryArticleOther, values); err != nil {
+		return fmt.Errorf("%w: %v", ErrAccessoryValidation, err)
+	}
+	definitions, err := s.repository.AccessoryCustomAttributeDefinitions(ctx)
+	if err != nil {
+		return err
+	}
+	active := make([]domain.AccessoryAttributeDefinition, 0, len(definitions))
+	inactiveByKey := make(map[string]domain.AccessoryAttributeDefinition)
+	for _, definition := range definitions {
+		if definition.Active {
+			active = append(active, definition)
+		} else {
+			inactiveByKey[definition.Key] = definition
+		}
+	}
+
+	valuesToValidate := values
+	if current != nil && current.ArticleType == domain.AccessoryArticleOther {
+		currentByKey := accessoryAttributesByKey(current.Attributes)
+		valuesByKey := accessoryAttributesByKey(values)
+		for key := range inactiveByKey {
+			currentValue, existed := currentByKey[key]
+			value, preserved := valuesByKey[key]
+			if existed && (!preserved || !reflect.DeepEqual(value, currentValue)) {
+				return fmt.Errorf("%w: inactive custom attribute %q must remain unchanged", ErrAccessoryValidation, key)
+			}
+			if preserved && (!existed || !reflect.DeepEqual(value, currentValue)) {
+				return fmt.Errorf("%w: inactive custom attribute %q cannot be added or changed", ErrAccessoryValidation, key)
+			}
+		}
+		valuesToValidate = make([]domain.AccessoryAttributeValue, 0, len(values))
+		for _, value := range values {
+			if _, inactive := inactiveByKey[value.Key]; !inactive {
+				valuesToValidate = append(valuesToValidate, value)
+			}
+		}
+	}
+	if err := domain.ValidateControlledAccessoryAttributeValues(valuesToValidate, active); err != nil {
+		return fmt.Errorf("%w: %v", ErrAccessoryValidation, err)
+	}
+	return nil
+}
+
+func accessoryAttributesByKey(values []domain.AccessoryAttributeValue) map[string]domain.AccessoryAttributeValue {
+	out := make(map[string]domain.AccessoryAttributeValue, len(values))
+	for _, value := range values {
+		out[value.Key] = value
+	}
+	return out
+}
+
 func validAccessoryProductInput(input CreateAccessoryProductInput) bool {
 	return input.Manufacturer != "" && input.Name != "" && input.Category != "" && input.TrackingMode.Valid() &&
 		input.ArticleType.Valid() && accessorySubtypeMatchesType(input.ArticleType, input.Subtype) &&
 		input.InventoryStrategy.Valid() && input.PackageQuantity > 0 && input.StockUnit != "" &&
-		input.MinimumStock >= 0 && domain.ValidateAccessoryAttributeValues(input.ArticleType, input.Attributes) == nil
+		input.MinimumStock >= 0
 }
 
 func normalizeAccessorySubtype(articleType domain.AccessoryArticleType, subtype string) string {
@@ -361,7 +431,10 @@ func cleanStringArray(values []string) []string {
 	return cleaned
 }
 
-func cleanAccessoryAttributes(values []domain.AccessoryAttributeValue) []domain.AccessoryAttributeValue {
+func cleanAccessoryAttributes(
+	values []domain.AccessoryAttributeValue,
+	preserveOptionDuplicates bool,
+) []domain.AccessoryAttributeValue {
 	for index := range values {
 		value := &values[index]
 		value.Key = strings.TrimSpace(value.Key)
@@ -377,7 +450,13 @@ func cleanAccessoryAttributes(values []domain.AccessoryAttributeValue) []domain.
 			trimmed := strings.TrimSpace(*value.Unit)
 			value.Unit = &trimmed
 		}
-		value.OptionValues = cleanStringArray(value.OptionValues)
+		if preserveOptionDuplicates {
+			for optionIndex := range value.OptionValues {
+				value.OptionValues[optionIndex] = strings.TrimSpace(value.OptionValues[optionIndex])
+			}
+		} else {
+			value.OptionValues = cleanStringArray(value.OptionValues)
+		}
 	}
 	return values
 }

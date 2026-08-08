@@ -311,7 +311,11 @@ func decodeAccessoryJSON(w http.ResponseWriter, r *http.Request, target any) boo
 func (a *App) accessoryError(w http.ResponseWriter, err error, action string) {
 	switch {
 	case errors.Is(err, application.ErrAccessoryValidation):
-		respondProblem(w, http.StatusBadRequest, "accessory_validation", "Accessory data is invalid.")
+		message := "Accessory data is invalid."
+		if err != application.ErrAccessoryValidation {
+			message = err.Error()
+		}
+		respondProblem(w, http.StatusBadRequest, "accessory_validation", message)
 	case errors.Is(err, application.ErrAccessoryNotFound):
 		respondProblem(w, http.StatusNotFound, "accessory_not_found", "Accessory resource not found.")
 	case errors.Is(err, application.ErrAccessoryConflict):

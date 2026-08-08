@@ -1,7 +1,7 @@
 package domain_test
 
 import (
-	"slices"
+	"errors"
 	"testing"
 
 	"railkeeper/backend/internal/domain"
@@ -111,9 +111,63 @@ func TestValidateAccessoryAttributeValuesEnforcesTypedUnionAndCatalog(t *testing
 		})
 	}
 
-	if got := domain.StandardAccessoryAttributeDefinitions(domain.AccessoryArticleOther); !slices.Equal(got, nil) {
+	if got := domain.StandardAccessoryAttributeDefinitions(domain.AccessoryArticleOther); len(got) != 0 {
 		t.Fatalf("other definitions = %#v, want nil", got)
 	}
 }
 
 func stringPointer(value string) *string { return &value }
+
+func TestValidateControlledAccessoryAttributeValuesEnforcesConfiguredDefinitions(t *testing.T) {
+	text := "club"
+	number := 12.5
+	boolean := false
+	date := "2026-08-08"
+	definitions := []domain.AccessoryAttributeDefinition{
+		{Key: "text", Kind: domain.AccessoryAttributeText},
+		{Key: "number", Kind: domain.AccessoryAttributeNumber, Unit: "mm", Minimum: floatPointer(10), Maximum: floatPointer(20)},
+		{Key: "boolean", Kind: domain.AccessoryAttributeBoolean},
+		{Key: "date", Kind: domain.AccessoryAttributeDate},
+		{Key: "single", Kind: domain.AccessoryAttributeSingleSelect, Options: []string{"DCC", "MM"}},
+		{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, Options: []string{"DCC", "MM"}},
+	}
+	valid := []domain.AccessoryAttributeValue{
+		{Key: "text", Kind: domain.AccessoryAttributeText, TextValue: &text},
+		{Key: "number", Kind: domain.AccessoryAttributeNumber, NumberValue: &number, Unit: stringPointer("mm")},
+		{Key: "boolean", Kind: domain.AccessoryAttributeBoolean, BooleanValue: &boolean},
+		{Key: "date", Kind: domain.AccessoryAttributeDate, DateValue: &date},
+		{Key: "single", Kind: domain.AccessoryAttributeSingleSelect, OptionValues: []string{"DCC"}},
+		{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, OptionValues: []string{"DCC", "MM"}},
+	}
+	if err := domain.ValidateControlledAccessoryAttributeValues(valid, definitions); err != nil {
+		t.Fatalf("valid configured attributes rejected: %v", err)
+	}
+
+	wrongUnit := "cm"
+	tooSmall := 9.9
+	invalidDate := "08.08.2026"
+	tests := []struct {
+		name  string
+		value domain.AccessoryAttributeValue
+	}{
+		{"undefined key", domain.AccessoryAttributeValue{Key: "unknown", Kind: domain.AccessoryAttributeText, TextValue: &text}},
+		{"incompatible kind", domain.AccessoryAttributeValue{Key: "text", Kind: domain.AccessoryAttributeNumber, NumberValue: &number}},
+		{"wrong unit", domain.AccessoryAttributeValue{Key: "number", Kind: domain.AccessoryAttributeNumber, NumberValue: &number, Unit: &wrongUnit}},
+		{"below bound", domain.AccessoryAttributeValue{Key: "number", Kind: domain.AccessoryAttributeNumber, NumberValue: &tooSmall, Unit: stringPointer("mm")}},
+		{"invalid date", domain.AccessoryAttributeValue{Key: "date", Kind: domain.AccessoryAttributeDate, DateValue: &invalidDate}},
+		{"unknown single option", domain.AccessoryAttributeValue{Key: "single", Kind: domain.AccessoryAttributeSingleSelect, OptionValues: []string{"MFX"}}},
+		{"unknown multi option", domain.AccessoryAttributeValue{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, OptionValues: []string{"DCC", "MFX"}}},
+		{"duplicate multi option", domain.AccessoryAttributeValue{Key: "multi", Kind: domain.AccessoryAttributeMultiSelect, OptionValues: []string{"DCC", "DCC"}}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := domain.ValidateControlledAccessoryAttributeValues(
+				[]domain.AccessoryAttributeValue{test.value}, definitions)
+			if !errors.Is(err, domain.ErrAccessoryAttributeValidation) {
+				t.Fatalf("error = %v, want controlled validation failure", err)
+			}
+		})
+	}
+}
+
+func floatPointer(value float64) *float64 { return &value }

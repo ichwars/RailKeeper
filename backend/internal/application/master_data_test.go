@@ -380,6 +380,89 @@ func TestMasterDataServiceProtectsStandardArticleTypeKeys(t *testing.T) {
 	}
 }
 
+func TestMasterDataServiceValidatesControlledCustomFieldMetadata(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	active := true
+	valid := []application.MasterDataInput{
+		{Key: "text", Label: "Text", Active: &active, Metadata: map[string]any{"kind": "text"}},
+		{Key: "number", Label: "Number", Active: &active, Metadata: map[string]any{
+			"kind": "number", "unit": " mm ", "min": 10.0, "max": 20.0,
+		}},
+		{Key: "boolean", Label: "Boolean", Active: &active, Metadata: map[string]any{"kind": "boolean"}},
+		{Key: "date", Label: "Date", Active: &active, Metadata: map[string]any{"kind": "date"}},
+		{Key: "single", Label: "Single", Active: &active, Metadata: map[string]any{
+			"kind": "single_select", "options": []any{" DCC ", "MM"},
+		}},
+		{Key: "multi", Label: "Multi", Active: &active, Metadata: map[string]any{
+			"kind": "multi_select", "options": []string{"DCC", "MM"},
+		}},
+	}
+	for _, input := range valid {
+		created, err := service.Create(t.Context(), "accessory_custom_field", input)
+		if err != nil {
+			t.Fatalf("valid %s custom field rejected: %v", input.Key, err)
+		}
+		if input.Key == "number" && (created.Metadata["unit"] != "mm" || created.Metadata["min"] != 10.0) {
+			t.Fatalf("number metadata was not normalized: %#v", created.Metadata)
+		}
+	}
+
+	number, err := service.Get(t.Context(), "accessory_custom_field", "number")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Update(t.Context(), "accessory_custom_field", "number", application.MasterDataInput{
+		Label: "Renamed number", Active: &active, Metadata: number.Metadata,
+	}); err != nil {
+		t.Fatalf("label rename with unchanged metadata rejected: %v", err)
+	}
+
+	invalid := []application.MasterDataInput{
+		{Key: "missing-kind", Label: "Missing", Metadata: map[string]any{}},
+		{Key: "unknown-kind", Label: "Unknown", Metadata: map[string]any{"kind": "json"}},
+		{Key: "bad-unit", Label: "Unit", Metadata: map[string]any{"kind": "number", "unit": 12}},
+		{Key: "bad-bounds", Label: "Bounds", Metadata: map[string]any{"kind": "number", "min": 20, "max": 10}},
+		{Key: "missing-options", Label: "Options", Metadata: map[string]any{"kind": "single_select"}},
+		{Key: "duplicate-options", Label: "Options", Metadata: map[string]any{
+			"kind": "multi_select", "options": []string{"DCC", "DCC"},
+		}},
+		{Key: "options-on-text", Label: "Options", Metadata: map[string]any{
+			"kind": "text", "options": []string{"DCC"},
+		}},
+	}
+	for _, input := range invalid {
+		if _, err := service.Create(t.Context(), "accessory_custom_field", input); !errors.Is(err, application.ErrMasterDataValidation) {
+			t.Fatalf("invalid custom field %s error = %v", input.Key, err)
+		}
+	}
+}
+
+func TestMasterDataImportRejectsMalformedControlledCustomFieldsWithoutMutation(t *testing.T) {
+	db := testDB(t)
+	service := application.NewMasterDataService(db)
+	active := true
+	if _, err := service.Create(t.Context(), "epoch", application.MasterDataInput{
+		Key: "sentinel", Label: "Sentinel", Active: &active,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{
+			"accessory_custom_field": {{
+				Type: "accessory_custom_field", Key: "bad", Label: "Bad", Active: true,
+				Metadata: map[string]any{"kind": "single_select", "options": []string{}},
+			}},
+		},
+	})
+	if !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("malformed custom field import error = %v", err)
+	}
+	if _, err := service.Get(t.Context(), "epoch", "sentinel"); err != nil {
+		t.Fatalf("malformed import changed existing master data: %v", err)
+	}
+}
+
 func TestMasterDataExportImportReplacesEntriesAndRelations(t *testing.T) {
 	ctx := context.Background()
 	sourceDB := testDB(t)
