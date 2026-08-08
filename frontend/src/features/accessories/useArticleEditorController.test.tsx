@@ -1,7 +1,8 @@
+import { StrictMode, type PropsWithChildren } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryArticle } from "../../shared/api";
+import { api, type AccessoryArticle, type AccessoryStockSummary } from "../../shared/api";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { useArticleEditorController } from "./useArticleEditorController";
 
@@ -28,12 +29,46 @@ const article: AccessoryArticle = {
   updatedAt: "2026-08-08T09:00:00Z"
 };
 
+const otherArticle: AccessoryArticle = {
+  ...article,
+  id: "article-2",
+  manufacturer: "Viessmann",
+  articleNumber: "4011",
+  name: "Signal"
+};
+
+const stock = (productId: string, totalQuantity: number): AccessoryStockSummary => ({
+  productId,
+  trackingMode: "quantity",
+  totalQuantity,
+  locations: []
+});
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((next, fail) => { resolve = next; reject = fail; });
+  return { promise, resolve, reject };
+}
+
 describe("useArticleEditorController", () => {
   beforeEach(() => {
     vi.spyOn(api, "accessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
     vi.spyOn(api, "createAccessoryArticle").mockResolvedValue(article);
     vi.spyOn(api, "updateAccessoryArticle").mockResolvedValue(article);
+    vi.spyOn(api, "storageLocations").mockResolvedValue([]);
+    vi.spyOn(api, "vehicles").mockResolvedValue([]);
+    vi.spyOn(api, "layouts").mockResolvedValue([]);
+    vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryStock").mockResolvedValue(stock(article.id, 0));
+    vi.spyOn(api, "accessoryStockMovements").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryAssets").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryPurchases").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryDocuments").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryReservations").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryInstallations").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryUsageHistory").mockResolvedValue({ productId: article.id, events: [] });
   });
 
   it("validates the whole form, marks tabs, and navigates to the first invalid tab", async () => {
@@ -123,5 +158,165 @@ describe("useArticleEditorController", () => {
     act(() => editor.result.current.openArticle("article-1", "view", false));
     await waitFor(() => expect(editor.result.current.article).not.toBeNull());
     expect(editor.result.current.isFormReadOnly).toBe(true);
+  });
+
+  it("ignores slow detail results from an older article request", async () => {
+    const first = deferred<AccessoryArticle>();
+    const second = deferred<AccessoryArticle>();
+    vi.mocked(api.accessoryArticle)
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    act(() => result.current.openArticle("article-2", "edit", false));
+    await act(async () => second.resolve(otherArticle));
+    await waitFor(() => expect(result.current.article?.id).toBe("article-2"));
+    await act(async () => first.resolve(article));
+
+    expect(result.current.article?.id).toBe("article-2");
+    expect(result.current.form.name).toBe("Signal");
+  });
+
+  it("invalidates slow detail results when closing or starting create", async () => {
+    const closing = deferred<AccessoryArticle>();
+    const creating = deferred<AccessoryArticle>();
+    vi.mocked(api.accessoryArticle)
+      .mockImplementationOnce(() => closing.promise)
+      .mockImplementationOnce(() => creating.promise);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    act(() => result.current.requestClose());
+    await act(async () => closing.resolve(article));
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.article).toBeNull();
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    act(() => result.current.openCreate());
+    await act(async () => creating.resolve(article));
+    expect(result.current.mode).toBe("create");
+    expect(result.current.article).toBeNull();
+    expect(result.current.form).toEqual(emptyArticleEditorForm());
+  });
+
+  it("never overwrites the current article resources with an older session", async () => {
+    const oldStock = deferred<AccessoryStockSummary>();
+    vi.mocked(api.accessoryStock).mockImplementation((id) => id === "article-1"
+      ? oldStock.promise : Promise.resolve(stock(id, 7)));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledWith("article-1"));
+    act(() => result.current.openArticle("article-2", "edit", false));
+    await waitFor(() => expect(result.current.resources.stock?.productId).toBe("article-2"));
+    await act(async () => oldStock.resolve(stock("article-1", 99)));
+
+    expect(result.current.resources.stock).toEqual(stock("article-2", 7));
+  });
+
+  it("blocks edit save after detail failure instead of falling back to create", async () => {
+    vi.mocked(api.accessoryArticle).mockRejectedValueOnce(new Error("Detail nicht verfügbar"));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("missing", "edit", false));
+    expect(result.current.form).toEqual(emptyArticleEditorForm());
+    await waitFor(() => expect(result.current.error).toBe("Detail nicht verfügbar"));
+    act(() => result.current.changeForm({ manufacturer: "Tillig", name: "Gleis", subtype: "straight" }));
+    await act(async () => result.current.submit());
+
+    expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+    expect(api.updateAccessoryArticle).not.toHaveBeenCalled();
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("preserves successful resource data and rejects a partial refresh failure", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(result.current.resources.stock).toEqual(stock("article-1", 0)));
+    vi.mocked(api.accessoryStock).mockRejectedValueOnce(new Error("Bestand nicht verfügbar"));
+
+    let refreshError: unknown;
+    await act(async () => {
+      try { await result.current.refreshResources(); } catch (reason) { refreshError = reason; }
+    });
+    expect(refreshError).toEqual(new Error("Bestand nicht verfügbar"));
+    expect(result.current.resources.stock).toEqual(stock("article-1", 0));
+    expect(result.current.error).toBe("Bestand nicht verfügbar");
+  });
+
+  it("binds duplicate confirmation to the checked immutable draft", async () => {
+    const duplicateCheck = deferred<{ candidates: Array<{
+      id: string; manufacturer: string; articleNumber: string; name: string; articleType: "track"; subtype: string;
+    }> }>();
+    vi.mocked(api.checkAccessoryArticleDuplicates).mockReturnValueOnce(duplicateCheck.promise);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    act(() => result.current.changeForm({ manufacturer: "Tillig", articleNumber: "83101", name: "Gleis",
+      articleType: "track", subtype: "straight" }));
+
+    let submitPromise!: Promise<void>;
+    act(() => { submitPromise = result.current.submit(); });
+    await waitFor(() => expect(result.current.saving).toBe(true));
+    act(() => result.current.changeForm({ name: "Ungeprüfter Name" }));
+    expect(result.current.form.name).toBe("Gleis");
+    await act(async () => duplicateCheck.resolve({ candidates: [{ id: "dup", manufacturer: "Tillig",
+      articleNumber: "83101", name: "Alt", articleType: "track", subtype: "straight" }] }));
+    await submitPromise;
+    await act(async () => result.current.confirmDuplicateSave());
+
+    expect(api.createAccessoryArticle).toHaveBeenCalledWith(expect.objectContaining({ name: "Gleis" }));
+  });
+
+  it("clears field and tab validation markers as soon as the value is corrected", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    await act(async () => result.current.submit());
+    expect(result.current.tabErrors.article).toBe(true);
+
+    act(() => result.current.changeForm({ manufacturer: "Tillig", name: "Gleis", subtype: "straight" }));
+
+    expect(result.current.fieldErrors.manufacturer).toBeUndefined();
+    expect(result.current.tabErrors.article).toBeUndefined();
+  });
+
+  it("treats non-empty tab subdrafts as dirty until their successful reset", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    const markDirty = result.current.setSubdraftDirty;
+    expect(markDirty).toBeTypeOf("function");
+    if (!markDirty) return;
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(result.current.article).not.toBeNull());
+
+    act(() => markDirty("purchase", true));
+    act(() => result.current.requestClose());
+    expect(result.current.closeConfirmationOpen).toBe(true);
+
+    act(() => result.current.cancelClose());
+    act(() => markDirty("purchase", false));
+    act(() => result.current.requestClose());
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("accepts current detail results after the React StrictMode effect replay", async () => {
+    const wrapper = ({ children }: PropsWithChildren) => <StrictMode>{children}</StrictMode>;
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }), { wrapper });
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+
+    await waitFor(() => expect(result.current.article?.id).toBe("article-1"));
+  });
+
+  it("advances the dialog session key for every new create or article request", () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    const initial = result.current.sessionKey;
+    expect(initial).toBeTypeOf("number");
+
+    act(() => result.current.openCreate());
+    const createSession = result.current.sessionKey;
+    act(() => result.current.openArticle("article-1", "edit", false));
+
+    expect(createSession).toBeGreaterThan(initial);
+    expect(result.current.sessionKey).toBeGreaterThan(createSession);
   });
 });

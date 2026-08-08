@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   api,
@@ -30,6 +30,7 @@ import {
   type ArticleEditorTab,
   type ArticleEditorTabErrors
 } from "./articleEditorModel";
+import { fetchArticleEditorResourcePatch } from "./articleEditorResources";
 
 export type ArticleEditorPermissions = {
   canEdit: boolean;
@@ -96,6 +97,20 @@ export function useArticleEditorController({
   const [hasUsageHistory, setHasUsageHistory] = useState(false);
   const [returnFocusTo, setReturnFocusTo] = useState<HTMLElement | null>(null);
   const [resources, setResources] = useState<ArticleEditorResources>(emptyResources);
+  const [detailReady, setDetailReady] = useState(false);
+  const [duplicateDraft, setDuplicateDraft] = useState<ArticleEditorForm | null>(null);
+  const [subdraftDirty, setSubdraftDirtyState] = useState<Record<string, boolean>>({});
+  const [sessionKey, setSessionKey] = useState(0);
+  const generationRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      generationRef.current += 1;
+    };
+  }, []);
 
   const permissions = useMemo<ArticleEditorPermissions>(() => {
     const canEdit = roles.includes("Admin") || roles.includes("Editor");
@@ -112,67 +127,59 @@ export function useArticleEditorController({
     setFieldErrors({});
     setTabErrors({});
     setDuplicateCandidates([]);
+    setDuplicateDraft(null);
+    setSubdraftDirtyState({});
     setCloseConfirmationOpen(false);
     setError("");
   };
 
-  const loadResources = useCallback(async (articleId: string) => {
-    const shared = await Promise.allSettled([api.storageLocations(), api.vehicles(), api.layouts()]);
-    const locations = shared[0].status === "fulfilled" ? shared[0].value : [];
-    const vehicles = shared[1].status === "fulfilled" ? shared[1].value : [];
-    const layouts = shared[2].status === "fulfilled" ? shared[2].value : [];
-    const unitsResult = await Promise.allSettled(layouts.map((layout) => api.layoutUnits(layout.id)));
-    const units = unitsResult.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-    const related = await Promise.allSettled([
-      api.accessoryStock(articleId),
-      api.accessoryStockMovements(articleId),
-      api.accessoryAssets(articleId),
-      api.accessoryPurchases(articleId),
-      api.accessoryDocuments(articleId),
-      api.accessoryReservations(articleId),
-      api.accessoryInstallations(articleId),
-      api.accessoryUsageHistory(articleId)
-    ]);
-    const value = <T,>(index: number, fallback: T): T =>
-      related[index]?.status === "fulfilled" ? related[index].value as T : fallback;
-    const next: ArticleEditorResources = {
-      locations,
-      vehicles,
-      layouts,
-      units,
-      stock: value(0, null),
-      movements: value(1, []),
-      assets: value(2, []),
-      purchases: value(3, []),
-      documents: value(4, []),
-      reservations: value(5, []),
-      installations: value(6, []),
-      usageHistory: value(7, null)
-    };
-    setResources(next);
-    if (next.reservations.length > 0 || next.installations.length > 0 ||
-        (next.usageHistory?.events.length || 0) > 0) setHasUsageHistory(true);
-  }, []);
+  const isCurrent = useCallback((generation: number) =>
+    mountedRef.current && generationRef.current === generation, []);
+
+  const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
+    const result = await fetchArticleEditorResourcePatch(articleId);
+    if (!isCurrent(generation)) return;
+    setResources((current) => ({ ...current, ...result.patch }));
+    const hasUsage = (result.patch.reservations?.length || 0) > 0 ||
+      (result.patch.installations?.length || 0) > 0 || (result.patch.usageHistory?.events.length || 0) > 0;
+    if (hasUsage) setHasUsageHistory(true);
+    if (result.errors.length > 0) {
+      setError(result.errors[0].message);
+      if (rejectOnFailure) throw result.errors[0];
+    }
+  }, [isCurrent]);
 
   const openCreate = () => {
+    const generation = ++generationRef.current;
+    setSessionKey(generation);
     const next = emptyArticleEditorForm();
     setMode("create");
     setArticle(null);
     setForm(next);
     setInitialForm(next);
     setResources(emptyResources());
+    setDetailReady(true);
+    setLoading(false);
     setHasUsageHistory(false);
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
     setIsOpen(true);
-    void Promise.allSettled([api.storageLocations()]).then(([locations]) => {
-      if (locations.status === "fulfilled") setResources((current) => ({ ...current, locations: locations.value }));
+    void api.storageLocations().then((locations) => {
+      if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
+    }).catch((reason) => {
+      if (isCurrent(generation)) setError(errorMessage(reason));
     });
   };
 
   const openArticle = (id: string, nextMode: Exclude<ArticleEditorMode, "create">, usageSignal: boolean) => {
+    const generation = ++generationRef.current;
+    setSessionKey(generation);
+    const empty = emptyArticleEditorForm();
     setMode(nextMode);
     setArticle(null);
+    setForm(empty);
+    setInitialForm(empty);
+    setDetailReady(false);
     setHasUsageHistory(usageSignal);
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
@@ -180,48 +187,74 @@ export function useArticleEditorController({
     setIsOpen(true);
     setLoading(true);
     void api.accessoryArticle(id).then((loaded) => {
+      if (!isCurrent(generation)) return;
       const next = articleToEditorForm(loaded);
       setArticle(loaded);
       setForm(next);
       setInitialForm(next);
-      void loadResources(id);
-    }).catch((reason) => setError(errorMessage(reason))).finally(() => setLoading(false));
+      setDetailReady(true);
+      void loadResources(id, generation, false);
+    }).catch((reason) => {
+      if (isCurrent(generation)) setError(errorMessage(reason));
+    }).finally(() => {
+      if (isCurrent(generation)) setLoading(false);
+    });
   };
 
   const changeForm = (patch: Partial<ArticleEditorForm>) => {
-    setForm((current) => ({ ...current, ...patch }));
+    if (saving || duplicateCandidates.length > 0) return;
+    const nextForm = { ...form, ...patch };
+    setForm(nextForm);
     setFieldErrors((current) => {
       const next = { ...current };
       Object.keys(patch).forEach((key) => delete next[key as keyof ArticleEditorForm]);
       return next;
     });
+    const validation = validateArticleEditorForm(nextForm);
+    setTabErrors((current) => {
+      const next = { ...current };
+      (Object.keys(current) as ArticleEditorTab[]).forEach((tab) => {
+        if (!validation.tabErrors[tab]) delete next[tab];
+      });
+      return next;
+    });
   };
 
   const closeNow = () => {
+    generationRef.current += 1;
     setIsOpen(false);
     setCloseConfirmationOpen(false);
     setDuplicateCandidates([]);
+    setDuplicateDraft(null);
+    setArticle(null);
+    setDetailReady(false);
+    setLoading(false);
+    setResources(emptyResources());
   };
 
   const requestClose = () => {
-    if (mode !== "view" && isArticleEditorDirty(form, initialForm)) {
+    if (mode !== "view" && (isArticleEditorDirty(form, initialForm) || Object.values(subdraftDirty).some(Boolean))) {
       setCloseConfirmationOpen(true);
       return;
     }
     closeNow();
   };
 
-  const save = async () => {
+  const save = async (draft: ArticleEditorForm = form) => {
     if (!permissions.canEdit || mode === "view") return;
+    if (mode === "edit" && (!article || !detailReady)) {
+      setError(t("accessories.editor.detailRequired"));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
-      const input = articleEditorWriteInput(form);
+      const input = articleEditorWriteInput(draft);
       const saved = mode === "edit" && article
         ? await api.updateAccessoryArticle(article.id, input)
         : await api.createAccessoryArticle(input);
       setArticle(saved);
-      setInitialForm(form);
+      setInitialForm(draft);
       await onSaved?.();
       closeNow();
     } catch (reason) {
@@ -232,6 +265,10 @@ export function useArticleEditorController({
   };
 
   const submit = async () => {
+    if (mode === "edit" && (!article || !detailReady)) {
+      setError(t("accessories.editor.detailRequired"));
+      return;
+    }
     const validation = validateArticleEditorForm(form, {
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
@@ -246,36 +283,47 @@ export function useArticleEditorController({
       return;
     }
     if (form.articleNumber.trim()) {
+      const generation = generationRef.current;
+      const checkedDraft = structuredClone(form);
       setSaving(true);
       setError("");
       try {
         const result = await api.checkAccessoryArticleDuplicates({
-          manufacturer: form.manufacturer.trim(),
-          articleNumber: form.articleNumber.trim(),
+          manufacturer: checkedDraft.manufacturer.trim(),
+          articleNumber: checkedDraft.articleNumber.trim(),
           excludeId: mode === "edit" ? article?.id : undefined
         });
+        if (!isCurrent(generation)) return;
         if (result.candidates.length > 0) {
+          setDuplicateDraft(checkedDraft);
           setDuplicateCandidates(result.candidates);
           return;
         }
       } catch (reason) {
-        setError(errorMessage(reason));
+        if (isCurrent(generation)) setError(errorMessage(reason));
         return;
       } finally {
-        setSaving(false);
+        if (isCurrent(generation)) setSaving(false);
       }
     }
     await save();
   };
 
   const confirmDuplicateSave = async () => {
+    const checkedDraft = duplicateDraft;
+    if (!checkedDraft) return;
     setDuplicateCandidates([]);
-    await save();
+    setDuplicateDraft(null);
+    await save(checkedDraft);
   };
 
   const refreshResources = async () => {
     if (!article) return;
-    await loadResources(article.id);
+    await loadResources(article.id, generationRef.current, true);
+  };
+
+  const setSubdraftDirty = (scope: string, dirty: boolean) => {
+    setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
 
   return {
@@ -294,6 +342,7 @@ export function useArticleEditorController({
     hasUsageHistory,
     returnFocusTo,
     resources,
+    sessionKey,
     permissions,
     isFormReadOnly: mode === "view" || !permissions.canEdit,
     openCreate,
@@ -305,7 +354,8 @@ export function useArticleEditorController({
     confirmClose: closeNow,
     cancelClose: () => setCloseConfirmationOpen(false),
     confirmDuplicateSave,
-    cancelDuplicateSave: () => setDuplicateCandidates([]),
-    refreshResources
+    cancelDuplicateSave: () => { setDuplicateCandidates([]); setDuplicateDraft(null); },
+    refreshResources,
+    setSubdraftDirty
   };
 }

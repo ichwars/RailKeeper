@@ -1,5 +1,5 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
-import { AlertTriangle, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import type { AccessoryArticle, AccessoryDuplicateCandidate } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -15,6 +15,7 @@ import type {
   ArticleEditorTabErrors
 } from "./articleEditorModel";
 import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
+import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 
 export type ArticleEditorDialogProps = {
   mode: ArticleEditorMode;
@@ -41,6 +42,7 @@ export type ArticleEditorDialogProps = {
   onConfirmDuplicate: () => void | Promise<void>;
   onCancelDuplicate: () => void;
   onResourcesChanged: () => Promise<void>;
+  onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
 
 const focusableSelector = [
@@ -54,7 +56,8 @@ const focusableSelector = [
 export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const readOnly = props.mode === "view" || !props.permissions.canEdit;
+  const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0;
+  const readOnly = props.mode === "view" || !props.permissions.canEdit || props.saving || confirmationPending;
   const plannerReservationMode = props.mode === "view" && !props.permissions.canEdit && props.permissions.canReserve;
   const title = props.mode === "create"
     ? t("accessories.editor.create")
@@ -74,12 +77,14 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   ];
 
   useEffect(() => {
+    if (props.loading) return;
     const initial = layerRef.current?.querySelector<HTMLElement>(
       props.mode === "view" ? "[data-article-dialog-close]" : "[data-article-initial-focus]"
     );
     initial?.focus();
-    return () => props.returnFocusTo?.focus();
-  }, [props.mode, props.returnFocusTo]);
+  }, [props.loading, props.mode]);
+
+  useEffect(() => () => props.returnFocusTo?.focus(), [props.returnFocusTo]);
 
   useEffect(() => {
     if (!tabs.some((tab) => tab.key === props.activeTab)) props.onTabChange("article");
@@ -128,6 +133,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       <nav className="modal-tabs article-editor-tabs" role="tablist" aria-label={t("accessories.editor.tabs.label")}>
         {tabs.map((tab) => <button key={tab.key} type="button" role="tab" data-tab-kind={tab.subject ? "subject" : "fixed"}
           aria-selected={props.activeTab === tab.key} aria-label={tabLabel(tab)}
+          disabled={props.saving || confirmationPending}
           className={`${props.activeTab === tab.key ? "active" : ""} ${props.tabErrors[tab.key] ? "has-error" : ""}`.trim()}
           onClick={() => props.onTabChange(tab.key)}>
           <span>{tab.label}</span>{props.tabErrors[tab.key] ? <span className="article-tab-error" aria-hidden="true">!</span> : null}
@@ -135,23 +141,38 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       </nav>
       <div className="modal-body article-editor-body">
         {props.loading ? <p className="empty-state">{t("accessories.editor.loading")}</p> : null}
-        {!props.loading && props.activeTab === "article" ? <ArticleCoreTab form={props.form} article={props.article}
-          errors={props.fieldErrors} disabled={readOnly} onChange={props.onChange} /> : null}
-        {!props.loading && props.activeTab === "stock" ? <ArticleStockTab article={props.article} form={props.form}
-          errors={props.fieldErrors} resources={props.resources} disabled={readOnly || !props.permissions.canManageStock}
-          onChange={props.onChange} onChanged={props.onResourcesChanged} /> : null}
-        {!props.loading && props.activeTab === "purchaseDocuments" ? <ArticlePurchaseDocumentsTab
-          article={props.article} resources={props.resources} disabled={readOnly || !props.permissions.canManageStock}
-          onChanged={props.onResourcesChanged} /> : null}
-        {!props.loading && props.activeTab === "subject" ? <section className="article-editor-tab article-subject-seam"
-          data-testid="article-subject-tab" aria-label={t("accessories.editor.tabs.subject", {
-            type: t(`accessories.articleType.${props.form.articleType}`)
-          })}>
-          <p className="article-editor-hint">{t("accessories.editor.subjectTask12")}</p>
-        </section> : null}
-        {!props.loading && props.activeTab === "usageHistory" && props.hasUsageHistory && props.article
-          ? <ArticleUsageHistoryTab article={props.article} resources={props.resources} permissions={props.permissions}
-            disabled={props.mode === "view" && !plannerReservationMode} onChanged={props.onResourcesChanged} /> : null}
+        {!props.loading ? <>
+          <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
+            <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
+              disabled={readOnly} onChange={props.onChange} />
+          </div>
+          <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
+            <ArticleStockTab article={props.article} form={props.form} errors={props.fieldErrors}
+              resources={props.resources} disabled={readOnly || !props.permissions.canManageStock}
+              canReserve={!props.saving && !confirmationPending && props.permissions.canReserve &&
+                (props.mode !== "view" || plannerReservationMode)}
+              canInstall={!props.saving && !confirmationPending && props.permissions.canInstall && props.mode !== "view"}
+              onChange={props.onChange} onChanged={props.onResourcesChanged}
+              onDirtyChange={props.onSubdraftDirty} />
+          </div>
+          <div hidden={props.activeTab !== "purchaseDocuments"} aria-hidden={props.activeTab !== "purchaseDocuments"}>
+            <ArticlePurchaseDocumentsTab article={props.article} resources={props.resources}
+              disabled={readOnly || !props.permissions.canManageStock} onChanged={props.onResourcesChanged}
+              onDirtyChange={(dirty) => props.onSubdraftDirty("purchaseDocuments", dirty)} />
+          </div>
+          <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
+            <section className="article-editor-tab article-subject-seam" data-testid="article-subject-tab"
+              aria-label={t("accessories.editor.tabs.subject", {
+                type: t(`accessories.articleType.${props.form.articleType}`)
+              })}>
+              <p className="article-editor-hint">{t("accessories.editor.subjectTask12")}</p>
+            </section>
+          </div>
+          {props.hasUsageHistory && props.article ? <div hidden={props.activeTab !== "usageHistory"}
+            aria-hidden={props.activeTab !== "usageHistory"}>
+            <ArticleUsageHistoryTab article={props.article} resources={props.resources} />
+          </div> : null}
+        </> : null}
       </div>
       <footer className="modal-actions article-editor-actions">
         {props.error ? <p className="form-message" role="alert">{props.error}</p> : null}
@@ -165,53 +186,21 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </button> : null}
       </footer>
     </section>
-    {props.closeConfirmationOpen ? <Confirmation title={t("accessories.editor.dirty.title")}
-      body={t("accessories.editor.dirty.body")} cancelLabel={t("accessories.editor.dirty.keep")}
-      confirmLabel={t("accessories.editor.dirty.discard")} onCancel={props.onCancelClose}
-      onConfirm={props.onConfirmClose} /> : null}
-    {props.duplicateCandidates.length > 0 ? <DuplicateConfirmation candidates={props.duplicateCandidates}
-      onCancel={props.onCancelDuplicate} onConfirm={props.onConfirmDuplicate} /> : null}
-  </div>;
-}
-
-function Confirmation({ title, body, cancelLabel, confirmLabel, onCancel, onConfirm }: {
-  title: string;
-  body: string;
-  cancelLabel: string;
-  confirmLabel: string;
-  onCancel: () => void;
-  onConfirm: () => void;
-}) {
-  return <div className="confirm-layer accessory-confirm-layer" role="dialog" aria-modal="true" aria-label={title}>
-    <section className="panel accessory-confirm-dialog"><h2>{title}</h2><p>{body}</p>
-      <div className="accessory-form-actions">
-        <button type="button" className="secondary-button" onClick={onCancel}>{cancelLabel}</button>
-        <button type="button" className="danger-button" onClick={onConfirm}>{confirmLabel}</button>
-      </div>
-    </section>
-  </div>;
-}
-
-function DuplicateConfirmation({ candidates, onCancel, onConfirm }: {
-  candidates: AccessoryDuplicateCandidate[];
-  onCancel: () => void;
-  onConfirm: () => void | Promise<void>;
-}) {
-  const { t } = useI18n();
-  return <div className="confirm-layer accessory-confirm-layer" role="dialog" aria-modal="true"
-    aria-label={t("accessories.editor.duplicate.title")}>
-    <section className="panel accessory-confirm-dialog">
-      <h2><AlertTriangle size={18} aria-hidden="true" /> {t("accessories.editor.duplicate.title")}</h2>
-      <p>{t("accessories.editor.duplicate.body")}</p>
-      <ul>{candidates.map((candidate) => <li key={candidate.id}>
-        <strong>{candidate.manufacturer} {candidate.articleNumber}</strong> · {candidate.name}
-      </li>)}</ul>
-      <div className="accessory-form-actions">
-        <button type="button" className="secondary-button" onClick={onCancel}>{t("common.cancel")}</button>
-        <button type="button" className="primary-button" onClick={() => void onConfirm()}>
-          {t("accessories.editor.duplicate.confirm")}
-        </button>
-      </div>
-    </section>
+    <AccessoryConfirmDialog action={props.closeConfirmationOpen ? {
+      title: t("accessories.editor.dirty.title"),
+      body: t("accessories.editor.dirty.body"),
+      cancelLabel: t("accessories.editor.dirty.keep"),
+      confirmLabel: t("accessories.editor.dirty.discard"),
+      dangerous: true,
+      run: props.onConfirmClose
+    } : null} onClose={props.onCancelClose} />
+    <AccessoryConfirmDialog action={props.duplicateCandidates.length > 0 ? {
+      title: t("accessories.editor.duplicate.title"),
+      body: <><p>{t("accessories.editor.duplicate.body")}</p><ul>{props.duplicateCandidates.map((candidate) =>
+        <li key={candidate.id}><strong>{candidate.manufacturer} {candidate.articleNumber}</strong> · {candidate.name}</li>
+      )}</ul></>,
+      confirmLabel: t("accessories.editor.duplicate.confirm"),
+      run: props.onConfirmDuplicate
+    } : null} onClose={props.onCancelDuplicate} />
   </div>;
 }

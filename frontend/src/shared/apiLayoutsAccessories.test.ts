@@ -150,6 +150,47 @@ describe("layout and accessory API client", () => {
     ]);
   });
 
+  it("keeps typed stock, asset, reservation, and installation command routes covered", async () => {
+    const asset = { inventoryNumber: "RK-1", serialNumber: "S-1", condition: "ready" as const,
+      lifecycle: "stored" as const, storageLocationId: "location/1", purchaseDate: "2026-08-08",
+      purchasePrice: "12.50", warrantyUntil: "2028-08-08", notes: "Geprüft" };
+    const technical = { placement: "Bahnhof West", digitalAddress: "17", decoderOutput: "A2",
+      connection: "J3", wiringNotes: "blau/gelb" };
+    const reservation = { productId: "product/1", layoutId: "layout/1", locationId: "location/1",
+      quantity: 2, note: "Aufbau", ...technical };
+    const installation = { productId: "product/1", layoutId: "layout/1", sourceLocationId: "location/1",
+      quantity: 2, condition: "ready" as const, notes: "Montiert", ...technical };
+
+    await api.accessoryStock("product/1");
+    await api.adjustAccessoryStock("product/1", { locationId: "location/1", delta: 2 });
+    await api.accessoryAssets("product/1");
+    await api.createAccessoryAsset("product/1", asset);
+    await api.updateAccessoryAsset("asset/1", asset);
+    await api.accessoryReservations("product/1");
+    await api.createAccessoryReservation(reservation);
+    await api.cancelAccessoryReservation("reservation/1");
+    await api.accessoryInstallations("product/1");
+    await api.createAccessoryInstallation(installation);
+    await api.updateAccessoryInstallationCondition("installation/1", { condition: "defective" });
+    await api.removeAccessoryInstallation("installation/1", { disposition: "retired", notes: "Verbraucht" });
+
+    expectRequests([
+      ["GET", "/api/v1/accessory-products/product%2F1/stock"],
+      ["POST", "/api/v1/accessory-products/product%2F1/stock-adjustments", { locationId: "location/1", delta: 2 }],
+      ["GET", "/api/v1/accessory-products/product%2F1/assets"],
+      ["POST", "/api/v1/accessory-products/product%2F1/assets", asset],
+      ["PUT", "/api/v1/accessory-assets/asset%2F1", asset],
+      ["GET", "/api/v1/accessory-reservations?productId=product%2F1"],
+      ["POST", "/api/v1/accessory-reservations", reservation],
+      ["POST", "/api/v1/accessory-reservations/reservation%2F1/cancel"],
+      ["GET", "/api/v1/accessory-installations?productId=product%2F1"],
+      ["POST", "/api/v1/accessory-installations", installation],
+      ["PUT", "/api/v1/accessory-installations/installation%2F1/condition", { condition: "defective" }],
+      ["POST", "/api/v1/accessory-installations/installation%2F1/remove",
+        { disposition: "retired", notes: "Verbraucht" }]
+    ]);
+  });
+
   it("uploads article documents as multipart form data without a content-type override", async () => {
     const file = new File(["invoice"], "Rechnung 1.pdf", { type: "application/pdf" });
 

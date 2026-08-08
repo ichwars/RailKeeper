@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -41,6 +41,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     onConfirmDuplicate: vi.fn(),
     onCancelDuplicate: vi.fn(),
     onResourcesChanged: vi.fn(),
+    onSubdraftDirty: vi.fn(),
     ...overrides
   };
 }
@@ -128,7 +129,7 @@ describe("ArticleEditorDialog", () => {
     render(<ArticleEditorDialog {...props({
       mode: "view",
       article: persistedArticle,
-      activeTab: "usageHistory",
+      activeTab: "stock",
       hasUsageHistory: true,
       permissions: { canEdit: false, canManageStock: false, canReserve: true, canInstall: false }
     })} />);
@@ -136,5 +137,64 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("button", { name: "Reservierung anlegen" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Einbau erfassen" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
+  });
+
+  it("keeps purchase subdraft values mounted across fixed tab switches", async () => {
+    const user = userEvent.setup();
+    const view = render(<ArticleEditorDialog {...props({
+      mode: "edit", article: persistedArticle, activeTab: "purchaseDocuments"
+    })} />);
+    await user.type(screen.getByRole("textbox", { name: "Bezugsquelle" }), "Modellbahnshop");
+
+    view.rerender(<ArticleEditorDialog {...props({ mode: "edit", article: persistedArticle, activeTab: "article" })} />);
+    view.rerender(<ArticleEditorDialog {...props({
+      mode: "edit", article: persistedArticle, activeTab: "purchaseDocuments"
+    })} />);
+
+    expect(screen.getByRole("textbox", { name: "Bezugsquelle" })).toHaveValue("Modellbahnshop");
+  });
+
+  it("offers first reservation and installation actions in Stock before usage history exists", () => {
+    render(<ArticleEditorDialog {...props({
+      mode: "edit", article: persistedArticle, activeTab: "stock", hasUsageHistory: false
+    })} />);
+
+    expect(screen.queryByRole("tab", { name: "Verwendung & Historie" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Reservierung anlegen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Einbau erfassen" })).toBeInTheDocument();
+  });
+
+  it("moves edit focus only after detail loading finishes", () => {
+    const view = render(<ArticleEditorDialog {...props({ mode: "edit", loading: true })} />);
+    expect(screen.queryByRole("textbox", { name: "Hersteller" })).not.toBeInTheDocument();
+
+    view.rerender(<ArticleEditorDialog {...props({ mode: "edit", loading: false })} />);
+
+    expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveFocus();
+  });
+
+  it("makes dirty confirmation own Escape and restores focus to its invoker", async () => {
+    const user = userEvent.setup();
+    const onCancelClose = vi.fn();
+    const onRequestClose = vi.fn();
+    const view = render(<ArticleEditorDialog {...props({ onCancelClose, onRequestClose })} />);
+    const invoker = screen.getByRole("tab", { name: "Artikel" });
+    invoker.focus();
+    view.rerender(<ArticleEditorDialog {...props({ closeConfirmationOpen: true, onCancelClose, onRequestClose })} />);
+    const confirmation = screen.getByRole("dialog", { name: "Ungespeicherte Änderungen" });
+    expect(within(confirmation).getByRole("button", { name: "Weiter bearbeiten" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(onCancelClose).toHaveBeenCalledOnce();
+    expect(onRequestClose).not.toHaveBeenCalled();
+    view.rerender(<ArticleEditorDialog {...props({ onCancelClose, onRequestClose })} />);
+    expect(invoker).toHaveFocus();
+  });
+
+  it("makes the article form inert while duplicate confirmation is pending", () => {
+    render(<ArticleEditorDialog {...props({ duplicateCandidates: [{ id: "dup", manufacturer: "Tillig",
+      articleNumber: "83101", name: "Gleis", articleType: "track", subtype: "straight" }] })} />);
+
+    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
   });
 });

@@ -46,7 +46,8 @@ export function AccessoriesView({
   return (
     <>
       <ArticleOverviewHeader canEdit={canEdit} onCreate={createArticle} />
-      {!canEdit ? <p className="article-read-only-note">{t("accessories.overview.readOnly")}</p> : null}
+      {!canEdit ? <p className="article-read-only-note">{t(roles.includes("Planner")
+        ? "accessories.overview.plannerReadOnly" : "accessories.overview.readOnly")}</p> : null}
       <ArticleMetrics
         metrics={overview.data.metrics}
         activeStatus={overview.filters.status}
@@ -104,6 +105,7 @@ export function AccessoriesView({
         )}
       </section>
       {editor.isOpen ? <ArticleEditorDialog
+        key={editor.sessionKey}
         mode={editor.mode}
         form={editor.form}
         article={editor.article}
@@ -128,6 +130,7 @@ export function AccessoriesView({
         onConfirmDuplicate={editor.confirmDuplicateSave}
         onCancelDuplicate={editor.cancelDuplicateSave}
         onResourcesChanged={editor.refreshResources}
+        onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
     </>
   );

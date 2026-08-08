@@ -736,6 +736,17 @@
     white-space: nowrap;
   }
 
+  .article-editor-tabs {
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+  }
+
+  .article-editor-tabs button {
+    flex: 0 0 auto;
+    min-width: max-content;
+    padding-inline: 10px;
+  }
+
   .modal-body {
     overscroll-behavior: contain;
   }

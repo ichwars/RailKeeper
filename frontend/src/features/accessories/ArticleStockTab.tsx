@@ -3,17 +3,23 @@ import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AccessoryStockPanel } from "./AccessoryStockPanel";
+import { AccessoryReservationsPanel } from "./AccessoryReservationsPanel";
+import { AccessoryInstallationsPanel } from "./AccessoryInstallationsPanel";
 import type { ArticleEditorFieldErrors, ArticleEditorForm } from "./articleEditorModel";
 import type { ArticleEditorResources } from "./useArticleEditorController";
 
-export function ArticleStockTab({ article, form, errors, resources, disabled, onChange, onChanged }: {
+export function ArticleStockTab({ article, form, errors, resources, disabled, canReserve, canInstall, onChange,
+  onChanged, onDirtyChange }: {
   article: AccessoryArticle | null;
   form: ArticleEditorForm;
   errors: ArticleEditorFieldErrors;
   resources: ArticleEditorResources;
   disabled: boolean;
+  canReserve: boolean;
+  canInstall: boolean;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
   onChanged: () => Promise<void>;
+  onDirtyChange: (scope: string, dirty: boolean) => void;
 }) {
   const { t } = useI18n();
   return <section className="article-editor-tab" aria-label={t("accessories.editor.tabs.stock")}>
@@ -32,7 +38,18 @@ export function ArticleStockTab({ article, form, errors, resources, disabled, on
         onValueChange={(value) => onChange({ minimumStock: value })} />
     </div>
     {article ? <AccessoryStockPanel article={article} stock={resources.stock} movements={resources.movements}
-      assets={resources.assets} locations={resources.locations} canEdit={!disabled} onChanged={onChanged} />
+      assets={resources.assets} locations={resources.locations} canEdit={!disabled} onChanged={onChanged}
+      onDirtyChange={(dirty) => onDirtyChange("stockCommands", dirty)} />
       : <p className="article-editor-hint">{t("accessories.editor.saveBeforeStock")}</p>}
+    {article ? <>
+      <AccessoryReservationsPanel article={article} reservations={resources.reservations} assets={resources.assets}
+        locations={resources.locations} vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units}
+        canReserve={canReserve} onChanged={onChanged}
+        onDirtyChange={(dirty) => onDirtyChange("reservation", dirty)} />
+      <AccessoryInstallationsPanel article={article} reservations={resources.reservations}
+        installations={resources.installations} assets={resources.assets} locations={resources.locations}
+        vehicles={resources.vehicles} layouts={resources.layouts} units={resources.units} canInstall={canInstall}
+        onChanged={onChanged} onDirtyChange={(dirty) => onDirtyChange("installation", dirty)} />
+    </> : null}
   </section>;
 }

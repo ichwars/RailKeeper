@@ -23,6 +23,16 @@ export function translate(language: Language, key: string, values: Record<string
   return Object.entries(values).reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), template);
 }
 
+const locale = (language: Language) => language === "de" ? "de-DE" : "en-GB";
+
+export function formatDate(value: string | Date, language: Language): string {
+  return new Intl.DateTimeFormat(locale(language), { dateStyle: "short" }).format(new Date(value));
+}
+
+export function formatDateTime(value: string | Date, language: Language): string {
+  return new Intl.DateTimeFormat(locale(language), { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
 export function useI18n() {
   const [language, setCurrentLanguage] = useState<Language>(() => readLanguage());
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Wrench } from "lucide-react";
 
@@ -10,13 +10,15 @@ import {
   type AccessoryArticle,
   type AccessoryRemovalDisposition,
   type AccessoryReservation,
+  type AccessoryTechnicalPlacement,
   type Layout,
   type LayoutUnit,
   type StorageLocation,
   type Vehicle
 } from "../../shared/api";
-import { useI18n } from "../../shared/i18n";
+import { formatDate, useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
 import {
   AccessoryTargetFields,
@@ -26,11 +28,12 @@ import {
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
 import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
+import { AccessoryTechnicalFields, emptyTechnicalPlacement } from "./AccessoryTechnicalFields";
 
 const conditions: AccessoryCondition[] = ["ready", "maintenance_due", "defective", "unknown"];
 
 export function AccessoryInstallationsPanel({ article, reservations, installations, assets, locations, vehicles,
-  layouts, units, canInstall, onChanged }: {
+  layouts, units, canInstall, onChanged, onDirtyChange }: {
   article: AccessoryArticle;
   reservations: AccessoryReservation[];
   installations: AccessoryInstallation[];
@@ -41,6 +44,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   units: LayoutUnit[];
   canInstall: boolean;
   onChanged: () => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [reservationID, setReservationID] = useState("");
   const [locationID, setLocationID] = useState("");
@@ -50,12 +54,13 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const [conditionDrafts, setConditionDrafts] = useState<Record<string, AccessoryCondition>>({});
   const [notes, setNotes] = useState("");
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
+  const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [removalID, setRemovalID] = useState("");
   const [disposition, setDisposition] = useState<AccessoryRemovalDisposition>("stored");
   const [removalLocationID, setRemovalLocationID] = useState("");
   const [removalNotes, setRemovalNotes] = useState("");
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const activeReservations = reservations.filter((reservation) => reservation.status === "active");
   const activeLocations = activeStorageLocations(locations);
   const selectedReservation = activeReservations.find((reservation) => reservation.id === reservationID);
@@ -75,6 +80,12 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const canSubmit = Boolean(targetInput && effectiveLocationID && (!isIndividual || effectiveAssetID));
   const effectiveRemovalLocationID = activeLocations.some((location) => location.id === removalLocationID)
     ? removalLocationID : activeLocations[0]?.id || "";
+  const dirty = Boolean(reservationID || locationID || assetID || notes || target.id || removalID ||
+    removalLocationID || removalNotes || Object.keys(conditionDrafts).length) || quantity !== "1" ||
+    condition !== "ready" || disposition !== "stored";
+  const formDirty = dirty || Object.values(technical).some(Boolean);
+
+  useEffect(() => onDirtyChange(formDirty), [formDirty, onDirtyChange]);
 
   const submitInstallation = (event: FormEvent) => {
     event.preventDefault();
@@ -90,6 +101,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
       run: async () => {
         await api.createAccessoryInstallation({
           ...allocationTarget,
+          ...technical,
           reservationId: selectedReservation?.id,
           productId: article.id,
           assetId: isIndividual ? effectiveAssetID : undefined,
@@ -98,8 +110,10 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           condition,
           notes: notes || undefined
         });
-        setReservationID(""); setNotes("");
         await onChanged();
+        setReservationID(""); setLocationID(""); setAssetID(""); setQuantity("1");
+        setCondition("ready"); setNotes(""); setTarget({ kind: "layout", id: "" });
+        setTechnical(emptyTechnicalPlacement());
       }
     });
   };
@@ -112,6 +126,9 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
       run: async () => {
         await api.updateAccessoryInstallationCondition(installation.id, { condition: nextCondition });
         await onChanged();
+        setConditionDrafts((current) => {
+          const next = { ...current }; delete next[installation.id]; return next;
+        });
       }
     });
   };
@@ -127,8 +144,8 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           ? { disposition, storageLocationId: effectiveRemovalLocationID, notes: removalNotes || undefined }
           : { disposition, notes: removalNotes || undefined };
         await api.removeAccessoryInstallation(removalID, input);
-        setRemovalID(""); setRemovalNotes(""); setDisposition("stored");
         await onChanged();
+        setRemovalID(""); setRemovalLocationID(""); setRemovalNotes(""); setDisposition("stored");
       }
     });
   };
@@ -153,7 +170,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
                 [installation.id]: event.target.value as AccessoryCondition }))}>
               {conditions.map((item) => <option key={item} value={item}>{t(`accessories.condition.${item}`)}</option>)}
             </AppSelect>}</td>
-          <td>{new Date(installation.installedAt).toLocaleDateString()}
+          <td>{formatDate(installation.installedAt, language)}
             {installation.removedAt ? ` · ${t("accessories.installations.removed")}` : ""}</td>
           <td>{canInstall && !installation.removedAt ? <div className="accessory-row-actions">
             <button type="button" className="text-button" onClick={() => updateCondition(installation)}>
@@ -175,6 +192,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               selectedReservation, vehicles, layouts, units)}</p>
               : <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
                 onChange={setTarget} />}
+            {!selectedReservation ? <AccessoryTechnicalFields value={technical} onChange={setTechnical} /> : null}
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
               disabled={Boolean(selectedReservation)} onChange={(event) => setLocationID(event.target.value)}>
               {sourceLocations.map((location) => <option key={location.id} value={location.id}>
@@ -184,9 +202,8 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               disabled={Boolean(selectedReservation?.assetId)} onChange={(event) => setAssetID(event.target.value)}>
               {sourceAssets.map((asset) => <option key={asset.id} value={asset.id}>
                 {asset.inventoryNumber || asset.serialNumber || asset.id}</option>)}
-            </AppSelect></label> : <label>{t("accessories.field.quantity")}<input type="number" min="1"
-              required disabled={Boolean(selectedReservation)} value={effectiveQuantity}
-              onChange={(event) => setQuantity(event.target.value)} /></label>}
+            </AppSelect></label> : <AppNumberInput label={t("accessories.field.quantity")} min="1" required
+              disabled={Boolean(selectedReservation)} value={String(effectiveQuantity)} onValueChange={setQuantity} />}
             <label>{t("accessories.field.condition")}<AppSelect value={condition}
               onChange={(event) => setCondition(event.target.value as AccessoryCondition)}>
               {conditions.map((item) => <option key={item} value={item}>{t(`accessories.condition.${item}`)}</option>)}

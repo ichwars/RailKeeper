@@ -30,6 +30,7 @@ export type ArticleEditorForm = {
   keywords: string;
   compatibilityNotes: string;
   internalNotes: string;
+  archived: boolean;
   attributes: AccessoryArticle["attributes"];
 };
 
@@ -58,6 +59,7 @@ export function emptyArticleEditorForm(): ArticleEditorForm {
     keywords: "",
     compatibilityNotes: "",
     internalNotes: "",
+    archived: false,
     attributes: []
   };
 }
@@ -84,6 +86,7 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
     keywords: article.keywords.join(", "),
     compatibilityNotes: article.compatibilityNotes || "",
     internalNotes: article.internalNotes || "",
+    archived: article.archived,
     attributes: article.attributes
   };
 }
@@ -116,6 +119,7 @@ export function articleEditorWriteInput(form: ArticleEditorForm): AccessoryArtic
     keywords: splitValues(form.keywords),
     compatibilityNotes: optional(form.compatibilityNotes),
     internalNotes: optional(form.internalNotes),
+    archived: form.archived,
     attributes: form.attributes
   };
 }

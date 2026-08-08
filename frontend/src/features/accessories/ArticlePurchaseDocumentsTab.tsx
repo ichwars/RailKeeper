@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Download, FileText, ShoppingCart, Trash2 } from "lucide-react";
 
 import {
@@ -7,7 +7,7 @@ import {
   type AccessoryDocumentCategory,
   type AccessoryPurchaseInput
 } from "../../shared/api";
-import { useI18n } from "../../shared/i18n";
+import { formatDate, useI18n } from "../../shared/i18n";
 import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 import { AppDateInput } from "../../shared/ui/AppDateInput";
 import { AppFilePicker } from "../../shared/ui/AppFilePicker";
@@ -15,20 +15,28 @@ import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import type { ArticleEditorResources } from "./useArticleEditorController";
+import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = () => {
+  const value = new Date();
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 const emptyPurchase = (): AccessoryPurchaseInput => ({ purchasedAt: today(), quantity: 1, currency: "EUR" });
 const documentCategories: AccessoryDocumentCategory[] = [
   "invoice", "delivery_note", "manual", "data_sheet", "floor_plan", "image", "other"
 ];
 
-export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onChanged }: {
+export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onChanged, onDirtyChange }: {
   article: AccessoryArticle | null;
   resources: ArticleEditorResources;
   disabled: boolean;
   onChanged: () => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const [purchase, setPurchase] = useState<AccessoryPurchaseInput>(emptyPurchase);
   const [purchaseQuantity, setPurchaseQuantity] = useState("1");
   const [file, setFile] = useState<File | null>(null);
@@ -36,9 +44,14 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const locations = activeStorageLocations(resources.locations);
   const locationId = locations.some((location) => location.id === purchase.storageLocationId)
     ? purchase.storageLocationId || "" : locations[0]?.id || "";
+  const purchaseDirty = purchaseQuantity !== "1" || JSON.stringify(purchase) !== JSON.stringify(emptyPurchase());
+  const documentDirty = Boolean(file || description || category !== "other");
+
+  useEffect(() => onDirtyChange(purchaseDirty || documentDirty), [documentDirty, onDirtyChange, purchaseDirty]);
 
   const submitPurchase = async (event: FormEvent) => {
     event.preventDefault();
@@ -51,9 +64,9 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
         quantity: Number(purchaseQuantity),
         storageLocationId: purchase.bookToStock ? locationId : undefined
       });
+      await onChanged();
       setPurchase(emptyPurchase());
       setPurchaseQuantity("1");
-      await onChanged();
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {
@@ -68,9 +81,10 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     setError("");
     try {
       await api.uploadAccessoryDocument(article.id, { file, category, description: description.trim() || undefined });
-      setFile(null);
-      setDescription("");
       await onChanged();
+      setFile(null);
+      setCategory("other");
+      setDescription("");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {
@@ -78,18 +92,18 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     }
   };
 
-  const removeDocument = async (documentId: string) => {
+  const removeDocument = (documentId: string, name: string) => {
     if (!article) return;
-    setBusy(true);
-    setError("");
-    try {
-      await api.deleteAccessoryDocument(article.id, documentId);
-      await onChanged();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
-    } finally {
-      setBusy(false);
-    }
+    setAction({
+      title: t("accessories.editor.documents.deleteTitle"),
+      body: t("accessories.editor.documents.deleteBody", { name }),
+      confirmLabel: t("common.delete"),
+      dangerous: true,
+      run: async () => {
+        await api.deleteAccessoryDocument(article.id, documentId);
+        await onChanged();
+      }
+    });
   };
 
   if (!article) return <section className="article-editor-tab">
@@ -106,7 +120,7 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
           <th>{t("accessories.field.purchaseDate")}</th><th>{t("accessories.editor.purchase.supplier")}</th>
           <th>{t("accessories.field.quantity")}</th><th>{t("accessories.editor.purchase.price")}</th>
         </tr></thead><tbody>{resources.purchases.map((item) => <tr key={item.id}>
-          <td>{new Date(item.purchasedAt).toLocaleDateString()}</td><td>{item.supplier || "-"}</td>
+          <td>{formatDate(item.purchasedAt, language)}</td><td>{item.supplier || "-"}</td>
           <td>{item.quantity}</td><td>{item.unitPrice ? `${item.unitPrice} ${item.currency || ""}` : "-"}</td>
         </tr>)}</tbody></table></div>
         {!disabled ? <form className="accessory-form" onSubmit={submitPurchase}>
@@ -166,7 +180,8 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
             {!disabled ? <button type="button" className="icon-button" disabled={busy}
               aria-label={t("accessories.editor.documents.deleteNamed", { name: document.originalName })}
               title={t("accessories.editor.documents.deleteNamed", { name: document.originalName })}
-              onClick={() => void removeDocument(document.id)}><Trash2 size={16} aria-hidden="true" /></button> : null}
+              onClick={() => removeDocument(document.id, document.originalName)}>
+              <Trash2 size={16} aria-hidden="true" /></button> : null}
           </div>
         </article>)}</div>
         {!disabled ? <form className="accessory-form" onSubmit={submitDocument}>
@@ -189,5 +204,6 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
         </form> : null}
       </div>
     </section>
+    <AccessoryConfirmDialog action={action} onClose={() => setAction(null)} />
   </section>;
 }

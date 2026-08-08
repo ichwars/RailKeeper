@@ -195,7 +195,7 @@ describe("AccessoriesView", () => {
     await screen.findByText("Gerades Modellgleis");
     expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Schreibgeschützter Zugriff: Sie können Artikel ansehen, aber nicht ändern.")).toBeInTheDocument();
+    expect(screen.getByText("Planungszugriff: Sie können Artikel ansehen sowie Reservierungen anlegen und stornieren.")).toBeInTheDocument();
   });
 
   it("wires create, view, edit, and article-name actions to the shared Task 11 controller", async () => {

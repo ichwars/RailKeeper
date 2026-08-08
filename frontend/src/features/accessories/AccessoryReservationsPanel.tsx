@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarClock } from "lucide-react";
 
@@ -7,6 +7,7 @@ import {
   type AccessoryAsset,
   type AccessoryArticle,
   type AccessoryReservation,
+  type AccessoryTechnicalPlacement,
   type Layout,
   type LayoutUnit,
   type StorageLocation,
@@ -14,6 +15,7 @@ import {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
 import {
   AccessoryTargetFields,
@@ -23,9 +25,10 @@ import {
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
 import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
+import { AccessoryTechnicalFields, emptyTechnicalPlacement } from "./AccessoryTechnicalFields";
 
 export function AccessoryReservationsPanel({ article, reservations, assets, locations, vehicles, layouts, units,
-  canReserve, onChanged }: {
+  canReserve, onChanged, onDirtyChange }: {
   article: AccessoryArticle;
   reservations: AccessoryReservation[];
   assets: AccessoryAsset[];
@@ -35,12 +38,14 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   units: LayoutUnit[];
   canReserve: boolean;
   onChanged: () => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [locationID, setLocationID] = useState("");
   const [assetID, setAssetID] = useState("");
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
+  const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const { t } = useI18n();
   const activeLocations = activeStorageLocations(locations);
@@ -53,6 +58,10 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
   const targetInput = accessoryTargetInput(resolvedTarget);
   const isIndividual = article.inventoryStrategy === "individual";
   const canSubmit = Boolean(effectiveLocationID && targetInput && (!isIndividual || effectiveAssetID));
+  const dirty = Boolean(locationID || assetID || note || target.id || Object.values(technical).some(Boolean)) ||
+    quantity !== "1";
+
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -63,14 +72,17 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
       run: async () => {
         await api.createAccessoryReservation({
           ...targetInput,
+          ...technical,
           productId: article.id,
           assetId: isIndividual ? effectiveAssetID : undefined,
           locationId: effectiveLocationID,
           quantity: isIndividual ? 1 : Number(quantity),
           note: note || undefined
         });
-        setNote("");
         await onChanged();
+        setLocationID(""); setAssetID(""); setQuantity("1"); setNote("");
+        setTarget({ kind: "layout", id: "" });
+        setTechnical(emptyTechnicalPlacement());
       }
     });
   };
@@ -100,6 +112,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           <h3>{t("accessories.reservations.create")}</h3>
           <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
             onChange={setTarget} />
+          <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
           <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
             onChange={(event) => setLocationID(event.target.value)}>
             {activeLocations.map((location) => <option key={location.id} value={location.id}>
@@ -109,8 +122,8 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
             onChange={(event) => setAssetID(event.target.value)}>
             {availableAssets.map((asset) => <option key={asset.id} value={asset.id}>
               {asset.inventoryNumber || asset.serialNumber || asset.id}</option>)}
-          </AppSelect></label> : <label>{t("accessories.field.quantity")}<input type="number" min="1" required
-            value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>}
+          </AppSelect></label> : <AppNumberInput label={t("accessories.field.quantity")} min="1" required
+            value={quantity} onValueChange={setQuantity} />}
           <label>{t("accessories.field.notes")}<textarea value={note}
             onChange={(event) => setNote(event.target.value)} /></label>
           <button type="submit" className="primary-button" disabled={!canSubmit}>
