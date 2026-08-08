@@ -3,7 +3,6 @@ import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
 
 export type SettingsTab =
   | "general"
-  | "articleManagement"
   | "data"
   | "digital"
   | "importExport"
@@ -13,17 +12,17 @@ export type MasterDataType = {
   type: string;
 };
 
-export const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
-  { id: "general", labelKey: "settings.tabs.general" },
-  { id: "articleManagement", labelKey: "settings.tabs.articleManagement" },
-  { id: "data", labelKey: "settings.tabs.data" },
-  { id: "digital", labelKey: "settings.tabs.digital" },
-  { id: "importExport", labelKey: "settings.tabs.importExport" },
-  { id: "appearance", labelKey: "settings.tabs.appearance" },
-  { id: "auth", labelKey: "settings.tabs.auth" }
-];
+export const settingsTabs = [
+  { id: "general", labelKey: "settings.tabs.general", descriptionKey: "settings.general.subtitle" },
+  { id: "data", labelKey: "settings.tabs.data", descriptionKey: "settings.data.pageSubtitle" },
+  { id: "digital", labelKey: "settings.tabs.digital", descriptionKey: "settings.digital.subtitle" },
+  { id: "importExport", labelKey: "settings.tabs.importExport", descriptionKey: "importExport.subtitle" },
+  { id: "appearance", labelKey: "settings.tabs.appearance", descriptionKey: "settings.appearance.subtitle" },
+  { id: "auth", labelKey: "settings.tabs.auth", descriptionKey: "settings.auth.subtitle" }
+] satisfies Array<{ id: SettingsTab; labelKey: string; descriptionKey: string }>;
 
 export const masterDataTypes: MasterDataType[] = [
+  { type: "manufacturer" },
   { type: "vehicle_category" },
   { type: "vehicle_gattung" },
   { type: "epoch" },

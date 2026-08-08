@@ -49,6 +49,7 @@ import { applyStoredThemeOptions, applyThemePreference, readThemePreference, the
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import { readSettingsLocation, settingsLocationSearch } from "./settingsDataModel";
 
 import {
   applyVisibleMetadata,
@@ -142,19 +143,26 @@ const compareMasterDataValues = (left: string | number | undefined, right: strin
 
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
-  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    return settingsTabs.some((item) => item.id === tab) ? tab as SettingsTab : "general";
-  });
+  const initialSettingsLocation = useMemo(() => readSettingsLocation(window.location.search), []);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(initialSettingsLocation.tab);
+  useEffect(() => {
+    const normalizedSearch = settingsLocationSearch(initialSettingsLocation);
+    if (normalizedSearch !== window.location.search) {
+      window.history.replaceState(null, "", `${window.location.pathname}${normalizedSearch}`);
+    }
+  }, [initialSettingsLocation]);
   const selectSettingsTab = (tab: SettingsTab) => {
-    const query = new URLSearchParams(window.location.search);
-    if (tab === "general") query.delete("tab");
-    else query.set("tab", tab);
-    const search = query.toString();
-    window.history.replaceState(null, "", `${window.location.pathname}${search ? `?${search}` : ""}`);
+    const search = settingsLocationSearch({
+      tab,
+      group: "general",
+      type: "manufacturer"
+    });
+    window.history.replaceState(null, "", `${window.location.pathname}${search}`);
     setActiveSettingsTab(tab);
   };
-  const [activeType, setActiveType] = useState(masterDataTypes[0].type);
+  const [activeType, setActiveType] = useState(
+    initialSettingsLocation.group === "general" ? initialSettingsLocation.type : masterDataTypes[0].type
+  );
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
   const [loadingTypes, setLoadingTypes] = useState<Record<string, boolean>>({});
