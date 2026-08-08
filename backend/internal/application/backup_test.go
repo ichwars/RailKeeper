@@ -201,6 +201,109 @@ func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T
 	}
 }
 
+func TestBackupVersionTwoRestoreBackfillsIndividualInventoryStrategy(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	tables := backupDocumentTablesThroughVersion(2)
+	tables["storage_locations"] = []map[string]any{{
+		"id": "legacy-location", "name": "Legacy shelf", "description": "", "archived": 0,
+		"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+	}}
+	tables["accessory_products"] = []map[string]any{
+		{
+			"id": "legacy-quantity", "manufacturer": "Tillig", "article_number": "83101",
+			"name": "Legacy track", "category": "track", "tracking_mode": "quantity", "description": "",
+			"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+		},
+		{
+			"id": "legacy-individual", "manufacturer": "ESU", "article_number": "59610",
+			"name": "Legacy decoder", "category": "decoder", "tracking_mode": "individual", "description": "",
+			"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+		},
+		{
+			"id": "interim-hybrid", "manufacturer": "ESU", "article_number": "51830",
+			"name": "Interim hybrid", "category": "decoder", "tracking_mode": "quantity", "description": "",
+			"article_type": "decoder", "subtype": "decoder:accessory", "package_quantity": 1,
+			"stock_unit": "piece", "inventory_strategy": "quantity_later_individual",
+			"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+		},
+	}
+	tables["accessory_stock"] = []map[string]any{{
+		"product_id": "legacy-quantity", "location_id": "legacy-location", "quantity": 4,
+		"updated_at": "2026-08-01T00:00:00Z",
+	}}
+	tables["accessory_assets"] = []map[string]any{{
+		"id": "legacy-asset", "product_id": "legacy-individual", "inventory_number": "LEGACY-1",
+		"serial_number": "SER-1", "condition_state": "ready", "lifecycle_state": "stored",
+		"storage_location_id": "legacy-location", "purchase_date": "", "purchase_price": "",
+		"warranty_until": "", "notes": "", "created_at": "2026-08-01T00:00:00Z",
+		"updated_at": "2026-08-01T00:00:00Z",
+	}}
+
+	service := application.NewBackupService(db, dataDir)
+	if _, err := service.Import(ctx, &application.BackupDocument{
+		Format: "railkeeper-backup", Version: 2, Tables: tables,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	repository := infrastructure.NewAccessoryRepository(db)
+	accessories := application.NewAccessoryService(repository)
+	allocations := application.NewAccessoryAllocationService(repository)
+	individual, err := accessories.GetProduct(ctx, "legacy-individual")
+	if err != nil {
+		t.Fatal(err)
+	}
+	quantity, err := accessories.GetProduct(ctx, "legacy-quantity")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if individual.InventoryStrategy != domain.AccessoryInventoryIndividual ||
+		quantity.InventoryStrategy != domain.AccessoryInventoryQuantity {
+		t.Fatalf("legacy strategies not backfilled: individual=%q quantity=%q",
+			individual.InventoryStrategy, quantity.InventoryStrategy)
+	}
+	interim, err := accessories.GetProduct(ctx, "interim-hybrid")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if interim.InventoryStrategy != domain.AccessoryInventoryQuantityLaterIndividual ||
+		interim.ArticleType != domain.AccessoryArticleDecoder || interim.Subtype != "decoder:accessory" {
+		t.Fatalf("restore overwrote explicit interim v2 article fields: %#v", interim)
+	}
+	assets, err := accessories.ListAssets(ctx, individual.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 1 || assets[0].ID != "legacy-asset" {
+		t.Fatalf("legacy assets not accessible after restore: %#v", assets)
+	}
+	summary, err := allocations.GetAllocationSummary(ctx, individual.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Owned != 1 || summary.Stored != 1 || summary.Available != 1 {
+		t.Fatalf("unexpected restored individual totals: %#v", summary)
+	}
+	articles, err := accessories.ListArticles(ctx, application.AccessoryArticleListQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundIndividual := false
+	for _, item := range articles.Items {
+		if item.ID == individual.ID {
+			foundIndividual = true
+			if item.Owned != 1 || item.Available != 1 {
+				t.Fatalf("unexpected restored individual article totals: %#v", item)
+			}
+		}
+	}
+	if !foundIndividual {
+		t.Fatalf("restored individual article missing from list: %#v", articles.Items)
+	}
+}
+
 func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -917,6 +1020,150 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 				t.Fatalf("expected malformed attribute rejection, got %v", err)
 			}
 			assertBackupSentinels(t, ctx, vehicleService, accessories, sentinel.ID, product.ID)
+		})
+	}
+}
+
+func TestBackupPreflightRejectsInvalidControlledCustomAttributesBeforeMutation(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	active := true
+	masterData := application.NewMasterDataService(db)
+	if _, err := masterData.Create(ctx, "accessory_custom_field", application.MasterDataInput{
+		Key: "customLength", Label: "Custom length", Active: &active,
+		Metadata: map[string]any{"kind": "number", "unit": "mm", "min": 10.0, "max": 20.0},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	repository := infrastructure.NewAccessoryRepository(db)
+	accessories := application.NewAccessoryService(repository)
+	value, unit := 12.5, "mm"
+	product, err := accessories.CreateProduct(ctx, application.CreateAccessoryProductInput{
+		Manufacturer: "Test", Name: "Sentinel article", Category: "other",
+		ArticleType: domain.AccessoryArticleOther, Subtype: "other:other", PackageQuantity: 1,
+		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		Attributes: []domain.AccessoryAttributeValue{{
+			Key: "customLength", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
+		}},
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	vehicles := application.NewVehicleService(db)
+	vehicle, err := vehicles.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko", Name: "Sentinel locomotive", Gauge: "H0",
+		Category: "Lokomotive", Gattung: "Diesellok",
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewBackupService(db, dataDir)
+
+	customDefinition := func(t *testing.T, doc *application.BackupDocument) map[string]any {
+		t.Helper()
+		for _, row := range doc.Tables["master_data_entries"] {
+			if row["type"] == "accessory_custom_field" && row["key"] == "customLength" {
+				return row
+			}
+		}
+		t.Fatal("custom definition missing from backup")
+		return nil
+	}
+	customAttribute := func(t *testing.T, doc *application.BackupDocument) map[string]any {
+		t.Helper()
+		for _, row := range doc.Tables["accessory_product_attributes"] {
+			if row["product_id"] == product.ID && row["attribute_key"] == "customLength" {
+				return row
+			}
+		}
+		t.Fatal("custom attribute missing from backup")
+		return nil
+	}
+	cloneRow := func(row map[string]any) map[string]any {
+		clone := make(map[string]any, len(row))
+		for key, value := range row {
+			clone[key] = value
+		}
+		return clone
+	}
+	setSelectAttribute := func(row map[string]any, kind, encoded string) {
+		row["value_type"] = kind
+		row["text_value"] = nil
+		row["number_value"] = nil
+		row["unit"] = nil
+		row["boolean_value"] = nil
+		row["date_value"] = nil
+		row["single_select_value"] = nil
+		row["multi_select_value"] = nil
+		if kind == "single_select" {
+			row["single_select_value"] = encoded
+		} else {
+			row["multi_select_value"] = encoded
+		}
+	}
+
+	for _, test := range []struct {
+		name   string
+		mutate func(*testing.T, *application.BackupDocument)
+	}{
+		{name: "malformed definition", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customDefinition(t, doc)["metadata_json"] = `{"kind":"json"}`
+		}},
+		{name: "undefined key", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customAttribute(t, doc)["attribute_key"] = "undefined"
+		}},
+		{name: "inactive definition", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customDefinition(t, doc)["active"] = int64(0)
+		}},
+		{name: "kind mismatch", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			row := customAttribute(t, doc)
+			row["value_type"], row["text_value"], row["number_value"], row["unit"] = "text", "12.5", nil, nil
+		}},
+		{name: "unit mismatch", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customAttribute(t, doc)["unit"] = "cm"
+		}},
+		{name: "bounds violation", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customAttribute(t, doc)["number_value"] = 25.0
+		}},
+		{name: "unsupported option", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customDefinition(t, doc)["metadata_json"] = `{"kind":"single_select","options":["red","green"]}`
+			setSelectAttribute(customAttribute(t, doc), "single_select", "blue")
+		}},
+		{name: "duplicate attribute key", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			duplicate := cloneRow(customAttribute(t, doc))
+			duplicate["id"] = "duplicate-attribute"
+			doc.Tables["accessory_product_attributes"] = append(
+				doc.Tables["accessory_product_attributes"], duplicate,
+			)
+		}},
+		{name: "duplicate option value", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			customDefinition(t, doc)["metadata_json"] = `{"kind":"multi_select","options":["red","green"]}`
+			setSelectAttribute(customAttribute(t, doc), "multi_select", `["red","red"]`)
+		}},
+		{name: "duplicate definition", mutate: func(t *testing.T, doc *application.BackupDocument) {
+			duplicate := cloneRow(customDefinition(t, doc))
+			duplicate["id"] = "duplicate-definition"
+			doc.Tables["master_data_entries"] = append(doc.Tables["master_data_entries"], duplicate)
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			doc, err := service.Export(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			test.mutate(t, doc)
+			validation, err := service.Validate(ctx, doc)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if validation.Compatible || !containsWarning(validation.Errors, "accessory_product_attributes") {
+				t.Fatalf("expected controlled attribute preflight error, got %#v", validation)
+			}
+			if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
+				t.Fatalf("expected controlled attribute restore rejection, got %v", err)
+			}
+			assertBackupSentinels(t, ctx, vehicles, accessories, vehicle.ID, product.ID)
 		})
 	}
 }

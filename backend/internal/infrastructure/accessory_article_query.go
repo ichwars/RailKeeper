@@ -29,6 +29,7 @@ WITH stock_stats AS (
 ), installation_stats AS (
   SELECT product_id,
          SUM(CASE WHEN removed_at IS NULL THEN quantity ELSE 0 END) AS installed,
+         SUM(CASE WHEN asset_id IS NULL AND removed_at IS NULL THEN quantity ELSE 0 END) AS quantity_installed,
          MAX(CASE WHEN removed_at IS NULL AND condition_state='maintenance_due' THEN 1 ELSE 0 END) AS maintenance_due,
          MAX(CASE WHEN removed_at IS NULL AND condition_state='defective' THEN 1 ELSE 0 END) AS defective,
          1 AS has_history
@@ -53,14 +54,22 @@ WITH stock_stats AS (
          product.article_type, product.subtype, product.gauges_json, product.inventory_strategy,
          product.archived, product.updated_at,
          CASE WHEN product.inventory_strategy='individual'
-              THEN COALESCE(asset_stats.stored, 0) ELSE COALESCE(stock_stats.stored, 0) END AS stored,
+              THEN COALESCE(asset_stats.stored, 0)
+              WHEN product.inventory_strategy='quantity_later_individual'
+              THEN COALESCE(stock_stats.stored, 0) + COALESCE(asset_stats.stored, 0)
+              ELSE COALESCE(stock_stats.stored, 0) END AS stored,
          COALESCE(reservation_stats.reserved, 0) AS reserved,
          COALESCE(installation_stats.installed, 0) AS installed,
          CASE WHEN product.inventory_strategy='individual'
               THEN COALESCE(asset_stats.owned, 0)
+              WHEN product.inventory_strategy='quantity_later_individual'
+              THEN COALESCE(stock_stats.stored, 0) + COALESCE(asset_stats.owned, 0)
+                   + COALESCE(installation_stats.quantity_installed, 0)
               ELSE COALESCE(stock_stats.stored, 0) + COALESCE(installation_stats.installed, 0) END AS owned,
-         MAX(CASE WHEN product.inventory_strategy='individual'
-                  THEN COALESCE(asset_stats.stored, 0) ELSE COALESCE(stock_stats.stored, 0) END
+         MAX(CASE WHEN product.inventory_strategy='individual' THEN COALESCE(asset_stats.stored, 0)
+                  WHEN product.inventory_strategy='quantity_later_individual'
+                  THEN COALESCE(stock_stats.stored, 0) + COALESCE(asset_stats.stored, 0)
+                  ELSE COALESCE(stock_stats.stored, 0) END
              - COALESCE(reservation_stats.reserved, 0), 0) AS available,
          COALESCE(location_stats.location_names, '[]') AS location_names,
          COALESCE(location_stats.storage_sort, '') AS storage_sort,

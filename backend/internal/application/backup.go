@@ -264,6 +264,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
 		return nil, err
 	}
+	if err := restoreLegacyAccessoryProductDefaults(ctx, tx, doc); err != nil {
+		return nil, err
+	}
 
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
@@ -278,6 +281,43 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
+}
+
+func restoreLegacyAccessoryProductDefaults(
+	ctx context.Context,
+	tx *sql.Tx,
+	doc *BackupDocument,
+) error {
+	if doc.Version >= 3 {
+		return nil
+	}
+	for _, row := range doc.Tables["accessory_products"] {
+		productID, valid := backupNonEmptyString(row["id"])
+		if !valid {
+			continue
+		}
+		if _, explicit := row["article_type"]; !explicit {
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE accessory_products SET article_type='other' WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory article type: %w", err)
+			}
+		}
+		if _, explicit := row["subtype"]; !explicit {
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE accessory_products SET subtype=category WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory subtype: %w", err)
+			}
+		}
+		if _, explicit := row["inventory_strategy"]; !explicit {
+			if _, err := tx.ExecContext(ctx, `
+UPDATE accessory_products
+SET inventory_strategy=CASE tracking_mode WHEN 'individual' THEN 'individual' ELSE 'quantity' END
+WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory inventory strategy: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*BackupValidationResult, error) {
@@ -353,7 +393,12 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		}
 		if table == "accessory_product_attributes" {
 			result.Errors = append(result.Errors,
-				validateBackupAccessoryProductAttributes(rows, doc.Tables["accessory_products"])...)
+				validateBackupAccessoryProductAttributes(
+					rows,
+					doc.Tables["accessory_products"],
+					doc.Tables["master_data_entries"],
+					doc.Version,
+				)...)
 		}
 		if table == "master_data_entries" && doc.Version >= 3 {
 			result.Errors = append(result.Errors, validateBackupProtectedArticleTypes(rows)...)
@@ -394,6 +439,8 @@ func backupTableOptional(version int, table string) bool {
 func validateBackupAccessoryProductAttributes(
 	attributeRows []map[string]any,
 	productRows []map[string]any,
+	masterDataRows []map[string]any,
+	backupVersion int,
 ) []string {
 	productTypes := make(map[string]domain.AccessoryArticleType, len(productRows))
 	for _, row := range productRows {
@@ -404,8 +451,12 @@ func validateBackupAccessoryProductAttributes(
 		}
 	}
 
-	attributesByProduct := map[string][]domain.AccessoryAttributeValue{}
 	validationErrors := []string{}
+	controlledDefinitions := []domain.AccessoryAttributeDefinition{}
+	if backupVersion >= 3 {
+		controlledDefinitions, validationErrors = backupControlledAccessoryAttributeDefinitions(masterDataRows)
+	}
+	attributesByProduct := map[string][]domain.AccessoryAttributeValue{}
 	for index, row := range attributeRows {
 		if err := validateBackupAccessoryProductAttribute(row); err != nil {
 			validationErrors = append(validationErrors, fmt.Sprintf(
@@ -434,7 +485,16 @@ func validateBackupAccessoryProductAttributes(
 			))
 			continue
 		}
-		if err := domain.ValidateAccessoryAttributeValues(articleType, attributesByProduct[productID]); err != nil {
+		var err error
+		if backupVersion >= 3 && articleType == domain.AccessoryArticleOther {
+			err = domain.ValidateControlledAccessoryAttributeValues(
+				attributesByProduct[productID],
+				controlledDefinitions,
+			)
+		} else {
+			err = domain.ValidateAccessoryAttributeValues(articleType, attributesByProduct[productID])
+		}
+		if err != nil {
 			validationErrors = append(validationErrors, fmt.Sprintf(
 				"Tabelle accessory_product_attributes enthält für Produkt %s ungültige Attributdaten: %v",
 				productID,
@@ -443,6 +503,55 @@ func validateBackupAccessoryProductAttributes(
 		}
 	}
 	return validationErrors
+}
+
+func backupControlledAccessoryAttributeDefinitions(
+	rows []map[string]any,
+) ([]domain.AccessoryAttributeDefinition, []string) {
+	definitions := []domain.AccessoryAttributeDefinition{}
+	validationErrors := []string{}
+	seen := map[string]struct{}{}
+	for index, row := range rows {
+		typeName, valid := backupNonEmptyString(row["type"])
+		if !valid || typeName != accessoryCustomField {
+			continue
+		}
+		key, keyValid := backupNonEmptyString(row["key"])
+		active, activeValid := backupBooleanValue(row["active"])
+		metadataJSON, metadataValid := row["metadata_json"].(string)
+		metadata := map[string]any{}
+		var metadataErr error
+		if metadataValid {
+			metadataErr = json.Unmarshal([]byte(metadataJSON), &metadata)
+		}
+		if !keyValid || !activeValid || !metadataValid || metadataErr != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes kann wegen ungültiger Custom-Field-Definition in Zeile %d nicht validiert werden.",
+				index+1,
+			))
+			continue
+		}
+		if _, duplicate := seen[key]; duplicate {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält eine doppelte Custom-Field-Definition %s.", key,
+			))
+			continue
+		}
+		seen[key] = struct{}{}
+		definition, err := ParseAccessoryCustomAttributeDefinition(key, active, metadata)
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes kann Custom-Field-Definition %s nicht validieren: %v",
+				key,
+				err,
+			))
+			continue
+		}
+		if definition.Active {
+			definitions = append(definitions, definition)
+		}
+	}
+	return definitions, validationErrors
 }
 
 func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttributeValue {
@@ -460,10 +569,10 @@ func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttribut
 		value := row["text_value"].(string)
 		attribute.TextValue = &value
 	case domain.AccessoryAttributeNumber:
-		value := 0.0
+		value, _ := backupNumberValue(row["number_value"])
 		attribute.NumberValue = &value
 	case domain.AccessoryAttributeBoolean:
-		value := false
+		value, _ := backupBooleanValue(row["boolean_value"])
 		attribute.BooleanValue = &value
 	case domain.AccessoryAttributeDate:
 		value := row["date_value"].(string)
@@ -474,6 +583,51 @@ func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttribut
 		_ = json.Unmarshal([]byte(row["multi_select_value"].(string)), &attribute.OptionValues)
 	}
 	return attribute
+}
+
+func backupNumberValue(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case json.Number:
+		number, err := typed.Float64()
+		return number, err == nil && !math.IsNaN(number) && !math.IsInf(number, 0)
+	case float64:
+		return typed, !math.IsNaN(typed) && !math.IsInf(typed, 0)
+	case float32:
+		return float64(typed), !math.IsNaN(float64(typed)) && !math.IsInf(float64(typed), 0)
+	case int:
+		return float64(typed), true
+	case int8:
+		return float64(typed), true
+	case int16:
+		return float64(typed), true
+	case int32:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case uint:
+		return float64(typed), true
+	case uint8:
+		return float64(typed), true
+	case uint16:
+		return float64(typed), true
+	case uint32:
+		return float64(typed), true
+	case uint64:
+		return float64(typed), true
+	default:
+		return 0, false
+	}
+}
+
+func backupBooleanValue(value any) (bool, bool) {
+	if typed, ok := value.(bool); ok {
+		return typed, true
+	}
+	number, valid := backupNumberValue(value)
+	if !valid || (number != 0 && number != 1) {
+		return false, false
+	}
+	return number == 1, true
 }
 
 func validateBackupAccessoryProductAttribute(row map[string]any) error {
@@ -553,56 +707,13 @@ func backupNonEmptyString(value any) (string, bool) {
 }
 
 func validBackupNumber(value any) bool {
-	switch typed := value.(type) {
-	case json.Number:
-		number, err := typed.Float64()
-		return err == nil && !math.IsNaN(number) && !math.IsInf(number, 0)
-	case float64:
-		return !math.IsNaN(typed) && !math.IsInf(typed, 0)
-	case float32:
-		return !math.IsNaN(float64(typed)) && !math.IsInf(float64(typed), 0)
-	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
-		return true
-	default:
-		return false
-	}
+	_, valid := backupNumberValue(value)
+	return valid
 }
 
 func validBackupBoolean(value any) bool {
-	if _, ok := value.(bool); ok {
-		return true
-	}
-	switch typed := value.(type) {
-	case json.Number:
-		integer, err := typed.Int64()
-		return err == nil && (integer == 0 || integer == 1)
-	case int:
-		return typed == 0 || typed == 1
-	case int8:
-		return typed == 0 || typed == 1
-	case int16:
-		return typed == 0 || typed == 1
-	case int32:
-		return typed == 0 || typed == 1
-	case int64:
-		return typed == 0 || typed == 1
-	case uint:
-		return typed == 0 || typed == 1
-	case uint8:
-		return typed == 0 || typed == 1
-	case uint16:
-		return typed == 0 || typed == 1
-	case uint32:
-		return typed == 0 || typed == 1
-	case uint64:
-		return typed == 0 || typed == 1
-	case float32:
-		return typed == 0 || typed == 1
-	case float64:
-		return typed == 0 || typed == 1
-	default:
-		return false
-	}
+	_, valid := backupBooleanValue(value)
+	return valid
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {

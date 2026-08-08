@@ -304,6 +304,138 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	}
 }
 
+func TestAccessoryArticleHybridAggregationMatchesAllocationSummary(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	baseline, err := fixture.accessories.ListArticles(ctx, application.AccessoryArticleListQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hybrid := createAccessoryTestProduct(t, fixture.accessories, "Hybrid overview",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	if _, err := fixture.accessories.AdjustStock(ctx, hybrid.ID, application.StockAdjustmentInput{
+		LocationID: fixture.location.ID, Delta: 4,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, inventoryNumber := range []string{"HYB-OV-1", "HYB-OV-2"} {
+		if _, err := fixture.accessories.Individualize(ctx, hybrid.ID, application.IndividualizeAccessoryInput{
+			LocationID: fixture.location.ID,
+			Asset:      application.CreateAccessoryAssetInput{InventoryNumber: inventoryNumber},
+		}, "editor-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	assets, err := fixture.accessories.ListAssets(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assetReservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, AssetID: assets[0].ID, LocationID: fixture.location.ID, Quantity: 1,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertHybridArticleTotals(t, fixture.accessories, fixture.allocations, hybrid.ID, baseline.Metrics,
+		application.AccessoryAllocationSummary{Owned: 4, Stored: 4, Reserved: 1, Available: 3})
+	quantityReservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 2,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatalf("asset reservation reduced remaining hybrid quantity: %v", err)
+	}
+	assertHybridArticleTotals(t, fixture.accessories, fixture.allocations, hybrid.ID, baseline.Metrics,
+		application.AccessoryAllocationSummary{Owned: 4, Stored: 4, Reserved: 3, Available: 1})
+	if _, err := fixture.allocations.CancelReservation(ctx, quantityReservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ReservationID: assetReservation.ID, ProductID: hybrid.ID, AssetID: assets[0].ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertHybridArticleTotals(t, fixture.accessories, fixture.allocations, hybrid.ID, baseline.Metrics,
+		application.AccessoryAllocationSummary{Owned: 4, Stored: 3, Reserved: 1, Installed: 1, Available: 2})
+
+	for _, status := range []application.AccessoryArticleStatus{
+		application.AccessoryArticleAvailable,
+		application.AccessoryArticleReserved,
+		application.AccessoryArticleInstalled,
+	} {
+		result, err := fixture.accessories.ListArticles(ctx, application.AccessoryArticleListQuery{
+			Statuses: []application.AccessoryArticleStatus{status},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !accessoryArticleResultContains(result, hybrid.ID) {
+			t.Fatalf("hybrid article missing from %q filter: %#v", status, result.Items)
+		}
+	}
+}
+
+func assertHybridArticleTotals(
+	t *testing.T,
+	service *application.AccessoryService,
+	allocations *application.AccessoryAllocationService,
+	productID string,
+	baseline application.AccessoryOverviewMetrics,
+	want application.AccessoryAllocationSummary,
+) {
+	t.Helper()
+	allocationSummary, err := allocations.GetAllocationSummary(t.Context(), productID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want.ProductID = productID
+	if *allocationSummary != want {
+		t.Fatalf("unexpected hybrid allocation summary: got %#v, want %#v", *allocationSummary, want)
+	}
+	result, err := service.ListArticles(t.Context(), application.AccessoryArticleListQuery{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range result.Items {
+		if item.ID != productID {
+			continue
+		}
+		if item.Owned != allocationSummary.Owned || item.Available != allocationSummary.Available ||
+			item.Reserved != allocationSummary.Reserved || item.Installed != allocationSummary.Installed {
+			t.Fatalf("hybrid article totals %#v do not match allocation totals %#v", item, allocationSummary)
+		}
+		if result.Metrics.Available != baseline.Available+want.Available ||
+			result.Metrics.Reserved != baseline.Reserved+want.Reserved ||
+			result.Metrics.Installed != baseline.Installed+want.Installed {
+			t.Fatalf("hybrid totals missing from overview metrics: baseline=%#v got=%#v want=%#v",
+				baseline, result.Metrics, want)
+		}
+		return
+	}
+	t.Fatalf("hybrid article %q not found in %#v", productID, result.Items)
+}
+
+func accessoryArticleResultContains(result *application.AccessoryArticleListResult, productID string) bool {
+	for _, item := range result.Items {
+		if item.ID == productID {
+			return true
+		}
+	}
+	return false
+}
+
 func TestAccessoryArticleCareHintsUseApprovedMissingFields(t *testing.T) {
 	service, db := testAccessoryService(t)
 	_, err := db.ExecContext(t.Context(), `INSERT INTO accessory_products(
@@ -534,6 +666,71 @@ func TestAccessoryServiceSeparatesQuantityAndIndividualInventory(t *testing.T) {
 	if len(assets) != 1 || assets[0].ID != asset.ID {
 		t.Fatalf("unexpected assets: %#v", assets)
 	}
+}
+
+func TestAccessoryInventoryStrategyChangesPreserveExistingInventoryKinds(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	hybrid := createAccessoryTestProduct(t, fixture.accessories, "Hybrid transition",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	if _, err := fixture.accessories.AdjustStock(ctx, hybrid.ID, application.StockAdjustmentInput{
+		LocationID: fixture.location.ID, Delta: 2,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.Individualize(ctx, hybrid.ID, application.IndividualizeAccessoryInput{
+		LocationID: fixture.location.ID,
+		Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-TRANSITION-1"},
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.UpdateProduct(ctx, hybrid.ID,
+		accessoryProductUpdateWithStrategy(hybrid, domain.AccessoryInventoryQuantity),
+		"editor-1"); !errors.Is(err, application.ErrAccessoryConflict) {
+		t.Fatalf("expected hybrid-to-quantity conflict with individualized asset, got %v", err)
+	}
+	unchanged, err := fixture.accessories.GetProduct(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if unchanged.InventoryStrategy != domain.AccessoryInventoryQuantityLaterIndividual {
+		t.Fatalf("failed strategy update changed product: %#v", unchanged)
+	}
+
+	if _, err := fixture.accessories.UpdateProduct(ctx, fixture.individualProduct.ID,
+		accessoryProductUpdateWithStrategy(fixture.individualProduct,
+			domain.AccessoryInventoryQuantityLaterIndividual),
+		"editor-1"); err != nil {
+		t.Fatalf("individual-to-hybrid transition should retain asset support: %v", err)
+	}
+	emptyHybrid := createAccessoryTestProduct(t, fixture.accessories, "Empty hybrid transition",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	updated, err := fixture.accessories.UpdateProduct(ctx, emptyHybrid.ID,
+		accessoryProductUpdateWithStrategy(emptyHybrid, domain.AccessoryInventoryQuantity),
+		"editor-1")
+	if err != nil {
+		t.Fatalf("empty hybrid-to-quantity transition should remain safe: %v", err)
+	}
+	if updated.InventoryStrategy != domain.AccessoryInventoryQuantity {
+		t.Fatalf("unexpected safe strategy transition result: %#v", updated)
+	}
+}
+
+func accessoryProductUpdateWithStrategy(
+	product *application.AccessoryProduct,
+	strategy domain.AccessoryInventoryStrategy,
+) application.UpdateAccessoryProductInput {
+	return application.UpdateAccessoryProductInput{CreateAccessoryProductInput: application.CreateAccessoryProductInput{
+		Manufacturer: product.Manufacturer, ArticleNumber: product.ArticleNumber, Name: product.Name,
+		Category: product.Category, Description: product.Description, EAN: product.EAN,
+		ManufacturerStatus: product.ManufacturerStatus, ArticleType: product.ArticleType, Subtype: product.Subtype,
+		Gauges: product.Gauges, Scale: product.Scale, PackageQuantity: product.PackageQuantity,
+		StockUnit: product.StockUnit, MinimumStock: product.MinimumStock, InventoryStrategy: strategy,
+		ManufacturerURL: product.ManufacturerURL, ProductURL: product.ProductURL,
+		AlternativeNumbers: product.AlternativeNumbers, Keywords: product.Keywords,
+		CompatibilityNotes: product.CompatibilityNotes, InternalNotes: product.InternalNotes,
+		Archived: product.Archived, Attributes: product.Attributes,
+	}}
 }
 
 func TestAccessoryServiceWritesMinimalAuditDetails(t *testing.T) {

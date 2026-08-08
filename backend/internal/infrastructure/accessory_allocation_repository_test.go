@@ -497,6 +497,68 @@ func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
 	}
 }
 
+func TestAccessoryStockAdjustmentCannotConsumeReservedQuantity(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: fixture.location.ID, Delta: -3},
+		"editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved stock adjustment rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 5})
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: fixture.location.ID, Delta: -3},
+		"editor-1"); err != nil {
+		t.Fatalf("released stock adjustment failed: %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 2})
+}
+
+func TestAccessoryStockTransferCannotConsumeReservedQuantity(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	destination := createAccessoryTestLocation(t, fixture.accessories, "Reserved transfer destination")
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 4,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfer := application.TransferAccessoryStockInput{
+		FromLocationID: fixture.location.ID, ToLocationID: destination.ID, Quantity: 2,
+	}
+	if _, err := fixture.accessories.TransferStock(ctx, fixture.quantityProduct.ID, transfer,
+		"editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved stock transfer rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 5})
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.TransferStock(ctx, fixture.quantityProduct.ID, transfer,
+		"editor-1"); err != nil {
+		t.Fatalf("released stock transfer failed: %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 3, destination.ID: 2})
+}
+
 func findAllocationMovement(
 	t *testing.T,
 	movements []application.AccessoryStockMovement,

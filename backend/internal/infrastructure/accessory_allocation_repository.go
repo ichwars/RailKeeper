@@ -275,7 +275,7 @@ func availableAccessoryQuantity(ctx context.Context, tx *sql.Tx, productID, loca
 SELECT
   COALESCE((SELECT quantity FROM accessory_stock WHERE product_id=? AND location_id=?), 0) -
   COALESCE((SELECT SUM(quantity) FROM accessory_reservations
-            WHERE product_id=? AND location_id=? AND status='active'), 0)`,
+            WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'), 0)`,
 		productID, locationID, productID, locationID).Scan(&available); err != nil {
 		return 0, fmt.Errorf("calculate available accessory quantity: %w", err)
 	}

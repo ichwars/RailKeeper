@@ -165,28 +165,14 @@ func (r *AccessoryRepository) UpdateProduct(
 ) (*application.AccessoryProduct, error) {
 	now := timestamp()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
-		currentMode, err := accessoryTrackingMode(ctx, tx, id)
+		currentStrategy, err := accessoryInventoryStrategy(ctx, tx, id)
 		if err != nil {
 			return err
 		}
-		if currentMode != input.TrackingMode {
-			var dependentCount int
-			query := `
-SELECT
-  COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0) +
-  COALESCE((SELECT SUM(quantity) FROM accessory_reservations WHERE product_id=? AND status='active'), 0) +
-  COALESCE((SELECT SUM(quantity) FROM accessory_installations WHERE product_id=? AND removed_at IS NULL), 0)`
-			args := []any{id, id, id}
-			if currentMode == domain.AccessoryTrackingModeIndividual {
-				query = `SELECT COUNT(*) FROM accessory_assets WHERE product_id=?`
-				args = []any{id}
-			}
-			if err := tx.QueryRowContext(ctx, query, args...).Scan(&dependentCount); err != nil {
-				return fmt.Errorf("check accessory tracking mode change: %w", err)
-			}
-			if dependentCount > 0 {
-				return application.ErrAccessoryConflict
-			}
+		if err := validateAccessoryInventoryStrategyTransition(
+			ctx, tx, id, currentStrategy, input.InventoryStrategy,
+		); err != nil {
+			return err
 		}
 		gauges, alternativeNumbers, keywords, err := accessoryProductJSON(input.CreateAccessoryProductInput)
 		if err != nil {
@@ -221,6 +207,60 @@ WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category
 		return nil, err
 	}
 	return r.GetProduct(ctx, id)
+}
+
+func validateAccessoryInventoryStrategyTransition(
+	ctx context.Context,
+	tx *sql.Tx,
+	productID string,
+	current domain.AccessoryInventoryStrategy,
+	target domain.AccessoryInventoryStrategy,
+) error {
+	if current == target {
+		return nil
+	}
+	currentQuantity := current == domain.AccessoryInventoryQuantity ||
+		current == domain.AccessoryInventoryQuantityLaterIndividual
+	targetQuantity := target == domain.AccessoryInventoryQuantity ||
+		target == domain.AccessoryInventoryQuantityLaterIndividual
+	if currentQuantity && !targetQuantity {
+		var dependentCount int
+		if err := tx.QueryRowContext(ctx, `
+SELECT
+  COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0) +
+  COALESCE((SELECT SUM(quantity) FROM accessory_reservations
+            WHERE product_id=? AND asset_id IS NULL AND status='active'), 0) +
+  COALESCE((SELECT SUM(quantity) FROM accessory_installations
+            WHERE product_id=? AND asset_id IS NULL AND removed_at IS NULL), 0)`,
+			productID, productID, productID).Scan(&dependentCount); err != nil {
+			return fmt.Errorf("check accessory quantity strategy change: %w", err)
+		}
+		if dependentCount > 0 {
+			return application.ErrAccessoryConflict
+		}
+	}
+	currentIndividual := current == domain.AccessoryInventoryIndividual ||
+		current == domain.AccessoryInventoryQuantityLaterIndividual
+	targetIndividual := target == domain.AccessoryInventoryIndividual ||
+		target == domain.AccessoryInventoryQuantityLaterIndividual
+	if currentIndividual && !targetIndividual {
+		var hasIndividualDependencies bool
+		if err := tx.QueryRowContext(ctx, `
+SELECT EXISTS(SELECT 1 FROM accessory_assets WHERE product_id=?)
+    OR EXISTS(SELECT 1 FROM accessory_reservations WHERE product_id=? AND asset_id IS NOT NULL)
+    OR EXISTS(SELECT 1 FROM accessory_installations WHERE product_id=? AND asset_id IS NOT NULL)
+    OR EXISTS(
+      SELECT 1 FROM accessory_installation_condition_history history
+      JOIN accessory_installations installation ON installation.id=history.installation_id
+      WHERE installation.product_id=? AND installation.asset_id IS NOT NULL
+    )`, productID, productID, productID, productID).Scan(&hasIndividualDependencies); err != nil {
+			return fmt.Errorf("check accessory individual strategy change: %w", err)
+		}
+		if hasIndividualDependencies {
+			return application.ErrAccessoryConflict
+		}
+	}
+	return nil
 }
 
 func (r *AccessoryRepository) SetProductArchived(

@@ -36,7 +36,14 @@ SELECT quantity FROM accessory_stock WHERE product_id=? AND location_id=?`, prod
 			Scan(&current); err != nil && !errors.Is(err, sql.ErrNoRows) {
 			return fmt.Errorf("read accessory stock level: %w", err)
 		}
-		if current+input.Delta < 0 {
+		var reserved int
+		if err := tx.QueryRowContext(ctx, `
+SELECT COALESCE(SUM(quantity), 0) FROM accessory_reservations
+WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'`,
+			productID, input.LocationID).Scan(&reserved); err != nil {
+			return fmt.Errorf("read reserved accessory stock: %w", err)
+		}
+		if current+input.Delta < reserved {
 			return application.ErrAccessoryInsufficientStock
 		}
 		if _, err := tx.ExecContext(ctx, `
@@ -285,8 +292,11 @@ func (r *AccessoryRepository) TransferStock(
 		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE accessory_stock SET quantity=quantity-?, updated_at=?
-WHERE product_id=? AND location_id=? AND quantity>=?`, input.Quantity, now, productID,
-			input.FromLocationID, input.Quantity)
+WHERE product_id=? AND location_id=? AND quantity-?>=(
+  SELECT COALESCE(SUM(quantity), 0) FROM accessory_reservations
+  WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'
+)`, input.Quantity, now, productID, input.FromLocationID, input.Quantity,
+			productID, input.FromLocationID)
 		if err != nil {
 			return fmt.Errorf("decrement transferred accessory stock: %w", err)
 		}
