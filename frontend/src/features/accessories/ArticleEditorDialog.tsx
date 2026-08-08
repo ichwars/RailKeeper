@@ -55,6 +55,7 @@ export type ArticleEditorDialogProps = {
   onCancelDuplicate: () => void;
   onResourcesChanged: () => Promise<void>;
   onRetryResources: () => Promise<void>;
+  onRetryCustomFields: () => Promise<void>;
   onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
 
@@ -197,7 +198,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
-              disabled={readOnly} articleTypeDisabled={props.customFieldsLoading || Boolean(props.customFieldsError)}
+              disabled={readOnly} articleTypeDisabled={props.customFieldsLoading}
+              otherArticleTypeDisabled={Boolean(props.customFieldsError)}
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
@@ -235,6 +237,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           {props.resourcesStale ? <button type="button" className="secondary-button"
             onClick={() => void props.onRetryResources().catch(() => undefined)}>
             {t("accessories.editor.retryResources")}</button> : null}
+        </div> : null}
+        {props.customFieldsError ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{props.customFieldsError}</p>
+          <button type="button" className="secondary-button" disabled={props.customFieldsLoading}
+            onClick={() => void props.onRetryCustomFields().catch(() => undefined)}>
+            {t("accessories.editor.retryCustomFields")}</button>
         </div> : null}
         {props.error && props.error !== props.resourceError
           ? <p className="form-message" role="alert">{props.error}</p> : null}

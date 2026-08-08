@@ -150,16 +150,17 @@ export function useArticleEditorController({
   const isCurrent = useCallback((generation: number) =>
     mountedRef.current && generationRef.current === generation, []);
 
-  const loadCustomFields = useCallback((generation: number) => {
+  const loadCustomFields = useCallback(async (generation: number) => {
     setCustomFieldsLoading(true);
     setCustomFieldsError("");
-    void api.masterData("accessory_custom_field", true).then((entries) => {
+    try {
+      const entries = await api.masterData("accessory_custom_field", true);
       if (isCurrent(generation)) setCustomFields(customFieldDefinitions(entries));
-    }).catch(() => {
+    } catch {
       if (isCurrent(generation)) setCustomFieldsError(t("accessories.subject.customLoadError"));
-    }).finally(() => {
+    } finally {
       if (isCurrent(generation)) setCustomFieldsLoading(false);
-    });
+    }
   }, [isCurrent, t]);
 
   const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
@@ -197,7 +198,7 @@ export function useArticleEditorController({
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
     setIsOpen(true);
-    loadCustomFields(generation);
+    void loadCustomFields(generation);
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
     }).catch((reason) => {
@@ -222,7 +223,7 @@ export function useArticleEditorController({
     setResourcesStale(false);
     setIsOpen(true);
     setLoading(true);
-    loadCustomFields(generation);
+    void loadCustomFields(generation);
     void api.accessoryArticle(id).then((loaded) => {
       if (!isCurrent(generation)) return;
       const next = articleToEditorForm(loaded);
@@ -242,6 +243,7 @@ export function useArticleEditorController({
     if (saving || duplicateCandidates.length > 0) return;
     const nextForm = { ...form, ...patch };
     setForm(nextForm);
+    const historicalAttributes = mode === "edit" && article?.articleType === "other" ? article.attributes : [];
     const validation = validateArticleEditorForm(nextForm, {
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
@@ -249,7 +251,7 @@ export function useArticleEditorController({
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
       invalidStep: t("accessories.editor.validation.invalidStep")
-    }, customFields);
+    }, customFields, historicalAttributes);
     setFieldErrors((current) => {
       const next = { ...current };
       Object.keys(patch).forEach((key) => delete next[key as keyof ArticleEditorForm]);
@@ -304,7 +306,8 @@ export function useArticleEditorController({
     setSaving(true);
     setError("");
     try {
-      const input = articleEditorWriteInput(draft, customFields);
+      const historicalAttributes = mode === "edit" && article?.articleType === "other" ? article.attributes : [];
+      const input = articleEditorWriteInput(draft, customFields, historicalAttributes);
       const saved = mode === "edit" && article
         ? await api.updateAccessoryArticle(article.id, input)
         : await api.createAccessoryArticle(input);
@@ -324,6 +327,8 @@ export function useArticleEditorController({
       setError(t("accessories.editor.detailRequired"));
       return;
     }
+    if (form.articleType === "other" && (customFieldsLoading || customFieldsError)) return;
+    const historicalAttributes = mode === "edit" && article?.articleType === "other" ? article.attributes : [];
     const validation = validateArticleEditorForm(form, {
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
@@ -331,7 +336,7 @@ export function useArticleEditorController({
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
       invalidStep: t("accessories.editor.validation.invalidStep")
-    }, customFields);
+    }, customFields, historicalAttributes);
     setFieldErrors(validation.fieldErrors);
     setTabErrors(validation.tabErrors);
     setSubjectFieldErrors(validation.subjectFieldErrors);
@@ -385,6 +390,10 @@ export function useArticleEditorController({
     await refreshResources();
   };
 
+  const retryCustomFields = async () => {
+    await loadCustomFields(generationRef.current);
+  };
+
   const setSubdraftDirty = (scope: string, dirty: boolean) => {
     setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
@@ -426,6 +435,7 @@ export function useArticleEditorController({
     cancelDuplicateSave: () => { setDuplicateCandidates([]); setDuplicateDraft(null); },
     refreshResources,
     retryResources,
+    retryCustomFields,
     setSubdraftDirty
   };
 }

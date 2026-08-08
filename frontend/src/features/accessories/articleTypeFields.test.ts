@@ -92,6 +92,9 @@ describe("articleTypeFields", () => {
     ], {})).toBe(false);
     expect(subjectValuesAreValid("track", [], { connectionCount: "2.5" })).toBe(false);
     expect(subjectValuesAreValid("track", [], { angleDegrees: "0.3" })).toBe(true);
+    expect(subjectValuesAreValid("track", [], { angleDegrees: String(0.1 + 0.2) })).toBe(true);
+    expect(subjectValuesAreValid("track", [], { angleDegrees: "0.2" })).toBe(true);
+    expect(subjectValuesAreValid("track", [], { connectionCount: "1000000000.5" })).toBe(false);
   });
 
   it("validates controlled custom option membership", () => {

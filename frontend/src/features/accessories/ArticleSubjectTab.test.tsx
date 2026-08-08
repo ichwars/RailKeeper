@@ -152,4 +152,20 @@ describe("ArticleSubjectTab", () => {
     expect(container.querySelector(".article-subject-grid")).toHaveClass("article-editor-grid");
     expect(screen.getByText(longLabel)).toHaveTextContent(longLabel);
   });
+
+  it("associates a single-select subject error with its app-owned trigger", () => {
+    render(<ArticleSubjectTab
+      form={{ ...emptyArticleEditorForm(), articleType: "track", attributes: [
+        { key: "direction", kind: "single_select", optionValues: ["left"] }
+      ] }}
+      disabled={false}
+      subjectFieldErrors={{ direction: "Auswahl ist ungültig" }}
+      onChange={vi.fn()}
+    />);
+
+    const trigger = screen.getByRole("button", { name: "Richtung" });
+    expect(trigger).toHaveAttribute("id", "article-subject-direction");
+    expect(trigger).toHaveAttribute("aria-describedby", "article-subject-direction-error");
+    expect(screen.getByText("Auswahl ist ungültig")).toHaveAttribute("id", "article-subject-direction-error");
+  });
 });

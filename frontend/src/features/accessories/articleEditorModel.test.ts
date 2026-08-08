@@ -78,4 +78,18 @@ describe("articleEditorModel", () => {
       { key: "connectionCount", kind: "number", numberValue: 2 }
     ]);
   });
+
+  it("roundtrips only historical inactive custom attributes owned by the loaded edit snapshot", () => {
+    const historical = { key: "legacyMaterial", kind: "text" as const, textValue: "Holz" };
+    const form = {
+      ...emptyArticleEditorForm(), articleType: "other" as const, attributes: [historical]
+    };
+
+    expect(articleEditorWriteInput(form, [], [historical]).attributes).toEqual([historical]);
+    expect(validateArticleEditorForm(form, undefined, [], [historical]).fieldErrors.attributes).toBeUndefined();
+    expect(() => articleEditorWriteInput(form)).toThrow("invalid subject values");
+    expect(() => articleEditorWriteInput({
+      ...form, attributes: [{ ...historical, textValue: "Manipuliert" }]
+    }, [], [historical])).toThrow("invalid subject values");
+  });
 });

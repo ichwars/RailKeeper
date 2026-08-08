@@ -152,11 +152,14 @@ export function ArticleSubjectTab({
         {fieldError ? <span className="app-field-error" role="alert">{fieldError}</span> : null}
       </label>;
     }
-    case "single_select":
+    case "single_select": {
+      const id = `article-subject-${definition.key}`;
+      const errorId = fieldError ? `${id}-error` : undefined;
       return <label key={definition.key} className={`app-field ${fieldError ? "has-error" : ""}`}>
         <span className="app-field-label">{label}</span>
-        <AppSelect value={value?.kind === "single_select" ? value.optionValues[0] : ""}
+        <AppSelect id={id} value={value?.kind === "single_select" ? value.optionValues[0] : ""}
           disabled={disabled} aria-label={label} aria-invalid={fieldError ? true : undefined}
+          aria-describedby={errorId}
           onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,
             event.target.value ? { key: definition.key, kind: "single_select",
               optionValues: [event.target.value] } : null, definition.key) })}>
@@ -164,8 +167,9 @@ export function ArticleSubjectTab({
           {(definition.options || []).map((option) =>
             <option key={option} value={option}>{optionLabel(definition, option)}</option>)}
         </AppSelect>
-        {fieldError ? <span className="app-field-error" role="alert">{fieldError}</span> : null}
+        {fieldError ? <span id={errorId} className="app-field-error" role="alert">{fieldError}</span> : null}
       </label>;
+    }
     case "multi_select":
       return <AppMultiSelect key={definition.key} label={label} helpText={helpText} error={fieldError} disabled={disabled}
         value={value?.kind === "multi_select" ? value.optionValues : []}
@@ -184,7 +188,8 @@ export function ArticleSubjectTab({
     aria-label={t("accessories.editor.tabs.subject", { type: t(`accessories.articleType.${form.articleType}`) })}>
     {error ? <p className="form-message" role="alert">{error}</p> : null}
     {loading || loadingCustomFields ? <p className="loading-cell">{t("accessories.subject.customLoading")}</p> : null}
-    {externalLoadError || loadError ? <p className="form-message" role="alert">{externalLoadError || loadError}</p> : null}
+    {(!customFields && externalLoadError) || loadError
+      ? <p className="form-message" role="alert">{externalLoadError || loadError}</p> : null}
     {!loading && !loadingCustomFields && !externalLoadError && !loadError && definitions.length === 0
       ? <p className="article-editor-hint">{t("accessories.subject.empty")}</p>
       : <div className="article-editor-grid article-subject-grid">{definitions.map(renderField)}</div>}

@@ -1585,6 +1585,7 @@ export const enTranslations: Record<string, string> = {
     "accessories.editor.loading": "Loading article data …",
     "accessories.editor.detailRequired": "The article could not be loaded and cannot be saved.",
     "accessories.editor.retryResources": "Reload data",
+    "accessories.editor.retryCustomFields": "Reload custom fields",
     "accessories.editor.tabs.label": "Article dialog sections",
     "accessories.editor.tabs.article": "Article",
     "accessories.editor.tabs.stock": "Stock",

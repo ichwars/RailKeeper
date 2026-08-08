@@ -137,6 +137,7 @@ export function AccessoriesView({
         onCancelDuplicate={editor.cancelDuplicateSave}
         onResourcesChanged={editor.refreshResources}
         onRetryResources={editor.retryResources}
+        onRetryCustomFields={editor.retryCustomFields}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
     </>

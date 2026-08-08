@@ -191,9 +191,12 @@ export function subjectValuesAreValid(
   articleType: AccessoryArticleType,
   attributes: readonly AccessoryAttributeValue[],
   numberDrafts: Readonly<Record<string, string>>,
-  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = [],
+  historicalAttributes: readonly AccessoryAttributeValue[] = []
 ): boolean {
-  return Object.keys(subjectValidationIssues(articleType, attributes, numberDrafts, customFields)).length === 0;
+  return Object.keys(subjectValidationIssues(
+    articleType, attributes, numberDrafts, customFields, historicalAttributes
+  )).length === 0;
 }
 
 function numericIssue(
@@ -204,21 +207,40 @@ function numericIssue(
       (definition.max !== undefined && value > definition.max)) return "invalidValue";
   if (definition.step === undefined) return undefined;
   const quotient = (value - (definition.min ?? 0)) / definition.step;
-  const tolerance = 1e-9 * Math.max(1, Math.abs(quotient));
-  return Math.abs(quotient - Math.round(quotient)) <= tolerance ? undefined : "invalidStep";
+  const expected = (definition.min ?? 0) + Math.round(quotient) * definition.step;
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(value), Math.abs(expected),
+    Math.abs(definition.step)) * 8;
+  return Math.abs(value - expected) <= tolerance ? undefined : "invalidStep";
+}
+
+function attributeValuesEqual(left: AccessoryAttributeValue, right: AccessoryAttributeValue): boolean {
+  if (left.key !== right.key || left.kind !== right.kind) return false;
+  switch (left.kind) {
+  case "text": return right.kind === "text" && left.textValue === right.textValue;
+  case "number": return right.kind === "number" && left.numberValue === right.numberValue && left.unit === right.unit;
+  case "boolean": return right.kind === "boolean" && left.booleanValue === right.booleanValue;
+  case "date": return right.kind === "date" && left.dateValue === right.dateValue;
+  case "single_select":
+  case "multi_select":
+    return right.kind === left.kind && left.optionValues.length === right.optionValues.length &&
+      left.optionValues.every((value, index) => value === right.optionValues[index]);
+  }
 }
 
 export function subjectValidationIssues(
   articleType: AccessoryArticleType,
   attributes: readonly AccessoryAttributeValue[],
   numberDrafts: Readonly<Record<string, string>>,
-  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = [],
+  historicalAttributes: readonly AccessoryAttributeValue[] = []
 ): Record<string, ArticleSubjectValidationIssue> {
   const definitions = new Map(fieldDefinitionsForType(articleType, customFields)
     .map((definition) => [definition.key, definition]));
   const issues: Record<string, ArticleSubjectValidationIssue> = {};
   for (const attribute of attributes) {
     const definition = definitions.get(attribute.key);
+    const historicalAttribute = historicalAttributes.find((candidate) => attributeValuesEqual(candidate, attribute));
+    if (!definition && articleType === "other" && historicalAttribute) continue;
     if (!definition || definition.kind !== attribute.kind) {
       issues[attribute.key] = "invalidValue";
       continue;
@@ -237,6 +259,11 @@ export function subjectValidationIssues(
   for (const [key, draft] of Object.entries(numberDrafts)) {
     if (draft.trim() === "") continue;
     const definition = definitions.get(key);
+    const historicalNumber = historicalAttributes.find((attribute) =>
+      attribute.key === key && attribute.kind === "number");
+    if (!definition && articleType === "other" && historicalNumber?.kind === "number" &&
+        Number(draft.replace(",", ".")) === historicalNumber.numberValue &&
+        attributes.some((attribute) => attributeValuesEqual(attribute, historicalNumber))) continue;
     if (!definition || definition.kind !== "number") {
       issues[key] = "invalidValue";
       continue;

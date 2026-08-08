@@ -108,10 +108,11 @@ const optional = (value: string) => value.trim() || undefined;
 
 export function articleEditorWriteInput(
   form: ArticleEditorForm,
-  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = [],
+  historicalAttributes: readonly AccessoryAttributeValue[] = []
 ): AccessoryArticleWriteInput {
   if (Object.keys(subjectValidationIssues(
-    form.articleType, form.attributes, form.attributeNumberDrafts, customFields
+    form.articleType, form.attributes, form.attributeNumberDrafts, customFields, historicalAttributes
   )).length > 0) throw new Error("invalid subject values");
   const inventoryStrategy = form.inventoryStrategy;
   const numberDefinitions = new Map(fieldDefinitionsForType(form.articleType, customFields)
@@ -177,7 +178,8 @@ export function validateArticleEditorForm(
     invalidOption: "Auswahl ist ungültig",
     invalidStep: "Wert entspricht nicht der Schrittweite"
   },
-  customFields: readonly CustomArticleSubjectFieldDefinition[] = []
+  customFields: readonly CustomArticleSubjectFieldDefinition[] = [],
+  historicalAttributes: readonly AccessoryAttributeValue[] = []
 ): {
   fieldErrors: ArticleEditorFieldErrors;
   tabErrors: ArticleEditorTabErrors;
@@ -197,7 +199,7 @@ export function validateArticleEditorForm(
     fieldErrors.minimumStock = messages.nonnegative;
   }
   const subjectIssues = subjectValidationIssues(
-    form.articleType, form.attributes, form.attributeNumberDrafts, customFields
+    form.articleType, form.attributes, form.attributeNumberDrafts, customFields, historicalAttributes
   );
   for (const [key, issue] of Object.entries(subjectIssues)) {
     subjectFieldErrors[key] = issue === "invalidOption" ? messages.invalidOption

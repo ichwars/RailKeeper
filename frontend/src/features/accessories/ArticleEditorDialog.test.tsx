@@ -54,6 +54,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     onCancelDuplicate: vi.fn(),
     onResourcesChanged: vi.fn(),
     onRetryResources: vi.fn(),
+    onRetryCustomFields: vi.fn().mockResolvedValue(undefined),
     onSubdraftDirty: vi.fn(),
     ...overrides
   };
@@ -74,6 +75,62 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("dialog", { name: "Artikel ansehen" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
+  });
+
+  it("shows custom-field retry, allows switching to a standard type, and only blocks other save", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const onRetryCustomFields = vi.fn().mockResolvedValue(undefined);
+    const view = render(<ArticleEditorDialog {...props({
+      customFieldsError: "Zusatzfelder nicht verfügbar",
+      onChange,
+      onRetryCustomFields
+    })} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Zusatzfelder nicht verfügbar");
+    expect(screen.getByRole("button", { name: "Artikel anlegen" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Zusatzfelder erneut laden" }));
+    expect(onRetryCustomFields).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Gleis" }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ articleType: "track" }));
+
+    view.rerender(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track" },
+      customFieldsError: "Zusatzfelder nicht verfügbar",
+      onRetryCustomFields
+    })} />);
+    expect(screen.getByRole("button", { name: "Artikel anlegen" })).toBeEnabled();
+
+    view.rerender(<ArticleEditorDialog {...props({
+      activeTab: "subject",
+      customFieldsError: "Zusatzfelder nicht verfügbar",
+      onRetryCustomFields
+    })} />);
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+  });
+
+  it("keeps inactive historical custom attributes hidden until an explicit confirmed type change", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const historicalForm = { ...emptyArticleEditorForm(), articleType: "other" as const, subtype: "legacy",
+      attributes: [{ key: "legacyMaterial", kind: "text" as const, textValue: "Holz" }] };
+    const view = render(<ArticleEditorDialog {...props({
+      mode: "edit",
+      form: historicalForm,
+      activeTab: "subject",
+      onChange
+    })} />);
+
+    expect(screen.queryByRole("textbox", { name: "legacyMaterial" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Artikel" }));
+    view.rerender(<ArticleEditorDialog {...props({
+      mode: "edit", form: historicalForm, activeTab: "article", onChange
+    })} />);
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Gleis" }));
+    await user.click(screen.getByRole("button", { name: "Fachwerte verwerfen" }));
+    expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ articleType: "track", attributes: [] }));
   });
 
   it("keeps form values across unmounted tabs and renders exactly one subject seam", async () => {

@@ -19,6 +19,7 @@ export function ArticleCoreTab({
   errors,
   disabled,
   articleTypeDisabled = false,
+  otherArticleTypeDisabled = false,
   onChange
 }: {
   form: ArticleEditorForm;
@@ -26,6 +27,7 @@ export function ArticleCoreTab({
   errors: ArticleEditorFieldErrors;
   disabled: boolean;
   articleTypeDisabled?: boolean;
+  otherArticleTypeDisabled?: boolean;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
@@ -64,7 +66,9 @@ export function ArticleCoreTab({
           <AppSelect value={form.articleType} disabled={disabled || articleTypeDisabled}
             aria-label={t("accessories.toolbar.articleType")}
             onChange={(event) => onChange({ articleType: event.target.value as AccessoryArticleType })}>
-            {articleTypes.map((type) => <option key={type} value={type}>{t(`accessories.articleType.${type}`)}</option>)}
+            {articleTypes.map((type) => <option key={type} value={type}
+              disabled={type === "other" && otherArticleTypeDisabled}>
+              {t(`accessories.articleType.${type}`)}</option>)}
           </AppSelect>
         </label>
         <AppTextInput label={t("accessories.editor.fields.subtype")} required disabled={disabled}

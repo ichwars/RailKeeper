@@ -37,6 +37,14 @@ const otherArticle: AccessoryArticle = {
   name: "Signal"
 };
 
+const historicalOtherArticle: AccessoryArticle = {
+  ...article,
+  id: "article-historical",
+  articleType: "other",
+  subtype: "legacy",
+  attributes: [{ key: "legacyMaterial", kind: "text", textValue: "Holz" }]
+};
+
 const stock = (productId: string, totalQuantity: number): AccessoryStockSummary => ({
   productId,
   trackingMode: "quantity",
@@ -75,6 +83,7 @@ describe("useArticleEditorController", () => {
   it("validates the whole form, marks tabs, and navigates to the first invalid tab", async () => {
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.customFieldsLoading).toBe(false));
     act(() => result.current.changeForm({ minimumStock: "-1" }));
 
     await act(async () => result.current.submit());
@@ -95,6 +104,7 @@ describe("useArticleEditorController", () => {
     }] });
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.customFieldsLoading).toBe(false));
     act(() => result.current.changeForm({
       ...emptyArticleEditorForm(),
       manufacturer: "Tillig",
@@ -129,6 +139,64 @@ describe("useArticleEditorController", () => {
     expect(result.current.isOpen).toBe(true);
     expect(result.current.form.internalNotes).toBe("Wert aus unmontiertem Reiter");
     expect(result.current.error).toBe("Netzwerkfehler");
+  });
+
+  it("preserves and resubmits hidden historical custom attributes after a failed edit save", async () => {
+    vi.mocked(api.accessoryArticle).mockResolvedValueOnce(historicalOtherArticle);
+    vi.mocked(api.updateAccessoryArticle).mockRejectedValueOnce(new Error("Speichern fehlgeschlagen"));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle(historicalOtherArticle.id, "edit", false));
+    await waitFor(() => expect(result.current.article?.id).toBe(historicalOtherArticle.id));
+
+    await act(async () => result.current.submit());
+
+    expect(api.updateAccessoryArticle).toHaveBeenCalledWith(historicalOtherArticle.id,
+      expect.objectContaining({ attributes: historicalOtherArticle.attributes }));
+    expect(result.current.form.attributes).toEqual(historicalOtherArticle.attributes);
+    expect(result.current.error).toBe("Speichern fehlgeschlagen");
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it("does not grant historical custom ownership to attributes from a standard-type snapshot", async () => {
+    const standardWithAttribute = { ...article, attributes: [
+      { key: "trackSystem", kind: "text" as const, textValue: "Tillig TT Modellgleis" }
+    ] };
+    vi.mocked(api.accessoryArticle).mockResolvedValueOnce(standardWithAttribute);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle(standardWithAttribute.id, "edit", false));
+    await waitFor(() => expect(result.current.article?.id).toBe(standardWithAttribute.id));
+    await waitFor(() => expect(result.current.customFieldsLoading).toBe(false));
+    act(() => result.current.changeForm({ articleType: "other", subtype: "legacy",
+      attributes: standardWithAttribute.attributes }));
+
+    await act(async () => result.current.submit());
+
+    expect(api.updateAccessoryArticle).not.toHaveBeenCalled();
+    expect(result.current.subjectFieldErrors.trackSystem).toEqual(expect.any(String));
+  });
+
+  it("owns custom-field load failure, blocks only other save, and preserves drafts across retry", async () => {
+    vi.mocked(api.masterData)
+      .mockRejectedValueOnce(new Error("Konfiguration nicht verfügbar"))
+      .mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    act(() => result.current.changeForm({
+      manufacturer: "Tillig", name: "Entwurf", subtype: "sonstig", internalNotes: "Bleibt erhalten"
+    }));
+    await waitFor(() => expect(result.current.customFieldsError).not.toBe(""));
+
+    await act(async () => result.current.submit());
+    expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+    expect(result.current.customFieldsError).not.toBe("");
+
+    await act(async () => result.current.retryCustomFields());
+    expect(result.current.customFieldsError).toBe("");
+    expect(result.current.form.internalNotes).toBe("Bleibt erhalten");
+
+    act(() => result.current.changeForm({ articleType: "track", subtype: "straight" }));
+    await act(async () => result.current.submit());
+    expect(api.createAccessoryArticle).toHaveBeenCalledOnce();
   });
 
   it("loads edit data and asks before closing only when values really changed", async () => {
@@ -355,6 +423,7 @@ describe("useArticleEditorController", () => {
   it("clears field and tab validation markers as soon as the value is corrected", async () => {
     const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
     act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.customFieldsLoading).toBe(false));
     await act(async () => result.current.submit());
     expect(result.current.tabErrors.article).toBe(true);
 

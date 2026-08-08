@@ -1585,6 +1585,7 @@ export const deTranslations: Record<string, string> = {
     "accessories.editor.loading": "Artikeldaten werden geladen …",
     "accessories.editor.detailRequired": "Der Artikel konnte nicht geladen werden und kann nicht gespeichert werden.",
     "accessories.editor.retryResources": "Daten erneut laden",
+    "accessories.editor.retryCustomFields": "Zusatzfelder erneut laden",
     "accessories.editor.tabs.label": "Bereiche des Artikeldialogs",
     "accessories.editor.tabs.article": "Artikel",
     "accessories.editor.tabs.stock": "Bestand",
