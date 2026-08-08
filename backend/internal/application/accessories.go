@@ -99,6 +99,15 @@ type AccessoryDuplicateCheckResult struct {
 	Candidates []AccessoryDuplicateCandidate `json:"candidates"`
 }
 
+type AccessoryProductMutationState struct {
+	Current                    *AccessoryProduct
+	ArticleTypeActive          bool
+	SubtypeActive              bool
+	CustomAttributeDefinitions []domain.AccessoryAttributeDefinition
+}
+
+type AccessoryProductMutationValidator func(AccessoryProductMutationState) error
+
 type StorageLocation struct {
 	ID          string `json:"id"`
 	ParentID    string `json:"parentId,omitempty"`
@@ -123,12 +132,20 @@ type UpdateStorageLocationInput struct {
 type AccessoryCatalogRepository interface {
 	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
 	GetProduct(context.Context, string) (*AccessoryProduct, error)
-	AccessoryArticleTypeActive(context.Context, domain.AccessoryArticleType) (bool, error)
-	AccessorySubtypeActive(context.Context, string) (bool, error)
-	AccessoryCustomAttributeDefinitions(context.Context) ([]domain.AccessoryAttributeDefinition, error)
 	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
-	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
-	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
+	CreateProduct(
+		context.Context,
+		CreateAccessoryProductInput,
+		string,
+		AccessoryProductMutationValidator,
+	) (*AccessoryProduct, error)
+	UpdateProduct(
+		context.Context,
+		string,
+		UpdateAccessoryProductInput,
+		string,
+		AccessoryProductMutationValidator,
+	) (*AccessoryProduct, error)
 	SetProductArchived(context.Context, string, bool, string) (*AccessoryProduct, error)
 }
 
@@ -181,10 +198,12 @@ func (s *AccessoryService) CreateProduct(
 	actor string,
 ) (*AccessoryProduct, error) {
 	input = cleanAccessoryProductInput(input)
-	if err := s.validateAccessoryProductInput(ctx, input, nil); err != nil {
+	if err := validateAccessoryProductStructure(input); err != nil {
 		return nil, err
 	}
-	return s.repository.CreateProduct(ctx, input, actor)
+	return s.repository.CreateProduct(ctx, input, actor, func(state AccessoryProductMutationState) error {
+		return validateAccessoryProductInput(input, state)
+	})
 }
 
 func (s *AccessoryService) UpdateProduct(
@@ -198,14 +217,12 @@ func (s *AccessoryService) UpdateProduct(
 	if id == "" {
 		return nil, ErrAccessoryValidation
 	}
-	current, err := s.repository.GetProduct(ctx, id)
-	if err != nil {
+	if err := validateAccessoryProductStructure(input.CreateAccessoryProductInput); err != nil {
 		return nil, err
 	}
-	if err := s.validateAccessoryProductInput(ctx, input.CreateAccessoryProductInput, current); err != nil {
-		return nil, err
-	}
-	return s.repository.UpdateProduct(ctx, id, input, actor)
+	return s.repository.UpdateProduct(ctx, id, input, actor, func(state AccessoryProductMutationState) error {
+		return validateAccessoryProductInput(input.CreateAccessoryProductInput, state)
+	})
 }
 
 func (s *AccessoryService) SetProductArchived(
@@ -289,11 +306,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	return input
 }
 
-func (s *AccessoryService) validateAccessoryProductInput(
-	ctx context.Context,
-	input CreateAccessoryProductInput,
-	current *AccessoryProduct,
-) error {
+func validateAccessoryProductStructure(input CreateAccessoryProductInput) error {
 	if !validAccessoryProductInput(input) {
 		return ErrAccessoryValidation
 	}
@@ -302,6 +315,14 @@ func (s *AccessoryService) validateAccessoryProductInput(
 			return ErrAccessoryValidation
 		}
 	}
+	return nil
+}
+
+func validateAccessoryProductInput(
+	input CreateAccessoryProductInput,
+	state AccessoryProductMutationState,
+) error {
+	current := state.Current
 	currentArticleType := domain.AccessoryArticleType("")
 	currentSubtype := ""
 	if current != nil {
@@ -309,17 +330,13 @@ func (s *AccessoryService) validateAccessoryProductInput(
 		currentSubtype = normalizeAccessorySubtype(currentArticleType, strings.TrimSpace(current.Subtype))
 	}
 	typeUnchanged := current != nil && currentArticleType == input.ArticleType
-	if !typeUnchanged {
-		active, err := s.repository.AccessoryArticleTypeActive(ctx, input.ArticleType)
-		if err != nil {
-			return err
-		}
-		if !active {
-			return ErrAccessoryValidation
-		}
+	if !typeUnchanged && !state.ArticleTypeActive {
+		return ErrAccessoryValidation
 	}
 	if input.ArticleType == domain.AccessoryArticleOther {
-		if err := s.validateControlledAccessoryAttributes(ctx, input.Attributes, current); err != nil {
+		if err := validateControlledAccessoryAttributes(
+			input.Attributes, current, state.CustomAttributeDefinitions,
+		); err != nil {
 			return err
 		}
 	}
@@ -327,27 +344,19 @@ func (s *AccessoryService) validateAccessoryProductInput(
 	if subtypeUnchanged {
 		return nil
 	}
-	active, err := s.repository.AccessorySubtypeActive(ctx, input.Subtype)
-	if err != nil {
-		return err
-	}
-	if !active {
+	if !state.SubtypeActive {
 		return ErrAccessoryValidation
 	}
 	return nil
 }
 
-func (s *AccessoryService) validateControlledAccessoryAttributes(
-	ctx context.Context,
+func validateControlledAccessoryAttributes(
 	values []domain.AccessoryAttributeValue,
 	current *AccessoryProduct,
+	definitions []domain.AccessoryAttributeDefinition,
 ) error {
 	if err := domain.ValidateAccessoryAttributeValues(domain.AccessoryArticleOther, values); err != nil {
 		return fmt.Errorf("%w: %v", ErrAccessoryValidation, err)
-	}
-	definitions, err := s.repository.AccessoryCustomAttributeDefinitions(ctx)
-	if err != nil {
-		return err
 	}
 	active := make([]domain.AccessoryAttributeDefinition, 0, len(definitions))
 	inactiveByKey := make(map[string]domain.AccessoryAttributeDefinition)

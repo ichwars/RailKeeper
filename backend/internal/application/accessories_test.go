@@ -272,22 +272,69 @@ func validOtherAccessoryProductInput(attributes []domain.AccessoryAttributeValue
 func floatPointer(value float64) *float64 { return &value }
 
 func (spy *accessoryRepositorySpy) CreateProduct(
-	_ context.Context,
+	ctx context.Context,
 	input CreateAccessoryProductInput,
 	_ string,
+	validate AccessoryProductMutationValidator,
 ) (*AccessoryProduct, error) {
+	state, err := spy.productMutationState(ctx, input, nil)
+	if err != nil {
+		return nil, err
+	}
+	if validate != nil {
+		if err := validate(state); err != nil {
+			return nil, err
+		}
+	}
 	spy.createdProduct = input
 	return &AccessoryProduct{Name: input.Name}, nil
 }
 
 func (spy *accessoryRepositorySpy) UpdateProduct(
-	_ context.Context,
+	ctx context.Context,
 	_ string,
 	input UpdateAccessoryProductInput,
 	_ string,
+	validate AccessoryProductMutationValidator,
 ) (*AccessoryProduct, error) {
+	current, err := spy.GetProduct(ctx, "")
+	if err != nil {
+		return nil, err
+	}
+	state, err := spy.productMutationState(ctx, input.CreateAccessoryProductInput, current)
+	if err != nil {
+		return nil, err
+	}
+	if validate != nil {
+		if err := validate(state); err != nil {
+			return nil, err
+		}
+	}
 	spy.updatedProduct = input
 	return &AccessoryProduct{Name: input.Name}, nil
+}
+
+func (spy *accessoryRepositorySpy) productMutationState(
+	ctx context.Context,
+	input CreateAccessoryProductInput,
+	current *AccessoryProduct,
+) (AccessoryProductMutationState, error) {
+	articleTypeActive, err := spy.AccessoryArticleTypeActive(ctx, input.ArticleType)
+	if err != nil {
+		return AccessoryProductMutationState{}, err
+	}
+	subtypeActive, err := spy.AccessorySubtypeActive(ctx, input.Subtype)
+	if err != nil {
+		return AccessoryProductMutationState{}, err
+	}
+	definitions, err := spy.AccessoryCustomAttributeDefinitions(ctx)
+	if err != nil {
+		return AccessoryProductMutationState{}, err
+	}
+	return AccessoryProductMutationState{
+		Current: current, ArticleTypeActive: articleTypeActive, SubtypeActive: subtypeActive,
+		CustomAttributeDefinitions: definitions,
+	}, nil
 }
 
 func (spy *accessoryRepositorySpy) CreateLocation(

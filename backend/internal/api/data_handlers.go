@@ -136,7 +136,8 @@ func (a *App) importMasterData(w http.ResponseWriter, r *http.Request) {
 	result, err := a.masterDataService.Import(r.Context(), doc)
 	if err != nil {
 		if errors.Is(err, application.ErrMasterDataValidation) {
-			respondProblem(w, http.StatusBadRequest, "master_data_import_invalid", "Stammdaten-Datei ist ungültig.")
+			respondProblem(w, http.StatusBadRequest, "master_data_import_invalid",
+				masterDataValidationMessageOr(err, "Stammdaten-Datei ist ungültig."))
 			return
 		}
 		a.logger.Error("master data import failed", "error", err)
@@ -443,10 +444,14 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 }
 
 func masterDataValidationMessage(err error) string {
+	return masterDataValidationMessageOr(err, "Label is required.")
+}
+
+func masterDataValidationMessageOr(err error, fallback string) string {
 	if err != application.ErrMasterDataValidation {
 		return err.Error()
 	}
-	return "Label is required."
+	return fallback
 }
 
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
@@ -456,7 +461,8 @@ func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, application.ErrMasterDataValidation) {
-			respondProblem(w, http.StatusBadRequest, "master_data_validation", "This master data entry cannot be deleted.")
+			respondProblem(w, http.StatusBadRequest, "master_data_validation",
+				masterDataValidationMessageOr(err, "This master data entry cannot be deleted."))
 			return
 		}
 		if errors.Is(err, application.ErrMasterDataNotFound) {

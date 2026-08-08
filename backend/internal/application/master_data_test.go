@@ -5,9 +5,12 @@ import (
 	"errors"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
+	"railkeeper/backend/internal/infrastructure"
 )
 
 func TestMasterDataImportPreservesArticleTypesForLegacyDocuments(t *testing.T) {
@@ -460,6 +463,162 @@ func TestMasterDataImportRejectsMalformedControlledCustomFieldsWithoutMutation(t
 	}
 	if _, err := service.Get(t.Context(), "epoch", "sentinel"); err != nil {
 		t.Fatalf("malformed import changed existing master data: %v", err)
+	}
+}
+
+func TestMasterDataDeleteRejectsReferencedAccessoryCustomFieldWithoutMutation(t *testing.T) {
+	db := testDB(t)
+	masterData := application.NewMasterDataService(db)
+	accessories := application.NewAccessoryService(infrastructure.NewAccessoryRepository(db))
+	product := createCustomFieldReference(t, masterData, accessories)
+
+	err := masterData.Delete(t.Context(), "accessory_custom_field", "length")
+	if !errors.Is(err, application.ErrMasterDataValidation) || !strings.Contains(err.Error(), "referenced") {
+		t.Fatalf("referenced custom field delete error = %v", err)
+	}
+	if _, err := masterData.Get(t.Context(), "accessory_custom_field", "length"); err != nil {
+		t.Fatalf("referenced definition was deleted: %v", err)
+	}
+	assertCustomFieldReference(t, accessories, product.ID)
+}
+
+func TestMasterDataDeleteIgnoresSameNamedStandardArticleAttribute(t *testing.T) {
+	db := testDB(t)
+	masterData := application.NewMasterDataService(db)
+	accessories := application.NewAccessoryService(infrastructure.NewAccessoryRepository(db))
+	active := true
+	if _, err := masterData.Create(t.Context(), "accessory_custom_field", application.MasterDataInput{
+		Key: "lengthMm", Label: "Custom length", Active: &active,
+		Metadata: map[string]any{"kind": "number", "unit": "cm"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	length := 166.0
+	unit := "mm"
+	if _, err := accessories.CreateProduct(t.Context(), application.CreateAccessoryProductInput{
+		Manufacturer: "Tillig", Name: "Straight track", Category: "track",
+		ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight", PackageQuantity: 1,
+		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		Attributes: []domain.AccessoryAttributeValue{{
+			Key: "lengthMm", Kind: domain.AccessoryAttributeNumber, NumberValue: &length, Unit: &unit,
+		}},
+	}, "editor"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := masterData.Delete(t.Context(), "accessory_custom_field", "lengthMm"); err != nil {
+		t.Fatalf("standard article attribute was treated as a custom field reference: %v", err)
+	}
+}
+
+func TestMasterDataImportRejectsOmittedOrRekeyedReferencedCustomFieldBeforeMutation(t *testing.T) {
+	for _, test := range []struct {
+		name   string
+		mutate func(*application.MasterDataDocument)
+	}{
+		{name: "omitted", mutate: func(doc *application.MasterDataDocument) {
+			delete(doc.Entries, "accessory_custom_field")
+		}},
+		{name: "rekeyed", mutate: func(doc *application.MasterDataDocument) {
+			entry := doc.Entries["accessory_custom_field"][0]
+			entry.Key = "renamed-length"
+			entry.ID = "accessory_custom_field:renamed-length"
+			doc.Entries["accessory_custom_field"] = []application.MasterDataEntry{entry}
+		}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			db := testDB(t)
+			masterData := application.NewMasterDataService(db)
+			accessories := application.NewAccessoryService(infrastructure.NewAccessoryRepository(db))
+			product := createCustomFieldReference(t, masterData, accessories)
+			doc, err := masterData.Export(t.Context())
+			if err != nil {
+				t.Fatal(err)
+			}
+			test.mutate(doc)
+
+			if _, err := masterData.Import(t.Context(), doc); !errors.Is(err, application.ErrMasterDataValidation) ||
+				!strings.Contains(err.Error(), "referenced") {
+				t.Fatalf("%s referenced custom field import error = %v", test.name, err)
+			}
+			if _, err := masterData.Get(t.Context(), "accessory_custom_field", "length"); err != nil {
+				t.Fatalf("%s import changed current definition: %v", test.name, err)
+			}
+			assertCustomFieldReference(t, accessories, product.ID)
+		})
+	}
+}
+
+func TestMasterDataImportRetainsInactiveHistoricalCustomFieldForUnchangedArticleEdit(t *testing.T) {
+	db := testDB(t)
+	masterData := application.NewMasterDataService(db)
+	accessories := application.NewAccessoryService(infrastructure.NewAccessoryRepository(db))
+	product := createCustomFieldReference(t, masterData, accessories)
+	doc, err := masterData.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry := doc.Entries["accessory_custom_field"][0]
+	entry.Active = false
+	entry.Metadata = map[string]any{"kind": "number", "unit": "cm"}
+	doc.Entries["accessory_custom_field"] = []application.MasterDataEntry{entry}
+	if _, err := masterData.Import(t.Context(), doc); err != nil {
+		t.Fatalf("inactive retained historical definition import failed: %v", err)
+	}
+
+	value := 12.5
+	unit := "mm"
+	if _, err := accessories.UpdateProduct(t.Context(), product.ID, application.UpdateAccessoryProductInput{
+		CreateAccessoryProductInput: application.CreateAccessoryProductInput{
+			Manufacturer: "Club", Name: "Edited historical article", Category: "other",
+			ArticleType: domain.AccessoryArticleOther, Subtype: "other:other", PackageQuantity: 1,
+			StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+			Attributes: []domain.AccessoryAttributeValue{{
+				Key: "length", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
+			}},
+		},
+	}, "editor"); err != nil {
+		t.Fatalf("unchanged historical custom attribute edit failed: %v", err)
+	}
+}
+
+func createCustomFieldReference(
+	t *testing.T,
+	masterData *application.MasterDataService,
+	accessories *application.AccessoryService,
+) *application.AccessoryProduct {
+	t.Helper()
+	active := true
+	if _, err := masterData.Create(t.Context(), "accessory_custom_field", application.MasterDataInput{
+		Key: "length", Label: "Length", Active: &active,
+		Metadata: map[string]any{"kind": "number", "unit": "mm"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	value := 12.5
+	unit := "mm"
+	product, err := accessories.CreateProduct(t.Context(), application.CreateAccessoryProductInput{
+		Manufacturer: "Club", Name: "Referenced article", Category: "other",
+		ArticleType: domain.AccessoryArticleOther, Subtype: "other:other", PackageQuantity: 1,
+		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+		Attributes: []domain.AccessoryAttributeValue{{
+			Key: "length", Kind: domain.AccessoryAttributeNumber, NumberValue: &value, Unit: &unit,
+		}},
+	}, "editor")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return product
+}
+
+func assertCustomFieldReference(t *testing.T, accessories *application.AccessoryService, productID string) {
+	t.Helper()
+	product, err := accessories.GetProduct(t.Context(), productID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(product.Attributes) != 1 || product.Attributes[0].Key != "length" {
+		t.Fatalf("custom field reference changed: %#v", product.Attributes)
 	}
 }
 

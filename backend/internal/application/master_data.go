@@ -288,11 +288,7 @@ func (s *MasterDataService) Update(ctx context.Context, typeName, key string, in
 		return nil, ErrMasterDataProtected
 	}
 	if typeName == accessoryCustomField {
-		metadata, err := normalizeAccessoryCustomFieldMetadata(key, true, input.Metadata)
-		if err != nil {
-			return nil, err
-		}
-		input.Metadata = metadata
+		return s.updateAccessoryCustomField(ctx, key, input)
 	}
 	active := true
 	if input.Active != nil {
@@ -330,6 +326,9 @@ func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) er
 	key = strings.TrimSpace(key)
 	if typeName == standardArticleType {
 		return ErrMasterDataProtected
+	}
+	if typeName == accessoryCustomField {
+		return s.deleteAccessoryCustomField(ctx, key)
 	}
 	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, typeName, key)
 	if err != nil {
@@ -435,6 +434,12 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 		return nil, fmt.Errorf("begin master data import: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := validateImportedAccessoryCustomFieldReferences(ctx, tx, entriesByType); err != nil {
+		return nil, err
+	}
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_relations`); err != nil {
 		return nil, fmt.Errorf("clear master data relations: %w", err)

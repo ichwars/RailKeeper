@@ -120,10 +120,23 @@ func (r *AccessoryRepository) CreateProduct(
 	ctx context.Context,
 	input application.CreateAccessoryProductInput,
 	actor string,
+	validate application.AccessoryProductMutationValidator,
 ) (*application.AccessoryProduct, error) {
 	now := timestamp()
 	productID := randomID()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		if err := reserveAccessoryWriteTransaction(ctx, tx); err != nil {
+			return err
+		}
+		state, err := accessoryProductMutationState(ctx, tx, "", input)
+		if err != nil {
+			return err
+		}
+		if validate != nil {
+			if err := validate(state); err != nil {
+				return err
+			}
+		}
 		gauges, alternativeNumbers, keywords, err := accessoryProductJSON(input)
 		if err != nil {
 			return err
@@ -162,9 +175,22 @@ func (r *AccessoryRepository) UpdateProduct(
 	id string,
 	input application.UpdateAccessoryProductInput,
 	actor string,
+	validate application.AccessoryProductMutationValidator,
 ) (*application.AccessoryProduct, error) {
 	now := timestamp()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		if err := reserveAccessoryWriteTransaction(ctx, tx); err != nil {
+			return err
+		}
+		state, err := accessoryProductMutationState(ctx, tx, id, input.CreateAccessoryProductInput)
+		if err != nil {
+			return err
+		}
+		if validate != nil {
+			if err := validate(state); err != nil {
+				return err
+			}
+		}
 		currentStrategy, err := accessoryInventoryStrategy(ctx, tx, id)
 		if err != nil {
 			return err
