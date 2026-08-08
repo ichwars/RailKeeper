@@ -705,7 +705,7 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     deleteAccessoryDocument: (productId: string, documentId: string) =>
       request<void>(accessoryDocumentPath(productId, documentId), { method: "DELETE" }),
     accessoryDocumentDownloadPath: (productId: string, documentId: string) =>
-      `/api/v1${accessoryDocumentPath(productId, documentId)}/download`,
+      `/api/v1/accessory-products/${encodeURIComponent(productId)}/documents/${encodeURIComponent(documentId)}/download`,
     accessoryAllocationSummary: (productId: string) =>
       request<AccessoryAllocationSummary>(
         `/accessory-products/${encodeURIComponent(productId)}/allocation-summary`
