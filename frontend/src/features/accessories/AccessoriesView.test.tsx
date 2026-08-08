@@ -52,6 +52,7 @@ function deferred<T>() {
 describe("AccessoriesView", () => {
   beforeEach(() => {
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
+    vi.spyOn(api, "storageLocations").mockResolvedValue([]);
     vi.spyOn(api, "archiveAccessoryProduct").mockResolvedValue({} as never);
     vi.spyOn(api, "restoreAccessoryProduct").mockResolvedValue({} as never);
   });
@@ -197,15 +198,18 @@ describe("AccessoriesView", () => {
     expect(screen.getByText("Schreibgeschützter Zugriff: Sie können Artikel ansehen, aber nicht ändern.")).toBeInTheDocument();
   });
 
-  it("renders no inert create, view, edit, or article-name actions without a Task 11 controller", async () => {
+  it("wires create, view, edit, and article-name actions to the shared Task 11 controller", async () => {
+    const user = userEvent.setup();
     render(<AccessoriesView roles={["Editor"]} />);
     await screen.findByText("Gerades Modellgleis");
 
-    expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Artikel ansehen/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Artikel bearbeiten/ })).not.toBeInTheDocument();
-    expect(screen.getByText("Gerades Modellgleis").closest("button")).toBeNull();
+    expect(screen.getByRole("button", { name: "Neuer Artikel" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Artikel ansehen/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Artikel bearbeiten/ })).toBeInTheDocument();
+    expect(screen.getByText("Gerades Modellgleis").closest("button")).not.toBeNull();
     expect(screen.getByRole("button", { name: /Weitere Aktionen/ })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Neuer Artikel" }));
+    expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();
   });
 
   it("renders no article workspace and performs no request for Messe", () => {

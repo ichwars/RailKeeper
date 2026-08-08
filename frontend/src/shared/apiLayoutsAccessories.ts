@@ -151,19 +151,6 @@ export type AccessoryAttributeValue =
   | { key: string; kind: "single_select"; optionValues: [string] }
   | { key: string; kind: "multi_select"; optionValues: string[] };
 
-/** @deprecated Kept only until the legacy accessory panels are removed in Task 10/11. */
-export type AccessoryProduct = {
-  id: string;
-  manufacturer: string;
-  articleNumber?: string;
-  name: string;
-  category: string;
-  trackingMode: AccessoryTrackingMode;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-};
-
 export type AccessoryArticle = {
   id: string;
   manufacturer: string;
@@ -193,16 +180,6 @@ export type AccessoryArticle = {
   primaryImageUrl?: string;
   createdAt: string;
   updatedAt: string;
-};
-
-/** @deprecated Kept only until the legacy accessory panels are removed in Task 10/11. */
-export type AccessoryProductInput = {
-  manufacturer: string;
-  articleNumber?: string;
-  name: string;
-  category: string;
-  trackingMode: AccessoryTrackingMode;
-  description?: string;
 };
 
 export type AccessoryArticleWriteInput = {
@@ -628,31 +605,6 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/archive`, { method: "POST" }),
     restoreAccessoryProduct: (id: string) =>
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/restore`, { method: "POST" }),
-    /** @deprecated Kept only for the legacy accessory panels until Task 10/11. */
-    accessoryProducts: async (query = "") => {
-      const result = await request<AccessoryArticleListResult>(
-        `/accessory-products${query ? `?query=${encodeURIComponent(query)}` : ""}`
-      );
-      return result.items.map(toLegacyAccessoryListItem);
-    },
-    /** @deprecated Use createAccessoryArticle. */
-    createAccessoryProduct: async (input: AccessoryProductInput) =>
-      toLegacyAccessoryProduct(
-        await request<AccessoryArticle>("/accessory-products", json("POST", toLegacyAccessoryCreateWrite(input)))
-      ),
-    /** @deprecated Use accessoryArticle. */
-    accessoryProduct: async (id: string) =>
-      toLegacyAccessoryProduct(
-        await request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}`)
-      ),
-    /** @deprecated Use updateAccessoryArticle. */
-    updateAccessoryProduct: async (id: string, input: AccessoryProductInput) => {
-      const path = `/accessory-products/${encodeURIComponent(id)}`;
-      const current = await request<AccessoryArticle>(path);
-      return toLegacyAccessoryProduct(
-        await request<AccessoryArticle>(path, json("PUT", mergeLegacyAccessoryWrite(current, input)))
-      );
-    },
     storageLocations: () => request<StorageLocation[]>("/storage-locations"),
     createStorageLocation: (input: StorageLocationInput) =>
       request<StorageLocation>("/storage-locations", json("POST", input)),
@@ -758,83 +710,6 @@ function accessoryDocumentForm(input: AccessoryDocumentUploadInput): FormData {
   if (input.description !== undefined) form.append("description", input.description);
   if (input.isPrimary !== undefined) form.append("isPrimary", String(input.isPrimary));
   return form;
-}
-
-function toLegacyAccessoryListItem(article: AccessoryArticleListItem): AccessoryProduct {
-  return {
-    id: article.id,
-    manufacturer: article.manufacturer,
-    articleNumber: article.articleNumber || undefined,
-    name: article.name,
-    category: article.subtype,
-    trackingMode: article.inventoryStrategy === "individual" ? "individual" : "quantity",
-    createdAt: article.updatedAt,
-    updatedAt: article.updatedAt
-  };
-}
-
-function toLegacyAccessoryProduct(article: AccessoryArticle): AccessoryProduct {
-  return {
-    id: article.id,
-    manufacturer: article.manufacturer,
-    articleNumber: article.articleNumber,
-    name: article.name,
-    category: article.category,
-    trackingMode: article.trackingMode,
-    description: article.description,
-    createdAt: article.createdAt,
-    updatedAt: article.updatedAt
-  };
-}
-
-function toLegacyAccessoryCreateWrite(input: AccessoryProductInput): AccessoryArticleWriteInput {
-  return {
-    manufacturer: input.manufacturer,
-    articleNumber: input.articleNumber,
-    name: input.name,
-    category: input.category,
-    trackingMode: input.trackingMode,
-    description: input.description,
-    articleType: "other",
-    subtype: input.category,
-    packageQuantity: 1,
-    stockUnit: "piece",
-    inventoryStrategy: input.trackingMode
-  };
-}
-
-function mergeLegacyAccessoryWrite(
-  current: AccessoryArticle,
-  input: AccessoryProductInput
-): AccessoryArticleWriteInput {
-  const categoryChanged = input.category !== current.category && input.category !== current.subtype;
-  const trackingChanged = input.trackingMode !== current.trackingMode;
-  return {
-    manufacturer: input.manufacturer,
-    articleNumber: input.articleNumber,
-    name: input.name,
-    category: categoryChanged ? input.category : current.category,
-    trackingMode: trackingChanged ? input.trackingMode : current.trackingMode,
-    description: input.description?.trim() ? input.description : current.description,
-    ean: current.ean,
-    manufacturerStatus: current.manufacturerStatus,
-    articleType: current.articleType,
-    subtype: categoryChanged && current.articleType === "other" ? input.category : current.subtype,
-    gauges: current.gauges,
-    scale: current.scale,
-    packageQuantity: current.packageQuantity,
-    stockUnit: current.stockUnit,
-    minimumStock: current.minimumStock,
-    inventoryStrategy: trackingChanged ? input.trackingMode : current.inventoryStrategy,
-    manufacturerUrl: current.manufacturerUrl,
-    productUrl: current.productUrl,
-    alternativeNumbers: current.alternativeNumbers,
-    keywords: current.keywords,
-    compatibilityNotes: current.compatibilityNotes,
-    internalNotes: current.internalNotes,
-    archived: current.archived,
-    attributes: current.attributes
-  };
 }
 
 function json(method: "POST" | "PUT", body: object): RequestInit {

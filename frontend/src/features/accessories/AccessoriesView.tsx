@@ -1,10 +1,12 @@
 import type { AccessoryArticleListItem } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleMetrics } from "./ArticleMetrics";
+import { ArticleEditorDialog } from "./ArticleEditorDialog";
 import { ArticleOverviewHeader } from "./ArticleOverviewHeader";
 import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
 import { useArticleOverview } from "./useArticleOverview";
+import { useArticleEditorController } from "./useArticleEditorController";
 
 export type ArticleOpenMode = "view" | "edit";
 
@@ -22,6 +24,7 @@ export function AccessoriesView({
   const canRead = roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const overview = useArticleOverview({ enabled: canRead });
+  const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const { t } = useI18n();
 
   if (!canRead) {
@@ -29,8 +32,10 @@ export function AccessoriesView({
   }
 
   const openArticle = (article: AccessoryArticleListItem, mode: ArticleOpenMode) => {
-    onOpenArticle?.(article.id, mode);
+    if (onOpenArticle) onOpenArticle(article.id, mode);
+    else editor.openArticle(article.id, mode, article.hasUsageHistory);
   };
+  const createArticle = onCreateArticle || editor.openCreate;
 
   const isFirstLoad = overview.loading && overview.data.items.length === 0;
   const hasNoArticles = overview.data.items.length === 0 &&
@@ -40,7 +45,7 @@ export function AccessoriesView({
 
   return (
     <>
-      <ArticleOverviewHeader canEdit={canEdit} onCreate={onCreateArticle} />
+      <ArticleOverviewHeader canEdit={canEdit} onCreate={createArticle} />
       {!canEdit ? <p className="article-read-only-note">{t("accessories.overview.readOnly")}</p> : null}
       <ArticleMetrics
         metrics={overview.data.metrics}
@@ -69,8 +74,8 @@ export function AccessoriesView({
         ) : hasNoArticles ? (
           <div className="empty-state article-empty-state">
             <p>{t("accessories.overview.empty")}</p>
-            {canEdit && onCreateArticle ? (
-              <button type="button" className="primary-button" onClick={onCreateArticle}>
+            {canEdit ? (
+              <button type="button" className="primary-button" onClick={createArticle}>
                 {t("accessories.overview.createFirst")}
               </button>
             ) : null}
@@ -91,13 +96,39 @@ export function AccessoriesView({
             direction={overview.direction}
             canEdit={canEdit}
             onSort={overview.setSort}
-            onView={onOpenArticle ? (article) => openArticle(article, "view") : undefined}
-            onEdit={onOpenArticle ? (article) => openArticle(article, "edit") : undefined}
+            onView={(article) => openArticle(article, "view")}
+            onEdit={(article) => openArticle(article, "edit")}
             onArchive={(article) => overview.archiveArticle(article.id)}
             onRestore={(article) => overview.restoreArticle(article.id)}
           />
         )}
       </section>
+      {editor.isOpen ? <ArticleEditorDialog
+        mode={editor.mode}
+        form={editor.form}
+        article={editor.article}
+        activeTab={editor.activeTab}
+        hasUsageHistory={editor.hasUsageHistory}
+        saving={editor.saving}
+        loading={editor.loading}
+        error={editor.error}
+        fieldErrors={editor.fieldErrors}
+        tabErrors={editor.tabErrors}
+        duplicateCandidates={editor.duplicateCandidates}
+        closeConfirmationOpen={editor.closeConfirmationOpen}
+        permissions={editor.permissions}
+        resources={editor.resources}
+        returnFocusTo={editor.returnFocusTo}
+        onChange={editor.changeForm}
+        onTabChange={editor.setActiveTab}
+        onSubmit={editor.submit}
+        onRequestClose={editor.requestClose}
+        onConfirmClose={editor.confirmClose}
+        onCancelClose={editor.cancelClose}
+        onConfirmDuplicate={editor.confirmDuplicateSave}
+        onCancelDuplicate={editor.cancelDuplicateSave}
+        onResourcesChanged={editor.refreshResources}
+      /> : null}
     </>
   );
 }

@@ -7,7 +7,7 @@ import {
   type AccessoryAsset,
   type AccessoryCondition,
   type AccessoryInstallation,
-  type AccessoryProduct,
+  type AccessoryArticle,
   type AccessoryRemovalDisposition,
   type AccessoryReservation,
   type Layout,
@@ -29,9 +29,9 @@ import { activeStorageLocations, storageLocationPath } from "../../shared/storag
 
 const conditions: AccessoryCondition[] = ["ready", "maintenance_due", "defective", "unknown"];
 
-export function AccessoryInstallationsPanel({ product, reservations, installations, assets, locations, vehicles,
+export function AccessoryInstallationsPanel({ article, reservations, installations, assets, locations, vehicles,
   layouts, units, canInstall, onChanged }: {
-  product: AccessoryProduct | null;
+  article: AccessoryArticle;
   reservations: AccessoryReservation[];
   installations: AccessoryInstallation[];
   assets: AccessoryAsset[];
@@ -56,8 +56,6 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
   const [removalNotes, setRemovalNotes] = useState("");
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const { t } = useI18n();
-  if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-
   const activeReservations = reservations.filter((reservation) => reservation.status === "active");
   const activeLocations = activeStorageLocations(locations);
   const selectedReservation = activeReservations.find((reservation) => reservation.id === reservationID);
@@ -73,7 +71,7 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
   const effectiveAssetID = selectedReservation?.assetId ||
     (sourceAssets.some((asset) => asset.id === assetID) ? assetID : sourceAssets[0]?.id || "");
   const effectiveQuantity = selectedReservation?.quantity || Number(quantity);
-  const isIndividual = product.trackingMode === "individual";
+  const isIndividual = article.inventoryStrategy === "individual";
   const canSubmit = Boolean(targetInput && effectiveLocationID && (!isIndividual || effectiveAssetID));
   const effectiveRemovalLocationID = activeLocations.some((location) => location.id === removalLocationID)
     ? removalLocationID : activeLocations[0]?.id || "";
@@ -88,12 +86,12 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
     if (!allocationTarget) return;
     setAction({
       title: t("accessories.installations.confirmTitle"),
-      body: t("accessories.installations.confirmBody", { product: product.name }),
+      body: t("accessories.installations.confirmBody", { product: article.name }),
       run: async () => {
         await api.createAccessoryInstallation({
           ...allocationTarget,
           reservationId: selectedReservation?.id,
-          productId: product.id,
+          productId: article.id,
           assetId: isIndividual ? effectiveAssetID : undefined,
           sourceLocationId: effectiveLocationID,
           quantity: isIndividual ? 1 : effectiveQuantity,

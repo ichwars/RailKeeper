@@ -5,7 +5,7 @@ import { CalendarClock } from "lucide-react";
 import {
   api,
   type AccessoryAsset,
-  type AccessoryProduct,
+  type AccessoryArticle,
   type AccessoryReservation,
   type Layout,
   type LayoutUnit,
@@ -24,9 +24,9 @@ import {
 } from "./AccessoryTargetFields";
 import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 
-export function AccessoryReservationsPanel({ product, reservations, assets, locations, vehicles, layouts, units,
+export function AccessoryReservationsPanel({ article, reservations, assets, locations, vehicles, layouts, units,
   canReserve, onChanged }: {
-  product: AccessoryProduct | null;
+  article: AccessoryArticle;
   reservations: AccessoryReservation[];
   assets: AccessoryAsset[];
   locations: StorageLocation[];
@@ -43,8 +43,6 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const { t } = useI18n();
-  if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-
   const activeLocations = activeStorageLocations(locations);
   const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
     ? locationID : activeLocations[0]?.id || "";
@@ -53,7 +51,7 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
     ? assetID : availableAssets[0]?.id || "";
   const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
   const targetInput = accessoryTargetInput(resolvedTarget);
-  const isIndividual = product.trackingMode === "individual";
+  const isIndividual = article.inventoryStrategy === "individual";
   const canSubmit = Boolean(effectiveLocationID && targetInput && (!isIndividual || effectiveAssetID));
 
   const submit = (event: FormEvent) => {
@@ -61,11 +59,11 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
     if (!targetInput || !canSubmit) return;
     setAction({
       title: t("accessories.reservations.confirmTitle"),
-      body: t("accessories.reservations.confirmBody", { product: product.name }),
+      body: t("accessories.reservations.confirmBody", { product: article.name }),
       run: async () => {
         await api.createAccessoryReservation({
           ...targetInput,
-          productId: product.id,
+          productId: article.id,
           assetId: isIndividual ? effectiveAssetID : undefined,
           locationId: effectiveLocationID,
           quantity: isIndividual ? 1 : Number(quantity),
