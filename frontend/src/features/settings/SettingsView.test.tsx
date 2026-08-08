@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../shared/api";
 import { SettingsView } from "./SettingsView";
-import { settingsTabs } from "./settingsModel";
+import { masterDataTypes, settingsTabs } from "./settingsModel";
 
 describe("SettingsView article management navigation", () => {
   beforeEach(() => {
@@ -26,6 +26,17 @@ describe("SettingsView article management navigation", () => {
       id: "articleManagement",
       labelKey: "settings.tabs.articleManagement"
     });
+  });
+
+  it("does not expose manufacturers in the legacy master-data administration", async () => {
+    window.history.replaceState(null, "", "/settings?tab=data");
+    vi.spyOn(api, "masterDataAll").mockResolvedValue({ manufacturer: [], vehicle_category: [] });
+
+    render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("button", { name: "Kategorie" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hersteller" })).not.toBeInTheDocument();
+    expect(masterDataTypes).not.toContainEqual({ type: "manufacturer" });
   });
 
   it("keeps the selected settings tab in the query path", async () => {

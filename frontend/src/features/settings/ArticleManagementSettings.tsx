@@ -1,5 +1,5 @@
 import { Archive, ArchiveRestore, Pencil, Plus, X } from "lucide-react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { api, type MasterDataEntry, type MasterDataInput, type StorageLocation } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
@@ -115,7 +115,9 @@ function MasterDataSettingsSection({
     setBusy(true);
     setMessage("");
     try {
-      onChanged(type, await api.updateMasterData(type, entry.key, entryInput(entry, entry.label, active)));
+      const updated = await api.updateMasterData(type, entry.key, entryInput(entry, entry.label, active));
+      onChanged(type, updated);
+      if (editing?.key === updated.key) setEditing(updated);
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : t("settings.articleManagement.error.generic"));
     } finally {
@@ -251,35 +253,47 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
   const [activeSection, setActiveSection] = useState<ArticleSettingsSection>("manufacturers");
   const [entriesByType, setEntriesByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
-  const [loading, setLoading] = useState(false);
+  const [loadingSection, setLoadingSection] = useState<ArticleSettingsSection | null>(null);
+  const [masterMessage, setMasterMessage] = useState("");
   const [locations, setLocations] = useState<StorageLocation[]>([]);
   const [locationsLoaded, setLocationsLoaded] = useState(false);
+  const [locationsAttempted, setLocationsAttempted] = useState(false);
   const [locationsLoading, setLocationsLoading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [locationsMessage, setLocationsMessage] = useState("");
+  const masterRequestID = useRef(0);
+  const locationRequestID = useRef(0);
 
   const loadStorageLocations = useCallback(async () => {
+    const requestID = ++locationRequestID.current;
+    setLocationsAttempted(true);
     setLocationsLoading(true);
-    setMessage("");
+    setLocationsMessage("");
     try {
-      setLocations(await api.storageLocations());
+      const loaded = await api.storageLocations();
+      if (requestID !== locationRequestID.current) return;
+      setLocations(loaded);
       setLocationsLoaded(true);
     } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : t("settings.articleManagement.error.generic"));
+      if (requestID !== locationRequestID.current) return;
+      setLocationsMessage(reason instanceof Error ? reason.message : t("settings.articleManagement.error.generic"));
     } finally {
-      setLocationsLoading(false);
+      if (requestID === locationRequestID.current) setLocationsLoading(false);
     }
   }, [t]);
 
   useEffect(() => {
     if (!canRead) return;
+    const requestID = ++masterRequestID.current;
     const typesToLoad = typesBySection[activeSection].filter((type) => !loadedTypes[type]);
-    if (typesToLoad.length === 0) return;
-    let cancelled = false;
-    setLoading(true);
-    setMessage("");
+    setMasterMessage("");
+    if (typesToLoad.length === 0) {
+      setLoadingSection(null);
+      return;
+    }
+    setLoadingSection(activeSection);
     Promise.all(typesToLoad.map(async (type) => [type, await api.masterData(type)] as const))
       .then((results) => {
-        if (cancelled) return;
+        if (requestID !== masterRequestID.current) return;
         setEntriesByType((current) => ({ ...current, ...Object.fromEntries(results) }));
         setLoadedTypes((current) => ({
           ...current,
@@ -287,18 +301,28 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
         }));
       })
       .catch((reason: Error) => {
-        if (!cancelled) setMessage(reason.message);
+        if (requestID === masterRequestID.current) setMasterMessage(reason.message);
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (requestID === masterRequestID.current) setLoadingSection(null);
       });
-    return () => { cancelled = true; };
   }, [activeSection, canRead, loadedTypes]);
 
   useEffect(() => {
-    if (!canRead || activeSection !== "locations" || locationsLoaded || locationsLoading) return;
+    if (!canRead || activeSection !== "locations" || locationsLoaded || locationsAttempted) return;
     void loadStorageLocations();
-  }, [activeSection, canRead, loadStorageLocations, locationsLoaded, locationsLoading]);
+  }, [activeSection, canRead, loadStorageLocations, locationsAttempted, locationsLoaded]);
+
+  const selectSection = (section: ArticleSettingsSection) => {
+    masterRequestID.current += 1;
+    setLoadingSection(null);
+    if (activeSection === "locations" && section !== "locations") {
+      locationRequestID.current += 1;
+      setLocationsLoading(false);
+      if (!locationsLoaded) setLocationsAttempted(false);
+    }
+    setActiveSection(section);
+  };
 
   const updateEntry = (type: MasterDataType, entry: MasterDataEntry) => {
     setEntriesByType((current) => ({
@@ -327,13 +351,21 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
           <nav className="settings-tabs article-management-tabs" aria-label={t("settings.articleManagement.sections") }>
             {sections.map((section) => (
               <button key={section} type="button" className={activeSection === section ? "active" : ""}
-                onClick={() => setActiveSection(section)}>
+                aria-pressed={activeSection === section} onClick={() => selectSection(section)}>
                 {t(`settings.articleManagement.section.${section}`)}
               </button>
             ))}
           </nav>
-          {message && <p className="form-message" role="alert">{message}</p>}
-          {loading ? <p className="loading-cell">{t("settings.articleManagement.loading")}</p> : (
+          {masterMessage && <p className="form-message" role="alert">{masterMessage}</p>}
+          {activeSection === "locations" && locationsMessage && <div className="form-message" role="alert">
+            <span>{locationsMessage}</span>{" "}
+            <button type="button" className="secondary-button compact-action"
+              onClick={() => void loadStorageLocations()}>
+              {t("settings.articleManagement.locations.retry")}
+            </button>
+          </div>}
+          {loadingSection === activeSection ?
+            <p className="loading-cell">{t("settings.articleManagement.loading")}</p> : (
             <div className="article-management-section">
               {activeSection === "manufacturers" && renderMasterData("manufacturer")}
               {activeSection === "units" && renderMasterData("stock_unit")}
@@ -342,9 +374,9 @@ export function ArticleManagementSettings({ roles }: { roles: string[] }) {
                 {renderMasterData("accessory_subtype")}
               </>}
               {activeSection === "customFields" && renderMasterData("accessory_custom_field")}
-              {activeSection === "locations" && (locationsLoading ?
+              {activeSection === "locations" && (locationsLoading || (!locationsLoaded && !locationsAttempted) ?
                 <p className="loading-cell">{t("settings.articleManagement.locations.loading")}</p> :
-                <StorageLocationsSettings locations={locations} canEdit={canEdit}
+                !locationsMessage && <StorageLocationsSettings locations={locations} canEdit={canEdit}
                   onChanged={loadStorageLocations} />)}
             </div>
           )}

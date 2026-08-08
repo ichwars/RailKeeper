@@ -24,6 +24,65 @@ type allocationFixture struct {
 	vehicle           *application.Vehicle
 }
 
+func TestAccessoryUsageRejectsActiveLocationBelowArchivedAncestor(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	child, err := fixture.accessories.CreateLocation(ctx, application.CreateStorageLocationInput{
+		ParentID: fixture.location.ID, Name: "Regal",
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: child.ID, Delta: 2}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := fixture.accessories.CreateAsset(ctx, fixture.individualProduct.ID,
+		application.CreateAccessoryAssetInput{
+			InventoryNumber: "RK-Z-CHILD", Condition: domain.AccessoryConditionReady,
+			Lifecycle: domain.AccessoryLifecycleStored, StorageLocationID: child.ID,
+		}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.UpdateLocation(ctx, fixture.location.ID,
+		application.UpdateStorageLocationInput{
+			CreateStorageLocationInput: application.CreateStorageLocationInput{
+				Name: fixture.location.Name, Archived: true,
+			},
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	assertConflict := func(name string, err error) {
+		t.Helper()
+		if !errors.Is(err, application.ErrAccessoryConflict) {
+			t.Fatalf("%s: expected archived-ancestor conflict, got %v", name, err)
+		}
+	}
+	_, err = fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: child.ID, Delta: 1}, "editor-1")
+	assertConflict("stock", err)
+	_, err = fixture.accessories.UpdateAsset(ctx, asset.ID, application.UpdateAccessoryAssetInput{
+		CreateAccessoryAssetInput: application.CreateAccessoryAssetInput{
+			InventoryNumber: asset.InventoryNumber, Condition: asset.Condition,
+			Lifecycle: asset.Lifecycle, StorageLocationID: child.ID,
+		},
+	}, "editor-1")
+	assertConflict("asset", err)
+	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.quantityProduct.ID, LocationID: child.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+	}, "planner-1")
+	assertConflict("reservation", err)
+	_, err = fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ProductID: fixture.quantityProduct.ID, SourceLocationID: child.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	assertConflict("installation", err)
+}
+
 func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()

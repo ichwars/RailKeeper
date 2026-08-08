@@ -436,6 +436,10 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
 	if err := a.masterDataService.Delete(r.Context(), r.PathValue("type"), r.PathValue("key")); err != nil {
+		if errors.Is(err, application.ErrMasterDataValidation) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", "This master data entry cannot be deleted.")
+			return
+		}
 		if errors.Is(err, application.ErrMasterDataNotFound) {
 			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
 			return

@@ -25,7 +25,7 @@ import {
   resolveAccessoryTargetSelection,
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
-import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
+import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 
 const conditions: AccessoryCondition[] = ["ready", "maintenance_due", "defective", "unknown"];
 

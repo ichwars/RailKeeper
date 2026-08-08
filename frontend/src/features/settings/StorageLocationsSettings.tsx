@@ -5,7 +5,7 @@ import { api, type StorageLocation, type StorageLocationInput } from "../../shar
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
-import { availableStorageLocationParents, storageLocationPath } from "./storageLocations";
+import { availableStorageLocationParents, storageLocationPath } from "../../shared/storageLocations";
 
 function locationInput(location: StorageLocation, archived = location.archived): StorageLocationInput {
   return {
@@ -75,6 +75,7 @@ export function StorageLocationsSettings({ locations, canEdit, onChanged }: {
     setMessage("");
     try {
       await api.updateStorageLocation(location.id, locationInput(location, archived));
+      if (editing?.id === location.id) resetForm();
       await onChanged();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : t("accessories.error.generic"));

@@ -48,7 +48,7 @@ func (r *AccessoryRepository) CreateReservation(
 		if err != nil {
 			return err
 		}
-		if err := requireStorageLocation(ctx, tx, input.LocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.LocationID); err != nil {
 			return err
 		}
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {

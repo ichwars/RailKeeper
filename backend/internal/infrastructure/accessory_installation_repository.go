@@ -47,7 +47,7 @@ func (r *AccessoryRepository) Install(
 		if err != nil {
 			return err
 		}
-		if err := requireStorageLocation(ctx, tx, input.SourceLocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.SourceLocationID); err != nil {
 			return err
 		}
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {
@@ -162,7 +162,7 @@ func (r *AccessoryRepository) RemoveInstallation(
 			return err
 		}
 		if input.Disposition == domain.AccessoryRemovalStored {
-			if err := requireStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
+			if err := requireActiveStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
 				return err
 			}
 		}

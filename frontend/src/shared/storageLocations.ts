@@ -1,7 +1,19 @@
-import type { StorageLocation } from "../../shared/api";
+import type { StorageLocation } from "./api";
 
 export function activeStorageLocations(locations: StorageLocation[]) {
-  return locations.filter((location) => !location.archived);
+  const byID = new Map(locations.map((location) => [location.id, location]));
+  return locations.filter((location) => {
+    const visited = new Set<string>();
+    let current: StorageLocation | undefined = location;
+    while (current) {
+      if (current.archived || visited.has(current.id)) return false;
+      visited.add(current.id);
+      if (!current.parentId) return true;
+      current = byID.get(current.parentId);
+      if (!current) return false;
+    }
+    return false;
+  });
 }
 
 export function storageLocationPath(location: StorageLocation, locations: StorageLocation[]) {

@@ -13,7 +13,7 @@ import {
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
-import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
+import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 
 export function AccessoryStockPanel({ mode, product, stock, assets, locations, canEdit, onChanged }: {
   mode: "stock" | "assets";

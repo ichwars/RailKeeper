@@ -2,10 +2,41 @@ package application_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 )
+
+func TestMasterDataServiceProtectsStandardArticleTypeKeys(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+	active := true
+	inactive := false
+
+	if _, err := service.Create(ctx, "article_type", application.MasterDataInput{
+		Key: "custom", Label: "Custom", Active: &active,
+	}); !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("expected article type creation to be rejected, got %v", err)
+	}
+	if _, err := service.Update(ctx, "article_type", "track", application.MasterDataInput{
+		Key: "renamed", Label: "Gleismaterial", Active: &active,
+	}); !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("expected article type key change to be rejected, got %v", err)
+	}
+	updated, err := service.Update(ctx, "article_type", "track", application.MasterDataInput{
+		Label: "Gleismaterial", Active: &inactive,
+	})
+	if err != nil {
+		t.Fatalf("expected article type label and active state to remain editable: %v", err)
+	}
+	if updated.Key != "track" || updated.Label != "Gleismaterial" || updated.Active {
+		t.Fatalf("unexpected standard article type update: %#v", updated)
+	}
+	if err := service.Delete(ctx, "article_type", "track"); !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("expected article type deletion to be rejected, got %v", err)
+	}
+}
 
 func TestMasterDataExportImportReplacesEntriesAndRelations(t *testing.T) {
 	ctx := context.Background()

@@ -27,7 +27,7 @@ func (r *AccessoryRepository) AdjustStock(
 			strategy != domain.AccessoryInventoryQuantityLaterIndividual {
 			return application.ErrAccessoryTrackingMode
 		}
-		if err := requireStorageLocation(ctx, tx, input.LocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.LocationID); err != nil {
 			return err
 		}
 		current := 0
@@ -146,7 +146,7 @@ func (r *AccessoryRepository) CreateAsset(
 		if mode != domain.AccessoryTrackingModeIndividual {
 			return application.ErrAccessoryTrackingMode
 		}
-		if err := requireStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
 			return err
 		}
 		if _, err := tx.ExecContext(ctx, `
@@ -188,7 +188,7 @@ func (r *AccessoryRepository) UpdateAsset(
 			currentLifecycle == domain.AccessoryLifecycleInstalled {
 			return application.ErrAccessoryConflict
 		}
-		if err := requireStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
 			return err
 		}
 		result, err := tx.ExecContext(ctx, `
@@ -431,12 +431,24 @@ func accessoryInventoryStrategy(
 }
 
 func requireActiveStorageLocation(ctx context.Context, queryer accessoryQueryer, id string) error {
-	var archived int
-	if err := queryer.QueryRowContext(ctx, `SELECT archived FROM storage_locations WHERE id=?`, id).
-		Scan(&archived); errors.Is(err, sql.ErrNoRows) {
-		return application.ErrAccessoryNotFound
-	} else if err != nil {
+	if id == "" {
+		return nil
+	}
+	var count, archived int
+	if err := queryer.QueryRowContext(ctx, `
+WITH RECURSIVE location_chain(id, parent_id, archived, path) AS (
+  SELECT id, parent_id, archived, ',' || id || ',' FROM storage_locations WHERE id=?
+  UNION ALL
+  SELECT parent.id, parent.parent_id, parent.archived, chain.path || parent.id || ','
+  FROM storage_locations parent
+  JOIN location_chain chain ON parent.id=chain.parent_id
+  WHERE instr(chain.path, ',' || parent.id || ',')=0
+)
+SELECT COUNT(*), COALESCE(MAX(archived), 0) FROM location_chain`, id).Scan(&count, &archived); err != nil {
 		return fmt.Errorf("read accessory storage location: %w", err)
+	}
+	if count == 0 {
+		return application.ErrAccessoryNotFound
 	}
 	if archived != 0 {
 		return application.ErrAccessoryConflict

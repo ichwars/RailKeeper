@@ -24,7 +24,6 @@ export const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
 ];
 
 export const masterDataTypes: MasterDataType[] = [
-  { type: "manufacturer" },
   { type: "vehicle_category" },
   { type: "vehicle_gattung" },
   { type: "epoch" },

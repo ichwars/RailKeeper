@@ -87,6 +87,7 @@ export const deTranslations: Record<string, string> = {
     "settings.articleManagement.empty": "Noch keine Einträge vorhanden.",
     "settings.articleManagement.loading": "Artikeldaten werden geladen...",
     "settings.articleManagement.locations.loading": "Lagerorte werden geladen...",
+    "settings.articleManagement.locations.retry": "Erneut versuchen",
     "settings.articleManagement.locations.title": "Lagerorthierarchie",
     "settings.articleManagement.locations.create": "Lagerort anlegen",
     "settings.articleManagement.locations.edit": "Lagerort bearbeiten",

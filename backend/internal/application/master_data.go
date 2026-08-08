@@ -18,6 +18,7 @@ var (
 )
 
 const masterDataExportFormat = "railkeeper-master-data"
+const standardArticleType = "article_type"
 
 type MasterDataService struct {
 	db      *sql.DB
@@ -168,7 +169,7 @@ FROM master_data_entries`
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {
 	typeName = strings.TrimSpace(typeName)
 	input = cleanMasterDataInput(input)
-	if typeName == "" || input.Label == "" {
+	if typeName == "" || typeName == standardArticleType || input.Label == "" {
 		return nil, ErrMasterDataValidation
 	}
 	if input.Key == "" {
@@ -240,6 +241,9 @@ func (s *MasterDataService) Update(ctx context.Context, typeName, key string, in
 	if typeName == "" || key == "" || input.Label == "" {
 		return nil, ErrMasterDataValidation
 	}
+	if typeName == standardArticleType && input.Key != "" && input.Key != key {
+		return nil, ErrMasterDataValidation
+	}
 	active := true
 	if input.Active != nil {
 		active = *input.Active
@@ -272,7 +276,12 @@ WHERE type=? AND key=?
 }
 
 func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) error {
-	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, strings.TrimSpace(typeName), strings.TrimSpace(key))
+	typeName = strings.TrimSpace(typeName)
+	key = strings.TrimSpace(key)
+	if typeName == standardArticleType {
+		return ErrMasterDataValidation
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, typeName, key)
 	if err != nil {
 		return fmt.Errorf("delete master data: %w", err)
 	}

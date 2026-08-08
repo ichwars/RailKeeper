@@ -6,6 +6,16 @@ import { api, type MasterDataEntry, type StorageLocation } from "../../shared/ap
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
 import { StorageLocationsSettings } from "./StorageLocationsSettings";
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
 const entry = (type: string, key: string, label: string): MasterDataEntry => ({
   id: `${type}-${key}`,
   type,
@@ -77,6 +87,63 @@ describe("ArticleManagementSettings", () => {
     ]);
   });
 
+  it.each(["Planner", "Viewer"])("keeps the article settings read-only for %s", async (role) => {
+    render(<ArticleManagementSettings roles={[role]} />);
+
+    expect(await screen.findByText("Tillig")).toBeInTheDocument();
+    expect(screen.getByText(/Änderungen sind nur für Admins und Editoren möglich/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /bearbeiten|archivieren|anlegen/i })).not.toBeInTheDocument();
+  });
+
+  it("marks the active article-management section accessibly", async () => {
+    const user = userEvent.setup();
+    render(<ArticleManagementSettings roles={["Viewer"]} />);
+
+    const manufacturers = screen.getByRole("button", { name: "Hersteller" });
+    const locationsButton = screen.getByRole("button", { name: "Lagerorte" });
+    expect(manufacturers).toHaveAttribute("aria-pressed", "true");
+    expect(locationsButton).toHaveAttribute("aria-pressed", "false");
+
+    await user.click(locationsButton);
+    expect(manufacturers).toHaveAttribute("aria-pressed", "false");
+    expect(locationsButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("settles the active location request when an earlier master-data request finishes late", async () => {
+    const user = userEvent.setup();
+    const manufacturerRequest = deferred<MasterDataEntry[]>();
+    vi.mocked(api.masterData).mockImplementation((type) => type === "manufacturer"
+      ? manufacturerRequest.promise
+      : Promise.resolve([]));
+    vi.mocked(api.storageLocations).mockResolvedValue(locations);
+    render(<ArticleManagementSettings roles={["Viewer"]} />);
+
+    await user.click(screen.getByRole("button", { name: "Lagerorte" }));
+    expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
+
+    manufacturerRequest.resolve([entry("manufacturer", "tillig", "Tillig")]);
+    await waitFor(() => expect(screen.queryByText("Artikeldaten werden geladen..."))
+      .not.toBeInTheDocument());
+  });
+
+  it("shows one settled location error and retries only after an explicit action", async () => {
+    const user = userEvent.setup();
+    const retryRequest = deferred<StorageLocation[]>();
+    vi.mocked(api.storageLocations)
+      .mockRejectedValueOnce(new Error("Lagerorte konnten nicht geladen werden."))
+      .mockImplementationOnce(() => retryRequest.promise);
+    render(<ArticleManagementSettings roles={["Viewer"]} />);
+
+    await user.click(await screen.findByRole("button", { name: "Lagerorte" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Lagerorte konnten nicht geladen werden.");
+    expect(api.storageLocations).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Erneut versuchen" }));
+    expect(api.storageLocations).toHaveBeenCalledTimes(2);
+    retryRequest.resolve(locations);
+    expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
+  });
+
   it("updates a standard article type without allowing its key to change", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "updateMasterData").mockResolvedValue(entry("article_type", "track", "Gleismaterial"));
@@ -98,6 +165,32 @@ describe("ArticleManagementSettings", () => {
       "article_type",
       "track",
       expect.not.objectContaining({ key: expect.anything() })
+    ));
+  });
+
+  it("preserves an active-state toggle when saving an editor that was already open", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "updateMasterData").mockImplementation(async (type, key, input) => ({
+      ...entry(type, key, input.label),
+      active: input.active ?? true
+    }));
+    render(<ArticleManagementSettings roles={["Editor"]} />);
+
+    await user.click(await screen.findByRole("button", { name: "Artikelarten und Unterarten" }));
+    await screen.findByText("Gleis");
+    await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
+    await user.click(screen.getByRole("button", { name: "Gleis archivieren" }));
+    await waitFor(() => expect(api.updateMasterData).toHaveBeenCalledTimes(1));
+
+    const label = screen.getByRole("textbox", { name: "Bezeichnung" });
+    await user.clear(label);
+    await user.type(label, "Gleismaterial");
+    await user.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+
+    await waitFor(() => expect(api.updateMasterData).toHaveBeenLastCalledWith(
+      "article_type",
+      "track",
+      expect.objectContaining({ label: "Gleismaterial", active: false })
     ));
   });
 
@@ -187,6 +280,27 @@ describe("StorageLocationsSettings", () => {
       description: undefined,
       archived: false
     }));
+  });
+
+  it("closes an open location editor after archiving that location", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "updateStorageLocation").mockImplementation(async (id, input) => ({
+      ...locationBase,
+      id,
+      name: input.name,
+      parentId: input.parentId,
+      description: input.description,
+      archived: input.archived || false
+    }));
+    render(<StorageLocationsSettings locations={locations} canEdit onChanged={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Werkstatt bearbeiten" }));
+    expect(screen.getByRole("heading", { name: "Lagerort bearbeiten" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Werkstatt archivieren" }));
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Lagerort bearbeiten" }))
+      .not.toBeInTheDocument());
+    expect(screen.getByRole("heading", { name: "Lagerort anlegen" })).toBeInTheDocument();
   });
 
   it.each([

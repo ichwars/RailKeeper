@@ -22,7 +22,7 @@ import {
   resolveAccessoryTargetSelection,
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
-import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
+import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
 
 export function AccessoryReservationsPanel({ product, reservations, assets, locations, vehicles, layouts, units,
   canReserve, onChanged }: {

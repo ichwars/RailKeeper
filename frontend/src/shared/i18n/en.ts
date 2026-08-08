@@ -87,6 +87,7 @@ export const enTranslations: Record<string, string> = {
     "settings.articleManagement.empty": "No entries available yet.",
     "settings.articleManagement.loading": "Loading article data...",
     "settings.articleManagement.locations.loading": "Loading storage locations...",
+    "settings.articleManagement.locations.retry": "Try again",
     "settings.articleManagement.locations.title": "Storage hierarchy",
     "settings.articleManagement.locations.create": "Create storage location",
     "settings.articleManagement.locations.edit": "Edit storage location",
