@@ -1,11 +1,12 @@
-import { useEffect, useRef, type KeyboardEvent } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 
-import type { AccessoryArticle, AccessoryDuplicateCandidate } from "../../shared/api";
+import type { AccessoryArticle, AccessoryArticleType, AccessoryDuplicateCandidate } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
 import { ArticleStockTab } from "./ArticleStockTab";
+import { ArticleSubjectTab } from "./ArticleSubjectTab";
 import { ArticleUsageHistoryTab } from "./ArticleUsageHistoryTab";
 import type {
   ArticleEditorFieldErrors,
@@ -16,6 +17,7 @@ import type {
 } from "./articleEditorModel";
 import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
+import { compatibleAttributesForType, compatibleNumberDraftsForType } from "./articleTypeFields";
 
 export type ArticleEditorDialogProps = {
   mode: ArticleEditorMode;
@@ -59,7 +61,9 @@ const focusableSelector = [
 export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
   const layerRef = useRef<HTMLDivElement | null>(null);
-  const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0;
+  const [pendingArticleType, setPendingArticleType] = useState<AccessoryArticleType | null>(null);
+  const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
+    pendingArticleType !== null;
   const readOnly = props.mode === "view" || !props.permissions.canEdit || props.saving || confirmationPending;
   const plannerReservationMode = props.mode === "view" && !props.permissions.canEdit && props.permissions.canReserve;
   const title = props.mode === "create"
@@ -78,6 +82,39 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       ? [{ key: "usageHistory" as const, label: t("accessories.editor.tabs.usageHistory") }]
       : [])
   ];
+
+  const changeCore = (patch: Partial<ArticleEditorForm>) => {
+    const nextType = patch.articleType;
+    if (!nextType || nextType === props.form.articleType) {
+      props.onChange(patch);
+      return;
+    }
+    const compatibleAttributes = compatibleAttributesForType(nextType, props.form.attributes);
+    const compatibleDrafts = compatibleNumberDraftsForType(nextType, props.form.attributeNumberDrafts);
+    const draftCount = Object.values(props.form.attributeNumberDrafts).filter((draft) => draft.trim() !== "").length;
+    const discardsValues = compatibleAttributes.length !== props.form.attributes.length ||
+      Object.keys(compatibleDrafts).length !== draftCount;
+    if (discardsValues) {
+      setPendingArticleType(nextType);
+      return;
+    }
+    props.onChange({ ...patch, subtype: "", attributes: compatibleAttributes,
+      attributeNumberDrafts: compatibleDrafts });
+  };
+
+  const confirmArticleTypeChange = () => {
+    if (!pendingArticleType) return;
+    props.onChange({
+      articleType: pendingArticleType,
+      subtype: "",
+      attributes: compatibleAttributesForType(pendingArticleType, props.form.attributes),
+      attributeNumberDrafts: compatibleNumberDraftsForType(
+        pendingArticleType,
+        props.form.attributeNumberDrafts
+      )
+    });
+    setPendingArticleType(null);
+  };
 
   useEffect(() => {
     if (props.loading) return;
@@ -147,7 +184,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {!props.loading ? <>
           <div hidden={props.activeTab !== "article"} aria-hidden={props.activeTab !== "article"}>
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
-              disabled={readOnly} onChange={props.onChange} />
+              disabled={readOnly} onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
             <ArticleStockTab article={props.article} form={props.form} errors={props.fieldErrors}
@@ -167,12 +204,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               onDirtyChange={(dirty) => props.onSubdraftDirty("purchaseDocuments", dirty)} />
           </div>
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
-            <section className="article-editor-tab article-subject-seam" data-testid="article-subject-tab"
-              aria-label={t("accessories.editor.tabs.subject", {
-                type: t(`accessories.articleType.${props.form.articleType}`)
-              })}>
-              <p className="article-editor-hint">{t("accessories.editor.subjectTask12")}</p>
-            </section>
+            <ArticleSubjectTab form={props.form} disabled={readOnly} error={props.fieldErrors.attributes}
+              active={props.activeTab === "subject"} onChange={props.onChange} />
           </div>
           {props.hasUsageHistory && props.article ? <div hidden={props.activeTab !== "usageHistory"}
             aria-hidden={props.activeTab !== "usageHistory"}>
@@ -215,5 +248,13 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       confirmLabel: t("accessories.editor.duplicate.confirm"),
       run: props.onConfirmDuplicate
     } : null} onClose={props.onCancelDuplicate} />
+    <AccessoryConfirmDialog action={pendingArticleType ? {
+      title: t("accessories.editor.typeChange.title"),
+      body: t("accessories.editor.typeChange.body"),
+      cancelLabel: t("accessories.editor.typeChange.keep"),
+      confirmLabel: t("accessories.editor.typeChange.discard"),
+      dangerous: true,
+      run: confirmArticleTypeChange
+    } : null} onClose={() => setPendingArticleType(null)} />
   </div>;
 }

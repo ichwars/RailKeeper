@@ -288,7 +288,8 @@ export function useArticleEditorController({
     const validation = validateArticleEditorForm(form, {
       required: t("accessories.editor.validation.required"),
       positive: t("accessories.editor.validation.positive"),
-      nonnegative: t("accessories.editor.validation.nonnegative")
+      nonnegative: t("accessories.editor.validation.nonnegative"),
+      invalidSubject: t("accessories.editor.validation.invalidSubject")
     });
     setFieldErrors(validation.fieldErrors);
     setTabErrors(validation.tabErrors);

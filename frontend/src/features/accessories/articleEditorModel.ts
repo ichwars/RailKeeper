@@ -1,10 +1,12 @@
 import type {
   AccessoryArticle,
+  AccessoryAttributeValue,
   AccessoryArticleType,
   AccessoryArticleWriteInput,
   AccessoryInventoryStrategy,
   AccessoryManufacturerStatus
 } from "../../shared/api";
+import { articleTypeFieldRegistry, subjectValuesAreValid } from "./articleTypeFields";
 
 export type ArticleEditorMode = "create" | "view" | "edit";
 export type ArticleEditorTab = "article" | "stock" | "purchaseDocuments" | "subject" | "usageHistory";
@@ -32,6 +34,7 @@ export type ArticleEditorForm = {
   internalNotes: string;
   archived: boolean;
   attributes: AccessoryArticle["attributes"];
+  attributeNumberDrafts: Record<string, string>;
 };
 
 export type ArticleEditorFieldErrors = Partial<Record<keyof ArticleEditorForm, string>>;
@@ -60,7 +63,8 @@ export function emptyArticleEditorForm(): ArticleEditorForm {
     compatibilityNotes: "",
     internalNotes: "",
     archived: false,
-    attributes: []
+    attributes: [],
+    attributeNumberDrafts: {}
   };
 }
 
@@ -87,7 +91,9 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
     compatibilityNotes: article.compatibilityNotes || "",
     internalNotes: article.internalNotes || "",
     archived: article.archived,
-    attributes: article.attributes
+    attributes: article.attributes,
+    attributeNumberDrafts: Object.fromEntries(article.attributes.flatMap((attribute) =>
+      attribute.kind === "number" ? [[attribute.key, String(attribute.numberValue)]] : []))
   };
 }
 
@@ -96,6 +102,19 @@ const optional = (value: string) => value.trim() || undefined;
 
 export function articleEditorWriteInput(form: ArticleEditorForm): AccessoryArticleWriteInput {
   const inventoryStrategy = form.inventoryStrategy;
+  const numberDefinitions = new Map(articleTypeFieldRegistry[form.articleType]
+    .filter((definition) => definition.kind === "number").map((definition) => [definition.key, definition]));
+  const numberDraftKeys = new Set(Object.keys(form.attributeNumberDrafts));
+  const attributes: AccessoryAttributeValue[] = form.attributes.filter((attribute) =>
+    attribute.kind !== "number" || !numberDraftKeys.has(attribute.key));
+  for (const [key, draft] of Object.entries(form.attributeNumberDrafts)) {
+    if (draft.trim() === "") continue;
+    const numberValue = Number(draft.replace(",", "."));
+    if (!Number.isFinite(numberValue)) continue;
+    const existing = form.attributes.find((attribute) => attribute.key === key && attribute.kind === "number");
+    const unit = existing?.kind === "number" ? existing.unit : numberDefinitions.get(key)?.unit;
+    attributes.push({ key, kind: "number", numberValue, ...(unit ? { unit } : {}) });
+  }
   return {
     manufacturer: form.manufacturer.trim(),
     articleNumber: optional(form.articleNumber),
@@ -120,14 +139,15 @@ export function articleEditorWriteInput(form: ArticleEditorForm): AccessoryArtic
     compatibilityNotes: optional(form.compatibilityNotes),
     internalNotes: optional(form.internalNotes),
     archived: form.archived,
-    attributes: form.attributes
+    attributes
   };
 }
 
 export function validateArticleEditorForm(form: ArticleEditorForm, messages = {
   required: "Pflichtfeld",
   positive: "Muss größer als 0 sein",
-  nonnegative: "Darf nicht negativ sein"
+  nonnegative: "Darf nicht negativ sein",
+  invalidSubject: "Fachwert ist ungültig"
 }): {
   fieldErrors: ArticleEditorFieldErrors;
   tabErrors: ArticleEditorTabErrors;
@@ -144,9 +164,13 @@ export function validateArticleEditorForm(form: ArticleEditorForm, messages = {
   if (!Number.isFinite(Number(form.minimumStock)) || Number(form.minimumStock) < 0) {
     fieldErrors.minimumStock = messages.nonnegative;
   }
+  if (!subjectValuesAreValid(form.articleType, form.attributes, form.attributeNumberDrafts)) {
+    fieldErrors.attributes = messages.invalidSubject;
+  }
   if (fieldErrors.manufacturer || fieldErrors.name || fieldErrors.subtype || fieldErrors.stockUnit ||
       fieldErrors.packageQuantity) tabErrors.article = true;
   if (fieldErrors.minimumStock) tabErrors.stock = true;
+  if (fieldErrors.attributes) tabErrors.subject = true;
   return { fieldErrors, tabErrors };
 }
 

@@ -82,6 +82,59 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveValue("Tillig");
   });
 
+  it("renders the selected type fields in the single dynamic subject tab", () => {
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track" }, activeTab: "subject"
+    })} />);
+
+    expect(screen.getAllByRole("tab").filter((tab) => tab.dataset.tabKind === "subject")).toHaveLength(1);
+    expect(screen.getByRole("textbox", { name: "Gleissystem" })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Firmware" })).not.toBeInTheDocument();
+  });
+
+  it("confirms type changes before discarding only incompatible subject values", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const form = {
+      ...emptyArticleEditorForm(), articleType: "track" as const, subtype: "straight",
+      attributes: [
+        { key: "trackSystem", kind: "text" as const, textValue: "Tillig TT Modellgleis" },
+        { key: "mounting", kind: "single_select" as const, optionValues: ["surface"] as [string] }
+      ]
+    };
+    render(<ArticleEditorDialog {...props({ form, onChange })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Artikelart ändern" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Fachwerte verwerfen" }));
+    expect(onChange).toHaveBeenCalledWith({
+      articleType: "signal", subtype: "", attributes: [
+        { key: "mounting", kind: "single_select", optionValues: ["surface"] }
+      ], attributeNumberDrafts: {}
+    });
+  });
+
+  it("keeps the original type and subject values when type-change discard is cancelled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track", attributes: [
+        { key: "trackSystem", kind: "text", textValue: "Tillig TT Modellgleis" }
+      ] },
+      onChange
+    })} />);
+
+    await user.click(screen.getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Signal" }));
+    await user.click(screen.getByRole("button", { name: "Weiter bearbeiten" }));
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Artikelart" })).toHaveTextContent("Gleis");
+  });
+
   it("shows tab error badges and mounts usage history only for a real signal", () => {
     const view = render(<ArticleEditorDialog {...props({ tabErrors: { stock: true } })} />);
     expect(screen.getByRole("tab", { name: /Bestand.*Fehler/ })).toBeInTheDocument();
