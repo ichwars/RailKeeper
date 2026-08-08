@@ -13,7 +13,7 @@ import {
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
-import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
+import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
 
 export function AccessoryStockPanel({ mode, product, stock, assets, locations, canEdit, onChanged }: {
   mode: "stock" | "assets";
@@ -30,7 +30,7 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
   const { t } = useI18n();
   if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-  const activeLocations = activeAccessoryLocations(locations);
+  const activeLocations = activeStorageLocations(locations);
   const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
     ? locationID : activeLocations[0]?.id || "";
 
@@ -73,7 +73,7 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
               <h3>{t("accessories.stock.adjust")}</h3>
               <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
                 {activeLocations.map((location) => <option key={location.id} value={location.id}>
-                  {accessoryLocationPath(location, locations)}</option>)}
+                  {storageLocationPath(location, locations)}</option>)}
               </AppSelect></label>
               <label>{t("accessories.field.delta")}<input type="number" required value={delta}
                 onChange={(event) => setDelta(event.target.value)} /></label>
@@ -104,7 +104,7 @@ export function AccessoryStockPanel({ mode, product, stock, assets, locations, c
               onChange={(event) => setAsset((current) => ({ ...current, serialNumber: event.target.value }))} /></label>
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
               {activeLocations.map((location) => <option key={location.id} value={location.id}>
-                {accessoryLocationPath(location, locations)}</option>)}
+                {storageLocationPath(location, locations)}</option>)}
             </AppSelect></label>
             <label>{t("accessories.field.condition")}<AppSelect value={asset.condition || "ready"}
               onChange={(event) => setAsset((current) => ({ ...current,

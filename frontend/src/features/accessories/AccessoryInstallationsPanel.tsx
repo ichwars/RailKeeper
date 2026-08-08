@@ -25,7 +25,7 @@ import {
   resolveAccessoryTargetSelection,
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
-import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
+import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
 
 const conditions: AccessoryCondition[] = ["ready", "maintenance_due", "defective", "unknown"];
 
@@ -59,7 +59,7 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
   if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
 
   const activeReservations = reservations.filter((reservation) => reservation.status === "active");
-  const activeLocations = activeAccessoryLocations(locations);
+  const activeLocations = activeStorageLocations(locations);
   const selectedReservation = activeReservations.find((reservation) => reservation.id === reservationID);
   const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
   const targetInput = selectedReservation || accessoryTargetInput(resolvedTarget);
@@ -180,7 +180,7 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
               disabled={Boolean(selectedReservation)} onChange={(event) => setLocationID(event.target.value)}>
               {sourceLocations.map((location) => <option key={location.id} value={location.id}>
-                {accessoryLocationPath(location, locations)}</option>)}
+                {storageLocationPath(location, locations)}</option>)}
             </AppSelect></label>
             {isIndividual ? <label>{t("accessories.field.asset")}<AppSelect value={effectiveAssetID}
               disabled={Boolean(selectedReservation?.assetId)} onChange={(event) => setAssetID(event.target.value)}>
@@ -209,7 +209,7 @@ export function AccessoryInstallationsPanel({ product, reservations, installatio
               <AppSelect value={effectiveRemovalLocationID}
                 onChange={(event) => setRemovalLocationID(event.target.value)}>
                 {activeLocations.map((location) => <option key={location.id} value={location.id}>
-                  {accessoryLocationPath(location, locations)}</option>)}
+                  {storageLocationPath(location, locations)}</option>)}
               </AppSelect></label> : null}
             <label>{t("accessories.field.notes")}<textarea value={removalNotes}
               onChange={(event) => setRemovalNotes(event.target.value)} /></label>

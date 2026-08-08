@@ -118,27 +118,18 @@ describe("AccessoriesView", () => {
     await screen.findByText(quantityProduct.name);
 
     await user.type(screen.getByLabelText("Produkte suchen"), "Tillig TT");
-    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
+    await user.click(screen.getByRole("tab", { name: "Bestand" }));
     await user.click(screen.getByRole("tab", { name: "Produkte" }));
 
     expect(screen.getByLabelText("Produkte suchen")).toHaveValue("Tillig TT");
   });
 
-  it("creates the first storage location", async () => {
-    const user = userEvent.setup();
-    vi.mocked(api.storageLocations).mockResolvedValue([]);
-    vi.spyOn(api, "createStorageLocation").mockResolvedValue({ id: "location-new", name: "Werkstatt",
-      archived: false, createdAt: "2026-08-07T10:00:00Z", updatedAt: "2026-08-07T10:00:00Z" });
+  it("keeps storage-location administration out of the accessory feature", async () => {
     render(<AccessoriesView roles={["Editor"]} />);
     await screen.findByText(quantityProduct.name);
 
-    await user.click(screen.getByRole("tab", { name: "Lagerorte" }));
-    await user.type(screen.getByLabelText("Bezeichnung"), "Werkstatt");
-    await user.click(screen.getByRole("button", { name: "Lagerort speichern" }));
-
-    await waitFor(() => expect(api.createStorageLocation).toHaveBeenCalledWith({
-      name: "Werkstatt", parentId: undefined, description: undefined
-    }));
+    expect(screen.queryByRole("tab", { name: "Lagerorte" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Lagerort speichern" })).not.toBeInTheDocument();
   });
 
   it("ignores stale product detail responses", async () => {

@@ -48,6 +48,7 @@ import { Language, useI18n } from "../../shared/i18n";
 import { applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey, ThemePreference } from "../../shared/theme";
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
+import { ArticleManagementSettings } from "./ArticleManagementSettings";
 
 import {
   applyVisibleMetadata,
@@ -145,6 +146,14 @@ export function SettingsView({ username }: { username: string }) {
     const tab = new URLSearchParams(window.location.search).get("tab");
     return settingsTabs.some((item) => item.id === tab) ? tab as SettingsTab : "general";
   });
+  const selectSettingsTab = (tab: SettingsTab) => {
+    const query = new URLSearchParams(window.location.search);
+    if (tab === "general") query.delete("tab");
+    else query.set("tab", tab);
+    const search = query.toString();
+    window.history.replaceState(null, "", `${window.location.pathname}${search ? `?${search}` : ""}`);
+    setActiveSettingsTab(tab);
+  };
   const [activeType, setActiveType] = useState(masterDataTypes[0].type);
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
@@ -1347,12 +1356,16 @@ export function SettingsView({ username }: { username: string }) {
             key={tab.id}
             type="button"
             className={activeSettingsTab === tab.id ? "active" : ""}
-            onClick={() => setActiveSettingsTab(tab.id)}
+            onClick={() => selectSettingsTab(tab.id)}
           >
             {t(tab.labelKey)}
           </button>
         ))}
       </nav>
+
+      {activeSettingsTab === "articleManagement" && (
+        <ArticleManagementSettings roles={currentSession?.roles || []} />
+      )}
 
       {activeSettingsTab === "general" && (
         <section className="settings-dashboard-grid">

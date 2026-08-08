@@ -16,12 +16,11 @@ import {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AccessoryInstallationsPanel } from "./AccessoryInstallationsPanel";
-import { AccessoryLocationsPanel } from "./AccessoryLocationsPanel";
 import { AccessoryProductsPanel } from "./AccessoryProductsPanel";
 import { AccessoryReservationsPanel } from "./AccessoryReservationsPanel";
 import { AccessoryStockPanel } from "./AccessoryStockPanel";
 
-type AccessoryTab = "products" | "locations" | "stock" | "assets" | "reservations" | "installations";
+type AccessoryTab = "products" | "stock" | "assets" | "reservations" | "installations";
 
 export function AccessoriesView({ roles }: { roles: string[] }) {
   const [products, setProducts] = useState<AccessoryProduct[]>([]);
@@ -52,14 +51,6 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
       const next = await api.accessoryProducts(query);
       setProducts(next);
       setSelectedID((current) => next.some((product) => product.id === current) ? current : next[0]?.id || "");
-    } catch (reason) {
-      setMessage(reason instanceof Error ? reason.message : genericError);
-    }
-  }, [genericError]);
-
-  const loadLocations = useCallback(async () => {
-    try {
-      setLocations(await api.storageLocations());
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : genericError);
     }
@@ -131,7 +122,7 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
         <div key={key}><span>{t(`accessories.summary.${key}`)}</span><strong>{summary[key]}</strong></div>)}
     </section> : null}
     <div className="accessory-tabs" role="tablist" aria-label={t("accessories.tabs.label")}>
-      {(["products", "locations", "stock", "assets", "reservations", "installations"] as const).map((item) =>
+      {(["products", "stock", "assets", "reservations", "installations"] as const).map((item) =>
         <button key={item} type="button"
         role="tab" aria-selected={tab === item} className={tab === item ? "active" : ""} onClick={() => setTab(item)}>
         {item === "products" ? <PackageOpen size={15} /> : null}{t(`accessories.tabs.${item}`)}
@@ -141,8 +132,7 @@ export function AccessoriesView({ roles }: { roles: string[] }) {
       canEdit={canEdit} onSelect={setSelectedID} onQueryChange={setProductQuery} onSearch={searchProducts}
       onSaved={async (product) => {
         setProductQuery(""); await searchProducts(""); setSelectedID(product.id);
-      }} /> : tab === "locations" ? <AccessoryLocationsPanel locations={locations} canEdit={canEdit}
-        onChanged={loadLocations} /> : tab === "stock" || tab === "assets"
+      }} /> : tab === "stock" || tab === "assets"
         ? <AccessoryStockPanel key={selected?.id || "none"} mode={tab} product={selected}
         stock={stock} assets={assets} locations={locations} canEdit={canEdit} onChanged={loadSelected} />
         : tab === "reservations" ? <AccessoryReservationsPanel key={selected?.id || "none"} product={selected}

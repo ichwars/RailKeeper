@@ -22,7 +22,7 @@ import {
   resolveAccessoryTargetSelection,
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
-import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
+import { activeStorageLocations, storageLocationPath } from "../settings/storageLocations";
 
 export function AccessoryReservationsPanel({ product, reservations, assets, locations, vehicles, layouts, units,
   canReserve, onChanged }: {
@@ -45,7 +45,7 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
   const { t } = useI18n();
   if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
 
-  const activeLocations = activeAccessoryLocations(locations);
+  const activeLocations = activeStorageLocations(locations);
   const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
     ? locationID : activeLocations[0]?.id || "";
   const availableAssets = assets.filter((asset) => asset.lifecycle === "stored");
@@ -105,7 +105,7 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
           <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
             onChange={(event) => setLocationID(event.target.value)}>
             {activeLocations.map((location) => <option key={location.id} value={location.id}>
-              {accessoryLocationPath(location, locations)}</option>)}
+              {storageLocationPath(location, locations)}</option>)}
           </AppSelect></label>
           {isIndividual ? <label>{t("accessories.field.asset")}<AppSelect value={effectiveAssetID}
             onChange={(event) => setAssetID(event.target.value)}>

@@ -1,13 +1,21 @@
 import type { AppView } from "../../app/App";
 import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
 
-export type SettingsTab = "general" | "data" | "digital" | "importExport" | "appearance" | "auth";
+export type SettingsTab =
+  | "general"
+  | "articleManagement"
+  | "data"
+  | "digital"
+  | "importExport"
+  | "appearance"
+  | "auth";
 export type MasterDataType = {
   type: string;
 };
 
 export const settingsTabs: { id: SettingsTab; labelKey: string }[] = [
   { id: "general", labelKey: "settings.tabs.general" },
+  { id: "articleManagement", labelKey: "settings.tabs.articleManagement" },
   { id: "data", labelKey: "settings.tabs.data" },
   { id: "digital", labelKey: "settings.tabs.digital" },
   { id: "importExport", labelKey: "settings.tabs.importExport" },
