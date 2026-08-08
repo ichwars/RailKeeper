@@ -142,11 +142,18 @@ func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {
 		t.Fatal(err)
 	}
 	contract := string(data)
-	obsoleteIndividualItemTerms := regexp.MustCompile(
-		`(?i)\b(?:individual asset|individually tracked asset|accessory asset)s?\b`,
+	publicStringPattern := regexp.MustCompile(`(?im)^\s+(?:summary|description):\s*(.+)$`)
+	assetTermPattern := regexp.MustCompile(`(?i)\bassets?\b`)
+	stableTechnicalIdentifiers := strings.NewReplacer(
+		"AccessoryAsset", "",
+		"assetId", "",
+		"/assets", "",
 	)
-	if obsoleteIndividualItemTerms.MatchString(contract) {
-		t.Fatal("OpenAPI still exposes obsolete individual-item terminology")
+	for _, match := range publicStringPattern.FindAllStringSubmatch(contract, -1) {
+		publicText := stableTechnicalIdentifiers.Replace(match[1])
+		if assetTermPattern.MatchString(publicText) {
+			t.Errorf("OpenAPI public text still uses asset terminology: %q", match[1])
+		}
 	}
 	for _, summary := range []string{
 		"summary: Reserve accessory stock or an individual item",
