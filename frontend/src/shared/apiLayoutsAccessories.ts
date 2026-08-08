@@ -807,13 +807,13 @@ function mergeLegacyAccessoryWrite(
   current: AccessoryArticle,
   input: AccessoryProductInput
 ): AccessoryArticleWriteInput {
-  const categoryChanged = input.category !== current.category;
+  const categoryChanged = input.category !== current.category && input.category !== current.subtype;
   const trackingChanged = input.trackingMode !== current.trackingMode;
   return {
     manufacturer: input.manufacturer,
     articleNumber: input.articleNumber,
     name: input.name,
-    category: input.category,
+    category: categoryChanged ? input.category : current.category,
     trackingMode: trackingChanged ? input.trackingMode : current.trackingMode,
     description: input.description?.trim() ? input.description : current.description,
     ean: current.ean,

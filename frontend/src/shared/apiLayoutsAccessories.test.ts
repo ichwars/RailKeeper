@@ -416,27 +416,61 @@ describe("layout and accessory API client", () => {
     expect(fetchMock.mock.calls[1]?.[1].body).toBe(JSON.stringify(expectedWrite));
   });
 
-  it("preserves the complete typed article when an unchanged legacy form saves", async () => {
+  it("preserves detail category and typed fields when a legacy list item saves unchanged", async () => {
     const current = completeTypedArticle();
     fetchMock
+      .mockResolvedValueOnce(jsonResponse({
+        items: [{
+          id: current.id,
+          manufacturer: current.manufacturer,
+          articleNumber: current.articleNumber,
+          name: current.name,
+          articleType: current.articleType,
+          subtype: current.subtype,
+          gauges: current.gauges,
+          inventoryStrategy: current.inventoryStrategy,
+          archived: current.archived,
+          owned: 6,
+          available: 4,
+          reserved: 1,
+          installed: 1,
+          locationNames: ["Schrank A"],
+          hasUsageHistory: true,
+          careHintCount: 0,
+          updatedAt: current.updatedAt,
+          attributes: current.attributes
+        }],
+        metrics: {
+          articleCount: 1,
+          articleTypeCount: 1,
+          available: 4,
+          locationCount: 1,
+          reserved: 1,
+          installed: 1,
+          careHintCount: 0
+        },
+        filters: {
+          manufacturers: [current.manufacturer],
+          articleTypes: [current.articleType],
+          gauges: current.gauges,
+          storageLocations: [{ id: "location-1", name: "Schrank A" }]
+        }
+      }))
       .mockResolvedValueOnce(jsonResponse(current))
       .mockResolvedValueOnce(jsonResponse(current));
 
-    const result = await api.updateAccessoryProduct("product/1", {
-      manufacturer: current.manufacturer,
-      articleNumber: current.articleNumber,
-      name: current.name,
-      category: current.category,
-      trackingMode: current.trackingMode,
-      description: ""
-    });
+    const products = await api.accessoryProducts();
+    const legacyListItem = products[0];
+    if (!legacyListItem) throw new Error("expected legacy list item");
+    expect(legacyListItem.category).toBe(current.subtype);
+    const result = await api.updateAccessoryProduct(legacyListItem.id, legacyListItem);
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/accessory-products/product%2F1");
-    expect(fetchMock.mock.calls[0]?.[1].method ?? "GET").toBe("GET");
-    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/accessory-products/product%2F1");
-    expect(fetchMock.mock.calls[1]?.[1].method).toBe("PUT");
-    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1].body))).toEqual({
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/accessory-products/product-1");
+    expect(fetchMock.mock.calls[1]?.[1].method ?? "GET").toBe("GET");
+    expect(fetchMock.mock.calls[2]?.[0]).toBe("/api/v1/accessory-products/product-1");
+    expect(fetchMock.mock.calls[2]?.[1].method).toBe("PUT");
+    expect(JSON.parse(String(fetchMock.mock.calls[2]?.[1].body))).toEqual({
       manufacturer: current.manufacturer,
       articleNumber: current.articleNumber,
       name: current.name,
@@ -467,6 +501,48 @@ describe("layout and accessory API client", () => {
       category: current.category,
       trackingMode: current.trackingMode,
       description: current.description
+    });
+  });
+
+  it("applies deliberate legacy category edits without reclassifying typed articles", async () => {
+    const current = completeTypedArticle();
+    const other = {
+      ...current,
+      id: "product-other",
+      articleType: "other" as const,
+      category: "Sonstiges",
+      subtype: "Sonstiges"
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(current))
+      .mockResolvedValueOnce(jsonResponse({ ...current, category: "Gleiszubehör" }))
+      .mockResolvedValueOnce(jsonResponse(other))
+      .mockResolvedValueOnce(jsonResponse({ ...other, category: "Landschaft", subtype: "Landschaft" }));
+
+    await api.updateAccessoryProduct(current.id, {
+      manufacturer: current.manufacturer,
+      articleNumber: current.articleNumber,
+      name: current.name,
+      category: "Gleiszubehör",
+      trackingMode: current.trackingMode
+    });
+    await api.updateAccessoryProduct(other.id, {
+      manufacturer: other.manufacturer,
+      articleNumber: other.articleNumber,
+      name: other.name,
+      category: "Landschaft",
+      trackingMode: other.trackingMode
+    });
+
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1].body))).toMatchObject({
+      category: "Gleiszubehör",
+      articleType: "track",
+      subtype: current.subtype
+    });
+    expect(JSON.parse(String(fetchMock.mock.calls[3]?.[1].body))).toMatchObject({
+      category: "Landschaft",
+      articleType: "other",
+      subtype: "Landschaft"
     });
   });
 
