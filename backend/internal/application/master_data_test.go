@@ -62,6 +62,69 @@ func TestMasterDataExportUsesAccessorySubtypeAndPreservesItOnImport(t *testing.T
 	}
 }
 
+func TestMasterDataImportNormalizesLegacyAccessorySubtypeTypesBeforeMutation(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+
+	_, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{
+			"article_subtype": {{
+				Key: "track:legacy_profile", Label: "Legacy profile", Active: true,
+			}},
+			"vehicle_category": {{
+				Type: "article_subtype", Key: "signal:club_signal", Label: "Club signal", Active: true,
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	canonical, err := service.List(ctx, "accessory_subtype", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := masterDataKeys(canonical); !slices.Contains(got, "track:legacy_profile") ||
+		!slices.Contains(got, "signal:club_signal") {
+		t.Fatalf("legacy subtypes were not normalized into the canonical bucket: %#v", got)
+	}
+	legacy, err := service.List(ctx, "article_subtype", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(legacy) != 0 {
+		t.Fatalf("legacy subtype bucket survived import: %#v", legacy)
+	}
+}
+
+func TestMasterDataImportPreservesAccessorySubtypesWhenCanonicalTypeIsAbsent(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+	before, err := service.List(ctx, "accessory_subtype", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{
+			"vehicle_category": {{Key: "lok", Label: "Lok", Active: true}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	after, err := service.List(ctx, "accessory_subtype", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(masterDataKeys(after), masterDataKeys(before)) {
+		t.Fatalf("legacy import removed canonical accessory subtypes: before=%#v after=%#v",
+			masterDataKeys(before), masterDataKeys(after))
+	}
+}
+
 func TestMasterDataImportRejectsMalformedArticleTypesBeforeMutation(t *testing.T) {
 	for _, test := range []struct {
 		name   string

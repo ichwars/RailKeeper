@@ -1,4 +1,4 @@
-import { api } from "../../shared/api";
+import { api, type AccessoryArticle } from "../../shared/api";
 import type { ArticleEditorResources } from "./useArticleEditorController";
 
 export type ArticleEditorResourcePatch = Partial<ArticleEditorResources>;
@@ -22,7 +22,9 @@ function include<T, K extends keyof ArticleEditorResources>(
   else errors.push(asError(result.reason));
 }
 
-export async function fetchArticleEditorResourcePatch(articleId: string): Promise<ArticleEditorResourceResult> {
+export async function fetchArticleEditorResourcePatch(
+  article: Pick<AccessoryArticle, "id" | "inventoryStrategy">
+): Promise<ArticleEditorResourceResult> {
   const patch: ArticleEditorResourcePatch = {};
   const errors: Error[] = [];
   const shared = await Promise.allSettled([
@@ -44,15 +46,18 @@ export async function fetchArticleEditorResourcePatch(articleId: string): Promis
     }
   }
 
+  const assets = article.inventoryStrategy === "quantity"
+    ? Promise.resolve([])
+    : api.accessoryAssets(article.id);
   const related = await Promise.allSettled([
-    api.accessoryStock(articleId),
-    api.accessoryStockMovements(articleId),
-    api.accessoryAssets(articleId),
-    api.accessoryPurchases(articleId),
-    api.accessoryDocuments(articleId),
-    api.accessoryReservations(articleId),
-    api.accessoryInstallations(articleId),
-    api.accessoryUsageHistory(articleId)
+    api.accessoryStock(article.id),
+    api.accessoryStockMovements(article.id),
+    assets,
+    api.accessoryPurchases(article.id),
+    api.accessoryDocuments(article.id),
+    api.accessoryReservations(article.id),
+    api.accessoryInstallations(article.id),
+    api.accessoryUsageHistory(article.id)
   ] as const);
   include(related[0], "stock", patch, errors);
   include(related[1], "movements", patch, errors);

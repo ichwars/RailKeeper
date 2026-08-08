@@ -87,6 +87,8 @@ export function ArticleCoreTab({
         <label className="app-field">
           <span className="app-field-label">{t("accessories.editor.fields.subtype")} *</span>
           <AppSelect value={form.subtype} aria-label={t("accessories.editor.fields.subtype")}
+            required aria-invalid={Boolean(errors.subtype)}
+            aria-describedby={errors.subtype ? "article-editor-subtype-error" : undefined}
             disabled={disabled || subtypeEntriesLoading || Boolean(subtypeEntriesError)}
             onChange={(event) => onChange({ subtype: event.target.value })}>
             <option value="">{t("accessories.editor.fields.selectSubtype")}</option>
@@ -94,7 +96,9 @@ export function ArticleCoreTab({
               {option.label}{option.active ? "" : ` (${t("accessories.editor.fields.inactiveSubtype")})`}
             </option>)}
           </AppSelect>
-          {errors.subtype ? <small className="app-field-error" role="alert">{errors.subtype}</small> : null}
+          {errors.subtype ? <small id="article-editor-subtype-error" className="app-field-error" role="alert">
+            {errors.subtype}
+          </small> : null}
         </label>
         <AppMultiSelect label={t("accessories.toolbar.gauge")} disabled={disabled}
           options={gauges.map((gauge) => ({ value: gauge, label: gauge }))} value={form.gauges}

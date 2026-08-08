@@ -121,6 +121,7 @@ type UpdateStorageLocationInput struct {
 type AccessoryCatalogRepository interface {
 	ListArticles(context.Context, AccessoryArticleListQuery) (*AccessoryArticleListResult, error)
 	GetProduct(context.Context, string) (*AccessoryProduct, error)
+	AccessorySubtypeActive(context.Context, string) (bool, error)
 	FindDuplicateCandidates(context.Context, string, string, string) ([]AccessoryDuplicateCandidate, error)
 	CreateProduct(context.Context, CreateAccessoryProductInput, string) (*AccessoryProduct, error)
 	UpdateProduct(context.Context, string, UpdateAccessoryProductInput, string) (*AccessoryProduct, error)
@@ -176,8 +177,8 @@ func (s *AccessoryService) CreateProduct(
 	actor string,
 ) (*AccessoryProduct, error) {
 	input = cleanAccessoryProductInput(input)
-	if !validAccessoryProductInput(input) {
-		return nil, ErrAccessoryValidation
+	if err := s.validateAccessoryProductInput(ctx, input); err != nil {
+		return nil, err
 	}
 	return s.repository.CreateProduct(ctx, input, actor)
 }
@@ -190,8 +191,11 @@ func (s *AccessoryService) UpdateProduct(
 ) (*AccessoryProduct, error) {
 	input.CreateAccessoryProductInput = cleanAccessoryProductInput(input.CreateAccessoryProductInput)
 	id = strings.TrimSpace(id)
-	if id == "" || !validAccessoryProductInput(input.CreateAccessoryProductInput) {
+	if id == "" {
 		return nil, ErrAccessoryValidation
+	}
+	if err := s.validateAccessoryProductInput(ctx, input.CreateAccessoryProductInput); err != nil {
+		return nil, err
 	}
 	return s.repository.UpdateProduct(ctx, id, input, actor)
 }
@@ -261,7 +265,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	input.Attributes = cleanAccessoryAttributes(input.Attributes)
 	if legacyInput {
 		input.ArticleType = domain.AccessoryArticleOther
-		input.Subtype = input.Category
+		input.Subtype = "other:other"
 		input.InventoryStrategy = domain.InventoryStrategyFromTrackingMode(input.TrackingMode)
 		input.PackageQuantity = 1
 		input.StockUnit = "piece"
@@ -277,51 +281,43 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	return input
 }
 
+func (s *AccessoryService) validateAccessoryProductInput(
+	ctx context.Context,
+	input CreateAccessoryProductInput,
+) error {
+	if !validAccessoryProductInput(input) {
+		return ErrAccessoryValidation
+	}
+	active, err := s.repository.AccessorySubtypeActive(ctx, input.Subtype)
+	if err != nil {
+		return err
+	}
+	if !active {
+		return ErrAccessoryValidation
+	}
+	return nil
+}
+
 func validAccessoryProductInput(input CreateAccessoryProductInput) bool {
 	return input.Manufacturer != "" && input.Name != "" && input.Category != "" && input.TrackingMode.Valid() &&
-		input.ArticleType.Valid() && validAccessorySubtype(input.ArticleType, input.Subtype) &&
+		input.ArticleType.Valid() && accessorySubtypeMatchesType(input.ArticleType, input.Subtype) &&
 		input.InventoryStrategy.Valid() && input.PackageQuantity > 0 && input.StockUnit != "" &&
 		input.MinimumStock >= 0 && domain.ValidateAccessoryAttributeValues(input.ArticleType, input.Attributes) == nil
 }
 
 func normalizeAccessorySubtype(articleType domain.AccessoryArticleType, subtype string) string {
-	if articleType == domain.AccessoryArticleOther || subtype == "" || strings.Contains(subtype, ":") {
+	if subtype == "" || strings.Contains(subtype, ":") {
 		return subtype
 	}
 	return string(articleType) + ":" + subtype
 }
 
-func validAccessorySubtype(articleType domain.AccessoryArticleType, subtype string) bool {
+func accessorySubtypeMatchesType(articleType domain.AccessoryArticleType, subtype string) bool {
 	if subtype == "" {
 		return false
 	}
-	if articleType == domain.AccessoryArticleOther {
-		return true
-	}
 	prefix := string(articleType) + ":"
-	if !strings.HasPrefix(subtype, prefix) {
-		return false
-	}
-	_, valid := accessorySubtypes[articleType][strings.TrimPrefix(subtype, prefix)]
-	return valid
-}
-
-var accessorySubtypes = map[domain.AccessoryArticleType]map[string]struct{}{
-	domain.AccessoryArticleTrack:               subtypeSet("straight", "curve", "flex", "turnout", "crossing", "double_slip", "transition", "buffer_stop"),
-	domain.AccessoryArticleSignal:              subtypeSet("light", "semaphore", "main", "distant", "block", "entry", "exit", "shunting"),
-	domain.AccessoryArticleDecoder:             subtypeSet("locomotive", "function", "accessory", "switching", "servo", "feedback"),
-	domain.AccessoryArticleElectricalControl:   subtypeSet("turnout_drive", "feedback", "booster", "power_supply", "sensor", "relay", "distribution", "control_element"),
-	domain.AccessoryArticleBuildingEquipment:   subtypeSet("building", "platform", "bridge", "tunnel_portal", "road_vehicle", "figure", "street_equipment", "interior_equipment"),
-	domain.AccessoryArticleLandscapeConsumable: subtypeSet("grass", "scatter", "tree", "water", "paint", "adhesive", "ballast", "wire", "cable", "fastener"),
-	domain.AccessoryArticleLighting:            subtypeSet("lamp", "led", "light_strip", "building_lighting", "effect_lighting"),
-}
-
-func subtypeSet(subtypes ...string) map[string]struct{} {
-	set := make(map[string]struct{}, len(subtypes))
-	for _, subtype := range subtypes {
-		set[subtype] = struct{}{}
-	}
-	return set
+	return strings.HasPrefix(subtype, prefix) && len(subtype) > len(prefix)
 }
 
 func cleanStringArray(values []string) []string {

@@ -228,6 +228,10 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			_ = tx.Rollback()
 		}
 	}()
+	articleMasterData, err := readLegacyRestoreArticleMasterData(ctx, tx, doc.Version)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := len(backupTableOrder) - 1; i >= 0; i-- {
 		table := backupTableOrder[i]
@@ -256,6 +260,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			}
 		}
 		result.RestoredTables++
+	}
+	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
+		return nil, err
 	}
 
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)

@@ -33,6 +33,12 @@ function canonicalValue(articleType: AccessoryArticleType, subtype: string): str
   return subtype.startsWith(prefix) ? subtype.slice(prefix.length) : subtype;
 }
 
+function seededSubtypeLabel(fullKey: string): string {
+  const value = fullKey.slice(fullKey.indexOf(":") + 1).replaceAll("_", " ");
+  if (value === "led") return "LED";
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 export type ArticleSubtypeOption = {
   value: string;
   label: string;
@@ -46,10 +52,10 @@ export function articleSubtypeLabel(
   t: Translate
 ): string {
   const fullKey = subtype.startsWith(`${articleType}:`) ? subtype : `${articleType}:${subtype}`;
-  if (builtInSubtypeKeys.has(fullKey)) {
+  const configured = entries.find((entry) => entry.key === fullKey);
+  if (builtInSubtypeKeys.has(fullKey) && (!configured || configured.label === seededSubtypeLabel(fullKey))) {
     return t(`accessories.subtype.${articleType}.${canonicalValue(articleType, subtype)}`);
   }
-  const configured = entries.find((entry) => entry.key === fullKey);
   return configured?.label || subtype;
 }
 

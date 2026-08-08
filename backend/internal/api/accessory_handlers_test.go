@@ -175,6 +175,66 @@ func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 		map[string]any{"name": "Invalid"}, true), http.StatusBadRequest, "accessory_validation")
 }
 
+func TestAccessoryArticleRoutesUseActiveConfiguredSubtypeMasterData(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "editor", Password: "editor-password", Roles: []string{"Editor"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session := loginRouteTestUser(t, auth, "editor", "editor-password")
+	masterData := application.NewMasterDataService(db)
+	active := true
+	inactive := false
+	if _, err := masterData.Create(t.Context(), "accessory_subtype", application.MasterDataInput{
+		Key: "track:club_profile", Label: "Club profile", Active: &active,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := masterData.Create(t.Context(), "accessory_subtype", application.MasterDataInput{
+		Key: "track:retired_profile", Label: "Retired profile", Active: &inactive,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{
+		AuthService:      auth,
+		AccessoryService: application.NewAccessoryService(infrastructure.NewAccessoryRepository(db)),
+	})
+
+	articleInput := func(articleNumber, subtype string) map[string]any {
+		return map[string]any{
+			"manufacturer": "Club", "articleNumber": articleNumber, "name": "Configured track",
+			"category": subtype, "articleType": "track", "subtype": subtype,
+			"packageQuantity": 1, "stockUnit": "piece", "inventoryStrategy": "quantity",
+		}
+	}
+	createResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+		articleInput("custom-create", "club_profile"), true)
+	assertStatus(t, createResponse, http.StatusCreated)
+	var created application.AccessoryProduct
+	decodeResponse(t, createResponse, &created)
+	if created.Subtype != "track:club_profile" {
+		t.Fatalf("configured subtype was not normalized canonically: %#v", created)
+	}
+
+	updateResponse := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/accessory-products/"+created.ID, articleInput("custom-update", "club_profile"), true)
+	assertStatus(t, updateResponse, http.StatusOK)
+
+	for name, subtype := range map[string]string{
+		"inactive":     "retired_profile",
+		"mismatched":   "signal:main",
+		"unconfigured": "direct_api_value",
+	} {
+		t.Run(name, func(t *testing.T) {
+			response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/accessory-products",
+				articleInput(name, subtype), true)
+			assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
+		})
+	}
+}
+
 func TestAccessoryArticleRoutesEnforceRoleAndCSRFForEveryNewEndpoint(t *testing.T) {
 	fixture := newAccessoryAPIFixture(t, 1024*1024)
 	productPath := "/api/v1/accessory-products/" + fixture.product.ID

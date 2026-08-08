@@ -42,4 +42,15 @@ describe("i18n", () => {
     const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
     expect(Object.keys(deTranslations).sort()).toEqual(Object.keys(enTranslations).sort());
   });
+
+  it("uses individual item terminology throughout accessory translations", async () => {
+    const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
+    const accessoryValues = (translations: Record<string, string>) => Object.entries(translations)
+      .filter(([key]) => key.startsWith("accessories."))
+      .map(([, value]) => value)
+      .join("\n");
+
+    expect(accessoryValues(enTranslations)).not.toMatch(/individual assets?/i);
+    expect(accessoryValues(deTranslations)).not.toMatch(/Einzelobjekt/i);
+  });
 });

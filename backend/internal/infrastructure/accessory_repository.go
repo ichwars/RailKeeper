@@ -87,6 +87,19 @@ WHERE product_id=? AND category='image' AND is_primary=1`, id).Scan(&primaryDocu
 	return product, nil
 }
 
+func (r *AccessoryRepository) AccessorySubtypeActive(ctx context.Context, key string) (bool, error) {
+	var active bool
+	if err := r.db.QueryRowContext(ctx, `
+SELECT EXISTS(
+  SELECT 1 FROM master_data_entries
+  WHERE type='accessory_subtype' AND key=? AND active=1
+)
+`, key).Scan(&active); err != nil {
+		return false, fmt.Errorf("check active accessory subtype: %w", err)
+	}
+	return active, nil
+}
+
 func (r *AccessoryRepository) CreateProduct(
 	ctx context.Context,
 	input application.CreateAccessoryProductInput,

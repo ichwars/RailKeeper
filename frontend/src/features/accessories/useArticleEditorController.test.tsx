@@ -118,6 +118,23 @@ describe("useArticleEditorController", () => {
     expect(result.current.subtypeEntries).toEqual([productionSubtype]);
   });
 
+  it("does not request asset resources or stale the editor for a quantity article", async () => {
+    vi.mocked(api.accessoryArticle).mockResolvedValueOnce({
+      ...article,
+      trackingMode: "quantity",
+      inventoryStrategy: "quantity"
+    });
+    vi.mocked(api.accessoryAssets).mockRejectedValueOnce(new Error("Operation invalid for tracking mode"));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+
+    await waitFor(() => expect(result.current.resources.stock).toEqual(stock("article-1", 0)));
+    expect(api.accessoryAssets).not.toHaveBeenCalled();
+    expect(result.current.resourcesStale).toBe(false);
+    expect(result.current.resourceError).toBe("");
+  });
+
   it("requires a deliberate duplicate confirmation before one create command", async () => {
     vi.mocked(api.checkAccessoryArticleDuplicates).mockResolvedValueOnce({ candidates: [{
       id: "duplicate-1",

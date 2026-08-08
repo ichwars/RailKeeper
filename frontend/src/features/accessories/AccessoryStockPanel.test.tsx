@@ -22,7 +22,7 @@ const location: StorageLocation = { id: "location-1", name: "Schublade",
   archived: false, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T09:00:00Z" };
 
 describe("AccessoryStockPanel", () => {
-  it("edits every supported individual asset field through typed app controls", async () => {
+  it("edits every supported individual item field through typed app controls", async () => {
     const user = userEvent.setup();
     const update = vi.spyOn(api, "updateAccessoryAsset").mockResolvedValue(asset);
     render(<AccessoryStockPanel article={article} stock={null} movements={[]} assets={[asset]} locations={[location]}

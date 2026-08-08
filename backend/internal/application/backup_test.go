@@ -247,7 +247,7 @@ func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T)
 
 	individualProduct, err := accessories.CreateProduct(ctx, application.CreateAccessoryProductInput{
 		Manufacturer: "ESU", ArticleNumber: "51820", Name: "SwitchPilot", Category: "decoder",
-		ArticleType: domain.AccessoryArticleOther, Subtype: "decoder", PackageQuantity: 1,
+		ArticleType: domain.AccessoryArticleOther, Subtype: "other", PackageQuantity: 1,
 		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryIndividual,
 	}, "editor-1")
 	if err != nil {

@@ -21,6 +21,7 @@ type accessoryRepositorySpy struct {
 	updatedAsset      UpdateAccessoryAssetInput
 	individualization IndividualizeAccessoryInput
 	purchase          CreateAccessoryPurchaseInput
+	activeSubtypeKeys map[string]bool
 }
 
 func stringPointer(value string) *string { return &value }
@@ -36,11 +37,18 @@ func TestAccessoryServiceDerivesCompatibilityArticleDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 	product := repository.createdProduct
-	if product.ArticleType != domain.AccessoryArticleOther || product.Subtype != "Gleismaterial" ||
+	if product.ArticleType != domain.AccessoryArticleOther || product.Subtype != "other:other" ||
 		product.InventoryStrategy != domain.AccessoryInventoryQuantity || product.PackageQuantity != 1 ||
 		product.StockUnit != "piece" {
 		t.Fatalf("unexpected compatibility defaults: %#v", product)
 	}
+}
+
+func (spy *accessoryRepositorySpy) AccessorySubtypeActive(_ context.Context, key string) (bool, error) {
+	if spy.activeSubtypeKeys != nil {
+		return spy.activeSubtypeKeys[key], nil
+	}
+	return key == "track:straight" || key == "other:other", nil
 }
 
 func TestAccessoryServiceValidatesAndNormalizesArticleCore(t *testing.T) {

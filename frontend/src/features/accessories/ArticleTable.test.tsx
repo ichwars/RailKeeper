@@ -88,6 +88,20 @@ describe("ArticleTable", () => {
     setLanguage("de");
   });
 
+  it("honors administrator-renamed built-in subtype labels in every language", () => {
+    const renamed = [{ ...subtypes[0]!, label: "Werkstattgerade" }, subtypes[1]!];
+    setLanguage("de");
+    const view = render(<ArticleTable items={[article]} subtypeEntries={renamed} sort="article" direction="asc"
+      canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByText("Werkstattgerade")).toBeInTheDocument();
+
+    setLanguage("en");
+    view.rerender(<ArticleTable items={[article]} subtypeEntries={renamed} sort="article" direction="asc"
+      canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByText("Werkstattgerade")).toBeInTheDocument();
+    setLanguage("de");
+  });
+
   it("localizes canonical subtype keys returned by the backend", () => {
     render(<ArticleTable items={[{ ...article, subtype: "track:straight" }]} subtypeEntries={subtypes}
       sort="article" direction="asc" canEdit={false} onSort={vi.fn()} onView={vi.fn()}

@@ -117,6 +117,28 @@ describe("ArticleEditorDialog", () => {
     expect(screen.queryByText("track:straight")).not.toBeInTheDocument();
   });
 
+  it("honors an administrator-renamed built-in subtype label", () => {
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "straight" },
+      subtypeEntries: [{ ...subtypeEntries[0]!, label: "Werkstattgerade" }, ...subtypeEntries.slice(1)]
+    })} />);
+
+    expect(screen.getByRole("button", { name: "Unterart" })).toHaveTextContent("Werkstattgerade");
+  });
+
+  it("connects the required subtype select to its stable validation message", () => {
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "" },
+      fieldErrors: { subtype: "Unterart ist erforderlich." }
+    })} />);
+
+    const subtype = screen.getByRole("button", { name: "Unterart" });
+    expect(subtype).toHaveAttribute("aria-required", "true");
+    expect(subtype).toHaveAttribute("aria-invalid", "true");
+    expect(subtype).toHaveAttribute("aria-describedby", "article-editor-subtype-error");
+    expect(screen.getByRole("alert")).toHaveAttribute("id", "article-editor-subtype-error");
+  });
+
   it("represents an inactive historical subtype without permitting arbitrary raw keys", async () => {
     const user = userEvent.setup();
     const historical = { ...subtypeEntries[0]!, id: "historical", key: "track:old_profile",

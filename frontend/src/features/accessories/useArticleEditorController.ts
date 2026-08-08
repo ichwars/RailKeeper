@@ -180,9 +180,13 @@ export function useArticleEditorController({
     }
   }, [isCurrent, t]);
 
-  const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
+  const loadResources = useCallback(async (
+    loadedArticle: AccessoryArticle,
+    generation: number,
+    rejectOnFailure: boolean
+  ) => {
     const request = ++resourceRequestRef.current;
-    const result = await fetchArticleEditorResourcePatch(articleId);
+    const result = await fetchArticleEditorResourcePatch(loadedArticle);
     if (!isCurrent(generation) || resourceRequestRef.current !== request) return;
     setResources((current) => ({ ...current, ...result.patch }));
     const hasUsage = (result.patch.reservations?.length || 0) > 0 ||
@@ -250,7 +254,7 @@ export function useArticleEditorController({
       setForm(next);
       setInitialForm(next);
       setDetailReady(true);
-      void loadResources(id, generation, false);
+      void loadResources({ ...loaded, id }, generation, false);
     }).catch((reason) => {
       if (isCurrent(generation)) setError(errorMessage(reason));
     }).finally(() => {
@@ -405,7 +409,7 @@ export function useArticleEditorController({
 
   const refreshResources = async () => {
     if (!article) return;
-    await loadResources(article.id, generationRef.current, true);
+    await loadResources(article, generationRef.current, true);
   };
 
   const retryResources = async () => {

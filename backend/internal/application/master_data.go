@@ -20,6 +20,8 @@ var (
 
 const masterDataExportFormat = "railkeeper-master-data"
 const standardArticleType = "article_type"
+const standardAccessorySubtype = "accessory_subtype"
+const legacyArticleSubtype = "article_subtype"
 
 var standardArticleTypeKeys = []string{
 	"track", "signal", "decoder", "electrical_control", "building_equipment",
@@ -365,6 +367,10 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	if err != nil {
 		return nil, err
 	}
+	currentAccessorySubtypes, err := s.List(ctx, standardAccessorySubtype, false)
+	if err != nil {
+		return nil, fmt.Errorf("read authoritative accessory subtypes: %w", err)
+	}
 	entriesByType := make(map[string][]MasterDataEntry, len(doc.Entries)+1)
 	for typeName, entries := range doc.Entries {
 		for _, entry := range entries {
@@ -374,6 +380,12 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 		}
 	}
 	entriesByType[standardArticleType] = append(entriesByType[standardArticleType], articleTypes...)
+	accessorySubtypesWereImported := containsEffectiveMasterDataType(doc.Entries, standardAccessorySubtype)
+	if !accessorySubtypesWereImported {
+		entriesByType[standardAccessorySubtype] = append(
+			entriesByType[standardAccessorySubtype], currentAccessorySubtypes...,
+		)
+	}
 	articleTypesWereImported := len(importedArticleTypes) > 0
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -429,7 +441,9 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder, strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt); err != nil {
 				return nil, fmt.Errorf("insert imported master data entry: %w", err)
 			}
-			if entryType != standardArticleType || articleTypesWereImported {
+			preservedArticleType := entryType == standardArticleType && !articleTypesWereImported
+			preservedAccessorySubtype := entryType == standardAccessorySubtype && !accessorySubtypesWereImported
+			if !preservedArticleType && !preservedAccessorySubtype {
 				result.ImportedEntries++
 			}
 		}
@@ -501,7 +515,21 @@ func effectiveMasterDataType(bucketType string, entry MasterDataEntry) string {
 	if entry.Type != "" {
 		entryType = strings.TrimSpace(entry.Type)
 	}
+	if entryType == legacyArticleSubtype {
+		return standardAccessorySubtype
+	}
 	return entryType
+}
+
+func containsEffectiveMasterDataType(entriesByType map[string][]MasterDataEntry, typeName string) bool {
+	for bucketType, entries := range entriesByType {
+		for _, entry := range entries {
+			if effectiveMasterDataType(bucketType, entry) == typeName {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func prepareImportedArticleTypes(
