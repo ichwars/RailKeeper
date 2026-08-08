@@ -367,11 +367,13 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	}
 	entriesByType := make(map[string][]MasterDataEntry, len(doc.Entries)+1)
 	for typeName, entries := range doc.Entries {
-		if strings.TrimSpace(typeName) != standardArticleType {
-			entriesByType[typeName] = entries
+		for _, entry := range entries {
+			if effectiveMasterDataType(typeName, entry) != standardArticleType {
+				entriesByType[typeName] = append(entriesByType[typeName], entry)
+			}
 		}
 	}
-	entriesByType[standardArticleType] = articleTypes
+	entriesByType[standardArticleType] = append(entriesByType[standardArticleType], articleTypes...)
 	articleTypesWereImported := len(importedArticleTypes) > 0
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -392,10 +394,7 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	for typeName, entries := range entriesByType {
 		typeName = strings.TrimSpace(typeName)
 		for _, entry := range entries {
-			entryType := typeName
-			if entry.Type != "" {
-				entryType = strings.TrimSpace(entry.Type)
-			}
+			entryType := effectiveMasterDataType(typeName, entry)
 			key := strings.TrimSpace(entry.Key)
 			label := strings.TrimSpace(entry.Label)
 			if entryType == "" || label == "" {
@@ -430,7 +429,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder, strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt); err != nil {
 				return nil, fmt.Errorf("insert imported master data entry: %w", err)
 			}
-			if typeName != standardArticleType || articleTypesWereImported {
+			if entryType != standardArticleType || articleTypesWereImported {
 				result.ImportedEntries++
 			}
 		}
@@ -467,8 +466,10 @@ VALUES(?, ?, ?, ?, ?, ?, ?)
 func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([]MasterDataEntry, error) {
 	entries := []MasterDataEntry{}
 	for typeName, typedEntries := range entriesByType {
-		if strings.TrimSpace(typeName) == standardArticleType {
-			entries = append(entries, typedEntries...)
+		for _, entry := range typedEntries {
+			if effectiveMasterDataType(typeName, entry) == standardArticleType {
+				entries = append(entries, entry)
+			}
 		}
 	}
 	if len(entries) == 0 {
@@ -484,8 +485,7 @@ func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([
 	seen := make(map[string]bool, len(entries))
 	for _, entry := range entries {
 		key := strings.TrimSpace(entry.Key)
-		entryType := strings.TrimSpace(entry.Type)
-		if !expected[key] || seen[key] || (entryType != "" && entryType != standardArticleType) {
+		if !expected[key] || seen[key] {
 			return nil, ErrMasterDataProtected
 		}
 		if strings.TrimSpace(entry.Label) == "" {
@@ -494,6 +494,14 @@ func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([
 		seen[key] = true
 	}
 	return entries, nil
+}
+
+func effectiveMasterDataType(bucketType string, entry MasterDataEntry) string {
+	entryType := strings.TrimSpace(bucketType)
+	if entry.Type != "" {
+		entryType = strings.TrimSpace(entry.Type)
+	}
+	return entryType
 }
 
 func prepareImportedArticleTypes(

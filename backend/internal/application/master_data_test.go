@@ -87,6 +87,117 @@ END`); err != nil {
 	}
 }
 
+func TestMasterDataImportRejectsEffectiveArticleTypesAcrossBucketsBeforeMutation(t *testing.T) {
+	t.Run("foreign bucket extra", func(t *testing.T) {
+		assertMasterDataImportRejectedBeforeMutation(t, func(
+			_ []application.MasterDataEntry,
+		) map[string][]application.MasterDataEntry {
+			return map[string][]application.MasterDataEntry{
+				"vehicle_category": {{
+					Type: "article_type", Key: "custom", Label: "Custom", Active: true,
+				}},
+			}
+		})
+	})
+
+	t.Run("duplicate across buckets", func(t *testing.T) {
+		assertMasterDataImportRejectedBeforeMutation(t, func(
+			articleTypes []application.MasterDataEntry,
+		) map[string][]application.MasterDataEntry {
+			return map[string][]application.MasterDataEntry{
+				"article_type":     articleTypes,
+				"vehicle_category": {articleTypes[0]},
+			}
+		})
+	})
+}
+
+func TestMasterDataImportAcceptsArticleTypesSplitAcrossBuckets(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+	articleTypes := currentArticleTypes(t, service)
+
+	_, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{
+			"vehicle_category": articleTypes[:4],
+			"epoch":            articleTypes[4:],
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := service.List(ctx, "article_type", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keys := masterDataKeys(got); !reflect.DeepEqual(keys, authoritativeArticleTypeKeys()) {
+		t.Fatalf("split import changed authoritative article types: %#v", keys)
+	}
+}
+
+func TestMasterDataImportKeepsNonArticleEntryFromArticleTypeBucket(t *testing.T) {
+	ctx := context.Background()
+	service := application.NewMasterDataService(testDB(t))
+	articleTypes := currentArticleTypes(t, service)
+	articleTypes = append(articleTypes, application.MasterDataEntry{
+		Type: "vehicle_category", Key: "foreign-category", Label: "Foreign category", Active: true,
+	})
+
+	_, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: map[string][]application.MasterDataEntry{"article_type": articleTypes},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Get(ctx, "vehicle_category", "foreign-category"); err != nil {
+		t.Fatalf("non-article entry from article-type bucket was not imported: %v", err)
+	}
+	got, err := service.List(ctx, "article_type", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if keys := masterDataKeys(got); !reflect.DeepEqual(keys, authoritativeArticleTypeKeys()) {
+		t.Fatalf("non-article entry changed authoritative article types: %#v", keys)
+	}
+}
+
+func assertMasterDataImportRejectedBeforeMutation(
+	t *testing.T,
+	entries func([]application.MasterDataEntry) map[string][]application.MasterDataEntry,
+) {
+	t.Helper()
+	ctx := context.Background()
+	db := testDB(t)
+	service := application.NewMasterDataService(db)
+	active := true
+	if _, err := service.Create(ctx, "epoch", application.MasterDataInput{
+		Key: "sentinel", Label: "Sentinel", Active: &active,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+CREATE TRIGGER reject_master_data_mutation
+BEFORE DELETE ON master_data_entries
+BEGIN
+  SELECT RAISE(FAIL, 'mutation reached');
+END`); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err := service.Import(ctx, &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 1,
+		Entries: entries(currentArticleTypes(t, service)),
+	})
+	if !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("expected protected article-type validation before mutation, got %v", err)
+	}
+	if _, err := service.Get(ctx, "epoch", "sentinel"); err != nil {
+		t.Fatalf("preflight failure mutated sentinel data: %v", err)
+	}
+}
+
 func TestMasterDataImportChangesOnlyMutableArticleTypeFields(t *testing.T) {
 	ctx := context.Background()
 	service := application.NewMasterDataService(testDB(t))
