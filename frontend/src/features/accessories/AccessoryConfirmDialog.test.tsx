@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -41,5 +42,35 @@ describe("AccessoryConfirmDialog", () => {
     view.rerender(<AccessoryConfirmDialog action={second} onClose={vi.fn()} />);
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("closes a committed command before a failed resource refresh so it cannot run twice", async () => {
+    const user = userEvent.setup();
+    const run = vi.fn().mockResolvedValue(undefined);
+    const afterSuccess = vi.fn().mockRejectedValue(new Error("Aktualisierung fehlgeschlagen"));
+    function Harness() {
+      const [open, setOpen] = useState(true);
+      return <AccessoryConfirmDialog action={open ? {
+        title: "Bestand buchen", body: "Buchung bestätigen", run, afterSuccess
+      } : null} onClose={() => setOpen(false)} />;
+    }
+    render(<Harness />);
+
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    expect(run).toHaveBeenCalledOnce();
+    expect(afterSuccess).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog", { name: "Bestand buchen" })).not.toBeInTheDocument();
+  });
+
+  it("renders structured confirmation content without nesting paragraphs", () => {
+    const view = render(<AccessoryConfirmDialog action={{
+      title: "Mögliche Dublette",
+      body: <><p>Treffer prüfen</p><ul><li>Tillig 83101</li></ul></>,
+      run: vi.fn()
+    }} onClose={vi.fn()} />);
+
+    expect(view.container.querySelector("p p")).toBeNull();
+    expect(screen.getByText("Tillig 83101")).toBeInTheDocument();
   });
 });

@@ -97,11 +97,13 @@ export function useArticleEditorController({
   const [hasUsageHistory, setHasUsageHistory] = useState(false);
   const [returnFocusTo, setReturnFocusTo] = useState<HTMLElement | null>(null);
   const [resources, setResources] = useState<ArticleEditorResources>(emptyResources);
+  const [resourcesStale, setResourcesStale] = useState(false);
   const [detailReady, setDetailReady] = useState(false);
   const [duplicateDraft, setDuplicateDraft] = useState<ArticleEditorForm | null>(null);
   const [subdraftDirty, setSubdraftDirtyState] = useState<Record<string, boolean>>({});
   const [sessionKey, setSessionKey] = useState(0);
   const generationRef = useRef(0);
+  const resourceRequestRef = useRef(0);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -109,6 +111,7 @@ export function useArticleEditorController({
     return () => {
       mountedRef.current = false;
       generationRef.current += 1;
+      resourceRequestRef.current += 1;
     };
   }, []);
 
@@ -137,20 +140,26 @@ export function useArticleEditorController({
     mountedRef.current && generationRef.current === generation, []);
 
   const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
+    const request = ++resourceRequestRef.current;
     const result = await fetchArticleEditorResourcePatch(articleId);
-    if (!isCurrent(generation)) return;
+    if (!isCurrent(generation) || resourceRequestRef.current !== request) return;
     setResources((current) => ({ ...current, ...result.patch }));
     const hasUsage = (result.patch.reservations?.length || 0) > 0 ||
       (result.patch.installations?.length || 0) > 0 || (result.patch.usageHistory?.events.length || 0) > 0;
     if (hasUsage) setHasUsageHistory(true);
     if (result.errors.length > 0) {
+      setResourcesStale(true);
       setError(result.errors[0].message);
       if (rejectOnFailure) throw result.errors[0];
+      return;
     }
+    setResourcesStale(false);
+    if (rejectOnFailure) setError("");
   }, [isCurrent]);
 
   const openCreate = () => {
     const generation = ++generationRef.current;
+    resourceRequestRef.current += 1;
     setSessionKey(generation);
     const next = emptyArticleEditorForm();
     setMode("create");
@@ -158,6 +167,7 @@ export function useArticleEditorController({
     setForm(next);
     setInitialForm(next);
     setResources(emptyResources());
+    setResourcesStale(false);
     setDetailReady(true);
     setLoading(false);
     setHasUsageHistory(false);
@@ -173,6 +183,7 @@ export function useArticleEditorController({
 
   const openArticle = (id: string, nextMode: Exclude<ArticleEditorMode, "create">, usageSignal: boolean) => {
     const generation = ++generationRef.current;
+    resourceRequestRef.current += 1;
     setSessionKey(generation);
     const empty = emptyArticleEditorForm();
     setMode(nextMode);
@@ -184,6 +195,7 @@ export function useArticleEditorController({
     setReturnFocusTo(document.activeElement instanceof HTMLElement ? document.activeElement : null);
     resetTransientState();
     setResources(emptyResources());
+    setResourcesStale(false);
     setIsOpen(true);
     setLoading(true);
     void api.accessoryArticle(id).then((loaded) => {
@@ -222,6 +234,7 @@ export function useArticleEditorController({
 
   const closeNow = () => {
     generationRef.current += 1;
+    resourceRequestRef.current += 1;
     setIsOpen(false);
     setCloseConfirmationOpen(false);
     setDuplicateCandidates([]);
@@ -230,6 +243,7 @@ export function useArticleEditorController({
     setDetailReady(false);
     setLoading(false);
     setResources(emptyResources());
+    setResourcesStale(false);
   };
 
   const requestClose = () => {
@@ -322,6 +336,10 @@ export function useArticleEditorController({
     await loadResources(article.id, generationRef.current, true);
   };
 
+  const retryResources = async () => {
+    await refreshResources();
+  };
+
   const setSubdraftDirty = (scope: string, dirty: boolean) => {
     setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
@@ -342,6 +360,7 @@ export function useArticleEditorController({
     hasUsageHistory,
     returnFocusTo,
     resources,
+    resourcesStale,
     sessionKey,
     permissions,
     isFormReadOnly: mode === "view" || !permissions.canEdit,
@@ -356,6 +375,7 @@ export function useArticleEditorController({
     confirmDuplicateSave,
     cancelDuplicateSave: () => { setDuplicateCandidates([]); setDuplicateDraft(null); },
     refreshResources,
+    retryResources,
     setSubdraftDirty
   };
 }

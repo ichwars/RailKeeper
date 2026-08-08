@@ -79,18 +79,19 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           quantity: isIndividual ? 1 : Number(quantity),
           note: note || undefined
         });
-        await onChanged();
         setLocationID(""); setAssetID(""); setQuantity("1"); setNote("");
         setTarget({ kind: "layout", id: "" });
         setTechnical(emptyTechnicalPlacement());
-      }
+      },
+      afterSuccess: onChanged
     });
   };
 
   const cancel = (reservation: AccessoryReservation) => setAction({
     title: t("accessories.reservations.cancelTitle"),
     body: t("accessories.reservations.cancelBody"),
-    run: async () => { await api.cancelAccessoryReservation(reservation.id); await onChanged(); }
+    run: async () => { await api.cancelAccessoryReservation(reservation.id); },
+    afterSuccess: onChanged
   });
 
   return <>

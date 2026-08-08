@@ -205,6 +205,34 @@ SET changed_at='2026-01-01T12:00:00Z' WHERE installation_id=?`, installation.ID)
 	}
 }
 
+func TestAccessoryInstallationInheritsReservationTechnicalDataWithNonEmptyOverrides(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	target := application.AllocationTargetInput{LayoutID: fixture.layout.ID}
+	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: target, Placement: "Bahnhof West", DigitalAddress: "17",
+		DecoderOutput: "A2", Connection: "J3", WiringNotes: "blau/gelb",
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1, AllocationTargetInput: target,
+		Condition: domain.AccessoryConditionReady, Connection: "J4",
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installation.Placement != "Bahnhof West" || installation.DigitalAddress != "17" ||
+		installation.DecoderOutput != "A2" || installation.Connection != "J4" ||
+		installation.WiringNotes != "blau/gelb" {
+		t.Fatalf("installation did not inherit reservation technical data with override: %#v", installation)
+	}
+}
+
 func TestAccessoryAllocationsTrackIndividualAssetLifecycle(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()

@@ -243,6 +243,65 @@ describe("useArticleEditorController", () => {
     expect(refreshError).toEqual(new Error("Bestand nicht verfügbar"));
     expect(result.current.resources.stock).toEqual(stock("article-1", 0));
     expect(result.current.error).toBe("Bestand nicht verfügbar");
+    expect(result.current.resourcesStale).toBe(true);
+  });
+
+  it("keeps a mutation refresh newer than the still-pending initial resource load", async () => {
+    const initialStock = deferred<AccessoryStockSummary>();
+    vi.mocked(api.accessoryStock)
+      .mockImplementationOnce(() => initialStock.promise)
+      .mockResolvedValueOnce(stock("article-1", 8));
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledTimes(1));
+    await act(async () => result.current.refreshResources());
+    expect(result.current.resources.stock).toEqual(stock("article-1", 8));
+
+    await act(async () => initialStock.resolve(stock("article-1", 1)));
+    expect(result.current.resources.stock).toEqual(stock("article-1", 8));
+  });
+
+  it("applies only the latest of two same-session resource refreshes", async () => {
+    const firstRefresh = deferred<AccessoryStockSummary>();
+    const secondRefresh = deferred<AccessoryStockSummary>();
+    vi.mocked(api.accessoryStock)
+      .mockResolvedValueOnce(stock("article-1", 0))
+      .mockImplementationOnce(() => firstRefresh.promise)
+      .mockImplementationOnce(() => secondRefresh.promise);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(result.current.resources.stock).toEqual(stock("article-1", 0)));
+    let older!: Promise<void>;
+    let newer!: Promise<void>;
+    act(() => { older = result.current.refreshResources(); });
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledTimes(2));
+    act(() => { newer = result.current.refreshResources(); });
+    await waitFor(() => expect(api.accessoryStock).toHaveBeenCalledTimes(3));
+
+    await act(async () => secondRefresh.resolve(stock("article-1", 9)));
+    await newer;
+    await act(async () => firstRefresh.resolve(stock("article-1", 2)));
+    await older;
+
+    expect(result.current.resources.stock).toEqual(stock("article-1", 9));
+  });
+
+  it("clears stale resource state only after an explicit successful retry", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle("article-1", "edit", false));
+    await waitFor(() => expect(result.current.resources.stock).toEqual(stock("article-1", 0)));
+    vi.mocked(api.accessoryStock).mockRejectedValueOnce(new Error("Bestand veraltet"));
+
+    await act(async () => {
+      try { await result.current.refreshResources(); } catch { /* expected */ }
+    });
+    expect(result.current.resourcesStale).toBe(true);
+
+    await act(async () => result.current.retryResources());
+    expect(result.current.resourcesStale).toBe(false);
+    expect(result.current.error).toBe("");
   });
 
   it("binds duplicate confirmation to the checked immutable draft", async () => {

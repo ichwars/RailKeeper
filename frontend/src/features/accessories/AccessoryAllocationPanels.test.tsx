@@ -2,7 +2,13 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryArticle, type Layout, type StorageLocation } from "../../shared/api";
+import {
+  api,
+  type AccessoryArticle,
+  type AccessoryReservation,
+  type Layout,
+  type StorageLocation
+} from "../../shared/api";
 import { AccessoryInstallationsPanel } from "./AccessoryInstallationsPanel";
 import { AccessoryReservationsPanel } from "./AccessoryReservationsPanel";
 
@@ -19,6 +25,12 @@ const location: StorageLocation = {
 const layout: Layout = {
   id: "layout-1", name: "Clubanlage", kind: "club", gauge: "TT", scale: "1:120", version: 1, archived: false,
   createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T09:00:00Z"
+};
+const reservation: AccessoryReservation = {
+  id: "reservation-1", productId: article.id, locationId: location.id, quantity: 1, layoutId: layout.id,
+  placement: "Bahnhof West", digitalAddress: "17", decoderOutput: "A2", connection: "J3",
+  wiringNotes: "blau/gelb", status: "active", createdBy: "planner",
+  createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
 };
 
 async function fillTechnicalFields(user: ReturnType<typeof userEvent.setup>) {
@@ -60,5 +72,30 @@ describe("accessory allocation forms", () => {
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ layoutId: "layout-1", placement: "Bahnhof West",
       digitalAddress: "17", decoderOutput: "A2", connection: "J3", wiringNotes: "blau/gelb" }));
+  });
+
+  it("prefills reservation technical data, keeps it editable, and sends explicit overrides", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createAccessoryInstallation").mockResolvedValue({} as never);
+    render(<AccessoryInstallationsPanel article={article} reservations={[reservation]} installations={[]} assets={[]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canInstall onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Reservierung" }));
+    await user.click(screen.getByRole("option", { name: "Clubanlage" }));
+    expect(screen.getByRole("textbox", { name: "Einbauort" })).toHaveValue("Bahnhof West");
+    expect(screen.getByRole("textbox", { name: "Digitaladresse" })).toHaveValue("17");
+    expect(screen.getByRole("textbox", { name: "Decoderausgang" })).toHaveValue("A2");
+    const connection = screen.getByRole("textbox", { name: "Anschluss" });
+    expect(connection).toHaveValue("J3");
+    expect(screen.getByRole("textbox", { name: "Verdrahtungshinweise" })).toHaveValue("blau/gelb");
+    await user.clear(connection);
+    await user.type(connection, "J4");
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ reservationId: reservation.id,
+      placement: "Bahnhof West", digitalAddress: "17", decoderOutput: "A2", connection: "J4",
+      wiringNotes: "blau/gelb" }));
   });
 });

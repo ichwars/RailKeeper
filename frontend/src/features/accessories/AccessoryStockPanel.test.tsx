@@ -15,6 +15,9 @@ const asset: AccessoryAsset = { id: "asset-1", productId: article.id, inventoryN
   condition: "ready", lifecycle: "stored", storageLocationId: "location-1", purchaseDate: "2026-01-01",
   purchasePrice: "12.50", warrantyUntil: "2028-01-01", notes: "Alt", createdAt: "2026-08-08T08:00:00Z",
   updatedAt: "2026-08-08T09:00:00Z" };
+const reservedAsset: AccessoryAsset = {
+  ...asset, id: "asset-2", inventoryNumber: "RK-2", lifecycle: "reserved"
+};
 const location: StorageLocation = { id: "location-1", name: "Schublade",
   archived: false, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T09:00:00Z" };
 
@@ -37,7 +40,16 @@ describe("AccessoryStockPanel", () => {
     await user.click(screen.getByRole("button", { name: "Bestätigen" }));
 
     expect(update).toHaveBeenCalledWith("asset-1", expect.objectContaining({ inventoryNumber: "RK-1",
-      serialNumber: "NEU", condition: "ready", purchaseDate: "2026-01-01", purchasePrice: "12.50",
+      serialNumber: "NEU", condition: "ready", lifecycle: "stored", purchaseDate: "2026-01-01", purchasePrice: "12.50",
       warrantyUntil: "2028-01-01", notes: "Geprüft" }));
+  });
+
+  it("does not offer asset editing for reserved or installed lifecycles", () => {
+    render(<AccessoryStockPanel article={article} stock={null} movements={[]}
+      assets={[reservedAsset, { ...reservedAsset, id: "asset-3", inventoryNumber: "RK-3", lifecycle: "installed" }]}
+      locations={[location]} canEdit onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "Einzelstück bearbeiten: RK-2" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Einzelstück bearbeiten: RK-3" })).not.toBeInTheDocument();
   });
 });

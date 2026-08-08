@@ -32,6 +32,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
       locations: [], stock: null, movements: [], assets: [], purchases: [], documents: [],
       reservations: [], installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
     },
+    resourcesStale: false,
     onChange: vi.fn(),
     onTabChange: vi.fn(),
     onSubmit: vi.fn(),
@@ -41,6 +42,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     onConfirmDuplicate: vi.fn(),
     onCancelDuplicate: vi.fn(),
     onResourcesChanged: vi.fn(),
+    onRetryResources: vi.fn(),
     onSubdraftDirty: vi.fn(),
     ...overrides
   };
@@ -196,5 +198,19 @@ describe("ArticleEditorDialog", () => {
       articleNumber: "83101", name: "Gleis", articleType: "track", subtype: "straight" }] })} />);
 
     expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
+  });
+
+  it("disables resource mutations while stale and offers an explicit retry", async () => {
+    const user = userEvent.setup();
+    const onRetryResources = vi.fn().mockRejectedValue(new Error("Weiterhin nicht verfügbar"));
+    render(<ArticleEditorDialog {...props({
+      mode: "edit", article: persistedArticle, activeTab: "stock", resourcesStale: true,
+      error: "Bestand konnte nicht aktualisiert werden", onRetryResources
+    })} />);
+
+    expect(screen.queryByRole("button", { name: "Reservierung anlegen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Einbau erfassen" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Daten erneut laden" }));
+    expect(onRetryResources).toHaveBeenCalledOnce();
   });
 });

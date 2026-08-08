@@ -64,9 +64,9 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
         quantity: Number(purchaseQuantity),
         storageLocationId: purchase.bookToStock ? locationId : undefined
       });
-      await onChanged();
       setPurchase(emptyPurchase());
       setPurchaseQuantity("1");
+      await onChanged().catch(() => undefined);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {
@@ -81,10 +81,10 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     setError("");
     try {
       await api.uploadAccessoryDocument(article.id, { file, category, description: description.trim() || undefined });
-      await onChanged();
       setFile(null);
       setCategory("other");
       setDescription("");
+      await onChanged().catch(() => undefined);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {
@@ -99,10 +99,8 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
       body: t("accessories.editor.documents.deleteBody", { name }),
       confirmLabel: t("common.delete"),
       dangerous: true,
-      run: async () => {
-        await api.deleteAccessoryDocument(article.id, documentId);
-        await onChanged();
-      }
+      run: () => api.deleteAccessoryDocument(article.id, documentId),
+      afterSuccess: onChanged
     });
   };
 

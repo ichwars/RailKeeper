@@ -120,6 +120,7 @@ export function AccessoriesView({
         closeConfirmationOpen={editor.closeConfirmationOpen}
         permissions={editor.permissions}
         resources={editor.resources}
+        resourcesStale={editor.resourcesStale}
         returnFocusTo={editor.returnFocusTo}
         onChange={editor.changeForm}
         onTabChange={editor.setActiveTab}
@@ -130,6 +131,7 @@ export function AccessoriesView({
         onConfirmDuplicate={editor.confirmDuplicateSave}
         onCancelDuplicate={editor.cancelDuplicateSave}
         onResourcesChanged={editor.refreshResources}
+        onRetryResources={editor.retryResources}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
     </>

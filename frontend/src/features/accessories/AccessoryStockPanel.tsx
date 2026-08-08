@@ -52,7 +52,12 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
-  const confirm = (title: string, body: string, run: () => Promise<void>) => setAction({ title, body, run });
+  const confirm = (title: string, body: string, run: () => Promise<void>) => setAction({
+    title,
+    body,
+    run,
+    afterSuccess: onChanged
+  });
 
   const submitAdjustment = (event: FormEvent) => {
     event.preventDefault();
@@ -60,7 +65,6 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
       count: Number(delta), product: article.name
     }), async () => {
       await api.adjustAccessoryStock(article.id, { locationId: effectiveLocationId, delta: Number(delta) });
-      await onChanged();
       setDelta("1");
       setLocationId("");
     });
@@ -75,7 +79,6 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
         quantity: Number(transferQuantity),
         note: transferNote.trim() || undefined
       });
-      await onChanged();
       setTransferQuantity("1");
       setTransferNote("");
       setLocationId("");
@@ -93,7 +96,6 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
       : () => api.createAccessoryAsset(article.id, input);
     confirm(t("accessories.assets.confirmTitle"), t("accessories.assets.confirmBody", { product: article.name }), async () => {
       await run();
-      await onChanged();
       setAsset({ condition: "ready", lifecycle: "stored" });
       setEditingAssetId("");
       setLocationId("");
@@ -101,13 +103,14 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
   };
 
   const editAsset = (item: AccessoryAsset) => {
+    if (item.lifecycle === "reserved" || item.lifecycle === "installed") return;
     setEditingAssetId(item.id);
     setLocationId(item.storageLocationId || "");
     setAsset({
       inventoryNumber: item.inventoryNumber,
       serialNumber: item.serialNumber,
       condition: item.condition,
-      lifecycle: item.lifecycle === "reserved" || item.lifecycle === "installed" ? undefined : item.lifecycle,
+      lifecycle: item.lifecycle,
       storageLocationId: item.storageLocationId,
       purchaseDate: item.purchaseDate,
       purchasePrice: item.purchasePrice,
@@ -163,7 +166,8 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
         </tr></thead><tbody>{assets.map((item) => <tr key={item.id}>
           <td>{item.inventoryNumber || item.serialNumber || "-"}</td>
           <td>{t(`accessories.condition.${item.condition}`)}</td><td>{t(`accessories.lifecycle.${item.lifecycle}`)}</td>
-          <td>{canEdit ? <button type="button" className="icon-button"
+          <td>{canEdit && item.lifecycle !== "reserved" && item.lifecycle !== "installed"
+            ? <button type="button" className="icon-button"
             aria-label={t("accessories.assets.editNamed", { name: item.inventoryNumber || item.serialNumber || item.id })}
             onClick={() => editAsset(item)}><SquarePen size={15} aria-hidden="true" /></button> : null}</td>
         </tr>)}</tbody></table></div>

@@ -62,6 +62,7 @@ func (r *AccessoryRepository) Install(
 			if !reservationMatchesInstallation(reservation, input) {
 				return application.ErrAccessoryConflict
 			}
+			inheritReservationTechnicalData(&input, reservation)
 		}
 		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
 		if err != nil {
@@ -349,6 +350,27 @@ func reservationMatchesInstallation(
 		reservation.LocationID == input.SourceLocationID && reservation.Quantity == input.Quantity &&
 		reservation.VehicleID == input.VehicleID && reservation.LayoutID == input.LayoutID &&
 		reservation.LayoutUnitID == input.LayoutUnitID
+}
+
+func inheritReservationTechnicalData(
+	input *application.CreateAccessoryInstallationInput,
+	reservation *application.AccessoryReservation,
+) {
+	if input.Placement == "" {
+		input.Placement = reservation.Placement
+	}
+	if input.DigitalAddress == "" {
+		input.DigitalAddress = reservation.DigitalAddress
+	}
+	if input.DecoderOutput == "" {
+		input.DecoderOutput = reservation.DecoderOutput
+	}
+	if input.Connection == "" {
+		input.Connection = reservation.Connection
+	}
+	if input.WiringNotes == "" {
+		input.WiringNotes = reservation.WiringNotes
+	}
 }
 
 const accessoryInstallationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), source_location_id, quantity,

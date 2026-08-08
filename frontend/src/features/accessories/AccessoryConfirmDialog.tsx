@@ -6,6 +6,7 @@ export type AccessoryPendingAction = {
   title: string;
   body: ReactNode;
   run: () => void | Promise<void>;
+  afterSuccess?: () => void | Promise<void>;
   cancelLabel?: string;
   confirmLabel?: string;
   dangerous?: boolean;
@@ -42,6 +43,11 @@ export function AccessoryConfirmDialog({ action, onClose }: {
     try {
       await action.run();
       onClose();
+      try {
+        await action.afterSuccess?.();
+      } catch {
+        // The owning resource controller exposes refresh failures and retry state.
+      }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : t("accessories.error.generic"));
     } finally {
@@ -72,7 +78,7 @@ export function AccessoryConfirmDialog({ action, onClose }: {
       aria-label={action.title} onKeyDown={onKeyDown}>
       <section className="panel accessory-confirm-dialog">
         <h2>{action.title}</h2>
-        <p>{action.body}</p>
+        {typeof action.body === "string" ? <p>{action.body}</p> : <div>{action.body}</div>}
         {error ? <p className="form-message" role="alert">{error}</p> : null}
         <div className="accessory-form-actions">
           <button ref={cancelRef} type="button" className="secondary-button" onClick={onClose} disabled={busy}>

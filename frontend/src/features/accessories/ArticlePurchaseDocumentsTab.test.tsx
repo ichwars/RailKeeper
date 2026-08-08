@@ -32,6 +32,23 @@ describe("ArticlePurchaseDocumentsTab", () => {
     expect(onChanged).toHaveBeenCalledOnce();
   });
 
+  it("resets a committed purchase before a failed refresh so the original draft cannot be submitted twice", async () => {
+    const user = userEvent.setup();
+    const createPurchase = vi.spyOn(api, "createAccessoryPurchase").mockResolvedValue({} as never);
+    const onChanged = vi.fn().mockRejectedValue(new Error("Aktualisierung fehlgeschlagen"));
+    render(<ArticlePurchaseDocumentsTab article={article} disabled={false} onChanged={onChanged} resources={{
+      locations: [], stock: null, movements: [], assets: [], purchases: [], documents: [], reservations: [],
+      installations: [], usageHistory: null, vehicles: [], layouts: [], units: []
+    }} onDirtyChange={vi.fn()} />);
+    await user.type(screen.getByRole("textbox", { name: "Bezugsquelle" }), "Modellbahnshop");
+
+    await user.click(screen.getByRole("button", { name: "Kauf buchen" }));
+
+    expect(createPurchase).toHaveBeenCalledOnce();
+    expect(onChanged).toHaveBeenCalledOnce();
+    expect(screen.getByRole("textbox", { name: "Bezugsquelle" })).toHaveValue("");
+  });
+
   it("uses the local calendar date for a new purchase", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(2026, 7, 8, 0, 30));

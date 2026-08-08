@@ -87,6 +87,18 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
 
   useEffect(() => onDirtyChange(formDirty), [formDirty, onDirtyChange]);
 
+  const selectReservation = (id: string) => {
+    setReservationID(id);
+    const reservation = activeReservations.find((item) => item.id === id);
+    setTechnical(reservation ? {
+      placement: reservation.placement || "",
+      digitalAddress: reservation.digitalAddress || "",
+      decoderOutput: reservation.decoderOutput || "",
+      connection: reservation.connection || "",
+      wiringNotes: reservation.wiringNotes || ""
+    } : emptyTechnicalPlacement());
+  };
+
   const submitInstallation = (event: FormEvent) => {
     event.preventDefault();
     if (!targetInput || !canSubmit) return;
@@ -110,11 +122,11 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           condition,
           notes: notes || undefined
         });
-        await onChanged();
         setReservationID(""); setLocationID(""); setAssetID(""); setQuantity("1");
         setCondition("ready"); setNotes(""); setTarget({ kind: "layout", id: "" });
         setTechnical(emptyTechnicalPlacement());
-      }
+      },
+      afterSuccess: onChanged
     });
   };
 
@@ -125,11 +137,11 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
       body: t("accessories.installations.conditionBody"),
       run: async () => {
         await api.updateAccessoryInstallationCondition(installation.id, { condition: nextCondition });
-        await onChanged();
         setConditionDrafts((current) => {
           const next = { ...current }; delete next[installation.id]; return next;
         });
-      }
+      },
+      afterSuccess: onChanged
     });
   };
 
@@ -144,9 +156,9 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           ? { disposition, storageLocationId: effectiveRemovalLocationID, notes: removalNotes || undefined }
           : { disposition, notes: removalNotes || undefined };
         await api.removeAccessoryInstallation(removalID, input);
-        await onChanged();
         setRemovalID(""); setRemovalLocationID(""); setRemovalNotes(""); setDisposition("stored");
-      }
+      },
+      afterSuccess: onChanged
     });
   };
 
@@ -183,7 +195,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           <form className="accessory-form" onSubmit={submitInstallation}>
             <h3>{t("accessories.installations.create")}</h3>
             <label>{t("accessories.field.reservation")}<AppSelect value={reservationID}
-              onChange={(event) => setReservationID(event.target.value)}>
+              onChange={(event) => selectReservation(event.target.value)}>
               <option value="">{t("accessories.installations.withoutReservation")}</option>
               {activeReservations.map((reservation) => <option key={reservation.id} value={reservation.id}>
                 {accessoryTargetLabel(reservation, vehicles, layouts, units)}</option>)}
@@ -192,7 +204,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               selectedReservation, vehicles, layouts, units)}</p>
               : <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
                 onChange={setTarget} />}
-            {!selectedReservation ? <AccessoryTechnicalFields value={technical} onChange={setTechnical} /> : null}
+            <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
               disabled={Boolean(selectedReservation)} onChange={(event) => setLocationID(event.target.value)}>
               {sourceLocations.map((location) => <option key={location.id} value={location.id}>

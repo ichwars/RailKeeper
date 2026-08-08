@@ -32,6 +32,7 @@ export type ArticleEditorDialogProps = {
   closeConfirmationOpen: boolean;
   permissions: ArticleEditorPermissions;
   resources: ArticleEditorResources;
+  resourcesStale: boolean;
   returnFocusTo?: HTMLElement | null;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
   onTabChange: (tab: ArticleEditorTab) => void;
@@ -42,6 +43,7 @@ export type ArticleEditorDialogProps = {
   onConfirmDuplicate: () => void | Promise<void>;
   onCancelDuplicate: () => void;
   onResourcesChanged: () => Promise<void>;
+  onRetryResources: () => Promise<void>;
   onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
 
@@ -148,16 +150,19 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
             <ArticleStockTab article={props.article} form={props.form} errors={props.fieldErrors}
-              resources={props.resources} disabled={readOnly || !props.permissions.canManageStock}
+              resources={props.resources}
+              disabled={readOnly || !props.permissions.canManageStock || props.resourcesStale}
               canReserve={!props.saving && !confirmationPending && props.permissions.canReserve &&
-                (props.mode !== "view" || plannerReservationMode)}
-              canInstall={!props.saving && !confirmationPending && props.permissions.canInstall && props.mode !== "view"}
+                !props.resourcesStale && (props.mode !== "view" || plannerReservationMode)}
+              canInstall={!props.saving && !confirmationPending && !props.resourcesStale &&
+                props.permissions.canInstall && props.mode !== "view"}
               onChange={props.onChange} onChanged={props.onResourcesChanged}
               onDirtyChange={props.onSubdraftDirty} />
           </div>
           <div hidden={props.activeTab !== "purchaseDocuments"} aria-hidden={props.activeTab !== "purchaseDocuments"}>
             <ArticlePurchaseDocumentsTab article={props.article} resources={props.resources}
-              disabled={readOnly || !props.permissions.canManageStock} onChanged={props.onResourcesChanged}
+              disabled={readOnly || !props.permissions.canManageStock || props.resourcesStale}
+              onChanged={props.onResourcesChanged}
               onDirtyChange={(dirty) => props.onSubdraftDirty("purchaseDocuments", dirty)} />
           </div>
           <div hidden={props.activeTab !== "subject"} aria-hidden={props.activeTab !== "subject"}>
@@ -175,7 +180,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </> : null}
       </div>
       <footer className="modal-actions article-editor-actions">
-        {props.error ? <p className="form-message" role="alert">{props.error}</p> : null}
+        {props.error ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{props.error}</p>
+          {props.resourcesStale ? <button type="button" className="secondary-button"
+            onClick={() => void props.onRetryResources().catch(() => undefined)}>
+            {t("accessories.editor.retryResources")}</button> : null}
+        </div> : null}
         <button type="button" className="secondary-button" onClick={props.onRequestClose}>
           {readOnly ? t("common.close") : t("common.cancel")}
         </button>
