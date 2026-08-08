@@ -1,4 +1,4 @@
-import { ChangeEvent, forwardRef, InputHTMLAttributes, ReactNode, useId, useRef } from "react";
+import { ChangeEvent, forwardRef, InputHTMLAttributes, ReactNode, useEffect, useId, useRef } from "react";
 import { FileUp, X } from "lucide-react";
 
 export type AppFilePickerProps = Omit<InputHTMLAttributes<HTMLInputElement>, "onChange" | "type" | "value"> & {
@@ -8,9 +8,9 @@ export type AppFilePickerProps = Omit<InputHTMLAttributes<HTMLInputElement>, "on
   file?: File | null;
   onFileChange?: (file: File | null) => void;
   readOnly?: boolean;
-  triggerLabel?: string;
-  clearLabel?: string;
-  emptyLabel?: string;
+  triggerLabel: string;
+  clearLabel: string;
+  emptyLabel: string;
 };
 
 export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(function AppFilePicker(
@@ -21,9 +21,9 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
     file,
     onFileChange,
     readOnly = false,
-    triggerLabel = "Datei auswählen",
-    clearLabel = "Datei entfernen",
-    emptyLabel = "Keine Datei ausgewählt",
+    triggerLabel,
+    clearLabel,
+    emptyLabel,
     className = "",
     id,
     required,
@@ -35,11 +35,19 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
   const generatedId = useId();
   const inputId = id || generatedId;
   const labelId = `${inputId}-label`;
+  const triggerTextId = `${inputId}-trigger-text`;
+  const fileNameId = `${inputId}-file-name`;
   const helpId = helpText ? `${inputId}-help` : undefined;
   const errorId = error ? `${inputId}-error` : undefined;
   const describedBy = [inputProps["aria-describedby"], helpId, errorId].filter(Boolean).join(" ") || undefined;
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const unavailable = disabled || readOnly;
+  const invalid = Boolean(error) || Boolean(required && !file);
+
+  useEffect(() => {
+    if (!file && inputRef.current) inputRef.current.value = "";
+  }, [file]);
 
   const setInputRef = (node: HTMLInputElement | null) => {
     inputRef.current = node;
@@ -57,13 +65,19 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
     onFileChange?.(null);
   };
 
+  const openPicker = () => {
+    if (!inputRef.current || unavailable) return;
+    inputRef.current.value = "";
+    inputRef.current.click();
+  };
+
   return (
     <div
-      className={`app-field app-file-picker ${error ? "has-error" : ""} ${className}`.trim()}
+      className={`app-field app-file-picker ${invalid ? "has-error" : ""} ${className}`.trim()}
       aria-readonly={readOnly || undefined}
     >
-      <span id={labelId} className="app-field-label">
-        {label}{required ? <span aria-hidden="true"> *</span> : null}
+      <span className="app-field-label">
+        <span id={labelId}>{label}</span>{required ? <span aria-hidden="true"> *</span> : null}
       </span>
       <input
         {...inputProps}
@@ -72,25 +86,35 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
         className="visually-hidden"
         type="file"
         tabIndex={-1}
-        required={required}
+        required={required && !file}
         disabled={disabled}
         onChange={handleChange}
+        onInvalid={(event) => {
+          event.preventDefault();
+          triggerRef.current?.focus();
+        }}
         aria-labelledby={labelId}
         aria-describedby={describedBy}
-        aria-invalid={error ? true : inputProps["aria-invalid"]}
+        aria-invalid={invalid ? true : inputProps["aria-invalid"]}
       />
       <div className="app-file-picker-control">
         <button
+          ref={triggerRef}
           type="button"
           className="app-file-picker-trigger"
           disabled={unavailable}
-          onClick={() => inputRef.current?.click()}
+          onClick={openPicker}
+          aria-labelledby={`${labelId} ${triggerTextId} ${fileNameId}`}
           aria-describedby={describedBy}
+          aria-invalid={invalid || undefined}
+          aria-required={required || undefined}
         >
           <FileUp size={15} aria-hidden="true" />
-          {triggerLabel}
+          <span id={triggerTextId}>{triggerLabel}</span>
         </button>
-        <span className={`app-file-picker-name ${file ? "" : "empty"}`.trim()}>{file?.name || emptyLabel}</span>
+        <span id={fileNameId} className={`app-file-picker-name ${file ? "" : "empty"}`.trim()}>
+          {file?.name || emptyLabel}
+        </span>
         {file ? (
           <button
             type="button"

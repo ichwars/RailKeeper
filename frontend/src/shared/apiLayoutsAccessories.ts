@@ -151,6 +151,7 @@ export type AccessoryAttributeValue =
   | { key: string; kind: "single_select"; optionValues: [string] }
   | { key: string; kind: "multi_select"; optionValues: string[] };
 
+/** @deprecated Kept only until the legacy accessory panels are removed in Task 10/11. */
 export type AccessoryProduct = {
   id: string;
   manufacturer: string;
@@ -628,15 +629,30 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     restoreAccessoryProduct: (id: string) =>
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/restore`, { method: "POST" }),
     /** @deprecated Kept only for the legacy accessory panels until Task 10/11. */
-    accessoryProducts: (query = "") =>
-      request<AccessoryProduct[]>(`/accessory-products${query ? `?query=${encodeURIComponent(query)}` : ""}`),
+    accessoryProducts: async (query = "") => {
+      const result = await request<AccessoryArticleListResult>(
+        `/accessory-products${query ? `?query=${encodeURIComponent(query)}` : ""}`
+      );
+      return result.items.map(toLegacyAccessoryListItem);
+    },
     /** @deprecated Use createAccessoryArticle. */
-    createAccessoryProduct: (input: AccessoryProductInput) =>
-      request<AccessoryProduct>("/accessory-products", json("POST", input)),
-    accessoryProduct: (id: string) => request<AccessoryProduct>(`/accessory-products/${encodeURIComponent(id)}`),
+    createAccessoryProduct: async (input: AccessoryProductInput) =>
+      toLegacyAccessoryProduct(
+        await request<AccessoryArticle>("/accessory-products", json("POST", toLegacyAccessoryWrite(input)))
+      ),
+    /** @deprecated Use accessoryArticle. */
+    accessoryProduct: async (id: string) =>
+      toLegacyAccessoryProduct(
+        await request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}`)
+      ),
     /** @deprecated Use updateAccessoryArticle. */
-    updateAccessoryProduct: (id: string, input: AccessoryProductInput) =>
-      request<AccessoryProduct>(`/accessory-products/${encodeURIComponent(id)}`, json("PUT", input)),
+    updateAccessoryProduct: async (id: string, input: AccessoryProductInput) =>
+      toLegacyAccessoryProduct(
+        await request<AccessoryArticle>(
+          `/accessory-products/${encodeURIComponent(id)}`,
+          json("PUT", toLegacyAccessoryWrite(input))
+        )
+      ),
     storageLocations: () => request<StorageLocation[]>("/storage-locations"),
     createStorageLocation: (input: StorageLocationInput) =>
       request<StorageLocation>("/storage-locations", json("POST", input)),
@@ -742,6 +758,49 @@ function accessoryDocumentForm(input: AccessoryDocumentUploadInput): FormData {
   if (input.description !== undefined) form.append("description", input.description);
   if (input.isPrimary !== undefined) form.append("isPrimary", String(input.isPrimary));
   return form;
+}
+
+function toLegacyAccessoryListItem(article: AccessoryArticleListItem): AccessoryProduct {
+  return {
+    id: article.id,
+    manufacturer: article.manufacturer,
+    articleNumber: article.articleNumber || undefined,
+    name: article.name,
+    category: article.subtype,
+    trackingMode: article.inventoryStrategy === "individual" ? "individual" : "quantity",
+    createdAt: article.updatedAt,
+    updatedAt: article.updatedAt
+  };
+}
+
+function toLegacyAccessoryProduct(article: AccessoryArticle): AccessoryProduct {
+  return {
+    id: article.id,
+    manufacturer: article.manufacturer,
+    articleNumber: article.articleNumber,
+    name: article.name,
+    category: article.category,
+    trackingMode: article.trackingMode,
+    description: article.description,
+    createdAt: article.createdAt,
+    updatedAt: article.updatedAt
+  };
+}
+
+function toLegacyAccessoryWrite(input: AccessoryProductInput): AccessoryArticleWriteInput {
+  return {
+    manufacturer: input.manufacturer,
+    articleNumber: input.articleNumber,
+    name: input.name,
+    category: input.category,
+    trackingMode: input.trackingMode,
+    description: input.description,
+    articleType: "other",
+    subtype: input.category,
+    packageQuantity: 1,
+    stockUnit: "piece",
+    inventoryStrategy: input.trackingMode
+  };
 }
 
 function json(method: "POST" | "PUT", body: object): RequestInit {

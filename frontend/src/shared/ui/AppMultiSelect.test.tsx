@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createRef } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -22,16 +22,18 @@ describe("AppMultiSelect", () => {
         ref={ref}
         label="Spurweiten"
         helpText="Mehrere Werte möglich"
+        name="gauges"
         options={options}
         value={["tt"]}
         onValueChange={onValueChange}
+        placeholder="Spurweiten auswählen"
       />
     );
 
-    const trigger = screen.getByRole("button", { name: "Spurweiten" });
+    const trigger = screen.getByRole("button", { name: "Spurweiten TT" });
     expect(ref.current).toBe(trigger);
     expect(trigger).toHaveTextContent("TT");
-    expect(document.querySelector("select[multiple]")).not.toBeInTheDocument();
+    expect(document.querySelector("select[multiple]")).toHaveClass("visually-hidden");
 
     await user.click(trigger);
     const listbox = screen.getByRole("listbox", { name: "Spurweiten" });
@@ -53,16 +55,98 @@ describe("AppMultiSelect", () => {
         onValueChange={onValueChange}
         readOnly
         error="Auswahl prüfen"
+        placeholder="Protokolle auswählen"
       />
     );
 
-    const trigger = screen.getByRole("button", { name: "Protokolle" });
+    const trigger = screen.getByRole("button", { name: "Protokolle TT" });
     trigger.focus();
     await user.keyboard("{ArrowDown}");
-    expect(screen.getByRole("listbox", { name: "Protokolle" })).toBeVisible();
-    await user.click(screen.getByRole("option", { name: "H0" }));
+    expect(screen.queryByRole("listbox", { name: "Protokolle" })).not.toBeInTheDocument();
     expect(onValueChange).not.toHaveBeenCalled();
     expect(trigger).toHaveAttribute("aria-readonly", "true");
     expect(trigger).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("uses one roving option focus and supports listbox keyboard navigation", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+
+    render(
+      <>
+        <AppMultiSelect
+          label="Spurweiten"
+          options={options}
+          value={[]}
+          onValueChange={onValueChange}
+          placeholder="Spurweiten auswählen"
+        />
+        <button type="button">Danach</button>
+      </>
+    );
+
+    const trigger = screen.getByRole("button", { name: "Spurweiten Spurweiten auswählen" });
+    trigger.focus();
+    await user.keyboard("{ArrowDown}");
+    const h0 = screen.getByRole("option", { name: "H0" });
+    const tt = screen.getByRole("option", { name: "TT" });
+    const disabled = screen.getByRole("option", { name: "N" });
+    expect(h0).toHaveFocus();
+    expect(h0).toHaveAttribute("tabindex", "0");
+    expect(tt).toHaveAttribute("tabindex", "-1");
+    expect(disabled).toHaveAttribute("tabindex", "-1");
+
+    await user.keyboard("{ArrowDown} ");
+    expect(tt).toHaveFocus();
+    expect(onValueChange).toHaveBeenCalledWith(["tt"]);
+    await user.keyboard("{Home}");
+    expect(h0).toHaveFocus();
+    await user.keyboard("{End}");
+    expect(tt).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("option", { name: "H0" })).toHaveFocus();
+    await user.tab();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Danach" })).toHaveFocus();
+  });
+
+  it("submits selected values and redirects required validation to the visible control", () => {
+    const { container, rerender } = render(
+      <form>
+        <AppMultiSelect
+          label="Spurweiten"
+          name="gauges"
+          options={options}
+          value={["h0", "tt"]}
+          placeholder="Spurweiten auswählen"
+        />
+      </form>
+    );
+    const form = container.querySelector("form");
+    if (!form) throw new Error("expected form");
+    expect(new FormData(form).getAll("gauges")).toEqual(["h0", "tt"]);
+
+    rerender(
+      <form>
+        <AppMultiSelect
+          label="Spurweiten"
+          name="gauges"
+          options={options}
+          value={[]}
+          placeholder="Spurweiten auswählen"
+          required
+        />
+      </form>
+    );
+    const nativeSelect = container.querySelector<HTMLSelectElement>('select[name="gauges"]');
+    if (!nativeSelect) throw new Error("expected native form control");
+    const trigger = screen.getByRole("button", { name: "Spurweiten Spurweiten auswählen" });
+    expect(trigger).toHaveAttribute("aria-invalid", "true");
+    fireEvent.invalid(nativeSelect);
+    expect(trigger).toHaveFocus();
   });
 });

@@ -118,6 +118,7 @@ describe("layout and accessory API client", () => {
       notes: "Montiert"
     };
 
+    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], metrics: {}, filters: {} }));
     await api.accessoryProducts("Tillig & TT");
     await api.createAccessoryProduct(productInput);
     await api.accessoryProduct("product/1");
@@ -145,9 +146,23 @@ describe("layout and accessory API client", () => {
 
     expectRequests([
       ["GET", "/api/v1/accessory-products?query=Tillig%20%26%20TT"],
-      ["POST", "/api/v1/accessory-products", productInput],
+      ["POST", "/api/v1/accessory-products", {
+        ...productInput,
+        articleType: "other",
+        subtype: productInput.category,
+        packageQuantity: 1,
+        stockUnit: "piece",
+        inventoryStrategy: productInput.trackingMode
+      }],
       ["GET", "/api/v1/accessory-products/product%2F1"],
-      ["PUT", "/api/v1/accessory-products/product%2F1", productInput],
+      ["PUT", "/api/v1/accessory-products/product%2F1", {
+        ...productInput,
+        articleType: "other",
+        subtype: productInput.category,
+        packageQuantity: 1,
+        stockUnit: "piece",
+        inventoryStrategy: productInput.trackingMode
+      }],
       ["GET", "/api/v1/storage-locations"],
       ["POST", "/api/v1/storage-locations", locationInput],
       ["PUT", "/api/v1/storage-locations/location%2F1", locationInput],
@@ -264,6 +279,127 @@ describe("layout and accessory API client", () => {
     expect(init.headers["X-CSRF-Token"]).toBe("client-test-token");
   });
 
+  it("adapts the article list result to the legacy array consumed by AccessoriesView", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      items: [{
+        id: "product-1",
+        manufacturer: "Tillig",
+        articleNumber: "83101",
+        name: "Gerades Gleis",
+        articleType: "track",
+        subtype: "track:straight",
+        gauges: ["TT"],
+        inventoryStrategy: "quantity_later_individual",
+        archived: false,
+        owned: 3,
+        available: 2,
+        reserved: 1,
+        installed: 0,
+        locationNames: ["Schrank A"],
+        hasUsageHistory: true,
+        careHintCount: 0,
+        updatedAt: "2026-08-08T12:00:00Z",
+        attributes: []
+      }],
+      metrics: {
+        articleCount: 1,
+        articleTypeCount: 1,
+        available: 2,
+        locationCount: 1,
+        reserved: 1,
+        installed: 0,
+        careHintCount: 0
+      },
+      filters: {
+        manufacturers: ["Tillig"],
+        articleTypes: ["track"],
+        gauges: ["TT"],
+        storageLocations: [{ id: "location-1", name: "Schrank A" }]
+      }
+    }));
+
+    const products = await api.accessoryProducts("Tillig");
+
+    expect(Array.isArray(products)).toBe(true);
+    expect(products).toEqual([{
+      id: "product-1",
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      name: "Gerades Gleis",
+      category: "track:straight",
+      trackingMode: "quantity",
+      createdAt: "2026-08-08T12:00:00Z",
+      updatedAt: "2026-08-08T12:00:00Z"
+    }]);
+  });
+
+  it("adapts reachable legacy detail and write responses without weakening new article DTOs", async () => {
+    const article = {
+      id: "product-1",
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      name: "Gerades Gleis",
+      category: "Gleismaterial",
+      trackingMode: "quantity",
+      description: "Modellgleis",
+      manufacturerStatus: "available",
+      articleType: "track",
+      subtype: "track:straight",
+      gauges: ["TT"],
+      packageQuantity: 1,
+      stockUnit: "piece",
+      minimumStock: 0,
+      inventoryStrategy: "quantity",
+      alternativeNumbers: [],
+      keywords: [],
+      archived: false,
+      attributes: [],
+      createdAt: "2026-08-08T11:00:00Z",
+      updatedAt: "2026-08-08T12:00:00Z"
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(article))
+      .mockResolvedValueOnce(jsonResponse(article))
+      .mockResolvedValueOnce(jsonResponse(article));
+    const input = {
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      name: "Gerades Gleis",
+      category: "Gleismaterial",
+      trackingMode: "quantity" as const,
+      description: "Modellgleis"
+    };
+
+    const detail = await api.accessoryProduct("product-1");
+    const created = await api.createAccessoryProduct(input);
+    const updated = await api.updateAccessoryProduct("product-1", input);
+
+    const expected = {
+      id: "product-1",
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      name: "Gerades Gleis",
+      category: "Gleismaterial",
+      trackingMode: "quantity",
+      description: "Modellgleis",
+      createdAt: "2026-08-08T11:00:00Z",
+      updatedAt: "2026-08-08T12:00:00Z"
+    };
+    expect(detail).toEqual(expected);
+    expect(created).toEqual(expected);
+    expect(updated).toEqual(expected);
+    const expectedWrite = {
+      ...input,
+      articleType: "other",
+      subtype: "Gleismaterial",
+      packageQuantity: 1,
+      stockUnit: "piece",
+      inventoryStrategy: "quantity"
+    };
+    expect(fetchMock.mock.calls[1]?.[1].body).toBe(JSON.stringify(expectedWrite));
+    expect(fetchMock.mock.calls[2]?.[1].body).toBe(JSON.stringify(expectedWrite));
+  });
+
   function expectRequests(expected: Array<[string, string, object?]>) {
     expect(fetchMock).toHaveBeenCalledTimes(expected.length);
     expected.forEach(([method, path, body], index) => {
@@ -277,5 +413,14 @@ describe("layout and accessory API client", () => {
         expect(init.headers["X-CSRF-Token"]).toBe("client-test-token");
       }
     });
+  }
+
+  function jsonResponse(value: unknown) {
+    return {
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => value
+    };
   }
 });
