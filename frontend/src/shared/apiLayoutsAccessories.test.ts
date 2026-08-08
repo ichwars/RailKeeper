@@ -118,7 +118,13 @@ describe("layout and accessory API client", () => {
       notes: "Montiert"
     };
 
-    fetchMock.mockResolvedValueOnce(jsonResponse({ items: [], metrics: {}, filters: {} }));
+    const currentArticle = completeTypedArticle();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse({ items: [], metrics: {}, filters: {} }))
+      .mockResolvedValueOnce(jsonResponse(currentArticle))
+      .mockResolvedValueOnce(jsonResponse(currentArticle))
+      .mockResolvedValueOnce(jsonResponse(currentArticle))
+      .mockResolvedValueOnce(jsonResponse(currentArticle));
     await api.accessoryProducts("Tillig & TT");
     await api.createAccessoryProduct(productInput);
     await api.accessoryProduct("product/1");
@@ -155,13 +161,27 @@ describe("layout and accessory API client", () => {
         inventoryStrategy: productInput.trackingMode
       }],
       ["GET", "/api/v1/accessory-products/product%2F1"],
+      ["GET", "/api/v1/accessory-products/product%2F1"],
       ["PUT", "/api/v1/accessory-products/product%2F1", {
         ...productInput,
-        articleType: "other",
-        subtype: productInput.category,
-        packageQuantity: 1,
-        stockUnit: "piece",
-        inventoryStrategy: productInput.trackingMode
+        ean: currentArticle.ean,
+        manufacturerStatus: currentArticle.manufacturerStatus,
+        articleType: currentArticle.articleType,
+        subtype: currentArticle.subtype,
+        gauges: currentArticle.gauges,
+        scale: currentArticle.scale,
+        packageQuantity: currentArticle.packageQuantity,
+        stockUnit: currentArticle.stockUnit,
+        minimumStock: currentArticle.minimumStock,
+        inventoryStrategy: currentArticle.inventoryStrategy,
+        manufacturerUrl: currentArticle.manufacturerUrl,
+        productUrl: currentArticle.productUrl,
+        alternativeNumbers: currentArticle.alternativeNumbers,
+        keywords: currentArticle.keywords,
+        compatibilityNotes: currentArticle.compatibilityNotes,
+        internalNotes: currentArticle.internalNotes,
+        archived: currentArticle.archived,
+        attributes: currentArticle.attributes
       }],
       ["GET", "/api/v1/storage-locations"],
       ["POST", "/api/v1/storage-locations", locationInput],
@@ -333,7 +353,7 @@ describe("layout and accessory API client", () => {
     }]);
   });
 
-  it("adapts reachable legacy detail and write responses without weakening new article DTOs", async () => {
+  it("adapts reachable legacy detail and create responses without weakening new article DTOs", async () => {
     const article = {
       id: "product-1",
       manufacturer: "Tillig",
@@ -359,7 +379,6 @@ describe("layout and accessory API client", () => {
     };
     fetchMock
       .mockResolvedValueOnce(jsonResponse(article))
-      .mockResolvedValueOnce(jsonResponse(article))
       .mockResolvedValueOnce(jsonResponse(article));
     const input = {
       manufacturer: "Tillig",
@@ -372,7 +391,6 @@ describe("layout and accessory API client", () => {
 
     const detail = await api.accessoryProduct("product-1");
     const created = await api.createAccessoryProduct(input);
-    const updated = await api.updateAccessoryProduct("product-1", input);
 
     const expected = {
       id: "product-1",
@@ -387,7 +405,6 @@ describe("layout and accessory API client", () => {
     };
     expect(detail).toEqual(expected);
     expect(created).toEqual(expected);
-    expect(updated).toEqual(expected);
     const expectedWrite = {
       ...input,
       articleType: "other",
@@ -397,8 +414,133 @@ describe("layout and accessory API client", () => {
       inventoryStrategy: "quantity"
     };
     expect(fetchMock.mock.calls[1]?.[1].body).toBe(JSON.stringify(expectedWrite));
-    expect(fetchMock.mock.calls[2]?.[1].body).toBe(JSON.stringify(expectedWrite));
   });
+
+  it("preserves the complete typed article when an unchanged legacy form saves", async () => {
+    const current = completeTypedArticle();
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(current))
+      .mockResolvedValueOnce(jsonResponse(current));
+
+    const result = await api.updateAccessoryProduct("product/1", {
+      manufacturer: current.manufacturer,
+      articleNumber: current.articleNumber,
+      name: current.name,
+      category: current.category,
+      trackingMode: current.trackingMode,
+      description: ""
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/v1/accessory-products/product%2F1");
+    expect(fetchMock.mock.calls[0]?.[1].method ?? "GET").toBe("GET");
+    expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/v1/accessory-products/product%2F1");
+    expect(fetchMock.mock.calls[1]?.[1].method).toBe("PUT");
+    expect(JSON.parse(String(fetchMock.mock.calls[1]?.[1].body))).toEqual({
+      manufacturer: current.manufacturer,
+      articleNumber: current.articleNumber,
+      name: current.name,
+      category: current.category,
+      trackingMode: current.trackingMode,
+      description: current.description,
+      ean: current.ean,
+      manufacturerStatus: current.manufacturerStatus,
+      articleType: current.articleType,
+      subtype: current.subtype,
+      gauges: current.gauges,
+      scale: current.scale,
+      packageQuantity: current.packageQuantity,
+      stockUnit: current.stockUnit,
+      minimumStock: current.minimumStock,
+      inventoryStrategy: current.inventoryStrategy,
+      manufacturerUrl: current.manufacturerUrl,
+      productUrl: current.productUrl,
+      alternativeNumbers: current.alternativeNumbers,
+      keywords: current.keywords,
+      compatibilityNotes: current.compatibilityNotes,
+      internalNotes: current.internalNotes,
+      archived: current.archived,
+      attributes: current.attributes
+    });
+    expect(result).toMatchObject({
+      id: current.id,
+      category: current.category,
+      trackingMode: current.trackingMode,
+      description: current.description
+    });
+  });
+
+  it("overlays deliberate legacy common-field edits while retaining typed classification", async () => {
+    const current = completeTypedArticle();
+    const updated = {
+      ...current,
+      manufacturer: "Tillig Modellbahnen",
+      articleNumber: "83101-A",
+      name: "Gerades Modellgleis",
+      description: "Neue Beschreibung"
+    };
+    fetchMock
+      .mockResolvedValueOnce(jsonResponse(current))
+      .mockResolvedValueOnce(jsonResponse(updated));
+
+    await api.updateAccessoryProduct("product/1", {
+      manufacturer: updated.manufacturer,
+      articleNumber: updated.articleNumber,
+      name: updated.name,
+      category: current.category,
+      trackingMode: current.trackingMode,
+      description: updated.description
+    });
+
+    const body = JSON.parse(String(fetchMock.mock.calls[1]?.[1].body));
+    expect(body).toMatchObject({
+      manufacturer: updated.manufacturer,
+      articleNumber: updated.articleNumber,
+      name: updated.name,
+      description: updated.description,
+      articleType: "track",
+      subtype: "track:straight",
+      inventoryStrategy: "quantity_later_individual",
+      minimumStock: 4,
+      attributes: current.attributes
+    });
+  });
+
+  function completeTypedArticle() {
+    return {
+      id: "product-1",
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      name: "Gerades Gleis",
+      category: "Gleismaterial",
+      trackingMode: "quantity" as const,
+      description: "Bestehende Beschreibung",
+      ean: "4012500831012",
+      manufacturerStatus: "available" as const,
+      articleType: "track" as const,
+      subtype: "track:straight",
+      gauges: ["TT"],
+      scale: "1:120",
+      packageQuantity: 6,
+      stockUnit: "piece",
+      minimumStock: 4,
+      inventoryStrategy: "quantity_later_individual" as const,
+      manufacturerUrl: "https://example.test/manufacturer",
+      productUrl: "https://example.test/product",
+      alternativeNumbers: ["83101-1"],
+      keywords: ["Modellgleis", "gerade"],
+      compatibilityNotes: "Tillig Modellgleis",
+      internalNotes: "Vereinsbestand",
+      archived: false,
+      attributes: [
+        { key: "length", kind: "number" as const, numberValue: 166, unit: "mm" },
+        { key: "weathered", kind: "boolean" as const, booleanValue: false }
+      ],
+      primaryImageUrl: "/api/v1/accessory-products/product-1/documents/image-1/download",
+      createdAt: "2026-08-08T11:00:00Z",
+      updatedAt: "2026-08-08T12:00:00Z"
+    };
+  }
 
   function expectRequests(expected: Array<[string, string, object?]>) {
     expect(fetchMock).toHaveBeenCalledTimes(expected.length);

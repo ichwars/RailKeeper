@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createRef } from "react";
+import { createRef, FormEvent } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { AppMultiSelect } from "./AppMultiSelect";
@@ -148,5 +148,49 @@ describe("AppMultiSelect", () => {
     expect(trigger).toHaveAttribute("aria-invalid", "true");
     fireEvent.invalid(nativeSelect);
     expect(trigger).toHaveFocus();
+  });
+
+  it("does not constrain an empty read-only or disabled required selection", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn((event: FormEvent) => event.preventDefault());
+    const { container, rerender } = render(
+      <form onSubmit={onSubmit}>
+        <AppMultiSelect
+          label="Gauges"
+          name="gauges"
+          options={options}
+          value={[]}
+          placeholder="Select gauges"
+          required
+          readOnly
+        />
+        <button type="submit">Save</button>
+      </form>
+    );
+    const select = container.querySelector<HTMLSelectElement>('select[name="gauges"]');
+    if (!select) throw new Error("expected native form control");
+    const trigger = screen.getByRole("button", { name: "Gauges Select gauges" });
+
+    expect(select).not.toBeRequired();
+    expect(select.checkValidity()).toBe(true);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    expect(onSubmit).toHaveBeenCalledOnce();
+    expect(trigger).not.toHaveFocus();
+
+    rerender(
+      <form onSubmit={onSubmit}>
+        <AppMultiSelect
+          label="Gauges"
+          name="gauges"
+          options={options}
+          value={[]}
+          placeholder="Select gauges"
+          required
+          disabled
+        />
+      </form>
+    );
+    expect(select).not.toBeRequired();
+    expect(select.checkValidity()).toBe(true);
   });
 });

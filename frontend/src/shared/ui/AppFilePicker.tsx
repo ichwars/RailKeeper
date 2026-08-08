@@ -43,7 +43,7 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
   const inputRef = useRef<HTMLInputElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const unavailable = disabled || readOnly;
-  const invalid = Boolean(error) || Boolean(required && !file);
+  const invalid = Boolean(error) || Boolean(required && !file && !unavailable);
 
   useEffect(() => {
     if (!file && inputRef.current) inputRef.current.value = "";
@@ -67,7 +67,6 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
 
   const openPicker = () => {
     if (!inputRef.current || unavailable) return;
-    inputRef.current.value = "";
     inputRef.current.click();
   };
 
@@ -86,7 +85,7 @@ export const AppFilePicker = forwardRef<HTMLInputElement, AppFilePickerProps>(fu
         className="visually-hidden"
         type="file"
         tabIndex={-1}
-        required={required && !file}
+        required={required && !file && !unavailable}
         disabled={disabled}
         onChange={handleChange}
         onInvalid={(event) => {

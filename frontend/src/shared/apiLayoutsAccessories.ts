@@ -638,7 +638,7 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     /** @deprecated Use createAccessoryArticle. */
     createAccessoryProduct: async (input: AccessoryProductInput) =>
       toLegacyAccessoryProduct(
-        await request<AccessoryArticle>("/accessory-products", json("POST", toLegacyAccessoryWrite(input)))
+        await request<AccessoryArticle>("/accessory-products", json("POST", toLegacyAccessoryCreateWrite(input)))
       ),
     /** @deprecated Use accessoryArticle. */
     accessoryProduct: async (id: string) =>
@@ -646,13 +646,13 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
         await request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}`)
       ),
     /** @deprecated Use updateAccessoryArticle. */
-    updateAccessoryProduct: async (id: string, input: AccessoryProductInput) =>
-      toLegacyAccessoryProduct(
-        await request<AccessoryArticle>(
-          `/accessory-products/${encodeURIComponent(id)}`,
-          json("PUT", toLegacyAccessoryWrite(input))
-        )
-      ),
+    updateAccessoryProduct: async (id: string, input: AccessoryProductInput) => {
+      const path = `/accessory-products/${encodeURIComponent(id)}`;
+      const current = await request<AccessoryArticle>(path);
+      return toLegacyAccessoryProduct(
+        await request<AccessoryArticle>(path, json("PUT", mergeLegacyAccessoryWrite(current, input)))
+      );
+    },
     storageLocations: () => request<StorageLocation[]>("/storage-locations"),
     createStorageLocation: (input: StorageLocationInput) =>
       request<StorageLocation>("/storage-locations", json("POST", input)),
@@ -787,7 +787,7 @@ function toLegacyAccessoryProduct(article: AccessoryArticle): AccessoryProduct {
   };
 }
 
-function toLegacyAccessoryWrite(input: AccessoryProductInput): AccessoryArticleWriteInput {
+function toLegacyAccessoryCreateWrite(input: AccessoryProductInput): AccessoryArticleWriteInput {
   return {
     manufacturer: input.manufacturer,
     articleNumber: input.articleNumber,
@@ -800,6 +800,40 @@ function toLegacyAccessoryWrite(input: AccessoryProductInput): AccessoryArticleW
     packageQuantity: 1,
     stockUnit: "piece",
     inventoryStrategy: input.trackingMode
+  };
+}
+
+function mergeLegacyAccessoryWrite(
+  current: AccessoryArticle,
+  input: AccessoryProductInput
+): AccessoryArticleWriteInput {
+  const categoryChanged = input.category !== current.category;
+  const trackingChanged = input.trackingMode !== current.trackingMode;
+  return {
+    manufacturer: input.manufacturer,
+    articleNumber: input.articleNumber,
+    name: input.name,
+    category: input.category,
+    trackingMode: trackingChanged ? input.trackingMode : current.trackingMode,
+    description: input.description?.trim() ? input.description : current.description,
+    ean: current.ean,
+    manufacturerStatus: current.manufacturerStatus,
+    articleType: current.articleType,
+    subtype: categoryChanged && current.articleType === "other" ? input.category : current.subtype,
+    gauges: current.gauges,
+    scale: current.scale,
+    packageQuantity: current.packageQuantity,
+    stockUnit: current.stockUnit,
+    minimumStock: current.minimumStock,
+    inventoryStrategy: trackingChanged ? input.trackingMode : current.inventoryStrategy,
+    manufacturerUrl: current.manufacturerUrl,
+    productUrl: current.productUrl,
+    alternativeNumbers: current.alternativeNumbers,
+    keywords: current.keywords,
+    compatibilityNotes: current.compatibilityNotes,
+    internalNotes: current.internalNotes,
+    archived: current.archived,
+    attributes: current.attributes
   };
 }
 

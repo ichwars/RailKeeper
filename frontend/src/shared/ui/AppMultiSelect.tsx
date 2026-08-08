@@ -74,7 +74,7 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(initialActive);
   const selectedOptions = options.filter((option) => value.includes(option.value));
-  const invalid = Boolean(error) || Boolean(required && value.length === 0);
+  const invalid = Boolean(error) || Boolean(required && value.length === 0 && !disabled && !readOnly);
 
   useEffect(() => {
     if (!open) return;
@@ -243,7 +243,7 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
         name={name}
         multiple
         value={value}
-        required={required && value.length === 0}
+        required={required && value.length === 0 && !disabled && !readOnly}
         disabled={disabled}
         tabIndex={-1}
         aria-hidden="true"
