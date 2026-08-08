@@ -349,6 +349,23 @@ func TestAccessoryArticleListRejectsInvalidRawScalarFilters(t *testing.T) {
 	}
 }
 
+func TestAccessoryArticleListRejectsMalformedQueryEncoding(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/accessory-products", nil)
+	request.URL.RawQuery = "query=%ZZ"
+	request.AddCookie(&http.Cookie{
+		Name:  "rk_session",
+		Value: fixture.sessions["viewer"].SessionToken,
+	})
+	response := httptest.NewRecorder()
+	fixture.router.ServeHTTP(response, request)
+	assertProblem(t, response, http.StatusBadRequest, "accessory_validation")
+
+	validUnicode := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodGet,
+		"/api/v1/accessory-products?query=M%C3%A4rklin%20%C3%9Cbergang", nil, true)
+	assertStatus(t, validUnicode, http.StatusOK)
+}
+
 func TestAccessoryArticleRoutesCoverDuplicateArchivePurchaseTransferAndIndividualization(t *testing.T) {
 	fixture := newAccessoryAPIFixture(t, 1024*1024)
 	editor := fixture.sessions["editor"]

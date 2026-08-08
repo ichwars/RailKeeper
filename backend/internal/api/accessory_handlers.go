@@ -14,7 +14,11 @@ import (
 )
 
 func (a *App) listAccessoryProducts(w http.ResponseWriter, r *http.Request) {
-	values := r.URL.Query()
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		a.accessoryError(w, application.ErrAccessoryValidation, "list accessory products")
+		return
+	}
 	query, valid := parseAccessoryArticleListQuery(values)
 	if !valid {
 		a.accessoryError(w, application.ErrAccessoryValidation, "list accessory products")
