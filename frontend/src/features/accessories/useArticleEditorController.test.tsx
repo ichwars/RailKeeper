@@ -413,6 +413,53 @@ describe("useArticleEditorController", () => {
     expect(editor.result.current.isFormReadOnly).toBe(true);
   });
 
+  it("keeps a Planner reservation draft behind continue and discard close choices", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Planner"] }));
+    act(() => result.current.openArticle("article-1", "view", false));
+    await waitFor(() => expect(result.current.article).not.toBeNull());
+
+    act(() => result.current.setSubdraftDirty("reservation", true));
+    act(() => result.current.requestClose());
+    expect(result.current.closeConfirmationOpen).toBe(true);
+    expect(result.current.isOpen).toBe(true);
+
+    act(() => result.current.cancelClose());
+    expect(result.current.closeConfirmationOpen).toBe(false);
+    act(() => result.current.requestClose());
+    expect(result.current.closeConfirmationOpen).toBe(true);
+
+    act(() => result.current.confirmClose());
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("closes Planner view directly after a successful reservation resets its draft", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Planner"] }));
+    act(() => result.current.openArticle("article-1", "view", false));
+    await waitFor(() => expect(result.current.article).not.toBeNull());
+
+    act(() => result.current.setSubdraftDirty("reservation", true));
+    act(() => result.current.setSubdraftDirty("reservation", false));
+    act(() => result.current.requestClose());
+
+    expect(result.current.closeConfirmationOpen).toBe(false);
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it.each(["Viewer", "Editor", "Admin"])(
+    "does not treat impossible reservation drafts as writable in %s view mode",
+    async (role) => {
+      const { result } = renderHook(() => useArticleEditorController({ roles: [role] }));
+      act(() => result.current.openArticle("article-1", "view", false));
+      await waitFor(() => expect(result.current.article).not.toBeNull());
+
+      act(() => result.current.setSubdraftDirty("reservation", true));
+      act(() => result.current.requestClose());
+
+      expect(result.current.closeConfirmationOpen).toBe(false);
+      expect(result.current.isOpen).toBe(false);
+    }
+  );
+
   it("ignores slow detail results from an older article request", async () => {
     const first = deferred<AccessoryArticle>();
     const second = deferred<AccessoryArticle>();
@@ -466,6 +513,16 @@ describe("useArticleEditorController", () => {
     await act(async () => oldStock.resolve(stock("article-1", 99)));
 
     expect(result.current.resources.stock).toEqual(stock("article-2", 7));
+  });
+
+  it("distinguishes documents not loaded yet from a successfully loaded empty list", async () => {
+    vi.mocked(api.accessoryDocuments).mockResolvedValueOnce([]);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+
+    act(() => result.current.openArticle("article-1", "edit", false));
+    expect(result.current.resources.documentsLoaded).toBe(false);
+    await waitFor(() => expect(result.current.resources.documentsLoaded).toBe(true));
+    expect(result.current.resources.documents).toEqual([]);
   });
 
   it("blocks edit save after detail failure instead of falling back to create", async () => {

@@ -53,6 +53,7 @@ export type ArticleEditorResources = {
   assets: AccessoryAsset[];
   purchases: AccessoryPurchase[];
   documents: AccessoryDocument[];
+  documentsLoaded?: boolean;
   reservations: AccessoryReservation[];
   installations: AccessoryInstallation[];
   usageHistory: AccessoryUsageHistory | null;
@@ -68,6 +69,7 @@ const emptyResources = (): ArticleEditorResources => ({
   assets: [],
   purchases: [],
   documents: [],
+  documentsLoaded: false,
   reservations: [],
   installations: [],
   usageHistory: null,
@@ -356,7 +358,11 @@ export function useArticleEditorController({
   };
 
   const requestClose = () => {
-    if (mode !== "view" && (isArticleEditorDirty(form, initialForm) || Object.values(subdraftDirty).some(Boolean))) {
+    const formDirty = mode !== "view" && isArticleEditorDirty(form, initialForm);
+    const writableSubdraftDirty = mode === "view"
+      ? !permissions.canEdit && permissions.canReserve && Boolean(subdraftDirty.reservation)
+      : Object.values(subdraftDirty).some(Boolean);
+    if (formDirty || writableSubdraftDirty) {
       setCloseConfirmationOpen(true);
       return;
     }

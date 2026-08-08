@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { useI18n } from "../../shared/i18n";
 
@@ -22,6 +23,7 @@ export function AccessoryConfirmDialog({ action, onClose }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const anchorRef = useRef<HTMLSpanElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement | null>(null);
   const invokerRef = useRef<HTMLElement | null>(null);
   const { t } = useI18n();
@@ -31,8 +33,20 @@ export function AccessoryConfirmDialog({ action, onClose }: {
     if (!isOpen) return;
     setError("");
     invokerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const parentDialog = anchorRef.current?.closest<HTMLElement>("[role='dialog']") || null;
+    const previousAriaHidden = parentDialog?.getAttribute("aria-hidden") ?? null;
+    const previouslyInert = parentDialog?.hasAttribute("inert") ?? false;
+    parentDialog?.setAttribute("aria-hidden", "true");
+    parentDialog?.setAttribute("inert", "");
     cancelRef.current?.focus();
-    return () => invokerRef.current?.focus();
+    return () => {
+      if (parentDialog) {
+        if (previousAriaHidden === null) parentDialog.removeAttribute("aria-hidden");
+        else parentDialog.setAttribute("aria-hidden", previousAriaHidden);
+        if (!previouslyInert) parentDialog.removeAttribute("inert");
+      }
+      invokerRef.current?.focus();
+    };
   }, [isOpen]);
 
   if (!action) return null;
@@ -73,7 +87,7 @@ export function AccessoryConfirmDialog({ action, onClose }: {
     }
   };
 
-  return (
+  const dialog = (
     <div ref={layerRef} className="confirm-layer accessory-confirm-layer" role="dialog" aria-modal="true"
       aria-label={action.title} onKeyDown={onKeyDown}>
       <section className="panel accessory-confirm-dialog">
@@ -92,4 +106,8 @@ export function AccessoryConfirmDialog({ action, onClose }: {
       </section>
     </div>
   );
+  return <>
+    <span ref={anchorRef} hidden aria-hidden="true" />
+    {createPortal(dialog, document.body)}
+  </>;
 }

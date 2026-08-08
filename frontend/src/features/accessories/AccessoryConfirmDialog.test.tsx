@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -70,7 +70,36 @@ describe("AccessoryConfirmDialog", () => {
       run: vi.fn()
     }} onClose={vi.fn()} />);
 
-    expect(view.container.querySelector("p p")).toBeNull();
+    expect(document.body.querySelector("p p")).toBeNull();
     expect(screen.getByText("Tillig 83101")).toBeInTheDocument();
+  });
+
+  it("ports nested confirmations outside and makes only the child modal accessible", async () => {
+    const user = userEvent.setup();
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return <div role="dialog" aria-modal="true" aria-label="Artikel bearbeiten">
+        <button type="button" onClick={() => setOpen(true)}>Aktion öffnen</button>
+        <AccessoryConfirmDialog action={open ? {
+          title: "Aktion bestätigen", body: "Wirklich ausführen?", run: vi.fn()
+        } : null} onClose={() => setOpen(false)} />
+      </div>;
+    }
+    render(<Harness />);
+    const parent = screen.getByRole("dialog", { name: "Artikel bearbeiten" });
+    const invoker = screen.getByRole("button", { name: "Aktion öffnen" });
+
+    await user.click(invoker);
+
+    const child = screen.getByRole("dialog", { name: "Aktion bestätigen" });
+    expect(parent).toHaveAttribute("aria-hidden", "true");
+    expect(parent).toHaveAttribute("inert");
+    expect(parent).not.toContainElement(child);
+    expect(within(child).getByRole("button", { name: "Abbrechen" })).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(parent).not.toHaveAttribute("aria-hidden");
+    expect(parent).not.toHaveAttribute("inert");
+    expect(invoker).toHaveFocus();
   });
 });

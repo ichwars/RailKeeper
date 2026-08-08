@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -66,6 +66,22 @@ describe("accessory allocation forms", () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ layoutId: "layout-1", placement: "Bahnhof West",
       digitalAddress: "17", decoderOutput: "A2", connection: "J3", wiringNotes: "blau/gelb" }));
     expect(screen.queryByRole("button", { name: "Bestandsquelle" })).not.toBeInTheDocument();
+  });
+
+  it("resets the Planner reservation dirty signal after a successful confirmation", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "createAccessoryReservation").mockResolvedValue({} as never);
+    const onDirtyChange = vi.fn();
+    render(<AccessoryReservationsPanel article={article} reservations={[]} assets={[]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canReserve onChanged={vi.fn()}
+      onDirtyChange={onDirtyChange} />);
+
+    await user.type(screen.getByRole("textbox", { name: "Einbauort" }), "Bahnhof West");
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(true));
+    await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    await waitFor(() => expect(onDirtyChange).toHaveBeenLastCalledWith(false));
   });
 
   it("lets hybrid stock reserve free quantity even when a stored asset exists", async () => {

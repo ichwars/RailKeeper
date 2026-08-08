@@ -110,12 +110,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
   const primaryImageDocument = props.resources.documents.find((document) =>
     document.category === "image" && document.isPrimary);
-  const displayedArticle = props.article && primaryImageDocument
-    ? {
-        ...props.article,
-        primaryImageUrl: api.accessoryDocumentDownloadPath(props.article.id, primaryImageDocument.id)
-      }
-    : props.article;
+  const displayedArticle = props.article ? {
+    ...props.article,
+    primaryImageUrl: primaryImageDocument
+      ? api.accessoryDocumentDownloadPath(props.article.id, primaryImageDocument.id)
+      : props.resources.documentsLoaded ? undefined : props.article.primaryImageUrl
+  } : null;
   const createTypeConfigurationUnavailable = props.mode === "create" &&
     (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError));
   const tabs: Array<{ key: ArticleEditorTab; label: string; subject?: boolean }> = [

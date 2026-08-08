@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { MasterDataEntry } from "../../shared/api";
+import { api, type AccessoryDocument, type MasterDataEntry } from "../../shared/api";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { ArticleEditorDialog, type ArticleEditorDialogProps } from "./ArticleEditorDialog";
 import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
@@ -544,7 +545,7 @@ describe("ArticleEditorDialog", () => {
       duplicateCandidates: [{ id: "dup", manufacturer: "Tillig", articleNumber: "83101", name: "Gleis", articleType: "track", subtype: "straight" }],
       onConfirmDuplicate
     })} />);
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveValue("Tillig");
+    expect(screen.getByRole("textbox", { name: "Hersteller", hidden: true })).toHaveValue("Tillig");
     await user.click(screen.getByRole("button", { name: "Trotzdem speichern" }));
     expect(onConfirmDuplicate).toHaveBeenCalledOnce();
   });
@@ -624,6 +625,64 @@ describe("ArticleEditorDialog", () => {
     );
   });
 
+  it("clears a deleted primary image and makes the next uploaded image primary", async () => {
+    const user = userEvent.setup();
+    const primaryA: AccessoryDocument = {
+      id: "image-a", productId: persistedArticle.id, originalName: "A.png", fileName: "a.png",
+      category: "image", mimeType: "image/png", sizeBytes: 100, isPrimary: true, createdBy: "admin",
+      createdAt: "2026-08-08T09:00:00Z", updatedAt: "2026-08-08T09:00:00Z"
+    };
+    const primaryB: AccessoryDocument = {
+      ...primaryA, id: "image-b", originalName: "B.png", fileName: "b.png",
+      createdAt: "2026-08-08T10:00:00Z", updatedAt: "2026-08-08T10:00:00Z"
+    };
+    vi.spyOn(api, "deleteAccessoryDocument").mockResolvedValue(undefined);
+    const upload = vi.spyOn(api, "uploadAccessoryDocument").mockResolvedValue(primaryB);
+
+    function Harness() {
+      const [activeTab, setActiveTab] = useState<ArticleEditorDialogProps["activeTab"]>("purchaseDocuments");
+      const [documents, setDocuments] = useState<AccessoryDocument[]>([primaryA]);
+      const refresh = async () => setDocuments((current) => current.length > 0 && current[0]?.id === "image-a"
+        ? [] : [primaryB]);
+      return <ArticleEditorDialog {...props({
+        mode: "edit",
+        article: { ...persistedArticle, primaryImageUrl: "/stale-image-a.png" },
+        activeTab,
+        resources: { ...props().resources, documents, documentsLoaded: true },
+        onTabChange: setActiveTab,
+        onResourcesChanged: refresh
+      })} />;
+    }
+    render(<Harness />);
+    const parentDialog = screen.getByRole("dialog", { name: "Artikel bearbeiten" });
+
+    await user.click(screen.getByRole("button", { name: "Dokument löschen: A.png" }));
+    const deleteConfirmation = screen.getByRole("dialog", { name: "Dokument löschen" });
+    expect(parentDialog).toHaveAttribute("aria-hidden", "true");
+    expect(parentDialog).toHaveAttribute("inert");
+    expect(parentDialog).not.toContainElement(deleteConfirmation);
+    expect(within(deleteConfirmation).getByRole("button", { name: "Abbrechen" })).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Löschen" }));
+    await user.click(screen.getByRole("tab", { name: "Artikel" }));
+    expect(screen.queryByRole("img", { name: "Produktbild" })).not.toBeInTheDocument();
+    expect(screen.getByText("Kein Produktbild")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "Kauf & Dokumente" }));
+    const nextImage = new File(["image-b"], "B.png", { type: "image/png" });
+    await user.upload(screen.getByLabelText("Datei", { selector: "input" }), nextImage);
+    await user.click(screen.getByRole("button", { name: "Dokumentart" }));
+    await user.click(screen.getByRole("option", { name: "Produktbild" }));
+    await user.click(screen.getByRole("button", { name: "Dokument hochladen" }));
+    expect(upload).toHaveBeenCalledWith(persistedArticle.id, {
+      file: nextImage, category: "image", description: undefined, isPrimary: true
+    });
+
+    await user.click(screen.getByRole("tab", { name: "Artikel" }));
+    expect(screen.getByRole("img", { name: "Produktbild" })).toHaveAttribute(
+      "src", "/api/v1/accessory-products/article-1/documents/image-b/download"
+    );
+  });
+
   it("moves edit focus only after detail loading finishes", () => {
     const view = render(<ArticleEditorDialog {...props({ mode: "edit", loading: true })} />);
     expect(screen.queryByRole("textbox", { name: "Hersteller" })).not.toBeInTheDocument();
@@ -639,23 +698,35 @@ describe("ArticleEditorDialog", () => {
     const onRequestClose = vi.fn();
     const view = render(<ArticleEditorDialog {...props({ onCancelClose, onRequestClose })} />);
     const invoker = screen.getByRole("tab", { name: "Artikel" });
+    const parentDialog = screen.getByRole("dialog", { name: "Artikel anlegen" });
     invoker.focus();
     view.rerender(<ArticleEditorDialog {...props({ closeConfirmationOpen: true, onCancelClose, onRequestClose })} />);
     const confirmation = screen.getByRole("dialog", { name: "Ungespeicherte Änderungen" });
+    expect(parentDialog).toHaveAttribute("aria-hidden", "true");
+    expect(parentDialog).toHaveAttribute("inert");
+    expect(parentDialog).not.toContainElement(confirmation);
     expect(within(confirmation).getByRole("button", { name: "Weiter bearbeiten" })).toHaveFocus();
 
     await user.keyboard("{Escape}");
     expect(onCancelClose).toHaveBeenCalledOnce();
     expect(onRequestClose).not.toHaveBeenCalled();
     view.rerender(<ArticleEditorDialog {...props({ onCancelClose, onRequestClose })} />);
+    expect(parentDialog).not.toHaveAttribute("aria-hidden");
+    expect(parentDialog).not.toHaveAttribute("inert");
     expect(invoker).toHaveFocus();
   });
 
   it("makes the article form inert while duplicate confirmation is pending", () => {
-    render(<ArticleEditorDialog {...props({ duplicateCandidates: [{ id: "dup", manufacturer: "Tillig",
+    const view = render(<ArticleEditorDialog {...props()} />);
+    const parentDialog = screen.getByRole("dialog", { name: "Artikel anlegen" });
+    view.rerender(<ArticleEditorDialog {...props({ duplicateCandidates: [{ id: "dup", manufacturer: "Tillig",
       articleNumber: "83101", name: "Gleis", articleType: "track", subtype: "straight" }] })} />);
 
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
+    const confirmation = screen.getByRole("dialog", { name: "Mögliche Dublette" });
+    expect(parentDialog).toHaveAttribute("aria-hidden", "true");
+    expect(parentDialog).toHaveAttribute("inert");
+    expect(parentDialog).not.toContainElement(confirmation);
+    expect(screen.getByRole("textbox", { name: "Hersteller", hidden: true })).toBeDisabled();
   });
 
   it("disables resource mutations while stale and offers an explicit retry", async () => {

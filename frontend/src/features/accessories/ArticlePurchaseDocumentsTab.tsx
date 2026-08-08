@@ -51,8 +51,11 @@ export function ArticlePurchaseDocumentsTab({ article, resources, disabled, onCh
     ? purchase.storageLocationId || "" : locations[0]?.id || "";
   const purchaseDirty = purchaseQuantity !== "1" || JSON.stringify(purchase) !== JSON.stringify(emptyPurchase());
   const documentDirty = Boolean(file || description || category !== "other");
-  const hasPrimaryImage = Boolean(article?.primaryImageUrl || resources.documents.some((document) =>
-    document.category === "image" && document.isPrimary));
+  const resourcesHavePrimaryImage = resources.documents.some((document) =>
+    document.category === "image" && document.isPrimary);
+  const hasPrimaryImage = resources.documentsLoaded
+    ? resourcesHavePrimaryImage
+    : Boolean(article?.primaryImageUrl || resourcesHavePrimaryImage);
 
   useEffect(() => onDirtyChange(purchaseDirty || documentDirty), [documentDirty, onDirtyChange, purchaseDirty]);
 

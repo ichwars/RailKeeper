@@ -64,6 +64,7 @@ export async function fetchArticleEditorResourcePatch(
   include(related[2], "assets", patch, errors);
   include(related[3], "purchases", patch, errors);
   include(related[4], "documents", patch, errors);
+  if (related[4].status === "fulfilled") patch.documentsLoaded = true;
   include(related[5], "reservations", patch, errors);
   include(related[6], "installations", patch, errors);
   include(related[7], "usageHistory", patch, errors);
