@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"slices"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -31,6 +32,33 @@ func TestMasterDataImportPreservesArticleTypesForLegacyDocuments(t *testing.T) {
 	}
 	if got := masterDataKeys(articleTypes); !reflect.DeepEqual(got, authoritativeArticleTypeKeys()) {
 		t.Fatalf("legacy import changed authoritative article types: %#v", got)
+	}
+}
+
+func TestMasterDataExportUsesAccessorySubtypeAndPreservesItOnImport(t *testing.T) {
+	ctx := context.Background()
+	source := application.NewMasterDataService(testDB(t))
+	document, err := source.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(document.Entries["accessory_subtype"]) != 54 {
+		t.Fatalf("expected 54 accessory subtypes, got %d", len(document.Entries["accessory_subtype"]))
+	}
+	if len(document.Entries["article_subtype"]) != 0 {
+		t.Fatalf("obsolete article_subtype escaped export: %#v", document.Entries["article_subtype"])
+	}
+
+	target := application.NewMasterDataService(testDB(t))
+	if _, err := target.Import(ctx, document); err != nil {
+		t.Fatal(err)
+	}
+	entries, err := target.List(ctx, "accessory_subtype", false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := masterDataKeys(entries); !slices.Contains(got, "track:straight") {
+		t.Fatalf("canonical track subtype missing after import: %#v", got)
 	}
 }
 

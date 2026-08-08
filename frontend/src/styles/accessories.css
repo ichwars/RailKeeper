@@ -166,8 +166,9 @@
 
 .article-table {
   width: 100%;
-  min-width: 980px;
+  min-width: 0;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .article-table th,
@@ -202,7 +203,7 @@
 
 .article-table th.actions-cell,
 .article-table td.actions-cell {
-  width: 120px;
+  width: 96px;
   text-align: right;
 }
 
@@ -642,6 +643,10 @@
 }
 
 @media (max-width: 920px) {
+  .article-table {
+    min-width: 760px;
+  }
+
   .article-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

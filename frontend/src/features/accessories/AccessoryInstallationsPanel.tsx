@@ -49,6 +49,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const [reservationID, setReservationID] = useState("");
   const [locationID, setLocationID] = useState("");
   const [assetID, setAssetID] = useState("");
+  const [allocationMode, setAllocationMode] = useState<"quantity" | "asset">("quantity");
   const [quantity, setQuantity] = useState("1");
   const [condition, setCondition] = useState<AccessoryCondition>("ready");
   const [conditionDrafts, setConditionDrafts] = useState<Record<string, AccessoryCondition>>({});
@@ -76,14 +77,16 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const effectiveAssetID = selectedReservation?.assetId ||
     (sourceAssets.some((asset) => asset.id === assetID) ? assetID : sourceAssets[0]?.id || "");
   const effectiveQuantity = selectedReservation?.quantity || Number(quantity);
-  const isIndividual = article.inventoryStrategy === "individual" || Boolean(selectedReservation?.assetId) ||
-    (article.inventoryStrategy === "quantity_later_individual" && sourceAssets.length > 0);
+  const isHybrid = article.inventoryStrategy === "quantity_later_individual";
+  const isIndividual = selectedReservation
+    ? Boolean(selectedReservation.assetId)
+    : article.inventoryStrategy === "individual" || (isHybrid && allocationMode === "asset");
   const canSubmit = Boolean(targetInput && effectiveLocationID && (!isIndividual || effectiveAssetID));
   const effectiveRemovalLocationID = activeLocations.some((location) => location.id === removalLocationID)
     ? removalLocationID : activeLocations[0]?.id || "";
   const dirty = Boolean(reservationID || locationID || assetID || notes || target.id || removalID ||
     removalLocationID || removalNotes || Object.keys(conditionDrafts).length) || quantity !== "1" ||
-    condition !== "ready" || disposition !== "stored";
+    condition !== "ready" || disposition !== "stored" || allocationMode !== "quantity";
   const formDirty = dirty || Object.values(technical).some(Boolean);
 
   useEffect(() => onDirtyChange(formDirty), [formDirty, onDirtyChange]);
@@ -117,13 +120,13 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           ...technical,
           reservationId: selectedReservation?.id,
           productId: article.id,
-          assetId: isIndividual ? effectiveAssetID : undefined,
+          ...(isIndividual ? { assetId: effectiveAssetID } : {}),
           sourceLocationId: effectiveLocationID,
           quantity: isIndividual ? 1 : effectiveQuantity,
           condition,
           notes: notes || undefined
         });
-        setReservationID(""); setLocationID(""); setAssetID(""); setQuantity("1");
+        setReservationID(""); setLocationID(""); setAssetID(""); setAllocationMode("quantity"); setQuantity("1");
         setCondition("ready"); setNotes(""); setTarget({ kind: "layout", id: "" });
         setTechnical(emptyTechnicalPlacement());
       },
@@ -206,6 +209,13 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               : <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
                 onChange={setTarget} />}
             <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
+            {!selectedReservation && isHybrid ? <label>{t("accessories.field.allocationSource")}
+              <AppSelect value={allocationMode} aria-label={t("accessories.field.allocationSource")}
+                onChange={(event) => setAllocationMode(event.target.value as "quantity" | "asset")}>
+                <option value="quantity">{t("accessories.allocationSource.quantity")}</option>
+                <option value="asset" disabled={sourceAssets.length === 0}>
+                  {t("accessories.allocationSource.asset")}</option>
+              </AppSelect></label> : null}
             <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
               disabled={Boolean(selectedReservation)} onChange={(event) => setLocationID(event.target.value)}>
               {sourceLocations.map((location) => <option key={location.id} value={location.id}>

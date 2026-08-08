@@ -2,7 +2,7 @@ import { StrictMode, type PropsWithChildren } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryArticle, type AccessoryStockSummary } from "../../shared/api";
+import { api, type AccessoryArticle, type AccessoryStockSummary, type MasterDataEntry } from "../../shared/api";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { useArticleEditorController } from "./useArticleEditorController";
 
@@ -51,6 +51,11 @@ const stock = (productId: string, totalQuantity: number): AccessoryStockSummary 
   totalQuantity,
   locations: []
 });
+const productionSubtype: MasterDataEntry = {
+  id: "article-subtype-track-straight", type: "accessory_subtype", key: "track:straight", label: "Straight",
+  active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -91,6 +96,26 @@ describe("useArticleEditorController", () => {
     expect(result.current.tabErrors).toEqual({ article: true, stock: true });
     expect(result.current.activeTab).toBe("article");
     expect(api.createAccessoryArticle).not.toHaveBeenCalled();
+  });
+
+  it("loads production-normalized accessory subtype master data and retries failures", async () => {
+    vi.mocked(api.masterData)
+      .mockImplementation(async (type) => type === "accessory_subtype" ? [productionSubtype] : []);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+
+    await waitFor(() => expect(result.current.subtypeEntriesLoading).toBe(false));
+    expect(api.masterData).toHaveBeenCalledWith("accessory_subtype");
+    expect(result.current.subtypeEntries).toEqual([productionSubtype]);
+
+    vi.mocked(api.masterData).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => result.current.retrySubtypeEntries());
+    expect(result.current.subtypeEntriesError).toBe("Unterarten konnten nicht geladen werden.");
+
+    vi.mocked(api.masterData).mockResolvedValueOnce([productionSubtype]);
+    await act(async () => result.current.retrySubtypeEntries());
+    expect(result.current.subtypeEntriesError).toBe("");
+    expect(result.current.subtypeEntries).toEqual([productionSubtype]);
   });
 
   it("requires a deliberate duplicate confirmation before one create command", async () => {

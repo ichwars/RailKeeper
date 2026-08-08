@@ -11,6 +11,13 @@ describe("article editor responsive tabs", () => {
     expect(responsiveCss).toMatch(/\.article-editor-tabs button\s*\{[^}]*flex:\s*0 0 auto/s);
   });
 
+  it("fits the six-column article table at desktop width and restores horizontal reachability on mobile", () => {
+    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*0/s);
+    expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*9[0-9]px/s);
+    expect(accessoriesCss).toMatch(/@media\s*\(max-width:\s*920px\)[\s\S]*?\.article-table\s*\{[^}]*min-width:\s*7[0-9]{2}px/s);
+    expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
+  });
+
   it("keeps long subject labels shrinkable and stacks the subject grid at narrow widths", () => {
     expect(accessoriesCss).toMatch(/\.article-subject-grid\s*>\s*\.app-field\s*\{[^}]*min-width:\s*0/s);
     expect(accessoriesCss).toMatch(/\.article-subject-grid[^}]*overflow-wrap:\s*anywhere/s);

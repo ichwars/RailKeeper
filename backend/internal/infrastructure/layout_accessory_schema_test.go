@@ -210,7 +210,8 @@ VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 	}
 
 	assertMasterDataCount(t, db, "article_type", 8)
-	assertMasterDataCount(t, db, "article_subtype", 54)
+	assertMasterDataCount(t, db, "accessory_subtype", 54)
+	assertMasterDataCount(t, db, "article_subtype", 0)
 	assertMasterDataCount(t, db, "stock_unit", 5)
 	assertMasterDataCount(t, db, "controlled_field_kind", 6)
 

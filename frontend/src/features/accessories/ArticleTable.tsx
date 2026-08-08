@@ -4,12 +4,15 @@ import { ChevronDown, ChevronUp, Eye, MoreHorizontal, Pencil } from "lucide-reac
 import type {
   AccessoryArticleListItem,
   AccessoryArticleSort,
-  AccessorySortDirection
+  AccessorySortDirection,
+  MasterDataEntry
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { articleSubtypeLabel } from "./articleSubtypes";
 
 type ArticleTableProps = {
   items: AccessoryArticleListItem[];
+  subtypeEntries?: MasterDataEntry[];
   sort: AccessoryArticleSort;
   direction: AccessorySortDirection;
   canEdit: boolean;
@@ -30,6 +33,7 @@ const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
 
 export function ArticleTable({
   items,
+  subtypeEntries = [],
   sort,
   direction,
   canEdit,
@@ -159,7 +163,9 @@ export function ArticleTable({
                 </td>
                 <td>
                   <strong>{t(`accessories.articleType.${article.articleType}`)}</strong>
-                  <small>{article.subtype || t("common.none")}</small>
+                  <small>{article.subtype
+                    ? articleSubtypeLabel(article.articleType, article.subtype, subtypeEntries, t)
+                    : t("common.none")}</small>
                 </td>
                 <td>{article.gauges.length ? article.gauges.join(", ") : t("common.none")}</td>
                 <td className="article-stock-cell">

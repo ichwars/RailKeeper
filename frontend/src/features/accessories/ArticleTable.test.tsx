@@ -2,7 +2,8 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AccessoryArticleListItem } from "../../shared/api";
+import type { AccessoryArticleListItem, MasterDataEntry } from "../../shared/api";
+import { setLanguage } from "../../shared/i18n";
 import { ArticleTable } from "./ArticleTable";
 
 const article: AccessoryArticleListItem = {
@@ -32,6 +33,13 @@ const secondArticle: AccessoryArticleListItem = {
   articleNumber: "5220",
   name: "Lichtsignal"
 };
+const subtypes: MasterDataEntry[] = [{
+  id: "straight", type: "accessory_subtype", key: "track:straight", label: "Straight", active: true,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}, {
+  id: "custom", type: "accessory_subtype", key: "track:club_profile", label: "Club profile", active: true,
+  sortOrder: 20, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}];
 
 describe("ArticleTable", () => {
   it("renders the exact approved columns and semantic sortable headers", async () => {
@@ -56,8 +64,37 @@ describe("ArticleTable", () => {
     ]);
     expect(screen.getByRole("columnheader", { name: "Artikel" })).toHaveAttribute("aria-sort", "ascending");
     expect(screen.getByRole("columnheader", { name: "Bestand" })).toHaveAttribute("aria-sort", "none");
+    expect(screen.getByRole("table")).toHaveClass("article-table");
+    expect(screen.getByRole("table").parentElement).toHaveClass("article-table-wrap");
     await user.click(screen.getByRole("button", { name: "Nach Bestand sortieren" }));
     expect(onSort).toHaveBeenCalledWith("stock");
+  });
+
+  it("renders localized built-in subtype labels and preserves configured custom labels", () => {
+    setLanguage("de");
+    const view = render(<ArticleTable items={[article]} subtypeEntries={subtypes} sort="article" direction="asc"
+      canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByText("Gerade")).toBeInTheDocument();
+
+    view.rerender(<ArticleTable items={[{ ...article, subtype: "club_profile" }]} subtypeEntries={subtypes}
+      sort="article" direction="asc" canEdit={false} onSort={vi.fn()} onView={vi.fn()}
+      onArchive={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByText("Club profile")).toBeInTheDocument();
+
+    setLanguage("en");
+    view.rerender(<ArticleTable items={[article]} subtypeEntries={subtypes} sort="article" direction="asc"
+      canEdit={false} onSort={vi.fn()} onView={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />);
+    expect(screen.getByText("Straight")).toBeInTheDocument();
+    setLanguage("de");
+  });
+
+  it("localizes canonical subtype keys returned by the backend", () => {
+    render(<ArticleTable items={[{ ...article, subtype: "track:straight" }]} subtypeEntries={subtypes}
+      sort="article" direction="asc" canEdit={false} onSort={vi.fn()} onView={vi.fn()}
+      onArchive={vi.fn()} onRestore={vi.fn()} />);
+
+    expect(screen.getByText("Gerade")).toBeInTheDocument();
+    expect(screen.queryByText("track:straight")).not.toBeInTheDocument();
   });
 
   it("uses accessible transparent row actions and archive or restore in overflow", async () => {

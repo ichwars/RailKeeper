@@ -1,4 +1,6 @@
-import type { AccessoryArticleListItem } from "../../shared/api";
+import { useEffect, useState } from "react";
+
+import { api, type AccessoryArticleListItem, type MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleMetrics } from "./ArticleMetrics";
 import { ArticleEditorDialog } from "./ArticleEditorDialog";
@@ -25,7 +27,17 @@ export function AccessoriesView({
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
+  const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const { t } = useI18n();
+
+  useEffect(() => {
+    if (!canRead) return;
+    let active = true;
+    void api.masterData("accessory_subtype").then((entries) => {
+      if (active) setSubtypeEntries(entries);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [canRead]);
 
   if (!canRead) {
     return <section className="panel"><p>{t("accessories.overview.noAccess")}</p></section>;
@@ -93,6 +105,7 @@ export function AccessoriesView({
         ) : (
           <ArticleTable
             items={overview.data.items}
+            subtypeEntries={subtypeEntries}
             sort={overview.sort}
             direction={overview.direction}
             canEdit={canEdit}
@@ -121,6 +134,9 @@ export function AccessoriesView({
         customFields={editor.customFields}
         customFieldsLoading={editor.customFieldsLoading}
         customFieldsError={editor.customFieldsError}
+        subtypeEntries={editor.subtypeEntries}
+        subtypeEntriesLoading={editor.subtypeEntriesLoading}
+        subtypeEntriesError={editor.subtypeEntriesError}
         duplicateCandidates={editor.duplicateCandidates}
         closeConfirmationOpen={editor.closeConfirmationOpen}
         permissions={editor.permissions}
@@ -138,6 +154,7 @@ export function AccessoriesView({
         onResourcesChanged={editor.refreshResources}
         onRetryResources={editor.retryResources}
         onRetryCustomFields={editor.retryCustomFields}
+        onRetrySubtypeEntries={editor.retrySubtypeEntries}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
     </>

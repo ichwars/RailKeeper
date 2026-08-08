@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import type { MasterDataEntry } from "../../shared/api";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { ArticleEditorDialog, type ArticleEditorDialogProps } from "./ArticleEditorDialog";
 import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
@@ -9,6 +10,14 @@ import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
 const customFields: CustomArticleSubjectFieldDefinition[] = [
   { key: "material", kind: "text", label: "Material" },
   { key: "lengthMm", kind: "number", label: "Länge", unit: "mm", step: 0.1 }
+];
+const subtypeEntries: MasterDataEntry[] = [
+  { id: "straight", type: "accessory_subtype", key: "track:straight", label: "Straight", active: true,
+    sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "custom", type: "accessory_subtype", key: "track:custom_profile", label: "Vereinsprofil", active: true,
+    sortOrder: 20, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" },
+  { id: "signal", type: "accessory_subtype", key: "signal:main", label: "Main", active: true,
+    sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z" }
 ];
 
 const persistedArticle = {
@@ -43,6 +52,9 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     customFields: [],
     customFieldsLoading: false,
     customFieldsError: "",
+    subtypeEntries,
+    subtypeEntriesLoading: false,
+    subtypeEntriesError: "",
     subjectFieldErrors: {},
     onChange: vi.fn(),
     onTabChange: vi.fn(),
@@ -55,6 +67,7 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     onResourcesChanged: vi.fn(),
     onRetryResources: vi.fn(),
     onRetryCustomFields: vi.fn().mockResolvedValue(undefined),
+    onRetrySubtypeEntries: vi.fn().mockResolvedValue(undefined),
     onSubdraftDirty: vi.fn(),
     ...overrides
   };
@@ -75,6 +88,66 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("dialog", { name: "Artikel ansehen" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
+  });
+
+  it("uses a controlled localized subtype select filtered by article type and preserves custom labels", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<ArticleEditorDialog {...props({
+      form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "straight" }, onChange
+    })} />);
+
+    expect(screen.queryByRole("textbox", { name: "Unterart" })).not.toBeInTheDocument();
+    const subtype = screen.getByRole("button", { name: "Unterart" });
+    expect(subtype).toHaveTextContent("Gerade");
+    await user.click(subtype);
+    expect(screen.getByRole("option", { name: "Gerade" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Vereinsprofil" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Hauptsignal" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Vereinsprofil" }));
+    expect(onChange).toHaveBeenCalledWith({ subtype: "custom_profile" });
+  });
+
+  it("localizes the canonical subtype key returned by the backend", () => {
+    render(<ArticleEditorDialog {...props({
+      mode: "edit", form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "track:straight" }
+    })} />);
+
+    expect(screen.getByRole("button", { name: "Unterart" })).toHaveTextContent("Gerade");
+    expect(screen.queryByText("track:straight")).not.toBeInTheDocument();
+  });
+
+  it("represents an inactive historical subtype without permitting arbitrary raw keys", async () => {
+    const user = userEvent.setup();
+    const historical = { ...subtypeEntries[0]!, id: "historical", key: "track:old_profile",
+      label: "Altes Profil", active: false };
+    render(<ArticleEditorDialog {...props({
+      mode: "edit", form: { ...emptyArticleEditorForm(), articleType: "track", subtype: "old_profile" },
+      subtypeEntries: [...subtypeEntries, historical]
+    })} />);
+
+    const subtype = screen.getByRole("button", { name: "Unterart" });
+    expect(subtype).toHaveTextContent("Altes Profil");
+    await user.click(subtype);
+    expect(screen.getByRole("option", { name: /Altes Profil/ })).toBeInTheDocument();
+    expect(screen.queryByRole("textbox", { name: "Unterart" })).not.toBeInTheDocument();
+  });
+
+  it("disables subtype selection while loading, on load failure, and in read-only mode with retry", async () => {
+    const user = userEvent.setup();
+    const retry = vi.fn().mockResolvedValue(undefined);
+    const view = render(<ArticleEditorDialog {...props({ subtypeEntriesLoading: true })} />);
+    expect(screen.getByRole("button", { name: "Unterart" })).toBeDisabled();
+
+    view.rerender(<ArticleEditorDialog {...props({
+      subtypeEntriesError: "Unterarten nicht verfügbar", onRetrySubtypeEntries: retry
+    })} />);
+    expect(screen.getByRole("button", { name: "Unterart" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Unterarten erneut laden" }));
+    expect(retry).toHaveBeenCalledOnce();
+
+    view.rerender(<ArticleEditorDialog {...props({ mode: "view" })} />);
+    expect(screen.getByRole("button", { name: "Unterart" })).toBeDisabled();
   });
 
   it("shows custom-field retry, allows switching to a standard type, and only blocks other save", async () => {
@@ -215,7 +288,7 @@ describe("ArticleEditorDialog", () => {
     expect(screen.getByRole("dialog", { name: "Artikelart ändern" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Weiter bearbeiten" }));
     expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByRole("textbox", { name: "Unterart" })).toHaveValue("straight");
+    expect(screen.getByRole("button", { name: "Unterart" })).toHaveTextContent("Gerade");
 
     await user.click(screen.getByRole("button", { name: "Artikelart" }));
     await user.click(screen.getByRole("option", { name: "Signal" }));
@@ -271,6 +344,17 @@ describe("ArticleEditorDialog", () => {
 
     view.rerender(<ArticleEditorDialog {...props({ hasUsageHistory: true })} />);
     expect(screen.getByRole("tab", { name: "Verwendung & Historie" })).toBeInTheDocument();
+  });
+
+  it("scrolls a programmatically activated validation tab into the mobile tab strip", () => {
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const view = render(<ArticleEditorDialog {...props({ activeTab: "article" })} />);
+    scrollIntoView.mockClear();
+
+    view.rerender(<ArticleEditorDialog {...props({ activeTab: "subject", tabErrors: { subject: true } })} />);
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
   });
 
   it("sets initial focus, traps focus, and returns focus to the initiating action", async () => {

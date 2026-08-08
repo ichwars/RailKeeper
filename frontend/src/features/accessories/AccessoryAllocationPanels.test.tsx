@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   api,
+  type AccessoryAsset,
   type AccessoryArticle,
   type AccessoryReservation,
   type Layout,
@@ -32,6 +33,14 @@ const reservation: AccessoryReservation = {
   wiringNotes: "blau/gelb", status: "active", createdBy: "planner",
   createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
 };
+const asset: AccessoryAsset = {
+  id: "asset-1", productId: article.id, inventoryNumber: "RK-83101-001", condition: "ready",
+  lifecycle: "stored", storageLocationId: location.id, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
+const hybridArticle: AccessoryArticle = {
+  ...article, articleType: "track", subtype: "straight", inventoryStrategy: "quantity_later_individual"
+};
 
 async function fillTechnicalFields(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByRole("textbox", { name: "Einbauort" }), "Bahnhof West");
@@ -56,6 +65,46 @@ describe("accessory allocation forms", () => {
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ layoutId: "layout-1", placement: "Bahnhof West",
       digitalAddress: "17", decoderOutput: "A2", connection: "J3", wiringNotes: "blau/gelb" }));
+    expect(screen.queryByRole("button", { name: "Bestandsquelle" })).not.toBeInTheDocument();
+  });
+
+  it("lets hybrid stock reserve free quantity even when a stored asset exists", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createAccessoryReservation").mockResolvedValue({} as never);
+    render(<AccessoryReservationsPanel article={hybridArticle} reservations={[]} assets={[asset]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canReserve onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Bestandsquelle" }));
+    await user.click(screen.getByRole("option", { name: "Menge" }));
+    const quantity = screen.getByRole("spinbutton", { name: "Menge" });
+    await user.clear(quantity);
+    await user.type(quantity, "2");
+    await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      productId: article.id, quantity: 2, locationId: location.id
+    }));
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("assetId");
+  });
+
+  it("lets hybrid stock reserve a stored asset independently from free quantity", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createAccessoryReservation").mockResolvedValue({} as never);
+    render(<AccessoryReservationsPanel article={hybridArticle} reservations={[]} assets={[asset]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canReserve onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Bestandsquelle" }));
+    await user.click(screen.getByRole("option", { name: "Einzelstück" }));
+    expect(screen.getByRole("button", { name: "Einzelstück" })).toHaveTextContent("RK-83101-001");
+    await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      productId: article.id, assetId: asset.id, quantity: 1, locationId: location.id
+    }));
   });
 
   it("submits approved technical placement fields with an installation and uses AppNumberInput", async () => {
@@ -72,6 +121,52 @@ describe("accessory allocation forms", () => {
 
     expect(create).toHaveBeenCalledWith(expect.objectContaining({ layoutId: "layout-1", placement: "Bahnhof West",
       digitalAddress: "17", decoderOutput: "A2", connection: "J3", wiringNotes: "blau/gelb" }));
+    expect(screen.queryByRole("button", { name: "Bestandsquelle" })).not.toBeInTheDocument();
+  });
+
+  it("lets hybrid stock install quantity and asset through separate direct allocation modes", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createAccessoryInstallation").mockResolvedValue({} as never);
+    const view = render(<AccessoryInstallationsPanel article={hybridArticle} reservations={[]} installations={[]}
+      assets={[asset]} locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canInstall
+      onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Bestandsquelle" }));
+    await user.click(screen.getByRole("option", { name: "Menge" }));
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ quantity: 1 }));
+    expect(create.mock.calls[0]?.[0]).not.toHaveProperty("assetId");
+
+    view.unmount();
+    render(<AccessoryInstallationsPanel article={hybridArticle} reservations={[]} installations={[]}
+      assets={[asset]} locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canInstall
+      onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Bestandsquelle" }));
+    await user.click(screen.getByRole("option", { name: "Einzelstück" }));
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+    expect(create).toHaveBeenLastCalledWith(expect.objectContaining({ assetId: asset.id, quantity: 1 }));
+  });
+
+  it("keeps an asset-bound reservation locked to its asset when installing", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createAccessoryInstallation").mockResolvedValue({} as never);
+    const assetReservation = { ...reservation, assetId: asset.id };
+    render(<AccessoryInstallationsPanel article={hybridArticle} reservations={[assetReservation]}
+      installations={[]} assets={[asset]} locations={[location]} vehicles={[]} layouts={[layout]} units={[]}
+      canInstall onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Reservierung" }));
+    await user.click(screen.getByRole("option", { name: "Clubanlage" }));
+    expect(screen.queryByRole("button", { name: "Bestandsquelle" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Einzelstück" })).toBeDisabled();
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(screen.getByRole("button", { name: "Bestätigen" }));
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({
+      reservationId: reservation.id, assetId: asset.id, quantity: 1
+    }));
   });
 
   it("prefills reservation technical data, keeps it editable, and sends explicit overrides", async () => {

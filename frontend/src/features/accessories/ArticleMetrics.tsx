@@ -33,7 +33,11 @@ export function ArticleMetrics({
       label: t("accessories.metrics.articles"),
       value: t("accessories.metrics.articlesValue", {
         articles: metrics.articleCount,
-        types: metrics.articleTypeCount
+        articleNoun: t(metrics.articleCount === 1
+          ? "accessories.metrics.articleSingular" : "accessories.metrics.articlePlural"),
+        types: metrics.articleTypeCount,
+        typeNoun: t(metrics.articleTypeCount === 1
+          ? "accessories.metrics.typeSingular" : "accessories.metrics.typePlural")
       }),
       active: activeStatus === "",
       action: onReset,

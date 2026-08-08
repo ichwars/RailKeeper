@@ -1,10 +1,16 @@
-import type { AccessoryArticle, AccessoryArticleType, AccessoryManufacturerStatus } from "../../shared/api";
+import type {
+  AccessoryArticle,
+  AccessoryArticleType,
+  AccessoryManufacturerStatus,
+  MasterDataEntry
+} from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppMultiSelect } from "../../shared/ui/AppMultiSelect";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import type { ArticleEditorFieldErrors, ArticleEditorForm } from "./articleEditorModel";
+import { articleSubtypeOptions } from "./articleSubtypes";
 
 const articleTypes: AccessoryArticleType[] = [
   "track", "signal", "decoder", "electrical_control", "building_equipment",
@@ -20,6 +26,9 @@ export function ArticleCoreTab({
   disabled,
   articleTypeDisabled = false,
   otherArticleTypeDisabled = false,
+  subtypeEntries,
+  subtypeEntriesLoading = false,
+  subtypeEntriesError = "",
   onChange
 }: {
   form: ArticleEditorForm;
@@ -28,9 +37,13 @@ export function ArticleCoreTab({
   disabled: boolean;
   articleTypeDisabled?: boolean;
   otherArticleTypeDisabled?: boolean;
+  subtypeEntries: MasterDataEntry[];
+  subtypeEntriesLoading?: boolean;
+  subtypeEntriesError?: string;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
+  const subtypeOptions = articleSubtypeOptions(form.articleType, form.subtype, subtypeEntries, t);
   return (
     <section className="article-editor-tab article-core-tab" aria-label={t("accessories.editor.tabs.article")}>
       <div className="article-editor-image">
@@ -71,8 +84,18 @@ export function ArticleCoreTab({
               {t(`accessories.articleType.${type}`)}</option>)}
           </AppSelect>
         </label>
-        <AppTextInput label={t("accessories.editor.fields.subtype")} required disabled={disabled}
-          value={form.subtype} error={errors.subtype} onChange={(event) => onChange({ subtype: event.target.value })} />
+        <label className="app-field">
+          <span className="app-field-label">{t("accessories.editor.fields.subtype")} *</span>
+          <AppSelect value={form.subtype} aria-label={t("accessories.editor.fields.subtype")}
+            disabled={disabled || subtypeEntriesLoading || Boolean(subtypeEntriesError)}
+            onChange={(event) => onChange({ subtype: event.target.value })}>
+            <option value="">{t("accessories.editor.fields.selectSubtype")}</option>
+            {subtypeOptions.map((option) => <option key={option.value} value={option.value}>
+              {option.label}{option.active ? "" : ` (${t("accessories.editor.fields.inactiveSubtype")})`}
+            </option>)}
+          </AppSelect>
+          {errors.subtype ? <small className="app-field-error" role="alert">{errors.subtype}</small> : null}
+        </label>
         <AppMultiSelect label={t("accessories.toolbar.gauge")} disabled={disabled}
           options={gauges.map((gauge) => ({ value: gauge, label: gauge }))} value={form.gauges}
           placeholder={t("accessories.editor.fields.noGauge")}

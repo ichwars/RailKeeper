@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 
-import type { AccessoryArticle, AccessoryArticleType, AccessoryDuplicateCandidate } from "../../shared/api";
+import type {
+  AccessoryArticle,
+  AccessoryArticleType,
+  AccessoryDuplicateCandidate,
+  MasterDataEntry
+} from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
@@ -39,6 +44,9 @@ export type ArticleEditorDialogProps = {
   customFields: readonly CustomArticleSubjectFieldDefinition[];
   customFieldsLoading: boolean;
   customFieldsError: string;
+  subtypeEntries: MasterDataEntry[];
+  subtypeEntriesLoading: boolean;
+  subtypeEntriesError: string;
   duplicateCandidates: AccessoryDuplicateCandidate[];
   closeConfirmationOpen: boolean;
   permissions: ArticleEditorPermissions;
@@ -56,6 +64,7 @@ export type ArticleEditorDialogProps = {
   onResourcesChanged: () => Promise<void>;
   onRetryResources: () => Promise<void>;
   onRetryCustomFields: () => Promise<void>;
+  onRetrySubtypeEntries: () => Promise<void>;
   onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
 
@@ -70,6 +79,7 @@ const focusableSelector = [
 export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const { t } = useI18n();
   const layerRef = useRef<HTMLDivElement | null>(null);
+  const tabListRef = useRef<HTMLElement | null>(null);
   const [pendingArticleType, setPendingArticleType] = useState<AccessoryArticleType | null>(null);
   const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
     pendingArticleType !== null;
@@ -144,6 +154,13 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     if (!tabs.some((tab) => tab.key === props.activeTab)) props.onTabChange("article");
   }, [props.activeTab, props.hasUsageHistory]);
 
+  useEffect(() => {
+    const activeTab = tabListRef.current?.querySelector<HTMLElement>("[role='tab'][aria-selected='true']");
+    if (typeof activeTab?.scrollIntoView === "function") {
+      activeTab.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  }, [props.activeTab]);
+
   const trapFocus = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -184,7 +201,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           <X size={18} aria-hidden="true" />
         </button>
       </header>
-      <nav className="modal-tabs article-editor-tabs" role="tablist" aria-label={t("accessories.editor.tabs.label")}>
+      <nav ref={tabListRef} className="modal-tabs article-editor-tabs" role="tablist"
+        aria-label={t("accessories.editor.tabs.label")}>
         {tabs.map((tab) => <button key={tab.key} type="button" role="tab" data-tab-kind={tab.subject ? "subject" : "fixed"}
           aria-selected={props.activeTab === tab.key} aria-label={tabLabel(tab)}
           disabled={props.saving || confirmationPending}
@@ -200,6 +218,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
             <ArticleCoreTab form={props.form} article={props.article} errors={props.fieldErrors}
               disabled={readOnly} articleTypeDisabled={props.customFieldsLoading}
               otherArticleTypeDisabled={Boolean(props.customFieldsError)}
+              subtypeEntries={props.subtypeEntries}
+              subtypeEntriesLoading={props.subtypeEntriesLoading}
+              subtypeEntriesError={props.subtypeEntriesError}
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
@@ -243,6 +264,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
           <button type="button" className="secondary-button" disabled={props.customFieldsLoading}
             onClick={() => void props.onRetryCustomFields().catch(() => undefined)}>
             {t("accessories.editor.retryCustomFields")}</button>
+        </div> : null}
+        {props.subtypeEntriesError ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{props.subtypeEntriesError}</p>
+          <button type="button" className="secondary-button" disabled={props.subtypeEntriesLoading}
+            onClick={() => void props.onRetrySubtypeEntries().catch(() => undefined)}>
+            {t("accessories.editor.subtypes.retry")}</button>
         </div> : null}
         {props.error && props.error !== props.resourceError
           ? <p className="form-message" role="alert">{props.error}</p> : null}

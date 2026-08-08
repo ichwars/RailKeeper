@@ -12,8 +12,10 @@ import {
   type AccessoryReservation,
   type AccessoryUsageEvent,
   type Layout,
+  type MasterDataEntry,
   type StorageLocation
 } from "../../shared/api";
+import { setLanguage } from "../../shared/i18n";
 import { AccessoriesView } from "./AccessoriesView";
 
 const overview: AccessoryArticleListResult = {
@@ -53,6 +55,11 @@ const overview: AccessoryArticleListResult = {
     storageLocations: [{ id: "location-1", name: "Werkstatt / Schrank A" }]
   }
 };
+const straightSubtype: MasterDataEntry = {
+  id: "article-subtype-track-straight", type: "accessory_subtype", key: "track:straight", label: "Straight",
+  active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -64,6 +71,8 @@ describe("AccessoriesView", () => {
   beforeEach(() => {
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
+    vi.spyOn(api, "masterData").mockImplementation(async (type) =>
+      type === "accessory_subtype" ? [straightSubtype] : []);
     vi.spyOn(api, "archiveAccessoryProduct").mockResolvedValue({} as never);
     vi.spyOn(api, "restoreAccessoryProduct").mockResolvedValue({} as never);
   });
@@ -84,6 +93,16 @@ describe("AccessoriesView", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Kartenansicht/i)).not.toBeInTheDocument();
     expect(screen.getByText("1 Ergebnis")).toBeInTheDocument();
+  });
+
+  it("uses English singular metric nouns for one article and one type", async () => {
+    setLanguage("en");
+    vi.mocked(api.accessoryArticles).mockResolvedValueOnce({ ...overview, metrics: {
+      ...overview.metrics, articleCount: 1, articleTypeCount: 1
+    } });
+    render(<AccessoriesView roles={["Viewer"]} />);
+    expect(await screen.findByText("1 article · 1 type")).toBeInTheDocument();
+    setLanguage("de");
   });
 
   it("searches instantly, maps every visible filter, and resets them", async () => {
@@ -280,7 +299,8 @@ describe("AccessoriesView", () => {
 
     vi.mocked(api.accessoryArticles).mockImplementation(async () => currentOverview());
     vi.mocked(api.storageLocations).mockResolvedValue([location]);
-    vi.spyOn(api, "masterData").mockResolvedValue([]);
+    vi.spyOn(api, "masterData").mockImplementation(async (type) =>
+      type === "accessory_subtype" ? [straightSubtype] : []);
     vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
     vi.spyOn(api, "createAccessoryArticle").mockImplementation(async (input) => {
       article = {
@@ -379,7 +399,8 @@ describe("AccessoriesView", () => {
     await user.type(within(createDialog).getByRole("textbox", { name: "Bezeichnung" }), "TT Modellgleis");
     await user.click(within(createDialog).getByRole("button", { name: "Artikelart" }));
     await user.click(screen.getByRole("option", { name: "Gleis" }));
-    await user.type(within(createDialog).getByRole("textbox", { name: "Unterart" }), "straight");
+    await user.click(within(createDialog).getByRole("button", { name: "Unterart" }));
+    await user.click(screen.getByRole("option", { name: "Gerade" }));
     await user.click(within(createDialog).getByRole("button", { name: /Spurweite/ }));
     await user.click(screen.getByRole("option", { name: "TT" }));
     await user.click(screen.getByRole("tab", { name: "Bestand" }));
@@ -409,6 +430,8 @@ describe("AccessoriesView", () => {
       locationId: location.id, asset: expect.objectContaining({ inventoryNumber: "RK-83101-001" })
     })));
 
+    await user.click(screen.getAllByRole("button", { name: "Bestandsquelle" })[0]!);
+    await user.click(screen.getByRole("option", { name: "Einzelstück" }));
     expect(screen.getAllByRole("button", { name: "Einzelstück" })[0]).toHaveTextContent("RK-83101-001");
     await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
     await user.click(within(screen.getByRole("dialog", { name: "Reservierung bestätigen" }))

@@ -42,6 +42,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
 }) {
   const [locationID, setLocationID] = useState("");
   const [assetID, setAssetID] = useState("");
+  const [allocationMode, setAllocationMode] = useState<"quantity" | "asset">("quantity");
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
@@ -56,11 +57,11 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
     ? assetID : availableAssets[0]?.id || "";
   const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
   const targetInput = accessoryTargetInput(resolvedTarget);
-  const isIndividual = article.inventoryStrategy === "individual" ||
-    (article.inventoryStrategy === "quantity_later_individual" && availableAssets.length > 0);
+  const isHybrid = article.inventoryStrategy === "quantity_later_individual";
+  const isIndividual = article.inventoryStrategy === "individual" || (isHybrid && allocationMode === "asset");
   const canSubmit = Boolean(effectiveLocationID && targetInput && (!isIndividual || effectiveAssetID));
   const dirty = Boolean(locationID || assetID || note || target.id || Object.values(technical).some(Boolean)) ||
-    quantity !== "1";
+    quantity !== "1" || allocationMode !== "quantity";
 
   useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
@@ -75,12 +76,12 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           ...targetInput,
           ...technical,
           productId: article.id,
-          assetId: isIndividual ? effectiveAssetID : undefined,
+          ...(isIndividual ? { assetId: effectiveAssetID } : {}),
           locationId: effectiveLocationID,
           quantity: isIndividual ? 1 : Number(quantity),
           note: note || undefined
         });
-        setLocationID(""); setAssetID(""); setQuantity("1"); setNote("");
+        setLocationID(""); setAssetID(""); setAllocationMode("quantity"); setQuantity("1"); setNote("");
         setTarget({ kind: "layout", id: "" });
         setTechnical(emptyTechnicalPlacement());
       },
@@ -115,6 +116,13 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
             onChange={setTarget} />
           <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
+          {isHybrid ? <label>{t("accessories.field.allocationSource")}<AppSelect value={allocationMode}
+            aria-label={t("accessories.field.allocationSource")}
+            onChange={(event) => setAllocationMode(event.target.value as "quantity" | "asset")}>
+            <option value="quantity">{t("accessories.allocationSource.quantity")}</option>
+            <option value="asset" disabled={availableAssets.length === 0}>
+              {t("accessories.allocationSource.asset")}</option>
+          </AppSelect></label> : null}
           <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
             onChange={(event) => setLocationID(event.target.value)}>
             {activeLocations.map((location) => <option key={location.id} value={location.id}>

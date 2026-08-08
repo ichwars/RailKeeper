@@ -14,6 +14,7 @@ import {
   type AccessoryUsageHistory,
   type Layout,
   type LayoutUnit,
+  type MasterDataEntry,
   type StorageLocation,
   type Vehicle
 } from "../../shared/api";
@@ -97,6 +98,9 @@ export function useArticleEditorController({
   const [customFields, setCustomFields] = useState<CustomArticleSubjectFieldDefinition[]>([]);
   const [customFieldsLoading, setCustomFieldsLoading] = useState(false);
   const [customFieldsError, setCustomFieldsError] = useState("");
+  const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
+  const [subtypeEntriesLoading, setSubtypeEntriesLoading] = useState(false);
+  const [subtypeEntriesError, setSubtypeEntriesError] = useState("");
   const [duplicateCandidates, setDuplicateCandidates] = useState<AccessoryDuplicateCandidate[]>([]);
   const [closeConfirmationOpen, setCloseConfirmationOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -163,6 +167,19 @@ export function useArticleEditorController({
     }
   }, [isCurrent, t]);
 
+  const loadSubtypeEntries = useCallback(async (generation: number) => {
+    setSubtypeEntriesLoading(true);
+    setSubtypeEntriesError("");
+    try {
+      const entries = await api.masterData("accessory_subtype");
+      if (isCurrent(generation)) setSubtypeEntries(entries);
+    } catch {
+      if (isCurrent(generation)) setSubtypeEntriesError(t("accessories.editor.subtypes.loadError"));
+    } finally {
+      if (isCurrent(generation)) setSubtypeEntriesLoading(false);
+    }
+  }, [isCurrent, t]);
+
   const loadResources = useCallback(async (articleId: string, generation: number, rejectOnFailure: boolean) => {
     const request = ++resourceRequestRef.current;
     const result = await fetchArticleEditorResourcePatch(articleId);
@@ -199,6 +216,7 @@ export function useArticleEditorController({
     resetTransientState();
     setIsOpen(true);
     void loadCustomFields(generation);
+    void loadSubtypeEntries(generation);
     void api.storageLocations().then((locations) => {
       if (isCurrent(generation)) setResources((current) => ({ ...current, locations }));
     }).catch((reason) => {
@@ -224,6 +242,7 @@ export function useArticleEditorController({
     setIsOpen(true);
     setLoading(true);
     void loadCustomFields(generation);
+    void loadSubtypeEntries(generation);
     void api.accessoryArticle(id).then((loaded) => {
       if (!isCurrent(generation)) return;
       const next = articleToEditorForm(loaded);
@@ -287,6 +306,9 @@ export function useArticleEditorController({
     setCustomFields([]);
     setCustomFieldsLoading(false);
     setCustomFieldsError("");
+    setSubtypeEntries([]);
+    setSubtypeEntriesLoading(false);
+    setSubtypeEntriesError("");
   };
 
   const requestClose = () => {
@@ -394,6 +416,10 @@ export function useArticleEditorController({
     await loadCustomFields(generationRef.current);
   };
 
+  const retrySubtypeEntries = async () => {
+    await loadSubtypeEntries(generationRef.current);
+  };
+
   const setSubdraftDirty = (scope: string, dirty: boolean) => {
     setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
@@ -410,6 +436,9 @@ export function useArticleEditorController({
     customFields,
     customFieldsLoading,
     customFieldsError,
+    subtypeEntries,
+    subtypeEntriesLoading,
+    subtypeEntriesError,
     duplicateCandidates,
     closeConfirmationOpen,
     loading,
@@ -436,6 +465,7 @@ export function useArticleEditorController({
     refreshResources,
     retryResources,
     retryCustomFields,
+    retrySubtypeEntries,
     setSubdraftDirty
   };
 }
