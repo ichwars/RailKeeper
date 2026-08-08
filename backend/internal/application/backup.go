@@ -487,7 +487,7 @@ func validateBackupAccessoryProductAttributes(
 		}
 		var err error
 		if backupVersion >= 3 && articleType == domain.AccessoryArticleOther {
-			err = domain.ValidateControlledAccessoryAttributeValues(
+			err = validateBackupControlledAccessoryAttributeValues(
 				attributesByProduct[productID],
 				controlledDefinitions,
 			)
@@ -550,6 +550,38 @@ func backupControlledAccessoryAttributeDefinitions(
 		definitions = append(definitions, definition)
 	}
 	return definitions, validationErrors
+}
+
+func validateBackupControlledAccessoryAttributeValues(
+	values []domain.AccessoryAttributeValue,
+	definitions []domain.AccessoryAttributeDefinition,
+) error {
+	if err := domain.ValidateAccessoryAttributeValues(domain.AccessoryArticleOther, values); err != nil {
+		return err
+	}
+	activeDefinitions := make([]domain.AccessoryAttributeDefinition, 0, len(definitions))
+	activeKeys := make(map[string]struct{}, len(definitions))
+	inactiveKeys := make(map[string]struct{}, len(definitions))
+	for _, definition := range definitions {
+		if definition.Active {
+			activeDefinitions = append(activeDefinitions, definition)
+			activeKeys[definition.Key] = struct{}{}
+		} else {
+			inactiveKeys[definition.Key] = struct{}{}
+		}
+	}
+	activeValues := make([]domain.AccessoryAttributeValue, 0, len(values))
+	for _, value := range values {
+		if _, active := activeKeys[value.Key]; active {
+			activeValues = append(activeValues, value)
+			continue
+		}
+		if _, inactive := inactiveKeys[value.Key]; !inactive {
+			return fmt.Errorf("%w: undefined controlled key %q",
+				domain.ErrAccessoryAttributeValidation, value.Key)
+		}
+	}
+	return domain.ValidateControlledAccessoryAttributeValues(activeValues, activeDefinitions)
 }
 
 func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttributeValue {
