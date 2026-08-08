@@ -56,7 +56,8 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
     ? assetID : availableAssets[0]?.id || "";
   const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
   const targetInput = accessoryTargetInput(resolvedTarget);
-  const isIndividual = article.inventoryStrategy === "individual";
+  const isIndividual = article.inventoryStrategy === "individual" ||
+    (article.inventoryStrategy === "quantity_later_individual" && availableAssets.length > 0);
   const canSubmit = Boolean(effectiveLocationID && targetInput && (!isIndividual || effectiveAssetID));
   const dirty = Boolean(locationID || assetID || note || target.id || Object.values(technical).some(Boolean)) ||
     quantity !== "1";

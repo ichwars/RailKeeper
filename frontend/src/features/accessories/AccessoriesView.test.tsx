@@ -2,7 +2,18 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryArticleListResult } from "../../shared/api";
+import {
+  api,
+  type AccessoryArticle,
+  type AccessoryArticleListResult,
+  type AccessoryAsset,
+  type AccessoryInstallation,
+  type AccessoryPurchase,
+  type AccessoryReservation,
+  type AccessoryUsageEvent,
+  type Layout,
+  type StorageLocation
+} from "../../shared/api";
 import { AccessoriesView } from "./AccessoriesView";
 
 const overview: AccessoryArticleListResult = {
@@ -191,11 +202,20 @@ describe("AccessoriesView", () => {
     expect(onOpenArticle).toHaveBeenCalledWith("article-1", "edit");
     editorView.unmount();
 
-    render(<AccessoriesView roles={["Planner"]} />);
+    const plannerView = render(<AccessoriesView roles={["Planner"]} />);
     await screen.findByText("Gerades Modellgleis");
     expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
     expect(screen.getByText("Planungszugriff: Sie können Artikel ansehen sowie Reservierungen anlegen und stornieren.")).toBeInTheDocument();
+    plannerView.unmount();
+
+    render(<AccessoriesView roles={["Viewer"]} />);
+    await screen.findByText("Gerades Modellgleis");
+    expect(screen.queryByRole("button", { name: "Neuer Artikel" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Artikel ansehen: Gerades Modellgleis" })).toBeInTheDocument();
+    expect(screen.getByText("Schreibgeschützter Zugriff: Sie können Artikel ansehen, aber nicht ändern."))
+      .toBeInTheDocument();
   });
 
   it("wires create, view, edit, and article-name actions to the shared Task 11 controller", async () => {
@@ -217,4 +237,199 @@ describe("AccessoriesView", () => {
     expect(screen.getByText("Kein Zugriff auf die Artikelübersicht.")).toBeInTheDocument();
     expect(api.accessoryArticles).not.toHaveBeenCalled();
   });
+
+  it("runs Tillig 83101 through purchase, individualization, reservation, installation, removal, and history", async () => {
+    const timestamp = "2026-08-08T10:00:00Z";
+    const location: StorageLocation = {
+      id: "location-1", name: "Werkstatt", archived: false, createdAt: timestamp, updatedAt: timestamp
+    };
+    const layout: Layout = {
+      id: "layout-1", name: "Testanlage", kind: "private", gauge: "TT", scale: "1:120", version: 1,
+      archived: false, createdAt: timestamp, updatedAt: timestamp
+    };
+    let article: AccessoryArticle | null = null;
+    let stockQuantity = 0;
+    let assets: AccessoryAsset[] = [];
+    let purchases: AccessoryPurchase[] = [];
+    let reservations: AccessoryReservation[] = [];
+    let installations: AccessoryInstallation[] = [];
+    let events: AccessoryUsageEvent[] = [];
+    const currentOverview = (): AccessoryArticleListResult => article ? {
+      items: [{
+        id: article.id, manufacturer: article.manufacturer, articleNumber: article.articleNumber || "",
+        name: article.name, articleType: article.articleType, subtype: article.subtype, gauges: article.gauges,
+        inventoryStrategy: article.inventoryStrategy, archived: false,
+        owned: stockQuantity + assets.length, available: stockQuantity,
+        reserved: reservations.filter((item) => item.status === "active").length,
+        installed: installations.filter((item) => !item.removedAt).length,
+        locationNames: [location.name], hasUsageHistory: events.length > 0, careHintCount: 0,
+        updatedAt: timestamp, attributes: article.attributes
+      }],
+      metrics: {
+        articleCount: 1, articleTypeCount: 1, available: stockQuantity, locationCount: 1,
+        reserved: reservations.filter((item) => item.status === "active").length,
+        installed: installations.filter((item) => !item.removedAt).length, careHintCount: 0
+      },
+      filters: { manufacturers: [article.manufacturer], articleTypes: [article.articleType],
+        gauges: article.gauges, storageLocations: [{ id: location.id, name: location.name }] }
+    } : {
+      items: [], metrics: { articleCount: 0, articleTypeCount: 0, available: 0, locationCount: 0,
+        reserved: 0, installed: 0, careHintCount: 0 },
+      filters: { manufacturers: [], articleTypes: [], gauges: [], storageLocations: [] }
+    };
+
+    vi.mocked(api.accessoryArticles).mockImplementation(async () => currentOverview());
+    vi.mocked(api.storageLocations).mockResolvedValue([location]);
+    vi.spyOn(api, "masterData").mockResolvedValue([]);
+    vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
+    vi.spyOn(api, "createAccessoryArticle").mockImplementation(async (input) => {
+      article = {
+        id: "article-83101", manufacturer: input.manufacturer, articleNumber: input.articleNumber,
+        name: input.name, category: input.subtype, trackingMode: "quantity", manufacturerStatus: "available",
+        articleType: input.articleType, subtype: input.subtype, gauges: input.gauges || [],
+        packageQuantity: input.packageQuantity, stockUnit: input.stockUnit, minimumStock: input.minimumStock || 0,
+        inventoryStrategy: input.inventoryStrategy, alternativeNumbers: [], keywords: [], archived: false,
+        attributes: input.attributes || [], createdAt: timestamp, updatedAt: timestamp
+      };
+      return article;
+    });
+    vi.spyOn(api, "accessoryArticle").mockImplementation(async () => {
+      if (!article) throw new Error("article missing");
+      return article;
+    });
+    vi.spyOn(api, "vehicles").mockResolvedValue([]);
+    vi.spyOn(api, "layouts").mockResolvedValue([layout]);
+    vi.spyOn(api, "layoutUnits").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryStock").mockImplementation(async () => ({
+      productId: "article-83101", trackingMode: "quantity", totalQuantity: stockQuantity,
+      locations: [{ locationId: location.id, locationName: location.name, quantity: stockQuantity,
+        updatedAt: timestamp }]
+    }));
+    vi.spyOn(api, "accessoryStockMovements").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryAssets").mockImplementation(async () => assets);
+    vi.spyOn(api, "accessoryPurchases").mockImplementation(async () => purchases);
+    vi.spyOn(api, "accessoryDocuments").mockResolvedValue([]);
+    vi.spyOn(api, "accessoryReservations").mockImplementation(async () => reservations);
+    vi.spyOn(api, "accessoryInstallations").mockImplementation(async () => installations);
+    vi.spyOn(api, "accessoryUsageHistory").mockImplementation(async () => ({
+      productId: "article-83101", events
+    }));
+    vi.spyOn(api, "createAccessoryPurchase").mockImplementation(async (productId, input) => {
+      const purchase: AccessoryPurchase = {
+        id: "purchase-1", productId, storageLocationId: input.storageLocationId, quantity: input.quantity,
+        purchasedAt: input.purchasedAt, supplier: input.supplier, currency: input.currency,
+        bookToStock: Boolean(input.bookToStock), createdAt: timestamp, updatedAt: timestamp
+      };
+      purchases = [purchase];
+      if (input.bookToStock) stockQuantity += input.quantity;
+      return purchase;
+    });
+    const individualize = vi.spyOn(api, "individualizeAccessoryProduct").mockImplementation(async (productId, input) => {
+      stockQuantity -= 1;
+      const asset: AccessoryAsset = {
+        id: "asset-1", productId, inventoryNumber: input.asset.inventoryNumber, condition: "ready",
+        lifecycle: "stored", storageLocationId: input.locationId, createdAt: timestamp, updatedAt: timestamp
+      };
+      assets = [asset];
+      return asset;
+    });
+    const reserve = vi.spyOn(api, "createAccessoryReservation").mockImplementation(async (input) => {
+      const reservation: AccessoryReservation = {
+        ...input, id: "reservation-1", status: "active", createdBy: "editor", createdAt: timestamp,
+        updatedAt: timestamp
+      };
+      reservations = [reservation];
+      events = [{ id: "event-reservation", productId: input.productId, reservationId: reservation.id,
+        assetId: input.assetId, locationId: input.locationId, layoutId: layout.id, quantity: 1,
+        type: "reservation", occurredAt: timestamp }];
+      return reservation;
+    });
+    vi.spyOn(api, "createAccessoryInstallation").mockImplementation(async (input) => {
+      const installation: AccessoryInstallation = {
+        ...input, id: "installation-1", condition: "ready", installedBy: "editor", installedAt: timestamp
+      };
+      installations = [installation];
+      reservations = reservations.map((item) => ({ ...item, status: "fulfilled" }));
+      assets = assets.map((item) => ({ ...item, lifecycle: "installed" }));
+      events = [...events, { id: "event-installation", productId: input.productId,
+        installationId: installation.id, assetId: input.assetId, layoutId: layout.id, quantity: 1,
+        type: "installation", condition: "ready", occurredAt: timestamp }];
+      return installation;
+    });
+    vi.spyOn(api, "removeAccessoryInstallation").mockImplementation(async (id, input) => {
+      const current = installations.find((item) => item.id === id);
+      if (!current) throw new Error("installation missing");
+      const removed: AccessoryInstallation = {
+        ...current, removedAt: timestamp, removedBy: "editor", removalDisposition: input.disposition
+      };
+      installations = [removed];
+      assets = assets.map((item) => ({ ...item, lifecycle: "stored", storageLocationId: location.id }));
+      events = [...events, { id: "event-removal", productId: current.productId,
+        installationId: current.id, assetId: current.assetId, layoutId: layout.id, quantity: 1,
+        type: "removal", removalDisposition: input.disposition, occurredAt: timestamp }];
+      return removed;
+    });
+
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Editor"]} />);
+    await user.click(await screen.findByRole("button", { name: "Neuer Artikel" }));
+    const createDialog = screen.getByRole("dialog", { name: "Artikel anlegen" });
+    await user.type(within(createDialog).getByRole("textbox", { name: "Hersteller" }), "Tillig");
+    await user.type(within(createDialog).getByRole("textbox", { name: "Artikelnummer" }), "83101");
+    await user.type(within(createDialog).getByRole("textbox", { name: "Bezeichnung" }), "TT Modellgleis");
+    await user.click(within(createDialog).getByRole("button", { name: "Artikelart" }));
+    await user.click(screen.getByRole("option", { name: "Gleis" }));
+    await user.type(within(createDialog).getByRole("textbox", { name: "Unterart" }), "straight");
+    await user.click(within(createDialog).getByRole("button", { name: /Spurweite/ }));
+    await user.click(screen.getByRole("option", { name: "TT" }));
+    await user.click(screen.getByRole("tab", { name: "Bestand" }));
+    await user.click(screen.getByRole("button", { name: "Bestandsstrategie" }));
+    await user.click(screen.getByRole("option", { name: "Menge mit späterer Individualisierung" }));
+    await user.click(screen.getByRole("tab", { name: "Fachangaben: Gleis" }));
+    await user.type(screen.getByRole("textbox", { name: "Gleissystem" }), "Tillig TT Modellgleis");
+    await user.type(screen.getByRole("spinbutton", { name: "Länge (mm)" }), "166");
+    await user.click(screen.getByRole("button", { name: "Artikel anlegen" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Artikel anlegen" })).not.toBeInTheDocument());
+
+    await user.click(await screen.findByRole("button", { name: "Artikel bearbeiten: TT Modellgleis" }));
+    await screen.findByRole("dialog", { name: "Artikel bearbeiten" });
+    await user.click(screen.getByRole("tab", { name: "Kauf & Dokumente" }));
+    await user.clear(screen.getByRole("spinbutton", { name: "Menge" }));
+    await user.type(screen.getByRole("spinbutton", { name: "Menge" }), "2");
+    await user.click(screen.getByRole("checkbox", { name: "Kauf bestandswirksam buchen" }));
+    await user.click(screen.getByRole("button", { name: "Kauf buchen" }));
+    await waitFor(() => expect(stockQuantity).toBe(2));
+
+    await user.click(screen.getByRole("tab", { name: "Bestand" }));
+    await user.type(screen.getByRole("textbox", { name: "Inventarnummer" }), "RK-83101-001");
+    await user.click(screen.getByRole("button", { name: "Einzelstück speichern" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Einzelstück bestätigen" }))
+      .getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(individualize).toHaveBeenCalledWith("article-83101", expect.objectContaining({
+      locationId: location.id, asset: expect.objectContaining({ inventoryNumber: "RK-83101-001" })
+    })));
+
+    expect(screen.getAllByRole("button", { name: "Einzelstück" })[0]).toHaveTextContent("RK-83101-001");
+    await user.click(screen.getByRole("button", { name: "Reservierung anlegen" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Reservierung bestätigen" }))
+      .getByRole("button", { name: "Bestätigen" }));
+    await waitFor(() => expect(reserve).toHaveBeenCalledWith(expect.objectContaining({
+      productId: "article-83101", assetId: "asset-1", layoutId: layout.id, quantity: 1
+    })));
+
+    expect(screen.getByRole("tab", { name: "Verwendung & Historie" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Reservierung" }));
+    await user.click(screen.getByRole("option", { name: "Testanlage" }));
+    await user.click(screen.getByRole("button", { name: "Einbau erfassen" }));
+    await user.click(within(screen.getByRole("dialog", { name: "Einbau bestätigen" }))
+      .getByRole("button", { name: "Bestätigen" }));
+    await screen.findByRole("button", { name: "Ausbauen" });
+    await user.click(screen.getByRole("button", { name: "Ausbauen" }));
+    await user.click(screen.getAllByRole("button", { name: "Ausbauen" }).at(-1)!);
+    await user.click(within(screen.getByRole("dialog", { name: "Ausbau bestätigen" }))
+      .getByRole("button", { name: "Bestätigen" }));
+    await user.click(screen.getByRole("tab", { name: "Verwendung & Historie" }));
+    expect(await screen.findByText("Ausbau")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Verwendung & Historie" })).toBeInTheDocument();
+  }, 15_000);
 });

@@ -208,8 +208,11 @@ function numericIssue(
   if (definition.step === undefined) return undefined;
   const quotient = (value - (definition.min ?? 0)) / definition.step;
   const expected = (definition.min ?? 0) + Math.round(quotient) * definition.step;
-  const tolerance = Number.EPSILON * Math.max(1, Math.abs(value), Math.abs(expected),
+  const floatingNoise = Number.EPSILON * Math.max(1, Math.abs(value), Math.abs(expected),
     Math.abs(definition.step)) * 8;
+  const halfStep = Math.abs(definition.step) / 2;
+  const strictHalfStep = halfStep * (1 - Number.EPSILON * 8);
+  const tolerance = Math.min(floatingNoise, strictHalfStep);
   return Math.abs(value - expected) <= tolerance ? undefined : "invalidStep";
 }
 
@@ -237,10 +240,17 @@ export function subjectValidationIssues(
   const definitions = new Map(fieldDefinitionsForType(articleType, customFields)
     .map((definition) => [definition.key, definition]));
   const issues: Record<string, ArticleSubjectValidationIssue> = {};
+  const availableHistoricalAttributes = [...historicalAttributes];
+  const matchedHistoricalAttributes: AccessoryAttributeValue[] = [];
   for (const attribute of attributes) {
     const definition = definitions.get(attribute.key);
-    const historicalAttribute = historicalAttributes.find((candidate) => attributeValuesEqual(candidate, attribute));
-    if (!definition && articleType === "other" && historicalAttribute) continue;
+    const historicalIndex = availableHistoricalAttributes.findIndex((candidate) =>
+      attributeValuesEqual(candidate, attribute));
+    if (!definition && articleType === "other" && historicalIndex >= 0) {
+      availableHistoricalAttributes.splice(historicalIndex, 1);
+      matchedHistoricalAttributes.push(attribute);
+      continue;
+    }
     if (!definition || definition.kind !== attribute.kind) {
       issues[attribute.key] = "invalidValue";
       continue;
@@ -259,7 +269,7 @@ export function subjectValidationIssues(
   for (const [key, draft] of Object.entries(numberDrafts)) {
     if (draft.trim() === "") continue;
     const definition = definitions.get(key);
-    const historicalNumber = historicalAttributes.find((attribute) =>
+    const historicalNumber = matchedHistoricalAttributes.find((attribute) =>
       attribute.key === key && attribute.kind === "number");
     if (!definition && articleType === "other" && historicalNumber?.kind === "number" &&
         Number(draft.replace(",", ".")) === historicalNumber.numberValue &&

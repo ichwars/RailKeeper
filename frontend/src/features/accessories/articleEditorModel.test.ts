@@ -92,4 +92,16 @@ describe("articleEditorModel", () => {
       ...form, attributes: [{ ...historical, textValue: "Manipuliert" }]
     }, [], [historical])).toThrow("invalid subject values");
   });
+
+  it("consumes each historical inactive attribute match only once", () => {
+    const historical = { key: "legacyMaterial", kind: "text" as const, textValue: "Holz" };
+    const duplicated = {
+      ...emptyArticleEditorForm(), articleType: "other" as const,
+      attributes: [historical, { ...historical }]
+    };
+
+    expect(validateArticleEditorForm(duplicated, undefined, [], [historical]).fieldErrors.attributes)
+      .toBeDefined();
+    expect(() => articleEditorWriteInput(duplicated, [], [historical])).toThrow("invalid subject values");
+  });
 });

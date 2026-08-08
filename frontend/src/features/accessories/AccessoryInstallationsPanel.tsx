@@ -76,7 +76,8 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
   const effectiveAssetID = selectedReservation?.assetId ||
     (sourceAssets.some((asset) => asset.id === assetID) ? assetID : sourceAssets[0]?.id || "");
   const effectiveQuantity = selectedReservation?.quantity || Number(quantity);
-  const isIndividual = article.inventoryStrategy === "individual";
+  const isIndividual = article.inventoryStrategy === "individual" || Boolean(selectedReservation?.assetId) ||
+    (article.inventoryStrategy === "quantity_later_individual" && sourceAssets.length > 0);
   const canSubmit = Boolean(targetInput && effectiveLocationID && (!isIndividual || effectiveAssetID));
   const effectiveRemovalLocationID = activeLocations.some((location) => location.id === removalLocationID)
     ? removalLocationID : activeLocations[0]?.id || "";

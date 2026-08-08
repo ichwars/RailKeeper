@@ -136,6 +136,39 @@ func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIArticlePathInventoryMatchesRegisteredRoutes(t *testing.T) {
+	operations := readOpenAPIOperations(t)
+	registered := map[string]map[string]bool{}
+	for _, route := range apiRouteSpecs() {
+		path := strings.TrimPrefix(route.Path, "/api/v1")
+		if !strings.HasPrefix(path, "/accessory-") {
+			continue
+		}
+		if registered[path] == nil {
+			registered[path] = map[string]bool{}
+		}
+		registered[path][route.Method] = true
+	}
+
+	for path, methods := range registered {
+		for method := range methods {
+			if !operations[path][method] {
+				t.Errorf("registered article route is undocumented: %s %s", method, path)
+			}
+		}
+	}
+	for path, methods := range operations {
+		if !strings.HasPrefix(path, "/accessory-") {
+			continue
+		}
+		for method := range methods {
+			if !registered[path][method] {
+				t.Errorf("documented article route is unregistered: %s %s", method, path)
+			}
+		}
+	}
+}
+
 func TestOpenAPIArticleSchemasMatchRuntimeSemantics(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

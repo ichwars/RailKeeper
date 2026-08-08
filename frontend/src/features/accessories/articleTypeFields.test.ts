@@ -97,6 +97,13 @@ describe("articleTypeFields", () => {
     expect(subjectValuesAreValid("track", [], { connectionCount: "1000000000.5" })).toBe(false);
   });
 
+  it("keeps numeric step tolerance strictly below half a step for extreme finite values", () => {
+    const extremeHalfStep = String(1e20 + 4 * 16384);
+    expect(subjectValuesAreValid("other", [], { calibrated: extremeHalfStep }, [
+      { key: "calibrated", kind: "number", label: "Kalibriert", step: 131072 }
+    ])).toBe(false);
+  });
+
   it("validates controlled custom option membership", () => {
     const definitions = customFieldDefinitions([customEntry({
       key: "color",
