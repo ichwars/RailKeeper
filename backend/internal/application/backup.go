@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -19,7 +20,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 2
+	backupVersion = 3
 )
 
 var (
@@ -78,10 +79,11 @@ var backupTableOrder = []string{
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
+	"file_blobs",
+	"storage_locations",
 	"vehicles",
 	"inventory_number_history",
 	"vehicle_external_mappings",
-	"file_blobs",
 	"vehicle_images",
 	"vehicle_attachments",
 	"vehicle_maintenance",
@@ -90,13 +92,12 @@ var backupTableOrder = []string{
 	"vehicle_cv_files",
 	"vehicle_cv_values",
 	"vehicle_cv_value_history",
-	"storage_locations",
 	"accessory_products",
-	"accessory_stock",
-	"accessory_assets",
 	"accessory_product_attributes",
-	"accessory_stock_movements",
 	"accessory_purchases",
+	"accessory_stock",
+	"accessory_stock_movements",
+	"accessory_assets",
 	"accessory_documents",
 	"layouts",
 	"layout_units",
@@ -111,32 +112,41 @@ var backupTableOrder = []string{
 	"exhibition_entries",
 }
 
-var legacyOptionalBackupTables = map[string]struct{}{
-	"exhibition_lists":                         {},
-	"exhibition_entries":                       {},
-	"file_blobs":                               {},
-	"vehicle_external_mappings":                {},
-	"vehicle_spare_parts":                      {},
-	"accessory_product_attributes":             {},
-	"accessory_stock_movements":                {},
-	"accessory_purchases":                      {},
-	"accessory_documents":                      {},
-	"accessory_installation_condition_history": {},
-}
-
-var stageOneBackupTables = map[string]struct{}{
-	"storage_locations":          {},
-	"accessory_products":         {},
-	"accessory_stock":            {},
-	"accessory_assets":           {},
-	"layouts":                    {},
-	"layout_units":               {},
-	"plan_variants":              {},
-	"plan_revisions":             {},
-	"layout_configurations":      {},
-	"layout_configuration_units": {},
-	"accessory_reservations":     {},
-	"accessory_installations":    {},
+var backupTableIntroducedVersion = map[string]int{
+	"master_data_entries":                      1,
+	"master_data_relations":                    1,
+	"inventory_number_schemes":                 1,
+	"file_blobs":                               1,
+	"storage_locations":                        2,
+	"vehicles":                                 1,
+	"inventory_number_history":                 1,
+	"vehicle_external_mappings":                1,
+	"vehicle_images":                           1,
+	"vehicle_attachments":                      1,
+	"vehicle_maintenance":                      1,
+	"vehicle_spare_parts":                      1,
+	"vehicle_functions":                        1,
+	"vehicle_cv_files":                         1,
+	"vehicle_cv_values":                        1,
+	"vehicle_cv_value_history":                 1,
+	"accessory_products":                       2,
+	"accessory_product_attributes":             3,
+	"accessory_purchases":                      3,
+	"accessory_stock":                          2,
+	"accessory_stock_movements":                3,
+	"accessory_assets":                         2,
+	"accessory_documents":                      3,
+	"layouts":                                  2,
+	"layout_units":                             2,
+	"plan_variants":                            2,
+	"plan_revisions":                           2,
+	"layout_configurations":                    2,
+	"layout_configuration_units":               2,
+	"accessory_reservations":                   2,
+	"accessory_installations":                  2,
+	"accessory_installation_condition_history": 3,
+	"exhibition_lists":                         1,
+	"exhibition_entries":                       1,
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {
@@ -327,6 +337,17 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		if len(item.UnknownColumns) > 0 {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
 		}
+		if table == "accessory_product_attributes" {
+			for index, row := range rows {
+				if err := validateBackupAccessoryProductAttribute(row); err != nil {
+					result.Errors = append(result.Errors, fmt.Sprintf(
+						"Tabelle accessory_product_attributes enthält in Zeile %d ungültige Attributdaten: %v",
+						index+1,
+						err,
+					))
+				}
+			}
+		}
 		result.Tables = append(result.Tables, item)
 	}
 	for table := range doc.Tables {
@@ -339,11 +360,137 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 }
 
 func backupTableOptional(version int, table string) bool {
-	if _, optional := legacyOptionalBackupTables[table]; optional {
+	introducedVersion, known := backupTableIntroducedVersion[table]
+	return known && version < introducedVersion
+}
+
+func validateBackupAccessoryProductAttribute(row map[string]any) error {
+	if _, valid := backupNonEmptyString(row["product_id"]); !valid {
+		return errors.New("product_id fehlt oder ist ungültig")
+	}
+	if _, valid := backupNonEmptyString(row["attribute_key"]); !valid {
+		return errors.New("attribute_key fehlt oder ist ungültig")
+	}
+	valueType, valueTypeValid := backupNonEmptyString(row["value_type"])
+	valueColumnByType := map[string]string{
+		"text":          "text_value",
+		"number":        "number_value",
+		"boolean":       "boolean_value",
+		"date":          "date_value",
+		"single_select": "single_select_value",
+		"multi_select":  "multi_select_value",
+	}
+	matchingColumn, supported := valueColumnByType[valueType]
+	if !valueTypeValid || !supported {
+		return fmt.Errorf("value_type %q wird nicht unterstützt", valueType)
+	}
+	valueColumns := []string{
+		"text_value", "number_value", "boolean_value", "date_value", "single_select_value", "multi_select_value",
+	}
+	for _, column := range valueColumns {
+		if column == matchingColumn {
+			if row[column] == nil {
+				return fmt.Errorf("%s muss gesetzt sein", column)
+			}
+			continue
+		}
+		if row[column] != nil {
+			return fmt.Errorf("%s darf für value_type %q nicht gesetzt sein", column, valueType)
+		}
+	}
+	if row["unit"] != nil {
+		if valueType != "number" {
+			return fmt.Errorf("unit ist nur für value_type number erlaubt")
+		}
+		if _, ok := row["unit"].(string); !ok {
+			return errors.New("unit muss eine Zeichenfolge sein")
+		}
+	}
+
+	value := row[matchingColumn]
+	switch valueType {
+	case "text", "date", "single_select":
+		if _, ok := value.(string); !ok {
+			return fmt.Errorf("%s muss eine Zeichenfolge sein", matchingColumn)
+		}
+	case "number":
+		if !validBackupNumber(value) {
+			return errors.New("number_value muss eine endliche Zahl sein")
+		}
+	case "boolean":
+		if !validBackupBoolean(value) {
+			return errors.New("boolean_value muss true, false, 0 oder 1 sein")
+		}
+	case "multi_select":
+		encoded, ok := value.(string)
+		if !ok {
+			return errors.New("multi_select_value muss ein JSON-String sein")
+		}
+		var options []string
+		if err := json.Unmarshal([]byte(encoded), &options); err != nil || len(options) == 0 {
+			return errors.New("multi_select_value muss ein nicht-leeres JSON-Array aus Zeichenfolgen sein")
+		}
+	}
+	return nil
+}
+
+func backupNonEmptyString(value any) (string, bool) {
+	text, ok := value.(string)
+	text = strings.TrimSpace(text)
+	return text, ok && text != ""
+}
+
+func validBackupNumber(value any) bool {
+	switch typed := value.(type) {
+	case json.Number:
+		number, err := typed.Float64()
+		return err == nil && !math.IsNaN(number) && !math.IsInf(number, 0)
+	case float64:
+		return !math.IsNaN(typed) && !math.IsInf(typed, 0)
+	case float32:
+		return !math.IsNaN(float64(typed)) && !math.IsInf(float64(typed), 0)
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return true
+	default:
+		return false
+	}
+}
+
+func validBackupBoolean(value any) bool {
+	if _, ok := value.(bool); ok {
 		return true
 	}
-	_, stageOneTable := stageOneBackupTables[table]
-	return version == 1 && stageOneTable
+	switch typed := value.(type) {
+	case json.Number:
+		integer, err := typed.Int64()
+		return err == nil && (integer == 0 || integer == 1)
+	case int:
+		return typed == 0 || typed == 1
+	case int8:
+		return typed == 0 || typed == 1
+	case int16:
+		return typed == 0 || typed == 1
+	case int32:
+		return typed == 0 || typed == 1
+	case int64:
+		return typed == 0 || typed == 1
+	case uint:
+		return typed == 0 || typed == 1
+	case uint8:
+		return typed == 0 || typed == 1
+	case uint16:
+		return typed == 0 || typed == 1
+	case uint32:
+		return typed == 0 || typed == 1
+	case uint64:
+		return typed == 0 || typed == 1
+	case float32:
+		return typed == 0 || typed == 1
+	case float64:
+		return typed == 0 || typed == 1
+	default:
+		return false
+	}
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {
