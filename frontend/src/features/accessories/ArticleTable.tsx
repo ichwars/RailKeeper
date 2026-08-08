@@ -1,0 +1,177 @@
+import { useEffect, useState } from "react";
+import { ChevronDown, ChevronUp, Eye, MoreHorizontal, Pencil } from "lucide-react";
+
+import type {
+  AccessoryArticleListItem,
+  AccessoryArticleSort,
+  AccessorySortDirection
+} from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
+
+type ArticleTableProps = {
+  items: AccessoryArticleListItem[];
+  sort: AccessoryArticleSort;
+  direction: AccessorySortDirection;
+  canEdit: boolean;
+  onSort: (sort: AccessoryArticleSort) => void;
+  onView: (article: AccessoryArticleListItem) => void;
+  onEdit: (article: AccessoryArticleListItem) => void;
+  onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
+  onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
+};
+
+const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
+  { sort: "article", key: "article" },
+  { sort: "type", key: "type" },
+  { sort: "gauge", key: "gauge" },
+  { sort: "stock", key: "stock" },
+  { sort: "storage", key: "storage" }
+];
+
+export function ArticleTable({
+  items,
+  sort,
+  direction,
+  canEdit,
+  onSort,
+  onView,
+  onEdit,
+  onArchive,
+  onRestore
+}: ArticleTableProps) {
+  const [openMenuID, setOpenMenuID] = useState("");
+  const { t } = useI18n();
+
+  useEffect(() => {
+    if (!openMenuID) return;
+    const closeMenu = (event: PointerEvent) => {
+      if (event.target instanceof Element && event.target.closest(".article-overflow")) return;
+      setOpenMenuID("");
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenMenuID("");
+    };
+    document.addEventListener("pointerdown", closeMenu);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeMenu);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openMenuID]);
+
+  const renderSortHeader = ({ sort: columnSort, key }: { sort: AccessoryArticleSort; key: string }) => {
+    const active = sort === columnSort;
+    const label = t(`accessories.table.${key}`);
+    return (
+      <th key={columnSort} aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
+        <button
+          type="button"
+          className={active ? "article-sort-button active" : "article-sort-button"}
+          onClick={() => onSort(columnSort)}
+          aria-label={t("accessories.table.sortBy", { column: label })}
+        >
+          <span>{label}</span>
+          {active ? direction === "asc"
+            ? <ChevronUp size={14} aria-hidden="true" />
+            : <ChevronDown size={14} aria-hidden="true" />
+            : null}
+        </button>
+      </th>
+    );
+  };
+
+  return (
+    <div className="table-wrap article-table-wrap">
+      <table className="article-table">
+        <thead>
+          <tr>
+            {sortableColumns.map(renderSortHeader)}
+            <th className="actions-cell">{t("accessories.table.actions")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((article) => {
+            const storageTitle = article.locationNames.join(", ");
+            const primaryLocation = article.locationNames[0] || t("common.none");
+            const viewLabel = t("accessories.actions.viewNamed", { name: article.name });
+            const editLabel = t("accessories.actions.editNamed", { name: article.name });
+            const moreLabel = t("accessories.actions.moreNamed", { name: article.name });
+            return (
+              <tr key={article.id} className={article.archived ? "archived" : ""}>
+                <td className="article-main-cell">
+                  <button type="button" className="article-name-button" onClick={() => onView(article)}>
+                    <strong className="article-truncate" title={article.name}>{article.name}</strong>
+                    <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
+                    <small>{article.articleNumber || t("common.none")}</small>
+                  </button>
+                </td>
+                <td>
+                  <strong>{t(`accessories.articleType.${article.articleType}`)}</strong>
+                  <small>{article.subtype || t("common.none")}</small>
+                </td>
+                <td>{article.gauges.length ? article.gauges.join(", ") : t("common.none")}</td>
+                <td className="article-stock-cell">
+                  <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
+                  <small>{t("accessories.table.stockBreakdown", {
+                    available: article.available,
+                    reserved: article.reserved,
+                    installed: article.installed
+                  })}</small>
+                </td>
+                <td className="article-storage-cell">
+                  <span className="article-truncate" title={storageTitle || primaryLocation}>{primaryLocation}</span>
+                  {article.locationNames.length > 1 ? (
+                    <small>{t("accessories.table.moreLocations", { count: article.locationNames.length - 1 })}</small>
+                  ) : null}
+                </td>
+                <td className="actions-cell">
+                  <div className="table-actions article-row-actions">
+                    <button type="button" className="icon-button article-action-button" onClick={() => onView(article)}
+                      aria-label={viewLabel} title={t("accessories.actions.view")}>
+                      <Eye size={16} aria-hidden="true" />
+                    </button>
+                    {canEdit ? (
+                      <>
+                        <button type="button" className="icon-button article-action-button" onClick={() => onEdit(article)}
+                          aria-label={editLabel} title={t("accessories.actions.edit")}>
+                          <Pencil size={16} aria-hidden="true" />
+                        </button>
+                        <div className="article-overflow">
+                          <button
+                            type="button"
+                            className="icon-button article-action-button"
+                            onClick={() => setOpenMenuID((current) => current === article.id ? "" : article.id)}
+                            aria-label={moreLabel}
+                            title={t("accessories.actions.more")}
+                            aria-haspopup="menu"
+                            aria-expanded={openMenuID === article.id}
+                          >
+                            <MoreHorizontal size={17} aria-hidden="true" />
+                          </button>
+                          {openMenuID === article.id ? (
+                            <div className="article-action-menu" role="menu">
+                              <button
+                                type="button"
+                                role="menuitem"
+                                onClick={() => {
+                                  setOpenMenuID("");
+                                  void (article.archived ? onRestore(article) : onArchive(article));
+                                }}
+                              >
+                                {t(article.archived ? "accessories.actions.restore" : "accessories.actions.archive")}
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </>
+                    ) : null}
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}

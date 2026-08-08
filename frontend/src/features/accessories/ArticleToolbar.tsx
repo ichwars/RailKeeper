@@ -1,0 +1,137 @@
+import { Search, X } from "lucide-react";
+
+import type { AccessoryArticleFilterOptions, AccessoryArticleType } from "../../shared/api";
+import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
+import type { ArticleOverviewFilters } from "./useArticleOverview";
+
+const articleTypes: readonly AccessoryArticleType[] = [
+  "track",
+  "signal",
+  "decoder",
+  "electrical_control",
+  "building_equipment",
+  "landscape_consumable",
+  "lighting",
+  "other"
+];
+
+const statusOptions = [
+  "available",
+  "allocated",
+  "reserved",
+  "installed",
+  "maintenance_due",
+  "defective",
+  "archived"
+] as const;
+
+function articleTypeFromControl(value: string): ArticleOverviewFilters["articleType"] {
+  return articleTypes.find((type) => type === value) || "";
+}
+
+function statusFromControl(value: string): ArticleOverviewFilters["status"] {
+  return statusOptions.find((status) => status === value) || "";
+}
+
+export function ArticleToolbar({
+  filters,
+  options,
+  resultCount,
+  hasActiveFilters,
+  onFilterChange,
+  onReset
+}: {
+  filters: ArticleOverviewFilters;
+  options: AccessoryArticleFilterOptions;
+  resultCount: number;
+  hasActiveFilters: boolean;
+  onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
+  onReset: () => void;
+}) {
+  const { t } = useI18n();
+  const availableTypes = articleTypes.filter((type) => options.articleTypes.includes(type));
+
+  return (
+    <div className="article-toolbar" aria-label={t("accessories.toolbar.label")}>
+      <label className="search-field article-search-field">
+        <span>
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            value={filters.query}
+            onChange={(event) => onFilterChange("query", event.target.value)}
+            placeholder={t("accessories.toolbar.searchPlaceholder")}
+            aria-label={t("accessories.toolbar.search")}
+          />
+        </span>
+      </label>
+      <div className="article-filter-row">
+        <AppSelect
+          className="article-filter-select"
+          value={filters.articleType}
+          onChange={(event) => onFilterChange("articleType", articleTypeFromControl(event.target.value))}
+          aria-label={t("accessories.toolbar.articleType")}
+        >
+          <option value="">{t("accessories.toolbar.allArticleTypes")}</option>
+          {availableTypes.map((type) => (
+            <option key={type} value={type}>{t(`accessories.articleType.${type}`)}</option>
+          ))}
+        </AppSelect>
+        <AppSelect
+          className="article-filter-select"
+          value={filters.manufacturer}
+          onChange={(event) => onFilterChange("manufacturer", event.target.value)}
+          aria-label={t("accessories.toolbar.manufacturer")}
+        >
+          <option value="">{t("accessories.toolbar.allManufacturers")}</option>
+          {options.manufacturers.map((manufacturer) => (
+            <option key={manufacturer} value={manufacturer}>{manufacturer}</option>
+          ))}
+        </AppSelect>
+        <AppSelect
+          className="article-filter-select"
+          value={filters.gauge}
+          onChange={(event) => onFilterChange("gauge", event.target.value)}
+          aria-label={t("accessories.toolbar.gauge")}
+        >
+          <option value="">{t("accessories.toolbar.allGauges")}</option>
+          {options.gauges.map((gauge) => <option key={gauge} value={gauge}>{gauge}</option>)}
+        </AppSelect>
+        <AppSelect
+          className="article-filter-select"
+          value={filters.status}
+          onChange={(event) => onFilterChange("status", statusFromControl(event.target.value))}
+          aria-label={t("accessories.toolbar.status")}
+        >
+          <option value="">{t("accessories.toolbar.allStatuses")}</option>
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>{t(`accessories.status.${status}`)}</option>
+          ))}
+        </AppSelect>
+        <AppSelect
+          className="article-filter-select article-location-filter"
+          value={filters.locationId}
+          onChange={(event) => onFilterChange("locationId", event.target.value)}
+          aria-label={t("accessories.toolbar.location")}
+        >
+          <option value="">{t("accessories.toolbar.allLocations")}</option>
+          {options.storageLocations.map((location) => (
+            <option key={location.id} value={location.id}>{location.name}</option>
+          ))}
+        </AppSelect>
+        {hasActiveFilters ? (
+          <button type="button" className="inventory-filter-clear" onClick={onReset}>
+            <X size={14} aria-hidden="true" />
+            {t("accessories.toolbar.reset")}
+          </button>
+        ) : null}
+        <span className="article-result-count" aria-live="polite">
+          {t(resultCount === 1 ? "accessories.toolbar.resultOne" : "accessories.toolbar.resultMany", {
+            count: resultCount
+          })}
+        </span>
+      </div>
+    </div>
+  );
+}
