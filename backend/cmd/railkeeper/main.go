@@ -124,6 +124,7 @@ func main() {
 		os.Exit(1)
 	}
 	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	trackPlannerService := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
 	accessoryRepository := infrastructure.NewAccessoryRepository(db)
 	accessoryService := application.NewAccessoryService(accessoryRepository)
 	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
@@ -149,6 +150,7 @@ func main() {
 		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
 		LayoutService:               layoutService,
+		TrackPlannerService:         trackPlannerService,
 		AccessoryService:            accessoryService,
 		AccessoryAllocationService:  accessoryAllocationService,
 		AccessoryDocumentService:    accessoryDocumentService,

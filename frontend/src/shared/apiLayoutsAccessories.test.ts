@@ -78,6 +78,16 @@ describe("layout and accessory API client", () => {
     await api.createPlanRevision("variant/1", { baseRevisionId: "revision/1" });
     await api.submitPlanRevision("revision/1", 4);
     await api.publishPlanRevision("revision/1", 5);
+    const trackObjectInput = {
+      geometryId: "geometry/1", positionXMm: 100, positionYMm: 50, rotationDegrees: 15
+    };
+    await api.trackGeometries("TT");
+    await api.trackPlan("revision/1");
+    await api.createPlanTrackObject("revision/1", trackObjectInput);
+    await api.updatePlanTrackObject("object/1", {
+      positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2
+    });
+    await api.deletePlanTrackObject("object/1", 3);
 
     expectRequests([
       ["GET", "/api/v1/layouts"],
@@ -100,7 +110,13 @@ describe("layout and accessory API client", () => {
       ["POST", "/api/v1/layout-units/unit%2F1/plan-variants", { name: "Sommer", description: "Variante" }],
       ["POST", "/api/v1/plan-variants/variant%2F1/revisions", { baseRevisionId: "revision/1" }],
       ["POST", "/api/v1/plan-revisions/revision%2F1/submit", { expectedVersion: 4 }],
-      ["POST", "/api/v1/plan-revisions/revision%2F1/publish", { expectedVersion: 5 }]
+      ["POST", "/api/v1/plan-revisions/revision%2F1/publish", { expectedVersion: 5 }],
+      ["GET", "/api/v1/track-geometries?gauge=TT"],
+      ["GET", "/api/v1/plan-revisions/revision%2F1/track-plan"],
+      ["POST", "/api/v1/plan-revisions/revision%2F1/track-objects", trackObjectInput],
+      ["PUT", "/api/v1/plan-track-objects/object%2F1",
+        { positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2 }],
+      ["DELETE", "/api/v1/plan-track-objects/object%2F1?expectedVersion=3"]
     ]);
   });
 

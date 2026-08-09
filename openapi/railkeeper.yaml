@@ -2573,6 +2573,159 @@ components:
         expectedVersion:
           type: integer
           minimum: 1
+    TrackPoint:
+      type: object
+      required: [xMm, yMm]
+      properties:
+        xMm:
+          type: number
+          format: double
+        yMm:
+          type: number
+          format: double
+    TrackPort:
+      type: object
+      required: [id, xMm, yMm, directionDegrees]
+      properties:
+        id:
+          type: string
+        xMm:
+          type: number
+          format: double
+        yMm:
+          type: number
+          format: double
+        directionDegrees:
+          type: number
+          format: double
+    TrackRoute:
+      type: object
+      required: [id, points]
+      properties:
+        id:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPoint"
+    TrackGeometry:
+      type: object
+      required: [schemaVersion, ports, routes]
+      properties:
+        schemaVersion:
+          type: integer
+          minimum: 1
+        ports:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPort"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackRoute"
+    TrackGeometryDefinition:
+      type: object
+      required: [id, libraryId, articleNumber, name, kind, lengthMm, geometry, sourceUrl, status, createdAt]
+      properties:
+        id:
+          type: string
+        libraryId:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [straight, curve, turnout, crossing]
+        lengthMm:
+          type: number
+          format: double
+        geometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        sourceUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [draft, verified, retired]
+        createdAt:
+          type: string
+          format: date-time
+    PlanTrackObject:
+      type: object
+      required: [id, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        revisionId:
+          type: string
+        geometryId:
+          type: string
+        geometry:
+          $ref: "#/components/schemas/TrackGeometryDefinition"
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TrackPlan:
+      type: object
+      required: [revisionId, status, objects]
+      properties:
+        revisionId:
+          type: string
+        status:
+          type: string
+          enum: [draft, review, published, archived]
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanTrackObject"
+    CreatePlanTrackObjectInput:
+      type: object
+      required: [geometryId, positionXMm, positionYMm, rotationDegrees]
+      properties:
+        geometryId:
+          type: string
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+    UpdatePlanTrackObjectInput:
+      type: object
+      required: [positionXMm, positionYMm, rotationDegrees, expectedVersion]
+      properties:
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        expectedVersion:
+          type: integer
+          minimum: 1
     ExhibitionList:
       type: object
       required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
@@ -5298,6 +5451,173 @@ paths:
                 $ref: "#/components/schemas/PlanRevision"
         "409":
           description: Revision is immutable or has changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-geometries:
+    get:
+      tags: [Layouts]
+      summary: List verified track geometries for a gauge
+      parameters:
+        - name: gauge
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Verified track geometry list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackGeometryDefinition"
+        "400":
+          description: Gauge is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-plan:
+    get:
+      tags: [Layouts]
+      summary: Read the track plan of a revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revision-bound track plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlan"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-objects:
+    post:
+      tags: [Layouts]
+      summary: Add a verified track geometry to a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlanTrackObjectInput"
+      responses:
+        "201":
+          description: Track object created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanTrackObject"
+        "400":
+          description: Track object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan revision or track geometry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}:
+    put:
+      tags: [Layouts]
+      summary: Move or rotate a track object in a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlanTrackObjectInput"
+      responses:
+        "200":
+          description: Track object updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanTrackObject"
+        "400":
+          description: Track object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Layouts]
+      summary: Delete a track object from a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expectedVersion
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Track object deleted
+        "400":
+          description: Expected version is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
           content:
             application/json:
               schema:

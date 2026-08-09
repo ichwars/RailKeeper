@@ -235,6 +235,54 @@ export type PlanVariant = {
 export type PlanVariantInput = { name: string; description?: string };
 export type PlanRevisionInput = { baseRevisionId?: string };
 
+export type TrackGeometryKind = "straight" | "curve" | "turnout" | "crossing";
+export type TrackGeometryStatus = "draft" | "verified" | "retired";
+export type TrackPoint = { xMm: number; yMm: number };
+export type TrackPort = TrackPoint & { id: string; directionDegrees: number };
+export type TrackRoute = { id: string; points: TrackPoint[] };
+export type TrackGeometry = { schemaVersion: number; ports: TrackPort[]; routes: TrackRoute[] };
+export type TrackGeometryDefinition = {
+  id: string;
+  libraryId: string;
+  articleNumber: string;
+  name: string;
+  kind: TrackGeometryKind;
+  lengthMm: number;
+  geometry: TrackGeometry;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+  createdAt: string;
+};
+export type PlanTrackObject = {
+  id: string;
+  revisionId: string;
+  geometryId: string;
+  geometry: TrackGeometryDefinition;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+export type TrackPlan = {
+  revisionId: string;
+  status: PlanRevisionStatus;
+  objects: PlanTrackObject[];
+};
+export type CreatePlanTrackObjectInput = {
+  geometryId: string;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+};
+export type UpdatePlanTrackObjectInput = {
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  expectedVersion: number;
+};
+
 export type AccessoryTrackingMode = "quantity" | "individual";
 export type AccessoryInventoryStrategy = "quantity" | "individual" | "quantity_later_individual";
 export type AccessoryArticleType =
@@ -751,6 +799,21 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<PlanRevision>(`/plan-revisions/${encodeURIComponent(id)}/submit`, json("POST", { expectedVersion })),
     publishPlanRevision: (id: string, expectedVersion: number) =>
       request<PlanRevision>(`/plan-revisions/${encodeURIComponent(id)}/publish`, json("POST", { expectedVersion })),
+    trackGeometries: (gauge: string) =>
+      request<TrackGeometryDefinition[]>(`/track-geometries?gauge=${encodeURIComponent(gauge)}`),
+    trackPlan: (revisionId: string) =>
+      request<TrackPlan>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-plan`),
+    createPlanTrackObject: (revisionId: string, input: CreatePlanTrackObjectInput) =>
+      request<PlanTrackObject>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-objects`, json("POST", input)
+      ),
+    updatePlanTrackObject: (id: string, input: UpdatePlanTrackObjectInput) =>
+      request<PlanTrackObject>(`/plan-track-objects/${encodeURIComponent(id)}`, json("PUT", input)),
+    deletePlanTrackObject: (id: string, expectedVersion: number) =>
+      request<void>(
+        `/plan-track-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,
+        { method: "DELETE" }
+      ),
     accessoryArticles: (filters: AccessoryArticleListQuery = {}) =>
       request<AccessoryArticleListResult>(`/accessory-products${articleQuery(filters)}`),
     createAccessoryArticle: (input: AccessoryArticleWriteInput) =>

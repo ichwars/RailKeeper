@@ -28,6 +28,7 @@ type Config struct {
 	DatabaseMaintenance         *application.DatabaseMaintenanceService
 	ExhibitionService           *application.ExhibitionService
 	LayoutService               *application.LayoutService
+	TrackPlannerService         *application.TrackPlannerService
 	AccessoryService            *application.AccessoryService
 	AccessoryAllocationService  *application.AccessoryAllocationService
 	AccessoryDocumentService    *application.AccessoryDocumentService
@@ -61,6 +62,7 @@ type App struct {
 	databaseMaintenance         *application.DatabaseMaintenanceService
 	exhibitionService           *application.ExhibitionService
 	layoutService               *application.LayoutService
+	trackPlannerService         *application.TrackPlannerService
 	accessoryService            *application.AccessoryService
 	accessoryAllocationService  *application.AccessoryAllocationService
 	accessoryDocumentService    *application.AccessoryDocumentService
@@ -101,6 +103,7 @@ func NewRouter(config Config) http.Handler {
 		databaseMaintenance:         config.DatabaseMaintenance,
 		exhibitionService:           config.ExhibitionService,
 		layoutService:               config.LayoutService,
+		trackPlannerService:         config.TrackPlannerService,
 		accessoryService:            config.AccessoryService,
 		accessoryAllocationService:  config.AccessoryAllocationService,
 		accessoryDocumentService:    config.AccessoryDocumentService,
