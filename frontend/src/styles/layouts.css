@@ -227,6 +227,12 @@
 .layout-twin-head .panel-title { align-items: flex-start; }
 .layout-twin-head h3 { margin: 0; }
 .layout-twin-head p { margin: 3px 0 0; color: var(--muted); font-weight: normal; }
+.layout-twin-head-actions { display: flex; align-items: center; gap: 7px; }
+.layout-twin-head-actions .secondary-button { display: inline-flex; align-items: center; gap: 6px; }
+.layout-twin-head-actions .secondary-button.active {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
 
 .layout-twin-toolbar {
   display: grid;
@@ -282,6 +288,7 @@
   max-height: 520px;
   touch-action: manipulation;
 }
+.layout-twin-canvas.editing { touch-action: none; }
 
 .layout-twin-unit {
   fill: color-mix(in srgb, var(--panel) 82%, var(--accent) 18%);
@@ -316,6 +323,28 @@
 .layout-twin-marker:focus-visible circle,
 .layout-twin-marker.selected circle { stroke-width: 4; }
 .layout-twin-marker:focus-visible circle { filter: drop-shadow(0 0 3px var(--accent)); }
+.layout-twin-marker.outside circle { stroke: var(--danger); stroke-dasharray: 4 3; }
+
+.layout-twin-outline-handle {
+  fill: var(--panel);
+  stroke: var(--accent);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+.layout-twin-outline-handle:active { cursor: grabbing; fill: var(--accent-soft); }
+
+.layout-twin-edit-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  border-left: 3px solid var(--accent);
+  padding: 8px 10px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
 
 .layout-twin-stage-summary {
   display: flex;
@@ -373,6 +402,12 @@
 
 .layout-twin-inspector-body { display: grid; gap: 13px; padding: 12px; }
 .layout-twin-inspector-body > p { margin: 0; }
+.layout-twin-position-warning {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--danger);
+}
 .layout-twin-statuses { display: flex; flex-wrap: wrap; gap: 6px; }
 .layout-twin-statuses .status-maintenance_due { border-color: var(--warning); color: var(--warning); }
 .layout-twin-statuses .status-defective { border-color: var(--danger); color: var(--danger); }
@@ -546,6 +581,7 @@
   .layout-technology-toolbar > label { min-width: 0; }
   .layout-twin-body.inspector-open { grid-template-columns: minmax(0, 1fr); }
   .layout-twin-canvas { min-height: 260px; }
+  .layout-twin-head-actions { width: 100%; justify-content: flex-end; }
   .layout-twin-inspector {
     position: fixed;
     z-index: 110;

@@ -151,8 +151,40 @@ func (r *LayoutRepository) buildLayoutTwinUnit(
 	if err != nil {
 		return unit, warnings, err
 	}
+	for index := range positions {
+		positions[index].OutsideOutline = !layoutPointInsideOutline(
+			positions[index].LocalXMM, positions[index].LocalYMM, outline,
+		)
+	}
 	unit.Positions = positions
 	return unit, warnings, nil
+}
+
+func layoutPointInsideOutline(xMM float64, yMM float64, outline []application.LayoutTwinPoint) bool {
+	if len(outline) < 3 {
+		return true
+	}
+	inside := false
+	previous := len(outline) - 1
+	for index, point := range outline {
+		other := outline[previous]
+		crossProduct := (yMM-point.YMM)*(other.XMM-point.XMM) -
+			(xMM-point.XMM)*(other.YMM-point.YMM)
+		onSegment := math.Abs(crossProduct) < 1e-9 &&
+			xMM >= math.Min(point.XMM, other.XMM) && xMM <= math.Max(point.XMM, other.XMM) &&
+			yMM >= math.Min(point.YMM, other.YMM) && yMM <= math.Max(point.YMM, other.YMM)
+		if onSegment {
+			return true
+		}
+		if (point.YMM > yMM) != (other.YMM > yMM) {
+			intersectionX := (other.XMM-point.XMM)*(yMM-point.YMM)/(other.YMM-point.YMM) + point.XMM
+			if xMM < intersectionX {
+				inside = !inside
+			}
+		}
+		previous = index
+	}
+	return inside
 }
 
 func (r *LayoutRepository) layoutTwinOutline(

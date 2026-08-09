@@ -75,6 +75,7 @@ type LayoutTwinPosition struct {
 	ProductName          string                             `json:"productName,omitempty"`
 	Description          string                             `json:"description,omitempty"`
 	Version              int                                `json:"version"`
+	OutsideOutline       bool                               `json:"outsideOutline"`
 	Statuses             []LayoutTwinStatus                 `json:"statuses"`
 	Reservations         []LayoutTwinAllocation             `json:"reservations"`
 	Installations        []LayoutTwinAllocation             `json:"installations"`

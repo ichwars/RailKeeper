@@ -128,6 +128,7 @@ export type LayoutTwinPosition = {
   productName?: string;
   description?: string;
   version: number;
+  outsideOutline: boolean;
   statuses: LayoutTwinStatus[];
   reservations: LayoutTwinAllocation[];
   installations: LayoutTwinAllocation[];

@@ -28,6 +28,8 @@ func TestLayoutTwinTransformsConfigurationAndAggregatesLiveStatuses(t *testing.T
 			PositionXMM: 20, PositionYMM: 20, ProductID: fixture.quantityProduct.ID},
 		{Label: "Signal geplant", Kind: domain.LayoutPositionSignal,
 			PositionXMM: 30, PositionYMM: 20, ProductID: fixture.quantityProduct.ID},
+		{Label: "Signal außerhalb", Kind: domain.LayoutPositionSignal,
+			PositionXMM: 110, PositionYMM: 20, ProductID: fixture.quantityProduct.ID},
 	}
 	positions := make([]*application.LayoutTechnicalPosition, 0, len(positionInputs))
 	for _, input := range positionInputs {
@@ -70,11 +72,11 @@ func TestLayoutTwinTransformsConfigurationAndAggregatesLiveStatuses(t *testing.T
 		t.Fatalf("unexpected twin header: %#v", twin)
 	}
 	if !near(twin.Bounds.MinXMM, 50) || !near(twin.Bounds.MinYMM, 200) ||
-		!near(twin.Bounds.WidthMM, 50) || !near(twin.Bounds.HeightMM, 100) {
+		!near(twin.Bounds.WidthMM, 50) || !near(twin.Bounds.HeightMM, 110) {
 		t.Fatalf("unexpected transformed bounds: %#v", twin.Bounds)
 	}
 	got := twin.Units[0].Positions
-	if len(got) != 3 {
+	if len(got) != 4 {
 		t.Fatalf("unexpected positions: %#v", got)
 	}
 	byLabel := map[string]application.LayoutTwinPosition{}
@@ -95,6 +97,9 @@ func TestLayoutTwinTransformsConfigurationAndAggregatesLiveStatuses(t *testing.T
 	planned := byLabel["Signal geplant"]
 	if len(planned.Statuses) != 1 || planned.Statuses[0] != application.LayoutTwinPlanned {
 		t.Fatalf("unexpected planned position: %#v", planned)
+	}
+	if !byLabel["Signal außerhalb"].OutsideOutline {
+		t.Fatalf("outside position was not marked: %#v", byLabel["Signal außerhalb"])
 	}
 }
 

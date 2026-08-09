@@ -2273,7 +2273,8 @@ components:
       type: object
       required:
         [id, layoutUnitId, label, kind, localXMm, localYMm, localRotationDegrees,
-         globalXMm, globalYMm, rotationDegrees, version, statuses, reservations, installations]
+         globalXMm, globalYMm, rotationDegrees, version, outsideOutline,
+         statuses, reservations, installations]
       properties:
         id:
           type: string
@@ -2313,6 +2314,8 @@ components:
         version:
           type: integer
           minimum: 1
+        outsideOutline:
+          type: boolean
         statuses:
           type: array
           minItems: 1
