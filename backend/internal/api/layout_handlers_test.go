@@ -99,6 +99,44 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 			"name": "No CSRF port", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
 		}, false)
 	assertProblem(t, withoutPortCSRF, http.StatusForbidden, "csrf_required")
+	configuration, err := layouts.SaveConfiguration(t.Context(), layout.ID,
+		application.SaveLayoutConfigurationInput{Name: "Port analysis", Units: []application.ConfigurationUnitInput{
+			{UnitID: unit.ID},
+		}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layout-configurations/"+configuration.ID+"/port-analysis", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s configuration port analysis: got %d, want %d: %s",
+				role, response.Code, want, response.Body.String())
+		}
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/layout-configurations/"+configuration.ID+"/unit-snap-preview", map[string]any{
+				"unitId": unit.ID, "positionXMm": 0, "positionYMm": 0, "rotationDegrees": 0,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusOK
+		}
+		if response.Code != want {
+			t.Fatalf("%s configuration port preview: got %d, want %d: %s",
+				role, response.Code, want, response.Body.String())
+		}
+	}
+	withoutPreviewCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/layout-configurations/"+configuration.ID+"/unit-snap-preview", map[string]any{
+			"unitId": unit.ID,
+		}, false)
+	assertProblem(t, withoutPreviewCSRF, http.StatusForbidden, "csrf_required")
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 			"name": "Layout " + role, "kind": "private", "gauge": "TT", "scale": "1:120",

@@ -175,6 +175,28 @@ func (a *App) updateLayoutConfiguration(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, configuration)
 }
 
+func (a *App) analyzeLayoutConfigurationPorts(w http.ResponseWriter, r *http.Request) {
+	analysis, err := a.layoutService.AnalyzeConfigurationPorts(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.layoutError(w, err, "analyze layout configuration ports")
+		return
+	}
+	respondJSON(w, http.StatusOK, analysis)
+}
+
+func (a *App) previewLayoutConfigurationUnitSnap(w http.ResponseWriter, r *http.Request) {
+	var input application.PreviewConfigurationUnitSnapInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	preview, err := a.layoutService.PreviewConfigurationUnitSnap(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		a.layoutError(w, err, "preview layout configuration unit snap")
+		return
+	}
+	respondJSON(w, http.StatusOK, preview)
+}
+
 func decodeLayoutJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")

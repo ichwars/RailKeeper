@@ -161,6 +161,8 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/layouts/{id}/configurations", routeAccessViewer, (*App).listLayoutConfigurations, nil},
 		{http.MethodPost, "/api/v1/layouts/{id}/configurations", routeAccessPlanner, (*App).createLayoutConfiguration, nil},
 		{http.MethodPut, "/api/v1/layout-configurations/{id}", routeAccessPlanner, (*App).updateLayoutConfiguration, nil},
+		{http.MethodGet, "/api/v1/layout-configurations/{id}/port-analysis", routeAccessViewer, (*App).analyzeLayoutConfigurationPorts, nil},
+		{http.MethodPost, "/api/v1/layout-configurations/{id}/unit-snap-preview", routeAccessPlanner, (*App).previewLayoutConfigurationUnitSnap, nil},
 		{http.MethodGet, "/api/v1/layout-units/{id}/plan-variants", routeAccessViewer, (*App).listPlanVariants, nil},
 		{http.MethodPost, "/api/v1/layout-units/{id}/plan-variants", routeAccessPlanner, (*App).createPlanVariant, nil},
 		{http.MethodPost, "/api/v1/plan-variants/{id}/revisions", routeAccessPlanner, (*App).createPlanRevision, nil},

@@ -2196,6 +2196,100 @@ components:
             expectedVersion:
               type: integer
               minimum: 1
+    ModulePortConnection:
+      type: object
+      required: [unitAId, unitAName, portAId, portAName, unitBId, unitBName, portBId, portBName]
+      properties:
+        unitAId:
+          type: string
+        unitAName:
+          type: string
+        portAId:
+          type: string
+        portAName:
+          type: string
+        unitBId:
+          type: string
+        unitBName:
+          type: string
+        portBId:
+          type: string
+        portBName:
+          type: string
+    ModulePortIssue:
+      type: object
+      required: [code, unitIds, unitNames, portIds, portNames]
+      properties:
+        code:
+          type: string
+          enum: [open_port, incompatible_port]
+        unitIds:
+          type: array
+          items:
+            type: string
+        unitNames:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+        portNames:
+          type: array
+          items:
+            type: string
+    ModulePortAnalysis:
+      type: object
+      required: [connections, issues]
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModulePortConnection"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModulePortIssue"
+    ConfigurationUnitSnapPreviewInput:
+      type: object
+      required: [unitId, positionXMm, positionYMm, rotationDegrees]
+      properties:
+        unitId:
+          type: string
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+    ModulePortSnapResult:
+      type: object
+      required: [snapped, pose]
+      properties:
+        snapped:
+          type: boolean
+        pose:
+          type: object
+          required: [positionXMm, positionYMm, rotationDegrees]
+          properties:
+            positionXMm:
+              type: number
+            positionYMm:
+              type: number
+            rotationDegrees:
+              type: number
+              minimum: 0
+              exclusiveMaximum: 360
+        movingPortId:
+          type: string
+        targetUnitId:
+          type: string
+        targetPortId:
+          type: string
+        distanceMm:
+          type: number
+          minimum: 0
     LayoutTechnicalPosition:
       type: object
       required:
@@ -5771,6 +5865,64 @@ paths:
                 $ref: "#/components/schemas/LayoutConfiguration"
         "409":
           description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-configurations/{id}/port-analysis:
+    get:
+      tags: [Layouts]
+      summary: Analyze derived module-port connections in a layout configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived module-port connections and issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModulePortAnalysis"
+        "404":
+          description: Layout configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-configurations/{id}/unit-snap-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview alignment of one configuration unit to the nearest compatible module port
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigurationUnitSnapPreviewInput"
+      responses:
+        "200":
+          description: Non-persistent module-port snap preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModulePortSnapResult"
+        "400":
+          description: Invalid configuration unit pose
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout configuration not found
           content:
             application/json:
               schema:
