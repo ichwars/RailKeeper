@@ -500,7 +500,8 @@ Create `CHANGELOG.md` and `CHANGELOG.de.md` with matching `0.1.16` sections date
 
 ```text
 Added: article catalogue and inventory, generated inventory numbers, stock locations and transactions,
-       reservations/installations, documents/history, layout/module/setup/plan foundation, backup v2.
+       reservations/installations, documents/history, layout/module/setup/plan foundation, backup v3
+       with v1/v2 import compatibility.
 Changed: sortable selection-first article overview, quieter KPI hierarchy, master-data dropdowns,
          compact two-column article forms, consolidated settings data navigation, singular disabled
          Layout/Anlage navigation.
@@ -619,7 +620,7 @@ In the local browser:
 4. Verify the stock booking and transfer forms retain their compact layout.
 5. Open Einstellungen > Import/Export, create a backup, select it for restore validation, and run only
    validation. Do not confirm or execute destructive restore.
-6. Confirm the backup reports format version 2 and validates successfully.
+6. Confirm the backup reports format version 3 and validates successfully.
 ```
 
 Expected: no save, loading, layout, console, or validation regressions.
@@ -676,8 +677,8 @@ $rkPrBody = @'
 - prepare bilingual documentation and version 0.1.16
 
 ## Compatibility
-- backup exports use format version 2
-- backup format version 1 remains importable
+- backup exports use format version 3
+- backup format versions 1 and 2 remain importable
 - authentication data remains excluded from backups
 - existing layout APIs and direct /layouts access remain available
 

@@ -56,7 +56,8 @@ werden vollständig auf Deutsch und Englisch bereitgestellt.
 2. Konflikte eng am bestehenden Verhalten auflösen und fremde Änderungen vollständig erhalten.
 3. Navigation, Version und Dokumentation implementieren und lokal vollständig prüfen.
 4. Den Branch pushen und einen PR gegen `main` erstellen. Der PR beschreibt Stage 1, die
-   Navigationsdeaktivierung, Migrationen, Backup-Version 2 und den geplanten Release.
+   Navigationsdeaktivierung, Migrationen, Backup-Version 3, die Importkompatibilität mit Version 1
+   und 2 sowie den geplanten Release.
 5. Alle verpflichtenden GitHub-Prüfungen abwarten. Fehler werden auf dem Branch behoben und erneut
    geprüft.
 6. Den geprüften PR nach `main` mergen.
