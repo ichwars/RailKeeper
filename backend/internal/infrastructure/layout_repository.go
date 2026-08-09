@@ -123,6 +123,124 @@ func (r *LayoutRepository) ListUnits(ctx context.Context, layoutID string) ([]ap
 	return units, nil
 }
 
+func (r *LayoutRepository) GetUnit(ctx context.Context, id string) (*application.LayoutUnit, error) {
+	unit, err := scanLayoutUnit(r.db.QueryRowContext(ctx, layoutUnitSelect+` WHERE id=?`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, application.ErrLayoutNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get layout unit: %w", err)
+	}
+	return unit, nil
+}
+
+func (r *LayoutRepository) GetUnitForPort(ctx context.Context, id string) (*application.LayoutUnit, error) {
+	unit, err := scanLayoutUnit(r.db.QueryRowContext(ctx, layoutUnitSelect+`
+ WHERE id=(SELECT layout_unit_id FROM layout_unit_ports WHERE id=?)`, id))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, application.ErrLayoutNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get layout unit for port: %w", err)
+	}
+	return unit, nil
+}
+
+func (r *LayoutRepository) ListUnitPorts(
+	ctx context.Context,
+	unitID string,
+) ([]application.LayoutUnitPort, error) {
+	rows, err := r.db.QueryContext(ctx, layoutUnitPortSelect+`
+ WHERE layout_unit_id=? ORDER BY archived, name COLLATE NOCASE, id`, unitID)
+	if err != nil {
+		return nil, fmt.Errorf("list layout unit ports: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	ports := []application.LayoutUnitPort{}
+	for rows.Next() {
+		port, err := scanLayoutUnitPort(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan layout unit port: %w", err)
+		}
+		ports = append(ports, *port)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate layout unit ports: %w", err)
+	}
+	return ports, nil
+}
+
+func (r *LayoutRepository) CreateUnitPort(
+	ctx context.Context,
+	unitID string,
+	input application.CreateLayoutUnitPortInput,
+	actor string,
+) (*application.LayoutUnitPort, error) {
+	now := timestamp()
+	port := &application.LayoutUnitPort{
+		ID: randomID(), LayoutUnitID: unitID, Name: input.Name, Kind: input.Kind,
+		InterfaceKey: input.InterfaceKey, XMM: input.XMM, YMM: input.YMM,
+		DirectionDegrees: input.DirectionDegrees, Notes: input.Notes, Version: 1,
+		Archived: input.Archived, CreatedAt: now, UpdatedAt: now,
+	}
+	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		exists, err := recordExists(ctx, tx, "layout_units", unitID)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return application.ErrLayoutNotFound
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO layout_unit_ports(
+  id, layout_unit_id, name, kind, interface_key, x_mm, y_mm, direction_degrees, notes,
+  version, archived, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, port.ID, port.LayoutUnitID, port.Name,
+			port.Kind, port.InterfaceKey, port.XMM, port.YMM, port.DirectionDegrees, port.Notes,
+			boolToInt(port.Archived), now, now); err != nil {
+			return fmt.Errorf("insert layout unit port: %w", err)
+		}
+		return writeLayoutAudit(ctx, tx, "LayoutUnitPortCreated", "layout_unit_port", port.ID, actor, now)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return port, nil
+}
+
+func (r *LayoutRepository) UpdateUnitPort(
+	ctx context.Context,
+	id string,
+	input application.UpdateLayoutUnitPortInput,
+	actor string,
+) (*application.LayoutUnitPort, error) {
+	now := timestamp()
+	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+UPDATE layout_unit_ports
+SET name=?, kind=?, interface_key=?, x_mm=?, y_mm=?, direction_degrees=?, notes=?, archived=?,
+    version=version+1, updated_at=?
+WHERE id=? AND version=?`, input.Name, input.Kind, input.InterfaceKey, input.XMM, input.YMM,
+			input.DirectionDegrees, input.Notes, boolToInt(input.Archived), now, id, input.ExpectedVersion)
+		if err != nil {
+			return fmt.Errorf("update layout unit port: %w", err)
+		}
+		if err := requireUpdated(ctx, tx, result, "layout_unit_ports", id,
+			application.ErrLayoutVersionConflict); err != nil {
+			return err
+		}
+		return writeLayoutAudit(ctx, tx, "LayoutUnitPortUpdated", "layout_unit_port", id, actor, now)
+	})
+	if err != nil {
+		return nil, err
+	}
+	port, err := scanLayoutUnitPort(r.db.QueryRowContext(ctx, layoutUnitPortSelect+` WHERE id=?`, id))
+	if err != nil {
+		return nil, fmt.Errorf("get updated layout unit port: %w", err)
+	}
+	return port, nil
+}
+
 func (r *LayoutRepository) CreateUnit(
 	ctx context.Context,
 	layoutID string,
@@ -301,6 +419,9 @@ const layoutUnitSelect = `SELECT id, layout_id, name, kind, owner_label, COALESC
 
 const layoutConfigurationSelect = `SELECT id, layout_id, name, description, version, archived, created_at, updated_at FROM layout_configurations`
 
+const layoutUnitPortSelect = `SELECT id, layout_unit_id, name, kind, interface_key, x_mm, y_mm,
+direction_degrees, notes, version, archived, created_at, updated_at FROM layout_unit_ports`
+
 type rowScanner interface {
 	Scan(...any) error
 }
@@ -321,6 +442,16 @@ func scanLayoutUnit(scanner rowScanner) (*application.LayoutUnit, error) {
 		&unit.HeightMM, &unit.Version, &archived, &unit.CreatedAt, &unit.UpdatedAt)
 	unit.Archived = archived != 0
 	return unit, err
+}
+
+func scanLayoutUnitPort(scanner rowScanner) (*application.LayoutUnitPort, error) {
+	port := &application.LayoutUnitPort{}
+	var archived int
+	err := scanner.Scan(&port.ID, &port.LayoutUnitID, &port.Name, &port.Kind, &port.InterfaceKey,
+		&port.XMM, &port.YMM, &port.DirectionDegrees, &port.Notes, &port.Version, &archived,
+		&port.CreatedAt, &port.UpdatedAt)
+	port.Archived = archived != 0
+	return port, err
 }
 
 func scanLayoutConfiguration(scanner rowScanner) (*application.LayoutConfiguration, error) {
@@ -442,6 +573,7 @@ func recordExists(ctx context.Context, tx *sql.Tx, table, id string) (bool, erro
 	query := map[string]string{
 		"layouts":               `SELECT COUNT(*) FROM layouts WHERE id=?`,
 		"layout_units":          `SELECT COUNT(*) FROM layout_units WHERE id=?`,
+		"layout_unit_ports":     `SELECT COUNT(*) FROM layout_unit_ports WHERE id=?`,
 		"layout_configurations": `SELECT COUNT(*) FROM layout_configurations WHERE id=?`,
 	}[table]
 	if query == "" {
@@ -472,3 +604,4 @@ func timestamp() string {
 }
 
 var _ application.LayoutRepository = (*LayoutRepository)(nil)
+var _ application.LayoutUnitPortRepository = (*LayoutRepository)(nil)
