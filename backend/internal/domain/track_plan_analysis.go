@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	TrackSnapDistanceMM                = 8.0
-	TrackSnapDirectionToleranceDegrees = 5.0
-	TrackConnectionDistanceMM          = 0.25
-	TrackConnectionDirectionDegrees    = 0.5
+	TrackSnapDistanceMM                 = 8.0
+	TrackSnapDirectionToleranceDegrees  = 5.0
+	TrackConnectionDistanceMM           = 0.25
+	TrackConnectionDirectionDegrees     = 0.5
+	TrackElevationConnectionToleranceMM = 0.01
 )
 
 type TrackPose struct {
@@ -42,6 +43,7 @@ const (
 	TrackPlanIssueIncompatibleConnection TrackPlanIssueCode = "incompatible_connection"
 	TrackPlanIssueOverlap                TrackPlanIssueCode = "overlap"
 	TrackPlanIssueBrokenGeometry         TrackPlanIssueCode = "broken_geometry"
+	TrackPlanIssueElevationMismatch      TrackPlanIssueCode = "elevation_mismatch"
 )
 
 type TrackPlanIssueSeverity string
@@ -52,10 +54,11 @@ const (
 )
 
 type TrackPlanIssue struct {
-	Code      TrackPlanIssueCode     `json:"code"`
-	Severity  TrackPlanIssueSeverity `json:"severity"`
-	ObjectIDs []string               `json:"objectIds"`
-	PortIDs   []string               `json:"portIds,omitempty"`
+	Code                  TrackPlanIssueCode     `json:"code"`
+	Severity              TrackPlanIssueSeverity `json:"severity"`
+	ObjectIDs             []string               `json:"objectIds"`
+	PortIDs               []string               `json:"portIds,omitempty"`
+	ElevationDifferenceMM *float64               `json:"elevationDifferenceMm,omitempty"`
 }
 
 type TrackBOMLine struct {
@@ -82,8 +85,10 @@ type TrackPlanAnalysis struct {
 }
 
 type placedTrackPort struct {
-	ObjectID string
-	Port     TrackPort
+	ObjectID       string
+	Port           TrackPort
+	ElevationMM    float64
+	ElevationKnown bool
 }
 
 type trackSegment struct {
@@ -184,8 +189,10 @@ func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
 			})
 		}
 		for _, port := range object.Geometry.Geometry.Ports {
+			elevation, known := trackPortElevation(object, port.ID)
 			ports = append(ports, placedTrackPort{ObjectID: object.ID,
-				Port: TransformTrackPort(port, poseForTrackObject(object))})
+				Port:        TransformTrackPort(port, poseForTrackObject(object)),
+				ElevationMM: elevation, ElevationKnown: known})
 		}
 	}
 
@@ -206,6 +213,17 @@ func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
 					ObjectAID: first.ObjectID, PortAID: first.Port.ID,
 					ObjectBID: second.ObjectID, PortBID: second.Port.ID,
 				})
+				if first.ElevationKnown && second.ElevationKnown {
+					difference := math.Abs(first.ElevationMM - second.ElevationMM)
+					if difference > TrackElevationConnectionToleranceMM {
+						analysis.Issues = append(analysis.Issues, TrackPlanIssue{
+							Code: TrackPlanIssueElevationMismatch, Severity: TrackPlanIssueWarning,
+							ObjectIDs:             []string{first.ObjectID, second.ObjectID},
+							PortIDs:               []string{first.Port.ID, second.Port.ID},
+							ElevationDifferenceMM: &difference,
+						})
+					}
+				}
 				connected[trackPortKey(first)] = true
 				connected[trackPortKey(second)] = true
 			} else if distance <= TrackSnapDistanceMM && directionDifference > TrackSnapDirectionToleranceDegrees {
@@ -276,6 +294,22 @@ func trackGeometryUsable(definition TrackGeometryDefinition) bool {
 		}
 	}
 	return true
+}
+
+func trackPortElevation(object PlanTrackObject, portID string) (float64, bool) {
+	if len(object.Geometry.Geometry.Ports) != 2 {
+		return 0, false
+	}
+	for index, port := range object.Geometry.Geometry.Ports {
+		if port.ID != portID {
+			continue
+		}
+		if index == 0 {
+			return object.ElevationStartMM, true
+		}
+		return object.ElevationEndMM, true
+	}
+	return 0, false
 }
 
 func betterTrackSnap(distance float64, objectID, portID string, current TrackSnapResult) bool {

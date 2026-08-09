@@ -2,6 +2,7 @@ package domain
 
 import (
 	"math"
+	"reflect"
 	"testing"
 )
 
@@ -121,6 +122,43 @@ func TestAnalyzeTrackPlanDerivesStablePositiveNegativeAndFlatGrades(t *testing.T
 	}
 }
 
+func TestAnalyzeTrackPlanReportsElevationMismatchAtConnectedTwoPortGeometry(t *testing.T) {
+	first := testG1Object("track-1", 0, 0, 0)
+	first.ElevationStartMM, first.ElevationEndMM = 0, 10
+	second := testG1Object("track-2", 166, 0, 0)
+	second.ElevationStartMM, second.ElevationEndMM = 12, 12
+
+	analysis := AnalyzeTrackPlan([]PlanTrackObject{second, first})
+	issues := filterTrackIssues(analysis.Issues, TrackPlanIssueElevationMismatch)
+	if len(issues) != 1 || issues[0].ElevationDifferenceMM == nil ||
+		math.Abs(*issues[0].ElevationDifferenceMM-2) > 1e-9 {
+		t.Fatalf("unexpected elevation mismatch: %#v", issues)
+	}
+	if !reflect.DeepEqual(issues[0].ObjectIDs, []string{"track-1", "track-2"}) ||
+		!reflect.DeepEqual(issues[0].PortIDs, []string{"b", "a"}) {
+		t.Fatalf("unexpected affected endpoints: %#v", issues[0])
+	}
+}
+
+func TestAnalyzeTrackPlanHonorsElevationToleranceAndSkipsMultiPortGeometry(t *testing.T) {
+	first := testG1Object("track-1", 0, 0, 0)
+	first.ElevationEndMM = 10
+	second := testG1Object("track-2", 166, 0, 0)
+	second.ElevationStartMM = 10.01
+	if issues := filterTrackIssues(AnalyzeTrackPlan([]PlanTrackObject{first, second}).Issues,
+		TrackPlanIssueElevationMismatch); len(issues) != 0 {
+		t.Fatalf("tolerance boundary produced mismatch: %#v", issues)
+	}
+
+	second.Geometry.Geometry.Ports = append(second.Geometry.Geometry.Ports,
+		TrackPort{ID: "branch", XMM: 83, YMM: 20, DirectionDegrees: 90})
+	second.ElevationStartMM = 20
+	if issues := filterTrackIssues(AnalyzeTrackPlan([]PlanTrackObject{first, second}).Issues,
+		TrackPlanIssueElevationMismatch); len(issues) != 0 {
+		t.Fatalf("multi-port geometry produced speculative mismatch: %#v", issues)
+	}
+}
+
 func TestAnalyzeTrackPlanReportsIncompatibleEndsOverlapAndBrokenGeometry(t *testing.T) {
 	objects := []PlanTrackObject{
 		testG1Object("base", 0, 0, 0),
@@ -168,4 +206,14 @@ func countTrackIssues(issues []TrackPlanIssue, code TrackPlanIssueCode) int {
 		}
 	}
 	return count
+}
+
+func filterTrackIssues(issues []TrackPlanIssue, code TrackPlanIssueCode) []TrackPlanIssue {
+	filtered := make([]TrackPlanIssue, 0)
+	for _, issue := range issues {
+		if issue.Code == code {
+			filtered = append(filtered, issue)
+		}
+	}
+	return filtered
 }
