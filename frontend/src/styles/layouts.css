@@ -477,6 +477,61 @@
 .layout-placement-row small { display: block; color: var(--muted); font-weight: normal; }
 .layout-placement-fields { grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(90px, 0.6fr)); }
 
+.layout-placement-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.layout-placement-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layout-port-analysis {
+  display: grid;
+  gap: 9px;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+
+.layout-port-analysis .panel-title { margin: 0; }
+
+.layout-port-analysis-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.layout-port-analysis-summary span {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 8px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.layout-port-analysis-list {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.layout-port-analysis-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
+.layout-port-analysis-list li svg { flex: 0 0 auto; margin-top: 2px; }
+.layout-port-analysis-list.issues li { color: var(--warning); }
+
 .layout-plans-stack,
 .layout-variant-list {
   display: grid;

@@ -51,6 +51,7 @@ describe("LayoutsView", () => {
     vi.spyOn(api, "layout").mockResolvedValue(layout);
     vi.spyOn(api, "layoutUnits").mockResolvedValue([unit]);
     vi.spyOn(api, "layoutConfigurations").mockResolvedValue([]);
+    vi.spyOn(api, "layoutConfigurationPortAnalysis").mockResolvedValue({ connections: [], issues: [] });
     vi.spyOn(api, "layoutTwin").mockResolvedValue({
       layoutId: layout.id, unitId: unit.id,
       bounds: { minXMm: 0, minYMm: 0, widthMm: unit.widthMm, heightMm: unit.heightMm },
@@ -142,6 +143,37 @@ describe("LayoutsView", () => {
       expect.objectContaining({ name: "Ausstellung 2026", units: [expect.objectContaining({
         unitId: unit.id, positionXMm: 1500
       })] })));
+  });
+
+  it("previews module-port alignment without saving the configuration", async () => {
+    const user = userEvent.setup();
+    const configuration: LayoutConfiguration = {
+      id: "setup-1", layoutId: layout.id, name: "Ausstellung 2026", version: 2, archived: false,
+      units: [{ unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2, sortOrder: 0 }],
+      createdAt: "2026-08-10T10:00:00Z", updatedAt: "2026-08-10T10:00:00Z"
+    };
+    vi.mocked(api.layoutConfigurations).mockResolvedValue([configuration]);
+    vi.spyOn(api, "previewLayoutConfigurationUnitSnap").mockResolvedValue({
+      snapped: true,
+      pose: { positionXMm: 12, positionYMm: 20, rotationDegrees: 0 },
+      movingPortId: "port-a", targetUnitId: "unit-b", targetPortId: "port-b", distanceMm: 7
+    });
+    const update = vi.spyOn(api, "updateLayoutConfiguration");
+    render(<LayoutsView roles={["Planner"]} />);
+    await screen.findAllByText(layout.name);
+
+    await user.click(screen.getByRole("tab", { name: "Aufbauten" }));
+    await user.click(await screen.findByRole("button", { name: /Ausstellung 2026/ }));
+    await user.click(screen.getByRole("button", { name: "Bahnhofsmodul an Ports ausrichten" }));
+
+    await waitFor(() => expect(api.previewLayoutConfigurationUnitSnap).toHaveBeenCalledWith(configuration.id, {
+      unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2
+    }));
+    expect(screen.getByLabelText("X (mm)")).toHaveValue(12);
+    expect(screen.getByLabelText("Y (mm)")).toHaveValue(20);
+    expect(screen.getByLabelText("Drehung (Grad)")).toHaveValue(0);
+    expect(screen.getByText("Ausrichtung übernommen. Aufbau noch speichern.")).toBeInTheDocument();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("lists and creates technical positions with app-owned controls", async () => {

@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Layers3, Plus } from "lucide-react";
+import { Layers3, Magnet, Plus } from "lucide-react";
 
 import {
   api,
@@ -10,6 +10,7 @@ import {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { LayoutConfigurationPortAnalysis } from "./LayoutConfigurationPortAnalysis";
 
 type ConfigurationForm = {
   id?: string;
@@ -69,6 +70,28 @@ export function LayoutConfigurationsPanel({ configurations, units, layoutID, can
   const updateUnit = (unitID: string, patch: Partial<ConfigurationUnitInput>) => setForm((current) => ({ ...current,
     units: current.units.map((item) => item.unitId === unitID ? { ...item, ...patch } : item) }));
 
+  const snapUnit = async (unitID: string) => {
+    const item = assignment(unitID);
+    if (!form.id || !item) return;
+    setMessage("");
+    try {
+      const preview = await api.previewLayoutConfigurationUnitSnap(form.id, {
+        unitId: unitID,
+        positionXMm: item.positionXMm || 0,
+        positionYMm: item.positionYMm || 0,
+        rotationDegrees: item.rotationDegrees || 0
+      });
+      if (!preview.snapped) {
+        setMessage(t("layouts.setups.snapMissing"));
+        return;
+      }
+      updateUnit(unitID, preview.pose);
+      setMessage(t("layouts.setups.snapApplied"));
+    } catch (reason) {
+      setMessage(reason instanceof Error ? reason.message : t("layouts.error.generic"));
+    }
+  };
+
   const save = async (event: FormEvent) => {
     event.preventDefault(); setSaving(true); setMessage("");
     const input = { name: form.name, description: form.description.trim() || undefined, archived: form.archived,
@@ -92,6 +115,7 @@ export function LayoutConfigurationsPanel({ configurations, units, layoutID, can
             <small>{t("layouts.setups.unitCount", { count: configuration.units.length })}</small></span>
           <span className={configuration.archived ? "status-pill archived" : "status-pill"}>
             {configuration.archived ? t("layouts.status.archived") : t("layouts.status.active")}</span></button>)}</div>}
+      <LayoutConfigurationPortAnalysis configuration={selected || null} />
     </section>
     {canPlan ? <section className="panel layout-setup-form-panel">
       <div className="panel-title"><Plus size={17} /><h3>{form.id ? t("layouts.setups.edit") : t("layouts.setups.create")}</h3></div>
@@ -121,6 +145,9 @@ export function LayoutConfigurationsPanel({ configurations, units, layoutID, can
                 <label>{t("layouts.field.rotation")}<input type="number" step="0.1" value={item.rotationDegrees || 0}
                   onChange={(event) => updateUnit(unit.id, { rotationDegrees: Number(event.target.value) })} /></label>
               </div> : null}
+              {item && form.id ? <div className="layout-placement-actions"><button type="button" className="secondary-button"
+                onClick={() => void snapUnit(unit.id)}><Magnet size={14} />{t("layouts.setups.snap", { name: unit.name })}
+              </button></div> : null}
             </div>;
           })}</fieldset>
         {form.id ? <label className="layout-check"><input type="checkbox" checked={form.archived}

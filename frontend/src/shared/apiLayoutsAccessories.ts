@@ -238,6 +238,46 @@ export type LayoutConfigurationInput = {
 
 export type LayoutConfigurationUpdateInput = LayoutConfigurationInput & { expectedVersion: number };
 
+export type ModulePortConnection = {
+  unitAId: string;
+  unitAName: string;
+  portAId: string;
+  portAName: string;
+  unitBId: string;
+  unitBName: string;
+  portBId: string;
+  portBName: string;
+};
+
+export type ModulePortIssue = {
+  code: "open_port" | "incompatible_port";
+  unitIds: string[];
+  unitNames: string[];
+  portIds: string[];
+  portNames: string[];
+};
+
+export type ModulePortAnalysis = {
+  connections: ModulePortConnection[];
+  issues: ModulePortIssue[];
+};
+
+export type ConfigurationUnitSnapPreviewInput = {
+  unitId: string;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+};
+
+export type ModulePortSnapResult = {
+  snapped: boolean;
+  pose: { positionXMm: number; positionYMm: number; rotationDegrees: number };
+  movingPortId?: string;
+  targetUnitId?: string;
+  targetPortId?: string;
+  distanceMm?: number;
+};
+
 export type PlanRevision = {
   id: string;
   variantId: string;
@@ -919,6 +959,12 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<LayoutConfiguration>(`/layouts/${encodeURIComponent(layoutId)}/configurations`, json("POST", input)),
     updateLayoutConfiguration: (id: string, input: LayoutConfigurationUpdateInput) =>
       request<LayoutConfiguration>(`/layout-configurations/${encodeURIComponent(id)}`, json("PUT", input)),
+    layoutConfigurationPortAnalysis: (id: string) =>
+      request<ModulePortAnalysis>(`/layout-configurations/${encodeURIComponent(id)}/port-analysis`),
+    previewLayoutConfigurationUnitSnap: (id: string, input: ConfigurationUnitSnapPreviewInput) =>
+      request<ModulePortSnapResult>(
+        `/layout-configurations/${encodeURIComponent(id)}/unit-snap-preview`, json("POST", input)
+      ),
     planVariants: (unitId: string) =>
       request<PlanVariant[]>(`/layout-units/${encodeURIComponent(unitId)}/plan-variants`),
     createPlanVariant: (unitId: string, input: PlanVariantInput) =>

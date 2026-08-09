@@ -73,6 +73,10 @@ describe("layout and accessory API client", () => {
     await api.layoutConfigurations("layout/1");
     await api.createLayoutConfiguration("layout/1", configurationInput);
     await api.updateLayoutConfiguration("configuration/1", configurationInput);
+    await api.layoutConfigurationPortAnalysis("configuration/1");
+    await api.previewLayoutConfigurationUnitSnap("configuration/1", {
+      unitId: "unit/1", positionXMm: 10, positionYMm: 20, rotationDegrees: 90
+    });
     await api.planVariants("unit/1");
     await api.createPlanVariant("unit/1", { name: "Sommer", description: "Variante" });
     await api.createPlanRevision("variant/1", { baseRevisionId: "revision/1" });
@@ -115,6 +119,10 @@ describe("layout and accessory API client", () => {
       ["GET", "/api/v1/layouts/layout%2F1/configurations"],
       ["POST", "/api/v1/layouts/layout%2F1/configurations", configurationInput],
       ["PUT", "/api/v1/layout-configurations/configuration%2F1", configurationInput],
+      ["GET", "/api/v1/layout-configurations/configuration%2F1/port-analysis"],
+      ["POST", "/api/v1/layout-configurations/configuration%2F1/unit-snap-preview", {
+        unitId: "unit/1", positionXMm: 10, positionYMm: 20, rotationDegrees: 90
+      }],
       ["GET", "/api/v1/layout-units/unit%2F1/plan-variants"],
       ["POST", "/api/v1/layout-units/unit%2F1/plan-variants", { name: "Sommer", description: "Variante" }],
       ["POST", "/api/v1/plan-variants/variant%2F1/revisions", { baseRevisionId: "revision/1" }],
