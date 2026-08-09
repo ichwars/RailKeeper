@@ -141,6 +141,14 @@ func TestLayoutConfigurationPortRepositoryLoadsActivePlacements(t *testing.T) {
 		placements[0].UnitPose.PositionYMM != 20 || placements[0].UnitPose.RotationDegrees != 90 {
 		t.Fatalf("unexpected configuration port placements: %#v", placements)
 	}
+	contained, err := repository.ConfigurationContainsUnit(ctx, configuration.ID, east.ID)
+	if err != nil || !contained {
+		t.Fatalf("expected unit without active ports to belong to configuration, contained=%t err=%v", contained, err)
+	}
+	contained, err = repository.ConfigurationContainsUnit(ctx, configuration.ID, "missing-unit")
+	if err != nil || contained {
+		t.Fatalf("expected missing unit to be rejected, contained=%t err=%v", contained, err)
+	}
 	if _, err := repository.LoadConfigurationPortPlacements(ctx, "missing"); !errors.Is(err, application.ErrLayoutNotFound) {
 		t.Fatalf("expected missing configuration error, got %v", err)
 	}

@@ -18,6 +18,7 @@ type layoutRepositorySpy struct {
 	createdPort        CreateLayoutUnitPortInput
 	updatedPort        UpdateLayoutUnitPortInput
 	configurationPorts []domain.ModulePortPlacement
+	configurationUnit  string
 }
 
 func (spy *layoutRepositorySpy) CreateLayout(
@@ -92,6 +93,22 @@ func (spy *layoutRepositorySpy) LoadConfigurationPortPlacements(
 	_ string,
 ) ([]domain.ModulePortPlacement, error) {
 	return spy.configurationPorts, nil
+}
+
+func (spy *layoutRepositorySpy) ConfigurationContainsUnit(
+	_ context.Context,
+	_ string,
+	unitID string,
+) (bool, error) {
+	if spy.configurationUnit == unitID {
+		return true, nil
+	}
+	for _, placement := range spy.configurationPorts {
+		if placement.UnitID == unitID {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (spy *layoutRepositorySpy) UpdateUnitOutline(
@@ -325,5 +342,17 @@ func TestLayoutServiceRejectsInvalidConfigurationPortRequests(t *testing.T) {
 		if _, err := service.PreviewConfigurationUnitSnap(t.Context(), "configuration-1", input); !errors.Is(err, ErrLayoutValidation) {
 			t.Fatalf("expected invalid preview rejection for %#v, got %v", input, err)
 		}
+	}
+}
+
+func TestLayoutServicePreviewsUnsnappedUnitWithoutActivePorts(t *testing.T) {
+	service := NewLayoutService(&layoutRepositorySpy{configurationUnit: "unit-without-ports"})
+	preview, err := service.PreviewConfigurationUnitSnap(t.Context(), "configuration-1",
+		PreviewConfigurationUnitSnapInput{UnitID: "unit-without-ports"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Snapped || preview.Pose.PositionXMM != 0 || preview.Pose.PositionYMM != 0 {
+		t.Fatalf("expected unchanged unsnapped preview, got %#v", preview)
 	}
 }

@@ -206,6 +206,7 @@ type LayoutUnitPortRepository interface {
 
 type LayoutConfigurationPortRepository interface {
 	LoadConfigurationPortPlacements(context.Context, string) ([]domain.ModulePortPlacement, error)
+	ConfigurationContainsUnit(context.Context, string, string) (bool, error)
 }
 
 type PreviewConfigurationUnitSnapInput struct {
@@ -357,12 +358,9 @@ func (s *LayoutService) PreviewConfigurationUnitSnap(
 	if err != nil {
 		return nil, err
 	}
-	found := false
-	for _, placement := range placements {
-		if placement.UnitID == input.UnitID {
-			found = true
-			break
-		}
+	found, err := s.configurationPortRepository.ConfigurationContainsUnit(ctx, configurationID, input.UnitID)
+	if err != nil {
+		return nil, err
 	}
 	if !found {
 		return nil, ErrLayoutValidation

@@ -382,6 +382,24 @@ ORDER BY u.name COLLATE NOCASE, cu.unit_id, p.name COLLATE NOCASE, p.id`, config
 	return placements, nil
 }
 
+func (r *LayoutRepository) ConfigurationContainsUnit(
+	ctx context.Context,
+	configurationID string,
+	unitID string,
+) (bool, error) {
+	var exists int
+	err := r.db.QueryRowContext(ctx, `
+SELECT 1 FROM layout_configuration_units WHERE configuration_id=? AND unit_id=?`,
+		configurationID, unitID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("check layout configuration unit membership: %w", err)
+	}
+	return true, nil
+}
+
 func (r *LayoutRepository) SaveConfiguration(
 	ctx context.Context,
 	layoutID string,
