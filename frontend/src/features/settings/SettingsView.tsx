@@ -25,6 +25,7 @@ import {
   X
 } from "lucide-react";
 import type { AppView } from "../../app/App";
+import { availableStartView, isViewTemporarilyDisabled } from "../../app/navigationAvailability";
 import {
   api,
   AuditLogEntry,
@@ -209,10 +210,9 @@ export function SettingsView({ username }: { username: string }) {
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
   const [masterDataFileInputKey, setMasterDataFileInputKey] = useState(0);
-  const [defaultView, setDefaultView] = useState(() => {
-    const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
-    return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
-  });
+  const [defaultView, setDefaultView] = useState(() =>
+    availableStartView(readLocalSetting(localSettingKeys.defaultView, "overview"))
+  );
   const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(() => readSidebarPrefs(username).order);
   const [sidebarHidden, setSidebarHidden] = useState<AppView[]>(() => readSidebarPrefs(username).hidden);
   const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
@@ -404,7 +404,7 @@ export function SettingsView({ username }: { username: string }) {
           window.localStorage.setItem(key, value);
           setter?.(value);
         };
-        store(localSettingKeys.defaultView, (value) => setDefaultView(value === "inventory" ? "vehicles" : value));
+        store(localSettingKeys.defaultView, (value) => setDefaultView(availableStartView(value)));
         store(localSettingKeys.dateFormat, setDateFormat);
         store(localSettingKeys.timeFormat, setTimeFormat);
         store(localSettingKeys.defaultPrinter, setDefaultPrinter);
@@ -1427,7 +1427,7 @@ export function SettingsView({ username }: { username: string }) {
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="accessories">{t("nav.accessories")}</option>
-                    <option value="layouts">{t("nav.layouts")}</option>
+                    <option value="layouts" disabled={isViewTemporarilyDisabled("layouts")}>{t("nav.layouts")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>

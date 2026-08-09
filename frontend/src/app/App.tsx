@@ -5,6 +5,7 @@ import { SetupView } from "../features/setup/SetupView";
 import { api, Session } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
+import { availableStartView } from "./navigationAvailability";
 
 export type AppView = "overview" | "vehicles" | "accessories" | "layouts" | "exhibition" | "importExport" | "settings";
 
@@ -17,15 +18,8 @@ const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView"
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
-function configuredStartView(): AppView {
-  const stored = window.localStorage.getItem(defaultViewSettingKey);
-  if (stored === "vehicles" || stored === "accessories" || stored === "layouts" || stored === "exhibition" || stored === "importExport" || stored === "settings" || stored === "overview") {
-    return stored;
-  }
-  if (stored === "inventory") {
-    return "vehicles";
-  }
-  return "overview";
+export function configuredStartView(): AppView {
+  return availableStartView(window.localStorage.getItem(defaultViewSettingKey) || "");
 }
 
 function pathForView(nextView: AppView) {
@@ -39,7 +33,7 @@ function pathForView(nextView: AppView) {
   return "/";
 }
 
-function currentView(): AppView {
+export function currentView(): AppView {
   if (window.location.pathname.startsWith("/overview")) {
     return "overview";
   }

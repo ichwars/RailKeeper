@@ -105,4 +105,16 @@ describe("SettingsView data navigation", () => {
 
     expect(await screen.findByRole("heading", { level: 1, name: "Daten" })).toHaveTextContent(/^Daten$/);
   });
+
+  it("disables Anlage as a start page and displays Übersicht for a stored layout preference", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem("railkeeper.settings.defaultView", "layouts");
+    render(<SettingsView username="viewer" />);
+
+    const trigger = await screen.findByRole("button", { name: /Standardansicht/ });
+    expect(trigger).toHaveTextContent("Übersicht");
+    await user.click(trigger);
+    expect(screen.getByRole("option", { name: "Anlage" })).toBeDisabled();
+    expect(window.localStorage.getItem("railkeeper.settings.defaultView")).toBe("layouts");
+  });
 });
