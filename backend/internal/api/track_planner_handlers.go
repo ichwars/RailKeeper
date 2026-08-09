@@ -44,6 +44,21 @@ func (a *App) getTrackPlanChangePreview(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, preview)
 }
 
+func (a *App) reserveTrackPlanMaterials(w http.ResponseWriter, r *http.Request) {
+	var input application.ReserveTrackPlanMaterialsInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	batch, err := a.trackPlannerService.ReserveMaterials(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.trackPlannerError(w, err, "reserve track plan materials")
+		return
+	}
+	respondJSON(w, http.StatusCreated, batch)
+}
+
 func (a *App) createPlanTrackObject(w http.ResponseWriter, r *http.Request) {
 	var input application.CreatePlanTrackObjectInput
 	if !decodeLayoutJSON(w, r, &input) {
@@ -99,6 +114,12 @@ func (a *App) trackPlannerError(w http.ResponseWriter, err error, action string)
 		respondProblem(w, http.StatusConflict, "track_plan_immutable", "Published track plans are immutable.")
 	case errors.Is(err, application.ErrTrackPlanConflict):
 		respondProblem(w, http.StatusConflict, "track_plan_conflict", "Track plan data has changed.")
+	case errors.Is(err, application.ErrAccessoryInsufficientStock):
+		respondProblem(w, http.StatusConflict, "track_plan_insufficient_stock", "Track material stock is insufficient.")
+	case errors.Is(err, application.ErrAccessoryNotFound):
+		respondProblem(w, http.StatusNotFound, "track_plan_material_not_found", "Track material resource not found.")
+	case errors.Is(err, application.ErrAccessoryConflict), errors.Is(err, application.ErrAccessoryTrackingMode):
+		respondProblem(w, http.StatusConflict, "track_plan_reservation_conflict", "Track material cannot be reserved.")
 	default:
 		a.logger.Error("track planner operation failed", "action", action, "error", err)
 		respondProblem(w, http.StatusInternalServerError, "track_plan_operation_failed", "Track plan operation failed.")

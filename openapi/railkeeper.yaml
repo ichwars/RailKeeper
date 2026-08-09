@@ -2790,7 +2790,7 @@ components:
           minimum: 0
     TrackPlanAnalysis:
       type: object
-      required: [revisionId, status, connections, issues, bom, materials]
+      required: [revisionId, status, connections, issues, bom, materials, reservations]
       properties:
         revisionId:
           type: string
@@ -2813,6 +2813,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackMaterialStatus"
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectReservation"
     TrackPlanObjectChange:
       type: object
       required: [type, lineageId]
@@ -2910,6 +2914,54 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackPlanAffectedConfiguration"
+    TrackPlanReservationInput:
+      type: object
+      required: [trackObjectId, productId, locationId, expectedObjectVersion]
+      properties:
+        trackObjectId:
+          type: string
+        productId:
+          type: string
+        locationId:
+          type: string
+        assetId:
+          type: string
+        expectedObjectVersion:
+          type: integer
+          minimum: 1
+    ReserveTrackPlanMaterialsInput:
+      type: object
+      required: [confirmed, items]
+      properties:
+        confirmed:
+          type: boolean
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TrackPlanReservationInput"
+    TrackPlanObjectReservation:
+      type: object
+      required: [trackObjectId, reservation]
+      properties:
+        trackObjectId:
+          type: string
+        reservation:
+          $ref: "#/components/schemas/AccessoryReservation"
+    TrackPlanReservationBatch:
+      type: object
+      required: [revisionId, reservations, materials]
+      properties:
+        revisionId:
+          type: string
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectReservation"
+        materials:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackMaterialStatus"
     CreatePlanTrackObjectInput:
       type: object
       required: [geometryId, positionXMm, positionYMm, rotationDegrees]
@@ -5761,6 +5813,47 @@ paths:
                 $ref: "#/components/schemas/TrackPlanChangePreview"
         "404":
           description: Plan revision or base revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-reservations:
+    post:
+      tags: [Layouts]
+      summary: Reserve accessory stock for selected track plan objects
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReserveTrackPlanMaterialsInput"
+      responses:
+        "201":
+          description: Track materials reserved atomically
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanReservationBatch"
+        "400":
+          description: Confirmation or reservation input is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan, object, product, location, or individual item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Object changed, stock is insufficient, or material cannot be reserved
           content:
             application/json:
               schema:

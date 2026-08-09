@@ -1,6 +1,7 @@
 package infrastructure_test
 
 import (
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -229,5 +230,201 @@ INSERT INTO plan_track_objects(
 		material.AvailableQuantity != 2 || material.MissingQuantity != 0 ||
 		len(material.ProductIDs) != 1 || material.ProductIDs[0] != "track-product" {
 		t.Fatalf("unexpected material availability: %#v", material)
+	}
+}
+
+func TestTrackPlannerReservesQuantityMaterialsByObject(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	seedTrackReservationInventory(t, db, 2)
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+
+	batch, err := planner.ReserveMaterials(t.Context(), "revision-track-1",
+		application.ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []application.TrackPlanReservationInput{
+			{TrackObjectID: "track-material-1", ProductID: "track-product", LocationID: "track-location",
+				ExpectedObjectVersion: 1},
+			{TrackObjectID: "track-material-2", ProductID: "track-product", LocationID: "track-location",
+				ExpectedObjectVersion: 1},
+		}}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Reservations) != 2 || batch.Reservations[0].Reservation.LayoutUnitID != "unit-track-1" {
+		t.Fatalf("unexpected plan material reservations: %#v", batch)
+	}
+	var activeLinks, activeReservations int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM plan_track_object_reservations WHERE active=1`).Scan(&activeLinks); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM accessory_reservations WHERE status='active'`).
+		Scan(&activeReservations); err != nil {
+		t.Fatal(err)
+	}
+	if activeLinks != 2 || activeReservations != 2 {
+		t.Fatalf("unexpected persisted reservations: links=%d reservations=%d", activeLinks, activeReservations)
+	}
+	analysis, err := planner.AnalyzePlan(t.Context(), "revision-track-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Reservations) != 2 {
+		t.Fatalf("active plan reservations missing from analysis: %#v", analysis.Reservations)
+	}
+	if _, err := planner.ReserveMaterials(t.Context(), "revision-track-1",
+		application.ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []application.TrackPlanReservationInput{{
+			TrackObjectID: "track-material-1", ProductID: "track-product", LocationID: "track-location",
+			ExpectedObjectVersion: 1,
+		}}}, "planner"); !errors.Is(err, application.ErrTrackPlanConflict) {
+		t.Fatalf("expected duplicate plan object conflict, got %v", err)
+	}
+}
+
+func TestTrackPlannerReservationBatchIsAllOrNothing(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	seedTrackReservationInventory(t, db, 1)
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+
+	_, err := planner.ReserveMaterials(t.Context(), "revision-track-1",
+		application.ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []application.TrackPlanReservationInput{
+			{TrackObjectID: "track-material-1", ProductID: "track-product", LocationID: "track-location",
+				ExpectedObjectVersion: 1},
+			{TrackObjectID: "track-material-2", ProductID: "track-product", LocationID: "track-location",
+				ExpectedObjectVersion: 1},
+		}}, "planner")
+	if !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected insufficient stock, got %v", err)
+	}
+	var reservations, links int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM accessory_reservations`).Scan(&reservations); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`SELECT COUNT(*) FROM plan_track_object_reservations`).Scan(&links); err != nil {
+		t.Fatal(err)
+	}
+	if reservations != 0 || links != 0 {
+		t.Fatalf("failed batch persisted partial work: reservations=%d links=%d", reservations, links)
+	}
+}
+
+func TestTrackPlannerReservesIndividualAssetAndReleasesLinkOnCancellation(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	seedTrackReservationInventory(t, db, 0)
+	if _, err := db.Exec(`
+UPDATE accessory_products SET tracking_mode='individual', inventory_strategy='individual'
+WHERE id='track-product';
+INSERT INTO accessory_assets(
+  id, product_id, inventory_number, condition_state, lifecycle_state, storage_location_id,
+  created_at, updated_at
+) VALUES(
+  'track-asset', 'track-product', 'RK-GL-000001', 'ready', 'stored', 'track-location', 'now', 'now'
+);`); err != nil {
+		t.Fatal(err)
+	}
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	batch, err := planner.ReserveMaterials(t.Context(), "revision-track-1",
+		application.ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []application.TrackPlanReservationInput{{
+			TrackObjectID: "track-material-1", ProductID: "track-product", LocationID: "track-location",
+			AssetID: "track-asset", ExpectedObjectVersion: 1,
+		}}}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(batch.Reservations) != 1 || batch.Reservations[0].Reservation.AssetID != "track-asset" {
+		t.Fatalf("unexpected individual reservation: %#v", batch)
+	}
+	var lifecycle string
+	if err := db.QueryRow(`SELECT lifecycle_state FROM accessory_assets WHERE id='track-asset'`).Scan(&lifecycle); err != nil {
+		t.Fatal(err)
+	}
+	if lifecycle != "reserved" {
+		t.Fatalf("expected reserved asset lifecycle, got %q", lifecycle)
+	}
+	allocations := application.NewAccessoryAllocationService(infrastructure.NewAccessoryRepository(db))
+	if _, err := allocations.CancelReservation(t.Context(), batch.Reservations[0].Reservation.ID, "planner"); err != nil {
+		t.Fatal(err)
+	}
+	var active int
+	if err := db.QueryRow(`
+SELECT active FROM plan_track_object_reservations WHERE reservation_id=?`,
+		batch.Reservations[0].Reservation.ID).Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if active != 0 {
+		t.Fatalf("cancelled reservation link remains active: %d", active)
+	}
+	if err := planner.DeleteObject(t.Context(), "track-material-1", 1, "planner"); !errors.Is(err, application.ErrTrackPlanConflict) {
+		t.Fatalf("expected reservation history to protect its plan object, got %v", err)
+	}
+}
+
+func TestTrackPlannerReservationRejectsStaleObjectAndMismatchedProduct(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	seedTrackReservationInventory(t, db, 2)
+	if _, err := db.Exec(`
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  created_at, updated_at
+) VALUES(
+  'wrong-product', 'RK-ART-WRONG', 'Tillig', '99999', 'Falsches Gleis', 'track', 'quantity',
+  'now', 'now'
+);`); err != nil {
+		t.Fatal(err)
+	}
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	for name, item := range map[string]application.TrackPlanReservationInput{
+		"stale": {
+			TrackObjectID: "track-material-1", ProductID: "track-product", LocationID: "track-location",
+			ExpectedObjectVersion: 2,
+		},
+		"mismatched product": {
+			TrackObjectID: "track-material-1", ProductID: "wrong-product", LocationID: "track-location",
+			ExpectedObjectVersion: 1,
+		},
+	} {
+		_, err := planner.ReserveMaterials(t.Context(), "revision-track-1",
+			application.ReserveTrackPlanMaterialsInput{Confirmed: true,
+				Items: []application.TrackPlanReservationInput{item}}, "planner")
+		want := application.ErrTrackPlanConflict
+		if name == "mismatched product" {
+			want = application.ErrTrackPlanValidation
+		}
+		if !errors.Is(err, want) {
+			t.Fatalf("%s: expected %v, got %v", name, want, err)
+		}
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM accessory_reservations`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("rejected reservations persisted: %d", count)
+	}
+}
+
+func seedTrackReservationInventory(t *testing.T, db *sql.DB, quantity int) {
+	t.Helper()
+	if _, err := db.Exec(`
+INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('track-location', 'Gleislager', 'now', 'now');
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  created_at, updated_at
+) VALUES(
+  'track-product', 'RK-ART-0083101', 'Tillig', '83101', 'Gleisstück G1', 'track', 'quantity',
+  'now', 'now'
+);
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+VALUES('track-product', 'track-location', ?, 'now');
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  version, created_at, updated_at
+) VALUES
+  ('track-material-1', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 0, 0, 0, 1, 'now', 'now'),
+  ('track-material-2', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 166, 0, 0, 1, 'now', 'now');
+`, quantity); err != nil {
+		t.Fatal(err)
 	}
 }

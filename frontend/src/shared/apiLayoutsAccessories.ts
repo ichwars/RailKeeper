@@ -311,6 +311,7 @@ export type TrackPlanAnalysis = {
   issues: TrackPlanIssue[];
   bom: TrackBOMLine[];
   materials: TrackMaterialStatus[];
+  reservations: TrackPlanObjectReservation[];
 };
 export type TrackPlanObjectChangeType = "added" | "removed" | "changed";
 export type TrackPlanObjectChange = {
@@ -341,6 +342,26 @@ export type TrackPlanChangePreview = {
   materialDeltas: TrackPlanMaterialDelta[];
   issues: { added: TrackPlanIssueChange[]; resolved: TrackPlanIssueChange[] };
   affectedConfigurations: { id: string; name: string }[];
+};
+export type TrackPlanReservationInput = {
+  trackObjectId: string;
+  productId: string;
+  locationId: string;
+  assetId?: string;
+  expectedObjectVersion: number;
+};
+export type ReserveTrackPlanMaterialsInput = {
+  confirmed: boolean;
+  items: TrackPlanReservationInput[];
+};
+export type TrackPlanObjectReservation = {
+  trackObjectId: string;
+  reservation: AccessoryReservation;
+};
+export type TrackPlanReservationBatch = {
+  revisionId: string;
+  reservations: TrackPlanObjectReservation[];
+  materials: TrackMaterialStatus[];
 };
 export type CreatePlanTrackObjectInput = {
   geometryId: string;
@@ -880,6 +901,10 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     trackPlanChangePreview: (revisionId: string) =>
       request<TrackPlanChangePreview>(
         `/plan-revisions/${encodeURIComponent(revisionId)}/track-change-preview`
+      ),
+    reserveTrackPlanMaterials: (revisionId: string, input: ReserveTrackPlanMaterialsInput) =>
+      request<TrackPlanReservationBatch>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-reservations`, json("POST", input)
       ),
     createPlanTrackObject: (revisionId: string, input: CreatePlanTrackObjectInput) =>
       request<PlanTrackObject>(

@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 5 {
-		t.Fatalf("expected backup version 5, got %d", backup.Version)
+	if backup.Version != 6 {
+		t.Fatalf("expected backup version 6, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -153,8 +153,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 5 {
-		t.Fatalf("expected version 5 export, got %d", backup.Version)
+	if backup.Version != 6 {
+		t.Fatalf("expected version 6 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -236,8 +236,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 5 {
-		t.Fatalf("expected version 5 export, got %d", backup.Version)
+	if backup.Version != 6 {
+		t.Fatalf("expected version 6 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -274,7 +274,7 @@ SELECT position_id FROM accessory_installation_positions WHERE installation_id='
 	}
 }
 
-func TestBackupVersionFiveRoundTripPreservesTrackPlannerData(t *testing.T) {
+func TestBackupVersionSixRoundTripPreservesTrackPlannerData(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
 	ctx := t.Context()
@@ -293,7 +293,19 @@ INSERT INTO plan_track_objects(
   ('track-published', 'revision-1', 'tillig-tt-modellgleis-83101-v1', 125.5, 80, 0,
    1, '2026-08-09T10:00:00Z', '2026-08-09T10:00:00Z'),
   ('track-draft', 'revision-2', 'tillig-tt-modellgleis-83101-v1', 291.5, 80, 15,
-   3, '2026-08-09T10:00:00Z', '2026-08-09T11:00:00Z')`); err != nil {
+   3, '2026-08-09T10:00:00Z', '2026-08-09T11:00:00Z');
+INSERT INTO accessory_reservations(
+  id, product_id, location_id, quantity, layout_unit_id, status, note, created_by, created_at, updated_at
+) VALUES(
+  'track-plan-reservation', 'product-quantity', 'location-child', 1, 'unit-1', 'active',
+  'Gleisplanobjekt track-draft', 'planner-1', '2026-08-09T11:00:00Z', '2026-08-09T11:00:00Z'
+);
+INSERT INTO plan_track_object_reservations(
+  reservation_id, track_object_id, active, created_at, updated_at
+) VALUES(
+  'track-plan-reservation', 'track-draft', 1,
+  '2026-08-09T11:00:00Z', '2026-08-09T11:00:00Z'
+)`); err != nil {
 		t.Fatal(err)
 	}
 
@@ -302,18 +314,24 @@ INSERT INTO plan_track_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 5 {
-		t.Fatalf("expected version 5 export, got %d", backup.Version)
+	if backup.Version != 6 {
+		t.Fatalf("expected version 6 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
 			t.Fatalf("expected track-planner table %q in backup", table)
 		}
 	}
+	for _, table := range versionSixBackupTableNames() {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected track-reservation table %q in backup", table)
+		}
+	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE track_geometry_libraries SET manufacturer='Changed';
 UPDATE track_geometry_definitions SET name='Changed', geometry_json='{}';
 UPDATE plan_track_objects SET position_x_mm=999, rotation_degrees=90;
+UPDATE plan_track_object_reservations SET active=0;
 `); err != nil {
 		t.Fatal(err)
 	}
@@ -321,24 +339,29 @@ UPDATE plan_track_objects SET position_x_mm=999, rotation_degrees=90;
 		t.Fatal(err)
 	}
 
-	var manufacturer, name, geometryJSON, revisionID, geometryID string
+	var manufacturer, name, geometryJSON, revisionID, geometryID, lineageID string
 	var positionX, positionY, rotation float64
-	var version int
+	var version, reservationActive int
 	if err := db.QueryRowContext(ctx, `
 SELECT l.manufacturer, g.name, g.geometry_json, o.revision_id, o.geometry_id,
-       o.position_x_mm, o.position_y_mm, o.rotation_degrees, o.version
+       o.position_x_mm, o.position_y_mm, o.rotation_degrees, o.version, o.lineage_id
 FROM plan_track_objects o
 JOIN track_geometry_definitions g ON g.id=o.geometry_id
 JOIN track_geometry_libraries l ON l.id=g.library_id
 WHERE o.id='track-draft'
 `).Scan(&manufacturer, &name, &geometryJSON, &revisionID, &geometryID,
-		&positionX, &positionY, &rotation, &version); err != nil {
+		&positionX, &positionY, &rotation, &version, &lineageID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT active FROM plan_track_object_reservations WHERE reservation_id='track-plan-reservation'
+`).Scan(&reservationActive); err != nil {
 		t.Fatal(err)
 	}
 	if manufacturer != "Tillig" || name != "Gleisstück G1" ||
 		!strings.Contains(geometryJSON, `"xMm":166`) || revisionID != "revision-2" ||
 		geometryID != "tillig-tt-modellgleis-83101-v1" || positionX != 291.5 || positionY != 80 ||
-		rotation != 15 || version != 3 {
+		rotation != 15 || version != 3 || lineageID != "track-draft" || reservationActive != 1 {
 		t.Fatalf("track-planner data changed after restore: manufacturer=%q name=%q geometry=%q "+
 			"revision=%q geometryID=%q position=%v/%v rotation=%v version=%d",
 			manufacturer, name, geometryJSON, revisionID, geometryID, positionX, positionY, rotation, version)
@@ -582,8 +605,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 5 {
-		t.Fatalf("expected version 5 export, got %d", backup.Version)
+	if backup.Version != 6 {
+		t.Fatalf("expected version 6 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -603,7 +626,7 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 		t.Fatal(err)
 	}
 	if !validation.Compatible {
-		t.Fatalf("expected complete version 5 backup, got %#v", validation)
+		t.Fatalf("expected complete version 6 backup, got %#v", validation)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE accessory_products SET name='Changed after export' WHERE id=?`, product.ID); err != nil {
 		t.Fatal(err)
@@ -909,6 +932,11 @@ func backupDocumentTablesThroughVersion(version int) map[string][]map[string]any
 	}
 	if version >= 5 {
 		for _, table := range versionFiveBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
+	if version >= 6 {
+		for _, table := range versionSixBackupTableNames() {
 			tables[table] = []map[string]any{}
 		}
 	}
@@ -1219,7 +1247,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 6
+		doc.Version = 7
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}
@@ -1716,6 +1744,10 @@ func versionFourBackupTableNames() []string {
 
 func versionFiveBackupTableNames() []string {
 	return []string{"track_geometry_libraries", "track_geometry_definitions", "plan_track_objects"}
+}
+
+func versionSixBackupTableNames() []string {
+	return []string{"plan_track_object_reservations"}
 }
 
 func legacyOptionalBackupTableNames() []string {

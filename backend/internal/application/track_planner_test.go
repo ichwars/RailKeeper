@@ -19,8 +19,10 @@ type trackPlannerRepositorySpy struct {
 	plans           map[string]*TrackPlan
 	planForObject   *TrackPlan
 	materials       []TrackMaterialStatus
+	reservations    []TrackPlanObjectReservation
 	baseRevisionID  string
 	affected        []TrackPlanAffectedConfiguration
+	reserved        ReserveTrackPlanMaterialsInput
 }
 
 func (spy *trackPlannerRepositorySpy) ListGeometries(
@@ -52,6 +54,16 @@ func (spy *trackPlannerRepositorySpy) ListAffectedConfigurations(
 	return spy.affected, nil
 }
 
+func (spy *trackPlannerRepositorySpy) ReserveMaterials(
+	_ context.Context,
+	revisionID string,
+	input ReserveTrackPlanMaterialsInput,
+	_ string,
+) (*TrackPlanReservationBatch, error) {
+	spy.reserved = input
+	return &TrackPlanReservationBatch{RevisionID: revisionID, Reservations: []TrackPlanObjectReservation{}}, nil
+}
+
 func (spy *trackPlannerRepositorySpy) GetPlanForObject(_ context.Context, _ string) (*TrackPlan, error) {
 	if spy.planForObject == nil {
 		return nil, ErrTrackPlanNotFound
@@ -64,6 +76,13 @@ func (spy *trackPlannerRepositorySpy) TrackMaterialAvailability(
 	_ []domain.TrackBOMLine,
 ) ([]TrackMaterialStatus, error) {
 	return spy.materials, nil
+}
+
+func (spy *trackPlannerRepositorySpy) ListMaterialReservations(
+	_ context.Context,
+	_ string,
+) ([]TrackPlanObjectReservation, error) {
+	return spy.reservations, nil
 }
 
 func (spy *trackPlannerRepositorySpy) CreateObject(
@@ -218,6 +237,7 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 			RequiredQuantity: 2, PhysicalQuantity: 3, ReservedQuantity: 1,
 			AvailableQuantity: 2, MissingQuantity: 0,
 		}},
+		reservations: []TrackPlanObjectReservation{{TrackObjectID: "track-1"}},
 	}
 	repositoryPlan := &TrackPlan{RevisionID: "revision-1", Status: domain.PlanRevisionDraft, Objects: objects}
 	repository.plan = repositoryPlan
@@ -227,6 +247,7 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(analysis.Connections) != 1 || len(analysis.BOM) != 1 || len(analysis.Materials) != 1 ||
+		len(analysis.Reservations) != 1 ||
 		analysis.Materials[0].AvailableQuantity != 2 {
 		t.Fatalf("unexpected combined analysis: %#v", analysis)
 	}
@@ -279,6 +300,50 @@ func TestTrackPlannerChangePreviewWithoutBaseTreatsObjectsAsAdded(t *testing.T) 
 		preview.ObjectChanges[0].Type != domain.TrackPlanObjectAdded ||
 		len(preview.AffectedConfigurations) != 0 {
 		t.Fatalf("unexpected first-revision preview: %#v", preview)
+	}
+}
+
+func TestTrackPlannerReserveMaterialsRequiresConfirmationAndValidUniqueObjects(t *testing.T) {
+	service := NewTrackPlannerService(&trackPlannerRepositorySpy{})
+	valid := ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []TrackPlanReservationInput{{
+		TrackObjectID: "object-1", ProductID: "product-1", LocationID: "location-1",
+		ExpectedObjectVersion: 2,
+	}}}
+	invalid := []ReserveTrackPlanMaterialsInput{
+		{},
+		{Confirmed: true},
+		{Confirmed: true, Items: []TrackPlanReservationInput{{TrackObjectID: "object-1"}}},
+		{Confirmed: true, Items: []TrackPlanReservationInput{
+			valid.Items[0], valid.Items[0],
+		}},
+	}
+	for _, input := range invalid {
+		if _, err := service.ReserveMaterials(t.Context(), "revision-1", input, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
+			t.Fatalf("expected reservation validation error for %#v, got %v", input, err)
+		}
+	}
+	if _, err := service.ReserveMaterials(t.Context(), " ", valid, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
+		t.Fatalf("expected revision validation error, got %v", err)
+	}
+}
+
+func TestTrackPlannerReserveMaterialsNormalizesBatch(t *testing.T) {
+	repository := &trackPlannerRepositorySpy{materials: []TrackMaterialStatus{{GeometryID: "geometry-1"}}}
+	service := NewTrackPlannerService(repository)
+	batch, err := service.ReserveMaterials(t.Context(), " revision-1 ", ReserveTrackPlanMaterialsInput{
+		Confirmed: true,
+		Items: []TrackPlanReservationInput{{
+			TrackObjectID: " object-1 ", ProductID: " product-1 ", LocationID: " location-1 ",
+			AssetID: " asset-1 ", ExpectedObjectVersion: 2,
+		}},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if batch.RevisionID != "revision-1" || len(batch.Materials) != 1 ||
+		repository.reserved.Items[0].TrackObjectID != "object-1" ||
+		repository.reserved.Items[0].AssetID != "asset-1" {
+		t.Fatalf("unexpected normalized reservation batch: %#v %#v", batch, repository.reserved)
 	}
 }
 

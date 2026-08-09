@@ -15,37 +15,37 @@ uniqueness. Reservation batches are transactional and explicit.
 
 ### Task 1: Lineage and revision diff domain
 
-- Add migration 0046 with `plan_track_objects.lineage_id` and reservation-link table.
-- Preserve lineage when cloning revisions and initialize it for new objects.
-- Write RED tests for added, removed, changed, unchanged, material delta, issue delta, and no-base
+- [x] Add migration 0046 with `plan_track_objects.lineage_id` and reservation-link table.
+- [x] Preserve lineage when cloning revisions and initialize it for new objects.
+- [x] Write RED tests for added, removed, changed, unchanged, material delta, issue delta, and no-base
   revisions.
-- Implement pure deterministic diff types and helpers in the domain/application boundary.
+- [x] Implement pure deterministic diff types and helpers in the domain/application boundary.
 
 ### Task 2: Change-preview repository, API, and client
 
-- Add repository reads for base plans and affected configurations.
-- Add `GET /plan-revisions/{id}/track-change-preview` with role and missing-revision tests.
-- Document all schemas in OpenAPI and add the typed client method.
-- Build a compact preview panel with object, material, warning, and configuration summaries.
+- [x] Add repository reads for base plans and affected configurations.
+- [x] Add `GET /plan-revisions/{id}/track-change-preview` with role and missing-revision tests.
+- [x] Document all schemas in OpenAPI and add the typed client method.
+- [x] Build a compact preview panel with object, material, warning, and configuration summaries.
 
 ### Task 3: Transactional plan reservations
 
-- Add RED repository tests for quantity, individual asset, insufficient stock, stale object,
+- [x] Add RED repository tests for quantity, individual asset, insufficient stock, stale object,
   mismatched product, duplicate active link, cancellation, and all-or-nothing batches.
-- Implement the batch service and `POST /plan-revisions/{id}/track-reservations`.
-- Return refreshed material and active plan-reservation status.
-- Extend backup/restore to format 6 with version 5 compatibility.
+- [x] Implement the batch service and `POST /plan-revisions/{id}/track-reservations`.
+- [x] Return refreshed material and active plan-reservation status.
+- [x] Extend backup/restore to format 6 with version 5 compatibility.
 
 ### Task 4: Confirmed reservation UI
 
-- Add a RailKeeper dialog that loads eligible products, storage sources, and optional assets.
-- Require explicit confirmation and show resulting free/missing quantities.
-- Refresh analysis and preview after success; keep errors and selection intact on failure.
-- Cover Planner/Admin write access and Viewer/Editor read-only behavior.
+- [x] Add a RailKeeper dialog that loads eligible products, storage sources, and optional assets.
+- [x] Require explicit confirmation and show resulting free/missing quantities.
+- [x] Refresh analysis and preview after success; keep errors and selection intact on failure.
+- [x] Cover Planner/Admin write access and Viewer/Editor read-only behavior.
 
 ### Task 5: Acceptance
 
-- Update Stage-3 status and package documentation.
-- Run all Go tests, all frontend tests, and the production build.
-- Rebuild the local server and verify diff, confirmation, reservation, cancellation status, and an
+- [x] Update Stage-3 status and package documentation.
+- [x] Run all Go tests, all frontend tests, and the production build.
+- [x] Rebuild the local server and verify diff, confirmation, reservation, cancellation status, and an
   empty browser console.

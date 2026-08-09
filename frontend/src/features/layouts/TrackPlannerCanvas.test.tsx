@@ -48,7 +48,11 @@ describe("TrackPlannerCanvas", () => {
     vi.spyOn(api, "trackGeometries").mockResolvedValue([geometry, { ...geometry, id: "draft-geometry", status: "draft" }]);
     vi.spyOn(api, "trackPlan").mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [] });
     vi.spyOn(api, "trackPlanAnalysis").mockResolvedValue({
-      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], materials: []
+      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], materials: [], reservations: []
+    });
+    vi.spyOn(api, "trackPlanChangePreview").mockResolvedValue({
+      revisionId: draft.id, baseRevisionId: "", objectChanges: [], materialDeltas: [],
+      issues: { added: [], resolved: [] }, affectedConfigurations: []
     });
   });
 
@@ -149,7 +153,8 @@ describe("TrackPlannerCanvas", () => {
         { code: "open_end", severity: "warning", objectIds: ["conflicting"], portIds: ["b"] }
       ],
       bom: [],
-      materials: []
+      materials: [],
+      reservations: []
     });
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 

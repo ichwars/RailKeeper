@@ -4,6 +4,11 @@
 
 **Status:** Aus der fachlich abgestimmten Stage-3-Spezifikation abgeleitet und lokal freigegeben
 
+**Abnahmestand 2026-08-09:** Paket C ist lokal umgesetzt. Die vollständige Go-Suite, 64
+Frontend-Testdateien mit 342 Tests und der Produktionsbuild sind grün. Die Browserabnahme gegen den
+neu gebauten lokalen Server bestätigt Vorschau, eigenen Reservierungsdialog, Leerzustand, Anmeldung
+und eine leere Browserkonsole.
+
 ## Ziel
 
 Paket C schließt Stage 3 mit einer nachvollziehbaren Änderungsvorschau und einer ausdrücklich

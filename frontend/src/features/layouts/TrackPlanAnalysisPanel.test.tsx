@@ -21,7 +21,8 @@ const analysis: TrackPlanAnalysis = {
     geometryId: "g1", manufacturer: "Tillig", articleNumber: "83101", name: "Gleisstück G1",
     requiredQuantity: 3, productIds: ["product-1"], inventoryNumbers: ["RK-ART-000001"],
     physicalQuantity: 3, reservedQuantity: 1, availableQuantity: 2, missingQuantity: 1
-  }]
+  }],
+  reservations: []
 };
 
 describe("TrackPlanAnalysisPanel", () => {
@@ -63,7 +64,8 @@ describe("TrackPlanAnalysisPanel", () => {
         geometryId: "g2", manufacturer: "Tillig", articleNumber: "83102", name: "G2",
         requiredQuantity: 1, productIds: [], inventoryNumbers: [], physicalQuantity: 0,
         reservedQuantity: 0, availableQuantity: 0, missingQuantity: 1
-      }]
+      }],
+      reservations: []
     }} />);
 
     expect(screen.getByText("0 Verbindungen")).toBeInTheDocument();

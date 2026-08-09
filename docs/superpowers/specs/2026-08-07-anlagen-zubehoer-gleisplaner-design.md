@@ -6,12 +6,13 @@
 
 **Umsetzung:** Stufenweise, beginnend mit dem gemeinsamen Fundament
 
-**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A und Paket B sind lokal umgesetzt. Paket A enthält
+**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A, B und C sind lokal umgesetzt. Paket A enthält
 die versionierte, geprüfte Tillig-TT-Modellgleis-Bibliothek mit dem geraden Gleis G1 (83101, 166 mm),
-revisionsgebundene Planobjekte, eine maßhaltige SVG-Arbeitsfläche und Backup-Format 5. Paket B ergänzt
+revisionsgebundene Planobjekte und eine maßhaltige SVG-Arbeitsfläche. Paket B ergänzt
 autoritatives Anschluss-Snapping, abgeleitete Verbindungen und Prüfhinweise sowie eine Stückliste mit
-lokalem Bestandsstatus. Beide Pakete bleiben bewusst auf diese eine verifizierte Geometrie begrenzt.
-Planobjektbezogene Reservierung und Änderungsvorschau folgen in Paket C.
+lokalem Bestandsstatus. Paket C ergänzt die Änderungsvorschau zur Basisrevision, stabile Objekt-Lineage,
+atomare planobjektbezogene Materialreservierungen und Backup-Format 6. Die Pakete bleiben bewusst auf
+diese eine verifizierte Geometrie begrenzt.
 
 ## Ziel
 

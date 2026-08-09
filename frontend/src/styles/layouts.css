@@ -628,6 +628,65 @@
 .track-planner-inspector dd { margin: 2px 0 0; font-weight: var(--font-weight-bold); }
 .track-planner-inspector a { display: inline-flex; align-items: center; gap: 5px; }
 .track-planner-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.track-reservation-status {
+  display: inline-flex;
+  align-items: center;
+  color: var(--accent-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.track-change-preview {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px;
+  background: var(--panel-subtle);
+}
+.track-change-preview > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.track-change-preview > header h4 { flex: 1; }
+.track-change-preview h4,
+.track-change-preview h5,
+.track-change-preview p { margin: 0; }
+.track-change-preview > header span { color: var(--muted); font-size: var(--font-size-sm); }
+.track-change-grid { display: grid; grid-template-columns: 1.3fr 0.8fr 1fr; gap: 14px; margin-top: 10px; }
+.track-change-grid > div { min-width: 0; border-left: 2px solid var(--line); padding-left: 10px; }
+.track-change-grid h5 { margin-bottom: 5px; color: var(--muted); }
+.track-change-grid ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.track-change-grid li { display: flex; justify-content: space-between; gap: 8px; }
+.track-change-grid li span,
+.track-change-grid p { color: var(--muted); font-size: var(--font-size-sm); }
+
+.track-reservation-layer { z-index: 150; }
+.track-reservation-dialog { width: min(640px, calc(100vw - 28px)); padding: 18px; }
+.track-reservation-dialog > header,
+.track-reservation-dialog > header > div { display: flex; align-items: center; }
+.track-reservation-dialog > header { justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.track-reservation-dialog > header > div { gap: 9px; }
+.track-reservation-dialog h2,
+.track-reservation-dialog header p { margin: 0; }
+.track-reservation-dialog header p { color: var(--muted); font-size: var(--font-size-sm); }
+.track-reservation-object {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: var(--panel-subtle);
+}
+.track-reservation-object span { color: var(--muted); }
+.track-reservation-confirm {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+.track-reservation-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .track-plan-analysis {
   grid-column: 1 / -1;
@@ -791,6 +850,9 @@
   .track-analysis-summary { justify-content: flex-start; }
   .track-analysis-summary span:first-child { border-left: 0; padding-left: 0; }
   .track-analysis-grid { grid-template-columns: minmax(0, 1fr); }
+  .track-change-grid { grid-template-columns: minmax(0, 1fr); }
+  .track-reservation-dialog .two-columns { grid-template-columns: minmax(0, 1fr); }
+  .track-reservation-object { align-items: flex-start; flex-direction: column; }
   .layout-twin-head-actions { width: 100%; justify-content: flex-end; }
   .layout-twin-inspector {
     position: fixed;

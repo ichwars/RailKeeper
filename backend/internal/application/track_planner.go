@@ -51,12 +51,13 @@ type TrackMaterialStatus struct {
 }
 
 type TrackPlanAnalysis struct {
-	RevisionID  string                       `json:"revisionId"`
-	Status      domain.PlanRevisionStatus    `json:"status"`
-	Connections []domain.TrackPlanConnection `json:"connections"`
-	Issues      []domain.TrackPlanIssue      `json:"issues"`
-	BOM         []domain.TrackBOMLine        `json:"bom"`
-	Materials   []TrackMaterialStatus        `json:"materials"`
+	RevisionID   string                       `json:"revisionId"`
+	Status       domain.PlanRevisionStatus    `json:"status"`
+	Connections  []domain.TrackPlanConnection `json:"connections"`
+	Issues       []domain.TrackPlanIssue      `json:"issues"`
+	BOM          []domain.TrackBOMLine        `json:"bom"`
+	Materials    []TrackMaterialStatus        `json:"materials"`
+	Reservations []TrackPlanObjectReservation `json:"reservations"`
 }
 
 type TrackPlanAffectedConfiguration struct {
@@ -73,13 +74,41 @@ type TrackPlanChangePreview struct {
 	AffectedConfigurations []TrackPlanAffectedConfiguration `json:"affectedConfigurations"`
 }
 
+type TrackPlanReservationInput struct {
+	TrackObjectID         string `json:"trackObjectId"`
+	ProductID             string `json:"productId"`
+	LocationID            string `json:"locationId"`
+	AssetID               string `json:"assetId,omitempty"`
+	ExpectedObjectVersion int    `json:"expectedObjectVersion"`
+}
+
+type ReserveTrackPlanMaterialsInput struct {
+	Confirmed bool                        `json:"confirmed"`
+	Items     []TrackPlanReservationInput `json:"items"`
+}
+
+type TrackPlanObjectReservation struct {
+	TrackObjectID string               `json:"trackObjectId"`
+	Reservation   AccessoryReservation `json:"reservation"`
+}
+
+type TrackPlanReservationBatch struct {
+	RevisionID   string                       `json:"revisionId"`
+	Reservations []TrackPlanObjectReservation `json:"reservations"`
+	Materials    []TrackMaterialStatus        `json:"materials"`
+}
+
 type TrackPlannerRepository interface {
 	ListGeometries(context.Context, string) ([]domain.TrackGeometryDefinition, error)
 	GetPlan(context.Context, string) (*TrackPlan, error)
 	GetBaseRevisionID(context.Context, string) (string, error)
 	ListAffectedConfigurations(context.Context, string) ([]TrackPlanAffectedConfiguration, error)
+	ReserveMaterials(
+		context.Context, string, ReserveTrackPlanMaterialsInput, string,
+	) (*TrackPlanReservationBatch, error)
 	GetPlanForObject(context.Context, string) (*TrackPlan, error)
 	TrackMaterialAvailability(context.Context, []domain.TrackBOMLine) ([]TrackMaterialStatus, error)
+	ListMaterialReservations(context.Context, string) ([]TrackPlanObjectReservation, error)
 	CreateObject(
 		context.Context, string, CreatePlanTrackObjectInput, string,
 	) (*domain.PlanTrackObject, error)
@@ -133,10 +162,14 @@ func (service *TrackPlannerService) AnalyzePlan(
 	if err != nil {
 		return nil, err
 	}
+	reservations, err := service.repository.ListMaterialReservations(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
 	return &TrackPlanAnalysis{
 		RevisionID: plan.RevisionID, Status: plan.Status,
 		Connections: geometryAnalysis.Connections, Issues: geometryAnalysis.Issues,
-		BOM: geometryAnalysis.BOM, Materials: materials,
+		BOM: geometryAnalysis.BOM, Materials: materials, Reservations: reservations,
 	}, nil
 }
 
@@ -179,6 +212,44 @@ func (service *TrackPlannerService) ChangePreview(
 		),
 		AffectedConfigurations: affected,
 	}, nil
+}
+
+func (service *TrackPlannerService) ReserveMaterials(
+	ctx context.Context,
+	revisionID string,
+	input ReserveTrackPlanMaterialsInput,
+	actor string,
+) (*TrackPlanReservationBatch, error) {
+	revisionID = strings.TrimSpace(revisionID)
+	if revisionID == "" || !input.Confirmed || len(input.Items) == 0 {
+		return nil, ErrTrackPlanValidation
+	}
+	seenObjects := make(map[string]struct{}, len(input.Items))
+	for index := range input.Items {
+		item := &input.Items[index]
+		item.TrackObjectID = strings.TrimSpace(item.TrackObjectID)
+		item.ProductID = strings.TrimSpace(item.ProductID)
+		item.LocationID = strings.TrimSpace(item.LocationID)
+		item.AssetID = strings.TrimSpace(item.AssetID)
+		if item.TrackObjectID == "" || item.ProductID == "" || item.LocationID == "" ||
+			item.ExpectedObjectVersion < 1 {
+			return nil, ErrTrackPlanValidation
+		}
+		if _, duplicate := seenObjects[item.TrackObjectID]; duplicate {
+			return nil, ErrTrackPlanValidation
+		}
+		seenObjects[item.TrackObjectID] = struct{}{}
+	}
+	batch, err := service.repository.ReserveMaterials(ctx, revisionID, input, actor)
+	if err != nil {
+		return nil, err
+	}
+	analysis, err := service.AnalyzePlan(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
+	batch.Materials = analysis.Materials
+	return batch, nil
 }
 
 func (service *TrackPlannerService) CreateObject(

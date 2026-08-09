@@ -51,6 +51,17 @@ func TestTrackPlannerRoutesEnforceRolesAndCSRF(t *testing.T) {
 			assertStatus(t, response, want)
 		}
 	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/plan-revisions/"+draft.ID+"/track-reservations", map[string]any{
+				"confirmed": false, "items": []any{},
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusBadRequest
+		}
+		assertStatus(t, response, want)
+	}
 
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodPost,
@@ -133,6 +144,8 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 			"rotationDegrees": 0,
 		}, true)
 	assertStatus(t, secondResponse, http.StatusCreated)
+	var second domain.PlanTrackObject
+	decodeResponse(t, secondResponse, &second)
 
 	analysisResponse := layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-analysis", nil, true)
@@ -142,6 +155,36 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	if analysis.RevisionID != draft.ID || len(analysis.Connections) != 1 ||
 		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 {
 		t.Fatalf("unexpected track plan analysis: %#v", analysis)
+	}
+	if _, err := db.Exec(`
+INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('route-track-location', 'Gleislager', 'now', 'now');
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  created_at, updated_at
+) VALUES(
+  'route-track-product', 'RK-ART-0083101', 'Tillig', '83101', 'Gleisstück G1', 'track', 'quantity',
+  'now', 'now'
+);
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+VALUES('route-track-product', 'route-track-location', 2, 'now');`); err != nil {
+		t.Fatal(err)
+	}
+	reservationResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-reservations", map[string]any{
+			"confirmed": true,
+			"items": []map[string]any{
+				{"trackObjectId": created.ID, "productId": "route-track-product",
+					"locationId": "route-track-location", "expectedObjectVersion": updated.Version},
+				{"trackObjectId": second.ID, "productId": "route-track-product",
+					"locationId": "route-track-location", "expectedObjectVersion": second.Version},
+			},
+		}, true)
+	assertStatus(t, reservationResponse, http.StatusCreated)
+	var reservationBatch application.TrackPlanReservationBatch
+	decodeResponse(t, reservationResponse, &reservationBatch)
+	if len(reservationBatch.Reservations) != 2 {
+		t.Fatalf("unexpected route reservation batch: %#v", reservationBatch)
 	}
 	previewResponse := layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-change-preview", nil, true)
@@ -163,7 +206,7 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 
 	deleteResponse := layoutRequest(t, router, session, http.MethodDelete,
 		fmt.Sprintf("/api/v1/plan-track-objects/%s?expectedVersion=%d", created.ID, updated.Version), nil, true)
-	assertStatus(t, deleteResponse, http.StatusNoContent)
+	assertProblem(t, deleteResponse, http.StatusConflict, "track_plan_conflict")
 
 	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/plan-revisions/missing/track-plan", nil, true),

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/domain"
@@ -119,6 +120,171 @@ ORDER BY configuration.name COLLATE NOCASE, configuration.id`, revisionID)
 	return configurations, nil
 }
 
+func (repository *TrackPlannerRepository) ReserveMaterials(
+	ctx context.Context,
+	revisionID string,
+	input application.ReserveTrackPlanMaterialsInput,
+	actor string,
+) (*application.TrackPlanReservationBatch, error) {
+	now := timestamp()
+	type pendingReservation struct {
+		trackObjectID string
+		reservationID string
+	}
+	pending := make([]pendingReservation, 0, len(input.Items))
+	err := repository.withTx(ctx, func(tx *sql.Tx) error {
+		var status domain.PlanRevisionStatus
+		var layoutUnitID string
+		err := tx.QueryRowContext(ctx, `
+SELECT revision.status, variant.layout_unit_id
+FROM plan_revisions revision
+JOIN plan_variants variant ON variant.id=revision.variant_id
+WHERE revision.id=?`, revisionID).Scan(&status, &layoutUnitID)
+		if errors.Is(err, sql.ErrNoRows) {
+			return application.ErrTrackPlanNotFound
+		}
+		if err != nil {
+			return fmt.Errorf("read track reservation revision: %w", err)
+		}
+		if status != domain.PlanRevisionDraft && status != domain.PlanRevisionReview {
+			return application.ErrTrackPlanImmutable
+		}
+
+		for _, item := range input.Items {
+			var objectVersion int
+			var manufacturer, articleNumber string
+			err := tx.QueryRowContext(ctx, `
+SELECT object.version, library.manufacturer, geometry.article_number
+FROM plan_track_objects object
+JOIN track_geometry_definitions geometry ON geometry.id=object.geometry_id
+JOIN track_geometry_libraries library ON library.id=geometry.library_id
+WHERE object.id=? AND object.revision_id=?`, item.TrackObjectID, revisionID).
+				Scan(&objectVersion, &manufacturer, &articleNumber)
+			if errors.Is(err, sql.ErrNoRows) {
+				return application.ErrTrackPlanNotFound
+			}
+			if err != nil {
+				return fmt.Errorf("read track reservation object: %w", err)
+			}
+			if objectVersion != item.ExpectedObjectVersion {
+				return application.ErrTrackPlanConflict
+			}
+			var productManufacturer, productArticleNumber string
+			err = tx.QueryRowContext(ctx, `
+SELECT manufacturer, article_number FROM accessory_products WHERE id=? AND archived=0`, item.ProductID).
+				Scan(&productManufacturer, &productArticleNumber)
+			if errors.Is(err, sql.ErrNoRows) {
+				return application.ErrAccessoryNotFound
+			}
+			if err != nil {
+				return fmt.Errorf("read track reservation product: %w", err)
+			}
+			if !strings.EqualFold(strings.TrimSpace(manufacturer), strings.TrimSpace(productManufacturer)) ||
+				!strings.EqualFold(strings.TrimSpace(articleNumber), strings.TrimSpace(productArticleNumber)) {
+				return application.ErrTrackPlanValidation
+			}
+			var activeLinkCount int
+			if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM plan_track_object_reservations WHERE track_object_id=? AND active=1`,
+				item.TrackObjectID).Scan(&activeLinkCount); err != nil {
+				return fmt.Errorf("check active track reservation: %w", err)
+			}
+			if activeLinkCount > 0 {
+				return application.ErrTrackPlanConflict
+			}
+			strategy, err := accessoryInventoryStrategy(ctx, tx, item.ProductID)
+			if err != nil {
+				return err
+			}
+			if err := requireActiveStorageLocation(ctx, tx, item.LocationID); err != nil {
+				return err
+			}
+			reservationInput := application.CreateAccessoryReservationInput{
+				ProductID: item.ProductID, AssetID: item.AssetID, LocationID: item.LocationID,
+				Quantity: 1, AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: layoutUnitID},
+				Note: "Gleisplanobjekt " + item.TrackObjectID,
+			}
+			usesAsset, err := accessoryAllocationUsesAsset(strategy, item.AssetID)
+			if err != nil {
+				return err
+			}
+			if usesAsset {
+				if err := requireReservableAsset(ctx, tx, reservationInput); err != nil {
+					return err
+				}
+			} else {
+				available, err := availableAccessoryQuantity(ctx, tx, item.ProductID, item.LocationID)
+				if err != nil {
+					return err
+				}
+				if available < 1 {
+					return application.ErrAccessoryInsufficientStock
+				}
+			}
+
+			reservationID := randomID()
+			if _, err := tx.ExecContext(ctx, `
+INSERT INTO accessory_reservations(
+  id, product_id, asset_id, location_id, quantity, layout_unit_id, status, note,
+  created_by, created_at, updated_at, placement, digital_address, decoder_output,
+  connection, wiring_notes
+) VALUES(?, ?, NULLIF(?, ''), ?, 1, ?, ?, ?, ?, ?, ?, '', '', '', '', '')`,
+				reservationID, item.ProductID, item.AssetID, item.LocationID, layoutUnitID,
+				domain.AccessoryReservationActive, reservationInput.Note, actor, now, now); err != nil {
+				if isSQLiteConstraint(err) {
+					return application.ErrTrackPlanConflict
+				}
+				return fmt.Errorf("insert track material reservation: %w", err)
+			}
+			if item.AssetID != "" {
+				result, err := tx.ExecContext(ctx, `
+UPDATE accessory_assets SET lifecycle_state=?, updated_at=?
+WHERE id=? AND lifecycle_state=?`, domain.AccessoryLifecycleReserved, now, item.AssetID,
+					domain.AccessoryLifecycleStored)
+				if err != nil {
+					return fmt.Errorf("reserve track material asset: %w", err)
+				}
+				if err := requireAccessoryConflictFreeUpdate(result); err != nil {
+					return err
+				}
+			}
+			if _, err := tx.ExecContext(ctx, `
+INSERT INTO plan_track_object_reservations(
+  reservation_id, track_object_id, active, created_at, updated_at
+) VALUES(?, ?, 1, ?, ?)`, reservationID, item.TrackObjectID, now, now); err != nil {
+				if isSQLiteConstraint(err) {
+					return application.ErrTrackPlanConflict
+				}
+				return fmt.Errorf("link track material reservation: %w", err)
+			}
+			if err := writeAccessoryAudit(ctx, tx, "TrackPlanMaterialReserved", "plan_track_object",
+				item.TrackObjectID, actor, now, `{"reservationId":"`+reservationID+`"}`); err != nil {
+				return err
+			}
+			pending = append(pending, pendingReservation{
+				trackObjectID: item.TrackObjectID, reservationID: reservationID,
+			})
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	batch := &application.TrackPlanReservationBatch{
+		RevisionID: revisionID, Reservations: make([]application.TrackPlanObjectReservation, 0, len(pending)),
+	}
+	for _, item := range pending {
+		reservation, err := getReservationWith(ctx, repository.db, item.reservationID)
+		if err != nil {
+			return nil, err
+		}
+		batch.Reservations = append(batch.Reservations, application.TrackPlanObjectReservation{
+			TrackObjectID: item.trackObjectID, Reservation: *reservation,
+		})
+	}
+	return batch, nil
+}
+
 func (repository *TrackPlannerRepository) GetPlanForObject(
 	ctx context.Context,
 	objectID string,
@@ -194,6 +360,53 @@ ORDER BY product.inventory_number COLLATE NOCASE, product.id`, material.Manufact
 		materials = append(materials, material)
 	}
 	return materials, nil
+}
+
+func (repository *TrackPlannerRepository) ListMaterialReservations(
+	ctx context.Context,
+	revisionID string,
+) ([]application.TrackPlanObjectReservation, error) {
+	rows, err := repository.db.QueryContext(ctx, `
+SELECT link.track_object_id, link.reservation_id
+FROM plan_track_object_reservations link
+JOIN plan_track_objects object ON object.id=link.track_object_id
+JOIN accessory_reservations reservation ON reservation.id=link.reservation_id
+WHERE object.revision_id=? AND link.active=1 AND reservation.status='active'
+ORDER BY object.created_at, object.id`, revisionID)
+	if err != nil {
+		return nil, fmt.Errorf("list track material reservation links: %w", err)
+	}
+	type reservationLink struct {
+		trackObjectID string
+		reservationID string
+	}
+	links := []reservationLink{}
+	for rows.Next() {
+		link := reservationLink{}
+		if err := rows.Scan(&link.trackObjectID, &link.reservationID); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan track material reservation link: %w", err)
+		}
+		links = append(links, link)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return nil, fmt.Errorf("iterate track material reservation links: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close track material reservation links: %w", err)
+	}
+	reservations := make([]application.TrackPlanObjectReservation, 0, len(links))
+	for _, link := range links {
+		reservation, err := getReservationWith(ctx, repository.db, link.reservationID)
+		if err != nil {
+			return nil, err
+		}
+		reservations = append(reservations, application.TrackPlanObjectReservation{
+			TrackObjectID: link.trackObjectID, Reservation: *reservation,
+		})
+	}
+	return reservations, nil
 }
 
 func (repository *TrackPlannerRepository) CreateObject(
@@ -297,6 +510,15 @@ func (repository *TrackPlannerRepository) DeleteObject(
 			return application.ErrTrackPlanImmutable
 		}
 		if version != expectedVersion {
+			return application.ErrTrackPlanConflict
+		}
+		var activeReservations int
+		if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM plan_track_object_reservations WHERE track_object_id=?`, id).
+			Scan(&activeReservations); err != nil {
+			return fmt.Errorf("check track object reservations: %w", err)
+		}
+		if activeReservations > 0 {
 			return application.ErrTrackPlanConflict
 		}
 		if _, err := tx.ExecContext(ctx, `DELETE FROM plan_track_objects WHERE id=? AND version=?`,

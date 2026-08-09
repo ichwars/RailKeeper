@@ -1,5 +1,5 @@
 import { PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, PackageCheck, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 
 import {
   ApiError,
@@ -8,11 +8,15 @@ import {
   type PlanRevision,
   type PlanTrackObject,
   type TrackGeometryDefinition,
-  type TrackPlanAnalysis
+  type TrackPlanAnalysis,
+  type TrackPlanChangePreview,
+  type TrackMaterialStatus
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
+import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
+import { TrackPlanReservationDialog } from "./TrackPlanReservationDialog";
 import {
   normalizedRotation,
   routePolylinePoints,
@@ -64,6 +68,8 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const [geometries, setGeometries] = useState<TrackGeometryDefinition[]>([]);
   const [objects, setObjects] = useState<PlanTrackObject[]>([]);
   const [analysis, setAnalysis] = useState<TrackPlanAnalysis | null>(null);
+  const [preview, setPreview] = useState<TrackPlanChangePreview | null>(null);
+  const [reservationMaterial, setReservationMaterial] = useState<TrackMaterialStatus | null>(null);
   const [selectedID, setSelectedID] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -75,24 +81,29 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const { t } = useI18n();
   const genericError = t("layouts.error.generic");
   const editable = canPlan && revision.status === "draft";
+  const reservable = canPlan && (revision.status === "draft" || revision.status === "review");
   const width = unit.widthMm > 0 ? unit.widthMm : 1000;
   const height = unit.heightMm > 0 ? unit.heightMm : 600;
   const selected = objects.find((object) => object.id === selectedID);
 
-  const refreshAnalysis = useCallback(async () => {
-    const nextAnalysis = await api.trackPlanAnalysis(revision.id);
-    setAnalysis(nextAnalysis);
+  const refreshDerived = useCallback(async () => {
+    const [nextAnalysis, nextPreview] = await Promise.all([
+      api.trackPlanAnalysis(revision.id), api.trackPlanChangePreview(revision.id)
+    ]);
+    setAnalysis(nextAnalysis); setPreview(nextPreview);
   }, [revision.id]);
 
   const load = useCallback(async () => {
     setLoading(true); setMessage(""); setConflict(false);
     try {
-      const [nextGeometries, plan, nextAnalysis] = await Promise.all([
-        api.trackGeometries(gauge), api.trackPlan(revision.id), api.trackPlanAnalysis(revision.id)
+      const [nextGeometries, plan, nextAnalysis, nextPreview] = await Promise.all([
+        api.trackGeometries(gauge), api.trackPlan(revision.id), api.trackPlanAnalysis(revision.id),
+        api.trackPlanChangePreview(revision.id)
       ]);
       setGeometries(nextGeometries.filter((geometry) => geometry.status === "verified"));
       setObjects(plan.objects);
       setAnalysis(nextAnalysis);
+      setPreview(nextPreview);
       setSelectedID((current) => plan.objects.some((object) => object.id === current) ? current : "");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : genericError);
@@ -121,7 +132,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
       });
       setObjects((current) => [...current, created]);
       setSelectedID(created.id);
-      await refreshAnalysis();
+      await refreshDerived();
     } catch (reason) { showError(reason); }
     finally { setSaving(false); }
   };
@@ -134,7 +145,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         positionXMm, positionYMm, rotationDegrees, expectedVersion: object.version
       });
       setObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
-      await refreshAnalysis();
+      await refreshDerived();
     } catch (reason) { showError(reason); }
     finally { setSaving(false); }
   };
@@ -198,7 +209,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         await api.deletePlanTrackObject(object.id, object.version);
         setObjects((current) => current.filter((item) => item.id !== object.id));
         setSelectedID("");
-        await refreshAnalysis();
+        await refreshDerived();
       }
     });
   };
@@ -276,19 +287,31 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           <a href={selected.geometry.sourceUrl} target="_blank" rel="noreferrer">
             {t("layouts.trackPlanner.source")}<ExternalLink size={13} />
           </a>
-          {editable ? <div className="track-planner-actions">
+          {editable || reservable ? <div className="track-planner-actions">
+            {editable ? <>
             <button type="button" className="secondary-button compact-action" disabled={saving}
               onClick={() => rotate(-15)}><RotateCcw size={14} />-15°</button>
             <button type="button" className="secondary-button compact-action" disabled={saving}
               onClick={() => rotate(15)}><RotateCw size={14} />+15°</button>
             <button type="button" className="danger-button compact-action" disabled={saving}
               onClick={askDelete}><Trash2 size={14} />{t("layouts.trackPlanner.delete")}</button>
+            </> : null}
+            {analysis?.reservations.some((item) => item.trackObjectId === selected.id)
+              ? <span className="track-reservation-status">✓ {t("layouts.trackReservation.reserved")}</span>
+              : <button type="button" className="secondary-button compact-action" disabled={saving}
+                onClick={() => setReservationMaterial(analysis?.materials.find(
+                  (material) => material.geometryId === selected.geometryId
+                ) ?? null)}><PackageCheck size={14} />{t("layouts.trackReservation.open")}</button>}
           </div> : null}
         </> : <p className="layout-empty">{t("layouts.trackPlanner.select")}</p>}
       </aside>
       {analysis ? <TrackPlanAnalysisPanel analysis={analysis} selectedObjectId={selectedID}
         onSelectObject={setSelectedID} /> : null}
+      {preview ? <TrackPlanChangePreviewPanel preview={preview} /> : null}
     </div>}
     <LayoutConfirmDialog action={pending} onClose={() => setPending(null)} />
+    {reservationMaterial && selected ? <TrackPlanReservationDialog revisionId={revision.id}
+      object={selected} material={reservationMaterial} onClose={() => setReservationMaterial(null)}
+      onReserved={() => { setReservationMaterial(null); void refreshDerived(); }} /> : null}
   </section>;
 }
