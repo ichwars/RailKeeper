@@ -270,6 +270,47 @@ export type TrackPlan = {
   status: PlanRevisionStatus;
   objects: PlanTrackObject[];
 };
+export type TrackPlanConnection = {
+  objectAId: string;
+  portAId: string;
+  objectBId: string;
+  portBId: string;
+};
+export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry";
+export type TrackPlanIssue = {
+  code: TrackPlanIssueCode;
+  severity: "warning" | "error";
+  objectIds: string[];
+  portIds?: string[];
+};
+export type TrackBOMLine = {
+  geometryId: string;
+  libraryId: string;
+  articleNumber: string;
+  name: string;
+  quantity: number;
+};
+export type TrackMaterialStatus = {
+  geometryId: string;
+  manufacturer: string;
+  articleNumber: string;
+  name: string;
+  requiredQuantity: number;
+  productIds: string[];
+  inventoryNumbers: string[];
+  physicalQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  missingQuantity: number;
+};
+export type TrackPlanAnalysis = {
+  revisionId: string;
+  status: PlanRevisionStatus;
+  connections: TrackPlanConnection[];
+  issues: TrackPlanIssue[];
+  bom: TrackBOMLine[];
+  materials: TrackMaterialStatus[];
+};
 export type CreatePlanTrackObjectInput = {
   geometryId: string;
   positionXMm: number;
@@ -803,6 +844,8 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<TrackGeometryDefinition[]>(`/track-geometries?gauge=${encodeURIComponent(gauge)}`),
     trackPlan: (revisionId: string) =>
       request<TrackPlan>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-plan`),
+    trackPlanAnalysis: (revisionId: string) =>
+      request<TrackPlanAnalysis>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-analysis`),
     createPlanTrackObject: (revisionId: string, input: CreatePlanTrackObjectInput) =>
       request<PlanTrackObject>(
         `/plan-revisions/${encodeURIComponent(revisionId)}/track-objects`, json("POST", input)

@@ -40,6 +40,7 @@ func TestTrackPlannerRoutesEnforceRolesAndCSRF(t *testing.T) {
 		for _, path := range []string{
 			"/api/v1/track-geometries?gauge=TT",
 			"/api/v1/plan-revisions/" + draft.ID + "/track-plan",
+			"/api/v1/plan-revisions/" + draft.ID + "/track-analysis",
 		} {
 			response := layoutRequest(t, router, session, http.MethodGet, path, nil, true)
 			want := http.StatusOK
@@ -116,7 +117,7 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 
 	updatedResponse := layoutRequest(t, router, session, http.MethodPut,
 		"/api/v1/plan-track-objects/"+created.ID, map[string]any{
-			"positionXMm": 110, "positionYMm": 55, "rotationDegrees": 15,
+			"positionXMm": 110, "positionYMm": 55, "rotationDegrees": 0,
 			"expectedVersion": created.Version,
 		}, true)
 	assertStatus(t, updatedResponse, http.StatusOK)
@@ -124,6 +125,22 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	decodeResponse(t, updatedResponse, &updated)
 	if updated.Version != 2 || updated.PositionXMM != 110 {
 		t.Fatalf("unexpected updated track object: %#v", updated)
+	}
+	secondResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
+			"geometryId": geometries[0].ID, "positionXMm": 276, "positionYMm": 55,
+			"rotationDegrees": 0,
+		}, true)
+	assertStatus(t, secondResponse, http.StatusCreated)
+
+	analysisResponse := layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-analysis", nil, true)
+	assertStatus(t, analysisResponse, http.StatusOK)
+	var analysis application.TrackPlanAnalysis
+	decodeResponse(t, analysisResponse, &analysis)
+	if analysis.RevisionID != draft.ID || len(analysis.Connections) != 1 ||
+		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 {
+		t.Fatalf("unexpected track plan analysis: %#v", analysis)
 	}
 
 	staleResponse := layoutRequest(t, router, session, http.MethodPut,
@@ -139,6 +156,9 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 
 	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/plan-revisions/missing/track-plan", nil, true),
+		http.StatusNotFound, "track_plan_not_found")
+	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/plan-revisions/missing/track-analysis", nil, true),
 		http.StatusNotFound, "track_plan_not_found")
 	assertProblem(t, layoutRequest(t, router, session, http.MethodPost,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{

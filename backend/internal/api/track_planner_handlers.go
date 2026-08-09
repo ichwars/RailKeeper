@@ -26,6 +26,15 @@ func (a *App) getTrackPlan(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, plan)
 }
 
+func (a *App) getTrackPlanAnalysis(w http.ResponseWriter, r *http.Request) {
+	analysis, err := a.trackPlannerService.AnalyzePlan(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.trackPlannerError(w, err, "analyze track plan")
+		return
+	}
+	respondJSON(w, http.StatusOK, analysis)
+}
+
 func (a *App) createPlanTrackObject(w http.ResponseWriter, r *http.Request) {
 	var input application.CreatePlanTrackObjectInput
 	if !decodeLayoutJSON(w, r, &input) {

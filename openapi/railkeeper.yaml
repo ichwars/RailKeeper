@@ -2695,6 +2695,122 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlanTrackObject"
+    TrackPlanConnection:
+      type: object
+      required: [objectAId, portAId, objectBId, portBId]
+      properties:
+        objectAId:
+          type: string
+        portAId:
+          type: string
+        objectBId:
+          type: string
+        portBId:
+          type: string
+    TrackPlanIssue:
+      type: object
+      required: [code, severity, objectIds]
+      properties:
+        code:
+          type: string
+          enum: [open_end, incompatible_connection, overlap, broken_geometry]
+        severity:
+          type: string
+          enum: [warning, error]
+        objectIds:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+    TrackBOMLine:
+      type: object
+      required: [geometryId, libraryId, articleNumber, name, quantity]
+      properties:
+        geometryId:
+          type: string
+        libraryId:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 0
+    TrackMaterialStatus:
+      type: object
+      required:
+        - geometryId
+        - manufacturer
+        - articleNumber
+        - name
+        - requiredQuantity
+        - productIds
+        - inventoryNumbers
+        - physicalQuantity
+        - reservedQuantity
+        - availableQuantity
+        - missingQuantity
+      properties:
+        geometryId:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        requiredQuantity:
+          type: integer
+          minimum: 0
+        productIds:
+          type: array
+          items:
+            type: string
+        inventoryNumbers:
+          type: array
+          items:
+            type: string
+        physicalQuantity:
+          type: integer
+          minimum: 0
+        reservedQuantity:
+          type: integer
+          minimum: 0
+        availableQuantity:
+          type: integer
+          minimum: 0
+        missingQuantity:
+          type: integer
+          minimum: 0
+    TrackPlanAnalysis:
+      type: object
+      required: [revisionId, status, connections, issues, bom, materials]
+      properties:
+        revisionId:
+          type: string
+        status:
+          type: string
+          enum: [draft, review, published, archived]
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanConnection"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssue"
+        bom:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackBOMLine"
+        materials:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackMaterialStatus"
     CreatePlanTrackObjectInput:
       type: object
       required: [geometryId, positionXMm, positionYMm, rotationDegrees]
@@ -5498,6 +5614,29 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TrackPlan"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-analysis:
+    get:
+      tags: [Layouts]
+      summary: Analyze connections, issues, and material availability for a track plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived track plan analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanAnalysis"
         "404":
           description: Plan revision not found
           content:

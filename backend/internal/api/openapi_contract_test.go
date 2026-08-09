@@ -73,6 +73,7 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 		"UpdateLayoutConfigurationInput", "PlanVariant", "PlanVariantInput", "PlanRevision",
 		"PlanRevisionInput", "PlanRevisionTransitionInput", "TrackPoint", "TrackPort", "TrackRoute",
 		"TrackGeometry", "TrackGeometryDefinition", "PlanTrackObject", "TrackPlan",
+		"TrackPlanConnection", "TrackPlanIssue", "TrackBOMLine", "TrackMaterialStatus", "TrackPlanAnalysis",
 		"CreatePlanTrackObjectInput", "UpdatePlanTrackObjectInput", "AccessoryProduct", "AccessoryProductInput",
 		"StorageLocation", "StorageLocationInput", "AccessoryStockSummary", "AccessoryStockAdjustmentInput",
 		"AccessoryAsset", "AccessoryAssetInput", "AccessoryAllocationTarget", "AccessoryReservation",
