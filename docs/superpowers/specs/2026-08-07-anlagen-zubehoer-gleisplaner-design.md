@@ -14,6 +14,13 @@ lokalem Bestandsstatus. Paket C ergänzt die Änderungsvorschau zur Basisrevisio
 atomare planobjektbezogene Materialreservierungen und Backup-Format 6. Die Pakete bleiben bewusst auf
 diese eine verifizierte Geometrie begrenzt.
 
+**Umsetzungsstand 2026-08-10:** Etappe 4, Paket A ist lokal umgesetzt und abgenommen. Benannte,
+typisierte Modulports besitzen eine millimetergenaue Position, Richtung und normalisierte
+Schnittstellenkennung. Rollen, CSRF-Schutz, optimistische Versionierung, OpenAPI und die
+deutsch/englische Oberfläche sind abgedeckt. Backup-Format 7 erhält die Ports, ältere Formate 1 bis
+6 bleiben importierbar. Kompatibilitätsanalyse, Snapping und automatische Modulbewegung bleiben
+bewusst Folgepaketen vorbehalten.
+
 ## Ziel
 
 RailKeeper erweitert die bestehende Fahrzeugverwaltung um einen eigenständigen Bereich für Zubehör,

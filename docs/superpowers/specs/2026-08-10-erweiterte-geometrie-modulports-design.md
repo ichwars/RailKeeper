@@ -2,8 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** Aus Issue #36 und der fachlich abgestimmten Anlagenarchitektur abgeleitet, lokale
-Fortsetzung ohne Veröffentlichung
+**Status:** Paket A lokal umgesetzt und am 2026-08-10 abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -45,7 +44,7 @@ Beachtung der Groß-/Kleinschreibung eindeutig. Änderungen verwenden `expectedV
 liefern den vorhandenen Layout-Versionskonflikt. Archivierung erfolgt über ein normales Update, es
 gibt in diesem Paket keinen physischen Löschendpunkt.
 
-Audit-Einträge verwenden `layout_unit_port.created` und `layout_unit_port.updated`. Backup-Format 7
+Audit-Einträge verwenden `LayoutUnitPortCreated` und `LayoutUnitPortUpdated`. Backup-Format 7
 enthält die neue Tabelle. Formate 1 bis 6 bleiben importierbar und erzeugen keine Ports.
 
 ## API und Berechtigungen
@@ -89,3 +88,13 @@ Nicht Teil dieses Pakets sind:
 - Backup/Restore erhält Ports und Referenzen; ältere Backups bleiben importierbar.
 - OpenAPI, Frontend-Client, deutsche und englische UI stimmen mit dem Backend überein.
 - Go-Suite, Frontendtests, Produktionsbuild und lokale Browserabnahme sind grün.
+
+### Abnahmeprotokoll vom 2026-08-10
+
+- `go test ./...` im Backend: alle Pakete erfolgreich.
+- `npm.cmd test -- --run` im Frontend: 65 Testdateien und 345 Tests erfolgreich.
+- `npm.cmd run build`: 2.172 Module erfolgreich in den Produktionsbuild übernommen.
+- Browserabnahme unter `http://127.0.0.1:18083/layouts`: Port anlegen, bearbeiten und archivieren
+  erfolgreich; app-eigene Auswahlkomponente, lange Schnittstellenkennung und Dark Theme geprüft.
+- Browserkonsole nach der Abnahme: keine Warnungen oder Fehler.
+- Der QA-Port `QA West` bleibt ausschließlich lokal und archiviert in der Entwicklungsdatenbank.

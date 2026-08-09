@@ -37,19 +37,19 @@ automatic module movement is introduced yet.
   `application.CreateLayoutUnitPortInput`, `application.UpdateLayoutUnitPortInput`
 - Produces: `LayoutService.ListUnitPorts`, `CreateUnitPort`, and `UpdateUnitPort`
 
-- [ ] **Step 1: Write failing service tests**
+- [x] **Step 1: Write failing service tests**
 
 Cover trimming and lowercase normalization, direction normalization, non-finite and out-of-bounds
 coordinates, invalid kinds, blank interface keys, duplicate-independent service calls, and versions
 below one. Extend the repository spy with the three wished-for methods.
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run: `cd backend; go test ./internal/application -run LayoutUnitPort -count=1`
 
 Expected: compilation fails because the port types and service methods do not exist.
 
-- [ ] **Step 3: Implement the minimal domain and service behavior**
+- [x] **Step 3: Implement the minimal domain and service behavior**
 
 Define kinds `track`, `power`, `digital`, `feedback`, `accessory`, and `other`. Add repository methods:
 
@@ -62,11 +62,11 @@ UpdateUnitPort(context.Context, string, UpdateLayoutUnitPortInput, string) (*Lay
 Load the owning unit before writes so boundary validation uses its width and height. Normalize the
 direction with the existing rotation helper.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `cd backend; go test ./internal/application -run LayoutUnitPort -count=1`
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
 
 Run: `gofmt -w backend/internal/domain/layout.go backend/internal/application/layouts.go backend/internal/application/layouts_test.go`
 
@@ -84,26 +84,26 @@ Commit: `feat(layouts): define module port service`
 - Consumes: Task 1 port types and repository methods
 - Produces: deterministic list/create/update persistence with audit events and version conflicts
 
-- [ ] **Step 1: Write failing repository and schema tests**
+- [x] **Step 1: Write failing repository and schema tests**
 
 Assert migration columns, foreign key, case-insensitive unique unit/name constraint, ordered listing,
 create audit data, update audit data, version increments, stale-version rejection, and unit lookup.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd backend; go test ./internal/infrastructure -run 'LayoutUnitPort|LayoutSchema' -count=1`
 
-- [ ] **Step 3: Add migration and repository implementation**
+- [x] **Step 3: Add migration and repository implementation**
 
 Persist IDs as generated UUIDs, booleans as `0/1`, and timestamps with the established repository
 helpers. Order active ports first, then case-insensitive name and ID. Map missing rows to
 `ErrLayoutNotFound` and stale updates to `ErrLayoutVersionConflict`.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `cd backend; go test ./internal/infrastructure -run 'LayoutUnitPort|LayoutSchema' -count=1`
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
 
 Commit: `feat(layouts): persist module ports`
 
@@ -120,25 +120,25 @@ Commit: `feat(layouts): persist module ports`
 - Consumes: Task 1 service methods
 - Produces: `GET/POST /layout-units/{id}/ports` and `PUT /layout-unit-ports/{id}`
 
-- [ ] **Step 1: Write failing API tests**
+- [x] **Step 1: Write failing API tests**
 
 Test successful list/create/update responses, malformed JSON, validation and conflict mapping, the
 Viewer/Editor/Planner/Admin/Messe matrix, and missing CSRF rejection for both writes.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd backend; go test ./internal/api -run 'LayoutUnitPort|OpenAPI' -count=1`
 
-- [ ] **Step 3: Implement routes, handlers and contract**
+- [x] **Step 3: Implement routes, handlers and contract**
 
 Reuse the existing layout error writer and request decoding. Add exact OpenAPI schemas for all port
 fields and role/security descriptions. Do not expose a DELETE route.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `cd backend; go test ./internal/api -run 'LayoutUnitPort|OpenAPI' -count=1`
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
 
 Commit: `feat(api): expose layout module ports`
 
@@ -152,25 +152,25 @@ Commit: `feat(api): expose layout module ports`
 - Consumes: `layout_unit_ports` table from Task 2
 - Produces: format-7 export/validate/import with formats 1 through 6 still accepted
 
-- [ ] **Step 1: Write failing backup tests**
+- [x] **Step 1: Write failing backup tests**
 
 Add a format-7 roundtrip containing a port and a format-6 compatibility test where the table is absent.
 Assert restored unit references and all port fields.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd backend; go test ./internal/application -run Backup -count=1`
 
-- [ ] **Step 3: Add the table and compatibility rules**
+- [x] **Step 3: Add the table and compatibility rules**
 
 Raise the current backup version to 7, export/import the table after `layout_units`, require it only
 for version 7, and preserve the existing auth-data exclusions.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `cd backend; go test ./internal/application -run Backup -count=1`
 
-- [ ] **Step 5: Format and commit**
+- [x] **Step 5: Format and commit**
 
 Commit: `feat(backup): preserve layout module ports`
 
@@ -189,27 +189,27 @@ Commit: `feat(backup): preserve layout module ports`
 - Consumes: Task 3 HTTP endpoints
 - Produces: typed API methods and a role-aware port list/editor under the selected layout unit
 
-- [ ] **Step 1: Write failing component tests**
+- [x] **Step 1: Write failing component tests**
 
 Cover lazy loading after unit selection, table rendering, no-selection/empty/error states, create,
 edit/archive payloads with expected version, app-owned kind select, Viewer read-only rendering and
 German labels. Include a long-interface-key fixture.
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutModulePortsPanel.test.tsx`
 
-- [ ] **Step 3: Implement client, panel, integration and responsive styles**
+- [x] **Step 3: Implement client, panel, integration and responsive styles**
 
 Keep the component focused. `LayoutModulesPanel` passes its selected unit and `canPlan`. The new panel
 owns loading and form state. Use `AppSelect`, existing buttons/tokens and a two-column form that
 collapses at the existing narrow breakpoint.
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutModulePortsPanel.test.tsx`
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Commit: `feat(layouts): manage module ports`
 
@@ -224,26 +224,26 @@ Commit: `feat(layouts): manage module ports`
 - Consumes: Tasks 1 through 5
 - Produces: verified local Package-A acceptance evidence
 
-- [ ] **Step 1: Run complete backend tests**
+- [x] **Step 1: Run complete backend tests**
 
 Run: `cd backend; go test ./...`
 
-- [ ] **Step 2: Run complete frontend tests and build**
+- [x] **Step 2: Run complete frontend tests and build**
 
 Run: `cd frontend; npm.cmd test -- --run`
 
 Run: `cd frontend; npm.cmd run build`
 
-- [ ] **Step 3: Restart the local server and perform browser QA**
+- [x] **Step 3: Restart the local server and perform browser QA**
 
 Verify create/edit/archive, read-only behavior, custom selects, long text, dark theme, narrow width,
 and an empty unit. Confirm no browser console errors.
 
-- [ ] **Step 4: Record exact test counts and local acceptance**
+- [x] **Step 4: Record exact test counts and local acceptance**
 
 Mark every completed plan checkbox and add the date, commands, test counts, build result and browser
 findings to the design status. Update the parent design with the local Stage-4 Package-A state.
 
-- [ ] **Step 5: Commit the acceptance record**
+- [x] **Step 5: Commit the acceptance record**
 
 Commit: `docs: record module port package acceptance`
