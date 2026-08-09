@@ -57,6 +57,12 @@ describe("LayoutsView", () => {
     expect(screen.queryByText("Anlage bearbeiten")).not.toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Module" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Aufbauten" })).toBeInTheDocument();
+    const privateLayout = screen.getByRole("button", { name: /Heimanlage/ });
+    expect(privateLayout).toHaveTextContent("Private Anlage");
+    expect(privateLayout).toHaveTextContent("TT");
+    expect(privateLayout).toHaveTextContent("1:120");
+    expect(privateLayout).toHaveTextContent("Version 2");
+    expect(privateLayout).toHaveTextContent(new Date(layout.updatedAt).toLocaleString());
   });
 
   it("creates a layout and a module for planners", async () => {
@@ -67,8 +73,10 @@ describe("LayoutsView", () => {
     render(<LayoutsView roles={["Planner"]} />);
 
     await screen.findByText("Noch keine Anlage erfasst.");
-    await user.type(screen.getByLabelText("Bezeichnung"), "Clubanlage");
-    await user.click(screen.getByRole("button", { name: "Anlage speichern" }));
+    await user.click(screen.getByRole("button", { name: "Anlage anlegen" }));
+    const dialog = screen.getByRole("dialog", { name: "Anlage anlegen" });
+    await user.type(within(dialog).getByRole("textbox", { name: "Bezeichnung" }), "Clubanlage");
+    await user.click(within(dialog).getByRole("button", { name: "Anlage speichern" }));
     await waitFor(() => expect(api.createLayout).toHaveBeenCalledWith(expect.objectContaining({
       name: "Clubanlage", kind: "private", gauge: "TT", scale: "1:120"
     })));
