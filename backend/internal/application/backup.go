@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 6
+	backupVersion = 7
 )
 
 var (
@@ -103,6 +103,7 @@ var backupTableOrder = []string{
 	"accessory_documents",
 	"layouts",
 	"layout_units",
+	"layout_unit_ports",
 	"layout_unit_outline_points",
 	"layout_technical_positions",
 	"plan_variants",
@@ -153,6 +154,7 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"accessory_documents":                      {introduced: 3, required: 3},
 	"layouts":                                  {introduced: 2, required: 2},
 	"layout_units":                             {introduced: 2, required: 2},
+	"layout_unit_ports":                        {introduced: 7, required: 7},
 	"layout_unit_outline_points":               {introduced: 4, required: 4},
 	"layout_technical_positions":               {introduced: 4, required: 4},
 	"plan_variants":                            {introduced: 2, required: 2},

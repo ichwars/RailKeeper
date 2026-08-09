@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 6 {
-		t.Fatalf("expected backup version 6, got %d", backup.Version)
+	if backup.Version != 7 {
+		t.Fatalf("expected backup version 7, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -153,8 +153,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 6 {
-		t.Fatalf("expected version 6 export, got %d", backup.Version)
+	if backup.Version != 7 {
+		t.Fatalf("expected version 7 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -236,8 +236,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 6 {
-		t.Fatalf("expected version 6 export, got %d", backup.Version)
+	if backup.Version != 7 {
+		t.Fatalf("expected version 7 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -314,8 +314,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 6 {
-		t.Fatalf("expected version 6 export, got %d", backup.Version)
+	if backup.Version != 7 {
+		t.Fatalf("expected version 7 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -365,6 +365,71 @@ SELECT active FROM plan_track_object_reservations WHERE reservation_id='track-pl
 		t.Fatalf("track-planner data changed after restore: manufacturer=%q name=%q geometry=%q "+
 			"revision=%q geometryID=%q position=%v/%v rotation=%v version=%d",
 			manufacturer, name, geometryJSON, revisionID, geometryID, positionX, positionY, rotation, version)
+	}
+}
+
+func TestBackupVersionSevenRoundTripPreservesLayoutUnitPorts(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layouts(id, name, kind, gauge, scale, description, version, archived, created_at, updated_at)
+VALUES('layout-port', 'Module layout', 'club', 'TT', '1:120', '', 1, 0,
+       '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z');
+INSERT INTO layout_units(id, layout_id, name, kind, owner_label, width_mm, height_mm, version, archived, created_at, updated_at)
+VALUES('unit-port', 'layout-port', 'Module A', 'module', '', 1000, 500, 1, 0,
+       '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z');
+INSERT INTO layout_unit_ports(
+  id, layout_unit_id, name, kind, interface_key, x_mm, y_mm, direction_degrees,
+  notes, version, archived, created_at, updated_at
+) VALUES(
+  'port-west', 'unit-port', 'West', 'track', 'track:tillig-tt-modellgleis', 0, 250, 180,
+  'Main line', 2, 0, '2026-08-10T10:00:00Z', '2026-08-10T11:00:00Z'
+);`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 7 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 7 module-port export, got version=%d rows=%d",
+			backup.Version, len(backup.Tables["layout_unit_ports"]))
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	var name, unitID, interfaceKey string
+	var xMM, direction float64
+	if err := db.QueryRowContext(ctx, `
+SELECT name, layout_unit_id, interface_key, x_mm, direction_degrees
+FROM layout_unit_ports WHERE id='port-west'`).Scan(&name, &unitID, &interfaceKey, &xMM, &direction); err != nil {
+		t.Fatal(err)
+	}
+	if name != "West" || unitID != "unit-port" || interfaceKey != "track:tillig-tt-modellgleis" ||
+		xMM != 0 || direction != 180 {
+		t.Fatalf("module port changed after restore: name=%q unit=%q interface=%q x=%v direction=%v",
+			name, unitID, interfaceKey, xMM, direction)
+	}
+
+	legacyTables := make(map[string][]map[string]any, len(backup.Tables)-1)
+	for table, rows := range backup.Tables {
+		if table != "layout_unit_ports" {
+			legacyTables[table] = rows
+		}
+	}
+	legacy := &application.BackupDocument{
+		Format: backup.Format, Version: 6, CreatedAt: backup.CreatedAt,
+		Tables: legacyTables, Files: backup.Files,
+	}
+	validation, err := service.Validate(ctx, legacy)
+	if err != nil || !validation.Compatible {
+		t.Fatalf("expected version 6 without module ports to remain compatible: %#v, %v", validation, err)
 	}
 }
 
@@ -605,8 +670,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 6 {
-		t.Fatalf("expected version 6 export, got %d", backup.Version)
+	if backup.Version != 7 {
+		t.Fatalf("expected version 7 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -626,7 +691,7 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 		t.Fatal(err)
 	}
 	if !validation.Compatible {
-		t.Fatalf("expected complete version 6 backup, got %#v", validation)
+		t.Fatalf("expected complete version 7 backup, got %#v", validation)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE accessory_products SET name='Changed after export' WHERE id=?`, product.ID); err != nil {
 		t.Fatal(err)
@@ -940,6 +1005,11 @@ func backupDocumentTablesThroughVersion(version int) map[string][]map[string]any
 			tables[table] = []map[string]any{}
 		}
 	}
+	if version >= 7 {
+		for _, table := range versionSevenBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
 	return tables
 }
 
@@ -1247,7 +1317,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 7
+		doc.Version = 8
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}
@@ -1748,6 +1818,10 @@ func versionFiveBackupTableNames() []string {
 
 func versionSixBackupTableNames() []string {
 	return []string{"plan_track_object_reservations"}
+}
+
+func versionSevenBackupTableNames() []string {
+	return []string{"layout_unit_ports"}
 }
 
 func legacyOptionalBackupTableNames() []string {
