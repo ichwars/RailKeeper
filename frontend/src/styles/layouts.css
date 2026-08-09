@@ -334,7 +334,7 @@
   .layout-form-actions { flex-direction: column; align-items: stretch; }
   .layout-plan-toolbar > label { min-width: 0; }
   .layout-form-layer { padding: 8px; }
-  .layout-form-dialog { max-height: calc(100vh - 16px); }
+  .layout-form-dialog.vehicle-modal { max-height: calc(100vh - 16px); }
   .layout-form-dialog .modal-actions { align-items: stretch; }
   .layout-dialog-message { margin: 0 0 4px; }
   .layout-panel-head { align-items: center; flex-wrap: wrap; }

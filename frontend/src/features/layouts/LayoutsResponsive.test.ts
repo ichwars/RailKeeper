@@ -12,5 +12,8 @@ describe("layout workspace responsive presentation", () => {
     expect(layoutsCss).toMatch(
       /@media\s*\(max-width:\s*600px\)[\s\S]*?\.layout-workspace-head \.status-pill\s*\{[^}]*align-self:\s*flex-start/s
     );
+    expect(layoutsCss).toMatch(
+      /@media\s*\(max-width:\s*600px\)[\s\S]*?\.layout-form-dialog\.vehicle-modal\s*\{[^}]*max-height:\s*calc\(100vh - 16px\)/s
+    );
   });
 });
