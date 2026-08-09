@@ -30,6 +30,7 @@ type Config struct {
 	LayoutService               *application.LayoutService
 	AccessoryService            *application.AccessoryService
 	AccessoryAllocationService  *application.AccessoryAllocationService
+	AccessoryDocumentService    *application.AccessoryDocumentService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
 	SettingsService             *application.SettingsService
@@ -62,6 +63,7 @@ type App struct {
 	layoutService               *application.LayoutService
 	accessoryService            *application.AccessoryService
 	accessoryAllocationService  *application.AccessoryAllocationService
+	accessoryDocumentService    *application.AccessoryDocumentService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
 	settingsService             *application.SettingsService
@@ -101,6 +103,7 @@ func NewRouter(config Config) http.Handler {
 		layoutService:               config.LayoutService,
 		accessoryService:            config.AccessoryService,
 		accessoryAllocationService:  config.AccessoryAllocationService,
+		accessoryDocumentService:    config.AccessoryDocumentService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
 		settingsService:             config.SettingsService,

@@ -13,6 +13,14 @@ type AllocationTargetInput struct {
 	LayoutUnitID string `json:"layoutUnitId,omitempty"`
 }
 
+type AccessoryTechnicalPlacement struct {
+	Placement      string `json:"placement,omitempty"`
+	DigitalAddress string `json:"digitalAddress,omitempty"`
+	DecoderOutput  string `json:"decoderOutput,omitempty"`
+	Connection     string `json:"connection,omitempty"`
+	WiringNotes    string `json:"wiringNotes,omitempty"`
+}
+
 type AccessoryReservation struct {
 	ID         string `json:"id"`
 	ProductID  string `json:"productId"`
@@ -20,11 +28,16 @@ type AccessoryReservation struct {
 	LocationID string `json:"locationId"`
 	Quantity   int    `json:"quantity"`
 	AllocationTargetInput
-	Status    domain.AccessoryReservationStatus `json:"status"`
-	Note      string                            `json:"note,omitempty"`
-	CreatedBy string                            `json:"createdBy"`
-	CreatedAt string                            `json:"createdAt"`
-	UpdatedAt string                            `json:"updatedAt"`
+	Placement      string                            `json:"placement,omitempty"`
+	DigitalAddress string                            `json:"digitalAddress,omitempty"`
+	DecoderOutput  string                            `json:"decoderOutput,omitempty"`
+	Connection     string                            `json:"connection,omitempty"`
+	WiringNotes    string                            `json:"wiringNotes,omitempty"`
+	Status         domain.AccessoryReservationStatus `json:"status"`
+	Note           string                            `json:"note,omitempty"`
+	CreatedBy      string                            `json:"createdBy"`
+	CreatedAt      string                            `json:"createdAt"`
+	UpdatedAt      string                            `json:"updatedAt"`
 }
 
 type CreateAccessoryReservationInput struct {
@@ -33,7 +46,12 @@ type CreateAccessoryReservationInput struct {
 	LocationID string `json:"locationId"`
 	Quantity   int    `json:"quantity"`
 	AllocationTargetInput
-	Note string `json:"note,omitempty"`
+	Placement      string `json:"placement,omitempty"`
+	DigitalAddress string `json:"digitalAddress,omitempty"`
+	DecoderOutput  string `json:"decoderOutput,omitempty"`
+	Connection     string `json:"connection,omitempty"`
+	WiringNotes    string `json:"wiringNotes,omitempty"`
+	Note           string `json:"note,omitempty"`
 }
 
 type AccessoryInstallation struct {
@@ -43,6 +61,11 @@ type AccessoryInstallation struct {
 	SourceLocationID string `json:"sourceLocationId"`
 	Quantity         int    `json:"quantity"`
 	AllocationTargetInput
+	Placement          string                             `json:"placement,omitempty"`
+	DigitalAddress     string                             `json:"digitalAddress,omitempty"`
+	DecoderOutput      string                             `json:"decoderOutput,omitempty"`
+	Connection         string                             `json:"connection,omitempty"`
+	WiringNotes        string                             `json:"wiringNotes,omitempty"`
 	Condition          domain.AccessoryCondition          `json:"condition"`
 	InstalledBy        string                             `json:"installedBy"`
 	InstalledAt        string                             `json:"installedAt"`
@@ -60,8 +83,13 @@ type CreateAccessoryInstallationInput struct {
 	SourceLocationID string `json:"sourceLocationId"`
 	Quantity         int    `json:"quantity"`
 	AllocationTargetInput
-	Condition domain.AccessoryCondition `json:"condition"`
-	Notes     string                    `json:"notes,omitempty"`
+	Placement      string                    `json:"placement,omitempty"`
+	DigitalAddress string                    `json:"digitalAddress,omitempty"`
+	DecoderOutput  string                    `json:"decoderOutput,omitempty"`
+	Connection     string                    `json:"connection,omitempty"`
+	WiringNotes    string                    `json:"wiringNotes,omitempty"`
+	Condition      domain.AccessoryCondition `json:"condition"`
+	Notes          string                    `json:"notes,omitempty"`
 }
 
 type RemoveAccessoryInstallationInput struct {
@@ -84,6 +112,39 @@ type AccessoryAllocationSummary struct {
 	Missing   int    `json:"missing"`
 }
 
+type AccessoryUsageEventType string
+
+const (
+	AccessoryUsageReservation      AccessoryUsageEventType = "reservation"
+	AccessoryUsageInstallation     AccessoryUsageEventType = "installation"
+	AccessoryUsageConditionChanged AccessoryUsageEventType = "condition_changed"
+	AccessoryUsageRemoval          AccessoryUsageEventType = "removal"
+)
+
+type AccessoryUsageEvent struct {
+	ID             string                  `json:"id"`
+	Type           AccessoryUsageEventType `json:"type"`
+	ProductID      string                  `json:"productId"`
+	ReservationID  string                  `json:"reservationId,omitempty"`
+	InstallationID string                  `json:"installationId,omitempty"`
+	AssetID        string                  `json:"assetId,omitempty"`
+	LocationID     string                  `json:"locationId,omitempty"`
+	Quantity       int                     `json:"quantity"`
+	AllocationTargetInput
+	AccessoryTechnicalPlacement
+	Status             domain.AccessoryReservationStatus  `json:"status,omitempty"`
+	PreviousCondition  domain.AccessoryCondition          `json:"previousCondition,omitempty"`
+	Condition          domain.AccessoryCondition          `json:"condition,omitempty"`
+	RemovalDisposition domain.AccessoryRemovalDisposition `json:"removalDisposition,omitempty"`
+	Actor              string                             `json:"actor,omitempty"`
+	OccurredAt         string                             `json:"occurredAt"`
+}
+
+type AccessoryUsageHistory struct {
+	ProductID string                `json:"productId"`
+	Events    []AccessoryUsageEvent `json:"events"`
+}
+
 type AccessoryAllocationRepository interface {
 	ListReservations(context.Context, string) ([]AccessoryReservation, error)
 	CreateReservation(context.Context, CreateAccessoryReservationInput, string) (*AccessoryReservation, error)
@@ -103,6 +164,7 @@ type AccessoryAllocationRepository interface {
 		string,
 	) (*AccessoryInstallation, error)
 	GetAllocationSummary(context.Context, string) (*AccessoryAllocationSummary, error)
+	GetUsageHistory(context.Context, string) (*AccessoryUsageHistory, error)
 }
 
 type AccessoryAllocationService struct {
@@ -209,11 +271,27 @@ func (s *AccessoryAllocationService) GetAllocationSummary(
 	return s.repository.GetAllocationSummary(ctx, productID)
 }
 
+func (s *AccessoryAllocationService) GetUsageHistory(
+	ctx context.Context,
+	productID string,
+) (*AccessoryUsageHistory, error) {
+	productID = strings.TrimSpace(productID)
+	if productID == "" {
+		return nil, ErrAccessoryValidation
+	}
+	return s.repository.GetUsageHistory(ctx, productID)
+}
+
 func cleanReservationInput(input CreateAccessoryReservationInput) CreateAccessoryReservationInput {
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.LocationID = strings.TrimSpace(input.LocationID)
 	input.AllocationTargetInput = input.clean()
+	input.Placement = strings.TrimSpace(input.Placement)
+	input.DigitalAddress = strings.TrimSpace(input.DigitalAddress)
+	input.DecoderOutput = strings.TrimSpace(input.DecoderOutput)
+	input.Connection = strings.TrimSpace(input.Connection)
+	input.WiringNotes = strings.TrimSpace(input.WiringNotes)
 	input.Note = strings.TrimSpace(input.Note)
 	return input
 }
@@ -224,6 +302,11 @@ func cleanInstallationInput(input CreateAccessoryInstallationInput) CreateAccess
 	input.AssetID = strings.TrimSpace(input.AssetID)
 	input.SourceLocationID = strings.TrimSpace(input.SourceLocationID)
 	input.AllocationTargetInput = input.clean()
+	input.Placement = strings.TrimSpace(input.Placement)
+	input.DigitalAddress = strings.TrimSpace(input.DigitalAddress)
+	input.DecoderOutput = strings.TrimSpace(input.DecoderOutput)
+	input.Connection = strings.TrimSpace(input.Connection)
+	input.WiringNotes = strings.TrimSpace(input.WiringNotes)
 	input.Notes = strings.TrimSpace(input.Notes)
 	return input
 }

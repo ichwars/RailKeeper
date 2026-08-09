@@ -12,7 +12,6 @@ import {
   History,
   KeyRound,
   Mail,
-  Palette,
   Pencil,
   Plus,
   RefreshCw,
@@ -26,6 +25,7 @@ import {
   X
 } from "lucide-react";
 import type { AppView } from "../../app/App";
+import { availableStartView, isViewTemporarilyDisabled } from "../../app/navigationAvailability";
 import {
   api,
   AuditLogEntry,
@@ -48,6 +48,19 @@ import { Language, useI18n } from "../../shared/i18n";
 import { applyStoredThemeOptions, applyThemePreference, readThemePreference, themePreferenceKey, ThemePreference } from "../../shared/theme";
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
+import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import {
+  generalDataTypes,
+  isArticleDataType,
+  isGeneralDataType,
+  readSettingsLocation,
+  settingsLocationSearch,
+  type ArticleDataType,
+  type DataGroup,
+  type GeneralDataType,
+  type SettingsLocation
+} from "./settingsDataModel";
+import { SettingsTabList } from "./SettingsTabList";
 
 import {
   applyVisibleMetadata,
@@ -141,11 +154,33 @@ const compareMasterDataValues = (left: string | number | undefined, right: strin
 
 export function SettingsView({ username }: { username: string }) {
   const { language, setLanguage, t } = useI18n();
-  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab");
-    return settingsTabs.some((item) => item.id === tab) ? tab as SettingsTab : "general";
-  });
-  const [activeType, setActiveType] = useState(masterDataTypes[0].type);
+  const initialSettingsLocation = useMemo(() => readSettingsLocation(window.location.search), []);
+  const [activeSettingsTab, setActiveSettingsTab] = useState<SettingsTab>(initialSettingsLocation.tab);
+  const [dataGroup, setDataGroup] = useState<DataGroup>(initialSettingsLocation.group);
+  const [activeArticleType, setActiveArticleType] = useState<ArticleDataType>(
+    isArticleDataType(initialSettingsLocation.type) ? initialSettingsLocation.type : "stock_unit"
+  );
+  const [activeType, setActiveType] = useState<GeneralDataType>(
+    isGeneralDataType(initialSettingsLocation.type) ? initialSettingsLocation.type : "manufacturer"
+  );
+  useEffect(() => {
+    const normalizedSearch = settingsLocationSearch(initialSettingsLocation);
+    if (normalizedSearch !== window.location.search) {
+      window.history.replaceState(null, "", `${window.location.pathname}${normalizedSearch}`);
+    }
+  }, [initialSettingsLocation]);
+  const writeSettingsLocation = (location: SettingsLocation) => {
+    const search = settingsLocationSearch(location);
+    window.history.replaceState(null, "", `${window.location.pathname}${search}`);
+  };
+  const selectSettingsTab = (tab: SettingsTab) => {
+    writeSettingsLocation({
+      tab,
+      group: dataGroup,
+      type: dataGroup === "general" ? activeType : activeArticleType
+    });
+    setActiveSettingsTab(tab);
+  };
   const [itemsByType, setItemsByType] = useState<Record<string, MasterDataEntry[]>>({});
   const [loadedTypes, setLoadedTypes] = useState<Record<string, boolean>>({});
   const [loadingTypes, setLoadingTypes] = useState<Record<string, boolean>>({});
@@ -175,10 +210,9 @@ export function SettingsView({ username }: { username: string }) {
   const [masterDataMessage, setMasterDataMessage] = useState("");
   const [masterDataSaving, setMasterDataSaving] = useState(false);
   const [masterDataFileInputKey, setMasterDataFileInputKey] = useState(0);
-  const [defaultView, setDefaultView] = useState(() => {
-    const storedDefaultView = readLocalSetting(localSettingKeys.defaultView, "overview");
-    return storedDefaultView === "inventory" ? "vehicles" : storedDefaultView;
-  });
+  const [defaultView, setDefaultView] = useState(() =>
+    availableStartView(readLocalSetting(localSettingKeys.defaultView, "overview"))
+  );
   const [sidebarOrder, setSidebarOrder] = useState<AppView[]>(() => readSidebarPrefs(username).order);
   const [sidebarHidden, setSidebarHidden] = useState<AppView[]>(() => readSidebarPrefs(username).hidden);
   const [dateFormat, setDateFormat] = useState(() => readLocalSetting(localSettingKeys.dateFormat, "system"));
@@ -252,6 +286,27 @@ export function SettingsView({ username }: { username: string }) {
   );
   const masterLabel = (type: string) => t(`settings.master.${type}`);
   const masterDescription = (type: string) => t(`settings.master.${type}Desc`);
+  const dataGroupOptions = [
+    { id: "general" as const, label: t("settings.data.group.general") },
+    { id: "article" as const, label: t("settings.data.group.article") }
+  ];
+  const generalTypeOptions = generalDataTypes.map((type) => ({ id: type, label: masterLabel(type) }));
+  const selectDataGroup = (group: DataGroup) => {
+    setDataGroup(group);
+    writeSettingsLocation({
+      tab: "data",
+      group,
+      type: group === "general" ? activeType : activeArticleType
+    });
+  };
+  const selectGeneralType = (type: GeneralDataType) => {
+    setActiveType(type);
+    writeSettingsLocation({ tab: "data", group: "general", type });
+  };
+  const selectArticleType = (type: ArticleDataType) => {
+    setActiveArticleType(type);
+    writeSettingsLocation({ tab: "data", group: "article", type });
+  };
   const auditLabel = (action: string) => {
     const label = t(`settings.auditAction.${action}`);
     return label === `settings.auditAction.${action}` ? action : label;
@@ -349,7 +404,7 @@ export function SettingsView({ username }: { username: string }) {
           window.localStorage.setItem(key, value);
           setter?.(value);
         };
-        store(localSettingKeys.defaultView, (value) => setDefaultView(value === "inventory" ? "vehicles" : value));
+        store(localSettingKeys.defaultView, (value) => setDefaultView(availableStartView(value)));
         store(localSettingKeys.dateFormat, setDateFormat);
         store(localSettingKeys.timeFormat, setTimeFormat);
         store(localSettingKeys.defaultPrinter, setDefaultPrinter);
@@ -431,7 +486,7 @@ export function SettingsView({ username }: { username: string }) {
   }, [activeSettingsTab]);
 
   useEffect(() => {
-    if (activeSettingsTab !== "data" || loadedTypes[activeType]) return;
+    if (activeSettingsTab !== "data" || dataGroup !== "general" || loadedTypes[activeType]) return;
 
     let cancelled = false;
     const typesToLoad = loadableMasterDataTypes
@@ -473,7 +528,7 @@ export function SettingsView({ username }: { username: string }) {
     return () => {
       cancelled = true;
     };
-  }, [activeSettingsTab, activeType]);
+  }, [activeSettingsTab, activeType, dataGroup]);
 
   const reloadActiveType = () => {
     setLoadingTypes((current) => ({ ...current, [activeType]: true }));
@@ -1331,14 +1386,14 @@ export function SettingsView({ username }: { username: string }) {
       return masterDataSort.direction === "asc" ? result : -result;
     })
     : filteredItems;
+  const activeSettingsDefinition =
+    settingsTabs.find((tab) => tab.id === activeSettingsTab) || settingsTabs[0];
 
   return (
     <>
       <section className="settings-head">
-        <h1>
-          {t("settings.title")} {versionInfo?.version && <span>{versionInfo.version}</span>}
-        </h1>
-        <p>{t("settings.subtitle")}</p>
+        <h1>{t(activeSettingsDefinition.labelKey)}</h1>
+        <p>{t(activeSettingsDefinition.descriptionKey)}</p>
       </section>
 
       <nav className="settings-primary-tabs" aria-label={t("settings.title")}>
@@ -1347,7 +1402,7 @@ export function SettingsView({ username }: { username: string }) {
             key={tab.id}
             type="button"
             className={activeSettingsTab === tab.id ? "active" : ""}
-            onClick={() => setActiveSettingsTab(tab.id)}
+            onClick={() => selectSettingsTab(tab.id)}
           >
             {t(tab.labelKey)}
           </button>
@@ -1358,12 +1413,6 @@ export function SettingsView({ username }: { username: string }) {
         <section className="settings-dashboard-grid">
           <div className="settings-card-stack">
             <section className="panel settings-card settings-tool-card">
-              <div className="settings-section-head">
-                <div>
-                  <h2>{t("settings.general.title")}</h2>
-                  <p>{t("settings.general.subtitle")}</p>
-                </div>
-              </div>
               <div className="settings-field-grid">
                 <label>
                   {t("settings.language")}
@@ -1374,11 +1423,18 @@ export function SettingsView({ username }: { username: string }) {
                 </label>
                 <label>
                   {t("settings.defaultView")}
-                  <AppSelect value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
+                  <AppSelect
+                    value={defaultView}
+                    onChange={(event) => setLocalSetting(
+                      localSettingKeys.defaultView,
+                      event.target.value,
+                      (value) => setDefaultView(availableStartView(value))
+                    )}
+                  >
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="accessories">{t("nav.accessories")}</option>
-                    <option value="layouts">{t("nav.layouts")}</option>
+                    <option value="layouts" disabled={isViewTemporarilyDisabled("layouts")}>{t("nav.layouts")}</option>
                     <option value="exhibition">{t("nav.exhibition")}</option>
                     <option value="importExport">{t("nav.importExport")}</option>
                     <option value="settings">{t("nav.settings")}</option>
@@ -1681,23 +1737,24 @@ export function SettingsView({ username }: { username: string }) {
 
       {activeSettingsTab === "data" && (
         <section className="panel settings-card data-card">
-          <h2>{t("settings.data.title")}</h2>
-          <p>{t("settings.data.subtitle")}</p>
+          <SettingsTabList
+            ariaLabel={t("settings.data.groups")}
+            options={dataGroupOptions}
+            value={dataGroup}
+            onChange={selectDataGroup}
+            className="settings-data-groups"
+          />
 
-          <nav className="settings-secondary-tabs" aria-label={t("settings.data.nav")}>
-            {masterDataTypes.map((item) => (
-              <button
-                key={item.type}
-                type="button"
-                className={item.type === activeType ? "active" : ""}
-                onClick={() => setActiveType(item.type)}
-              >
-                {masterLabel(item.type)}
-              </button>
-            ))}
-          </nav>
+          {dataGroup === "general" ? <>
+            <SettingsTabList
+              ariaLabel={t("settings.data.nav")}
+              options={generalTypeOptions}
+              value={activeType}
+              onChange={selectGeneralType}
+              className="settings-data-types"
+            />
 
-          <section className="master-data-panel">
+            <section className="master-data-panel">
             <div className="master-data-head">
               <div>
                 <h3>{t("settings.data.manage", { label: activeDataLabel })}</h3>
@@ -1895,20 +1952,19 @@ export function SettingsView({ username }: { username: string }) {
 
                 {message && <p className="form-message">{message}</p>}
             </>
-          </section>
+            </section>
+          </> : (
+            <ArticleManagementSettings
+              roles={currentSession?.roles || []}
+              activeSection={activeArticleType}
+              onSectionChange={selectArticleType}
+            />
+          )}
         </section>
       )}
 
       {activeSettingsTab === "importExport" && (
         <section className="panel settings-card import-export-card">
-          <div className="settings-card-title">
-            <Database size={18} />
-            <div>
-              <h2>{t("settings.import.title")}</h2>
-              <p>{t("settings.import.subtitle")}</p>
-            </div>
-          </div>
-
           <section className="backup-box master-data-transfer-box">
             <div className="backup-box-head">
               <div>
@@ -2076,14 +2132,6 @@ export function SettingsView({ username }: { username: string }) {
 
       {activeSettingsTab === "appearance" && (
         <section className="panel settings-card settings-tool-card">
-          <div className="settings-card-title">
-            <Palette size={18} />
-            <div>
-              <h2>{t("settings.appearance.title")}</h2>
-              <p>{t("settings.appearance.subtitle")}</p>
-            </div>
-          </div>
-
           <div className="appearance-mode-row" role="radiogroup" aria-label={t("settings.appearance.mode")}>
             <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
               <input type="radio" name="theme" value="system" checked={design === "system"} onChange={() => updateDesign("system")} />

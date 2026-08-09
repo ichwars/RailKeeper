@@ -24,6 +24,65 @@ type allocationFixture struct {
 	vehicle           *application.Vehicle
 }
 
+func TestAccessoryUsageRejectsActiveLocationBelowArchivedAncestor(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	child, err := fixture.accessories.CreateLocation(ctx, application.CreateStorageLocationInput{
+		ParentID: fixture.location.ID, Name: "Regal",
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: child.ID, Delta: 2}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := fixture.accessories.CreateAsset(ctx, fixture.individualProduct.ID,
+		application.CreateAccessoryAssetInput{
+			InventoryNumber: "RK-Z-CHILD", Condition: domain.AccessoryConditionReady,
+			Lifecycle: domain.AccessoryLifecycleStored, StorageLocationID: child.ID,
+		}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.UpdateLocation(ctx, fixture.location.ID,
+		application.UpdateStorageLocationInput{
+			CreateStorageLocationInput: application.CreateStorageLocationInput{
+				Name: fixture.location.Name, Archived: true,
+			},
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+
+	assertConflict := func(name string, err error) {
+		t.Helper()
+		if !errors.Is(err, application.ErrAccessoryConflict) {
+			t.Fatalf("%s: expected archived-ancestor conflict, got %v", name, err)
+		}
+	}
+	_, err = fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: child.ID, Delta: 1}, "editor-1")
+	assertConflict("stock", err)
+	_, err = fixture.accessories.UpdateAsset(ctx, asset.ID, application.UpdateAccessoryAssetInput{
+		CreateAccessoryAssetInput: application.CreateAccessoryAssetInput{
+			InventoryNumber: asset.InventoryNumber, Condition: asset.Condition,
+			Lifecycle: asset.Lifecycle, StorageLocationID: child.ID,
+		},
+	}, "editor-1")
+	assertConflict("asset", err)
+	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.quantityProduct.ID, LocationID: child.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+	}, "planner-1")
+	assertConflict("reservation", err)
+	_, err = fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ProductID: fixture.quantityProduct.ID, SourceLocationID: child.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	assertConflict("installation", err)
+}
+
 func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()
@@ -31,7 +90,8 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 
 	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
 		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
-		AllocationTargetInput: target, Note: "Bauabschnitt West",
+		AllocationTargetInput: target, Note: "Bauabschnitt West", Placement: "Signalbrücke",
+		DigitalAddress: "42", DecoderOutput: "A1", Connection: "Klemme 3", WiringNotes: "blau",
 	}, "planner-1")
 	if err != nil {
 		t.Fatal(err)
@@ -56,7 +116,8 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
 		ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
 		SourceLocationID: fixture.location.ID, Quantity: 3, AllocationTargetInput: target,
-		Condition: domain.AccessoryConditionReady,
+		Condition: domain.AccessoryConditionReady, Placement: "Signalbrücke montiert",
+		DigitalAddress: "43", DecoderOutput: "A2", Connection: "Klemme 4", WiringNotes: "gelb",
 	}, "editor-1")
 	if err != nil {
 		t.Fatal(err)
@@ -67,6 +128,21 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	}
 	if len(reservations) != 1 || reservations[0].Status != domain.AccessoryReservationFulfilled {
 		t.Fatalf("reservation was not fulfilled: %#v", reservations)
+	}
+	if reservations[0].Placement != "Signalbrücke" || reservations[0].DigitalAddress != "42" ||
+		reservations[0].DecoderOutput != "A1" || reservations[0].Connection != "Klemme 3" ||
+		reservations[0].WiringNotes != "blau" {
+		t.Fatalf("reservation technical data was not retained: %#v", reservations[0])
+	}
+	if installation.Placement != "Signalbrücke montiert" || installation.DigitalAddress != "43" ||
+		installation.DecoderOutput != "A2" || installation.Connection != "Klemme 4" ||
+		installation.WiringNotes != "gelb" {
+		t.Fatalf("installation technical data was not retained: %#v", installation)
+	}
+	if _, err := fixture.allocations.UpdateInstallationCondition(ctx, installation.ID,
+		application.UpdateAccessoryInstallationConditionInput{Condition: domain.AccessoryConditionMaintenanceDue},
+		"editor-2"); err != nil {
+		t.Fatal(err)
 	}
 	assertAllocationSummary(t, fixture.allocations, fixture.quantityProduct.ID, application.AccessoryAllocationSummary{
 		Owned: 5, Stored: 2, Reserved: 0, Installed: 3, Available: 2, Missing: 0,
@@ -83,6 +159,41 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 	if removed.RemovalDisposition != domain.AccessoryRemovalStored || removed.RemovedAt == "" {
 		t.Fatalf("installation was not closed: %#v", removed)
 	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_reservations SET created_at='2026-01-01T10:00:00Z'
+WHERE id=?`, reservation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_installations
+SET installed_at='2026-01-01T11:00:00Z', removed_at='2026-01-01T13:00:00Z' WHERE id=?`, installation.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.db.ExecContext(ctx, `UPDATE accessory_installation_condition_history
+SET changed_at='2026-01-01T12:00:00Z' WHERE installation_id=?`, installation.ID); err != nil {
+		t.Fatal(err)
+	}
+	history, err := fixture.allocations.GetUsageHistory(ctx, fixture.quantityProduct.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantTypes := []application.AccessoryUsageEventType{
+		application.AccessoryUsageRemoval,
+		application.AccessoryUsageConditionChanged,
+		application.AccessoryUsageInstallation,
+		application.AccessoryUsageReservation,
+	}
+	if len(history.Events) != len(wantTypes) {
+		t.Fatalf("unexpected usage history: %#v", history.Events)
+	}
+	for index, want := range wantTypes {
+		if history.Events[index].Type != want {
+			t.Fatalf("usage event %d: got %q, want %q (%#v)", index, history.Events[index].Type, want, history.Events)
+		}
+	}
+	if history.Events[1].PreviousCondition != domain.AccessoryConditionReady ||
+		history.Events[1].Condition != domain.AccessoryConditionMaintenanceDue ||
+		history.Events[1].Actor != "editor-2" {
+		t.Fatalf("condition history lost domain data: %#v", history.Events[1])
+	}
 	assertAllocationSummary(t, fixture.allocations, fixture.quantityProduct.ID, application.AccessoryAllocationSummary{
 		Owned: 5, Stored: 5, Reserved: 0, Installed: 0, Available: 5, Missing: 0,
 	})
@@ -91,6 +202,34 @@ func TestAccessoryAllocationsReserveAndInstallQuantityAtomically(t *testing.T) {
 			Disposition: domain.AccessoryRemovalStored, StorageLocationID: fixture.location.ID,
 		}, "editor-1"); !errors.Is(err, application.ErrAccessoryConflict) {
 		t.Fatalf("expected immutable closed installation, got %v", err)
+	}
+}
+
+func TestAccessoryInstallationInheritsReservationTechnicalDataWithNonEmptyOverrides(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	target := application.AllocationTargetInput{LayoutID: fixture.layout.ID}
+	reservation, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: target, Placement: "Bahnhof West", DigitalAddress: "17",
+		DecoderOutput: "A2", Connection: "J3", WiringNotes: "blau/gelb",
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1, AllocationTargetInput: target,
+		Condition: domain.AccessoryConditionReady, Connection: "J4",
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installation.Placement != "Bahnhof West" || installation.DigitalAddress != "17" ||
+		installation.DecoderOutput != "A2" || installation.Connection != "J4" ||
+		installation.WiringNotes != "blau/gelb" {
+		t.Fatalf("installation did not inherit reservation technical data with override: %#v", installation)
 	}
 }
 
@@ -193,6 +332,321 @@ func TestAccessoryAllocationsTrackIndividualAssetLifecycle(t *testing.T) {
 	if len(installations) != 1 || installations[0].RemovedAt == "" {
 		t.Fatalf("installation history was not retained: %#v", installations)
 	}
+}
+
+func TestAccessoryStockMovementsTrackQuantityInstallationAndRemoval(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	installation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ProductID: fixture.quantityProduct.ID, SourceLocationID: fixture.location.ID, Quantity: 2,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.RemoveInstallation(ctx, installation.ID,
+		application.RemoveAccessoryInstallationInput{
+			Disposition: domain.AccessoryRemovalStored, StorageLocationID: fixture.location.ID,
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	movements, err := fixture.accessories.ListStockMovements(ctx, fixture.quantityProduct.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 3 {
+		t.Fatalf("expected adjustment, installation, and removal movements: %#v", movements)
+	}
+	installationMovement := findAllocationMovement(t, movements, "installation")
+	removalMovement := findAllocationMovement(t, movements, "removal")
+	if installationMovement.Quantity != -2 || removalMovement.Quantity != 2 ||
+		installationMovement.SourceType != "installation" || removalMovement.SourceType != "installation" ||
+		installationMovement.SourceID != installation.ID || removalMovement.SourceID != installation.ID {
+		t.Fatalf("unexpected physical movement journal: install=%#v removal=%#v",
+			installationMovement, removalMovement)
+	}
+
+	individualInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ProductID: fixture.individualProduct.ID, AssetID: fixture.asset.ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.RemoveInstallation(ctx, individualInstallation.ID,
+		application.RemoveAccessoryInstallationInput{
+			Disposition: domain.AccessoryRemovalStored, StorageLocationID: fixture.location.ID,
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	individualMovements, err := fixture.accessories.ListStockMovements(ctx, fixture.individualProduct.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(individualMovements) != 0 {
+		t.Fatalf("pure asset lifecycle transitions wrote quantity movements: %#v", individualMovements)
+	}
+}
+
+func TestAccessoryHybridAllocationsUseAssetAndQuantityPaths(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	hybrid, err := fixture.accessories.CreateProduct(ctx, application.CreateAccessoryProductInput{
+		Manufacturer: "ESU", Name: "Hybrid decoder", Category: "Other",
+		ArticleType: domain.AccessoryArticleOther, Subtype: "other", PackageQuantity: 1,
+		StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantityLaterIndividual,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, hybrid.ID, application.StockAdjustmentInput{
+		LocationID: fixture.location.ID, Delta: 3,
+	}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := fixture.accessories.Individualize(ctx, hybrid.ID, application.IndividualizeAccessoryInput{
+		LocationID: fixture.location.ID,
+		Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-ALLOC-1"},
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 3, Available: 3,
+	})
+
+	assetReservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, AssetID: asset.ID, LocationID: fixture.location.ID, Quantity: 1,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 3, Reserved: 1, Available: 2,
+	})
+	assetInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ReservationID: assetReservation.ID, ProductID: hybrid.ID, AssetID: asset.ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 2, Installed: 1, Available: 2,
+	})
+	if _, err := fixture.allocations.RemoveInstallation(ctx, assetInstallation.ID,
+		application.RemoveAccessoryInstallationInput{
+			Disposition: domain.AccessoryRemovalStored, StorageLocationID: fixture.location.ID,
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 3, Available: 3,
+	})
+	movements, err := fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 2 {
+		t.Fatalf("hybrid asset lifecycle wrote physical movements: %#v", movements)
+	}
+
+	quantityReservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, LocationID: fixture.location.ID, Quantity: 1,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	quantityInstallation, err := fixture.allocations.Install(ctx, application.CreateAccessoryInstallationInput{
+		ReservationID: quantityReservation.ID, ProductID: hybrid.ID,
+		SourceLocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+		Condition:             domain.AccessoryConditionReady,
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 2, Installed: 1, Available: 2,
+	})
+	if _, err := fixture.allocations.RemoveInstallation(ctx, quantityInstallation.ID,
+		application.RemoveAccessoryInstallationInput{
+			Disposition: domain.AccessoryRemovalStored, StorageLocationID: fixture.location.ID,
+		}, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	assertAllocationSummary(t, fixture.allocations, hybrid.ID, application.AccessoryAllocationSummary{
+		Owned: 3, Stored: 3, Available: 3,
+	})
+	movements, err = fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 4 || findAllocationMovement(t, movements, "installation").Quantity != -1 ||
+		findAllocationMovement(t, movements, "removal").Quantity != 1 {
+		t.Fatalf("hybrid quantity lifecycle did not journal physical movements: %#v", movements)
+	}
+}
+
+func TestAccessoryStockAdjustmentCannotConsumeReservedQuantity(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 3,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: fixture.location.ID, Delta: -3},
+		"editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved stock adjustment rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 5})
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.AdjustStock(ctx, fixture.quantityProduct.ID,
+		application.StockAdjustmentInput{LocationID: fixture.location.ID, Delta: -3},
+		"editor-1"); err != nil {
+		t.Fatalf("released stock adjustment failed: %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 2})
+}
+
+func TestAccessoryStockTransferCannotConsumeReservedQuantity(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	destination := createAccessoryTestLocation(t, fixture.accessories, "Reserved transfer destination")
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 4,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transfer := application.TransferAccessoryStockInput{
+		FromLocationID: fixture.location.ID, ToLocationID: destination.ID, Quantity: 2,
+	}
+	if _, err := fixture.accessories.TransferStock(ctx, fixture.quantityProduct.ID, transfer,
+		"editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved stock transfer rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 5})
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.TransferStock(ctx, fixture.quantityProduct.ID, transfer,
+		"editor-1"); err != nil {
+		t.Fatalf("released stock transfer failed: %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, fixture.quantityProduct.ID,
+		map[string]int{fixture.location.ID: 3, destination.ID: 2})
+}
+
+func TestAccessoryIndividualizationCannotConsumeReservedQuantityAtSource(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	source := fixture.location
+	other := createAccessoryTestLocation(t, fixture.accessories, "Other individualization shelf")
+	hybrid := createAccessoryTestProduct(t, fixture.accessories, "Reserved hybrid",
+		domain.AccessoryInventoryQuantityLaterIndividual)
+	for _, locationID := range []string{source.ID, other.ID} {
+		if _, err := fixture.accessories.AdjustStock(ctx, hybrid.ID, application.StockAdjustmentInput{
+			LocationID: locationID, Delta: 1,
+		}, "editor-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: hybrid.ID, LocationID: source.ID, Quantity: 1,
+			AllocationTargetInput: application.AllocationTargetInput{LayoutID: fixture.layout.ID},
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.accessories.Individualize(ctx, hybrid.ID,
+		application.IndividualizeAccessoryInput{
+			LocationID: source.ID,
+			Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-RESERVED-1"},
+		}, "editor-1"); !errors.Is(err, application.ErrAccessoryInsufficientStock) {
+		t.Fatalf("expected reserved source individualization rejection, got %v", err)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, hybrid.ID, map[string]int{source.ID: 1, other.ID: 1})
+	assets, err := fixture.accessories.ListAssets(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(assets) != 0 {
+		t.Fatalf("failed individualization created assets: %#v", assets)
+	}
+	movements, err := fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 2 {
+		t.Fatalf("failed individualization wrote a movement: %#v", movements)
+	}
+
+	if _, err := fixture.allocations.CancelReservation(ctx, reservation.ID, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: hybrid.ID, LocationID: other.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID},
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	asset, err := fixture.accessories.Individualize(ctx, hybrid.ID,
+		application.IndividualizeAccessoryInput{
+			LocationID: source.ID,
+			Asset:      application.CreateAccessoryAssetInput{InventoryNumber: "HYB-RELEASED-1"},
+		}, "editor-1")
+	if err != nil {
+		t.Fatalf("released source individualization failed: %v", err)
+	}
+	if asset.StorageLocationID != source.ID {
+		t.Fatalf("individualized asset has wrong source location: %#v", asset)
+	}
+	assertAccessoryTestStock(t, fixture.accessories, hybrid.ID, map[string]int{source.ID: 0, other.ID: 1})
+	movements, err = fixture.accessories.ListStockMovements(ctx, hybrid.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(movements) != 3 || findAllocationMovement(t, movements, "individualization").LocationID != source.ID {
+		t.Fatalf("released individualization movement missing: %#v", movements)
+	}
+}
+
+func findAllocationMovement(
+	t *testing.T,
+	movements []application.AccessoryStockMovement,
+	movementType string,
+) application.AccessoryStockMovement {
+	t.Helper()
+	for _, movement := range movements {
+		if movement.MovementType == movementType {
+			return movement
+		}
+	}
+	t.Fatalf("movement %q not found in %#v", movementType, movements)
+	return application.AccessoryStockMovement{}
 }
 
 func TestAccessoryAllocationsValidateTargetsAndReservationMatch(t *testing.T) {

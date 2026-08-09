@@ -4,17 +4,89 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"net/url"
+	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 )
 
 func (a *App) listAccessoryProducts(w http.ResponseWriter, r *http.Request) {
-	products, err := a.accessoryService.ListProducts(r.Context(), r.URL.Query().Get("query"))
+	values, err := url.ParseQuery(r.URL.RawQuery)
+	if err != nil {
+		a.accessoryError(w, application.ErrAccessoryValidation, "list accessory products")
+		return
+	}
+	query, valid := parseAccessoryArticleListQuery(values)
+	if !valid {
+		a.accessoryError(w, application.ErrAccessoryValidation, "list accessory products")
+		return
+	}
+	products, err := a.accessoryService.ListArticles(r.Context(), query)
 	if err != nil {
 		a.accessoryError(w, err, "list accessory products")
 		return
 	}
 	respondJSON(w, http.StatusOK, products)
+}
+
+func parseAccessoryArticleListQuery(values url.Values) (application.AccessoryArticleListQuery, bool) {
+	query, validQuery := parseAccessoryArticleScalar(values, "query", 200)
+	manufacturer, validManufacturer := parseAccessoryArticleScalar(values, "manufacturer", 200)
+	locationID, validLocationID := parseAccessoryArticleScalar(values, "locationId", 128)
+	if !validQuery || !validManufacturer || !validLocationID {
+		return application.AccessoryArticleListQuery{}, false
+	}
+
+	articleTypes := make([]domain.AccessoryArticleType, len(values["articleType"]))
+	for index, value := range values["articleType"] {
+		articleTypes[index] = domain.AccessoryArticleType(value)
+	}
+	statuses := make([]application.AccessoryArticleStatus, len(values["status"]))
+	for index, value := range values["status"] {
+		statuses[index] = application.AccessoryArticleStatus(value)
+	}
+	return application.AccessoryArticleListQuery{
+		Query:        query,
+		ArticleTypes: articleTypes,
+		Gauges:       values["gauge"],
+		Statuses:     statuses,
+		Manufacturer: manufacturer,
+		LocationID:   locationID,
+		Sort:         values.Get("sort"),
+		Direction:    values.Get("direction"),
+	}, true
+}
+
+func parseAccessoryArticleScalar(values url.Values, name string, maxRunes int) (string, bool) {
+	rawValues, present := values[name]
+	if !present {
+		return "", true
+	}
+	if len(rawValues) != 1 {
+		return "", false
+	}
+	rawValue := rawValues[0]
+	if !utf8.ValidString(rawValue) || strings.TrimSpace(rawValue) == "" ||
+		utf8.RuneCountInString(rawValue) > maxRunes || strings.IndexFunc(rawValue, unicode.IsControl) >= 0 {
+		return "", false
+	}
+	return strings.TrimSpace(rawValue), true
+}
+
+func (a *App) checkAccessoryProductDuplicates(w http.ResponseWriter, r *http.Request) {
+	var input application.AccessoryDuplicateCheckInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	result, err := a.accessoryService.CheckDuplicateProducts(r.Context(), input)
+	if err != nil {
+		a.accessoryError(w, err, "check accessory product duplicates")
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
 }
 
 func (a *App) createAccessoryProduct(w http.ResponseWriter, r *http.Request) {
@@ -52,6 +124,25 @@ func (a *App) updateAccessoryProduct(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, product)
 }
 
+func (a *App) archiveAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	a.setAccessoryProductArchived(w, r, true)
+}
+
+func (a *App) restoreAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	a.setAccessoryProductArchived(w, r, false)
+}
+
+func (a *App) setAccessoryProductArchived(w http.ResponseWriter, r *http.Request, archived bool) {
+	product, err := a.accessoryService.SetProductArchived(
+		r.Context(), r.PathValue("id"), archived, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "set accessory product archived")
+		return
+	}
+	respondJSON(w, http.StatusOK, product)
+}
+
 func (a *App) getAccessoryStock(w http.ResponseWriter, r *http.Request) {
 	stock, err := a.accessoryService.GetStock(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -72,6 +163,69 @@ func (a *App) adjustAccessoryStock(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, stock)
+}
+
+func (a *App) listAccessoryStockMovements(w http.ResponseWriter, r *http.Request) {
+	movements, err := a.accessoryService.ListStockMovements(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.accessoryError(w, err, "list accessory stock movements")
+		return
+	}
+	respondJSON(w, http.StatusOK, movements)
+}
+
+func (a *App) transferAccessoryStock(w http.ResponseWriter, r *http.Request) {
+	var input application.TransferAccessoryStockInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	stock, err := a.accessoryService.TransferStock(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "transfer accessory stock")
+		return
+	}
+	respondJSON(w, http.StatusOK, stock)
+}
+
+func (a *App) listAccessoryPurchases(w http.ResponseWriter, r *http.Request) {
+	purchases, err := a.accessoryService.ListPurchases(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.accessoryError(w, err, "list accessory purchases")
+		return
+	}
+	respondJSON(w, http.StatusOK, purchases)
+}
+
+func (a *App) createAccessoryPurchase(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateAccessoryPurchaseInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	purchase, err := a.accessoryService.CreatePurchase(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "create accessory purchase")
+		return
+	}
+	respondJSON(w, http.StatusCreated, purchase)
+}
+
+func (a *App) individualizeAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	var input application.IndividualizeAccessoryInput
+	if !decodeAccessoryJSON(w, r, &input) {
+		return
+	}
+	asset, err := a.accessoryService.Individualize(
+		r.Context(), r.PathValue("id"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.accessoryError(w, err, "individualize accessory product")
+		return
+	}
+	respondJSON(w, http.StatusCreated, asset)
 }
 
 func (a *App) listAccessoryAssets(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +311,11 @@ func decodeAccessoryJSON(w http.ResponseWriter, r *http.Request, target any) boo
 func (a *App) accessoryError(w http.ResponseWriter, err error, action string) {
 	switch {
 	case errors.Is(err, application.ErrAccessoryValidation):
-		respondProblem(w, http.StatusBadRequest, "accessory_validation", "Accessory data is invalid.")
+		message := "Accessory data is invalid."
+		if err != application.ErrAccessoryValidation {
+			message = err.Error()
+		}
+		respondProblem(w, http.StatusBadRequest, "accessory_validation", message)
 	case errors.Is(err, application.ErrAccessoryNotFound):
 		respondProblem(w, http.StatusNotFound, "accessory_not_found", "Accessory resource not found.")
 	case errors.Is(err, application.ErrAccessoryConflict):

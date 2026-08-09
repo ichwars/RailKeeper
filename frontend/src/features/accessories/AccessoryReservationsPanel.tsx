@@ -1,12 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { CalendarClock } from "lucide-react";
 
 import {
   api,
   type AccessoryAsset,
-  type AccessoryProduct,
+  type AccessoryArticle,
   type AccessoryReservation,
+  type AccessoryTechnicalPlacement,
   type Layout,
   type LayoutUnit,
   type StorageLocation,
@@ -14,6 +15,7 @@ import {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
 import {
   AccessoryTargetFields,
@@ -22,11 +24,12 @@ import {
   resolveAccessoryTargetSelection,
   type AccessoryTargetSelection
 } from "./AccessoryTargetFields";
-import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
+import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
+import { AccessoryTechnicalFields, emptyTechnicalPlacement } from "./AccessoryTechnicalFields";
 
-export function AccessoryReservationsPanel({ product, reservations, assets, locations, vehicles, layouts, units,
-  canReserve, onChanged }: {
-  product: AccessoryProduct | null;
+export function AccessoryReservationsPanel({ article, reservations, assets, locations, vehicles, layouts, units,
+  canReserve, onChanged, onDirtyChange }: {
+  article: AccessoryArticle;
   reservations: AccessoryReservation[];
   assets: AccessoryAsset[];
   locations: StorageLocation[];
@@ -35,17 +38,19 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
   units: LayoutUnit[];
   canReserve: boolean;
   onChanged: () => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [locationID, setLocationID] = useState("");
   const [assetID, setAssetID] = useState("");
+  const [allocationMode, setAllocationMode] = useState<"quantity" | "asset">("quantity");
   const [quantity, setQuantity] = useState("1");
   const [note, setNote] = useState("");
   const [target, setTarget] = useState<AccessoryTargetSelection>({ kind: "layout", id: "" });
+  const [technical, setTechnical] = useState<AccessoryTechnicalPlacement>(emptyTechnicalPlacement);
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
   const { t } = useI18n();
-  if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-
-  const activeLocations = activeAccessoryLocations(locations);
+  const activeLocations = activeStorageLocations(locations);
   const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
     ? locationID : activeLocations[0]?.id || "";
   const availableAssets = assets.filter((asset) => asset.lifecycle === "stored");
@@ -53,40 +58,50 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
     ? assetID : availableAssets[0]?.id || "";
   const resolvedTarget = resolveAccessoryTargetSelection(target, vehicles, layouts, units);
   const targetInput = accessoryTargetInput(resolvedTarget);
-  const isIndividual = product.trackingMode === "individual";
+  const isHybrid = article.inventoryStrategy === "quantity_later_individual";
+  const isIndividual = article.inventoryStrategy === "individual" || (isHybrid && allocationMode === "asset");
   const canSubmit = Boolean(effectiveLocationID && targetInput && (!isIndividual || effectiveAssetID));
+  const dirty = Boolean(locationID || assetID || note || target.id || Object.values(technical).some(Boolean)) ||
+    quantity !== "1" || allocationMode !== "quantity";
+
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!targetInput || !canSubmit) return;
     setAction({
       title: t("accessories.reservations.confirmTitle"),
-      body: t("accessories.reservations.confirmBody", { product: product.name }),
+      body: t("accessories.reservations.confirmBody", { product: article.name }),
       run: async () => {
         await api.createAccessoryReservation({
           ...targetInput,
-          productId: product.id,
-          assetId: isIndividual ? effectiveAssetID : undefined,
+          ...technical,
+          productId: article.id,
+          ...(isIndividual ? { assetId: effectiveAssetID } : {}),
           locationId: effectiveLocationID,
           quantity: isIndividual ? 1 : Number(quantity),
           note: note || undefined
         });
-        setNote("");
-        await onChanged();
-      }
+        setLocationID(""); setAssetID(""); setAllocationMode("quantity"); setQuantity("1"); setNote("");
+        setTarget({ kind: "layout", id: "" });
+        setTechnical(emptyTechnicalPlacement());
+      },
+      afterSuccess: onChanged
     });
   };
 
   const cancel = (reservation: AccessoryReservation) => setAction({
     title: t("accessories.reservations.cancelTitle"),
     body: t("accessories.reservations.cancelBody"),
-    run: async () => { await api.cancelAccessoryReservation(reservation.id); await onChanged(); }
+    successReturnFocusRef: headingRef,
+    run: async () => { await api.cancelAccessoryReservation(reservation.id); },
+    afterSuccess: onChanged
   });
 
   return <>
     <section className="panel accessory-stock-panel">
       <div className="panel-head"><CalendarClock size={17} aria-hidden="true" />
-        <h2>{t("accessories.reservations.title")}</h2>
+        <h2 ref={headingRef} tabIndex={-1}>{t("accessories.reservations.title")}</h2>
       </div>
       <div className="accessory-work-grid">
         <div className="table-wrap"><table><thead><tr>
@@ -98,22 +113,30 @@ export function AccessoryReservationsPanel({ product, reservations, assets, loca
           <td>{canReserve && reservation.status === "active" ? <button type="button" className="text-button"
             onClick={() => cancel(reservation)}>{t("accessories.reservations.cancel")}</button> : null}</td>
         </tr>)}</tbody></table></div>
-        {canReserve ? <form className="accessory-form" onSubmit={submit}>
+        {canReserve ? <form className="accessory-form accessory-allocation-form" onSubmit={submit}>
           <h3>{t("accessories.reservations.create")}</h3>
           <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
             onChange={setTarget} />
+          <AccessoryTechnicalFields value={technical} onChange={setTechnical} />
+          {isHybrid ? <label>{t("accessories.field.allocationSource")}<AppSelect value={allocationMode}
+            aria-label={t("accessories.field.allocationSource")}
+            onChange={(event) => setAllocationMode(event.target.value as "quantity" | "asset")}>
+            <option value="quantity">{t("accessories.allocationSource.quantity")}</option>
+            <option value="asset" disabled={availableAssets.length === 0}>
+              {t("accessories.allocationSource.asset")}</option>
+          </AppSelect></label> : null}
           <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID}
             onChange={(event) => setLocationID(event.target.value)}>
             {activeLocations.map((location) => <option key={location.id} value={location.id}>
-              {accessoryLocationPath(location, locations)}</option>)}
+              {storageLocationPath(location, locations)}</option>)}
           </AppSelect></label>
           {isIndividual ? <label>{t("accessories.field.asset")}<AppSelect value={effectiveAssetID}
             onChange={(event) => setAssetID(event.target.value)}>
             {availableAssets.map((asset) => <option key={asset.id} value={asset.id}>
               {asset.inventoryNumber || asset.serialNumber || asset.id}</option>)}
-          </AppSelect></label> : <label>{t("accessories.field.quantity")}<input type="number" min="1" required
-            value={quantity} onChange={(event) => setQuantity(event.target.value)} /></label>}
-          <label>{t("accessories.field.notes")}<textarea value={note}
+          </AppSelect></label> : <AppNumberInput label={t("accessories.field.quantity")} min="1" required
+            value={quantity} onValueChange={setQuantity} />}
+          <label className="accessory-form-wide">{t("accessories.field.notes")}<textarea value={note}
             onChange={(event) => setNote(event.target.value)} /></label>
           <button type="submit" className="primary-button" disabled={!canSubmit}>
             {t("accessories.reservations.save")}

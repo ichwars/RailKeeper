@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -74,12 +75,242 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 		"AccessoryAsset", "AccessoryAssetInput", "AccessoryAllocationTarget", "AccessoryReservation",
 		"AccessoryReservationInput", "AccessoryInstallation", "AccessoryInstallationInput",
 		"AccessoryInstallationRemovalInput", "AccessoryInstallationConditionInput", "AccessoryAllocationSummary",
+		"AccessoryArticleListItem", "AccessoryOverviewMetrics", "AccessoryArticleFilterOptions",
+		"AccessoryArticleListResult", "AccessoryAttributeValue", "AccessoryTextAttribute",
+		"AccessoryNumberAttribute", "AccessoryBooleanAttribute", "AccessoryDateAttribute",
+		"AccessorySingleSelectAttribute", "AccessoryMultiSelectAttribute", "AccessoryDuplicateCheckInput",
+		"AccessoryDuplicateCandidate", "AccessoryDuplicateCheckResult", "AccessoryStockMovement",
+		"AccessoryStockTransferInput", "AccessoryPurchase", "AccessoryPurchaseInput",
+		"AccessoryIndividualizationInput", "AccessoryDocument", "AccessoryDocumentUpdateInput",
+		"AccessoryUsageEvent", "AccessoryUsageHistory",
 	}
 	for _, schema := range want {
 		if !strings.Contains(contract, "    "+schema+":\n") {
 			t.Errorf("OpenAPI contract is missing schema %s", schema)
 		}
 	}
+}
+
+func TestOpenAPIDocumentsMasterDataValidationResponses(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, operation := range []struct {
+		path   string
+		method string
+	}{
+		{path: "/master-data/{type}", method: "post"},
+		{path: "/master-data/{type}/{key}", method: "put"},
+		{path: "/master-data/{type}/{key}", method: "delete"},
+	} {
+		pathBlock := openAPIIndentedBlock(t, contract, operation.path, 2)
+		methodBlock := openAPIIndentedBlock(t, pathBlock, operation.method, 4)
+		if !strings.Contains(methodBlock, `        "400":`) ||
+			!strings.Contains(methodBlock, `$ref: "#/components/schemas/Problem"`) {
+			t.Errorf("%s %s is missing its 400 Problem response: %s", operation.method, operation.path, methodBlock)
+		}
+	}
+}
+
+func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	fragments := []string{
+		"name: articleType\n", "name: gauge\n", "name: status\n", "style: form\n", "explode: true\n",
+		"enum: [available, reserved, installed, maintenance_due, defective, archived]",
+		"[article, image, inventoryNumber, manufacturer, articleNumber, name,",
+		"type, gauge, stock, storage, updatedAt]", "default: inventoryNumber", "enum: [asc, desc]",
+		"multipart/form-data:", "format: binary", "application/octet-stream:",
+		"AccessoryArticleListResult", "AccessoryDuplicateCheckResult", "AccessoryStockSummary",
+		"AccessoryStockMovement", "AccessoryPurchase", "AccessoryDocument", "AccessoryUsageHistory",
+		"discriminator:", "propertyName: kind", `"400":`, `"403":`, `"404":`, `"409":`, `"413":`, `"415":`,
+	}
+	for _, fragment := range fragments {
+		if !strings.Contains(contract, fragment) {
+			t.Errorf("OpenAPI article contract is missing %q", fragment)
+		}
+	}
+}
+
+func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	publicStringPattern := regexp.MustCompile(`(?im)^\s+(?:summary|description):\s*(.+)$`)
+	assetTermPattern := regexp.MustCompile(`(?i)\bassets?\b`)
+	stableTechnicalIdentifiers := strings.NewReplacer(
+		"AccessoryAsset", "",
+		"assetId", "",
+		"/assets", "",
+	)
+	for _, match := range publicStringPattern.FindAllStringSubmatch(contract, -1) {
+		publicText := stableTechnicalIdentifiers.Replace(match[1])
+		if assetTermPattern.MatchString(publicText) {
+			t.Errorf("OpenAPI public text still uses asset terminology: %q", match[1])
+		}
+	}
+	for _, summary := range []string{
+		"summary: Reserve accessory stock or an individual item",
+		"summary: Install accessory stock or an individual item",
+	} {
+		if !strings.Contains(contract, summary) {
+			t.Errorf("OpenAPI is missing %q", summary)
+		}
+	}
+}
+
+func TestOpenAPIArticlePathInventoryMatchesRegisteredRoutes(t *testing.T) {
+	operations := readOpenAPIOperations(t)
+	registered := map[string]map[string]bool{}
+	for _, route := range apiRouteSpecs() {
+		path := strings.TrimPrefix(route.Path, "/api/v1")
+		if !strings.HasPrefix(path, "/accessory-") {
+			continue
+		}
+		if registered[path] == nil {
+			registered[path] = map[string]bool{}
+		}
+		registered[path][route.Method] = true
+	}
+
+	for path, methods := range registered {
+		for method := range methods {
+			if !operations[path][method] {
+				t.Errorf("registered article route is undocumented: %s %s", method, path)
+			}
+		}
+	}
+	for path, methods := range operations {
+		if !strings.HasPrefix(path, "/accessory-") {
+			continue
+		}
+		for method := range methods {
+			if !registered[path][method] {
+				t.Errorf("documented article route is unregistered: %s %s", method, path)
+			}
+		}
+	}
+}
+
+func TestOpenAPIArticleSchemasMatchRuntimeSemantics(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+
+	usageEvent := openAPIIndentedBlock(t, contract, "AccessoryUsageEvent", 4)
+	if !strings.Contains(usageEvent,
+		"enum: [reservation, installation, condition_changed, removal]") {
+		t.Errorf("usage event enum does not match runtime: %s", usageEvent)
+	}
+
+	asset := openAPIIndentedBlock(t, contract, "AccessoryAsset", 4)
+	if !strings.Contains(asset, "purchaseId:") {
+		t.Errorf("AccessoryAsset schema is missing purchaseId: %s", asset)
+	}
+
+	document := openAPIIndentedBlock(t, contract, "AccessoryDocument", 4)
+	if strings.Contains(document, "fileBlobId:") {
+		t.Errorf("AccessoryDocument exposes internal fileBlobId: %s", document)
+	}
+
+	download := openAPIIndentedBlock(
+		t, contract, "/accessory-products/{id}/documents/{documentID}/download", 2,
+	)
+	successStart := strings.Index(download, `        "200":`)
+	successEnd := strings.Index(download, `        "403":`)
+	if successStart < 0 || successEnd <= successStart {
+		t.Fatalf("document download success response is malformed: %s", download)
+	}
+	downloadSuccess := download[successStart:successEnd]
+	for _, contentType := range []string{"application/pdf:", "application/json:", "text/plain:", "image/png:"} {
+		if !strings.Contains(downloadSuccess, contentType) {
+			t.Errorf("document download contract is missing %s", contentType)
+		}
+	}
+}
+
+func TestOpenAPIArticleListDocumentsValidatedStringFilters(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	articleList := openAPIIndentedBlock(t, string(data), "/accessory-products", 2)
+	for _, expectation := range []struct {
+		name      string
+		maxLength int
+		scalar    bool
+	}{
+		{name: "query", maxLength: 200, scalar: true},
+		{name: "manufacturer", maxLength: 200, scalar: true},
+		{name: "locationId", maxLength: 128, scalar: true},
+		{name: "gauge", maxLength: 128},
+	} {
+		parameter := openAPIParameterBlock(t, articleList, expectation.name)
+		for _, fragment := range []string{
+			"minLength: 1", fmt.Sprintf("maxLength: %d", expectation.maxLength),
+			"must not contain control characters",
+		} {
+			if !strings.Contains(parameter, fragment) {
+				t.Errorf("%s parameter is missing %q: %s", expectation.name, fragment, parameter)
+			}
+		}
+		if expectation.scalar && !strings.Contains(parameter, "must be supplied at most once") {
+			t.Errorf("%s parameter does not document scalar cardinality: %s", expectation.name, parameter)
+		}
+	}
+}
+
+func openAPIParameterBlock(t *testing.T, operation, name string) string {
+	t.Helper()
+	marker := "        - name: " + name + "\n"
+	start := strings.Index(operation, marker)
+	if start < 0 {
+		t.Fatalf("OpenAPI parameter %s is missing", name)
+	}
+	remainder := operation[start+len(marker):]
+	end := strings.Index(remainder, "        - name: ")
+	if end < 0 {
+		end = len(remainder)
+	}
+	return marker + remainder[:end]
+}
+
+func openAPIIndentedBlock(t *testing.T, contract, heading string, indent int) string {
+	t.Helper()
+	lines := strings.Split(contract, "\n")
+	prefix := strings.Repeat(" ", indent) + heading + ":"
+	start := -1
+	for index, line := range lines {
+		if line == prefix {
+			start = index
+			break
+		}
+	}
+	if start < 0 {
+		t.Fatalf("OpenAPI block %s is missing", heading)
+	}
+	end := len(lines)
+	for index := start + 1; index < len(lines); index++ {
+		line := lines[index]
+		if strings.TrimSpace(line) == "" {
+			continue
+		}
+		lineIndent := len(line) - len(strings.TrimLeft(line, " "))
+		if lineIndent <= indent {
+			end = index
+			break
+		}
+	}
+	return strings.Join(lines[start:end], "\n")
 }
 
 type frontendAPIOperation struct {

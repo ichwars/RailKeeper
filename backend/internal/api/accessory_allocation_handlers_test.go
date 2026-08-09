@@ -16,6 +16,7 @@ func TestAccessoryAllocationRoutesEnforceMixedRolesAndCSRF(t *testing.T) {
 		"/api/v1/accessory-reservations",
 		"/api/v1/accessory-installations",
 		"/api/v1/accessory-products/" + product.ID + "/allocation-summary",
+		"/api/v1/accessory-products/" + product.ID + "/usage-history",
 	}
 	for _, path := range readPaths {
 		for role, session := range sessions {
@@ -144,6 +145,22 @@ func TestAccessoryAllocationRoutesCoverLifecycleAndSummary(t *testing.T) {
 		"/api/v1/accessory-installations/"+installation.ID+"/remove",
 		map[string]any{"disposition": "maintenance", "notes": "Prüfstand"}, true)
 	assertStatus(t, removeResponse, http.StatusOK)
+
+	historyResponse := layoutRequest(t, router, editor, http.MethodGet,
+		"/api/v1/accessory-products/"+product.ID+"/usage-history", nil, true)
+	assertStatus(t, historyResponse, http.StatusOK)
+	var history application.AccessoryUsageHistory
+	decodeResponse(t, historyResponse, &history)
+	eventTypes := map[application.AccessoryUsageEventType]bool{}
+	for _, event := range history.Events {
+		eventTypes[event.Type] = true
+	}
+	if history.ProductID != product.ID || len(history.Events) != 3 ||
+		!eventTypes[application.AccessoryUsageReservation] ||
+		!eventTypes[application.AccessoryUsageInstallation] ||
+		!eventTypes[application.AccessoryUsageRemoval] {
+		t.Fatalf("unexpected usage history: %#v", history)
+	}
 
 	invalid := layoutRequest(t, router, editor, http.MethodPost, "/api/v1/accessory-reservations",
 		map[string]any{"productId": product.ID, "locationId": location.ID, "quantity": 1}, true)

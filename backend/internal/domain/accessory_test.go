@@ -46,6 +46,49 @@ func TestAccessoryEnumsAcceptOnlyDefinedValues(t *testing.T) {
 	}
 }
 
+func TestAccessoryArticleEnumsAcceptOnlyDefinedValues(t *testing.T) {
+	strategies := []struct {
+		name  string
+		value domain.AccessoryInventoryStrategy
+		want  bool
+	}{
+		{"quantity", domain.AccessoryInventoryQuantity, true},
+		{"individual", domain.AccessoryInventoryIndividual, true},
+		{"quantity later individual", domain.AccessoryInventoryQuantityLaterIndividual, true},
+		{"invalid strategy", domain.AccessoryInventoryStrategy("bulk"), false},
+	}
+	for _, test := range strategies {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.value.Valid(); got != test.want {
+				t.Fatalf("Valid() = %t, want %t", got, test.want)
+			}
+		})
+	}
+
+	types := []struct {
+		name  string
+		value domain.AccessoryArticleType
+		want  bool
+	}{
+		{"track", domain.AccessoryArticleTrack, true},
+		{"signal", domain.AccessoryArticleSignal, true},
+		{"decoder", domain.AccessoryArticleDecoder, true},
+		{"electrical control", domain.AccessoryArticleElectricalControl, true},
+		{"building equipment", domain.AccessoryArticleBuildingEquipment, true},
+		{"landscape consumable", domain.AccessoryArticleLandscapeConsumable, true},
+		{"lighting", domain.AccessoryArticleLighting, true},
+		{"other", domain.AccessoryArticleOther, true},
+		{"invalid article type", domain.AccessoryArticleType("vehicle"), false},
+	}
+	for _, test := range types {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.value.Valid(); got != test.want {
+				t.Fatalf("Valid() = %t, want %t", got, test.want)
+			}
+		})
+	}
+}
+
 func TestValidateAllocationTargetRequiresExactlyOneTarget(t *testing.T) {
 	valid := []domain.AllocationTarget{
 		{VehicleID: "vehicle-1"},

@@ -235,13 +235,6 @@ export function SettingsAuthTab({
   return (
         <section className="auth-settings-grid">
           <section className="panel settings-card settings-tool-card auth-status-card">
-            <div className="settings-card-title">
-              <Shield size={18} />
-              <div>
-                <h2>{t("settings.auth.title")}</h2>
-                <p>{t("settings.auth.subtitle")}</p>
-              </div>
-            </div>
             <div className="auth-status-grid" aria-label={t("settings.auth.status")}>
               <article>
                 <span className={twoFactorEnabled ? "settings-pill muted" : "settings-pill active"}>{twoFactorEnabled ? t("settings.auth.inactive") : t("common.active")}</span>

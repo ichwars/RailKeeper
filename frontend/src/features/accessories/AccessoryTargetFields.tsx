@@ -50,7 +50,8 @@ export function accessoryTargetInput(target: AccessoryTargetSelection): Allocati
   return { layoutUnitId: target.id };
 }
 
-export function accessoryTargetLabel(target: AllocationTarget, vehicles: Vehicle[], layouts: Layout[],
+export function accessoryTargetLabel(target: { vehicleId?: string; layoutId?: string; layoutUnitId?: string },
+  vehicles: Vehicle[], layouts: Layout[],
   units: LayoutUnit[]) {
   if (target.vehicleId) {
     const vehicle = vehicles.find((item) => item.id === target.vehicleId);

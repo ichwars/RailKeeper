@@ -354,7 +354,7 @@ a {
   gap: 8px;
 }
 
-.nav a {
+.nav > .nav-entry {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -370,12 +370,12 @@ a {
   width: 100%;
 }
 
-.sidebar.collapsed .nav a {
+.sidebar.collapsed .nav > .nav-entry {
   justify-content: center;
   padding: 0;
 }
 
-.sidebar.collapsed .nav a span {
+.sidebar.collapsed .nav > .nav-entry span {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -384,13 +384,20 @@ a {
   white-space: nowrap;
 }
 
-.nav a.active,
-.nav a:hover {
+.nav > .nav-entry.disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+  opacity: 0.48;
+  user-select: none;
+}
+
+.nav > a.nav-entry.active,
+.nav > a.nav-entry:hover {
   background: var(--accent-soft);
   color: var(--accent-strong);
 }
 
-.nav a.active {
+.nav > a.nav-entry.active {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 

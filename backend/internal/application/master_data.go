@@ -10,19 +10,32 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"railkeeper/backend/internal/domain"
 )
 
 var (
 	ErrMasterDataValidation = errors.New("master data validation failed")
 	ErrMasterDataNotFound   = errors.New("master data not found")
+	ErrMasterDataProtected  = fmt.Errorf("%w: standard article type keys are protected", ErrMasterDataValidation)
 )
 
 const masterDataExportFormat = "railkeeper-master-data"
+const standardArticleType = "article_type"
+const standardAccessorySubtype = "accessory_subtype"
+const legacyArticleSubtype = "article_subtype"
+const accessoryCustomField = "accessory_custom_field"
+
+var standardArticleTypeKeys = []string{
+	"track", "signal", "decoder", "electrical_control", "building_equipment",
+	"landscape_consumable", "lighting", "other",
+}
 
 type MasterDataService struct {
-	db      *sql.DB
-	cacheMu sync.RWMutex
-	cache   map[bool]map[string][]MasterDataEntry
+	db             *sql.DB
+	cacheMu        sync.RWMutex
+	cache          map[bool]map[string][]MasterDataEntry
+	snapshotLoader func(context.Context) (map[string][]MasterDataEntry, error)
 }
 
 type MasterDataEntry struct {
@@ -71,19 +84,33 @@ type MasterDataImportResult struct {
 }
 
 func NewMasterDataService(db *sql.DB) *MasterDataService {
-	return &MasterDataService{
-		db:    db,
-		cache: map[bool]map[string][]MasterDataEntry{},
+	return newMasterDataService(db, nil)
+}
+
+func newMasterDataService(
+	db *sql.DB,
+	loader func(context.Context) (map[string][]MasterDataEntry, error),
+) *MasterDataService {
+	if loader == nil {
+		loader = func(ctx context.Context) (map[string][]MasterDataEntry, error) {
+			return loadMasterDataSnapshot(ctx, db)
+		}
 	}
+	return &MasterDataService{db: db, cache: map[bool]map[string][]MasterDataEntry{}, snapshotLoader: loader}
 }
 
 func (s *MasterDataService) WarmCache(ctx context.Context) error {
-	if _, err := s.ListAll(ctx, false); err != nil {
+	return s.RefreshCache(ctx)
+}
+
+func (s *MasterDataService) RefreshCache(ctx context.Context) error {
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	snapshot, err := s.snapshotLoader(ctx)
+	if err != nil {
 		return err
 	}
-	if _, err := s.ListAll(ctx, true); err != nil {
-		return err
-	}
+	s.cache = masterDataCaches(snapshot)
 	return nil
 }
 
@@ -132,15 +159,26 @@ func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[s
 	}
 	s.cacheMu.RUnlock()
 
+	s.cacheMu.Lock()
+	defer s.cacheMu.Unlock()
+	if cached, ok := s.cache[activeOnly]; ok {
+		return cloneMasterDataMap(cached), nil
+	}
+	snapshot, err := s.snapshotLoader(ctx)
+	if err != nil {
+		return nil, err
+	}
+	s.cache = masterDataCaches(snapshot)
+	return cloneMasterDataMap(s.cache[activeOnly]), nil
+}
+
+func loadMasterDataSnapshot(ctx context.Context, db *sql.DB) (map[string][]MasterDataEntry, error) {
 	query := `
 SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
 FROM master_data_entries`
-	if activeOnly {
-		query += " WHERE active=1"
-	}
 	query += " ORDER BY type ASC, active DESC, sort_order ASC, label ASC"
 
-	rows, err := s.db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("list all master data: %w", err)
 	}
@@ -158,21 +196,27 @@ FROM master_data_entries`
 		return nil, fmt.Errorf("iterate all master data: %w", err)
 	}
 
-	s.cacheMu.Lock()
-	s.cache[activeOnly] = cloneMasterDataMap(out)
-	s.cacheMu.Unlock()
-
-	return cloneMasterDataMap(out), nil
+	return out, nil
 }
 
 func (s *MasterDataService) Create(ctx context.Context, typeName string, input MasterDataInput) (*MasterDataEntry, error) {
 	typeName = strings.TrimSpace(typeName)
 	input = cleanMasterDataInput(input)
+	if typeName == standardArticleType {
+		return nil, ErrMasterDataProtected
+	}
 	if typeName == "" || input.Label == "" {
 		return nil, ErrMasterDataValidation
 	}
 	if input.Key == "" {
 		input.Key = slugKey(input.Label)
+	}
+	if typeName == accessoryCustomField {
+		metadata, err := normalizeAccessoryCustomFieldMetadata(input.Key, true, input.Metadata)
+		if err != nil {
+			return nil, err
+		}
+		input.Metadata = metadata
 	}
 	active := true
 	if input.Active != nil {
@@ -240,6 +284,12 @@ func (s *MasterDataService) Update(ctx context.Context, typeName, key string, in
 	if typeName == "" || key == "" || input.Label == "" {
 		return nil, ErrMasterDataValidation
 	}
+	if typeName == standardArticleType && input.Key != "" && input.Key != key {
+		return nil, ErrMasterDataProtected
+	}
+	if typeName == accessoryCustomField {
+		return s.updateAccessoryCustomField(ctx, key, input)
+	}
 	active := true
 	if input.Active != nil {
 		active = *input.Active
@@ -272,7 +322,15 @@ WHERE type=? AND key=?
 }
 
 func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) error {
-	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, strings.TrimSpace(typeName), strings.TrimSpace(key))
+	typeName = strings.TrimSpace(typeName)
+	key = strings.TrimSpace(key)
+	if typeName == standardArticleType {
+		return ErrMasterDataProtected
+	}
+	if typeName == accessoryCustomField {
+		return s.deleteAccessoryCustomField(ctx, key)
+	}
+	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, typeName, key)
 	if err != nil {
 		return fmt.Errorf("delete master data: %w", err)
 	}
@@ -335,12 +393,53 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 {
 		return nil, ErrMasterDataValidation
 	}
+	importedArticleTypes, err := validateImportedArticleTypes(doc.Entries)
+	if err != nil {
+		return nil, err
+	}
+	currentArticleTypes, err := s.List(ctx, standardArticleType, false)
+	if err != nil {
+		return nil, fmt.Errorf("read authoritative article types: %w", err)
+	}
+	articleTypes, err := prepareImportedArticleTypes(currentArticleTypes, importedArticleTypes)
+	if err != nil {
+		return nil, err
+	}
+	currentAccessorySubtypes, err := s.List(ctx, standardAccessorySubtype, false)
+	if err != nil {
+		return nil, fmt.Errorf("read authoritative accessory subtypes: %w", err)
+	}
+	entriesByType := make(map[string][]MasterDataEntry, len(doc.Entries)+1)
+	for typeName, entries := range doc.Entries {
+		for _, entry := range entries {
+			if effectiveMasterDataType(typeName, entry) != standardArticleType {
+				entriesByType[typeName] = append(entriesByType[typeName], entry)
+			}
+		}
+	}
+	entriesByType[standardArticleType] = append(entriesByType[standardArticleType], articleTypes...)
+	accessorySubtypesWereImported := containsEffectiveMasterDataType(doc.Entries, standardAccessorySubtype)
+	if !accessorySubtypesWereImported {
+		entriesByType[standardAccessorySubtype] = append(
+			entriesByType[standardAccessorySubtype], currentAccessorySubtypes...,
+		)
+	}
+	articleTypesWereImported := len(importedArticleTypes) > 0
+	if err := normalizeImportedAccessoryCustomFields(entriesByType); err != nil {
+		return nil, err
+	}
 
 	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin master data import: %w", err)
 	}
 	defer func() { _ = tx.Rollback() }()
+	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
+		return nil, err
+	}
+	if err := validateImportedAccessoryCustomFieldReferences(ctx, tx, entriesByType); err != nil {
+		return nil, err
+	}
 
 	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_relations`); err != nil {
 		return nil, fmt.Errorf("clear master data relations: %w", err)
@@ -351,13 +450,10 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := &MasterDataImportResult{ImportedTypes: len(doc.Entries)}
-	for typeName, entries := range doc.Entries {
+	for typeName, entries := range entriesByType {
 		typeName = strings.TrimSpace(typeName)
 		for _, entry := range entries {
-			entryType := typeName
-			if entry.Type != "" {
-				entryType = strings.TrimSpace(entry.Type)
-			}
+			entryType := effectiveMasterDataType(typeName, entry)
 			key := strings.TrimSpace(entry.Key)
 			label := strings.TrimSpace(entry.Label)
 			if entryType == "" || label == "" {
@@ -392,7 +488,11 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder, strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt); err != nil {
 				return nil, fmt.Errorf("insert imported master data entry: %w", err)
 			}
-			result.ImportedEntries++
+			preservedArticleType := entryType == standardArticleType && !articleTypesWereImported
+			preservedAccessorySubtype := entryType == standardAccessorySubtype && !accessorySubtypesWereImported
+			if !preservedArticleType && !preservedAccessorySubtype {
+				result.ImportedEntries++
+			}
 		}
 	}
 
@@ -422,6 +522,129 @@ VALUES(?, ?, ?, ?, ?, ?, ?)
 	}
 	s.invalidateCache()
 	return result, nil
+}
+
+func normalizeImportedAccessoryCustomFields(entriesByType map[string][]MasterDataEntry) error {
+	for typeName, entries := range entriesByType {
+		for index := range entries {
+			entry := &entries[index]
+			if effectiveMasterDataType(typeName, *entry) != accessoryCustomField {
+				continue
+			}
+			key := strings.TrimSpace(entry.Key)
+			if key == "" {
+				key = slugKey(entry.Label)
+			}
+			metadata := entry.Metadata
+			if metadata == nil {
+				metadata = map[string]any{}
+			}
+			normalized, err := normalizeAccessoryCustomFieldMetadata(key, entry.Active, metadata)
+			if err != nil {
+				return err
+			}
+			entry.Metadata = normalized
+		}
+		entriesByType[typeName] = entries
+	}
+	return nil
+}
+
+func validateImportedArticleTypes(entriesByType map[string][]MasterDataEntry) ([]MasterDataEntry, error) {
+	entries := []MasterDataEntry{}
+	for typeName, typedEntries := range entriesByType {
+		for _, entry := range typedEntries {
+			if effectiveMasterDataType(typeName, entry) == standardArticleType {
+				entries = append(entries, entry)
+			}
+		}
+	}
+	if err := validateProtectedArticleTypes(entries, false); err != nil {
+		return nil, err
+	}
+	return entries, nil
+}
+
+func validateProtectedArticleTypes(entries []MasterDataEntry, required bool) error {
+	if len(entries) == 0 && !required {
+		return nil
+	}
+	if len(entries) != len(standardArticleTypeKeys) {
+		return ErrMasterDataProtected
+	}
+	expected := make(map[string]bool, len(standardArticleTypeKeys))
+	for _, key := range standardArticleTypeKeys {
+		expected[key] = true
+	}
+	seen := make(map[string]bool, len(entries))
+	for _, entry := range entries {
+		key := strings.TrimSpace(entry.Key)
+		if !expected[key] || seen[key] {
+			return ErrMasterDataProtected
+		}
+		if strings.TrimSpace(entry.Label) == "" {
+			return ErrMasterDataValidation
+		}
+		seen[key] = true
+	}
+	return nil
+}
+
+func effectiveMasterDataType(bucketType string, entry MasterDataEntry) string {
+	entryType := strings.TrimSpace(bucketType)
+	if entry.Type != "" {
+		entryType = strings.TrimSpace(entry.Type)
+	}
+	if entryType == legacyArticleSubtype {
+		return standardAccessorySubtype
+	}
+	return entryType
+}
+
+func containsEffectiveMasterDataType(entriesByType map[string][]MasterDataEntry, typeName string) bool {
+	for bucketType, entries := range entriesByType {
+		for _, entry := range entries {
+			if effectiveMasterDataType(bucketType, entry) == typeName {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func prepareImportedArticleTypes(
+	current []MasterDataEntry,
+	imported []MasterDataEntry,
+) ([]MasterDataEntry, error) {
+	if len(current) != len(standardArticleTypeKeys) {
+		return nil, ErrMasterDataProtected
+	}
+	byKey := make(map[string]MasterDataEntry, len(current))
+	for _, entry := range current {
+		byKey[entry.Key] = entry
+	}
+	for _, key := range standardArticleTypeKeys {
+		if _, ok := byKey[key]; !ok {
+			return nil, ErrMasterDataProtected
+		}
+	}
+	if len(imported) == 0 {
+		return current, nil
+	}
+	for _, entry := range imported {
+		currentEntry := byKey[strings.TrimSpace(entry.Key)]
+		currentEntry.Label = strings.TrimSpace(entry.Label)
+		currentEntry.Active = entry.Active
+		currentEntry.SortOrder = entry.SortOrder
+		currentEntry.Metadata = entry.Metadata
+		currentEntry.UpdatedAt = ""
+		byKey[currentEntry.Key] = currentEntry
+	}
+	prepared := make([]MasterDataEntry, 0, len(standardArticleTypeKeys))
+	for _, key := range standardArticleTypeKeys {
+		prepared = append(prepared, byKey[key])
+	}
+	return prepared, nil
 }
 
 type masterDataScanner interface {
@@ -467,6 +690,21 @@ func cloneMasterDataMap(input map[string][]MasterDataEntry) map[string][]MasterD
 	return out
 }
 
+func masterDataCaches(snapshot map[string][]MasterDataEntry) map[bool]map[string][]MasterDataEntry {
+	active := make(map[string][]MasterDataEntry, len(snapshot))
+	for typeName, entries := range snapshot {
+		for _, entry := range entries {
+			if entry.Active {
+				active[typeName] = append(active[typeName], entry)
+			}
+		}
+	}
+	return map[bool]map[string][]MasterDataEntry{
+		false: cloneMasterDataMap(snapshot),
+		true:  active,
+	}
+}
+
 func scanMasterDataEntry(scanner masterDataScanner) (MasterDataEntry, error) {
 	var item MasterDataEntry
 	var active int
@@ -501,6 +739,153 @@ func cleanMasterDataInput(input MasterDataInput) MasterDataInput {
 		input.Metadata = map[string]any{}
 	}
 	return input
+}
+
+func ParseAccessoryCustomAttributeDefinition(
+	key string,
+	active bool,
+	metadata map[string]any,
+) (domain.AccessoryAttributeDefinition, error) {
+	definition := domain.AccessoryAttributeDefinition{Key: strings.TrimSpace(key), Active: active}
+	kind, ok := metadata["kind"].(string)
+	if !ok {
+		return definition, fmt.Errorf("%w: custom field %q requires a valid kind", ErrMasterDataValidation, key)
+	}
+	definition.Kind = domain.AccessoryAttributeKind(strings.TrimSpace(kind))
+
+	unitValue, hasUnit := metadata["unit"]
+	minimumValue, hasMinimum := metadata["min"]
+	maximumValue, hasMaximum := metadata["max"]
+	optionsValue, hasOptions := metadata["options"]
+	if definition.Kind != domain.AccessoryAttributeNumber && (hasUnit || hasMinimum || hasMaximum) {
+		return definition, fmt.Errorf("%w: custom field %q has numeric metadata for a non-number kind", ErrMasterDataValidation, key)
+	}
+	if hasUnit {
+		unit, ok := unitValue.(string)
+		if !ok {
+			return definition, fmt.Errorf("%w: custom field %q unit must be a string", ErrMasterDataValidation, key)
+		}
+		definition.Unit = strings.TrimSpace(unit)
+	}
+	if hasMinimum {
+		minimum, ok := masterDataFloat(minimumValue)
+		if !ok {
+			return definition, fmt.Errorf("%w: custom field %q minimum must be a number", ErrMasterDataValidation, key)
+		}
+		definition.Minimum = &minimum
+	}
+	if hasMaximum {
+		maximum, ok := masterDataFloat(maximumValue)
+		if !ok {
+			return definition, fmt.Errorf("%w: custom field %q maximum must be a number", ErrMasterDataValidation, key)
+		}
+		definition.Maximum = &maximum
+	}
+
+	isSelect := definition.Kind == domain.AccessoryAttributeSingleSelect ||
+		definition.Kind == domain.AccessoryAttributeMultiSelect
+	if isSelect != hasOptions {
+		return definition, fmt.Errorf("%w: custom field %q selection options are invalid", ErrMasterDataValidation, key)
+	}
+	if hasOptions {
+		options, ok := masterDataStrings(optionsValue)
+		if !ok {
+			return definition, fmt.Errorf("%w: custom field %q options must be strings", ErrMasterDataValidation, key)
+		}
+		definition.Options = options
+	}
+	if err := definition.Validate(); err != nil {
+		return definition, fmt.Errorf("%w: custom field %q: %v", ErrMasterDataValidation, key, err)
+	}
+	return definition, nil
+}
+
+func normalizeAccessoryCustomFieldMetadata(
+	key string,
+	active bool,
+	metadata map[string]any,
+) (map[string]any, error) {
+	definition, err := ParseAccessoryCustomAttributeDefinition(key, active, metadata)
+	if err != nil {
+		return nil, err
+	}
+	normalized := make(map[string]any, len(metadata))
+	for name, value := range metadata {
+		normalized[name] = value
+	}
+	normalized["kind"] = string(definition.Kind)
+	if _, exists := metadata["unit"]; exists {
+		normalized["unit"] = definition.Unit
+	}
+	if definition.Minimum != nil {
+		normalized["min"] = *definition.Minimum
+	}
+	if definition.Maximum != nil {
+		normalized["max"] = *definition.Maximum
+	}
+	if definition.Options != nil {
+		normalized["options"] = append([]string(nil), definition.Options...)
+	}
+	return normalized, nil
+}
+
+func masterDataStrings(value any) ([]string, bool) {
+	var raw []any
+	switch typed := value.(type) {
+	case []string:
+		out := make([]string, len(typed))
+		for index, option := range typed {
+			out[index] = strings.TrimSpace(option)
+		}
+		return out, true
+	case []any:
+		raw = typed
+	default:
+		return nil, false
+	}
+	out := make([]string, len(raw))
+	for index, value := range raw {
+		option, ok := value.(string)
+		if !ok {
+			return nil, false
+		}
+		out[index] = strings.TrimSpace(option)
+	}
+	return out, true
+}
+
+func masterDataFloat(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case float64:
+		return typed, true
+	case float32:
+		return float64(typed), true
+	case int:
+		return float64(typed), true
+	case int8:
+		return float64(typed), true
+	case int16:
+		return float64(typed), true
+	case int32:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case uint:
+		return float64(typed), true
+	case uint8:
+		return float64(typed), true
+	case uint16:
+		return float64(typed), true
+	case uint32:
+		return float64(typed), true
+	case uint64:
+		return float64(typed), true
+	case json.Number:
+		number, err := typed.Float64()
+		return number, err == nil
+	default:
+		return 0, false
+	}
 }
 
 func boolToInt(value bool) int {

@@ -1006,11 +1006,108 @@ components:
           type: integer
         rowCount:
           type: integer
+    AccessoryArticleType:
+      type: string
+      enum:
+        [track, signal, decoder, electrical_control, building_equipment,
+         landscape_consumable, lighting, other]
+    AccessoryTextAttribute:
+      type: object
+      required: [key, kind, textValue]
+      properties:
+        key:
+          type: string
+        kind:
+          const: text
+        textValue:
+          type: string
+    AccessoryNumberAttribute:
+      type: object
+      required: [key, kind, numberValue]
+      properties:
+        key:
+          type: string
+        kind:
+          const: number
+        numberValue:
+          type: number
+        unit:
+          type: string
+    AccessoryBooleanAttribute:
+      type: object
+      required: [key, kind, booleanValue]
+      properties:
+        key:
+          type: string
+        kind:
+          const: boolean
+        booleanValue:
+          type: boolean
+    AccessoryDateAttribute:
+      type: object
+      required: [key, kind, dateValue]
+      properties:
+        key:
+          type: string
+        kind:
+          const: date
+        dateValue:
+          type: string
+          format: date
+    AccessorySingleSelectAttribute:
+      type: object
+      required: [key, kind, optionValues]
+      properties:
+        key:
+          type: string
+        kind:
+          const: single_select
+        optionValues:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: string
+    AccessoryMultiSelectAttribute:
+      type: object
+      required: [key, kind, optionValues]
+      properties:
+        key:
+          type: string
+        kind:
+          const: multi_select
+        optionValues:
+          type: array
+          minItems: 1
+          items:
+            type: string
+    AccessoryAttributeValue:
+      oneOf:
+        - $ref: "#/components/schemas/AccessoryTextAttribute"
+        - $ref: "#/components/schemas/AccessoryNumberAttribute"
+        - $ref: "#/components/schemas/AccessoryBooleanAttribute"
+        - $ref: "#/components/schemas/AccessoryDateAttribute"
+        - $ref: "#/components/schemas/AccessorySingleSelectAttribute"
+        - $ref: "#/components/schemas/AccessoryMultiSelectAttribute"
+      discriminator:
+        propertyName: kind
+        mapping:
+          text: "#/components/schemas/AccessoryTextAttribute"
+          number: "#/components/schemas/AccessoryNumberAttribute"
+          boolean: "#/components/schemas/AccessoryBooleanAttribute"
+          date: "#/components/schemas/AccessoryDateAttribute"
+          single_select: "#/components/schemas/AccessorySingleSelectAttribute"
+          multi_select: "#/components/schemas/AccessoryMultiSelectAttribute"
     AccessoryProduct:
       type: object
-      required: [id, manufacturer, name, category, trackingMode, createdAt, updatedAt]
+      required:
+        [id, inventoryNumber, manufacturer, name, category, trackingMode, manufacturerStatus, articleType,
+         subtype, gauges, packageQuantity, stockUnit, minimumStock, inventoryStrategy,
+         alternativeNumbers, keywords, archived, attributes, createdAt, updatedAt]
       properties:
         id:
+          type: string
+        inventoryNumber:
           type: string
         manufacturer:
           type: string
@@ -1024,6 +1121,58 @@ components:
           type: string
           enum: [quantity, individual]
         description:
+          type: string
+        ean:
+          type: string
+        manufacturerStatus:
+          type: string
+          enum: [announced, available, discontinued, unknown]
+        articleType:
+          $ref: "#/components/schemas/AccessoryArticleType"
+        subtype:
+          type: string
+        gauges:
+          type: array
+          items:
+            type: string
+        scale:
+          type: string
+        packageQuantity:
+          type: integer
+          minimum: 1
+        stockUnit:
+          type: string
+        minimumStock:
+          type: integer
+          minimum: 0
+        inventoryStrategy:
+          type: string
+          enum: [quantity, individual, quantity_later_individual]
+        manufacturerUrl:
+          type: string
+          format: uri
+        productUrl:
+          type: string
+          format: uri
+        alternativeNumbers:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        compatibilityNotes:
+          type: string
+        internalNotes:
+          type: string
+        archived:
+          type: boolean
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryAttributeValue"
+        primaryImageUrl:
           type: string
         createdAt:
           type: string
@@ -1033,7 +1182,7 @@ components:
           format: date-time
     AccessoryProductInput:
       type: object
-      required: [manufacturer, name, category, trackingMode]
+      required: [manufacturer, name, articleType, subtype, packageQuantity, stockUnit, inventoryStrategy]
       properties:
         manufacturer:
           type: string
@@ -1048,6 +1197,215 @@ components:
           enum: [quantity, individual]
         description:
           type: string
+        ean:
+          type: string
+        manufacturerStatus:
+          type: string
+          enum: [announced, available, discontinued, unknown]
+        articleType:
+          $ref: "#/components/schemas/AccessoryArticleType"
+        subtype:
+          type: string
+        gauges:
+          type: array
+          items:
+            type: string
+        scale:
+          type: string
+        packageQuantity:
+          type: integer
+          minimum: 1
+        stockUnit:
+          type: string
+        minimumStock:
+          type: integer
+          minimum: 0
+        inventoryStrategy:
+          type: string
+          enum: [quantity, individual, quantity_later_individual]
+        manufacturerUrl:
+          type: string
+          format: uri
+        productUrl:
+          type: string
+          format: uri
+        alternativeNumbers:
+          type: array
+          items:
+            type: string
+        keywords:
+          type: array
+          items:
+            type: string
+        compatibilityNotes:
+          type: string
+        internalNotes:
+          type: string
+        archived:
+          type: boolean
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryAttributeValue"
+    AccessoryArticleListItem:
+      type: object
+      required:
+        [id, inventoryNumber, manufacturer, articleNumber, name, articleType, subtype, gauges,
+         inventoryStrategy, archived, owned, available, reserved, installed,
+         locationNames, hasUsageHistory, careHintCount, updatedAt, attributes]
+      properties:
+        id:
+          type: string
+        inventoryNumber:
+          type: string
+        primaryImageUrl:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        articleType:
+          $ref: "#/components/schemas/AccessoryArticleType"
+        subtype:
+          type: string
+        gauges:
+          type: array
+          items:
+            type: string
+        inventoryStrategy:
+          type: string
+          enum: [quantity, individual, quantity_later_individual]
+        archived:
+          type: boolean
+        owned:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        installed:
+          type: integer
+          minimum: 0
+        locationNames:
+          type: array
+          items:
+            type: string
+        hasUsageHistory:
+          type: boolean
+        careHintCount:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time
+        attributes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryAttributeValue"
+    AccessoryOverviewMetrics:
+      type: object
+      required:
+        [articleCount, articleTypeCount, available, locationCount, reserved,
+         installed, careHintCount]
+      properties:
+        articleCount:
+          type: integer
+          minimum: 0
+        articleTypeCount:
+          type: integer
+          minimum: 0
+        available:
+          type: integer
+          minimum: 0
+        locationCount:
+          type: integer
+          minimum: 0
+        reserved:
+          type: integer
+          minimum: 0
+        installed:
+          type: integer
+          minimum: 0
+        careHintCount:
+          type: integer
+          minimum: 0
+    AccessoryArticleFilterOptions:
+      type: object
+      required: [manufacturers, articleTypes, gauges, storageLocations]
+      properties:
+        manufacturers:
+          type: array
+          items:
+            type: string
+        articleTypes:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryArticleType"
+        gauges:
+          type: array
+          items:
+            type: string
+        storageLocations:
+          type: array
+          items:
+            type: object
+            required: [id, name]
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+    AccessoryArticleListResult:
+      type: object
+      required: [items, metrics, filters]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryArticleListItem"
+        metrics:
+          $ref: "#/components/schemas/AccessoryOverviewMetrics"
+        filters:
+          $ref: "#/components/schemas/AccessoryArticleFilterOptions"
+    AccessoryDuplicateCheckInput:
+      type: object
+      required: [manufacturer, articleNumber]
+      properties:
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        excludeId:
+          type: string
+    AccessoryDuplicateCandidate:
+      type: object
+      required: [id, manufacturer, articleNumber, name, articleType, subtype]
+      properties:
+        id:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        articleType:
+          $ref: "#/components/schemas/AccessoryArticleType"
+        subtype:
+          type: string
+    AccessoryDuplicateCheckResult:
+      type: object
+      required: [candidates]
+      properties:
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryDuplicateCandidate"
     StorageLocation:
       type: object
       required: [id, name, archived, createdAt, updatedAt]
@@ -1120,6 +1478,124 @@ components:
           type: integer
           not:
             const: 0
+    AccessoryStockMovement:
+      type: object
+      required: [id, productId, locationId, movementType, quantity, createdAt]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        locationId:
+          type: string
+        movementType:
+          type: string
+          enum: [purchase, adjustment, transfer_in, transfer_out, individualization, installation, removal]
+        quantity:
+          type: integer
+          not:
+            const: 0
+        sourceType:
+          type: string
+        sourceId:
+          type: string
+        actor:
+          type: string
+        note:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    AccessoryStockTransferInput:
+      type: object
+      required: [fromLocationId, toLocationId, quantity]
+      properties:
+        fromLocationId:
+          type: string
+        toLocationId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        note:
+          type: string
+    AccessoryPurchase:
+      type: object
+      required: [id, productId, quantity, purchasedAt, bookToStock, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        storageLocationId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        purchasedAt:
+          type: string
+          format: date
+        supplier:
+          type: string
+        unitPrice:
+          type: string
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+        invoiceNumber:
+          type: string
+        warrantyUntil:
+          type: string
+          format: date
+        bookToStock:
+          type: boolean
+        notes:
+          type: string
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AccessoryPurchaseInput:
+      type: object
+      required: [purchasedAt, quantity]
+      properties:
+        purchasedAt:
+          type: string
+          format: date
+        supplier:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        unitPrice:
+          type: string
+        currency:
+          type: string
+          minLength: 3
+          maxLength: 3
+        invoiceNumber:
+          type: string
+        warrantyUntil:
+          type: string
+          format: date
+        storageLocationId:
+          type: string
+        bookToStock:
+          type: boolean
+        notes:
+          type: string
+    AccessoryIndividualizationInput:
+      type: object
+      required: [locationId, asset]
+      properties:
+        locationId:
+          type: string
+        asset:
+          $ref: "#/components/schemas/AccessoryAssetInput"
     AccessoryAsset:
       type: object
       required: [id, productId, condition, lifecycle, createdAt, updatedAt]
@@ -1127,6 +1603,8 @@ components:
         id:
           type: string
         productId:
+          type: string
+        purchaseId:
           type: string
         inventoryNumber:
           type: string
@@ -1154,6 +1632,129 @@ components:
         updatedAt:
           type: string
           format: date-time
+    AccessoryDocument:
+      type: object
+      required:
+        [id, productId, fileName, originalName, category, mimeType,
+         sizeBytes, isPrimary, createdBy, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        fileName:
+          type: string
+        originalName:
+          type: string
+        description:
+          type: string
+        category:
+          type: string
+          enum: [invoice, delivery_note, manual, data_sheet, floor_plan, image, other]
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          minimum: 1
+        isPrimary:
+          type: boolean
+        createdBy:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    AccessoryDocumentUpdateInput:
+      type: object
+      required: [category]
+      properties:
+        description:
+          type: string
+        category:
+          type: string
+          enum: [invoice, delivery_note, manual, data_sheet, floor_plan, image, other]
+        isPrimary:
+          type: boolean
+    AccessoryTechnicalPlacement:
+      type: object
+      properties:
+        placement:
+          type: string
+        digitalAddress:
+          type: string
+        decoderOutput:
+          type: string
+        connection:
+          type: string
+        wiringNotes:
+          type: string
+    AccessoryUsageEvent:
+      type: object
+      required: [id, type, productId, quantity, occurredAt]
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [reservation, installation, condition_changed, removal]
+        productId:
+          type: string
+        reservationId:
+          type: string
+        installationId:
+          type: string
+        assetId:
+          type: string
+        locationId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        vehicleId:
+          type: string
+        layoutId:
+          type: string
+        layoutUnitId:
+          type: string
+        placement:
+          type: string
+        digitalAddress:
+          type: string
+        decoderOutput:
+          type: string
+        connection:
+          type: string
+        wiringNotes:
+          type: string
+        status:
+          type: string
+          enum: [active, fulfilled, cancelled]
+        previousCondition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        condition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        removalDisposition:
+          type: string
+          enum: [stored, maintenance, defective, retired]
+        actor:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+    AccessoryUsageHistory:
+      type: object
+      required: [productId, events]
+      properties:
+        productId:
+          type: string
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccessoryUsageEvent"
     AccessoryAssetInput:
       type: object
       properties:
@@ -1219,6 +1820,16 @@ components:
             quantity:
               type: integer
               minimum: 1
+            placement:
+              type: string
+            digitalAddress:
+              type: string
+            decoderOutput:
+              type: string
+            connection:
+              type: string
+            wiringNotes:
+              type: string
             status:
               type: string
               enum: [active, fulfilled, cancelled]
@@ -1247,6 +1858,16 @@ components:
             quantity:
               type: integer
               minimum: 1
+            placement:
+              type: string
+            digitalAddress:
+              type: string
+            decoderOutput:
+              type: string
+            connection:
+              type: string
+            wiringNotes:
+              type: string
             note:
               type: string
     AccessoryInstallation:
@@ -1267,6 +1888,16 @@ components:
             quantity:
               type: integer
               minimum: 1
+            placement:
+              type: string
+            digitalAddress:
+              type: string
+            decoderOutput:
+              type: string
+            connection:
+              type: string
+            wiringNotes:
+              type: string
             condition:
               type: string
               enum: [ready, maintenance_due, defective, unknown]
@@ -1304,6 +1935,16 @@ components:
             quantity:
               type: integer
               minimum: 1
+            placement:
+              type: string
+            digitalAddress:
+              type: string
+            decoderOutput:
+              type: string
+            connection:
+              type: string
+            wiringNotes:
+              type: string
             condition:
               type: string
               enum: [ready, maintenance_due, defective, unknown]
@@ -2333,24 +2974,113 @@ paths:
   /accessory-products:
     get:
       tags: [Accessories]
-      summary: List or search accessory products
+      summary: List, filter, and sort accessory articles with global metrics
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
       parameters:
         - name: query
           in: query
+          description: >-
+            Optional free-text filter. When present, it must be supplied at most once. Its raw value
+            must contain no more than 200 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
           schema:
             type: string
+            minLength: 1
+            maxLength: 200
+        - name: articleType
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/AccessoryArticleType"
+        - name: gauge
+          in: query
+          description: >-
+            Repeatable gauge labels. Each raw label must contain no more than 128 Unicode characters
+            and must not contain control characters; after trimming, at least one character must remain.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              minLength: 1
+              maxLength: 128
+              description: >-
+                A gauge label of 1 to 128 Unicode characters that must not contain control characters.
+        - name: status
+          in: query
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [available, reserved, installed, maintenance_due, defective, archived]
+        - name: manufacturer
+          in: query
+          description: >-
+            Optional manufacturer filter. When present, it must be supplied at most once. Its raw value
+            must contain no more than 200 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 200
+        - name: locationId
+          in: query
+          description: >-
+            Optional storage-location filter. When present, it must be supplied at most once. Its raw
+            value must contain no more than 128 Unicode characters and must not contain control characters;
+            after trimming, at least one character must remain.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 128
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum:
+              [article, image, inventoryNumber, manufacturer, articleNumber, name,
+               type, gauge, stock, storage, updatedAt]
+            default: inventoryNumber
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
       responses:
         "200":
-          description: Accessory product list
+          description: Article list, global metrics, and filter options
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/AccessoryProduct"
+                $ref: "#/components/schemas/AccessoryArticleListResult"
+        "400":
+          description: Invalid article filter or sort value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
       summary: Create an accessory product
+      description: Editor or Admin role required. Confirmed duplicate article data is allowed.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2370,8 +3100,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
-          description: Accessory product conflicts with existing data
+          description: Accessory product state conflicts with existing data, excluding duplicate equality
           content:
             application/json:
               schema:
@@ -2386,6 +3122,9 @@ paths:
     get:
       tags: [Accessories]
       summary: Get an accessory product
+      description: Returns the complete editor payload. Viewer, Planner, Editor, or Admin role required.
+      security:
+        - sessionCookie: []
       responses:
         "200":
           description: Accessory product detail
@@ -2399,9 +3138,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     put:
       tags: [Accessories]
       summary: Update an accessory product
+      description: Editor or Admin role required. Confirmed duplicate article data is allowed.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2427,8 +3176,113 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
-          description: Accessory product conflicts with existing data
+          description: Accessory product state conflicts with existing data, excluding duplicate equality
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/duplicate-check:
+    post:
+      tags: [Accessories]
+      summary: Find non-blocking accessory product duplicate candidates
+      description: Editor or Admin role required. Candidate equality never reserves or rejects a product.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryDuplicateCheckInput"
+      responses:
+        "200":
+          description: Duplicate candidates
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDuplicateCheckResult"
+        "400":
+          description: Manufacturer or article number is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/archive:
+    post:
+      tags: [Accessories]
+      summary: Archive an accessory product idempotently
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Archived accessory product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryProduct"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/restore:
+    post:
+      tags: [Accessories]
+      summary: Restore an accessory product idempotently
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Restored accessory product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryProduct"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
           content:
             application/json:
               schema:
@@ -2437,6 +3291,9 @@ paths:
     get:
       tags: [Accessories]
       summary: Get stock levels for an accessory product
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
       parameters:
         - name: id
           in: path
@@ -2450,6 +3307,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryStockSummary"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Accessory product not found
           content:
@@ -2460,6 +3323,10 @@ paths:
     post:
       tags: [Accessories]
       summary: Adjust quantity stock for an accessory product
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -2485,8 +3352,234 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product or storage location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Insufficient stock or incompatible tracking mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/stock-movements:
+    get:
+      tags: [Accessories]
+      summary: List the accessory stock journal
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Stock movement journal in reverse chronological order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryStockMovement"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/stock-transfers:
+    post:
+      tags: [Accessories]
+      summary: Transfer quantity stock between storage locations
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryStockTransferInput"
+      responses:
+        "200":
+          description: Stock summary after the transfer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryStockSummary"
+        "400":
+          description: Invalid transfer fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product or storage location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Insufficient stock, incompatible tracking mode, or archived location
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/purchases:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Accessories]
+      summary: List purchases for an accessory product
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Purchase list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryPurchase"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Accessories]
+      summary: Record an accessory purchase and optionally book it to stock
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryPurchaseInput"
+      responses:
+        "201":
+          description: Purchase created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryPurchase"
+        "400":
+          description: Invalid purchase fields or date/currency values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product or storage location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Purchase conflicts with product state or tracking mode
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/individualizations:
+    post:
+      tags: [Accessories]
+      summary: Convert one hybrid quantity unit into an individual item
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryIndividualizationInput"
+      responses:
+        "201":
+          description: Individual item created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryAsset"
+        "400":
+          description: Invalid individualization fields
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product or storage location not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Insufficient stock, incompatible strategy, or conflicting individual item data
           content:
             application/json:
               schema:
@@ -2500,16 +3593,31 @@ paths:
           type: string
     get:
       tags: [Accessories]
-      summary: List individually tracked assets for an accessory product
+      summary: List individual items for an accessory product
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
       responses:
         "200":
-          description: Accessory asset list
+          description: Individual item list
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: "#/components/schemas/AccessoryAsset"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Product does not use individual tracking
           content:
@@ -2518,7 +3626,11 @@ paths:
                 $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Create an individually tracked accessory asset
+      summary: Create an individual item
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2527,19 +3639,31 @@ paths:
               $ref: "#/components/schemas/AccessoryAssetInput"
       responses:
         "201":
-          description: Accessory asset created
+          description: Individual item created
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryAsset"
         "400":
-          description: Invalid accessory asset data
+          description: Invalid individual item data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Product or storage location not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "409":
-          description: Asset conflicts with existing data or tracking mode
+          description: Individual item conflicts with existing data or tracking mode
           content:
             application/json:
               schema:
@@ -2547,7 +3671,11 @@ paths:
   /accessory-assets/{id}:
     put:
       tags: [Accessories]
-      summary: Update an individually tracked accessory asset
+      summary: Update an individual item
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -2562,25 +3690,330 @@ paths:
               $ref: "#/components/schemas/AccessoryAssetInput"
       responses:
         "200":
-          description: Accessory asset updated
+          description: Individual item updated
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryAsset"
         "400":
-          description: Invalid accessory asset data
+          description: Invalid individual item data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "404":
-          description: Accessory asset not found
+          description: Individual item not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
         "409":
-          description: Accessory asset conflicts with existing data
+          description: Individual item conflicts with existing data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/documents:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Accessories]
+      summary: List document metadata for an accessory product
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Accessory document list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AccessoryDocument"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Accessories]
+      summary: Upload an accessory document
+      description: Editor or Admin role required. Bytes are stored as a private file blob.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, category]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                category:
+                  type: string
+                  enum: [invoice, delivery_note, manual, data_sheet, floor_plan, image, other]
+                description:
+                  type: string
+                isPrimary:
+                  type: boolean
+      responses:
+        "201":
+          description: Accessory document created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
+        "400":
+          description: Malformed multipart data or document metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Document metadata conflicts with current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: Uploaded document exceeds the configured attachment size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "415":
+          description: Unsafe or unsupported extension, MIME type, or content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/documents/{documentID}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: documentID
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Accessories]
+      summary: Get accessory document metadata
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Accessory document metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Document not found for this product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    put:
+      tags: [Accessories]
+      summary: Update accessory document metadata
+      description: Editor or Admin role required. File bytes cannot be changed by this endpoint.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryDocumentUpdateInput"
+      responses:
+        "200":
+          description: Updated accessory document metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
+        "400":
+          description: Malformed or invalid document metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Document not found for this product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Document metadata conflicts with current state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Accessories]
+      summary: Delete accessory document metadata and its unreferenced blob
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Accessory document deleted
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Document not found for this product
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/documents/{documentID}/download:
+    get:
+      tags: [Accessories]
+      summary: Download the private bytes of an accessory document
+      description: Viewer, Planner, Editor, or Admin role required. Images are inline; all other types are attachments.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: documentID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exact document bytes with the stored MIME type and a safe Content-Disposition
+          headers:
+            X-Content-Type-Options:
+              schema:
+                type: string
+                const: nosniff
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+            application/zip:
+              schema:
+                type: string
+                format: binary
+            application/x-zip-compressed:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/csv:
+              schema:
+                type: string
+                format: binary
+            application/json:
+              schema:
+                type: string
+                format: binary
+            application/xml:
+              schema:
+                type: string
+                format: binary
+            text/xml:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Document not found for this product
           content:
             application/json:
               schema:
@@ -2605,6 +4038,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryAllocationSummary"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/usage-history:
+    get:
+      tags: [Accessories]
+      summary: Get persistent reservation and installation usage history
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Usage history in reverse chronological order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryUsageHistory"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Accessory product not found
           content:
@@ -2632,9 +4103,15 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AccessoryReservation"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Reserve accessory stock or an individual asset
+      summary: Reserve accessory stock or an individual item
       description: Planner, Editor, or Admin role required.
       security:
         - sessionCookie: []
@@ -2658,8 +4135,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner, Editor, or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
-          description: Product, location, target, or asset not found
+          description: Product, location, target, or individual item not found
           content:
             application/json:
               schema:
@@ -2691,6 +4174,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AccessoryReservation"
+        "403":
+          description: Planner, Editor, or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Accessory reservation not found
           content:
@@ -2724,9 +4213,15 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/AccessoryInstallation"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
-      summary: Install accessory stock or an individual asset
+      summary: Install accessory stock or an individual item
       description: Editor or Admin role required.
       security:
         - sessionCookie: []
@@ -2750,8 +4245,14 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
-          description: Product, location, target, asset, or reservation not found
+          description: Product, location, target, individual item, or reservation not found
           content:
             application/json:
               schema:
@@ -2791,6 +4292,12 @@ paths:
                 $ref: "#/components/schemas/AccessoryInstallation"
         "400":
           description: Invalid removal disposition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
           content:
             application/json:
               schema:
@@ -2840,6 +4347,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Accessory installation not found
           content:
@@ -2856,6 +4369,9 @@ paths:
     get:
       tags: [Accessories]
       summary: List storage locations
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
       responses:
         "200":
           description: Storage location list
@@ -2865,9 +4381,19 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/StorageLocation"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
     post:
       tags: [Accessories]
       summary: Create a storage location
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -2887,6 +4413,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Storage location conflicts with existing data
           content:
@@ -2897,6 +4429,10 @@ paths:
     put:
       tags: [Accessories]
       summary: Update a storage location
+      description: Editor or Admin role required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -2918,6 +4454,12 @@ paths:
                 $ref: "#/components/schemas/StorageLocation"
         "400":
           description: Invalid storage location hierarchy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
           content:
             application/json:
               schema:
@@ -3726,6 +5268,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MasterDataEntry"
+        "400":
+          description: Invalid or protected master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /master-data/{type}/{key}:
     put:
       tags: [MasterData]
@@ -3753,6 +5301,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MasterDataEntry"
+        "400":
+          description: Invalid or protected master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Master data entry not found
           content:
@@ -3775,6 +5329,12 @@ paths:
       responses:
         "204":
           description: Master data entry deleted
+        "400":
+          description: Protected master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "404":
           description: Master data entry not found
           content:

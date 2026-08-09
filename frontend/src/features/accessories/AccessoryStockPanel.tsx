@@ -1,138 +1,215 @@
-import { useState } from "react";
-import type { FormEvent } from "react";
-import { Boxes, PackageCheck } from "lucide-react";
+import { useEffect, useState, type FormEvent } from "react";
+import { ArrowRightLeft, Boxes, PackageCheck, SquarePen } from "lucide-react";
 
 import {
   api,
+  type AccessoryArticle,
   type AccessoryAsset,
   type AccessoryAssetInput,
-  type AccessoryProduct,
+  type AccessoryStockMovement,
   type AccessoryStockSummary,
   type StorageLocation
 } from "../../shared/api";
-import { useI18n } from "../../shared/i18n";
+import { formatDate, useI18n } from "../../shared/i18n";
+import { activeStorageLocations, storageLocationPath } from "../../shared/storageLocations";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { AppTextInput } from "../../shared/ui/AppTextInput";
 import { AccessoryConfirmDialog, type AccessoryPendingAction } from "./AccessoryConfirmDialog";
-import { accessoryLocationPath, activeAccessoryLocations } from "./accessoryLocations";
+import { AccessoryAssetForm } from "./AccessoryAssetForm";
 
-export function AccessoryStockPanel({ mode, product, stock, assets, locations, canEdit, onChanged }: {
-  mode: "stock" | "assets";
-  product: AccessoryProduct | null;
+export function AccessoryStockPanel({ article, stock, movements, assets, locations, canEdit, onChanged, onDirtyChange }: {
+  article: AccessoryArticle;
   stock: AccessoryStockSummary | null;
+  movements: AccessoryStockMovement[];
   assets: AccessoryAsset[];
   locations: StorageLocation[];
   canEdit: boolean;
   onChanged: () => Promise<void>;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const [delta, setDelta] = useState("1");
-  const [locationID, setLocationID] = useState("");
+  const [locationId, setLocationId] = useState("");
+  const [transferToId, setTransferToId] = useState("");
+  const [transferQuantity, setTransferQuantity] = useState("1");
+  const [transferNote, setTransferNote] = useState("");
   const [asset, setAsset] = useState<AccessoryAssetInput>({ condition: "ready", lifecycle: "stored" });
+  const [editingAssetId, setEditingAssetId] = useState("");
   const [action, setAction] = useState<AccessoryPendingAction | null>(null);
-  const { t } = useI18n();
-  if (!product) return <section className="panel"><p>{t("accessories.selection.empty")}</p></section>;
-  const activeLocations = activeAccessoryLocations(locations);
-  const effectiveLocationID = activeLocations.some((location) => location.id === locationID)
-    ? locationID : activeLocations[0]?.id || "";
+  const { t, language } = useI18n();
+  const activeLocations = activeStorageLocations(locations);
+  const effectiveLocationId = activeLocations.some((location) => location.id === locationId)
+    ? locationId : activeLocations[0]?.id || "";
+  const targetLocations = activeLocations.filter((location) => location.id !== effectiveLocationId);
+  const effectiveTransferToId = targetLocations.some((location) => location.id === transferToId)
+    ? transferToId : targetLocations[0]?.id || "";
+  const supportsQuantity = article.inventoryStrategy !== "individual";
+  const supportsAssets = article.inventoryStrategy !== "quantity";
+  const assetDirty = Boolean(asset.inventoryNumber || asset.serialNumber || asset.purchaseDate || asset.purchasePrice ||
+    asset.warrantyUntil || asset.notes || asset.storageLocationId || asset.condition !== "ready" || asset.lifecycle !== "stored" ||
+    editingAssetId);
+  const dirty = delta !== "1" || Boolean(locationId || transferToId || transferNote) || transferQuantity !== "1" || assetDirty;
 
-  const submitStock = (event: FormEvent) => {
+  useEffect(() => onDirtyChange(dirty), [dirty, onDirtyChange]);
+
+  const confirm = (title: string, body: string, run: () => Promise<void>) => setAction({
+    title,
+    body,
+    run,
+    afterSuccess: onChanged
+  });
+
+  const submitAdjustment = (event: FormEvent) => {
     event.preventDefault();
-    setAction({
-      title: t("accessories.stock.confirmTitle"),
-      body: t("accessories.stock.confirmBody", { count: Number(delta), product: product.name }),
-      run: async () => {
-        await api.adjustAccessoryStock(product.id, { locationId: effectiveLocationID, delta: Number(delta) });
-        setDelta("1");
-        await onChanged();
-      }
+    confirm(t("accessories.stock.confirmTitle"), t("accessories.stock.confirmBody", {
+      count: Number(delta), product: article.name
+    }), async () => {
+      await api.adjustAccessoryStock(article.id, { locationId: effectiveLocationId, delta: Number(delta) });
+      setDelta("1");
+      setLocationId("");
+    });
+  };
+
+  const submitTransfer = (event: FormEvent) => {
+    event.preventDefault();
+    confirm(t("accessories.editor.stock.transferConfirm"), t("accessories.editor.stock.transferConfirmBody"), async () => {
+      await api.transferAccessoryStock(article.id, {
+        fromLocationId: effectiveLocationId,
+        toLocationId: effectiveTransferToId,
+        quantity: Number(transferQuantity),
+        note: transferNote.trim() || undefined
+      });
+      setTransferQuantity("1");
+      setTransferNote("");
+      setLocationId("");
+      setTransferToId("");
     });
   };
 
   const submitAsset = (event: FormEvent) => {
     event.preventDefault();
-    setAction({
-      title: t("accessories.assets.confirmTitle"),
-      body: t("accessories.assets.confirmBody", { product: product.name }),
-      run: async () => {
-        await api.createAccessoryAsset(product.id, { ...asset, storageLocationId: effectiveLocationID });
-        setAsset({ condition: "ready", lifecycle: "stored" });
-        await onChanged();
-      }
+    const input = { ...asset, storageLocationId: effectiveLocationId };
+    const run = editingAssetId
+      ? () => api.updateAccessoryAsset(editingAssetId, input)
+      : article.inventoryStrategy === "quantity_later_individual"
+      ? () => api.individualizeAccessoryProduct(article.id, { locationId: effectiveLocationId, asset })
+      : () => api.createAccessoryAsset(article.id, input);
+    confirm(t("accessories.assets.confirmTitle"), t("accessories.assets.confirmBody", { product: article.name }), async () => {
+      await run();
+      setAsset({ condition: "ready", lifecycle: "stored" });
+      setEditingAssetId("");
+      setLocationId("");
     });
   };
 
-  if (mode === "stock") {
-    return <>
-      <section className="panel accessory-stock-panel">
-        <div className="panel-head"><Boxes size={17} aria-hidden="true" /><h2>{t("accessories.stock.title")}</h2></div>
-        {product.trackingMode !== "quantity" ? <p>{t("accessories.stock.individualHint")}</p> : (
-          <div className="accessory-work-grid">
-            <div className="table-wrap"><table><thead><tr><th>{t("accessories.field.location")}</th><th>{t("accessories.field.quantity")}</th></tr></thead>
-              <tbody>{(stock?.locations || []).map((level) => <tr key={level.locationId}><td>{level.locationName}</td><td>{level.quantity}</td></tr>)}</tbody>
-            </table></div>
-            {canEdit ? <form className="accessory-form" onSubmit={submitStock}>
-              <h3>{t("accessories.stock.adjust")}</h3>
-              <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
-                {activeLocations.map((location) => <option key={location.id} value={location.id}>
-                  {accessoryLocationPath(location, locations)}</option>)}
-              </AppSelect></label>
-              <label>{t("accessories.field.delta")}<input type="number" required value={delta}
-                onChange={(event) => setDelta(event.target.value)} /></label>
-              <button type="submit" className="primary-button" disabled={!effectiveLocationID}>
-                {t("accessories.stock.book")}
-              </button>
-            </form> : null}
-          </div>
-        )}
-      </section>
-      {action ? <AccessoryConfirmDialog action={action} onClose={() => setAction(null)} /> : null}
-    </>;
-  }
+  const editAsset = (item: AccessoryAsset) => {
+    if (item.lifecycle === "reserved" || item.lifecycle === "installed") return;
+    setEditingAssetId(item.id);
+    setLocationId(item.storageLocationId || "");
+    setAsset({
+      inventoryNumber: item.inventoryNumber,
+      serialNumber: item.serialNumber,
+      condition: item.condition,
+      lifecycle: item.lifecycle,
+      storageLocationId: item.storageLocationId,
+      purchaseDate: item.purchaseDate,
+      purchasePrice: item.purchasePrice,
+      warrantyUntil: item.warrantyUntil,
+      notes: item.notes
+    });
+  };
 
   return <>
-    <section className="panel accessory-stock-panel">
-      <div className="panel-head"><PackageCheck size={17} aria-hidden="true" /><h2>{t("accessories.assets.title")}</h2></div>
-      {product.trackingMode !== "individual" ? <p>{t("accessories.assets.quantityHint")}</p> : (
-        <div className="accessory-work-grid">
-          <div className="table-wrap"><table><thead><tr><th>{t("accessories.field.inventoryNumber")}</th><th>{t("accessories.field.condition")}</th><th>{t("accessories.field.lifecycle")}</th></tr></thead>
-            <tbody>{assets.map((item) => <tr key={item.id}><td>{item.inventoryNumber || item.serialNumber || "-"}</td><td>{t(`accessories.condition.${item.condition}`)}</td><td>{t(`accessories.lifecycle.${item.lifecycle}`)}</td></tr>)}</tbody>
-          </table></div>
-          {canEdit ? <form className="accessory-form" onSubmit={submitAsset}>
-            <h3>{t("accessories.assets.create")}</h3>
-            <label>{t("accessories.field.inventoryNumber")}<input value={asset.inventoryNumber || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, inventoryNumber: event.target.value }))} /></label>
-            <label>{t("accessories.field.serialNumber")}<input value={asset.serialNumber || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, serialNumber: event.target.value }))} /></label>
-            <label>{t("accessories.field.location")}<AppSelect value={effectiveLocationID} onChange={(event) => setLocationID(event.target.value)}>
-              {activeLocations.map((location) => <option key={location.id} value={location.id}>
-                {accessoryLocationPath(location, locations)}</option>)}
-            </AppSelect></label>
-            <label>{t("accessories.field.condition")}<AppSelect value={asset.condition || "ready"}
-              onChange={(event) => setAsset((current) => ({ ...current,
-                condition: event.target.value as AccessoryAssetInput["condition"] }))}>
-              {(["ready", "maintenance_due", "defective", "unknown"] as const).map((condition) =>
-                <option key={condition} value={condition}>{t(`accessories.condition.${condition}`)}</option>)}
-            </AppSelect></label>
-            <label>{t("accessories.field.lifecycle")}<AppSelect value={asset.lifecycle || "stored"}
-              onChange={(event) => setAsset((current) => ({ ...current,
-                lifecycle: event.target.value as AccessoryAssetInput["lifecycle"] }))}>
-              {(["stored", "maintenance", "retired"] as const).map((lifecycle) =>
-                <option key={lifecycle} value={lifecycle}>{t(`accessories.lifecycle.${lifecycle}`)}</option>)}
-            </AppSelect></label>
-            <label>{t("accessories.field.purchaseDate")}<input type="date" value={asset.purchaseDate || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, purchaseDate: event.target.value }))} /></label>
-            <label>{t("accessories.field.purchasePrice")}<input inputMode="decimal" value={asset.purchasePrice || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, purchasePrice: event.target.value }))} /></label>
-            <label>{t("accessories.field.warrantyUntil")}<input type="date" value={asset.warrantyUntil || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, warrantyUntil: event.target.value }))} /></label>
-            <label>{t("accessories.field.notes")}<textarea value={asset.notes || ""}
-              onChange={(event) => setAsset((current) => ({ ...current, notes: event.target.value }))} /></label>
-            <button type="submit" className="primary-button" disabled={!effectiveLocationID}>
-              {t("accessories.assets.save")}
+    <div className="article-stock-sections">
+      <section className="article-editor-section">
+        <div className="panel-head"><Boxes size={17} aria-hidden="true" /><h3>{t("accessories.stock.title")}</h3></div>
+        <div className="table-wrap"><table><thead><tr>
+          <th>{t("accessories.field.location")}</th><th>{t("accessories.field.quantity")}</th>
+        </tr></thead><tbody>{(stock?.locations || []).map((level) => <tr key={level.locationId}>
+          <td>{level.locationName}</td><td>{level.quantity}</td>
+        </tr>)}</tbody></table></div>
+        {canEdit && supportsQuantity ? <div className="article-stock-commands">
+          <form className="accessory-form article-stock-form" onSubmit={submitAdjustment}>
+            <h4>{t("accessories.stock.adjust")}</h4>
+            <LocationSelect label={t("accessories.field.location")} value={effectiveLocationId}
+              locations={activeLocations} allLocations={locations} onChange={setLocationId} />
+            <AppNumberInput label={t("accessories.field.delta")} required value={delta}
+              onValueChange={setDelta} />
+            <button type="submit" className="primary-button" disabled={!effectiveLocationId || !Number(delta)}>
+              {t("accessories.stock.book")}
             </button>
-          </form> : null}
-        </div>
-      )}
-    </section>
+          </form>
+          <form className="accessory-form article-stock-form article-transfer-form" onSubmit={submitTransfer}>
+            <h4><ArrowRightLeft size={15} aria-hidden="true" /> {t("accessories.editor.stock.transfer")}</h4>
+            <div className="article-transfer-fields">
+              <LocationSelect label={t("accessories.editor.stock.fromLocation")} value={effectiveLocationId}
+                locations={activeLocations} allLocations={locations} onChange={setLocationId} />
+              <LocationSelect label={t("accessories.editor.stock.toLocation")} value={effectiveTransferToId}
+                locations={targetLocations} allLocations={locations} onChange={setTransferToId} />
+              <AppNumberInput label={t("accessories.field.quantity")} min="1" required value={transferQuantity}
+                onValueChange={setTransferQuantity} />
+              <AppTextInput label={t("accessories.field.notes")} value={transferNote}
+                onChange={(event) => setTransferNote(event.target.value)} />
+            </div>
+            <button type="submit" className="primary-button"
+              disabled={!effectiveLocationId || !effectiveTransferToId || Number(transferQuantity) <= 0}>
+              {t("accessories.editor.stock.transfer")}
+            </button>
+          </form>
+        </div> : null}
+      </section>
+
+      {supportsAssets ? <section className="article-editor-section">
+        <div className="panel-head"><PackageCheck size={17} aria-hidden="true" /><h3>{t("accessories.assets.title")}</h3></div>
+        <div className="table-wrap"><table><thead><tr>
+          <th>{t("accessories.field.inventoryNumber")}</th><th>{t("accessories.field.condition")}</th>
+          <th>{t("accessories.field.lifecycle")}</th>
+          <th><span className="sr-only">{t("accessories.field.actions")}</span></th>
+        </tr></thead><tbody>{assets.map((item) => <tr key={item.id}>
+          <td>{item.inventoryNumber || item.serialNumber || "-"}</td>
+          <td>{t(`accessories.condition.${item.condition}`)}</td><td>{t(`accessories.lifecycle.${item.lifecycle}`)}</td>
+          <td>{canEdit && item.lifecycle !== "reserved" && item.lifecycle !== "installed"
+            ? <button type="button" className="icon-button"
+            aria-label={t("accessories.assets.editNamed", { name: item.inventoryNumber || item.serialNumber || item.id })}
+            onClick={() => editAsset(item)}><SquarePen size={15} aria-hidden="true" /></button> : null}</td>
+        </tr>)}</tbody></table></div>
+        {canEdit ? <><h4>{editingAssetId ? t("accessories.assets.edit")
+          : article.inventoryStrategy === "quantity_later_individual"
+            ? t("accessories.editor.stock.individualize") : t("accessories.assets.create")}</h4>
+          <AccessoryAssetForm value={asset} locations={locations} locationId={effectiveLocationId}
+            submitLabel={editingAssetId ? t("accessories.assets.saveEdit") : t("accessories.assets.save")}
+            onChange={setAsset} onLocationChange={setLocationId} onSubmit={submitAsset} /></> : null}
+      </section> : null}
+
+      <section className="article-editor-section">
+        <h3>{t("accessories.editor.stock.journal")}</h3>
+        <div className="table-wrap"><table><thead><tr>
+          <th>{t("accessories.editor.stock.date")}</th><th>{t("accessories.editor.stock.movement")}</th>
+          <th>{t("accessories.field.quantity")}</th><th>{t("accessories.field.notes")}</th>
+        </tr></thead><tbody>{movements.map((movement) => <tr key={movement.id}>
+          <td>{formatDate(movement.createdAt, language)}</td>
+          <td>{t(`accessories.editor.movement.${movement.movementType}`)}</td>
+          <td>{movement.quantity}</td><td>{movement.note || "-"}</td>
+        </tr>)}</tbody></table></div>
+      </section>
+    </div>
     {action ? <AccessoryConfirmDialog action={action} onClose={() => setAction(null)} /> : null}
   </>;
+}
+
+function LocationSelect({ label, value, locations, allLocations, onChange }: {
+  label: string;
+  value: string;
+  locations: StorageLocation[];
+  allLocations: StorageLocation[];
+  onChange: (value: string) => void;
+}) {
+  return <label className="app-field">
+    <span className="app-field-label">{label}</span>
+    <AppSelect value={value} aria-label={label} onChange={(event) => onChange(event.target.value)}>
+      {locations.map((location) => <option key={location.id} value={location.id}>
+        {storageLocationPath(location, allLocations)}
+      </option>)}
+    </AppSelect>
+  </label>;
 }

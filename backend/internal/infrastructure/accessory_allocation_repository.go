@@ -44,21 +44,25 @@ func (r *AccessoryRepository) CreateReservation(
 	now := timestamp()
 	reservationID := randomID()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
-		mode, err := accessoryTrackingMode(ctx, tx, input.ProductID)
+		strategy, err := accessoryInventoryStrategy(ctx, tx, input.ProductID)
 		if err != nil {
 			return err
 		}
-		if err := requireStorageLocation(ctx, tx, input.LocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.LocationID); err != nil {
 			return err
 		}
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {
 			return err
 		}
-		switch mode {
-		case domain.AccessoryTrackingModeQuantity:
-			if input.AssetID != "" {
-				return application.ErrAccessoryTrackingMode
+		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
+		if err != nil {
+			return err
+		}
+		if usesAsset {
+			if err := requireReservableAsset(ctx, tx, input); err != nil {
+				return err
 			}
+		} else {
 			available, err := availableAccessoryQuantity(ctx, tx, input.ProductID, input.LocationID)
 			if err != nil {
 				return err
@@ -66,24 +70,17 @@ func (r *AccessoryRepository) CreateReservation(
 			if available < input.Quantity {
 				return application.ErrAccessoryInsufficientStock
 			}
-		case domain.AccessoryTrackingModeIndividual:
-			if input.AssetID == "" {
-				return application.ErrAccessoryTrackingMode
-			}
-			if err := requireReservableAsset(ctx, tx, input); err != nil {
-				return err
-			}
-		default:
-			return application.ErrAccessoryTrackingMode
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_reservations(
   id, product_id, asset_id, location_id, quantity, vehicle_id, layout_id, layout_unit_id,
-  status, note, created_by, created_at, updated_at
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?)`,
+  status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
+  connection, wiring_notes
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			reservationID, input.ProductID, input.AssetID, input.LocationID, input.Quantity,
 			input.VehicleID, input.LayoutID, input.LayoutUnitID, domain.AccessoryReservationActive,
-			input.Note, actor, now, now); err != nil {
+			input.Note, actor, now, now, input.Placement, input.DigitalAddress, input.DecoderOutput,
+			input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
@@ -161,12 +158,13 @@ func (r *AccessoryRepository) GetAllocationSummary(
 	ctx context.Context,
 	productID string,
 ) (*application.AccessoryAllocationSummary, error) {
-	mode, err := accessoryTrackingMode(ctx, r.db, productID)
+	strategy, err := accessoryInventoryStrategy(ctx, r.db, productID)
 	if err != nil {
 		return nil, err
 	}
 	summary := &application.AccessoryAllocationSummary{ProductID: productID}
-	if mode == domain.AccessoryTrackingModeQuantity {
+	switch strategy {
+	case domain.AccessoryInventoryQuantity:
 		if err := r.db.QueryRowContext(ctx, `
 SELECT
   COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0),
@@ -176,7 +174,7 @@ SELECT
 			return nil, fmt.Errorf("summarize quantity allocations: %w", err)
 		}
 		summary.Owned = summary.Stored + summary.Installed
-	} else {
+	case domain.AccessoryInventoryIndividual:
 		if err := r.db.QueryRowContext(ctx, `
 SELECT
   COALESCE((SELECT COUNT(*) FROM accessory_assets WHERE product_id=?), 0),
@@ -189,6 +187,27 @@ SELECT
 			Scan(&summary.Owned, &summary.Stored, &summary.Reserved, &summary.Installed); err != nil {
 			return nil, fmt.Errorf("summarize individual allocations: %w", err)
 		}
+	case domain.AccessoryInventoryQuantityLaterIndividual:
+		if err := r.db.QueryRowContext(ctx, `
+SELECT
+  COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0) +
+  COALESCE((SELECT COUNT(*) FROM accessory_assets WHERE product_id=?), 0) +
+  COALESCE((SELECT SUM(quantity) FROM accessory_installations
+            WHERE product_id=? AND asset_id IS NULL AND removed_at IS NULL), 0),
+  COALESCE((SELECT SUM(quantity) FROM accessory_stock WHERE product_id=?), 0) +
+  COALESCE((SELECT COUNT(*) FROM accessory_assets
+            WHERE product_id=? AND storage_location_id IS NOT NULL
+              AND lifecycle_state IN ('stored', 'reserved')), 0),
+  COALESCE((SELECT SUM(quantity) FROM accessory_reservations
+            WHERE product_id=? AND status='active'), 0),
+  COALESCE((SELECT SUM(quantity) FROM accessory_installations
+            WHERE product_id=? AND removed_at IS NULL), 0)`,
+			productID, productID, productID, productID, productID, productID, productID).
+			Scan(&summary.Owned, &summary.Stored, &summary.Reserved, &summary.Installed); err != nil {
+			return nil, fmt.Errorf("summarize hybrid allocations: %w", err)
+		}
+	default:
+		return nil, application.ErrAccessoryTrackingMode
 	}
 	summary.Available = summary.Stored - summary.Reserved
 	if summary.Available < 0 {
@@ -196,6 +215,28 @@ SELECT
 		summary.Available = 0
 	}
 	return summary, nil
+}
+
+func accessoryAllocationUsesAsset(
+	strategy domain.AccessoryInventoryStrategy,
+	assetID string,
+) (bool, error) {
+	switch strategy {
+	case domain.AccessoryInventoryQuantity:
+		if assetID != "" {
+			return false, application.ErrAccessoryTrackingMode
+		}
+		return false, nil
+	case domain.AccessoryInventoryIndividual:
+		if assetID == "" {
+			return false, application.ErrAccessoryTrackingMode
+		}
+		return true, nil
+	case domain.AccessoryInventoryQuantityLaterIndividual:
+		return assetID != "", nil
+	default:
+		return false, application.ErrAccessoryTrackingMode
+	}
 }
 
 func requireReservableAsset(
@@ -234,7 +275,7 @@ func availableAccessoryQuantity(ctx context.Context, tx *sql.Tx, productID, loca
 SELECT
   COALESCE((SELECT quantity FROM accessory_stock WHERE product_id=? AND location_id=?), 0) -
   COALESCE((SELECT SUM(quantity) FROM accessory_reservations
-            WHERE product_id=? AND location_id=? AND status='active'), 0)`,
+            WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'), 0)`,
 		productID, locationID, productID, locationID).Scan(&available); err != nil {
 		return 0, fmt.Errorf("calculate available accessory quantity: %w", err)
 	}
@@ -269,14 +310,17 @@ func requireAllocationTarget(
 
 const accessoryReservationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), location_id, quantity,
 COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''),
-status, note, created_by, created_at, updated_at FROM accessory_reservations`
+status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
+connection, wiring_notes FROM accessory_reservations`
 
 func scanAccessoryReservation(scanner rowScanner) (*application.AccessoryReservation, error) {
 	reservation := &application.AccessoryReservation{}
 	err := scanner.Scan(&reservation.ID, &reservation.ProductID, &reservation.AssetID,
 		&reservation.LocationID, &reservation.Quantity, &reservation.VehicleID, &reservation.LayoutID,
 		&reservation.LayoutUnitID, &reservation.Status, &reservation.Note, &reservation.CreatedBy,
-		&reservation.CreatedAt, &reservation.UpdatedAt)
+		&reservation.CreatedAt, &reservation.UpdatedAt, &reservation.Placement,
+		&reservation.DigitalAddress, &reservation.DecoderOutput, &reservation.Connection,
+		&reservation.WiringNotes)
 	return reservation, err
 }
 

@@ -43,11 +43,11 @@ func (r *AccessoryRepository) Install(
 	now := timestamp()
 	installationID := randomID()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
-		mode, err := accessoryTrackingMode(ctx, tx, input.ProductID)
+		strategy, err := accessoryInventoryStrategy(ctx, tx, input.ProductID)
 		if err != nil {
 			return err
 		}
-		if err := requireStorageLocation(ctx, tx, input.SourceLocationID); err != nil {
+		if err := requireActiveStorageLocation(ctx, tx, input.SourceLocationID); err != nil {
 			return err
 		}
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {
@@ -62,12 +62,17 @@ func (r *AccessoryRepository) Install(
 			if !reservationMatchesInstallation(reservation, input) {
 				return application.ErrAccessoryConflict
 			}
+			inheritReservationTechnicalData(&input, reservation)
 		}
-		switch mode {
-		case domain.AccessoryTrackingModeQuantity:
-			if input.AssetID != "" {
-				return application.ErrAccessoryTrackingMode
+		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
+		if err != nil {
+			return err
+		}
+		if usesAsset {
+			if err := installAccessoryAsset(ctx, tx, input, reservation != nil, now); err != nil {
+				return err
 			}
+		} else {
 			if reservation == nil {
 				available, err := availableAccessoryQuantity(ctx, tx, input.ProductID, input.SourceLocationID)
 				if err != nil {
@@ -89,15 +94,6 @@ WHERE product_id=? AND location_id=? AND quantity>=?`, input.Quantity, now, inpu
 			} else if affected == 0 {
 				return application.ErrAccessoryInsufficientStock
 			}
-		case domain.AccessoryTrackingModeIndividual:
-			if input.AssetID == "" {
-				return application.ErrAccessoryTrackingMode
-			}
-			if err := installAccessoryAsset(ctx, tx, input, reservation != nil, now); err != nil {
-				return err
-			}
-		default:
-			return application.ErrAccessoryTrackingMode
 		}
 		if reservation != nil {
 			result, err := tx.ExecContext(ctx, `
@@ -113,14 +109,22 @@ UPDATE accessory_reservations SET status=?, updated_at=? WHERE id=? AND status=?
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_installations(
   id, product_id, asset_id, source_location_id, quantity, vehicle_id, layout_id, layout_unit_id,
-  condition_state, installed_by, installed_at, notes
-) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?)`,
+  condition_state, installed_by, installed_at, notes, placement, digital_address, decoder_output,
+  connection, wiring_notes
+) VALUES(?, ?, NULLIF(?, ''), ?, ?, NULLIF(?, ''), NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			installationID, input.ProductID, input.AssetID, input.SourceLocationID, input.Quantity,
-			input.VehicleID, input.LayoutID, input.LayoutUnitID, input.Condition, actor, now, input.Notes); err != nil {
+			input.VehicleID, input.LayoutID, input.LayoutUnitID, input.Condition, actor, now, input.Notes,
+			input.Placement, input.DigitalAddress, input.DecoderOutput, input.Connection, input.WiringNotes); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory installation: %w", err)
+		}
+		if !usesAsset {
+			if err := insertAccessoryStockMovement(ctx, tx, input.ProductID, input.SourceLocationID,
+				"installation", -input.Quantity, "installation", installationID, actor, "", now); err != nil {
+				return err
+			}
 		}
 		details, err := allocationAuditDetails(input.Quantity, input.AllocationTargetInput, "")
 		if err != nil {
@@ -150,16 +154,20 @@ func (r *AccessoryRepository) RemoveInstallation(
 		if installation.RemovedAt != "" {
 			return application.ErrAccessoryConflict
 		}
-		mode, err := accessoryTrackingMode(ctx, tx, installation.ProductID)
+		strategy, err := accessoryInventoryStrategy(ctx, tx, installation.ProductID)
+		if err != nil {
+			return err
+		}
+		usesAsset, err := accessoryAllocationUsesAsset(strategy, installation.AssetID)
 		if err != nil {
 			return err
 		}
 		if input.Disposition == domain.AccessoryRemovalStored {
-			if err := requireStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
+			if err := requireActiveStorageLocation(ctx, tx, input.StorageLocationID); err != nil {
 				return err
 			}
 		}
-		if mode == domain.AccessoryTrackingModeQuantity {
+		if !usesAsset {
 			if input.Disposition == domain.AccessoryRemovalStored {
 				if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
@@ -182,6 +190,12 @@ WHERE id=? AND removed_at IS NULL`, actor, now, input.Disposition, input.Notes, 
 		}
 		if err := requireAccessoryConflictFreeUpdate(result); err != nil {
 			return err
+		}
+		if !usesAsset && input.Disposition == domain.AccessoryRemovalStored {
+			if err := insertAccessoryStockMovement(ctx, tx, installation.ProductID, input.StorageLocationID,
+				"removal", installation.Quantity, "installation", id, actor, "", now); err != nil {
+				return err
+			}
 		}
 		details, err := allocationAuditDetails(installation.Quantity,
 			installation.AllocationTargetInput, input.Disposition)
@@ -219,6 +233,12 @@ UPDATE accessory_installations SET condition_state=? WHERE id=? AND removed_at I
 		}
 		if err := requireAccessoryConflictFreeUpdate(result); err != nil {
 			return err
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO accessory_installation_condition_history(
+  id, installation_id, previous_condition, condition_state, changed_by, changed_at
+) VALUES(?, ?, ?, ?, ?, ?)`, randomID(), id, installation.Condition, input.Condition, actor, now); err != nil {
+			return fmt.Errorf("record installation condition history: %w", err)
 		}
 		if installation.AssetID != "" {
 			result, err = tx.ExecContext(ctx, `
@@ -332,10 +352,32 @@ func reservationMatchesInstallation(
 		reservation.LayoutUnitID == input.LayoutUnitID
 }
 
+func inheritReservationTechnicalData(
+	input *application.CreateAccessoryInstallationInput,
+	reservation *application.AccessoryReservation,
+) {
+	if input.Placement == "" {
+		input.Placement = reservation.Placement
+	}
+	if input.DigitalAddress == "" {
+		input.DigitalAddress = reservation.DigitalAddress
+	}
+	if input.DecoderOutput == "" {
+		input.DecoderOutput = reservation.DecoderOutput
+	}
+	if input.Connection == "" {
+		input.Connection = reservation.Connection
+	}
+	if input.WiringNotes == "" {
+		input.WiringNotes = reservation.WiringNotes
+	}
+}
+
 const accessoryInstallationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), source_location_id, quantity,
 COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''), condition_state,
 installed_by, installed_at, COALESCE(removed_by, ''), COALESCE(removed_at, ''),
-COALESCE(removal_disposition, ''), notes, removal_notes FROM accessory_installations`
+COALESCE(removal_disposition, ''), notes, removal_notes, placement, digital_address, decoder_output,
+connection, wiring_notes FROM accessory_installations`
 
 func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstallation, error) {
 	installation := &application.AccessoryInstallation{}
@@ -344,7 +386,8 @@ func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstal
 		&installation.LayoutID, &installation.LayoutUnitID, &installation.Condition,
 		&installation.InstalledBy, &installation.InstalledAt, &installation.RemovedBy,
 		&installation.RemovedAt, &installation.RemovalDisposition, &installation.Notes,
-		&installation.RemovalNotes)
+		&installation.RemovalNotes, &installation.Placement, &installation.DigitalAddress,
+		&installation.DecoderOutput, &installation.Connection, &installation.WiringNotes)
 	return installation, err
 }
 

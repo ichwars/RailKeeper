@@ -15,6 +15,8 @@ import (
 	"railkeeper/backend/internal/application"
 )
 
+const masterDataProtectedMessage = "Standard article type keys cannot be created, changed, or deleted."
+
 func (a *App) exportBackup(w http.ResponseWriter, r *http.Request) {
 	backup, err := a.backupService.Export(r.Context())
 	if err != nil {
@@ -48,16 +50,16 @@ func (a *App) restoreBackup(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if a.masterDataService != nil {
+		if err := a.masterDataService.RefreshCache(r.Context()); err != nil {
+			a.logger.Error("master data cache refresh after backup restore failed", "error", err)
+		}
+	}
 	if a.fileBlobs != nil {
 		if err := a.fileBlobs.MigrateFilesystemBlobs(r.Context()); err != nil {
 			a.logger.Error("backup restore blob migration failed", "error", err)
 			respondProblem(w, http.StatusInternalServerError, "backup_restore_failed", "Backup konnte nicht wiederhergestellt werden.")
 			return
-		}
-	}
-	if a.masterDataService != nil {
-		if err := a.masterDataService.WarmCache(r.Context()); err != nil {
-			a.logger.Error("master data cache refresh after backup restore failed", "error", err)
 		}
 	}
 	respondJSON(w, http.StatusOK, result)
@@ -134,14 +136,15 @@ func (a *App) importMasterData(w http.ResponseWriter, r *http.Request) {
 	result, err := a.masterDataService.Import(r.Context(), doc)
 	if err != nil {
 		if errors.Is(err, application.ErrMasterDataValidation) {
-			respondProblem(w, http.StatusBadRequest, "master_data_import_invalid", "Stammdaten-Datei ist ungültig.")
+			respondProblem(w, http.StatusBadRequest, "master_data_import_invalid",
+				masterDataValidationMessageOr(err, "Stammdaten-Datei ist ungültig."))
 			return
 		}
 		a.logger.Error("master data import failed", "error", err)
 		respondProblem(w, http.StatusInternalServerError, "master_data_import_failed", "Stammdaten konnten nicht importiert werden.")
 		return
 	}
-	if err := a.masterDataService.WarmCache(r.Context()); err != nil {
+	if err := a.masterDataService.RefreshCache(r.Context()); err != nil {
 		a.logger.Error("master data cache refresh after import failed", "error", err)
 	}
 	respondJSON(w, http.StatusOK, result)
@@ -398,8 +401,12 @@ func (a *App) createMasterData(w http.ResponseWriter, r *http.Request) {
 
 	item, err := a.masterDataService.Create(r.Context(), r.PathValue("type"), input)
 	if err != nil {
+		if errors.Is(err, application.ErrMasterDataProtected) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
+			return
+		}
 		if errors.Is(err, application.ErrMasterDataValidation) {
-			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataValidationMessage(err))
 			return
 		}
 		a.logger.Error("master data create failed", "error", err)
@@ -420,8 +427,10 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 	item, err := a.masterDataService.Update(r.Context(), r.PathValue("type"), r.PathValue("key"), input)
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrMasterDataProtected):
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
 		case errors.Is(err, application.ErrMasterDataValidation):
-			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Label is required.")
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataValidationMessage(err))
 		case errors.Is(err, application.ErrMasterDataNotFound):
 			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
 		default:
@@ -434,8 +443,28 @@ func (a *App) updateMasterData(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, item)
 }
 
+func masterDataValidationMessage(err error) string {
+	return masterDataValidationMessageOr(err, "Label is required.")
+}
+
+func masterDataValidationMessageOr(err error, fallback string) string {
+	if err != application.ErrMasterDataValidation {
+		return err.Error()
+	}
+	return fallback
+}
+
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
 	if err := a.masterDataService.Delete(r.Context(), r.PathValue("type"), r.PathValue("key")); err != nil {
+		if errors.Is(err, application.ErrMasterDataProtected) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
+			return
+		}
+		if errors.Is(err, application.ErrMasterDataValidation) {
+			respondProblem(w, http.StatusBadRequest, "master_data_validation",
+				masterDataValidationMessageOr(err, "This master data entry cannot be deleted."))
+			return
+		}
 		if errors.Is(err, application.ErrMasterDataNotFound) {
 			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
 			return

@@ -10,16 +10,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+
+	"railkeeper/backend/internal/domain"
 )
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 2
+	backupVersion = 3
 )
 
 var (
@@ -78,10 +81,11 @@ var backupTableOrder = []string{
 	"master_data_entries",
 	"master_data_relations",
 	"inventory_number_schemes",
+	"file_blobs",
+	"storage_locations",
 	"vehicles",
 	"inventory_number_history",
 	"vehicle_external_mappings",
-	"file_blobs",
 	"vehicle_images",
 	"vehicle_attachments",
 	"vehicle_maintenance",
@@ -90,10 +94,13 @@ var backupTableOrder = []string{
 	"vehicle_cv_files",
 	"vehicle_cv_values",
 	"vehicle_cv_value_history",
-	"storage_locations",
 	"accessory_products",
+	"accessory_product_attributes",
+	"accessory_purchases",
 	"accessory_stock",
+	"accessory_stock_movements",
 	"accessory_assets",
+	"accessory_documents",
 	"layouts",
 	"layout_units",
 	"plan_variants",
@@ -102,31 +109,51 @@ var backupTableOrder = []string{
 	"layout_configuration_units",
 	"accessory_reservations",
 	"accessory_installations",
+	"accessory_installation_condition_history",
 	"exhibition_lists",
 	"exhibition_entries",
 }
 
-var legacyOptionalBackupTables = map[string]struct{}{
-	"exhibition_lists":          {},
-	"exhibition_entries":        {},
-	"file_blobs":                {},
-	"vehicle_external_mappings": {},
-	"vehicle_spare_parts":       {},
+type backupTableVersionPolicy struct {
+	introduced int
+	required   int
 }
 
-var stageOneBackupTables = map[string]struct{}{
-	"storage_locations":          {},
-	"accessory_products":         {},
-	"accessory_stock":            {},
-	"accessory_assets":           {},
-	"layouts":                    {},
-	"layout_units":               {},
-	"plan_variants":              {},
-	"plan_revisions":             {},
-	"layout_configurations":      {},
-	"layout_configuration_units": {},
-	"accessory_reservations":     {},
-	"accessory_installations":    {},
+var backupTableVersions = map[string]backupTableVersionPolicy{
+	"master_data_entries":                      {introduced: 1, required: 1},
+	"master_data_relations":                    {introduced: 1, required: 1},
+	"inventory_number_schemes":                 {introduced: 1, required: 1},
+	"file_blobs":                               {introduced: 1, required: 3},
+	"storage_locations":                        {introduced: 2, required: 2},
+	"vehicles":                                 {introduced: 1, required: 1},
+	"inventory_number_history":                 {introduced: 1, required: 1},
+	"vehicle_external_mappings":                {introduced: 1, required: 3},
+	"vehicle_images":                           {introduced: 1, required: 1},
+	"vehicle_attachments":                      {introduced: 1, required: 1},
+	"vehicle_maintenance":                      {introduced: 1, required: 1},
+	"vehicle_spare_parts":                      {introduced: 1, required: 3},
+	"vehicle_functions":                        {introduced: 1, required: 1},
+	"vehicle_cv_files":                         {introduced: 1, required: 1},
+	"vehicle_cv_values":                        {introduced: 1, required: 1},
+	"vehicle_cv_value_history":                 {introduced: 1, required: 1},
+	"accessory_products":                       {introduced: 2, required: 2},
+	"accessory_product_attributes":             {introduced: 3, required: 3},
+	"accessory_purchases":                      {introduced: 3, required: 3},
+	"accessory_stock":                          {introduced: 2, required: 2},
+	"accessory_stock_movements":                {introduced: 3, required: 3},
+	"accessory_assets":                         {introduced: 2, required: 2},
+	"accessory_documents":                      {introduced: 3, required: 3},
+	"layouts":                                  {introduced: 2, required: 2},
+	"layout_units":                             {introduced: 2, required: 2},
+	"plan_variants":                            {introduced: 2, required: 2},
+	"plan_revisions":                           {introduced: 2, required: 2},
+	"layout_configurations":                    {introduced: 2, required: 2},
+	"layout_configuration_units":               {introduced: 2, required: 2},
+	"accessory_reservations":                   {introduced: 2, required: 2},
+	"accessory_installations":                  {introduced: 2, required: 2},
+	"accessory_installation_condition_history": {introduced: 3, required: 3},
+	"exhibition_lists":                         {introduced: 1, required: 3},
+	"exhibition_entries":                       {introduced: 1, required: 3},
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {
@@ -201,6 +228,14 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			_ = tx.Rollback()
 		}
 	}()
+	articleMasterData, err := readLegacyRestoreArticleMasterData(ctx, tx, doc.Version)
+	if err != nil {
+		return nil, err
+	}
+	articleInventoryScheme, err := readBackupArticleInventoryScheme(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := len(backupTableOrder) - 1; i >= 0; i-- {
 		table := backupTableOrder[i]
@@ -211,6 +246,11 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 
 	result := &BackupImportResult{}
 	for _, table := range backupTableOrder {
+		if table == "accessory_products" {
+			if err := prepareBackupArticleInventoryNumbers(ctx, tx, doc, articleInventoryScheme); err != nil {
+				return nil, err
+			}
+		}
 		rows := doc.Tables[table]
 		if len(rows) == 0 {
 			continue
@@ -230,6 +270,12 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		}
 		result.RestoredTables++
 	}
+	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
+		return nil, err
+	}
+	if err := restoreLegacyAccessoryProductDefaults(ctx, tx, doc); err != nil {
+		return nil, err
+	}
 
 	uploadsSwap, err := s.replaceUploadsWithStaged(stagedFiles)
 	if err != nil {
@@ -244,6 +290,43 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
+}
+
+func restoreLegacyAccessoryProductDefaults(
+	ctx context.Context,
+	tx *sql.Tx,
+	doc *BackupDocument,
+) error {
+	if doc.Version >= 3 {
+		return nil
+	}
+	for _, row := range doc.Tables["accessory_products"] {
+		productID, valid := backupNonEmptyString(row["id"])
+		if !valid {
+			continue
+		}
+		if _, explicit := row["article_type"]; !explicit {
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE accessory_products SET article_type='other' WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory article type: %w", err)
+			}
+		}
+		if _, explicit := row["subtype"]; !explicit {
+			if _, err := tx.ExecContext(ctx,
+				`UPDATE accessory_products SET subtype=category WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory subtype: %w", err)
+			}
+		}
+		if _, explicit := row["inventory_strategy"]; !explicit {
+			if _, err := tx.ExecContext(ctx, `
+UPDATE accessory_products
+SET inventory_strategy=CASE tracking_mode WHEN 'individual' THEN 'individual' ELSE 'quantity' END
+WHERE id=?`, productID); err != nil {
+				return fmt.Errorf("backfill restored legacy accessory inventory strategy: %w", err)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*BackupValidationResult, error) {
@@ -317,6 +400,18 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 		if len(item.UnknownColumns) > 0 {
 			result.Warnings = append(result.Warnings, fmt.Sprintf("Tabelle %s enthält unbekannte Spalten, die beim Restore ignoriert werden.", table))
 		}
+		if table == "accessory_product_attributes" {
+			result.Errors = append(result.Errors,
+				validateBackupAccessoryProductAttributes(
+					rows,
+					doc.Tables["accessory_products"],
+					doc.Tables["master_data_entries"],
+					doc.Version,
+				)...)
+		}
+		if table == "master_data_entries" && doc.Version >= 3 {
+			result.Errors = append(result.Errors, validateBackupProtectedArticleTypes(rows)...)
+		}
 		result.Tables = append(result.Tables, item)
 	}
 	for table := range doc.Tables {
@@ -328,12 +423,336 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	return finishBackupValidation(result), nil
 }
 
-func backupTableOptional(version int, table string) bool {
-	if _, optional := legacyOptionalBackupTables[table]; optional {
-		return true
+func validateBackupProtectedArticleTypes(rows []map[string]any) []string {
+	entries := make([]MasterDataEntry, 0, len(standardArticleTypeKeys))
+	for _, row := range rows {
+		typeName, valid := backupNonEmptyString(row["type"])
+		if !valid || typeName != standardArticleType {
+			continue
+		}
+		key, _ := backupNonEmptyString(row["key"])
+		label, _ := backupNonEmptyString(row["label"])
+		entries = append(entries, MasterDataEntry{Type: typeName, Key: key, Label: label})
 	}
-	_, stageOneTable := stageOneBackupTables[table]
-	return version == 1 && stageOneTable
+	if err := validateProtectedArticleTypes(entries, true); err != nil {
+		return []string{"Tabelle master_data_entries enthält keine gültige vollständige Artikelarten-Konfiguration."}
+	}
+	return nil
+}
+
+func backupTableOptional(version int, table string) bool {
+	policy, known := backupTableVersions[table]
+	return known && (version < policy.introduced || version < policy.required)
+}
+
+func validateBackupAccessoryProductAttributes(
+	attributeRows []map[string]any,
+	productRows []map[string]any,
+	masterDataRows []map[string]any,
+	backupVersion int,
+) []string {
+	productTypes := make(map[string]domain.AccessoryArticleType, len(productRows))
+	for _, row := range productRows {
+		productID, productIDValid := backupNonEmptyString(row["id"])
+		articleType, articleTypeValid := backupNonEmptyString(row["article_type"])
+		if productIDValid && articleTypeValid {
+			productTypes[productID] = domain.AccessoryArticleType(articleType)
+		}
+	}
+
+	validationErrors := []string{}
+	controlledDefinitions := []domain.AccessoryAttributeDefinition{}
+	if backupVersion >= 3 {
+		controlledDefinitions, validationErrors = backupControlledAccessoryAttributeDefinitions(masterDataRows)
+	}
+	attributesByProduct := map[string][]domain.AccessoryAttributeValue{}
+	for index, row := range attributeRows {
+		if err := validateBackupAccessoryProductAttribute(row); err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält in Zeile %d ungültige Attributdaten: %v",
+				index+1,
+				err,
+			))
+			continue
+		}
+		productID, _ := backupNonEmptyString(row["product_id"])
+		attributesByProduct[productID] = append(attributesByProduct[productID],
+			backupDomainAccessoryAttribute(row))
+	}
+
+	productIDs := make([]string, 0, len(attributesByProduct))
+	for productID := range attributesByProduct {
+		productIDs = append(productIDs, productID)
+	}
+	sort.Strings(productIDs)
+	for _, productID := range productIDs {
+		articleType, exists := productTypes[productID]
+		if !exists {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes verweist auf Produkt %s ohne gültigen article_type.",
+				productID,
+			))
+			continue
+		}
+		var err error
+		if backupVersion >= 3 && articleType == domain.AccessoryArticleOther {
+			err = validateBackupControlledAccessoryAttributeValues(
+				attributesByProduct[productID],
+				controlledDefinitions,
+			)
+		} else {
+			err = domain.ValidateAccessoryAttributeValues(articleType, attributesByProduct[productID])
+		}
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält für Produkt %s ungültige Attributdaten: %v",
+				productID,
+				err,
+			))
+		}
+	}
+	return validationErrors
+}
+
+func backupControlledAccessoryAttributeDefinitions(
+	rows []map[string]any,
+) ([]domain.AccessoryAttributeDefinition, []string) {
+	definitions := []domain.AccessoryAttributeDefinition{}
+	validationErrors := []string{}
+	seen := map[string]struct{}{}
+	for index, row := range rows {
+		typeName, valid := backupNonEmptyString(row["type"])
+		if !valid || typeName != accessoryCustomField {
+			continue
+		}
+		key, keyValid := backupNonEmptyString(row["key"])
+		active, activeValid := backupBooleanValue(row["active"])
+		metadataJSON, metadataValid := row["metadata_json"].(string)
+		metadata := map[string]any{}
+		var metadataErr error
+		if metadataValid {
+			metadataErr = json.Unmarshal([]byte(metadataJSON), &metadata)
+		}
+		if !keyValid || !activeValid || !metadataValid || metadataErr != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes kann wegen ungültiger Custom-Field-Definition in Zeile %d nicht validiert werden.",
+				index+1,
+			))
+			continue
+		}
+		if _, duplicate := seen[key]; duplicate {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes enthält eine doppelte Custom-Field-Definition %s.", key,
+			))
+			continue
+		}
+		seen[key] = struct{}{}
+		definition, err := ParseAccessoryCustomAttributeDefinition(key, active, metadata)
+		if err != nil {
+			validationErrors = append(validationErrors, fmt.Sprintf(
+				"Tabelle accessory_product_attributes kann Custom-Field-Definition %s nicht validieren: %v",
+				key,
+				err,
+			))
+			continue
+		}
+		definitions = append(definitions, definition)
+	}
+	return definitions, validationErrors
+}
+
+func validateBackupControlledAccessoryAttributeValues(
+	values []domain.AccessoryAttributeValue,
+	definitions []domain.AccessoryAttributeDefinition,
+) error {
+	if err := domain.ValidateAccessoryAttributeValues(domain.AccessoryArticleOther, values); err != nil {
+		return err
+	}
+	activeDefinitions := make([]domain.AccessoryAttributeDefinition, 0, len(definitions))
+	activeKeys := make(map[string]struct{}, len(definitions))
+	inactiveKeys := make(map[string]struct{}, len(definitions))
+	for _, definition := range definitions {
+		if definition.Active {
+			activeDefinitions = append(activeDefinitions, definition)
+			activeKeys[definition.Key] = struct{}{}
+		} else {
+			inactiveKeys[definition.Key] = struct{}{}
+		}
+	}
+	activeValues := make([]domain.AccessoryAttributeValue, 0, len(values))
+	for _, value := range values {
+		if _, active := activeKeys[value.Key]; active {
+			activeValues = append(activeValues, value)
+			continue
+		}
+		if _, inactive := inactiveKeys[value.Key]; !inactive {
+			return fmt.Errorf("%w: undefined controlled key %q",
+				domain.ErrAccessoryAttributeValidation, value.Key)
+		}
+	}
+	return domain.ValidateControlledAccessoryAttributeValues(activeValues, activeDefinitions)
+}
+
+func backupDomainAccessoryAttribute(row map[string]any) domain.AccessoryAttributeValue {
+	key, _ := backupNonEmptyString(row["attribute_key"])
+	valueType, _ := backupNonEmptyString(row["value_type"])
+	attribute := domain.AccessoryAttributeValue{
+		Key:  key,
+		Kind: domain.AccessoryAttributeKind(valueType),
+	}
+	if unit, ok := row["unit"].(string); ok {
+		attribute.Unit = &unit
+	}
+	switch attribute.Kind {
+	case domain.AccessoryAttributeText:
+		value := row["text_value"].(string)
+		attribute.TextValue = &value
+	case domain.AccessoryAttributeNumber:
+		value, _ := backupNumberValue(row["number_value"])
+		attribute.NumberValue = &value
+	case domain.AccessoryAttributeBoolean:
+		value, _ := backupBooleanValue(row["boolean_value"])
+		attribute.BooleanValue = &value
+	case domain.AccessoryAttributeDate:
+		value := row["date_value"].(string)
+		attribute.DateValue = &value
+	case domain.AccessoryAttributeSingleSelect:
+		attribute.OptionValues = []string{row["single_select_value"].(string)}
+	case domain.AccessoryAttributeMultiSelect:
+		_ = json.Unmarshal([]byte(row["multi_select_value"].(string)), &attribute.OptionValues)
+	}
+	return attribute
+}
+
+func backupNumberValue(value any) (float64, bool) {
+	switch typed := value.(type) {
+	case json.Number:
+		number, err := typed.Float64()
+		return number, err == nil && !math.IsNaN(number) && !math.IsInf(number, 0)
+	case float64:
+		return typed, !math.IsNaN(typed) && !math.IsInf(typed, 0)
+	case float32:
+		return float64(typed), !math.IsNaN(float64(typed)) && !math.IsInf(float64(typed), 0)
+	case int:
+		return float64(typed), true
+	case int8:
+		return float64(typed), true
+	case int16:
+		return float64(typed), true
+	case int32:
+		return float64(typed), true
+	case int64:
+		return float64(typed), true
+	case uint:
+		return float64(typed), true
+	case uint8:
+		return float64(typed), true
+	case uint16:
+		return float64(typed), true
+	case uint32:
+		return float64(typed), true
+	case uint64:
+		return float64(typed), true
+	default:
+		return 0, false
+	}
+}
+
+func backupBooleanValue(value any) (bool, bool) {
+	if typed, ok := value.(bool); ok {
+		return typed, true
+	}
+	number, valid := backupNumberValue(value)
+	if !valid || (number != 0 && number != 1) {
+		return false, false
+	}
+	return number == 1, true
+}
+
+func validateBackupAccessoryProductAttribute(row map[string]any) error {
+	if _, valid := backupNonEmptyString(row["product_id"]); !valid {
+		return errors.New("product_id fehlt oder ist ungültig")
+	}
+	if _, valid := backupNonEmptyString(row["attribute_key"]); !valid {
+		return errors.New("attribute_key fehlt oder ist ungültig")
+	}
+	valueType, valueTypeValid := backupNonEmptyString(row["value_type"])
+	valueColumnByType := map[string]string{
+		"text":          "text_value",
+		"number":        "number_value",
+		"boolean":       "boolean_value",
+		"date":          "date_value",
+		"single_select": "single_select_value",
+		"multi_select":  "multi_select_value",
+	}
+	matchingColumn, supported := valueColumnByType[valueType]
+	if !valueTypeValid || !supported {
+		return fmt.Errorf("value_type %q wird nicht unterstützt", valueType)
+	}
+	valueColumns := []string{
+		"text_value", "number_value", "boolean_value", "date_value", "single_select_value", "multi_select_value",
+	}
+	for _, column := range valueColumns {
+		if column == matchingColumn {
+			if row[column] == nil {
+				return fmt.Errorf("%s muss gesetzt sein", column)
+			}
+			continue
+		}
+		if row[column] != nil {
+			return fmt.Errorf("%s darf für value_type %q nicht gesetzt sein", column, valueType)
+		}
+	}
+	if row["unit"] != nil {
+		if valueType != "number" {
+			return fmt.Errorf("unit ist nur für value_type number erlaubt")
+		}
+		if _, ok := row["unit"].(string); !ok {
+			return errors.New("unit muss eine Zeichenfolge sein")
+		}
+	}
+
+	value := row[matchingColumn]
+	switch valueType {
+	case "text", "date", "single_select":
+		if _, ok := value.(string); !ok {
+			return fmt.Errorf("%s muss eine Zeichenfolge sein", matchingColumn)
+		}
+	case "number":
+		if !validBackupNumber(value) {
+			return errors.New("number_value muss eine endliche Zahl sein")
+		}
+	case "boolean":
+		if !validBackupBoolean(value) {
+			return errors.New("boolean_value muss true, false, 0 oder 1 sein")
+		}
+	case "multi_select":
+		encoded, ok := value.(string)
+		if !ok {
+			return errors.New("multi_select_value muss ein JSON-String sein")
+		}
+		var options []string
+		if err := json.Unmarshal([]byte(encoded), &options); err != nil || len(options) == 0 {
+			return errors.New("multi_select_value muss ein nicht-leeres JSON-Array aus Zeichenfolgen sein")
+		}
+	}
+	return nil
+}
+
+func backupNonEmptyString(value any) (string, bool) {
+	text, ok := value.(string)
+	text = strings.TrimSpace(text)
+	return text, ok && text != ""
+}
+
+func validBackupNumber(value any) bool {
+	_, valid := backupNumberValue(value)
+	return valid
+}
+
+func validBackupBoolean(value any) bool {
+	_, valid := backupBooleanValue(value)
+	return valid
 }
 
 func (s *BackupService) exportTable(ctx context.Context, table string) ([]map[string]any, error) {
