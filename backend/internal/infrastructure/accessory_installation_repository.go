@@ -62,7 +62,15 @@ func (r *AccessoryRepository) Install(
 			if !reservationMatchesInstallation(reservation, input) {
 				return application.ErrAccessoryConflict
 			}
+			if input.TechnicalPositionID != "" && reservation.TechnicalPositionID != "" &&
+				input.TechnicalPositionID != reservation.TechnicalPositionID {
+				return application.ErrAccessoryConflict
+			}
 			inheritReservationTechnicalData(&input, reservation)
+		}
+		if err := requireTechnicalPosition(ctx, tx, input.TechnicalPositionID,
+			input.LayoutUnitID, input.ProductID); err != nil {
+			return err
 		}
 		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
 		if err != nil {
@@ -119,6 +127,13 @@ INSERT INTO accessory_installations(
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory installation: %w", err)
+		}
+		if input.TechnicalPositionID != "" {
+			if _, err := tx.ExecContext(ctx, `
+INSERT INTO accessory_installation_positions(installation_id, position_id) VALUES(?, ?)`,
+				installationID, input.TechnicalPositionID); err != nil {
+				return fmt.Errorf("link accessory installation position: %w", err)
+			}
 		}
 		if !usesAsset {
 			if err := insertAccessoryStockMovement(ctx, tx, input.ProductID, input.SourceLocationID,
@@ -356,6 +371,9 @@ func inheritReservationTechnicalData(
 	input *application.CreateAccessoryInstallationInput,
 	reservation *application.AccessoryReservation,
 ) {
+	if input.TechnicalPositionID == "" {
+		input.TechnicalPositionID = reservation.TechnicalPositionID
+	}
 	if input.Placement == "" {
 		input.Placement = reservation.Placement
 	}
@@ -373,16 +391,20 @@ func inheritReservationTechnicalData(
 	}
 }
 
-const accessoryInstallationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), source_location_id, quantity,
-COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''), condition_state,
+const accessoryInstallationSelect = `SELECT installation.id, installation.product_id,
+COALESCE(installation.asset_id, ''), installation.source_location_id,
+COALESCE((SELECT position_id FROM accessory_installation_positions WHERE installation_id=installation.id), ''),
+installation.quantity, COALESCE(installation.vehicle_id, ''), COALESCE(installation.layout_id, ''),
+COALESCE(installation.layout_unit_id, ''), condition_state,
 installed_by, installed_at, COALESCE(removed_by, ''), COALESCE(removed_at, ''),
 COALESCE(removal_disposition, ''), notes, removal_notes, placement, digital_address, decoder_output,
-connection, wiring_notes FROM accessory_installations`
+connection, wiring_notes FROM accessory_installations installation`
 
 func scanAccessoryInstallation(scanner rowScanner) (*application.AccessoryInstallation, error) {
 	installation := &application.AccessoryInstallation{}
 	err := scanner.Scan(&installation.ID, &installation.ProductID, &installation.AssetID,
-		&installation.SourceLocationID, &installation.Quantity, &installation.VehicleID,
+		&installation.SourceLocationID, &installation.TechnicalPositionID, &installation.Quantity,
+		&installation.VehicleID,
 		&installation.LayoutID, &installation.LayoutUnitID, &installation.Condition,
 		&installation.InstalledBy, &installation.InstalledAt, &installation.RemovedBy,
 		&installation.RemovedAt, &installation.RemovalDisposition, &installation.Notes,

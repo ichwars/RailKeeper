@@ -131,7 +131,8 @@ func TestAccessoryAllocationServiceNormalizesReservationAndInstallation(t *testi
 
 	if _, err := service.CreateReservation(t.Context(), CreateAccessoryReservationInput{
 		ProductID: " product-1 ", AssetID: " asset-1 ", LocationID: " location-1 ", Quantity: 1,
-		AllocationTargetInput: AllocationTargetInput{LayoutUnitID: " unit-1 "}, Note: " planned ",
+		AllocationTargetInput: AllocationTargetInput{LayoutUnitID: " unit-1 "},
+		TechnicalPositionID:   " position-1 ", Note: " planned ",
 		Placement: " signal bridge ", DigitalAddress: " 42 ", DecoderOutput: " A1 ",
 		Connection: " terminal 3 ", WiringNotes: " blue wire ",
 	}, "planner-1"); err != nil {
@@ -140,6 +141,7 @@ func TestAccessoryAllocationServiceNormalizesReservationAndInstallation(t *testi
 	reservation := repository.createdReservation
 	if reservation.ProductID != "product-1" || reservation.AssetID != "asset-1" ||
 		reservation.LocationID != "location-1" || reservation.LayoutUnitID != "unit-1" ||
+		reservation.TechnicalPositionID != "position-1" ||
 		reservation.Note != "planned" || reservation.Placement != "signal bridge" ||
 		reservation.DigitalAddress != "42" || reservation.DecoderOutput != "A1" ||
 		reservation.Connection != "terminal 3" || reservation.WiringNotes != "blue wire" {
@@ -148,7 +150,8 @@ func TestAccessoryAllocationServiceNormalizesReservationAndInstallation(t *testi
 
 	installation, err := service.Install(t.Context(), CreateAccessoryInstallationInput{
 		ReservationID: " reservation-1 ", ProductID: " product-1 ", SourceLocationID: " location-1 ",
-		Quantity: 2, AllocationTargetInput: AllocationTargetInput{LayoutID: " layout-1 "}, Notes: " installed ",
+		Quantity: 2, AllocationTargetInput: AllocationTargetInput{LayoutUnitID: " unit-1 "},
+		TechnicalPositionID: " position-1 ", Notes: " installed ",
 		Placement: " platform 1 ", DigitalAddress: " 17 ", DecoderOutput: " B2 ",
 		Connection: " bus 1 ", WiringNotes: " yellow wire ",
 	}, "editor-1")
@@ -156,7 +159,9 @@ func TestAccessoryAllocationServiceNormalizesReservationAndInstallation(t *testi
 		t.Fatal(err)
 	}
 	if installation.Condition != domain.AccessoryConditionUnknown ||
-		repository.installed.ReservationID != "reservation-1" || repository.installed.LayoutID != "layout-1" ||
+		repository.installed.ReservationID != "reservation-1" ||
+		repository.installed.LayoutUnitID != "unit-1" ||
+		repository.installed.TechnicalPositionID != "position-1" ||
 		repository.installed.Notes != "installed" || repository.installed.Placement != "platform 1" ||
 		repository.installed.DigitalAddress != "17" || repository.installed.DecoderOutput != "B2" ||
 		repository.installed.Connection != "bus 1" || repository.installed.WiringNotes != "yellow wire" {
