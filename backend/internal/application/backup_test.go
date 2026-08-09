@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected backup version 3, got %d", backup.Version)
+	if backup.Version != 4 {
+		t.Fatalf("expected backup version 4, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -136,7 +136,7 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 }
 
-func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T) {
+func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
 	ctx := context.Background()
@@ -153,8 +153,8 @@ func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected version 3 export, got %d", backup.Version)
+	if backup.Version != 4 {
+		t.Fatalf("expected version 4 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -199,6 +199,78 @@ func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T
 	defer func() { _ = rows.Close() }()
 	if rows.Next() {
 		t.Fatal("expected no foreign-key violations after version 2 restore")
+	}
+}
+
+func TestBackupVersionFourRoundTripPreservesLayoutTwinPositions(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	vehicle, err := application.NewVehicleService(db).Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Tillig", Name: "V 100", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedStageOneBackupData(t, db, vehicle.ID)
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layout_unit_outline_points(layout_unit_id, point_index, position_x_mm, position_y_mm) VALUES
+  ('unit-1', 0, 0, 0), ('unit-1', 1, 1200, 0), ('unit-1', 2, 1200, 500), ('unit-1', 3, 0, 500);
+INSERT INTO layout_technical_positions(
+  id, layout_unit_id, label, kind, position_x_mm, position_y_mm, rotation_degrees,
+  product_id, description, version, archived, created_at, updated_at
+) VALUES (
+  'position-1', 'unit-1', 'Signal A', 'signal', 250, 80, 90,
+  'product-quantity', 'Einfahrsignal', 1, 0, '2026-08-09T10:00:00Z', '2026-08-09T10:00:00Z'
+);
+INSERT INTO accessory_reservation_positions(reservation_id, position_id)
+  VALUES ('reservation-1', 'position-1');
+INSERT INTO accessory_installation_positions(installation_id, position_id)
+  VALUES ('installation-1', 'position-1');
+`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 4 {
+		t.Fatalf("expected version 4 export, got %d", backup.Version)
+	}
+	for _, table := range []string{
+		"layout_unit_outline_points", "layout_technical_positions",
+		"accessory_reservation_positions", "accessory_installation_positions",
+	} {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected layout-twin table %q in backup", table)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layout_technical_positions SET label='Changed' WHERE id='position-1'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+
+	var label, reservationPositionID, installationPositionID string
+	if err := db.QueryRowContext(ctx, `SELECT label FROM layout_technical_positions WHERE id='position-1'`).Scan(&label); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT position_id FROM accessory_reservation_positions WHERE reservation_id='reservation-1'
+`).Scan(&reservationPositionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT position_id FROM accessory_installation_positions WHERE installation_id='installation-1'
+`).Scan(&installationPositionID); err != nil {
+		t.Fatal(err)
+	}
+	if label != "Signal A" || reservationPositionID != "position-1" || installationPositionID != "position-1" {
+		t.Fatalf("layout-twin references changed: label=%q reservation=%q installation=%q",
+			label, reservationPositionID, installationPositionID)
 	}
 }
 
@@ -310,7 +382,7 @@ func TestBackupVersionTwoRestoreBackfillsIndividualInventoryStrategy(t *testing.
 	}
 }
 
-func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T) {
+func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
 	ctx := context.Background()
@@ -439,8 +511,8 @@ func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected version 3 export, got %d", backup.Version)
+	if backup.Version != 4 {
+		t.Fatalf("expected version 4 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -460,7 +532,7 @@ func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T)
 		t.Fatal(err)
 	}
 	if !validation.Compatible {
-		t.Fatalf("expected complete version 3 backup, got %#v", validation)
+		t.Fatalf("expected complete version 4 backup, got %#v", validation)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE accessory_products SET name='Changed after export' WHERE id=?`, product.ID); err != nil {
 		t.Fatal(err)
@@ -759,6 +831,11 @@ func backupDocumentTablesThroughVersion(version int) map[string][]map[string]any
 			tables[table] = []map[string]any{}
 		}
 	}
+	if version >= 4 {
+		for _, table := range versionFourBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
 	return tables
 }
 
@@ -837,6 +914,11 @@ func TestBackupVersionOneWithoutStageOneTablesRemainsImportable(t *testing.T) {
 			t.Fatalf("expected version-three compatibility warning for %s, got %#v", table, result.Warnings)
 		}
 	}
+	for _, table := range versionFourBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected version-four compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
 	if _, err := service.Import(context.Background(), doc); err != nil {
 		t.Fatalf("expected compatible version 1 backup to import, got %v", err)
 	}
@@ -910,6 +992,48 @@ func TestBackupVersionThreeRequiresVersionThreeTables(t *testing.T) {
 	}
 }
 
+func TestBackupVersionThreeWithoutVersionFourTablesRemainsCompatible(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 3
+	for _, table := range versionFourBackupTableNames() {
+		delete(doc.Tables, table)
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected version 3 without version-four tables to remain compatible, got %#v", result)
+	}
+	for _, table := range versionFourBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected version-four compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
+}
+
+func TestBackupVersionFourRequiresVersionFourTables(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format: "railkeeper-backup", Version: 4, Tables: backupDocumentTablesThroughVersion(3),
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Compatible || !containsWarning(result.Errors, "Tabelle layout_technical_positions fehlt") {
+		t.Fatalf("expected missing version-four table error, got %#v", result)
+	}
+}
+
 func TestBackupVersionTwoRestoresRowsUsingVersionThreeColumnDefaults(t *testing.T) {
 	db := backupTestDB(t, t.TempDir())
 	service := application.NewBackupService(db, t.TempDir())
@@ -972,7 +1096,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 4
+		doc.Version = 5
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}
@@ -1457,6 +1581,13 @@ func versionThreeBackupTableNames() []string {
 	return []string{
 		"accessory_product_attributes", "accessory_purchases", "accessory_documents",
 		"accessory_stock_movements", "accessory_installation_condition_history",
+	}
+}
+
+func versionFourBackupTableNames() []string {
+	return []string{
+		"layout_unit_outline_points", "layout_technical_positions",
+		"accessory_reservation_positions", "accessory_installation_positions",
 	}
 }
 

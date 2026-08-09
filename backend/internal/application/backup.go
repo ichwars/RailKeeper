@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 3
+	backupVersion = 4
 )
 
 var (
@@ -103,12 +103,16 @@ var backupTableOrder = []string{
 	"accessory_documents",
 	"layouts",
 	"layout_units",
+	"layout_unit_outline_points",
+	"layout_technical_positions",
 	"plan_variants",
 	"plan_revisions",
 	"layout_configurations",
 	"layout_configuration_units",
 	"accessory_reservations",
+	"accessory_reservation_positions",
 	"accessory_installations",
+	"accessory_installation_positions",
 	"accessory_installation_condition_history",
 	"exhibition_lists",
 	"exhibition_entries",
@@ -145,12 +149,16 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"accessory_documents":                      {introduced: 3, required: 3},
 	"layouts":                                  {introduced: 2, required: 2},
 	"layout_units":                             {introduced: 2, required: 2},
+	"layout_unit_outline_points":               {introduced: 4, required: 4},
+	"layout_technical_positions":               {introduced: 4, required: 4},
 	"plan_variants":                            {introduced: 2, required: 2},
 	"plan_revisions":                           {introduced: 2, required: 2},
 	"layout_configurations":                    {introduced: 2, required: 2},
 	"layout_configuration_units":               {introduced: 2, required: 2},
 	"accessory_reservations":                   {introduced: 2, required: 2},
+	"accessory_reservation_positions":          {introduced: 4, required: 4},
 	"accessory_installations":                  {introduced: 2, required: 2},
+	"accessory_installation_positions":         {introduced: 4, required: 4},
 	"accessory_installation_condition_history": {introduced: 3, required: 3},
 	"exhibition_lists":                         {introduced: 1, required: 3},
 	"exhibition_entries":                       {introduced: 1, required: 3},
