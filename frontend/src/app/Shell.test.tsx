@@ -41,4 +41,33 @@ describe("Shell article navigation", () => {
     expect(screen.queryByRole("link", { name: "Artikelübersicht" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ausstellung" })).toBeInTheDocument();
   });
+
+  it("shows the singular layout item but does not expose it as a link", async () => {
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    const label = screen.getByText("Anlage");
+    const disabledItem = label.closest("[aria-disabled='true']");
+    expect(disabledItem).toHaveClass("disabled");
+    expect(disabledItem).toHaveAttribute("title", "Anlage ist vorübergehend nicht verfügbar.");
+    expect(screen.queryByRole("link", { name: "Anlage" })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
+  });
+
+  it("uses the singular English layout label and hint", async () => {
+    window.localStorage.setItem("railkeeper.settings.language", "en");
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
+        <p>Content</p>
+      </Shell>
+    );
+
+    const disabledItem = screen.getByText("Layout").closest("[aria-disabled='true']");
+    expect(disabledItem).toHaveAttribute("title", "Layout is temporarily unavailable.");
+    expect(screen.queryByRole("link", { name: "Layout" })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
+  });
 });

@@ -5,6 +5,7 @@ import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
+import { isViewTemporarilyDisabled } from "./navigationAvailability";
 
 const navItems = [
   { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
@@ -244,10 +245,29 @@ export function Shell({
         <nav id="main-navigation" className="nav" aria-label={t("nav.main")}>
           {orderedNavItems.map((item) => {
             const Icon = item.icon;
+            const label = t(item.labelKey);
+            if (isViewTemporarilyDisabled(item.view)) {
+              return (
+                <span
+                  key={item.view}
+                  className="nav-entry disabled"
+                  aria-disabled="true"
+                  title={t("nav.layouts.disabled")}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{label}</span>
+                </span>
+              );
+            }
             return (
-              <a key={item.view} className={activeView === item.view ? "active" : ""} href={item.href} onClick={() => setMobileMenuOpen(false)}>
+              <a
+                key={item.view}
+                className={`nav-entry${activeView === item.view ? " active" : ""}`}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 <Icon size={16} aria-hidden="true" />
-                <span>{t(item.labelKey)}</span>
+                <span>{label}</span>
               </a>
             );
           })}
