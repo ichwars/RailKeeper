@@ -32,10 +32,16 @@ describe("AccessoryStockPanel", () => {
     const view = render(<AccessoryStockPanel article={quantityArticle} stock={null} movements={[]} assets={[]}
       locations={[location]} canEdit onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
 
-    const forms = view.container.querySelectorAll(".article-stock-commands > .article-stock-form");
+    const commands = view.container.querySelector(".article-stock-commands");
+    const forms = commands?.querySelectorAll(":scope > .article-stock-form");
     expect(forms).toHaveLength(2);
-    expect(forms[0]?.querySelector(".primary-button")).toHaveTextContent("Bestand buchen");
-    expect(forms[1]?.querySelector(".primary-button")).toHaveTextContent("Umbuchen");
+    expect(forms?.[0]?.querySelector(".primary-button")).toHaveTextContent("Bestand buchen");
+    expect(forms?.[1]).toHaveClass("article-transfer-form");
+    expect(forms?.[1]?.querySelector(".primary-button")).toHaveTextContent("Umbuchen");
+
+    const transferFields = forms?.[1]?.querySelector(".article-transfer-fields");
+    expect(transferFields).toBeInTheDocument();
+    expect(transferFields?.children).toHaveLength(4);
   });
 
   it("edits every supported individual item field through typed app controls", async () => {

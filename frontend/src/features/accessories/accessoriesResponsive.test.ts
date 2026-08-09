@@ -38,4 +38,18 @@ describe("article editor responsive tabs", () => {
       /@media\s*\(max-width:\s*920px\)[\s\S]*\.accessory-allocation-form\s*\{[^}]*grid-template-columns:\s*1fr/s,
     );
   });
+
+  it("uses the compact weighted stock grid and stacks transfer fields on narrow screens", () => {
+    expect(accessoriesCss).toMatch(
+      /\.article-stock-commands\s*\{[^}]*grid-template-columns:\s*minmax\(240px,\s*1fr\)\s*minmax\(0,\s*2fr\)/s,
+    );
+    expect(accessoriesCss).toMatch(
+      /\.article-transfer-fields\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    );
+    expect(accessoriesCss).toMatch(
+      /@media\s*\(max-width:\s*560px\)[\s\S]*\.article-transfer-fields\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    );
+    expect(accessoriesCss).not.toMatch(/\.article-stock-form\s*\{[^}]*height:\s*100%/s);
+    expect(accessoriesCss).not.toContain(".article-stock-form > .primary-button");
+  });
 });

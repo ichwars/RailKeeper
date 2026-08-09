@@ -139,16 +139,18 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
               {t("accessories.stock.book")}
             </button>
           </form>
-          <form className="accessory-form article-stock-form" onSubmit={submitTransfer}>
+          <form className="accessory-form article-stock-form article-transfer-form" onSubmit={submitTransfer}>
             <h4><ArrowRightLeft size={15} aria-hidden="true" /> {t("accessories.editor.stock.transfer")}</h4>
-            <LocationSelect label={t("accessories.editor.stock.fromLocation")} value={effectiveLocationId}
-              locations={activeLocations} allLocations={locations} onChange={setLocationId} />
-            <LocationSelect label={t("accessories.editor.stock.toLocation")} value={effectiveTransferToId}
-              locations={targetLocations} allLocations={locations} onChange={setTransferToId} />
-            <AppNumberInput label={t("accessories.field.quantity")} min="1" required value={transferQuantity}
-              onValueChange={setTransferQuantity} />
-            <AppTextInput label={t("accessories.field.notes")} value={transferNote}
-              onChange={(event) => setTransferNote(event.target.value)} />
+            <div className="article-transfer-fields">
+              <LocationSelect label={t("accessories.editor.stock.fromLocation")} value={effectiveLocationId}
+                locations={activeLocations} allLocations={locations} onChange={setLocationId} />
+              <LocationSelect label={t("accessories.editor.stock.toLocation")} value={effectiveTransferToId}
+                locations={targetLocations} allLocations={locations} onChange={setTransferToId} />
+              <AppNumberInput label={t("accessories.field.quantity")} min="1" required value={transferQuantity}
+                onValueChange={setTransferQuantity} />
+              <AppTextInput label={t("accessories.field.notes")} value={transferNote}
+                onChange={(event) => setTransferNote(event.target.value)} />
+            </div>
             <button type="submit" className="primary-button"
               disabled={!effectiveLocationId || !effectiveTransferToId || Number(transferQuantity) <= 0}>
               {t("accessories.editor.stock.transfer")}
