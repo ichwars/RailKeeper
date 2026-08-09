@@ -51,6 +51,45 @@ export type LayoutUnitInput = {
 
 export type LayoutUnitUpdateInput = LayoutUnitInput & { expectedVersion: number };
 
+export type LayoutTechnicalPositionKind =
+  | "turnout"
+  | "signal"
+  | "feedback"
+  | "decoder"
+  | "lighting"
+  | "power"
+  | "sensor"
+  | "other";
+
+export type LayoutTechnicalPosition = {
+  id: string;
+  layoutUnitId: string;
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  productId?: string;
+  description?: string;
+  version: number;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LayoutTechnicalPositionInput = {
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees?: number;
+  productId?: string;
+  description?: string;
+  archived?: boolean;
+};
+
+export type LayoutTechnicalPositionUpdateInput = LayoutTechnicalPositionInput & { expectedVersion: number };
+
 export type ConfigurationUnit = {
   unitId: string;
   planRevisionId?: string;
@@ -589,6 +628,18 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<LayoutUnit>(`/layouts/${encodeURIComponent(layoutId)}/units`, json("POST", input)),
     updateLayoutUnit: (id: string, input: LayoutUnitUpdateInput) =>
       request<LayoutUnit>(`/layout-units/${encodeURIComponent(id)}`, json("PUT", input)),
+    layoutTechnicalPositions: (unitId: string) =>
+      request<LayoutTechnicalPosition[]>(`/layout-units/${encodeURIComponent(unitId)}/technical-positions`),
+    createLayoutTechnicalPosition: (unitId: string, input: LayoutTechnicalPositionInput) =>
+      request<LayoutTechnicalPosition>(
+        `/layout-units/${encodeURIComponent(unitId)}/technical-positions`,
+        json("POST", input)
+      ),
+    updateLayoutTechnicalPosition: (id: string, input: LayoutTechnicalPositionUpdateInput) =>
+      request<LayoutTechnicalPosition>(
+        `/layout-technical-positions/${encodeURIComponent(id)}`,
+        json("PUT", input)
+      ),
     layoutConfigurations: (layoutId: string) =>
       request<LayoutConfiguration[]>(`/layouts/${encodeURIComponent(layoutId)}/configurations`),
     createLayoutConfiguration: (layoutId: string, input: LayoutConfigurationInput) =>

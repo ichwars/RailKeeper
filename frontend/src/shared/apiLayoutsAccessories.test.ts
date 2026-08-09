@@ -52,6 +52,18 @@ describe("layout and accessory API client", () => {
     await api.layoutUnits("layout/1");
     await api.createLayoutUnit("layout/1", unitInput);
     await api.updateLayoutUnit("unit/1", { ...unitInput, expectedVersion: 2 });
+    const positionInput = {
+      label: "Signal A",
+      kind: "signal" as const,
+      positionXMm: 125,
+      positionYMm: 40,
+      rotationDegrees: 90,
+      productId: "product/1",
+      description: "Einfahrt"
+    };
+    await api.layoutTechnicalPositions("unit/1");
+    await api.createLayoutTechnicalPosition("unit/1", positionInput);
+    await api.updateLayoutTechnicalPosition("position/1", { ...positionInput, expectedVersion: 2 });
     await api.layoutConfigurations("layout/1");
     await api.createLayoutConfiguration("layout/1", configurationInput);
     await api.updateLayoutConfiguration("configuration/1", configurationInput);
@@ -69,6 +81,9 @@ describe("layout and accessory API client", () => {
       ["GET", "/api/v1/layouts/layout%2F1/units"],
       ["POST", "/api/v1/layouts/layout%2F1/units", unitInput],
       ["PUT", "/api/v1/layout-units/unit%2F1", { ...unitInput, expectedVersion: 2 }],
+      ["GET", "/api/v1/layout-units/unit%2F1/technical-positions"],
+      ["POST", "/api/v1/layout-units/unit%2F1/technical-positions", positionInput],
+      ["PUT", "/api/v1/layout-technical-positions/position%2F1", { ...positionInput, expectedVersion: 2 }],
       ["GET", "/api/v1/layouts/layout%2F1/configurations"],
       ["POST", "/api/v1/layouts/layout%2F1/configurations", configurationInput],
       ["PUT", "/api/v1/layout-configurations/configuration%2F1", configurationInput],

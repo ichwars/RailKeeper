@@ -2116,6 +2116,83 @@ components:
             expectedVersion:
               type: integer
               minimum: 1
+    LayoutTechnicalPosition:
+      type: object
+      required:
+        - id
+        - layoutUnitId
+        - label
+        - kind
+        - positionXMm
+        - positionYMm
+        - rotationDegrees
+        - version
+        - archived
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        productId:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutTechnicalPositionInput:
+      type: object
+      required: [label, kind, positionXMm, positionYMm]
+      properties:
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+        productId:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+    UpdateLayoutTechnicalPositionInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutTechnicalPositionInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
     ConfigurationUnit:
       type: object
       required: [unitId, positionXMm, positionYMm, rotationDegrees, sortOrder]
@@ -4626,6 +4703,106 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LayoutUnit"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/technical-positions:
+    get:
+      tags: [Layouts]
+      summary: List technical positions in a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Technical position list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Layouts]
+      summary: Create a technical position in a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutTechnicalPositionInput"
+      responses:
+        "201":
+          description: Technical position created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "400":
+          description: Invalid technical position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit or accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-technical-positions/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a technical layout position
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutTechnicalPositionInput"
+      responses:
+        "200":
+          description: Technical position updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "400":
+          description: Invalid technical position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Technical position or accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Stale expected version
           content:
