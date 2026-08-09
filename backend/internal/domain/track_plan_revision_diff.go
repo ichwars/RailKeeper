@@ -131,7 +131,9 @@ func trackObjectsDiffer(first, second PlanTrackObject) bool {
 	return first.GeometryID != second.GeometryID ||
 		math.Abs(first.PositionXMM-second.PositionXMM) > 1e-9 ||
 		math.Abs(first.PositionYMM-second.PositionYMM) > 1e-9 ||
-		math.Abs(first.RotationDegrees-second.RotationDegrees) > 1e-9
+		math.Abs(first.RotationDegrees-second.RotationDegrees) > 1e-9 ||
+		math.Abs(first.ElevationStartMM-second.ElevationStartMM) > 1e-9 ||
+		math.Abs(first.ElevationEndMM-second.ElevationEndMM) > 1e-9
 }
 
 func trackMaterialDeltas(base, current []PlanTrackObject) []TrackPlanMaterialDelta {

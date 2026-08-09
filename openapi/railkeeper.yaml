@@ -2887,7 +2887,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]
         severity:
           type: string
           enum: [warning, error]
@@ -2899,6 +2899,10 @@ components:
           type: array
           items:
             type: string
+        elevationDifferenceMm:
+          type: number
+          format: double
+          minimum: 0
     TrackBOMLine:
       type: object
       required: [geometryId, libraryId, articleNumber, name, quantity]
@@ -3049,7 +3053,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]
         severity:
           type: string
           enum: [warning, error]

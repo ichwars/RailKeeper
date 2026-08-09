@@ -142,7 +142,7 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	secondResponse := layoutRequest(t, router, session, http.MethodPost,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
 			"geometryId": geometries[0].ID, "positionXMm": 276, "positionYMm": 55,
-			"rotationDegrees": 0,
+			"rotationDegrees": 0, "elevationStartMm": 6.15, "elevationEndMm": 6.15,
 		}, true)
 	assertStatus(t, secondResponse, http.StatusCreated)
 	var second domain.PlanTrackObject
@@ -154,9 +154,30 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	var analysis application.TrackPlanAnalysis
 	decodeResponse(t, analysisResponse, &analysis)
 	if analysis.RevisionID != draft.ID || len(analysis.Connections) != 1 ||
-		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 || len(analysis.Grades) != 2 ||
-		analysis.Grades[0].GradePercent != 2.5 {
+		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 || len(analysis.Grades) != 2 {
 		t.Fatalf("unexpected track plan analysis: %#v", analysis)
+	}
+	updatedGradeFound := false
+	for _, grade := range analysis.Grades {
+		if grade.ObjectID == updated.ID && grade.GradePercent == 2.5 {
+			updatedGradeFound = true
+		}
+	}
+	if !updatedGradeFound {
+		t.Fatalf("updated track grade missing from analysis: %#v", analysis.Grades)
+	}
+	elevationIssues := 0
+	for _, issue := range analysis.Issues {
+		if issue.Code != domain.TrackPlanIssueElevationMismatch {
+			continue
+		}
+		elevationIssues++
+		if issue.ElevationDifferenceMM == nil || *issue.ElevationDifferenceMM != 2 {
+			t.Fatalf("unexpected elevation mismatch detail: %#v", issue)
+		}
+	}
+	if elevationIssues != 1 {
+		t.Fatalf("expected one elevation mismatch, got %#v", analysis.Issues)
 	}
 	if _, err := db.Exec(`
 INSERT INTO storage_locations(id, name, created_at, updated_at)

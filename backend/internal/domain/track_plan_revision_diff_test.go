@@ -47,6 +47,18 @@ func TestCompareTrackPlanRevisionsWithoutBaseTreatsEveryObjectAsAdded(t *testing
 	}
 }
 
+func TestCompareTrackPlanRevisionsTreatsElevationChangesAsObjectChanges(t *testing.T) {
+	base := testRevisionTrack("base-a", "lineage-a", "g1", 0)
+	current := testRevisionTrack("draft-a", "lineage-a", "g1", 0)
+	current.ElevationStartMM = 4
+	current.ElevationEndMM = 8
+
+	diff := CompareTrackPlanRevisions([]PlanTrackObject{base}, []PlanTrackObject{current})
+	if len(diff.ObjectChanges) != 1 || diff.ObjectChanges[0].Type != TrackPlanObjectChanged {
+		t.Fatalf("elevation edit is missing from revision diff: %#v", diff.ObjectChanges)
+	}
+}
+
 func TestDiffTrackPlanIssuesUsesLineageAndPortIdentity(t *testing.T) {
 	baseObjects := []PlanTrackObject{
 		testRevisionTrack("base-a", "lineage-a", "g1", 0),
@@ -70,6 +82,33 @@ func TestDiffTrackPlanIssuesUsesLineageAndPortIdentity(t *testing.T) {
 		len(diff.Resolved) != 1 || diff.Resolved[0].Code != TrackPlanIssueOverlap ||
 		diff.Added[0].LineageIDs[0] != "lineage-a" {
 		t.Fatalf("unexpected issue diff: %#v", diff)
+	}
+}
+
+func TestDiffTrackPlanIssuesTracksElevationMismatchByLineageAndPorts(t *testing.T) {
+	baseObjects := []PlanTrackObject{
+		testRevisionTrack("base-a", "lineage-a", "g1", 0),
+		testRevisionTrack("base-b", "lineage-b", "g1", 166),
+	}
+	currentObjects := []PlanTrackObject{
+		testRevisionTrack("draft-a", "lineage-a", "g1", 0),
+		testRevisionTrack("draft-b", "lineage-b", "g1", 166),
+	}
+	difference := 2.0
+	mismatch := TrackPlanIssue{
+		Code: TrackPlanIssueElevationMismatch, Severity: TrackPlanIssueWarning,
+		ObjectIDs: []string{"draft-a", "draft-b"}, PortIDs: []string{"b", "a"},
+		ElevationDifferenceMM: &difference,
+	}
+
+	added := DiffTrackPlanIssues(nil, []TrackPlanIssue{mismatch}, baseObjects, currentObjects)
+	if len(added.Added) != 1 || added.Added[0].Code != TrackPlanIssueElevationMismatch ||
+		len(added.Added[0].LineageIDs) != 2 || len(added.Added[0].PortIDs) != 2 {
+		t.Fatalf("unexpected added elevation mismatch: %#v", added)
+	}
+	resolved := DiffTrackPlanIssues([]TrackPlanIssue{mismatch}, nil, currentObjects, currentObjects)
+	if len(resolved.Resolved) != 1 || resolved.Resolved[0].Code != TrackPlanIssueElevationMismatch {
+		t.Fatalf("unexpected resolved elevation mismatch: %#v", resolved)
 	}
 }
 

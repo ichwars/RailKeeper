@@ -98,6 +98,27 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	if !strings.Contains(issue,
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]") {
+		t.Errorf("TrackPlanIssue is missing elevation_mismatch: %s", issue)
+	}
+	if !strings.Contains(issue, "elevationDifferenceMm:") || !strings.Contains(issue, "minimum: 0") {
+		t.Errorf("TrackPlanIssue is missing elevation difference details: %s", issue)
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change,
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]") {
+		t.Errorf("TrackPlanIssueChange is missing elevation_mismatch: %s", change)
+	}
+}
+
 func TestOpenAPIDocumentsMasterDataValidationResponses(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {
