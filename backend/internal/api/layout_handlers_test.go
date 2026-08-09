@@ -52,6 +52,12 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	unit, err := layouts.CreateUnit(t.Context(), layout.ID, application.CreateLayoutUnitInput{
+		Name: "Module", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodGet,
 			"/api/v1/layouts/"+layout.ID+"/twin", nil, true)
@@ -63,6 +69,36 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 			t.Fatalf("%s twin read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
 		}
 	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layout-units/"+unit.ID+"/ports", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s port read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+				"name": "Port " + role, "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+				"xMm": 0, "yMm": 250, "directionDegrees": 180,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusCreated
+		}
+		if response.Code != want {
+			t.Fatalf("%s port write: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
+	withoutPortCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+			"name": "No CSRF port", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+		}, false)
+	assertProblem(t, withoutPortCSRF, http.StatusForbidden, "csrf_required")
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 			"name": "Layout " + role, "kind": "private", "gauge": "TT", "scale": "1:120",
@@ -128,6 +164,32 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 	}, true)
 	assertStatus(t, updatedUnitResponse, http.StatusOK)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts/"+layout.ID+"/units", nil, true), http.StatusOK)
+
+	portResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+			"name": "West", "kind": "track", "interfaceKey": "TRACK:Tillig-TT-Modellgleis",
+			"xMm": 0, "yMm": 500, "directionDegrees": -180,
+		}, true)
+	assertStatus(t, portResponse, http.StatusCreated)
+	var port application.LayoutUnitPort
+	decodeResponse(t, portResponse, &port)
+	if port.InterfaceKey != "track:tillig-tt-modellgleis" || port.DirectionDegrees != 180 {
+		t.Fatalf("unexpected normalized module port: %#v", port)
+	}
+	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layout-units/"+unit.ID+"/ports", nil, true), http.StatusOK)
+	portUpdate := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/layout-unit-ports/"+port.ID, map[string]any{
+			"name": "West main", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+			"xMm": 0, "yMm": 500, "directionDegrees": 180, "expectedVersion": port.Version,
+		}, true)
+	assertStatus(t, portUpdate, http.StatusOK)
+	stalePort := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/layout-unit-ports/"+port.ID, map[string]any{
+			"name": "Stale", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+			"expectedVersion": port.Version,
+		}, true)
+	assertProblem(t, stalePort, http.StatusConflict, "layout_version_conflict")
 
 	configurationResponse := layoutRequest(
 		t, router, session, http.MethodPost, "/api/v1/layouts/"+layout.ID+"/configurations", map[string]any{

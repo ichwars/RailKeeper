@@ -99,6 +99,41 @@ func (a *App) updateLayoutUnit(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, unit)
 }
 
+func (a *App) listLayoutUnitPorts(w http.ResponseWriter, r *http.Request) {
+	ports, err := a.layoutService.ListUnitPorts(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.layoutError(w, err, "list layout unit ports")
+		return
+	}
+	respondJSON(w, http.StatusOK, ports)
+}
+
+func (a *App) createLayoutUnitPort(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateLayoutUnitPortInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	port, err := a.layoutService.CreateUnitPort(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		a.layoutError(w, err, "create layout unit port")
+		return
+	}
+	respondJSON(w, http.StatusCreated, port)
+}
+
+func (a *App) updateLayoutUnitPort(w http.ResponseWriter, r *http.Request) {
+	var input application.UpdateLayoutUnitPortInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	port, err := a.layoutService.UpdateUnitPort(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		a.layoutError(w, err, "update layout unit port")
+		return
+	}
+	respondJSON(w, http.StatusOK, port)
+}
+
 func (a *App) listLayoutConfigurations(w http.ResponseWriter, r *http.Request) {
 	configurations, err := a.layoutService.ListConfigurations(r.Context(), r.PathValue("id"))
 	if err != nil {

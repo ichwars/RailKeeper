@@ -68,7 +68,8 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 	contract := string(data)
 	want := []string{
 		"Layout", "LayoutInput", "UpdateLayoutInput", "LayoutUnit", "LayoutUnitInput",
-		"UpdateLayoutUnitInput", "LayoutTechnicalPosition", "LayoutTechnicalPositionInput",
+		"UpdateLayoutUnitInput", "LayoutUnitPort", "LayoutUnitPortInput", "UpdateLayoutUnitPortInput",
+		"LayoutTechnicalPosition", "LayoutTechnicalPositionInput",
 		"UpdateLayoutTechnicalPositionInput", "LayoutConfiguration", "LayoutConfigurationInput",
 		"UpdateLayoutConfigurationInput", "PlanVariant", "PlanVariantInput", "PlanRevision",
 		"PlanRevisionInput", "PlanRevisionTransitionInput", "TrackPoint", "TrackPort", "TrackRoute",

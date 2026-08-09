@@ -2124,6 +2124,78 @@ components:
             expectedVersion:
               type: integer
               minimum: 1
+    LayoutUnitPort:
+      type: object
+      required:
+        [id, layoutUnitId, name, kind, interfaceKey, xMm, yMm, directionDegrees,
+         version, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [track, power, digital, feedback, accessory, other]
+        interfaceKey:
+          type: string
+        xMm:
+          type: number
+          minimum: 0
+        yMm:
+          type: number
+          minimum: 0
+        directionDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        notes:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutUnitPortInput:
+      type: object
+      required: [name, kind, interfaceKey, xMm, yMm, directionDegrees]
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [track, power, digital, feedback, accessory, other]
+        interfaceKey:
+          type: string
+        xMm:
+          type: number
+          minimum: 0
+        yMm:
+          type: number
+          minimum: 0
+        directionDegrees:
+          type: number
+        notes:
+          type: string
+        archived:
+          type: boolean
+    UpdateLayoutUnitPortInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutUnitPortInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
     LayoutTechnicalPosition:
       type: object
       required:
@@ -5382,6 +5454,109 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LayoutUnit"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/ports:
+    get:
+      tags: [Layouts]
+      summary: List module ports in a layout unit
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Module port list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutUnitPort"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Layouts]
+      summary: Create a module port
+      description: Planner or Admin role required.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutUnitPortInput"
+      responses:
+        "201":
+          description: Module port created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitPort"
+        "400":
+          description: Invalid module port
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-unit-ports/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a module port
+      description: Planner or Admin role required. The port version is checked atomically.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutUnitPortInput"
+      responses:
+        "200":
+          description: Module port updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitPort"
+        "400":
+          description: Invalid module port
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Module port not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Stale expected version
           content:
