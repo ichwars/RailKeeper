@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** zur lokalen Umsetzung freigegeben, keine Veröffentlichung
+**Status:** lokal umgesetzt und am 2026-08-10 abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -60,3 +60,13 @@ automatische Geländemodellierung.
 - Backendtests, Frontendtests und Produktionsbuild laufen erfolgreich.
 - Die lokale Browserprüfung bestätigt Eingabe, Speicherung und Anzeige.
 
+### Abnahmeprotokoll vom 2026-08-10
+
+- `go test ./...` im Backend: alle Pakete erfolgreich.
+- `npm.cmd test -- --run` im Frontend: 66 Testdateien und 349 Tests erfolgreich.
+- `npm.cmd run build`: 2.173 Module erfolgreich in den Produktionsbuild übernommen.
+- Browserabnahme unter `http://127.0.0.1:18083/layouts`: bestehendes Gleis ausgewählt,
+  Anfangshöhe 5 mm und Endhöhe 9,15 mm gespeichert, Steigung 2,50 % angezeigt und nach vollständigem
+  Nachladen unverändert bestätigt.
+- Die Browseransicht blieb als angemeldeter Benutzer `codex-test` im bearbeitbaren Gleisplan geöffnet.
+- Der lokale Server antwortet auf Port 18083 mit `status: ok`.
