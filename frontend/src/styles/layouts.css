@@ -337,5 +337,6 @@
   .layout-form-dialog { max-height: calc(100vh - 16px); }
   .layout-form-dialog .modal-actions { align-items: stretch; }
   .layout-dialog-message { margin: 0 0 4px; }
-  .layout-panel-head { align-items: stretch; }
+  .layout-panel-head { align-items: center; flex-wrap: wrap; }
+  .layout-workspace-head .status-pill { align-self: flex-start; }
 }
