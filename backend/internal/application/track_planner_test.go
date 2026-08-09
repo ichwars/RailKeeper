@@ -15,6 +15,9 @@ type trackPlannerRepositorySpy struct {
 	created         CreatePlanTrackObjectInput
 	updated         UpdatePlanTrackObjectInput
 	deletedVersion  int
+	plan            *TrackPlan
+	planForObject   *TrackPlan
+	materials       []TrackMaterialStatus
 }
 
 func (spy *trackPlannerRepositorySpy) ListGeometries(
@@ -26,7 +29,24 @@ func (spy *trackPlannerRepositorySpy) ListGeometries(
 }
 
 func (spy *trackPlannerRepositorySpy) GetPlan(_ context.Context, revisionID string) (*TrackPlan, error) {
+	if spy.plan != nil {
+		return spy.plan, nil
+	}
 	return &TrackPlan{RevisionID: revisionID, Objects: []domain.PlanTrackObject{}}, nil
+}
+
+func (spy *trackPlannerRepositorySpy) GetPlanForObject(_ context.Context, _ string) (*TrackPlan, error) {
+	if spy.planForObject == nil {
+		return nil, ErrTrackPlanNotFound
+	}
+	return spy.planForObject, nil
+}
+
+func (spy *trackPlannerRepositorySpy) TrackMaterialAvailability(
+	_ context.Context,
+	_ []domain.TrackBOMLine,
+) ([]TrackMaterialStatus, error) {
+	return spy.materials, nil
 }
 
 func (spy *trackPlannerRepositorySpy) CreateObject(
@@ -89,6 +109,8 @@ func TestTrackPlannerServiceNormalizesInputs(t *testing.T) {
 		t.Fatalf("unexpected normalized create: revision=%q input=%#v object=%#v",
 			repository.createdRevision, repository.created, created)
 	}
+	repository.planForObject = &TrackPlan{RevisionID: "revision-1", Status: domain.PlanRevisionDraft,
+		Objects: []domain.PlanTrackObject{trackPlannerTestG1("object-1", 25, 35, 15)}}
 
 	updated, err := service.UpdateObject(t.Context(), " object-1 ", UpdatePlanTrackObjectInput{
 		PositionXMM: 25, PositionYMM: 35, RotationDegrees: 735, ExpectedVersion: 2,
@@ -124,5 +146,88 @@ func TestTrackPlannerServiceRejectsInvalidInputs(t *testing.T) {
 	}
 	if err := service.DeleteObject(t.Context(), "object-1", 0, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
 		t.Fatalf("expected delete validation error, got %v", err)
+	}
+}
+
+func TestTrackPlannerSnapAppliesNearestCompatiblePose(t *testing.T) {
+	moving := trackPlannerTestG1("moving", 172, 2, 2)
+	target := trackPlannerTestG1("target", 0, 0, 0)
+	repository := &trackPlannerRepositorySpy{planForObject: &TrackPlan{
+		RevisionID: "revision-1", Status: domain.PlanRevisionDraft,
+		Objects: []domain.PlanTrackObject{target, moving},
+	}}
+	service := NewTrackPlannerService(repository)
+
+	updated, err := service.UpdateObject(t.Context(), moving.ID, UpdatePlanTrackObjectInput{
+		PositionXMM: moving.PositionXMM, PositionYMM: moving.PositionYMM,
+		RotationDegrees: moving.RotationDegrees, ExpectedVersion: 1,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.PositionXMM != 166 || updated.PositionYMM != 0 || updated.RotationDegrees != 0 {
+		t.Fatalf("expected authoritative snapped pose, got %#v", updated)
+	}
+}
+
+func TestTrackPlannerSnapLeavesPoseOutsideTolerance(t *testing.T) {
+	moving := trackPlannerTestG1("moving", 174.01, 0, 0)
+	target := trackPlannerTestG1("target", 0, 0, 0)
+	repository := &trackPlannerRepositorySpy{planForObject: &TrackPlan{
+		RevisionID: "revision-1", Status: domain.PlanRevisionDraft,
+		Objects: []domain.PlanTrackObject{target, moving},
+	}}
+	service := NewTrackPlannerService(repository)
+
+	updated, err := service.UpdateObject(t.Context(), moving.ID, UpdatePlanTrackObjectInput{
+		PositionXMM: moving.PositionXMM, PositionYMM: moving.PositionYMM, ExpectedVersion: 1,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.PositionXMM != 174.01 {
+		t.Fatalf("pose outside tolerance changed: %#v", updated)
+	}
+}
+
+func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
+	objects := []domain.PlanTrackObject{
+		trackPlannerTestG1("track-1", 0, 0, 0),
+		trackPlannerTestG1("track-2", 166, 0, 0),
+	}
+	repository := &trackPlannerRepositorySpy{
+		materials: []TrackMaterialStatus{{
+			GeometryID: "tillig-g1", Manufacturer: "Tillig", ArticleNumber: "83101",
+			RequiredQuantity: 2, PhysicalQuantity: 3, ReservedQuantity: 1,
+			AvailableQuantity: 2, MissingQuantity: 0,
+		}},
+	}
+	repositoryPlan := &TrackPlan{RevisionID: "revision-1", Status: domain.PlanRevisionDraft, Objects: objects}
+	repository.plan = repositoryPlan
+	service := NewTrackPlannerService(repository)
+	analysis, err := service.AnalyzePlan(t.Context(), repositoryPlan.RevisionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Connections) != 1 || len(analysis.BOM) != 1 || len(analysis.Materials) != 1 ||
+		analysis.Materials[0].AvailableQuantity != 2 {
+		t.Fatalf("unexpected combined analysis: %#v", analysis)
+	}
+}
+
+func trackPlannerTestG1(id string, x, y, rotation float64) domain.PlanTrackObject {
+	return domain.PlanTrackObject{
+		ID: id, GeometryID: "tillig-g1", PositionXMM: x, PositionYMM: y, RotationDegrees: rotation,
+		Version: 1,
+		Geometry: domain.TrackGeometryDefinition{
+			ID: "tillig-g1", LibraryID: "tillig-v1", ArticleNumber: "83101", Name: "Gleisstück G1",
+			Kind: domain.TrackGeometryStraight, LengthMM: 166, Status: domain.TrackGeometryVerified,
+			Geometry: domain.TrackGeometry{SchemaVersion: 1,
+				Ports: []domain.TrackPort{
+					{ID: "a", DirectionDegrees: 180}, {ID: "b", XMM: 166, DirectionDegrees: 0},
+				},
+				Routes: []domain.TrackRoute{{ID: "main", Points: []domain.TrackPoint{{}, {XMM: 166}}}},
+			},
+		},
 	}
 }

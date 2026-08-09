@@ -74,6 +74,83 @@ WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)
 	return plan, nil
 }
 
+func (repository *TrackPlannerRepository) GetPlanForObject(
+	ctx context.Context,
+	objectID string,
+) (*application.TrackPlan, error) {
+	var revisionID string
+	err := repository.db.QueryRowContext(ctx,
+		`SELECT revision_id FROM plan_track_objects WHERE id=?`, objectID).Scan(&revisionID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, application.ErrTrackPlanNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("read track object revision: %w", err)
+	}
+	return repository.GetPlan(ctx, revisionID)
+}
+
+func (repository *TrackPlannerRepository) TrackMaterialAvailability(
+	ctx context.Context,
+	bom []domain.TrackBOMLine,
+) ([]application.TrackMaterialStatus, error) {
+	materials := make([]application.TrackMaterialStatus, 0, len(bom))
+	for _, line := range bom {
+		material := application.TrackMaterialStatus{
+			GeometryID: line.GeometryID, ArticleNumber: line.ArticleNumber, Name: line.Name,
+			RequiredQuantity: line.Quantity, ProductIDs: []string{}, InventoryNumbers: []string{},
+		}
+		err := repository.db.QueryRowContext(ctx, `
+SELECT library.manufacturer, geometry.article_number, geometry.name
+FROM track_geometry_definitions geometry
+JOIN track_geometry_libraries library ON library.id=geometry.library_id
+WHERE geometry.id=?`, line.GeometryID).
+			Scan(&material.Manufacturer, &material.ArticleNumber, &material.Name)
+		if errors.Is(err, sql.ErrNoRows) {
+			material.MissingQuantity = material.RequiredQuantity
+			materials = append(materials, material)
+			continue
+		}
+		if err != nil {
+			return nil, fmt.Errorf("read track material geometry %s: %w", line.GeometryID, err)
+		}
+
+		rows, err := repository.db.QueryContext(ctx, `
+SELECT product.id, product.inventory_number,
+       COALESCE((SELECT SUM(stock.quantity) FROM accessory_stock stock
+                 WHERE stock.product_id=product.id), 0),
+       COALESCE((SELECT SUM(reservation.quantity) FROM accessory_reservations reservation
+                 WHERE reservation.product_id=product.id AND reservation.status='active'), 0)
+FROM accessory_products product
+WHERE product.archived=0
+  AND lower(trim(product.manufacturer))=lower(trim(?))
+  AND lower(trim(product.article_number))=lower(trim(?))
+ORDER BY product.inventory_number COLLATE NOCASE, product.id`, material.Manufacturer, material.ArticleNumber)
+		if err != nil {
+			return nil, fmt.Errorf("list track material products %s: %w", line.GeometryID, err)
+		}
+		for rows.Next() {
+			var productID, inventoryNumber string
+			var physical, reserved int
+			if err := rows.Scan(&productID, &inventoryNumber, &physical, &reserved); err != nil {
+				_ = rows.Close()
+				return nil, fmt.Errorf("scan track material product %s: %w", line.GeometryID, err)
+			}
+			material.ProductIDs = append(material.ProductIDs, productID)
+			material.InventoryNumbers = append(material.InventoryNumbers, inventoryNumber)
+			material.PhysicalQuantity += physical
+			material.ReservedQuantity += reserved
+		}
+		if err := rows.Close(); err != nil {
+			return nil, fmt.Errorf("close track material products %s: %w", line.GeometryID, err)
+		}
+		material.AvailableQuantity = max(0, material.PhysicalQuantity-material.ReservedQuantity)
+		material.MissingQuantity = max(0, material.RequiredQuantity-material.AvailableQuantity)
+		materials = append(materials, material)
+	}
+	return materials, nil
+}
+
 func (repository *TrackPlannerRepository) CreateObject(
 	ctx context.Context,
 	revisionID string,

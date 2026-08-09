@@ -135,3 +135,79 @@ INSERT INTO track_geometry_definitions(
 		t.Fatalf("expected unverified geometry validation error, got %v", err)
 	}
 }
+
+func TestTrackPlannerSnapPersistsAuthoritativePose(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	geometryID := "tillig-tt-modellgleis-83101-v1"
+	if _, err := planner.CreateObject(t.Context(), "revision-track-1", application.CreatePlanTrackObjectInput{
+		GeometryID: geometryID, PositionXMM: 0, PositionYMM: 0,
+	}, "planner"); err != nil {
+		t.Fatal(err)
+	}
+	moving, err := planner.CreateObject(t.Context(), "revision-track-1", application.CreatePlanTrackObjectInput{
+		GeometryID: geometryID, PositionXMM: 172, PositionYMM: 2, RotationDegrees: 2,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := planner.UpdateObject(t.Context(), moving.ID, application.UpdatePlanTrackObjectInput{
+		PositionXMM: 172, PositionYMM: 2, RotationDegrees: 2, ExpectedVersion: moving.Version,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.PositionXMM != 166 || updated.PositionYMM != 0 || updated.RotationDegrees != 0 {
+		t.Fatalf("unexpected authoritative snapped pose: %#v", updated)
+	}
+}
+
+func TestTrackPlannerAnalysisAggregatesLocalMaterialAvailability(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	if _, err := db.Exec(`
+INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('track-location', 'Gleislager', 'now', 'now');
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  created_at, updated_at
+) VALUES(
+  'track-product', 'RK-ART-0083101', 'Tillig', '83101', 'Gleisstück G1', 'track', 'quantity',
+  'now', 'now'
+);
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+VALUES('track-product', 'track-location', 3, 'now');
+INSERT INTO accessory_reservations(
+  id, product_id, location_id, quantity, layout_unit_id, status, created_by, created_at, updated_at
+) VALUES(
+  'track-reservation', 'track-product', 'track-location', 1, 'unit-track-1',
+  'active', 'planner', 'now', 'now'
+);
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  version, created_at, updated_at
+) VALUES
+  ('track-material-1', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 0, 0, 0, 1, 'now', 'now'),
+  ('track-material-2', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 166, 0, 0, 1, 'now', 'now');
+`); err != nil {
+		t.Fatal(err)
+	}
+
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	analysis, err := planner.AnalyzePlan(t.Context(), "revision-track-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Materials) != 1 {
+		t.Fatalf("unexpected material lines: %#v", analysis.Materials)
+	}
+	material := analysis.Materials[0]
+	if material.Manufacturer != "Tillig" || material.ArticleNumber != "83101" ||
+		material.RequiredQuantity != 2 || material.PhysicalQuantity != 3 || material.ReservedQuantity != 1 ||
+		material.AvailableQuantity != 2 || material.MissingQuantity != 0 ||
+		len(material.ProductIDs) != 1 || material.ProductIDs[0] != "track-product" {
+		t.Fatalf("unexpected material availability: %#v", material)
+	}
+}

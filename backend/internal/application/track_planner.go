@@ -36,9 +36,34 @@ type UpdatePlanTrackObjectInput struct {
 	ExpectedVersion int     `json:"expectedVersion"`
 }
 
+type TrackMaterialStatus struct {
+	GeometryID        string   `json:"geometryId"`
+	Manufacturer      string   `json:"manufacturer"`
+	ArticleNumber     string   `json:"articleNumber"`
+	Name              string   `json:"name"`
+	RequiredQuantity  int      `json:"requiredQuantity"`
+	ProductIDs        []string `json:"productIds"`
+	InventoryNumbers  []string `json:"inventoryNumbers"`
+	PhysicalQuantity  int      `json:"physicalQuantity"`
+	ReservedQuantity  int      `json:"reservedQuantity"`
+	AvailableQuantity int      `json:"availableQuantity"`
+	MissingQuantity   int      `json:"missingQuantity"`
+}
+
+type TrackPlanAnalysis struct {
+	RevisionID  string                       `json:"revisionId"`
+	Status      domain.PlanRevisionStatus    `json:"status"`
+	Connections []domain.TrackPlanConnection `json:"connections"`
+	Issues      []domain.TrackPlanIssue      `json:"issues"`
+	BOM         []domain.TrackBOMLine        `json:"bom"`
+	Materials   []TrackMaterialStatus        `json:"materials"`
+}
+
 type TrackPlannerRepository interface {
 	ListGeometries(context.Context, string) ([]domain.TrackGeometryDefinition, error)
 	GetPlan(context.Context, string) (*TrackPlan, error)
+	GetPlanForObject(context.Context, string) (*TrackPlan, error)
+	TrackMaterialAvailability(context.Context, []domain.TrackBOMLine) ([]TrackMaterialStatus, error)
 	CreateObject(
 		context.Context, string, CreatePlanTrackObjectInput, string,
 	) (*domain.PlanTrackObject, error)
@@ -75,6 +100,30 @@ func (service *TrackPlannerService) GetPlan(ctx context.Context, revisionID stri
 	return service.repository.GetPlan(ctx, revisionID)
 }
 
+func (service *TrackPlannerService) AnalyzePlan(
+	ctx context.Context,
+	revisionID string,
+) (*TrackPlanAnalysis, error) {
+	revisionID = strings.TrimSpace(revisionID)
+	if revisionID == "" {
+		return nil, ErrTrackPlanValidation
+	}
+	plan, err := service.repository.GetPlan(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
+	geometryAnalysis := domain.AnalyzeTrackPlan(plan.Objects)
+	materials, err := service.repository.TrackMaterialAvailability(ctx, geometryAnalysis.BOM)
+	if err != nil {
+		return nil, err
+	}
+	return &TrackPlanAnalysis{
+		RevisionID: plan.RevisionID, Status: plan.Status,
+		Connections: geometryAnalysis.Connections, Issues: geometryAnalysis.Issues,
+		BOM: geometryAnalysis.BOM, Materials: materials,
+	}, nil
+}
+
 func (service *TrackPlannerService) CreateObject(
 	ctx context.Context,
 	revisionID string,
@@ -105,6 +154,28 @@ func (service *TrackPlannerService) UpdateObject(
 		return nil, ErrTrackPlanValidation
 	}
 	input.RotationDegrees = domain.NormalizeTrackRotation(input.RotationDegrees)
+	plan, err := service.repository.GetPlanForObject(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var moving *domain.PlanTrackObject
+	for index := range plan.Objects {
+		if plan.Objects[index].ID == id {
+			moving = &plan.Objects[index]
+			break
+		}
+	}
+	if moving == nil {
+		return nil, ErrTrackPlanNotFound
+	}
+	moving.PositionXMM = input.PositionXMM
+	moving.PositionYMM = input.PositionYMM
+	moving.RotationDegrees = input.RotationDegrees
+	if snap := domain.FindTrackSnap(*moving, plan.Objects); snap.Snapped {
+		input.PositionXMM = snap.Pose.PositionXMM
+		input.PositionYMM = snap.Pose.PositionYMM
+		input.RotationDegrees = snap.Pose.RotationDegrees
+	}
 	return service.repository.UpdateObject(ctx, id, input, actor)
 }
 
