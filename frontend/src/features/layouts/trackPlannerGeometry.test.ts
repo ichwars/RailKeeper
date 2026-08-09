@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PlanTrackObject, TrackGeometryDefinition } from "../../shared/api";
-import { findTrackSnap, routePolylinePoints, trackObjectTransform } from "./trackPlannerGeometry";
+import { routePolylinePoints, snapTrackPose, trackObjectTransform } from "./trackPlannerGeometry";
 
 const geometry: TrackGeometryDefinition = {
   id: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
@@ -36,7 +36,7 @@ describe("track planner geometry", () => {
   });
 
   it("snaps the nearest compatible endpoint within eight millimetres", () => {
-    const snap = findTrackSnap(track("moving", 172, 2, 2), [track("target", 0)]);
+    const snap = snapTrackPose(track("moving", 172, 2, 2), [track("target", 0)]);
 
     expect(snap).toMatchObject({
       snapped: true,
@@ -48,7 +48,7 @@ describe("track planner geometry", () => {
   });
 
   it("does not snap outside the distance or direction tolerance", () => {
-    expect(findTrackSnap(track("far", 174.01), [track("target", 0)]).snapped).toBe(false);
-    expect(findTrackSnap(track("angled", 172, 0, 5.01), [track("target", 0)]).snapped).toBe(false);
+    expect(snapTrackPose(track("far", 174.01), [track("target", 0)]).snapped).toBe(false);
+    expect(snapTrackPose(track("angled", 172, 0, 5.01), [track("target", 0)]).snapped).toBe(false);
   });
 });

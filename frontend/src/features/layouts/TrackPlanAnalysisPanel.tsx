@@ -14,7 +14,11 @@ function countIssues(analysis: TrackPlanAnalysis, code: TrackPlanIssueCode): num
   return analysis.issues.filter((issue) => issue.code === code).length;
 }
 
-export function TrackPlanAnalysisPanel({ analysis }: { analysis: TrackPlanAnalysis }) {
+export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObject }: {
+  analysis: TrackPlanAnalysis;
+  selectedObjectId?: string;
+  onSelectObject?: (objectID: string) => void;
+}) {
   const { t } = useI18n();
   const connections = analysis.connections.length;
   const openEnds = countIssues(analysis, "open_end");
@@ -37,15 +41,19 @@ export function TrackPlanAnalysisPanel({ analysis }: { analysis: TrackPlanAnalys
         <h5><AlertTriangle size={15} />{t("layouts.trackAnalysis.issues")}</h5>
         {analysis.issues.length === 0
           ? <p className="layout-empty">✓ {t("layouts.trackAnalysis.noIssues")}</p>
-          : <ul className="track-issue-list">{analysis.issues.map((issue, index) =>
-            <li key={`${issue.code}-${issue.objectIds.join("-")}-${index}`}
-              className={`track-issue severity-${issue.severity}`}
-              aria-label={`${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${t(
-                `layouts.trackAnalysis.issue.${issue.code}`
-              )}`}>
-              <b aria-hidden="true">{issueSymbols[issue.code]}</b>
-              <span>{t(`layouts.trackAnalysis.issue.${issue.code}`)}</span>
-            </li>)}</ul>}
+          : <ul className="track-issue-list">{analysis.issues.map((issue, index) => {
+            const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${t(
+              `layouts.trackAnalysis.issue.${issue.code}`
+            )}`;
+            return <li key={`${issue.code}-${issue.objectIds.join("-")}-${index}`}>
+              <button type="button" className={`track-issue severity-${issue.severity}`}
+                aria-label={label} aria-pressed={issue.objectIds.includes(selectedObjectId ?? "")}
+                onClick={() => issue.objectIds[0] && onSelectObject?.(issue.objectIds[0])}>
+                <b aria-hidden="true">{issueSymbols[issue.code]}</b>
+                <span>{t(`layouts.trackAnalysis.issue.${issue.code}`)}</span>
+              </button>
+            </li>;
+          })}</ul>}
       </div>
       <div className="track-materials">
         <h5><PackageSearch size={15} />{t("layouts.trackAnalysis.materials")}</h5>
@@ -53,6 +61,8 @@ export function TrackPlanAnalysisPanel({ analysis }: { analysis: TrackPlanAnalys
           <thead><tr>
             <th>{t("layouts.trackAnalysis.article")}</th>
             <th>{t("layouts.trackAnalysis.required")}</th>
+            <th>{t("layouts.trackAnalysis.physical")}</th>
+            <th>{t("layouts.trackAnalysis.reserved")}</th>
             <th>{t("layouts.trackAnalysis.available")}</th>
             <th>{t("layouts.trackAnalysis.missing")}</th>
             <th>{t("layouts.trackAnalysis.inventory")}</th>
@@ -60,6 +70,8 @@ export function TrackPlanAnalysisPanel({ analysis }: { analysis: TrackPlanAnalys
           <tbody>{analysis.materials.map((material) => <tr key={material.geometryId}>
             <td><strong>{material.manufacturer} {material.articleNumber}</strong><small>{material.name}</small></td>
             <td>{material.requiredQuantity}</td>
+            <td>{material.physicalQuantity}</td>
+            <td>{material.reservedQuantity}</td>
             <td>{material.availableQuantity}</td>
             <td className={material.missingQuantity > 0 ? "material-missing" : ""}>
               <span aria-hidden="true">{material.missingQuantity > 0 ? "!" : "✓"}</span>{" "}

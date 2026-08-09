@@ -2149,6 +2149,8 @@ export const enTranslations: Record<string, string> = {
     "layouts.trackAnalysis.materials": "Bill of materials and local stock",
     "layouts.trackAnalysis.article": "Article",
     "layouts.trackAnalysis.required": "Required",
+    "layouts.trackAnalysis.physical": "Stock",
+    "layouts.trackAnalysis.reserved": "Reserved",
     "layouts.trackAnalysis.available": "Free",
     "layouts.trackAnalysis.missing": "Missing",
     "layouts.trackAnalysis.inventory": "Inventory numbers",

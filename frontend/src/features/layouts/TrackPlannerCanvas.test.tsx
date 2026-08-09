@@ -110,7 +110,7 @@ describe("TrackPlannerCanvas", () => {
       revisionId: draft.id, status: "draft", objects: [target, moving]
     });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockResolvedValue({
-      ...moving, positionXMm: 166, version: 2
+      ...moving, positionXMm: 165.5, version: 2
     });
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
@@ -128,6 +128,36 @@ describe("TrackPlannerCanvas", () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith("moving", {
       positionXMm: 166, positionYMm: 0, rotationDegrees: 0, expectedVersion: 1
     }));
+    await waitFor(() => expect(placed).toHaveAttribute("transform", "translate(165.5 0) rotate(0)"));
+  });
+
+  it("renders explicit connected, open, and incompatible endpoint marker classes", async () => {
+    const target = { ...trackObject, id: "target", positionXMm: 0 };
+    const moving = { ...trackObject, id: "moving", positionXMm: 166 };
+    const conflicting = { ...trackObject, id: "conflicting", positionXMm: 500 };
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [target, moving, conflicting]
+    });
+    vi.mocked(api.trackPlanAnalysis).mockResolvedValue({
+      revisionId: draft.id,
+      status: "draft",
+      connections: [{ objectAId: "target", portAId: "b", objectBId: "moving", portBId: "a" }],
+      issues: [
+        { code: "open_end", severity: "warning", objectIds: ["target"], portIds: ["a"] },
+        { code: "incompatible_connection", severity: "warning",
+          objectIds: ["moving", "conflicting"], portIds: ["b", "a"] },
+        { code: "open_end", severity: "warning", objectIds: ["conflicting"], portIds: ["b"] }
+      ],
+      bom: [],
+      materials: []
+    });
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    const canvas = await screen.findByRole("img", { name: "Maßhaltiger Gleisplan für Bahnhofsmodul" });
+    expect(canvas.querySelectorAll(".track-port.status-connected")).toHaveLength(2);
+    expect(canvas.querySelectorAll(".track-port.status-open")).toHaveLength(2);
+    expect(canvas.querySelectorAll(".track-port.status-incompatible")).toHaveLength(2);
+    expect(canvas.querySelectorAll(".track-port text")).toHaveLength(6);
   });
 
   it("keeps published plans read-only and reports version conflicts", async () => {

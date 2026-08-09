@@ -2149,6 +2149,8 @@ export const deTranslations: Record<string, string> = {
     "layouts.trackAnalysis.materials": "Stückliste und lokaler Bestand",
     "layouts.trackAnalysis.article": "Artikel",
     "layouts.trackAnalysis.required": "Soll",
+    "layouts.trackAnalysis.physical": "Bestand",
+    "layouts.trackAnalysis.reserved": "Reserviert",
     "layouts.trackAnalysis.available": "Frei",
     "layouts.trackAnalysis.missing": "Fehlt",
     "layouts.trackAnalysis.inventory": "Inventarnummern",

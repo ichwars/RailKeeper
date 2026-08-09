@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
 
 import type { TrackPlanAnalysis } from "../../shared/api";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
@@ -30,12 +31,43 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("1 Verbindung")).toBeInTheDocument();
     expect(screen.getByText("2 offene Enden")).toBeInTheDocument();
     expect(screen.getByText("1 Überschneidung")).toBeInTheDocument();
-    expect(screen.getByLabelText("Warnung: Überschneidung")).toHaveTextContent("!");
+    expect(screen.getByRole("button", { name: "Warnung: Überschneidung" })).toHaveTextContent("!");
 
     const row = screen.getByRole("row", { name: /Tillig 83101/ });
-    expect(within(row).getByText("3")).toBeInTheDocument();
-    expect(within(row).getByText("2")).toBeInTheDocument();
-    expect(within(row).getByText("1")).toBeInTheDocument();
+    const cells = within(row).getAllByRole("cell");
+    expect(cells[1]).toHaveTextContent("3");
+    expect(cells[2]).toHaveTextContent("3");
+    expect(cells[3]).toHaveTextContent("1");
+    expect(cells[4]).toHaveTextContent("2");
+    expect(cells[5]).toHaveTextContent("! 1");
     expect(within(row).getByText("RK-ART-000001")).toBeInTheDocument();
+  });
+
+  it("selects affected track objects from validation issues", async () => {
+    const user = userEvent.setup();
+    const selectObject = vi.fn();
+    render(<TrackPlanAnalysisPanel analysis={analysis} selectedObjectId="track-2"
+      onSelectObject={selectObject} />);
+
+    const overlap = screen.getByRole("button", { name: "Warnung: Überschneidung" });
+    expect(overlap).toHaveAttribute("aria-pressed", "true");
+    await user.click(overlap);
+    expect(selectObject).toHaveBeenCalledWith("track-2");
+  });
+
+  it("shows a valid empty state and an unmatched catalog requirement", () => {
+    render(<TrackPlanAnalysisPanel analysis={{
+      revisionId: "revision-1", status: "draft", connections: [], issues: [],
+      bom: [{ geometryId: "g2", libraryId: "tillig-v1", articleNumber: "83102", name: "G2", quantity: 1 }],
+      materials: [{
+        geometryId: "g2", manufacturer: "Tillig", articleNumber: "83102", name: "G2",
+        requiredQuantity: 1, productIds: [], inventoryNumbers: [], physicalQuantity: 0,
+        reservedQuantity: 0, availableQuantity: 0, missingQuantity: 1
+      }]
+    }} />);
+
+    expect(screen.getByText("0 Verbindungen")).toBeInTheDocument();
+    expect(screen.getByText("✓ Keine Prüfhinweise")).toBeInTheDocument();
+    expect(screen.getByText("Kein Artikel zugeordnet")).toBeInTheDocument();
   });
 });

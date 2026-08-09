@@ -68,7 +68,7 @@ function isBetterSnap(
   return targetPortId.localeCompare(current.targetPortId ?? "") < 0;
 }
 
-export function findTrackSnap(moving: PlanTrackObject, objects: PlanTrackObject[]): TrackSnapPreview {
+export function snapTrackPose(moving: PlanTrackObject, objects: PlanTrackObject[]): TrackSnapPreview {
   const basePose: TrackPose = {
     positionXMm: moving.positionXMm,
     positionYMm: moving.positionYMm,

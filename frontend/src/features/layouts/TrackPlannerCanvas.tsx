@@ -14,9 +14,9 @@ import { useI18n } from "../../shared/i18n";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import {
-  findTrackSnap,
   normalizedRotation,
   routePolylinePoints,
+  snapTrackPose,
   trackObjectTransform
 } from "./trackPlannerGeometry";
 
@@ -162,7 +162,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const point = canvasPoint(event.nativeEvent);
     const x = Math.max(0, Math.min(width, point.x - drag.offsetX));
     const y = Math.max(0, Math.min(height, point.y - drag.offsetY));
-    const pose = findTrackSnap({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
+    const pose = snapTrackPose({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
     setObjects((current) => current.map((item) => item.id === drag.object.id
       ? { ...item, ...pose } : item));
   };
@@ -174,7 +174,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const point = canvasPoint(event.nativeEvent);
     const x = Math.max(0, Math.min(width, point.x - drag.offsetX));
     const y = Math.max(0, Math.min(height, point.y - drag.offsetY));
-    const pose = findTrackSnap({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
+    const pose = snapTrackPose({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
     setObjects((current) => current.map((item) => item.id === drag.object.id
       ? { ...item, ...pose } : item));
     void update(drag.object, pose.positionXMm, pose.positionYMm, pose.rotationDegrees);
@@ -286,7 +286,8 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           </div> : null}
         </> : <p className="layout-empty">{t("layouts.trackPlanner.select")}</p>}
       </aside>
-      {analysis ? <TrackPlanAnalysisPanel analysis={analysis} /> : null}
+      {analysis ? <TrackPlanAnalysisPanel analysis={analysis} selectedObjectId={selectedID}
+        onSelectObject={setSelectedID} /> : null}
     </div>}
     <LayoutConfirmDialog action={pending} onClose={() => setPending(null)} />
   </section>;

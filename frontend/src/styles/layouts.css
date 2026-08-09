@@ -660,7 +660,22 @@
 .track-analysis-grid { display: grid; grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr); gap: 16px; }
 .track-analysis-grid h5 { margin-bottom: 8px; }
 .track-issue-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
-.track-issue { display: flex; align-items: center; gap: 7px; font-size: var(--font-size-sm); }
+.track-issue {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 7px;
+  border: 0;
+  padding: 3px 2px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font-size: var(--font-size-sm);
+  text-align: left;
+}
+.track-issue:hover,
+.track-issue:focus-visible,
+.track-issue[aria-pressed="true"] { color: var(--accent-strong); }
 .track-issue b { width: 18px; text-align: center; color: var(--warning); }
 .track-issue.severity-error b { color: var(--danger); }
 .track-materials table { width: 100%; }
