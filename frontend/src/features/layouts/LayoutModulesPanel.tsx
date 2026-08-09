@@ -4,6 +4,7 @@ import { Boxes, Plus } from "lucide-react";
 import { api, type LayoutUnit, type LayoutUnitInput, type LayoutUnitKind } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { LayoutModulePortsPanel } from "./LayoutModulePortsPanel";
 
 type UnitForm = LayoutUnitInput & { id?: string; version?: number };
 const emptyUnit: UnitForm = { name: "", kind: "module", ownerLabel: "", widthMm: 0, heightMm: 0, archived: false };
@@ -42,7 +43,7 @@ export function LayoutModulesPanel({ units, layoutID, canPlan, onChanged }: {
     } finally { setSaving(false); }
   };
 
-  return <section className="layout-panel-grid">
+  return <><section className="layout-panel-grid">
     <section className="panel">
       <div className="panel-title"><Boxes size={17} /><h3>{t("layouts.modules.title")}</h3></div>
       {units.length === 0 ? <p className="layout-empty">{t("layouts.modules.empty")}</p> : <div className="table-wrap">
@@ -78,5 +79,5 @@ export function LayoutModulesPanel({ units, layoutID, canPlan, onChanged }: {
           {saving ? t("common.saving") : t("layouts.modules.save")}</button></div>
       </form>
     </section> : null}
-  </section>;
+  </section><LayoutModulePortsPanel unit={selected || null} canPlan={canPlan} /></>;
 }

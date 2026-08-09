@@ -51,6 +51,37 @@ export type LayoutUnitInput = {
 
 export type LayoutUnitUpdateInput = LayoutUnitInput & { expectedVersion: number };
 
+export type LayoutUnitPortKind = "track" | "power" | "digital" | "feedback" | "accessory" | "other";
+
+export type LayoutUnitPort = {
+  id: string;
+  layoutUnitId: string;
+  name: string;
+  kind: LayoutUnitPortKind;
+  interfaceKey: string;
+  xMm: number;
+  yMm: number;
+  directionDegrees: number;
+  notes?: string;
+  version: number;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LayoutUnitPortInput = {
+  name: string;
+  kind: LayoutUnitPortKind;
+  interfaceKey: string;
+  xMm: number;
+  yMm: number;
+  directionDegrees: number;
+  notes?: string;
+  archived?: boolean;
+};
+
+export type LayoutUnitPortUpdateInput = LayoutUnitPortInput & { expectedVersion: number };
+
 export type LayoutTechnicalPositionKind =
   | "turnout"
   | "signal"
@@ -862,6 +893,12 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<LayoutUnit>(`/layouts/${encodeURIComponent(layoutId)}/units`, json("POST", input)),
     updateLayoutUnit: (id: string, input: LayoutUnitUpdateInput) =>
       request<LayoutUnit>(`/layout-units/${encodeURIComponent(id)}`, json("PUT", input)),
+    layoutUnitPorts: (unitId: string) =>
+      request<LayoutUnitPort[]>(`/layout-units/${encodeURIComponent(unitId)}/ports`),
+    createLayoutUnitPort: (unitId: string, input: LayoutUnitPortInput) =>
+      request<LayoutUnitPort>(`/layout-units/${encodeURIComponent(unitId)}/ports`, json("POST", input)),
+    updateLayoutUnitPort: (id: string, input: LayoutUnitPortUpdateInput) =>
+      request<LayoutUnitPort>(`/layout-unit-ports/${encodeURIComponent(id)}`, json("PUT", input)),
     updateLayoutUnitOutline: (id: string, input: LayoutUnitOutlineUpdateInput) =>
       request<LayoutUnitOutline>(`/layout-units/${encodeURIComponent(id)}/outline`, json("PUT", input)),
     layoutTechnicalPositions: (unitId: string) =>

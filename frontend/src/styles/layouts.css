@@ -498,6 +498,15 @@
 
 .track-planner { min-width: 0; }
 
+.layout-module-ports { margin-top: 12px; }
+.layout-panel-subtitle { margin: 0 0 12px; color: var(--muted); font-size: var(--font-size-sm); }
+.layout-port-table td { vertical-align: middle; }
+.layout-port-table td > small { display: block; margin-top: 2px; color: var(--muted); }
+.layout-port-interface { max-width: 280px; overflow-wrap: anywhere; }
+.layout-port-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 14px; }
+.layout-port-notes,
+.layout-port-actions { grid-column: 1 / -1; }
+
 .track-planner-head,
 .track-planner-head > div {
   display: flex;
@@ -824,9 +833,12 @@
 
 @media (max-width: 600px) {
   .layout-inline-fields,
+  .layout-port-form,
   .layout-placement-fields,
   .layout-position-coordinate-fields,
   .layout-overview-summary dl { grid-template-columns: 1fr; }
+  .layout-port-notes,
+  .layout-port-actions { grid-column: auto; }
   .layout-workspace-head,
   .layout-variant-head,
   .layout-plan-toolbar,
