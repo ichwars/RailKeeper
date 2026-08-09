@@ -36,7 +36,7 @@ const geometry: TrackGeometryDefinition = {
   }
 };
 const trackObject: PlanTrackObject = {
-  id: "track-1", revisionId: draft.id, geometryId: geometry.id, geometry,
+  id: "track-1", lineageId: "track-1", revisionId: draft.id, geometryId: geometry.id, geometry,
   positionXMm: 517, positionYMm: 250, rotationDegrees: 0, version: 1,
   createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
 };

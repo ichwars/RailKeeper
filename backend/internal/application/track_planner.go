@@ -59,9 +59,25 @@ type TrackPlanAnalysis struct {
 	Materials   []TrackMaterialStatus        `json:"materials"`
 }
 
+type TrackPlanAffectedConfiguration struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type TrackPlanChangePreview struct {
+	RevisionID             string                           `json:"revisionId"`
+	BaseRevisionID         string                           `json:"baseRevisionId"`
+	ObjectChanges          []domain.TrackPlanObjectChange   `json:"objectChanges"`
+	MaterialDeltas         []domain.TrackPlanMaterialDelta  `json:"materialDeltas"`
+	Issues                 domain.TrackPlanIssueDiff        `json:"issues"`
+	AffectedConfigurations []TrackPlanAffectedConfiguration `json:"affectedConfigurations"`
+}
+
 type TrackPlannerRepository interface {
 	ListGeometries(context.Context, string) ([]domain.TrackGeometryDefinition, error)
 	GetPlan(context.Context, string) (*TrackPlan, error)
+	GetBaseRevisionID(context.Context, string) (string, error)
+	ListAffectedConfigurations(context.Context, string) ([]TrackPlanAffectedConfiguration, error)
 	GetPlanForObject(context.Context, string) (*TrackPlan, error)
 	TrackMaterialAvailability(context.Context, []domain.TrackBOMLine) ([]TrackMaterialStatus, error)
 	CreateObject(
@@ -121,6 +137,47 @@ func (service *TrackPlannerService) AnalyzePlan(
 		RevisionID: plan.RevisionID, Status: plan.Status,
 		Connections: geometryAnalysis.Connections, Issues: geometryAnalysis.Issues,
 		BOM: geometryAnalysis.BOM, Materials: materials,
+	}, nil
+}
+
+func (service *TrackPlannerService) ChangePreview(
+	ctx context.Context,
+	revisionID string,
+) (*TrackPlanChangePreview, error) {
+	revisionID = strings.TrimSpace(revisionID)
+	if revisionID == "" {
+		return nil, ErrTrackPlanValidation
+	}
+	current, err := service.repository.GetPlan(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
+	baseRevisionID, err := service.repository.GetBaseRevisionID(ctx, revisionID)
+	if err != nil {
+		return nil, err
+	}
+	base := &TrackPlan{Objects: []domain.PlanTrackObject{}}
+	affected := []TrackPlanAffectedConfiguration{}
+	if baseRevisionID != "" {
+		base, err = service.repository.GetPlan(ctx, baseRevisionID)
+		if err != nil {
+			return nil, err
+		}
+		affected, err = service.repository.ListAffectedConfigurations(ctx, baseRevisionID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	revisionDiff := domain.CompareTrackPlanRevisions(base.Objects, current.Objects)
+	baseAnalysis := domain.AnalyzeTrackPlan(base.Objects)
+	currentAnalysis := domain.AnalyzeTrackPlan(current.Objects)
+	return &TrackPlanChangePreview{
+		RevisionID: current.RevisionID, BaseRevisionID: baseRevisionID,
+		ObjectChanges: revisionDiff.ObjectChanges, MaterialDeltas: revisionDiff.MaterialDeltas,
+		Issues: domain.DiffTrackPlanIssues(
+			baseAnalysis.Issues, currentAnalysis.Issues, base.Objects, current.Objects,
+		),
+		AffectedConfigurations: affected,
 	}, nil
 }
 

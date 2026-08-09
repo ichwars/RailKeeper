@@ -17,6 +17,7 @@ func TestTrackPlannerMigrationCreatesVerifiedTilligG1(t *testing.T) {
 		"track_geometry_libraries",
 		"track_geometry_definitions",
 		"plan_track_objects",
+		"plan_track_object_reservations",
 	} {
 		var count int
 		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).
@@ -62,6 +63,19 @@ INSERT INTO plan_track_objects(
 ) VALUES('track-1', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 10, 20, 90, 'now', 'now')`); err != nil {
 		t.Fatal(err)
 	}
+	var lineageID string
+	if err := db.QueryRow(`SELECT lineage_id FROM plan_track_objects WHERE id='track-1'`).Scan(&lineageID); err != nil {
+		t.Fatal(err)
+	}
+	if lineageID != "track-1" {
+		t.Fatalf("expected existing object id as default lineage, got %q", lineageID)
+	}
+	expectConstraintFailure(t, db, `
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  lineage_id, created_at, updated_at
+) VALUES('duplicate-lineage', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1',
+  20, 20, 0, 'track-1', 'now', 'now')`)
 
 	expectConstraintFailure(t, db, `
 INSERT INTO plan_track_objects(

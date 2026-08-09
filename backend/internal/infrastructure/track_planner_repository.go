@@ -74,6 +74,51 @@ WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)
 	return plan, nil
 }
 
+func (repository *TrackPlannerRepository) GetBaseRevisionID(
+	ctx context.Context,
+	revisionID string,
+) (string, error) {
+	var baseRevisionID string
+	err := repository.db.QueryRowContext(ctx, `
+SELECT COALESCE(base_revision_id, '') FROM plan_revisions WHERE id=?`, revisionID).
+		Scan(&baseRevisionID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", application.ErrTrackPlanNotFound
+	}
+	if err != nil {
+		return "", fmt.Errorf("read track plan base revision: %w", err)
+	}
+	return baseRevisionID, nil
+}
+
+func (repository *TrackPlannerRepository) ListAffectedConfigurations(
+	ctx context.Context,
+	revisionID string,
+) ([]application.TrackPlanAffectedConfiguration, error) {
+	rows, err := repository.db.QueryContext(ctx, `
+SELECT DISTINCT configuration.id, configuration.name
+FROM layout_configurations configuration
+JOIN layout_configuration_units unit ON unit.configuration_id=configuration.id
+WHERE unit.plan_revision_id=? AND configuration.archived=0
+ORDER BY configuration.name COLLATE NOCASE, configuration.id`, revisionID)
+	if err != nil {
+		return nil, fmt.Errorf("list track plan affected configurations: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	configurations := []application.TrackPlanAffectedConfiguration{}
+	for rows.Next() {
+		configuration := application.TrackPlanAffectedConfiguration{}
+		if err := rows.Scan(&configuration.ID, &configuration.Name); err != nil {
+			return nil, fmt.Errorf("scan track plan affected configuration: %w", err)
+		}
+		configurations = append(configurations, configuration)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate track plan affected configurations: %w", err)
+	}
+	return configurations, nil
+}
+
 func (repository *TrackPlannerRepository) GetPlanForObject(
 	ctx context.Context,
 	objectID string,
@@ -163,6 +208,7 @@ func (repository *TrackPlannerRepository) CreateObject(
 		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
 		RotationDegrees: input.RotationDegrees, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
+	object.LineageID = object.ID
 	err := repository.withTx(ctx, func(tx *sql.Tx) error {
 		status, err := trackRevisionStatus(ctx, tx, revisionID)
 		if err != nil {
@@ -181,9 +227,9 @@ func (repository *TrackPlannerRepository) CreateObject(
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-  version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
-			input.PositionXMM, input.PositionYMM, input.RotationDegrees, now, now); err != nil {
+	lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
+			input.PositionXMM, input.PositionYMM, input.RotationDegrees, object.LineageID, now, now); err != nil {
 			return fmt.Errorf("insert track plan object: %w", err)
 		}
 		return writeLayoutAudit(ctx, tx, "PlanTrackObjectCreated", "plan_track_object", object.ID, actor, now)
@@ -351,7 +397,7 @@ JOIN track_geometry_libraries library ON library.id=geometry.library_id
 `
 
 const trackObjectSelect = `
-SELECT object.id, object.revision_id, object.geometry_id,
+SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
        object.position_x_mm, object.position_y_mm, object.rotation_degrees,
        object.version, object.created_at, object.updated_at,
        geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
@@ -383,7 +429,7 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	object := &domain.PlanTrackObject{}
 	var geometryJSON string
 	geometry := &object.Geometry
-	if err := scanner.Scan(&object.ID, &object.RevisionID, &object.GeometryID,
+	if err := scanner.Scan(&object.ID, &object.LineageID, &object.RevisionID, &object.GeometryID,
 		&object.PositionXMM, &object.PositionYMM, &object.RotationDegrees,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt,
 		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,

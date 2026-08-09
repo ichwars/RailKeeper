@@ -84,6 +84,7 @@ describe("layout and accessory API client", () => {
     await api.trackGeometries("TT");
     await api.trackPlan("revision/1");
     await api.trackPlanAnalysis("revision/1");
+    await api.trackPlanChangePreview("revision/1");
     await api.createPlanTrackObject("revision/1", trackObjectInput);
     await api.updatePlanTrackObject("object/1", {
       positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2
@@ -115,6 +116,7 @@ describe("layout and accessory API client", () => {
       ["GET", "/api/v1/track-geometries?gauge=TT"],
       ["GET", "/api/v1/plan-revisions/revision%2F1/track-plan"],
       ["GET", "/api/v1/plan-revisions/revision%2F1/track-analysis"],
+      ["GET", "/api/v1/plan-revisions/revision%2F1/track-change-preview"],
       ["POST", "/api/v1/plan-revisions/revision%2F1/track-objects", trackObjectInput],
       ["PUT", "/api/v1/plan-track-objects/object%2F1",
         { positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2 }],

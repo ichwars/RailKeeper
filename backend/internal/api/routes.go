@@ -166,6 +166,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/track-geometries", routeAccessViewer, (*App).listTrackGeometries, nil},
 		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-plan", routeAccessViewer, (*App).getTrackPlan, nil},
 		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-analysis", routeAccessViewer, (*App).getTrackPlanAnalysis, nil},
+		{http.MethodGet, "/api/v1/plan-revisions/{id}/track-change-preview", routeAccessViewer, (*App).getTrackPlanChangePreview, nil},
 		{http.MethodPost, "/api/v1/plan-revisions/{id}/track-objects", routeAccessPlanner, (*App).createPlanTrackObject, nil},
 		{http.MethodPut, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).updatePlanTrackObject, nil},
 		{http.MethodDelete, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).deletePlanTrackObject, nil},

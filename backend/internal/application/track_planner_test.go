@@ -16,8 +16,11 @@ type trackPlannerRepositorySpy struct {
 	updated         UpdatePlanTrackObjectInput
 	deletedVersion  int
 	plan            *TrackPlan
+	plans           map[string]*TrackPlan
 	planForObject   *TrackPlan
 	materials       []TrackMaterialStatus
+	baseRevisionID  string
+	affected        []TrackPlanAffectedConfiguration
 }
 
 func (spy *trackPlannerRepositorySpy) ListGeometries(
@@ -29,10 +32,24 @@ func (spy *trackPlannerRepositorySpy) ListGeometries(
 }
 
 func (spy *trackPlannerRepositorySpy) GetPlan(_ context.Context, revisionID string) (*TrackPlan, error) {
+	if plan := spy.plans[revisionID]; plan != nil {
+		return plan, nil
+	}
 	if spy.plan != nil {
 		return spy.plan, nil
 	}
 	return &TrackPlan{RevisionID: revisionID, Objects: []domain.PlanTrackObject{}}, nil
+}
+
+func (spy *trackPlannerRepositorySpy) GetBaseRevisionID(_ context.Context, _ string) (string, error) {
+	return spy.baseRevisionID, nil
+}
+
+func (spy *trackPlannerRepositorySpy) ListAffectedConfigurations(
+	_ context.Context,
+	_ string,
+) ([]TrackPlanAffectedConfiguration, error) {
+	return spy.affected, nil
 }
 
 func (spy *trackPlannerRepositorySpy) GetPlanForObject(_ context.Context, _ string) (*TrackPlan, error) {
@@ -212,6 +229,56 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 	if len(analysis.Connections) != 1 || len(analysis.BOM) != 1 || len(analysis.Materials) != 1 ||
 		analysis.Materials[0].AvailableQuantity != 2 {
 		t.Fatalf("unexpected combined analysis: %#v", analysis)
+	}
+}
+
+func TestTrackPlannerChangePreviewComparesBaseRevisionAndAffectedConfigurations(t *testing.T) {
+	base := trackPlannerTestG1("base-object", 0, 0, 0)
+	base.LineageID = "lineage-1"
+	current := trackPlannerTestG1("current-object", 10, 0, 0)
+	current.LineageID = base.LineageID
+	added := trackPlannerTestG1("added-object", 176, 0, 0)
+	added.LineageID = "lineage-2"
+	repository := &trackPlannerRepositorySpy{
+		baseRevisionID: "revision-base",
+		plans: map[string]*TrackPlan{
+			"revision-base": {RevisionID: "revision-base", Status: domain.PlanRevisionPublished,
+				Objects: []domain.PlanTrackObject{base}},
+			"revision-current": {RevisionID: "revision-current", Status: domain.PlanRevisionDraft,
+				Objects: []domain.PlanTrackObject{current, added}},
+		},
+		affected: []TrackPlanAffectedConfiguration{{ID: "configuration-1", Name: "Ausstellung"}},
+	}
+
+	preview, err := NewTrackPlannerService(repository).ChangePreview(t.Context(), " revision-current ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.RevisionID != "revision-current" || preview.BaseRevisionID != "revision-base" ||
+		len(preview.ObjectChanges) != 2 || len(preview.MaterialDeltas) != 1 ||
+		preview.MaterialDeltas[0].Delta != 1 || len(preview.Issues.Added) != 1 ||
+		len(preview.Issues.Resolved) != 1 || len(preview.AffectedConfigurations) != 1 ||
+		preview.AffectedConfigurations[0].Name != "Ausstellung" {
+		t.Fatalf("unexpected track plan change preview: %#v", preview)
+	}
+}
+
+func TestTrackPlannerChangePreviewWithoutBaseTreatsObjectsAsAdded(t *testing.T) {
+	current := trackPlannerTestG1("current-object", 0, 0, 0)
+	current.LineageID = "lineage-1"
+	repository := &trackPlannerRepositorySpy{plans: map[string]*TrackPlan{
+		"revision-current": {RevisionID: "revision-current", Status: domain.PlanRevisionDraft,
+			Objects: []domain.PlanTrackObject{current}},
+	}}
+
+	preview, err := NewTrackPlannerService(repository).ChangePreview(t.Context(), "revision-current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.BaseRevisionID != "" || len(preview.ObjectChanges) != 1 ||
+		preview.ObjectChanges[0].Type != domain.TrackPlanObjectAdded ||
+		len(preview.AffectedConfigurations) != 0 {
+		t.Fatalf("unexpected first-revision preview: %#v", preview)
 	}
 }
 

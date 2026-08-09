@@ -50,7 +50,8 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Version != 1 || created.RotationDegrees != 345 || created.Geometry.ArticleNumber != "83101" {
+	if created.Version != 1 || created.RotationDegrees != 345 || created.Geometry.ArticleNumber != "83101" ||
+		created.LineageID != created.ID {
 		t.Fatalf("unexpected created track object: %#v", created)
 	}
 
@@ -78,6 +79,13 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	}, "planner"); !errors.Is(err, application.ErrTrackPlanImmutable) {
 		t.Fatalf("expected immutable published plan, got %v", err)
 	}
+	configuration, err := layouts.SaveConfiguration(ctx, layout.ID, application.SaveLayoutConfigurationInput{
+		Name:  "Ausstellung",
+		Units: []application.ConfigurationUnitInput{{UnitID: unit.ID, PlanRevisionID: published.ID}},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	clone, err := layouts.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{
 		BaseRevisionID: published.ID,
@@ -90,6 +98,7 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 		t.Fatal(err)
 	}
 	if len(clonedPlan.Objects) != 1 || clonedPlan.Objects[0].ID == updated.ID ||
+		clonedPlan.Objects[0].LineageID != updated.LineageID ||
 		clonedPlan.Objects[0].PositionXMM != updated.PositionXMM || clonedPlan.Objects[0].Version != 1 {
 		t.Fatalf("unexpected cloned track plan: %#v", clonedPlan)
 	}
@@ -102,6 +111,17 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	}
 	if len(clonedPlan.Objects) != 0 {
 		t.Fatalf("deleted track object remains: %#v", clonedPlan.Objects)
+	}
+	preview, err := planner.ChangePreview(ctx, clone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.BaseRevisionID != published.ID || len(preview.ObjectChanges) != 1 ||
+		preview.ObjectChanges[0].Type != domain.TrackPlanObjectRemoved ||
+		len(preview.MaterialDeltas) != 1 || preview.MaterialDeltas[0].Delta != -1 ||
+		len(preview.AffectedConfigurations) != 1 ||
+		preview.AffectedConfigurations[0].ID != configuration.ID {
+		t.Fatalf("unexpected persisted change preview: %#v", preview)
 	}
 
 	for _, action := range []string{"PlanTrackObjectCreated", "PlanTrackObjectUpdated", "PlanTrackObjectDeleted"} {

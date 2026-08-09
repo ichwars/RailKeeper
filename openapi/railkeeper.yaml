@@ -2654,9 +2654,11 @@ components:
           format: date-time
     PlanTrackObject:
       type: object
-      required: [id, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, version, createdAt, updatedAt]
+      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, version, createdAt, updatedAt]
       properties:
         id:
+          type: string
+        lineageId:
           type: string
         revisionId:
           type: string
@@ -2811,6 +2813,103 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackMaterialStatus"
+    TrackPlanObjectChange:
+      type: object
+      required: [type, lineageId]
+      properties:
+        type:
+          type: string
+          enum: [added, removed, changed]
+        lineageId:
+          type: string
+        before:
+          $ref: "#/components/schemas/PlanTrackObject"
+        after:
+          $ref: "#/components/schemas/PlanTrackObject"
+    TrackPlanMaterialDelta:
+      type: object
+      required: [geometryId, libraryId, articleNumber, name, baseQuantity, currentQuantity, delta]
+      properties:
+        geometryId:
+          type: string
+        libraryId:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        baseQuantity:
+          type: integer
+        currentQuantity:
+          type: integer
+        delta:
+          type: integer
+    TrackPlanIssueChange:
+      type: object
+      required: [code, severity, lineageIds]
+      properties:
+        code:
+          type: string
+          enum: [open_end, incompatible_connection, overlap, broken_geometry]
+        severity:
+          type: string
+          enum: [warning, error]
+        lineageIds:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+    TrackPlanIssueDiff:
+      type: object
+      required: [added, resolved]
+      properties:
+        added:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssueChange"
+        resolved:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssueChange"
+    TrackPlanAffectedConfiguration:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    TrackPlanChangePreview:
+      type: object
+      required:
+        - revisionId
+        - baseRevisionId
+        - objectChanges
+        - materialDeltas
+        - issues
+        - affectedConfigurations
+      properties:
+        revisionId:
+          type: string
+        baseRevisionId:
+          type: string
+        objectChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectChange"
+        materialDeltas:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanMaterialDelta"
+        issues:
+          $ref: "#/components/schemas/TrackPlanIssueDiff"
+        affectedConfigurations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanAffectedConfiguration"
     CreatePlanTrackObjectInput:
       type: object
       required: [geometryId, positionXMm, positionYMm, rotationDegrees]
@@ -5639,6 +5738,29 @@ paths:
                 $ref: "#/components/schemas/TrackPlanAnalysis"
         "404":
           description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-change-preview:
+    get:
+      tags: [Layouts]
+      summary: Compare a track plan revision with its base revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived track plan revision changes and affected configurations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanChangePreview"
+        "404":
+          description: Plan revision or base revision not found
           content:
             application/json:
               schema:

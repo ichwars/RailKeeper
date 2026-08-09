@@ -91,6 +91,7 @@ type TrackGeometryDefinition struct {
 
 type PlanTrackObject struct {
 	ID              string                  `json:"id"`
+	LineageID       string                  `json:"lineageId"`
 	RevisionID      string                  `json:"revisionId"`
 	GeometryID      string                  `json:"geometryId"`
 	Geometry        TrackGeometryDefinition `json:"geometry"`

@@ -118,7 +118,7 @@ INSERT INTO plan_revisions(
 		}
 		if input.BaseRevisionID != "" {
 			rows, err := tx.QueryContext(ctx, `
-SELECT geometry_id, position_x_mm, position_y_mm, rotation_degrees
+SELECT geometry_id, position_x_mm, position_y_mm, rotation_degrees, lineage_id
 FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.BaseRevisionID)
 			if err != nil {
 				return fmt.Errorf("list base revision track objects: %w", err)
@@ -128,12 +128,13 @@ FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.Base
 				positionXMM     float64
 				positionYMM     float64
 				rotationDegrees float64
+				lineageID       string
 			}
 			objects := []baseTrackObject{}
 			for rows.Next() {
 				object := baseTrackObject{}
 				if err := rows.Scan(&object.geometryID, &object.positionXMM, &object.positionYMM,
-					&object.rotationDegrees); err != nil {
+					&object.rotationDegrees, &object.lineageID); err != nil {
 					_ = rows.Close()
 					return fmt.Errorf("scan base revision track object: %w", err)
 				}
@@ -150,9 +151,9 @@ FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.Base
 				if _, err := tx.ExecContext(ctx, `
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-  version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
-					object.positionXMM, object.positionYMM, object.rotationDegrees, now, now); err != nil {
+	lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
+					object.positionXMM, object.positionYMM, object.rotationDegrees, object.lineageID, now, now); err != nil {
 					return fmt.Errorf("copy base revision track object: %w", err)
 				}
 			}

@@ -255,6 +255,7 @@ export type TrackGeometryDefinition = {
 };
 export type PlanTrackObject = {
   id: string;
+  lineageId: string;
   revisionId: string;
   geometryId: string;
   geometry: TrackGeometryDefinition;
@@ -310,6 +311,36 @@ export type TrackPlanAnalysis = {
   issues: TrackPlanIssue[];
   bom: TrackBOMLine[];
   materials: TrackMaterialStatus[];
+};
+export type TrackPlanObjectChangeType = "added" | "removed" | "changed";
+export type TrackPlanObjectChange = {
+  type: TrackPlanObjectChangeType;
+  lineageId: string;
+  before?: PlanTrackObject;
+  after?: PlanTrackObject;
+};
+export type TrackPlanMaterialDelta = {
+  geometryId: string;
+  libraryId: string;
+  articleNumber: string;
+  name: string;
+  baseQuantity: number;
+  currentQuantity: number;
+  delta: number;
+};
+export type TrackPlanIssueChange = {
+  code: TrackPlanIssueCode;
+  severity: "warning" | "error";
+  lineageIds: string[];
+  portIds?: string[];
+};
+export type TrackPlanChangePreview = {
+  revisionId: string;
+  baseRevisionId: string;
+  objectChanges: TrackPlanObjectChange[];
+  materialDeltas: TrackPlanMaterialDelta[];
+  issues: { added: TrackPlanIssueChange[]; resolved: TrackPlanIssueChange[] };
+  affectedConfigurations: { id: string; name: string }[];
 };
 export type CreatePlanTrackObjectInput = {
   geometryId: string;
@@ -846,6 +877,10 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<TrackPlan>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-plan`),
     trackPlanAnalysis: (revisionId: string) =>
       request<TrackPlanAnalysis>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-analysis`),
+    trackPlanChangePreview: (revisionId: string) =>
+      request<TrackPlanChangePreview>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-change-preview`
+      ),
     createPlanTrackObject: (revisionId: string, input: CreatePlanTrackObjectInput) =>
       request<PlanTrackObject>(
         `/plan-revisions/${encodeURIComponent(revisionId)}/track-objects`, json("POST", input)

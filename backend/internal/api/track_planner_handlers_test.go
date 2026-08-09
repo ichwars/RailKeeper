@@ -41,6 +41,7 @@ func TestTrackPlannerRoutesEnforceRolesAndCSRF(t *testing.T) {
 			"/api/v1/track-geometries?gauge=TT",
 			"/api/v1/plan-revisions/" + draft.ID + "/track-plan",
 			"/api/v1/plan-revisions/" + draft.ID + "/track-analysis",
+			"/api/v1/plan-revisions/" + draft.ID + "/track-change-preview",
 		} {
 			response := layoutRequest(t, router, session, http.MethodGet, path, nil, true)
 			want := http.StatusOK
@@ -142,6 +143,16 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 {
 		t.Fatalf("unexpected track plan analysis: %#v", analysis)
 	}
+	previewResponse := layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-change-preview", nil, true)
+	assertStatus(t, previewResponse, http.StatusOK)
+	var preview application.TrackPlanChangePreview
+	decodeResponse(t, previewResponse, &preview)
+	if preview.RevisionID != draft.ID || preview.BaseRevisionID != "" ||
+		len(preview.ObjectChanges) != 2 || len(preview.MaterialDeltas) != 1 ||
+		preview.MaterialDeltas[0].Delta != 2 {
+		t.Fatalf("unexpected track plan change preview: %#v", preview)
+	}
 
 	staleResponse := layoutRequest(t, router, session, http.MethodPut,
 		"/api/v1/plan-track-objects/"+created.ID, map[string]any{
@@ -159,6 +170,9 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 		http.StatusNotFound, "track_plan_not_found")
 	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/plan-revisions/missing/track-analysis", nil, true),
+		http.StatusNotFound, "track_plan_not_found")
+	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/plan-revisions/missing/track-change-preview", nil, true),
 		http.StatusNotFound, "track_plan_not_found")
 	assertProblem(t, layoutRequest(t, router, session, http.MethodPost,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
