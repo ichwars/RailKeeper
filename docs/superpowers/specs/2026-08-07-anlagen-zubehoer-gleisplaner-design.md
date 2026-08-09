@@ -6,6 +6,12 @@
 
 **Umsetzung:** Stufenweise, beginnend mit dem gemeinsamen Fundament
 
+**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A ist lokal umgesetzt. Es enthält die versionierte,
+geprüfte Tillig-TT-Modellgleis-Bibliothek mit dem geraden Gleis G1 (83101, 166 mm),
+revisionsgebundene Planobjekte, eine maßhaltige SVG-Arbeitsfläche und Backup-Format 5. Paket A ist
+bewusst auf diese eine verifizierte Geometrie begrenzt. Anschluss-Snapping, Planvalidierung,
+Materialbedarf und Stückliste folgen in Paket B.
+
 ## Ziel
 
 RailKeeper erweitert die bestehende Fahrzeugverwaltung um einen eigenständigen Bereich für Zubehör,
