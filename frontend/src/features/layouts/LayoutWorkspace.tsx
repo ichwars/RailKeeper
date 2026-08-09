@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertTriangle, Building2, ClipboardList, FileText, Pencil, Wrench } from "lucide-react";
+import { AlertTriangle, Building2, ClipboardList, FileText, Pencil } from "lucide-react";
 
 import {
   ApiError,
@@ -13,6 +13,7 @@ import { LayoutConfigurationsPanel } from "./LayoutConfigurationsPanel";
 import { LayoutFormDialog, type LayoutFormValue } from "./LayoutFormDialog";
 import { LayoutModulesPanel } from "./LayoutModulesPanel";
 import { LayoutPlansPanel } from "./LayoutPlansPanel";
+import { LayoutTechnicalPositionsPanel } from "./LayoutTechnicalPositionsPanel";
 
 type LayoutTab = "overview" | "planner" | "modules" | "setups" | "technology" | "maintenance" | "documents";
 
@@ -144,6 +145,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         onChanged={reloadStructure} /> : tab === "setups" ? <LayoutConfigurationsPanel configurations={configurations}
           units={units} layoutID={layout.id} canPlan={canPlan} onChanged={reloadStructure} />
         : tab === "planner" ? <LayoutPlansPanel units={units} canPlan={canPlan} />
+          : tab === "technology" ? <LayoutTechnicalPositionsPanel units={units} canPlan={canPlan} />
           : <LayoutDeferredPanel tab={tab} />}
     {editOpen ? <LayoutFormDialog mode="edit" initialValue={layoutFormValue(layout)} saving={saving}
       message={message} conflict={conflict} returnFocusTo={editTriggerRef.current}
@@ -152,9 +154,9 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
   </section>;
 }
 
-function LayoutDeferredPanel({ tab }: { tab: "technology" | "maintenance" | "documents" }) {
+function LayoutDeferredPanel({ tab }: { tab: "maintenance" | "documents" }) {
   const { t } = useI18n();
-  const Icon = tab === "technology" ? Wrench : tab === "maintenance" ? ClipboardList : FileText;
+  const Icon = tab === "maintenance" ? ClipboardList : FileText;
   return <section className="panel layout-deferred"><Icon size={22} /><h3>{t(`layouts.tabs.${tab}`)}</h3>
     <p>{t(`layouts.deferred.${tab}`)}</p><span>{t("layouts.deferred.stage")}</span></section>;
 }

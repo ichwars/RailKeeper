@@ -7,6 +7,7 @@ import {
   api,
   type Layout,
   type LayoutConfiguration,
+  type LayoutTechnicalPosition,
   type LayoutUnit,
   type PlanRevision,
   type PlanVariant
@@ -24,6 +25,12 @@ const unit: LayoutUnit = {
   id: "unit-1", layoutId: layout.id, name: "Bahnhofsmodul", kind: "module", ownerLabel: "Daniel",
   widthMm: 1200, heightMm: 500, version: 1, archived: false, createdAt: "2026-08-07T10:00:00Z",
   updatedAt: "2026-08-07T10:00:00Z"
+};
+
+const technicalPosition: LayoutTechnicalPosition = {
+  id: "position-1", layoutUnitId: unit.id, label: "Einfahrsignal A", kind: "signal",
+  positionXMm: 250, positionYMm: 80, rotationDegrees: 90, description: "Gleis 1",
+  version: 1, archived: false, createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
 };
 
 const reviewRevision: PlanRevision = {
@@ -45,6 +52,13 @@ describe("LayoutsView", () => {
     vi.spyOn(api, "layoutUnits").mockResolvedValue([unit]);
     vi.spyOn(api, "layoutConfigurations").mockResolvedValue([]);
     vi.spyOn(api, "planVariants").mockResolvedValue([variant]);
+    vi.spyOn(api, "layoutTechnicalPositions").mockResolvedValue([technicalPosition]);
+    vi.spyOn(api, "accessoryArticles").mockResolvedValue({
+      items: [],
+      metrics: { articleCount: 0, articleTypeCount: 0, available: 0, locationCount: 0,
+        reserved: 0, installed: 0, careHintCount: 0 },
+      filters: { manufacturers: [], articleTypes: [], gauges: [], storageLocations: [] }
+    });
   });
 
   it("renders private and club layouts read-only for viewers", async () => {
@@ -116,6 +130,67 @@ describe("LayoutsView", () => {
       expect.objectContaining({ name: "Ausstellung 2026", units: [expect.objectContaining({
         unitId: unit.id, positionXMm: 1500
       })] })));
+  });
+
+  it("lists and creates technical positions with app-owned controls", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "createLayoutTechnicalPosition").mockResolvedValue({
+      ...technicalPosition, id: "position-2", label: "Weiche 1", kind: "turnout", positionXMm: 120,
+      positionYMm: 45, rotationDegrees: 0
+    });
+    render(<LayoutsView roles={["Planner"]} />);
+    await screen.findAllByText(layout.name);
+
+    await user.click(screen.getByRole("tab", { name: "Technik" }));
+    expect(await screen.findByText("Einfahrsignal A")).toBeInTheDocument();
+    expect(screen.getByText("250 / 80 mm")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Technische Position anlegen" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Technische Position anlegen" });
+    await user.type(within(dialog).getByRole("textbox", { name: "Bezeichnung" }), "Weiche 1");
+    await user.clear(within(dialog).getByRole("spinbutton", { name: "X-Position (mm)" }));
+    await user.type(within(dialog).getByRole("spinbutton", { name: "X-Position (mm)" }), "120");
+    await user.clear(within(dialog).getByRole("spinbutton", { name: "Y-Position (mm)" }));
+    await user.type(within(dialog).getByRole("spinbutton", { name: "Y-Position (mm)" }), "45");
+    await user.click(within(dialog).getByRole("button", { name: "Position speichern" }));
+
+    await waitFor(() => expect(api.createLayoutTechnicalPosition).toHaveBeenCalledWith(unit.id,
+      expect.objectContaining({ label: "Weiche 1", kind: "turnout", positionXMm: 120, positionYMm: 45 })));
+  });
+
+  it("preserves technical position edits while reloading a version conflict", async () => {
+    const user = userEvent.setup();
+    const serverPosition = { ...technicalPosition, version: 2, positionXMm: 275 };
+    vi.mocked(api.layoutTechnicalPositions)
+      .mockResolvedValueOnce([technicalPosition])
+      .mockResolvedValue([serverPosition]);
+    vi.spyOn(api, "updateLayoutTechnicalPosition")
+      .mockRejectedValueOnce(new ApiError("Position changed.", "layout_position_version_conflict", 409))
+      .mockResolvedValue({ ...serverPosition, label: "Lokaler Signalname", version: 3 });
+    render(<LayoutsView roles={["Planner"]} />);
+    await screen.findAllByText(layout.name);
+
+    await user.click(screen.getByRole("tab", { name: "Technik" }));
+    await screen.findByText("Einfahrsignal A");
+    await user.click(screen.getByRole("button", { name: "Einfahrsignal A bearbeiten" }));
+    const dialog = screen.getByRole("dialog", { name: "Technische Position bearbeiten" });
+    const name = within(dialog).getByRole("textbox", { name: "Bezeichnung" });
+    await user.clear(name);
+    await user.type(name, "Lokaler Signalname");
+    await user.click(within(dialog).getByRole("button", { name: "Position speichern" }));
+
+    expect(await within(dialog).findByText(
+      "Die Position wurde zwischenzeitlich geändert. Deine Eingaben bleiben erhalten."
+    )).toBeInTheDocument();
+    expect(name).toHaveValue("Lokaler Signalname");
+    await user.click(within(dialog).getByRole("button", { name: "Serverstand neu laden" }));
+    expect(await within(dialog).findByText(
+      "Aktuelle Version geladen. Deine Eingaben bleiben erhalten."
+    )).toBeInTheDocument();
+    expect(name).toHaveValue("Lokaler Signalname");
+    await user.click(within(dialog).getByRole("button", { name: "Position speichern" }));
+    await waitFor(() => expect(api.updateLayoutTechnicalPosition).toHaveBeenLastCalledWith(technicalPosition.id,
+      expect.objectContaining({ label: "Lokaler Signalname", expectedVersion: 2 })));
   });
 
   it("publishes reviewed revisions only after confirmation", async () => {
