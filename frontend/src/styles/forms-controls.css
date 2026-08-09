@@ -204,6 +204,7 @@
 
 .app-text-input input,
 .app-number-input input,
+.app-text-area textarea,
 .app-file-picker-control,
 .app-multi-select-trigger {
   min-height: 40px;
@@ -220,8 +221,16 @@
   padding: 0 11px;
 }
 
+.app-text-area textarea {
+  min-height: 92px;
+  padding: 10px 11px;
+  resize: vertical;
+  line-height: var(--line-height-normal);
+}
+
 .app-text-input input:focus,
 .app-number-input input:focus,
+.app-text-area textarea:focus,
 .app-file-picker-trigger:focus-visible,
 .app-file-picker-clear:focus-visible,
 .app-multi-select-trigger:focus-visible,
@@ -232,6 +241,7 @@
 }
 
 .app-field.has-error input,
+.app-field.has-error textarea,
 .app-field.has-error .app-file-picker-control,
 .app-field.has-error .app-multi-select-trigger {
   border-color: color-mix(in srgb, var(--danger) 72%, var(--line));
@@ -240,6 +250,7 @@
 
 .app-text-input input:disabled,
 .app-number-input input:disabled,
+.app-text-area textarea:disabled,
 .app-file-picker-trigger:disabled,
 .app-file-picker-clear:disabled,
 .app-multi-select-trigger:disabled {
@@ -249,9 +260,70 @@
 
 .app-text-input input:read-only,
 .app-number-input input:read-only,
+.app-text-area textarea:read-only,
 .app-file-picker[aria-readonly="true"] .app-file-picker-control,
 .app-multi-select-trigger[aria-readonly="true"] {
   background: color-mix(in srgb, var(--muted) 7%, var(--input-bg));
+}
+
+.app-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.app-checkbox-control {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.app-checkbox input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--input-bg);
+  cursor: inherit;
+}
+
+.app-checkbox input:checked {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.app-checkbox input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 16%, transparent);
+  outline-offset: 2px;
+}
+
+.app-checkbox-mark {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--accent-contrast);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.app-checkbox input:checked + .app-checkbox-mark {
+  opacity: 1;
+}
+
+.app-checkbox:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .app-file-picker-control {
