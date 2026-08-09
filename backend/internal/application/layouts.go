@@ -72,6 +72,38 @@ type UpdateLayoutUnitInput struct {
 	ExpectedVersion int `json:"expectedVersion"`
 }
 
+type LayoutUnitPort struct {
+	ID               string                    `json:"id"`
+	LayoutUnitID     string                    `json:"layoutUnitId"`
+	Name             string                    `json:"name"`
+	Kind             domain.LayoutUnitPortKind `json:"kind"`
+	InterfaceKey     string                    `json:"interfaceKey"`
+	XMM              float64                   `json:"xMm"`
+	YMM              float64                   `json:"yMm"`
+	DirectionDegrees float64                   `json:"directionDegrees"`
+	Notes            string                    `json:"notes,omitempty"`
+	Version          int                       `json:"version"`
+	Archived         bool                      `json:"archived"`
+	CreatedAt        string                    `json:"createdAt"`
+	UpdatedAt        string                    `json:"updatedAt"`
+}
+
+type CreateLayoutUnitPortInput struct {
+	Name             string                    `json:"name"`
+	Kind             domain.LayoutUnitPortKind `json:"kind"`
+	InterfaceKey     string                    `json:"interfaceKey"`
+	XMM              float64                   `json:"xMm"`
+	YMM              float64                   `json:"yMm"`
+	DirectionDegrees float64                   `json:"directionDegrees"`
+	Notes            string                    `json:"notes"`
+	Archived         bool                      `json:"archived"`
+}
+
+type UpdateLayoutUnitPortInput struct {
+	CreateLayoutUnitPortInput
+	ExpectedVersion int `json:"expectedVersion"`
+}
+
 type LayoutConfiguration struct {
 	ID          string              `json:"id"`
 	LayoutID    string              `json:"layoutId"`
@@ -164,12 +196,22 @@ type LayoutRepository interface {
 	PublishRevision(context.Context, string, int, string) (*PlanRevision, error)
 }
 
+type LayoutUnitPortRepository interface {
+	GetUnit(context.Context, string) (*LayoutUnit, error)
+	ListUnitPorts(context.Context, string) ([]LayoutUnitPort, error)
+	GetUnitForPort(context.Context, string) (*LayoutUnit, error)
+	CreateUnitPort(context.Context, string, CreateLayoutUnitPortInput, string) (*LayoutUnitPort, error)
+	UpdateUnitPort(context.Context, string, UpdateLayoutUnitPortInput, string) (*LayoutUnitPort, error)
+}
+
 type LayoutService struct {
-	repository LayoutRepository
+	repository     LayoutRepository
+	portRepository LayoutUnitPortRepository
 }
 
 func NewLayoutService(repository LayoutRepository) *LayoutService {
-	return &LayoutService{repository: repository}
+	portRepository, _ := repository.(LayoutUnitPortRepository)
+	return &LayoutService{repository: repository, portRepository: portRepository}
 }
 
 func (s *LayoutService) ListLayouts(ctx context.Context) ([]Layout, error) {
@@ -214,6 +256,56 @@ func (s *LayoutService) UpdateUnit(ctx context.Context, id string, input UpdateL
 		return nil, ErrLayoutValidation
 	}
 	return s.repository.UpdateUnit(ctx, strings.TrimSpace(id), input, actor)
+}
+
+func (s *LayoutService) ListUnitPorts(ctx context.Context, unitID string) ([]LayoutUnitPort, error) {
+	unitID = strings.TrimSpace(unitID)
+	if unitID == "" {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.ListUnitPorts(ctx, unitID)
+}
+
+func (s *LayoutService) CreateUnitPort(
+	ctx context.Context,
+	unitID string,
+	input CreateLayoutUnitPortInput,
+	actor string,
+) (*LayoutUnitPort, error) {
+	unitID = strings.TrimSpace(unitID)
+	input = cleanLayoutUnitPortInput(input)
+	if unitID == "" || !validLayoutUnitPortInput(input) {
+		return nil, ErrLayoutValidation
+	}
+	unit, err := s.portRepository.GetUnit(ctx, unitID)
+	if err != nil {
+		return nil, err
+	}
+	if !layoutUnitPortWithinBounds(input, *unit) {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.CreateUnitPort(ctx, unitID, input, actor)
+}
+
+func (s *LayoutService) UpdateUnitPort(
+	ctx context.Context,
+	id string,
+	input UpdateLayoutUnitPortInput,
+	actor string,
+) (*LayoutUnitPort, error) {
+	id = strings.TrimSpace(id)
+	input.CreateLayoutUnitPortInput = cleanLayoutUnitPortInput(input.CreateLayoutUnitPortInput)
+	if id == "" || input.ExpectedVersion < 1 || !validLayoutUnitPortInput(input.CreateLayoutUnitPortInput) {
+		return nil, ErrLayoutValidation
+	}
+	unit, err := s.portRepository.GetUnitForPort(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !layoutUnitPortWithinBounds(input.CreateLayoutUnitPortInput, *unit) {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.UpdateUnitPort(ctx, id, input, actor)
 }
 
 func (s *LayoutService) ListConfigurations(ctx context.Context, layoutID string) ([]LayoutConfiguration, error) {
@@ -270,6 +362,25 @@ func cleanLayoutUnitInput(input CreateLayoutUnitInput) CreateLayoutUnitInput {
 func validLayoutUnitInput(input CreateLayoutUnitInput) bool {
 	return input.Name != "" && input.Kind.Valid() && finite(input.WidthMM) && finite(input.HeightMM) &&
 		input.WidthMM >= 0 && input.HeightMM >= 0
+}
+
+func cleanLayoutUnitPortInput(input CreateLayoutUnitPortInput) CreateLayoutUnitPortInput {
+	input.Name = strings.TrimSpace(input.Name)
+	input.InterfaceKey = strings.ToLower(strings.TrimSpace(input.InterfaceKey))
+	input.Notes = strings.TrimSpace(input.Notes)
+	input.DirectionDegrees = normalizeRotation(input.DirectionDegrees)
+	return input
+}
+
+func validLayoutUnitPortInput(input CreateLayoutUnitPortInput) bool {
+	return input.Name != "" && input.Kind.Valid() && input.InterfaceKey != "" &&
+		finite(input.XMM) && finite(input.YMM) && finite(input.DirectionDegrees) &&
+		input.XMM >= 0 && input.YMM >= 0
+}
+
+func layoutUnitPortWithinBounds(input CreateLayoutUnitPortInput, unit LayoutUnit) bool {
+	return (unit.WidthMM <= 0 || input.XMM <= unit.WidthMM) &&
+		(unit.HeightMM <= 0 || input.YMM <= unit.HeightMM)
 }
 
 func normalizeRotation(value float64) float64 {

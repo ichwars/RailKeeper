@@ -14,6 +14,9 @@ type layoutRepositorySpy struct {
 	createdLayout      CreateLayoutInput
 	savedConfiguration SaveLayoutConfigurationInput
 	savedOutline       UpdateLayoutUnitOutlineInput
+	unit               LayoutUnit
+	createdPort        CreateLayoutUnitPortInput
+	updatedPort        UpdateLayoutUnitPortInput
 }
 
 func (spy *layoutRepositorySpy) CreateLayout(
@@ -42,6 +45,45 @@ func (spy *layoutRepositorySpy) CreateUnit(
 	_ string,
 ) (*LayoutUnit, error) {
 	return &LayoutUnit{Name: input.Name, WidthMM: input.WidthMM, HeightMM: input.HeightMM}, nil
+}
+
+func (spy *layoutRepositorySpy) GetUnit(_ context.Context, id string) (*LayoutUnit, error) {
+	unit := spy.unit
+	unit.ID = id
+	return &unit, nil
+}
+
+func (spy *layoutRepositorySpy) GetUnitForPort(_ context.Context, _ string) (*LayoutUnit, error) {
+	unit := spy.unit
+	return &unit, nil
+}
+
+func (spy *layoutRepositorySpy) ListUnitPorts(_ context.Context, _ string) ([]LayoutUnitPort, error) {
+	return []LayoutUnitPort{}, nil
+}
+
+func (spy *layoutRepositorySpy) CreateUnitPort(
+	_ context.Context,
+	unitID string,
+	input CreateLayoutUnitPortInput,
+	_ string,
+) (*LayoutUnitPort, error) {
+	spy.createdPort = input
+	return &LayoutUnitPort{LayoutUnitID: unitID, Name: input.Name, Kind: input.Kind,
+		InterfaceKey: input.InterfaceKey, XMM: input.XMM, YMM: input.YMM,
+		DirectionDegrees: input.DirectionDegrees}, nil
+}
+
+func (spy *layoutRepositorySpy) UpdateUnitPort(
+	_ context.Context,
+	id string,
+	input UpdateLayoutUnitPortInput,
+	_ string,
+) (*LayoutUnitPort, error) {
+	spy.updatedPort = input
+	return &LayoutUnitPort{ID: id, Name: input.Name, Kind: input.Kind,
+		InterfaceKey: input.InterfaceKey, XMM: input.XMM, YMM: input.YMM,
+		DirectionDegrees: input.DirectionDegrees, Version: input.ExpectedVersion + 1}, nil
 }
 
 func (spy *layoutRepositorySpy) UpdateUnitOutline(
@@ -142,5 +184,85 @@ func TestLayoutServiceRejectsNonFiniteUnitDimensions(t *testing.T) {
 				t.Fatalf("expected layout validation error, got %v", err)
 			}
 		})
+	}
+}
+
+func TestLayoutUnitPortKinds(t *testing.T) {
+	for _, kind := range []domain.LayoutUnitPortKind{
+		domain.LayoutUnitPortTrack,
+		domain.LayoutUnitPortPower,
+		domain.LayoutUnitPortDigital,
+		domain.LayoutUnitPortFeedback,
+		domain.LayoutUnitPortAccessory,
+		domain.LayoutUnitPortOther,
+	} {
+		if !kind.Valid() {
+			t.Fatalf("expected valid layout unit port kind %q", kind)
+		}
+	}
+	if domain.LayoutUnitPortKind("video").Valid() {
+		t.Fatal("unexpected valid unknown layout unit port kind")
+	}
+}
+
+func TestLayoutUnitPortServiceNormalizesBeforePersistence(t *testing.T) {
+	repository := &layoutRepositorySpy{unit: LayoutUnit{WidthMM: 1000, HeightMM: 500}}
+	service := NewLayoutService(repository)
+
+	port, err := service.CreateUnitPort(t.Context(), " unit-1 ", CreateLayoutUnitPortInput{
+		Name: " West ", Kind: domain.LayoutUnitPortTrack,
+		InterfaceKey: " TRACK:Tillig-TT-Modellgleis ", XMM: 0, YMM: 250,
+		DirectionDegrees: -180, Notes: " Übergang zum Schattenbahnhof ",
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if port.LayoutUnitID != "unit-1" || repository.createdPort.Name != "West" ||
+		repository.createdPort.InterfaceKey != "track:tillig-tt-modellgleis" ||
+		repository.createdPort.DirectionDegrees != 180 ||
+		repository.createdPort.Notes != "Übergang zum Schattenbahnhof" {
+		t.Fatalf("unexpected normalized module port: %#v / %#v", port, repository.createdPort)
+	}
+
+	updated, err := service.UpdateUnitPort(t.Context(), " port-1 ", UpdateLayoutUnitPortInput{
+		CreateLayoutUnitPortInput: repository.createdPort,
+		ExpectedVersion:           2,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.ID != "port-1" || updated.Version != 3 || repository.updatedPort.ExpectedVersion != 2 {
+		t.Fatalf("unexpected updated module port: %#v", updated)
+	}
+}
+
+func TestLayoutUnitPortServiceRejectsInvalidInput(t *testing.T) {
+	repository := &layoutRepositorySpy{unit: LayoutUnit{WidthMM: 1000, HeightMM: 500}}
+	service := NewLayoutService(repository)
+	valid := CreateLayoutUnitPortInput{
+		Name: "West", Kind: domain.LayoutUnitPortTrack,
+		InterfaceKey: "track:tillig-tt-modellgleis", XMM: 0, YMM: 250,
+	}
+	tests := map[string]CreateLayoutUnitPortInput{
+		"blank name":        {Kind: valid.Kind, InterfaceKey: valid.InterfaceKey},
+		"invalid kind":      {Name: valid.Name, Kind: "video", InterfaceKey: valid.InterfaceKey},
+		"blank interface":   {Name: valid.Name, Kind: valid.Kind},
+		"negative x":        {Name: valid.Name, Kind: valid.Kind, InterfaceKey: valid.InterfaceKey, XMM: -1},
+		"outside width":     {Name: valid.Name, Kind: valid.Kind, InterfaceKey: valid.InterfaceKey, XMM: 1001},
+		"outside height":    {Name: valid.Name, Kind: valid.Kind, InterfaceKey: valid.InterfaceKey, YMM: 501},
+		"not a number":      {Name: valid.Name, Kind: valid.Kind, InterfaceKey: valid.InterfaceKey, XMM: math.NaN()},
+		"positive infinity": {Name: valid.Name, Kind: valid.Kind, InterfaceKey: valid.InterfaceKey, YMM: math.Inf(1)},
+	}
+	for name, input := range tests {
+		t.Run(name, func(t *testing.T) {
+			if _, err := service.CreateUnitPort(t.Context(), "unit-1", input, "planner"); !errors.Is(err, ErrLayoutValidation) {
+				t.Fatalf("expected layout validation error, got %v", err)
+			}
+		})
+	}
+	if _, err := service.UpdateUnitPort(t.Context(), "port-1", UpdateLayoutUnitPortInput{
+		CreateLayoutUnitPortInput: valid,
+	}, "planner"); !errors.Is(err, ErrLayoutValidation) {
+		t.Fatalf("expected version validation error, got %v", err)
 	}
 }
