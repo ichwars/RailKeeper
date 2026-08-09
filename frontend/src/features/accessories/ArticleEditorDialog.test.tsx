@@ -44,9 +44,22 @@ const articleTypeEntries: MasterDataEntry[] = [
 const configuredArticleTypeEntries = articleTypeEntries.map((entry) => entry.key === "signal"
   ? { ...entry, label: "Formsignal" }
   : entry.key === "decoder" ? { ...entry, active: false } : entry);
+const manufacturerEntries: MasterDataEntry[] = [{
+  id: "manufacturer:tillig", type: "manufacturer", key: "tillig", label: "Tillig", active: true,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}];
+const gaugeEntries: MasterDataEntry[] = [{
+  id: "gauge:tt", type: "gauge", key: "tt", label: "TT", active: true,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}];
+const stockUnitEntries: MasterDataEntry[] = [{
+  id: "stock-unit-piece", type: "stock_unit", key: "piece", label: "Piece", active: true,
+  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+}];
 
 const persistedArticle = {
-  id: "article-1", manufacturer: "Tillig", articleNumber: "83101", name: "Gleis", category: "straight",
+  id: "article-1", inventoryNumber: "RK-ART-000001", manufacturer: "Tillig", articleNumber: "83101",
+  name: "Gleis", category: "straight",
   trackingMode: "quantity" as const, manufacturerStatus: "available" as const, articleType: "track" as const,
   subtype: "straight", gauges: ["TT"], packageQuantity: 1, stockUnit: "piece", minimumStock: 0,
   inventoryStrategy: "quantity" as const, alternativeNumbers: [], keywords: [], archived: false, attributes: [],
@@ -83,6 +96,9 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
     subtypeEntries,
     subtypeEntriesLoading: false,
     subtypeEntriesError: "",
+    manufacturerEntries,
+    gaugeEntries,
+    stockUnitEntries,
     subjectFieldErrors: {},
     onChange: vi.fn(),
     onTabChange: vi.fn(),
@@ -106,7 +122,7 @@ describe("ArticleEditorDialog", () => {
   it("renders create, view, and edit modes through one shell and disables view controls", () => {
     const { rerender } = render(<ArticleEditorDialog {...props()} />);
     expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toBeEnabled();
 
     rerender(<ArticleEditorDialog {...props({ mode: "edit" })} />);
     expect(screen.getByRole("dialog", { name: "Artikel bearbeiten" })).toBeInTheDocument();
@@ -115,7 +131,7 @@ describe("ArticleEditorDialog", () => {
       canEdit: true, canManageStock: true, canReserve: true, canInstall: true
     } })} />);
     expect(screen.getByRole("dialog", { name: "Artikel ansehen" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toBeDisabled();
     expect(screen.queryByRole("button", { name: "Änderungen speichern" })).not.toBeInTheDocument();
   });
 
@@ -127,6 +143,42 @@ describe("ArticleEditorDialog", () => {
     view.rerender(<ArticleEditorDialog {...props({ activeTab: "stock" })} />);
     expect(screen.getByRole("spinbutton", { name: "Mindestbestand" })).toHaveAttribute("min", "0");
     expect(screen.getByRole("spinbutton", { name: "Mindestbestand" })).toHaveAttribute("step", "1");
+  });
+
+  it("uses DB-backed core selects and keeps inactive historical values visible but disabled", async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const inactiveManufacturer = { ...manufacturerEntries[0]!, id: "manufacturer:legacy", key: "legacy",
+      label: "Legacy Fabrik", active: false };
+    const inactiveGauge = { ...gaugeEntries[0]!, id: "gauge:legacy", key: "legacy", label: "Altspur",
+      active: false };
+    const inactiveStockUnit = { ...stockUnitEntries[0]!, id: "stock-unit-legacy", key: "legacy",
+      label: "Legacy unit", active: false };
+    render(<ArticleEditorDialog {...props({
+      mode: "edit",
+      article: { ...persistedArticle, manufacturer: "Legacy Fabrik", gauges: ["Altspur"], stockUnit: "legacy" },
+      form: { ...emptyArticleEditorForm(), manufacturer: "Legacy Fabrik", gauges: ["Altspur"], stockUnit: "legacy" },
+      manufacturerEntries: [...manufacturerEntries, inactiveManufacturer],
+      gaugeEntries: [...gaugeEntries, inactiveGauge],
+      stockUnitEntries: [...stockUnitEntries, inactiveStockUnit],
+      onChange
+    })} />);
+
+    expect(screen.getByRole("textbox", { name: "Inventarnummer" })).toHaveValue("RK-ART-000001");
+    await user.click(screen.getByRole("button", { name: "Hersteller" }));
+    expect(screen.getByRole("option", { name: "Legacy Fabrik (inaktiv)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Tillig" })).toBeEnabled();
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByRole("button", { name: /Spurweite/ }));
+    expect(screen.getByRole("option", { name: "Altspur (inaktiv)" })).toBeEnabled();
+    await user.click(screen.getByRole("option", { name: "Altspur (inaktiv)" }));
+    expect(onChange).toHaveBeenCalledWith({ gauges: [] });
+    await user.keyboard("{Escape}");
+
+    await user.click(screen.getByRole("button", { name: "Bestandseinheit" }));
+    expect(screen.getByRole("option", { name: "Legacy unit (inaktiv)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Stück" })).toBeEnabled();
   });
 
   it("uses active configured article types and keeps only the current inactive historical type", async () => {
@@ -326,11 +378,11 @@ describe("ArticleEditorDialog", () => {
     await user.click(screen.getByRole("tab", { name: "Bestand" }));
     expect(onTabChange).toHaveBeenCalledWith("stock");
     view.rerender(<ArticleEditorDialog {...props({ form, activeTab: "stock", onTabChange })} />);
-    expect(screen.queryByRole("textbox", { name: "Hersteller" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hersteller" })).not.toBeInTheDocument();
     expect(screen.getAllByRole("tab").filter((tab) => tab.dataset.tabKind === "subject")).toHaveLength(1);
 
     view.rerender(<ArticleEditorDialog {...props({ form, activeTab: "article", onTabChange })} />);
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveValue("Tillig");
+    expect(screen.getByRole("button", { name: "Hersteller" })).toHaveTextContent("Tillig");
   });
 
   it("renders the selected type fields in the single dynamic subject tab", () => {
@@ -490,11 +542,11 @@ describe("ArticleEditorDialog", () => {
     trigger.focus();
     const view = render(<ArticleEditorDialog {...props({ returnFocusTo: trigger })} />);
 
-    expect(await screen.findByRole("textbox", { name: "Hersteller" })).toHaveFocus();
+    expect(await screen.findByRole("button", { name: "Hersteller" })).toHaveFocus();
     const close = screen.getByRole("button", { name: "Dialog schließen" });
     close.focus();
     await user.tab();
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toHaveFocus();
 
     view.unmount();
     expect(trigger).toHaveFocus();
@@ -515,7 +567,7 @@ describe("ArticleEditorDialog", () => {
 
     await user.tab();
     expect(screen.getByRole("tab", { name: "Artikel" })).toHaveFocus();
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toBeDisabled();
 
     headerClose.focus();
     await user.tab({ shift: true });
@@ -559,7 +611,7 @@ describe("ArticleEditorDialog", () => {
       duplicateCandidates: [{ id: "dup", manufacturer: "Tillig", articleNumber: "83101", name: "Gleis", articleType: "track", subtype: "straight" }],
       onConfirmDuplicate
     })} />);
-    expect(screen.getByRole("textbox", { name: "Hersteller", hidden: true })).toHaveValue("Tillig");
+    expect(screen.getByRole("button", { name: "Hersteller", hidden: true })).toHaveTextContent("Tillig");
     await user.click(screen.getByRole("button", { name: "Trotzdem speichern" }));
     expect(onConfirmDuplicate).toHaveBeenCalledOnce();
   });
@@ -699,11 +751,11 @@ describe("ArticleEditorDialog", () => {
 
   it("moves edit focus only after detail loading finishes", () => {
     const view = render(<ArticleEditorDialog {...props({ mode: "edit", loading: true })} />);
-    expect(screen.queryByRole("textbox", { name: "Hersteller" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Hersteller" })).not.toBeInTheDocument();
 
     view.rerender(<ArticleEditorDialog {...props({ mode: "edit", loading: false })} />);
 
-    expect(screen.getByRole("textbox", { name: "Hersteller" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toHaveFocus();
   });
 
   it("makes dirty confirmation own Escape and restores focus to its invoker", async () => {
@@ -740,7 +792,7 @@ describe("ArticleEditorDialog", () => {
     expect(parentDialog).toHaveAttribute("aria-hidden", "true");
     expect(parentDialog).toHaveAttribute("inert");
     expect(parentDialog).not.toContainElement(confirmation);
-    expect(screen.getByRole("textbox", { name: "Hersteller", hidden: true })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hersteller", hidden: true })).toBeDisabled();
   });
 
   it("disables resource mutations while stale and offers an explicit retry", async () => {

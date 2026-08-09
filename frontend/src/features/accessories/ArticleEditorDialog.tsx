@@ -52,6 +52,11 @@ export type ArticleEditorDialogProps = {
   subtypeEntries: MasterDataEntry[];
   subtypeEntriesLoading: boolean;
   subtypeEntriesError: string;
+  manufacturerEntries?: MasterDataEntry[];
+  gaugeEntries?: MasterDataEntry[];
+  stockUnitEntries?: MasterDataEntry[];
+  coreMasterDataLoading?: boolean;
+  coreMasterDataError?: boolean;
   duplicateCandidates: AccessoryDuplicateCandidate[];
   closeConfirmationOpen: boolean;
   permissions: ArticleEditorPermissions;
@@ -71,6 +76,7 @@ export type ArticleEditorDialogProps = {
   onRetryCustomFields: () => Promise<void>;
   onRetryArticleTypeEntries: () => Promise<void>;
   onRetrySubtypeEntries: () => Promise<void>;
+  onRetryCoreMasterData?: () => Promise<void>;
   onSubdraftDirty: (scope: string, dirty: boolean) => void;
 };
 
@@ -255,6 +261,11 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               subtypeEntries={props.subtypeEntries}
               subtypeEntriesLoading={props.subtypeEntriesLoading}
               subtypeEntriesError={props.subtypeEntriesError}
+              manufacturerEntries={props.manufacturerEntries || []}
+              gaugeEntries={props.gaugeEntries || []}
+              stockUnitEntries={props.stockUnitEntries || []}
+              coreMasterDataLoading={props.coreMasterDataLoading}
+              coreMasterDataError={props.coreMasterDataError}
               articleTypeTriggerRef={articleTypeTriggerRef}
               onChange={changeCore} />
           </div>
@@ -314,6 +325,12 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
             onClick={() => void props.onRetrySubtypeEntries().catch(() => undefined)}>
             {t("accessories.editor.subtypes.retry")}</button>
         </div> : null}
+        {props.coreMasterDataError ? <div className="article-editor-resource-error">
+          <p className="form-message" role="alert">{t("accessories.editor.coreMasterData.loadError")}</p>
+          <button type="button" className="secondary-button" disabled={props.coreMasterDataLoading}
+            onClick={() => void props.onRetryCoreMasterData?.().catch(() => undefined)}>
+            {t("accessories.editor.coreMasterData.retry")}</button>
+        </div> : null}
         {props.error && props.error !== props.resourceError
           ? <p className="form-message" role="alert">{props.error}</p> : null}
         <button type="button" className="secondary-button" onClick={props.onRequestClose}>
@@ -322,6 +339,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         {!readOnly ? <button type="button" className="primary-button"
           disabled={props.saving || props.loading || (props.form.articleType === "other" &&
             (props.customFieldsLoading || Boolean(props.customFieldsError))) ||
+            props.coreMasterDataLoading || props.coreMasterDataError ||
             ((props.mode === "create" || props.article?.articleType !== props.form.articleType) &&
               (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError)))}
           onClick={() => void props.onSubmit()}>

@@ -75,15 +75,57 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	}
 }
 
+func TestAccessoryArticleAssignsInventoryNumbersTransactionally(t *testing.T) {
+	service, db := testAccessoryService(t)
+	ctx := t.Context()
+	validInput := application.CreateAccessoryProductInput{
+		Manufacturer: "Tillig", ArticleNumber: "83101", Name: "Straight track",
+		Category: "Track", ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight",
+		PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
+	}
+
+	first, err := service.CreateProduct(ctx, validInput, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.InventoryNumber != "RK-ART-000001" {
+		t.Fatalf("first inventory number: got %q", first.InventoryNumber)
+	}
+
+	invalidInput := validInput
+	invalidInput.ArticleNumber = "invalid"
+	invalidInput.Subtype = "track:not-active"
+	if _, err := service.CreateProduct(ctx, invalidInput, "editor-1"); !errors.Is(err, application.ErrAccessoryValidation) {
+		t.Fatalf("inactive subtype was not rejected: %v", err)
+	}
+
+	validInput.ArticleNumber = "83102"
+	second, err := service.CreateProduct(ctx, validInput, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second.InventoryNumber != "RK-ART-000002" {
+		t.Fatalf("rolled-back create consumed a number: got %q", second.InventoryNumber)
+	}
+
+	if _, err := db.ExecContext(ctx, `UPDATE inventory_number_schemes SET active=0 WHERE category='Artikel'`); err != nil {
+		t.Fatal(err)
+	}
+	validInput.ArticleNumber = "83103"
+	if _, err := service.CreateProduct(ctx, validInput, "editor-1"); !errors.Is(err, application.ErrInventoryNumberNotFound) {
+		t.Fatalf("inactive article scheme did not block create: %v", err)
+	}
+}
+
 func TestAccessoryArticleUpdatesMigrationStyleUnknownSubtypeOnlyWhenUnchanged(t *testing.T) {
 	service, db := testAccessoryService(t)
 	ctx := t.Context()
 	if _, err := db.ExecContext(ctx, `
 INSERT INTO accessory_products(
-  id, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
   gauges_json, package_quantity, stock_unit, minimum_stock, inventory_strategy, created_at, updated_at
 ) VALUES(
-  'legacy-migrated', 'Faller', '180001', 'Legacy accessory', 'legacy-category', 'quantity',
+  'legacy-migrated', 'RK-ART-LEGACY', 'Faller', '180001', 'Legacy accessory', 'legacy-category', 'quantity',
   'other', 'legacy-category', '[]', 1, 'piece', 0, 'quantity', '2026-01-01', '2026-01-01'
 )`); err != nil {
 		t.Fatal(err)
@@ -208,6 +250,13 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 		signal.ID, beta.ID, signal.ID, beta.ID, signal.ID)
 	mustExec(`INSERT INTO layouts(id, name, kind, gauge, scale, created_at, updated_at)
 		VALUES('catalog-layout', 'Catalog layout', 'private', 'TT', '1:120', '2026-01-01', '2026-01-01')`)
+	mustExec(`INSERT INTO file_blobs(id, original_size, compressed_size, compression, sha256, data, created_at)
+		VALUES('catalog-image-blob', 1, 1, 'none', 'catalog-image', X'00', '2026-01-01')`)
+	mustExec(`INSERT INTO accessory_documents(
+		id, product_id, file_blob_id, file_name, original_name, category, mime_type, size_bytes,
+		is_primary, created_by, created_at, updated_at
+	) VALUES('track-primary-image', ?, 'catalog-image-blob', 'track.png', 'track.png', 'image',
+		'image/png', 1, 1, 'editor-1', '2026-01-01', '2026-01-01')`, track.ID)
 	mustExec(`INSERT INTO accessory_reservations(
 		id, product_id, asset_id, location_id, quantity, layout_id, status, created_by, created_at, updated_at
 	) VALUES
@@ -239,7 +288,7 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 		return result
 	}
 
-	for _, search := range []string{"Tillig", "83125", "4012500831258", "turnout"} {
+	for _, search := range []string{"Tillig", "83125", "4012500831258", "turnout", track.InventoryNumber} {
 		assertIDs(application.AccessoryArticleListQuery{Query: search}, track.ID)
 	}
 	assertIDs(application.AccessoryArticleListQuery{Manufacturer: "Viessmann"}, signal.ID)
@@ -248,16 +297,16 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	assertIDs(application.AccessoryArticleListQuery{LocationID: alpha.ID}, track.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleAvailable,
-	}}, signal.ID, track.ID)
+	}}, track.ID, signal.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleReserved,
-	}}, signal.ID, track.ID)
+	}}, track.ID, signal.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleInstalled,
-	}}, signal.ID, track.ID)
+	}}, track.ID, signal.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleReserved, application.AccessoryArticleInstalled,
-	}}, signal.ID, track.ID)
+	}}, track.ID, signal.ID)
 	assertIDs(application.AccessoryArticleListQuery{Statuses: []application.AccessoryArticleStatus{
 		application.AccessoryArticleMaintenanceDue,
 	}}, signal.ID)
@@ -269,7 +318,10 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	}}, archived.ID)
 
 	for sortKey, ascending := range map[string][]string{
-		"article": {signal.ID, track.ID}, "type": {track.ID, signal.ID},
+		"article": {signal.ID, track.ID}, "inventoryNumber": {track.ID, signal.ID},
+		"image":        {signal.ID, track.ID},
+		"manufacturer": {signal.ID, track.ID}, "articleNumber": {signal.ID, track.ID},
+		"name": {signal.ID, track.ID}, "type": {track.ID, signal.ID},
 		"gauge": {signal.ID, track.ID}, "stock": {signal.ID, track.ID},
 		"storage": {track.ID, signal.ID}, "updatedAt": {track.ID, signal.ID},
 	} {
@@ -281,10 +333,13 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 		}
 	}
 
-	result := assertIDs(application.AccessoryArticleListQuery{}, signal.ID, track.ID)
-	trackItem := result.Items[1]
+	result := assertIDs(application.AccessoryArticleListQuery{}, track.ID, signal.ID)
+	trackItem := result.Items[0]
 	if trackItem.Owned != 14 || trackItem.Available != 7 || trackItem.Reserved != 3 ||
 		trackItem.Installed != 4 || !trackItem.HasUsageHistory ||
+		trackItem.InventoryNumber != track.InventoryNumber ||
+		trackItem.PrimaryImageURL != "/api/v1/accessory-products/"+track.ID+
+			"/documents/track-primary-image/download" ||
 		!reflect.DeepEqual(trackItem.LocationNames, []string{"Alpha shelf", "Beta shelf"}) ||
 		len(trackItem.Attributes) != 1 {
 		t.Fatalf("unexpected mixed quantity aggregation: %#v", trackItem)
@@ -439,17 +494,17 @@ func accessoryArticleResultContains(result *application.AccessoryArticleListResu
 func TestAccessoryArticleCareHintsUseApprovedMissingFields(t *testing.T) {
 	service, db := testAccessoryService(t)
 	_, err := db.ExecContext(t.Context(), `INSERT INTO accessory_products(
-		id, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
+		id, inventory_number, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
 		gauges_json, package_quantity, stock_unit, inventory_strategy, created_at, updated_at
-	) VALUES('care-hints', '', '', 'Incomplete track', 'Track', 'quantity', 'track', 'track:straight',
+	) VALUES('care-hints', 'RK-ART-CARE', '', '', 'Incomplete track', 'Track', 'quantity', 'track', 'track:straight',
 		'[]', 1, '', 'quantity', '2026-01-01', '2026-01-01')`)
 	if err != nil {
 		t.Fatal(err)
 	}
 	_, err = db.ExecContext(t.Context(), `INSERT INTO accessory_products(
-		id, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
+		id, inventory_number, manufacturer, article_number, name, category, tracking_mode, article_type, subtype,
 		gauges_json, package_quantity, stock_unit, inventory_strategy, created_at, updated_at
-	) VALUES('missing-type', 'Maker', '1', 'Missing type', 'Other', 'quantity', '', 'other',
+	) VALUES('missing-type', 'RK-ART-TYPE', 'Maker', '1', 'Missing type', 'Other', 'quantity', '', 'other',
 		'[]', 1, 'piece', 'quantity', '2026-01-01', '2026-01-01')`)
 	if err != nil {
 		t.Fatal(err)

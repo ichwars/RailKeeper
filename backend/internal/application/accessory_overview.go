@@ -33,6 +33,8 @@ type AccessoryArticleListQuery struct {
 
 type AccessoryArticleListItem struct {
 	ID                string                            `json:"id"`
+	InventoryNumber   string                            `json:"inventoryNumber"`
+	PrimaryImageURL   string                            `json:"primaryImageUrl,omitempty"`
 	Manufacturer      string                            `json:"manufacturer"`
 	ArticleNumber     string                            `json:"articleNumber"`
 	Name              string                            `json:"name"`
@@ -92,7 +94,7 @@ func (s *AccessoryService) ListArticles(
 	}
 	query.Gauges = cleanStringArray(query.Gauges)
 	if query.Sort == "" {
-		query.Sort = "article"
+		query.Sort = "inventoryNumber"
 	}
 	if query.Direction == "" {
 		query.Direction = "asc"
@@ -147,7 +149,8 @@ func validAccessoryArticleQuery(query AccessoryArticleListQuery) bool {
 		}
 	}
 	switch query.Sort {
-	case "article", "type", "gauge", "stock", "storage", "updatedAt":
+	case "article", "image", "inventoryNumber", "manufacturer", "articleNumber", "name",
+		"type", "gauge", "stock", "storage", "updatedAt":
 	default:
 		return false
 	}

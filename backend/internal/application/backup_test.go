@@ -265,6 +265,11 @@ func TestBackupVersionTwoRestoreBackfillsIndividualInventoryStrategy(t *testing.
 		t.Fatalf("legacy strategies not backfilled: individual=%q quantity=%q",
 			individual.InventoryStrategy, quantity.InventoryStrategy)
 	}
+	if individual.InventoryNumber == "" || quantity.InventoryNumber == "" ||
+		individual.InventoryNumber == quantity.InventoryNumber {
+		t.Fatalf("legacy articles did not receive distinct inventory numbers: individual=%q quantity=%q",
+			individual.InventoryNumber, quantity.InventoryNumber)
+	}
 	interim, err := accessories.GetProduct(ctx, "interim-hybrid")
 	if err != nil {
 		t.Fatal(err)
@@ -920,15 +925,15 @@ func TestBackupVersionTwoRestoresRowsUsingVersionThreeColumnDefaults(t *testing.
 	if _, err := service.Import(context.Background(), doc); err != nil {
 		t.Fatalf("expected old row to use new-column defaults: %v", err)
 	}
-	var articleType, stockUnit, inventoryStrategy string
+	var inventoryNumber, articleType, stockUnit, inventoryStrategy string
 	var packageQuantity, minimumStock int
 	if err := db.QueryRow(`
-SELECT article_type, package_quantity, stock_unit, minimum_stock, inventory_strategy
+SELECT inventory_number, article_type, package_quantity, stock_unit, minimum_stock, inventory_strategy
 FROM accessory_products WHERE id='legacy-product'
-`).Scan(&articleType, &packageQuantity, &stockUnit, &minimumStock, &inventoryStrategy); err != nil {
+`).Scan(&inventoryNumber, &articleType, &packageQuantity, &stockUnit, &minimumStock, &inventoryStrategy); err != nil {
 		t.Fatal(err)
 	}
-	if articleType != "other" || packageQuantity != 1 || stockUnit != "piece" || minimumStock != 0 ||
+	if inventoryNumber == "" || articleType != "other" || packageQuantity != 1 || stockUnit != "piece" || minimumStock != 0 ||
 		inventoryStrategy != "quantity" {
 		t.Fatalf("unexpected defaults: article=%q package=%d unit=%q minimum=%d strategy=%q",
 			articleType, packageQuantity, stockUnit, minimumStock, inventoryStrategy)
@@ -1487,9 +1492,9 @@ func seedStageOneBackupData(t *testing.T, db *sql.DB, vehicleID string) {
 INSERT INTO storage_locations(id, parent_id, name, description, created_at, updated_at) VALUES
   ('location-root', NULL, 'Club depot', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
   ('location-child', 'location-root', 'Track box', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
-INSERT INTO accessory_products(id, manufacturer, article_number, name, category, tracking_mode, description, created_at, updated_at) VALUES
-  ('product-quantity', 'Tillig', '83101', 'Straight track', 'track', 'quantity', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
-  ('product-individual', 'ESU', '59610', 'LokSound decoder', 'decoder', 'individual', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
+INSERT INTO accessory_products(id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description, created_at, updated_at) VALUES
+  ('product-quantity', 'RK-ART-000001', 'Tillig', '83101', 'Straight track', 'track', 'quantity', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z'),
+  ('product-individual', 'RK-ART-000002', 'ESU', '59610', 'LokSound decoder', 'decoder', 'individual', '', '2026-08-07T18:00:00Z', '2026-08-07T18:00:00Z');
 INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
   VALUES ('product-quantity', 'location-child', 12, '2026-08-07T18:00:00Z');
 INSERT INTO accessory_assets(id, product_id, inventory_number, condition_state, lifecycle_state, storage_location_id, created_at, updated_at)

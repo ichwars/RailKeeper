@@ -9,6 +9,7 @@ import { useArticleEditorController } from "./useArticleEditorController";
 
 const article: AccessoryArticle = {
   id: "article-1",
+  inventoryNumber: "RK-ART-000001",
   manufacturer: "Tillig",
   articleNumber: "83101",
   name: "Gerades Modellgleis",

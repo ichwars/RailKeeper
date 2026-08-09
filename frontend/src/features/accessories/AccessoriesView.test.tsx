@@ -21,6 +21,7 @@ import { AccessoriesView } from "./AccessoriesView";
 const overview: AccessoryArticleListResult = {
   items: [{
     id: "article-1",
+    inventoryNumber: "RK-ART-000001",
     manufacturer: "Tillig",
     articleNumber: "83101",
     name: "Gerades Modellgleis",
@@ -60,6 +61,21 @@ const straightSubtype: MasterDataEntry = {
   active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
   updatedAt: "2026-08-08T08:00:00Z"
 };
+const manufacturerEntry: MasterDataEntry = {
+  id: "manufacturer:tillig", type: "manufacturer", key: "tillig", label: "Tillig",
+  active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
+const gaugeEntry: MasterDataEntry = {
+  id: "gauge:tt", type: "gauge", key: "tt", label: "TT",
+  active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
+const stockUnitEntry: MasterDataEntry = {
+  id: "stock-unit-piece", type: "stock_unit", key: "piece", label: "Piece",
+  active: true, sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
+};
 const renamedInactiveTrackType: MasterDataEntry = {
   id: "article-type-track", type: "article_type", key: "track", label: "Gleismaterial", active: false,
   sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
@@ -86,7 +102,10 @@ describe("AccessoriesView", () => {
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
       type === "accessory_subtype" ? [straightSubtype]
-        : type === "article_type" ? standardArticleTypes : []);
+        : type === "article_type" ? standardArticleTypes
+          : type === "manufacturer" ? [manufacturerEntry]
+            : type === "gauge" ? [gaugeEntry]
+              : type === "stock_unit" ? [stockUnitEntry] : []);
     vi.spyOn(api, "archiveAccessoryProduct").mockResolvedValue({} as never);
     vi.spyOn(api, "restoreAccessoryProduct").mockResolvedValue({} as never);
   });
@@ -103,12 +122,15 @@ describe("AccessoriesView", () => {
     for (const metric of screen.getAllByTestId("article-metric")) {
       expect(metric).toHaveClass("inventory-status-card");
     }
-    expect(screen.getByText("24 Artikel · 5 Arten")).toBeInTheDocument();
-    expect(screen.getByText("81 frei · 7 Lagerorte")).toBeInTheDocument();
+    expect(screen.getByText("24 Artikel")).toBeInTheDocument();
+    expect(screen.getByText("5 Arten")).toBeInTheDocument();
+    expect(screen.getByText("81 frei")).toBeInTheDocument();
+    expect(screen.getByText("7 Lagerorte")).toBeInTheDocument();
+    expect(screen.getByText("20 gebunden")).toBeInTheDocument();
     expect(screen.getByText("6 reserviert · 14 eingebaut")).toBeInTheDocument();
     expect(screen.getByText("6 reserviert · 14 eingebaut").closest("article")).toHaveClass("wide");
-    expect(screen.getByText("3 unvollständig")).toBeInTheDocument();
-    const careMetric = screen.getByText("3 unvollständig").closest("article");
+    expect(screen.getByText("3")).toBeInTheDocument();
+    const careMetric = screen.getByText("3").closest("article");
     expect(careMetric).not.toBeNull();
     expect(within(careMetric!).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
@@ -126,7 +148,8 @@ describe("AccessoriesView", () => {
       ...overview.metrics, articleCount: 1, articleTypeCount: 1
     } });
     render(<AccessoriesView roles={["Viewer"]} />);
-    expect(await screen.findByText("1 article · 1 type")).toBeInTheDocument();
+    expect(await screen.findByText("1 article")).toBeInTheDocument();
+    expect(screen.getByText("1 type")).toBeInTheDocument();
     setLanguage("de");
   });
 
@@ -169,13 +192,13 @@ describe("AccessoriesView", () => {
       gauges: ["TT"],
       statuses: ["available"],
       locationId: "location-1",
-      sort: "article",
+      sort: "inventoryNumber",
       direction: "asc"
     }));
 
     await user.click(screen.getByRole("button", { name: "Filter zurücksetzen" }));
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({
-      sort: "article",
+      sort: "inventoryNumber",
       direction: "asc"
     }));
   });
@@ -201,7 +224,7 @@ describe("AccessoriesView", () => {
     await screen.findByText("Gerades Modellgleis");
     const initialCalls = vi.mocked(api.accessoryArticles).mock.calls.length;
 
-    await user.click(screen.getByText("3 unvollständig"));
+    await user.click(screen.getByText("3"));
     expect(api.accessoryArticles).toHaveBeenCalledTimes(initialCalls);
     expect(screen.queryByRole("button", { name: "Pflegehinweise filtern" })).not.toBeInTheDocument();
 
@@ -312,7 +335,8 @@ describe("AccessoriesView", () => {
     let events: AccessoryUsageEvent[] = [];
     const currentOverview = (): AccessoryArticleListResult => article ? {
       items: [{
-        id: article.id, manufacturer: article.manufacturer, articleNumber: article.articleNumber || "",
+        id: article.id, inventoryNumber: article.inventoryNumber, manufacturer: article.manufacturer,
+        articleNumber: article.articleNumber || "",
         name: article.name, articleType: article.articleType, subtype: article.subtype, gauges: article.gauges,
         inventoryStrategy: article.inventoryStrategy, archived: false,
         owned: stockQuantity + assets.length, available: stockQuantity,
@@ -338,11 +362,15 @@ describe("AccessoriesView", () => {
     vi.mocked(api.storageLocations).mockResolvedValue([location]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
       type === "accessory_subtype" ? [straightSubtype]
-        : type === "article_type" ? standardArticleTypes : []);
+        : type === "article_type" ? standardArticleTypes
+          : type === "manufacturer" ? [manufacturerEntry]
+            : type === "gauge" ? [gaugeEntry]
+              : type === "stock_unit" ? [stockUnitEntry] : []);
     vi.spyOn(api, "checkAccessoryArticleDuplicates").mockResolvedValue({ candidates: [] });
     vi.spyOn(api, "createAccessoryArticle").mockImplementation(async (input) => {
       article = {
-        id: "article-83101", manufacturer: input.manufacturer, articleNumber: input.articleNumber,
+        id: "article-83101", inventoryNumber: "RK-ART-000001", manufacturer: input.manufacturer,
+        articleNumber: input.articleNumber,
         name: input.name, category: input.subtype, trackingMode: "quantity", manufacturerStatus: "available",
         articleType: input.articleType, subtype: input.subtype, gauges: input.gauges || [],
         packageQuantity: input.packageQuantity, stockUnit: input.stockUnit, minimumStock: input.minimumStock || 0,
@@ -432,7 +460,8 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Editor"]} />);
     await user.click(await screen.findByRole("button", { name: "Neuer Artikel" }));
     const createDialog = screen.getByRole("dialog", { name: "Artikel anlegen" });
-    await user.type(within(createDialog).getByRole("textbox", { name: "Hersteller" }), "Tillig");
+    await user.click(within(createDialog).getByRole("button", { name: "Hersteller" }));
+    await user.click(screen.getByRole("option", { name: "Tillig" }));
     await user.type(within(createDialog).getByRole("textbox", { name: "Artikelnummer" }), "83101");
     await user.type(within(createDialog).getByRole("textbox", { name: "Bezeichnung" }), "TT Modellgleis");
     await user.click(within(createDialog).getByRole("button", { name: "Artikelart" }));

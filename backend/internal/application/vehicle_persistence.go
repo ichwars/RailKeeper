@@ -3,10 +3,8 @@ package application
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
-	"time"
 )
 
 func saveVehicleImages(ctx context.Context, tx *sql.Tx, vehicleID string, images []VehicleImageInput, now string) error {
@@ -117,78 +115,9 @@ WHERE vehicle_id=?
 func (s *VehicleService) nextInventoryNumber(ctx context.Context, tx *sql.Tx, vehicleCategory string) (string, error) {
 	requestedCategory := cleanInventoryCategory(vehicleCategory)
 	fallbackCategory := inventoryCategoryForVehicle(vehicleCategory)
-	scheme, err := s.inventoryNumberSchemeForUpdate(ctx, tx, requestedCategory, fallbackCategory)
-	if err != nil {
-		return "", err
-	}
-
-	next := scheme.NextNumber
-	for attempts := 0; attempts < 500; attempts++ {
-		candidate := formatInventoryNumber(scheme.Prefix, next, scheme.Padding)
-		if err := s.ensureInventoryNumberAvailable(ctx, tx, candidate, ""); err == nil {
-			if _, err = tx.ExecContext(ctx, `
-UPDATE inventory_number_schemes
-SET next_number=?, updated_at=?
-WHERE category=?
-`, next+1, time.Now().UTC().Format(time.RFC3339), scheme.Category); err != nil {
-				return "", fmt.Errorf("advance inventory number scheme: %w", err)
-			}
-			return candidate, nil
-		} else if !errors.Is(err, ErrInventoryNumberConflict) {
-			return "", err
-		}
-		next++
-	}
-
-	return "", fmt.Errorf("next inventory number: exhausted attempts for %s", scheme.Category)
-}
-
-func (s *VehicleService) inventoryNumberSchemeForUpdate(ctx context.Context, tx *sql.Tx, category string, fallbackCategory string) (*InventoryNumberScheme, error) {
-	if category != "" {
-		if scheme, err := s.readActiveInventoryNumberScheme(ctx, tx, category); err == nil {
-			return scheme, nil
-		} else if !errors.Is(err, ErrInventoryNumberNotFound) {
-			return nil, err
-		}
-	}
-	if fallbackCategory != "" && fallbackCategory != category {
-		if scheme, err := s.readActiveInventoryNumberScheme(ctx, tx, fallbackCategory); err == nil {
-			return scheme, nil
-		} else if !errors.Is(err, ErrInventoryNumberNotFound) {
-			return nil, err
-		}
-	}
-	if fallbackCategory != "Fahrzeug" && category != "Fahrzeug" {
-		return s.readActiveInventoryNumberScheme(ctx, tx, "Fahrzeug")
-	}
-	return nil, ErrInventoryNumberNotFound
-}
-
-func (s *VehicleService) readActiveInventoryNumberScheme(ctx context.Context, tx *sql.Tx, category string) (*InventoryNumberScheme, error) {
-	var scheme InventoryNumberScheme
-	var active int
-	err := tx.QueryRowContext(ctx, `
-SELECT id, category, prefix, next_number, padding, active, created_at, updated_at
-FROM inventory_number_schemes
-WHERE category=? AND active=1
-`, category).Scan(
-		&scheme.ID,
-		&scheme.Category,
-		&scheme.Prefix,
-		&scheme.NextNumber,
-		&scheme.Padding,
-		&active,
-		&scheme.CreatedAt,
-		&scheme.UpdatedAt,
-	)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrInventoryNumberNotFound
-		}
-		return nil, fmt.Errorf("read inventory number scheme: %w", err)
-	}
-	scheme.Active = active == 1
-	return &scheme, nil
+	return ReserveInventoryNumber(ctx, tx, requestedCategory, fallbackCategory, func(candidate string) error {
+		return s.ensureInventoryNumberAvailable(ctx, tx, candidate, "")
+	})
 }
 
 func (s *VehicleService) ensureInventoryNumberAvailable(ctx context.Context, tx *sql.Tx, inventoryNumber, excludeVehicleID string) error {

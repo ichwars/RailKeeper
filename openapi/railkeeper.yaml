@@ -1101,11 +1101,13 @@ components:
     AccessoryProduct:
       type: object
       required:
-        [id, manufacturer, name, category, trackingMode, manufacturerStatus, articleType,
+        [id, inventoryNumber, manufacturer, name, category, trackingMode, manufacturerStatus, articleType,
          subtype, gauges, packageQuantity, stockUnit, minimumStock, inventoryStrategy,
          alternativeNumbers, keywords, archived, attributes, createdAt, updatedAt]
       properties:
         id:
+          type: string
+        inventoryNumber:
           type: string
         manufacturer:
           type: string
@@ -1248,11 +1250,15 @@ components:
     AccessoryArticleListItem:
       type: object
       required:
-        [id, manufacturer, articleNumber, name, articleType, subtype, gauges,
+        [id, inventoryNumber, manufacturer, articleNumber, name, articleType, subtype, gauges,
          inventoryStrategy, archived, owned, available, reserved, installed,
          locationNames, hasUsageHistory, careHintCount, updatedAt, attributes]
       properties:
         id:
+          type: string
+        inventoryNumber:
+          type: string
+        primaryImageUrl:
           type: string
         manufacturer:
           type: string
@@ -3039,8 +3045,10 @@ paths:
           in: query
           schema:
             type: string
-            enum: [article, type, gauge, stock, storage, updatedAt]
-            default: article
+            enum:
+              [article, image, inventoryNumber, manufacturer, articleNumber, name,
+               type, gauge, stock, storage, updatedAt]
+            default: inventoryNumber
         - name: direction
           in: query
           schema:

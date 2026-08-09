@@ -6,6 +6,7 @@ import type {
   AccessoryManufacturerStatus,
   MasterDataEntry
 } from "../../shared/api";
+import { masterDataDisplayLabel } from "../../shared/articleMasterDataLabels";
 import { useI18n } from "../../shared/i18n";
 import { AppMultiSelect } from "../../shared/ui/AppMultiSelect";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
@@ -15,7 +16,22 @@ import type { ArticleEditorFieldErrors, ArticleEditorForm } from "./articleEdito
 import { articleSubtypeOptions } from "./articleSubtypes";
 import { articleTypeOptions } from "./articleTypes";
 const statuses: AccessoryManufacturerStatus[] = ["announced", "available", "discontinued", "unknown"];
-const gauges = ["Z", "N", "TT", "H0", "H0m", "H0e", "0", "1", "G"];
+
+function includeCurrentEntry(
+  entries: MasterDataEntry[],
+  currentValues: string[],
+  persistedValue: (entry: MasterDataEntry) => string
+): Array<{ id: string; value: string; label: string; active: boolean }> {
+  const options = entries
+    .filter((entry) => entry.active || currentValues.includes(persistedValue(entry)))
+    .map((entry) => ({ id: entry.id, value: persistedValue(entry), label: entry.label, active: entry.active }));
+  currentValues.forEach((value) => {
+    if (value && !options.some((option) => option.value === value)) {
+      options.push({ id: `legacy:${value}`, value, label: value, active: false });
+    }
+  });
+  return options;
+}
 
 export function ArticleCoreTab({
   form,
@@ -29,6 +45,11 @@ export function ArticleCoreTab({
   subtypeEntries,
   subtypeEntriesLoading = false,
   subtypeEntriesError = "",
+  manufacturerEntries = [],
+  gaugeEntries = [],
+  stockUnitEntries = [],
+  coreMasterDataLoading = false,
+  coreMasterDataError = false,
   articleTypeTriggerRef,
   onChange
 }: {
@@ -43,12 +64,28 @@ export function ArticleCoreTab({
   subtypeEntries: MasterDataEntry[];
   subtypeEntriesLoading?: boolean;
   subtypeEntriesError?: string;
+  manufacturerEntries?: MasterDataEntry[];
+  gaugeEntries?: MasterDataEntry[];
+  stockUnitEntries?: MasterDataEntry[];
+  coreMasterDataLoading?: boolean;
+  coreMasterDataError?: boolean;
   articleTypeTriggerRef?: Ref<HTMLButtonElement>;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
   const typeOptions = articleTypeOptions(articleTypeEntries, article?.articleType || null, t);
   const subtypeOptions = articleSubtypeOptions(form.articleType, form.subtype, subtypeEntries, t);
+  const masterDataDisabled = disabled || coreMasterDataLoading || coreMasterDataError;
+  const manufacturers = includeCurrentEntry(manufacturerEntries, [form.manufacturer], (entry) => entry.label);
+  const gauges = includeCurrentEntry(gaugeEntries, form.gauges, (entry) => entry.label);
+  const stockUnits = includeCurrentEntry(stockUnitEntries, [form.stockUnit], (entry) => entry.key)
+    .map((option) => ({
+      ...option,
+      label: option.id.startsWith("legacy:")
+        ? option.label
+        : masterDataDisplayLabel(stockUnitEntries.find((entry) => entry.id === option.id)!, t)
+    }));
+  const inactiveSuffix = ` (${t("accessories.editor.fields.inactiveMasterData")})`;
   return (
     <section className="article-editor-tab article-core-tab" aria-label={t("accessories.editor.tabs.article")}>
       <div className="article-editor-image">
@@ -56,16 +93,27 @@ export function ArticleCoreTab({
           : <span>{t("accessories.editor.fields.noProductImage")}</span>}
       </div>
       <div className="article-editor-grid">
-        <AppTextInput
+        <AppTextInput label={t("accessories.field.inventoryNumber")} disabled
+          value={article?.inventoryNumber || t("vehicles.inventoryNumberAuto")} />
+        <label className="app-field">
+          <span className="app-field-label">{t("accessories.field.manufacturer")} *</span>
+          <AppSelect
           autoFocus
           data-article-initial-focus
-          label={t("accessories.field.manufacturer")}
           required
-          disabled={disabled}
+          aria-label={t("accessories.field.manufacturer")}
+          aria-invalid={Boolean(errors.manufacturer)}
+          disabled={masterDataDisabled}
           value={form.manufacturer}
-          error={errors.manufacturer}
           onChange={(event) => onChange({ manufacturer: event.target.value })}
-        />
+          >
+            <option value="">{t("accessories.editor.fields.selectManufacturer")}</option>
+            {manufacturers.map((option) => <option key={option.id} value={option.value} disabled={!option.active}>
+              {option.label}{option.active ? "" : inactiveSuffix}
+            </option>)}
+          </AppSelect>
+          {errors.manufacturer ? <small className="app-field-error" role="alert">{errors.manufacturer}</small> : null}
+        </label>
         <AppTextInput label={t("accessories.field.articleNumber")} disabled={disabled}
           value={form.articleNumber} onChange={(event) => onChange({ articleNumber: event.target.value })} />
         <AppTextInput label={t("accessories.field.name")} required disabled={disabled}
@@ -106,8 +154,12 @@ export function ArticleCoreTab({
             {errors.subtype}
           </small> : null}
         </label>
-        <AppMultiSelect label={t("accessories.toolbar.gauge")} disabled={disabled}
-          options={gauges.map((gauge) => ({ value: gauge, label: gauge }))} value={form.gauges}
+        <AppMultiSelect label={t("accessories.toolbar.gauge")} disabled={masterDataDisabled}
+          options={gauges.map((gauge) => ({
+            value: gauge.value,
+            label: `${gauge.label}${gauge.active ? "" : inactiveSuffix}`,
+            disabled: !gauge.active && !form.gauges.includes(gauge.value)
+          }))} value={form.gauges}
           placeholder={t("accessories.editor.fields.noGauge")}
           onValueChange={(value) => onChange({ gauges: value })} />
         <AppTextInput label={t("accessories.editor.fields.scale")} disabled={disabled}
@@ -116,9 +168,18 @@ export function ArticleCoreTab({
           inputMode="numeric"
           disabled={disabled} value={form.packageQuantity} error={errors.packageQuantity}
           onValueChange={(value) => onChange({ packageQuantity: value })} />
-        <AppTextInput label={t("accessories.editor.fields.stockUnit")} required disabled={disabled}
-          value={form.stockUnit} error={errors.stockUnit}
-          onChange={(event) => onChange({ stockUnit: event.target.value })} />
+        <label className="app-field">
+          <span className="app-field-label">{t("accessories.editor.fields.stockUnit")} *</span>
+          <AppSelect value={form.stockUnit} required disabled={masterDataDisabled}
+            aria-label={t("accessories.editor.fields.stockUnit")} aria-invalid={Boolean(errors.stockUnit)}
+            onChange={(event) => onChange({ stockUnit: event.target.value })}>
+            <option value="">{t("accessories.editor.fields.selectStockUnit")}</option>
+            {stockUnits.map((option) => <option key={option.id} value={option.value} disabled={!option.active}>
+              {option.label}{option.active ? "" : inactiveSuffix}
+            </option>)}
+          </AppSelect>
+          {errors.stockUnit ? <small className="app-field-error" role="alert">{errors.stockUnit}</small> : null}
+        </label>
       </div>
       <label className="app-field article-editor-wide-field">
         <span className="app-field-label">{t("accessories.field.description")}</span>

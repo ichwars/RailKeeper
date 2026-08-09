@@ -42,7 +42,7 @@ func TestAccessoryOverviewValidatesQueryBeforeRepository(t *testing.T) {
 	tests := []AccessoryArticleListQuery{
 		{ArticleTypes: []domain.AccessoryArticleType{"vehicle"}},
 		{Statuses: []AccessoryArticleStatus{"lost"}},
-		{Sort: "name"},
+		{Sort: "price"},
 		{Direction: "sideways"},
 	}
 	for _, query := range tests {
@@ -69,7 +69,7 @@ func TestAccessoryOverviewNormalizesQuery(t *testing.T) {
 	}
 	query := spy.listQuery
 	if query.Query != "83125" || query.Manufacturer != "Tillig" || query.LocationID != "shelf-1" ||
-		len(query.Gauges) != 1 || query.Gauges[0] != "TT" || query.Sort != "article" || query.Direction != "asc" {
+		len(query.Gauges) != 1 || query.Gauges[0] != "TT" || query.Sort != "inventoryNumber" || query.Direction != "asc" {
 		t.Fatalf("unexpected normalized query: %#v", query)
 	}
 }

@@ -9,6 +9,7 @@ import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
 import { useArticleOverview } from "./useArticleOverview";
 import { useArticleEditorController } from "./useArticleEditorController";
+import { useArticleCoreMasterData } from "./useArticleCoreMasterData";
 
 export type ArticleOpenMode = "view" | "edit";
 
@@ -27,8 +28,10 @@ export function AccessoriesView({
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
+  const coreMasterData = useArticleCoreMasterData(editor.isOpen);
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
+  const [selectedArticleIDs, setSelectedArticleIDs] = useState<Set<string>>(new Set());
   const { t } = useI18n();
 
   useEffect(() => {
@@ -42,6 +45,14 @@ export function AccessoriesView({
     }).catch(() => undefined);
     return () => { active = false; };
   }, [canRead]);
+
+  useEffect(() => {
+    const visibleIDs = new Set(overview.data.items.map((item) => item.id));
+    setSelectedArticleIDs((current) => {
+      const next = new Set([...current].filter((id) => visibleIDs.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [overview.data.items]);
 
   if (!canRead) {
     return <section className="panel"><p>{t("accessories.overview.noAccess")}</p></section>;
@@ -116,6 +127,18 @@ export function AccessoriesView({
             sort={overview.sort}
             direction={overview.direction}
             canEdit={canEdit}
+            selectedIDs={selectedArticleIDs}
+            onToggleSelection={(id) => setSelectedArticleIDs((current) => {
+              const next = new Set(current);
+              if (next.has(id)) next.delete(id);
+              else next.add(id);
+              return next;
+            })}
+            onToggleAll={() => setSelectedArticleIDs((current) => {
+              const visibleIDs = overview.data.items.map((item) => item.id);
+              const allSelected = visibleIDs.length > 0 && visibleIDs.every((id) => current.has(id));
+              return allSelected ? new Set() : new Set(visibleIDs);
+            })}
             onSort={overview.setSort}
             onView={(article) => openArticle(article, "view")}
             onEdit={(article) => openArticle(article, "edit")}
@@ -147,6 +170,11 @@ export function AccessoriesView({
         subtypeEntries={editor.subtypeEntries}
         subtypeEntriesLoading={editor.subtypeEntriesLoading}
         subtypeEntriesError={editor.subtypeEntriesError}
+        manufacturerEntries={coreMasterData.manufacturers}
+        gaugeEntries={coreMasterData.gauges}
+        stockUnitEntries={coreMasterData.stockUnits}
+        coreMasterDataLoading={coreMasterData.loading}
+        coreMasterDataError={coreMasterData.error}
         duplicateCandidates={editor.duplicateCandidates}
         closeConfirmationOpen={editor.closeConfirmationOpen}
         permissions={editor.permissions}
@@ -166,6 +194,7 @@ export function AccessoriesView({
         onRetryCustomFields={editor.retryCustomFields}
         onRetryArticleTypeEntries={editor.retryArticleTypeEntries}
         onRetrySubtypeEntries={editor.retrySubtypeEntries}
+        onRetryCoreMasterData={coreMasterData.retry}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
     </>

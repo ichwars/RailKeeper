@@ -20,6 +20,7 @@ var (
 
 type AccessoryProduct struct {
 	ID                 string                            `json:"id"`
+	InventoryNumber    string                            `json:"inventoryNumber"`
 	Manufacturer       string                            `json:"manufacturer"`
 	ArticleNumber      string                            `json:"articleNumber,omitempty"`
 	Name               string                            `json:"name"`

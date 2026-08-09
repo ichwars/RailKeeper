@@ -232,6 +232,10 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err != nil {
 		return nil, err
 	}
+	articleInventoryScheme, err := readBackupArticleInventoryScheme(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
 
 	for i := len(backupTableOrder) - 1; i >= 0; i-- {
 		table := backupTableOrder[i]
@@ -242,6 +246,11 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 
 	result := &BackupImportResult{}
 	for _, table := range backupTableOrder {
+		if table == "accessory_products" {
+			if err := prepareBackupArticleInventoryNumbers(ctx, tx, doc, articleInventoryScheme); err != nil {
+				return nil, err
+			}
+		}
 		rows := doc.Tables[table]
 		if len(rows) == 0 {
 			continue

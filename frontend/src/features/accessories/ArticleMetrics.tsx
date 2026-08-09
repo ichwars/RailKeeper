@@ -8,7 +8,8 @@ type MetricCard = {
   key: string;
   icon: typeof Boxes;
   label: string;
-  value: string;
+  summary: string;
+  detail: string;
   active: boolean;
   action?: () => void;
   actionLabel?: string;
@@ -31,10 +32,12 @@ export function ArticleMetrics({
       key: "articles",
       icon: Boxes,
       label: t("accessories.metrics.articles"),
-      value: t("accessories.metrics.articlesValue", {
+      summary: t("accessories.metrics.articlesSummary", {
         articles: metrics.articleCount,
         articleNoun: t(metrics.articleCount === 1
-          ? "accessories.metrics.articleSingular" : "accessories.metrics.articlePlural"),
+          ? "accessories.metrics.articleSingular" : "accessories.metrics.articlePlural")
+      }),
+      detail: t("accessories.metrics.articlesDetail", {
         types: metrics.articleTypeCount,
         typeNoun: t(metrics.articleTypeCount === 1
           ? "accessories.metrics.typeSingular" : "accessories.metrics.typePlural")
@@ -47,8 +50,8 @@ export function ArticleMetrics({
       key: "available",
       icon: PackageCheck,
       label: t("accessories.metrics.available"),
-      value: t("accessories.metrics.availableValue", {
-        available: metrics.available,
+      summary: t("accessories.metrics.availableSummary", { available: metrics.available }),
+      detail: t("accessories.metrics.availableDetail", {
         locations: metrics.locationCount
       }),
       active: activeStatus === "available",
@@ -59,7 +62,10 @@ export function ArticleMetrics({
       key: "allocated",
       icon: MapPin,
       label: t("accessories.metrics.allocated"),
-      value: t("accessories.metrics.allocatedValue", {
+      summary: t("accessories.metrics.allocatedSummary", {
+        count: metrics.reserved + metrics.installed
+      }),
+      detail: t("accessories.metrics.allocatedDetail", {
         reserved: metrics.reserved,
         installed: metrics.installed
       }),
@@ -71,14 +77,15 @@ export function ArticleMetrics({
       key: "care",
       icon: AlertTriangle,
       label: t("accessories.metrics.care"),
-      value: t("accessories.metrics.careValue", { count: metrics.careHintCount }),
+      summary: String(metrics.careHintCount),
+      detail: t("accessories.metrics.careDetail"),
       active: false
     }
   ];
 
   return (
     <section className="inventory-status-row article-metrics" aria-label={t("accessories.metrics.label")}>
-      {cards.map(({ key, icon: Icon, label, value, active, action, actionLabel }) => (
+      {cards.map(({ key, icon: Icon, label, summary, detail, active, action, actionLabel }) => (
         <article key={key} data-testid="article-metric"
           className={[
             "inventory-status-card",
@@ -89,11 +96,13 @@ export function ArticleMetrics({
           {action ? <button type="button" onClick={action} aria-pressed={active} aria-label={actionLabel}>
             <span><Icon size={16} aria-hidden="true" /></span>
             <small>{label}</small>
-            <strong>{value}</strong>
+            <strong>{summary}</strong>
+            <em>{detail}</em>
           </button> : <>
             <span><Icon size={16} aria-hidden="true" /></span>
             <small>{label}</small>
-            <strong>{value}</strong>
+            <strong>{summary}</strong>
+            <em>{detail}</em>
           </>}
         </article>
       ))}

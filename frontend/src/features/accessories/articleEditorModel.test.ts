@@ -10,6 +10,7 @@ import {
 
 const archivedArticle: AccessoryArticle = {
   id: "archived-1",
+  inventoryNumber: "RK-ART-000001",
   manufacturer: "Tillig",
   articleNumber: "83101",
   name: "Archiviertes Gleis",

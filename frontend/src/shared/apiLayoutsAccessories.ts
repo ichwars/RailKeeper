@@ -136,7 +136,18 @@ export type AccessoryArticleStatus =
   | "maintenance_due"
   | "defective"
   | "archived";
-export type AccessoryArticleSort = "article" | "type" | "gauge" | "stock" | "storage" | "updatedAt";
+export type AccessoryArticleSort =
+  | "article"
+  | "image"
+  | "inventoryNumber"
+  | "manufacturer"
+  | "articleNumber"
+  | "name"
+  | "type"
+  | "gauge"
+  | "stock"
+  | "storage"
+  | "updatedAt";
 export type AccessorySortDirection = "asc" | "desc";
 export type AccessoryCondition = "ready" | "maintenance_due" | "defective" | "unknown";
 export type AccessoryLifecycle = "stored" | "reserved" | "installed" | "maintenance" | "retired";
@@ -153,6 +164,7 @@ export type AccessoryAttributeValue =
 
 export type AccessoryArticle = {
   id: string;
+  inventoryNumber: string;
   manufacturer: string;
   articleNumber?: string;
   name: string;
@@ -222,6 +234,8 @@ export type AccessoryArticleListQuery = {
 
 export type AccessoryArticleListItem = {
   id: string;
+  inventoryNumber: string;
+  primaryImageUrl?: string;
   manufacturer: string;
   articleNumber: string;
   name: string;

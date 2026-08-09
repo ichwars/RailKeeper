@@ -11,11 +11,11 @@ describe("article editor responsive tabs", () => {
     expect(responsiveCss).toMatch(/\.article-editor-tabs button\s*\{[^}]*flex:\s*0 0 auto/s);
   });
 
-  it("fits the six-column article table at desktop width and restores horizontal reachability on mobile", () => {
-    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*0/s);
+  it("keeps the eleven-column article table horizontally reachable at every width", () => {
+    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*14[0-9]{2}px/s);
     expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*9[0-9]px/s);
-    expect(accessoriesCss).toMatch(/@media\s*\(max-width:\s*920px\)[\s\S]*?\.article-table\s*\{[^}]*min-width:\s*7[0-9]{2}px/s);
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
+    expect(accessoriesCss).toMatch(/\.article-table \.select-cell\s*\{[^}]*width:\s*4[0-9]px/s);
   });
 
   it("keeps stacked article filters compact on narrow screens", () => {

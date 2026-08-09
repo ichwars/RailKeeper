@@ -32,7 +32,7 @@ describe("useArticleOverview", () => {
   it("maps instant search and every filter to a stable server query", async () => {
     const { result } = renderHook(() => useArticleOverview());
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({
-      sort: "article",
+      sort: "inventoryNumber",
       direction: "asc"
     }));
 
@@ -50,13 +50,13 @@ describe("useArticleOverview", () => {
       gauges: ["TT"],
       statuses: ["reserved", "installed"],
       locationId: "location-1",
-      sort: "article",
+      sort: "inventoryNumber",
       direction: "asc"
     }));
 
     act(() => result.current.resetFilters());
     await waitFor(() => expect(api.accessoryArticles).toHaveBeenLastCalledWith({
-      sort: "article",
+      sort: "inventoryNumber",
       direction: "asc"
     }));
     expect(result.current.hasActiveFilters).toBe(false);

@@ -123,7 +123,8 @@ func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	fragments := []string{
 		"name: articleType\n", "name: gauge\n", "name: status\n", "style: form\n", "explode: true\n",
 		"enum: [available, reserved, installed, maintenance_due, defective, archived]",
-		"enum: [article, type, gauge, stock, storage, updatedAt]", "enum: [asc, desc]",
+		"[article, image, inventoryNumber, manufacturer, articleNumber, name,",
+		"type, gauge, stock, storage, updatedAt]", "default: inventoryNumber", "enum: [asc, desc]",
 		"multipart/form-data:", "format: binary", "application/octet-stream:",
 		"AccessoryArticleListResult", "AccessoryDuplicateCheckResult", "AccessoryStockSummary",
 		"AccessoryStockMovement", "AccessoryPurchase", "AccessoryDocument", "AccessoryUsageHistory",

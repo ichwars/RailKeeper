@@ -128,6 +128,18 @@ func (r *AccessoryRepository) CreateProduct(
 		if err := reserveAccessoryWriteTransaction(ctx, tx); err != nil {
 			return err
 		}
+		inventoryNumber, err := application.ReserveInventoryNumber(
+			ctx,
+			tx,
+			"Artikel",
+			"",
+			func(candidate string) error {
+				return ensureAccessoryInventoryNumberAvailable(ctx, tx, candidate)
+			},
+		)
+		if err != nil {
+			return err
+		}
 		state, err := accessoryProductMutationState(ctx, tx, "", input)
 		if err != nil {
 			return err
@@ -143,13 +155,13 @@ func (r *AccessoryRepository) CreateProduct(
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_products(
-	  id, manufacturer, article_number, name, category, tracking_mode, description,
+	  id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
 	  ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
 	  stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
 	  alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
 	  created_at, updated_at
-	) VALUES(?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), 'unknown'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			productID, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
+	) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), 'unknown'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			productID, inventoryNumber, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
 			input.Description, input.EAN, input.ManufacturerStatus, input.ArticleType, input.Subtype, gauges,
 			input.Scale, input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy,
 			input.ManufacturerURL, input.ProductURL, alternativeNumbers, keywords, input.CompatibilityNotes,
@@ -433,7 +445,7 @@ UPDATE storage_locations SET parent_id=NULLIF(?, ''), name=?, description=?, arc
 }
 
 const accessoryProductSelect = `SELECT
-  id, manufacturer, article_number, name, category, tracking_mode, description,
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
   ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
   stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
   alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
@@ -446,7 +458,7 @@ func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, er
 	product := &application.AccessoryProduct{}
 	var gauges, alternativeNumbers, keywords string
 	var archived int
-	err := scanner.Scan(&product.ID, &product.Manufacturer, &product.ArticleNumber, &product.Name,
+	err := scanner.Scan(&product.ID, &product.InventoryNumber, &product.Manufacturer, &product.ArticleNumber, &product.Name,
 		&product.Category, &product.TrackingMode, &product.Description, &product.EAN, &product.ManufacturerStatus,
 		&product.ArticleType, &product.Subtype, &gauges, &product.Scale, &product.PackageQuantity,
 		&product.StockUnit, &product.MinimumStock, &product.InventoryStrategy, &product.ManufacturerURL,
@@ -466,6 +478,19 @@ func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, er
 	}
 	product.Archived = archived != 0
 	return product, err
+}
+
+func ensureAccessoryInventoryNumberAvailable(ctx context.Context, tx *sql.Tx, inventoryNumber string) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM accessory_products WHERE inventory_number=?
+`, inventoryNumber).Scan(&count); err != nil {
+		return fmt.Errorf("check accessory inventory number availability: %w", err)
+	}
+	if count > 0 {
+		return application.ErrInventoryNumberConflict
+	}
+	return nil
 }
 
 func scanStorageLocation(scanner rowScanner) (*application.StorageLocation, error) {

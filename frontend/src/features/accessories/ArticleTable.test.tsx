@@ -8,6 +8,7 @@ import { ArticleTable } from "./ArticleTable";
 
 const article: AccessoryArticleListItem = {
   id: "article-1",
+  inventoryNumber: "RK-ART-000001",
   manufacturer: "Ein sehr langer Herstellername für Modellbahnartikel",
   articleNumber: "83101",
   name: "Gerades Modellgleis mit besonders langer Bezeichnung",
@@ -52,7 +53,7 @@ describe("ArticleTable", () => {
     render(
       <ArticleTable
         items={[article]}
-        sort="article"
+        sort="inventoryNumber"
         direction="asc"
         canEdit
         onSort={onSort}
@@ -64,14 +65,34 @@ describe("ArticleTable", () => {
     );
 
     expect(screen.getAllByRole("columnheader").map((header) => header.textContent?.trim())).toEqual([
-      "Artikel", "Art / Unterart", "Spur", "Bestand", "Lagerung", "Aktionen"
+      "", "Bild", "Inventarnummer", "Hersteller", "Artikelnummer", "Name",
+      "Art / Unterart", "Spur", "Bestand", "Lagerung", "Aktionen"
     ]);
-    expect(screen.getByRole("columnheader", { name: "Artikel" })).toHaveAttribute("aria-sort", "ascending");
+    expect(screen.getByRole("columnheader", { name: "Inventarnummer" })).toHaveAttribute("aria-sort", "ascending");
     expect(screen.getByRole("columnheader", { name: "Bestand" })).toHaveAttribute("aria-sort", "none");
     expect(screen.getByRole("table")).toHaveClass("article-table");
     expect(screen.getByRole("table").parentElement).toHaveClass("article-table-wrap");
     await user.click(screen.getByRole("button", { name: "Nach Bestand sortieren" }));
     expect(onSort).toHaveBeenCalledWith("stock");
+  });
+
+  it("selects individual and all visible rows without exposing a bulk action", async () => {
+    const user = userEvent.setup();
+    const onToggleSelection = vi.fn();
+    const onToggleAll = vi.fn();
+    render(<ArticleTable items={[article, secondArticle]} selectedIDs={new Set([article.id])}
+      sort="inventoryNumber" direction="asc" canEdit onSort={vi.fn()}
+      onToggleSelection={onToggleSelection} onToggleAll={onToggleAll}
+      onArchive={vi.fn()} onRestore={vi.fn()} />);
+
+    const selectAll = screen.getByRole("checkbox", { name: "Alle sichtbaren Artikel auswählen" });
+    expect(selectAll).not.toBeChecked();
+    expect(selectAll).toHaveProperty("indeterminate", true);
+    await user.click(screen.getByRole("checkbox", { name: `Artikel auswählen: ${secondArticle.name}` }));
+    expect(onToggleSelection).toHaveBeenCalledWith(secondArticle.id);
+    await user.click(selectAll);
+    expect(onToggleAll).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("button", { name: /ausgewählte artikel/i })).not.toBeInTheDocument();
   });
 
   it("renders localized built-in subtype labels and preserves configured custom labels", () => {

@@ -73,13 +73,13 @@ func TestLayoutAccessoryMigrationEnforcesDomainConstraints(t *testing.T) {
 	}
 
 	expectConstraintFailure(t, db, `
-INSERT INTO accessory_products(id, manufacturer, name, category, tracking_mode, created_at, updated_at)
-VALUES('invalid-product', 'Tillig', 'Gleis', 'track', 'bulk', 'now', 'now')`)
+INSERT INTO accessory_products(id, inventory_number, manufacturer, name, category, tracking_mode, created_at, updated_at)
+VALUES('invalid-product', 'RK-ART-INVALID', 'Tillig', 'Gleis', 'track', 'bulk', 'now', 'now')`)
 
 	statements := []string{
 		`INSERT INTO storage_locations(id, name, created_at, updated_at) VALUES('location-1', 'Lager', 'now', 'now')`,
-		`INSERT INTO accessory_products(id, manufacturer, article_number, name, category, tracking_mode, created_at, updated_at)
-         VALUES('product-1', 'Tillig', '83101', 'Gerades Gleis', 'track', 'quantity', 'now', 'now')`,
+		`INSERT INTO accessory_products(id, inventory_number, manufacturer, article_number, name, category, tracking_mode, created_at, updated_at)
+		 VALUES('product-1', 'RK-ART-000001', 'Tillig', '83101', 'Gerades Gleis', 'track', 'quantity', 'now', 'now')`,
 		`INSERT INTO layouts(id, name, kind, gauge, scale, created_at, updated_at)
          VALUES('layout-1', 'Clubanlage', 'club', 'TT', '1:120', 'now', 'now')`,
 		`INSERT INTO layout_units(id, layout_id, name, kind, created_at, updated_at)
@@ -170,8 +170,8 @@ func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
 	}
 
 	if _, err := db.Exec(`INSERT INTO accessory_products(
-  id, manufacturer, name, category, tracking_mode, created_at, updated_at
-) VALUES('article-2', 'Tillig', 'Gleis', 'track', 'quantity', 'now', 'now')`); err != nil {
+  id, inventory_number, manufacturer, name, category, tracking_mode, created_at, updated_at
+) VALUES('article-2', 'RK-ART-000002', 'Tillig', 'Gleis', 'track', 'quantity', 'now', 'now')`); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
@@ -193,8 +193,8 @@ VALUES('location-2', 'Werkstatt', 'now', 'now')`); err != nil {
 
 	statements := []string{
 		`INSERT INTO accessory_products(
-           id, manufacturer, name, category, tracking_mode, inventory_strategy, created_at, updated_at
-         ) VALUES('article-1', 'Tillig', 'Gleis', 'track', 'quantity', 'unsupported', 'now', 'now')`,
+		   id, inventory_number, manufacturer, name, category, tracking_mode, inventory_strategy, created_at, updated_at
+		 ) VALUES('article-1', 'RK-ART-INVALID-STRATEGY', 'Tillig', 'Gleis', 'track', 'quantity', 'unsupported', 'now', 'now')`,
 		`INSERT INTO accessory_product_attributes(
            id, product_id, attribute_key, value_type, text_value, number_value, created_at, updated_at
          ) VALUES('attribute-1', 'article-2', 'lengthMm', 'text', '120', 120, 'now', 'now')`,

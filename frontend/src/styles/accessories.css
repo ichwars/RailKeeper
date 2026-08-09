@@ -81,7 +81,7 @@
 
 .article-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1460px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -91,29 +91,52 @@
   vertical-align: middle;
 }
 
-.article-table th:nth-child(1),
-.article-table td:nth-child(1) {
-  width: 28%;
+.article-table .select-cell {
+  width: 44px;
+  text-align: center;
 }
 
 .article-table th:nth-child(2),
-.article-table td:nth-child(2) {
-  width: 17%;
+.article-table td.article-image-cell {
+  width: 86px;
 }
 
 .article-table th:nth-child(3),
-.article-table td:nth-child(3) {
-  width: 9%;
+.article-table td.article-inventory-cell {
+  width: 142px;
 }
 
 .article-table th:nth-child(4),
-.article-table td:nth-child(4) {
-  width: 21%;
+.article-table td.article-manufacturer-cell {
+  width: 150px;
 }
 
 .article-table th:nth-child(5),
-.article-table td:nth-child(5) {
-  width: 17%;
+.article-table td.article-number-cell {
+  width: 126px;
+}
+
+.article-table th:nth-child(6),
+.article-table td.article-main-cell {
+  width: 210px;
+}
+
+.article-table th:nth-child(7) {
+  width: 175px;
+}
+
+.article-table th:nth-child(8) {
+  width: 80px;
+}
+
+.article-table th:nth-child(9),
+.article-table td.article-stock-cell {
+  width: 210px;
+}
+
+.article-table th:nth-child(10),
+.article-table td.article-storage-cell {
+  width: 170px;
 }
 
 .article-table th.actions-cell,
@@ -149,6 +172,9 @@
 }
 
 .article-main-cell,
+.article-inventory-cell,
+.article-manufacturer-cell,
+.article-number-cell,
 .article-storage-cell {
   min-width: 0;
   max-width: 0;
@@ -193,6 +219,12 @@
   display: block;
   color: var(--muted);
   font-size: var(--font-size-xs);
+}
+
+.article-image-cell .inventory-thumb,
+.article-image-cell .image-placeholder {
+  width: 54px;
+  height: 42px;
 }
 
 .article-truncate {
@@ -558,10 +590,6 @@
 }
 
 @media (max-width: 920px) {
-  .article-table {
-    min-width: 760px;
-  }
-
   .article-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

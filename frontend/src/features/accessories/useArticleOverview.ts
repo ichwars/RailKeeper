@@ -74,7 +74,7 @@ function buildQuery(
 
 export function useArticleOverview({ enabled = true }: { enabled?: boolean } = {}) {
   const [filters, setFilters] = useState<ArticleOverviewFilters>(emptyFilters);
-  const [sort, setSortState] = useState<AccessoryArticleSort>("article");
+  const [sort, setSortState] = useState<AccessoryArticleSort>("inventoryNumber");
   const [direction, setDirection] = useState<AccessorySortDirection>("asc");
   const [data, setData] = useState<AccessoryArticleListResult>(emptyResult);
   const [loading, setLoading] = useState(enabled);

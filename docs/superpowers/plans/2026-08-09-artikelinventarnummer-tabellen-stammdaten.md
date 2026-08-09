@@ -157,23 +157,23 @@ Einzelstücknummern bleiben unverändert.
 
 **Steps:**
 
-- [ ] Migration 0043 ergänzt `accessory_products.inventory_number`, legt das Standardschema
+- [x] Migration 0043 ergänzt `accessory_products.inventory_number`, legt das Standardschema
   `Artikel` mit `RK-ART` an, nummeriert Altbestände stabil nach `created_at, id`, setzt den Zähler
   hinter die höchste vergebene Nummer und erzwingt Eindeutigkeit sowie Nicht-Leerheit durch Index
   und Insert/Update-Trigger.
-- [ ] Migrationstest prüft leere Datenbank, mehrere Altartikel mit identischem Zeitstempel,
+- [x] Migrationstest prüft leere Datenbank, mehrere Altartikel mit identischem Zeitstempel,
   vorhandenes benutzerdefiniertes Artikelschema, stabile Reihenfolge, Zählerstand und Ablehnung von
   leerer bzw. doppelter Nummer.
-- [ ] `inventory_numbers.go` stellt die gemeinsame transaktionale Reservierungsfunktion bereit:
+- [x] `inventory_numbers.go` stellt die gemeinsame transaktionale Reservierungsfunktion bereit:
   aktive Kategorie lesen, Nummer formatieren, Eindeutigkeitscallback prüfen, Zähler atomar erhöhen
   und nach begrenzten Konfliktversuchen mit fachlichem Fehler abbrechen.
-- [ ] `vehicle_persistence.go` verwendet dieselbe Funktion, damit vorhandene Fahrzeugtests beweisen,
+- [x] `vehicle_persistence.go` verwendet dieselbe Funktion, damit vorhandene Fahrzeugtests beweisen,
   dass Fallbackkategorien und benutzerdefinierte Schemen unverändert funktionieren.
-- [ ] `AccessoryProduct` erhält das Responsefeld `InventoryNumber`; Schreibinputs bleiben ohne frei
+- [x] `AccessoryProduct` erhält das Responsefeld `InventoryNumber`; Schreibinputs bleiben ohne frei
   setzbare Nummer.
-- [ ] `AccessoryRepository.CreateProduct` reserviert `Artikel` innerhalb seiner bestehenden
+- [x] `AccessoryRepository.CreateProduct` reserviert `Artikel` innerhalb seiner bestehenden
   Write-Transaktion und schreibt die Nummer mit dem Produkt. Select und Scan lesen das Feld mit.
-- [ ] Repositorytests prüfen automatische Nummer, zwei aufeinanderfolgende Anlagen, Rollback ohne
+- [x] Repositorytests prüfen automatische Nummer, zwei aufeinanderfolgende Anlagen, Rollback ohne
   Zählerverbrauch, deaktiviertes/fehlendes Schema sowie parallele Anlagen ohne Duplikat.
 
 **Verification:**
@@ -218,17 +218,17 @@ verfügbar sein.
 
 **Steps:**
 
-- [ ] `AccessoryArticleListItem` erhält `InventoryNumber` und `PrimaryImageURL`; die Suche schließt
+- [x] `AccessoryArticleListItem` erhält `InventoryNumber` und `PrimaryImageURL`; die Suche schließt
   `inventory_number` ein.
-- [ ] Die Aggregationsquery ermittelt das Primärbild über `accessory_documents`, liefert eine
+- [x] Die Aggregationsquery ermittelt das Primärbild über `accessory_documents`, liefert eine
   Download-URL und sortiert `image` nach Bild vorhanden bzw. nicht vorhanden.
-- [ ] Die Sortmap trennt Inventarnummer, Hersteller, Artikelnummer und Bezeichnung und hängt stets
+- [x] Die Sortmap trennt Inventarnummer, Hersteller, Artikelnummer und Bezeichnung und hängt stets
   `id` als deterministischen Tiebreaker an.
-- [ ] Querytests prüfen jede Sortierung in beiden Richtungen, Suche nach Inventarnummer,
+- [x] Querytests prüfen jede Sortierung in beiden Richtungen, Suche nach Inventarnummer,
   Primärbild-URL, fehlenden Bildplatzhalterwert und stabile Gleichstände.
-- [ ] Handler- und OpenAPI-Vertragstests prüfen das neue Pflichtfeld in Detail- und Listenresponses,
+- [x] Handler- und OpenAPI-Vertragstests prüfen das neue Pflichtfeld in Detail- und Listenresponses,
   ohne es in `AccessoryProductInput` aufzunehmen.
-- [ ] `openapi/railkeeper.yaml` dokumentiert `inventoryNumber`, `primaryImageUrl` und die erweiterten
+- [x] `openapi/railkeeper.yaml` dokumentiert `inventoryNumber`, `primaryImageUrl` und die erweiterten
   Sortparameter konsistent.
 
 **Verification:**
@@ -268,15 +268,15 @@ verwendete Nummer gesetzt.
 
 **Steps:**
 
-- [ ] Ein fokussierter Restore-Helfer validiert vorhandene Artikelinventarnummern, sammelt belegte
+- [x] Ein fokussierter Restore-Helfer validiert vorhandene Artikelinventarnummern, sammelt belegte
   Werte und ergänzt fehlende Nummern deterministisch vor dem generischen Insert.
-- [ ] Gemischte Backups mit vorhandenen und fehlenden Nummern überspringen belegte Werte und
+- [x] Gemischte Backups mit vorhandenen und fehlenden Nummern überspringen belegte Werte und
   erzeugen keine Duplikate.
-- [ ] Fehlendes oder deaktiviertes Artikelschema macht die Restore-Validierung inkompatibel bzw.
+- [x] Fehlendes oder deaktiviertes Artikelschema macht die Restore-Validierung inkompatibel bzw.
   bricht den Import vor destruktivem Commit ab.
-- [ ] `backup.go` ruft den Helfer an der bestehenden Restoregrenze auf; die umfangreiche
+- [x] `backup.go` ruft den Helfer an der bestehenden Restoregrenze auf; die umfangreiche
   Backupdatei erhält keine neue Detailimplementierung.
-- [ ] Tests decken Export/Import mit erhaltener Nummer, Version-2- und Version-3-Dokumente ohne
+- [x] Tests decken Export/Import mit erhaltener Nummer, Version-2- und Version-3-Dokumente ohne
   Nummer, gemischte Zeilen, wiederholte deterministische Zuweisung und Zählerfortschreibung ab.
 
 **Verification:**
@@ -321,22 +321,22 @@ Optionen angezeigt. Maßstab und Felder ohne Datenquelle bleiben Freitext.
 
 **Steps:**
 
-- [ ] Frontendtypen ergänzen `inventoryNumber` und `primaryImageUrl`; Sorttypen entsprechen dem
+- [x] Frontendtypen ergänzen `inventoryNumber` und `primaryImageUrl`; Sorttypen entsprechen dem
   erweiterten Backendvertrag.
-- [ ] `useArticleCoreMasterData` lädt `manufacturer`, `gauge` und `stock_unit` unabhängig, hält
+- [x] `useArticleCoreMasterData` lädt `manufacturer`, `gauge` und `stock_unit` unabhängig, hält
   Loading- und Fehlerzustände je Quelle, ignoriert veraltete Requests und bietet gezielte Retry-
   Funktionen.
-- [ ] Der Controller startet den Hook pro Dialogsession und reicht ein gebündeltes
+- [x] Der Controller startet den Hook pro Dialogsession und reicht ein gebündeltes
   `coreMasterData`-Objekt weiter, ohne die bestehenden Ressourcen- und Dirty-State-Flows zu ändern.
-- [ ] `ArticleCoreTab` zeigt die Inventarnummer schreibgeschützt; im Create-Modus erscheint der
+- [x] `ArticleCoreTab` zeigt die Inventarnummer schreibgeschützt; im Create-Modus erscheint der
   lokalisierte Hinweis auf automatische Vergabe.
-- [ ] Hersteller wird `AppSelect` mit aktiven Labels als persistierten Werten, Spurweite bleibt
+- [x] Hersteller wird `AppSelect` mit aktiven Labels als persistierten Werten, Spurweite bleibt
   `AppMultiSelect` aus aktiven Gauge-Einträgen, Bestandseinheit wird `AppSelect` mit kanonischem Key
   und lokalisierter Anzeige über `masterDataDisplayLabel`.
-- [ ] Aktuelle inaktive oder historische Werte werden als deaktivierte Option erhalten. Ein
+- [x] Aktuelle inaktive oder historische Werte werden als deaktivierte Option erhalten. Ein
   Ladefehler deaktiviert nur das betroffene Feld, zeigt eine lokalisierte Meldung und lässt Retry
   zu.
-- [ ] Tests prüfen Datenquellen, persistierte Werte, Deutsch/Englisch, inaktive Altwerte,
+- [x] Tests prüfen Datenquellen, persistierte Werte, Deutsch/Englisch, inaktive Altwerte,
   unabhängige Fehler, Retry, Request-Rennen, Dirty-State und die nicht editierbare Inventarnummer.
 
 **Verification:**
@@ -381,26 +381,26 @@ keine Sammelaktionen.
 
 **Steps:**
 
-- [ ] `ArticleMetrics` trennt je Karte `summary` und `detail`: Artikel, frei, gebunden und Hinweise
+- [x] `ArticleMetrics` trennt je Karte `summary` und `detail`: Artikel, frei, gebunden und Hinweise
   stehen groß; Arten, Lagerorte, reserviert/eingebaut und unvollständig stehen als dezentes `em`
   darunter. Bestehende Filterbuttons und Aktivzustände bleiben erhalten.
-- [ ] `AccessoriesView` hält die sichtbare Mehrfachauswahl, schneidet sie nach jedem neuen Resultat
+- [x] `AccessoriesView` hält die sichtbare Mehrfachauswahl, schneidet sie nach jedem neuen Resultat
   auf geladene IDs zu und übergibt Auswahl sowie Toggle-Callbacks an die Tabelle.
-- [ ] `ArticleTable` rendert exakt die freigegebene Spaltenreihenfolge: Auswahl, Bild,
+- [x] `ArticleTable` rendert exakt die freigegebene Spaltenreihenfolge: Auswahl, Bild,
   Inventarnummer, Hersteller, Artikelnummer, Bezeichnung, Artikelart/Unterart, Spurweite, Bestand,
   Lagerort, Aktionen.
-- [ ] Kopfcheckbox unterstützt checked, unchecked und indeterminate, wählt alle sichtbaren Zeilen
+- [x] Kopfcheckbox unterstützt checked, unchecked und indeterminate, wählt alle sichtbaren Zeilen
   und besitzt deutsche sowie englische barrierefreie Beschriftungen. Zeilencheckboxen enthalten
   die Artikelbezeichnung im Accessible Name.
-- [ ] Primärbild nutzt `inventory-thumb`, fehlendes Bild den Bestandsplatzhalter. Inventarnummer,
+- [x] Primärbild nutzt `inventory-thumb`, fehlendes Bild den Bestandsplatzhalter. Inventarnummer,
   Hersteller, Artikelnummer, Bezeichnung, Typ, Spurweite, Bestand, Lagerort und Bild sind über den
   Tabellenkopf sortierbar; Auswahl und Aktionen nicht.
-- [ ] `useArticleOverview` verwendet `inventoryNumber` als Standardsortierung und behält das
+- [x] `useArticleOverview` verwendet `inventoryNumber` als Standardsortierung und behält das
   bestehende Umschalten zwischen auf- und absteigend bei.
-- [ ] CSS ersetzt `nth-child`-Annahmen durch benannte Spaltenklassen, hält Tabellenzellen kompakt,
+- [x] CSS ersetzt `nth-child`-Annahmen durch benannte Spaltenklassen, hält Tabellenzellen kompakt,
   stellt Summen-/Detailhierarchie her und setzt eine kontrollierte Mindestbreite für mobile
   horizontale Führung.
-- [ ] Tests prüfen DOM-Reihenfolge, alle Sortcallbacks, Bildzustände, Einzel-/Gesamtauswahl,
+- [x] Tests prüfen DOM-Reihenfolge, alle Sortcallbacks, Bildzustände, Einzel-/Gesamtauswahl,
   indeterminate, Auswahlbereinigung, Kennzahlentexte, Responsive-Minimum und fehlende
   Sammelaktionsbuttons.
 
@@ -432,15 +432,15 @@ abgenommen werden.
 
 **Steps:**
 
-- [ ] Alle geänderten Go-Dateien mit `gofmt` formatieren und `git diff --check` ausführen.
-- [ ] Vollständigen Backendlauf ausführen:
+- [x] Alle geänderten Go-Dateien mit `gofmt` formatieren und `git diff --check` ausführen.
+- [x] Vollständigen Backendlauf ausführen:
 
   ```powershell
   cd backend
   go test ./... -count=1
   ```
 
-- [ ] Vollständigen Frontendlauf ausführen:
+- [x] Vollständigen Frontendlauf ausführen:
 
   ```powershell
   cd frontend
@@ -448,16 +448,16 @@ abgenommen werden.
   npm.cmd run build
   ```
 
-- [ ] Lokalen Server mit demselben QA-Datensatz neu starten und `/health` sowie
+- [x] Lokalen Server mit demselben QA-Datensatz neu starten und `/health` sowie
   `/api/v1/accessory-products` prüfen.
-- [ ] Browser-QA auf `/accessories`: Dark und Light, Desktop und 390 × 844 Pixel, Kennzahlen,
+- [x] Browser-QA auf `/accessories`: Dark und Light, Desktop und 390 × 844 Pixel, Kennzahlen,
   sämtliche Sortierköpfe, Auswahl, Bild/Platzhalter, horizontale Tabellenführung, Dialog-Dropdowns,
   Inventarnummer nach Neuanlage, inaktive Altwerte und lange deutsche Texte.
-- [ ] Prüfen, dass keine Konsolenfehler, kein Dokumentüberlauf und keine ungewollte Sammelaktion
+- [x] Prüfen, dass keine Konsolenfehler, kein Dokumentüberlauf und keine ungewollte Sammelaktion
   vorhanden sind.
-- [ ] Spezifikationsstatus auf `Implemented and verified` setzen, Plancheckboxen abschließen und
+- [x] Spezifikationsstatus auf `Implemented and verified` setzen, Plancheckboxen abschließen und
   den offenen Folgepunkt „Sammelaktionen fehlen“ unverändert erhalten.
-- [ ] Nur Quellcode, Migration, Tests, OpenAPI, Spezifikation und Plan committen. `.superpowers/`,
+- [x] Nur Quellcode, Migration, Tests, OpenAPI, Spezifikation und Plan committen. `.superpowers/`,
   `frontend/dist`, `.cache` und lokale Daten bleiben untracked bzw. ignoriert.
 
 ## Risks and Rollback

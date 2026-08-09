@@ -10,8 +10,8 @@ func TestFileBlobDeleteRetainsAccessoryDocumentReferences(t *testing.T) {
 	db := testDB(t)
 	ctx := t.Context()
 	if _, err := db.ExecContext(ctx, `INSERT INTO accessory_products(
-  id, manufacturer, name, category, tracking_mode, created_at, updated_at
-) VALUES('product-1', 'Tillig', 'Gleis', 'track', 'quantity', 'now', 'now')`); err != nil {
+  id, inventory_number, manufacturer, name, category, tracking_mode, created_at, updated_at
+) VALUES('product-1', 'RK-ART-BLOB', 'Tillig', 'Gleis', 'track', 'quantity', 'now', 'now')`); err != nil {
 		t.Fatal(err)
 	}
 	blobs := application.NewFileBlobService(db, "")

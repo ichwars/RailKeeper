@@ -49,10 +49,16 @@ WITH stock_stats AS (
     ORDER BY storage.name COLLATE NOCASE
   ) locations
   GROUP BY locations.product_id
+), primary_images AS (
+  SELECT product_id, MIN(id) AS document_id
+  FROM accessory_documents
+  WHERE category='image' AND is_primary=1
+  GROUP BY product_id
 ), article_rows AS (
-  SELECT product.id, product.manufacturer, product.article_number, product.name,
+  SELECT product.id, product.inventory_number, product.manufacturer, product.article_number, product.name,
          product.article_type, product.subtype, product.gauges_json, product.inventory_strategy,
-         product.archived, product.updated_at,
+         product.archived, product.updated_at, COALESCE(primary_images.document_id, '') AS primary_document_id,
+         CASE WHEN primary_images.document_id IS NULL THEN 0 ELSE 1 END AS has_primary_image,
          CASE WHEN product.inventory_strategy='individual'
               THEN COALESCE(asset_stats.stored, 0)
               WHEN product.inventory_strategy='quantity_later_individual'
@@ -93,10 +99,16 @@ WITH stock_stats AS (
   LEFT JOIN reservation_stats ON reservation_stats.product_id=product.id
   LEFT JOIN installation_stats ON installation_stats.product_id=product.id
   LEFT JOIN location_stats ON location_stats.product_id=product.id
+  LEFT JOIN primary_images ON primary_images.product_id=product.id
 )`
 
 var accessoryArticleSortSQL = map[string]string{
-	"article": "manufacturer COLLATE NOCASE, article_number COLLATE NOCASE, name COLLATE NOCASE",
+	"article":         "manufacturer COLLATE NOCASE, article_number COLLATE NOCASE, name COLLATE NOCASE",
+	"image":           "has_primary_image",
+	"inventoryNumber": "inventory_number COLLATE NOCASE",
+	"manufacturer":    "manufacturer COLLATE NOCASE",
+	"articleNumber":   "article_number COLLATE NOCASE",
+	"name":            "name COLLATE NOCASE",
 	"type": `CASE article_type WHEN 'track' THEN 1 WHEN 'signal' THEN 2 WHEN 'decoder' THEN 3
                     WHEN 'electrical_control' THEN 4 WHEN 'building_equipment' THEN 5
                     WHEN 'landscape_consumable' THEN 6 WHEN 'lighting' THEN 7 ELSE 8 END, subtype COLLATE NOCASE`,
@@ -126,7 +138,8 @@ func (r *AccessoryRepository) ListArticles(
 	orderSQL := strings.Join(orderParts, ", ") + ", id " + direction
 
 	rows, err := r.db.QueryContext(ctx, accessoryArticleAggregationCTE+`
-SELECT id, manufacturer, article_number, name, article_type, subtype, gauges_json, inventory_strategy,
+SELECT id, inventory_number, primary_document_id, manufacturer, article_number, name,
+       article_type, subtype, gauges_json, inventory_strategy,
        archived, owned, available, reserved, installed, location_names, has_usage_history,
        care_hint_count, updated_at
 FROM article_rows`+where+` ORDER BY `+orderSQL, args...)
@@ -138,9 +151,10 @@ FROM article_rows`+where+` ORDER BY `+orderSQL, args...)
 	productIDs := make([]string, 0)
 	for rows.Next() {
 		item := application.AccessoryArticleListItem{}
-		var gauges, locations string
+		var gauges, locations, primaryDocumentID string
 		var archived, usageHistory int
-		if err := rows.Scan(&item.ID, &item.Manufacturer, &item.ArticleNumber, &item.Name, &item.ArticleType,
+		if err := rows.Scan(&item.ID, &item.InventoryNumber, &primaryDocumentID, &item.Manufacturer,
+			&item.ArticleNumber, &item.Name, &item.ArticleType,
 			&item.Subtype, &gauges, &item.InventoryStrategy, &archived, &item.Owned, &item.Available,
 			&item.Reserved, &item.Installed, &locations, &usageHistory, &item.CareHintCount,
 			&item.UpdatedAt); err != nil {
@@ -154,6 +168,13 @@ FROM article_rows`+where+` ORDER BY `+orderSQL, args...)
 		}
 		item.Archived = archived != 0
 		item.HasUsageHistory = usageHistory != 0
+		if primaryDocumentID != "" {
+			item.PrimaryImageURL = fmt.Sprintf(
+				"/api/v1/accessory-products/%s/documents/%s/download",
+				item.ID,
+				primaryDocumentID,
+			)
+		}
 		result.Items = append(result.Items, item)
 		productIDs = append(productIDs, item.ID)
 	}
@@ -189,12 +210,13 @@ func accessoryArticleWhere(query application.AccessoryArticleListQuery) (string,
 		clauses = append(clauses, "archived=0")
 	}
 	if query.Query != "" {
-		clauses = append(clauses, `(manufacturer LIKE '%' || ? || '%' COLLATE NOCASE
+		clauses = append(clauses, `(inventory_number LIKE '%' || ? || '%' COLLATE NOCASE
+      OR manufacturer LIKE '%' || ? || '%' COLLATE NOCASE
       OR article_number LIKE '%' || ? || '%' COLLATE NOCASE
       OR name LIKE '%' || ? || '%' COLLATE NOCASE
       OR EXISTS(SELECT 1 FROM accessory_products product WHERE product.id=article_rows.id
                 AND product.ean LIKE '%' || ? || '%' COLLATE NOCASE))`)
-		args = append(args, query.Query, query.Query, query.Query, query.Query)
+		args = append(args, query.Query, query.Query, query.Query, query.Query, query.Query)
 	}
 	if query.Manufacturer != "" {
 		clauses = append(clauses, "manufacturer=? COLLATE NOCASE")

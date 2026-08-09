@@ -19,6 +19,9 @@ type ArticleTableProps = {
   direction: AccessorySortDirection;
   canEdit: boolean;
   onSort: (sort: AccessoryArticleSort) => void;
+  selectedIDs?: Set<string>;
+  onToggleSelection?: (id: string) => void;
+  onToggleAll?: () => void;
   onView?: (article: AccessoryArticleListItem) => void;
   onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
@@ -26,7 +29,11 @@ type ArticleTableProps = {
 };
 
 const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
-  { sort: "article", key: "article" },
+  { sort: "image", key: "image" },
+  { sort: "inventoryNumber", key: "inventoryNumber" },
+  { sort: "manufacturer", key: "manufacturer" },
+  { sort: "articleNumber", key: "articleNumber" },
+  { sort: "name", key: "name" },
   { sort: "type", key: "type" },
   { sort: "gauge", key: "gauge" },
   { sort: "stock", key: "stock" },
@@ -41,6 +48,9 @@ export function ArticleTable({
   direction,
   canEdit,
   onSort,
+  selectedIDs = new Set<string>(),
+  onToggleSelection,
+  onToggleAll,
   onView,
   onEdit,
   onArchive,
@@ -50,7 +60,14 @@ export function ArticleTable({
   const [activeMenuIndex, setActiveMenuIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const triggerRefs = useRef(new Map<string, HTMLButtonElement>());
+  const selectAllRef = useRef<HTMLInputElement | null>(null);
   const { t } = useI18n();
+  const allSelected = items.length > 0 && items.every((item) => selectedIDs.has(item.id));
+  const someSelected = items.some((item) => selectedIDs.has(item.id));
+
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected && !allSelected;
+  }, [allSelected, someSelected]);
 
   const restoreTriggerFocus = (articleID: string) => {
     triggerRefs.current.get(articleID)?.focus();
@@ -140,6 +157,13 @@ export function ArticleTable({
       <table className="inventory-table article-table">
         <thead>
           <tr>
+            <th className="select-cell" aria-label={t("accessories.table.select")}>
+              <label className="table-select-field" title={t("accessories.table.selectAll")}>
+                <input ref={selectAllRef} type="checkbox" checked={allSelected}
+                  disabled={items.length === 0} aria-label={t("accessories.table.selectAll")}
+                  onChange={() => onToggleAll?.()} />
+              </label>
+            </th>
             {sortableColumns.map(renderSortHeader)}
             <th className="actions-cell">{t("accessories.table.actions")}</th>
           </tr>
@@ -152,16 +176,38 @@ export function ArticleTable({
             const editLabel = t("accessories.actions.editNamed", { name: article.name });
             const moreLabel = t("accessories.actions.moreNamed", { name: article.name });
             return (
-              <tr key={article.id} className={article.archived ? "archived" : ""}>
+              <tr key={article.id} className={[
+                article.archived ? "archived" : "",
+                selectedIDs.has(article.id) ? "selected-row" : ""
+              ].filter(Boolean).join(" ")}>
+                <td className="select-cell">
+                  <label className="table-select-field" title={t("accessories.table.selectNamed", { name: article.name })}>
+                    <input type="checkbox" checked={selectedIDs.has(article.id)}
+                      aria-label={t("accessories.table.selectNamed", { name: article.name })}
+                      onChange={() => onToggleSelection?.(article.id)} />
+                  </label>
+                </td>
+                <td className="article-image-cell">
+                  {article.primaryImageUrl
+                    ? <img className="inventory-thumb" src={article.primaryImageUrl} alt="" />
+                    : <div className="image-placeholder">{t("exhibition.noPreview")}</div>}
+                </td>
+                <td className="article-inventory-cell">
+                  <span className="article-truncate" title={article.inventoryNumber}>{article.inventoryNumber}</span>
+                </td>
+                <td className="article-manufacturer-cell">
+                  <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
+                </td>
+                <td className="article-number-cell">
+                  <span className="article-truncate" title={article.articleNumber || undefined}>
+                    {article.articleNumber || t("common.none")}
+                  </span>
+                </td>
                 <td className="article-main-cell">
                   {onView ? <button type="button" className="article-name-button" onClick={() => onView(article)}>
                     <strong className="article-truncate" title={article.name}>{article.name}</strong>
-                    <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
-                    <small>{article.articleNumber || t("common.none")}</small>
                   </button> : <div className="article-name-content">
                     <strong className="article-truncate" title={article.name}>{article.name}</strong>
-                    <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
-                    <small>{article.articleNumber || t("common.none")}</small>
                   </div>}
                 </td>
                 <td>

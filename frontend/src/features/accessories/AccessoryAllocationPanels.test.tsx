@@ -16,7 +16,8 @@ import { AccessoryInstallationsPanel } from "./AccessoryInstallationsPanel";
 import { AccessoryReservationsPanel } from "./AccessoryReservationsPanel";
 
 const article: AccessoryArticle = {
-  id: "article-1", manufacturer: "Tillig", name: "Signal", category: "signal", trackingMode: "quantity",
+  id: "article-1", inventoryNumber: "RK-ART-000001", manufacturer: "Tillig", name: "Signal",
+  category: "signal", trackingMode: "quantity",
   manufacturerStatus: "available", articleType: "signal", subtype: "main_signal", gauges: ["TT"], packageQuantity: 1,
   stockUnit: "piece", minimumStock: 0, inventoryStrategy: "quantity", alternativeNumbers: [], keywords: [],
   archived: false, attributes: [], createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T09:00:00Z"
