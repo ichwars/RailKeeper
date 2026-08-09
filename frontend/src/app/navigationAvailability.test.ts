@@ -3,13 +3,13 @@ import { describe, expect, it } from "vitest";
 import { availableStartView, isViewTemporarilyDisabled } from "./navigationAvailability";
 
 describe("navigation availability", () => {
-  it("marks only the layout workspace as temporarily disabled", () => {
-    expect(isViewTemporarilyDisabled("layouts")).toBe(true);
+  it("keeps the layout workspace available", () => {
+    expect(isViewTemporarilyDisabled("layouts")).toBe(false);
     expect(isViewTemporarilyDisabled("accessories")).toBe(false);
   });
 
   it.each([
-    ["layouts", "overview"],
+    ["layouts", "layouts"],
     ["inventory", "vehicles"],
     ["accessories", "accessories"],
     ["invalid", "overview"]

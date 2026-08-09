@@ -7,10 +7,10 @@ describe("App navigation availability", () => {
     window.history.replaceState(null, "", "/");
   });
 
-  it("falls back from a stored layout start view without overwriting it", () => {
+  it("uses a stored layout start view", () => {
     window.localStorage.setItem("railkeeper.settings.defaultView", "layouts");
 
-    expect(configuredStartView()).toBe("overview");
+    expect(configuredStartView()).toBe("layouts");
     expect(window.localStorage.getItem("railkeeper.settings.defaultView")).toBe("layouts");
   });
 

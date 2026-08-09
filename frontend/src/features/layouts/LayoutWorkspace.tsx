@@ -1,21 +1,31 @@
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertTriangle, Building2, ClipboardList, FileText, Settings2, Wrench } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AlertTriangle, Building2, ClipboardList, FileText, Pencil, Wrench } from "lucide-react";
 
 import {
   ApiError,
   api,
   type Layout,
   type LayoutConfiguration,
-  type LayoutKind,
   type LayoutUnit
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
-import { AppSelect } from "../../shared/ui/AppSelect";
 import { LayoutConfigurationsPanel } from "./LayoutConfigurationsPanel";
+import { LayoutFormDialog, type LayoutFormValue } from "./LayoutFormDialog";
 import { LayoutModulesPanel } from "./LayoutModulesPanel";
 import { LayoutPlansPanel } from "./LayoutPlansPanel";
 
 type LayoutTab = "overview" | "planner" | "modules" | "setups" | "technology" | "maintenance" | "documents";
+
+function layoutFormValue(layout: Layout): LayoutFormValue {
+  return {
+    name: layout.name,
+    kind: layout.kind,
+    gauge: layout.gauge,
+    scale: layout.scale,
+    description: layout.description || "",
+    archived: layout.archived
+  };
+}
 
 export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
   layout: Layout;
@@ -25,11 +35,12 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
   const [tab, setTab] = useState<LayoutTab>("overview");
   const [units, setUnits] = useState<LayoutUnit[]>([]);
   const [configurations, setConfigurations] = useState<LayoutConfiguration[]>([]);
-  const [form, setForm] = useState(layout);
+  const [editOpen, setEditOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
+  const editTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { t } = useI18n();
 
   const reloadStructure = useCallback(async () => {
@@ -55,7 +66,8 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
     setMessage(""); setConflict(false); setLoading(true);
     try {
       const [nextLayout] = await Promise.all([api.layout(layout.id), reloadStructure()]);
-      setForm(nextLayout); onLayoutChanged(nextLayout);
+      onLayoutChanged(nextLayout);
+      return layoutFormValue(nextLayout);
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : t("layouts.error.generic"));
     } finally {
@@ -63,8 +75,8 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
     }
   };
 
-  const saveLayout = async (event: FormEvent) => {
-    event.preventDefault(); setSaving(true); setMessage(""); setConflict(false);
+  const saveLayout = async (form: LayoutFormValue) => {
+    setSaving(true); setMessage(""); setConflict(false);
     try {
       const updated = await api.updateLayout(layout.id, {
         name: form.name,
@@ -73,9 +85,9 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         scale: form.scale,
         description: form.description?.trim() || undefined,
         archived: form.archived,
-        expectedVersion: form.version
+        expectedVersion: layout.version
       });
-      setForm(updated); onLayoutChanged(updated);
+      onLayoutChanged(updated); setEditOpen(false);
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) {
         setConflict(true); setMessage(t("layouts.conflict.message"));
@@ -94,7 +106,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         {layout.archived ? t("layouts.status.archived") : t("layouts.status.active")}
       </span>
     </header>
-    {message ? <div className={conflict ? "layout-conflict" : "form-message"}>
+    {message && !editOpen ? <div className={conflict ? "layout-conflict" : "form-message"}>
       {conflict ? <AlertTriangle size={16} /> : null}<span>{message}</span>
       {conflict ? <button type="button" className="secondary-button compact-action" onClick={reloadServerState}>
         {t("layouts.conflict.reload")}</button> : null}
@@ -105,38 +117,38 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
     {loading ? <section className="panel"><p>{t("layouts.structure.loading")}</p></section> :
       tab === "overview" ? <section className="layout-overview-grid">
         <section className="panel layout-overview-summary">
-          <div className="panel-title"><Building2 size={17} /><h3>{t("layouts.overview.title")}</h3></div>
+          <div className="layout-panel-head">
+            <div className="panel-title"><Building2 size={17} /><h3>{t("layouts.overview.title")}</h3></div>
+            {canPlan ? <button ref={editTriggerRef} type="button" className="secondary-button compact-action"
+              onClick={() => { setMessage(""); setConflict(false); setEditOpen(true); }}>
+              <Pencil size={15} />{t("layouts.edit.action")}
+            </button> : null}
+          </div>
           <dl><div><dt>{t("layouts.field.kind")}</dt><dd>{t(`layouts.kind.${layout.kind}`)}</dd></div>
+            <div><dt>{t("layouts.field.status")}</dt><dd>{layout.archived
+              ? t("layouts.status.archived") : t("layouts.status.active")}</dd></div>
+            <div><dt>{t("layouts.field.gauge")}</dt><dd>{layout.gauge}</dd></div>
+            <div><dt>{t("layouts.field.scale")}</dt><dd>{layout.scale}</dd></div>
+            <div><dt>{t("layouts.overview.version")}</dt><dd>{t("layouts.version", { version: layout.version })}</dd></div>
             <div><dt>{t("layouts.overview.units")}</dt><dd>{units.length}</dd></div>
             <div><dt>{t("layouts.overview.setups")}</dt><dd>{configurations.length}</dd></div>
+            <div><dt>{t("layouts.overview.created")}</dt><dd>{new Date(layout.createdAt).toLocaleString()}</dd></div>
             <div><dt>{t("layouts.overview.updated")}</dt><dd>{new Date(layout.updatedAt).toLocaleString()}</dd></div></dl>
-          <p>{layout.description || t("layouts.overview.noDescription")}</p>
+          <div className="layout-profile-description"><h4>{t("layouts.field.description")}</h4>
+            <p className={layout.description ? "" : "layout-empty"}>
+              {layout.description || t("layouts.overview.noDescription")}
+            </p>
+          </div>
         </section>
-        {canPlan ? <section className="panel">
-          <div className="panel-title"><Settings2 size={17} /><h3>{t("layouts.edit.title")}</h3></div>
-          <form className="layout-form" onSubmit={saveLayout}>
-            <label>{t("layouts.field.name")}<input required value={form.name}
-              onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
-            <label>{t("layouts.field.kind")}<AppSelect value={form.kind}
-              onChange={(event) => setForm({ ...form, kind: event.target.value as LayoutKind })}>
-              <option value="private">{t("layouts.kind.private")}</option><option value="club">{t("layouts.kind.club")}</option>
-            </AppSelect></label>
-            <div className="layout-inline-fields"><label>{t("layouts.field.gauge")}<input required value={form.gauge}
-              onChange={(event) => setForm({ ...form, gauge: event.target.value })} /></label>
-              <label>{t("layouts.field.scale")}<input required value={form.scale}
-                onChange={(event) => setForm({ ...form, scale: event.target.value })} /></label></div>
-            <label>{t("layouts.field.description")}<textarea value={form.description || ""}
-              onChange={(event) => setForm({ ...form, description: event.target.value })} /></label>
-            <label className="layout-check"><input type="checkbox" checked={form.archived}
-              onChange={(event) => setForm({ ...form, archived: event.target.checked })} />{t("layouts.field.archived")}</label>
-            <button type="submit" className="primary-button" disabled={saving}>{saving ? t("common.saving") : t("layouts.edit.save")}</button>
-          </form>
-        </section> : null}
       </section> : tab === "modules" ? <LayoutModulesPanel units={units} layoutID={layout.id} canPlan={canPlan}
         onChanged={reloadStructure} /> : tab === "setups" ? <LayoutConfigurationsPanel configurations={configurations}
           units={units} layoutID={layout.id} canPlan={canPlan} onChanged={reloadStructure} />
         : tab === "planner" ? <LayoutPlansPanel units={units} canPlan={canPlan} />
           : <LayoutDeferredPanel tab={tab} />}
+    {editOpen ? <LayoutFormDialog mode="edit" initialValue={layoutFormValue(layout)} saving={saving}
+      message={message} conflict={conflict} returnFocusTo={editTriggerRef.current}
+      onSubmit={saveLayout} onReloadConflict={reloadServerState}
+      onClose={() => { setEditOpen(false); setMessage(""); setConflict(false); }} /> : null}
   </section>;
 }
 

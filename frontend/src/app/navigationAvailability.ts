@@ -10,7 +10,7 @@ const appViews = [
   "settings"
 ] as const;
 
-const temporarilyDisabledViews = new Set<AppView>(["layouts"]);
+const temporarilyDisabledViews = new Set<AppView>();
 
 function isAppView(value: string): value is AppView {
   return appViews.some((view) => view === value);
