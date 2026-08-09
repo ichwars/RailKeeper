@@ -123,6 +123,66 @@ INSERT INTO accessory_installations(
 	}
 }
 
+func TestLayoutTwinMigrationCreatesPositionTablesAndConstraints(t *testing.T) {
+	db, err := infrastructure.OpenSQLite(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+
+	if err := infrastructure.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, table := range []string{
+		"layout_unit_outline_points",
+		"layout_technical_positions",
+		"accessory_reservation_positions",
+		"accessory_installation_positions",
+	} {
+		var count int
+		if err := db.QueryRow(`SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?`, table).
+			Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("missing layout twin table %q", table)
+		}
+	}
+
+	statements := []string{
+		`INSERT INTO layouts(id, name, kind, gauge, scale, created_at, updated_at)
+         VALUES('layout-twin-1', 'Testanlage', 'private', 'TT', '1:120', 'now', 'now')`,
+		`INSERT INTO layout_units(id, layout_id, name, kind, created_at, updated_at)
+         VALUES('unit-twin-1', 'layout-twin-1', 'Segment A', 'segment', 'now', 'now')`,
+		`INSERT INTO accessory_products(
+           id, inventory_number, manufacturer, name, category, tracking_mode, created_at, updated_at
+         ) VALUES('product-twin-1', 'RK-ART-TWIN-1', 'Tillig', 'Signal', 'signal', 'quantity', 'now', 'now')`,
+		`INSERT INTO layout_unit_outline_points(layout_unit_id, point_index, position_x_mm, position_y_mm)
+         VALUES('unit-twin-1', 0, 0, 0)`,
+		`INSERT INTO layout_technical_positions(
+           id, layout_unit_id, label, kind, position_x_mm, position_y_mm, rotation_degrees,
+           product_id, created_at, updated_at
+         ) VALUES('position-twin-1', 'unit-twin-1', 'Einfahrsignal', 'signal', 20, 30, 90,
+           'product-twin-1', 'now', 'now')`,
+	}
+	for _, statement := range statements {
+		if _, err := db.Exec(statement); err != nil {
+			t.Fatalf("seed layout twin schema test: %v", err)
+		}
+	}
+
+	expectConstraintFailure(t, db, `INSERT INTO layout_technical_positions(
+      id, layout_unit_id, label, kind, position_x_mm, position_y_mm, rotation_degrees, created_at, updated_at
+    ) VALUES('invalid-rotation', 'unit-twin-1', 'Signal', 'signal', 0, 0, 360, 'now', 'now')`)
+	expectConstraintFailure(t, db, `INSERT INTO layout_technical_positions(
+      id, layout_unit_id, label, kind, position_x_mm, position_y_mm, created_at, updated_at
+    ) VALUES('invalid-kind', 'unit-twin-1', 'Befehl', 'command', 0, 0, 'now', 'now')`)
+	expectConstraintFailure(t, db, `INSERT INTO layout_unit_outline_points(
+      layout_unit_id, point_index, position_x_mm, position_y_mm
+    ) VALUES('missing-unit', 0, 0, 0)`)
+}
+
 func TestLayoutAccessorySchemaCreatesArticleManagementTables(t *testing.T) {
 	db, err := infrastructure.OpenSQLite(t.TempDir())
 	if err != nil {
