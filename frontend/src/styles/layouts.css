@@ -430,6 +430,15 @@
 .layout-twin-allocation-list small { overflow-wrap: anywhere; }
 .layout-twin-allocation-list small { color: var(--muted); }
 
+.layout-twin-history-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.layout-twin-history-list li { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 7px; }
+.layout-twin-history-list li > svg { margin-top: 2px; color: var(--muted); }
+.layout-twin-history-list li > div { display: grid; gap: 2px; }
+.layout-twin-history-list span,
+.layout-twin-history-list small { overflow-wrap: anywhere; }
+.layout-twin-history-list small { color: var(--muted); }
+.layout-twin-history-error { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--danger); }
+
 .layout-conflict {
   display: flex;
   align-items: center;

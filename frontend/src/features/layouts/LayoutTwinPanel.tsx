@@ -21,6 +21,7 @@ import {
   twinPointInsideOutline,
   type TwinViewBox
 } from "./layoutTwinGeometry";
+import { LayoutTwinHistory } from "./LayoutTwinHistory";
 
 const statuses: LayoutTwinStatus[] = ["planned", "reserved", "installed", "maintenance_due", "defective"];
 
@@ -380,7 +381,7 @@ function LayoutTwinInspector({ position, unitName, onClose }: {
   const { t } = useI18n();
   const allocations = [...position.reservations.map((allocation) => ({ ...allocation, type: "reservation" as const })),
     ...position.installations.map((allocation) => ({ ...allocation, type: "installation" as const }))];
-  return <aside className="layout-twin-inspector" aria-label={t("layouts.twin.inspector.title")}> 
+  return <aside className="layout-twin-inspector" aria-label={t("layouts.twin.inspector.title")}>
     <header><div><p className="eyebrow">{t(`layouts.positionKind.${position.kind}`)}</p>
       <h4>{position.label}</h4></div><button type="button" className="icon-button"
         aria-label={t("common.close")} title={t("common.close")} onClick={onClose}><X size={17} /></button></header>
@@ -410,6 +411,8 @@ function LayoutTwinInspector({ position, unitName, onClose }: {
           {allocation.connection ? <small>{t("layouts.twin.inspector.connection")}: {allocation.connection}</small> : null}
           {allocation.wiringNotes ? <small>{t("layouts.twin.inspector.wiringNotes")}: {allocation.wiringNotes}</small> : null}
         </article>)}</div> : <p className="layout-empty">{t("layouts.twin.inspector.noAllocations")}</p>}</section>
+      <section><h5>{t("layouts.twin.history.title")}</h5>
+        <LayoutTwinHistory key={position.id} positionID={position.id} productID={position.productId} /></section>
     </div>
   </aside>;
 }
