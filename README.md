@@ -11,12 +11,16 @@
 <p align="center">
   <a href="https://github.com/ichwars/RailKeeper/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/ichwars/RailKeeper?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/ichwars/RailKeeper/ci.yml?branch=main&style=for-the-badge"></a>
-  <img alt="Go" src="https://img.shields.io/badge/Go-1.25-00ADD8?style=for-the-badge&logo=go&logoColor=white">
+  <img alt="Go" src="https://img.shields.io/badge/Go-1.26-00ADD8?style=for-the-badge&logo=go&logoColor=white">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
   <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/License-MIT%20Self--Hosting-7AC943?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
+</p>
+
+<p align="center">
+  <strong>English</strong> · <a href="README.de.md">Deutsch</a>
 </p>
 
 ## Overview
@@ -29,6 +33,8 @@ The project is designed for private collections, clubs and small workshops that 
 
 - Local-first inventory with SQLite, uploads and JSON backups
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
+- Article inventory with generated inventory numbers, sortable selection-first overview, quantity or individual tracking, storage-location stock, reservations, installations, documents and usage history
+- Layout, module, setup and plan-revision foundation with version-conflict protection; its main-navigation entry remains temporarily disabled while the workspace is refined
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
@@ -59,6 +65,7 @@ RailKeeper is built around operational views instead of marketing pages:
 
 - **Overview** for inventory, value, maintenance and data quality
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
+- **Article Overview** for article search, sortable inventory data, stock, reservations, installations, documents and history
 - **Exhibition List** for fair/show operations
 - **Import/Export** for CSV, TSV, XML and JSON imports, controlled updates and ECoS readout
 - **Settings** for master data, appearance, backups, updates and authentication
@@ -105,7 +112,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.14
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.16
 ```
 
 If you intentionally want to build the checked-out source tree, use:
