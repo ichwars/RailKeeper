@@ -494,6 +494,113 @@
 .layout-variant-head { margin-bottom: 12px; }
 .layout-plan-create { max-width: 520px; }
 .layout-table td small { margin-top: 3px; }
+.layout-plan-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.track-planner { min-width: 0; }
+
+.track-planner-head,
+.track-planner-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.track-planner-head {
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.track-planner-head h3,
+.track-planner-head p { margin: 0; }
+
+.track-planner-head .icon-button { flex: 0 0 auto; }
+
+.track-planner-body {
+  display: grid;
+  grid-template-columns: minmax(190px, 0.25fr) minmax(360px, 1fr) minmax(220px, 0.3fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+.track-planner-palette,
+.track-planner-inspector {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px;
+  background: var(--panel-subtle);
+}
+
+.track-planner-palette h4,
+.track-planner-inspector h4 { margin: 0 0 6px; }
+.track-planner-palette > p { margin: 0 0 10px; color: var(--muted); font-size: var(--font-size-sm); }
+
+.track-palette-item {
+  display: grid;
+  width: 100%;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 9px 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.track-palette-item:hover,
+.track-palette-item:focus-visible {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.track-palette-item small { color: var(--muted); }
+.track-planner-stage { position: relative; min-width: 0; overflow: hidden; border-radius: 7px; }
+
+.track-planner-canvas {
+  display: block;
+  width: 100%;
+  min-height: 420px;
+  max-height: 620px;
+  border: 1px solid var(--line);
+  background: var(--panel-subtle);
+  touch-action: none;
+}
+
+.track-canvas-surface { fill: var(--panel-subtle); }
+.track-grid-line { fill: none; stroke: var(--line); stroke-width: 0.7; }
+.track-object { cursor: pointer; outline: none; }
+.track-object polyline {
+  fill: none;
+  stroke: var(--text);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 3;
+}
+.track-object circle { fill: var(--panel); stroke: var(--text); stroke-width: 1.5; }
+.track-object:hover polyline,
+.track-object:focus-visible polyline,
+.track-object.selected polyline { stroke: var(--accent); stroke-width: 5; }
+.track-object.selected circle { fill: var(--accent); stroke: var(--panel); }
+
+.track-planner-empty {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  left: 20px;
+  margin: 0;
+  color: var(--muted);
+  text-align: center;
+  pointer-events: none;
+}
+
+.track-planner-inspector > strong { display: block; margin-bottom: 10px; }
+.track-planner-inspector dl { display: grid; gap: 8px; margin: 0 0 12px; }
+.track-planner-inspector dl > div { border-bottom: 1px solid var(--line); padding-bottom: 7px; }
+.track-planner-inspector dt { color: var(--muted); font-size: var(--font-size-sm); }
+.track-planner-inspector dd { margin: 2px 0 0; font-weight: var(--font-weight-bold); }
+.track-planner-inspector a { display: inline-flex; align-items: center; gap: 5px; }
+.track-planner-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 
 .layout-technology-panel { min-width: 0; }
 
@@ -568,6 +675,8 @@
   .layout-position-coordinate-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .layout-twin-toolbar { grid-template-columns: 1fr; align-items: stretch; }
   .layout-twin-body.inspector-open { grid-template-columns: minmax(0, 1fr) minmax(250px, 0.42fr); }
+  .track-planner-body { grid-template-columns: minmax(170px, 0.3fr) minmax(0, 1fr); }
+  .track-planner-inspector { grid-column: 1 / -1; }
 }
 
 @media (max-width: 600px) {
@@ -590,6 +699,10 @@
   .layout-technology-toolbar > label { min-width: 0; }
   .layout-twin-body.inspector-open { grid-template-columns: minmax(0, 1fr); }
   .layout-twin-canvas { min-height: 260px; }
+  .track-planner-head { align-items: flex-start; }
+  .track-planner-body { grid-template-columns: minmax(0, 1fr); }
+  .track-planner-inspector { grid-column: auto; }
+  .track-planner-canvas { min-height: 280px; }
   .layout-twin-head-actions { width: 100%; justify-content: flex-end; }
   .layout-twin-inspector {
     position: fixed;

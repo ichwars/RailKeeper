@@ -1,12 +1,17 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { GitBranch, Plus } from "lucide-react";
+import { Eye, GitBranch, PencilRuler, Plus } from "lucide-react";
 
 import { ApiError, api, type LayoutUnit, type PlanRevision, type PlanVariant } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
+import { TrackPlannerCanvas } from "./TrackPlannerCanvas";
 
-export function LayoutPlansPanel({ units, canPlan }: { units: LayoutUnit[]; canPlan: boolean }) {
+export function LayoutPlansPanel({ units, gauge, canPlan }: {
+  units: LayoutUnit[];
+  gauge: string;
+  canPlan: boolean;
+}) {
   const [unitID, setUnitID] = useState(() => units[0]?.id || "");
   const [variants, setVariants] = useState<PlanVariant[]>([]);
   const [name, setName] = useState("");
@@ -16,6 +21,7 @@ export function LayoutPlansPanel({ units, canPlan }: { units: LayoutUnit[]; canP
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const [pending, setPending] = useState<LayoutPendingAction | null>(null);
+  const [openRevision, setOpenRevision] = useState<PlanRevision | null>(null);
   const { t } = useI18n();
   const genericError = t("layouts.error.generic");
   const selectableUnits = units.filter((unit) => !unit.archived || unit.id === unitID);
@@ -62,6 +68,10 @@ export function LayoutPlansPanel({ units, canPlan }: { units: LayoutUnit[]; canP
     run: () => runRevisionAction(() => api.publishPlanRevision(revision.id, revision.version))
   });
 
+  const selectedUnit = units.find((unit) => unit.id === unitID);
+  if (openRevision && selectedUnit) return <TrackPlannerCanvas unit={selectedUnit} gauge={gauge}
+    revision={openRevision} canPlan={canPlan} onClose={() => setOpenRevision(null)} />;
+
   return <section className="layout-plans-stack">
     <section className="panel layout-plan-toolbar">
       <div className="panel-title"><GitBranch size={17} /><h3>{t("layouts.plans.title")}</h3></div>
@@ -89,10 +99,17 @@ export function LayoutPlansPanel({ units, canPlan }: { units: LayoutUnit[]; canP
               <td>{revision.createdBy || "-"}{revision.publishedBy ? <small>{t("layouts.plans.publishedBy", { actor: revision.publishedBy })}</small> : null}</td>
               <td>{new Date(revision.createdAt).toLocaleString()}{revision.publishedAt ?
                 <small>{t("layouts.plans.publishedAt", { date: new Date(revision.publishedAt).toLocaleString() })}</small> : null}</td>
-              <td>{canPlan && revision.status === "draft" ? <button type="button" className="secondary-button compact-action"
-                onClick={() => void submit(revision)}>{t("layouts.plans.submit")}</button> : canPlan && revision.status === "review" ?
-                <button type="button" className="primary-button compact-action" onClick={() => askPublish(variant, revision)}>
-                  {t("layouts.plans.publish")}</button> : "-"}</td>
+              <td><div className="layout-plan-actions">
+                <button type="button" className="secondary-button compact-action" onClick={() => setOpenRevision(revision)}>
+                  {canPlan && revision.status === "draft" ? <PencilRuler size={14} /> : <Eye size={14} />}
+                  {canPlan && revision.status === "draft"
+                    ? t("layouts.trackPlanner.openEdit") : t("layouts.trackPlanner.openRead")}
+                </button>
+                {canPlan && revision.status === "draft" ? <button type="button" className="secondary-button compact-action"
+                  onClick={() => void submit(revision)}>{t("layouts.plans.submit")}</button> : null}
+                {canPlan && revision.status === "review" ? <button type="button" className="primary-button compact-action"
+                  onClick={() => askPublish(variant, revision)}>{t("layouts.plans.publish")}</button> : null}
+              </div></td>
             </tr>)}</tbody></table></div>}
       </section>)}</div>}
     {canPlan && unitID ? <section className="panel layout-plan-create">

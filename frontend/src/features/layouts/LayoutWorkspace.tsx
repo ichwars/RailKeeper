@@ -146,7 +146,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
       </section> : tab === "modules" ? <LayoutModulesPanel units={units} layoutID={layout.id} canPlan={canPlan}
         onChanged={reloadStructure} /> : tab === "setups" ? <LayoutConfigurationsPanel configurations={configurations}
           units={units} layoutID={layout.id} canPlan={canPlan} onChanged={reloadStructure} />
-        : tab === "planner" ? <LayoutPlansPanel units={units} canPlan={canPlan} />
+        : tab === "planner" ? <LayoutPlansPanel units={units} gauge={layout.gauge} canPlan={canPlan} />
           : tab === "technology" ? <LayoutTechnicalPositionsPanel units={units} canPlan={canPlan} />
           : <LayoutDeferredPanel tab={tab} />}
     {editOpen ? <LayoutFormDialog mode="edit" initialValue={layoutFormValue(layout)} saving={saving}
