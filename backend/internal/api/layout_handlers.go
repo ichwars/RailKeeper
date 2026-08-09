@@ -144,6 +144,12 @@ func (a *App) layoutError(w http.ResponseWriter, err error, action string) {
 		respondProblem(w, http.StatusNotFound, "layout_not_found", "Layout resource not found.")
 	case errors.Is(err, application.ErrLayoutVersionConflict):
 		respondProblem(w, http.StatusConflict, "layout_version_conflict", "Layout data has changed.")
+	case errors.Is(err, application.ErrLayoutPositionNotFound):
+		respondProblem(w, http.StatusNotFound, "layout_position_not_found", "Layout position not found.")
+	case errors.Is(err, application.ErrLayoutPositionProductNotFound):
+		respondProblem(w, http.StatusNotFound, "layout_position_product_not_found", "Accessory product not found.")
+	case errors.Is(err, application.ErrLayoutPositionVersionConflict):
+		respondProblem(w, http.StatusConflict, "layout_position_version_conflict", "Layout position has changed.")
 	case errors.Is(err, application.ErrPlanRevisionImmutable):
 		respondProblem(w, http.StatusConflict, "plan_revision_immutable", "Published plan revisions are immutable.")
 	case errors.Is(err, application.ErrPlanRevisionConflict):
