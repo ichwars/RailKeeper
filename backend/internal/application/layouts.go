@@ -146,6 +146,13 @@ type LayoutRepository interface {
 	ListUnits(context.Context, string) ([]LayoutUnit, error)
 	CreateUnit(context.Context, string, CreateLayoutUnitInput, string) (*LayoutUnit, error)
 	UpdateUnit(context.Context, string, UpdateLayoutUnitInput, string) (*LayoutUnit, error)
+	ListTechnicalPositions(context.Context, string) ([]LayoutTechnicalPosition, error)
+	CreateTechnicalPosition(
+		context.Context, string, CreateLayoutTechnicalPositionInput, string,
+	) (*LayoutTechnicalPosition, error)
+	UpdateTechnicalPosition(
+		context.Context, string, UpdateLayoutTechnicalPositionInput, string,
+	) (*LayoutTechnicalPosition, error)
 	ListConfigurations(context.Context, string) ([]LayoutConfiguration, error)
 	SaveConfiguration(context.Context, string, SaveLayoutConfigurationInput, string) (*LayoutConfiguration, error)
 	ListVariants(context.Context, string) ([]PlanVariant, error)
