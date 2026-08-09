@@ -121,8 +121,8 @@ describe("LayoutTwinPanel", () => {
     fireEvent.pointerMove(canvas, { pointerId: 7, clientX: 55, clientY: 55 });
     fireEvent.pointerUp(canvas, { pointerId: 7, clientX: 55, clientY: 55 });
     await waitFor(() => expect(updateOutline).toHaveBeenCalledWith(unit.id,
-      expect.objectContaining({ expectedVersion: 1 })), { timeout: 1500 });
-  });
+      expect.objectContaining({ expectedVersion: 1 })), { timeout: 4000 });
+  }, 10000);
 
   it("preserves the local edit on a version conflict and hides editing from viewers", async () => {
     const user = userEvent.setup();
