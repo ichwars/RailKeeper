@@ -39,6 +39,18 @@ func (a *App) getLayout(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, layout)
 }
 
+func (a *App) getLayoutTwin(w http.ResponseWriter, r *http.Request) {
+	twin, err := a.layoutService.GetTwin(r.Context(), r.PathValue("id"), application.LayoutTwinSelection{
+		ConfigurationID: r.URL.Query().Get("configurationId"),
+		UnitID:          r.URL.Query().Get("unitId"),
+	})
+	if err != nil {
+		a.layoutError(w, err, "get layout twin")
+		return
+	}
+	respondJSON(w, http.StatusOK, twin)
+}
+
 func (a *App) updateLayout(w http.ResponseWriter, r *http.Request) {
 	var input application.UpdateLayoutInput
 	if !decodeLayoutJSON(w, r, &input) {

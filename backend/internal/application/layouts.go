@@ -153,6 +153,7 @@ type LayoutRepository interface {
 	UpdateTechnicalPosition(
 		context.Context, string, UpdateLayoutTechnicalPositionInput, string,
 	) (*LayoutTechnicalPosition, error)
+	GetTwin(context.Context, string, LayoutTwinSelection) (*LayoutTwin, error)
 	ListConfigurations(context.Context, string) ([]LayoutConfiguration, error)
 	SaveConfiguration(context.Context, string, SaveLayoutConfigurationInput, string) (*LayoutConfiguration, error)
 	ListVariants(context.Context, string) ([]PlanVariant, error)

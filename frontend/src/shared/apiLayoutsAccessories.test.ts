@@ -48,6 +48,8 @@ describe("layout and accessory API client", () => {
     await api.layouts();
     await api.createLayout(layoutInput);
     await api.layout("layout/1");
+    await api.layoutTwin("layout/1", { configurationId: "configuration/1" });
+    await api.layoutTwin("layout/1", { unitId: "unit/1" });
     await api.updateLayout("layout/1", { ...layoutInput, expectedVersion: 3 });
     await api.layoutUnits("layout/1");
     await api.createLayoutUnit("layout/1", unitInput);
@@ -77,6 +79,8 @@ describe("layout and accessory API client", () => {
       ["GET", "/api/v1/layouts"],
       ["POST", "/api/v1/layouts", layoutInput],
       ["GET", "/api/v1/layouts/layout%2F1"],
+      ["GET", "/api/v1/layouts/layout%2F1/twin?configurationId=configuration%2F1"],
+      ["GET", "/api/v1/layouts/layout%2F1/twin?unitId=unit%2F1"],
       ["PUT", "/api/v1/layouts/layout%2F1", { ...layoutInput, expectedVersion: 3 }],
       ["GET", "/api/v1/layouts/layout%2F1/units"],
       ["POST", "/api/v1/layouts/layout%2F1/units", unitInput],

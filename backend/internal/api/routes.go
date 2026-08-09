@@ -146,6 +146,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/layouts", routeAccessViewer, (*App).listLayouts, nil},
 		{http.MethodPost, "/api/v1/layouts", routeAccessPlanner, (*App).createLayout, nil},
 		{http.MethodGet, "/api/v1/layouts/{id}", routeAccessViewer, (*App).getLayout, nil},
+		{http.MethodGet, "/api/v1/layouts/{id}/twin", routeAccessViewer, (*App).getLayoutTwin, nil},
 		{http.MethodPut, "/api/v1/layouts/{id}", routeAccessPlanner, (*App).updateLayout, nil},
 		{http.MethodGet, "/api/v1/layouts/{id}/units", routeAccessViewer, (*App).listLayoutUnits, nil},
 		{http.MethodPost, "/api/v1/layouts/{id}/units", routeAccessPlanner, (*App).createLayoutUnit, nil},

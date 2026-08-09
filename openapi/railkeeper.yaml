@@ -1817,6 +1817,8 @@ components:
               type: string
             locationId:
               type: string
+            technicalPositionId:
+              type: string
             quantity:
               type: integer
               minimum: 1
@@ -1855,6 +1857,8 @@ components:
               type: string
             locationId:
               type: string
+            technicalPositionId:
+              type: string
             quantity:
               type: integer
               minimum: 1
@@ -1884,6 +1888,8 @@ components:
             assetId:
               type: string
             sourceLocationId:
+              type: string
+            technicalPositionId:
               type: string
             quantity:
               type: integer
@@ -1931,6 +1937,8 @@ components:
             assetId:
               type: string
             sourceLocationId:
+              type: string
+            technicalPositionId:
               type: string
             quantity:
               type: integer
@@ -2193,6 +2201,176 @@ components:
             expectedVersion:
               type: integer
               minimum: 1
+    LayoutTwinPoint:
+      type: object
+      required: [xMm, yMm]
+      properties:
+        xMm:
+          type: number
+        yMm:
+          type: number
+    LayoutTwinBounds:
+      type: object
+      required: [minXMm, minYMm, widthMm, heightMm]
+      properties:
+        minXMm:
+          type: number
+        minYMm:
+          type: number
+        widthMm:
+          type: number
+          minimum: 0
+        heightMm:
+          type: number
+          minimum: 0
+    LayoutTwinWarning:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum: [outline_fallback, missing_geometry]
+        unitId:
+          type: string
+    LayoutTwinAllocation:
+      type: object
+      required: [id, productId, inventoryNumber, manufacturer, productName, quantity]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        inventoryNumber:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        productName:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        reservationStatus:
+          type: string
+          enum: [active, fulfilled, cancelled]
+        installationCondition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        placement:
+          type: string
+        digitalAddress:
+          type: string
+        decoderOutput:
+          type: string
+        connection:
+          type: string
+        wiringNotes:
+          type: string
+        note:
+          type: string
+    LayoutTwinPosition:
+      type: object
+      required:
+        [id, layoutUnitId, label, kind, localXMm, localYMm, globalXMm, globalYMm,
+         rotationDegrees, statuses, reservations, installations]
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        localXMm:
+          type: number
+        localYMm:
+          type: number
+        globalXMm:
+          type: number
+        globalYMm:
+          type: number
+        rotationDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        productId:
+          type: string
+        inventoryNumber:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        productName:
+          type: string
+        description:
+          type: string
+        statuses:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [planned, reserved, installed, maintenance_due, defective]
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinAllocation"
+        installations:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinAllocation"
+    LayoutTwinUnit:
+      type: object
+      required: [id, name, kind, positionXMm, positionYMm, rotationDegrees, outline, positions]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [baseboard, module, segment, area]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+        outline:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPosition"
+    LayoutTwin:
+      type: object
+      required: [layoutId, bounds, hasGeometry, units, warnings]
+      properties:
+        layoutId:
+          type: string
+        configurationId:
+          type: string
+        configurationName:
+          type: string
+        unitId:
+          type: string
+        bounds:
+          $ref: "#/components/schemas/LayoutTwinBounds"
+        hasGeometry:
+          type: boolean
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinUnit"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinWarning"
     ConfigurationUnit:
       type: object
       required: [unitId, positionXMm, positionYMm, rotationDegrees, sortOrder]
@@ -4635,6 +4813,44 @@ paths:
                 $ref: "#/components/schemas/Layout"
         "409":
           description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layouts/{id}/twin:
+    get:
+      tags: [Layouts]
+      summary: Get the transformed interactive layout twin
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: configurationId
+          in: query
+          schema:
+            type: string
+        - name: unitId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transformed layout twin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTwin"
+        "400":
+          description: Configuration and unit selectors cannot be combined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout, configuration, or unit not found
           content:
             application/json:
               schema:

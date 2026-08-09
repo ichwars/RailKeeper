@@ -46,6 +46,23 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 			t.Fatalf("%s read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
 		}
 	}
+	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
+		Name: "Twin", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layouts/"+layout.ID+"/twin", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s twin read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 			"name": "Layout " + role, "kind": "private", "gauge": "TT", "scale": "1:120",
@@ -123,6 +140,11 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 	decodeResponse(t, configurationResponse, &configuration)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/layouts/"+layout.ID+"/configurations", nil, true), http.StatusOK)
+	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layouts/"+layout.ID+"/twin?configurationId="+configuration.ID, nil, true), http.StatusOK)
+	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layouts/"+layout.ID+"/twin?configurationId="+configuration.ID+"&unitId="+unit.ID,
+		nil, true), http.StatusBadRequest, "layout_validation")
 	configurationUpdate := layoutRequest(
 		t, router, session, http.MethodPut, "/api/v1/layout-configurations/"+configuration.ID, map[string]any{
 			"name": "Standardaufbau erweitert", "expectedVersion": configuration.Version,

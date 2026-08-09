@@ -90,6 +90,71 @@ export type LayoutTechnicalPositionInput = {
 
 export type LayoutTechnicalPositionUpdateInput = LayoutTechnicalPositionInput & { expectedVersion: number };
 
+export type LayoutTwinStatus = "planned" | "reserved" | "installed" | "maintenance_due" | "defective";
+
+export type LayoutTwinAllocation = {
+  id: string;
+  productId: string;
+  inventoryNumber: string;
+  manufacturer: string;
+  articleNumber?: string;
+  productName: string;
+  quantity: number;
+  reservationStatus?: AccessoryReservationStatus;
+  installationCondition?: AccessoryCondition;
+  placement?: string;
+  digitalAddress?: string;
+  decoderOutput?: string;
+  connection?: string;
+  wiringNotes?: string;
+  note?: string;
+};
+
+export type LayoutTwinPosition = {
+  id: string;
+  layoutUnitId: string;
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  localXMm: number;
+  localYMm: number;
+  globalXMm: number;
+  globalYMm: number;
+  rotationDegrees: number;
+  productId?: string;
+  inventoryNumber?: string;
+  manufacturer?: string;
+  articleNumber?: string;
+  productName?: string;
+  description?: string;
+  statuses: LayoutTwinStatus[];
+  reservations: LayoutTwinAllocation[];
+  installations: LayoutTwinAllocation[];
+};
+
+export type LayoutTwinUnit = {
+  id: string;
+  name: string;
+  kind: LayoutUnitKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  outline: Array<{ xMm: number; yMm: number }>;
+  positions: LayoutTwinPosition[];
+};
+
+export type LayoutTwin = {
+  layoutId: string;
+  configurationId?: string;
+  configurationName?: string;
+  unitId?: string;
+  bounds: { minXMm: number; minYMm: number; widthMm: number; heightMm: number };
+  hasGeometry: boolean;
+  units: LayoutTwinUnit[];
+  warnings: Array<{ code: "outline_fallback" | "missing_geometry"; unitId?: string }>;
+};
+
+export type LayoutTwinSelection = { configurationId?: string; unitId?: string };
+
 export type ConfigurationUnit = {
   unitId: string;
   planRevisionId?: string;
@@ -516,6 +581,7 @@ export type AccessoryReservation = AllocationTarget & AccessoryTechnicalPlacemen
   productId: string;
   assetId?: string;
   locationId: string;
+  technicalPositionId?: string;
   quantity: number;
   status: AccessoryReservationStatus;
   note?: string;
@@ -528,6 +594,7 @@ export type AccessoryReservationInput = AllocationTarget & AccessoryTechnicalPla
   productId: string;
   assetId?: string;
   locationId: string;
+  technicalPositionId?: string;
   quantity: number;
   note?: string;
 };
@@ -537,6 +604,7 @@ export type AccessoryInstallation = AllocationTarget & AccessoryTechnicalPlaceme
   productId: string;
   assetId?: string;
   sourceLocationId: string;
+  technicalPositionId?: string;
   quantity: number;
   condition: AccessoryCondition;
   installedBy: string;
@@ -553,6 +621,7 @@ export type AccessoryInstallationInput = AllocationTarget & AccessoryTechnicalPl
   productId: string;
   assetId?: string;
   sourceLocationId: string;
+  technicalPositionId?: string;
   quantity: number;
   condition?: AccessoryCondition;
   notes?: string;
@@ -591,6 +660,7 @@ type AccessoryUsageEventBase = {
   vehicleId?: string;
   layoutId?: string;
   layoutUnitId?: string;
+  technicalPositionId?: string;
   placement?: string;
   digitalAddress?: string;
   decoderOutput?: string;
@@ -617,10 +687,19 @@ type APIRequest = <T>(path: string, init?: RequestInit, options?: RequestOptions
 
 export function createLayoutsAccessoriesAPI(request: APIRequest) {
   const productQuery = (productId?: string) => productId ? `?productId=${encodeURIComponent(productId)}` : "";
+  const twinQuery = (selection: LayoutTwinSelection) => {
+    const query = new URLSearchParams();
+    if (selection.configurationId) query.set("configurationId", selection.configurationId);
+    if (selection.unitId) query.set("unitId", selection.unitId);
+    const encoded = query.toString();
+    return encoded ? `?${encoded}` : "";
+  };
   return {
     layouts: () => request<Layout[]>("/layouts"),
     createLayout: (input: LayoutInput) => request<Layout>("/layouts", json("POST", input)),
     layout: (id: string) => request<Layout>(`/layouts/${encodeURIComponent(id)}`),
+    layoutTwin: (id: string, selection: LayoutTwinSelection = {}) =>
+      request<LayoutTwin>(`/layouts/${encodeURIComponent(id)}/twin${twinQuery(selection)}`),
     updateLayout: (id: string, input: LayoutUpdateInput) =>
       request<Layout>(`/layouts/${encodeURIComponent(id)}`, json("PUT", input)),
     layoutUnits: (layoutId: string) => request<LayoutUnit[]>(`/layouts/${encodeURIComponent(layoutId)}/units`),
