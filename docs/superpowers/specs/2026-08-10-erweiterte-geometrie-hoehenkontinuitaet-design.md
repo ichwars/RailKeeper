@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** zur lokalen Umsetzung freigegeben, keine Veröffentlichung
+**Status:** lokal umgesetzt und abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -67,3 +67,17 @@ Ebenenkollisionen und Flexgleise.
 - Backendtests, Frontendtests und Produktionsbuild laufen erfolgreich.
 - Die lokale Browserprüfung bestätigt Erzeugen und Beheben eines Höhenversatzes.
 
+## Lokales Abnahmeprotokoll
+
+- Branch: `dev/issue-36-advanced-geometry`, ausschließlich lokale Commits, kein Push, PR oder Merge.
+- Backend: `go test ./...` erfolgreich, alle Go-Pakete bestanden.
+- Frontend: 66 Testdateien mit 350 Tests erfolgreich.
+- Produktionsbuild: TypeScript und Vite erfolgreich, 2173 Module transformiert.
+- Browser: Die verbundene Kante zwischen 9,15 mm und 11,15 mm erzeugte genau einen lokalisierten
+  Warnhinweis mit 2,00 mm Differenz.
+- Fokus: Anklicken des Warnhinweises öffnete das erste betroffene G1 mit Anfangshöhe 5 mm und
+  Endhöhe 9,15 mm im Inspektor.
+- Korrektur: Nach Angleichung der zweiten Anfangshöhe auf 9,15 mm zeigte die Planprüfung
+  `0 Höhenversätze`; der Warnhinweis war entfernt und der Wert blieb nach Neuladen gespeichert.
+- Laufzeit: `/health` antwortete mit HTTP 200, RailKeeper läuft lokal auf Port 18083 als PID 22992,
+  die Browser-Sitzung blieb als `codex-test` angemeldet und meldete keine Konsolenfehler.

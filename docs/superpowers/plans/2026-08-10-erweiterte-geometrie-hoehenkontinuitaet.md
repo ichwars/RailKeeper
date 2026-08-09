@@ -5,6 +5,8 @@
 **Goal:** Geometrisch verbundene zweipolige Gleise mit mehr als 0,01 mm Höhenversatz als präzisen,
 anklickbaren Warnhinweis erkennen.
 
+**Status:** Lokal vollständig umgesetzt und am 2026-08-10 abgenommen. Kein Push, PR oder Merge.
+
 **Architecture:** Die bestehende Domänenanalyse trägt für zweipolige Geometrien die Anschlusshöhe in
 die interne Anschlussdarstellung ein und erzeugt nach einer geometrischen Verbindung optional einen
 `elevation_mismatch`-Hinweis. API und Änderungsvorschau verwenden das vorhandene Analysemodell. Die
@@ -33,7 +35,7 @@ Frontend-Planprüfung ergänzt lediglich Zähler, Detailtext und Fokusverhalten.
 - Consumes: `PlanTrackObject.ElevationStartMM`, `PlanTrackObject.ElevationEndMM`, geordnete `TrackPort`-Liste
 - Produces: `TrackPlanIssueElevationMismatch`, `TrackPlanIssue.ElevationDifferenceMM`
 
-- [ ] **Step 1: Fehlende und tolerierte Höhenkontinuität als fehlschlagende Tests ergänzen**
+- [x] **Step 1: Fehlende und tolerierte Höhenkontinuität als fehlschlagende Tests ergänzen**
 
 ```go
 func TestAnalyzeTrackPlanReportsElevationMismatchAtConnectedTwoPortGeometry(t *testing.T) {
@@ -73,14 +75,14 @@ func TestAnalyzeTrackPlanHonorsElevationToleranceAndSkipsMultiPortGeometry(t *te
 }
 ```
 
-- [ ] **Step 2: Domänentests ausführen und das erwartete Fehlschlagen bestätigen**
+- [x] **Step 2: Domänentests ausführen und das erwartete Fehlschlagen bestätigen**
 
 Run: `cd backend; go test ./internal/domain -run Elevation`
 
 Expected: Build-Fehler wegen fehlendem `TrackPlanIssueElevationMismatch` und
 `ElevationDifferenceMM`.
 
-- [ ] **Step 3: Interne Anschlusshöhen und den Warnhinweis implementieren**
+- [x] **Step 3: Interne Anschlusshöhen und den Warnhinweis implementieren**
 
 ```go
 const TrackElevationConnectionToleranceMM = 0.01
@@ -124,13 +126,13 @@ einer geometrischen Verbindung wird `math.Abs(first.ElevationMM-second.Elevation
 beide Höhen bekannt sind und die Differenz größer als `TrackElevationConnectionToleranceMM` ist, wird
 genau ein `TrackPlanIssueElevationMismatch` mit derselben Objekt- und Anschlussreihenfolge angehängt.
 
-- [ ] **Step 4: Domänentests und das gesamte Domain-Paket ausführen**
+- [x] **Step 4: Domänentests und das gesamte Domain-Paket ausführen**
 
 Run: `cd backend; go test ./internal/domain`
 
 Expected: PASS.
 
-- [ ] **Step 5: Domänenänderung lokal committen**
+- [x] **Step 5: Domänenänderung lokal committen**
 
 ```powershell
 git add backend/internal/domain/track_plan_analysis.go backend/internal/domain/track_plan_analysis_test.go
@@ -149,19 +151,19 @@ git commit -m "feat(planner): detect track elevation mismatches"
 - Consumes: `domain.TrackPlanIssueElevationMismatch`, `TrackPlanIssue.ElevationDifferenceMM`
 - Produces: JSON-Feld `elevationDifferenceMm` und OpenAPI-Enumwert `elevation_mismatch`
 
-- [ ] **Step 1: API- und Vorschautests um den neuen Hinweis ergänzen**
+- [x] **Step 1: API- und Vorschautests um den neuen Hinweis ergänzen**
 
 Im Handler-Test werden zwei verbundene Objekte mit Endhöhe 10 mm und Anfangshöhe 12 mm gespeichert.
 Die dekodierte Analyse muss genau einen `elevation_mismatch`-Hinweis mit 2 mm Differenz enthalten. Im
 Revisionsvergleich wird derselbe Hinweis als hinzugefügt und nach Angleichung als behoben erwartet.
 
-- [ ] **Step 2: Betroffene Tests ausführen und Vertragsfehler bestätigen**
+- [x] **Step 2: Betroffene Tests ausführen und Vertragsfehler bestätigen**
 
 Run: `cd backend; go test ./internal/api ./internal/domain -run "TrackPlanner|TrackPlan"`
 
 Expected: Der OpenAPI-Vertrag enthält den neuen Enumwert und das Detailfeld noch nicht vollständig.
 
-- [ ] **Step 3: OpenAPI-Schema erweitern**
+- [x] **Step 3: OpenAPI-Schema erweitern**
 
 ```yaml
     TrackPlanIssue:
@@ -180,13 +182,13 @@ Expected: Der OpenAPI-Vertrag enthält den neuen Enumwert und das Detailfeld noc
 Der gleiche Enumwert wird bei `TrackPlanIssueChange.code` ergänzt. Die vorhandene JSON-Abbildung der
 Go-Struktur liefert das optionale Detailfeld ohne neuen Endpunkt.
 
-- [ ] **Step 4: API-, Domain- und OpenAPI-Tests ausführen**
+- [x] **Step 4: API-, Domain- und OpenAPI-Tests ausführen**
 
 Run: `cd backend; go test ./internal/api ./internal/domain`
 
 Expected: PASS.
 
-- [ ] **Step 5: Vertrag lokal committen**
+- [x] **Step 5: Vertrag lokal committen**
 
 ```powershell
 git add backend/internal/api/track_planner_handlers_test.go backend/internal/api/openapi_contract_test.go `
@@ -207,7 +209,7 @@ git commit -m "feat(api): expose elevation mismatch details"
 - Consumes: `TrackPlanIssueCode = "elevation_mismatch"`, optionales `elevationDifferenceMm`
 - Produces: lokalisierter Zähler, Detailtext und vorhandenes `onSelectObject`-Fokusverhalten
 
-- [ ] **Step 1: Fehlschlagenden UI-Test für Zähler, Detail und Fokus ergänzen**
+- [x] **Step 1: Fehlschlagenden UI-Test für Zähler, Detail und Fokus ergänzen**
 
 ```tsx
 const mismatch = {
@@ -226,13 +228,13 @@ await user.click(issue);
 expect(selectObject).toHaveBeenCalledWith("track-1");
 ```
 
-- [ ] **Step 2: UI-Test ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: UI-Test ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/TrackPlanAnalysisPanel.test.tsx`
 
 Expected: Typ- oder Assertionfehler wegen fehlendem Code, Zähler und Text.
 
-- [ ] **Step 3: Typen, Darstellung und Übersetzungen implementieren**
+- [x] **Step 3: Typen, Darstellung und Übersetzungen implementieren**
 
 `TrackPlanIssueCode` erhält `elevation_mismatch`, `TrackPlanIssue` erhält
 `elevationDifferenceMm?: number`. Der Panel-Header zählt den Code zusätzlich. Der Beschriftungstext
@@ -250,7 +252,7 @@ Deutsch verwendet „{count} Höhenversatz“, „{count} Höhenversätze“ und
 „Höhenversatz an Gleisverbindung ({difference} mm)“. Englisch verwendet „{count} elevation mismatch“,
 „{count} elevation mismatches“ und „Track connection elevation mismatch ({difference} mm)“.
 
-- [ ] **Step 4: Gezielte Tests und TypeScript-Build ausführen**
+- [x] **Step 4: Gezielte Tests und TypeScript-Build ausführen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/TrackPlanAnalysisPanel.test.tsx`
 
@@ -258,7 +260,7 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: Beide Befehle PASS.
 
-- [ ] **Step 5: Frontend lokal committen**
+- [x] **Step 5: Frontend lokal committen**
 
 ```powershell
 git add frontend/src/shared/apiLayoutsAccessories.ts `
@@ -278,7 +280,7 @@ git commit -m "feat(planner): show elevation continuity warnings"
 - Consumes: vollständig implementiertes Paket D
 - Produces: reproduzierbares lokales Abnahmeprotokoll
 
-- [ ] **Step 1: Vollständige automatische Prüfungen ausführen**
+- [x] **Step 1: Vollständige automatische Prüfungen ausführen**
 
 Run: `cd backend; $env:GOCACHE='C:\Users\droth\Documents\GitHub\RailKeeper\.cache\go-build'; go test ./...`
 
@@ -288,19 +290,19 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: alle Go-Pakete, alle Vitest-Tests und der Produktionsbuild PASS.
 
-- [ ] **Step 2: Server und Browser lokal aktualisieren**
+- [x] **Step 2: Server und Browser lokal aktualisieren**
 
 Den vorhandenen Listener auf Port 18083 gezielt neu starten. Danach `/health` prüfen und die bestehende
 angemeldete Browser-Sitzung unter `http://127.0.0.1:18083/layouts` vollständig neu laden.
 
-- [ ] **Step 3: Höhenversatz im Browser erzeugen und beheben**
+- [x] **Step 3: Höhenversatz im Browser erzeugen und beheben**
 
 Im bestehenden QA-Entwurf zwei verbundene Gleise verwenden. Am ersten Gleis die Anschlusshöhe 9,15 mm
 belassen und am zweiten Gleis die zugehörige Anfangshöhe zunächst auf 11,15 mm setzen. Erwartet werden
 ein Höhenversatz-Zähler, ein Warnhinweis mit 2,00 mm und Fokus auf das erste betroffene Gleis. Danach
 die zweite Höhe auf 9,15 mm setzen. Erwartet werden 0 Höhenversätze und kein entsprechender Hinweis.
 
-- [ ] **Step 4: Abnahme dokumentieren und lokal committen**
+- [x] **Step 4: Abnahme dokumentieren und lokal committen**
 
 Designstatus auf „lokal umgesetzt und abgenommen“ setzen, genaue Testergebnisse, Browserwerte,
 Serverzustand und lokale Branch-Grenze eintragen. Alle Plan-Checkboxen abhaken.
@@ -311,7 +313,7 @@ git add docs/superpowers/specs/2026-08-10-erweiterte-geometrie-hoehenkontinuitae
 git commit -m "docs: record elevation continuity acceptance"
 ```
 
-- [ ] **Step 5: Sauberen lokalen Abschluss prüfen**
+- [x] **Step 5: Sauberen lokalen Abschluss prüfen**
 
 Run: `git diff --check; git status --short; git log -5 --oneline`
 
