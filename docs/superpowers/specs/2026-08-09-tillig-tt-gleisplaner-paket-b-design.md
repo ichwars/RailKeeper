@@ -2,7 +2,12 @@
 
 **Datum:** 2026-08-09
 
-**Status:** Aus der fachlich abgestimmten Stage-3-Spezifikation abgeleitet und zur Inline-Umsetzung freigegeben
+**Status:** Lokal umgesetzt und technisch abgenommen
+
+**Abnahmestand 2026-08-09:** Paket B umfasst serverautoritatives Snapping, unmittelbar abgeleitete
+Verbindungen und Prüfhinweise, symbolgestützte Anschlussmarker sowie eine Stückliste mit Soll,
+physischem Bestand, Reserviert, Frei und Fehlend. Prüfhinweise wählen das betroffene Gleis direkt im
+Plan aus. Der Materialabgleich verändert weder Katalog noch Bestand.
 
 ## Ziel
 

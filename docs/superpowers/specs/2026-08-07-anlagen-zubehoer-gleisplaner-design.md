@@ -6,11 +6,12 @@
 
 **Umsetzung:** Stufenweise, beginnend mit dem gemeinsamen Fundament
 
-**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A ist lokal umgesetzt. Es enthält die versionierte,
-geprüfte Tillig-TT-Modellgleis-Bibliothek mit dem geraden Gleis G1 (83101, 166 mm),
-revisionsgebundene Planobjekte, eine maßhaltige SVG-Arbeitsfläche und Backup-Format 5. Paket A ist
-bewusst auf diese eine verifizierte Geometrie begrenzt. Anschluss-Snapping, Planvalidierung,
-Materialbedarf und Stückliste folgen in Paket B.
+**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A und Paket B sind lokal umgesetzt. Paket A enthält
+die versionierte, geprüfte Tillig-TT-Modellgleis-Bibliothek mit dem geraden Gleis G1 (83101, 166 mm),
+revisionsgebundene Planobjekte, eine maßhaltige SVG-Arbeitsfläche und Backup-Format 5. Paket B ergänzt
+autoritatives Anschluss-Snapping, abgeleitete Verbindungen und Prüfhinweise sowie eine Stückliste mit
+lokalem Bestandsstatus. Beide Pakete bleiben bewusst auf diese eine verifizierte Geometrie begrenzt.
+Planobjektbezogene Reservierung und Änderungsvorschau folgen in Paket C.
 
 ## Ziel
 
@@ -330,6 +331,11 @@ Wartungsanzeige und Einbauhistorie machen Anlagen und Module interaktiv.
 
 Geprüfte Geometrien für Tillig TT Modellgleis, Platzierung, Einrasten, Planprüfung, Stückliste,
 planobjektbezogene Reservierung und Änderungsvorschau bilden den ersten vollständigen Planer.
+
+Der lokale Stand umfasst mit Paket A und B die geprüfte G1-Geometrie, revisionsgebundene Platzierung,
+magnetisches Einrasten, abgeleitete Verbindungen und Warnungen sowie die bestandsbezogene Stückliste.
+Der bestätigte Reservierungsablauf und die Änderungsvorschau gegenüber einer Basisrevision bleiben als
+Paket C offen.
 
 ### Etappe 4: Erweiterte Geometrie
 
