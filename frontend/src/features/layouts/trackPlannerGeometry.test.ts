@@ -20,7 +20,7 @@ const geometry: TrackGeometryDefinition = {
 function track(id: string, positionXMm: number, positionYMm = 0, rotationDegrees = 0): PlanTrackObject {
   return {
     id, lineageId: id, revisionId: "revision-1", geometryId: geometry.id, geometry,
-    positionXMm, positionYMm, rotationDegrees, version: 1,
+    positionXMm, positionYMm, rotationDegrees, elevationStartMm: 0, elevationEndMm: 0, version: 1,
     createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
   };
 }

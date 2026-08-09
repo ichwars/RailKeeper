@@ -13,6 +13,7 @@ import {
   type TrackMaterialStatus
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
@@ -76,15 +77,33 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const [pending, setPending] = useState<LayoutPendingAction | null>(null);
+  const [elevationStart, setElevationStart] = useState("0");
+  const [elevationEnd, setElevationEnd] = useState("0");
   const canvasRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const genericError = t("layouts.error.generic");
   const editable = canPlan && revision.status === "draft";
   const reservable = canPlan && (revision.status === "draft" || revision.status === "review");
   const width = unit.widthMm > 0 ? unit.widthMm : 1000;
   const height = unit.heightMm > 0 ? unit.heightMm : 600;
   const selected = objects.find((object) => object.id === selectedID);
+  const analyzedGrade = analysis?.grades.find((grade) => grade.objectId === selected?.id);
+  const selectedGrade = analyzedGrade?.gradePercent ?? (selected && selected.geometry.lengthMm > 0
+    ? (selected.elevationEndMm - selected.elevationStartMm) / selected.geometry.lengthMm * 100
+    : 0);
+  const elevationStartValue = elevationStart.trim() === "" ? Number.NaN : Number(elevationStart);
+  const elevationEndValue = elevationEnd.trim() === "" ? Number.NaN : Number(elevationEnd);
+  const elevationValid = Number.isFinite(elevationStartValue) && Number.isFinite(elevationEndValue);
+  const formatDecimal = (value: number, digits = 2) => new Intl.NumberFormat(
+    language === "de" ? "de-DE" : "en-GB",
+    { minimumFractionDigits: digits, maximumFractionDigits: digits }
+  ).format(value);
+
+  useEffect(() => {
+    setElevationStart(selected ? String(selected.elevationStartMm) : "0");
+    setElevationEnd(selected ? String(selected.elevationEndMm) : "0");
+  }, [selected?.id, selected?.version]);
 
   const refreshDerived = useCallback(async () => {
     const [nextAnalysis, nextPreview] = await Promise.all([
@@ -128,7 +147,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         geometryId: geometry.id,
         positionXMm: Math.max(0, width / 2 - geometry.lengthMm / 2),
         positionYMm: height / 2,
-        rotationDegrees: 0
+        rotationDegrees: 0,
+        elevationStartMm: 0,
+        elevationEndMm: 0
       });
       setObjects((current) => [...current, created]);
       setSelectedID(created.id);
@@ -142,7 +163,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     setSaving(true); setMessage(""); setConflict(false);
     try {
       const updated = await api.updatePlanTrackObject(object.id, {
-        positionXMm, positionYMm, rotationDegrees, expectedVersion: object.version
+        positionXMm, positionYMm, rotationDegrees,
+        elevationStartMm: object.elevationStartMm, elevationEndMm: object.elevationEndMm,
+        expectedVersion: object.version
       });
       setObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
       await refreshDerived();
@@ -188,6 +211,8 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const pose = snapTrackPose({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
     setObjects((current) => current.map((item) => item.id === drag.object.id
       ? { ...item, ...pose } : item));
+    if (pose.positionXMm === drag.object.positionXMm && pose.positionYMm === drag.object.positionYMm &&
+      pose.rotationDegrees === drag.object.rotationDegrees) return;
     void update(drag.object, pose.positionXMm, pose.positionYMm, pose.rotationDegrees);
   };
 
@@ -195,6 +220,12 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     if (!selected) return;
     void update(selected, selected.positionXMm, selected.positionYMm,
       normalizedRotation(selected.rotationDegrees + degrees));
+  };
+
+  const saveElevation = () => {
+    if (!selected || !elevationValid) return;
+    const object = { ...selected, elevationStartMm: elevationStartValue, elevationEndMm: elevationEndValue };
+    void update(object, object.positionXMm, object.positionYMm, object.rotationDegrees);
   };
 
   const askDelete = () => {
@@ -283,7 +314,25 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           <dl><div><dt>{t("layouts.trackPlanner.position")}</dt>
             <dd>{selected.positionXMm.toFixed(1)} / {selected.positionYMm.toFixed(1)} mm</dd></div>
             <div><dt>{t("layouts.trackPlanner.rotation")}</dt><dd>{selected.rotationDegrees}°</dd></div>
-            <div><dt>{t("layouts.trackPlanner.length")}</dt><dd>{selected.geometry.lengthMm} mm</dd></div></dl>
+            <div><dt>{t("layouts.trackPlanner.length")}</dt><dd>{selected.geometry.lengthMm} mm</dd></div>
+            {!editable ? <>
+              <div><dt>{t("layouts.trackPlanner.elevationStart")}</dt>
+                <dd>{formatDecimal(selected.elevationStartMm)} mm</dd></div>
+              <div><dt>{t("layouts.trackPlanner.elevationEnd")}</dt>
+                <dd>{formatDecimal(selected.elevationEndMm)} mm</dd></div>
+            </> : null}
+            <div><dt>{t("layouts.trackPlanner.grade")}</dt><dd>{formatDecimal(selectedGrade)} %</dd></div>
+          </dl>
+          {editable ? <div className="track-height-editor">
+            <div className="track-height-fields">
+              <AppNumberInput label={t("layouts.trackPlanner.elevationStart")} value={elevationStart}
+                step="0.1" onValueChange={setElevationStart} disabled={saving} />
+              <AppNumberInput label={t("layouts.trackPlanner.elevationEnd")} value={elevationEnd}
+                step="0.1" onValueChange={setElevationEnd} disabled={saving} />
+            </div>
+            <button type="button" className="primary-button compact-action" disabled={saving || !elevationValid}
+              onClick={saveElevation}>{t("layouts.trackPlanner.saveElevation")}</button>
+          </div> : null}
           <a href={selected.geometry.sourceUrl} target="_blank" rel="noreferrer">
             {t("layouts.trackPlanner.source")}<ExternalLink size={13} />
           </a>

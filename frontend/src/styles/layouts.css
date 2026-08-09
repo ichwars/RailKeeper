@@ -691,6 +691,9 @@
 .track-planner-inspector dt { color: var(--muted); font-size: var(--font-size-sm); }
 .track-planner-inspector dd { margin: 2px 0 0; font-weight: var(--font-weight-bold); }
 .track-planner-inspector a { display: inline-flex; align-items: center; gap: 5px; }
+.track-height-editor { display: grid; gap: 8px; margin: 0 0 12px; }
+.track-height-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.track-height-editor .primary-button { width: 100%; }
 .track-planner-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .track-reservation-status {
   display: inline-flex;
@@ -913,6 +916,7 @@
   .track-planner-body { grid-template-columns: minmax(0, 1fr); }
   .track-planner-inspector { grid-column: auto; }
   .track-planner-canvas { min-height: 280px; }
+  .track-height-fields { grid-template-columns: minmax(0, 1fr); }
   .track-plan-analysis > header { align-items: flex-start; flex-direction: column; }
   .track-analysis-summary { justify-content: flex-start; }
   .track-analysis-summary span:first-child { border-left: 0; padding-left: 0; }

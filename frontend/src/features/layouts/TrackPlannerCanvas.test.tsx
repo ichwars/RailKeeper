@@ -37,7 +37,8 @@ const geometry: TrackGeometryDefinition = {
 };
 const trackObject: PlanTrackObject = {
   id: "track-1", lineageId: "track-1", revisionId: draft.id, geometryId: geometry.id, geometry,
-  positionXMm: 517, positionYMm: 250, rotationDegrees: 0, version: 1,
+  positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
+  elevationStartMm: 5, elevationEndMm: 9.15, version: 1,
   createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
 };
 
@@ -48,7 +49,8 @@ describe("TrackPlannerCanvas", () => {
     vi.spyOn(api, "trackGeometries").mockResolvedValue([geometry, { ...geometry, id: "draft-geometry", status: "draft" }]);
     vi.spyOn(api, "trackPlan").mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [] });
     vi.spyOn(api, "trackPlanAnalysis").mockResolvedValue({
-      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], materials: [], reservations: []
+      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], grades: [],
+      materials: [], reservations: []
     });
     vi.spyOn(api, "trackPlanChangePreview").mockResolvedValue({
       revisionId: draft.id, baseRevisionId: "", objectChanges: [], materialDeltas: [],
@@ -68,7 +70,8 @@ describe("TrackPlannerCanvas", () => {
 
     await user.click(screen.getByRole("button", { name: "Tillig 83101 · Gleisstück G1" }));
     expect(create).toHaveBeenCalledWith(draft.id, {
-      geometryId: geometry.id, positionXMm: 517, positionYMm: 250, rotationDegrees: 0
+      geometryId: geometry.id, positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
+      elevationStartMm: 0, elevationEndMm: 0
     });
     const placed = await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" });
     expect(placed).toHaveAttribute("transform", "translate(517 250) rotate(0)");
@@ -130,7 +133,8 @@ describe("TrackPlannerCanvas", () => {
     fireEvent.pointerUp(canvas, { pointerId: 5, clientX: 172, clientY: 2 });
 
     await waitFor(() => expect(update).toHaveBeenCalledWith("moving", {
-      positionXMm: 166, positionYMm: 0, rotationDegrees: 0, expectedVersion: 1
+      positionXMm: 166, positionYMm: 0, rotationDegrees: 0,
+      elevationStartMm: 5, elevationEndMm: 9.15, expectedVersion: 1
     }));
     await waitFor(() => expect(placed).toHaveAttribute("transform", "translate(165.5 0) rotate(0)"));
   });
@@ -153,6 +157,7 @@ describe("TrackPlannerCanvas", () => {
         { code: "open_end", severity: "warning", objectIds: ["conflicting"], portIds: ["b"] }
       ],
       bom: [],
+      grades: [],
       materials: [],
       reservations: []
     });
@@ -165,6 +170,40 @@ describe("TrackPlannerCanvas", () => {
     expect(canvas.querySelectorAll(".track-port text")).toHaveLength(6);
   });
 
+  it("edits an elevation profile with app inputs and displays the derived grade", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [trackObject] });
+    vi.mocked(api.trackPlanAnalysis).mockResolvedValue({
+      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [],
+      grades: [{
+        objectId: trackObject.id, elevationStartMm: 5, elevationEndMm: 9.15,
+        lengthMm: 166, gradePercent: 2.5
+      }],
+      materials: [], reservations: []
+    });
+    const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
+      ...trackObject, ...input, version: 2
+    }));
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" }));
+    expect(screen.getByText("2,50 %")).toBeInTheDocument();
+    const start = screen.getByRole("spinbutton", { name: "Anfangshöhe (mm)" });
+    const end = screen.getByRole("spinbutton", { name: "Endhöhe (mm)" });
+    expect(start).toHaveValue(5);
+    expect(end).toHaveValue(9.15);
+
+    await user.clear(start);
+    await user.type(start, "7");
+    await user.clear(end);
+    await user.type(end, "11.98");
+    await user.click(screen.getByRole("button", { name: "Höhenprofil speichern" }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(trackObject.id, {
+      positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
+      elevationStartMm: 7, elevationEndMm: 11.98, expectedVersion: 1
+    }));
+  });
+
   it("keeps published plans read-only and reports version conflicts", async () => {
     const user = userEvent.setup();
     const published = { ...draft, status: "published" as const };
@@ -173,6 +212,10 @@ describe("TrackPlannerCanvas", () => {
       <TrackPlannerCanvas unit={unit} gauge="TT" revision={published} canPlan onClose={vi.fn()} />
     );
     await screen.findByRole("img", { name: "Maßhaltiger Gleisplan für Bahnhofsmodul" });
+    await user.click(screen.getByRole("button", { name: "Gleis Tillig 83101 G1" }));
+    expect(screen.getByText("5,00 mm")).toBeInTheDocument();
+    expect(screen.getByText("9,15 mm")).toBeInTheDocument();
+    expect(screen.queryByRole("spinbutton", { name: "Anfangshöhe (mm)" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "+15°" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tillig 83101 · Gleisstück G1" })).not.toBeInTheDocument();
 

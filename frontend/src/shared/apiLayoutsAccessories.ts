@@ -333,6 +333,8 @@ export type PlanTrackObject = {
   positionXMm: number;
   positionYMm: number;
   rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -362,6 +364,13 @@ export type TrackBOMLine = {
   name: string;
   quantity: number;
 };
+export type TrackGrade = {
+  objectId: string;
+  elevationStartMm: number;
+  elevationEndMm: number;
+  lengthMm: number;
+  gradePercent: number;
+};
 export type TrackMaterialStatus = {
   geometryId: string;
   manufacturer: string;
@@ -381,6 +390,7 @@ export type TrackPlanAnalysis = {
   connections: TrackPlanConnection[];
   issues: TrackPlanIssue[];
   bom: TrackBOMLine[];
+  grades: TrackGrade[];
   materials: TrackMaterialStatus[];
   reservations: TrackPlanObjectReservation[];
 };
@@ -439,11 +449,15 @@ export type CreatePlanTrackObjectInput = {
   positionXMm: number;
   positionYMm: number;
   rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
 };
 export type UpdatePlanTrackObjectInput = {
   positionXMm: number;
   positionYMm: number;
   rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
   expectedVersion: number;
 };
 

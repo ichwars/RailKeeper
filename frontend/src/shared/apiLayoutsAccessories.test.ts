@@ -83,7 +83,8 @@ describe("layout and accessory API client", () => {
     await api.submitPlanRevision("revision/1", 4);
     await api.publishPlanRevision("revision/1", 5);
     const trackObjectInput = {
-      geometryId: "geometry/1", positionXMm: 100, positionYMm: 50, rotationDegrees: 15
+      geometryId: "geometry/1", positionXMm: 100, positionYMm: 50, rotationDegrees: 15,
+      elevationStartMm: 0, elevationEndMm: 4.15
     };
     await api.trackGeometries("TT");
     await api.trackPlan("revision/1");
@@ -98,7 +99,8 @@ describe("layout and accessory API client", () => {
     });
     await api.createPlanTrackObject("revision/1", trackObjectInput);
     await api.updatePlanTrackObject("object/1", {
-      positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2
+      positionXMm: 110, positionYMm: 55, rotationDegrees: 30,
+      elevationStartMm: 1, elevationEndMm: 5.15, expectedVersion: 2
     });
     await api.deletePlanTrackObject("object/1", 3);
 
@@ -141,7 +143,8 @@ describe("layout and accessory API client", () => {
       }],
       ["POST", "/api/v1/plan-revisions/revision%2F1/track-objects", trackObjectInput],
       ["PUT", "/api/v1/plan-track-objects/object%2F1",
-        { positionXMm: 110, positionYMm: 55, rotationDegrees: 30, expectedVersion: 2 }],
+		{ positionXMm: 110, positionYMm: 55, rotationDegrees: 30,
+		  elevationStartMm: 1, elevationEndMm: 5.15, expectedVersion: 2 }],
       ["DELETE", "/api/v1/plan-track-objects/object%2F1?expectedVersion=3"]
     ]);
   });

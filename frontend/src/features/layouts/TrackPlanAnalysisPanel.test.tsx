@@ -17,6 +17,7 @@ const analysis: TrackPlanAnalysis = {
   bom: [{
     geometryId: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1", quantity: 3
   }],
+  grades: [],
   materials: [{
     geometryId: "g1", manufacturer: "Tillig", articleNumber: "83101", name: "Gleisstück G1",
     requiredQuantity: 3, productIds: ["product-1"], inventoryNumbers: ["RK-ART-000001"],
@@ -60,6 +61,7 @@ describe("TrackPlanAnalysisPanel", () => {
     render(<TrackPlanAnalysisPanel analysis={{
       revisionId: "revision-1", status: "draft", connections: [], issues: [],
       bom: [{ geometryId: "g2", libraryId: "tillig-v1", articleNumber: "83102", name: "G2", quantity: 1 }],
+      grades: [],
       materials: [{
         geometryId: "g2", manufacturer: "Tillig", articleNumber: "83102", name: "G2",
         requiredQuantity: 1, productIds: [], inventoryNumbers: [], physicalQuantity: 0,
