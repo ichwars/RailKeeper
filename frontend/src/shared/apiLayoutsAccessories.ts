@@ -350,12 +350,14 @@ export type TrackPlanConnection = {
   objectBId: string;
   portBId: string;
 };
-export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry";
+export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry"
+  | "elevation_mismatch";
 export type TrackPlanIssue = {
   code: TrackPlanIssueCode;
   severity: "warning" | "error";
   objectIds: string[];
   portIds?: string[];
+  elevationDifferenceMm?: number;
 };
 export type TrackBOMLine = {
   geometryId: string;

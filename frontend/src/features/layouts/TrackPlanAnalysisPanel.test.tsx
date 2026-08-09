@@ -12,7 +12,11 @@ const analysis: TrackPlanAnalysis = {
   issues: [
     { code: "open_end", severity: "warning", objectIds: ["track-1"], portIds: ["a"] },
     { code: "open_end", severity: "warning", objectIds: ["track-2"], portIds: ["b"] },
-    { code: "overlap", severity: "warning", objectIds: ["track-2", "track-3"] }
+    { code: "overlap", severity: "warning", objectIds: ["track-2", "track-3"] },
+    {
+      code: "elevation_mismatch", severity: "warning", objectIds: ["track-1", "track-2"],
+      portIds: ["b", "a"], elevationDifferenceMm: 2
+    }
   ],
   bom: [{
     geometryId: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1", quantity: 3
@@ -33,7 +37,11 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("1 Verbindung")).toBeInTheDocument();
     expect(screen.getByText("2 offene Enden")).toBeInTheDocument();
     expect(screen.getByText("1 Überschneidung")).toBeInTheDocument();
+    expect(screen.getByText("1 Höhenversatz")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Warnung: Überschneidung" })).toHaveTextContent("!");
+    expect(screen.getByRole("button", {
+      name: "Warnung: Höhenversatz an Gleisverbindung (2,00 mm)"
+    })).toBeInTheDocument();
 
     const row = screen.getByRole("row", { name: /Tillig 83101/ });
     const cells = within(row).getAllByRole("cell");
@@ -57,6 +65,17 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(selectObject).toHaveBeenCalledWith("track-2");
   });
 
+  it("selects the first affected track from an elevation mismatch", async () => {
+    const user = userEvent.setup();
+    const selectObject = vi.fn();
+    render(<TrackPlanAnalysisPanel analysis={analysis} onSelectObject={selectObject} />);
+
+    await user.click(screen.getByRole("button", {
+      name: "Warnung: Höhenversatz an Gleisverbindung (2,00 mm)"
+    }));
+    expect(selectObject).toHaveBeenCalledWith("track-1");
+  });
+
   it("shows a valid empty state and an unmatched catalog requirement", () => {
     render(<TrackPlanAnalysisPanel analysis={{
       revisionId: "revision-1", status: "draft", connections: [], issues: [],
@@ -71,6 +90,7 @@ describe("TrackPlanAnalysisPanel", () => {
     }} />);
 
     expect(screen.getByText("0 Verbindungen")).toBeInTheDocument();
+    expect(screen.getByText("0 Höhenversätze")).toBeInTheDocument();
     expect(screen.getByText("✓ Keine Prüfhinweise")).toBeInTheDocument();
     expect(screen.getByText("Kein Artikel zugeordnet")).toBeInTheDocument();
   });

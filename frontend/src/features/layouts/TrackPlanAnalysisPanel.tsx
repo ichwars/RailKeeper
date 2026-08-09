@@ -7,7 +7,8 @@ const issueSymbols: Record<TrackPlanIssueCode, string> = {
   open_end: "○",
   incompatible_connection: "↯",
   overlap: "!",
-  broken_geometry: "×"
+  broken_geometry: "×",
+  elevation_mismatch: "↕"
 };
 
 function countIssues(analysis: TrackPlanAnalysis, code: TrackPlanIssueCode): number {
@@ -19,10 +20,15 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
   selectedObjectId?: string;
   onSelectObject?: (objectID: string) => void;
 }) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const connections = analysis.connections.length;
   const openEnds = countIssues(analysis, "open_end");
   const overlaps = countIssues(analysis, "overlap");
+  const elevationMismatches = countIssues(analysis, "elevation_mismatch");
+  const numberFormat = new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 
   return <section className="track-plan-analysis" aria-label={t("layouts.trackAnalysis.title")}>
     <header>
@@ -34,6 +40,8 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
           : "layouts.trackAnalysis.openEndMany", { count: openEnds })}</span>
         <span>{t(overlaps === 1 ? "layouts.trackAnalysis.overlapOne"
           : "layouts.trackAnalysis.overlapMany", { count: overlaps })}</span>
+        <span>{t(elevationMismatches === 1 ? "layouts.trackAnalysis.elevationMismatchOne"
+          : "layouts.trackAnalysis.elevationMismatchMany", { count: elevationMismatches })}</span>
       </div>
     </header>
     <div className="track-analysis-grid">
@@ -42,15 +50,18 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
         {analysis.issues.length === 0
           ? <p className="layout-empty">✓ {t("layouts.trackAnalysis.noIssues")}</p>
           : <ul className="track-issue-list">{analysis.issues.map((issue, index) => {
-            const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${t(
-              `layouts.trackAnalysis.issue.${issue.code}`
-            )}`;
+            const issueText = issue.code === "elevation_mismatch" && issue.elevationDifferenceMm !== undefined
+              ? t("layouts.trackAnalysis.issueElevationDetail", {
+                difference: numberFormat.format(issue.elevationDifferenceMm)
+              })
+              : t(`layouts.trackAnalysis.issue.${issue.code}`);
+            const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${issueText}`;
             return <li key={`${issue.code}-${issue.objectIds.join("-")}-${index}`}>
               <button type="button" className={`track-issue severity-${issue.severity}`}
                 aria-label={label} aria-pressed={issue.objectIds.includes(selectedObjectId ?? "")}
                 onClick={() => issue.objectIds[0] && onSelectObject?.(issue.objectIds[0])}>
                 <b aria-hidden="true">{issueSymbols[issue.code]}</b>
-                <span>{t(`layouts.trackAnalysis.issue.${issue.code}`)}</span>
+                <span>{issueText}</span>
               </button>
             </li>;
           })}</ul>}
