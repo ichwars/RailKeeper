@@ -116,6 +116,47 @@ INSERT INTO plan_revisions(
 			revision.RevisionNumber, revision.Status, revision.BaseRevisionID, actor, now, now); err != nil {
 			return fmt.Errorf("insert plan draft: %w", err)
 		}
+		if input.BaseRevisionID != "" {
+			rows, err := tx.QueryContext(ctx, `
+SELECT geometry_id, position_x_mm, position_y_mm, rotation_degrees
+FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.BaseRevisionID)
+			if err != nil {
+				return fmt.Errorf("list base revision track objects: %w", err)
+			}
+			type baseTrackObject struct {
+				geometryID      string
+				positionXMM     float64
+				positionYMM     float64
+				rotationDegrees float64
+			}
+			objects := []baseTrackObject{}
+			for rows.Next() {
+				object := baseTrackObject{}
+				if err := rows.Scan(&object.geometryID, &object.positionXMM, &object.positionYMM,
+					&object.rotationDegrees); err != nil {
+					_ = rows.Close()
+					return fmt.Errorf("scan base revision track object: %w", err)
+				}
+				objects = append(objects, object)
+			}
+			if err := rows.Err(); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("iterate base revision track objects: %w", err)
+			}
+			if err := rows.Close(); err != nil {
+				return fmt.Errorf("close base revision track objects: %w", err)
+			}
+			for _, object := range objects {
+				if _, err := tx.ExecContext(ctx, `
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
+					object.positionXMM, object.positionYMM, object.rotationDegrees, now, now); err != nil {
+					return fmt.Errorf("copy base revision track object: %w", err)
+				}
+			}
+		}
 		return writeLayoutAudit(ctx, tx, "PlanDraftCreated", "plan_revision", revision.ID, actor, now)
 	})
 	if err != nil {
