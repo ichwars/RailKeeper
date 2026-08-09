@@ -21,6 +21,12 @@ deutsch/englische Oberfläche sind abgedeckt. Backup-Format 7 erhält die Ports,
 6 bleiben importierbar. Kompatibilitätsanalyse, Snapping und automatische Modulbewegung bleiben
 bewusst Folgepaketen vorbehalten.
 
+**Umsetzungsstand 2026-08-10, Etappe 4 Paket B:** Aufbaukonfigurationen leiten globale Modulports,
+exakte Verbindungen, offene Ports und fachlich inkompatible Übergänge deterministisch ab. Eine
+serverseitige Einrastvorschau richtet eine Einheit nur nach ausdrücklicher Aktion aus und übernimmt
+die Pose zunächst ungespeichert in das Formular. Es gibt weiterhin keine automatische
+Modulreihenfolge und keine neue Persistenz- oder Backup-Struktur.
+
 ## Ziel
 
 RailKeeper erweitert die bestehende Fahrzeugverwaltung um einen eigenständigen Bereich für Zubehör,

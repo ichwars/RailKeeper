@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** Aus der abgestimmten Etappe 4 abgeleitet, lokale Umsetzung ohne Veröffentlichung
+**Status:** Paket B lokal umgesetzt und am 2026-08-10 abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -74,3 +74,16 @@ persistierte Kabelverbindungen, automatische Modulreihenfolge und digitale Steue
 - API-Rollen und CSRF-Verhalten sind geprüft; OpenAPI entspricht den Laufzeittypen.
 - Die Oberfläche zeigt Analysezustände und übernimmt eine Einrastvorschau ohne vorzeitiges Speichern.
 - Backend-Gesamttests, Frontend-Gesamttests, Produktionsbuild und lokale Browserabnahme sind grün.
+
+### Abnahmeprotokoll vom 2026-08-10
+
+- `go test ./...` im Backend: alle Pakete erfolgreich.
+- `npm.cmd test -- --run` im Frontend: 66 Testdateien und 348 Tests erfolgreich.
+- `npm.cmd run build`: 2.173 Module erfolgreich in den Produktionsbuild übernommen.
+- Browserabnahme unter `http://127.0.0.1:18083/layouts`: Aufbau anlegen und auswählen,
+  Anschlussprüfung ohne Ports, neutraler Snap ohne Treffer und ein aktiver offener Port erfolgreich.
+- Ein während der Browserabnahme entdeckter Randfall für Einheiten ohne aktive Ports wurde mit
+  einem Regressionstest korrigiert.
+- Browserkonsole nach der Abnahme: keine Warnungen oder Fehler.
+- Der Aufbau `QA Portprüfung B` und der aktive Port `QA West` bleiben ausschließlich in der lokalen
+  Entwicklungsdatenbank.
