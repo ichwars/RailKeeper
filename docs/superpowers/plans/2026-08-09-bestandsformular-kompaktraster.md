@@ -54,7 +54,7 @@
 - Produces: `.article-transfer-form` als lokale Formularmarkierung und
   `.article-transfer-fields` als rein visuellen Container für vier bestehende Felder.
 
-- [ ] **Step 1: Strukturtest um den Umbuchungscontainer ergänzen**
+- [x] **Step 1: Strukturtest um den Umbuchungscontainer ergänzen**
 
 Den bestehenden Test `aligns stock adjustment and transfer as peer forms` erweitern:
 
@@ -71,7 +71,7 @@ expect(transferFields).toBeInTheDocument();
 expect(transferFields?.children).toHaveLength(4);
 ```
 
-- [ ] **Step 2: Responsive-Test um die neuen Rasterregeln ergänzen**
+- [x] **Step 2: Responsive-Test um die neuen Rasterregeln ergänzen**
 
 In `accessoriesResponsive.test.ts` ergänzen:
 
@@ -91,7 +91,7 @@ it("uses the compact weighted stock grid and stacks transfer fields on narrow sc
 });
 ```
 
-- [ ] **Step 3: Beide Fokustests ausführen und erwartetes Rot bestätigen**
+- [x] **Step 3: Beide Fokustests ausführen und erwartetes Rot bestätigen**
 
 Run:
 
@@ -102,7 +102,7 @@ npm.cmd run test:run -- src/features/accessories/AccessoryStockPanel.test.tsx sr
 Expected: FAIL wegen fehlender `.article-transfer-form`- und `.article-transfer-fields`-Struktur
 sowie der noch vorhandenen Gleichverteilungs- und Streckregeln.
 
-- [ ] **Step 4: Die vier Umbuchungsfelder lokal gruppieren**
+- [x] **Step 4: Die vier Umbuchungsfelder lokal gruppieren**
 
 In `AccessoryStockPanel.tsx` ausschließlich das zweite Formular anpassen:
 
@@ -128,7 +128,7 @@ In `AccessoryStockPanel.tsx` ausschließlich das zweite Formular anpassen:
 
 Die vorhandene `disabled`-Bedingung und alle Handler bleiben unverändert.
 
-- [ ] **Step 5: Gleichverteilung und Höhenstreckung durch das Kompaktraster ersetzen**
+- [x] **Step 5: Gleichverteilung und Höhenstreckung durch das Kompaktraster ersetzen**
 
 In `accessories.css` den aktuellen lokalen Block ersetzen:
 
@@ -160,7 +160,7 @@ Im vorhandenen 560-Pixel-Media-Block ergänzen:
 Der vorhandene 920-Pixel-Block für `.article-stock-commands { grid-template-columns: 1fr; }`
 bleibt unverändert.
 
-- [ ] **Step 6: Fokustests erneut ausführen**
+- [x] **Step 6: Fokustests erneut ausführen**
 
 Run:
 
@@ -170,13 +170,13 @@ npm.cmd run test:run -- src/features/accessories/AccessoryStockPanel.test.tsx sr
 
 Expected: beide Testdateien PASS.
 
-- [ ] **Step 7: Task-Änderungen statisch prüfen**
+- [x] **Step 7: Task-Änderungen statisch prüfen**
 
 Run: `git diff --check`
 
 Expected: kein Output.
 
-- [ ] **Step 8: Implementierung committen**
+- [x] **Step 8: Implementierung committen**
 
 ```powershell
 git add -- frontend/src/features/accessories/AccessoryStockPanel.tsx frontend/src/styles/accessories.css frontend/src/features/accessories/AccessoryStockPanel.test.tsx frontend/src/features/accessories/accessoriesResponsive.test.ts
@@ -198,7 +198,7 @@ Expected: ausschließlich die vier Task-Dateien sind im Commit enthalten.
   unter `http://127.0.0.1:18083`.
 - Produces: vollständige Test-, Build- und Browser-Evidenz sowie abgeschlossene Spezifikation.
 
-- [ ] **Step 1: Vollständige Frontendtests ausführen**
+- [x] **Step 1: Vollständige Frontendtests ausführen**
 
 Run:
 
@@ -209,7 +209,7 @@ npm.cmd run test:run
 
 Expected: mindestens die aktuelle Baseline von 49 Testdateien und 291 Tests PASS.
 
-- [ ] **Step 2: Produktionsbuild ausführen**
+- [x] **Step 2: Produktionsbuild ausführen**
 
 Run:
 
@@ -220,7 +220,7 @@ npm.cmd run build
 
 Expected: TypeScript-Build und Vite-Build erfolgreich.
 
-- [ ] **Step 3: Backend-Regressionssuite ausführen**
+- [x] **Step 3: Backend-Regressionssuite ausführen**
 
 Run:
 
@@ -231,7 +231,7 @@ go test ./...
 
 Expected: alle Backend-Packages PASS.
 
-- [ ] **Step 4: Browser-QA im Artikeldialog durchführen**
+- [x] **Step 4: Browser-QA im Artikeldialog durchführen**
 
 Flow: `/accessories` → Tillig 83101 bearbeiten → Reiter `Bestand`.
 
@@ -248,7 +248,7 @@ Die Desktopaufnahme zusammen mit
 `C:\Users\droth\AppData\Local\Temp\codex-clipboard-94dbed73-3e14-488c-bb24-8cf53ae27812.png`
 und der ausgewählten Variante B vergleichen.
 
-- [ ] **Step 5: Design-QA und Spezifikationsstatus aktualisieren**
+- [x] **Step 5: Design-QA und Spezifikationsstatus aktualisieren**
 
 In der Spezifikation setzen:
 
@@ -260,7 +260,7 @@ In `design-qa.md` einen Abschnitt `Nachtrag: Bestandsformular Kompaktraster` erg
 muss Referenz, Desktop-/Mobil-Viewports, Dark/Light, Vergleichsergebnis, Findings P0 bis P3 und den
 abschließenden Wert `passed` enthalten.
 
-- [ ] **Step 6: Planchecklisten abschließen und Dokumente prüfen**
+- [x] **Step 6: Planchecklisten abschließen und Dokumente prüfen**
 
 Alle erledigten Schritte von `[ ]` auf `[x]` setzen.
 
@@ -268,7 +268,7 @@ Run: `git diff --check`
 
 Expected: kein Output.
 
-- [ ] **Step 7: Abschlussdokumentation committen**
+- [x] **Step 7: Abschlussdokumentation committen**
 
 ```powershell
 git add -- design-qa.md docs/superpowers/specs/2026-08-09-bestandsformular-kompaktraster-design.md docs/superpowers/plans/2026-08-09-bestandsformular-kompaktraster.md

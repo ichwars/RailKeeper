@@ -1,6 +1,6 @@
 # Bestandsformular: Kompaktraster für Korrektur und Umbuchung
 
-**Status:** Zur schriftlichen Prüfung
+**Status:** Implemented and verified
 **Datum:** 2026-08-09
 **Bereich:** Artikelübersicht, Dialog „Artikel bearbeiten“, Reiter „Bestand“
 **Visuelle Auswahl:** Variante B, vom Nutzer am 2026-08-09 bestätigt
