@@ -14,6 +14,7 @@ import { LayoutFormDialog, type LayoutFormValue } from "./LayoutFormDialog";
 import { LayoutModulesPanel } from "./LayoutModulesPanel";
 import { LayoutPlansPanel } from "./LayoutPlansPanel";
 import { LayoutTechnicalPositionsPanel } from "./LayoutTechnicalPositionsPanel";
+import { LayoutTwinPanel } from "./LayoutTwinPanel";
 
 type LayoutTab = "overview" | "planner" | "modules" | "setups" | "technology" | "maintenance" | "documents";
 
@@ -117,6 +118,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         onClick={() => setTab(item)}>{t(`layouts.tabs.${item}`)}</button>)}</div>
     {loading ? <section className="panel"><p>{t("layouts.structure.loading")}</p></section> :
       tab === "overview" ? <section className="layout-overview-grid">
+        <LayoutTwinPanel layout={layout} units={units} configurations={configurations} />
         <section className="panel layout-overview-summary">
           <div className="layout-panel-head">
             <div className="panel-title"><Building2 size={17} /><h3>{t("layouts.overview.title")}</h3></div>

@@ -51,6 +51,15 @@ describe("LayoutsView", () => {
     vi.spyOn(api, "layout").mockResolvedValue(layout);
     vi.spyOn(api, "layoutUnits").mockResolvedValue([unit]);
     vi.spyOn(api, "layoutConfigurations").mockResolvedValue([]);
+    vi.spyOn(api, "layoutTwin").mockResolvedValue({
+      layoutId: layout.id, unitId: unit.id,
+      bounds: { minXMm: 0, minYMm: 0, widthMm: unit.widthMm, heightMm: unit.heightMm },
+      hasGeometry: true,
+      units: [{ id: unit.id, name: unit.name, kind: unit.kind, positionXMm: 0, positionYMm: 0,
+        rotationDegrees: 0, outline: [{ xMm: 0, yMm: 0 }, { xMm: unit.widthMm, yMm: 0 },
+          { xMm: unit.widthMm, yMm: unit.heightMm }, { xMm: 0, yMm: unit.heightMm }], positions: [] }],
+      warnings: [{ code: "outline_fallback", unitId: unit.id }]
+    });
     vi.spyOn(api, "planVariants").mockResolvedValue([variant]);
     vi.spyOn(api, "layoutTechnicalPositions").mockResolvedValue([technicalPosition]);
     vi.spyOn(api, "accessoryArticles").mockResolvedValue({
