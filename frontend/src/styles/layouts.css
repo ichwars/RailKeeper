@@ -578,6 +578,33 @@
   stroke-width: 3;
 }
 .track-object circle { fill: var(--panel); stroke: var(--text); stroke-width: 1.5; }
+.track-port text {
+  fill: var(--text);
+  font-size: 8px;
+  font-weight: var(--font-weight-bold);
+  pointer-events: none;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+.track-port.status-connected circle {
+  fill: color-mix(in srgb, var(--accent) 20%, var(--panel));
+  stroke: var(--accent);
+}
+.track-port.status-connected text { fill: var(--accent-strong); }
+.track-port.status-open circle { stroke: var(--warning); stroke-dasharray: 2 1; }
+.track-port.status-open text,
+.track-port.status-incompatible text { fill: var(--warning); }
+.track-port.status-incompatible circle {
+  fill: color-mix(in srgb, var(--warning) 18%, var(--panel));
+  stroke: var(--warning);
+}
+.track-object-issue {
+  fill: var(--warning);
+  font-size: 18px;
+  font-weight: var(--font-weight-bold);
+  text-anchor: middle;
+}
+.track-object-issue.severity-error { fill: var(--danger); }
 .track-object:hover polyline,
 .track-object:focus-visible polyline,
 .track-object.selected polyline { stroke: var(--accent); stroke-width: 5; }
@@ -601,6 +628,48 @@
 .track-planner-inspector dd { margin: 2px 0 0; font-weight: var(--font-weight-bold); }
 .track-planner-inspector a { display: inline-flex; align-items: center; gap: 5px; }
 .track-planner-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+
+.track-plan-analysis {
+  grid-column: 1 / -1;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 12px;
+  background: var(--panel-subtle);
+}
+
+.track-plan-analysis > header,
+.track-plan-analysis > header > div,
+.track-plan-analysis h5 {
+  display: flex;
+  align-items: center;
+}
+
+.track-plan-analysis > header { justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.track-plan-analysis > header > div,
+.track-plan-analysis h5 { gap: 6px; }
+.track-plan-analysis h4,
+.track-plan-analysis h5 { margin: 0; }
+.track-analysis-summary { flex-wrap: wrap; justify-content: flex-end; }
+.track-analysis-summary span {
+  border-left: 1px solid var(--line);
+  padding-left: 10px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.track-analysis-grid { display: grid; grid-template-columns: minmax(190px, 0.35fr) minmax(0, 1fr); gap: 16px; }
+.track-analysis-grid h5 { margin-bottom: 8px; }
+.track-issue-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.track-issue { display: flex; align-items: center; gap: 7px; font-size: var(--font-size-sm); }
+.track-issue b { width: 18px; text-align: center; color: var(--warning); }
+.track-issue.severity-error b { color: var(--danger); }
+.track-materials table { width: 100%; }
+.track-materials th,
+.track-materials td { padding: 7px 8px; text-align: left; }
+.track-materials td strong,
+.track-materials td small { display: block; }
+.track-materials td small { color: var(--muted); }
+.track-materials .material-missing { color: var(--danger); font-weight: var(--font-weight-bold); }
 
 .layout-technology-panel { min-width: 0; }
 
@@ -703,6 +772,10 @@
   .track-planner-body { grid-template-columns: minmax(0, 1fr); }
   .track-planner-inspector { grid-column: auto; }
   .track-planner-canvas { min-height: 280px; }
+  .track-plan-analysis > header { align-items: flex-start; flex-direction: column; }
+  .track-analysis-summary { justify-content: flex-start; }
+  .track-analysis-summary span:first-child { border-left: 0; padding-left: 0; }
+  .track-analysis-grid { grid-template-columns: minmax(0, 1fr); }
   .layout-twin-head-actions { width: 100%; justify-content: flex-end; }
   .layout-twin-inspector {
     position: fixed;

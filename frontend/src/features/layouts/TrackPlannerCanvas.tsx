@@ -7,17 +7,52 @@ import {
   type LayoutUnit,
   type PlanRevision,
   type PlanTrackObject,
-  type TrackGeometryDefinition
+  type TrackGeometryDefinition,
+  type TrackPlanAnalysis
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
-import { normalizedRotation, routePolylinePoints, trackObjectTransform } from "./trackPlannerGeometry";
+import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
+import {
+  findTrackSnap,
+  normalizedRotation,
+  routePolylinePoints,
+  trackObjectTransform
+} from "./trackPlannerGeometry";
 
 type DragState = {
   object: PlanTrackObject;
   offsetX: number;
   offsetY: number;
 };
+
+type TrackPortStatus = "connected" | "open" | "incompatible" | "unknown";
+
+const trackPortSymbols: Record<TrackPortStatus, string> = {
+  connected: "✓",
+  open: "○",
+  incompatible: "!",
+  unknown: "·"
+};
+
+function trackPortStatus(
+  analysis: TrackPlanAnalysis | null,
+  objectID: string,
+  portID: string
+): TrackPortStatus {
+  if (!analysis) return "unknown";
+  if (analysis.connections.some((connection) =>
+    (connection.objectAId === objectID && connection.portAId === portID) ||
+    (connection.objectBId === objectID && connection.portBId === portID))) return "connected";
+  for (const issue of analysis.issues) {
+    const objectIndex = issue.objectIds.indexOf(objectID);
+    if (objectIndex < 0 || !issue.portIds?.includes(portID)) continue;
+    if (issue.portIds.length === issue.objectIds.length && issue.portIds[objectIndex] !== portID) continue;
+    if (issue.code === "incompatible_connection") return "incompatible";
+    if (issue.code === "open_end") return "open";
+  }
+  return "unknown";
+}
 
 export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: {
   unit: LayoutUnit;
@@ -28,6 +63,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
 }) {
   const [geometries, setGeometries] = useState<TrackGeometryDefinition[]>([]);
   const [objects, setObjects] = useState<PlanTrackObject[]>([]);
+  const [analysis, setAnalysis] = useState<TrackPlanAnalysis | null>(null);
   const [selectedID, setSelectedID] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -43,14 +79,20 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const height = unit.heightMm > 0 ? unit.heightMm : 600;
   const selected = objects.find((object) => object.id === selectedID);
 
+  const refreshAnalysis = useCallback(async () => {
+    const nextAnalysis = await api.trackPlanAnalysis(revision.id);
+    setAnalysis(nextAnalysis);
+  }, [revision.id]);
+
   const load = useCallback(async () => {
     setLoading(true); setMessage(""); setConflict(false);
     try {
-      const [nextGeometries, plan] = await Promise.all([
-        api.trackGeometries(gauge), api.trackPlan(revision.id)
+      const [nextGeometries, plan, nextAnalysis] = await Promise.all([
+        api.trackGeometries(gauge), api.trackPlan(revision.id), api.trackPlanAnalysis(revision.id)
       ]);
       setGeometries(nextGeometries.filter((geometry) => geometry.status === "verified"));
       setObjects(plan.objects);
+      setAnalysis(nextAnalysis);
       setSelectedID((current) => plan.objects.some((object) => object.id === current) ? current : "");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : genericError);
@@ -79,6 +121,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
       });
       setObjects((current) => [...current, created]);
       setSelectedID(created.id);
+      await refreshAnalysis();
     } catch (reason) { showError(reason); }
     finally { setSaving(false); }
   };
@@ -91,6 +134,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         positionXMm, positionYMm, rotationDegrees, expectedVersion: object.version
       });
       setObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
+      await refreshAnalysis();
     } catch (reason) { showError(reason); }
     finally { setSaving(false); }
   };
@@ -118,8 +162,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const point = canvasPoint(event.nativeEvent);
     const x = Math.max(0, Math.min(width, point.x - drag.offsetX));
     const y = Math.max(0, Math.min(height, point.y - drag.offsetY));
+    const pose = findTrackSnap({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
     setObjects((current) => current.map((item) => item.id === drag.object.id
-      ? { ...item, positionXMm: x, positionYMm: y } : item));
+      ? { ...item, ...pose } : item));
   };
 
   const finishDrag = (event: ReactPointerEvent<SVGSVGElement>) => {
@@ -129,9 +174,10 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const point = canvasPoint(event.nativeEvent);
     const x = Math.max(0, Math.min(width, point.x - drag.offsetX));
     const y = Math.max(0, Math.min(height, point.y - drag.offsetY));
+    const pose = findTrackSnap({ ...drag.object, positionXMm: x, positionYMm: y }, objects).pose;
     setObjects((current) => current.map((item) => item.id === drag.object.id
-      ? { ...item, positionXMm: x, positionYMm: y } : item));
-    void update(drag.object, x, y, drag.object.rotationDegrees);
+      ? { ...item, ...pose } : item));
+    void update(drag.object, pose.positionXMm, pose.positionYMm, pose.rotationDegrees);
   };
 
   const rotate = (degrees: number) => {
@@ -152,6 +198,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         await api.deletePlanTrackObject(object.id, object.version);
         setObjects((current) => current.filter((item) => item.id !== object.id));
         setSelectedID("");
+        await refreshAnalysis();
       }
     });
   };
@@ -191,15 +238,29 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
             <path d="M 50 0 L 0 0 0 50" className="track-grid-line" /></pattern></defs>
           <rect width={width} height={height} className="track-canvas-surface" />
           <rect width={width} height={height} fill={`url(#track-grid-${revision.id})`} />
-          {objects.map((object) => <g key={object.id} role="button" tabIndex={0}
-            aria-label={`Gleis Tillig ${object.geometry.articleNumber} G1`}
-            className={object.id === selectedID ? "track-object selected" : "track-object"}
-            transform={trackObjectTransform(object)} onClick={() => setSelectedID(object.id)}
-            onPointerDown={(event) => startDrag(event, object)}>
-            {object.geometry.geometry.routes.map((route) => <polyline key={route.id}
-              points={routePolylinePoints(route.points)} />)}
-            {object.geometry.geometry.ports.map((port) => <circle key={port.id} cx={port.xMm} cy={port.yMm} r="4" />)}
-          </g>)}
+          {objects.map((object) => {
+            const objectIssue = analysis?.issues.find((issue) =>
+              issue.objectIds.includes(object.id) && ["overlap", "broken_geometry"].includes(issue.code));
+            return <g key={object.id} role="button" tabIndex={0}
+              aria-label={`Gleis Tillig ${object.geometry.articleNumber} G1`}
+              className={object.id === selectedID ? "track-object selected" : "track-object"}
+              transform={trackObjectTransform(object)} onClick={() => setSelectedID(object.id)}
+              onPointerDown={(event) => startDrag(event, object)}>
+              {object.geometry.geometry.routes.map((route) => <polyline key={route.id}
+                points={routePolylinePoints(route.points)} />)}
+              {object.geometry.geometry.ports.map((port) => {
+                const status = trackPortStatus(analysis, object.id, port.id);
+                return <g key={port.id} className={`track-port status-${status}`} data-status={status}>
+                  <circle cx={port.xMm} cy={port.yMm} r="5" />
+                  <text x={port.xMm} y={port.yMm} aria-hidden="true">{trackPortSymbols[status]}</text>
+                </g>;
+              })}
+              {objectIssue ? <text className={`track-object-issue severity-${objectIssue.severity}`}
+                x={object.geometry.lengthMm / 2} y={-12} aria-hidden="true">
+                {objectIssue.code === "broken_geometry" ? "×" : "!"}
+              </text> : null}
+            </g>;
+          })}
         </svg>
         {objects.length === 0 ? <p className="track-planner-empty">{editable
           ? t("layouts.trackPlanner.emptyDraft") : t("layouts.trackPlanner.emptyRead")}</p> : null}
@@ -225,6 +286,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           </div> : null}
         </> : <p className="layout-empty">{t("layouts.trackPlanner.select")}</p>}
       </aside>
+      {analysis ? <TrackPlanAnalysisPanel analysis={analysis} /> : null}
     </div>}
     <LayoutConfirmDialog action={pending} onClose={() => setPending(null)} />
   </section>;

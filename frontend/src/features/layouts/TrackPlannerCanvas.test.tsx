@@ -47,6 +47,9 @@ describe("TrackPlannerCanvas", () => {
   beforeEach(() => {
     vi.spyOn(api, "trackGeometries").mockResolvedValue([geometry, { ...geometry, id: "draft-geometry", status: "draft" }]);
     vi.spyOn(api, "trackPlan").mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [] });
+    vi.spyOn(api, "trackPlanAnalysis").mockResolvedValue({
+      revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], materials: []
+    });
   });
 
   it("places only verified TT geometry at the unit centre and renders exact SVG geometry", async () => {
@@ -98,6 +101,33 @@ describe("TrackPlannerCanvas", () => {
     expect(within(dialog).getByText(/Tillig 83101/)).toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Löschen" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith(trackObject.id, 2));
+  });
+
+  it("previews a compatible endpoint snap and submits the snapped pose", async () => {
+    const target = { ...trackObject, id: "target", positionXMm: 0, positionYMm: 0 };
+    const moving = { ...trackObject, id: "moving", positionXMm: 200, positionYMm: 0 };
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [target, moving]
+    });
+    const update = vi.spyOn(api, "updatePlanTrackObject").mockResolvedValue({
+      ...moving, positionXMm: 166, version: 2
+    });
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    const canvas = await screen.findByRole("img", { name: "Maßhaltiger Gleisplan für Bahnhofsmodul" });
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, width: 1200, height: 500, right: 1200, bottom: 500, x: 0, y: 0,
+      toJSON: () => ({})
+    });
+    const placed = screen.getAllByRole("button", { name: "Gleis Tillig 83101 G1" })[1];
+    fireEvent.pointerDown(placed, { pointerId: 5, clientX: 200, clientY: 0 });
+    fireEvent.pointerMove(canvas, { pointerId: 5, clientX: 172, clientY: 2 });
+    expect(placed).toHaveAttribute("transform", "translate(166 0) rotate(0)");
+    fireEvent.pointerUp(canvas, { pointerId: 5, clientX: 172, clientY: 2 });
+
+    await waitFor(() => expect(update).toHaveBeenCalledWith("moving", {
+      positionXMm: 166, positionYMm: 0, rotationDegrees: 0, expectedVersion: 1
+    }));
   });
 
   it("keeps published plans read-only and reports version conflicts", async () => {
