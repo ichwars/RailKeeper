@@ -193,6 +193,17 @@ describe("LayoutsView", () => {
       expect.objectContaining({ label: "Lokaler Signalname", expectedVersion: 2 })));
   });
 
+  it.each(["Viewer", "Editor"])("keeps technical positions read-only for %s users", async (role) => {
+    const user = userEvent.setup();
+    render(<LayoutsView roles={[role]} />);
+    await screen.findAllByText(layout.name);
+
+    await user.click(screen.getByRole("tab", { name: "Technik" }));
+    expect(await screen.findByText("Einfahrsignal A")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Technische Position anlegen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Einfahrsignal A bearbeiten" })).not.toBeInTheDocument();
+  });
+
   it("publishes reviewed revisions only after confirmation", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "publishPlanRevision").mockResolvedValue({ ...reviewRevision, status: "published", version: 3,

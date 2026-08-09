@@ -15,6 +15,7 @@ import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextArea } from "../../shared/ui/AppTextArea";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
+import { LayoutConfirmDialog } from "./LayoutConfirmDialog";
 
 type PositionForm = {
   label: string;
@@ -63,10 +64,18 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
 }) {
   const [form, setForm] = useState(() => formValue(position));
   const [expectedVersion, setExpectedVersion] = useState(position?.version);
+  const [discardOpen, setDiscardOpen] = useState(false);
   const layerRef = useRef<HTMLDivElement | null>(null);
   const labelRef = useRef<HTMLInputElement | null>(null);
   const { t } = useI18n();
   const title = t(position ? "layouts.technology.edit" : "layouts.technology.create");
+  const dirty = JSON.stringify(form) !== JSON.stringify(formValue(position));
+
+  const requestClose = () => {
+    if (saving) return;
+    if (dirty) setDiscardOpen(true);
+    else onClose();
+  };
 
   useEffect(() => {
     labelRef.current?.focus();
@@ -97,7 +106,7 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === "Escape") {
       event.preventDefault();
-      if (!saving) onClose();
+      requestClose();
       return;
     }
     if (event.key !== "Tab") return;
@@ -118,7 +127,7 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
         <header className="modal-head">
           <div><h2>{title}</h2><p>{unit.name}</p></div>
           <button type="button" className="icon-button" aria-label={t("common.close")} title={t("common.close")}
-            disabled={saving} onClick={onClose}><X size={18} /></button>
+            disabled={saving} onClick={requestClose}><X size={18} /></button>
         </header>
         <div className="modal-body layout-form-dialog-body">
           <AppTextInput ref={labelRef} label={t("layouts.field.name")} required value={form.label}
@@ -162,11 +171,18 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
               className="secondary-button compact-action" disabled={saving} onClick={() => void reloadConflict()}>
               {t("layouts.conflict.reload")}</button> : null}</div> : null}
           <button type="button" className="secondary-button" disabled={saving}
-            onClick={onClose}>{t("common.cancel")}</button>
+            onClick={requestClose}>{t("common.cancel")}</button>
           <button type="submit" className="primary-button" disabled={saving || !form.label.trim()}>
             {saving ? t("common.saving") : t("layouts.technology.save")}
           </button>
         </footer>
+        <LayoutConfirmDialog action={discardOpen ? {
+          title: t("layouts.dialog.discardTitle"),
+          body: t("layouts.dialog.discardBody"),
+          confirmLabel: t("layouts.dialog.discardAction"),
+          dangerous: true,
+          run: onClose
+        } : null} onClose={() => setDiscardOpen(false)} />
       </form>
     </div>,
     document.body
