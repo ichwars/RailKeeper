@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-08
 
-**Status:** Fachlich freigegeben, bereit für den Implementierungsplan
+**Status:** Implemented and verified
 
 **Geltungsbereich:** Einstellungen, Stammdatenverwaltung und Artikelstammdaten
 

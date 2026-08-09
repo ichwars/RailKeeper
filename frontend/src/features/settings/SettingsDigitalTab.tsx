@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Database, Monitor, MonitorOff, Power, PowerOff, RadioTower, RefreshCw, Save, Server, X } from "lucide-react";
+import { Database, Monitor, MonitorOff, Power, PowerOff, RefreshCw, Save, Server, X } from "lucide-react";
 import { api, DigitalCenterConnectionResult, DigitalCenterProbeResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
@@ -348,13 +348,6 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
       <section className="digital-settings-grid">
         <section className="panel settings-card settings-tool-card digital-command-card">
           <div className="settings-section-head">
-            <div className="settings-card-title">
-              <RadioTower size={18} />
-              <div>
-                <h2>{t("settings.digital.title")}</h2>
-                <p>{t("settings.digital.subtitle")}</p>
-              </div>
-            </div>
             <div className="settings-marker-row digital-state-icons">
               <span
                 className={providerReady ? "digital-state-icon active" : "digital-state-icon inactive"}

@@ -38,7 +38,7 @@
 - Produces: `settingsLocationSearch(location: SettingsLocation): string`.
 - Preserves: legacy `?tab=articleManagement` by normalizing it to Data/article/stock-unit.
 
-- [ ] **Step 1: Add failing query-model tests**
+- [x] **Step 1: Add failing query-model tests**
 
 ```ts
 expect(readSettingsLocation("?tab=data")).toEqual({
@@ -53,7 +53,7 @@ expect(readSettingsLocation("?tab=data&group=article&type=locations")).toEqual({
 expect(readSettingsLocation("?tab=data&group=general&type=locations").type).toBe("manufacturer");
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 cd frontend
@@ -62,7 +62,7 @@ npm.cmd run test:run -- src/features/settings/settingsDataModel.test.ts
 
 Expected: FAIL because `settingsDataModel` does not exist.
 
-- [ ] **Step 3: Implement closed navigation types and compatibility**
+- [x] **Step 3: Implement closed navigation types and compatibility**
 
 ```ts
 export const generalDataTypes = [
@@ -85,7 +85,7 @@ export type SettingsLocation = {
 `articleManagement` value maps to `data/article/stock_unit`. `settingsLocationSearch` writes stable
 `tab=data&group=...&type=...` parameters and omits `tab` for General.
 
-- [ ] **Step 4: Remove the visible Article Management tab and restore manufacturer**
+- [x] **Step 4: Remove the visible Article Management tab and restore manufacturer**
 
 ```ts
 export type SettingsTab = "general" | "data" | "digital" | "importExport" | "appearance" | "auth";
@@ -103,7 +103,7 @@ export const settingsTabs = [
 Add `{ type: "manufacturer" }` as the first `masterDataTypes` item. Replace tests that asserted
 manufacturer removal with manufacturer-presence and Article-Management-absence assertions.
 
-- [ ] **Step 5: Verify and commit Task 1**
+- [x] **Step 5: Verify and commit Task 1**
 
 ```powershell
 cd frontend
@@ -130,7 +130,7 @@ Expected: focused tests PASS.
 - Produces: `SettingsTabList<T>({ ariaLabel, options, value, onChange, className })`.
 - Guarantees: one `tablist`, roving `tabIndex`, ArrowLeft/Right, Home/End, and selected-tab visibility.
 
-- [ ] **Step 1: Add failing semantics and keyboard tests**
+- [x] **Step 1: Add failing semantics and keyboard tests**
 
 ```tsx
 render(<SettingsTabList ariaLabel="Datengruppe" options={options}
@@ -146,7 +146,7 @@ expect(screen.getByRole("tab", { name: "Artikelstammdaten" })).toHaveFocus();
 Also assert ArrowLeft wrapping, Home, End, exactly one `tabIndex=0`, and a guarded
 `scrollIntoView({ block: "nearest", inline: "nearest" })` call.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 cd frontend
@@ -155,7 +155,7 @@ npm.cmd run test:run -- src/features/settings/SettingsTabList.test.tsx
 
 Expected: FAIL because `SettingsTabList` does not exist.
 
-- [ ] **Step 3: Implement the reusable component**
+- [x] **Step 3: Implement the reusable component**
 
 ```tsx
 export function SettingsTabList<T extends string>(props: SettingsTabListProps<T>) {
@@ -181,7 +181,7 @@ export function SettingsTabList<T extends string>(props: SettingsTabListProps<T>
 Add `settings-data-groups` for the compact grouped switch and `settings-data-types` for the
 underlined horizontally scrollable row. Use existing tokens and no boxed data-tab cards.
 
-- [ ] **Step 4: Verify and commit Task 2**
+- [x] **Step 4: Verify and commit Task 2**
 
 ```powershell
 cd frontend
@@ -213,7 +213,7 @@ Expected: focused tests PASS.
 - Retires: Article Management main-tab branch, component page heading, and generic manufacturer section.
 - Preserves: manufacturer editor, roles, lazy loading, request guards, storage hierarchy, and localized labels.
 
-- [ ] **Step 1: Add failing integration tests**
+- [x] **Step 1: Add failing integration tests**
 
 ```tsx
 window.history.replaceState(null, "", "/settings?tab=data");
@@ -229,7 +229,7 @@ Add assertions for exactly two group tabs, all four article-data tabs, no manufa
 the Article group, stable query changes, legacy-link normalization, Viewer read-only behavior, and
 Editor mutations. Keep the existing deferred-request regression when switching to Locations.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 cd frontend
@@ -239,7 +239,7 @@ npm.cmd run test:run -- src/features/settings/SettingsView.test.tsx src/features
 Expected: FAIL on the visible Article Management main tab, absent groups, missing manufacturer type,
 and static/duplicated headings.
 
-- [ ] **Step 3: Make ArticleManagementSettings article-only and controlled**
+- [x] **Step 3: Make ArticleManagementSettings article-only and controlled**
 
 ```ts
 export type ArticleDataSection = "stock_unit" | "types" | "customFields" | "locations";
@@ -254,7 +254,7 @@ Remove `manufacturers` and `manufacturer` from the component section/type defini
 rendering, and tests. Remove its page-level title and description. Render the read-only note,
 controlled `SettingsTabList`, alerts, and active panel. Preserve canonical label persistence.
 
-- [ ] **Step 4: Compose groups and data tabs in SettingsView**
+- [x] **Step 4: Compose groups and data tabs in SettingsView**
 
 ```tsx
 <SettingsTabList ariaLabel={t("settings.data.groups")}
@@ -274,13 +274,13 @@ Restore Manufacturer as the first general type. Leave its website, domains, alia
 warnings, sorting, search, source links, form mapping, and API calls unchanged. Remove the standalone
 `activeSettingsTab === "articleManagement"` branch.
 
-- [ ] **Step 5: Add DE/EN group copy and remove only unused main-tab copy**
+- [x] **Step 5: Add DE/EN group copy and remove only unused main-tab copy**
 
 Add exact translations for `settings.data.pageSubtitle`, `settings.data.groups`,
 `settings.data.group.general`, and `settings.data.group.article`. Keep article section labels used by
 the embedded panel. Use `rg` before removing any old key.
 
-- [ ] **Step 6: Verify and commit Task 3**
+- [x] **Step 6: Verify and commit Task 3**
 
 ```powershell
 cd frontend
@@ -311,7 +311,7 @@ Expected: focused tests PASS.
 - Produces: exactly one level-one heading and one active-tab description.
 - Retires: fixed Settings title/subtitle, title-adjacent version, and duplicate page headings.
 
-- [ ] **Step 1: Add failing header tests**
+- [x] **Step 1: Add failing header tests**
 
 ```tsx
 for (const [tab, title, description] of [
@@ -330,7 +330,7 @@ for (const [tab, title, description] of [
 Assert that no version is rendered beside the heading and no active-tab title/description is
 duplicated inside its content. Preserve genuine subsection headings.
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 cd frontend
@@ -339,7 +339,7 @@ npm.cmd run test:run -- src/features/settings/SettingsView.test.tsx
 
 Expected: FAIL because the fixed Settings title and adjacent version still render.
 
-- [ ] **Step 3: Derive the page header from the active tab**
+- [x] **Step 3: Derive the page header from the active tab**
 
 ```tsx
 const activeDefinition = settingsTabs.find((tab) => tab.id === activeSettingsTab) ?? settingsTabs[0];
@@ -353,7 +353,7 @@ const activeDefinition = settingsTabs.find((tab) => tab.id === activeSettingsTab
 Remove the adjacent version and only duplicated page-level heading/description blocks. Keep
 operational headings such as Inventory numbers, Manufacturer database, Backup, and Users.
 
-- [ ] **Step 4: Run automated gates**
+- [x] **Step 4: Run automated gates**
 
 ```powershell
 cd frontend
@@ -364,13 +364,13 @@ npm.cmd run build
 
 Expected: focused PASS, complete Vitest PASS, and `tsc -b && vite build` PASS.
 
-- [ ] **Step 5: Run browser gates**
+- [x] **Step 5: Run browser gates**
 
 Verify German/English, light/dark, desktop and 390 × 844 px, all six headers, group/type URL state,
 complete manufacturer columns and edit fields, article tabs without Manufacturer, keyboard behavior,
 selected-tab visibility, zero new console warnings/errors, and no document overflow.
 
-- [ ] **Step 6: Close documentation and commit**
+- [x] **Step 6: Close documentation and commit**
 
 Set the design status to `Implemented and verified`, mark this plan complete, then run:
 
@@ -387,11 +387,11 @@ git commit -m "fix: restore settings manufacturer data"
 
 ## Final Delivery Gate
 
-- [ ] Complete manufacturer editing is reachable under Data and uses the existing records.
-- [ ] No generic manufacturer editor or Article Management main tab remains.
-- [ ] All article master data is reachable under Data → Article master data.
-- [ ] The active main tab supplies the only page title and description.
-- [ ] Legacy links normalize without errors or blank content.
-- [ ] German, English, roles, errors, loading, themes, mobile, and keyboard behavior pass.
-- [ ] Full tests, build, browser console, overflow check, and `git diff --check` pass.
-- [ ] `.superpowers/`, generated output, caches, local data, and credentials remain uncommitted.
+- [x] Complete manufacturer editing is reachable under Data and uses the existing records.
+- [x] No generic manufacturer editor or Article Management main tab remains.
+- [x] All article master data is reachable under Data → Article master data.
+- [x] The active main tab supplies the only page title and description.
+- [x] Legacy links normalize without errors or blank content.
+- [x] German, English, roles, errors, loading, themes, mobile, and keyboard behavior pass.
+- [x] Full tests, build, browser console, overflow check, and `git diff --check` pass.
+- [x] `.superpowers/`, generated output, caches, local data, and credentials remain uncommitted.

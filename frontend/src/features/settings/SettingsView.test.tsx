@@ -73,4 +73,36 @@ describe("SettingsView data navigation", () => {
     expect(query.get("group")).toBe("article");
     expect(query.get("type")).toBe("stock_unit");
   });
+
+  it.each([
+    ["", "Allgemein", "Sprache, Startseite, Datumsformat und Druckausgabe."],
+    ["?tab=data", "Daten", "Stammdaten für Fahrzeuge, Artikel und Anlagen zentral pflegen."],
+    ["?tab=digital", "Digitalzentralen", "Zentrale Verbindungen konfigurieren, testen und für spätere Live-Aktualisierungen vorbereiten."],
+    ["?tab=importExport", "Import/Export", "Bestandslisten auswerten, korrigieren und kontrolliert in die lokale Datenbank übernehmen."],
+    ["?tab=appearance", "Darstellung", "Design-Optionen und Anzeigeeinstellungen werden hier gebündelt."],
+    ["?tab=auth", "Authentifizierung", "Ihre Instanz ist mit lokaler Benutzeranmeldung geschützt."]
+  ])("uses the active tab as the only page header for %s", async (search, title, description) => {
+    window.history.replaceState(null, "", `/settings${search}`);
+    const view = render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("heading", { level: 1, name: title })).toBeInTheDocument();
+    expect(screen.getAllByText(description)).toHaveLength(1);
+    expect(screen.queryByRole("heading", { level: 2, name: title })).not.toBeInTheDocument();
+    view.unmount();
+  });
+
+  it("keeps the version out of the active page heading", async () => {
+    vi.mocked(api.version).mockResolvedValue({
+      version: "9.9.9",
+      latestVersion: "9.9.9",
+      updateAvailable: false,
+      checkedAt: "2026-08-09T00:00:00Z",
+      status: "current",
+      message: ""
+    });
+    window.history.replaceState(null, "", "/settings?tab=data");
+    render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Daten" })).toHaveTextContent(/^Daten$/);
+  });
 });

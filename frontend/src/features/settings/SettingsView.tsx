@@ -12,7 +12,6 @@ import {
   History,
   KeyRound,
   Mail,
-  Palette,
   Pencil,
   Plus,
   RefreshCw,
@@ -1387,14 +1386,14 @@ export function SettingsView({ username }: { username: string }) {
       return masterDataSort.direction === "asc" ? result : -result;
     })
     : filteredItems;
+  const activeSettingsDefinition =
+    settingsTabs.find((tab) => tab.id === activeSettingsTab) || settingsTabs[0];
 
   return (
     <>
       <section className="settings-head">
-        <h1>
-          {t("settings.title")} {versionInfo?.version && <span>{versionInfo.version}</span>}
-        </h1>
-        <p>{t("settings.subtitle")}</p>
+        <h1>{t(activeSettingsDefinition.labelKey)}</h1>
+        <p>{t(activeSettingsDefinition.descriptionKey)}</p>
       </section>
 
       <nav className="settings-primary-tabs" aria-label={t("settings.title")}>
@@ -1414,12 +1413,6 @@ export function SettingsView({ username }: { username: string }) {
         <section className="settings-dashboard-grid">
           <div className="settings-card-stack">
             <section className="panel settings-card settings-tool-card">
-              <div className="settings-section-head">
-                <div>
-                  <h2>{t("settings.general.title")}</h2>
-                  <p>{t("settings.general.subtitle")}</p>
-                </div>
-              </div>
               <div className="settings-field-grid">
                 <label>
                   {t("settings.language")}
@@ -1965,14 +1958,6 @@ export function SettingsView({ username }: { username: string }) {
 
       {activeSettingsTab === "importExport" && (
         <section className="panel settings-card import-export-card">
-          <div className="settings-card-title">
-            <Database size={18} />
-            <div>
-              <h2>{t("settings.import.title")}</h2>
-              <p>{t("settings.import.subtitle")}</p>
-            </div>
-          </div>
-
           <section className="backup-box master-data-transfer-box">
             <div className="backup-box-head">
               <div>
@@ -2140,14 +2125,6 @@ export function SettingsView({ username }: { username: string }) {
 
       {activeSettingsTab === "appearance" && (
         <section className="panel settings-card settings-tool-card">
-          <div className="settings-card-title">
-            <Palette size={18} />
-            <div>
-              <h2>{t("settings.appearance.title")}</h2>
-              <p>{t("settings.appearance.subtitle")}</p>
-            </div>
-          </div>
-
           <div className="appearance-mode-row" role="radiogroup" aria-label={t("settings.appearance.mode")}>
             <label className={design === "system" ? "appearance-option active" : "appearance-option"}>
               <input type="radio" name="theme" value="system" checked={design === "system"} onChange={() => updateDesign("system")} />
