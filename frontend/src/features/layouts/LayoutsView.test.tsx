@@ -171,22 +171,57 @@ describe("LayoutsView", () => {
     await waitFor(() => expect(api.submitPlanRevision).toHaveBeenCalledWith(draft.id, 1));
   });
 
+  it("shows the complete profile and edits through the dialog", async () => {
+    const user = userEvent.setup();
+    const updated = { ...layout, name: "Neue Bezeichnung", version: 3 };
+    vi.spyOn(api, "updateLayout").mockResolvedValue(updated);
+    render(<LayoutsView roles={["Planner"]} />);
+    await screen.findAllByText(layout.name);
+
+    const profile = (await screen.findByText("Anlagenprofil")).closest(".panel") as HTMLElement;
+    expect(profile).toHaveTextContent("Clubanlage");
+    expect(profile).toHaveTextContent("Aktiv");
+    expect(profile).toHaveTextContent("TT");
+    expect(profile).toHaveTextContent("1:120");
+    expect(profile).toHaveTextContent("Version 2");
+    expect(profile).toHaveTextContent(new Date(layout.createdAt).toLocaleString());
+    expect(profile).toHaveTextContent(new Date(layout.updatedAt).toLocaleString());
+
+    await user.click(within(profile).getByRole("button", { name: "Bearbeiten" }));
+    const dialog = screen.getByRole("dialog", { name: "Anlage bearbeiten" });
+    const name = within(dialog).getByRole("textbox", { name: "Bezeichnung" });
+    expect(name).toHaveValue(layout.name);
+    await user.clear(name);
+    await user.type(name, updated.name);
+    await user.click(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
+
+    await waitFor(() => expect(api.updateLayout).toHaveBeenCalledWith(layout.id, expect.objectContaining({
+      name: updated.name, expectedVersion: layout.version
+    })));
+    expect((await screen.findAllByText(updated.name)).length).toBeGreaterThan(0);
+  });
+
   it("preserves local layout edits on a stale-version conflict", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "updateLayout").mockRejectedValue(new ApiError("Layout data has changed.", "layout_version_conflict", 409));
     render(<LayoutsView roles={["Planner"]} />);
     await screen.findAllByText(layout.name);
 
-    const editPanel = (await screen.findByText("Anlage bearbeiten")).closest(".panel") as HTMLElement;
-    const name = within(editPanel).getByLabelText("Bezeichnung");
+    const profile = (await screen.findByText("Anlagenprofil")).closest(".panel") as HTMLElement;
+    await user.click(within(profile).getByRole("button", { name: "Bearbeiten" }));
+    const dialog = screen.getByRole("dialog", { name: "Anlage bearbeiten" });
+    const name = within(dialog).getByRole("textbox", { name: "Bezeichnung" });
     await user.clear(name);
     await user.type(name, "Lokaler Entwurf bleibt erhalten");
-    await user.click(within(editPanel).getByRole("button", { name: "Änderungen speichern" }));
+    await user.click(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
 
-    expect(await screen.findByText("Die Anlage wurde zwischenzeitlich geändert. Deine Eingaben bleiben erhalten."))
-      .toBeInTheDocument();
+    expect(await within(dialog).findByText(
+      "Die Anlage wurde zwischenzeitlich geändert. Deine Eingaben bleiben erhalten."
+    )).toBeInTheDocument();
     expect(name).toHaveValue("Lokaler Entwurf bleibt erhalten");
-    expect(screen.getByRole("button", { name: "Serverstand neu laden" })).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Serverstand neu laden" }));
+    await waitFor(() => expect(api.layout).toHaveBeenCalledWith(layout.id));
+    await waitFor(() => expect(name).toHaveValue(layout.name));
   });
 
   it("keeps the layout navigation hidden from Messe users", async () => {

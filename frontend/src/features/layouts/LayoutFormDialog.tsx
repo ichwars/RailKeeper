@@ -25,7 +25,7 @@ export type LayoutFormDialogProps = {
   conflict: boolean;
   returnFocusTo?: HTMLElement | null;
   onSubmit: (value: LayoutFormValue) => void | Promise<void>;
-  onReloadConflict?: () => void | Promise<void>;
+  onReloadConflict?: () => LayoutFormValue | void | Promise<LayoutFormValue | void>;
   onClose: () => void;
 };
 
@@ -75,6 +75,11 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
       scale: form.scale.trim(),
       description: form.description.trim()
     });
+  };
+
+  const reloadConflict = async () => {
+    const nextValue = await onReloadConflict?.();
+    if (nextValue) setForm(nextValue);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -133,7 +138,7 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
           {message ? <div className={conflict ? "layout-conflict layout-dialog-message" : "form-message"}
             role="alert"><span>{message}</span>{conflict && onReloadConflict ? <button type="button"
               className="secondary-button compact-action" disabled={saving}
-              onClick={() => void onReloadConflict()}>{t("layouts.conflict.reload")}</button> : null}</div> : null}
+              onClick={() => void reloadConflict()}>{t("layouts.conflict.reload")}</button> : null}</div> : null}
           <button type="button" className="secondary-button" disabled={saving}
             onClick={requestClose}>{t("common.cancel")}</button>
           <button type="submit" className="primary-button" disabled={saving || !form.name.trim() ||
