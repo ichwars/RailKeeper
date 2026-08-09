@@ -1423,7 +1423,14 @@ export function SettingsView({ username }: { username: string }) {
                 </label>
                 <label>
                   {t("settings.defaultView")}
-                  <AppSelect value={defaultView} onChange={(event) => setLocalSetting(localSettingKeys.defaultView, event.target.value, setDefaultView)}>
+                  <AppSelect
+                    value={defaultView}
+                    onChange={(event) => setLocalSetting(
+                      localSettingKeys.defaultView,
+                      event.target.value,
+                      (value) => setDefaultView(availableStartView(value))
+                    )}
+                  >
                     <option value="overview">{t("nav.overview")}</option>
                     <option value="vehicles">{t("nav.vehicles")}</option>
                     <option value="accessories">{t("nav.accessories")}</option>
