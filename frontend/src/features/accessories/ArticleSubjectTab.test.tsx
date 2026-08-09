@@ -69,7 +69,10 @@ describe("ArticleSubjectTab", () => {
 
     expect(screen.getByRole("textbox", { name: "Notiz" })).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: /Gewicht.*g/ })).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Wetterfest" })).toBeInTheDocument();
+    const weatherproof = screen.getByRole("checkbox", { name: "Wetterfest" });
+    expect(weatherproof).toBeInTheDocument();
+    expect(weatherproof.closest(".article-checkbox-control")).toBeInTheDocument();
+    expect(weatherproof.closest(".article-checkbox")).toHaveClass("app-field");
     expect(screen.getByRole("textbox", { name: "Erschienen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Farbe" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Einsatz/ })).toBeInTheDocument();

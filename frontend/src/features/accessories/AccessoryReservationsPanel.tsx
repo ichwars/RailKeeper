@@ -113,7 +113,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
           <td>{canReserve && reservation.status === "active" ? <button type="button" className="text-button"
             onClick={() => cancel(reservation)}>{t("accessories.reservations.cancel")}</button> : null}</td>
         </tr>)}</tbody></table></div>
-        {canReserve ? <form className="accessory-form" onSubmit={submit}>
+        {canReserve ? <form className="accessory-form accessory-allocation-form" onSubmit={submit}>
           <h3>{t("accessories.reservations.create")}</h3>
           <AccessoryTargetFields target={resolvedTarget} vehicles={vehicles} layouts={layouts} units={units}
             onChange={setTarget} />
@@ -136,7 +136,7 @@ export function AccessoryReservationsPanel({ article, reservations, assets, loca
               {asset.inventoryNumber || asset.serialNumber || asset.id}</option>)}
           </AppSelect></label> : <AppNumberInput label={t("accessories.field.quantity")} min="1" required
             value={quantity} onValueChange={setQuantity} />}
-          <label>{t("accessories.field.notes")}<textarea value={note}
+          <label className="accessory-form-wide">{t("accessories.field.notes")}<textarea value={note}
             onChange={(event) => setNote(event.target.value)} /></label>
           <button type="submit" className="primary-button" disabled={!canSubmit}>
             {t("accessories.reservations.save")}

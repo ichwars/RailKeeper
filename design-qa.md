@@ -59,3 +59,67 @@ Dark und Light Theme sind kontrastreich und verwenden ausschließlich bestehende
 ## Ergebnis
 
 passed
+
+---
+
+# Nachtrag: Artikeldialog Formularraster
+
+## Referenz und Prüfumgebung
+
+- Referenzen: vier vom Nutzer bereitgestellte Screenshots zu Bestand, Reservierung, Einbau und
+  Boolean-Fachangaben.
+- Implementierung: `http://127.0.0.1:18083/accessories`, Artikel Tillig 83101.
+- Desktopprüfung: Dark Theme bei 1280 × 720 Bildausgabe sowie Light Theme in der normalen
+  Browseransicht.
+- Mobileprüfung: 390 × 844 Bildausgabe, einspaltige Allokationsformulare und kein horizontaler
+  Dokumentüberlauf.
+- Vergleichsbilder:
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-stock-cdp.png`
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-reservation-grid.png`
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-installation-grid.png`
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-subject-checkbox-alignment.png`
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-subject-light.png`
+  - `C:\Users\droth\AppData\Local\Temp\railkeeper-subject-mobile-390x844.png`
+
+## Vergleich
+
+### Bestand
+
+Bestandskorrektur und Umbuchung stehen als gleich breite Spalten nebeneinander. Die Schaltflächen
+enden auf derselben Linie. Pflichtsterne bleiben Bestandteil des Feldlabels.
+
+### Reservierung und Einbau
+
+Beide Erfassungsformulare verwenden auf Desktop ein gleichmäßiges Zweispaltenraster. Fachlich breite
+Zeilen wie Reservierung und Notizen belegen beide Spalten. Unterhalb von 920 Pixeln wechselt das
+Raster auf eine Spalte.
+
+### Boolean-Fachangaben
+
+Die Kontrollzeilen für `Bettung` und `Digitaltauglich` besitzen Eingabefeldhöhe. Im Browservergleich
+endet die Kontrollzeile von `Bettung` exakt auf derselben Unterkante wie das benachbarte Eingabefeld
+`Profilhöhe`.
+
+### Themes und Responsive
+
+Dark und Light Theme verwenden weiterhin die bestehenden Tokens. Auf der mobilen Prüfansicht bleiben
+Footer und Formularfelder erreichbar; ein Dokumentüberlauf tritt nicht auf.
+
+## Findings
+
+- P0: keine
+- P1: keine
+- P2: keine
+- P3: keine
+
+## Änderungshistorie während QA
+
+1. Die erste Rasterfassung streckte das Eingabefeld `Mengenänderung` vertikal. Das Bestandsformular
+   wurde deshalb als Flexspalte ausgeführt, während die beiden Formulare als gleich hohe
+   Rasterspalten bestehen bleiben.
+2. Der Theme-Wechsel wurde nach geschlossenem Dialog erneut geprüft. Dark und Light Theme zeigen
+   keine Überlagerung oder abgeschnittene Beschriftung.
+
+## Ergebnis
+
+passed

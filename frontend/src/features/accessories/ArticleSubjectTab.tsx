@@ -135,7 +135,7 @@ export function ArticleSubjectTab({
     case "boolean":
       return <label key={definition.key} className={`app-field article-checkbox ${fieldError ? "has-error" : ""}`}>
         <span className="app-field-label">{label}</span>
-        <span><input type="checkbox" disabled={disabled}
+        <span className="article-checkbox-control"><input type="checkbox" disabled={disabled}
           aria-label={label}
           checked={value?.kind === "boolean" ? value.booleanValue : false}
           onChange={(event) => onChange({ attributes: replaceAttribute(form.attributes,

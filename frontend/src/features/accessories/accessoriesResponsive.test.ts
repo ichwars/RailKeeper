@@ -29,4 +29,13 @@ describe("article editor responsive tabs", () => {
     expect(accessoriesCss).toMatch(/\.article-subject-grid[^}]*overflow-wrap:\s*anywhere/s);
     expect(accessoriesCss).toMatch(/@media\s*\(max-width:\s*560px\)[\s\S]*\.article-editor-grid,[^}]*grid-template-columns:\s*1fr/s);
   });
+
+  it("uses a two-column allocation grid on desktop and stacks it below 920 pixels", () => {
+    expect(accessoriesCss).toMatch(
+      /\.accessory-allocation-form\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s,
+    );
+    expect(accessoriesCss).toMatch(
+      /@media\s*\(max-width:\s*920px\)[\s\S]*\.accessory-allocation-form\s*\{[^}]*grid-template-columns:\s*1fr/s,
+    );
+  });
 });

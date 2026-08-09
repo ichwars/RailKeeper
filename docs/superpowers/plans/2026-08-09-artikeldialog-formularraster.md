@@ -42,7 +42,7 @@
 - Consumes: bestehende `AccessoryStockPanel`-Props und `.accessory-form`.
 - Produces: `.article-stock-form` als rein lokale Layoutklasse ohne Verhaltensänderung.
 
-- [ ] **Step 1: Strukturtest für zwei markierte Bestandsformulare ergänzen**
+- [x] **Step 1: Strukturtest für zwei markierte Bestandsformulare ergänzen**
 
 ```tsx
 it("aligns stock adjustment and transfer as peer forms", () => {
@@ -57,12 +57,12 @@ it("aligns stock adjustment and transfer as peer forms", () => {
 });
 ```
 
-- [ ] **Step 2: Fokustest ausführen und erwartetes Rot bestätigen**
+- [x] **Step 2: Fokustest ausführen und erwartetes Rot bestätigen**
 
 Run: `npm.cmd test -- --run src/features/accessories/AccessoryStockPanel.test.tsx`
 Expected: FAIL, weil `.article-stock-form` noch nicht existiert.
 
-- [ ] **Step 3: Beide Formulare markieren und den Label-Selektor auf direkte Kindlabels begrenzen**
+- [x] **Step 3: Beide Formulare markieren und den Label-Selektor auf direkte Kindlabels begrenzen**
 
 ```tsx
 <form className="accessory-form article-stock-form" onSubmit={submitAdjustment}>
@@ -94,12 +94,12 @@ Expected: FAIL, weil `.article-stock-form` noch nicht existiert.
 
 Der bestehende Selektor `.accessory-form label` wird durch `.accessory-form > label` ersetzt. Dadurch behandelt er nicht mehr das innere `.app-field-label` von `AppNumberInput` als Raster und Pflichtsterne bleiben im Label.
 
-- [ ] **Step 4: Fokustest erneut ausführen**
+- [x] **Step 4: Fokustest erneut ausführen**
 
 Run: `npm.cmd test -- --run src/features/accessories/AccessoryStockPanel.test.tsx`
 Expected: PASS.
 
-- [ ] **Step 5: Task-Änderungen prüfen**
+- [x] **Step 5: Task-Änderungen prüfen**
 
 Run: `git diff --check`
 Expected: kein Output.
@@ -117,7 +117,7 @@ Expected: kein Output.
 - Consumes: `AccessoryTargetFields`, `AccessoryTechnicalFields`, bedingte Mengen- und Einzelstückfelder.
 - Produces: `.accessory-allocation-form` für das Raster und `.accessory-form-wide` für kontrollierte Vollbreitenzeilen.
 
-- [ ] **Step 1: Strukturtests für beide Allokationsformulare ergänzen**
+- [x] **Step 1: Strukturtests für beide Allokationsformulare ergänzen**
 
 ```tsx
 it("marks reservation and installation forms for the responsive two-column grid", () => {
@@ -141,12 +141,12 @@ expect(css).toContain(".accessory-allocation-form");
 expect(css).toMatch(/@media \(max-width: 920px\)[\s\S]*\.accessory-allocation-form[\s\S]*grid-template-columns: 1fr/);
 ```
 
-- [ ] **Step 2: Fokustests ausführen und erwartetes Rot bestätigen**
+- [x] **Step 2: Fokustests ausführen und erwartetes Rot bestätigen**
 
 Run: `npm.cmd test -- --run src/features/accessories/AccessoryAllocationPanels.test.tsx src/features/accessories/accessoriesResponsive.test.ts`
 Expected: FAIL wegen fehlender Allokationsklassen und CSS-Regeln.
 
-- [ ] **Step 3: Formular- und Vollbreitenklassen in beiden Panels setzen**
+- [x] **Step 3: Formular- und Vollbreitenklassen in beiden Panels setzen**
 
 ```tsx
 <form className="accessory-form accessory-allocation-form" onSubmit={submit}>
@@ -164,7 +164,7 @@ Expected: FAIL wegen fehlender Allokationsklassen und CSS-Regeln.
 
 Die Ausbauform `.accessory-removal-form` bleibt bewusst einspaltig.
 
-- [ ] **Step 4: Lokale Desktop- und Mobilregeln ergänzen**
+- [x] **Step 4: Lokale Desktop- und Mobilregeln ergänzen**
 
 ```css
 .accessory-allocation-form {
@@ -190,7 +190,7 @@ Die Ausbauform `.accessory-removal-form` bleibt bewusst einspaltig.
 }
 ```
 
-- [ ] **Step 5: Fokustests erneut ausführen**
+- [x] **Step 5: Fokustests erneut ausführen**
 
 Run: `npm.cmd test -- --run src/features/accessories/AccessoryAllocationPanels.test.tsx src/features/accessories/accessoriesResponsive.test.ts`
 Expected: PASS.
@@ -206,7 +206,7 @@ Expected: PASS.
 - Consumes: bestehende `.article-checkbox`-Felder und `accessories.subject.booleanHint`.
 - Produces: `.article-checkbox-control` als 38 Pixel hohe, vertikal zentrierte Kontrollzeile.
 
-- [ ] **Step 1: Boolean-Strukturtest ergänzen**
+- [x] **Step 1: Boolean-Strukturtest ergänzen**
 
 ```tsx
 const weatherproof = screen.getByRole("checkbox", { name: "Wetterfest" });
@@ -214,12 +214,12 @@ expect(weatherproof.closest(".article-checkbox-control")).toBeInTheDocument();
 expect(weatherproof.closest(".article-checkbox")).toHaveClass("app-field");
 ```
 
-- [ ] **Step 2: Fokustest ausführen und erwartetes Rot bestätigen**
+- [x] **Step 2: Fokustest ausführen und erwartetes Rot bestätigen**
 
 Run: `npm.cmd test -- --run src/features/accessories/ArticleSubjectTab.test.tsx`
 Expected: FAIL, weil `.article-checkbox-control` noch fehlt.
 
-- [ ] **Step 3: Kontrollzeile markieren und CSS-Ausrichtung korrigieren**
+- [x] **Step 3: Kontrollzeile markieren und CSS-Ausrichtung korrigieren**
 
 ```tsx
 <span className="article-checkbox-control"><input type="checkbox" ... />
@@ -244,7 +244,7 @@ Expected: FAIL, weil `.article-checkbox-control` noch fehlt.
 }
 ```
 
-- [ ] **Step 4: Fokustest erneut ausführen**
+- [x] **Step 4: Fokustest erneut ausführen**
 
 Run: `npm.cmd test -- --run src/features/accessories/ArticleSubjectTab.test.tsx`
 Expected: PASS.
@@ -260,7 +260,7 @@ Expected: PASS.
 - Consumes: fertig implementierte Layoutklassen und laufenden Server unter `http://127.0.0.1:18083`.
 - Produces: verifizierten Build, Desktop-/Mobilnachweis und abgeschlossene Dokumentation.
 
-- [ ] **Step 1: Alle fokussierten Tests gemeinsam ausführen**
+- [x] **Step 1: Alle fokussierten Tests gemeinsam ausführen**
 
 Run:
 ```powershell
@@ -268,7 +268,7 @@ npm.cmd test -- --run src/features/accessories/AccessoryStockPanel.test.tsx src/
 ```
 Expected: alle Testdateien PASS.
 
-- [ ] **Step 2: Vollständige Frontendtests und Build ausführen**
+- [x] **Step 2: Vollständige Frontendtests und Build ausführen**
 
 Run:
 ```powershell
@@ -277,7 +277,7 @@ npm.cmd run build
 ```
 Expected: 49 Testdateien PASS und Vite-Build erfolgreich.
 
-- [ ] **Step 3: Browser-QA durchführen**
+- [x] **Step 3: Browser-QA durchführen**
 
 Flow: `/accessories` → Artikel öffnen → Reiter `Bestand` → Reservierungs- und Einbauabschnitte → Reiter `Fachangaben: Gleis`.
 
@@ -288,7 +288,7 @@ Prüfen:
 - Checkboxen `Bettung` und `Digitaltauglich` auf Eingabefeldhöhe.
 - keine relevanten Browser-Warnungen oder Framework-Overlays.
 
-- [ ] **Step 4: Dokumentstatus und Checklisten abschließen**
+- [x] **Step 4: Dokumentstatus und Checklisten abschließen**
 
 ```markdown
 **Status:** Implemented and verified
@@ -296,7 +296,7 @@ Prüfen:
 
 Alle erledigten Planpunkte werden von `[ ]` auf `[x]` gesetzt.
 
-- [ ] **Step 5: Ausschließlich Task-Dateien committen**
+- [x] **Step 5: Ausschließlich Task-Dateien committen**
 
 ```powershell
 git add -- frontend/src/features/accessories/AccessoryStockPanel.tsx frontend/src/features/accessories/AccessoryReservationsPanel.tsx frontend/src/features/accessories/AccessoryInstallationsPanel.tsx frontend/src/features/accessories/ArticleSubjectTab.tsx frontend/src/styles/accessories.css frontend/src/features/accessories/AccessoryStockPanel.test.tsx frontend/src/features/accessories/AccessoryAllocationPanels.test.tsx frontend/src/features/accessories/ArticleSubjectTab.test.tsx frontend/src/features/accessories/accessoriesResponsive.test.ts docs/superpowers/specs/2026-08-09-artikeldialog-formularraster-design.md docs/superpowers/plans/2026-08-09-artikeldialog-formularraster.md

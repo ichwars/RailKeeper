@@ -129,7 +129,7 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
           <td>{level.locationName}</td><td>{level.quantity}</td>
         </tr>)}</tbody></table></div>
         {canEdit && supportsQuantity ? <div className="article-stock-commands">
-          <form className="accessory-form" onSubmit={submitAdjustment}>
+          <form className="accessory-form article-stock-form" onSubmit={submitAdjustment}>
             <h4>{t("accessories.stock.adjust")}</h4>
             <LocationSelect label={t("accessories.field.location")} value={effectiveLocationId}
               locations={activeLocations} allLocations={locations} onChange={setLocationId} />
@@ -139,7 +139,7 @@ export function AccessoryStockPanel({ article, stock, movements, assets, locatio
               {t("accessories.stock.book")}
             </button>
           </form>
-          <form className="accessory-form" onSubmit={submitTransfer}>
+          <form className="accessory-form article-stock-form" onSubmit={submitTransfer}>
             <h4><ArrowRightLeft size={15} aria-hidden="true" /> {t("accessories.editor.stock.transfer")}</h4>
             <LocationSelect label={t("accessories.editor.stock.fromLocation")} value={effectiveLocationId}
               locations={activeLocations} allLocations={locations} onChange={setLocationId} />

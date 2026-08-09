@@ -23,6 +23,21 @@ const location: StorageLocation = { id: "location-1", name: "Schublade",
   archived: false, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T09:00:00Z" };
 
 describe("AccessoryStockPanel", () => {
+  it("aligns stock adjustment and transfer as peer forms", () => {
+    const quantityArticle = {
+      ...article,
+      trackingMode: "quantity" as const,
+      inventoryStrategy: "quantity" as const
+    };
+    const view = render(<AccessoryStockPanel article={quantityArticle} stock={null} movements={[]} assets={[]}
+      locations={[location]} canEdit onChanged={vi.fn()} onDirtyChange={vi.fn()} />);
+
+    const forms = view.container.querySelectorAll(".article-stock-commands > .article-stock-form");
+    expect(forms).toHaveLength(2);
+    expect(forms[0]?.querySelector(".primary-button")).toHaveTextContent("Bestand buchen");
+    expect(forms[1]?.querySelector(".primary-button")).toHaveTextContent("Umbuchen");
+  });
+
   it("edits every supported individual item field through typed app controls", async () => {
     const user = userEvent.setup();
     const update = vi.spyOn(api, "updateAccessoryAsset").mockResolvedValue(asset);

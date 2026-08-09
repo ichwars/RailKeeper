@@ -58,6 +58,21 @@ async function fillTechnicalFields(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe("accessory allocation forms", () => {
+  it("marks reservation and installation forms for the responsive two-column grid", () => {
+    const reservationView = render(<AccessoryReservationsPanel article={article} reservations={[]} assets={[]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canReserve onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Zubehör reservieren" }).closest("form"))
+      .toHaveClass("accessory-allocation-form");
+    reservationView.unmount();
+
+    render(<AccessoryInstallationsPanel article={article} reservations={[]} installations={[]} assets={[]}
+      locations={[location]} vehicles={[]} layouts={[layout]} units={[]} canInstall onChanged={vi.fn()}
+      onDirtyChange={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Zubehör einbauen" }).closest("form"))
+      .toHaveClass("accessory-allocation-form");
+  });
+
   it("submits approved technical placement fields with a reservation and uses AppNumberInput", async () => {
     const user = userEvent.setup();
     const create = vi.spyOn(api, "createAccessoryReservation").mockResolvedValue({} as never);

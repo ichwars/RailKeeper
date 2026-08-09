@@ -198,9 +198,9 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
           </div> : null}</td>
         </tr>)}</tbody></table></div>
         {canInstall ? <div className="accessory-side-forms">
-          <form className="accessory-form" onSubmit={submitInstallation}>
+          <form className="accessory-form accessory-allocation-form" onSubmit={submitInstallation}>
             <h3>{t("accessories.installations.create")}</h3>
-            <label>{t("accessories.field.reservation")}<AppSelect value={reservationID}
+            <label className="accessory-form-wide">{t("accessories.field.reservation")}<AppSelect value={reservationID}
               onChange={(event) => selectReservation(event.target.value)}>
               <option value="">{t("accessories.installations.withoutReservation")}</option>
               {activeReservations.map((reservation) => <option key={reservation.id} value={reservation.id}>
@@ -233,7 +233,7 @@ export function AccessoryInstallationsPanel({ article, reservations, installatio
               onChange={(event) => setCondition(event.target.value as AccessoryCondition)}>
               {conditions.map((item) => <option key={item} value={item}>{t(`accessories.condition.${item}`)}</option>)}
             </AppSelect></label>
-            <label>{t("accessories.field.notes")}<textarea value={notes}
+            <label className="accessory-form-wide">{t("accessories.field.notes")}<textarea value={notes}
               onChange={(event) => setNotes(event.target.value)} /></label>
             <button type="submit" className="primary-button" disabled={!canSubmit}>
               {t("accessories.installations.save")}</button>

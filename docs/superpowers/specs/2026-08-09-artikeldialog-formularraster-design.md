@@ -1,6 +1,6 @@
 # Artikeldialog: Formularraster und Checkbox-Ausrichtung
 
-**Status:** Zur schriftlichen Prüfung
+**Status:** Implemented and verified
 **Datum:** 2026-08-09
 **Bereich:** Artikelübersicht, Dialog „Artikel bearbeiten“
 
