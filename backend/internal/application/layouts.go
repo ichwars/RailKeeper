@@ -204,14 +204,28 @@ type LayoutUnitPortRepository interface {
 	UpdateUnitPort(context.Context, string, UpdateLayoutUnitPortInput, string) (*LayoutUnitPort, error)
 }
 
+type LayoutConfigurationPortRepository interface {
+	LoadConfigurationPortPlacements(context.Context, string) ([]domain.ModulePortPlacement, error)
+}
+
+type PreviewConfigurationUnitSnapInput struct {
+	UnitID          string  `json:"unitId"`
+	PositionXMM     float64 `json:"positionXMm"`
+	PositionYMM     float64 `json:"positionYMm"`
+	RotationDegrees float64 `json:"rotationDegrees"`
+}
+
 type LayoutService struct {
-	repository     LayoutRepository
-	portRepository LayoutUnitPortRepository
+	repository                  LayoutRepository
+	portRepository              LayoutUnitPortRepository
+	configurationPortRepository LayoutConfigurationPortRepository
 }
 
 func NewLayoutService(repository LayoutRepository) *LayoutService {
 	portRepository, _ := repository.(LayoutUnitPortRepository)
-	return &LayoutService{repository: repository, portRepository: portRepository}
+	configurationPortRepository, _ := repository.(LayoutConfigurationPortRepository)
+	return &LayoutService{repository: repository, portRepository: portRepository,
+		configurationPortRepository: configurationPortRepository}
 }
 
 func (s *LayoutService) ListLayouts(ctx context.Context) ([]Layout, error) {
@@ -310,6 +324,54 @@ func (s *LayoutService) UpdateUnitPort(
 
 func (s *LayoutService) ListConfigurations(ctx context.Context, layoutID string) ([]LayoutConfiguration, error) {
 	return s.repository.ListConfigurations(ctx, strings.TrimSpace(layoutID))
+}
+
+func (s *LayoutService) AnalyzeConfigurationPorts(
+	ctx context.Context,
+	configurationID string,
+) (*domain.ModulePortAnalysis, error) {
+	configurationID = strings.TrimSpace(configurationID)
+	if configurationID == "" {
+		return nil, ErrLayoutValidation
+	}
+	placements, err := s.configurationPortRepository.LoadConfigurationPortPlacements(ctx, configurationID)
+	if err != nil {
+		return nil, err
+	}
+	analysis := domain.AnalyzeModulePorts(placements)
+	return &analysis, nil
+}
+
+func (s *LayoutService) PreviewConfigurationUnitSnap(
+	ctx context.Context,
+	configurationID string,
+	input PreviewConfigurationUnitSnapInput,
+) (*domain.ModulePortSnapResult, error) {
+	configurationID = strings.TrimSpace(configurationID)
+	input.UnitID = strings.TrimSpace(input.UnitID)
+	if configurationID == "" || input.UnitID == "" || !finite(input.PositionXMM) ||
+		!finite(input.PositionYMM) || !finite(input.RotationDegrees) {
+		return nil, ErrLayoutValidation
+	}
+	placements, err := s.configurationPortRepository.LoadConfigurationPortPlacements(ctx, configurationID)
+	if err != nil {
+		return nil, err
+	}
+	found := false
+	for _, placement := range placements {
+		if placement.UnitID == input.UnitID {
+			found = true
+			break
+		}
+	}
+	if !found {
+		return nil, ErrLayoutValidation
+	}
+	result := domain.FindModulePortSnap(input.UnitID, domain.TrackPose{
+		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
+		RotationDegrees: input.RotationDegrees,
+	}, placements)
+	return &result, nil
 }
 
 func (s *LayoutService) SaveConfiguration(ctx context.Context, layoutID string, input SaveLayoutConfigurationInput, actor string) (*LayoutConfiguration, error) {

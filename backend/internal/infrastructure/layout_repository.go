@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 )
 
 type LayoutRepository struct {
@@ -339,6 +340,46 @@ func (r *LayoutRepository) ListConfigurations(
 		configurations[index].Units = units
 	}
 	return configurations, nil
+}
+
+func (r *LayoutRepository) LoadConfigurationPortPlacements(
+	ctx context.Context,
+	configurationID string,
+) ([]domain.ModulePortPlacement, error) {
+	var exists int
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT 1 FROM layout_configurations WHERE id=?`, configurationID).Scan(&exists); errors.Is(err, sql.ErrNoRows) {
+		return nil, application.ErrLayoutNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("find layout configuration for port analysis: %w", err)
+	}
+	rows, err := r.db.QueryContext(ctx, `
+SELECT cu.unit_id, u.name, p.id, p.name, p.kind, p.interface_key, p.x_mm, p.y_mm,
+       p.direction_degrees, cu.position_x_mm, cu.position_y_mm, cu.rotation_degrees
+FROM layout_configuration_units cu
+JOIN layout_units u ON u.id=cu.unit_id
+JOIN layout_unit_ports p ON p.layout_unit_id=cu.unit_id AND p.archived=0
+WHERE cu.configuration_id=?
+ORDER BY u.name COLLATE NOCASE, cu.unit_id, p.name COLLATE NOCASE, p.id`, configurationID)
+	if err != nil {
+		return nil, fmt.Errorf("list layout configuration port placements: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	placements := []domain.ModulePortPlacement{}
+	for rows.Next() {
+		placement := domain.ModulePortPlacement{}
+		if err := rows.Scan(&placement.UnitID, &placement.UnitName, &placement.PortID, &placement.PortName,
+			&placement.Kind, &placement.InterfaceKey, &placement.XMM, &placement.YMM,
+			&placement.DirectionDegrees, &placement.UnitPose.PositionXMM, &placement.UnitPose.PositionYMM,
+			&placement.UnitPose.RotationDegrees); err != nil {
+			return nil, fmt.Errorf("scan layout configuration port placement: %w", err)
+		}
+		placements = append(placements, placement)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate layout configuration port placements: %w", err)
+	}
+	return placements, nil
 }
 
 func (r *LayoutRepository) SaveConfiguration(

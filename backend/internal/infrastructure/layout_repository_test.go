@@ -88,6 +88,64 @@ func TestLayoutUnitPortRepositoryPersistsAndRejectsStaleUpdates(t *testing.T) {
 	}
 }
 
+func TestLayoutConfigurationPortRepositoryLoadsActivePlacements(t *testing.T) {
+	db, service := testLayoutServiceWithDB(t)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Club", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	west, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "West", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	east, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "East", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err := service.CreateUnitPort(ctx, west.ID, application.CreateLayoutUnitPortInput{
+		Name: "East track", Kind: domain.LayoutUnitPortTrack,
+		InterfaceKey: "track:tillig-tt-modellgleis", XMM: 1000, YMM: 250,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.CreateUnitPort(ctx, west.ID, application.CreateLayoutUnitPortInput{
+		Name: "Archived", Kind: domain.LayoutUnitPortPower,
+		InterfaceKey: "power:16v-ac", Archived: true,
+	}, "planner"); err != nil {
+		t.Fatal(err)
+	}
+	configuration, err := service.SaveConfiguration(ctx, layout.ID, application.SaveLayoutConfigurationInput{
+		Name: "Exhibition", Units: []application.ConfigurationUnitInput{
+			{UnitID: west.ID, PositionXMM: 10, PositionYMM: 20, RotationDegrees: 90},
+			{UnitID: east.ID, PositionXMM: 510, PositionYMM: 20},
+		},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository := infrastructure.NewLayoutRepository(db)
+	placements, err := repository.LoadConfigurationPortPlacements(ctx, configuration.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(placements) != 1 || placements[0].PortID != active.ID || placements[0].UnitID != west.ID ||
+		placements[0].UnitName != "West" || placements[0].UnitPose.PositionXMM != 10 ||
+		placements[0].UnitPose.PositionYMM != 20 || placements[0].UnitPose.RotationDegrees != 90 {
+		t.Fatalf("unexpected configuration port placements: %#v", placements)
+	}
+	if _, err := repository.LoadConfigurationPortPlacements(ctx, "missing"); !errors.Is(err, application.ErrLayoutNotFound) {
+		t.Fatalf("expected missing configuration error, got %v", err)
+	}
+}
+
 func TestLayoutUnitPortMigrationSchema(t *testing.T) {
 	db, _ := testLayoutServiceWithDB(t)
 	var tableSQL string

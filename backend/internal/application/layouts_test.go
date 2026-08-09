@@ -17,6 +17,7 @@ type layoutRepositorySpy struct {
 	unit               LayoutUnit
 	createdPort        CreateLayoutUnitPortInput
 	updatedPort        UpdateLayoutUnitPortInput
+	configurationPorts []domain.ModulePortPlacement
 }
 
 func (spy *layoutRepositorySpy) CreateLayout(
@@ -84,6 +85,13 @@ func (spy *layoutRepositorySpy) UpdateUnitPort(
 	return &LayoutUnitPort{ID: id, Name: input.Name, Kind: input.Kind,
 		InterfaceKey: input.InterfaceKey, XMM: input.XMM, YMM: input.YMM,
 		DirectionDegrees: input.DirectionDegrees, Version: input.ExpectedVersion + 1}, nil
+}
+
+func (spy *layoutRepositorySpy) LoadConfigurationPortPlacements(
+	_ context.Context,
+	_ string,
+) ([]domain.ModulePortPlacement, error) {
+	return spy.configurationPorts, nil
 }
 
 func (spy *layoutRepositorySpy) UpdateUnitOutline(
@@ -264,5 +272,58 @@ func TestLayoutUnitPortServiceRejectsInvalidInput(t *testing.T) {
 		CreateLayoutUnitPortInput: valid,
 	}, "planner"); !errors.Is(err, ErrLayoutValidation) {
 		t.Fatalf("expected version validation error, got %v", err)
+	}
+}
+
+func TestLayoutServiceAnalyzesConfigurationPortsAndPreviewsWithoutMutation(t *testing.T) {
+	repository := &layoutRepositorySpy{configurationPorts: []domain.ModulePortPlacement{
+		{UnitID: "moving", UnitName: "West", PortID: "east", PortName: "Ost",
+			Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+			XMM: 100, DirectionDegrees: 0, UnitPose: domain.TrackPose{PositionXMM: 5}},
+		{UnitID: "target", UnitName: "Ost", PortID: "west", PortName: "West",
+			Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+			DirectionDegrees: 180, UnitPose: domain.TrackPose{PositionXMM: 112}},
+	}}
+	service := NewLayoutService(repository)
+
+	analysis, err := service.AnalyzeConfigurationPorts(t.Context(), " configuration-1 ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Issues) != 2 || len(analysis.Connections) != 0 {
+		t.Fatalf("unexpected analysis before snap: %#v", analysis)
+	}
+
+	preview, err := service.PreviewConfigurationUnitSnap(t.Context(), " configuration-1 ",
+		PreviewConfigurationUnitSnapInput{UnitID: " moving ", PositionXMM: 5})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !preview.Snapped || preview.Pose.PositionXMM != 12 || preview.TargetUnitID != "target" {
+		t.Fatalf("unexpected snap preview: %#v", preview)
+	}
+	if repository.configurationPorts[0].UnitPose.PositionXMM != 5 {
+		t.Fatalf("preview mutated repository context: %#v", repository.configurationPorts[0])
+	}
+}
+
+func TestLayoutServiceRejectsInvalidConfigurationPortRequests(t *testing.T) {
+	service := NewLayoutService(&layoutRepositorySpy{configurationPorts: []domain.ModulePortPlacement{
+		{UnitID: "unit-1", PortID: "port-1", Kind: domain.LayoutUnitPortTrack,
+			InterfaceKey: "track:tillig-tt-modellgleis"},
+	}})
+	if _, err := service.AnalyzeConfigurationPorts(t.Context(), " "); !errors.Is(err, ErrLayoutValidation) {
+		t.Fatalf("expected blank configuration rejection, got %v", err)
+	}
+	invalid := []PreviewConfigurationUnitSnapInput{
+		{},
+		{UnitID: "missing"},
+		{UnitID: "unit-1", PositionXMM: math.NaN()},
+		{UnitID: "unit-1", PositionYMM: math.Inf(1)},
+	}
+	for _, input := range invalid {
+		if _, err := service.PreviewConfigurationUnitSnap(t.Context(), "configuration-1", input); !errors.Is(err, ErrLayoutValidation) {
+			t.Fatalf("expected invalid preview rejection for %#v, got %v", input, err)
+		}
 	}
 }
