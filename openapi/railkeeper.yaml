@@ -2820,7 +2820,7 @@ components:
           format: date-time
     PlanTrackObject:
       type: object
-      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, version, createdAt, updatedAt]
+      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, version, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2839,6 +2839,12 @@ components:
           type: number
           format: double
         rotationDegrees:
+          type: number
+          format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
           type: number
           format: double
         version:
@@ -2908,6 +2914,25 @@ components:
         quantity:
           type: integer
           minimum: 0
+    TrackGrade:
+      type: object
+      required: [objectId, elevationStartMm, elevationEndMm, lengthMm, gradePercent]
+      properties:
+        objectId:
+          type: string
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
+        lengthMm:
+          type: number
+          format: double
+          minimum: 0
+        gradePercent:
+          type: number
+          format: double
     TrackMaterialStatus:
       type: object
       required:
@@ -2956,7 +2981,7 @@ components:
           minimum: 0
     TrackPlanAnalysis:
       type: object
-      required: [revisionId, status, connections, issues, bom, materials, reservations]
+      required: [revisionId, status, connections, issues, bom, grades, materials, reservations]
       properties:
         revisionId:
           type: string
@@ -2975,6 +3000,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackBOMLine"
+        grades:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackGrade"
         materials:
           type: array
           items:
@@ -3130,7 +3159,7 @@ components:
             $ref: "#/components/schemas/TrackMaterialStatus"
     CreatePlanTrackObjectInput:
       type: object
-      required: [geometryId, positionXMm, positionYMm, rotationDegrees]
+      required: [geometryId, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm]
       properties:
         geometryId:
           type: string
@@ -3143,9 +3172,15 @@ components:
         rotationDegrees:
           type: number
           format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
     UpdatePlanTrackObjectInput:
       type: object
-      required: [positionXMm, positionYMm, rotationDegrees, expectedVersion]
+      required: [positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, expectedVersion]
       properties:
         positionXMm:
           type: number
@@ -3154,6 +3189,12 @@ components:
           type: number
           format: double
         rotationDegrees:
+          type: number
+          format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
           type: number
           format: double
         expectedVersion:

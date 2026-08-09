@@ -90,17 +90,19 @@ type TrackGeometryDefinition struct {
 }
 
 type PlanTrackObject struct {
-	ID              string                  `json:"id"`
-	LineageID       string                  `json:"lineageId"`
-	RevisionID      string                  `json:"revisionId"`
-	GeometryID      string                  `json:"geometryId"`
-	Geometry        TrackGeometryDefinition `json:"geometry"`
-	PositionXMM     float64                 `json:"positionXMm"`
-	PositionYMM     float64                 `json:"positionYMm"`
-	RotationDegrees float64                 `json:"rotationDegrees"`
-	Version         int                     `json:"version"`
-	CreatedAt       string                  `json:"createdAt"`
-	UpdatedAt       string                  `json:"updatedAt"`
+	ID               string                  `json:"id"`
+	LineageID        string                  `json:"lineageId"`
+	RevisionID       string                  `json:"revisionId"`
+	GeometryID       string                  `json:"geometryId"`
+	Geometry         TrackGeometryDefinition `json:"geometry"`
+	PositionXMM      float64                 `json:"positionXMm"`
+	PositionYMM      float64                 `json:"positionYMm"`
+	RotationDegrees  float64                 `json:"rotationDegrees"`
+	ElevationStartMM float64                 `json:"elevationStartMm"`
+	ElevationEndMM   float64                 `json:"elevationEndMm"`
+	Version          int                     `json:"version"`
+	CreatedAt        string                  `json:"createdAt"`
+	UpdatedAt        string                  `json:"updatedAt"`
 }
 
 func NormalizeTrackRotation(value float64) float64 {

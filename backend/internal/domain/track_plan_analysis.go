@@ -66,10 +66,19 @@ type TrackBOMLine struct {
 	Quantity      int    `json:"quantity"`
 }
 
+type TrackGrade struct {
+	ObjectID         string  `json:"objectId"`
+	ElevationStartMM float64 `json:"elevationStartMm"`
+	ElevationEndMM   float64 `json:"elevationEndMm"`
+	LengthMM         float64 `json:"lengthMm"`
+	GradePercent     float64 `json:"gradePercent"`
+}
+
 type TrackPlanAnalysis struct {
 	Connections []TrackPlanConnection `json:"connections"`
 	Issues      []TrackPlanIssue      `json:"issues"`
 	BOM         []TrackBOMLine        `json:"bom"`
+	Grades      []TrackGrade          `json:"grades"`
 }
 
 type placedTrackPort struct {
@@ -147,6 +156,7 @@ func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].ID < ordered[j].ID })
 	analysis := TrackPlanAnalysis{
 		Connections: []TrackPlanConnection{}, Issues: []TrackPlanIssue{}, BOM: []TrackBOMLine{},
+		Grades: []TrackGrade{},
 	}
 	ports := make([]placedTrackPort, 0)
 	bom := map[string]*TrackBOMLine{}
@@ -164,6 +174,14 @@ func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
 				ObjectIDs: []string{object.ID},
 			})
 			continue
+		}
+		if object.Geometry.LengthMM > 0 {
+			analysis.Grades = append(analysis.Grades, TrackGrade{
+				ObjectID: object.ID, ElevationStartMM: object.ElevationStartMM,
+				ElevationEndMM: object.ElevationEndMM, LengthMM: object.Geometry.LengthMM,
+				GradePercent: (object.ElevationEndMM - object.ElevationStartMM) /
+					object.Geometry.LengthMM * 100,
+			})
 		}
 		for _, port := range object.Geometry.Geometry.Ports {
 			ports = append(ports, placedTrackPort{ObjectID: object.ID,

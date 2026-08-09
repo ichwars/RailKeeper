@@ -109,12 +109,13 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	createdResponse := layoutRequest(t, router, session, http.MethodPost,
 		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
 			"geometryId": geometries[0].ID, "positionXMm": 100, "positionYMm": 50,
-			"rotationDegrees": -15,
+			"rotationDegrees": -15, "elevationStartMm": -2, "elevationEndMm": 2.15,
 		}, true)
 	assertStatus(t, createdResponse, http.StatusCreated)
 	var created domain.PlanTrackObject
 	decodeResponse(t, createdResponse, &created)
-	if created.Version != 1 || created.RotationDegrees != 345 {
+	if created.Version != 1 || created.RotationDegrees != 345 ||
+		created.ElevationStartMM != -2 || created.ElevationEndMM != 2.15 {
 		t.Fatalf("unexpected created track object: %#v", created)
 	}
 
@@ -130,12 +131,12 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	updatedResponse := layoutRequest(t, router, session, http.MethodPut,
 		"/api/v1/plan-track-objects/"+created.ID, map[string]any{
 			"positionXMm": 110, "positionYMm": 55, "rotationDegrees": 0,
-			"expectedVersion": created.Version,
+			"elevationStartMm": 0, "elevationEndMm": 4.15, "expectedVersion": created.Version,
 		}, true)
 	assertStatus(t, updatedResponse, http.StatusOK)
 	var updated domain.PlanTrackObject
 	decodeResponse(t, updatedResponse, &updated)
-	if updated.Version != 2 || updated.PositionXMM != 110 {
+	if updated.Version != 2 || updated.PositionXMM != 110 || updated.ElevationEndMM != 4.15 {
 		t.Fatalf("unexpected updated track object: %#v", updated)
 	}
 	secondResponse := layoutRequest(t, router, session, http.MethodPost,
@@ -153,7 +154,8 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	var analysis application.TrackPlanAnalysis
 	decodeResponse(t, analysisResponse, &analysis)
 	if analysis.RevisionID != draft.ID || len(analysis.Connections) != 1 ||
-		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 {
+		len(analysis.BOM) != 1 || analysis.BOM[0].Quantity != 2 || len(analysis.Grades) != 2 ||
+		analysis.Grades[0].GradePercent != 2.5 {
 		t.Fatalf("unexpected track plan analysis: %#v", analysis)
 	}
 	if _, err := db.Exec(`

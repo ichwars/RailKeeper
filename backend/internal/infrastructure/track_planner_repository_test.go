@@ -47,22 +47,25 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 
 	created, err := planner.CreateObject(ctx, draft.ID, application.CreatePlanTrackObjectInput{
 		GeometryID: geometries[0].ID, PositionXMM: 100, PositionYMM: 50, RotationDegrees: -15,
+		ElevationStartMM: -3, ElevationEndMM: 1.15,
 	}, "planner")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if created.Version != 1 || created.RotationDegrees != 345 || created.Geometry.ArticleNumber != "83101" ||
-		created.LineageID != created.ID {
+		created.LineageID != created.ID || created.ElevationStartMM != -3 || created.ElevationEndMM != 1.15 {
 		t.Fatalf("unexpected created track object: %#v", created)
 	}
 
 	updated, err := planner.UpdateObject(ctx, created.ID, application.UpdatePlanTrackObjectInput{
-		PositionXMM: 110, PositionYMM: 55, RotationDegrees: 15, ExpectedVersion: created.Version,
+		PositionXMM: 110, PositionYMM: 55, RotationDegrees: 15, ElevationStartMM: 4,
+		ElevationEndMM: 8.15, ExpectedVersion: created.Version,
 	}, "planner")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Version != 2 || updated.PositionXMM != 110 || updated.RotationDegrees != 15 {
+	if updated.Version != 2 || updated.PositionXMM != 110 || updated.RotationDegrees != 15 ||
+		updated.ElevationStartMM != 4 || updated.ElevationEndMM != 8.15 {
 		t.Fatalf("unexpected updated track object: %#v", updated)
 	}
 	if _, err := planner.UpdateObject(ctx, created.ID, application.UpdatePlanTrackObjectInput{
@@ -100,7 +103,8 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	}
 	if len(clonedPlan.Objects) != 1 || clonedPlan.Objects[0].ID == updated.ID ||
 		clonedPlan.Objects[0].LineageID != updated.LineageID ||
-		clonedPlan.Objects[0].PositionXMM != updated.PositionXMM || clonedPlan.Objects[0].Version != 1 {
+		clonedPlan.Objects[0].PositionXMM != updated.PositionXMM || clonedPlan.Objects[0].Version != 1 ||
+		clonedPlan.Objects[0].ElevationStartMM != 4 || clonedPlan.Objects[0].ElevationEndMM != 8.15 {
 		t.Fatalf("unexpected cloned track plan: %#v", clonedPlan)
 	}
 	if err := planner.DeleteObject(ctx, clonedPlan.Objects[0].ID, clonedPlan.Objects[0].Version, "planner"); err != nil {

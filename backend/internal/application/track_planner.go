@@ -23,17 +23,21 @@ type TrackPlan struct {
 }
 
 type CreatePlanTrackObjectInput struct {
-	GeometryID      string  `json:"geometryId"`
-	PositionXMM     float64 `json:"positionXMm"`
-	PositionYMM     float64 `json:"positionYMm"`
-	RotationDegrees float64 `json:"rotationDegrees"`
+	GeometryID       string  `json:"geometryId"`
+	PositionXMM      float64 `json:"positionXMm"`
+	PositionYMM      float64 `json:"positionYMm"`
+	RotationDegrees  float64 `json:"rotationDegrees"`
+	ElevationStartMM float64 `json:"elevationStartMm"`
+	ElevationEndMM   float64 `json:"elevationEndMm"`
 }
 
 type UpdatePlanTrackObjectInput struct {
-	PositionXMM     float64 `json:"positionXMm"`
-	PositionYMM     float64 `json:"positionYMm"`
-	RotationDegrees float64 `json:"rotationDegrees"`
-	ExpectedVersion int     `json:"expectedVersion"`
+	PositionXMM      float64 `json:"positionXMm"`
+	PositionYMM      float64 `json:"positionYMm"`
+	RotationDegrees  float64 `json:"rotationDegrees"`
+	ElevationStartMM float64 `json:"elevationStartMm"`
+	ElevationEndMM   float64 `json:"elevationEndMm"`
+	ExpectedVersion  int     `json:"expectedVersion"`
 }
 
 type TrackMaterialStatus struct {
@@ -56,6 +60,7 @@ type TrackPlanAnalysis struct {
 	Connections  []domain.TrackPlanConnection `json:"connections"`
 	Issues       []domain.TrackPlanIssue      `json:"issues"`
 	BOM          []domain.TrackBOMLine        `json:"bom"`
+	Grades       []domain.TrackGrade          `json:"grades"`
 	Materials    []TrackMaterialStatus        `json:"materials"`
 	Reservations []TrackPlanObjectReservation `json:"reservations"`
 }
@@ -169,7 +174,8 @@ func (service *TrackPlannerService) AnalyzePlan(
 	return &TrackPlanAnalysis{
 		RevisionID: plan.RevisionID, Status: plan.Status,
 		Connections: geometryAnalysis.Connections, Issues: geometryAnalysis.Issues,
-		BOM: geometryAnalysis.BOM, Materials: materials, Reservations: reservations,
+		BOM: geometryAnalysis.BOM, Grades: geometryAnalysis.Grades,
+		Materials: materials, Reservations: reservations,
 	}, nil
 }
 
@@ -262,6 +268,7 @@ func (service *TrackPlannerService) CreateObject(
 	input.GeometryID = strings.TrimSpace(input.GeometryID)
 	if revisionID == "" || input.GeometryID == "" || !validTrackCoordinates(
 		input.PositionXMM, input.PositionYMM, input.RotationDegrees,
+		input.ElevationStartMM, input.ElevationEndMM,
 	) {
 		return nil, ErrTrackPlanValidation
 	}
@@ -278,6 +285,7 @@ func (service *TrackPlannerService) UpdateObject(
 	id = strings.TrimSpace(id)
 	if id == "" || input.ExpectedVersion < 1 || !validTrackCoordinates(
 		input.PositionXMM, input.PositionYMM, input.RotationDegrees,
+		input.ElevationStartMM, input.ElevationEndMM,
 	) {
 		return nil, ErrTrackPlanValidation
 	}
@@ -299,6 +307,8 @@ func (service *TrackPlannerService) UpdateObject(
 	moving.PositionXMM = input.PositionXMM
 	moving.PositionYMM = input.PositionYMM
 	moving.RotationDegrees = input.RotationDegrees
+	moving.ElevationStartMM = input.ElevationStartMM
+	moving.ElevationEndMM = input.ElevationEndMM
 	if snap := domain.FindTrackSnap(*moving, plan.Objects); snap.Snapped {
 		input.PositionXMM = snap.Pose.PositionXMM
 		input.PositionYMM = snap.Pose.PositionYMM

@@ -95,6 +95,32 @@ func TestAnalyzeTrackPlanDerivesConnectionsOpenEndsAndBOM(t *testing.T) {
 	}
 }
 
+func TestAnalyzeTrackPlanDerivesStablePositiveNegativeAndFlatGrades(t *testing.T) {
+	ascending := testG1Object("track-b", 0, 0, 0)
+	ascending.ElevationStartMM = 10
+	ascending.ElevationEndMM = 14.15
+	flat := testG1Object("track-c", 200, 0, 0)
+	flat.ElevationStartMM = -2
+	flat.ElevationEndMM = -2
+	descending := testG1Object("track-a", 400, 0, 0)
+	descending.ElevationStartMM = 20
+	descending.ElevationEndMM = 15.02
+
+	analysis := AnalyzeTrackPlan([]PlanTrackObject{ascending, flat, descending})
+	if len(analysis.Grades) != 3 {
+		t.Fatalf("expected three grade lines, got %#v", analysis.Grades)
+	}
+	if analysis.Grades[0].ObjectID != "track-a" || math.Abs(analysis.Grades[0].GradePercent-(-3)) > 1e-9 ||
+		analysis.Grades[1].ObjectID != "track-b" || math.Abs(analysis.Grades[1].GradePercent-2.5) > 1e-9 ||
+		analysis.Grades[2].ObjectID != "track-c" || analysis.Grades[2].GradePercent != 0 {
+		t.Fatalf("unexpected stable grade analysis: %#v", analysis.Grades)
+	}
+	if analysis.Grades[1].ElevationStartMM != 10 || analysis.Grades[1].ElevationEndMM != 14.15 ||
+		analysis.Grades[1].LengthMM != 166 {
+		t.Fatalf("unexpected grade inputs: %#v", analysis.Grades[1])
+	}
+}
+
 func TestAnalyzeTrackPlanReportsIncompatibleEndsOverlapAndBrokenGeometry(t *testing.T) {
 	objects := []PlanTrackObject{
 		testG1Object("base", 0, 0, 0),

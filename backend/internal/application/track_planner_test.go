@@ -96,7 +96,8 @@ func (spy *trackPlannerRepositorySpy) CreateObject(
 	return &domain.PlanTrackObject{
 		RevisionID: revisionID, GeometryID: input.GeometryID,
 		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
-		RotationDegrees: input.RotationDegrees,
+		RotationDegrees: input.RotationDegrees, ElevationStartMM: input.ElevationStartMM,
+		ElevationEndMM: input.ElevationEndMM,
 	}, nil
 }
 
@@ -109,7 +110,8 @@ func (spy *trackPlannerRepositorySpy) UpdateObject(
 	spy.updated = input
 	return &domain.PlanTrackObject{
 		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
-		RotationDegrees: input.RotationDegrees,
+		RotationDegrees: input.RotationDegrees, ElevationStartMM: input.ElevationStartMM,
+		ElevationEndMM: input.ElevationEndMM,
 	}, nil
 }
 
@@ -136,12 +138,13 @@ func TestTrackPlannerServiceNormalizesInputs(t *testing.T) {
 
 	created, err := service.CreateObject(t.Context(), " revision-1 ", CreatePlanTrackObjectInput{
 		GeometryID: " geometry-1 ", PositionXMM: 20, PositionYMM: 30, RotationDegrees: -15,
+		ElevationStartMM: -2.5, ElevationEndMM: 4.5,
 	}, "planner")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if repository.createdRevision != "revision-1" || repository.created.GeometryID != "geometry-1" ||
-		created.RotationDegrees != 345 {
+		created.RotationDegrees != 345 || created.ElevationStartMM != -2.5 || created.ElevationEndMM != 4.5 {
 		t.Fatalf("unexpected normalized create: revision=%q input=%#v object=%#v",
 			repository.createdRevision, repository.created, created)
 	}
@@ -149,12 +152,14 @@ func TestTrackPlannerServiceNormalizesInputs(t *testing.T) {
 		Objects: []domain.PlanTrackObject{trackPlannerTestG1("object-1", 25, 35, 15)}}
 
 	updated, err := service.UpdateObject(t.Context(), " object-1 ", UpdatePlanTrackObjectInput{
-		PositionXMM: 25, PositionYMM: 35, RotationDegrees: 735, ExpectedVersion: 2,
+		PositionXMM: 25, PositionYMM: 35, RotationDegrees: 735, ElevationStartMM: 3,
+		ElevationEndMM: 7.15, ExpectedVersion: 2,
 	}, "planner")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.RotationDegrees != 15 || repository.updated.ExpectedVersion != 2 {
+	if updated.RotationDegrees != 15 || repository.updated.ExpectedVersion != 2 ||
+		updated.ElevationStartMM != 3 || updated.ElevationEndMM != 7.15 {
 		t.Fatalf("unexpected normalized update: %#v", repository.updated)
 	}
 }
@@ -167,6 +172,8 @@ func TestTrackPlannerServiceRejectsInvalidInputs(t *testing.T) {
 		{GeometryID: "geometry-1", PositionXMM: math.NaN()},
 		{GeometryID: "geometry-1", PositionYMM: math.Inf(1)},
 		{GeometryID: "geometry-1", RotationDegrees: math.NaN()},
+		{GeometryID: "geometry-1", ElevationStartMM: math.Inf(-1)},
+		{GeometryID: "geometry-1", ElevationEndMM: math.NaN()},
 	}
 	for _, input := range createInputs {
 		if _, err := service.CreateObject(t.Context(), "revision-1", input, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
@@ -179,6 +186,14 @@ func TestTrackPlannerServiceRejectsInvalidInputs(t *testing.T) {
 	}
 	if _, err := service.UpdateObject(t.Context(), "object-1", UpdatePlanTrackObjectInput{}, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
 		t.Fatalf("expected update validation error, got %v", err)
+	}
+	for _, input := range []UpdatePlanTrackObjectInput{
+		{ExpectedVersion: 1, ElevationStartMM: math.NaN()},
+		{ExpectedVersion: 1, ElevationEndMM: math.Inf(1)},
+	} {
+		if _, err := service.UpdateObject(t.Context(), "object-1", input, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
+			t.Fatalf("expected update validation error for %#v, got %v", input, err)
+		}
 	}
 	if err := service.DeleteObject(t.Context(), "object-1", 0, "planner"); !errors.Is(err, ErrTrackPlanValidation) {
 		t.Fatalf("expected delete validation error, got %v", err)
@@ -231,6 +246,7 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 		trackPlannerTestG1("track-1", 0, 0, 0),
 		trackPlannerTestG1("track-2", 166, 0, 0),
 	}
+	objects[0].ElevationEndMM = 4.15
 	repository := &trackPlannerRepositorySpy{
 		materials: []TrackMaterialStatus{{
 			GeometryID: "tillig-g1", Manufacturer: "Tillig", ArticleNumber: "83101",
@@ -246,7 +262,8 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(analysis.Connections) != 1 || len(analysis.BOM) != 1 || len(analysis.Materials) != 1 ||
+	if len(analysis.Connections) != 1 || len(analysis.BOM) != 1 || len(analysis.Grades) != 2 ||
+		analysis.Grades[0].GradePercent != 2.5 || len(analysis.Materials) != 1 ||
 		len(analysis.Reservations) != 1 ||
 		analysis.Materials[0].AvailableQuantity != 2 {
 		t.Fatalf("unexpected combined analysis: %#v", analysis)

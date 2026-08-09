@@ -419,7 +419,8 @@ func (repository *TrackPlannerRepository) CreateObject(
 	object := &domain.PlanTrackObject{
 		ID: randomID(), RevisionID: revisionID, GeometryID: input.GeometryID,
 		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
-		RotationDegrees: input.RotationDegrees, Version: 1, CreatedAt: now, UpdatedAt: now,
+		RotationDegrees: input.RotationDegrees, ElevationStartMM: input.ElevationStartMM,
+		ElevationEndMM: input.ElevationEndMM, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
 	object.LineageID = object.ID
 	err := repository.withTx(ctx, func(tx *sql.Tx) error {
@@ -440,9 +441,10 @@ func (repository *TrackPlannerRepository) CreateObject(
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-	lineage_id, version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
-			input.PositionXMM, input.PositionYMM, input.RotationDegrees, object.LineageID, now, now); err != nil {
+	elevation_start_mm, elevation_end_mm, lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
+			input.PositionXMM, input.PositionYMM, input.RotationDegrees,
+			input.ElevationStartMM, input.ElevationEndMM, object.LineageID, now, now); err != nil {
 			return fmt.Errorf("insert track plan object: %w", err)
 		}
 		return writeLayoutAudit(ctx, tx, "PlanTrackObjectCreated", "plan_track_object", object.ID, actor, now)
@@ -473,9 +475,10 @@ func (repository *TrackPlannerRepository) UpdateObject(
 		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE plan_track_objects
-SET position_x_mm=?, position_y_mm=?, rotation_degrees=?, version=version+1, updated_at=?
+SET position_x_mm=?, position_y_mm=?, rotation_degrees=?, elevation_start_mm=?, elevation_end_mm=?,
+    version=version+1, updated_at=?
 WHERE id=? AND version=?`, input.PositionXMM, input.PositionYMM, input.RotationDegrees,
-			now, id, input.ExpectedVersion)
+			input.ElevationStartMM, input.ElevationEndMM, now, id, input.ExpectedVersion)
 		if err != nil {
 			return fmt.Errorf("update track plan object: %w", err)
 		}
@@ -621,6 +624,7 @@ JOIN track_geometry_libraries library ON library.id=geometry.library_id
 const trackObjectSelect = `
 SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
        object.position_x_mm, object.position_y_mm, object.rotation_degrees,
+	   object.elevation_start_mm, object.elevation_end_mm,
        object.version, object.created_at, object.updated_at,
        geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
        geometry.length_mm, geometry.geometry_json, geometry.source_url, geometry.status,
@@ -653,6 +657,7 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	geometry := &object.Geometry
 	if err := scanner.Scan(&object.ID, &object.LineageID, &object.RevisionID, &object.GeometryID,
 		&object.PositionXMM, &object.PositionYMM, &object.RotationDegrees,
+		&object.ElevationStartMM, &object.ElevationEndMM,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt,
 		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
 		&geometry.Kind, &geometry.LengthMM, &geometryJSON, &geometry.SourceURL, &geometry.Status,

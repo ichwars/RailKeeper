@@ -64,11 +64,15 @@ INSERT INTO plan_track_objects(
 		t.Fatal(err)
 	}
 	var lineageID string
-	if err := db.QueryRow(`SELECT lineage_id FROM plan_track_objects WHERE id='track-1'`).Scan(&lineageID); err != nil {
+	var elevationStart, elevationEnd float64
+	if err := db.QueryRow(`
+SELECT lineage_id, elevation_start_mm, elevation_end_mm
+FROM plan_track_objects WHERE id='track-1'`).Scan(&lineageID, &elevationStart, &elevationEnd); err != nil {
 		t.Fatal(err)
 	}
-	if lineageID != "track-1" {
-		t.Fatalf("expected existing object id as default lineage, got %q", lineageID)
+	if lineageID != "track-1" || elevationStart != 0 || elevationEnd != 0 {
+		t.Fatalf("unexpected track object defaults: lineage=%q elevation=%v/%v",
+			lineageID, elevationStart, elevationEnd)
 	}
 	expectConstraintFailure(t, db, `
 INSERT INTO plan_track_objects(
