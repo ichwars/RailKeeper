@@ -8,7 +8,6 @@ export function ArticleOverviewHeader({ canEdit, onCreate }: { canEdit: boolean;
   return (
     <section className="inventory-head accessory-head">
       <div>
-        <p className="eyebrow">{t("accessories.overview.eyebrow")}</p>
         <h1>{t("accessories.overview.title")}</h1>
         <p>{t("accessories.overview.subtitle")}</p>
       </div>

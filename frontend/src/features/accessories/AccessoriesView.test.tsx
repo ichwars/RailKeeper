@@ -96,10 +96,17 @@ describe("AccessoriesView", () => {
 
     expect(await screen.findByRole("heading", { name: "Artikelübersicht" })).toBeInTheDocument();
     expect(screen.getByText("Modellbahnartikel suchen, erfassen und pflegen")).toBeInTheDocument();
+    expect(screen.queryByText("WERKSTATT UND SAMMLUNG")).not.toBeInTheDocument();
+    const metrics = screen.getByLabelText("Kennzahlen der Artikelverwaltung");
+    expect(metrics).toHaveClass("inventory-status-row");
     expect(screen.getAllByTestId("article-metric")).toHaveLength(4);
+    for (const metric of screen.getAllByTestId("article-metric")) {
+      expect(metric).toHaveClass("inventory-status-card");
+    }
     expect(screen.getByText("24 Artikel · 5 Arten")).toBeInTheDocument();
     expect(screen.getByText("81 frei · 7 Lagerorte")).toBeInTheDocument();
     expect(screen.getByText("6 reserviert · 14 eingebaut")).toBeInTheDocument();
+    expect(screen.getByText("6 reserviert · 14 eingebaut").closest("article")).toHaveClass("wide");
     expect(screen.getByText("3 unvollständig")).toBeInTheDocument();
     const careMetric = screen.getByText("3 unvollständig").closest("article");
     expect(careMetric).not.toBeNull();
@@ -107,6 +114,10 @@ describe("AccessoriesView", () => {
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Kartenansicht/i)).not.toBeInTheDocument();
     expect(screen.getByText("1 Ergebnis")).toBeInTheDocument();
+    const list = screen.getByRole("region", { name: "Artikel" });
+    expect(list).toHaveClass("inventory-panel");
+    expect(within(list).getByRole("searchbox", { name: "Artikel suchen" })).toBeInTheDocument();
+    expect(within(list).getByRole("table")).toHaveClass("inventory-table");
   });
 
   it("uses English singular metric nouns for one article and one type", async () => {

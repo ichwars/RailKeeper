@@ -137,7 +137,7 @@ export function ArticleTable({
 
   return (
     <div className={openMenuID ? "table-wrap article-table-wrap menu-open" : "table-wrap article-table-wrap"}>
-      <table className="article-table">
+      <table className="inventory-table article-table">
         <thead>
           <tr>
             {sortableColumns.map(renderSortHeader)}

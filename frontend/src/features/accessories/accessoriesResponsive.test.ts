@@ -18,6 +18,12 @@ describe("article editor responsive tabs", () => {
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
   });
 
+  it("keeps stacked article filters compact on narrow screens", () => {
+    expect(accessoriesCss).toMatch(
+      /@media\s*\(max-width:\s*560px\)[\s\S]*?\.article-filter-select,[\s\S]*?\.article-location-filter\s*\{[^}]*flex:\s*0 0 auto/s,
+    );
+  });
+
   it("keeps long subject labels shrinkable and stacks the subject grid at narrow widths", () => {
     expect(accessoriesCss).toMatch(/\.article-subject-grid\s*>\s*\.app-field\s*\{[^}]*min-width:\s*0/s);
     expect(accessoriesCss).toMatch(/\.article-subject-grid[^}]*overflow-wrap:\s*anywhere/s);

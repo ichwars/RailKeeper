@@ -77,22 +77,24 @@ export function ArticleMetrics({
   ];
 
   return (
-    <section className="article-metrics" aria-label={t("accessories.metrics.label")}>
+    <section className="inventory-status-row article-metrics" aria-label={t("accessories.metrics.label")}>
       {cards.map(({ key, icon: Icon, label, value, active, action, actionLabel }) => (
-        <article key={key} data-testid="article-metric" className={active ? "article-metric active" : "article-metric"}>
+        <article key={key} data-testid="article-metric"
+          className={[
+            "inventory-status-card",
+            "article-metric",
+            key === "allocated" ? "wide" : "",
+            active ? "active" : ""
+          ].filter(Boolean).join(" ")}>
           {action ? <button type="button" onClick={action} aria-pressed={active} aria-label={actionLabel}>
-            <span className="article-metric-icon"><Icon size={17} aria-hidden="true" /></span>
-            <span className="article-metric-copy">
-              <small>{label}</small>
-              <strong>{value}</strong>
-            </span>
-          </button> : <div className="article-metric-content">
-            <span className="article-metric-icon"><Icon size={17} aria-hidden="true" /></span>
-            <span className="article-metric-copy">
-              <small>{label}</small>
-              <strong>{value}</strong>
-            </span>
-          </div>}
+            <span><Icon size={16} aria-hidden="true" /></span>
+            <small>{label}</small>
+            <strong>{value}</strong>
+          </button> : <>
+            <span><Icon size={16} aria-hidden="true" /></span>
+            <small>{label}</small>
+            <strong>{value}</strong>
+          </>}
         </article>
       ))}
     </section>

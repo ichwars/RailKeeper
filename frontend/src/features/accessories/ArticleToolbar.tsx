@@ -118,7 +118,7 @@ export function ArticleToolbar({
             {t("accessories.toolbar.reset")}
           </button>
         ) : null}
-        <span className="article-result-count" aria-live="polite">
+        <span className="inventory-filter-result article-result-count" aria-live="polite">
           {t(resultCount === 1 ? "accessories.toolbar.resultOne" : "accessories.toolbar.resultMany", {
             count: resultCount
           })}

@@ -27,13 +27,14 @@
 - Modify: `frontend/src/features/accessories/ArticleMetrics.tsx`
 - Modify: `frontend/src/features/accessories/ArticleToolbar.tsx`
 - Modify: `frontend/src/features/accessories/ArticleTable.tsx`
+- Modify: `frontend/src/features/accessories/accessoriesResponsive.test.ts`
 - Modify: `frontend/src/styles/accessories.css`
 
 **Interfaces:**
 - Consumes: bestehende `inventory-head`, `inventory-status-row`, `inventory-status-card`, `inventory-panel`, `inventory-list-head`, `inventory-filter-result` und `inventory-table` Klassen.
 - Produces: unveränderte Artikel-API und Bedienlogik mit an den Fahrzeugbestand angeglichener DOM- und CSS-Hierarchie.
 
-- [ ] **Step 1: Add the failing structural regression test**
+- [x] **Step 1: Add the failing structural regression test**
 
 Erweitere den ersten Test in `AccessoriesView.test.tsx` um:
 
@@ -54,7 +55,7 @@ expect(within(list).getByRole("searchbox", { name: "Artikel suchen" }))
 expect(within(list).getByRole("table")).toHaveClass("inventory-table");
 ```
 
-- [ ] **Step 2: Run RED**
+- [x] **Step 2: Run RED**
 
 ```powershell
 cd frontend
@@ -63,7 +64,7 @@ npm.cmd run test:run -- src/features/accessories/AccessoriesView.test.tsx
 
 Expected: FAIL, weil Oberzeile, Bestandskarten-, Bestandspanel- und Bestandstabellenklassen noch fehlen.
 
-- [ ] **Step 3: Apply the existing vehicle inventory hierarchy**
+- [x] **Step 3: Apply the existing vehicle inventory hierarchy**
 
 In `ArticleOverviewHeader.tsx` die Eyebrow-Zeile entfernen und Titel, Beschreibung und Aktion unverändert lassen.
 
@@ -120,9 +121,13 @@ In `ArticleTable.tsx` die vorhandene Tabelle ergänzen:
 <table className="inventory-table article-table">
 ```
 
-In `accessories.css` die Bestandsklassen wirken lassen: vier gleich breite Kennzahlenkarten, `article-toolbar` als `display: contents`, Suche in Spalte 2, Filter über beide Spalten, transparentes Panel und ausschließlich zubehörspezifische Tabellenbreiten beibehalten. Keine Farben, Schatten oder Schriftgrößen hart codieren.
+In `accessories.css` die Bestandsklassen wirken lassen: die vier Kennzahlen im fünfspaltigen
+Bestandsraster anordnen und die gebundene Menge wie die breite Referenzkarte über zwei Spalten
+führen, `article-toolbar` als `display: contents`, Suche in Spalte 2, Filter über beide Spalten,
+transparentes Panel und ausschließlich zubehörspezifische Tabellenbreiten beibehalten. Keine
+Farben, Schatten oder Schriftgrößen hart codieren.
 
-- [ ] **Step 4: Run GREEN and complete frontend verification**
+- [x] **Step 4: Run GREEN and complete frontend verification**
 
 ```powershell
 cd frontend
@@ -133,7 +138,7 @@ npm.cmd run build
 
 Expected: alle fokussierten Tests, alle Frontendtests und der Produktionsbuild PASS.
 
-- [ ] **Step 5: Run browser comparison**
+- [x] **Step 5: Run browser comparison**
 
 Prüfe in der In-App-Browserseite `/accessories` bei derselben Breite wie Bild 1:
 
@@ -147,7 +152,7 @@ Prüfe in der In-App-Browserseite `/accessories` bei derselben Breite wie Bild 1
 - 390 × 844 px ohne Dokumentüberlauf,
 - Dark und Light ohne neue Warnungen oder Fehler.
 
-- [ ] **Step 6: Close docs and commit**
+- [x] **Step 6: Close docs and commit**
 
 Setze den Designstatus auf `Implemented and verified`, markiere alle Planpunkte `[x]`, dann:
 

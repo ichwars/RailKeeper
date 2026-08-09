@@ -70,22 +70,23 @@ export function AccessoriesView({
         onReset={overview.resetFilters}
         onStatusChange={(status) => overview.setFilter("status", status)}
       />
-      <section className="panel article-overview-panel" aria-busy={overview.loading}>
-        <div className="panel-head article-list-head">
+      <section className="panel inventory-panel article-overview-panel"
+        aria-label={t("accessories.overview.listTitle")} aria-busy={overview.loading}>
+        <div className="panel-head inventory-list-head article-list-head">
           <div>
             <h2>{t("accessories.overview.listTitle")}</h2>
             <p>{t("accessories.overview.listSubtitle")}</p>
           </div>
+          <ArticleToolbar
+            filters={overview.filters}
+            options={overview.data.filters}
+            articleTypeEntries={articleTypeEntries}
+            resultCount={overview.data.items.length}
+            hasActiveFilters={overview.hasActiveFilters}
+            onFilterChange={overview.setFilter}
+            onReset={overview.resetFilters}
+          />
         </div>
-        <ArticleToolbar
-          filters={overview.filters}
-          options={overview.data.filters}
-          articleTypeEntries={articleTypeEntries}
-          resultCount={overview.data.items.length}
-          hasActiveFilters={overview.hasActiveFilters}
-          onFilterChange={overview.setFilter}
-          onReset={overview.resetFilters}
-        />
         {overview.error ? <p className="form-message" role="alert">{overview.error}</p> : null}
         {showErrorOnly ? null : isFirstLoad ? (
           <p className="empty-state">{t("accessories.overview.loading")}</p>
