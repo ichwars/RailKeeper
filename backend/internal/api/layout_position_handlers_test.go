@@ -64,11 +64,37 @@ func TestLayoutTechnicalPositionRoutesEnforceRolesAndCSRF(t *testing.T) {
 		}
 		assertStatus(t, response, want)
 	}
+	for role, session := range sessions {
+		outlineUnit, err := layouts.CreateUnit(t.Context(), layout.ID, application.CreateLayoutUnitInput{
+			Name: "Outline " + role, Kind: "module", WidthMM: 100, HeightMM: 50,
+		}, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		response := layoutRequest(t, router, session, http.MethodPut,
+			"/api/v1/layout-units/"+outlineUnit.ID+"/outline", map[string]any{
+				"expectedVersion": outlineUnit.Version,
+				"points": []map[string]any{{"xMm": 0, "yMm": 0}, {"xMm": 100, "yMm": 0},
+					{"xMm": 100, "yMm": 50}, {"xMm": 0, "yMm": 50}},
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusOK
+		}
+		assertStatus(t, response, want)
+	}
 	withoutCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
 		"/api/v1/layout-units/"+unit.ID+"/technical-positions", map[string]any{
 			"label": "Ohne CSRF", "kind": "signal", "positionXMm": 10, "positionYMm": 10,
 		}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
+	outlineWithoutCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPut,
+		"/api/v1/layout-units/"+unit.ID+"/outline", map[string]any{
+			"expectedVersion": unit.Version,
+			"points": []map[string]any{{"xMm": 0, "yMm": 0}, {"xMm": 100, "yMm": 0},
+				{"xMm": 0, "yMm": 50}},
+		}, false)
+	assertProblem(t, outlineWithoutCSRF, http.StatusForbidden, "csrf_required")
 }
 
 func TestLayoutTechnicalPositionRoutesCoverWorkflowAndProblems(t *testing.T) {

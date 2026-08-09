@@ -121,7 +121,8 @@ func (r *LayoutRepository) buildLayoutTwinUnit(
 	unit := application.LayoutTwinUnit{
 		ID: placement.unit.ID, Name: placement.unit.Name, Kind: placement.unit.Kind,
 		PositionXMM: placement.xMM, PositionYMM: placement.yMM,
-		RotationDegrees: placement.rotation, Outline: []application.LayoutTwinPoint{},
+		RotationDegrees: placement.rotation, Version: placement.unit.Version,
+		LocalOutline: []application.LayoutTwinPoint{}, Outline: []application.LayoutTwinPoint{},
 		Positions: []application.LayoutTwinPosition{},
 	}
 	warnings := []application.LayoutTwinWarning{}
@@ -141,6 +142,7 @@ func (r *LayoutRepository) buildLayoutTwinUnit(
 		warnings = append(warnings, application.LayoutTwinWarning{Code: "missing_geometry", UnitID: unit.ID})
 	}
 	for _, point := range outline {
+		unit.LocalOutline = append(unit.LocalOutline, point)
 		global := transformLayoutTwinPoint(point.XMM, point.YMM, placement)
 		unit.Outline = append(unit.Outline, global)
 		bounds.include(global.XMM, global.YMM)
@@ -182,7 +184,7 @@ func (r *LayoutRepository) layoutTwinPositions(
 ) ([]application.LayoutTwinPosition, error) {
 	rows, err := r.db.QueryContext(ctx, `
 SELECT position.id, position.label, position.kind, position.position_x_mm, position.position_y_mm,
-       position.rotation_degrees, COALESCE(position.product_id, ''), position.description,
+       position.rotation_degrees, COALESCE(position.product_id, ''), position.description, position.version,
        COALESCE(product.inventory_number, ''), COALESCE(product.manufacturer, ''),
        COALESCE(product.article_number, ''), COALESCE(product.name, '')
 FROM layout_technical_positions position
@@ -197,13 +199,14 @@ ORDER BY position.label COLLATE NOCASE, position.id`, placement.unit.ID)
 		position := application.LayoutTwinPosition{LayoutUnitID: placement.unit.ID}
 		var localRotation float64
 		if err := rows.Scan(&position.ID, &position.Label, &position.Kind, &position.LocalXMM,
-			&position.LocalYMM, &localRotation, &position.ProductID, &position.Description,
+			&position.LocalYMM, &localRotation, &position.ProductID, &position.Description, &position.Version,
 			&position.InventoryNumber, &position.Manufacturer, &position.ArticleNumber,
 			&position.ProductName); err != nil {
 			return nil, fmt.Errorf("scan layout twin position: %w", err)
 		}
 		global := transformLayoutTwinPoint(position.LocalXMM, position.LocalYMM, placement)
 		position.GlobalXMM, position.GlobalYMM = global.XMM, global.YMM
+		position.LocalRotationDegrees = localRotation
 		position.RotationDegrees = normalizeTwinRotation(placement.rotation + localRotation)
 		bounds.include(global.XMM, global.YMM)
 		positions = append(positions, position)

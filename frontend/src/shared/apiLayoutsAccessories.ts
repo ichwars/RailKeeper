@@ -117,6 +117,7 @@ export type LayoutTwinPosition = {
   kind: LayoutTechnicalPositionKind;
   localXMm: number;
   localYMm: number;
+  localRotationDegrees: number;
   globalXMm: number;
   globalYMm: number;
   rotationDegrees: number;
@@ -126,6 +127,7 @@ export type LayoutTwinPosition = {
   articleNumber?: string;
   productName?: string;
   description?: string;
+  version: number;
   statuses: LayoutTwinStatus[];
   reservations: LayoutTwinAllocation[];
   installations: LayoutTwinAllocation[];
@@ -138,6 +140,8 @@ export type LayoutTwinUnit = {
   positionXMm: number;
   positionYMm: number;
   rotationDegrees: number;
+  version: number;
+  localOutline: Array<{ xMm: number; yMm: number }>;
   outline: Array<{ xMm: number; yMm: number }>;
   positions: LayoutTwinPosition[];
 };
@@ -154,6 +158,15 @@ export type LayoutTwin = {
 };
 
 export type LayoutTwinSelection = { configurationId?: string; unitId?: string };
+export type LayoutUnitOutline = {
+  layoutUnitId: string;
+  points: Array<{ xMm: number; yMm: number }>;
+  version: number;
+};
+export type LayoutUnitOutlineUpdateInput = {
+  points: Array<{ xMm: number; yMm: number }>;
+  expectedVersion: number;
+};
 
 export type ConfigurationUnit = {
   unitId: string;
@@ -707,6 +720,8 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<LayoutUnit>(`/layouts/${encodeURIComponent(layoutId)}/units`, json("POST", input)),
     updateLayoutUnit: (id: string, input: LayoutUnitUpdateInput) =>
       request<LayoutUnit>(`/layout-units/${encodeURIComponent(id)}`, json("PUT", input)),
+    updateLayoutUnitOutline: (id: string, input: LayoutUnitOutlineUpdateInput) =>
+      request<LayoutUnitOutline>(`/layout-units/${encodeURIComponent(id)}/outline`, json("PUT", input)),
     layoutTechnicalPositions: (unitId: string) =>
       request<LayoutTechnicalPosition[]>(`/layout-units/${encodeURIComponent(unitId)}/technical-positions`),
     createLayoutTechnicalPosition: (unitId: string, input: LayoutTechnicalPositionInput) =>

@@ -2272,8 +2272,8 @@ components:
     LayoutTwinPosition:
       type: object
       required:
-        [id, layoutUnitId, label, kind, localXMm, localYMm, globalXMm, globalYMm,
-         rotationDegrees, statuses, reservations, installations]
+        [id, layoutUnitId, label, kind, localXMm, localYMm, localRotationDegrees,
+         globalXMm, globalYMm, rotationDegrees, version, statuses, reservations, installations]
       properties:
         id:
           type: string
@@ -2287,6 +2287,8 @@ components:
         localXMm:
           type: number
         localYMm:
+          type: number
+        localRotationDegrees:
           type: number
         globalXMm:
           type: number
@@ -2308,6 +2310,9 @@ components:
           type: string
         description:
           type: string
+        version:
+          type: integer
+          minimum: 1
         statuses:
           type: array
           minItems: 1
@@ -2324,7 +2329,9 @@ components:
             $ref: "#/components/schemas/LayoutTwinAllocation"
     LayoutTwinUnit:
       type: object
-      required: [id, name, kind, positionXMm, positionYMm, rotationDegrees, outline, positions]
+      required:
+        [id, name, kind, positionXMm, positionYMm, rotationDegrees, version,
+         localOutline, outline, positions]
       properties:
         id:
           type: string
@@ -2339,6 +2346,13 @@ components:
           type: number
         rotationDegrees:
           type: number
+        version:
+          type: integer
+          minimum: 1
+        localOutline:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
         outline:
           type: array
           items:
@@ -2371,6 +2385,32 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/LayoutTwinWarning"
+    LayoutUnitOutline:
+      type: object
+      required: [layoutUnitId, points, version]
+      properties:
+        layoutUnitId:
+          type: string
+        points:
+          type: array
+          minItems: 3
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        version:
+          type: integer
+          minimum: 1
+    UpdateLayoutUnitOutlineInput:
+      type: object
+      required: [points, expectedVersion]
+      properties:
+        points:
+          type: array
+          minItems: 3
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        expectedVersion:
+          type: integer
+          minimum: 1
     ConfigurationUnit:
       type: object
       required: [unitId, positionXMm, positionYMm, rotationDegrees, sortOrder]
@@ -4919,6 +4959,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LayoutUnit"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/outline:
+    put:
+      tags: [Layouts]
+      summary: Replace a layout unit outline
+      description: Planner or Admin role required. The unit version is checked atomically.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutUnitOutlineInput"
+      responses:
+        "200":
+          description: Updated layout unit outline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitOutline"
+        "400":
+          description: Invalid outline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Stale expected version
           content:

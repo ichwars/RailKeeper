@@ -151,6 +151,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/layouts/{id}/units", routeAccessViewer, (*App).listLayoutUnits, nil},
 		{http.MethodPost, "/api/v1/layouts/{id}/units", routeAccessPlanner, (*App).createLayoutUnit, nil},
 		{http.MethodPut, "/api/v1/layout-units/{id}", routeAccessPlanner, (*App).updateLayoutUnit, nil},
+		{http.MethodPut, "/api/v1/layout-units/{id}/outline", routeAccessPlanner, (*App).updateLayoutUnitOutline, nil},
 		{http.MethodGet, "/api/v1/layout-units/{id}/technical-positions", routeAccessViewer, (*App).listLayoutTechnicalPositions, nil},
 		{http.MethodPost, "/api/v1/layout-units/{id}/technical-positions", routeAccessPlanner, (*App).createLayoutTechnicalPosition, nil},
 		{http.MethodPut, "/api/v1/layout-technical-positions/{id}", routeAccessPlanner, (*App).updateLayoutTechnicalPosition, nil},

@@ -146,6 +146,7 @@ type LayoutRepository interface {
 	ListUnits(context.Context, string) ([]LayoutUnit, error)
 	CreateUnit(context.Context, string, CreateLayoutUnitInput, string) (*LayoutUnit, error)
 	UpdateUnit(context.Context, string, UpdateLayoutUnitInput, string) (*LayoutUnit, error)
+	UpdateUnitOutline(context.Context, string, UpdateLayoutUnitOutlineInput, string) (*LayoutUnitOutline, error)
 	ListTechnicalPositions(context.Context, string) ([]LayoutTechnicalPosition, error)
 	CreateTechnicalPosition(
 		context.Context, string, CreateLayoutTechnicalPositionInput, string,

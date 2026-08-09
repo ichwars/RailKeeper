@@ -24,10 +24,14 @@ const twin: LayoutTwin = {
   warnings: [{ code: "outline_fallback", unitId: unit.id }],
   units: [{
     id: unit.id, name: unit.name, kind: unit.kind, positionXMm: 0, positionYMm: 0, rotationDegrees: 0,
+    version: unit.version,
+    localOutline: [{ xMm: 0, yMm: 0 }, { xMm: 1000, yMm: 0 },
+      { xMm: 1000, yMm: 400 }, { xMm: 0, yMm: 400 }],
     outline: [{ xMm: 0, yMm: 0 }, { xMm: 1000, yMm: 0 }, { xMm: 1000, yMm: 400 }, { xMm: 0, yMm: 400 }],
     positions: [{
       id: "position-reserved", layoutUnitId: unit.id, label: "Einfahrsignal A", kind: "signal",
-      localXMm: 150, localYMm: 80, globalXMm: 150, globalYMm: 80, rotationDegrees: 90,
+      localXMm: 150, localYMm: 80, localRotationDegrees: 90,
+      globalXMm: 150, globalYMm: 80, rotationDegrees: 90, version: 1,
       productId: "product-1", inventoryNumber: "RK-ART-000001", manufacturer: "Tillig",
       articleNumber: "83101", productName: "Lichtsignal", description: "Gleis 1",
       statuses: ["reserved"], installations: [], reservations: [{
@@ -37,7 +41,8 @@ const twin: LayoutTwin = {
       }]
     }, {
       id: "position-defective", layoutUnitId: unit.id, label: "Weiche West", kind: "turnout",
-      localXMm: 500, localYMm: 120, globalXMm: 500, globalYMm: 120, rotationDegrees: 0,
+      localXMm: 500, localYMm: 120, localRotationDegrees: 0,
+      globalXMm: 500, globalYMm: 120, rotationDegrees: 0, version: 1,
       statuses: ["installed", "defective"], reservations: [], installations: [{
         id: "installation-1", productId: "product-2", inventoryNumber: "RK-ART-000002",
         manufacturer: "Tillig", productName: "Weichenantrieb", quantity: 1,

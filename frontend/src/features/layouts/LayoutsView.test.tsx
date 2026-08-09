@@ -56,7 +56,10 @@ describe("LayoutsView", () => {
       bounds: { minXMm: 0, minYMm: 0, widthMm: unit.widthMm, heightMm: unit.heightMm },
       hasGeometry: true,
       units: [{ id: unit.id, name: unit.name, kind: unit.kind, positionXMm: 0, positionYMm: 0,
-        rotationDegrees: 0, outline: [{ xMm: 0, yMm: 0 }, { xMm: unit.widthMm, yMm: 0 },
+        rotationDegrees: 0, version: unit.version,
+        localOutline: [{ xMm: 0, yMm: 0 }, { xMm: unit.widthMm, yMm: 0 },
+          { xMm: unit.widthMm, yMm: unit.heightMm }, { xMm: 0, yMm: unit.heightMm }],
+        outline: [{ xMm: 0, yMm: 0 }, { xMm: unit.widthMm, yMm: 0 },
           { xMm: unit.widthMm, yMm: unit.heightMm }, { xMm: 0, yMm: unit.heightMm }], positions: [] }],
       warnings: [{ code: "outline_fallback", unitId: unit.id }]
     });

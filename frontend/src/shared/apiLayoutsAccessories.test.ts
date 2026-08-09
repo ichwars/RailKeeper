@@ -54,6 +54,10 @@ describe("layout and accessory API client", () => {
     await api.layoutUnits("layout/1");
     await api.createLayoutUnit("layout/1", unitInput);
     await api.updateLayoutUnit("unit/1", { ...unitInput, expectedVersion: 2 });
+    const outlineInput = { expectedVersion: 2, points: [
+      { xMm: 0, yMm: 0 }, { xMm: 100, yMm: 0 }, { xMm: 100, yMm: 50 }
+    ] };
+    await api.updateLayoutUnitOutline("unit/1", outlineInput);
     const positionInput = {
       label: "Signal A",
       kind: "signal" as const,
@@ -85,6 +89,7 @@ describe("layout and accessory API client", () => {
       ["GET", "/api/v1/layouts/layout%2F1/units"],
       ["POST", "/api/v1/layouts/layout%2F1/units", unitInput],
       ["PUT", "/api/v1/layout-units/unit%2F1", { ...unitInput, expectedVersion: 2 }],
+      ["PUT", "/api/v1/layout-units/unit%2F1/outline", outlineInput],
       ["GET", "/api/v1/layout-units/unit%2F1/technical-positions"],
       ["POST", "/api/v1/layout-units/unit%2F1/technical-positions", positionInput],
       ["PUT", "/api/v1/layout-technical-positions/position%2F1", { ...positionInput, expectedVersion: 2 }],

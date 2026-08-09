@@ -58,24 +58,26 @@ type LayoutTwinAllocation struct {
 }
 
 type LayoutTwinPosition struct {
-	ID              string                             `json:"id"`
-	LayoutUnitID    string                             `json:"layoutUnitId"`
-	Label           string                             `json:"label"`
-	Kind            domain.LayoutTechnicalPositionKind `json:"kind"`
-	LocalXMM        float64                            `json:"localXMm"`
-	LocalYMM        float64                            `json:"localYMm"`
-	GlobalXMM       float64                            `json:"globalXMm"`
-	GlobalYMM       float64                            `json:"globalYMm"`
-	RotationDegrees float64                            `json:"rotationDegrees"`
-	ProductID       string                             `json:"productId,omitempty"`
-	InventoryNumber string                             `json:"inventoryNumber,omitempty"`
-	Manufacturer    string                             `json:"manufacturer,omitempty"`
-	ArticleNumber   string                             `json:"articleNumber,omitempty"`
-	ProductName     string                             `json:"productName,omitempty"`
-	Description     string                             `json:"description,omitempty"`
-	Statuses        []LayoutTwinStatus                 `json:"statuses"`
-	Reservations    []LayoutTwinAllocation             `json:"reservations"`
-	Installations   []LayoutTwinAllocation             `json:"installations"`
+	ID                   string                             `json:"id"`
+	LayoutUnitID         string                             `json:"layoutUnitId"`
+	Label                string                             `json:"label"`
+	Kind                 domain.LayoutTechnicalPositionKind `json:"kind"`
+	LocalXMM             float64                            `json:"localXMm"`
+	LocalYMM             float64                            `json:"localYMm"`
+	LocalRotationDegrees float64                            `json:"localRotationDegrees"`
+	GlobalXMM            float64                            `json:"globalXMm"`
+	GlobalYMM            float64                            `json:"globalYMm"`
+	RotationDegrees      float64                            `json:"rotationDegrees"`
+	ProductID            string                             `json:"productId,omitempty"`
+	InventoryNumber      string                             `json:"inventoryNumber,omitempty"`
+	Manufacturer         string                             `json:"manufacturer,omitempty"`
+	ArticleNumber        string                             `json:"articleNumber,omitempty"`
+	ProductName          string                             `json:"productName,omitempty"`
+	Description          string                             `json:"description,omitempty"`
+	Version              int                                `json:"version"`
+	Statuses             []LayoutTwinStatus                 `json:"statuses"`
+	Reservations         []LayoutTwinAllocation             `json:"reservations"`
+	Installations        []LayoutTwinAllocation             `json:"installations"`
 }
 
 type LayoutTwinUnit struct {
@@ -85,6 +87,8 @@ type LayoutTwinUnit struct {
 	PositionXMM     float64               `json:"positionXMm"`
 	PositionYMM     float64               `json:"positionYMm"`
 	RotationDegrees float64               `json:"rotationDegrees"`
+	Version         int                   `json:"version"`
+	LocalOutline    []LayoutTwinPoint     `json:"localOutline"`
 	Outline         []LayoutTwinPoint     `json:"outline"`
 	Positions       []LayoutTwinPosition  `json:"positions"`
 }

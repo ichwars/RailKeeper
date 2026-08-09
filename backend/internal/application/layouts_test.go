@@ -13,6 +13,7 @@ type layoutRepositorySpy struct {
 	LayoutRepository
 	createdLayout      CreateLayoutInput
 	savedConfiguration SaveLayoutConfigurationInput
+	savedOutline       UpdateLayoutUnitOutlineInput
 }
 
 func (spy *layoutRepositorySpy) CreateLayout(
@@ -41,6 +42,42 @@ func (spy *layoutRepositorySpy) CreateUnit(
 	_ string,
 ) (*LayoutUnit, error) {
 	return &LayoutUnit{Name: input.Name, WidthMM: input.WidthMM, HeightMM: input.HeightMM}, nil
+}
+
+func (spy *layoutRepositorySpy) UpdateUnitOutline(
+	_ context.Context,
+	unitID string,
+	input UpdateLayoutUnitOutlineInput,
+	_ string,
+) (*LayoutUnitOutline, error) {
+	spy.savedOutline = input
+	return &LayoutUnitOutline{LayoutUnitID: unitID, Points: input.Points, Version: input.ExpectedVersion + 1}, nil
+}
+
+func TestLayoutServiceValidatesUnitOutline(t *testing.T) {
+	repository := &layoutRepositorySpy{}
+	service := NewLayoutService(repository)
+	valid := UpdateLayoutUnitOutlineInput{ExpectedVersion: 2, Points: []LayoutTwinPoint{
+		{XMM: 0, YMM: 0}, {XMM: 100, YMM: 0}, {XMM: 50, YMM: 80},
+	}}
+	outline, err := service.UpdateUnitOutline(t.Context(), " unit-1 ", valid, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outline.LayoutUnitID != "unit-1" || outline.Version != 3 || len(repository.savedOutline.Points) != 3 {
+		t.Fatalf("unexpected outline: %#v", outline)
+	}
+	invalid := []UpdateLayoutUnitOutlineInput{
+		{ExpectedVersion: 1, Points: valid.Points[:2]},
+		{ExpectedVersion: 0, Points: valid.Points},
+		{ExpectedVersion: 1, Points: []LayoutTwinPoint{{XMM: 0}, {XMM: 1}, {XMM: 2}}},
+		{ExpectedVersion: 1, Points: []LayoutTwinPoint{{XMM: math.NaN()}, {XMM: 1}, {YMM: 1}}},
+	}
+	for _, input := range invalid {
+		if _, err := service.UpdateUnitOutline(t.Context(), "unit-1", input, "planner"); !errors.Is(err, ErrLayoutValidation) {
+			t.Fatalf("expected invalid outline rejection for %#v, got %v", input, err)
+		}
+	}
 }
 
 func TestLayoutServiceNormalizesInputsBeforePersistence(t *testing.T) {
