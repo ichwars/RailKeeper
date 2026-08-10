@@ -18,27 +18,29 @@ var (
 )
 
 type Layout struct {
-	ID              string            `json:"id"`
-	Name            string            `json:"name"`
-	Kind            domain.LayoutKind `json:"kind"`
-	Gauge           string            `json:"gauge"`
-	Scale           string            `json:"scale"`
-	Description     string            `json:"description,omitempty"`
-	MaxGradePercent *float64          `json:"maxGradePercent,omitempty"`
-	Version         int               `json:"version"`
-	Archived        bool              `json:"archived"`
-	CreatedAt       string            `json:"createdAt"`
-	UpdatedAt       string            `json:"updatedAt"`
+	ID                      string            `json:"id"`
+	Name                    string            `json:"name"`
+	Kind                    domain.LayoutKind `json:"kind"`
+	Gauge                   string            `json:"gauge"`
+	Scale                   string            `json:"scale"`
+	Description             string            `json:"description,omitempty"`
+	MaxGradePercent         *float64          `json:"maxGradePercent,omitempty"`
+	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm,omitempty"`
+	Version                 int               `json:"version"`
+	Archived                bool              `json:"archived"`
+	CreatedAt               string            `json:"createdAt"`
+	UpdatedAt               string            `json:"updatedAt"`
 }
 
 type CreateLayoutInput struct {
-	Name            string            `json:"name"`
-	Kind            domain.LayoutKind `json:"kind"`
-	Gauge           string            `json:"gauge"`
-	Scale           string            `json:"scale"`
-	Description     string            `json:"description"`
-	MaxGradePercent *float64          `json:"maxGradePercent"`
-	Archived        bool              `json:"archived"`
+	Name                    string            `json:"name"`
+	Kind                    domain.LayoutKind `json:"kind"`
+	Gauge                   string            `json:"gauge"`
+	Scale                   string            `json:"scale"`
+	Description             string            `json:"description"`
+	MaxGradePercent         *float64          `json:"maxGradePercent"`
+	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm"`
+	Archived                bool              `json:"archived"`
 }
 
 type UpdateLayoutInput struct {
@@ -414,7 +416,9 @@ func cleanLayoutInput(input CreateLayoutInput) CreateLayoutInput {
 func validLayoutInput(input CreateLayoutInput) bool {
 	return input.Name != "" && input.Gauge != "" && input.Scale != "" && input.Kind.Valid() &&
 		(input.MaxGradePercent == nil || finite(*input.MaxGradePercent) &&
-			*input.MaxGradePercent > 0 && *input.MaxGradePercent <= 100)
+			*input.MaxGradePercent > 0 && *input.MaxGradePercent <= 100) &&
+		(input.MinimumTrackClearanceMM == nil ||
+			finite(*input.MinimumTrackClearanceMM) && *input.MinimumTrackClearanceMM > 0)
 }
 
 func cleanLayoutUnitInput(input CreateLayoutUnitInput) CreateLayoutUnitInput {

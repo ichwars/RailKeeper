@@ -202,6 +202,32 @@ func TestLayoutServiceValidatesMaximumGradePercent(t *testing.T) {
 	}
 }
 
+func TestLayoutServiceValidatesMinimumTrackClearanceMM(t *testing.T) {
+	repository := &layoutRepositorySpy{}
+	service := NewLayoutService(repository)
+	limit := 40.0
+	if _, err := service.CreateLayout(t.Context(), CreateLayoutInput{
+		Name: "Abstandsanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MinimumTrackClearanceMM: &limit,
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if repository.createdLayout.MinimumTrackClearanceMM == nil ||
+		*repository.createdLayout.MinimumTrackClearanceMM != limit {
+		t.Fatalf("minimum track clearance not forwarded: %#v", repository.createdLayout)
+	}
+
+	for _, invalid := range []float64{0, -1, math.NaN(), math.Inf(1)} {
+		input := CreateLayoutInput{
+			Name: "Ungültig", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+			MinimumTrackClearanceMM: &invalid,
+		}
+		if _, err := service.CreateLayout(t.Context(), input, "planner-1"); !errors.Is(err, ErrLayoutValidation) {
+			t.Fatalf("expected validation error for %v, got %v", invalid, err)
+		}
+	}
+}
+
 func TestLayoutServiceRejectsNonFiniteConfigurationCoordinates(t *testing.T) {
 	service := NewLayoutService(&layoutRepositorySpy{})
 	for name, value := range map[string]float64{

@@ -44,7 +44,7 @@ vorhandenen Plananalyse mit den aktuellen Anlagenlimits aufgerufen.
 - Persists: `layouts.minimum_track_clearance_mm REAL NULL`
 - Produces: Backup-Version 10; Versionen bis 9 stellen den Wert als `NULL` wieder her
 
-- [ ] **Step 1: Fehlende Validierung und Persistenz als fehlschlagende Tests ergänzen**
+- [x] **Step 1: Fehlende Validierung und Persistenz als fehlschlagende Tests ergänzen**
 
 In `layouts_test.go` Create und Update mit `MinimumTrackClearanceMM: pointer(40.0)` prüfen. Für die
 Servervalidierung dieselbe Tabelle mit `0`, `-1`, `math.NaN()` und `math.Inf(1)` verwenden und jeweils
@@ -62,13 +62,13 @@ if err != nil || layout.MinimumTrackClearanceMM == nil || *layout.MinimumTrackCl
 }
 ```
 
-- [ ] **Step 2: Gezielte Tests ausführen und den erwarteten Compile-Fehler bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und den erwarteten Compile-Fehler bestätigen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure -run "Layout.*Clearance|Clearance.*Layout"`
 
 Expected: FAIL, `MinimumTrackClearanceMM` ist noch nicht definiert.
 
-- [ ] **Step 3: Migration, Modell, Validierung und Repository implementieren**
+- [x] **Step 3: Migration, Modell, Validierung und Repository implementieren**
 
 ```sql
 ALTER TABLE layouts ADD COLUMN minimum_track_clearance_mm REAL
@@ -80,20 +80,20 @@ ALTER TABLE layouts ADD COLUMN minimum_track_clearance_mm REAL
 Insert, Update, `layoutSelect` und `scanLayout` führen die Spalte direkt nach `max_grade_percent`;
 der Scan verwendet ein eigenes `sql.NullFloat64`.
 
-- [ ] **Step 4: Backup-Version und Legacy-Roundtrip ergänzen**
+- [x] **Step 4: Backup-Version und Legacy-Roundtrip ergänzen**
 
 `backupVersion` wird 10, der Future-Version-Test erwartet 11. Ein Test exportiert und restauriert
 eine Anlage mit 40 mm. Derselbe Export wird auf Version 9 zurückgestuft und
 `minimum_track_clearance_mm` aus jeder Layoutzeile entfernt; nach Restore muss die Spalte `NULL`
 enthalten.
 
-- [ ] **Step 5: Application-, Repository- und Backuptests ausführen**
+- [x] **Step 5: Application-, Repository- und Backuptests ausführen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure`
 
 Expected: PASS.
 
-- [ ] **Step 6: Persistenz lokal committen**
+- [x] **Step 6: Persistenz lokal committen**
 
 ```powershell
 git add backend/migrations/0051_layout_minimum_track_clearance.sql `
