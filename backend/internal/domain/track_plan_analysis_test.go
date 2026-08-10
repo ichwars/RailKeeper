@@ -122,6 +122,42 @@ func TestAnalyzeTrackPlanDerivesStablePositiveNegativeAndFlatGrades(t *testing.T
 	}
 }
 
+func TestAnalyzeTrackPlanWithLimitsReportsAbsoluteGradeExcess(t *testing.T) {
+	ascending := testG1Object("ascending", 0, 0, 0)
+	ascending.ElevationEndMM = 6.64
+	descending := testG1Object("descending", 300, 0, 0)
+	descending.ElevationStartMM, descending.ElevationEndMM = 10, 3.36
+	limit := 3.0
+
+	issues := filterTrackIssues(AnalyzeTrackPlanWithLimits(
+		[]PlanTrackObject{ascending, descending}, TrackPlanLimits{MaxGradePercent: &limit},
+	).Issues, TrackPlanIssueGradeLimitExceeded)
+	if len(issues) != 2 {
+		t.Fatalf("expected two grade limit warnings, got %#v", issues)
+	}
+	if issues[0].GradePercent == nil || math.Abs(*issues[0].GradePercent-4) > 1e-9 ||
+		issues[0].GradeLimitPercent == nil || *issues[0].GradeLimitPercent != limit ||
+		issues[1].GradePercent == nil || math.Abs(*issues[1].GradePercent-(-4)) > 1e-9 {
+		t.Fatalf("unexpected grade limit details: %#v", issues)
+	}
+}
+
+func TestAnalyzeTrackPlanWithLimitsAllowsBoundaryAndUnsetLimit(t *testing.T) {
+	track := testG1Object("track", 0, 0, 0)
+	track.ElevationEndMM = 4.98
+	limit := 3.0
+
+	if issues := filterTrackIssues(AnalyzeTrackPlanWithLimits(
+		[]PlanTrackObject{track}, TrackPlanLimits{MaxGradePercent: &limit},
+	).Issues, TrackPlanIssueGradeLimitExceeded); len(issues) != 0 {
+		t.Fatalf("boundary produced warning: %#v", issues)
+	}
+	if issues := filterTrackIssues(AnalyzeTrackPlan([]PlanTrackObject{track}).Issues,
+		TrackPlanIssueGradeLimitExceeded); len(issues) != 0 {
+		t.Fatalf("unset limit produced warning: %#v", issues)
+	}
+}
+
 func TestAnalyzeTrackPlanReportsElevationMismatchAtConnectedTwoPortGeometry(t *testing.T) {
 	first := testG1Object("track-1", 0, 0, 0)
 	first.ElevationStartMM, first.ElevationEndMM = 0, 10

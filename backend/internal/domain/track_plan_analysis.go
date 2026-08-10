@@ -12,6 +12,7 @@ const (
 	TrackConnectionDistanceMM           = 0.25
 	TrackConnectionDirectionDegrees     = 0.5
 	TrackElevationConnectionToleranceMM = 0.01
+	TrackGradeLimitTolerancePercent     = 1e-9
 )
 
 type TrackPose struct {
@@ -44,6 +45,7 @@ const (
 	TrackPlanIssueOverlap                TrackPlanIssueCode = "overlap"
 	TrackPlanIssueBrokenGeometry         TrackPlanIssueCode = "broken_geometry"
 	TrackPlanIssueElevationMismatch      TrackPlanIssueCode = "elevation_mismatch"
+	TrackPlanIssueGradeLimitExceeded     TrackPlanIssueCode = "grade_limit_exceeded"
 )
 
 type TrackPlanIssueSeverity string
@@ -59,6 +61,8 @@ type TrackPlanIssue struct {
 	ObjectIDs             []string               `json:"objectIds"`
 	PortIDs               []string               `json:"portIds,omitempty"`
 	ElevationDifferenceMM *float64               `json:"elevationDifferenceMm,omitempty"`
+	GradePercent          *float64               `json:"gradePercent,omitempty"`
+	GradeLimitPercent     *float64               `json:"gradeLimitPercent,omitempty"`
 }
 
 type TrackBOMLine struct {
@@ -82,6 +86,10 @@ type TrackPlanAnalysis struct {
 	Issues      []TrackPlanIssue      `json:"issues"`
 	BOM         []TrackBOMLine        `json:"bom"`
 	Grades      []TrackGrade          `json:"grades"`
+}
+
+type TrackPlanLimits struct {
+	MaxGradePercent *float64
 }
 
 type placedTrackPort struct {
@@ -157,6 +165,10 @@ func FindTrackSnap(moving PlanTrackObject, objects []PlanTrackObject) TrackSnapR
 }
 
 func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
+	return AnalyzeTrackPlanWithLimits(objects, TrackPlanLimits{})
+}
+
+func AnalyzeTrackPlanWithLimits(objects []PlanTrackObject, limits TrackPlanLimits) TrackPlanAnalysis {
 	ordered := append([]PlanTrackObject(nil), objects...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i].ID < ordered[j].ID })
 	analysis := TrackPlanAnalysis{
@@ -181,12 +193,22 @@ func AnalyzeTrackPlan(objects []PlanTrackObject) TrackPlanAnalysis {
 			continue
 		}
 		if object.Geometry.LengthMM > 0 {
+			gradePercent := (object.ElevationEndMM - object.ElevationStartMM) /
+				object.Geometry.LengthMM * 100
 			analysis.Grades = append(analysis.Grades, TrackGrade{
 				ObjectID: object.ID, ElevationStartMM: object.ElevationStartMM,
 				ElevationEndMM: object.ElevationEndMM, LengthMM: object.Geometry.LengthMM,
-				GradePercent: (object.ElevationEndMM - object.ElevationStartMM) /
-					object.Geometry.LengthMM * 100,
+				GradePercent: gradePercent,
 			})
+			if limits.MaxGradePercent != nil &&
+				math.Abs(gradePercent)-*limits.MaxGradePercent > TrackGradeLimitTolerancePercent {
+				gradeLimitPercent := *limits.MaxGradePercent
+				analysis.Issues = append(analysis.Issues, TrackPlanIssue{
+					Code: TrackPlanIssueGradeLimitExceeded, Severity: TrackPlanIssueWarning,
+					ObjectIDs: []string{object.ID}, GradePercent: &gradePercent,
+					GradeLimitPercent: &gradeLimitPercent,
+				})
+			}
 		}
 		for _, port := range object.Geometry.Geometry.Ports {
 			elevation, known := trackPortElevation(object, port.ID)

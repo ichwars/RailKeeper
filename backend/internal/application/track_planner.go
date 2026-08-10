@@ -20,6 +20,7 @@ type TrackPlan struct {
 	RevisionID string                    `json:"revisionId"`
 	Status     domain.PlanRevisionStatus `json:"status"`
 	Objects    []domain.PlanTrackObject  `json:"objects"`
+	Limits     domain.TrackPlanLimits    `json:"-"`
 }
 
 type CreatePlanTrackObjectInput struct {
@@ -162,7 +163,7 @@ func (service *TrackPlannerService) AnalyzePlan(
 	if err != nil {
 		return nil, err
 	}
-	geometryAnalysis := domain.AnalyzeTrackPlan(plan.Objects)
+	geometryAnalysis := domain.AnalyzeTrackPlanWithLimits(plan.Objects, plan.Limits)
 	materials, err := service.repository.TrackMaterialAvailability(ctx, geometryAnalysis.BOM)
 	if err != nil {
 		return nil, err
@@ -208,8 +209,8 @@ func (service *TrackPlannerService) ChangePreview(
 		}
 	}
 	revisionDiff := domain.CompareTrackPlanRevisions(base.Objects, current.Objects)
-	baseAnalysis := domain.AnalyzeTrackPlan(base.Objects)
-	currentAnalysis := domain.AnalyzeTrackPlan(current.Objects)
+	baseAnalysis := domain.AnalyzeTrackPlanWithLimits(base.Objects, current.Limits)
+	currentAnalysis := domain.AnalyzeTrackPlanWithLimits(current.Objects, current.Limits)
 	return &TrackPlanChangePreview{
 		RevisionID: current.RevisionID, BaseRevisionID: baseRevisionID,
 		ObjectChanges: revisionDiff.ObjectChanges, MaterialDeltas: revisionDiff.MaterialDeltas,

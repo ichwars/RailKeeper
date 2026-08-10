@@ -247,6 +247,7 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 		trackPlannerTestG1("track-2", 166, 0, 0),
 	}
 	objects[0].ElevationEndMM = 4.15
+	limit := 2.0
 	repository := &trackPlannerRepositorySpy{
 		materials: []TrackMaterialStatus{{
 			GeometryID: "tillig-g1", Manufacturer: "Tillig", ArticleNumber: "83101",
@@ -255,7 +256,8 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 		}},
 		reservations: []TrackPlanObjectReservation{{TrackObjectID: "track-1"}},
 	}
-	repositoryPlan := &TrackPlan{RevisionID: "revision-1", Status: domain.PlanRevisionDraft, Objects: objects}
+	repositoryPlan := &TrackPlan{RevisionID: "revision-1", Status: domain.PlanRevisionDraft, Objects: objects,
+		Limits: domain.TrackPlanLimits{MaxGradePercent: &limit}}
 	repository.plan = repositoryPlan
 	service := NewTrackPlannerService(repository)
 	analysis, err := service.AnalyzePlan(t.Context(), repositoryPlan.RevisionID)
@@ -267,6 +269,15 @@ func TestTrackPlannerAnalyzePlanCombinesGeometryAndMaterials(t *testing.T) {
 		len(analysis.Reservations) != 1 ||
 		analysis.Materials[0].AvailableQuantity != 2 {
 		t.Fatalf("unexpected combined analysis: %#v", analysis)
+	}
+	gradeIssues := 0
+	for _, issue := range analysis.Issues {
+		if issue.Code == domain.TrackPlanIssueGradeLimitExceeded {
+			gradeIssues++
+		}
+	}
+	if gradeIssues != 1 {
+		t.Fatalf("expected one configured grade limit warning, got %#v", analysis.Issues)
 	}
 }
 
@@ -318,6 +329,41 @@ func TestTrackPlannerChangePreviewWithoutBaseTreatsObjectsAsAdded(t *testing.T) 
 		len(preview.AffectedConfigurations) != 0 {
 		t.Fatalf("unexpected first-revision preview: %#v", preview)
 	}
+}
+
+func TestTrackPlannerChangePreviewUsesCurrentLayoutGradeLimit(t *testing.T) {
+	base := trackPlannerTestG1("base-object", 0, 0, 0)
+	base.LineageID = "lineage-1"
+	base.ElevationEndMM = 6.64
+	current := trackPlannerTestG1("current-object", 0, 0, 0)
+	current.LineageID = base.LineageID
+	current.ElevationEndMM = 4.98
+	limit := 3.0
+	repository := &trackPlannerRepositorySpy{
+		baseRevisionID: "revision-base",
+		plans: map[string]*TrackPlan{
+			"revision-base": {
+				RevisionID: "revision-base", Status: domain.PlanRevisionPublished,
+				Objects: []domain.PlanTrackObject{base},
+			},
+			"revision-current": {
+				RevisionID: "revision-current", Status: domain.PlanRevisionDraft,
+				Objects: []domain.PlanTrackObject{current},
+				Limits:  domain.TrackPlanLimits{MaxGradePercent: &limit},
+			},
+		},
+	}
+
+	preview, err := NewTrackPlannerService(repository).ChangePreview(t.Context(), "revision-current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, issue := range preview.Issues.Resolved {
+		if issue.Code == domain.TrackPlanIssueGradeLimitExceeded {
+			return
+		}
+	}
+	t.Fatalf("expected resolved grade limit warning, got %#v", preview.Issues)
 }
 
 func TestTrackPlannerReserveMaterialsRequiresConfirmationAndValidUniqueObjects(t *testing.T) {
