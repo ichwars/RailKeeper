@@ -113,6 +113,23 @@ func TestAnalyzeTrackClearanceKeepsWorstCrossingPerObjectPair(t *testing.T) {
 	}
 }
 
+func TestAnalyzeTrackClearanceUsesEffectiveFlexRoute(t *testing.T) {
+	flex := testFlexObject("flex", FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 100,
+		StartHandleMM: 180, EndHandleMM: 180,
+	})
+	flex.ElevationStartMM, flex.ElevationEndMM = 0, 20
+	crossing := testG1Object("crossing", 250, -50, 90)
+	crossing.ElevationStartMM, crossing.ElevationEndMM = 45, 45
+	limit := 40.0
+
+	issues := clearanceIssues([]PlanTrackObject{crossing, flex}, &limit)
+	if len(issues) != 1 || issues[0].ClearanceMM == nil ||
+		issues[0].IntersectionXMM == nil || issues[0].IntersectionYMM == nil {
+		t.Fatalf("effective flex crossing not analyzed: %#v", issues)
+	}
+}
+
 func clearanceIssues(objects []PlanTrackObject, limit *float64) []TrackPlanIssue {
 	return filterTrackIssues(AnalyzeTrackPlanWithLimits(objects,
 		TrackPlanLimits{MinimumTrackClearanceMM: limit}).Issues,

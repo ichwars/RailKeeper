@@ -47,6 +47,7 @@ const (
 	TrackPlanIssueElevationMismatch      TrackPlanIssueCode = "elevation_mismatch"
 	TrackPlanIssueGradeLimitExceeded     TrackPlanIssueCode = "grade_limit_exceeded"
 	TrackPlanIssueInsufficientClearance  TrackPlanIssueCode = "insufficient_clearance"
+	TrackPlanIssueFlexRadiusBelowLimit   TrackPlanIssueCode = "flex_radius_below_limit"
 )
 
 type TrackPlanIssueSeverity string
@@ -68,6 +69,8 @@ type TrackPlanIssue struct {
 	ClearanceLimitMM      *float64               `json:"clearanceLimitMm,omitempty"`
 	IntersectionXMM       *float64               `json:"intersectionXMm,omitempty"`
 	IntersectionYMM       *float64               `json:"intersectionYMm,omitempty"`
+	RadiusMM              *float64               `json:"radiusMm,omitempty"`
+	RadiusLimitMM         *float64               `json:"radiusLimitMm,omitempty"`
 }
 
 type TrackBOMLine struct {
@@ -96,6 +99,7 @@ type TrackPlanAnalysis struct {
 type TrackPlanLimits struct {
 	MaxGradePercent         *float64
 	MinimumTrackClearanceMM *float64
+	MinimumFlexRadiusMM     *float64
 }
 
 type placedTrackPort struct {
@@ -130,13 +134,21 @@ func TransformTrackPort(port TrackPort, pose TrackPose) TrackPort {
 func FindTrackSnap(moving PlanTrackObject, objects []PlanTrackObject) TrackSnapResult {
 	basePose := poseForTrackObject(moving)
 	result := TrackSnapResult{Pose: basePose}
-	for _, movingPort := range moving.Geometry.Geometry.Ports {
+	movingEffective, movingUsable := effectiveTrackObjectGeometry(moving)
+	if !movingUsable {
+		return result
+	}
+	for _, movingPort := range movingEffective.Geometry.Ports {
 		currentPort := TransformTrackPort(movingPort, basePose)
 		for _, targetObject := range objects {
-			if targetObject.ID == moving.ID || !trackGeometryUsable(targetObject.Geometry) {
+			if targetObject.ID == moving.ID {
 				continue
 			}
-			for _, targetLocalPort := range targetObject.Geometry.Geometry.Ports {
+			targetEffective, targetUsable := effectiveTrackObjectGeometry(targetObject)
+			if !targetUsable {
+				continue
+			}
+			for _, targetLocalPort := range targetEffective.Geometry.Ports {
 				targetPort := TransformTrackPort(targetLocalPort, poseForTrackObject(targetObject))
 				distance := trackPointDistance(currentPort.XMM, currentPort.YMM, targetPort.XMM, targetPort.YMM)
 				if distance > TrackSnapDistanceMM ||
@@ -191,19 +203,34 @@ func AnalyzeTrackPlanWithLimits(objects []PlanTrackObject, limits TrackPlanLimit
 			bom[object.GeometryID] = line
 		}
 		line.Quantity++
-		if !trackGeometryUsable(object.Geometry) {
+		effective, usable := effectiveTrackObjectGeometry(object)
+		if !usable {
 			analysis.Issues = append(analysis.Issues, TrackPlanIssue{
 				Code: TrackPlanIssueBrokenGeometry, Severity: TrackPlanIssueError,
 				ObjectIDs: []string{object.ID},
 			})
 			continue
 		}
-		if object.Geometry.LengthMM > 0 {
+		if object.Geometry.Kind == TrackGeometryFlex {
+			limit := object.Geometry.MinimumRadiusMM
+			if limits.MinimumFlexRadiusMM != nil && (limit == nil || *limits.MinimumFlexRadiusMM > *limit) {
+				limit = limits.MinimumFlexRadiusMM
+			}
+			if limit != nil && effective.MinimumRadiusMM != nil &&
+				*effective.MinimumRadiusMM+1e-9 < *limit {
+				radius, radiusLimit := *effective.MinimumRadiusMM, *limit
+				analysis.Issues = append(analysis.Issues, TrackPlanIssue{
+					Code: TrackPlanIssueFlexRadiusBelowLimit, Severity: TrackPlanIssueWarning,
+					ObjectIDs: []string{object.ID}, RadiusMM: &radius, RadiusLimitMM: &radiusLimit,
+				})
+			}
+		}
+		if effective.LengthMM > 0 {
 			gradePercent := (object.ElevationEndMM - object.ElevationStartMM) /
-				object.Geometry.LengthMM * 100
+				effective.LengthMM * 100
 			analysis.Grades = append(analysis.Grades, TrackGrade{
 				ObjectID: object.ID, ElevationStartMM: object.ElevationStartMM,
-				ElevationEndMM: object.ElevationEndMM, LengthMM: object.Geometry.LengthMM,
+				ElevationEndMM: object.ElevationEndMM, LengthMM: effective.LengthMM,
 				GradePercent: gradePercent,
 			})
 			if limits.MaxGradePercent != nil &&
@@ -216,8 +243,8 @@ func AnalyzeTrackPlanWithLimits(objects []PlanTrackObject, limits TrackPlanLimit
 				})
 			}
 		}
-		for _, port := range object.Geometry.Geometry.Ports {
-			elevation, known := trackPortElevation(object, port.ID)
+		for _, port := range effective.Geometry.Ports {
+			elevation, known := trackPortElevation(object, effective.Geometry, port.ID)
 			ports = append(ports, placedTrackPort{ObjectID: object.ID,
 				Port:        TransformTrackPort(port, poseForTrackObject(object)),
 				ElevationMM: elevation, ElevationKnown: known})
@@ -272,11 +299,11 @@ func AnalyzeTrackPlanWithLimits(objects []PlanTrackObject, limits TrackPlanLimit
 		}
 	}
 	for i := 0; i < len(ordered); i++ {
-		if !trackGeometryUsable(ordered[i].Geometry) {
+		if _, usable := effectiveTrackObjectGeometry(ordered[i]); !usable {
 			continue
 		}
 		for j := i + 1; j < len(ordered); j++ {
-			if !trackGeometryUsable(ordered[j].Geometry) {
+			if _, usable := effectiveTrackObjectGeometry(ordered[j]); !usable {
 				continue
 			}
 			if trackObjectsOverlap(ordered[i], ordered[j]) {
@@ -315,12 +342,22 @@ func poseForTrackObject(object PlanTrackObject) TrackPose {
 		RotationDegrees: object.RotationDegrees}
 }
 
-func trackGeometryUsable(definition TrackGeometryDefinition) bool {
-	if definition.ID == "" || definition.Geometry.SchemaVersion < 1 ||
-		len(definition.Geometry.Ports) == 0 || len(definition.Geometry.Routes) == 0 {
+func effectiveTrackObjectGeometry(object PlanTrackObject) (EffectiveTrackGeometry, bool) {
+	if object.Geometry.ID == "" {
+		return EffectiveTrackGeometry{}, false
+	}
+	effective, err := EffectiveGeometryForObject(object)
+	if err != nil || !trackGeometryShapeUsable(effective.Geometry) || effective.LengthMM <= 0 {
+		return EffectiveTrackGeometry{}, false
+	}
+	return effective, true
+}
+
+func trackGeometryShapeUsable(geometry TrackGeometry) bool {
+	if geometry.SchemaVersion < 1 || len(geometry.Ports) == 0 || len(geometry.Routes) == 0 {
 		return false
 	}
-	for _, route := range definition.Geometry.Routes {
+	for _, route := range geometry.Routes {
 		if len(route.Points) < 2 {
 			return false
 		}
@@ -328,11 +365,11 @@ func trackGeometryUsable(definition TrackGeometryDefinition) bool {
 	return true
 }
 
-func trackPortElevation(object PlanTrackObject, portID string) (float64, bool) {
-	if len(object.Geometry.Geometry.Ports) != 2 {
+func trackPortElevation(object PlanTrackObject, geometry TrackGeometry, portID string) (float64, bool) {
+	if len(geometry.Ports) != 2 {
 		return 0, false
 	}
-	for index, port := range object.Geometry.Geometry.Ports {
+	for index, port := range geometry.Ports {
 		if port.ID != portID {
 			continue
 		}
@@ -375,9 +412,14 @@ func trackPortKey(port placedTrackPort) string {
 }
 
 func trackObjectsOverlap(first, second PlanTrackObject) bool {
-	for _, firstRoute := range first.Geometry.Geometry.Routes {
+	firstEffective, firstUsable := effectiveTrackObjectGeometry(first)
+	secondEffective, secondUsable := effectiveTrackObjectGeometry(second)
+	if !firstUsable || !secondUsable {
+		return false
+	}
+	for _, firstRoute := range firstEffective.Geometry.Routes {
 		firstSegments := transformedTrackSegments(firstRoute, first)
-		for _, secondRoute := range second.Geometry.Geometry.Routes {
+		for _, secondRoute := range secondEffective.Geometry.Routes {
 			secondSegments := transformedTrackSegments(secondRoute, second)
 			for _, firstSegment := range firstSegments {
 				for _, secondSegment := range secondSegments {

@@ -197,7 +197,7 @@ git commit -m "feat(planner): persist flex track foundation"
 - Produces: `TrackPlanIssueFlexRadiusBelowLimit = "flex_radius_below_limit"`
 - Consumes: `TrackPlanLimits.MinimumFlexRadiusMM *float64`
 
-- [ ] **Step 1: Golden- und Grenztests für Bézier-Ableitung schreiben**
+- [x] **Step 1: Golden- und Grenztests für Bézier-Ableitung schreiben**
 
 ```go
 path := FlexTrackPath{
@@ -219,13 +219,13 @@ Weitere Tests prüfen den geraden 664-mm-Verlauf, S-Kurve, Normalisierung der En
 endliche Werte, nicht positive Tangenten, identische Endpunkte, maximale Segmentlänge 5 mm,
 Sehnenabweichung 0,05 mm und deterministische Punktfolgen.
 
-- [ ] **Step 2: Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd backend; go test ./internal/domain -run "FlexTrack|EffectiveTrack"`
 
 Expected: FAIL wegen fehlender Typen und Funktionen.
 
-- [ ] **Step 3: Fokussiertes Geometriemodul implementieren**
+- [x] **Step 3: Fokussiertes Geometriemodul implementieren**
 
 ```go
 type FlexTrackPath struct {
@@ -252,7 +252,7 @@ Sehnenfehler über 0,05 mm und bricht oberhalb 4.096 Segmente mit `ErrInvalidFle
 Krümmung wird an allen erzeugten Parameterstellen berechnet; Radiuswerte mit Krümmung unter `1e-12`
 werden als unbegrenzt übersprungen.
 
-- [ ] **Step 4: Planobjekt und alle Analysen auf effektive Geometrie umstellen**
+- [x] **Step 4: Planobjekt und alle Analysen auf effektive Geometrie umstellen**
 
 `PlanTrackObject` erhält `FlexPath *FlexTrackPath`, `EffectiveGeometry TrackGeometry`,
 `EffectiveLengthMM float64` und `EffectiveMinimumRadiusMM *float64`. Starre Objekte werden mit der
@@ -275,13 +275,13 @@ if limit != nil && object.EffectiveMinimumRadiusMM != nil &&
 `TrackPlanIssue` erhält `RadiusMM` und `RadiusLimitMM`. `trackObjectsDiffer` vergleicht Flexpfade
 feldweise mit `1e-9` Toleranz.
 
-- [ ] **Step 5: Analyse- und Revisionsfixtures ergänzen**
+- [x] **Step 5: Analyse- und Revisionsfixtures ergänzen**
 
 Tests prüfen: Radiuswarnung exakt einmal, Gleichheit ohne Warnung, verschärftes Anlagenlimit,
 Flex-Steigung über effektive Länge, Flex-G1-Snapping, Überlappung, Ebenenkreuzung sowie eine
 Flexpfadänderung als `changed` bei unveränderter Lineage.
 
-- [ ] **Step 6: Domain-Suite ausführen und lokal committen**
+- [x] **Step 6: Domain-Suite ausführen und lokal committen**
 
 Run: `cd backend; go test ./internal/domain`
 

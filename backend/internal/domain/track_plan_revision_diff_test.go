@@ -59,6 +59,31 @@ func TestCompareTrackPlanRevisionsTreatsElevationChangesAsObjectChanges(t *testi
 	}
 }
 
+func TestCompareTrackPlanRevisionsTreatsFlexPathChangesAsObjectChanges(t *testing.T) {
+	base := testFlexObject("base-flex", FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 100,
+		StartHandleMM: 180, EndHandleMM: 180,
+	})
+	base.LineageID = "lineage-flex"
+	current := base
+	current.ID = "draft-flex"
+	currentPath := *current.FlexPath
+	currentPath.EndYMM += 0.1
+	current.FlexPath = &currentPath
+
+	diff := CompareTrackPlanRevisions([]PlanTrackObject{base}, []PlanTrackObject{current})
+	if len(diff.ObjectChanges) != 1 || diff.ObjectChanges[0].Type != TrackPlanObjectChanged {
+		t.Fatalf("flex path edit is missing from revision diff: %#v", diff.ObjectChanges)
+	}
+
+	currentPath.EndYMM = base.FlexPath.EndYMM + 1e-10
+	current.FlexPath = &currentPath
+	diff = CompareTrackPlanRevisions([]PlanTrackObject{base}, []PlanTrackObject{current})
+	if len(diff.ObjectChanges) != 0 {
+		t.Fatalf("flex path tolerance produced change: %#v", diff.ObjectChanges)
+	}
+}
+
 func TestDiffTrackPlanIssuesUsesLineageAndPortIdentity(t *testing.T) {
 	baseObjects := []PlanTrackObject{
 		testRevisionTrack("base-a", "lineage-a", "g1", 0),

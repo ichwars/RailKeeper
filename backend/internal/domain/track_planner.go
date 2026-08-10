@@ -93,19 +93,23 @@ type TrackGeometryDefinition struct {
 }
 
 type PlanTrackObject struct {
-	ID               string                  `json:"id"`
-	LineageID        string                  `json:"lineageId"`
-	RevisionID       string                  `json:"revisionId"`
-	GeometryID       string                  `json:"geometryId"`
-	Geometry         TrackGeometryDefinition `json:"geometry"`
-	PositionXMM      float64                 `json:"positionXMm"`
-	PositionYMM      float64                 `json:"positionYMm"`
-	RotationDegrees  float64                 `json:"rotationDegrees"`
-	ElevationStartMM float64                 `json:"elevationStartMm"`
-	ElevationEndMM   float64                 `json:"elevationEndMm"`
-	Version          int                     `json:"version"`
-	CreatedAt        string                  `json:"createdAt"`
-	UpdatedAt        string                  `json:"updatedAt"`
+	ID                       string                  `json:"id"`
+	LineageID                string                  `json:"lineageId"`
+	RevisionID               string                  `json:"revisionId"`
+	GeometryID               string                  `json:"geometryId"`
+	Geometry                 TrackGeometryDefinition `json:"geometry"`
+	PositionXMM              float64                 `json:"positionXMm"`
+	PositionYMM              float64                 `json:"positionYMm"`
+	RotationDegrees          float64                 `json:"rotationDegrees"`
+	ElevationStartMM         float64                 `json:"elevationStartMm"`
+	ElevationEndMM           float64                 `json:"elevationEndMm"`
+	FlexPath                 *FlexTrackPath          `json:"flexPath,omitempty"`
+	EffectiveGeometry        TrackGeometry           `json:"effectiveGeometry"`
+	EffectiveLengthMM        float64                 `json:"effectiveLengthMm"`
+	EffectiveMinimumRadiusMM *float64                `json:"effectiveMinimumRadiusMm,omitempty"`
+	Version                  int                     `json:"version"`
+	CreatedAt                string                  `json:"createdAt"`
+	UpdatedAt                string                  `json:"updatedAt"`
 }
 
 func NormalizeTrackRotation(value float64) float64 {

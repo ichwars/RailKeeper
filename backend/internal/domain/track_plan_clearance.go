@@ -55,8 +55,9 @@ func analyzeTrackClearances(objects []PlanTrackObject, limit float64) []TrackPla
 }
 
 func clearanceRouteForObject(object PlanTrackObject) (clearanceRoute, bool) {
-	geometry := object.Geometry.Geometry
-	if !trackGeometryUsable(object.Geometry) || len(geometry.Ports) != 2 || len(geometry.Routes) != 1 ||
+	effective, usable := effectiveTrackObjectGeometry(object)
+	geometry := effective.Geometry
+	if !usable || len(geometry.Ports) != 2 || len(geometry.Routes) != 1 ||
 		len(geometry.Routes[0].Points) < 2 {
 		return clearanceRoute{}, false
 	}
@@ -115,8 +116,16 @@ func minimumClearanceCandidate(first, second clearanceRoute) (clearanceCandidate
 			if !ok {
 				continue
 			}
-			firstFraction := (first.CumulativeMM[firstIndex-1] + firstPart*firstLength) / first.TotalLengthMM
-			secondFraction := (second.CumulativeMM[secondIndex-1] + secondPart*secondLength) / second.TotalLengthMM
+			firstDistance := first.CumulativeMM[firstIndex-1] + firstPart*firstLength
+			secondDistance := second.CumulativeMM[secondIndex-1] + secondPart*secondLength
+			if firstDistance <= TrackConnectionDistanceMM ||
+				first.TotalLengthMM-firstDistance <= TrackConnectionDistanceMM ||
+				secondDistance <= TrackConnectionDistanceMM ||
+				second.TotalLengthMM-secondDistance <= TrackConnectionDistanceMM {
+				continue
+			}
+			firstFraction := firstDistance / first.TotalLengthMM
+			secondFraction := secondDistance / second.TotalLengthMM
 			firstElevation := interpolateTrackElevation(first, firstFraction)
 			secondElevation := interpolateTrackElevation(second, secondFraction)
 			candidate := clearanceCandidate{
@@ -141,11 +150,10 @@ func properTrackSegmentIntersection(first, second trackSegment) (TrackPoint, flo
 	offsetX, offsetY := second.A.XMM-first.A.XMM, second.A.YMM-first.A.YMM
 	firstPart := crossTrackVectors(offsetX, offsetY, secondX, secondY) / denominator
 	secondPart := crossTrackVectors(offsetX, offsetY, firstX, firstY) / denominator
-	firstLength, secondLength := math.Hypot(firstX, firstY), math.Hypot(secondX, secondY)
-	if firstPart*firstLength <= TrackConnectionDistanceMM ||
-		(1-firstPart)*firstLength <= TrackConnectionDistanceMM ||
-		secondPart*secondLength <= TrackConnectionDistanceMM ||
-		(1-secondPart)*secondLength <= TrackConnectionDistanceMM {
+	if firstPart < -trackClearanceComparisonToleranceMM ||
+		firstPart > 1+trackClearanceComparisonToleranceMM ||
+		secondPart < -trackClearanceComparisonToleranceMM ||
+		secondPart > 1+trackClearanceComparisonToleranceMM {
 		return TrackPoint{}, 0, 0, false
 	}
 	return TrackPoint{XMM: first.A.XMM + firstPart*firstX, YMM: first.A.YMM + firstPart*firstY},

@@ -216,6 +216,55 @@ func TestAnalyzeTrackPlanReportsIncompatibleEndsOverlapAndBrokenGeometry(t *test
 	}
 }
 
+func TestAnalyzeEffectiveFlexTrackReportsRadiusGradeSnapAndOverlap(t *testing.T) {
+	flex := testFlexObject("flex", FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 200, EndDirectionDegrees: 30,
+		StartHandleMM: 150, EndHandleMM: 150,
+	})
+	effective, err := EffectiveGeometryForObject(flex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	flex.EffectiveGeometry = effective.Geometry
+	flex.EffectiveLengthMM = effective.LengthMM
+	flex.EffectiveMinimumRadiusMM = effective.MinimumRadiusMM
+	flex.ElevationEndMM = effective.LengthMM * 0.03
+	layoutLimit := 700.0
+	analysis := AnalyzeTrackPlanWithLimits([]PlanTrackObject{flex}, TrackPlanLimits{
+		MinimumFlexRadiusMM: &layoutLimit,
+	})
+	radiusIssues := filterTrackIssues(analysis.Issues, TrackPlanIssueFlexRadiusBelowLimit)
+	if len(radiusIssues) != 1 || radiusIssues[0].RadiusMM == nil ||
+		radiusIssues[0].RadiusLimitMM == nil || *radiusIssues[0].RadiusLimitMM != 700 ||
+		math.Abs(analysis.Grades[0].GradePercent-3) > 1e-9 ||
+		math.Abs(analysis.Grades[0].LengthMM-effective.LengthMM) > 1e-9 {
+		t.Fatalf("unexpected flex analysis: %#v", analysis)
+	}
+
+	boundary := *effective.MinimumRadiusMM
+	flex.Geometry.MinimumRadiusMM = &boundary
+	if issues := filterTrackIssues(AnalyzeTrackPlanWithLimits([]PlanTrackObject{flex}, TrackPlanLimits{
+		MinimumFlexRadiusMM: &boundary,
+	}).Issues, TrackPlanIssueFlexRadiusBelowLimit); len(issues) != 0 {
+		t.Fatalf("radius boundary produced warning: %#v", issues)
+	}
+
+	straightFlex := testFlexObject("moving-flex", FlexTrackPath{})
+	straightFlex.FlexPath = nil
+	straightFlex.PositionXMM = 172
+	snap := FindTrackSnap(straightFlex, []PlanTrackObject{testG1Object("target", 0, 0, 0)})
+	if !snap.Snapped || snap.TargetObjectID != "target" || math.Abs(snap.Pose.PositionXMM-166) > 1e-9 {
+		t.Fatalf("flex-to-G1 snap failed: %#v", snap)
+	}
+
+	overlap := flex
+	overlap.ID = "flex-overlap"
+	if issues := filterTrackIssues(AnalyzeTrackPlan([]PlanTrackObject{flex, overlap}).Issues,
+		TrackPlanIssueOverlap); len(issues) != 1 {
+		t.Fatalf("effective flex overlap missing: %#v", issues)
+	}
+}
+
 func testG1Object(id string, x, y, rotation float64) PlanTrackObject {
 	return PlanTrackObject{
 		ID: id, GeometryID: "tillig-g1", PositionXMM: x, PositionYMM: y, RotationDegrees: rotation,

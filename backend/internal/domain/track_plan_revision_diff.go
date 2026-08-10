@@ -133,7 +133,20 @@ func trackObjectsDiffer(first, second PlanTrackObject) bool {
 		math.Abs(first.PositionYMM-second.PositionYMM) > 1e-9 ||
 		math.Abs(first.RotationDegrees-second.RotationDegrees) > 1e-9 ||
 		math.Abs(first.ElevationStartMM-second.ElevationStartMM) > 1e-9 ||
-		math.Abs(first.ElevationEndMM-second.ElevationEndMM) > 1e-9
+		math.Abs(first.ElevationEndMM-second.ElevationEndMM) > 1e-9 ||
+		flexTrackPathsDiffer(first.FlexPath, second.FlexPath)
+}
+
+func flexTrackPathsDiffer(first, second *FlexTrackPath) bool {
+	if first == nil || second == nil {
+		return first != second
+	}
+	return first.SchemaVersion != second.SchemaVersion ||
+		math.Abs(first.EndXMM-second.EndXMM) > 1e-9 ||
+		math.Abs(first.EndYMM-second.EndYMM) > 1e-9 ||
+		math.Abs(first.EndDirectionDegrees-second.EndDirectionDegrees) > 1e-9 ||
+		math.Abs(first.StartHandleMM-second.StartHandleMM) > 1e-9 ||
+		math.Abs(first.EndHandleMM-second.EndHandleMM) > 1e-9
 }
 
 func trackMaterialDeltas(base, current []PlanTrackObject) []TrackPlanMaterialDelta {
