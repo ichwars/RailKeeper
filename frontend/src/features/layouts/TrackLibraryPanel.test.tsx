@@ -37,13 +37,14 @@ afterEach(() => vi.restoreAllMocks());
 
 describe("TrackLibraryPanel", () => {
   it("lists library provenance and submits documented admin review", async () => {
-    vi.spyOn(api, "trackLibraries").mockResolvedValue([draftLibrary]);
+    const list = vi.spyOn(api, "trackLibraries").mockResolvedValue([draftLibrary]);
     const update = vi.spyOn(api, "updateTrackLibraryStatus").mockResolvedValue({
       ...draftLibrary, status: "verified", verificationNote: "Katalog geprüft"
     });
     render(<TrackLibraryPanel canManage />);
 
     expect(await screen.findByText("Kühn · TT")).toBeInTheDocument();
+    expect(list).toHaveBeenCalledTimes(1);
     expect(screen.getByText("TT · 1:120 · Version 2026.1")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Prüfen und freigeben" }));
     const reviewDialog = screen.getByRole("dialog", { name: "Gleisbibliothek freigeben" });

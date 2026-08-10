@@ -16,13 +16,14 @@ export function TrackLibraryPanel({ canManage = false }: { canManage?: boolean }
   const [reviewLibrary, setReviewLibrary] = useState<TrackGeometryLibrary | null>(null);
   const [pending, setPending] = useState<LayoutPendingAction | null>(null);
   const { t } = useI18n();
+  const genericError = t("layouts.error.generic");
 
   const load = useCallback(async () => {
     setLoading(true); setMessage("");
     try { setLibraries(await api.trackLibraries()); }
-    catch (reason) { setMessage(reason instanceof Error ? reason.message : t("layouts.error.generic")); }
+    catch (reason) { setMessage(reason instanceof Error ? reason.message : genericError); }
     finally { setLoading(false); }
-  }, [t]);
+  }, [genericError]);
 
   useEffect(() => { void load(); }, [load]);
 
