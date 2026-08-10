@@ -11,6 +11,7 @@ const initialValue: LayoutFormValue = {
   gauge: "TT",
   scale: "1:120",
   maxGradePercent: "",
+  minimumTrackClearanceMm: "",
   description: "",
   archived: false
 };
@@ -159,6 +160,32 @@ describe("LayoutFormDialog", () => {
     await user.type(grade, "101");
 
     expect(screen.getByText("Bitte einen Wert über 0 bis einschließlich 100 eingeben.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Anlage speichern" })).toBeDisabled();
+  });
+
+  it("uses the app-owned number input and submits an optional track clearance", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LayoutFormDialog mode="create" initialValue={initialValue} saving={false} message=""
+      conflict={false} onSubmit={onSubmit} onClose={() => undefined} />);
+
+    const clearance = screen.getByRole("spinbutton", { name: "Mindestabstand kreuzender Gleise (mm)" });
+    expect(clearance.closest(".app-number-input")).not.toBeNull();
+    await user.type(clearance, "40");
+    await user.click(screen.getByRole("button", { name: "Anlage speichern" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ minimumTrackClearanceMm: "40" }));
+  });
+
+  it("rejects a non-positive track clearance", async () => {
+    const user = userEvent.setup();
+    render(<LayoutFormDialog mode="create" initialValue={initialValue} saving={false} message=""
+      conflict={false} onSubmit={() => undefined} onClose={() => undefined} />);
+
+    const clearance = screen.getByRole("spinbutton", { name: "Mindestabstand kreuzender Gleise (mm)" });
+    await user.type(clearance, "0");
+
+    expect(screen.getByText("Bitte einen Wert größer als 0 eingeben.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Anlage speichern" })).toBeDisabled();
   });
 });

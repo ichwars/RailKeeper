@@ -2049,6 +2049,11 @@ export const enTranslations: Record<string, string> = {
     "layouts.field.maxGradePercentHelp": "Leave empty to disable the warning.",
     "layouts.field.maxGradePercentError": "Enter a value greater than 0 and up to 100.",
     "layouts.field.maxGradePercentUnset": "Not set",
+    "layouts.field.minimumTrackClearanceMm": "Minimum crossing track separation (mm)",
+    "layouts.field.minimumTrackClearanceMmHelp":
+      "Measured between rail tops. Leave empty to disable the warning.",
+    "layouts.field.minimumTrackClearanceMmError": "Enter a value greater than 0.",
+    "layouts.field.minimumTrackClearanceMmUnset": "Not set",
     "layouts.field.archived": "Archived",
     "layouts.field.owner": "Owner / club member",
     "layouts.field.width": "Width (mm)",

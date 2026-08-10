@@ -17,7 +17,8 @@ import { LayoutsView } from "./LayoutsView";
 
 const layout: Layout = {
   id: "layout-1", name: "Clubanlage mit langem Bahnhofsnamen", kind: "club", gauge: "TT", scale: "1:120",
-  description: "Modulare Clubanlage", maxGradePercent: 3.5, version: 2, archived: false,
+  description: "Modulare Clubanlage", maxGradePercent: 3.5, minimumTrackClearanceMm: 40,
+  version: 2, archived: false,
   createdAt: "2026-08-07T10:00:00Z",
   updatedAt: "2026-08-07T11:00:00Z"
 };
@@ -105,9 +106,13 @@ describe("LayoutsView", () => {
     const dialog = screen.getByRole("dialog", { name: "Anlage anlegen" });
     await user.type(within(dialog).getByRole("textbox", { name: "Bezeichnung" }), "Clubanlage");
     await user.type(within(dialog).getByRole("spinbutton", { name: "Maximale Steigung (%)" }), "3.5");
+    await user.type(within(dialog).getByRole("spinbutton", {
+      name: "Mindestabstand kreuzender Gleise (mm)"
+    }), "40");
     await user.click(within(dialog).getByRole("button", { name: "Anlage speichern" }));
     await waitFor(() => expect(api.createLayout).toHaveBeenCalledWith(expect.objectContaining({
-      name: "Clubanlage", kind: "private", gauge: "TT", scale: "1:120", maxGradePercent: 3.5
+      name: "Clubanlage", kind: "private", gauge: "TT", scale: "1:120", maxGradePercent: 3.5,
+      minimumTrackClearanceMm: 40
     })));
 
     await screen.findAllByText(layout.name);
@@ -316,6 +321,7 @@ describe("LayoutsView", () => {
     expect(profile).toHaveTextContent("TT");
     expect(profile).toHaveTextContent("1:120");
     expect(profile).toHaveTextContent("3,50 %");
+    expect(profile).toHaveTextContent("40,00 mm");
     expect(profile).toHaveTextContent("Version 2");
     expect(profile).toHaveTextContent(new Date(layout.createdAt).toLocaleString());
     expect(profile).toHaveTextContent(new Date(layout.updatedAt).toLocaleString());
@@ -324,16 +330,23 @@ describe("LayoutsView", () => {
     const dialog = screen.getByRole("dialog", { name: "Anlage bearbeiten" });
     const name = within(dialog).getByRole("textbox", { name: "Bezeichnung" });
     const grade = within(dialog).getByRole("spinbutton", { name: "Maximale Steigung (%)" });
+    const clearance = within(dialog).getByRole("spinbutton", {
+      name: "Mindestabstand kreuzender Gleise (mm)"
+    });
     expect(name).toHaveValue(layout.name);
     expect(grade).toHaveValue(3.5);
+    expect(clearance).toHaveValue(40);
     await user.clear(name);
     await user.type(name, updated.name);
     await user.clear(grade);
     await user.type(grade, "2.5");
+    await user.clear(clearance);
+    await user.type(clearance, "25.5");
     await user.click(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
 
     await waitFor(() => expect(api.updateLayout).toHaveBeenCalledWith(layout.id, expect.objectContaining({
-      name: updated.name, maxGradePercent: 2.5, expectedVersion: layout.version
+      name: updated.name, maxGradePercent: 2.5, minimumTrackClearanceMm: 25.5,
+      expectedVersion: layout.version
     })));
     expect((await screen.findAllByText(updated.name)).length).toBeGreaterThan(0);
   });

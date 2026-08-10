@@ -16,6 +16,7 @@ export type LayoutFormMode = "create" | "edit";
 export type LayoutFormValue = Required<Pick<LayoutInput, "name" | "kind" | "gauge" | "scale">> & {
   description: string;
   maxGradePercent: string;
+  minimumTrackClearanceMm: string;
   archived: boolean;
 };
 
@@ -52,6 +53,10 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
   const gradeLimitNumber = Number(gradeLimitValue);
   const gradeLimitValid = gradeLimitValue === "" || Number.isFinite(gradeLimitNumber) &&
     gradeLimitNumber > 0 && gradeLimitNumber <= 100;
+  const clearanceLimitValue = form.minimumTrackClearanceMm.trim();
+  const clearanceLimitNumber = Number(clearanceLimitValue);
+  const clearanceLimitValid = clearanceLimitValue === "" || Number.isFinite(clearanceLimitNumber) &&
+    clearanceLimitNumber > 0;
 
   useEffect(() => {
     setForm(initialValue);
@@ -73,13 +78,15 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.name.trim() || !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid) return;
+    if (!form.name.trim() || !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid ||
+      !clearanceLimitValid) return;
     void onSubmit({
       ...form,
       name: form.name.trim(),
       gauge: form.gauge.trim(),
       scale: form.scale.trim(),
       maxGradePercent: gradeLimitValue,
+      minimumTrackClearanceMm: clearanceLimitValue,
       description: form.description.trim()
     });
   };
@@ -139,6 +146,13 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
             helpText={t("layouts.field.maxGradePercentHelp")}
             error={gradeLimitValid ? undefined : t("layouts.field.maxGradePercentError")}
             onValueChange={(value) => setForm((current) => ({ ...current, maxGradePercent: value }))} />
+          <AppNumberInput label={t("layouts.field.minimumTrackClearanceMm")}
+            value={form.minimumTrackClearanceMm} min="0.1" step="0.1" disabled={saving}
+            helpText={t("layouts.field.minimumTrackClearanceMmHelp")}
+            error={clearanceLimitValid ? undefined : t("layouts.field.minimumTrackClearanceMmError")}
+            onValueChange={(value) => setForm((current) => ({
+              ...current, minimumTrackClearanceMm: value
+            }))} />
           <AppTextArea label={t("layouts.field.description")} value={form.description} disabled={saving}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
           {mode === "edit" ? <AppCheckbox label={t("layouts.field.archived")} checked={form.archived}
@@ -154,7 +168,7 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
           <button type="button" className="secondary-button" disabled={saving}
             onClick={requestClose}>{t("common.cancel")}</button>
           <button type="submit" className="primary-button" disabled={saving || !form.name.trim() ||
-            !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid}>
+            !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid || !clearanceLimitValid}>
             {saving ? t("common.saving") : t(mode === "create" ? "layouts.create.save" : "layouts.edit.save")}
           </button>
         </footer>

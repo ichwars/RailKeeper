@@ -293,7 +293,7 @@ git commit -m "feat(api): expose track clearance warnings"
 - Consumes: API `minimumTrackClearanceMm?: number | null`
 - Produces: `LayoutFormValue.minimumTrackClearanceMm: string`
 
-- [ ] **Step 1: Fehlschlagende Form- und Profiltests schreiben**
+- [x] **Step 1: Fehlschlagende Form- und Profiltests schreiben**
 
 ```tsx
 const clearance = screen.getByRole("spinbutton", {
@@ -309,13 +309,13 @@ Ein zweiter Test trägt `0` ein und erwartet einen deaktivierten Speichern-Butto
 Create- und Update-Payload sowie die Profilanzeige `40,00 mm`; Leeren sendet `null` und zeigt
 „Nicht festgelegt“.
 
-- [ ] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutFormDialog.test.tsx src/features/layouts/LayoutsView.test.tsx`
 
 Expected: FAIL wegen fehlendem Typ, Feld und Text.
 
-- [ ] **Step 3: Typen, app-eigenes Feld und Datenfluss implementieren**
+- [x] **Step 3: Typen, app-eigenes Feld und Datenfluss implementieren**
 
 `Layout` und `LayoutInput` erhalten `minimumTrackClearanceMm?: number | null`.
 `LayoutFormValue` erhält `minimumTrackClearanceMm: string`. `LayoutFormDialog` trimmt den Wert,
@@ -323,7 +323,7 @@ akzeptiert leer oder `Number.isFinite(value) && value > 0` und rendert `AppNumbe
 `min="0.1"` sowie `step="0.1"`. Create und Update senden leer als `null`, sonst `Number(value)`.
 `LayoutWorkspace` formatiert den Wert mit zwei Nachkommastellen und `mm`.
 
-- [ ] **Step 4: Deutsche und englische Texte ergänzen**
+- [x] **Step 4: Deutsche und englische Texte ergänzen**
 
 Deutsch: „Mindestabstand kreuzender Gleise (mm)“, „Gemessen zwischen Schienenoberkanten. Leer lassen,
 um die Warnung zu deaktivieren.“, „Bitte einen Wert größer als 0 eingeben.“
@@ -331,7 +331,7 @@ um die Warnung zu deaktivieren.“, „Bitte einen Wert größer als 0 eingeben.
 Englisch: „Minimum crossing track separation (mm)“, „Measured between rail tops. Leave empty to
 disable the warning.“, „Enter a value greater than 0.“
 
-- [ ] **Step 5: Formtests und Produktionsbuild ausführen**
+- [x] **Step 5: Formtests und Produktionsbuild ausführen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutFormDialog.test.tsx src/features/layouts/LayoutsView.test.tsx`
 
@@ -339,7 +339,7 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: PASS.
 
-- [ ] **Step 6: Anlagenoberfläche lokal committen**
+- [x] **Step 6: Anlagenoberfläche lokal committen**
 
 ```powershell
 git add frontend/src/shared/apiLayoutsAccessories.ts frontend/src/features/layouts/LayoutFormDialog.tsx `

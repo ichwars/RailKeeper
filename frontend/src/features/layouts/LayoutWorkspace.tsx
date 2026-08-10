@@ -25,6 +25,8 @@ function layoutFormValue(layout: Layout): LayoutFormValue {
     gauge: layout.gauge,
     scale: layout.scale,
     maxGradePercent: layout.maxGradePercent == null ? "" : String(layout.maxGradePercent),
+    minimumTrackClearanceMm: layout.minimumTrackClearanceMm == null
+      ? "" : String(layout.minimumTrackClearanceMm),
     description: layout.description || "",
     archived: layout.archived
   };
@@ -50,6 +52,11 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
     : `${new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
       minimumFractionDigits: 2, maximumFractionDigits: 2
     }).format(layout.maxGradePercent)} %`;
+  const formattedMinimumTrackClearance = layout.minimumTrackClearanceMm == null
+    ? t("layouts.field.minimumTrackClearanceMmUnset")
+    : `${new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(layout.minimumTrackClearanceMm)} mm`;
 
   const reloadStructure = useCallback(async () => {
     const [nextUnits, nextConfigurations] = await Promise.all([
@@ -92,6 +99,8 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         gauge: form.gauge,
         scale: form.scale,
         maxGradePercent: form.maxGradePercent ? Number(form.maxGradePercent) : null,
+        minimumTrackClearanceMm: form.minimumTrackClearanceMm
+          ? Number(form.minimumTrackClearanceMm) : null,
         description: form.description?.trim() || undefined,
         archived: form.archived,
         expectedVersion: layout.version
@@ -140,6 +149,8 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
             <div><dt>{t("layouts.field.gauge")}</dt><dd>{layout.gauge}</dd></div>
             <div><dt>{t("layouts.field.scale")}</dt><dd>{layout.scale}</dd></div>
             <div><dt>{t("layouts.field.maxGradePercent")}</dt><dd>{formattedMaxGrade}</dd></div>
+            <div><dt>{t("layouts.field.minimumTrackClearanceMm")}</dt>
+              <dd>{formattedMinimumTrackClearance}</dd></div>
             <div><dt>{t("layouts.overview.version")}</dt><dd>{t("layouts.version", { version: layout.version })}</dd></div>
             <div><dt>{t("layouts.overview.units")}</dt><dd>{units.length}</dd></div>
             <div><dt>{t("layouts.overview.setups")}</dt><dd>{configurations.length}</dd></div>

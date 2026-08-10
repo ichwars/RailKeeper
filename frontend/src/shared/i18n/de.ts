@@ -2049,6 +2049,11 @@ export const deTranslations: Record<string, string> = {
     "layouts.field.maxGradePercentHelp": "Leer lassen, um die Warnung zu deaktivieren.",
     "layouts.field.maxGradePercentError": "Bitte einen Wert über 0 bis einschließlich 100 eingeben.",
     "layouts.field.maxGradePercentUnset": "Nicht festgelegt",
+    "layouts.field.minimumTrackClearanceMm": "Mindestabstand kreuzender Gleise (mm)",
+    "layouts.field.minimumTrackClearanceMmHelp":
+      "Gemessen zwischen Schienenoberkanten. Leer lassen, um die Warnung zu deaktivieren.",
+    "layouts.field.minimumTrackClearanceMmError": "Bitte einen Wert größer als 0 eingeben.",
+    "layouts.field.minimumTrackClearanceMmUnset": "Nicht festgelegt",
     "layouts.field.archived": "Archiviert",
     "layouts.field.owner": "Eigentümer / Clubmitglied",
     "layouts.field.width": "Breite (mm)",
