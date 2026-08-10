@@ -24,21 +24,41 @@ type TrackPlan struct {
 }
 
 type CreatePlanTrackObjectInput struct {
-	GeometryID       string  `json:"geometryId"`
-	PositionXMM      float64 `json:"positionXMm"`
-	PositionYMM      float64 `json:"positionYMm"`
-	RotationDegrees  float64 `json:"rotationDegrees"`
-	ElevationStartMM float64 `json:"elevationStartMm"`
-	ElevationEndMM   float64 `json:"elevationEndMm"`
+	GeometryID       string                `json:"geometryId"`
+	PositionXMM      float64               `json:"positionXMm"`
+	PositionYMM      float64               `json:"positionYMm"`
+	RotationDegrees  float64               `json:"rotationDegrees"`
+	ElevationStartMM float64               `json:"elevationStartMm"`
+	ElevationEndMM   float64               `json:"elevationEndMm"`
+	FlexPath         *domain.FlexTrackPath `json:"flexPath"`
 }
 
 type UpdatePlanTrackObjectInput struct {
-	PositionXMM      float64 `json:"positionXMm"`
-	PositionYMM      float64 `json:"positionYMm"`
-	RotationDegrees  float64 `json:"rotationDegrees"`
-	ElevationStartMM float64 `json:"elevationStartMm"`
-	ElevationEndMM   float64 `json:"elevationEndMm"`
-	ExpectedVersion  int     `json:"expectedVersion"`
+	PositionXMM      float64               `json:"positionXMm"`
+	PositionYMM      float64               `json:"positionYMm"`
+	RotationDegrees  float64               `json:"rotationDegrees"`
+	ElevationStartMM float64               `json:"elevationStartMm"`
+	ElevationEndMM   float64               `json:"elevationEndMm"`
+	ExpectedVersion  int                   `json:"expectedVersion"`
+	FlexPath         *domain.FlexTrackPath `json:"flexPath"`
+}
+
+type FlexTrackPreviewInput struct {
+	EndXMM              float64 `json:"endXMm"`
+	EndYMM              float64 `json:"endYMm"`
+	EndDirectionDegrees float64 `json:"endDirectionDegrees"`
+	ExpectedVersion     int     `json:"expectedVersion"`
+}
+
+type FlexTrackPreview struct {
+	Path                     domain.FlexTrackPath `json:"path"`
+	EffectiveGeometry        domain.TrackGeometry `json:"effectiveGeometry"`
+	EffectiveLengthMM        float64              `json:"effectiveLengthMm"`
+	EffectiveMinimumRadiusMM *float64             `json:"effectiveMinimumRadiusMm,omitempty"`
+	RadiusLimitMM            float64              `json:"radiusLimitMm"`
+	LengthExceeded           bool                 `json:"lengthExceeded"`
+	RadiusBelowLimit         bool                 `json:"radiusBelowLimit"`
+	Applicable               bool                 `json:"applicable"`
 }
 
 type TrackMaterialStatus struct {
@@ -274,6 +294,11 @@ func (service *TrackPlannerService) CreateObject(
 		return nil, ErrTrackPlanValidation
 	}
 	input.RotationDegrees = domain.NormalizeTrackRotation(input.RotationDegrees)
+	if input.FlexPath != nil {
+		if _, err := domain.BuildFlexTrackGeometry(*input.FlexPath); err != nil {
+			return nil, ErrTrackPlanValidation
+		}
+	}
 	return service.repository.CreateObject(ctx, revisionID, input, actor)
 }
 
@@ -310,12 +335,68 @@ func (service *TrackPlannerService) UpdateObject(
 	moving.RotationDegrees = input.RotationDegrees
 	moving.ElevationStartMM = input.ElevationStartMM
 	moving.ElevationEndMM = input.ElevationEndMM
+	moving.FlexPath = input.FlexPath
+	if (moving.Geometry.Kind == domain.TrackGeometryFlex) != (input.FlexPath != nil) {
+		return nil, ErrTrackPlanValidation
+	}
+	if _, err := domain.EffectiveGeometryForObject(*moving); err != nil {
+		return nil, ErrTrackPlanValidation
+	}
 	if snap := domain.FindTrackSnap(*moving, plan.Objects); snap.Snapped {
 		input.PositionXMM = snap.Pose.PositionXMM
 		input.PositionYMM = snap.Pose.PositionYMM
 		input.RotationDegrees = snap.Pose.RotationDegrees
 	}
 	return service.repository.UpdateObject(ctx, id, input, actor)
+}
+
+func (service *TrackPlannerService) PreviewFlexPath(
+	ctx context.Context,
+	id string,
+	input FlexTrackPreviewInput,
+) (*FlexTrackPreview, error) {
+	id = strings.TrimSpace(id)
+	if id == "" || input.ExpectedVersion < 1 || !validTrackCoordinates(
+		input.EndXMM, input.EndYMM, input.EndDirectionDegrees,
+	) {
+		return nil, ErrTrackPlanValidation
+	}
+	plan, err := service.repository.GetPlanForObject(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var object *domain.PlanTrackObject
+	for index := range plan.Objects {
+		if plan.Objects[index].ID == id {
+			object = &plan.Objects[index]
+			break
+		}
+	}
+	if object == nil {
+		return nil, ErrTrackPlanNotFound
+	}
+	if object.Version != input.ExpectedVersion {
+		return nil, ErrTrackPlanConflict
+	}
+	if object.Geometry.Kind != domain.TrackGeometryFlex || object.Geometry.MinimumRadiusMM == nil {
+		return nil, ErrTrackPlanValidation
+	}
+	radiusLimit := *object.Geometry.MinimumRadiusMM
+	if plan.Limits.MinimumFlexRadiusMM != nil && *plan.Limits.MinimumFlexRadiusMM > radiusLimit {
+		radiusLimit = *plan.Limits.MinimumFlexRadiusMM
+	}
+	suggestion := domain.SuggestFlexTrackPath(domain.FlexTrackSuggestionInput{
+		EndXMM: input.EndXMM, EndYMM: input.EndYMM,
+		EndDirectionDegrees: input.EndDirectionDegrees,
+		MaximumLengthMM:     object.Geometry.LengthMM, RadiusLimitMM: radiusLimit,
+	})
+	return &FlexTrackPreview{
+		Path: suggestion.Path, EffectiveGeometry: suggestion.Effective.Geometry,
+		EffectiveLengthMM:        suggestion.Effective.LengthMM,
+		EffectiveMinimumRadiusMM: suggestion.Effective.MinimumRadiusMM,
+		RadiusLimitMM:            radiusLimit, LengthExceeded: suggestion.LengthExceeded,
+		RadiusBelowLimit: suggestion.RadiusBelowLimit, Applicable: suggestion.Applicable,
+	}, nil
 }
 
 func (service *TrackPlannerService) DeleteObject(

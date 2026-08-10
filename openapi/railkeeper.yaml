@@ -2036,6 +2036,10 @@ components:
           type: [number, "null"]
           format: double
           exclusiveMinimum: 0
+        minimumFlexRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         version:
           type: integer
           minimum: 1
@@ -2068,6 +2072,10 @@ components:
           exclusiveMinimum: 0
           maximum: 100
         minimumTrackClearanceMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        minimumFlexRadiusMm:
           type: [number, "null"]
           format: double
           exclusiveMinimum: 0
@@ -2821,10 +2829,14 @@ components:
           type: string
         kind:
           type: string
-          enum: [straight, curve, turnout, crossing]
+          enum: [straight, curve, turnout, crossing, flex]
         lengthMm:
           type: number
           format: double
+        minimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         geometry:
           $ref: "#/components/schemas/TrackGeometry"
         sourceUrl:
@@ -2836,9 +2848,33 @@ components:
         createdAt:
           type: string
           format: date-time
+    FlexTrackPath:
+      type: object
+      required: [schemaVersion, endXMm, endYMm, endDirectionDegrees, startHandleMm, endHandleMm]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        endDirectionDegrees:
+          type: number
+          format: double
+        startHandleMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endHandleMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
     PlanTrackObject:
       type: object
-      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, version, createdAt, updatedAt]
+      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, effectiveGeometry, effectiveLengthMm, version, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -2865,6 +2901,18 @@ components:
         elevationEndMm:
           type: number
           format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          minimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         version:
           type: integer
           minimum: 1
@@ -2905,7 +2953,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]
         severity:
           type: string
           enum: [warning, error]
@@ -2943,6 +2991,14 @@ components:
         intersectionYMm:
           type: number
           format: double
+        radiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
     TrackBOMLine:
       type: object
       required: [geometryId, libraryId, articleNumber, name, quantity]
@@ -3093,7 +3149,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]
         severity:
           type: string
           enum: [warning, error]
@@ -3222,6 +3278,8 @@ components:
         elevationEndMm:
           type: number
           format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
     UpdatePlanTrackObjectInput:
       type: object
       required: [positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, expectedVersion]
@@ -3241,9 +3299,53 @@ components:
         elevationEndMm:
           type: number
           format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
         expectedVersion:
           type: integer
           minimum: 1
+    FlexTrackPreviewInput:
+      type: object
+      required: [endXMm, endYMm, endDirectionDegrees, expectedVersion]
+      properties:
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        endDirectionDegrees:
+          type: number
+          format: double
+        expectedVersion:
+          type: integer
+          minimum: 1
+    FlexTrackPreview:
+      type: object
+      required: [path, effectiveGeometry, effectiveLengthMm, radiusLimitMm, lengthExceeded, radiusBelowLimit, applicable]
+      properties:
+        path:
+          $ref: "#/components/schemas/FlexTrackPath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          minimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lengthExceeded:
+          type: boolean
+        radiusBelowLimit:
+          type: boolean
+        applicable:
+          type: boolean
     ExhibitionList:
       type: object
       required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
@@ -6307,6 +6409,53 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}/flex-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview a deterministic flex track path without saving it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlexTrackPreviewInput"
+      responses:
+        "200":
+          description: Flex track preview calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlexTrackPreview"
+        "400":
+          description: Preview data or object type is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Track object version is stale
           content:
             application/json:
               schema:

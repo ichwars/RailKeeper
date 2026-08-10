@@ -169,6 +169,64 @@ func TestLayoutServiceWritesAuditTrail(t *testing.T) {
 	}
 }
 
+func TestLayoutRevisionClonePreservesFlexPath(t *testing.T) {
+	service, db := testRevisionServiceWithDB(t)
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Flexanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Segment", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := service.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{Name: "Flex"}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := domain.FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 100,
+		StartHandleMM: 180, EndHandleMM: 180,
+	}
+	created, err := planner.CreateObject(ctx, base.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", FlexPath: &path,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.SubmitRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.PublishRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{
+		BaseRevisionID: base.ID,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := planner.GetPlan(ctx, clone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Objects) != 1 || plan.Objects[0].LineageID != created.LineageID ||
+		plan.Objects[0].FlexPath == nil || plan.Objects[0].FlexPath.EndYMM != 100 {
+		t.Fatalf("flex path not cloned: %#v", plan.Objects)
+	}
+}
+
 func testRevisionServiceWithDB(t *testing.T) (*application.LayoutService, *sql.DB) {
 	t.Helper()
 	db, err := infrastructure.OpenSQLite(t.TempDir())

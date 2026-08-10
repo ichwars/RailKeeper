@@ -175,6 +175,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/plan-revisions/{id}/track-reservations", routeAccessPlanner, (*App).reserveTrackPlanMaterials, nil},
 		{http.MethodPost, "/api/v1/plan-revisions/{id}/track-objects", routeAccessPlanner, (*App).createPlanTrackObject, nil},
 		{http.MethodPut, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).updatePlanTrackObject, nil},
+		{http.MethodPost, "/api/v1/plan-track-objects/{id}/flex-preview", routeAccessPlanner, (*App).previewFlexTrackPath, nil},
 		{http.MethodDelete, "/api/v1/plan-track-objects/{id}", routeAccessPlanner, (*App).deletePlanTrackObject, nil},
 		{http.MethodGet, "/api/v1/inventory-number-schemes", routeAccessViewer, (*App).listInventoryNumberSchemes, nil},
 		{http.MethodPost, "/api/v1/inventory-number-schemes", routeAccessEditor, (*App).createInventoryNumberScheme, nil},

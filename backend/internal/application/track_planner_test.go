@@ -200,6 +200,41 @@ func TestTrackPlannerServiceRejectsInvalidInputs(t *testing.T) {
 	}
 }
 
+func TestTrackPlannerServicePreviewsFlexPathWithoutMutation(t *testing.T) {
+	flex := domain.PlanTrackObject{
+		ID: "flex-1", Version: 3,
+		Geometry: domain.TrackGeometryDefinition{
+			ID: "flex-definition", Kind: domain.TrackGeometryFlex, LengthMM: 664,
+			MinimumRadiusMM: float64Pointer(543),
+		},
+	}
+	repository := &trackPlannerRepositorySpy{planForObject: &TrackPlan{
+		Objects: []domain.PlanTrackObject{flex},
+		Limits:  domain.TrackPlanLimits{MinimumFlexRadiusMM: float64Pointer(700)},
+	}}
+	service := NewTrackPlannerService(repository)
+	preview, err := service.PreviewFlexPath(t.Context(), " flex-1 ", FlexTrackPreviewInput{
+		EndXMM: 500, EndYMM: 100, EndDirectionDegrees: 20, ExpectedVersion: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Path.EndXMM != 500 || preview.EffectiveLengthMM <= 0 ||
+		preview.RadiusLimitMM != 700 || !preview.Applicable {
+		t.Fatalf("unexpected flex preview: %#v", preview)
+	}
+	if repository.updated.ExpectedVersion != 0 {
+		t.Fatalf("preview mutated repository: %#v", repository.updated)
+	}
+	if _, err := service.PreviewFlexPath(t.Context(), "flex-1", FlexTrackPreviewInput{
+		EndXMM: 500, EndYMM: 100, ExpectedVersion: 2,
+	}); !errors.Is(err, ErrTrackPlanConflict) {
+		t.Fatalf("expected preview conflict, got %v", err)
+	}
+}
+
+func float64Pointer(value float64) *float64 { return &value }
+
 func TestTrackPlannerSnapAppliesNearestCompatiblePose(t *testing.T) {
 	moving := trackPlannerTestG1("moving", 172, 2, 2)
 	target := trackPlannerTestG1("target", 0, 0, 0)

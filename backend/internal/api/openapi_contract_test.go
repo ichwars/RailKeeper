@@ -106,7 +106,7 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	contract := string(data)
 	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
 	if !strings.Contains(issue,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]") {
 		t.Errorf("TrackPlanIssue is missing elevation_mismatch: %s", issue)
 	}
 	if !strings.Contains(issue, "elevationDifferenceMm:") || !strings.Contains(issue, "minimum: 0") {
@@ -114,8 +114,27 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	}
 	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
 	if !strings.Contains(change,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]") {
 		t.Errorf("TrackPlanIssueChange is missing elevation_mismatch: %s", change)
+	}
+}
+
+func TestOpenAPIDocumentsFlexTrackPreview(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"FlexTrackPath", "FlexTrackPreviewInput", "FlexTrackPreview"} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	for _, field := range []string{"flex_radius_below_limit", "radiusMm:", "radiusLimitMm:"} {
+		if !strings.Contains(issue, field) {
+			t.Errorf("TrackPlanIssue is missing %s: %s", field, issue)
+		}
 	}
 }
 

@@ -82,6 +82,79 @@ func TestTrackPlannerRoutesEnforceRolesAndCSRF(t *testing.T) {
 			"geometryId": "tillig-tt-modellgleis-83101-v1",
 		}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
+
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/plan-track-objects/missing/flex-preview", map[string]any{
+				"endXMm": 500, "endYMm": 100, "endDirectionDegrees": 20, "expectedVersion": 1,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusNotFound
+		}
+		assertStatus(t, response, want)
+	}
+	previewWithoutCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/plan-track-objects/missing/flex-preview", map[string]any{
+			"endXMm": 500, "endYMm": 100, "expectedVersion": 1,
+		}, false)
+	assertProblem(t, previewWithoutCSRF, http.StatusForbidden, "csrf_required")
+}
+
+func TestTrackPlannerFlexPreviewAndUpdateWorkflow(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "planner-flex", Password: "planner-password", Roles: []string{"Planner"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session := loginRouteTestUser(t, auth, "planner-flex", "planner-password")
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	router := NewRouter(Config{AuthService: auth, LayoutService: layouts, TrackPlannerService: planner})
+	_, draft := trackPlannerRouteRevision(t, layouts)
+	path := map[string]any{
+		"schemaVersion": 1, "endXMm": 664, "endYMm": 0, "endDirectionDegrees": 0,
+		"startHandleMm": 664.0 / 3, "endHandleMm": 664.0 / 3,
+	}
+	createdResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
+			"geometryId": "tillig-tt-modellgleis-83125-v1", "flexPath": path,
+		}, true)
+	assertStatus(t, createdResponse, http.StatusCreated)
+	var created domain.PlanTrackObject
+	decodeResponse(t, createdResponse, &created)
+
+	previewResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-track-objects/"+created.ID+"/flex-preview", map[string]any{
+			"endXMm": 500, "endYMm": 100, "endDirectionDegrees": 20,
+			"expectedVersion": created.Version,
+		}, true)
+	assertStatus(t, previewResponse, http.StatusOK)
+	var preview application.FlexTrackPreview
+	decodeResponse(t, previewResponse, &preview)
+	if !preview.Applicable || preview.Path.EndXMM != 500 || preview.EffectiveLengthMM <= 0 {
+		t.Fatalf("unexpected flex preview: %#v", preview)
+	}
+
+	updatedResponse := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/plan-track-objects/"+created.ID, map[string]any{
+			"flexPath": preview.Path, "expectedVersion": created.Version,
+		}, true)
+	assertStatus(t, updatedResponse, http.StatusOK)
+	var updated domain.PlanTrackObject
+	decodeResponse(t, updatedResponse, &updated)
+	if updated.FlexPath == nil || updated.FlexPath.EndXMM != 500 || updated.Version != 2 {
+		t.Fatalf("unexpected flex update: %#v", updated)
+	}
+
+	staleResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-track-objects/"+created.ID+"/flex-preview", map[string]any{
+			"endXMm": 400, "endYMm": 80, "endDirectionDegrees": 10,
+			"expectedVersion": created.Version,
+		}, true)
+	assertProblem(t, staleResponse, http.StatusConflict, "track_plan_conflict")
 }
 
 func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {

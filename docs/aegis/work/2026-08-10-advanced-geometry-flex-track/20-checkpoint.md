@@ -11,10 +11,12 @@
 - Completed: Task 1 persists the flex kind, Tillig 83125, layout radius limit and backup version 11.
 - Completed: Task 2 derives deterministic cubic Bézier routes, length and minimum radius and uses
   them for snapping, grade, overlap, clearance and revision comparisons.
-- Active slice: Task 3 persists flex paths and adds a server-side preview suggestion.
-- Pending: execute Tasks 3 through 6 inline, then complete local acceptance.
+- Completed: Task 3 persists and hydrates flex paths, clones them and exposes a read-only,
+  versioned Planner preview endpoint with a deterministic suggestion.
+- Active slice: Task 4 adds the layout minimum flex radius to the app-owned UI.
+- Pending: execute Tasks 4 through 6 inline, then complete local acceptance.
 - Blocked on: nothing.
-- Next step: start Task 3 with failing persistence, clone, suggestion and HTTP tests.
+- Next step: start Task 4 with failing layout form, payload and profile tests.
 
 ## ResumeStateHint
 
@@ -26,11 +28,11 @@ not from memory.
 ## DriftCheckDraft
 
 - Original intent: aligned with issue 36 flex-track optimization.
-- Goal and stop condition: aligned; the written spec and plan are approved, Tasks 1 and 2 are green.
+- Goal and stop condition: aligned; the written spec and plan are approved, Tasks 1 through 3 are green.
 - Compatibility: fixed geometry, object lineage, reservations and legacy backups remain explicit.
 - New owner or fallback: none; effective geometry has one domain owner and persistence has one write
   path.
 - Retirement track: no temporary compatibility branch is proposed.
 - Evidence: source-backed product data, spec `28a68af`, plan `82f9ed8`, foundation `f1e9588`,
-  targeted RED/GREEN checks and fresh `go test ./... -count=1` across all seven backend packages.
-- Decision: continue inline with persistence and explicit server preview.
+  geometry `60c2cd2`, targeted RED/GREEN checks and fresh domain/application/infrastructure/API runs.
+- Decision: continue inline with the layout form and profile surface.

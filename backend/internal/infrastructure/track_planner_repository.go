@@ -52,14 +52,16 @@ func (repository *TrackPlannerRepository) GetPlan(
 	plan := &application.TrackPlan{RevisionID: revisionID, Objects: []domain.PlanTrackObject{}}
 	var maxGradePercent sql.NullFloat64
 	var minimumTrackClearanceMM sql.NullFloat64
+	var minimumFlexRadiusMM sql.NullFloat64
 	if err := repository.db.QueryRowContext(ctx, `
-SELECT revision.status, layout.max_grade_percent, layout.minimum_track_clearance_mm
+SELECT revision.status, layout.max_grade_percent, layout.minimum_track_clearance_mm,
+       layout.minimum_flex_radius_mm
 FROM plan_revisions revision
 JOIN plan_variants variant ON variant.id=revision.variant_id
 JOIN layout_units unit ON unit.id=variant.layout_unit_id
 JOIN layouts layout ON layout.id=unit.layout_id
 WHERE revision.id=?`, revisionID).Scan(&plan.Status, &maxGradePercent,
-		&minimumTrackClearanceMM); errors.Is(err, sql.ErrNoRows) {
+		&minimumTrackClearanceMM, &minimumFlexRadiusMM); errors.Is(err, sql.ErrNoRows) {
 		return nil, application.ErrTrackPlanNotFound
 	} else if err != nil {
 		return nil, fmt.Errorf("read track plan revision: %w", err)
@@ -69,6 +71,9 @@ WHERE revision.id=?`, revisionID).Scan(&plan.Status, &maxGradePercent,
 	}
 	if minimumTrackClearanceMM.Valid {
 		plan.Limits.MinimumTrackClearanceMM = &minimumTrackClearanceMM.Float64
+	}
+	if minimumFlexRadiusMM.Valid {
+		plan.Limits.MinimumFlexRadiusMM = &minimumFlexRadiusMM.Float64
 	}
 	rows, err := repository.db.QueryContext(ctx, trackObjectSelect+`
 WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)
@@ -437,7 +442,11 @@ func (repository *TrackPlannerRepository) CreateObject(
 		ElevationEndMM: input.ElevationEndMM, Version: 1, CreatedAt: now, UpdatedAt: now,
 	}
 	object.LineageID = object.ID
-	err := repository.withTx(ctx, func(tx *sql.Tx) error {
+	flexPathJSON, err := encodeFlexTrackPath(input.FlexPath)
+	if err != nil {
+		return nil, application.ErrTrackPlanValidation
+	}
+	err = repository.withTx(ctx, func(tx *sql.Tx) error {
 		status, err := trackRevisionStatus(ctx, tx, revisionID)
 		if err != nil {
 			return err
@@ -445,20 +454,20 @@ func (repository *TrackPlannerRepository) CreateObject(
 		if status != domain.PlanRevisionDraft {
 			return application.ErrTrackPlanImmutable
 		}
-		placeable, err := trackGeometryPlaceable(ctx, tx, input.GeometryID)
+		kind, placeable, err := trackGeometryPlacement(ctx, tx, input.GeometryID)
 		if err != nil {
 			return err
 		}
-		if !placeable {
+		if !placeable || (kind == domain.TrackGeometryFlex) != (input.FlexPath != nil) {
 			return application.ErrTrackPlanValidation
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-	elevation_start_mm, elevation_end_mm, lineage_id, version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
+	elevation_start_mm, elevation_end_mm, flex_path_json, lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
 			input.PositionXMM, input.PositionYMM, input.RotationDegrees,
-			input.ElevationStartMM, input.ElevationEndMM, object.LineageID, now, now); err != nil {
+			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, object.LineageID, now, now); err != nil {
 			return fmt.Errorf("insert track plan object: %w", err)
 		}
 		return writeLayoutAudit(ctx, tx, "PlanTrackObjectCreated", "plan_track_object", object.ID, actor, now)
@@ -476,7 +485,11 @@ func (repository *TrackPlannerRepository) UpdateObject(
 	actor string,
 ) (*domain.PlanTrackObject, error) {
 	now := timestamp()
-	err := repository.withTx(ctx, func(tx *sql.Tx) error {
+	flexPathJSON, err := encodeFlexTrackPath(input.FlexPath)
+	if err != nil {
+		return nil, application.ErrTrackPlanValidation
+	}
+	err = repository.withTx(ctx, func(tx *sql.Tx) error {
 		status, version, err := trackObjectState(ctx, tx, id)
 		if err != nil {
 			return err
@@ -490,9 +503,9 @@ func (repository *TrackPlannerRepository) UpdateObject(
 		result, err := tx.ExecContext(ctx, `
 UPDATE plan_track_objects
 SET position_x_mm=?, position_y_mm=?, rotation_degrees=?, elevation_start_mm=?, elevation_end_mm=?,
-    version=version+1, updated_at=?
+    flex_path_json=?, version=version+1, updated_at=?
 WHERE id=? AND version=?`, input.PositionXMM, input.PositionYMM, input.RotationDegrees,
-			input.ElevationStartMM, input.ElevationEndMM, now, id, input.ExpectedVersion)
+			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, now, id, input.ExpectedVersion)
 		if err != nil {
 			return fmt.Errorf("update track plan object: %w", err)
 		}
@@ -590,20 +603,25 @@ func trackRevisionStatus(
 	return status, nil
 }
 
-func trackGeometryPlaceable(ctx context.Context, tx *sql.Tx, geometryID string) (bool, error) {
+func trackGeometryPlacement(
+	ctx context.Context,
+	tx *sql.Tx,
+	geometryID string,
+) (domain.TrackGeometryKind, bool, error) {
+	var kind domain.TrackGeometryKind
 	var geometryStatus, libraryStatus domain.TrackGeometryStatus
 	err := tx.QueryRowContext(ctx, `
-SELECT geometry.status, library.status
+SELECT geometry.kind, geometry.status, library.status
 FROM track_geometry_definitions geometry
 JOIN track_geometry_libraries library ON library.id=geometry.library_id
-WHERE geometry.id=?`, geometryID).Scan(&geometryStatus, &libraryStatus)
+WHERE geometry.id=?`, geometryID).Scan(&kind, &geometryStatus, &libraryStatus)
 	if errors.Is(err, sql.ErrNoRows) {
-		return false, nil
+		return "", false, nil
 	}
 	if err != nil {
-		return false, fmt.Errorf("read track geometry status: %w", err)
+		return "", false, fmt.Errorf("read track geometry status: %w", err)
 	}
-	return geometryStatus.Placeable() && libraryStatus.Placeable(), nil
+	return kind, geometryStatus.Placeable() && libraryStatus.Placeable(), nil
 }
 
 func trackObjectState(
@@ -640,6 +658,7 @@ const trackObjectSelect = `
 SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
        object.position_x_mm, object.position_y_mm, object.rotation_degrees,
 	   object.elevation_start_mm, object.elevation_end_mm,
+	   object.flex_path_json,
        object.version, object.created_at, object.updated_at,
        geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
        geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
@@ -676,10 +695,12 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	object := &domain.PlanTrackObject{}
 	var geometryJSON string
 	var minimumRadiusMM sql.NullFloat64
+	var flexPathJSON sql.NullString
 	geometry := &object.Geometry
 	if err := scanner.Scan(&object.ID, &object.LineageID, &object.RevisionID, &object.GeometryID,
 		&object.PositionXMM, &object.PositionYMM, &object.RotationDegrees,
 		&object.ElevationStartMM, &object.ElevationEndMM,
+		&flexPathJSON,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt,
 		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
 		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
@@ -693,5 +714,32 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	if err := json.Unmarshal([]byte(geometryJSON), &geometry.Geometry); err != nil {
 		return nil, fmt.Errorf("decode track geometry %s: %w", geometry.ID, err)
 	}
+	if flexPathJSON.Valid {
+		object.FlexPath = &domain.FlexTrackPath{}
+		if err := json.Unmarshal([]byte(flexPathJSON.String), object.FlexPath); err != nil {
+			return nil, fmt.Errorf("decode flex track path %s: %w", object.ID, err)
+		}
+	}
+	effective, err := domain.EffectiveGeometryForObject(*object)
+	if err != nil {
+		return nil, fmt.Errorf("derive effective track geometry %s: %w", object.ID, err)
+	}
+	object.EffectiveGeometry = effective.Geometry
+	object.EffectiveLengthMM = effective.LengthMM
+	object.EffectiveMinimumRadiusMM = effective.MinimumRadiusMM
 	return object, nil
+}
+
+func encodeFlexTrackPath(path *domain.FlexTrackPath) (any, error) {
+	if path == nil {
+		return nil, nil
+	}
+	if _, err := domain.BuildFlexTrackGeometry(*path); err != nil {
+		return nil, err
+	}
+	encoded, err := json.Marshal(path)
+	if err != nil {
+		return nil, err
+	}
+	return string(encoded), nil
 }

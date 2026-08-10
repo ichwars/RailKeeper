@@ -152,6 +152,58 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	}
 }
 
+func TestTrackPlannerRepositoryPersistsAndHydratesFlexPath(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	ctx := t.Context()
+	layout, err := layouts.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Flexanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := layouts.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Segment", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := layouts.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{Name: "Flex"}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft, err := layouts.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := domain.FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 100,
+		StartHandleMM: 180, EndHandleMM: 180,
+	}
+	created, err := planner.CreateObject(ctx, draft.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", FlexPath: &path,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.FlexPath == nil || created.EffectiveLengthMM <= 500 ||
+		len(created.EffectiveGeometry.Routes) != 1 {
+		t.Fatalf("flex path not hydrated: %#v", created)
+	}
+	updatedPath := path
+	updatedPath.EndYMM = 120
+	updated, err := planner.UpdateObject(ctx, created.ID, application.UpdatePlanTrackObjectInput{
+		FlexPath: &updatedPath, ExpectedVersion: created.Version,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.FlexPath == nil || updated.FlexPath.EndYMM != 120 || updated.Version != 2 {
+		t.Fatalf("flex path not updated: %#v", updated)
+	}
+}
+
 func TestTrackPlannerRepositoryRejectsUnverifiedGeometry(t *testing.T) {
 	db := openTrackPlannerSchemaDB(t)
 	seedTrackPlanRevision(t, db)

@@ -322,7 +322,7 @@ git commit -m "feat(planner): derive effective flex geometry"
 - Produces: `POST /api/v1/plan-track-objects/{id}/flex-preview`
 - Extends: Create/Update plan object inputs with `FlexPath *domain.FlexTrackPath`
 
-- [ ] **Step 1: Fehlschlagende Vorschlags-, Persistenz-, Klon- und API-Tests schreiben**
+- [x] **Step 1: Fehlschlagende Vorschlags-, Persistenz-, Klon- und API-Tests schreiben**
 
 Der Domänentest ruft denselben Vorschlag zweimal auf und verlangt identische Parameter und Punkte.
 Ein gerader Zielpunkt liefert 664/0/0 und Tangenten 664/3. Ein 700-mm-Ziel liefert
@@ -333,7 +333,7 @@ Repositorytests erstellen und aktualisieren einen Flexpfad, laden effektive Feld
 eine neue Revision. API-Tests prüfen Vorschau, Update, Planner-Rolle, Viewer-Verbot, CSRF und 409 bei
 veralteter `expectedVersion`.
 
-- [ ] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run:
 
@@ -345,7 +345,7 @@ go test ./internal/domain ./internal/application ./internal/infrastructure ./int
 
 Expected: FAIL wegen fehlender Vorschlagsfunktion, Persistenzfelder, Route und OpenAPI-Schemas.
 
-- [ ] **Step 3: Deterministischen Grob-zu-fein-Vorschlag implementieren**
+- [x] **Step 3: Deterministischen Grob-zu-fein-Vorschlag implementieren**
 
 ```go
 type FlexTrackSuggestionInput struct {
@@ -366,7 +366,7 @@ Das Raster startet mit Tangenten in 10-%-Schritten der Sehnenlänge zwischen 10 
 dreimal um den besten Kandidaten und verwendet die in der Spec festgelegte lexikografische Bewertung.
 Gleichstände vergleichen Start- und Endtangente numerisch.
 
-- [ ] **Step 4: Repository-Persistenz, Hydrierung und Klonen implementieren**
+- [x] **Step 4: Repository-Persistenz, Hydrierung und Klonen implementieren**
 
 `CreateObject` und `UpdateObject` serialisieren `flex_path_json`. `trackObjectSelect` und
 `scanTrackObject` führen die Spalte direkt nach `elevation_end_mm`; der Scanner hydriert danach die
@@ -376,7 +376,7 @@ effektive Geometrie. Starre Geometrien verlangen `NULL`, Flexgeometrien einen g�
 `GetPlan` liest `layout.minimum_flex_radius_mm` nach dem Clearance-Limit in
 `TrackPlanLimits.MinimumFlexRadiusMM`.
 
-- [ ] **Step 5: Application-Service und HTTP-Handler implementieren**
+- [x] **Step 5: Application-Service und HTTP-Handler implementieren**
 
 ```go
 type FlexTrackPreviewInput struct {
@@ -402,13 +402,13 @@ Der Service lädt das Objekt samt Anlagenlimits, verlangt `flex`, passende Versi
 ruft die Domäne auf und schreibt nichts. Der POST-Handler verlangt Planner/Admin und CSRF. Das
 vorhandene Update bleibt der einzige persistente Schreibpfad.
 
-- [ ] **Step 6: OpenAPI vollständig synchronisieren**
+- [x] **Step 6: OpenAPI vollständig synchronisieren**
 
 Schemas ergänzen `flex`, `minimumRadiusMm`, Layoutlimit, Flexpfad, effektive Felder,
 `FlexTrackPreviewInput`, `FlexTrackPreview`, `flex_radius_below_limit`, `radiusMm` und
 `radiusLimitMm`. Der neue Pfad dokumentiert 200, 400, 403, 404 und 409.
 
-- [ ] **Step 7: Backend- und Vertragssuiten ausführen und lokal committen**
+- [x] **Step 7: Backend- und Vertragssuiten ausführen und lokal committen**
 
 Run:
 
