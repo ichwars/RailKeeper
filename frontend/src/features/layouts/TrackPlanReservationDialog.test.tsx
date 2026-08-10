@@ -17,6 +17,7 @@ const object = {
     createdAt: "2026-08-09T10:00:00Z", geometry: { schemaVersion: 1, ports: [], routes: [] } },
   positionXMm: 0, positionYMm: 0, rotationDegrees: 0,
   elevationStartMm: 0, elevationEndMm: 0, version: 2,
+  effectiveGeometry: { schemaVersion: 1, ports: [], routes: [] }, effectiveLengthMm: 166,
   createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
 } satisfies PlanTrackObject;
 

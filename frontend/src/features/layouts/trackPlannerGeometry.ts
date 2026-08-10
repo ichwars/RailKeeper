@@ -1,4 +1,4 @@
-import type { PlanTrackObject, TrackPoint, TrackPort } from "../../shared/api";
+import type { FlexTrackPath, PlanTrackObject, TrackPoint, TrackPort } from "../../shared/api";
 
 const SNAP_DISTANCE_MM = 8;
 const SNAP_DIRECTION_TOLERANCE_DEGREES = 5;
@@ -18,8 +18,32 @@ export type TrackSnapPreview = {
   distanceMm?: number;
 };
 
+export type FlexEndSnapPreview = {
+  snapped: boolean;
+  path: FlexTrackPath;
+  targetObjectId?: string;
+  targetPortId?: string;
+  distanceMm?: number;
+};
+
 export function routePolylinePoints(points: TrackPoint[]): string {
   return points.map((point) => `${point.xMm},${point.yMm}`).join(" ");
+}
+
+export function flexPreviewBounds(points: TrackPoint[]) {
+  if (points.length === 0) return { minX: -20, minY: -70, width: 704, height: 140 };
+  const xValues = points.map((point) => point.xMm);
+  const yValues = points.map((point) => point.yMm);
+  const minX = Math.min(...xValues) - 20;
+  const maxX = Math.max(...xValues) + 20;
+  const minY = Math.min(...yValues) - 20;
+  const maxY = Math.max(...yValues) + 20;
+  return {
+    minX,
+    minY,
+    width: Math.max(100, maxX - minX),
+    height: Math.max(100, maxY - minY)
+  };
 }
 
 export function trackObjectTransform(object: {
@@ -55,6 +79,72 @@ function opposingAngleDifference(first: number, second: number): number {
   return angleDifference(first, normalizedRotation(second + 180));
 }
 
+function globalToLocal(point: TrackPoint, pose: TrackPose): TrackPoint {
+  const radians = -pose.rotationDegrees * Math.PI / 180;
+  const x = point.xMm - pose.positionXMm;
+  const y = point.yMm - pose.positionYMm;
+  return {
+    xMm: x * Math.cos(radians) - y * Math.sin(radians),
+    yMm: x * Math.sin(radians) + y * Math.cos(radians)
+  };
+}
+
+export function snapFlexEnd(
+  object: PlanTrackObject,
+  path: FlexTrackPath,
+  objects: PlanTrackObject[]
+): FlexEndSnapPreview {
+  const pose = {
+    positionXMm: object.positionXMm,
+    positionYMm: object.positionYMm,
+    rotationDegrees: object.rotationDegrees
+  };
+  const currentEnd = transformedPort({
+    id: "flex-end",
+    xMm: path.endXMm,
+    yMm: path.endYMm,
+    directionDegrees: path.endDirectionDegrees
+  }, pose);
+  let result: FlexEndSnapPreview = { snapped: false, path };
+  for (const target of objects) {
+    if (target.id === object.id || target.geometry.status !== "verified") continue;
+    const targetPose = {
+      positionXMm: target.positionXMm,
+      positionYMm: target.positionYMm,
+      rotationDegrees: target.rotationDegrees
+    };
+    for (const port of (target.effectiveGeometry ?? target.geometry.geometry).ports) {
+      const targetPort = transformedPort(port, targetPose);
+      const distance = Math.hypot(currentEnd.xMm - targetPort.xMm, currentEnd.yMm - targetPort.yMm);
+      if (distance > SNAP_DISTANCE_MM || (result.snapped && !isBetterSnap(
+        distance, target.id, port.id, {
+          snapped: true,
+          pose,
+          targetObjectId: result.targetObjectId,
+          targetPortId: result.targetPortId,
+          distanceMm: result.distanceMm
+        }
+      ))) continue;
+      const local = globalToLocal(targetPort, pose);
+      result = {
+        snapped: true,
+        path: {
+          ...path,
+          endXMm: local.xMm,
+          endYMm: local.yMm,
+          endDirectionDegrees: normalizedRotation(
+            targetPort.directionDegrees + 180 - object.rotationDegrees
+          )
+        },
+        targetObjectId: target.id,
+        targetPortId: port.id,
+        distanceMm: distance
+      };
+    }
+  }
+  return result;
+}
+
 function isBetterSnap(
   distance: number,
   targetObjectId: string,
@@ -75,7 +165,7 @@ export function snapTrackPose(moving: PlanTrackObject, objects: PlanTrackObject[
     rotationDegrees: moving.rotationDegrees
   };
   let result: TrackSnapPreview = { snapped: false, pose: basePose };
-  for (const movingPort of moving.geometry.geometry.ports) {
+  for (const movingPort of (moving.effectiveGeometry ?? moving.geometry.geometry).ports) {
     const currentPort = transformedPort(movingPort, basePose);
     for (const targetObject of objects) {
       if (targetObject.id === moving.id || targetObject.geometry.status !== "verified") continue;
@@ -84,7 +174,7 @@ export function snapTrackPose(moving: PlanTrackObject, objects: PlanTrackObject[
         positionYMm: targetObject.positionYMm,
         rotationDegrees: targetObject.rotationDegrees
       };
-      for (const targetLocalPort of targetObject.geometry.geometry.ports) {
+      for (const targetLocalPort of (targetObject.effectiveGeometry ?? targetObject.geometry.geometry).ports) {
         const targetPort = transformedPort(targetLocalPort, targetPose);
         const distance = Math.hypot(currentPort.xMm - targetPort.xMm, currentPort.yMm - targetPort.yMm);
         if (distance > SNAP_DISTANCE_MM ||

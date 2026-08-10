@@ -10,7 +10,8 @@ const issueSymbols: Record<TrackPlanIssueCode, string> = {
   broken_geometry: "×",
   elevation_mismatch: "↕",
   grade_limit_exceeded: "↗",
-  insufficient_clearance: "↕"
+  insufficient_clearance: "↕",
+  flex_radius_below_limit: "⌒"
 };
 
 function countIssues(analysis: TrackPlanAnalysis, code: TrackPlanIssueCode): number {
@@ -29,6 +30,7 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
   const elevationMismatches = countIssues(analysis, "elevation_mismatch");
   const gradeLimitExceedances = countIssues(analysis, "grade_limit_exceeded");
   const clearanceViolations = countIssues(analysis, "insufficient_clearance");
+  const flexRadiusWarnings = countIssues(analysis, "flex_radius_below_limit");
   const numberFormat = new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -50,6 +52,8 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
           : "layouts.trackAnalysis.gradeLimitExceededMany", { count: gradeLimitExceedances })}</span>
         <span>{t(clearanceViolations === 1 ? "layouts.trackAnalysis.clearanceViolationOne"
           : "layouts.trackAnalysis.clearanceViolationMany", { count: clearanceViolations })}</span>
+        <span>{t(flexRadiusWarnings === 1 ? "layouts.trackAnalysis.flexRadiusWarningOne"
+          : "layouts.trackAnalysis.flexRadiusWarningMany", { count: flexRadiusWarnings })}</span>
       </div>
     </header>
     <div className="track-analysis-grid">
@@ -74,6 +78,12 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
               issueText = t("layouts.trackAnalysis.issueClearanceDetail", {
                 clearance: numberFormat.format(issue.clearanceMm),
                 limit: numberFormat.format(issue.clearanceLimitMm)
+              });
+            } else if (issue.code === "flex_radius_below_limit" && issue.radiusMm !== undefined &&
+              issue.radiusLimitMm !== undefined) {
+              issueText = t("layouts.trackAnalysis.issueFlexRadiusDetail", {
+                radius: numberFormat.format(issue.radiusMm),
+                limit: numberFormat.format(issue.radiusLimitMm)
               });
             }
             const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${issueText}`;

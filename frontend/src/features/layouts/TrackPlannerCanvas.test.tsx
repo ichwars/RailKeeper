@@ -39,7 +39,50 @@ const trackObject: PlanTrackObject = {
   id: "track-1", lineageId: "track-1", revisionId: draft.id, geometryId: geometry.id, geometry,
   positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
   elevationStartMm: 5, elevationEndMm: 9.15, version: 1,
+  effectiveGeometry: geometry.geometry, effectiveLengthMm: 166,
   createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
+};
+
+const flexGeometry: TrackGeometryDefinition = {
+  ...geometry,
+  id: "tillig-tt-modellgleis-83125-v1",
+  articleNumber: "83125",
+  name: "Flexgleis",
+  kind: "flex",
+  lengthMm: 664,
+  minimumRadiusMm: 543,
+  geometry: {
+    schemaVersion: 1,
+    ports: [
+      { id: "a", xMm: 0, yMm: 0, directionDegrees: 180 },
+      { id: "b", xMm: 664, yMm: 0, directionDegrees: 0 }
+    ],
+    routes: [{ id: "main", points: [{ xMm: 0, yMm: 0 }, { xMm: 664, yMm: 0 }] }]
+  }
+};
+const flexObject: PlanTrackObject = {
+  ...trackObject,
+  id: "flex-1",
+  geometryId: flexGeometry.id,
+  geometry: flexGeometry,
+  flexPath: {
+    schemaVersion: 1,
+    endXMm: 500,
+    endYMm: 100,
+    endDirectionDegrees: 20,
+    startHandleMm: 180,
+    endHandleMm: 170
+  },
+  effectiveGeometry: {
+    schemaVersion: 1,
+    ports: [
+      { id: "a", xMm: 0, yMm: 0, directionDegrees: 180 },
+      { id: "b", xMm: 500, yMm: 100, directionDegrees: 20 }
+    ],
+    routes: [{ id: "main", points: [{ xMm: 0, yMm: 0 }, { xMm: 250, yMm: 30 }, { xMm: 500, yMm: 100 }] }]
+  },
+  effectiveLengthMm: 515,
+  effectiveMinimumRadiusMm: 700
 };
 
 describe("TrackPlannerCanvas", () => {
@@ -202,6 +245,41 @@ describe("TrackPlannerCanvas", () => {
       positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
       elevationStartMm: 7, elevationEndMm: 11.98, expectedVersion: 1
     }));
+  });
+
+  it("renders effective flex geometry and saves an explicitly accepted preview", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.trackGeometries).mockResolvedValue([geometry, flexGeometry]);
+    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [flexObject] });
+    vi.spyOn(api, "previewFlexTrackPath").mockResolvedValue({
+      path: { ...flexObject.flexPath!, endXMm: 520 },
+      effectiveGeometry: flexObject.effectiveGeometry!,
+      effectiveLengthMm: 530,
+      effectiveMinimumRadiusMm: 680,
+      radiusLimitMm: 700,
+      lengthExceeded: false,
+      radiusBelowLimit: true,
+      applicable: true
+    });
+    const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
+      ...flexObject, ...input, version: 2
+    }));
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    const placed = await screen.findByRole("button", { name: "Gleis Tillig 83125 Flexgleis" });
+    expect(placed.querySelector("polyline")).toHaveAttribute("points", "0,0 250,30 500,100");
+    await user.click(placed);
+    expect(screen.getByText("515,00 mm")).toBeInTheDocument();
+    expect(screen.getByText("700,00 mm")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Flexverlauf bearbeiten" }));
+    await user.clear(screen.getByRole("spinbutton", { name: "Endpunkt X (mm)" }));
+    await user.type(screen.getByRole("spinbutton", { name: "Endpunkt X (mm)" }), "520");
+    await user.click(screen.getByRole("button", { name: "Verlauf vorschlagen" }));
+    await user.click(await screen.findByRole("button", { name: "Verlauf übernehmen" }));
+
+    await waitFor(() => expect(update).toHaveBeenCalledWith(flexObject.id, expect.objectContaining({
+      flexPath: expect.objectContaining({ endXMm: 520 }), expectedVersion: 1
+    })));
   });
 
   it("keeps published plans read-only and reports version conflicts", async () => {

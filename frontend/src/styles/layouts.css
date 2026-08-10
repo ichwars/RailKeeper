@@ -755,6 +755,52 @@
 }
 .track-reservation-dialog > footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
+.flex-track-editor-layer { z-index: 155; }
+.flex-track-editor-dialog { width: min(760px, calc(100vw - 28px)); }
+.flex-track-editor-dialog .modal-head > div p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.flex-track-editor-body { display: grid; gap: 14px; }
+.flex-track-editor-fields { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.flex-track-preview {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+}
+.flex-track-preview polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.flex-track-preview-local { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 8 5; }
+.flex-track-preview-server { stroke: var(--accent); stroke-width: 3; }
+.flex-track-end-handle {
+  fill: var(--panel);
+  stroke: var(--accent);
+  stroke-width: 2;
+  cursor: grab;
+  touch-action: none;
+}
+.flex-track-end-handle:active { fill: var(--accent-soft); cursor: grabbing; }
+.flex-track-preview-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.flex-track-preview-facts > div {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--panel-subtle);
+}
+.flex-track-preview-facts span { color: var(--muted); font-size: var(--font-size-sm); }
+.flex-track-warning { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--warning); }
+
+@media (max-width: 680px) {
+  .flex-track-editor-fields,
+  .flex-track-preview-facts { grid-template-columns: minmax(0, 1fr); }
+  .flex-track-preview { min-height: 170px; }
+}
+
 .track-plan-analysis {
   grid-column: 1 / -1;
   min-width: 0;

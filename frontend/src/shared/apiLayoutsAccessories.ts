@@ -312,7 +312,7 @@ export type PlanVariant = {
 export type PlanVariantInput = { name: string; description?: string };
 export type PlanRevisionInput = { baseRevisionId?: string };
 
-export type TrackGeometryKind = "straight" | "curve" | "turnout" | "crossing";
+export type TrackGeometryKind = "straight" | "curve" | "turnout" | "crossing" | "flex";
 export type TrackGeometryStatus = "draft" | "verified" | "retired";
 export type TrackPoint = { xMm: number; yMm: number };
 export type TrackPort = TrackPoint & { id: string; directionDegrees: number };
@@ -325,6 +325,7 @@ export type TrackGeometryDefinition = {
   name: string;
   kind: TrackGeometryKind;
   lengthMm: number;
+  minimumRadiusMm?: number | null;
   geometry: TrackGeometry;
   sourceUrl: string;
   status: TrackGeometryStatus;
@@ -341,6 +342,10 @@ export type PlanTrackObject = {
   rotationDegrees: number;
   elevationStartMm: number;
   elevationEndMm: number;
+  flexPath?: FlexTrackPath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -357,7 +362,8 @@ export type TrackPlanConnection = {
   portBId: string;
 };
 export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry"
-  | "elevation_mismatch" | "grade_limit_exceeded" | "insufficient_clearance";
+  | "elevation_mismatch" | "grade_limit_exceeded" | "insufficient_clearance"
+  | "flex_radius_below_limit";
 export type TrackPlanIssue = {
   code: TrackPlanIssueCode;
   severity: "warning" | "error";
@@ -366,6 +372,8 @@ export type TrackPlanIssue = {
   elevationDifferenceMm?: number;
   gradePercent?: number;
   gradeLimitPercent?: number;
+  radiusMm?: number;
+  radiusLimitMm?: number;
   clearanceMm?: number;
   clearanceLimitMm?: number;
   intersectionXMm?: number;
@@ -465,6 +473,7 @@ export type CreatePlanTrackObjectInput = {
   rotationDegrees: number;
   elevationStartMm: number;
   elevationEndMm: number;
+  flexPath?: FlexTrackPath;
 };
 export type UpdatePlanTrackObjectInput = {
   positionXMm: number;
@@ -472,7 +481,32 @@ export type UpdatePlanTrackObjectInput = {
   rotationDegrees: number;
   elevationStartMm: number;
   elevationEndMm: number;
+  flexPath?: FlexTrackPath;
   expectedVersion: number;
+};
+export type FlexTrackPath = {
+  schemaVersion: 1;
+  endXMm: number;
+  endYMm: number;
+  endDirectionDegrees: number;
+  startHandleMm: number;
+  endHandleMm: number;
+};
+export type FlexTrackPreviewInput = {
+  endXMm: number;
+  endYMm: number;
+  endDirectionDegrees: number;
+  expectedVersion: number;
+};
+export type FlexTrackPreview = {
+  path: FlexTrackPath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
+  radiusLimitMm: number;
+  lengthExceeded: boolean;
+  radiusBelowLimit: boolean;
+  applicable: boolean;
 };
 
 export type AccessoryTrackingMode = "quantity" | "individual";
@@ -1023,6 +1057,10 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       ),
     updatePlanTrackObject: (id: string, input: UpdatePlanTrackObjectInput) =>
       request<PlanTrackObject>(`/plan-track-objects/${encodeURIComponent(id)}`, json("PUT", input)),
+    previewFlexTrackPath: (id: string, input: FlexTrackPreviewInput) =>
+      request<FlexTrackPreview>(
+        `/plan-track-objects/${encodeURIComponent(id)}/flex-preview`, json("POST", input)
+      ),
     deletePlanTrackObject: (id: string, expectedVersion: number) =>
       request<void>(
         `/plan-track-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,

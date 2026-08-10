@@ -24,6 +24,10 @@ const analysis: TrackPlanAnalysis = {
     {
       code: "insufficient_clearance", severity: "warning", objectIds: ["track-1", "track-3"],
       clearanceMm: 25, clearanceLimitMm: 40, intersectionXMm: 83, intersectionYMm: 0
+    },
+    {
+      code: "flex_radius_below_limit", severity: "warning", objectIds: ["track-4"],
+      radiusMm: 500, radiusLimitMm: 700
     }
   ],
   bom: [{
@@ -48,6 +52,7 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("1 Höhenversatz")).toBeInTheDocument();
     expect(screen.getByText("1 Steigungsüberschreitung")).toBeInTheDocument();
     expect(screen.getByText("1 Abstandsunterschreitung")).toBeInTheDocument();
+    expect(screen.getByText("1 Flexradiuswarnung")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Warnung: Überschneidung" })).toHaveTextContent("!");
     expect(screen.getByRole("button", {
       name: "Warnung: Höhenversatz an Gleisverbindung (2,00 mm)"
@@ -58,6 +63,9 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByRole("button", {
       name: "Warnung: Ebenenabstand 25,00 mm unterschreitet Grenzwert 40,00 mm"
     })).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Warnung: Flexradius 500,00 mm unterschreitet Grenzwert 700,00 mm"
+    })).toHaveTextContent("⌒");
 
     const row = screen.getByRole("row", { name: /Tillig 83101/ });
     const cells = within(row).getAllByRole("cell");
@@ -131,6 +139,7 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("0 Höhenversätze")).toBeInTheDocument();
     expect(screen.getByText("0 Steigungsüberschreitungen")).toBeInTheDocument();
     expect(screen.getByText("0 Abstandsunterschreitungen")).toBeInTheDocument();
+    expect(screen.getByText("0 Flexradiuswarnungen")).toBeInTheDocument();
     expect(screen.getByText("✓ Keine Prüfhinweise")).toBeInTheDocument();
     expect(screen.getByText("Kein Artikel zugeordnet")).toBeInTheDocument();
   });

@@ -1,5 +1,5 @@
 import { PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, PackageCheck, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, PackageCheck, Pencil, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 
 import {
   ApiError,
@@ -7,6 +7,7 @@ import {
   type LayoutUnit,
   type PlanRevision,
   type PlanTrackObject,
+  type FlexTrackPath,
   type TrackGeometryDefinition,
   type TrackPlanAnalysis,
   type TrackPlanChangePreview,
@@ -15,6 +16,7 @@ import {
 import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
+import { FlexTrackEditorDialog } from "./FlexTrackEditorDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
 import { TrackPlanReservationDialog } from "./TrackPlanReservationDialog";
@@ -79,6 +81,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const [pending, setPending] = useState<LayoutPendingAction | null>(null);
   const [elevationStart, setElevationStart] = useState("0");
   const [elevationEnd, setElevationEnd] = useState("0");
+  const [flexEditorID, setFlexEditorID] = useState("");
   const canvasRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const { language, t } = useI18n();
@@ -89,8 +92,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const height = unit.heightMm > 0 ? unit.heightMm : 600;
   const selected = objects.find((object) => object.id === selectedID);
   const analyzedGrade = analysis?.grades.find((grade) => grade.objectId === selected?.id);
-  const selectedGrade = analyzedGrade?.gradePercent ?? (selected && selected.geometry.lengthMm > 0
-    ? (selected.elevationEndMm - selected.elevationStartMm) / selected.geometry.lengthMm * 100
+  const selectedLength = selected?.effectiveLengthMm || selected?.geometry.lengthMm || 0;
+  const selectedGrade = analyzedGrade?.gradePercent ?? (selected && selectedLength > 0
+    ? (selected.elevationEndMm - selected.elevationStartMm) / selectedLength * 100
     : 0);
   const elevationStartValue = elevationStart.trim() === "" ? Number.NaN : Number(elevationStart);
   const elevationEndValue = elevationEnd.trim() === "" ? Number.NaN : Number(elevationEnd);
@@ -149,7 +153,15 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         positionYMm: height / 2,
         rotationDegrees: 0,
         elevationStartMm: 0,
-        elevationEndMm: 0
+        elevationEndMm: 0,
+        ...(geometry.kind === "flex" ? { flexPath: {
+          schemaVersion: 1 as const,
+          endXMm: geometry.lengthMm,
+          endYMm: 0,
+          endDirectionDegrees: 0,
+          startHandleMm: geometry.lengthMm / 3,
+          endHandleMm: geometry.lengthMm / 3
+        } } : {})
       });
       setObjects((current) => [...current, created]);
       setSelectedID(created.id);
@@ -159,18 +171,21 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   };
 
   const update = async (object: PlanTrackObject, positionXMm: number, positionYMm: number,
-    rotationDegrees: number) => {
+    rotationDegrees: number, flexPath: FlexTrackPath | undefined = object.flexPath) => {
     setSaving(true); setMessage(""); setConflict(false);
     try {
       const updated = await api.updatePlanTrackObject(object.id, {
         positionXMm, positionYMm, rotationDegrees,
         elevationStartMm: object.elevationStartMm, elevationEndMm: object.elevationEndMm,
+        ...(flexPath ? { flexPath } : {}),
         expectedVersion: object.version
       });
       setObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
       await refreshDerived();
+      return true;
     } catch (reason) { showError(reason); }
     finally { setSaving(false); }
+    return false;
   };
 
   const canvasPoint = (event: Pick<PointerEvent, "clientX" | "clientY">) => {
@@ -281,16 +296,18 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           <rect width={width} height={height} className="track-canvas-surface" />
           <rect width={width} height={height} fill={`url(#track-grid-${revision.id})`} />
           {objects.map((object) => {
+            const effectiveGeometry = object.effectiveGeometry ?? object.geometry.geometry;
             const objectIssue = analysis?.issues.find((issue) =>
               issue.objectIds.includes(object.id) && ["overlap", "broken_geometry"].includes(issue.code));
             return <g key={object.id} role="button" tabIndex={0}
-              aria-label={`Gleis Tillig ${object.geometry.articleNumber} G1`}
+              aria-label={`Gleis Tillig ${object.geometry.articleNumber} ${object.geometry.kind === "flex"
+                ? object.geometry.name : "G1"}`}
               className={object.id === selectedID ? "track-object selected" : "track-object"}
               transform={trackObjectTransform(object)} onClick={() => setSelectedID(object.id)}
               onPointerDown={(event) => startDrag(event, object)}>
-              {object.geometry.geometry.routes.map((route) => <polyline key={route.id}
+              {effectiveGeometry.routes.map((route) => <polyline key={route.id}
                 points={routePolylinePoints(route.points)} />)}
-              {object.geometry.geometry.ports.map((port) => {
+              {effectiveGeometry.ports.map((port) => {
                 const status = trackPortStatus(analysis, object.id, port.id);
                 return <g key={port.id} className={`track-port status-${status}`} data-status={status}>
                   <circle cx={port.xMm} cy={port.yMm} r="5" />
@@ -298,7 +315,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
                 </g>;
               })}
               {objectIssue ? <text className={`track-object-issue severity-${objectIssue.severity}`}
-                x={object.geometry.lengthMm / 2} y={-12} aria-hidden="true">
+                x={(object.effectiveLengthMm || object.geometry.lengthMm) / 2} y={-12} aria-hidden="true">
                 {objectIssue.code === "broken_geometry" ? "×" : "!"}
               </text> : null}
             </g>;
@@ -314,7 +331,10 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           <dl><div><dt>{t("layouts.trackPlanner.position")}</dt>
             <dd>{selected.positionXMm.toFixed(1)} / {selected.positionYMm.toFixed(1)} mm</dd></div>
             <div><dt>{t("layouts.trackPlanner.rotation")}</dt><dd>{selected.rotationDegrees}°</dd></div>
-            <div><dt>{t("layouts.trackPlanner.length")}</dt><dd>{selected.geometry.lengthMm} mm</dd></div>
+            <div><dt>{t("layouts.trackPlanner.length")}</dt><dd>{formatDecimal(selectedLength)} mm</dd></div>
+            {selected.geometry.kind === "flex" ? <div><dt>{t("layouts.flexEditor.radius")}</dt>
+              <dd>{selected.effectiveMinimumRadiusMm == null ? t("layouts.flexEditor.radiusInfinite")
+                : `${formatDecimal(selected.effectiveMinimumRadiusMm)} mm`}</dd></div> : null}
             {!editable ? <>
               <div><dt>{t("layouts.trackPlanner.elevationStart")}</dt>
                 <dd>{formatDecimal(selected.elevationStartMm)} mm</dd></div>
@@ -342,6 +362,10 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
               onClick={() => rotate(-15)}><RotateCcw size={14} />-15°</button>
             <button type="button" className="secondary-button compact-action" disabled={saving}
               onClick={() => rotate(15)}><RotateCw size={14} />+15°</button>
+            {selected.geometry.kind === "flex" ? <button type="button"
+              className="secondary-button compact-action" disabled={saving}
+              onClick={() => setFlexEditorID(selected.id)}><Pencil size={14} />
+              {t("layouts.flexEditor.open")}</button> : null}
             <button type="button" className="danger-button compact-action" disabled={saving}
               onClick={askDelete}><Trash2 size={14} />{t("layouts.trackPlanner.delete")}</button>
             </> : null}
@@ -362,5 +386,11 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     {reservationMaterial && selected ? <TrackPlanReservationDialog revisionId={revision.id}
       object={selected} material={reservationMaterial} onClose={() => setReservationMaterial(null)}
       onReserved={() => { setReservationMaterial(null); void refreshDerived(); }} /> : null}
+    {flexEditorID && selected?.id === flexEditorID && selected.flexPath ? <FlexTrackEditorDialog
+      object={selected} objects={objects} saving={saving} onClose={() => setFlexEditorID("")}
+      onApply={async (path) => {
+        if (await update(selected, selected.positionXMm, selected.positionYMm,
+          selected.rotationDegrees, path)) setFlexEditorID("");
+      }} /> : null}
   </section>;
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import type { PlanTrackObject, TrackGeometryDefinition } from "../../shared/api";
-import { routePolylinePoints, snapTrackPose, trackObjectTransform } from "./trackPlannerGeometry";
+import { routePolylinePoints, snapFlexEnd, snapTrackPose, trackObjectTransform } from "./trackPlannerGeometry";
 
 const geometry: TrackGeometryDefinition = {
   id: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
@@ -21,6 +21,7 @@ function track(id: string, positionXMm: number, positionYMm = 0, rotationDegrees
   return {
     id, lineageId: id, revisionId: "revision-1", geometryId: geometry.id, geometry,
     positionXMm, positionYMm, rotationDegrees, elevationStartMm: 0, elevationEndMm: 0, version: 1,
+    effectiveGeometry: geometry.geometry, effectiveLengthMm: geometry.lengthMm,
     createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
   };
 }
@@ -50,5 +51,49 @@ describe("track planner geometry", () => {
   it("does not snap outside the distance or direction tolerance", () => {
     expect(snapTrackPose(track("far", 174.01), [track("target", 0)]).snapped).toBe(false);
     expect(snapTrackPose(track("angled", 172, 0, 5.01), [track("target", 0)]).snapped).toBe(false);
+  });
+
+  it("snaps flex track through its effective endpoint instead of the catalogue endpoint", () => {
+    const moving = track("moving", 0);
+    moving.geometry = { ...geometry, kind: "flex", lengthMm: 664 };
+    moving.effectiveGeometry = {
+      schemaVersion: 1,
+      ports: [
+        { id: "a", xMm: 0, yMm: 0, directionDegrees: 180 },
+        { id: "b", xMm: 500, yMm: 0, directionDegrees: 0 }
+      ],
+      routes: []
+    };
+    const target = track("target", 506);
+
+    expect(snapTrackPose(moving, [target])).toMatchObject({
+      snapped: true,
+      movingPortId: "b",
+      targetObjectId: "target",
+      pose: { positionXMm: 6, positionYMm: 0, rotationDegrees: 0 }
+    });
+  });
+
+  it("snaps a dragged flex endpoint to a compatible target without changing the target", () => {
+    const moving = track("moving", 0);
+    const target = track("target", 506);
+    const path = {
+      schemaVersion: 1 as const,
+      endXMm: 500,
+      endYMm: 0,
+      endDirectionDegrees: 0,
+      startHandleMm: 170,
+      endHandleMm: 170
+    };
+
+    const result = snapFlexEnd(moving, path, [moving, target]);
+
+    expect(result).toMatchObject({
+      snapped: true,
+      targetObjectId: "target",
+      targetPortId: "a",
+      path: { endXMm: 506, endYMm: 0, endDirectionDegrees: 0 }
+    });
+    expect(target.positionXMm).toBe(506);
   });
 });
