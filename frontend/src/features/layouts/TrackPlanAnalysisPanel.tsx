@@ -9,7 +9,8 @@ const issueSymbols: Record<TrackPlanIssueCode, string> = {
   overlap: "!",
   broken_geometry: "×",
   elevation_mismatch: "↕",
-  grade_limit_exceeded: "↗"
+  grade_limit_exceeded: "↗",
+  insufficient_clearance: "↕"
 };
 
 function countIssues(analysis: TrackPlanAnalysis, code: TrackPlanIssueCode): number {
@@ -27,6 +28,7 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
   const overlaps = countIssues(analysis, "overlap");
   const elevationMismatches = countIssues(analysis, "elevation_mismatch");
   const gradeLimitExceedances = countIssues(analysis, "grade_limit_exceeded");
+  const clearanceViolations = countIssues(analysis, "insufficient_clearance");
   const numberFormat = new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -46,6 +48,8 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
           : "layouts.trackAnalysis.elevationMismatchMany", { count: elevationMismatches })}</span>
         <span>{t(gradeLimitExceedances === 1 ? "layouts.trackAnalysis.gradeLimitExceededOne"
           : "layouts.trackAnalysis.gradeLimitExceededMany", { count: gradeLimitExceedances })}</span>
+        <span>{t(clearanceViolations === 1 ? "layouts.trackAnalysis.clearanceViolationOne"
+          : "layouts.trackAnalysis.clearanceViolationMany", { count: clearanceViolations })}</span>
       </div>
     </header>
     <div className="track-analysis-grid">
@@ -64,6 +68,12 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
               issueText = t("layouts.trackAnalysis.issueGradeLimitDetail", {
                 grade: numberFormat.format(issue.gradePercent),
                 limit: numberFormat.format(issue.gradeLimitPercent)
+              });
+            } else if (issue.code === "insufficient_clearance" && issue.clearanceMm !== undefined &&
+              issue.clearanceLimitMm !== undefined) {
+              issueText = t("layouts.trackAnalysis.issueClearanceDetail", {
+                clearance: numberFormat.format(issue.clearanceMm),
+                limit: numberFormat.format(issue.clearanceLimitMm)
               });
             }
             const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${issueText}`;

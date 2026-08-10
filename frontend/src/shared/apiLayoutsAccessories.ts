@@ -355,7 +355,7 @@ export type TrackPlanConnection = {
   portBId: string;
 };
 export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry"
-  | "elevation_mismatch" | "grade_limit_exceeded";
+  | "elevation_mismatch" | "grade_limit_exceeded" | "insufficient_clearance";
 export type TrackPlanIssue = {
   code: TrackPlanIssueCode;
   severity: "warning" | "error";
@@ -364,6 +364,10 @@ export type TrackPlanIssue = {
   elevationDifferenceMm?: number;
   gradePercent?: number;
   gradeLimitPercent?: number;
+  clearanceMm?: number;
+  clearanceLimitMm?: number;
+  intersectionXMm?: number;
+  intersectionYMm?: number;
 };
 export type TrackBOMLine = {
   geometryId: string;

@@ -20,6 +20,10 @@ const analysis: TrackPlanAnalysis = {
     {
       code: "grade_limit_exceeded", severity: "warning", objectIds: ["track-2"],
       gradePercent: -5.51, gradeLimitPercent: 3
+    },
+    {
+      code: "insufficient_clearance", severity: "warning", objectIds: ["track-1", "track-3"],
+      clearanceMm: 25, clearanceLimitMm: 40, intersectionXMm: 83, intersectionYMm: 0
     }
   ],
   bom: [{
@@ -43,12 +47,16 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("1 Überschneidung")).toBeInTheDocument();
     expect(screen.getByText("1 Höhenversatz")).toBeInTheDocument();
     expect(screen.getByText("1 Steigungsüberschreitung")).toBeInTheDocument();
+    expect(screen.getByText("1 Abstandsunterschreitung")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Warnung: Überschneidung" })).toHaveTextContent("!");
     expect(screen.getByRole("button", {
       name: "Warnung: Höhenversatz an Gleisverbindung (2,00 mm)"
     })).toBeInTheDocument();
     expect(screen.getByRole("button", {
       name: "Warnung: Steigung -5,51 % überschreitet Grenzwert 3,00 %"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Warnung: Ebenenabstand 25,00 mm unterschreitet Grenzwert 40,00 mm"
     })).toBeInTheDocument();
 
     const row = screen.getByRole("row", { name: /Tillig 83101/ });
@@ -95,6 +103,17 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(selectObject).toHaveBeenCalledWith("track-2");
   });
 
+  it("selects the first affected track from a clearance warning", async () => {
+    const user = userEvent.setup();
+    const selectObject = vi.fn();
+    render(<TrackPlanAnalysisPanel analysis={analysis} onSelectObject={selectObject} />);
+
+    await user.click(screen.getByRole("button", {
+      name: "Warnung: Ebenenabstand 25,00 mm unterschreitet Grenzwert 40,00 mm"
+    }));
+    expect(selectObject).toHaveBeenCalledWith("track-1");
+  });
+
   it("shows a valid empty state and an unmatched catalog requirement", () => {
     render(<TrackPlanAnalysisPanel analysis={{
       revisionId: "revision-1", status: "draft", connections: [], issues: [],
@@ -111,6 +130,7 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("0 Verbindungen")).toBeInTheDocument();
     expect(screen.getByText("0 Höhenversätze")).toBeInTheDocument();
     expect(screen.getByText("0 Steigungsüberschreitungen")).toBeInTheDocument();
+    expect(screen.getByText("0 Abstandsunterschreitungen")).toBeInTheDocument();
     expect(screen.getByText("✓ Keine Prüfhinweise")).toBeInTheDocument();
     expect(screen.getByText("Kein Artikel zugeordnet")).toBeInTheDocument();
   });

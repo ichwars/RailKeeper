@@ -5,6 +5,8 @@
 **Goal:** Einen optionalen Mindestabstand kreuzender Gleise pro Anlage speichern und dessen
 Unterschreitung als präzise, anklickbare Planwarnung anzeigen.
 
+**Status:** lokal vollständig umgesetzt und abgenommen, keine Veröffentlichung
+
 **Architecture:** Die Anlagenkonfiguration trägt den nullable Grenzwert durch SQLite, Backup,
 Anwendung, API und Frontend. Eine neue fokussierte Domänendatei analysiert ausschließlich eindeutig
 interpolierbare zweipolige Routen, liefert pro Objektpaar den kleinsten Abstand und wird von der
@@ -366,7 +368,7 @@ git commit -m "feat(layouts): edit track clearance limit"
 - Consumes: `insufficient_clearance` und die vier numerischen Detailfelder
 - Produces: lokalisierter Zähler, Detailtext und vorhandenes `onSelectObject`-Fokusverhalten
 
-- [ ] **Step 1: Fehlschlagenden Paneltest für Zähler, Detail und Fokus schreiben**
+- [x] **Step 1: Fehlschlagenden Paneltest für Zähler, Detail und Fokus schreiben**
 
 ```tsx
 const issue = {
@@ -387,13 +389,13 @@ await user.click(warning);
 expect(selectObject).toHaveBeenCalledWith("lower");
 ```
 
-- [ ] **Step 2: Paneltest ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Paneltest ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/TrackPlanAnalysisPanel.test.tsx`
 
 Expected: FAIL wegen fehlendem Code, Zähler und Detailtext.
 
-- [ ] **Step 3: Typ, Zähler, Detailtext und Übersetzungen implementieren**
+- [x] **Step 3: Typ, Zähler, Detailtext und Übersetzungen implementieren**
 
 Der TypeScript-Union und `TrackPlanIssue` erhalten Code und Felder. `issueSymbols` erhält `↕`.
 `TrackPlanAnalysisPanel` zählt den Code separat und formatiert Abstand sowie Grenze mit zwei
@@ -401,7 +403,7 @@ Nachkommastellen. Deutsch verwendet „{count} Abstandsunterschreitung(en)“ un
 {clearance} mm unterschreitet Grenzwert {limit} mm“. Englisch verwendet „{count} clearance
 violation(s)“ und „Track separation {clearance} mm is below limit {limit} mm“.
 
-- [ ] **Step 4: Vollständige automatisierte Prüfung ausführen**
+- [x] **Step 4: Vollständige automatisierte Prüfung ausführen**
 
 Run: `cd backend; go test ./...`
 
@@ -411,7 +413,7 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: Alle Go-Pakete, Vitest-Dateien und der Produktionsbuild bestehen.
 
-- [ ] **Step 5: Lokalen Server neu starten und Browserabnahme durchführen**
+- [x] **Step 5: Lokalen Server neu starten und Browserabnahme durchführen**
 
 Die Anlage erhält 40,00 mm Mindestabstand. Zwei G1 werden rechtwinklig mittig gekreuzt; das untere
 liegt bei 0 mm, das obere bei 25 mm. Die Planprüfung muss genau eine Abstandsunterschreitung anzeigen,
@@ -419,7 +421,7 @@ der Detailtext muss 25,00/40,00 mm nennen und der Klick das erste G1 fokussieren
 oberen Gleises auf 40 mm verschwindet der Hinweis und bleibt nach Neuladen entfernt. `/health`
 antwortet 200, die Sitzung bleibt als `codex-test` angemeldet und die Browserkonsole fehlerfrei.
 
-- [ ] **Step 6: Abnahme dokumentieren und lokal committen**
+- [x] **Step 6: Abnahme dokumentieren und lokal committen**
 
 Die Spec erhält Branch, Testzahlen, Buildzahl, Browserwerte, Server-PID und die Bestätigung „kein
 Push, PR oder Merge“. Dieser Plan erhält den Status „lokal vollständig umgesetzt“ und alle erledigten

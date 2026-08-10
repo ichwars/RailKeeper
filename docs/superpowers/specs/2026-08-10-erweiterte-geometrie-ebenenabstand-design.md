@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** lokal zur Umsetzung freigegeben, keine Veröffentlichung
+**Status:** lokal umgesetzt und abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -150,3 +150,18 @@ automatische Höhenkorrektur, Flexgleisoptimierung und Übergangsbögen.
 - Oberfläche, API und OpenAPI zeigen tatsächlichen Abstand, Grenzwert und betroffene Objekte
   konsistent; Anklicken fokussiert das erste Gleis.
 - Backendtests, Frontendtests, Produktionsbuild und lokale Browserprüfung laufen erfolgreich.
+
+## Lokales Abnahmeprotokoll
+
+- Branch: `dev/issue-36-advanced-geometry`, ausschließlich lokal, kein Push, PR oder Merge.
+- Backend: `go test ./...` erfolgreich, 7 Pakete.
+- Frontend: `npm.cmd test -- --run` erfolgreich, 66 Testdateien und 356 Tests.
+- Produktionsbuild: `npm.cmd run build` erfolgreich, 2.173 Module transformiert.
+- Anlagenprofil: Mindestabstand von 40,00 mm gespeichert und nach Neuladen weiterhin sichtbar.
+- Browserprüfung: Zwei Tillig-G1 kreuzen sich rechtwinklig. Bei 25,00 mm Ebenenabstand und
+  40,00 mm Grenzwert erscheint genau eine Abstandsunterschreitung mit den korrekten Werten.
+- Hinweisnavigation: Der Warnhinweis fokussiert das betroffene Gleis im Gleisinspektor.
+- Korrektur: Nach Anheben des oberen Gleises auf exakt 40,00 mm verschwindet der Hinweis und bleibt
+  nach Neuladen entfernt.
+- Laufzeit: lokaler Server auf `127.0.0.1:18083`, Prozess-ID 2032, `/health` antwortet mit HTTP 200.
+- Sitzung: als `codex-test` angemeldet, keine Warnungen oder Fehler in der Browserkonsole.
