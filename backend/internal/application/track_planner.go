@@ -390,6 +390,11 @@ func (service *TrackPlannerService) PreviewFlexPath(
 		EndDirectionDegrees: input.EndDirectionDegrees,
 		MaximumLengthMM:     object.Geometry.LengthMM, RadiusLimitMM: radiusLimit,
 	})
+	if suggestion.Path.SchemaVersion != 1 || suggestion.Effective.LengthMM <= 0 ||
+		suggestion.Effective.Geometry.SchemaVersion != 1 || len(suggestion.Effective.Geometry.Ports) < 2 ||
+		len(suggestion.Effective.Geometry.Routes) == 0 {
+		return nil, ErrTrackPlanValidation
+	}
 	return &FlexTrackPreview{
 		Path: suggestion.Path, EffectiveGeometry: suggestion.Effective.Geometry,
 		EffectiveLengthMM:        suggestion.Effective.LengthMM,

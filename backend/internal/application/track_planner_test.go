@@ -231,6 +231,11 @@ func TestTrackPlannerServicePreviewsFlexPathWithoutMutation(t *testing.T) {
 	}); !errors.Is(err, ErrTrackPlanConflict) {
 		t.Fatalf("expected preview conflict, got %v", err)
 	}
+	if _, err := service.PreviewFlexPath(t.Context(), "flex-1", FlexTrackPreviewInput{
+		EndXMM: 30000, ExpectedVersion: 3,
+	}); !errors.Is(err, ErrTrackPlanValidation) {
+		t.Fatalf("expected invalid flex geometry to be rejected, got %v", err)
+	}
 }
 
 func float64Pointer(value float64) *float64 { return &value }
