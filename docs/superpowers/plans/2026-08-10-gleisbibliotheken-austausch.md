@@ -12,10 +12,10 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 1: Austauschdomäne und Validierung
 
-- [ ] RailKeeper-Bibliotheksdokument, Vorschau, Statusinput und Limits definieren
-- [ ] Strikte Validierung für Format, Schema, Metadaten, URL, Duplikate und Geometrien testen
-- [ ] Domain-Tests grün ausführen
-- [ ] Lokal committen
+- [x] RailKeeper-Bibliotheksdokument, Vorschau, Statusinput und Limits definieren
+- [x] Strikte Validierung für Format, Schema, Metadaten, URL, Duplikate und Geometrien testen
+- [x] Domain-Tests grün ausführen
+- [x] Lokal committen
 
 ## Task 2: Migration und unveränderliche Snapshots
 

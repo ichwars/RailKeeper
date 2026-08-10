@@ -67,15 +67,19 @@ type TrackGeometry struct {
 }
 
 type TrackGeometryLibrary struct {
-	ID           string              `json:"id"`
-	Manufacturer string              `json:"manufacturer"`
-	TrackSystem  string              `json:"trackSystem"`
-	Gauge        string              `json:"gauge"`
-	Scale        string              `json:"scale"`
-	Version      string              `json:"version"`
-	SourceURL    string              `json:"sourceUrl"`
-	Status       TrackGeometryStatus `json:"status"`
-	CreatedAt    string              `json:"createdAt"`
+	ID               string              `json:"id"`
+	Manufacturer     string              `json:"manufacturer"`
+	TrackSystem      string              `json:"trackSystem"`
+	Gauge            string              `json:"gauge"`
+	Scale            string              `json:"scale"`
+	Version          string              `json:"version"`
+	SourceURL        string              `json:"sourceUrl"`
+	Status           TrackGeometryStatus `json:"status"`
+	VerificationNote string              `json:"verificationNote"`
+	VerifiedAt       string              `json:"verifiedAt,omitempty"`
+	VerifiedBy       string              `json:"verifiedBy,omitempty"`
+	DefinitionCount  int                 `json:"definitionCount"`
+	CreatedAt        string              `json:"createdAt"`
 }
 
 type TrackGeometryDefinition struct {
