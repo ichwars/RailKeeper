@@ -2872,6 +2872,24 @@ components:
           type: number
           format: double
           exclusiveMinimum: 0
+    TransitionCurvePath:
+      type: object
+      required: [schemaVersion, lengthMm, endRadiusMm, direction]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        direction:
+          type: string
+          enum: [left, right]
     PlanTrackObject:
       type: object
       required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, effectiveGeometry, effectiveLengthMm, version, createdAt, updatedAt]
@@ -2903,6 +2921,8 @@ components:
           format: double
         flexPath:
           $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
         effectiveGeometry:
           $ref: "#/components/schemas/TrackGeometry"
         effectiveLengthMm:
@@ -3280,6 +3300,8 @@ components:
           format: double
         flexPath:
           $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
     UpdatePlanTrackObjectInput:
       type: object
       required: [positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, expectedVersion]
@@ -3301,6 +3323,8 @@ components:
           format: double
         flexPath:
           $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
         expectedVersion:
           type: integer
           minimum: 1
@@ -3332,6 +3356,50 @@ components:
           type: number
           format: double
           minimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lengthExceeded:
+          type: boolean
+        radiusBelowLimit:
+          type: boolean
+        applicable:
+          type: boolean
+    TransitionCurvePreviewInput:
+      type: object
+      required: [lengthMm, endRadiusMm, direction, expectedVersion]
+      properties:
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        direction:
+          type: string
+          enum: [left, right]
+        expectedVersion:
+          type: integer
+          minimum: 1
+    TransitionCurvePreview:
+      type: object
+      required: [path, effectiveGeometry, effectiveLengthMm, radiusLimitMm, lengthExceeded, radiusBelowLimit, applicable]
+      properties:
+        path:
+          $ref: "#/components/schemas/TransitionCurvePath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
         effectiveMinimumRadiusMm:
           type: [number, "null"]
           format: double
@@ -6436,6 +6504,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/FlexTrackPreview"
+        "400":
+          description: Preview data or object type is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Track object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}/transition-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview a deterministic transition curve without saving it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionCurvePreviewInput"
+      responses:
+        "200":
+          description: Transition curve preview calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransitionCurvePreview"
         "400":
           description: Preview data or object type is invalid
           content:

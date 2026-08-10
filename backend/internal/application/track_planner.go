@@ -63,6 +63,24 @@ type FlexTrackPreview struct {
 	Applicable               bool                 `json:"applicable"`
 }
 
+type TransitionCurvePreviewInput struct {
+	LengthMM        float64                    `json:"lengthMm"`
+	EndRadiusMM     float64                    `json:"endRadiusMm"`
+	Direction       domain.TransitionDirection `json:"direction"`
+	ExpectedVersion int                        `json:"expectedVersion"`
+}
+
+type TransitionCurvePreview struct {
+	Path                     domain.TransitionCurvePath `json:"path"`
+	EffectiveGeometry        domain.TrackGeometry       `json:"effectiveGeometry"`
+	EffectiveLengthMM        float64                    `json:"effectiveLengthMm"`
+	EffectiveMinimumRadiusMM *float64                   `json:"effectiveMinimumRadiusMm,omitempty"`
+	RadiusLimitMM            float64                    `json:"radiusLimitMm"`
+	LengthExceeded           bool                       `json:"lengthExceeded"`
+	RadiusBelowLimit         bool                       `json:"radiusBelowLimit"`
+	Applicable               bool                       `json:"applicable"`
+}
+
 type TrackMaterialStatus struct {
 	GeometryID        string   `json:"geometryId"`
 	Manufacturer      string   `json:"manufacturer"`
@@ -419,6 +437,65 @@ func (service *TrackPlannerService) PreviewFlexPath(
 		EffectiveMinimumRadiusMM: suggestion.Effective.MinimumRadiusMM,
 		RadiusLimitMM:            radiusLimit, LengthExceeded: suggestion.LengthExceeded,
 		RadiusBelowLimit: suggestion.RadiusBelowLimit, Applicable: suggestion.Applicable,
+	}, nil
+}
+
+func (service *TrackPlannerService) PreviewTransitionCurve(
+	ctx context.Context,
+	id string,
+	input TransitionCurvePreviewInput,
+) (*TransitionCurvePreview, error) {
+	id = strings.TrimSpace(id)
+	if id == "" || input.ExpectedVersion < 1 || !validTrackCoordinates(
+		input.LengthMM, input.EndRadiusMM,
+	) || input.LengthMM <= 0 || input.EndRadiusMM <= 0 || !input.Direction.Valid() {
+		return nil, ErrTrackPlanValidation
+	}
+	plan, err := service.repository.GetPlanForObject(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	var object *domain.PlanTrackObject
+	for index := range plan.Objects {
+		if plan.Objects[index].ID == id {
+			object = &plan.Objects[index]
+			break
+		}
+	}
+	if object == nil {
+		return nil, ErrTrackPlanNotFound
+	}
+	if object.Version != input.ExpectedVersion {
+		return nil, ErrTrackPlanConflict
+	}
+	if object.Geometry.Kind != domain.TrackGeometryFlex || object.Geometry.MinimumRadiusMM == nil {
+		return nil, ErrTrackPlanValidation
+	}
+	radiusLimit := *object.Geometry.MinimumRadiusMM
+	if plan.Limits.MinimumFlexRadiusMM != nil && *plan.Limits.MinimumFlexRadiusMM > radiusLimit {
+		radiusLimit = *plan.Limits.MinimumFlexRadiusMM
+	}
+	path := domain.TransitionCurvePath{
+		SchemaVersion: 1,
+		LengthMM:      input.LengthMM,
+		EndRadiusMM:   input.EndRadiusMM,
+		Direction:     input.Direction,
+	}
+	effective, err := domain.BuildTransitionTrackGeometry(path)
+	if err != nil || effective.LengthMM <= 0 || effective.Geometry.SchemaVersion != 1 ||
+		len(effective.Geometry.Ports) < 2 || len(effective.Geometry.Routes) == 0 {
+		return nil, ErrTrackPlanValidation
+	}
+	lengthExceeded := effective.LengthMM > object.Geometry.LengthMM
+	radiusBelowLimit := input.EndRadiusMM < radiusLimit
+	return &TransitionCurvePreview{
+		Path: path, EffectiveGeometry: effective.Geometry,
+		EffectiveLengthMM:        effective.LengthMM,
+		EffectiveMinimumRadiusMM: effective.MinimumRadiusMM,
+		RadiusLimitMM:            radiusLimit,
+		LengthExceeded:           lengthExceeded,
+		RadiusBelowLimit:         radiusBelowLimit,
+		Applicable:               !lengthExceeded,
 	}, nil
 }
 

@@ -99,6 +99,23 @@ func TestTrackPlannerRoutesEnforceRolesAndCSRF(t *testing.T) {
 			"endXMm": 500, "endYMm": 100, "expectedVersion": 1,
 		}, false)
 	assertProblem(t, previewWithoutCSRF, http.StatusForbidden, "csrf_required")
+
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/plan-track-objects/missing/transition-preview", map[string]any{
+				"lengthMm": 500, "endRadiusMm": 700, "direction": "left", "expectedVersion": 1,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusNotFound
+		}
+		assertStatus(t, response, want)
+	}
+	transitionWithoutCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/plan-track-objects/missing/transition-preview", map[string]any{
+			"lengthMm": 500, "endRadiusMm": 700, "direction": "left", "expectedVersion": 1,
+		}, false)
+	assertProblem(t, transitionWithoutCSRF, http.StatusForbidden, "csrf_required")
 }
 
 func TestTrackPlannerFlexPreviewAndUpdateWorkflow(t *testing.T) {
@@ -152,6 +169,64 @@ func TestTrackPlannerFlexPreviewAndUpdateWorkflow(t *testing.T) {
 	staleResponse := layoutRequest(t, router, session, http.MethodPost,
 		"/api/v1/plan-track-objects/"+created.ID+"/flex-preview", map[string]any{
 			"endXMm": 400, "endYMm": 80, "endDirectionDegrees": 10,
+			"expectedVersion": created.Version,
+		}, true)
+	assertProblem(t, staleResponse, http.StatusConflict, "track_plan_conflict")
+}
+
+func TestTrackPlannerTransitionPreviewAndUpdateWorkflow(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "planner-transition", Password: "planner-password", Roles: []string{"Planner"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session := loginRouteTestUser(t, auth, "planner-transition", "planner-password")
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	router := NewRouter(Config{AuthService: auth, LayoutService: layouts, TrackPlannerService: planner})
+	_, draft := trackPlannerRouteRevision(t, layouts)
+	path := map[string]any{
+		"schemaVersion": 1, "endXMm": 664, "endYMm": 0, "endDirectionDegrees": 0,
+		"startHandleMm": 664.0 / 3, "endHandleMm": 664.0 / 3,
+	}
+	createdResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-objects", map[string]any{
+			"geometryId": "tillig-tt-modellgleis-83125-v1", "flexPath": path,
+		}, true)
+	assertStatus(t, createdResponse, http.StatusCreated)
+	var created domain.PlanTrackObject
+	decodeResponse(t, createdResponse, &created)
+
+	previewResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-track-objects/"+created.ID+"/transition-preview", map[string]any{
+			"lengthMm": 500, "endRadiusMm": 700, "direction": "left",
+			"expectedVersion": created.Version,
+		}, true)
+	assertStatus(t, previewResponse, http.StatusOK)
+	var preview application.TransitionCurvePreview
+	decodeResponse(t, previewResponse, &preview)
+	if !preview.Applicable || preview.Path.Direction != domain.TransitionLeft ||
+		preview.EffectiveLengthMM != 500 {
+		t.Fatalf("unexpected transition preview: %#v", preview)
+	}
+
+	updatedResponse := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/plan-track-objects/"+created.ID, map[string]any{
+			"transitionPath": preview.Path, "expectedVersion": created.Version,
+		}, true)
+	assertStatus(t, updatedResponse, http.StatusOK)
+	var updated domain.PlanTrackObject
+	decodeResponse(t, updatedResponse, &updated)
+	if updated.TransitionPath == nil || updated.FlexPath != nil ||
+		updated.TransitionPath.EndRadiusMM != 700 || updated.Version != 2 {
+		t.Fatalf("unexpected transition update: %#v", updated)
+	}
+
+	staleResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/plan-track-objects/"+created.ID+"/transition-preview", map[string]any{
+			"lengthMm": 400, "endRadiusMm": 800, "direction": "right",
 			"expectedVersion": created.Version,
 		}, true)
 	assertProblem(t, staleResponse, http.StatusConflict, "track_plan_conflict")

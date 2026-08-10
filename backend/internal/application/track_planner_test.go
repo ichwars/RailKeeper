@@ -238,6 +238,67 @@ func TestTrackPlannerServicePreviewsFlexPathWithoutMutation(t *testing.T) {
 	}
 }
 
+func TestTrackPlannerServicePreviewsTransitionCurveWithoutMutation(t *testing.T) {
+	flex := domain.PlanTrackObject{
+		ID: "flex-1", Version: 3,
+		Geometry: domain.TrackGeometryDefinition{
+			ID: "flex-definition", Kind: domain.TrackGeometryFlex, LengthMM: 664,
+			MinimumRadiusMM: float64Pointer(543),
+		},
+	}
+	repository := &trackPlannerRepositorySpy{planForObject: &TrackPlan{
+		Objects: []domain.PlanTrackObject{flex},
+		Limits:  domain.TrackPlanLimits{MinimumFlexRadiusMM: float64Pointer(700)},
+	}}
+	service := NewTrackPlannerService(repository)
+	preview, err := service.PreviewTransitionCurve(t.Context(), " flex-1 ", TransitionCurvePreviewInput{
+		LengthMM: 500, EndRadiusMM: 700, Direction: domain.TransitionLeft, ExpectedVersion: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Path.LengthMM != 500 || preview.Path.EndRadiusMM != 700 ||
+		preview.EffectiveLengthMM != 500 || preview.EffectiveMinimumRadiusMM == nil ||
+		*preview.EffectiveMinimumRadiusMM != 700 || preview.RadiusLimitMM != 700 ||
+		preview.LengthExceeded || preview.RadiusBelowLimit || !preview.Applicable {
+		t.Fatalf("unexpected transition preview: %#v", preview)
+	}
+	if repository.updated.ExpectedVersion != 0 {
+		t.Fatalf("preview mutated repository: %#v", repository.updated)
+	}
+
+	overlength, err := service.PreviewTransitionCurve(t.Context(), "flex-1", TransitionCurvePreviewInput{
+		LengthMM: 665, EndRadiusMM: 700, Direction: domain.TransitionRight, ExpectedVersion: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !overlength.LengthExceeded || overlength.Applicable {
+		t.Fatalf("expected overlength transition to be inapplicable: %#v", overlength)
+	}
+
+	tight, err := service.PreviewTransitionCurve(t.Context(), "flex-1", TransitionCurvePreviewInput{
+		LengthMM: 500, EndRadiusMM: 600, Direction: domain.TransitionRight, ExpectedVersion: 3,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !tight.RadiusBelowLimit || !tight.Applicable {
+		t.Fatalf("expected tight transition warning without blocking: %#v", tight)
+	}
+
+	if _, err := service.PreviewTransitionCurve(t.Context(), "flex-1", TransitionCurvePreviewInput{
+		LengthMM: 500, EndRadiusMM: 700, Direction: domain.TransitionLeft, ExpectedVersion: 2,
+	}); !errors.Is(err, ErrTrackPlanConflict) {
+		t.Fatalf("expected transition preview conflict, got %v", err)
+	}
+	if _, err := service.PreviewTransitionCurve(t.Context(), "flex-1", TransitionCurvePreviewInput{
+		LengthMM: 500, EndRadiusMM: 700, Direction: "invalid", ExpectedVersion: 3,
+	}); !errors.Is(err, ErrTrackPlanValidation) {
+		t.Fatalf("expected invalid transition direction to be rejected, got %v", err)
+	}
+}
+
 func float64Pointer(value float64) *float64 { return &value }
 
 func TestTrackPlannerSnapAppliesNearestCompatiblePose(t *testing.T) {

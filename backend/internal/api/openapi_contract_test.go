@@ -138,6 +138,30 @@ func TestOpenAPIDocumentsFlexTrackPreview(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsTransitionCurvePreview(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{
+		"TransitionCurvePath", "TransitionCurvePreviewInput", "TransitionCurvePreview",
+	} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	for _, schema := range []string{"PlanTrackObject", "CreatePlanTrackObjectInput", "UpdatePlanTrackObjectInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "transitionPath:") {
+			t.Errorf("%s is missing transitionPath: %s", schema, block)
+		}
+	}
+	if !strings.Contains(contract, "  /plan-track-objects/{id}/transition-preview:\n") {
+		t.Error("OpenAPI contract is missing transition preview path")
+	}
+}
+
 func TestOpenAPIDocumentsLayoutGradeLimitAndWarning(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

@@ -102,6 +102,19 @@ func (a *App) previewFlexTrackPath(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, preview)
 }
 
+func (a *App) previewTransitionCurve(w http.ResponseWriter, r *http.Request) {
+	var input application.TransitionCurvePreviewInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	preview, err := a.trackPlannerService.PreviewTransitionCurve(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		a.trackPlannerError(w, err, "preview transition curve")
+		return
+	}
+	respondJSON(w, http.StatusOK, preview)
+}
+
 func (a *App) deletePlanTrackObject(w http.ResponseWriter, r *http.Request) {
 	expectedVersion, err := strconv.Atoi(r.URL.Query().Get("expectedVersion"))
 	if err != nil {
