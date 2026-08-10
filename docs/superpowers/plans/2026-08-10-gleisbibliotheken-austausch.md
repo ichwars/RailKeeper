@@ -37,11 +37,11 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 4: API und OpenAPI
 
-- [ ] Handler-, Rollen-, CSRF-, Größen- und Fehlervertragstests schreiben
-- [ ] Fünf versionierte Routen registrieren
-- [ ] OpenAPI-Pfade und vollständige Schemas ergänzen
-- [ ] OpenAPI-Vertrag und Backendtests grün ausführen
-- [ ] Lokal committen
+- [x] Handler-, Rollen-, CSRF-, Größen- und Fehlervertragstests schreiben
+- [x] Fünf versionierte Routen registrieren
+- [x] OpenAPI-Pfade und vollständige Schemas ergänzen
+- [x] OpenAPI-Vertrag und Backendtests grün ausführen
+- [x] Lokal committen
 
 ## Task 5: Strikter Client und Planeroberfläche
 

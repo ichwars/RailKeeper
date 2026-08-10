@@ -2848,6 +2848,172 @@ components:
         createdAt:
           type: string
           format: date-time
+    TrackGeometryLibrary:
+      type: object
+      required:
+        [id, manufacturer, trackSystem, gauge, scale, version, sourceUrl, status,
+         verificationNote, definitionCount, createdAt]
+      properties:
+        id:
+          type: string
+        manufacturer:
+          type: string
+        trackSystem:
+          type: string
+        gauge:
+          type: string
+        scale:
+          type: string
+        version:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [draft, verified, retired]
+        verificationNote:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        verifiedBy:
+          type: string
+        definitionCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+    TrackLibraryPackageMetadata:
+      type: object
+      additionalProperties: false
+      required: [manufacturer, trackSystem, gauge, scale, version, sourceUrl, status]
+      properties:
+        manufacturer:
+          type: string
+          minLength: 1
+          maxLength: 120
+        trackSystem:
+          type: string
+          minLength: 1
+          maxLength: 120
+        gauge:
+          type: string
+          minLength: 1
+          maxLength: 32
+        scale:
+          type: string
+          minLength: 1
+          maxLength: 32
+        version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        sourceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        status:
+          type: string
+          enum: [draft, verified, retired]
+    TrackLibraryPackageDefinition:
+      type: object
+      additionalProperties: false
+      required: [articleNumber, name, kind, lengthMm, geometry, sourceUrl, status]
+      properties:
+        articleNumber:
+          type: string
+          minLength: 1
+          maxLength: 80
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        kind:
+          type: string
+          enum: [straight, curve, turnout, crossing, flex]
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100000
+        minimumRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100000
+        geometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        sourceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        status:
+          type: string
+          enum: [draft, verified, retired]
+    TrackLibraryPackage:
+      type: object
+      additionalProperties: false
+      required: [format, schemaVersion, library, definitions]
+      properties:
+        format:
+          type: string
+          const: railkeeper.track-library
+        schemaVersion:
+          type: integer
+          const: 1
+        exportedAt:
+          type: string
+          format: date-time
+        library:
+          $ref: "#/components/schemas/TrackLibraryPackageMetadata"
+        definitions:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/TrackLibraryPackageDefinition"
+    TrackLibraryImportPreview:
+      type: object
+      required: [package, definitionCount, warnings, conflict, canImport]
+      properties:
+        package:
+          $ref: "#/components/schemas/TrackLibraryPackage"
+        definitionCount:
+          type: integer
+          minimum: 1
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [verification_status_reset]
+        conflict:
+          type: boolean
+        canImport:
+          type: boolean
+    ImportTrackLibraryInput:
+      type: object
+      additionalProperties: false
+      required: [confirmed, package]
+      properties:
+        confirmed:
+          type: boolean
+        package:
+          $ref: "#/components/schemas/TrackLibraryPackage"
+    UpdateTrackLibraryStatusInput:
+      type: object
+      additionalProperties: false
+      required: [confirmed, status, verificationNote]
+      properties:
+        confirmed:
+          type: boolean
+        status:
+          type: string
+          enum: [verified, retired]
+        verificationNote:
+          type: string
+          maxLength: 500
     FlexTrackPath:
       type: object
       required: [schemaVersion, endXMm, endYMm, endDirectionDegrees, startHandleMm, endHandleMm]
@@ -6451,6 +6617,177 @@ paths:
                   $ref: "#/components/schemas/TrackGeometryDefinition"
         "400":
           description: Gauge is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries:
+    get:
+      tags: [Layouts]
+      summary: List installed versioned track libraries
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Installed track library list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackGeometryLibrary"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/{id}/export:
+    get:
+      tags: [Layouts]
+      summary: Export one library as versioned RailKeeper JSON
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portable RailKeeper track library document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackLibraryPackage"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track library not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/import/preview:
+    post:
+      tags: [Layouts]
+      summary: Validate an untrusted track library without writing data
+      description: Admin role and CSRF token required. The request is limited to 4 MiB.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackLibraryPackage"
+      responses:
+        "200":
+          description: Normalized import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackLibraryImportPreview"
+        "400":
+          description: Invalid JSON or track library document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/import:
+    post:
+      tags: [Layouts]
+      summary: Import a reviewed document as a non-placeable draft library
+      description: Admin role, explicit confirmation, and CSRF token required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportTrackLibraryInput"
+      responses:
+        "201":
+          description: Draft track library imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackGeometryLibrary"
+        "400":
+          description: Invalid or unconfirmed import
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: The same manufacturer, system, gauge, and version already exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/{id}/status:
+    put:
+      tags: [Layouts]
+      summary: Verify or retire a track library
+      description: Admin role, explicit confirmation, and CSRF token required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTrackLibraryStatusInput"
+      responses:
+        "200":
+          description: Updated track library status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackGeometryLibrary"
+        "400":
+          description: Invalid status transition or missing verification note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track library not found
           content:
             application/json:
               schema:
