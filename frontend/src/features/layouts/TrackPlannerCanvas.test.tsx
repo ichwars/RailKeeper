@@ -6,6 +6,7 @@ import {
   ApiError,
   api,
   type LayoutUnit,
+  type PlanFreeObject,
   type PlanRevision,
   type PlanTrackObject,
   type TrackGeometryDefinition
@@ -41,6 +42,12 @@ const trackObject: PlanTrackObject = {
   elevationStartMm: 5, elevationEndMm: 9.15, version: 1,
   effectiveGeometry: geometry.geometry, effectiveLengthMm: 166,
   createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
+};
+const freeObject: PlanFreeObject = {
+  id: "free-1", lineageId: "free-1", revisionId: draft.id, name: "Bahnsteig",
+  category: "platform", positionXMm: 600, positionYMm: 250, rotationDegrees: 0,
+  shape: { schemaVersion: 1, kind: "rectangle", widthMm: 400, heightMm: 65 },
+  version: 1, createdAt: "2026-08-10T00:00:00Z", updatedAt: "2026-08-10T00:00:00Z"
 };
 
 const flexGeometry: TrackGeometryDefinition = {
@@ -122,6 +129,81 @@ describe("TrackPlannerCanvas", () => {
     expect(placed).toHaveAttribute("transform", "translate(517 250) rotate(0)");
     expect(placed.querySelector("polyline")).toHaveAttribute("points", "0,0 166,0");
     expect(placed.querySelectorAll("circle")).toHaveLength(2);
+  });
+
+  it("creates, drags, rotates, edits and deletes free plan objects", async () => {
+    const user = userEvent.setup();
+    const create = vi.spyOn(api, "createFreePlanObject").mockResolvedValue(freeObject);
+    const update = vi.spyOn(api, "updateFreePlanObject").mockImplementation(async (_id, input) => ({
+      ...freeObject, ...input, version: input.expectedVersion + 1
+    }));
+    const remove = vi.spyOn(api, "deleteFreePlanObject").mockResolvedValue(undefined);
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    const canvas = await screen.findByRole("img", { name: "Maßhaltiger Gleisplan für Bahnhofsmodul" });
+    await user.click(screen.getByRole("button", { name: "Planobjekt hinzufügen" }));
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Bahnsteig");
+    await user.click(screen.getByRole("button", { name: "Planobjekt speichern" }));
+    await waitFor(() => expect(create).toHaveBeenCalledWith(draft.id, expect.objectContaining({
+      name: "Bahnsteig", positionXMm: 600, positionYMm: 250
+    })));
+
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      left: 0, top: 0, width: 1200, height: 500, right: 1200, bottom: 500, x: 0, y: 0,
+      toJSON: () => ({})
+    });
+    const placed = await screen.findByRole("button", { name: "Bahnsteig" });
+    fireEvent.pointerDown(placed, { pointerId: 7, clientX: 600, clientY: 250 });
+    fireEvent.pointerMove(canvas, { pointerId: 7, clientX: 700, clientY: 300 });
+    fireEvent.pointerUp(canvas, { pointerId: 7, clientX: 700, clientY: 300 });
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(update).toHaveBeenNthCalledWith(1, freeObject.id, expect.objectContaining({
+      positionXMm: 700, positionYMm: 300, expectedVersion: 1
+    }));
+
+    await user.click(screen.getByRole("button", { name: "+15°" }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(update).toHaveBeenNthCalledWith(2, freeObject.id, expect.objectContaining({
+      rotationDegrees: 15, expectedVersion: 2
+    }));
+    await user.click(screen.getByRole("button", { name: "Planobjekt bearbeiten" }));
+    const name = screen.getByRole("textbox", { name: "Name" });
+    await user.clear(name);
+    await user.type(name, "Bahnsteig 1");
+    await user.click(screen.getByRole("button", { name: "Planobjekt speichern" }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(3));
+    expect(update).toHaveBeenNthCalledWith(3, freeObject.id, expect.objectContaining({
+      name: "Bahnsteig 1", expectedVersion: 3
+    }));
+
+    await user.click(screen.getByRole("button", { name: "Planobjekt löschen" }));
+    const dialog = screen.getByRole("dialog", { name: "Planobjekt löschen?" });
+    await user.click(within(dialog).getByRole("button", { name: "Löschen" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith(freeObject.id, 4));
+  });
+
+  it("keeps track and free-object selection exclusive and reloads free-object conflicts", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [trackObject], freeObjects: [freeObject]
+    });
+    vi.spyOn(api, "updateFreePlanObject").mockRejectedValue(
+      new ApiError("changed", "track_plan_conflict", 409)
+    );
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole("button", { name: "Bahnsteig" }));
+    expect(screen.getByRole("heading", { name: "Bahnsteig" })).toBeInTheDocument();
+    const track = screen.getByRole("button", { name: "Gleis Tillig 83101 G1" });
+    await user.click(track);
+    expect(screen.queryByRole("heading", { name: "Bahnsteig" })).not.toBeInTheDocument();
+    expect(track).toHaveClass("selected");
+    expect(screen.getByRole("button", { name: "Bahnsteig" })).toHaveAttribute("aria-pressed", "false");
+    await user.click(screen.getByRole("button", { name: "Bahnsteig" }));
+    await user.click(screen.getByRole("button", { name: "+15°" }));
+    expect(await screen.findByText("Der Gleisplan wurde zwischenzeitlich geändert.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Serverstand neu laden" }));
+    await waitFor(() => expect(api.trackPlan).toHaveBeenCalledTimes(2));
   });
 
   it("moves on pointer release, rotates by 15 degrees and confirms deletion", async () => {

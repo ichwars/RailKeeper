@@ -1,10 +1,12 @@
 import { PointerEvent as ReactPointerEvent, useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ExternalLink, PackageCheck, Pencil, RotateCcw, RotateCw, Trash2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, PackageCheck, Pencil, Plus, RotateCcw, RotateCw, Trash2 } from "lucide-react";
 
 import {
   ApiError,
   api,
   type LayoutUnit,
+  type CreateFreePlanObjectInput,
+  type PlanFreeObject,
   type PlanRevision,
   type PlanTrackObject,
   type FlexTrackPath,
@@ -18,6 +20,9 @@ import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { FlexTrackEditorDialog } from "./FlexTrackEditorDialog";
+import { FreePlanObjectDialog } from "./FreePlanObjectDialog";
+import { FreePlanObjectInspector } from "./FreePlanObjectInspector";
+import { FreePlanObjectLayer } from "./FreePlanObjectLayer";
 import { TransitionCurveEditorDialog } from "./TransitionCurveEditorDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
@@ -31,6 +36,12 @@ import {
 
 type DragState = {
   object: PlanTrackObject;
+  offsetX: number;
+  offsetY: number;
+};
+
+type FreeDragState = {
+  object: PlanFreeObject;
   offsetX: number;
   offsetY: number;
 };
@@ -90,10 +101,12 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
 }) {
   const [geometries, setGeometries] = useState<TrackGeometryDefinition[]>([]);
   const [objects, setObjects] = useState<PlanTrackObject[]>([]);
+  const [freeObjects, setFreeObjects] = useState<PlanFreeObject[]>([]);
   const [analysis, setAnalysis] = useState<TrackPlanAnalysis | null>(null);
   const [preview, setPreview] = useState<TrackPlanChangePreview | null>(null);
   const [reservationMaterial, setReservationMaterial] = useState<TrackMaterialStatus | null>(null);
   const [selectedID, setSelectedID] = useState("");
+  const [selectedFreeObjectID, setSelectedFreeObjectID] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -103,8 +116,10 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const [elevationEnd, setElevationEnd] = useState("0");
   const [flexEditorID, setFlexEditorID] = useState("");
   const [transitionEditorID, setTransitionEditorID] = useState("");
+  const [freeObjectDialog, setFreeObjectDialog] = useState<"" | "create" | "edit">("");
   const canvasRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
+  const freeDragRef = useRef<FreeDragState | null>(null);
   const { language, t } = useI18n();
   const genericError = t("layouts.error.generic");
   const editable = canPlan && revision.status === "draft";
@@ -112,6 +127,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const width = unit.widthMm > 0 ? unit.widthMm : 1000;
   const height = unit.heightMm > 0 ? unit.heightMm : 600;
   const selected = objects.find((object) => object.id === selectedID);
+  const selectedFreeObject = freeObjects.find((object) => object.id === selectedFreeObjectID);
   const analyzedGrade = analysis?.grades.find((grade) => grade.objectId === selected?.id);
   const selectedLength = selected?.effectiveLengthMm || selected?.geometry.lengthMm || 0;
   const selectedGrade = analyzedGrade?.gradePercent ?? (selected && selectedLength > 0
@@ -146,9 +162,12 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
       ]);
       setGeometries(nextGeometries.filter((geometry) => geometry.status === "verified"));
       setObjects(plan.objects);
+      setFreeObjects(plan.freeObjects);
       setAnalysis(nextAnalysis);
       setPreview(nextPreview);
       setSelectedID((current) => plan.objects.some((object) => object.id === current) ? current : "");
+      setSelectedFreeObjectID((current) => plan.freeObjects.some((object) => object.id === current)
+        ? current : "");
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : genericError);
     } finally {
@@ -212,6 +231,43 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     return false;
   };
 
+  const updateFreeObject = async (object: PlanFreeObject, input: CreateFreePlanObjectInput) => {
+    setSaving(true); setMessage(""); setConflict(false);
+    try {
+      const updated = await api.updateFreePlanObject(object.id, {
+        ...input, expectedVersion: object.version
+      });
+      setFreeObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
+      await refreshDerived();
+      return true;
+    } catch (reason) { showError(reason); }
+    finally { setSaving(false); }
+    return false;
+  };
+
+  const createFreeObject = async (input: CreateFreePlanObjectInput) => {
+    setSaving(true); setMessage(""); setConflict(false);
+    try {
+      const created = await api.createFreePlanObject(revision.id, input);
+      setFreeObjects((current) => [...current, created]);
+      setSelectedID("");
+      setSelectedFreeObjectID(created.id);
+      setFreeObjectDialog("");
+      await refreshDerived();
+    } catch (reason) { showError(reason); }
+    finally { setSaving(false); }
+  };
+
+  const freeObjectInput = (object: PlanFreeObject, values: Partial<CreateFreePlanObjectInput> = {}) => ({
+    name: object.name,
+    category: object.category,
+    positionXMm: object.positionXMm,
+    positionYMm: object.positionYMm,
+    rotationDegrees: object.rotationDegrees,
+    shape: object.shape,
+    ...values
+  });
+
   const canvasPoint = (event: Pick<PointerEvent, "clientX" | "clientY">) => {
     const bounds = canvasRef.current?.getBoundingClientRect();
     if (!bounds || bounds.width <= 0 || bounds.height <= 0) return { x: 0, y: 0 };
@@ -227,9 +283,28 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     const point = canvasPoint(event.nativeEvent);
     dragRef.current = { object, offsetX: point.x - object.positionXMm, offsetY: point.y - object.positionYMm };
     setSelectedID(object.id);
+    setSelectedFreeObjectID("");
+  };
+
+  const startFreeDrag = (event: ReactPointerEvent<SVGGElement>, object: PlanFreeObject) => {
+    if (!editable || saving) return;
+    event.preventDefault();
+    const point = canvasPoint(event.nativeEvent);
+    freeDragRef.current = { object, offsetX: point.x - object.positionXMm, offsetY: point.y - object.positionYMm };
+    setSelectedID("");
+    setSelectedFreeObjectID(object.id);
   };
 
   const moveDrag = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const freeDrag = freeDragRef.current;
+    if (freeDrag) {
+      const point = canvasPoint(event.nativeEvent);
+      const positionXMm = Math.max(0, Math.min(width, point.x - freeDrag.offsetX));
+      const positionYMm = Math.max(0, Math.min(height, point.y - freeDrag.offsetY));
+      setFreeObjects((current) => current.map((item) => item.id === freeDrag.object.id
+        ? { ...item, positionXMm, positionYMm } : item));
+      return;
+    }
     const drag = dragRef.current;
     if (!drag) return;
     const point = canvasPoint(event.nativeEvent);
@@ -241,6 +316,19 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   };
 
   const finishDrag = (event: ReactPointerEvent<SVGSVGElement>) => {
+    const freeDrag = freeDragRef.current;
+    if (freeDrag) {
+      freeDragRef.current = null;
+      const point = canvasPoint(event.nativeEvent);
+      const positionXMm = Math.max(0, Math.min(width, point.x - freeDrag.offsetX));
+      const positionYMm = Math.max(0, Math.min(height, point.y - freeDrag.offsetY));
+      setFreeObjects((current) => current.map((item) => item.id === freeDrag.object.id
+        ? { ...item, positionXMm, positionYMm } : item));
+      if (positionXMm !== freeDrag.object.positionXMm || positionYMm !== freeDrag.object.positionYMm) {
+        void updateFreeObject(freeDrag.object, freeObjectInput(freeDrag.object, { positionXMm, positionYMm }));
+      }
+      return;
+    }
     const drag = dragRef.current;
     if (!drag) return;
     dragRef.current = null;
@@ -259,6 +347,13 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     if (!selected) return;
     void update(selected, selected.positionXMm, selected.positionYMm,
       normalizedRotation(selected.rotationDegrees + degrees));
+  };
+
+  const rotateFreeObject = (degrees: number) => {
+    if (!selectedFreeObject) return;
+    void updateFreeObject(selectedFreeObject, freeObjectInput(selectedFreeObject, {
+      rotationDegrees: normalizedRotation(selectedFreeObject.rotationDegrees + degrees)
+    }));
   };
 
   const saveElevation = () => {
@@ -284,6 +379,23 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     });
   };
 
+  const askDeleteFreeObject = () => {
+    if (!selectedFreeObject) return;
+    const object = selectedFreeObject;
+    setPending({
+      title: t("layouts.freeObject.deleteTitle"),
+      body: t("layouts.freeObject.deleteBody", { name: object.name }),
+      confirmLabel: t("common.delete"),
+      dangerous: true,
+      run: async () => {
+        await api.deleteFreePlanObject(object.id, object.version);
+        setFreeObjects((current) => current.filter((item) => item.id !== object.id));
+        setSelectedFreeObjectID("");
+        await refreshDerived();
+      }
+    });
+  };
+
   return <section className="panel track-planner">
     <header className="track-planner-head">
       <div>
@@ -304,6 +416,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
       {editable ? <aside className="track-planner-palette" aria-label={t("layouts.trackPlanner.palette")}>
         <h4>{t("layouts.trackPlanner.palette")}</h4>
         <p>{t("layouts.trackPlanner.paletteHint")}</p>
+        <button type="button" className="track-palette-item free-object-add" disabled={saving}
+          onClick={() => setFreeObjectDialog("create")}><strong><Plus size={15} />
+            {t("layouts.freeObject.add")}</strong></button>
         {geometries.map((geometry) => <button key={geometry.id} type="button" className="track-palette-item"
           aria-label={`Tillig ${geometry.articleNumber} · ${geometry.name}`}
           disabled={saving} onClick={() => void place(geometry)}>
@@ -319,6 +434,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
             <path d="M 50 0 L 0 0 0 50" className="track-grid-line" /></pattern></defs>
           <rect width={width} height={height} className="track-canvas-surface" />
           <rect width={width} height={height} fill={`url(#track-grid-${revision.id})`} />
+          <FreePlanObjectLayer objects={freeObjects} selectedID={selectedFreeObjectID || null}
+            onSelect={(object) => { setSelectedID(""); setSelectedFreeObjectID(object.id); }}
+            onPointerDown={startFreeDrag} />
           {objects.map((object) => {
             const effectiveGeometry = object.effectiveGeometry ?? object.geometry.geometry;
             const objectIssue = analysis?.issues.find((issue) =>
@@ -327,7 +445,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
               aria-label={`Gleis Tillig ${object.geometry.articleNumber} ${object.geometry.kind === "flex"
                 ? object.geometry.name : "G1"}`}
               className={object.id === selectedID ? "track-object selected" : "track-object"}
-              transform={trackObjectTransform(object)} onClick={() => setSelectedID(object.id)}
+              transform={trackObjectTransform(object)} onClick={() => {
+                setSelectedFreeObjectID(""); setSelectedID(object.id);
+              }}
               onPointerDown={(event) => startDrag(event, object)}>
               {effectiveGeometry.routes.map((route) => <polyline key={route.id}
                 points={routePolylinePoints(route.points)} />)}
@@ -345,12 +465,14 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
             </g>;
           })}
         </svg>
-        {objects.length === 0 ? <p className="track-planner-empty">{editable
+        {objects.length === 0 && freeObjects.length === 0 ? <p className="track-planner-empty">{editable
           ? t("layouts.trackPlanner.emptyDraft") : t("layouts.trackPlanner.emptyRead")}</p> : null}
       </div>
       <aside className="track-planner-inspector" aria-label={t("layouts.trackPlanner.inspector")}>
         <h4>{t("layouts.trackPlanner.inspector")}</h4>
-        {selected ? <>
+        {selectedFreeObject ? <FreePlanObjectInspector object={selectedFreeObject} editable={editable}
+          saving={saving} onEdit={() => setFreeObjectDialog("edit")}
+          onRotate={rotateFreeObject} onDelete={askDeleteFreeObject} /> : selected ? <>
           <strong>Tillig {selected.geometry.articleNumber} · {selected.geometry.name}</strong>
           <dl><div><dt>{t("layouts.trackPlanner.position")}</dt>
             <dd>{selected.positionXMm.toFixed(1)} / {selected.positionYMm.toFixed(1)} mm</dd></div>
@@ -407,7 +529,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         </> : <p className="layout-empty">{t("layouts.trackPlanner.select")}</p>}
       </aside>
       {analysis ? <TrackPlanAnalysisPanel analysis={analysis} selectedObjectId={selectedID}
-        onSelectObject={setSelectedID} /> : null}
+        onSelectObject={(id) => { setSelectedFreeObjectID(""); setSelectedID(id); }} /> : null}
       {preview ? <TrackPlanChangePreviewPanel preview={preview} /> : null}
     </div>}
     <LayoutConfirmDialog action={pending} onClose={() => setPending(null)} />
@@ -426,6 +548,20 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
       onApply={async (path) => {
         if (await update(selected, selected.positionXMm, selected.positionYMm,
           selected.rotationDegrees, { flexPath: null, transitionPath: path })) setTransitionEditorID("");
+      }} /> : null}
+    {freeObjectDialog ? <FreePlanObjectDialog
+      object={freeObjectDialog === "edit" ? selectedFreeObject : undefined}
+      initialPosition={{ xMm: width / 2, yMm: height / 2 }} saving={saving}
+      onClose={() => setFreeObjectDialog("")}
+      onSubmit={async (input) => {
+        if (freeObjectDialog === "edit" && selectedFreeObject) {
+          const { expectedVersion: _expectedVersion, ...normalized } = input as typeof input & {
+            expectedVersion: number;
+          };
+          if (await updateFreeObject(selectedFreeObject, normalized)) setFreeObjectDialog("");
+          return;
+        }
+        await createFreeObject(input);
       }} /> : null}
   </section>;
 }

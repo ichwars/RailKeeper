@@ -717,6 +717,8 @@
 .track-change-preview h5,
 .track-change-preview p { margin: 0; }
 .track-change-preview > header span { color: var(--muted); font-size: var(--font-size-sm); }
+.track-change-counts { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.track-change-counts span + span { border-left: 1px solid var(--line); padding-left: 8px; }
 .track-change-grid { display: grid; grid-template-columns: 1.3fr 0.8fr 1fr; gap: 14px; margin-top: 10px; }
 .track-change-grid > div { min-width: 0; border-left: 2px solid var(--line); padding-left: 10px; }
 .track-change-grid h5 { margin-bottom: 5px; color: var(--muted); }
@@ -851,6 +853,8 @@
   padding-top: 14px;
 }
 .free-plan-object-dialog .app-select { width: 100%; }
+.free-plan-object-inspector h5 { margin: 0 0 8px; font-size: var(--font-size-title-xs); }
+.free-plan-object-inspector dl { margin-bottom: 0; }
 .free-plan-object {
   cursor: pointer;
   color: var(--muted);

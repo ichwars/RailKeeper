@@ -1,11 +1,12 @@
-import { KeyboardEvent } from "react";
+import { KeyboardEvent, PointerEvent } from "react";
 
 import type { PlanFreeObject } from "../../shared/api";
 
-export function FreePlanObjectLayer({ objects, selectedID, onSelect }: {
+export function FreePlanObjectLayer({ objects, selectedID, onSelect, onPointerDown }: {
   objects: PlanFreeObject[];
   selectedID: string | null;
   onSelect: (object: PlanFreeObject) => void;
+  onPointerDown?: (event: PointerEvent<SVGGElement>, object: PlanFreeObject) => void;
 }) {
   const selectWithKeyboard = (event: KeyboardEvent<SVGGElement>, object: PlanFreeObject) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -18,7 +19,8 @@ export function FreePlanObjectLayer({ objects, selectedID, onSelect }: {
       return <g key={object.id} role="button" tabIndex={0} aria-label={object.name}
         aria-pressed={selected} transform={`translate(${object.positionXMm} ${object.positionYMm}) rotate(${object.rotationDegrees})`}
         className={`free-plan-object free-plan-object-category-${object.category}${selected ? " is-selected" : ""}`}
-        onClick={() => onSelect(object)} onKeyDown={(event) => selectWithKeyboard(event, object)}>
+        onClick={() => onSelect(object)} onKeyDown={(event) => selectWithKeyboard(event, object)}
+        onPointerDown={(event) => onPointerDown?.(event, object)}>
         {renderShape(object)}
         {selected ? renderSelection(object) : null}
       </g>;

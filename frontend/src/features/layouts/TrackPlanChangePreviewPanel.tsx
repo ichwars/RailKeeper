@@ -6,13 +6,18 @@ import { useI18n } from "../../shared/i18n";
 export function TrackPlanChangePreviewPanel({ preview }: { preview: TrackPlanChangePreview }) {
   const { t } = useI18n();
   const changeCount = preview.objectChanges.length;
+  const freeChangeCount = preview.freeObjectChanges.length;
   const addedIssues = preview.issues.added.length;
   const resolvedIssues = preview.issues.resolved.length;
 
   return <section className="track-change-preview" aria-label={t("layouts.trackChanges.title")}>
     <header><GitCompareArrows size={16} /><h4>{t("layouts.trackChanges.title")}</h4>
-      <span>{t(changeCount === 1 ? "layouts.trackChanges.objectOne"
-        : "layouts.trackChanges.objectMany", { count: changeCount })}</span></header>
+      <div className="track-change-counts">
+        <span>{t(changeCount === 1 ? "layouts.trackChanges.trackOne"
+          : "layouts.trackChanges.trackMany", { count: changeCount })}</span>
+        <span>{t(freeChangeCount === 1 ? "layouts.trackChanges.freeOne"
+          : "layouts.trackChanges.freeMany", { count: freeChangeCount })}</span>
+      </div></header>
     <div className="track-change-grid">
       <div><h5>{t("layouts.trackChanges.materials")}</h5>
         {preview.materialDeltas.length === 0 ? <p>✓ {t("layouts.trackChanges.noMaterialChanges")}</p>
