@@ -2027,6 +2027,11 @@ components:
           type: string
         description:
           type: string
+        maxGradePercent:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
         version:
           type: integer
           minimum: 1
@@ -2053,6 +2058,11 @@ components:
           type: string
         description:
           type: string
+        maxGradePercent:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
         archived:
           type: boolean
     UpdateLayoutInput:
@@ -2887,7 +2897,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]
         severity:
           type: string
           enum: [warning, error]
@@ -2903,6 +2913,14 @@ components:
           type: number
           format: double
           minimum: 0
+        gradePercent:
+          type: number
+          format: double
+        gradeLimitPercent:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
     TrackBOMLine:
       type: object
       required: [geometryId, libraryId, articleNumber, name, quantity]
@@ -3053,7 +3071,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]
         severity:
           type: string
           enum: [warning, error]

@@ -167,17 +167,27 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 		t.Fatalf("updated track grade missing from analysis: %#v", analysis.Grades)
 	}
 	elevationIssues := 0
+	gradeLimitIssues := 0
 	for _, issue := range analysis.Issues {
-		if issue.Code != domain.TrackPlanIssueElevationMismatch {
-			continue
-		}
-		elevationIssues++
-		if issue.ElevationDifferenceMM == nil || *issue.ElevationDifferenceMM != 2 {
-			t.Fatalf("unexpected elevation mismatch detail: %#v", issue)
+		switch issue.Code {
+		case domain.TrackPlanIssueElevationMismatch:
+			elevationIssues++
+			if issue.ElevationDifferenceMM == nil || *issue.ElevationDifferenceMM != 2 {
+				t.Fatalf("unexpected elevation mismatch detail: %#v", issue)
+			}
+		case domain.TrackPlanIssueGradeLimitExceeded:
+			gradeLimitIssues++
+			if issue.GradePercent == nil || *issue.GradePercent != 2.5 ||
+				issue.GradeLimitPercent == nil || *issue.GradeLimitPercent != 2 {
+				t.Fatalf("unexpected grade limit detail: %#v", issue)
+			}
 		}
 	}
 	if elevationIssues != 1 {
 		t.Fatalf("expected one elevation mismatch, got %#v", analysis.Issues)
+	}
+	if gradeLimitIssues != 1 {
+		t.Fatalf("expected one grade limit warning, got %#v", analysis.Issues)
 	}
 	if _, err := db.Exec(`
 INSERT INTO storage_locations(id, name, created_at, updated_at)
@@ -254,8 +264,10 @@ func trackPlannerRouteRevision(
 	layouts *application.LayoutService,
 ) (*application.PlanVariant, *application.PlanRevision) {
 	t.Helper()
+	maxGradePercent := 2.0
 	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
 		Name: "Track API", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MaxGradePercent: &maxGradePercent,
 	}, "")
 	if err != nil {
 		t.Fatal(err)

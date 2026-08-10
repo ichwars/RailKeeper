@@ -106,7 +106,7 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	contract := string(data)
 	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
 	if !strings.Contains(issue,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]") {
 		t.Errorf("TrackPlanIssue is missing elevation_mismatch: %s", issue)
 	}
 	if !strings.Contains(issue, "elevationDifferenceMm:") || !strings.Contains(issue, "minimum: 0") {
@@ -114,8 +114,32 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	}
 	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
 	if !strings.Contains(change,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]") {
 		t.Errorf("TrackPlanIssueChange is missing elevation_mismatch: %s", change)
+	}
+}
+
+func TestOpenAPIDocumentsLayoutGradeLimitAndWarning(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"Layout", "LayoutInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "maxGradePercent:") || !strings.Contains(block, "maximum: 100") ||
+			!strings.Contains(block, "exclusiveMinimum: 0") {
+			t.Errorf("%s is missing maximum grade constraints: %s", schema, block)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	if !strings.Contains(issue, "grade_limit_exceeded") || !strings.Contains(issue, "gradePercent:") ||
+		!strings.Contains(issue, "gradeLimitPercent:") {
+		t.Errorf("TrackPlanIssue is missing grade limit details: %s", issue)
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change, "grade_limit_exceeded") {
+		t.Errorf("TrackPlanIssueChange is missing grade_limit_exceeded: %s", change)
 	}
 }
 
