@@ -81,13 +81,32 @@
 - bilingual, responsive accessory and layout workspaces
 - backup version 2 for all accessory, layout and allocation data
 - backward-compatible import of version 1 backups
+- interactive layout twin with transformed units, technical positions, state filters and history
+- verified Tillig TT track planner with placement, snapping, analysis, BOM and reservations
+- module ports, elevation profiles, grade and clearance checks, flex tracks and transition curves
+- free plan objects for buildings, platforms, landscape, lines and labels
+- versioned RailKeeper track-library exchange with review workflow and immutable plan snapshots
+
+## Layout Planning Roadmap Status
+
+The local implementation for the roadmap tracked by issues #31 through #36 is complete:
+
+- Stage 1, issue #34: layout and accessory foundation
+- Stage 2, issue #35: interactive layout twin
+- Stage 3, issue #32: first verified Tillig TT track planner
+- Stage 4, issue #36: advanced geometry and free plan objects
+- Stage 5, issue #33: track libraries and exchange format
+
+The authoritative exchange format is `railkeeper.track-library` schema 1. Proprietary AnyRail,
+SCARM and WinTrack converters remain deferred until a reliable specification or test corpus is
+available. Local completion does not change the state of the corresponding GitHub issues.
 
 ## Next Practical Milestones
 
-1. Graphical layout planner
-   - start with Tillig TT Modellgleis as the first track catalogue
-   - add module and layout contours, placement, snapping and measurement
-   - visualize planned, installed, maintenance and defective states interactively
+1. Layout planner follow-up
+   - validate additional manufacturer catalogues through the reviewed library workflow
+   - extend reusable geometry only from documented manufacturer or catalogue sources
+   - add proprietary converters only when their formats can be validated reliably
    - keep digital layout control explicitly out of scope
 2. ESU LokProgrammer import
    - only reverse-engineer proprietary ESUX blocks if no supported export path exists
