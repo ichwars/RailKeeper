@@ -12,6 +12,7 @@ const initialValue: LayoutFormValue = {
   scale: "1:120",
   maxGradePercent: "",
   minimumTrackClearanceMm: "",
+  minimumFlexRadiusMm: "",
   description: "",
   archived: false
 };
@@ -187,5 +188,20 @@ describe("LayoutFormDialog", () => {
 
     expect(screen.getByText("Bitte einen Wert größer als 0 eingeben.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Anlage speichern" })).toBeDisabled();
+  });
+
+  it("uses the app-owned number input and submits an optional flex-track radius", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LayoutFormDialog mode="create" initialValue={initialValue} saving={false} message=""
+      conflict={false} onSubmit={onSubmit} onClose={() => undefined} />);
+
+    const radius = screen.getByRole("spinbutton", { name: "Mindest-Flexgleisradius (mm)" });
+    expect(radius.closest(".app-number-input")).not.toBeNull();
+    expect(screen.getByText(/Kleinere Werte senken sie nicht/)).toBeInTheDocument();
+    await user.type(radius, "700");
+    await user.click(screen.getByRole("button", { name: "Anlage speichern" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ minimumFlexRadiusMm: "700" }));
   });
 });

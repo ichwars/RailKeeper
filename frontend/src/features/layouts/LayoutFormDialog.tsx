@@ -17,6 +17,7 @@ export type LayoutFormValue = Required<Pick<LayoutInput, "name" | "kind" | "gaug
   description: string;
   maxGradePercent: string;
   minimumTrackClearanceMm: string;
+  minimumFlexRadiusMm: string;
   archived: boolean;
 };
 
@@ -57,6 +58,10 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
   const clearanceLimitNumber = Number(clearanceLimitValue);
   const clearanceLimitValid = clearanceLimitValue === "" || Number.isFinite(clearanceLimitNumber) &&
     clearanceLimitNumber > 0;
+  const flexRadiusValue = form.minimumFlexRadiusMm.trim();
+  const flexRadiusNumber = Number(flexRadiusValue);
+  const flexRadiusValid = flexRadiusValue === "" || Number.isFinite(flexRadiusNumber) &&
+    flexRadiusNumber > 0;
 
   useEffect(() => {
     setForm(initialValue);
@@ -79,7 +84,7 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!form.name.trim() || !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid ||
-      !clearanceLimitValid) return;
+      !clearanceLimitValid || !flexRadiusValid) return;
     void onSubmit({
       ...form,
       name: form.name.trim(),
@@ -87,6 +92,7 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
       scale: form.scale.trim(),
       maxGradePercent: gradeLimitValue,
       minimumTrackClearanceMm: clearanceLimitValue,
+      minimumFlexRadiusMm: flexRadiusValue,
       description: form.description.trim()
     });
   };
@@ -153,6 +159,13 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
             onValueChange={(value) => setForm((current) => ({
               ...current, minimumTrackClearanceMm: value
             }))} />
+          <AppNumberInput label={t("layouts.field.minimumFlexRadiusMm")}
+            value={form.minimumFlexRadiusMm} min="0.1" step="0.1" disabled={saving}
+            helpText={t("layouts.field.minimumFlexRadiusMmHelp")}
+            error={flexRadiusValid ? undefined : t("layouts.field.minimumFlexRadiusMmError")}
+            onValueChange={(value) => setForm((current) => ({
+              ...current, minimumFlexRadiusMm: value
+            }))} />
           <AppTextArea label={t("layouts.field.description")} value={form.description} disabled={saving}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
           {mode === "edit" ? <AppCheckbox label={t("layouts.field.archived")} checked={form.archived}
@@ -168,7 +181,8 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
           <button type="button" className="secondary-button" disabled={saving}
             onClick={requestClose}>{t("common.cancel")}</button>
           <button type="submit" className="primary-button" disabled={saving || !form.name.trim() ||
-            !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid || !clearanceLimitValid}>
+            !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid || !clearanceLimitValid ||
+            !flexRadiusValid}>
             {saving ? t("common.saving") : t(mode === "create" ? "layouts.create.save" : "layouts.edit.save")}
           </button>
         </footer>

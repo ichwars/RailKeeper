@@ -2054,6 +2054,11 @@ export const deTranslations: Record<string, string> = {
       "Gemessen zwischen Schienenoberkanten. Leer lassen, um die Warnung zu deaktivieren.",
     "layouts.field.minimumTrackClearanceMmError": "Bitte einen Wert größer als 0 eingeben.",
     "layouts.field.minimumTrackClearanceMmUnset": "Nicht festgelegt",
+    "layouts.field.minimumFlexRadiusMm": "Mindest-Flexgleisradius (mm)",
+    "layouts.field.minimumFlexRadiusMmHelp":
+      "Ein höherer Anlagenwert verschärft die Produktempfehlung. Kleinere Werte senken sie nicht.",
+    "layouts.field.minimumFlexRadiusMmError": "Bitte einen Wert größer als 0 eingeben.",
+    "layouts.field.minimumFlexRadiusMmUnset": "Nicht festgelegt",
     "layouts.field.archived": "Archiviert",
     "layouts.field.owner": "Eigentümer / Clubmitglied",
     "layouts.field.width": "Breite (mm)",

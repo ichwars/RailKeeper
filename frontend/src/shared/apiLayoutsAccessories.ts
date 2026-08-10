@@ -11,6 +11,7 @@ export type Layout = {
   description?: string;
   maxGradePercent?: number | null;
   minimumTrackClearanceMm?: number | null;
+  minimumFlexRadiusMm?: number | null;
   version: number;
   archived: boolean;
   createdAt: string;
@@ -25,6 +26,7 @@ export type LayoutInput = {
   description?: string;
   maxGradePercent?: number | null;
   minimumTrackClearanceMm?: number | null;
+  minimumFlexRadiusMm?: number | null;
   archived?: boolean;
 };
 

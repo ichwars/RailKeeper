@@ -18,6 +18,7 @@ import { LayoutsView } from "./LayoutsView";
 const layout: Layout = {
   id: "layout-1", name: "Clubanlage mit langem Bahnhofsnamen", kind: "club", gauge: "TT", scale: "1:120",
   description: "Modulare Clubanlage", maxGradePercent: 3.5, minimumTrackClearanceMm: 40,
+  minimumFlexRadiusMm: 700,
   version: 2, archived: false,
   createdAt: "2026-08-07T10:00:00Z",
   updatedAt: "2026-08-07T11:00:00Z"
@@ -109,10 +110,13 @@ describe("LayoutsView", () => {
     await user.type(within(dialog).getByRole("spinbutton", {
       name: "Mindestabstand kreuzender Gleise (mm)"
     }), "40");
+    await user.type(within(dialog).getByRole("spinbutton", {
+      name: "Mindest-Flexgleisradius (mm)"
+    }), "700");
     await user.click(within(dialog).getByRole("button", { name: "Anlage speichern" }));
     await waitFor(() => expect(api.createLayout).toHaveBeenCalledWith(expect.objectContaining({
       name: "Clubanlage", kind: "private", gauge: "TT", scale: "1:120", maxGradePercent: 3.5,
-      minimumTrackClearanceMm: 40
+      minimumTrackClearanceMm: 40, minimumFlexRadiusMm: 700
     })));
 
     await screen.findAllByText(layout.name);
@@ -322,6 +326,7 @@ describe("LayoutsView", () => {
     expect(profile).toHaveTextContent("1:120");
     expect(profile).toHaveTextContent("3,50 %");
     expect(profile).toHaveTextContent("40,00 mm");
+    expect(profile).toHaveTextContent("700,00 mm");
     expect(profile).toHaveTextContent("Version 2");
     expect(profile).toHaveTextContent(new Date(layout.createdAt).toLocaleString());
     expect(profile).toHaveTextContent(new Date(layout.updatedAt).toLocaleString());
@@ -333,19 +338,24 @@ describe("LayoutsView", () => {
     const clearance = within(dialog).getByRole("spinbutton", {
       name: "Mindestabstand kreuzender Gleise (mm)"
     });
+    const flexRadius = within(dialog).getByRole("spinbutton", { name: "Mindest-Flexgleisradius (mm)" });
     expect(name).toHaveValue(layout.name);
     expect(grade).toHaveValue(3.5);
     expect(clearance).toHaveValue(40);
+    expect(flexRadius).toHaveValue(700);
     await user.clear(name);
     await user.type(name, updated.name);
     await user.clear(grade);
     await user.type(grade, "2.5");
     await user.clear(clearance);
     await user.type(clearance, "25.5");
+    await user.clear(flexRadius);
+    await user.type(flexRadius, "650");
     await user.click(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
 
     await waitFor(() => expect(api.updateLayout).toHaveBeenCalledWith(layout.id, expect.objectContaining({
       name: updated.name, maxGradePercent: 2.5, minimumTrackClearanceMm: 25.5,
+      minimumFlexRadiusMm: 650,
       expectedVersion: layout.version
     })));
     expect((await screen.findAllByText(updated.name)).length).toBeGreaterThan(0);

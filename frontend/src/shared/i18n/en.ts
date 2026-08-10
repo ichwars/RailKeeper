@@ -2054,6 +2054,11 @@ export const enTranslations: Record<string, string> = {
       "Measured between rail tops. Leave empty to disable the warning.",
     "layouts.field.minimumTrackClearanceMmError": "Enter a value greater than 0.",
     "layouts.field.minimumTrackClearanceMmUnset": "Not set",
+    "layouts.field.minimumFlexRadiusMm": "Minimum flex-track radius (mm)",
+    "layouts.field.minimumFlexRadiusMmHelp":
+      "A higher layout value strengthens the product recommendation. Lower values do not weaken it.",
+    "layouts.field.minimumFlexRadiusMmError": "Enter a value greater than 0.",
+    "layouts.field.minimumFlexRadiusMmUnset": "Not set",
     "layouts.field.archived": "Archived",
     "layouts.field.owner": "Owner / club member",
     "layouts.field.width": "Width (mm)",

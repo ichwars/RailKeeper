@@ -8,7 +8,7 @@ import { LayoutWorkspace } from "./LayoutWorkspace";
 
 const emptyLayout: LayoutFormValue = {
   name: "", kind: "private", gauge: "TT", scale: "1:120", maxGradePercent: "",
-  minimumTrackClearanceMm: "", description: "", archived: false
+  minimumTrackClearanceMm: "", minimumFlexRadiusMm: "", description: "", archived: false
 };
 
 export function LayoutsView({ roles }: { roles: string[] }) {
@@ -60,6 +60,7 @@ export function LayoutsView({ roles }: { roles: string[] }) {
         maxGradePercent: form.maxGradePercent ? Number(form.maxGradePercent) : null,
         minimumTrackClearanceMm: form.minimumTrackClearanceMm
           ? Number(form.minimumTrackClearanceMm) : null,
+        minimumFlexRadiusMm: form.minimumFlexRadiusMm ? Number(form.minimumFlexRadiusMm) : null,
         description: form.description || undefined
       });
       await loadLayouts(created.id);
