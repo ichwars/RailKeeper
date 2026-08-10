@@ -14,6 +14,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { flexPreviewBounds, routePolylinePoints } from "./trackPlannerGeometry";
+import { trackGeometryLabel } from "./trackGeometryLabel";
 
 const focusableSelector = "button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex='-1'])";
 
@@ -104,7 +105,7 @@ export function TransitionCurveEditorDialog({ object, saving, onApply, onClose }
     <section className="vehicle-modal transition-curve-editor-dialog">
       <header className="modal-head">
         <div><h2>{t("layouts.transitionEditor.title")}</h2>
-          <p>Tillig {object.geometry.articleNumber} · {object.geometry.name}</p></div>
+          <p>{trackGeometryLabel(object.geometry)}</p></div>
         <button type="button" className="icon-button" aria-label={t("common.close")}
           disabled={saving || loading} onClick={onClose}><X size={18} /></button>
       </header>

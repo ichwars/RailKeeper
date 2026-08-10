@@ -321,6 +321,7 @@ export type TrackGeometry = { schemaVersion: number; ports: TrackPort[]; routes:
 export type TrackGeometryDefinition = {
   id: string;
   libraryId: string;
+  manufacturer: string;
   articleNumber: string;
   name: string;
   kind: TrackGeometryKind;
@@ -514,6 +515,7 @@ export type PlanFreeObjectChange = {
 export type TrackPlanMaterialDelta = {
   geometryId: string;
   libraryId: string;
+  manufacturer: string;
   articleNumber: string;
   name: string;
   baseQuantity: number;

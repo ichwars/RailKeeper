@@ -69,7 +69,8 @@ func TestTrackLibraryWorkflowKeepsImportsDraftUntilReviewed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(geometries) != 3 || geometries[0].ArticleNumber != "72620" {
+	if len(geometries) != 3 || geometries[0].ArticleNumber != "72620" ||
+		geometries[0].Manufacturer != "Kühn" {
 		t.Fatalf("verified geometry missing: %#v", geometries)
 	}
 

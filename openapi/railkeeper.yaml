@@ -2817,11 +2817,15 @@ components:
             $ref: "#/components/schemas/TrackRoute"
     TrackGeometryDefinition:
       type: object
-      required: [id, libraryId, articleNumber, name, kind, lengthMm, geometry, sourceUrl, status, createdAt]
+      required:
+        [id, libraryId, manufacturer, articleNumber, name, kind, lengthMm, geometry,
+         sourceUrl, status, createdAt]
       properties:
         id:
           type: string
         libraryId:
+          type: string
+        manufacturer:
           type: string
         articleNumber:
           type: string
@@ -3402,11 +3406,15 @@ components:
           $ref: "#/components/schemas/PlanFreeObject"
     TrackPlanMaterialDelta:
       type: object
-      required: [geometryId, libraryId, articleNumber, name, baseQuantity, currentQuantity, delta]
+      required:
+        [geometryId, libraryId, manufacturer, articleNumber, name, baseQuantity,
+         currentQuantity, delta]
       properties:
         geometryId:
           type: string
         libraryId:
+          type: string
+        manufacturer:
           type: string
         articleNumber:
           type: string

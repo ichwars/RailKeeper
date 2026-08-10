@@ -22,7 +22,7 @@ export function TrackPlanChangePreviewPanel({ preview }: { preview: TrackPlanCha
       <div><h5>{t("layouts.trackChanges.materials")}</h5>
         {preview.materialDeltas.length === 0 ? <p>✓ {t("layouts.trackChanges.noMaterialChanges")}</p>
           : <ul>{preview.materialDeltas.map((delta) => <li key={delta.geometryId}>
-            <strong>{delta.delta > 0 ? "+" : ""}{delta.delta} Tillig {delta.articleNumber}</strong>
+            <strong>{delta.delta > 0 ? "+" : ""}{delta.delta} {delta.manufacturer} {delta.articleNumber}</strong>
             <span>{delta.baseQuantity} → {delta.currentQuantity}</span>
           </li>)}</ul>}
       </div>

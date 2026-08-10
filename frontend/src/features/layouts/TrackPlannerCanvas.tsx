@@ -27,6 +27,7 @@ import { TransitionCurveEditorDialog } from "./TransitionCurveEditorDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
 import { TrackPlanReservationDialog } from "./TrackPlanReservationDialog";
+import { trackGeometryLabel } from "./trackGeometryLabel";
 import {
   normalizedRotation,
   routePolylinePoints,
@@ -420,9 +421,9 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
           onClick={() => setFreeObjectDialog("create")}><strong><Plus size={15} />
             {t("layouts.freeObject.add")}</strong></button>
         {geometries.map((geometry) => <button key={geometry.id} type="button" className="track-palette-item"
-          aria-label={`Tillig ${geometry.articleNumber} · ${geometry.name}`}
+          aria-label={trackGeometryLabel(geometry)}
           disabled={saving} onClick={() => void place(geometry)}>
-          <strong>Tillig {geometry.articleNumber} · {geometry.name}</strong>
+          <strong>{trackGeometryLabel(geometry)}</strong>
           <small>{geometry.lengthMm} mm · {t(`layouts.trackPlanner.kind.${geometry.kind}`)}</small>
         </button>)}
       </aside> : null}
@@ -442,8 +443,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
             const objectIssue = analysis?.issues.find((issue) =>
               issue.objectIds.includes(object.id) && ["overlap", "broken_geometry"].includes(issue.code));
             return <g key={object.id} role="button" tabIndex={0}
-              aria-label={`Gleis Tillig ${object.geometry.articleNumber} ${object.geometry.kind === "flex"
-                ? object.geometry.name : "G1"}`}
+              aria-label={`Gleis ${trackGeometryLabel(object.geometry)}`}
               className={object.id === selectedID ? "track-object selected" : "track-object"}
               transform={trackObjectTransform(object)} onClick={() => {
                 setSelectedFreeObjectID(""); setSelectedID(object.id);
@@ -473,7 +473,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
         {selectedFreeObject ? <FreePlanObjectInspector object={selectedFreeObject} editable={editable}
           saving={saving} onEdit={() => setFreeObjectDialog("edit")}
           onRotate={rotateFreeObject} onDelete={askDeleteFreeObject} /> : selected ? <>
-          <strong>Tillig {selected.geometry.articleNumber} · {selected.geometry.name}</strong>
+          <strong>{trackGeometryLabel(selected.geometry)}</strong>
           <dl><div><dt>{t("layouts.trackPlanner.position")}</dt>
             <dd>{selected.positionXMm.toFixed(1)} / {selected.positionYMm.toFixed(1)} mm</dd></div>
             <div><dt>{t("layouts.trackPlanner.rotation")}</dt><dd>{selected.rotationDegrees}°</dd></div>

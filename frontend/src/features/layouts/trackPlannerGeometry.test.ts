@@ -4,7 +4,8 @@ import type { PlanTrackObject, TrackGeometryDefinition } from "../../shared/api"
 import { routePolylinePoints, snapFlexEnd, snapTrackPose, trackObjectTransform } from "./trackPlannerGeometry";
 
 const geometry: TrackGeometryDefinition = {
-  id: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
+  id: "g1", libraryId: "tillig-v1", manufacturer: "Tillig",
+  articleNumber: "83101", name: "Gleisstück G1",
   kind: "straight", lengthMm: 166, sourceUrl: "https://example.test/83101", status: "verified",
   createdAt: "2026-08-09T10:00:00Z",
   geometry: {

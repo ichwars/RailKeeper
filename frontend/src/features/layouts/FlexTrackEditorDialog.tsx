@@ -13,6 +13,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { flexPreviewBounds, routePolylinePoints, snapFlexEnd } from "./trackPlannerGeometry";
 import { sampleFlexPath } from "./flexTrackGeometry";
+import { trackGeometryLabel } from "./trackGeometryLabel";
 
 type FlexTrackForm = {
   endXMm: string;
@@ -135,7 +136,7 @@ export function FlexTrackEditorDialog({ object, objects = [], saving, onApply, o
     <section className="vehicle-modal flex-track-editor-dialog">
       <header className="modal-head">
         <div><h2>{t("layouts.flexEditor.title")}</h2>
-          <p>Tillig {object.geometry.articleNumber} · {object.geometry.name}</p></div>
+          <p>{trackGeometryLabel(object.geometry)}</p></div>
         <button type="button" className="icon-button" aria-label={t("common.close")}
           disabled={saving || loading} onClick={onClose}><X size={18} /></button>
       </header>

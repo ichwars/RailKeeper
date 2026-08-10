@@ -24,6 +24,7 @@ const draft: PlanRevision = {
 };
 const geometry: TrackGeometryDefinition = {
   id: "tillig-tt-modellgleis-83101-v1", libraryId: "tillig-tt-modellgleis-v1",
+  manufacturer: "Tillig",
   articleNumber: "83101", name: "Gleisstück G1", kind: "straight", lengthMm: 166,
   sourceUrl: "https://www.tillig.com/Produkte/produktinfo-83101.html", status: "verified",
   createdAt: "2026-08-09T10:00:00Z",
@@ -125,10 +126,27 @@ describe("TrackPlannerCanvas", () => {
       geometryId: geometry.id, positionXMm: 517, positionYMm: 250, rotationDegrees: 0,
       elevationStartMm: 0, elevationEndMm: 0
     });
-    const placed = await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" });
+    const placed = await screen.findByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" });
     expect(placed).toHaveAttribute("transform", "translate(517 250) rotate(0)");
     expect(placed.querySelector("polyline")).toHaveAttribute("points", "0,0 166,0");
     expect(placed.querySelectorAll("circle")).toHaveLength(2);
+  });
+
+  it("uses the imported library manufacturer in the planner palette", async () => {
+    vi.mocked(api.trackGeometries).mockResolvedValue([{
+      ...geometry,
+      id: "kuehn-72620",
+      manufacturer: "Kühn",
+      articleNumber: "72620",
+      name: "Gerades Gleis"
+    }]);
+
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    expect(await screen.findByRole("button", { name: "Kühn 72620 · Gerades Gleis" }))
+      .toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Tillig 72620 · Gerades Gleis" }))
+      .not.toBeInTheDocument();
   });
 
   it("creates, drags, rotates, edits and deletes free plan objects", async () => {
@@ -194,7 +212,7 @@ describe("TrackPlannerCanvas", () => {
 
     await user.click(await screen.findByRole("button", { name: "Bahnsteig" }));
     expect(screen.getByRole("heading", { name: "Bahnsteig" })).toBeInTheDocument();
-    const track = screen.getByRole("button", { name: "Gleis Tillig 83101 G1" });
+    const track = screen.getByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" });
     await user.click(track);
     expect(screen.queryByRole("heading", { name: "Bahnsteig" })).not.toBeInTheDocument();
     expect(track).toHaveClass("selected");
@@ -225,7 +243,7 @@ describe("TrackPlannerCanvas", () => {
       left: 0, top: 0, width: 1200, height: 500, right: 1200, bottom: 500, x: 0, y: 0,
       toJSON: () => ({})
     });
-    const placed = screen.getByRole("button", { name: "Gleis Tillig 83101 G1" });
+    const placed = screen.getByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" });
     fireEvent.pointerDown(placed, { pointerId: 4, clientX: 517, clientY: 250 });
     fireEvent.pointerMove(canvas, { pointerId: 4, clientX: 540, clientY: 270 });
     fireEvent.pointerUp(canvas, { pointerId: 4, clientX: 540, clientY: 270 });
@@ -258,7 +276,7 @@ describe("TrackPlannerCanvas", () => {
       left: 0, top: 0, width: 1200, height: 500, right: 1200, bottom: 500, x: 0, y: 0,
       toJSON: () => ({})
     });
-    const placed = screen.getAllByRole("button", { name: "Gleis Tillig 83101 G1" })[1];
+    const placed = screen.getAllByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" })[1];
     fireEvent.pointerDown(placed, { pointerId: 5, clientX: 200, clientY: 0 });
     fireEvent.pointerMove(canvas, { pointerId: 5, clientX: 172, clientY: 2 });
     expect(placed).toHaveAttribute("transform", "translate(166 0) rotate(0)");
@@ -323,7 +341,7 @@ describe("TrackPlannerCanvas", () => {
     }));
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
-    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" }));
+    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" }));
     expect(screen.getByText("2,50 %")).toBeInTheDocument();
     const start = screen.getByRole("spinbutton", { name: "Anfangshöhe (mm)" });
     const end = screen.getByRole("spinbutton", { name: "Endhöhe (mm)" });
@@ -365,7 +383,7 @@ describe("TrackPlannerCanvas", () => {
     }));
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
-    const placed = await screen.findByRole("button", { name: "Gleis Tillig 83125 Flexgleis" });
+    const placed = await screen.findByRole("button", { name: "Gleis Tillig 83125 · Flexgleis" });
     expect(placed.querySelector("polyline")).toHaveAttribute("points", "0,0 250,30 500,100");
     await user.click(placed);
     expect(screen.getByText("515,00 mm")).toBeInTheDocument();
@@ -409,7 +427,7 @@ describe("TrackPlannerCanvas", () => {
       .mockResolvedValueOnce({ ...transitionObject, rotationDegrees: 15, version: 3 });
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
-    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83125 Flexgleis" }));
+    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83125 · Flexgleis" }));
     await user.click(screen.getByRole("button", { name: "Übergangsbogen" }));
     await user.clear(screen.getByRole("spinbutton", { name: "Länge (mm)" }));
     await user.type(screen.getByRole("spinbutton", { name: "Länge (mm)" }), "500");
@@ -440,7 +458,7 @@ describe("TrackPlannerCanvas", () => {
       <TrackPlannerCanvas unit={unit} gauge="TT" revision={published} canPlan onClose={vi.fn()} />
     );
     await screen.findByRole("img", { name: "Maßhaltiger Gleisplan für Bahnhofsmodul" });
-    await user.click(screen.getByRole("button", { name: "Gleis Tillig 83101 G1" }));
+    await user.click(screen.getByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" }));
     expect(screen.getByText("5,00 mm")).toBeInTheDocument();
     expect(screen.getByText("9,15 mm")).toBeInTheDocument();
     expect(screen.queryByRole("spinbutton", { name: "Anfangshöhe (mm)" })).not.toBeInTheDocument();
@@ -452,7 +470,7 @@ describe("TrackPlannerCanvas", () => {
     });
     vi.spyOn(api, "updatePlanTrackObject").mockRejectedValue(new ApiError("changed", "track_plan_conflict", 409));
     rerender(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
-    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" }));
+    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" }));
     await user.click(await screen.findByRole("button", { name: "+15°" }));
     expect(await screen.findByText("Der Gleisplan wurde zwischenzeitlich geändert.")).toBeInTheDocument();
   });

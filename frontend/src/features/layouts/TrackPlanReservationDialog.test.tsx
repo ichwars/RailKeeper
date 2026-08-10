@@ -12,7 +12,8 @@ const material: TrackMaterialStatus = {
 };
 const object = {
   id: "object-1", lineageId: "lineage-1", revisionId: "revision-1", geometryId: "g1",
-  geometry: { id: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
+  geometry: { id: "g1", libraryId: "tillig-v1", manufacturer: "Tillig",
+    articleNumber: "83101", name: "Gleisstück G1",
     kind: "straight", lengthMm: 166, sourceUrl: "https://example.test", status: "verified",
     createdAt: "2026-08-09T10:00:00Z", geometry: { schemaVersion: 1, ports: [], routes: [] } },
   positionXMm: 0, positionYMm: 0, rotationDegrees: 0,

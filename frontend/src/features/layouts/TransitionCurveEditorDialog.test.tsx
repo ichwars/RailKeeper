@@ -13,6 +13,7 @@ const object = {
   geometry: {
     id: "tillig-tt-modellgleis-83125-v1",
     libraryId: "tillig-tt-modellgleis-v1",
+    manufacturer: "Tillig",
     articleNumber: "83125",
     name: "Flexgleis",
     kind: "flex",

@@ -16,7 +16,8 @@ const preview: TrackPlanChangePreview = {
     { type: "changed", lineageId: "free-1" }
   ],
   materialDeltas: [{
-    geometryId: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
+    geometryId: "g1", libraryId: "tillig-v1", manufacturer: "Tillig",
+    articleNumber: "83101", name: "Gleisstück G1",
     baseQuantity: 1, currentQuantity: 2, delta: 1
   }],
   issues: {

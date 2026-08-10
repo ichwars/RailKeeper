@@ -87,7 +87,7 @@ export function TrackPlanReservationDialog({ revisionId, object, material, onClo
     aria-label={t("layouts.trackReservation.title")}>
     <section className="panel track-reservation-dialog">
       <header><div><PackageCheck size={18} /><div><h2>{t("layouts.trackReservation.title")}</h2>
-        <p>Tillig {material.articleNumber} · {material.name}</p></div></div>
+        <p>{material.manufacturer} {material.articleNumber} · {material.name}</p></div></div>
         <button type="button" className="icon-button" onClick={onClose} disabled={saving}
           aria-label={t("common.close")}><X size={17} /></button></header>
       <div className="track-reservation-object">

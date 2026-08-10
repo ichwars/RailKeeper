@@ -85,6 +85,7 @@ type TrackGeometryLibrary struct {
 type TrackGeometryDefinition struct {
 	ID              string              `json:"id"`
 	LibraryID       string              `json:"libraryId"`
+	Manufacturer    string              `json:"manufacturer"`
 	ArticleNumber   string              `json:"articleNumber"`
 	Name            string              `json:"name"`
 	Kind            TrackGeometryKind   `json:"kind"`

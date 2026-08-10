@@ -25,6 +25,7 @@ type TrackPlanObjectChange struct {
 type TrackPlanMaterialDelta struct {
 	GeometryID      string `json:"geometryId"`
 	LibraryID       string `json:"libraryId"`
+	Manufacturer    string `json:"manufacturer"`
 	ArticleNumber   string `json:"articleNumber"`
 	Name            string `json:"name"`
 	BaseQuantity    int    `json:"baseQuantity"`
@@ -172,6 +173,7 @@ func trackMaterialDeltas(base, current []PlanTrackObject) []TrackPlanMaterialDel
 			if entry == nil {
 				entry = &quantities{line: TrackPlanMaterialDelta{
 					GeometryID: object.GeometryID, LibraryID: object.Geometry.LibraryID,
+					Manufacturer:  object.Geometry.Manufacturer,
 					ArticleNumber: object.Geometry.ArticleNumber, Name: object.Geometry.Name,
 				}}
 				byGeometry[object.GeometryID] = entry
@@ -179,6 +181,7 @@ func trackMaterialDeltas(base, current []PlanTrackObject) []TrackPlanMaterialDel
 			if currentRevision {
 				entry.current++
 				entry.line.LibraryID = object.Geometry.LibraryID
+				entry.line.Manufacturer = object.Geometry.Manufacturer
 				entry.line.ArticleNumber = object.Geometry.ArticleNumber
 				entry.line.Name = object.Geometry.Name
 			} else {

@@ -672,7 +672,8 @@ WHERE object.id=?`, id).Scan(&status, &version)
 }
 
 const trackGeometrySelect = `
-SELECT geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
+SELECT geometry.id, geometry.library_id, library.manufacturer,
+       geometry.article_number, geometry.name, geometry.kind,
        geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
        geometry.source_url, geometry.status,
        geometry.created_at
@@ -686,12 +687,14 @@ SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
 	   object.elevation_start_mm, object.elevation_end_mm,
 	   object.flex_path_json, object.transition_path_json,
        object.version, object.created_at, object.updated_at, object.geometry_snapshot_json,
-       geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
+       geometry.id, geometry.library_id, library.manufacturer,
+       geometry.article_number, geometry.name, geometry.kind,
        geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
        geometry.source_url, geometry.status,
        geometry.created_at
 FROM plan_track_objects object
 JOIN track_geometry_definitions geometry ON geometry.id=object.geometry_id
+JOIN track_geometry_libraries library ON library.id=geometry.library_id
 `
 
 type trackScanner interface {
@@ -702,7 +705,8 @@ func scanTrackGeometry(scanner trackScanner) (*domain.TrackGeometryDefinition, e
 	geometry := &domain.TrackGeometryDefinition{}
 	var geometryJSON string
 	var minimumRadiusMM sql.NullFloat64
-	if err := scanner.Scan(&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
+	if err := scanner.Scan(&geometry.ID, &geometry.LibraryID, &geometry.Manufacturer,
+		&geometry.ArticleNumber, &geometry.Name,
 		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
 		&geometry.SourceURL, &geometry.Status,
 		&geometry.CreatedAt); err != nil {
@@ -730,7 +734,8 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 		&object.ElevationStartMM, &object.ElevationEndMM,
 		&flexPathJSON, &transitionPathJSON,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt, &geometrySnapshotJSON,
-		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
+		&geometry.ID, &geometry.LibraryID, &geometry.Manufacturer,
+		&geometry.ArticleNumber, &geometry.Name,
 		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
 		&geometry.SourceURL, &geometry.Status,
 		&geometry.CreatedAt); err != nil {
