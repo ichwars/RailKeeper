@@ -1,6 +1,9 @@
 # Freie Planobjekte Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Status:** Am 10. August 2026 lokal vollständig umgesetzt und abgenommen. Evidenz:
+`docs/aegis/work/2026-08-10-advanced-geometry-free-plan-objects/`.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Revisionsgebundene Rechtecke, Ellipsen, Linien und Beschriftungen im maßhaltigen
 Gleisplan anlegen, bearbeiten, vergleichen, sichern und wiederherstellen, ohne technische
@@ -40,7 +43,7 @@ app-eigene UI-Komponenten
 - Produces: `PlanFreeObject`, `ValidateFreePlanObjectShape`, `CompareFreePlanObjectRevisions`
 - Produces: `PlanFreeObjectChange` using the existing `TrackPlanObjectChangeType` values
 
-- [ ] **Step 1: Failing shape and diff tests write**
+- [x] **Step 1: Failing shape and diff tests write**
 
 Require every valid shape, all category values, invalid schema/non-finite/zero dimensions, empty or
 oversized text, unchanged lineage suppression and added/removed/changed ordering:
@@ -64,13 +67,13 @@ if len(diff) != 1 || diff[0].Type != TrackPlanObjectChanged {
 }
 ```
 
-- [ ] **Step 2: Domain RED run**
+- [x] **Step 2: Domain RED run**
 
 Run: `cd backend; go test ./internal/domain -run "FreePlan" -count=1`
 
 Expected: FAIL because the free-object types and comparison do not exist.
 
-- [ ] **Step 3: Minimal domain implement**
+- [x] **Step 3: Minimal domain implement**
 
 Define the exact shared model:
 
@@ -102,13 +105,13 @@ JSON-tag every field with the camel-case names from the spec. `ValidateFreePlanO
 irrelevant non-nil fields per kind, trims only for validation, uses `math.IsNaN/IsInf`, and returns
 `ErrInvalidFreePlanObjectShape`. Compare objects by lineage with 1e-9 tolerance and sorted output.
 
-- [ ] **Step 4: Domain GREEN run**
+- [x] **Step 4: Domain GREEN run**
 
 Run: `cd backend; go test ./internal/domain -run "FreePlan" -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```powershell
 git add backend/internal/domain/plan_free_object.go `
@@ -136,7 +139,7 @@ git commit -m "feat(planner): define free plan objects"
 - Produces repository methods: `CreateFreeObject`, `UpdateFreeObject`, `DeleteFreeObject`
 - Produces: `GetPlanForFreeObject`
 
-- [ ] **Step 1: Failing migration and repository tests write**
+- [x] **Step 1: Failing migration and repository tests write**
 
 Tests apply migration 0054, require cascading revision deletion, strict JSON hydration, draft-only
 CRUD, version conflicts, audit events and `GetPlan` returning an empty non-nil list or persisted
@@ -156,13 +159,13 @@ if err != nil || created.Version != 1 || created.LineageID != created.ID {
 }
 ```
 
-- [ ] **Step 2: Persistence RED run**
+- [x] **Step 2: Persistence RED run**
 
 Run: `cd backend; go test ./internal/infrastructure -run "FreePlan" -count=1`
 
 Expected: FAIL because migration, table and methods are absent.
 
-- [ ] **Step 3: Migration and focused repository implement**
+- [x] **Step 3: Migration and focused repository implement**
 
 Migration:
 
@@ -204,13 +207,13 @@ track repository does, normalize no values in persistence, increment versions at
 `PlanFreeObjectCreated|Updated|Deleted` audit events. Extend `GetPlan` to initialize and load
 `FreeObjects` ordered by creation time.
 
-- [ ] **Step 4: Persistence GREEN run**
+- [x] **Step 4: Persistence GREEN run**
 
 Run: `cd backend; go test ./internal/infrastructure -run "FreePlan" -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```powershell
 git add backend/migrations/0054_free_plan_objects.sql `
@@ -239,7 +242,7 @@ git commit -m "feat(planner): persist free plan objects"
 - Extends: `TrackPlanChangePreview.FreeObjectChanges []domain.PlanFreeObjectChange`
 - Produces: cloned free-object lineage and backup version 13 compatibility
 
-- [ ] **Step 1: Failing clone, preview and backup tests write**
+- [x] **Step 1: Failing clone, preview and backup tests write**
 
 Require a cloned object with a new ID, retained lineage and version 1. Require base/current free
 changes independent from empty track/material changes. Export and restore all four shapes; create a
@@ -255,13 +258,13 @@ if err != nil || len(preview.FreeObjectChanges) != 1 ||
 }
 ```
 
-- [ ] **Step 2: Compatibility RED run**
+- [x] **Step 2: Compatibility RED run**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure -run "FreePlan|Backup" -count=1`
 
 Expected: FAIL because clone, preview and backup version 13 are absent.
 
-- [ ] **Step 3: Clone, preview and backup implement**
+- [x] **Step 3: Clone, preview and backup implement**
 
 After cloning track objects, select `name, category, position_x_mm, position_y_mm,
 rotation_degrees, shape_json, lineage_id` from the base free-object table and insert new IDs with
@@ -281,13 +284,13 @@ if doc.Version <= 12 {
 Populate `FreeObjectChanges` from base and current `TrackPlan.FreeObjects`. Keep the existing track
 issue and material comparison unchanged.
 
-- [ ] **Step 4: Compatibility GREEN run**
+- [x] **Step 4: Compatibility GREEN run**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure -run "FreePlan|Backup" -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```powershell
 git add backend/internal/application/track_planner.go `
@@ -317,7 +320,7 @@ git commit -m "feat(planner): version free plan objects"
 - Produces: `CreateFreeObject`, `UpdateFreeObject`, `DeleteFreeObject` service methods
 - Produces: three versioned Planner API routes and complete OpenAPI schemas
 
-- [ ] **Step 1: Failing application, route, role, CSRF and contract tests write**
+- [x] **Step 1: Failing application, route, role, CSRF and contract tests write**
 
 Require trimming, rotation normalization, valid shape dispatch, rejection of non-finite positions,
 invalid category/name/shape/version, Admin/Planner access, Viewer/Editor/Messe denial for writes,
@@ -334,13 +337,13 @@ if err != nil || created.Name != "Bahnsteig 1" || created.RotationDegrees != 345
 }
 ```
 
-- [ ] **Step 2: API RED run**
+- [x] **Step 2: API RED run**
 
 Run: `cd backend; go test ./internal/application ./internal/api -run "FreePlan|OpenAPI" -count=1`
 
 Expected: FAIL because service methods, handlers, routes and schemas are absent.
 
-- [ ] **Step 3: Focused service and handlers implement**
+- [x] **Step 3: Focused service and handlers implement**
 
 Extend `TrackPlannerRepository` with the four Task-2 methods. Service normalization uses
 `strings.TrimSpace`, `NormalizeTrackRotation`, `validTrackCoordinates`, category validation and
@@ -359,7 +362,7 @@ Register:
 	(*App).deleteFreePlanObject, nil},
 ```
 
-- [ ] **Step 4: OpenAPI implement and API GREEN run**
+- [x] **Step 4: OpenAPI implement and API GREEN run**
 
 Document `FreePlanObjectShape`, `PlanFreeObject`, create/update inputs, change schema,
 `TrackPlan.freeObjects`, `TrackPlanChangePreview.freeObjectChanges` and all routes with 400/403/404/
@@ -369,7 +372,7 @@ Run: `cd backend; go test ./internal/application ./internal/api -run "FreePlan|O
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 4**
+- [x] **Step 5: Commit Task 4**
 
 ```powershell
 git add backend/internal/application/free_plan_objects.go `
@@ -399,7 +402,7 @@ git commit -m "feat(api): manage free plan objects"
 - Produces: `FreePlanObjectDialog` with explicit submit/cancel
 - Produces: `FreePlanObjectLayer` with semantic rendering and selection callback
 
-- [ ] **Step 1: Failing type, dialog and layer tests write**
+- [x] **Step 1: Failing type, dialog and layer tests write**
 
 Dialog tests cover create/edit defaults, conditional fields for all four kinds, app-owned selects,
 validation, focus/Escape, submit payload and cancel without write. Layer tests assert SVG elements,
@@ -417,7 +420,7 @@ expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({
 Use actual `AppSelect` button/option interaction in the implementation test rather than adding a
 test-only helper with that example name.
 
-- [ ] **Step 2: Frontend component RED run**
+- [x] **Step 2: Frontend component RED run**
 
 Run:
 
@@ -429,20 +432,20 @@ npm.cmd test -- --run src/features/layouts/FreePlanObjectDialog.test.tsx `
 
 Expected: FAIL because contracts and components are absent.
 
-- [ ] **Step 3: Contracts and dialog implement**
+- [x] **Step 3: Contracts and dialog implement**
 
 Add discriminated string unions and a single shape type with optional form-specific properties,
 plus create/update API calls. Build the portal dialog using the same focus trap and Escape behavior
 as the transition editor. Validate trimmed values before submit and render only fields relevant to
 the selected shape.
 
-- [ ] **Step 4: SVG layer, bilingual copy and token styles implement**
+- [x] **Step 4: SVG layer, bilingual copy and token styles implement**
 
 Render rectangle, ellipse, line and text inside one transformed `<g role="button">`. Add a
 selection outline for each kind and category classes. Reuse `--line`, `--muted`, `--accent`,
 `--warning`, panel tokens and font-size tokens; do not add hard-coded theme colors.
 
-- [ ] **Step 5: Component GREEN run and commit**
+- [x] **Step 5: Component GREEN run and commit**
 
 Run the Task-5 targeted command again. Expected: PASS.
 
@@ -476,7 +479,7 @@ git commit -m "feat(planner): render free plan objects"
 - Produces add/edit/drag/rotate/delete workflows and free-object change summary
 - Preserves all existing track editing, analysis and reservation behavior
 
-- [ ] **Step 1: Failing integration and regression tests write**
+- [x] **Step 1: Failing integration and regression tests write**
 
 Require centered creation, one API write per drag end, 15-degree rotation, dialog edit, app-owned
 delete confirmation, optimistic conflict display, reload recovery, mutually exclusive track/free
@@ -492,7 +495,7 @@ expect(api.createFreePlanObject).toHaveBeenCalledWith(revision.id, expect.object
 
 Change-preview tests require separate counts for track and free-object changes.
 
-- [ ] **Step 2: Canvas RED run**
+- [x] **Step 2: Canvas RED run**
 
 Run:
 
@@ -505,7 +508,7 @@ npm.cmd test -- --run src/features/layouts/FreePlanObjectInspector.test.tsx `
 
 Expected: FAIL because workflows and summary are absent.
 
-- [ ] **Step 3: Inspector and canvas workflows implement**
+- [x] **Step 3: Inspector and canvas workflows implement**
 
 Keep `selectedID` for tracks and add `selectedFreeObjectID`; every selection clears the other.
 Initialize `freeObjects` from `api.trackPlan`. Render `FreePlanObjectLayer` before track groups.
@@ -513,7 +516,7 @@ Clamp dragged positions to unit width/height without track snapping. Use the foc
 shape facts and edit/rotate/delete callbacks. Reuse `showError`, `LayoutConfirmDialog` and
 `refreshDerived` after writes.
 
-- [ ] **Step 4: Change preview, full tests and build run**
+- [x] **Step 4: Change preview, full tests and build run**
 
 Show `freeObjectChanges.length` independently from track changes. Run:
 
@@ -528,7 +531,7 @@ npm.cmd run build
 
 Expected: targeted tests, all Vitest files and production build PASS.
 
-- [ ] **Step 5: Commit Task 6**
+- [x] **Step 5: Commit Task 6**
 
 ```powershell
 git add frontend/src/features/layouts/FreePlanObjectInspector.tsx `
@@ -557,7 +560,7 @@ git commit -m "feat(planner): edit free plan objects"
 - Consumes complete Package I
 - Produces local acceptance evidence and a clean #36 implementation branch
 
-- [ ] **Step 1: Full automated verification run**
+- [x] **Step 1: Full automated verification run**
 
 ```powershell
 cd backend
@@ -570,13 +573,13 @@ npm.cmd run build
 
 Expected: all backend packages, all Vitest files and production build PASS.
 
-- [ ] **Step 2: Current server restart and health check**
+- [x] **Step 2: Current server restart and health check**
 
 Rebuild `frontend/dist`, stop only the exact listener on port 18083 and restart with repository data,
 migrations, seeds, static directory and repository-local `GOCACHE`. Require `/health` HTTP 200 and
 authenticated `codex-test`.
 
-- [ ] **Step 3: Browser acceptance run**
+- [x] **Step 3: Browser acceptance run**
 
 Create one object per shape and verify category rendering. Move and edit the rectangle, rotate the
 line, reload and require identical values. Confirm four free objects in the plan, unchanged Tillig
@@ -584,12 +587,12 @@ BOM quantities and unchanged track-warning count. Cancel one edit without mutati
 object through the app dialog, verify the change preview and require no console errors in a fresh
 tab.
 
-- [ ] **Step 4: Evidence and documentation update**
+- [x] **Step 4: Evidence and documentation update**
 
 Record exact commits, test counts, build module count, listener PID, browser values, preserved BOM/
 issue counts and the local-only boundary. Mark checkboxes complete only after evidence exists.
 
-- [ ] **Step 5: Documentation commit and clean-state check**
+- [x] **Step 5: Documentation commit and clean-state check**
 
 ```powershell
 git add docs/superpowers/specs/2026-08-10-erweiterte-geometrie-freie-planobjekte-design.md `

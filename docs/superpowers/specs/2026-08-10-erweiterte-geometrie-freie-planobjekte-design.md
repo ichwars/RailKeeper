@@ -2,7 +2,10 @@
 
 **Datum:** 2026-08-10
 
-**Status:** unter der bestehenden lokalen Vollfreigabe für Issues 31 bis 36, keine Veröffentlichung
+**Status:** lokal implementiert und am 10. August 2026 vollständig abgenommen, keine Veröffentlichung
+
+Die Nachweise liegen unter
+`docs/aegis/work/2026-08-10-advanced-geometry-free-plan-objects/`.
 
 ## Ziel
 
