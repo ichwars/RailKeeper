@@ -51,19 +51,24 @@ func (repository *TrackPlannerRepository) GetPlan(
 ) (*application.TrackPlan, error) {
 	plan := &application.TrackPlan{RevisionID: revisionID, Objects: []domain.PlanTrackObject{}}
 	var maxGradePercent sql.NullFloat64
+	var minimumTrackClearanceMM sql.NullFloat64
 	if err := repository.db.QueryRowContext(ctx, `
-SELECT revision.status, layout.max_grade_percent
+SELECT revision.status, layout.max_grade_percent, layout.minimum_track_clearance_mm
 FROM plan_revisions revision
 JOIN plan_variants variant ON variant.id=revision.variant_id
 JOIN layout_units unit ON unit.id=variant.layout_unit_id
 JOIN layouts layout ON layout.id=unit.layout_id
-WHERE revision.id=?`, revisionID).Scan(&plan.Status, &maxGradePercent); errors.Is(err, sql.ErrNoRows) {
+WHERE revision.id=?`, revisionID).Scan(&plan.Status, &maxGradePercent,
+		&minimumTrackClearanceMM); errors.Is(err, sql.ErrNoRows) {
 		return nil, application.ErrTrackPlanNotFound
 	} else if err != nil {
 		return nil, fmt.Errorf("read track plan revision: %w", err)
 	}
 	if maxGradePercent.Valid {
 		plan.Limits.MaxGradePercent = &maxGradePercent.Float64
+	}
+	if minimumTrackClearanceMM.Valid {
+		plan.Limits.MinimumTrackClearanceMM = &minimumTrackClearanceMM.Float64
 	}
 	rows, err := repository.db.QueryContext(ctx, trackObjectSelect+`
 WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)

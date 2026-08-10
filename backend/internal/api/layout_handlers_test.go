@@ -171,7 +171,7 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 
 	layoutResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 		"name": "Heimanlage", "kind": "private", "gauge": "TT", "scale": "1:120",
-		"maxGradePercent": 3.5,
+		"maxGradePercent": 3.5, "minimumTrackClearanceMm": 40,
 	}, true)
 	if layoutResponse.Code != http.StatusCreated {
 		t.Fatalf("create layout: %d: %s", layoutResponse.Code, layoutResponse.Body.String())
@@ -181,18 +181,24 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 	if layout.MaxGradePercent == nil || *layout.MaxGradePercent != 3.5 {
 		t.Fatalf("unexpected layout grade limit: %#v", layout)
 	}
+	if layout.MinimumTrackClearanceMM == nil || *layout.MinimumTrackClearanceMM != 40 {
+		t.Fatalf("unexpected layout clearance limit: %#v", layout)
+	}
 
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts", nil, true), http.StatusOK)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts/"+layout.ID, nil, true), http.StatusOK)
 	updatedLayoutResponse := layoutRequest(t, router, session, http.MethodPut, "/api/v1/layouts/"+layout.ID, map[string]any{
 		"name": "Heimanlage erweitert", "kind": "private", "gauge": "TT", "scale": "1:120",
-		"maxGradePercent": 2.5, "expectedVersion": layout.Version,
+		"maxGradePercent": 2.5, "minimumTrackClearanceMm": 25.5, "expectedVersion": layout.Version,
 	}, true)
 	assertStatus(t, updatedLayoutResponse, http.StatusOK)
 	var updatedLayout application.Layout
 	decodeResponse(t, updatedLayoutResponse, &updatedLayout)
 	if updatedLayout.MaxGradePercent == nil || *updatedLayout.MaxGradePercent != 2.5 {
 		t.Fatalf("unexpected updated layout grade limit: %#v", updatedLayout)
+	}
+	if updatedLayout.MinimumTrackClearanceMM == nil || *updatedLayout.MinimumTrackClearanceMM != 25.5 {
+		t.Fatalf("unexpected updated layout clearance limit: %#v", updatedLayout)
 	}
 	staleLayout := layoutRequest(t, router, session, http.MethodPut, "/api/v1/layouts/"+layout.ID, map[string]any{
 		"name": "Stale", "kind": "private", "gauge": "TT", "scale": "1:120", "expectedVersion": 1,

@@ -2032,6 +2032,10 @@ components:
           format: double
           exclusiveMinimum: 0
           maximum: 100
+        minimumTrackClearanceMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         version:
           type: integer
           minimum: 1
@@ -2063,6 +2067,10 @@ components:
           format: double
           exclusiveMinimum: 0
           maximum: 100
+        minimumTrackClearanceMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         archived:
           type: boolean
     UpdateLayoutInput:
@@ -2897,7 +2905,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]
         severity:
           type: string
           enum: [warning, error]
@@ -2921,6 +2929,20 @@ components:
           format: double
           exclusiveMinimum: 0
           maximum: 100
+        clearanceMm:
+          type: number
+          format: double
+          minimum: 0
+        clearanceLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        intersectionXMm:
+          type: number
+          format: double
+        intersectionYMm:
+          type: number
+          format: double
     TrackBOMLine:
       type: object
       required: [geometryId, libraryId, articleNumber, name, quantity]
@@ -3071,7 +3093,7 @@ components:
       properties:
         code:
           type: string
-          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]
         severity:
           type: string
           enum: [warning, error]

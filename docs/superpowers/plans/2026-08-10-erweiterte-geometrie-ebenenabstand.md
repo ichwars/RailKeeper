@@ -231,40 +231,40 @@ git commit -m "feat(planner): detect insufficient track clearance"
 - Produces: JSON `minimumTrackClearanceMm`, `clearanceMm`, `clearanceLimitMm`, `intersectionXMm`,
   `intersectionYMm`
 
-- [ ] **Step 1: Repository-, Service- und Handlertests fehlschlagend erweitern**
+- [x] **Step 1: Repository-, Service- und Handlertests fehlschlagend erweitern**
 
 Der Repositorytest erstellt eine Anlage mit 40 mm und prüft, dass `GetPlan` und ein geklonter Plan
 `Limits.MinimumTrackClearanceMM == 40` liefern. Der Servicetest verwendet zwei kreuzende G1 und prüft
 einen Hinweis in Analyse sowie einen in `Added` und später `Resolved` in der Änderungsvorschau.
 Layout-Handler testen Create 40 und Update 25.5; Track-Plan-Handler prüfen Code und vier Detailfelder.
 
-- [ ] **Step 2: API- und Repositorytests ausführen und das erwartete Fehlschlagen bestätigen**
+- [x] **Step 2: API- und Repositorytests ausführen und das erwartete Fehlschlagen bestätigen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure ./internal/api -run "Clearance|OpenAPI"`
 
 Expected: FAIL, Repositoryabfrage und OpenAPI führen das neue Limit noch nicht.
 
-- [ ] **Step 3: Plan-Repository um das zweite Limit ergänzen**
+- [x] **Step 3: Plan-Repository um das zweite Limit ergänzen**
 
 Die `GetPlan`-Abfrage liest nach `layout.max_grade_percent` zusätzlich
 `layout.minimum_track_clearance_mm`. Ein zweites `sql.NullFloat64` wird bei `Valid` nach
 `plan.Limits.MinimumTrackClearanceMM` kopiert. Klonen und Änderungsvorschau verwenden bereits das
 komplette `TrackPlanLimits`-Struct und benötigen keine parallele Sonderlogik.
 
-- [ ] **Step 4: OpenAPI synchron erweitern**
+- [x] **Step 4: OpenAPI synchron erweitern**
 
 `Layout` und `LayoutInput` erhalten `minimumTrackClearanceMm` als nullable number mit
 `exclusiveMinimum: 0`. `TrackPlanIssue.code` und `TrackPlanIssueChange.code` erhalten
 `insufficient_clearance`. `TrackPlanIssue` erhält die vier nullable number-Felder; nur
 `clearanceLimitMm` besitzt `exclusiveMinimum: 0`.
 
-- [ ] **Step 5: Backend- und OpenAPI-Suiten ausführen**
+- [x] **Step 5: Backend- und OpenAPI-Suiten ausführen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure ./internal/api`
 
 Expected: PASS.
 
-- [ ] **Step 6: Vertrag lokal committen**
+- [x] **Step 6: Vertrag lokal committen**
 
 ```powershell
 git add backend/internal/infrastructure/track_planner_repository.go `

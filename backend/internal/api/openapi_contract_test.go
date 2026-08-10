@@ -106,7 +106,7 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	contract := string(data)
 	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
 	if !strings.Contains(issue,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]") {
 		t.Errorf("TrackPlanIssue is missing elevation_mismatch: %s", issue)
 	}
 	if !strings.Contains(issue, "elevationDifferenceMm:") || !strings.Contains(issue, "minimum: 0") {
@@ -114,7 +114,7 @@ func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
 	}
 	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
 	if !strings.Contains(change,
-		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded]") {
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance]") {
 		t.Errorf("TrackPlanIssueChange is missing elevation_mismatch: %s", change)
 	}
 }
@@ -140,6 +140,32 @@ func TestOpenAPIDocumentsLayoutGradeLimitAndWarning(t *testing.T) {
 	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
 	if !strings.Contains(change, "grade_limit_exceeded") {
 		t.Errorf("TrackPlanIssueChange is missing grade_limit_exceeded: %s", change)
+	}
+}
+
+func TestOpenAPIDocumentsTrackClearanceLimitAndWarning(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"Layout", "LayoutInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "minimumTrackClearanceMm:") ||
+			!strings.Contains(block, "exclusiveMinimum: 0") {
+			t.Errorf("%s is missing minimum clearance constraints: %s", schema, block)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	for _, token := range []string{"insufficient_clearance", "clearanceMm:", "clearanceLimitMm:",
+		"intersectionXMm:", "intersectionYMm:"} {
+		if !strings.Contains(issue, token) {
+			t.Errorf("TrackPlanIssue is missing %s: %s", token, issue)
+		}
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change, "insufficient_clearance") {
+		t.Errorf("TrackPlanIssueChange is missing insufficient_clearance: %s", change)
 	}
 }
 

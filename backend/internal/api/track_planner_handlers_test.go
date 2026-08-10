@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"testing"
 
@@ -259,15 +260,60 @@ VALUES('route-track-product', 'route-track-location', 2, 'now');`); err != nil {
 		http.StatusNotFound, "track_plan_not_found")
 }
 
+func TestTrackPlannerRoutesExposeInsufficientClearanceDetails(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "planner-clearance", Password: "planner-password", Roles: []string{"Planner"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	session := loginRouteTestUser(t, auth, "planner-clearance", "planner-password")
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	router := NewRouter(Config{AuthService: auth, LayoutService: layouts, TrackPlannerService: planner})
+	_, draft := trackPlannerRouteRevision(t, layouts)
+
+	for _, input := range []application.CreatePlanTrackObjectInput{
+		{GeometryID: "tillig-tt-modellgleis-83101-v1", ElevationStartMM: 0, ElevationEndMM: 0},
+		{GeometryID: "tillig-tt-modellgleis-83101-v1", PositionXMM: 83, PositionYMM: -83,
+			RotationDegrees: 90, ElevationStartMM: 25, ElevationEndMM: 25},
+	} {
+		if _, err := planner.CreateObject(t.Context(), draft.ID, input, "planner-clearance"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	response := layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/plan-revisions/"+draft.ID+"/track-analysis", nil, true)
+	assertStatus(t, response, http.StatusOK)
+	var analysis application.TrackPlanAnalysis
+	decodeResponse(t, response, &analysis)
+	issues := make([]domain.TrackPlanIssue, 0)
+	for _, issue := range analysis.Issues {
+		if issue.Code == domain.TrackPlanIssueInsufficientClearance {
+			issues = append(issues, issue)
+		}
+	}
+	if len(issues) != 1 || issues[0].ClearanceMM == nil ||
+		math.Abs(*issues[0].ClearanceMM-25) > 1e-9 ||
+		issues[0].ClearanceLimitMM == nil || *issues[0].ClearanceLimitMM != 40 ||
+		issues[0].IntersectionXMM == nil || math.Abs(*issues[0].IntersectionXMM-83) > 1e-9 ||
+		issues[0].IntersectionYMM == nil || math.Abs(*issues[0].IntersectionYMM) > 1e-9 {
+		t.Fatalf("unexpected clearance response: %#v", issues)
+	}
+}
+
 func trackPlannerRouteRevision(
 	t *testing.T,
 	layouts *application.LayoutService,
 ) (*application.PlanVariant, *application.PlanRevision) {
 	t.Helper()
 	maxGradePercent := 2.0
+	minimumTrackClearanceMM := 40.0
 	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
 		Name: "Track API", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
-		MaxGradePercent: &maxGradePercent,
+		MaxGradePercent: &maxGradePercent, MinimumTrackClearanceMM: &minimumTrackClearanceMM,
 	}, "")
 	if err != nil {
 		t.Fatal(err)

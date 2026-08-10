@@ -17,9 +17,10 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	ctx := t.Context()
 
 	maxGradePercent := 3.5
+	minimumTrackClearanceMM := 40.0
 	layout, err := layouts.CreateLayout(ctx, application.CreateLayoutInput{
 		Name: "Clubanlage", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
-		MaxGradePercent: &maxGradePercent,
+		MaxGradePercent: &maxGradePercent, MinimumTrackClearanceMM: &minimumTrackClearanceMM,
 	}, "admin")
 	if err != nil {
 		t.Fatal(err)
@@ -111,6 +112,10 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	}
 	if clonedPlan.Limits.MaxGradePercent == nil || *clonedPlan.Limits.MaxGradePercent != maxGradePercent {
 		t.Fatalf("layout grade limit missing from track plan: %#v", clonedPlan.Limits)
+	}
+	if clonedPlan.Limits.MinimumTrackClearanceMM == nil ||
+		*clonedPlan.Limits.MinimumTrackClearanceMM != minimumTrackClearanceMM {
+		t.Fatalf("layout clearance limit missing from track plan: %#v", clonedPlan.Limits)
 	}
 	if err := planner.DeleteObject(ctx, clonedPlan.Objects[0].ID, clonedPlan.Objects[0].Version, "planner"); err != nil {
 		t.Fatal(err)

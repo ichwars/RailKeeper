@@ -366,6 +366,45 @@ func TestTrackPlannerChangePreviewUsesCurrentLayoutGradeLimit(t *testing.T) {
 	t.Fatalf("expected resolved grade limit warning, got %#v", preview.Issues)
 }
 
+func TestTrackPlannerChangePreviewUsesCurrentLayoutClearanceLimit(t *testing.T) {
+	baseLower := trackPlannerTestG1("base-lower", 0, 0, 0)
+	baseLower.LineageID = "lineage-lower"
+	baseUpper := trackPlannerTestG1("base-upper", 83, -83, 90)
+	baseUpper.LineageID = "lineage-upper"
+	baseUpper.ElevationStartMM, baseUpper.ElevationEndMM = 25, 25
+	currentLower := trackPlannerTestG1("current-lower", 0, 0, 0)
+	currentLower.LineageID = baseLower.LineageID
+	currentUpper := trackPlannerTestG1("current-upper", 83, -83, 90)
+	currentUpper.LineageID = baseUpper.LineageID
+	currentUpper.ElevationStartMM, currentUpper.ElevationEndMM = 40, 40
+	limit := 40.0
+	repository := &trackPlannerRepositorySpy{
+		baseRevisionID: "revision-base",
+		plans: map[string]*TrackPlan{
+			"revision-base": {
+				RevisionID: "revision-base", Status: domain.PlanRevisionPublished,
+				Objects: []domain.PlanTrackObject{baseLower, baseUpper},
+			},
+			"revision-current": {
+				RevisionID: "revision-current", Status: domain.PlanRevisionDraft,
+				Objects: []domain.PlanTrackObject{currentLower, currentUpper},
+				Limits:  domain.TrackPlanLimits{MinimumTrackClearanceMM: &limit},
+			},
+		},
+	}
+
+	preview, err := NewTrackPlannerService(repository).ChangePreview(t.Context(), "revision-current")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, issue := range preview.Issues.Resolved {
+		if issue.Code == domain.TrackPlanIssueInsufficientClearance {
+			return
+		}
+	}
+	t.Fatalf("expected resolved clearance warning, got %#v", preview.Issues)
+}
+
 func TestTrackPlannerReserveMaterialsRequiresConfirmationAndValidUniqueObjects(t *testing.T) {
 	service := NewTrackPlannerService(&trackPlannerRepositorySpy{})
 	valid := ReserveTrackPlanMaterialsInput{Confirmed: true, Items: []TrackPlanReservationInput{{
