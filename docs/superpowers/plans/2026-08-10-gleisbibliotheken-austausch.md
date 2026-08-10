@@ -1,0 +1,65 @@
+# Gleisbibliotheken und Austauschformate Implementation Plan
+
+**Goal:** Issue #33 mit einem sicheren, versionierten RailKeeper-JSON-Austausch für zusätzliche
+Gleisbibliotheken und unveränderlichen Geometriesnapshots bestehender Pläne abschließen.
+
+**Architecture:** Neue fokussierte Domain-, Application-, Repository-, Handler- und
+React-Komponenten erweitern den vorhandenen `TrackPlannerService`, ohne zentrale Planerdateien mit
+Importlogik zu belasten. Migration 0055 ergänzt Prüfmetadaten und Geometriesnapshots.
+
+**Constraints:** Alles bleibt lokal. Fremdformate ohne verifizierbare Spezifikation werden nicht
+implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurückgesetzt.
+
+## Task 1: Austauschdomäne und Validierung
+
+- [ ] RailKeeper-Bibliotheksdokument, Vorschau, Statusinput und Limits definieren
+- [ ] Strikte Validierung für Format, Schema, Metadaten, URL, Duplikate und Geometrien testen
+- [ ] Domain-Tests grün ausführen
+- [ ] Lokal committen
+
+## Task 2: Migration und unveränderliche Snapshots
+
+- [ ] Migration 0055 für Prüfmetadaten und `geometry_snapshot_json` schreiben
+- [ ] Bestehende Planobjekte deterministisch zurückfüllen
+- [ ] Platzierung, Lesen und Revisionsklon auf Snapshots umstellen
+- [ ] Regression beweist unveränderte Geometrie nach Definition- oder Statusänderung
+- [ ] Backupversion 14 und Restore-Kompatibilität bis Version 13 ergänzen
+- [ ] Infrastruktur- und Backuptests grün ausführen und lokal committen
+
+## Task 3: Bibliotheksworkflow im Backend
+
+- [ ] Repository für Liste, Export, Konfliktprüfung, Draftimport und Statuswechsel testen
+- [ ] Servicevorschau normalisiert ohne Mutation
+- [ ] Bestätigter Import bleibt `draft`, bestätigte Admin-Prüfung setzt alle Definitionen
+  `verified`, Stilllegung entfernt sie aus der Palette
+- [ ] Audit-Ereignisse und eindeutige Versionen prüfen
+- [ ] Lokal committen
+
+## Task 4: API und OpenAPI
+
+- [ ] Handler-, Rollen-, CSRF-, Größen- und Fehlervertragstests schreiben
+- [ ] Fünf versionierte Routen registrieren
+- [ ] OpenAPI-Pfade und vollständige Schemas ergänzen
+- [ ] OpenAPI-Vertrag und Backendtests grün ausführen
+- [ ] Lokal committen
+
+## Task 5: Strikter Client und Planeroberfläche
+
+- [ ] TypeScript-Verträge und API-Adapter testen
+- [ ] Kompaktes Bibliotheks-Panel mit Status, Quelle, Definitionen und Export bauen
+- [ ] App-eigene Importvorschau und Prüf-/Stilllegungsdialoge bauen
+- [ ] Deutsche und englische Texte sowie responsive Tokenstile ergänzen
+- [ ] Komponenten- und Integrationstests grün ausführen
+- [ ] Lokal committen
+
+## Task 6: Vollständige Abnahme
+
+- [ ] `go test ./...`
+- [ ] `npm.cmd test -- --run`
+- [ ] `npm.cmd run build`
+- [ ] aktuellen lokalen Server neu starten und `/health` prüfen
+- [ ] Browser: Export, Vorschau, Draftimport, Freigabe, Palette und Stilllegung prüfen
+- [ ] Browser: Stückliste und vorhandene Revision bleiben nach Bibliotheksstatus unverändert
+- [ ] Browserkonsolen auf Fehler prüfen
+- [ ] Evidenz unter `docs/aegis/work/2026-08-10-track-libraries-exchange/` dokumentieren
+- [ ] Plan abhaken, lokal committen und sauberen Arbeitsbaum prüfen
