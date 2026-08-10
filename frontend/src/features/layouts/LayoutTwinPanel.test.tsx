@@ -90,7 +90,9 @@ describe("LayoutTwinPanel", () => {
 
   it("keeps editing role-gated and autosaves keyboard and pointer changes", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "layoutTwin").mockResolvedValue(twin);
+    const pendingReload = new Promise<LayoutTwin>(() => undefined);
+    vi.spyOn(api, "layoutTwin").mockResolvedValueOnce(twin).mockReturnValueOnce(pendingReload)
+      .mockResolvedValue(twin);
     const updatePosition = vi.spyOn(api, "updateLayoutTechnicalPosition").mockResolvedValue({
       id: "position-reserved", layoutUnitId: unit.id, label: "Einfahrsignal A", kind: "signal",
       positionXMm: 151, positionYMm: 80, rotationDegrees: 90, version: 2, archived: false,
@@ -110,6 +112,7 @@ describe("LayoutTwinPanel", () => {
     await user.keyboard("{ArrowRight}");
     await waitFor(() => expect(updatePosition).toHaveBeenCalledWith("position-reserved",
       expect.objectContaining({ positionXMm: 151, positionYMm: 80, expectedVersion: 1 })), { timeout: 1500 });
+    await waitFor(() => expect(api.layoutTwin).toHaveBeenCalledTimes(2));
 
     const canvas = screen.getByRole("img", { name: "Grafische Anlagenübersicht mit technischen Positionen" });
     vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({

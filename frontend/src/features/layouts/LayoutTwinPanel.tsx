@@ -307,7 +307,7 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
         <button type="button" className="secondary-button compact-action" onClick={() => {
           if (serverTwin) applyTwin(serverTwin); setEditConflict(false);
         }}>{t("layouts.twin.edit.discard")}</button></div> : null}
-      {loading ? <div className="layout-twin-empty"><p>{t("layouts.twin.loading")}</p></div> :
+      {loading && !twin ? <div className="layout-twin-empty"><p>{t("layouts.twin.loading")}</p></div> :
         twin && (!twin.hasGeometry || twin.units.length === 0) ? <div className="layout-twin-empty">
           <TriangleAlert size={20} /><p>{t("layouts.twin.noGeometry")}</p></div> : twin ?
           <div className={`layout-twin-body${selected ? " inspector-open" : ""}`}>
