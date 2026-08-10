@@ -126,7 +126,10 @@ describe("TrackPlannerCanvas", () => {
     const user = userEvent.setup();
     vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [trackObject] });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
-      ...trackObject, ...input, version: 2
+      ...trackObject, ...input,
+      flexPath: input.flexPath ?? undefined,
+      transitionPath: input.transitionPath ?? undefined,
+      version: 2
     }));
     const remove = vi.spyOn(api, "deletePlanTrackObject").mockResolvedValue(undefined);
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
@@ -225,7 +228,10 @@ describe("TrackPlannerCanvas", () => {
       materials: [], reservations: []
     });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
-      ...trackObject, ...input, version: 2
+      ...trackObject, ...input,
+      flexPath: input.flexPath ?? undefined,
+      transitionPath: input.transitionPath ?? undefined,
+      version: 2
     }));
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
@@ -262,7 +268,10 @@ describe("TrackPlannerCanvas", () => {
       applicable: true
     });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
-      ...flexObject, ...input, version: 2
+      ...flexObject, ...input,
+      flexPath: input.flexPath ?? undefined,
+      transitionPath: input.transitionPath ?? undefined,
+      version: 2
     }));
     render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
 
@@ -278,7 +287,54 @@ describe("TrackPlannerCanvas", () => {
     await user.click(await screen.findByRole("button", { name: "Verlauf übernehmen" }));
 
     await waitFor(() => expect(update).toHaveBeenCalledWith(flexObject.id, expect.objectContaining({
-      flexPath: expect.objectContaining({ endXMm: 520 }), expectedVersion: 1
+      flexPath: expect.objectContaining({ endXMm: 520 }), transitionPath: null, expectedVersion: 1
+    })));
+  });
+
+  it("converts a free flex path to a transition curve and preserves it on pose updates", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.trackGeometries).mockResolvedValue([geometry, flexGeometry]);
+    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [flexObject] });
+    vi.spyOn(api, "previewTransitionCurvePath").mockResolvedValue({
+      path: { schemaVersion: 1, lengthMm: 500, endRadiusMm: 700, direction: "left" },
+      effectiveGeometry: flexObject.effectiveGeometry,
+      effectiveLengthMm: 500,
+      effectiveMinimumRadiusMm: 700,
+      radiusLimitMm: 700,
+      lengthExceeded: false,
+      radiusBelowLimit: false,
+      applicable: true
+    });
+    const transitionObject: PlanTrackObject = {
+      ...flexObject,
+      flexPath: undefined,
+      transitionPath: { schemaVersion: 1, lengthMm: 500, endRadiusMm: 700, direction: "left" },
+      effectiveLengthMm: 500,
+      version: 2
+    };
+    const update = vi.spyOn(api, "updatePlanTrackObject")
+      .mockResolvedValueOnce(transitionObject)
+      .mockResolvedValueOnce({ ...transitionObject, rotationDegrees: 15, version: 3 });
+    render(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
+
+    await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83125 Flexgleis" }));
+    await user.click(screen.getByRole("button", { name: "Übergangsbogen" }));
+    await user.clear(screen.getByRole("spinbutton", { name: "Länge (mm)" }));
+    await user.type(screen.getByRole("spinbutton", { name: "Länge (mm)" }), "500");
+    await user.click(screen.getByRole("button", { name: "Übergangsbogen vorschlagen" }));
+    await user.click(await screen.findByRole("button", { name: "Übergangsbogen übernehmen" }));
+    await waitFor(() => expect(update).toHaveBeenNthCalledWith(1, flexObject.id, expect.objectContaining({
+      flexPath: null,
+      transitionPath: { schemaVersion: 1, lengthMm: 500, endRadiusMm: 700, direction: "left" },
+      expectedVersion: 1
+    })));
+
+    await user.click(screen.getByRole("button", { name: "+15°" }));
+    await waitFor(() => expect(update).toHaveBeenNthCalledWith(2, flexObject.id, expect.objectContaining({
+      flexPath: null,
+      transitionPath: transitionObject.transitionPath,
+      rotationDegrees: 15,
+      expectedVersion: 2
     })));
   });
 

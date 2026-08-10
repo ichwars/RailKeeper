@@ -8,6 +8,7 @@ import {
   type PlanRevision,
   type PlanTrackObject,
   type FlexTrackPath,
+  type TransitionCurvePath,
   type TrackGeometryDefinition,
   type TrackPlanAnalysis,
   type TrackPlanChangePreview,
@@ -17,6 +18,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { FlexTrackEditorDialog } from "./FlexTrackEditorDialog";
+import { TransitionCurveEditorDialog } from "./TransitionCurveEditorDialog";
 import { TrackPlanAnalysisPanel } from "./TrackPlanAnalysisPanel";
 import { TrackPlanChangePreviewPanel } from "./TrackPlanChangePreviewPanel";
 import { TrackPlanReservationDialog } from "./TrackPlanReservationDialog";
@@ -34,6 +36,24 @@ type DragState = {
 };
 
 type TrackPortStatus = "connected" | "open" | "incompatible" | "unknown";
+
+type TrackPathSelection = {
+  flexPath: FlexTrackPath | null;
+  transitionPath: TransitionCurvePath | null;
+};
+
+function defaultFlexPath(object: PlanTrackObject): FlexTrackPath {
+  const end = object.effectiveGeometry.ports.find((port) => port.id === "b");
+  const length = object.effectiveLengthMm || object.geometry.lengthMm;
+  return {
+    schemaVersion: 1,
+    endXMm: end?.xMm ?? object.geometry.lengthMm,
+    endYMm: end?.yMm ?? 0,
+    endDirectionDegrees: end?.directionDegrees ?? 0,
+    startHandleMm: length / 3,
+    endHandleMm: length / 3
+  };
+}
 
 const trackPortSymbols: Record<TrackPortStatus, string> = {
   connected: "✓",
@@ -82,6 +102,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const [elevationStart, setElevationStart] = useState("0");
   const [elevationEnd, setElevationEnd] = useState("0");
   const [flexEditorID, setFlexEditorID] = useState("");
+  const [transitionEditorID, setTransitionEditorID] = useState("");
   const canvasRef = useRef<SVGSVGElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const { language, t } = useI18n();
@@ -171,13 +192,16 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   };
 
   const update = async (object: PlanTrackObject, positionXMm: number, positionYMm: number,
-    rotationDegrees: number, flexPath: FlexTrackPath | undefined = object.flexPath) => {
+    rotationDegrees: number, paths: TrackPathSelection = {
+      flexPath: object.flexPath ?? null,
+      transitionPath: object.transitionPath ?? null
+    }) => {
     setSaving(true); setMessage(""); setConflict(false);
     try {
       const updated = await api.updatePlanTrackObject(object.id, {
         positionXMm, positionYMm, rotationDegrees,
         elevationStartMm: object.elevationStartMm, elevationEndMm: object.elevationEndMm,
-        ...(flexPath ? { flexPath } : {}),
+        ...(object.geometry.kind === "flex" ? paths : {}),
         expectedVersion: object.version
       });
       setObjects((current) => current.map((item) => item.id === updated.id ? updated : item));
@@ -366,6 +390,10 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
               className="secondary-button compact-action" disabled={saving}
               onClick={() => setFlexEditorID(selected.id)}><Pencil size={14} />
               {t("layouts.flexEditor.open")}</button> : null}
+            {selected.geometry.kind === "flex" ? <button type="button"
+              className="secondary-button compact-action" disabled={saving}
+              onClick={() => setTransitionEditorID(selected.id)}><Pencil size={14} />
+              {t("layouts.transitionEditor.open")}</button> : null}
             <button type="button" className="danger-button compact-action" disabled={saving}
               onClick={askDelete}><Trash2 size={14} />{t("layouts.trackPlanner.delete")}</button>
             </> : null}
@@ -386,11 +414,18 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
     {reservationMaterial && selected ? <TrackPlanReservationDialog revisionId={revision.id}
       object={selected} material={reservationMaterial} onClose={() => setReservationMaterial(null)}
       onReserved={() => { setReservationMaterial(null); void refreshDerived(); }} /> : null}
-    {flexEditorID && selected?.id === flexEditorID && selected.flexPath ? <FlexTrackEditorDialog
-      object={selected} objects={objects} saving={saving} onClose={() => setFlexEditorID("")}
+    {flexEditorID && selected?.id === flexEditorID ? <FlexTrackEditorDialog
+      object={selected.flexPath ? selected : { ...selected, flexPath: defaultFlexPath(selected) }}
+      objects={objects} saving={saving} onClose={() => setFlexEditorID("")}
       onApply={async (path) => {
         if (await update(selected, selected.positionXMm, selected.positionYMm,
-          selected.rotationDegrees, path)) setFlexEditorID("");
+          selected.rotationDegrees, { flexPath: path, transitionPath: null })) setFlexEditorID("");
+      }} /> : null}
+    {transitionEditorID && selected?.id === transitionEditorID ? <TransitionCurveEditorDialog
+      object={selected} saving={saving} onClose={() => setTransitionEditorID("")}
+      onApply={async (path) => {
+        if (await update(selected, selected.positionXMm, selected.positionYMm,
+          selected.rotationDegrees, { flexPath: null, transitionPath: path })) setTransitionEditorID("");
       }} /> : null}
   </section>;
 }

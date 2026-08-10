@@ -343,6 +343,7 @@ export type PlanTrackObject = {
   elevationStartMm: number;
   elevationEndMm: number;
   flexPath?: FlexTrackPath;
+  transitionPath?: TransitionCurvePath;
   effectiveGeometry: TrackGeometry;
   effectiveLengthMm: number;
   effectiveMinimumRadiusMm?: number | null;
@@ -473,7 +474,8 @@ export type CreatePlanTrackObjectInput = {
   rotationDegrees: number;
   elevationStartMm: number;
   elevationEndMm: number;
-  flexPath?: FlexTrackPath;
+  flexPath?: FlexTrackPath | null;
+  transitionPath?: TransitionCurvePath | null;
 };
 export type UpdatePlanTrackObjectInput = {
   positionXMm: number;
@@ -481,7 +483,8 @@ export type UpdatePlanTrackObjectInput = {
   rotationDegrees: number;
   elevationStartMm: number;
   elevationEndMm: number;
-  flexPath?: FlexTrackPath;
+  flexPath?: FlexTrackPath | null;
+  transitionPath?: TransitionCurvePath | null;
   expectedVersion: number;
 };
 export type FlexTrackPath = {
@@ -500,6 +503,29 @@ export type FlexTrackPreviewInput = {
 };
 export type FlexTrackPreview = {
   path: FlexTrackPath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
+  radiusLimitMm: number;
+  lengthExceeded: boolean;
+  radiusBelowLimit: boolean;
+  applicable: boolean;
+};
+export type TransitionDirection = "left" | "right";
+export type TransitionCurvePath = {
+  schemaVersion: 1;
+  lengthMm: number;
+  endRadiusMm: number;
+  direction: TransitionDirection;
+};
+export type TransitionCurvePreviewInput = {
+  lengthMm: number;
+  endRadiusMm: number;
+  direction: TransitionDirection;
+  expectedVersion: number;
+};
+export type TransitionCurvePreview = {
+  path: TransitionCurvePath;
   effectiveGeometry: TrackGeometry;
   effectiveLengthMm: number;
   effectiveMinimumRadiusMm?: number | null;
@@ -1060,6 +1086,10 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     previewFlexTrackPath: (id: string, input: FlexTrackPreviewInput) =>
       request<FlexTrackPreview>(
         `/plan-track-objects/${encodeURIComponent(id)}/flex-preview`, json("POST", input)
+      ),
+    previewTransitionCurvePath: (id: string, input: TransitionCurvePreviewInput) =>
+      request<TransitionCurvePreview>(
+        `/plan-track-objects/${encodeURIComponent(id)}/transition-preview`, json("POST", input)
       ),
     deletePlanTrackObject: (id: string, expectedVersion: number) =>
       request<void>(

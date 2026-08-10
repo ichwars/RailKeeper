@@ -795,10 +795,53 @@
 .flex-track-preview-facts span { color: var(--muted); font-size: var(--font-size-sm); }
 .flex-track-warning { display: flex; align-items: center; gap: 7px; margin: 0; color: var(--warning); }
 
+.transition-curve-editor-layer { z-index: 155; }
+.transition-curve-editor-dialog { width: min(760px, calc(100vw - 28px)); }
+.transition-curve-editor-dialog .modal-head > div p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+.transition-curve-editor-body { display: grid; gap: 14px; }
+.transition-curve-editor-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.transition-curve-direction { display: grid; align-content: start; gap: 6px; }
+.transition-curve-preview {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+}
+.transition-curve-preview polyline { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.transition-curve-preview-current { stroke: var(--muted); stroke-width: 2; stroke-dasharray: 8 5; }
+.transition-curve-preview-server { stroke: var(--accent); stroke-width: 3; }
+.transition-curve-preview-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.transition-curve-preview-facts > div {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--panel-subtle);
+}
+.transition-curve-preview-facts span { color: var(--muted); font-size: var(--font-size-sm); }
+
 @media (max-width: 680px) {
   .flex-track-editor-fields,
-  .flex-track-preview-facts { grid-template-columns: minmax(0, 1fr); }
-  .flex-track-preview { min-height: 170px; }
+  .flex-track-preview-facts,
+  .transition-curve-editor-fields,
+  .transition-curve-preview-facts { grid-template-columns: minmax(0, 1fr); }
+  .flex-track-preview,
+  .transition-curve-preview { min-height: 170px; }
 }
 
 .track-plan-analysis {
