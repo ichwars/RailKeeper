@@ -389,13 +389,22 @@ func TestTrackPlannerChangePreviewComparesBaseRevisionAndAffectedConfigurations(
 	current.LineageID = base.LineageID
 	added := trackPlannerTestG1("added-object", 176, 0, 0)
 	added.LineageID = "lineage-2"
+	baseFree := domain.PlanFreeObject{
+		ID: "free-base", LineageID: "free-lineage", Name: "Bahnsteig",
+		Category: domain.FreePlanPlatform, Shape: domain.FreePlanObjectShape{
+			SchemaVersion: 1, Kind: domain.FreePlanRectangle,
+		},
+	}
+	currentFree := baseFree
+	currentFree.ID = "free-current"
+	currentFree.Name = "Bahnsteig 1"
 	repository := &trackPlannerRepositorySpy{
 		baseRevisionID: "revision-base",
 		plans: map[string]*TrackPlan{
 			"revision-base": {RevisionID: "revision-base", Status: domain.PlanRevisionPublished,
-				Objects: []domain.PlanTrackObject{base}},
+				Objects: []domain.PlanTrackObject{base}, FreeObjects: []domain.PlanFreeObject{baseFree}},
 			"revision-current": {RevisionID: "revision-current", Status: domain.PlanRevisionDraft,
-				Objects: []domain.PlanTrackObject{current, added}},
+				Objects: []domain.PlanTrackObject{current, added}, FreeObjects: []domain.PlanFreeObject{currentFree}},
 		},
 		affected: []TrackPlanAffectedConfiguration{{ID: "configuration-1", Name: "Ausstellung"}},
 	}
@@ -405,7 +414,8 @@ func TestTrackPlannerChangePreviewComparesBaseRevisionAndAffectedConfigurations(
 		t.Fatal(err)
 	}
 	if preview.RevisionID != "revision-current" || preview.BaseRevisionID != "revision-base" ||
-		len(preview.ObjectChanges) != 2 || len(preview.MaterialDeltas) != 1 ||
+		len(preview.ObjectChanges) != 2 || len(preview.FreeObjectChanges) != 1 ||
+		preview.FreeObjectChanges[0].Type != domain.TrackPlanObjectChanged || len(preview.MaterialDeltas) != 1 ||
 		preview.MaterialDeltas[0].Delta != 1 || len(preview.Issues.Added) != 1 ||
 		len(preview.Issues.Resolved) != 1 || len(preview.AffectedConfigurations) != 1 ||
 		preview.AffectedConfigurations[0].Name != "Ausstellung" {

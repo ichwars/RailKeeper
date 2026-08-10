@@ -247,6 +247,71 @@ func TestLayoutRevisionClonePreservesFlexiblePaths(t *testing.T) {
 	}
 }
 
+func TestLayoutRevisionClonePreservesFreePlanObjects(t *testing.T) {
+	service, db := testRevisionServiceWithDB(t)
+	repository := infrastructure.NewTrackPlannerRepository(db)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Objektanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Segment", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := service.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{
+		Name: "Objekte",
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	width, height := 500.0, 70.0
+	created, err := repository.CreateFreeObject(ctx, base.ID, application.CreateFreePlanObjectInput{
+		Name: "Bahnsteig", Category: domain.FreePlanPlatform,
+		PositionXMM: 200, PositionYMM: 100, RotationDegrees: 15,
+		Shape: domain.FreePlanObjectShape{
+			SchemaVersion: 1, Kind: domain.FreePlanRectangle, WidthMM: &width, HeightMM: &height,
+		},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.SubmitRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.PublishRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{
+		BaseRevisionID: base.ID,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := repository.GetPlan(ctx, clone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.FreeObjects) != 1 {
+		t.Fatalf("free plan object not cloned: %#v", plan.FreeObjects)
+	}
+	cloned := plan.FreeObjects[0]
+	if cloned.ID == created.ID || cloned.LineageID != created.LineageID || cloned.Version != 1 ||
+		cloned.Name != "Bahnsteig" || cloned.Shape.WidthMM == nil || *cloned.Shape.WidthMM != width {
+		t.Fatalf("unexpected cloned free plan object: %#v", cloned)
+	}
+}
+
 func testRevisionServiceWithDB(t *testing.T) (*application.LayoutService, *sql.DB) {
 	t.Helper()
 	db, err := infrastructure.OpenSQLite(t.TempDir())

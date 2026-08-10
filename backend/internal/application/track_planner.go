@@ -130,6 +130,7 @@ type TrackPlanChangePreview struct {
 	RevisionID             string                           `json:"revisionId"`
 	BaseRevisionID         string                           `json:"baseRevisionId"`
 	ObjectChanges          []domain.TrackPlanObjectChange   `json:"objectChanges"`
+	FreeObjectChanges      []domain.PlanFreeObjectChange    `json:"freeObjectChanges"`
 	MaterialDeltas         []domain.TrackPlanMaterialDelta  `json:"materialDeltas"`
 	Issues                 domain.TrackPlanIssueDiff        `json:"issues"`
 	AffectedConfigurations []TrackPlanAffectedConfiguration `json:"affectedConfigurations"`
@@ -251,7 +252,7 @@ func (service *TrackPlannerService) ChangePreview(
 	if err != nil {
 		return nil, err
 	}
-	base := &TrackPlan{Objects: []domain.PlanTrackObject{}}
+	base := &TrackPlan{Objects: []domain.PlanTrackObject{}, FreeObjects: []domain.PlanFreeObject{}}
 	affected := []TrackPlanAffectedConfiguration{}
 	if baseRevisionID != "" {
 		base, err = service.repository.GetPlan(ctx, baseRevisionID)
@@ -269,6 +270,7 @@ func (service *TrackPlannerService) ChangePreview(
 	return &TrackPlanChangePreview{
 		RevisionID: current.RevisionID, BaseRevisionID: baseRevisionID,
 		ObjectChanges: revisionDiff.ObjectChanges, MaterialDeltas: revisionDiff.MaterialDeltas,
+		FreeObjectChanges: domain.CompareFreePlanObjectRevisions(base.FreeObjects, current.FreeObjects),
 		Issues: domain.DiffTrackPlanIssues(
 			baseAnalysis.Issues, currentAnalysis.Issues, base.Objects, current.Objects,
 		),

@@ -168,6 +168,9 @@ INSERT INTO plan_track_objects(
 					return fmt.Errorf("copy base revision track object: %w", err)
 				}
 			}
+			if err := cloneBaseFreePlanObjects(ctx, tx, input.BaseRevisionID, revision.ID, now); err != nil {
+				return err
+			}
 		}
 		return writeLayoutAudit(ctx, tx, "PlanDraftCreated", "plan_revision", revision.ID, actor, now)
 	})
@@ -175,6 +178,59 @@ INSERT INTO plan_track_objects(
 		return nil, err
 	}
 	return revision, nil
+}
+
+func cloneBaseFreePlanObjects(
+	ctx context.Context,
+	tx *sql.Tx,
+	baseRevisionID string,
+	revisionID string,
+	now string,
+) error {
+	rows, err := tx.QueryContext(ctx, `
+SELECT lineage_id, name, category, position_x_mm, position_y_mm, rotation_degrees, shape_json
+FROM plan_free_objects WHERE revision_id=? ORDER BY created_at, id`, baseRevisionID)
+	if err != nil {
+		return fmt.Errorf("list base revision free plan objects: %w", err)
+	}
+	type baseFreePlanObject struct {
+		lineageID      string
+		name           string
+		category       string
+		positionXMM    float64
+		positionYMM    float64
+		rotationDegree float64
+		shapeJSON      string
+	}
+	objects := []baseFreePlanObject{}
+	for rows.Next() {
+		object := baseFreePlanObject{}
+		if err := rows.Scan(&object.lineageID, &object.name, &object.category, &object.positionXMM,
+			&object.positionYMM, &object.rotationDegree, &object.shapeJSON); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("scan base revision free plan object: %w", err)
+		}
+		objects = append(objects, object)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return fmt.Errorf("iterate base revision free plan objects: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close base revision free plan objects: %w", err)
+	}
+	for _, object := range objects {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO plan_free_objects(
+  id, lineage_id, revision_id, name, category, position_x_mm, position_y_mm,
+  rotation_degrees, shape_json, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), object.lineageID, revisionID,
+			object.name, object.category, object.positionXMM, object.positionYMM, object.rotationDegree,
+			object.shapeJSON, now, now); err != nil {
+			return fmt.Errorf("copy base revision free plan object: %w", err)
+		}
+	}
+	return nil
 }
 
 func (r *LayoutRepository) SubmitRevision(
