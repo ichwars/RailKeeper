@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** unter der bestehenden lokalen Vollfreigabe für Issues 31 bis 36, keine Veröffentlichung
+**Status:** lokal implementiert und abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -126,6 +126,13 @@ immer aus der effektiven Servergeometrie.
 - Bestehende Bézier-Flexpfade und starre G1-Pläne bleiben unverändert.
 - Backend, Frontend, OpenAPI, Produktionsbuild und Browserablauf bestehen.
 - Alles bleibt lokal auf `dev/issue-36-advanced-geometry`; kein Push, PR oder Merge.
+
+Die Abnahme ist abgeschlossen. Die finale Automatisierung bestand aus allen sieben Backend-Paketen,
+69 Frontend-Testdateien mit 366 Tests und einem Produktionsbuild mit 2.176 Modulen. Die
+Browserprüfung bestätigte 500,00 mm Länge und 700,00 mm Radius, punktweise gespiegelte Links-/Rechts-
+Geometrie, blockierte 665 mm Überlänge, eine anwendbare 600-mm-Radiuswarnung gegen 700 mm,
+Persistenz nach Neuladen, unverändertes Abbrechen, genau ein 83125 in der Stückliste und keine
+Konsolenfehler in einer frisch geöffneten App-Seite.
 
 ## Abgrenzung
 

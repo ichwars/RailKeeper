@@ -43,7 +43,7 @@ app-eigene UI-Komponenten
 - Extends: `PlanTrackObject.TransitionPath *TransitionCurvePath`
 - Extends: `EffectiveGeometryForObject` with exclusive path dispatch
 
-- [ ] **Step 1: Failing domain tests write**
+- [x] **Step 1: Failing domain tests write**
 
 Tests require mirrored left/right points, exact length and radius, monotonically increasing sampled
 curvature, maximum 5 mm segment length, invalid schema/direction/non-finite values and rejection when
@@ -68,13 +68,13 @@ if err != nil || !transitionPointsMirrored(
 }
 ```
 
-- [ ] **Step 2: Domain RED run**
+- [x] **Step 2: Domain RED run**
 
 Run: `cd backend; go test ./internal/domain -run "Transition|EffectiveTrack" -count=1`
 
 Expected: FAIL because the transition types and builder do not exist.
 
-- [ ] **Step 3: Minimal transition domain implement**
+- [x] **Step 3: Minimal transition domain implement**
 
 Define:
 
@@ -105,13 +105,13 @@ length and a pointer to `EndRadiusMM`.
 present and preserves the existing Bézier/fixed fallback. `trackObjectsDiffer` compares all four
 transition fields with the established floating tolerance.
 
-- [ ] **Step 4: Domain GREEN run**
+- [x] **Step 4: Domain GREEN run**
 
 Run: `cd backend; go test ./internal/domain -run "Transition|FlexTrack|EffectiveTrack|Revision" -count=1`
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 1**
+- [x] **Step 5: Commit Task 1**
 
 ```powershell
 git add backend/internal/domain/track_transition_geometry.go `
@@ -142,7 +142,7 @@ git commit -m "feat(planner): derive transition curve geometry"
 - Extends: create/update inputs with `TransitionPath *domain.TransitionCurvePath`
 - Produces: backup version 12 and legacy normalization through version 11
 
-- [ ] **Step 1: Failing migration, repository, clone and backup tests write**
+- [x] **Step 1: Failing migration, repository, clone and backup tests write**
 
 The migration test applies migrations through 0052, inserts an existing Bézier object, applies 0053
 and checks the new nullable column plus the unchanged JSON. Repository tests create, update and load a
@@ -162,7 +162,7 @@ if err != nil || created.TransitionPath == nil || created.FlexPath != nil {
 }
 ```
 
-- [ ] **Step 2: Persistence RED run**
+- [x] **Step 2: Persistence RED run**
 
 Run:
 
@@ -173,7 +173,7 @@ go test ./internal/application ./internal/infrastructure -run "Transition|Backup
 
 Expected: FAIL because migration 0053, repository mapping and backup version 12 are absent.
 
-- [ ] **Step 3: Migration, repository and backup implement**
+- [x] **Step 3: Migration, repository and backup implement**
 
 Migration content:
 
@@ -196,7 +196,7 @@ if doc.Version <= 11 {
 }
 ```
 
-- [ ] **Step 4: Persistence GREEN run**
+- [x] **Step 4: Persistence GREEN run**
 
 Run:
 
@@ -207,7 +207,7 @@ go test ./internal/application ./internal/infrastructure -run "Transition|Backup
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 2**
+- [x] **Step 5: Commit Task 2**
 
 ```powershell
 git add backend/migrations/0053_transition_curve_paths.sql `
@@ -239,7 +239,7 @@ git commit -m "feat(planner): persist transition curve paths"
 - Produces: `TrackPlannerService.PreviewTransitionPath`
 - Produces: `POST /api/v1/plan-track-objects/{id}/transition-preview`
 
-- [ ] **Step 1: Failing application, API, role, CSRF and contract tests write**
+- [x] **Step 1: Failing application, API, role, CSRF and contract tests write**
 
 ```go
 preview, err := service.PreviewTransitionPath(t.Context(), "flex-1", TransitionCurvePreviewInput{
@@ -255,7 +255,7 @@ Also require conflict on stale version, validation for rigid objects and invalid
 repository mutation, Planner/Admin access, Viewer denial, CSRF enforcement and complete OpenAPI
 schemas.
 
-- [ ] **Step 2: API RED run**
+- [x] **Step 2: API RED run**
 
 Run:
 
@@ -266,7 +266,7 @@ go test ./internal/application ./internal/api -run "TransitionCurvePreview|OpenA
 
 Expected: FAIL because service, route, handler and schemas are absent.
 
-- [ ] **Step 3: Service, handler and contract implement**
+- [x] **Step 3: Service, handler and contract implement**
 
 Define:
 
@@ -295,7 +295,7 @@ rejects incomplete geometry, sets length/radius flags and never writes. Add the 
 thin handler. OpenAPI documents the path, both new schemas, `transitionPath` on object/input and
 `left|right` direction.
 
-- [ ] **Step 4: API GREEN run**
+- [x] **Step 4: API GREEN run**
 
 Run:
 
@@ -306,7 +306,7 @@ go test ./internal/application ./internal/api -run "Transition|OpenAPI" -count=1
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit Task 3**
+- [x] **Step 5: Commit Task 3**
 
 ```powershell
 git add backend/internal/application/track_planner.go `
@@ -334,7 +334,7 @@ git commit -m "feat(api): preview transition curve paths"
 - Consumes: transition preview endpoint and `TransitionCurvePath`
 - Produces: app-owned preview/apply flow and explicit path conversion
 
-- [ ] **Step 1: Failing API, dialog and canvas tests write**
+- [x] **Step 1: Failing API, dialog and canvas tests write**
 
 Dialog tests require server preview, displayed length/radius/direction, warning, disabled overlength,
 explicit apply, cancel-without-write and focus behavior. Canvas tests require both Flex actions,
@@ -352,7 +352,7 @@ expect(api.updatePlanTrackObject).toHaveBeenCalledWith(object.id, expect.objectC
 }));
 ```
 
-- [ ] **Step 2: Frontend RED run**
+- [x] **Step 2: Frontend RED run**
 
 Run:
 
@@ -364,14 +364,14 @@ npm.cmd test -- --run src/features/layouts/TransitionCurveEditorDialog.test.tsx 
 
 Expected: FAIL because types, dialog and integration are absent.
 
-- [ ] **Step 3: Frontend contracts and dialog implement**
+- [x] **Step 3: Frontend contracts and dialog implement**
 
 Add discriminated direction and path types, preview types and
 `api.previewTransitionCurvePath(id, input)`. Implement a portal dialog using `AppNumberInput` for
 length/radius, `AppSelect` for left/right, the effective server route for SVG preview and the same
 focus/escape patterns as `FlexTrackEditorDialog`.
 
-- [ ] **Step 4: Canvas conversion and preservation implement**
+- [x] **Step 4: Canvas conversion and preservation implement**
 
 Extend plan objects and update payloads with `transitionPath?: TransitionCurvePath | null`. Preserve
 the active path on drag, rotation and height changes. Applying a transition sends
@@ -379,13 +379,13 @@ the active path on drag, rotation and height changes. Applying a transition send
 transitionPath: null`. Both editor actions remain available and use deterministic straight/default
 values when converting.
 
-- [ ] **Step 5: Bilingual copy and styles implement**
+- [x] **Step 5: Bilingual copy and styles implement**
 
 Add German and English labels for title, length, end radius, left/right, preview, apply, conversion,
 length warning and radius warning. Reuse existing modal tokens and add only transition-specific SVG
 and fact-grid selectors under the layout stylesheet.
 
-- [ ] **Step 6: Frontend GREEN, full suite and build run**
+- [x] **Step 6: Frontend GREEN, full suite and build run**
 
 Run:
 
@@ -399,7 +399,7 @@ npm.cmd run build
 
 Expected: targeted tests, all Vitest files and production build PASS.
 
-- [ ] **Step 7: Commit Task 4**
+- [x] **Step 7: Commit Task 4**
 
 ```powershell
 git add frontend/src/features/layouts/TransitionCurveEditorDialog.tsx `
@@ -426,7 +426,7 @@ git commit -m "feat(planner): edit transition curve paths"
 - Consumes: complete Package H
 - Produces: local acceptance record and clean branch
 
-- [ ] **Step 1: Full automated verification run**
+- [x] **Step 1: Full automated verification run**
 
 ```powershell
 cd backend
@@ -439,12 +439,12 @@ npm.cmd run build
 
 Expected: all backend packages, all Vitest files and production build PASS.
 
-- [ ] **Step 2: Current server restart and health check**
+- [x] **Step 2: Current server restart and health check**
 
 Restart only the exact listener on port 18083 with repository data, migrations, seeds, `dist` and
 repository-local `GOCACHE`. Require `/health` HTTP 200 and authenticated `codex-test` session.
 
-- [ ] **Step 3: Browser acceptance run**
+- [x] **Step 3: Browser acceptance run**
 
 Place or select one 83125, preview 500 mm at 700 mm left, apply and reload. Require effective length
 500,00 mm, radius 700,00 mm and curved left route. Preview right and require the mirrored route.
@@ -452,12 +452,12 @@ Preview 665 mm and require disabled apply. Preview radius 600 mm against layout 
 require one visible, applicable warning. Cancel must preserve the saved left path; BOM stays at one
 83125 and a clean new browser tab has no console errors.
 
-- [ ] **Step 4: Evidence and plan checkboxes update**
+- [x] **Step 4: Evidence and plan checkboxes update**
 
 Record commits, exact test counts, build module count, listener PID, browser values and the explicit
 local-only boundary. Mark all plan steps complete only after evidence exists.
 
-- [ ] **Step 5: Documentation commit and clean-state check**
+- [x] **Step 5: Documentation commit and clean-state check**
 
 ```powershell
 git add docs/superpowers/specs/2026-08-10-erweiterte-geometrie-uebergangsbogen-design.md `
