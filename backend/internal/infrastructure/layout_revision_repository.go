@@ -119,21 +119,23 @@ INSERT INTO plan_revisions(
 		if input.BaseRevisionID != "" {
 			rows, err := tx.QueryContext(ctx, `
 SELECT geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-       elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json, lineage_id
+       elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json,
+       geometry_snapshot_json, lineage_id
 FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.BaseRevisionID)
 			if err != nil {
 				return fmt.Errorf("list base revision track objects: %w", err)
 			}
 			type baseTrackObject struct {
-				geometryID         string
-				positionXMM        float64
-				positionYMM        float64
-				rotationDegrees    float64
-				elevationStartMM   float64
-				elevationEndMM     float64
-				flexPathJSON       sql.NullString
-				transitionPathJSON sql.NullString
-				lineageID          string
+				geometryID           string
+				positionXMM          float64
+				positionYMM          float64
+				rotationDegrees      float64
+				elevationStartMM     float64
+				elevationEndMM       float64
+				flexPathJSON         sql.NullString
+				transitionPathJSON   sql.NullString
+				geometrySnapshotJSON sql.NullString
+				lineageID            string
 			}
 			objects := []baseTrackObject{}
 			for rows.Next() {
@@ -141,7 +143,7 @@ FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.Base
 				if err := rows.Scan(&object.geometryID, &object.positionXMM, &object.positionYMM,
 					&object.rotationDegrees, &object.elevationStartMM, &object.elevationEndMM,
 					&object.flexPathJSON, &object.transitionPathJSON,
-					&object.lineageID); err != nil {
+					&object.geometrySnapshotJSON, &object.lineageID); err != nil {
 					_ = rows.Close()
 					return fmt.Errorf("scan base revision track object: %w", err)
 				}
@@ -159,11 +161,11 @@ FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.Base
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
 	elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json,
-	lineage_id, version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
+	geometry_snapshot_json, lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
 					object.positionXMM, object.positionYMM, object.rotationDegrees,
 					object.elevationStartMM, object.elevationEndMM, object.flexPathJSON,
-					object.transitionPathJSON,
+					object.transitionPathJSON, object.geometrySnapshotJSON,
 					object.lineageID, now, now); err != nil {
 					return fmt.Errorf("copy base revision track object: %w", err)
 				}

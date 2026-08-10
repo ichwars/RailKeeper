@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 13
+	backupVersion = 14
 )
 
 var (
@@ -293,6 +293,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
 		return nil, err
 	}
+	if err := backfillRestoredTrackGeometrySnapshots(ctx, tx); err != nil {
+		return nil, err
+	}
 	if err := restoreLegacyAccessoryProductDefaults(ctx, tx, doc); err != nil {
 		return nil, err
 	}
@@ -328,6 +331,9 @@ func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
 	if doc.Version <= 11 && table == "plan_track_objects" {
 		legacyColumns = append(legacyColumns, "transition_path_json")
 	}
+	if doc.Version <= 13 && table == "plan_track_objects" {
+		legacyColumns = append(legacyColumns, "geometry_snapshot_json")
+	}
 	if len(legacyColumns) == 0 {
 		return rows
 	}
@@ -345,6 +351,32 @@ func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
 		normalized = append(normalized, copyRow)
 	}
 	return normalized
+}
+
+func backfillRestoredTrackGeometrySnapshots(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+UPDATE plan_track_objects
+SET geometry_snapshot_json = (
+  SELECT json_object(
+    'id', geometry.id,
+    'libraryId', geometry.library_id,
+    'articleNumber', geometry.article_number,
+    'name', geometry.name,
+    'kind', geometry.kind,
+    'lengthMm', geometry.length_mm,
+    'minimumRadiusMm', geometry.minimum_radius_mm,
+    'geometry', json(geometry.geometry_json),
+    'sourceUrl', geometry.source_url,
+    'status', geometry.status,
+    'createdAt', geometry.created_at
+  )
+  FROM track_geometry_definitions geometry
+  WHERE geometry.id = plan_track_objects.geometry_id
+)
+WHERE geometry_snapshot_json IS NULL`); err != nil {
+		return fmt.Errorf("backfill restored track geometry snapshots: %w", err)
+	}
+	return nil
 }
 
 func restoreLegacyAccessoryProductDefaults(

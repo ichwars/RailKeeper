@@ -61,6 +61,20 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 		created.LineageID != created.ID || created.ElevationStartMM != -3 || created.ElevationEndMM != 1.15 {
 		t.Fatalf("unexpected created track object: %#v", created)
 	}
+	if _, err := db.Exec(`
+UPDATE track_geometry_definitions
+SET name='Administrativ geändert', length_mm=999
+WHERE id=?`, created.GeometryID); err != nil {
+		t.Fatal(err)
+	}
+	snapshottedPlan, err := planner.GetPlan(ctx, draft.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshottedPlan.Objects) != 1 || snapshottedPlan.Objects[0].Geometry.Name != "Gleisstück G1" ||
+		snapshottedPlan.Objects[0].Geometry.LengthMM != 166 {
+		t.Fatalf("placed geometry changed retroactively: %#v", snapshottedPlan.Objects)
+	}
 
 	updated, err := planner.UpdateObject(ctx, created.ID, application.UpdatePlanTrackObjectInput{
 		PositionXMM: 110, PositionYMM: 55, RotationDegrees: 15, ElevationStartMM: 4,
@@ -109,7 +123,8 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	if len(clonedPlan.Objects) != 1 || clonedPlan.Objects[0].ID == updated.ID ||
 		clonedPlan.Objects[0].LineageID != updated.LineageID ||
 		clonedPlan.Objects[0].PositionXMM != updated.PositionXMM || clonedPlan.Objects[0].Version != 1 ||
-		clonedPlan.Objects[0].ElevationStartMM != 4 || clonedPlan.Objects[0].ElevationEndMM != 8.15 {
+		clonedPlan.Objects[0].ElevationStartMM != 4 || clonedPlan.Objects[0].ElevationEndMM != 8.15 ||
+		clonedPlan.Objects[0].Geometry.Name != "Gleisstück G1" || clonedPlan.Objects[0].Geometry.LengthMM != 166 {
 		t.Fatalf("unexpected cloned track plan: %#v", clonedPlan)
 	}
 	if clonedPlan.Limits.MaxGradePercent == nil || *clonedPlan.Limits.MaxGradePercent != maxGradePercent {

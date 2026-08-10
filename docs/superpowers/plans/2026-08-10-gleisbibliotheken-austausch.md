@@ -19,12 +19,12 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 2: Migration und unveränderliche Snapshots
 
-- [ ] Migration 0055 für Prüfmetadaten und `geometry_snapshot_json` schreiben
-- [ ] Bestehende Planobjekte deterministisch zurückfüllen
-- [ ] Platzierung, Lesen und Revisionsklon auf Snapshots umstellen
-- [ ] Regression beweist unveränderte Geometrie nach Definition- oder Statusänderung
-- [ ] Backupversion 14 und Restore-Kompatibilität bis Version 13 ergänzen
-- [ ] Infrastruktur- und Backuptests grün ausführen und lokal committen
+- [x] Migration 0055 für Prüfmetadaten und `geometry_snapshot_json` schreiben
+- [x] Bestehende Planobjekte deterministisch zurückfüllen
+- [x] Platzierung, Lesen und Revisionsklon auf Snapshots umstellen
+- [x] Regression beweist unveränderte Geometrie nach Definition- oder Statusänderung
+- [x] Backupversion 14 und Restore-Kompatibilität bis Version 13 ergänzen
+- [x] Infrastruktur- und Backuptests grün ausführen und lokal committen
 
 ## Task 3: Bibliotheksworkflow im Backend
 
