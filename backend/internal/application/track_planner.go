@@ -17,10 +17,25 @@ var (
 )
 
 type TrackPlan struct {
-	RevisionID string                    `json:"revisionId"`
-	Status     domain.PlanRevisionStatus `json:"status"`
-	Objects    []domain.PlanTrackObject  `json:"objects"`
-	Limits     domain.TrackPlanLimits    `json:"-"`
+	RevisionID  string                    `json:"revisionId"`
+	Status      domain.PlanRevisionStatus `json:"status"`
+	Objects     []domain.PlanTrackObject  `json:"objects"`
+	FreeObjects []domain.PlanFreeObject   `json:"freeObjects"`
+	Limits      domain.TrackPlanLimits    `json:"-"`
+}
+
+type CreateFreePlanObjectInput struct {
+	Name            string                        `json:"name"`
+	Category        domain.FreePlanObjectCategory `json:"category"`
+	PositionXMM     float64                       `json:"positionXMm"`
+	PositionYMM     float64                       `json:"positionYMm"`
+	RotationDegrees float64                       `json:"rotationDegrees"`
+	Shape           domain.FreePlanObjectShape    `json:"shape"`
+}
+
+type UpdateFreePlanObjectInput struct {
+	CreateFreePlanObjectInput
+	ExpectedVersion int `json:"expectedVersion"`
 }
 
 type CreatePlanTrackObjectInput struct {

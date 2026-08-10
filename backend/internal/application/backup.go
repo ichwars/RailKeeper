@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 12
+	backupVersion = 13
 )
 
 var (
@@ -111,6 +111,7 @@ var backupTableOrder = []string{
 	"track_geometry_libraries",
 	"track_geometry_definitions",
 	"plan_track_objects",
+	"plan_free_objects",
 	"layout_configurations",
 	"layout_configuration_units",
 	"accessory_reservations",
@@ -162,6 +163,7 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"track_geometry_libraries":                 {introduced: 5, required: 5},
 	"track_geometry_definitions":               {introduced: 5, required: 5},
 	"plan_track_objects":                       {introduced: 5, required: 5},
+	"plan_free_objects":                        {introduced: 13, required: 13},
 	"layout_configurations":                    {introduced: 2, required: 2},
 	"layout_configuration_units":               {introduced: 2, required: 2},
 	"accessory_reservations":                   {introduced: 2, required: 2},

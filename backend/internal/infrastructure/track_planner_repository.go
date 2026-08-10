@@ -49,7 +49,9 @@ func (repository *TrackPlannerRepository) GetPlan(
 	ctx context.Context,
 	revisionID string,
 ) (*application.TrackPlan, error) {
-	plan := &application.TrackPlan{RevisionID: revisionID, Objects: []domain.PlanTrackObject{}}
+	plan := &application.TrackPlan{
+		RevisionID: revisionID, Objects: []domain.PlanTrackObject{}, FreeObjects: []domain.PlanFreeObject{},
+	}
 	var maxGradePercent sql.NullFloat64
 	var minimumTrackClearanceMM sql.NullFloat64
 	var minimumFlexRadiusMM sql.NullFloat64
@@ -90,6 +92,13 @@ WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate track plan objects: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close track plan objects: %w", err)
+	}
+	plan.FreeObjects, err = listFreePlanObjects(ctx, repository.db, revisionID)
+	if err != nil {
+		return nil, err
 	}
 	return plan, nil
 }
