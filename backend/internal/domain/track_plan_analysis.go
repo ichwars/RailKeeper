@@ -46,6 +46,7 @@ const (
 	TrackPlanIssueBrokenGeometry         TrackPlanIssueCode = "broken_geometry"
 	TrackPlanIssueElevationMismatch      TrackPlanIssueCode = "elevation_mismatch"
 	TrackPlanIssueGradeLimitExceeded     TrackPlanIssueCode = "grade_limit_exceeded"
+	TrackPlanIssueInsufficientClearance  TrackPlanIssueCode = "insufficient_clearance"
 )
 
 type TrackPlanIssueSeverity string
@@ -63,6 +64,10 @@ type TrackPlanIssue struct {
 	ElevationDifferenceMM *float64               `json:"elevationDifferenceMm,omitempty"`
 	GradePercent          *float64               `json:"gradePercent,omitempty"`
 	GradeLimitPercent     *float64               `json:"gradeLimitPercent,omitempty"`
+	ClearanceMM           *float64               `json:"clearanceMm,omitempty"`
+	ClearanceLimitMM      *float64               `json:"clearanceLimitMm,omitempty"`
+	IntersectionXMM       *float64               `json:"intersectionXMm,omitempty"`
+	IntersectionYMM       *float64               `json:"intersectionYMm,omitempty"`
 }
 
 type TrackBOMLine struct {
@@ -89,7 +94,8 @@ type TrackPlanAnalysis struct {
 }
 
 type TrackPlanLimits struct {
-	MaxGradePercent *float64
+	MaxGradePercent         *float64
+	MinimumTrackClearanceMM *float64
 }
 
 type placedTrackPort struct {
@@ -280,6 +286,10 @@ func AnalyzeTrackPlanWithLimits(objects []PlanTrackObject, limits TrackPlanLimit
 				})
 			}
 		}
+	}
+	if limits.MinimumTrackClearanceMM != nil {
+		analysis.Issues = append(analysis.Issues,
+			analyzeTrackClearances(ordered, *limits.MinimumTrackClearanceMM)...)
 	}
 	for _, line := range bom {
 		analysis.BOM = append(analysis.BOM, *line)

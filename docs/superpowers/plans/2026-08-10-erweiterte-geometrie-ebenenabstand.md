@@ -119,7 +119,7 @@ git commit -m "feat(layouts): configure track clearance"
 - Produces: `TrackPlanIssueInsufficientClearance = "insufficient_clearance"`
 - Produces: `analyzeTrackClearances(objects []PlanTrackObject, limit float64) []TrackPlanIssue`
 
-- [ ] **Step 1: Fehlschlagende Domänentests für Kreuzung, Interpolation und Grenzen schreiben**
+- [x] **Step 1: Fehlschlagende Domänentests für Kreuzung, Interpolation und Grenzen schreiben**
 
 Die Testfixture kreuzt ein waagerechtes G1 in dessen Mitte mit einem um 90 Grad gedrehten G1:
 
@@ -148,13 +148,13 @@ Endpunkt ohne Hinweis, kollineare Überlappung ohne Clearance-Hinweis, umgekehrt
 Höhe, Mehrport- und Mehrfachroutengeometrien ohne Hinweis sowie zwei Kreuzungen desselben Objektpaars
 mit genau einem Hinweis für das kleinere Ergebnis.
 
-- [ ] **Step 2: Domänentests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Domänentests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd backend; go test ./internal/domain -run Clearance`
 
 Expected: FAIL wegen fehlendem Limit, Warncode und Detailfeldern.
 
-- [ ] **Step 3: Fokussierte Clearance-Analyse implementieren**
+- [x] **Step 3: Fokussierte Clearance-Analyse implementieren**
 
 `track_plan_clearance.go` enthält nur die neue Geometrieauswertung. Die Kernstrukturen lauten:
 
@@ -190,7 +190,7 @@ interpoliert. Pro sortiertem Objektpaar bleibt der Kandidat mit kleinstem Abstan
 gewinnen kleineres X und danach kleineres Y. Nur
 `candidate.ClearanceMM+1e-9 < limit` erzeugt einen Warnhinweis mit Kopien aller Detailwerte.
 
-- [ ] **Step 4: Analyse in den vorhandenen Ablauf einhängen**
+- [x] **Step 4: Analyse in den vorhandenen Ablauf einhängen**
 
 `TrackPlanLimits` erhält `MinimumTrackClearanceMM *float64`. `TrackPlanIssue` erhält
 `ClearanceMM`, `ClearanceLimitMM`, `IntersectionXMM` und `IntersectionYMM` als optionale Pointer.
@@ -198,13 +198,13 @@ Nach Verbindungs-, Höhen- und Überlappungsprüfung hängt `AnalyzeTrackPlanWit
 Limit `analyzeTrackClearances(ordered, *limits.MinimumTrackClearanceMM)` an. Die bestehende stabile
 Sortierung läuft anschließend über alle Hinweise.
 
-- [ ] **Step 5: Domain-Suite ausführen**
+- [x] **Step 5: Domain-Suite ausführen**
 
 Run: `cd backend; go test ./internal/domain`
 
 Expected: PASS.
 
-- [ ] **Step 6: Analyse lokal committen**
+- [x] **Step 6: Analyse lokal committen**
 
 ```powershell
 git add backend/internal/domain/track_plan_clearance.go `
