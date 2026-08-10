@@ -59,13 +59,17 @@ func (r *LayoutRepository) CreateLayout(
 	now := timestamp()
 	layout := &application.Layout{
 		ID: randomID(), Name: input.Name, Kind: input.Kind, Gauge: input.Gauge, Scale: input.Scale,
-		Description: input.Description, Version: 1, Archived: input.Archived, CreatedAt: now, UpdatedAt: now,
+		Description: input.Description, MaxGradePercent: input.MaxGradePercent, Version: 1,
+		Archived: input.Archived, CreatedAt: now, UpdatedAt: now,
 	}
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `
-INSERT INTO layouts(id, name, kind, gauge, scale, description, version, archived, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, layout.ID, layout.Name, layout.Kind, layout.Gauge, layout.Scale,
-			layout.Description, boolToInt(layout.Archived), now, now); err != nil {
+INSERT INTO layouts(
+  id, name, kind, gauge, scale, description, max_grade_percent,
+  version, archived, created_at, updated_at
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, layout.ID, layout.Name, layout.Kind, layout.Gauge, layout.Scale,
+			layout.Description, layout.MaxGradePercent, boolToInt(layout.Archived), now, now); err != nil {
 			return fmt.Errorf("insert layout: %w", err)
 		}
 		return writeLayoutAudit(ctx, tx, "LayoutCreated", "layout", layout.ID, actor, now)
@@ -86,9 +90,10 @@ func (r *LayoutRepository) UpdateLayout(
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx, `
 UPDATE layouts
-SET name=?, kind=?, gauge=?, scale=?, description=?, archived=?, version=version+1, updated_at=?
+SET name=?, kind=?, gauge=?, scale=?, description=?, max_grade_percent=?, archived=?,
+    version=version+1, updated_at=?
 WHERE id=? AND version=?`, input.Name, input.Kind, input.Gauge, input.Scale, input.Description,
-			boolToInt(input.Archived), now, id, input.ExpectedVersion)
+			input.MaxGradePercent, boolToInt(input.Archived), now, id, input.ExpectedVersion)
 		if err != nil {
 			return fmt.Errorf("update layout: %w", err)
 		}
@@ -472,7 +477,8 @@ INSERT INTO layout_configuration_units(
 	return r.getConfiguration(ctx, id)
 }
 
-const layoutSelect = `SELECT id, name, kind, gauge, scale, description, version, archived, created_at, updated_at FROM layouts`
+const layoutSelect = `SELECT id, name, kind, gauge, scale, description, max_grade_percent,
+version, archived, created_at, updated_at FROM layouts`
 
 const layoutUnitSelect = `SELECT id, layout_id, name, kind, owner_label, COALESCE(width_mm, 0), COALESCE(height_mm, 0), version, archived, created_at, updated_at FROM layout_units`
 
@@ -488,8 +494,12 @@ type rowScanner interface {
 func scanLayout(scanner rowScanner) (*application.Layout, error) {
 	layout := &application.Layout{}
 	var archived int
+	var maxGradePercent sql.NullFloat64
 	err := scanner.Scan(&layout.ID, &layout.Name, &layout.Kind, &layout.Gauge, &layout.Scale, &layout.Description,
-		&layout.Version, &archived, &layout.CreatedAt, &layout.UpdatedAt)
+		&maxGradePercent, &layout.Version, &archived, &layout.CreatedAt, &layout.UpdatedAt)
+	if maxGradePercent.Valid {
+		layout.MaxGradePercent = &maxGradePercent.Float64
+	}
 	layout.Archived = archived != 0
 	return layout, err
 }

@@ -325,6 +325,35 @@ func TestLayoutServicePersistsStructureAndRejectsStaleUpdates(t *testing.T) {
 	}
 }
 
+func TestLayoutRepositoryPersistsMaximumGradePercent(t *testing.T) {
+	service := testLayoutService(t)
+	ctx := t.Context()
+	limit := 3.5
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Steigungsanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MaxGradePercent: &limit,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if layout.MaxGradePercent == nil || *layout.MaxGradePercent != limit {
+		t.Fatalf("maximum grade not persisted: %#v", layout)
+	}
+
+	updated, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+		},
+		ExpectedVersion: layout.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MaxGradePercent != nil {
+		t.Fatalf("maximum grade not cleared: %#v", updated)
+	}
+}
+
 func testLayoutService(t *testing.T) *application.LayoutService {
 	t.Helper()
 	_, service := testLayoutServiceWithDB(t)

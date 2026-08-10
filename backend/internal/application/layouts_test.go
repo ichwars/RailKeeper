@@ -177,6 +177,31 @@ func TestLayoutServiceNormalizesInputsBeforePersistence(t *testing.T) {
 	}
 }
 
+func TestLayoutServiceValidatesMaximumGradePercent(t *testing.T) {
+	repository := &layoutRepositorySpy{}
+	service := NewLayoutService(repository)
+	limit := 3.5
+	if _, err := service.CreateLayout(t.Context(), CreateLayoutInput{
+		Name: "Steigungsanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MaxGradePercent: &limit,
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if repository.createdLayout.MaxGradePercent == nil || *repository.createdLayout.MaxGradePercent != limit {
+		t.Fatalf("maximum grade not forwarded: %#v", repository.createdLayout)
+	}
+
+	for _, invalid := range []float64{0, -1, 100.1, math.NaN(), math.Inf(1)} {
+		input := CreateLayoutInput{
+			Name: "Ungültig", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+			MaxGradePercent: &invalid,
+		}
+		if _, err := service.CreateLayout(t.Context(), input, "planner-1"); !errors.Is(err, ErrLayoutValidation) {
+			t.Fatalf("expected validation error for %v, got %v", invalid, err)
+		}
+	}
+}
+
 func TestLayoutServiceRejectsNonFiniteConfigurationCoordinates(t *testing.T) {
 	service := NewLayoutService(&layoutRepositorySpy{})
 	for name, value := range map[string]float64{
