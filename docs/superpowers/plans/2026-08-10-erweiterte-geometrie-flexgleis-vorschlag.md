@@ -51,7 +51,7 @@ app-eigene UI-Komponenten
   `layouts.minimum_flex_radius_mm`
 - Produces: Backup-Version 11; Versionen bis 10 erhalten für neue Spalten `NULL`
 
-- [ ] **Step 1: Fehlschlagende Kind-, Layout-, Migrations- und Backuptests schreiben**
+- [x] **Step 1: Fehlschlagende Kind-, Layout-, Migrations- und Backuptests schreiben**
 
 Der Domänentest nimmt `flex` in die gültigen Arten auf. Layouttests erstellen 700 mm, aktualisieren
 auf 650 mm, entfernen den Wert und lehnen `0`, negative, `NaN` und unendliche Werte ab.
@@ -75,7 +75,7 @@ Zusätzlich müssen `PRAGMA foreign_key_check` leer, das bestehende Objekt vorha
 `straight` sein. Der Backuptest exportiert Layoutlimit, Produkt-Mindestradius und einen Flexpfad,
 restauriert Version 11 und entfernt für eine Version-10-Kopie genau die drei neuen Spalten.
 
-- [ ] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run:
 
@@ -86,7 +86,7 @@ go test ./internal/domain ./internal/application ./internal/infrastructure -run 
 
 Expected: FAIL, weil `flex`, `MinimumRadiusMM`, `MinimumFlexRadiusMM` und Migration 0052 fehlen.
 
-- [ ] **Step 3: Migration 0052 implementieren**
+- [x] **Step 3: Migration 0052 implementieren**
 
 Die Migration verwendet `PRAGMA defer_foreign_keys=ON`, baut
 `track_geometry_definitions` mit der erweiterten Kind-Constraint und `minimum_radius_mm` neu auf,
@@ -120,7 +120,7 @@ ALTER TABLE layouts ADD COLUMN minimum_flex_radius_mm REAL
   CHECK(minimum_flex_radius_mm IS NULL OR minimum_flex_radius_mm > 0);
 ```
 
-- [ ] **Step 4: Go-Modelle, Layoutvalidierung und Repository ergänzen**
+- [x] **Step 4: Go-Modelle, Layoutvalidierung und Repository ergänzen**
 
 ```go
 type TrackGeometryDefinition struct {
@@ -139,7 +139,7 @@ Wert größer als 0. Insert, Update, `layoutSelect` und `scanLayout` führen die
 `minimum_track_clearance_mm`. Geometrierepository und Scanner führen `minimum_radius_mm` direkt nach
 `length_mm`.
 
-- [ ] **Step 5: Backup-Version 11 und Legacy-Normalisierung implementieren**
+- [x] **Step 5: Backup-Version 11 und Legacy-Normalisierung implementieren**
 
 `backupVersion` wird 11, der Future-Version-Test erwartet 12. Vor dem Restore ergänzt die bestehende
 Legacy-Normalisierung bei Versionen bis 10 fehlende Werte:
@@ -158,7 +158,7 @@ if doc.Version <= 10 {
 }
 ```
 
-- [ ] **Step 6: Task-1-Suiten ausführen und lokal committen**
+- [x] **Step 6: Task-1-Suiten ausführen und lokal committen**
 
 Run: `cd backend; go test ./internal/domain ./internal/application ./internal/infrastructure`
 

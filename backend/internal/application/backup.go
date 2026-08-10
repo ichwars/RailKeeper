@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 10
+	backupVersion = 11
 )
 
 var (
@@ -269,7 +269,7 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 				return nil, err
 			}
 		}
-		rows := doc.Tables[table]
+		rows := backupRowsForRestore(doc, table)
 		if len(rows) == 0 {
 			continue
 		}
@@ -308,6 +308,35 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
+}
+
+func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
+	rows := doc.Tables[table]
+	if doc.Version > 10 {
+		return rows
+	}
+	legacyColumn := map[string]string{
+		"track_geometry_definitions": "minimum_radius_mm",
+		"plan_track_objects":         "flex_path_json",
+		"layouts":                    "minimum_flex_radius_mm",
+	}[table]
+	if legacyColumn == "" {
+		return rows
+	}
+	normalized := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		if _, exists := row[legacyColumn]; exists {
+			normalized = append(normalized, row)
+			continue
+		}
+		copyRow := make(map[string]any, len(row)+1)
+		for column, value := range row {
+			copyRow[column] = value
+		}
+		copyRow[legacyColumn] = nil
+		normalized = append(normalized, copyRow)
+	}
+	return normalized
 }
 
 func restoreLegacyAccessoryProductDefaults(

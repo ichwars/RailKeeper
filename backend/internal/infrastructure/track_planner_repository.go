@@ -629,7 +629,8 @@ WHERE object.id=?`, id).Scan(&status, &version)
 
 const trackGeometrySelect = `
 SELECT geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
-       geometry.length_mm, geometry.geometry_json, geometry.source_url, geometry.status,
+       geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
+       geometry.source_url, geometry.status,
        geometry.created_at
 FROM track_geometry_definitions geometry
 JOIN track_geometry_libraries library ON library.id=geometry.library_id
@@ -641,7 +642,8 @@ SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
 	   object.elevation_start_mm, object.elevation_end_mm,
        object.version, object.created_at, object.updated_at,
        geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
-       geometry.length_mm, geometry.geometry_json, geometry.source_url, geometry.status,
+       geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
+       geometry.source_url, geometry.status,
        geometry.created_at
 FROM plan_track_objects object
 JOIN track_geometry_definitions geometry ON geometry.id=object.geometry_id
@@ -654,10 +656,15 @@ type trackScanner interface {
 func scanTrackGeometry(scanner trackScanner) (*domain.TrackGeometryDefinition, error) {
 	geometry := &domain.TrackGeometryDefinition{}
 	var geometryJSON string
+	var minimumRadiusMM sql.NullFloat64
 	if err := scanner.Scan(&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
-		&geometry.Kind, &geometry.LengthMM, &geometryJSON, &geometry.SourceURL, &geometry.Status,
+		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
+		&geometry.SourceURL, &geometry.Status,
 		&geometry.CreatedAt); err != nil {
 		return nil, err
+	}
+	if minimumRadiusMM.Valid {
+		geometry.MinimumRadiusMM = &minimumRadiusMM.Float64
 	}
 	if err := json.Unmarshal([]byte(geometryJSON), &geometry.Geometry); err != nil {
 		return nil, fmt.Errorf("decode track geometry %s: %w", geometry.ID, err)
@@ -668,15 +675,20 @@ func scanTrackGeometry(scanner trackScanner) (*domain.TrackGeometryDefinition, e
 func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	object := &domain.PlanTrackObject{}
 	var geometryJSON string
+	var minimumRadiusMM sql.NullFloat64
 	geometry := &object.Geometry
 	if err := scanner.Scan(&object.ID, &object.LineageID, &object.RevisionID, &object.GeometryID,
 		&object.PositionXMM, &object.PositionYMM, &object.RotationDegrees,
 		&object.ElevationStartMM, &object.ElevationEndMM,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt,
 		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
-		&geometry.Kind, &geometry.LengthMM, &geometryJSON, &geometry.SourceURL, &geometry.Status,
+		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
+		&geometry.SourceURL, &geometry.Status,
 		&geometry.CreatedAt); err != nil {
 		return nil, err
+	}
+	if minimumRadiusMM.Valid {
+		geometry.MinimumRadiusMM = &minimumRadiusMM.Float64
 	}
 	if err := json.Unmarshal([]byte(geometryJSON), &geometry.Geometry); err != nil {
 		return nil, fmt.Errorf("decode track geometry %s: %w", geometry.ID, err)

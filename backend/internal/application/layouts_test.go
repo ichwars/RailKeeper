@@ -228,6 +228,32 @@ func TestLayoutServiceValidatesMinimumTrackClearanceMM(t *testing.T) {
 	}
 }
 
+func TestLayoutServiceValidatesMinimumFlexRadiusMM(t *testing.T) {
+	repository := &layoutRepositorySpy{}
+	service := NewLayoutService(repository)
+	limit := 700.0
+	if _, err := service.CreateLayout(t.Context(), CreateLayoutInput{
+		Name: "Flexgleisanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MinimumFlexRadiusMM: &limit,
+	}, "planner-1"); err != nil {
+		t.Fatal(err)
+	}
+	if repository.createdLayout.MinimumFlexRadiusMM == nil ||
+		*repository.createdLayout.MinimumFlexRadiusMM != limit {
+		t.Fatalf("minimum flex radius not forwarded: %#v", repository.createdLayout)
+	}
+
+	for _, invalid := range []float64{0, -1, math.NaN(), math.Inf(1), math.Inf(-1)} {
+		input := CreateLayoutInput{
+			Name: "Ungültig", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+			MinimumFlexRadiusMM: &invalid,
+		}
+		if _, err := service.CreateLayout(t.Context(), input, "planner-1"); !errors.Is(err, ErrLayoutValidation) {
+			t.Fatalf("expected validation error for %v, got %v", invalid, err)
+		}
+	}
+}
+
 func TestLayoutServiceRejectsNonFiniteConfigurationCoordinates(t *testing.T) {
 	service := NewLayoutService(&layoutRepositorySpy{})
 	for name, value := range map[string]float64{

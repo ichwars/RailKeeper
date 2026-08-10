@@ -9,11 +9,13 @@ const (
 	TrackGeometryCurve    TrackGeometryKind = "curve"
 	TrackGeometryTurnout  TrackGeometryKind = "turnout"
 	TrackGeometryCrossing TrackGeometryKind = "crossing"
+	TrackGeometryFlex     TrackGeometryKind = "flex"
 )
 
 func (kind TrackGeometryKind) Valid() bool {
 	switch kind {
-	case TrackGeometryStraight, TrackGeometryCurve, TrackGeometryTurnout, TrackGeometryCrossing:
+	case TrackGeometryStraight, TrackGeometryCurve, TrackGeometryTurnout, TrackGeometryCrossing,
+		TrackGeometryFlex:
 		return true
 	default:
 		return false
@@ -77,16 +79,17 @@ type TrackGeometryLibrary struct {
 }
 
 type TrackGeometryDefinition struct {
-	ID            string              `json:"id"`
-	LibraryID     string              `json:"libraryId"`
-	ArticleNumber string              `json:"articleNumber"`
-	Name          string              `json:"name"`
-	Kind          TrackGeometryKind   `json:"kind"`
-	LengthMM      float64             `json:"lengthMm"`
-	Geometry      TrackGeometry       `json:"geometry"`
-	SourceURL     string              `json:"sourceUrl"`
-	Status        TrackGeometryStatus `json:"status"`
-	CreatedAt     string              `json:"createdAt"`
+	ID              string              `json:"id"`
+	LibraryID       string              `json:"libraryId"`
+	ArticleNumber   string              `json:"articleNumber"`
+	Name            string              `json:"name"`
+	Kind            TrackGeometryKind   `json:"kind"`
+	LengthMM        float64             `json:"lengthMm"`
+	MinimumRadiusMM *float64            `json:"minimumRadiusMm,omitempty"`
+	Geometry        TrackGeometry       `json:"geometry"`
+	SourceURL       string              `json:"sourceUrl"`
+	Status          TrackGeometryStatus `json:"status"`
+	CreatedAt       string              `json:"createdAt"`
 }
 
 type PlanTrackObject struct {

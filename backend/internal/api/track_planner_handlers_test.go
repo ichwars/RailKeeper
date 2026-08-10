@@ -103,7 +103,9 @@ func TestTrackPlannerRoutesCoverWorkflowAndProblems(t *testing.T) {
 	assertStatus(t, geometryResponse, http.StatusOK)
 	var geometries []domain.TrackGeometryDefinition
 	decodeResponse(t, geometryResponse, &geometries)
-	if len(geometries) != 1 || geometries[0].ArticleNumber != "83101" {
+	if len(geometries) != 2 || geometries[0].ArticleNumber != "83101" ||
+		geometries[1].ArticleNumber != "83125" || geometries[1].Kind != domain.TrackGeometryFlex ||
+		geometries[1].MinimumRadiusMM == nil || *geometries[1].MinimumRadiusMM != 543 {
 		t.Fatalf("unexpected track geometries: %#v", geometries)
 	}
 

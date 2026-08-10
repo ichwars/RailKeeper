@@ -60,17 +60,19 @@ func (r *LayoutRepository) CreateLayout(
 	layout := &application.Layout{
 		ID: randomID(), Name: input.Name, Kind: input.Kind, Gauge: input.Gauge, Scale: input.Scale,
 		Description: input.Description, MaxGradePercent: input.MaxGradePercent,
-		MinimumTrackClearanceMM: input.MinimumTrackClearanceMM, Version: 1,
+		MinimumTrackClearanceMM: input.MinimumTrackClearanceMM,
+		MinimumFlexRadiusMM:     input.MinimumFlexRadiusMM, Version: 1,
 		Archived: input.Archived, CreatedAt: now, UpdatedAt: now,
 	}
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO layouts(
   id, name, kind, gauge, scale, description, max_grade_percent, minimum_track_clearance_mm,
-  version, archived, created_at, updated_at
+  minimum_flex_radius_mm, version, archived, created_at, updated_at
 )
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, layout.ID, layout.Name, layout.Kind, layout.Gauge, layout.Scale,
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)`, layout.ID, layout.Name, layout.Kind, layout.Gauge, layout.Scale,
 			layout.Description, layout.MaxGradePercent, layout.MinimumTrackClearanceMM,
+			layout.MinimumFlexRadiusMM,
 			boolToInt(layout.Archived), now, now); err != nil {
 			return fmt.Errorf("insert layout: %w", err)
 		}
@@ -93,10 +95,11 @@ func (r *LayoutRepository) UpdateLayout(
 		result, err := tx.ExecContext(ctx, `
 UPDATE layouts
 SET name=?, kind=?, gauge=?, scale=?, description=?, max_grade_percent=?,
-    minimum_track_clearance_mm=?, archived=?,
+    minimum_track_clearance_mm=?, minimum_flex_radius_mm=?, archived=?,
     version=version+1, updated_at=?
 WHERE id=? AND version=?`, input.Name, input.Kind, input.Gauge, input.Scale, input.Description,
-			input.MaxGradePercent, input.MinimumTrackClearanceMM, boolToInt(input.Archived), now, id,
+			input.MaxGradePercent, input.MinimumTrackClearanceMM, input.MinimumFlexRadiusMM,
+			boolToInt(input.Archived), now, id,
 			input.ExpectedVersion)
 		if err != nil {
 			return fmt.Errorf("update layout: %w", err)
@@ -482,7 +485,7 @@ INSERT INTO layout_configuration_units(
 }
 
 const layoutSelect = `SELECT id, name, kind, gauge, scale, description, max_grade_percent,
-minimum_track_clearance_mm,
+minimum_track_clearance_mm, minimum_flex_radius_mm,
 version, archived, created_at, updated_at FROM layouts`
 
 const layoutUnitSelect = `SELECT id, layout_id, name, kind, owner_label, COALESCE(width_mm, 0), COALESCE(height_mm, 0), version, archived, created_at, updated_at FROM layout_units`
@@ -501,13 +504,18 @@ func scanLayout(scanner rowScanner) (*application.Layout, error) {
 	var archived int
 	var maxGradePercent sql.NullFloat64
 	var minimumTrackClearanceMM sql.NullFloat64
+	var minimumFlexRadiusMM sql.NullFloat64
 	err := scanner.Scan(&layout.ID, &layout.Name, &layout.Kind, &layout.Gauge, &layout.Scale, &layout.Description,
-		&maxGradePercent, &minimumTrackClearanceMM, &layout.Version, &archived, &layout.CreatedAt, &layout.UpdatedAt)
+		&maxGradePercent, &minimumTrackClearanceMM, &minimumFlexRadiusMM,
+		&layout.Version, &archived, &layout.CreatedAt, &layout.UpdatedAt)
 	if maxGradePercent.Valid {
 		layout.MaxGradePercent = &maxGradePercent.Float64
 	}
 	if minimumTrackClearanceMM.Valid {
 		layout.MinimumTrackClearanceMM = &minimumTrackClearanceMM.Float64
+	}
+	if minimumFlexRadiusMM.Valid {
+		layout.MinimumFlexRadiusMM = &minimumFlexRadiusMM.Float64
 	}
 	layout.Archived = archived != 0
 	return layout, err

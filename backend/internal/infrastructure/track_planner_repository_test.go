@@ -44,7 +44,9 @@ func TestTrackPlannerRepositoryPersistsVersionsAndClonesDraftObjects(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(geometries) != 1 || geometries[0].ArticleNumber != "83101" {
+	if len(geometries) != 2 || geometries[0].ArticleNumber != "83101" ||
+		geometries[1].ArticleNumber != "83125" || geometries[1].MinimumRadiusMM == nil ||
+		*geometries[1].MinimumRadiusMM != 543 {
 		t.Fatalf("unexpected verified geometries: %#v", geometries)
 	}
 

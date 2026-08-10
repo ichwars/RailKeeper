@@ -52,6 +52,34 @@ WHERE article_number='83101'`).Scan(&articleNumber, &lengthMM, &sourceURL, &stat
 	}
 }
 
+func TestFlexTrackMigrationCreatesVerifiedTillig83125(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+
+	var kind, sourceURL, status, geometryJSON string
+	var lengthMM, minimumRadiusMM float64
+	err := db.QueryRow(`
+SELECT kind, length_mm, minimum_radius_mm, source_url, status, geometry_json
+FROM track_geometry_definitions
+WHERE id='tillig-tt-modellgleis-83125-v1'`).
+		Scan(&kind, &lengthMM, &minimumRadiusMM, &sourceURL, &status, &geometryJSON)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if kind != "flex" || lengthMM != 664 || minimumRadiusMM != 543 || status != "verified" ||
+		sourceURL != "https://www.tillig.com/Produkte/produktinfo-83125.html" {
+		t.Fatalf("unexpected Tillig 83125 seed: %q %v %v %q %q",
+			kind, lengthMM, minimumRadiusMM, sourceURL, status)
+	}
+	var geometry domain.TrackGeometry
+	if err := json.Unmarshal([]byte(geometryJSON), &geometry); err != nil {
+		t.Fatal(err)
+	}
+	if geometry.SchemaVersion != 1 || len(geometry.Ports) != 2 ||
+		geometry.Ports[0].XMM != 0 || geometry.Ports[1].XMM != 664 {
+		t.Fatalf("unexpected Tillig 83125 geometry: %#v", geometry)
+	}
+}
+
 func TestTrackPlannerMigrationEnforcesReferencesAndRotation(t *testing.T) {
 	db := openTrackPlannerSchemaDB(t)
 	seedTrackPlanRevision(t, db)

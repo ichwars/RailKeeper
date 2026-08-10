@@ -26,6 +26,7 @@ type Layout struct {
 	Description             string            `json:"description,omitempty"`
 	MaxGradePercent         *float64          `json:"maxGradePercent,omitempty"`
 	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm,omitempty"`
+	MinimumFlexRadiusMM     *float64          `json:"minimumFlexRadiusMm,omitempty"`
 	Version                 int               `json:"version"`
 	Archived                bool              `json:"archived"`
 	CreatedAt               string            `json:"createdAt"`
@@ -40,6 +41,7 @@ type CreateLayoutInput struct {
 	Description             string            `json:"description"`
 	MaxGradePercent         *float64          `json:"maxGradePercent"`
 	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm"`
+	MinimumFlexRadiusMM     *float64          `json:"minimumFlexRadiusMm"`
 	Archived                bool              `json:"archived"`
 }
 
@@ -418,7 +420,9 @@ func validLayoutInput(input CreateLayoutInput) bool {
 		(input.MaxGradePercent == nil || finite(*input.MaxGradePercent) &&
 			*input.MaxGradePercent > 0 && *input.MaxGradePercent <= 100) &&
 		(input.MinimumTrackClearanceMM == nil ||
-			finite(*input.MinimumTrackClearanceMM) && *input.MinimumTrackClearanceMM > 0)
+			finite(*input.MinimumTrackClearanceMM) && *input.MinimumTrackClearanceMM > 0) &&
+		(input.MinimumFlexRadiusMM == nil ||
+			finite(*input.MinimumFlexRadiusMM) && *input.MinimumFlexRadiusMM > 0)
 }
 
 func cleanLayoutUnitInput(input CreateLayoutUnitInput) CreateLayoutUnitInput {

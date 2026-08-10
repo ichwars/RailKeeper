@@ -7,10 +7,12 @@
 - Completed: compared polyline, cubic Bézier and full clothoid approaches.
 - Completed: user approved the bounded cubic Bézier Package G design.
 - Completed: written design spec reviewed and approved by the user.
-- Active slice: write, self-review and locally commit the detailed implementation plan.
-- Pending: execute all six plan tasks inline, then complete local acceptance.
+- Completed: wrote, self-reviewed and locally committed the detailed implementation plan as `82f9ed8`.
+- Completed: Task 1 persists the flex kind, Tillig 83125, layout radius limit and backup version 11.
+- Active slice: Task 2 derives and analyzes the effective cubic Bézier geometry.
+- Pending: execute Tasks 2 through 6 inline, then complete local acceptance.
 - Blocked on: nothing.
-- Next step: use inline plan execution because the user explicitly prohibited subagents.
+- Next step: start Task 2 with failing domain geometry tests.
 
 ## ResumeStateHint
 
@@ -22,11 +24,11 @@ not from memory.
 ## DriftCheckDraft
 
 - Original intent: aligned with issue 36 flex-track optimization.
-- Goal and stop condition: aligned; the written spec is approved and implementation planning is active.
+- Goal and stop condition: aligned; the written spec and plan are approved, Task 1 is green.
 - Compatibility: fixed geometry, object lineage, reservations and legacy backups remain explicit.
 - New owner or fallback: none; effective geometry has one domain owner and persistence has one write
   path.
 - Retirement track: no temporary compatibility branch is proposed.
-- Evidence: source-backed product data, current code read set, approved design and local spec commit
-  `28a68af`.
-- Decision: continue to inline plan execution after plan self-review.
+- Evidence: source-backed product data, spec `28a68af`, plan `82f9ed8`, targeted RED/GREEN checks and
+  fresh `go test ./... -count=1` across all seven backend packages.
+- Decision: continue inline with effective geometry and analysis.

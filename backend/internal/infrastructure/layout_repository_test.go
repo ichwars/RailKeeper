@@ -398,6 +398,50 @@ func TestLayoutRepositoryPersistsMinimumTrackClearanceMM(t *testing.T) {
 	}
 }
 
+func TestLayoutRepositoryPersistsMinimumFlexRadiusMM(t *testing.T) {
+	service := testLayoutService(t)
+	ctx := t.Context()
+	limit := 700.0
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Flexgleisanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MinimumFlexRadiusMM: &limit,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if layout.MinimumFlexRadiusMM == nil || *layout.MinimumFlexRadiusMM != limit {
+		t.Fatalf("minimum flex radius not persisted: %#v", layout)
+	}
+
+	updatedLimit := 650.0
+	updated, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+			MinimumFlexRadiusMM: &updatedLimit,
+		},
+		ExpectedVersion: layout.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MinimumFlexRadiusMM == nil || *updated.MinimumFlexRadiusMM != updatedLimit {
+		t.Fatalf("minimum flex radius not updated: %#v", updated)
+	}
+
+	cleared, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+		},
+		ExpectedVersion: updated.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.MinimumFlexRadiusMM != nil {
+		t.Fatalf("minimum flex radius not cleared: %#v", cleared)
+	}
+}
+
 func testLayoutService(t *testing.T) *application.LayoutService {
 	t.Helper()
 	_, service := testLayoutServiceWithDB(t)

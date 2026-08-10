@@ -8,15 +8,12 @@ func TestTrackGeometryKindsAndStatuses(t *testing.T) {
 		TrackGeometryCurve,
 		TrackGeometryTurnout,
 		TrackGeometryCrossing,
+		TrackGeometryFlex,
 	} {
 		if !kind.Valid() {
 			t.Fatalf("expected %q to be a valid track geometry kind", kind)
 		}
 	}
-	if TrackGeometryKind("flex").Valid() {
-		t.Fatal("flex track belongs to a later planner stage")
-	}
-
 	if !TrackGeometryVerified.Placeable() {
 		t.Fatal("verified geometry must be placeable")
 	}
@@ -24,6 +21,20 @@ func TestTrackGeometryKindsAndStatuses(t *testing.T) {
 		if status.Placeable() {
 			t.Fatalf("geometry status %q must not be placeable", status)
 		}
+	}
+}
+
+func TestFlexTrackDefinitionCarriesRecommendedMinimumRadius(t *testing.T) {
+	radius := 543.0
+	geometry := TrackGeometryDefinition{
+		ArticleNumber:   "83125",
+		Kind:            TrackGeometryFlex,
+		LengthMM:        664,
+		MinimumRadiusMM: &radius,
+	}
+	if geometry.Kind != TrackGeometryFlex || geometry.MinimumRadiusMM == nil ||
+		*geometry.MinimumRadiusMM != 543 {
+		t.Fatalf("unexpected flex track definition: %#v", geometry)
 	}
 }
 
