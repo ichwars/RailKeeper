@@ -134,7 +134,17 @@ func trackObjectsDiffer(first, second PlanTrackObject) bool {
 		math.Abs(first.RotationDegrees-second.RotationDegrees) > 1e-9 ||
 		math.Abs(first.ElevationStartMM-second.ElevationStartMM) > 1e-9 ||
 		math.Abs(first.ElevationEndMM-second.ElevationEndMM) > 1e-9 ||
-		flexTrackPathsDiffer(first.FlexPath, second.FlexPath)
+		flexTrackPathsDiffer(first.FlexPath, second.FlexPath) ||
+		transitionCurvePathsDiffer(first.TransitionPath, second.TransitionPath)
+}
+
+func transitionCurvePathsDiffer(first, second *TransitionCurvePath) bool {
+	if first == nil || second == nil {
+		return first != second
+	}
+	return first.SchemaVersion != second.SchemaVersion || first.Direction != second.Direction ||
+		math.Abs(first.LengthMM-second.LengthMM) > 1e-9 ||
+		math.Abs(first.EndRadiusMM-second.EndRadiusMM) > 1e-9
 }
 
 func flexTrackPathsDiffer(first, second *FlexTrackPath) bool {

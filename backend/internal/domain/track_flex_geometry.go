@@ -65,7 +65,21 @@ func BuildFlexTrackGeometry(path FlexTrackPath) (EffectiveTrackGeometry, error) 
 }
 
 func EffectiveGeometryForObject(object PlanTrackObject) (EffectiveTrackGeometry, error) {
-	if object.Geometry.Kind != TrackGeometryFlex || object.FlexPath == nil {
+	if object.FlexPath != nil && object.TransitionPath != nil {
+		return EffectiveTrackGeometry{}, ErrInvalidFlexTrackPath
+	}
+	if object.Geometry.Kind != TrackGeometryFlex {
+		if object.FlexPath != nil || object.TransitionPath != nil {
+			return EffectiveTrackGeometry{}, ErrInvalidFlexTrackPath
+		}
+		return EffectiveTrackGeometry{
+			Geometry: object.Geometry.Geometry, LengthMM: object.Geometry.LengthMM,
+		}, nil
+	}
+	if object.TransitionPath != nil {
+		return BuildTransitionTrackGeometry(*object.TransitionPath)
+	}
+	if object.FlexPath == nil {
 		return EffectiveTrackGeometry{
 			Geometry: object.Geometry.Geometry, LengthMM: object.Geometry.LengthMM,
 		}, nil

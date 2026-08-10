@@ -84,6 +84,27 @@ func TestCompareTrackPlanRevisionsTreatsFlexPathChangesAsObjectChanges(t *testin
 	}
 }
 
+func TestCompareTrackPlanRevisionsTreatsTransitionPathChangesAsObjectChanges(t *testing.T) {
+	base := testFlexObject("base-transition", FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, StartHandleMM: 180, EndHandleMM: 180,
+	})
+	base.LineageID = "lineage-transition"
+	base.FlexPath = nil
+	base.TransitionPath = &TransitionCurvePath{
+		SchemaVersion: 1, LengthMM: 500, EndRadiusMM: 700, Direction: TransitionLeft,
+	}
+	current := base
+	current.ID = "draft-transition"
+	currentPath := *current.TransitionPath
+	currentPath.EndRadiusMM = 650
+	current.TransitionPath = &currentPath
+
+	diff := CompareTrackPlanRevisions([]PlanTrackObject{base}, []PlanTrackObject{current})
+	if len(diff.ObjectChanges) != 1 || diff.ObjectChanges[0].Type != TrackPlanObjectChanged {
+		t.Fatalf("transition path edit is missing from revision diff: %#v", diff.ObjectChanges)
+	}
+}
+
 func TestDiffTrackPlanIssuesUsesLineageAndPortIdentity(t *testing.T) {
 	baseObjects := []PlanTrackObject{
 		testRevisionTrack("base-a", "lineage-a", "g1", 0),

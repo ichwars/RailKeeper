@@ -104,6 +104,7 @@ type PlanTrackObject struct {
 	ElevationStartMM         float64                 `json:"elevationStartMm"`
 	ElevationEndMM           float64                 `json:"elevationEndMm"`
 	FlexPath                 *FlexTrackPath          `json:"flexPath,omitempty"`
+	TransitionPath           *TransitionCurvePath    `json:"transitionPath,omitempty"`
 	EffectiveGeometry        TrackGeometry           `json:"effectiveGeometry"`
 	EffectiveLengthMM        float64                 `json:"effectiveLengthMm"`
 	EffectiveMinimumRadiusMM *float64                `json:"effectiveMinimumRadiusMm,omitempty"`
