@@ -16,6 +16,10 @@ const analysis: TrackPlanAnalysis = {
     {
       code: "elevation_mismatch", severity: "warning", objectIds: ["track-1", "track-2"],
       portIds: ["b", "a"], elevationDifferenceMm: 2
+    },
+    {
+      code: "grade_limit_exceeded", severity: "warning", objectIds: ["track-2"],
+      gradePercent: -5.51, gradeLimitPercent: 3
     }
   ],
   bom: [{
@@ -38,9 +42,13 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(screen.getByText("2 offene Enden")).toBeInTheDocument();
     expect(screen.getByText("1 Überschneidung")).toBeInTheDocument();
     expect(screen.getByText("1 Höhenversatz")).toBeInTheDocument();
+    expect(screen.getByText("1 Steigungsüberschreitung")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Warnung: Überschneidung" })).toHaveTextContent("!");
     expect(screen.getByRole("button", {
       name: "Warnung: Höhenversatz an Gleisverbindung (2,00 mm)"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("button", {
+      name: "Warnung: Steigung -5,51 % überschreitet Grenzwert 3,00 %"
     })).toBeInTheDocument();
 
     const row = screen.getByRole("row", { name: /Tillig 83101/ });
@@ -76,6 +84,17 @@ describe("TrackPlanAnalysisPanel", () => {
     expect(selectObject).toHaveBeenCalledWith("track-1");
   });
 
+  it("selects the affected track from a grade limit warning", async () => {
+    const user = userEvent.setup();
+    const selectObject = vi.fn();
+    render(<TrackPlanAnalysisPanel analysis={analysis} onSelectObject={selectObject} />);
+
+    await user.click(screen.getByRole("button", {
+      name: "Warnung: Steigung -5,51 % überschreitet Grenzwert 3,00 %"
+    }));
+    expect(selectObject).toHaveBeenCalledWith("track-2");
+  });
+
   it("shows a valid empty state and an unmatched catalog requirement", () => {
     render(<TrackPlanAnalysisPanel analysis={{
       revisionId: "revision-1", status: "draft", connections: [], issues: [],
@@ -91,6 +110,7 @@ describe("TrackPlanAnalysisPanel", () => {
 
     expect(screen.getByText("0 Verbindungen")).toBeInTheDocument();
     expect(screen.getByText("0 Höhenversätze")).toBeInTheDocument();
+    expect(screen.getByText("0 Steigungsüberschreitungen")).toBeInTheDocument();
     expect(screen.getByText("✓ Keine Prüfhinweise")).toBeInTheDocument();
     expect(screen.getByText("Kein Artikel zugeordnet")).toBeInTheDocument();
   });

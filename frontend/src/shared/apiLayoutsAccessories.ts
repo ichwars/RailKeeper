@@ -353,13 +353,15 @@ export type TrackPlanConnection = {
   portBId: string;
 };
 export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry"
-  | "elevation_mismatch";
+  | "elevation_mismatch" | "grade_limit_exceeded";
 export type TrackPlanIssue = {
   code: TrackPlanIssueCode;
   severity: "warning" | "error";
   objectIds: string[];
   portIds?: string[];
   elevationDifferenceMm?: number;
+  gradePercent?: number;
+  gradeLimitPercent?: number;
 };
 export type TrackBOMLine = {
   geometryId: string;

@@ -8,7 +8,8 @@ const issueSymbols: Record<TrackPlanIssueCode, string> = {
   incompatible_connection: "↯",
   overlap: "!",
   broken_geometry: "×",
-  elevation_mismatch: "↕"
+  elevation_mismatch: "↕",
+  grade_limit_exceeded: "↗"
 };
 
 function countIssues(analysis: TrackPlanAnalysis, code: TrackPlanIssueCode): number {
@@ -25,6 +26,7 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
   const openEnds = countIssues(analysis, "open_end");
   const overlaps = countIssues(analysis, "overlap");
   const elevationMismatches = countIssues(analysis, "elevation_mismatch");
+  const gradeLimitExceedances = countIssues(analysis, "grade_limit_exceeded");
   const numberFormat = new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -42,6 +44,8 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
           : "layouts.trackAnalysis.overlapMany", { count: overlaps })}</span>
         <span>{t(elevationMismatches === 1 ? "layouts.trackAnalysis.elevationMismatchOne"
           : "layouts.trackAnalysis.elevationMismatchMany", { count: elevationMismatches })}</span>
+        <span>{t(gradeLimitExceedances === 1 ? "layouts.trackAnalysis.gradeLimitExceededOne"
+          : "layouts.trackAnalysis.gradeLimitExceededMany", { count: gradeLimitExceedances })}</span>
       </div>
     </header>
     <div className="track-analysis-grid">
@@ -50,11 +54,18 @@ export function TrackPlanAnalysisPanel({ analysis, selectedObjectId, onSelectObj
         {analysis.issues.length === 0
           ? <p className="layout-empty">✓ {t("layouts.trackAnalysis.noIssues")}</p>
           : <ul className="track-issue-list">{analysis.issues.map((issue, index) => {
-            const issueText = issue.code === "elevation_mismatch" && issue.elevationDifferenceMm !== undefined
-              ? t("layouts.trackAnalysis.issueElevationDetail", {
+            let issueText = t(`layouts.trackAnalysis.issue.${issue.code}`);
+            if (issue.code === "elevation_mismatch" && issue.elevationDifferenceMm !== undefined) {
+              issueText = t("layouts.trackAnalysis.issueElevationDetail", {
                 difference: numberFormat.format(issue.elevationDifferenceMm)
-              })
-              : t(`layouts.trackAnalysis.issue.${issue.code}`);
+              });
+            } else if (issue.code === "grade_limit_exceeded" && issue.gradePercent !== undefined &&
+              issue.gradeLimitPercent !== undefined) {
+              issueText = t("layouts.trackAnalysis.issueGradeLimitDetail", {
+                grade: numberFormat.format(issue.gradePercent),
+                limit: numberFormat.format(issue.gradeLimitPercent)
+              });
+            }
             const label = `${t(`layouts.trackAnalysis.severity.${issue.severity}`)}: ${issueText}`;
             return <li key={`${issue.code}-${issue.objectIds.join("-")}-${index}`}>
               <button type="button" className={`track-issue severity-${issue.severity}`}
