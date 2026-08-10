@@ -33,9 +33,10 @@ function layoutFormValue(layout: Layout): LayoutFormValue {
   };
 }
 
-export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
+export function LayoutWorkspace({ layout, canPlan, canManageLibraries = false, onLayoutChanged }: {
   layout: Layout;
   canPlan: boolean;
+  canManageLibraries?: boolean;
   onLayoutChanged: (layout: Layout) => void;
 }) {
   const [tab, setTab] = useState<LayoutTab>("overview");
@@ -174,7 +175,8 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
       </section> : tab === "modules" ? <LayoutModulesPanel units={units} layoutID={layout.id} canPlan={canPlan}
         onChanged={reloadStructure} /> : tab === "setups" ? <LayoutConfigurationsPanel configurations={configurations}
           units={units} layoutID={layout.id} canPlan={canPlan} onChanged={reloadStructure} />
-        : tab === "planner" ? <LayoutPlansPanel units={units} gauge={layout.gauge} canPlan={canPlan} />
+        : tab === "planner" ? <LayoutPlansPanel units={units} gauge={layout.gauge} canPlan={canPlan}
+          canManageLibraries={canManageLibraries} />
           : tab === "technology" ? <LayoutTechnicalPositionsPanel units={units} canPlan={canPlan} />
           : <LayoutDeferredPanel tab={tab} />}
     {editOpen ? <LayoutFormDialog mode="edit" initialValue={layoutFormValue(layout)} saving={saving}

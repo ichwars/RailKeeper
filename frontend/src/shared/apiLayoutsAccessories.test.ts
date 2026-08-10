@@ -260,6 +260,35 @@ describe("layout and accessory API client", () => {
     ]);
   });
 
+  it("keeps track library preview, import, export, and review routes typed", async () => {
+    const libraryPackage = {
+      format: "railkeeper.track-library" as const,
+      schemaVersion: 1 as const,
+      library: {
+        manufacturer: "Kühn", trackSystem: "TT", gauge: "TT", scale: "1:120",
+        version: "2026.1", sourceUrl: "https://example.com/catalogue.pdf", status: "verified" as const
+      },
+      definitions: []
+    };
+    await api.trackLibraries();
+    await api.exportTrackLibrary("library/1");
+    await api.previewTrackLibraryImport(libraryPackage);
+    await api.importTrackLibrary({ confirmed: true, package: libraryPackage });
+    await api.updateTrackLibraryStatus("library/1", {
+      confirmed: true, status: "verified", verificationNote: "Katalog geprüft"
+    });
+
+    expectRequests([
+      ["GET", "/api/v1/track-libraries"],
+      ["GET", "/api/v1/track-libraries/library%2F1/export"],
+      ["POST", "/api/v1/track-libraries/import/preview", libraryPackage],
+      ["POST", "/api/v1/track-libraries/import", { confirmed: true, package: libraryPackage }],
+      ["PUT", "/api/v1/track-libraries/library%2F1/status", {
+        confirmed: true, status: "verified", verificationNote: "Katalog geprüft"
+      }]
+    ]);
+  });
+
   it("uploads article documents as multipart form data without a content-type override", async () => {
     const file = new File(["invoice"], "Rechnung 1.pdf", { type: "application/pdf" });
 

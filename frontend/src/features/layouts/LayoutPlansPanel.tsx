@@ -6,11 +6,13 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { LayoutConfirmDialog, type LayoutPendingAction } from "./LayoutConfirmDialog";
 import { TrackPlannerCanvas } from "./TrackPlannerCanvas";
+import { TrackLibraryPanel } from "./TrackLibraryPanel";
 
-export function LayoutPlansPanel({ units, gauge, canPlan }: {
+export function LayoutPlansPanel({ units, gauge, canPlan, canManageLibraries = false }: {
   units: LayoutUnit[];
   gauge: string;
   canPlan: boolean;
+  canManageLibraries?: boolean;
 }) {
   const [unitID, setUnitID] = useState(() => units[0]?.id || "");
   const [variants, setVariants] = useState<PlanVariant[]>([]);
@@ -73,6 +75,7 @@ export function LayoutPlansPanel({ units, gauge, canPlan }: {
     revision={openRevision} canPlan={canPlan} onClose={() => setOpenRevision(null)} />;
 
   return <section className="layout-plans-stack">
+    <TrackLibraryPanel canManage={canManageLibraries} />
     <section className="panel layout-plan-toolbar">
       <div className="panel-title"><GitBranch size={17} /><h3>{t("layouts.plans.title")}</h3></div>
       <label>{t("layouts.plans.unit")}<AppSelect value={unitID}

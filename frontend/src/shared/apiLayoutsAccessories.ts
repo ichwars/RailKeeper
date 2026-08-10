@@ -331,6 +331,60 @@ export type TrackGeometryDefinition = {
   status: TrackGeometryStatus;
   createdAt: string;
 };
+export type TrackGeometryLibrary = {
+  id: string;
+  manufacturer: string;
+  trackSystem: string;
+  gauge: string;
+  scale: string;
+  version: string;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+  verificationNote: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  definitionCount: number;
+  createdAt: string;
+};
+export type TrackLibraryPackageMetadata = {
+  manufacturer: string;
+  trackSystem: string;
+  gauge: string;
+  scale: string;
+  version: string;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+};
+export type TrackLibraryPackageDefinition = {
+  articleNumber: string;
+  name: string;
+  kind: TrackGeometryKind;
+  lengthMm: number;
+  minimumRadiusMm?: number;
+  geometry: TrackGeometry;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+};
+export type TrackLibraryPackage = {
+  format: "railkeeper.track-library";
+  schemaVersion: 1;
+  exportedAt?: string;
+  library: TrackLibraryPackageMetadata;
+  definitions: TrackLibraryPackageDefinition[];
+};
+export type TrackLibraryImportPreview = {
+  package: TrackLibraryPackage;
+  definitionCount: number;
+  warnings: Array<"verification_status_reset">;
+  conflict: boolean;
+  canImport: boolean;
+};
+export type ImportTrackLibraryInput = { confirmed: boolean; package: TrackLibraryPackage };
+export type UpdateTrackLibraryStatusInput = {
+  confirmed: boolean;
+  status: "verified" | "retired";
+  verificationNote: string;
+};
 export type PlanTrackObject = {
   id: string;
   lineageId: string;
@@ -1108,6 +1162,17 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<PlanRevision>(`/plan-revisions/${encodeURIComponent(id)}/publish`, json("POST", { expectedVersion })),
     trackGeometries: (gauge: string) =>
       request<TrackGeometryDefinition[]>(`/track-geometries?gauge=${encodeURIComponent(gauge)}`),
+    trackLibraries: () => request<TrackGeometryLibrary[]>("/track-libraries"),
+    exportTrackLibrary: (id: string) =>
+      request<TrackLibraryPackage>(`/track-libraries/${encodeURIComponent(id)}/export`),
+    previewTrackLibraryImport: (input: TrackLibraryPackage) =>
+      request<TrackLibraryImportPreview>("/track-libraries/import/preview", json("POST", input)),
+    importTrackLibrary: (input: ImportTrackLibraryInput) =>
+      request<TrackGeometryLibrary>("/track-libraries/import", json("POST", input)),
+    updateTrackLibraryStatus: (id: string, input: UpdateTrackLibraryStatusInput) =>
+      request<TrackGeometryLibrary>(
+        `/track-libraries/${encodeURIComponent(id)}/status`, json("PUT", input)
+      ),
     trackPlan: (revisionId: string) =>
       request<TrackPlan>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-plan`),
     trackPlanAnalysis: (revisionId: string) =>

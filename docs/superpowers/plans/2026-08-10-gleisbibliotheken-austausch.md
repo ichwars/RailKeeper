@@ -45,12 +45,12 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 5: Strikter Client und Planeroberfläche
 
-- [ ] TypeScript-Verträge und API-Adapter testen
-- [ ] Kompaktes Bibliotheks-Panel mit Status, Quelle, Definitionen und Export bauen
-- [ ] App-eigene Importvorschau und Prüf-/Stilllegungsdialoge bauen
-- [ ] Deutsche und englische Texte sowie responsive Tokenstile ergänzen
-- [ ] Komponenten- und Integrationstests grün ausführen
-- [ ] Lokal committen
+- [x] TypeScript-Verträge und API-Adapter testen
+- [x] Kompaktes Bibliotheks-Panel mit Status, Quelle, Definitionen und Export bauen
+- [x] App-eigene Importvorschau und Prüf-/Stilllegungsdialoge bauen
+- [x] Deutsche und englische Texte sowie responsive Tokenstile ergänzen
+- [x] Komponenten- und Integrationstests grün ausführen
+- [x] Lokal committen
 
 ## Task 6: Vollständige Abnahme
 

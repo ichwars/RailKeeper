@@ -22,6 +22,7 @@ export function LayoutsView({ roles }: { roles: string[] }) {
   const createTriggerRef = useRef<HTMLButtonElement | null>(null);
   const { t } = useI18n();
   const canPlan = roles.includes("Admin") || roles.includes("Planner");
+  const canManageLibraries = roles.includes("Admin");
   const selected = layouts.find((layout) => layout.id === selectedID) || null;
 
   const loadLayouts = useCallback(async (preferID?: string) => {
@@ -109,6 +110,7 @@ export function LayoutsView({ roles }: { roles: string[] }) {
       </section>
     </section>
     {selected ? <LayoutWorkspace key={selected.id} layout={selected} canPlan={canPlan}
+      canManageLibraries={canManageLibraries}
       onLayoutChanged={(updated) => {
         setLayouts((current) => current.map((layout) => layout.id === updated.id ? updated : layout));
       }} /> : null}
