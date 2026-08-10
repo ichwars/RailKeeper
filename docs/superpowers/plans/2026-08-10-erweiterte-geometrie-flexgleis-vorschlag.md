@@ -450,7 +450,7 @@ git commit -m "feat(api): preview and save flex paths"
 - Consumes: API `minimumFlexRadiusMm?: number | null`
 - Produces: `LayoutFormValue.minimumFlexRadiusMm: string`
 
-- [ ] **Step 1: Fehlschlagende Formular-, Payload- und Profiltests schreiben**
+- [x] **Step 1: Fehlschlagende Formular-, Payload- und Profiltests schreiben**
 
 ```tsx
 const radius = screen.getByRole("spinbutton", {
@@ -466,7 +466,7 @@ Ein zweiter Test trägt 500 ein und erwartet eine sichtbare Erklärung, dass Wer
 Produktempfehlung nicht senken. Das Payload darf 500 senden; das Profil zeigt als wirksame Basis
 weiterhin die Produktgrenze nur am Flexobjekt, nicht als umgeschriebenen Layoutwert.
 
-- [ ] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run:
 
@@ -478,7 +478,7 @@ npm.cmd test -- --run src/features/layouts/LayoutFormDialog.test.tsx `
 
 Expected: FAIL wegen fehlendem Feld, Typ und Text.
 
-- [ ] **Step 3: Typen, app-eigenes Zahlenfeld und Datenfluss implementieren**
+- [x] **Step 3: Typen, app-eigenes Zahlenfeld und Datenfluss implementieren**
 
 `Layout`, `LayoutInput` und `LayoutFormValue` erhalten das neue Feld. Leer wird `null`, sonst
 `Number(value)`. Das Formular akzeptiert leer oder endlich größer als 0 und rendert:
@@ -493,7 +493,7 @@ Expected: FAIL wegen fehlendem Feld, Typ und Text.
 
 Das Profil zeigt den gespeicherten Wert mit zwei Nachkommastellen oder „Nicht festgelegt“.
 
-- [ ] **Step 4: Deutsche und englische Texte ergänzen**
+- [x] **Step 4: Deutsche und englische Texte ergänzen**
 
 Deutsch: „Mindest-Flexgleisradius (mm)“, „Ein höherer Anlagenwert verschärft die
 Produktempfehlung. Kleinere Werte senken sie nicht.“, „Bitte einen Wert größer als 0 eingeben.“
@@ -501,7 +501,7 @@ Produktempfehlung. Kleinere Werte senken sie nicht.“, „Bitte einen Wert grö
 Englisch: „Minimum flex-track radius (mm)“, „A higher layout value strengthens the product
 recommendation. Lower values do not weaken it.“, „Enter a value greater than 0.“
 
-- [ ] **Step 5: Formtests und Build ausführen und lokal committen**
+- [x] **Step 5: Formtests und Build ausführen und lokal committen**
 
 Run: targeted tests from Step 2, then `npm.cmd run build`.
 
@@ -542,7 +542,7 @@ git commit -m "feat(layouts): configure flex track radius"
 - Produces: `sampleFlexPath(path: FlexTrackPath): TrackPoint[]` nur für ungespeicherte lokale Vorschau
 - Produces: `FlexTrackEditorDialog`
 
-- [ ] **Step 1: Fehlschlagende API-, Geometrie-, Dialog- und Canvas-Tests schreiben**
+- [x] **Step 1: Fehlschlagende API-, Geometrie-, Dialog- und Canvas-Tests schreiben**
 
 Die API-Typen verlangen `flex`, Flexpfad, effektive Felder und `previewFlexTrackPath`.
 `flexTrackGeometry.test.ts` prüft exakte Endpunkte und eine deterministische lokale Vorschau.
@@ -555,7 +555,7 @@ Der Canvastest prüft, dass starre Objekte ihre Bibliotheksroute und Flexobjekte
 `effectiveGeometry.routes` rendern, der Bearbeiten-Button den Dialog öffnet und ein übernommener Pfad
 im vorhandenen Update-Payload landet.
 
-- [ ] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Gezielte Tests ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run:
 
@@ -569,7 +569,7 @@ npm.cmd test -- --run src/features/layouts/flexTrackGeometry.test.ts `
 
 Expected: FAIL wegen fehlendem Modul, Dialog, Typen und Warncode.
 
-- [ ] **Step 3: Frontend-Verträge und lokalen Vorschauhelfer implementieren**
+- [x] **Step 3: Frontend-Verträge und lokalen Vorschauhelfer implementieren**
 
 ```ts
 export type FlexTrackPath = {
@@ -596,14 +596,14 @@ export type FlexTrackPreview = {
 `sampleFlexPath` berechnet ausschließlich die gestrichelte lokale Vorschau. Persistierte Darstellung,
 Länge und Radius kommen immer aus der Serverantwort.
 
-- [ ] **Step 4: App-eigenen Dialog implementieren**
+- [x] **Step 4: App-eigenen Dialog implementieren**
 
 Der Dialog verwendet Portal, Fokusfalle, Escape-Behandlung, `AppNumberInput`, vorhandene Modal-Tokens
 und einen eingebetteten SVG-Ausschnitt. Formularänderungen verwerfen das letzte Serverergebnis;
 „Verlauf übernehmen“ ist nur bei `preview.applicable` aktiv. Radiuswarnung und Überlänge besitzen
 Symbol und Text.
 
-- [ ] **Step 5: Canvas, Snapping und Inspector integrieren**
+- [x] **Step 5: Canvas, Snapping und Inspector integrieren**
 
 `TrackPlannerCanvas` rendert `object.effectiveGeometry ?? object.geometry.geometry`. Beim Platzieren
 einer Flexgeometrie sendet es den geraden Standardpfad. Update und Höhenänderung erhalten den
@@ -613,7 +613,7 @@ Der Endpunkt-Handle erscheint nur bei geöffnetem Flexeditor. Seine lokale Beweg
 ungespeicherte Vorschau; `snapFlexEnd` übernimmt bei höchstens 8 mm Abstand Position und
 Gegenrichtung eines kompatiblen Ports. Kein Zielobjekt wird verändert.
 
-- [ ] **Step 6: Radiuswarnung und Übersetzungen ergänzen**
+- [x] **Step 6: Radiuswarnung und Übersetzungen ergänzen**
 
 `TrackPlanAnalysisPanel` erhält Symbol `⌒`, separaten Zähler und Detailtext:
 
@@ -623,7 +623,7 @@ Gegenrichtung eines kompatiblen Ports. Kein Zielobjekt wird verändert.
 Weitere Texte decken Dialogtitel, Felder, Vorschlag, Übernahme, Länge, Radius, Überlänge,
 Produktempfehlung und leere Werte ab.
 
-- [ ] **Step 7: Frontend-Suiten und Build ausführen und lokal committen**
+- [x] **Step 7: Frontend-Suiten und Build ausführen und lokal committen**
 
 Run: targeted tests from Step 2, then `npm.cmd test -- --run` and `npm.cmd run build`.
 
@@ -659,7 +659,7 @@ git commit -m "feat(planner): edit flex track paths"
 - Consumes: vollständiges Paket G
 - Produces: lokales Abnahmeprotokoll und sauberen lokalen Branch
 
-- [ ] **Step 1: Vollständige automatisierte Prüfung ausführen**
+- [x] **Step 1: Vollständige automatisierte Prüfung ausführen**
 
 Run:
 
@@ -674,32 +674,32 @@ npm.cmd run build
 
 Expected: alle Go-Pakete, Vitest-Dateien und der Produktionsbuild bestehen.
 
-- [ ] **Step 2: Lokalen Server mit aktuellem Build neu starten**
+- [x] **Step 2: Lokalen Server mit aktuellem Build neu starten**
 
 Der Server läuft weiter auf `127.0.0.1:18083` mit Repository-Daten, Migrationen, Seeds,
 `frontend/dist` und repositorylokalem `GOCACHE`. `/health` muss HTTP 200 liefern; die Sitzung bleibt
 als `codex-test` angemeldet.
 
-- [ ] **Step 3: Browserabnahme für gültigen Vorschlag durchführen**
+- [x] **Step 3: Browserabnahme für gültigen Vorschlag durchführen**
 
 Im Anlagenprofil wird ein Flexradius von 700,00 mm gespeichert. In einem leeren Entwurf wird TILLIG
 83125 platziert, der Flexeditor geöffnet und ein kurzer glatter Verlauf vorgeschlagen. Vorschau,
 gestrichelter Zustand, Länge, Radius und ausdrückliche Übernahme werden geprüft. Nach Neuladen bleiben
 Pfad und Werte erhalten; Stückliste zeigt genau ein Stück 83125.
 
-- [ ] **Step 4: Browserabnahme für Warnung und Überlänge durchführen**
+- [x] **Step 4: Browserabnahme für Warnung und Überlänge durchführen**
 
 Ein enger Verlauf unter 700 mm erzeugt genau eine anklickbare Radiuswarnung und bleibt bewusst
 übernehmbar. Ein Verlauf über 664 mm zeigt Überlänge und deaktiviert die Übernahme. Abbrechen ändert
 das gespeicherte Objekt nicht. Browserkonsole bleibt frei von Warnungen und Fehlern.
 
-- [ ] **Step 5: Abnahme, Evidence und Drift aktualisieren**
+- [x] **Step 5: Abnahme, Evidence und Drift aktualisieren**
 
 Die Spec erhält Branch, Commitfolge, Testzahlen, Buildzahl, Server-PID, Browserwerte und „kein Push,
 PR oder Merge“. Plancheckboxen werden markiert. Aegis-Checkpoint und Evidence dokumentieren die
 frischen Befehle; Reflection bewertet Scope, Kompatibilität und Paket-H-Abgrenzung.
 
-- [ ] **Step 6: Dokumentation lokal committen und Branchzustand prüfen**
+- [x] **Step 6: Dokumentation lokal committen und Branchzustand prüfen**
 
 ```powershell
 git add docs/superpowers/specs/2026-08-10-erweiterte-geometrie-flexgleis-vorschlag-design.md `

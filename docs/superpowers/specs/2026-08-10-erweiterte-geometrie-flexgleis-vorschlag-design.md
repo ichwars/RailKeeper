@@ -246,3 +246,38 @@ Freie Planobjekte bleiben Paket I.
 - Die Stückliste zählt jedes Flexobjekt als ein Stück 83125.
 - Backendtests, Frontendtests, Produktionsbuild und lokale Browserprüfung laufen erfolgreich.
 - Alles bleibt auf `dev/issue-36-advanced-geometry`; kein Push, PR oder Merge.
+
+## Umsetzungs- und Abnahmestand
+
+Paket G ist lokal vollständig umgesetzt. Die Commitfolge lautet:
+
+- `f1e9588` persistiert Flexgleis-Grundlage, Produkt, Anlagenlimit und Backup-Version 11.
+- `60c2cd2` leitet effektive Bézier-Geometrie, Länge und Radius ab.
+- `3047b43` persistiert Flexpfade und stellt die serverseitige Vorschau bereit.
+- `757823d` ergänzt das Anlagenprofil um den Mindest-Flexgleisradius.
+- `1e1c279` integriert Flexeditor, Vorschau, Inspector, Snapping und Warnungen.
+- `62a489f` lehnt nicht ableitbare Vorschauen ab, statt unvollständige Geometrie auszuliefern.
+
+Die vollständige Backend-Suite bestand nach dem letzten Fix in allen sieben Paketen. Die vollständige
+Frontend-Suite bestand in 68 Testdateien mit 363 Tests. Der Produktionsbuild verarbeitete 2.173
+Module erfolgreich; die bekannte Vite-Hinweismeldung zum nativen Konfigurationslader und die
+Chunkgrößenwarnung sind nicht blockierend.
+
+Der aktuelle Server läuft auf `127.0.0.1:18083` mit Listener-PID 25984, `/health` liefert HTTP 200
+und die Sitzung ist als `codex-test` angemeldet. Die Browserabnahme bestätigte:
+
+- Anlagenlimit 700,00 mm wird gespeichert und nach Neuladen angezeigt.
+- `500 / 100 mm` bei `20°` ergibt 512,55 mm Länge und 1.118,29 mm kleinsten Radius.
+- `300 / 100 mm` bei `90°` ergibt 370,51 mm Länge, 86,85 mm Radius und eine sichtbare, weiterhin
+  übernehmbare Warnung gegen den Grenzwert 700,00 mm.
+- `700 / 0 mm` bei `0°` ergibt 700,00 mm Länge, überschreitet 664,00 mm und deaktiviert die
+  Übernahme.
+- Nicht ableitbare Extremwerte bleiben nach `62a489f` als Validierungsfehler im Dialog, ohne die
+  Anlagenansicht zu beenden.
+- Der bestätigte Verlauf bleibt nach Neuladen mit 512,55 mm und 1.118,29 mm erhalten.
+- Die Stückliste führt genau ein TILLIG 83125 für das eine Flexobjekt.
+- Eine neu geöffnete Browserregisterkarte meldete keine Konsolenwarnung und keinen Konsolenfehler.
+
+Alles bleibt ausschließlich lokal auf `dev/issue-36-advanced-geometry`. Es erfolgte kein Push, kein
+Pull Request und kein Merge. Echte Klothoiden beziehungsweise Übergangsbögen bleiben Paket H, freie
+Planobjekte bleiben Paket I.
