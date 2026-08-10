@@ -24,23 +24,25 @@ type TrackPlan struct {
 }
 
 type CreatePlanTrackObjectInput struct {
-	GeometryID       string                `json:"geometryId"`
-	PositionXMM      float64               `json:"positionXMm"`
-	PositionYMM      float64               `json:"positionYMm"`
-	RotationDegrees  float64               `json:"rotationDegrees"`
-	ElevationStartMM float64               `json:"elevationStartMm"`
-	ElevationEndMM   float64               `json:"elevationEndMm"`
-	FlexPath         *domain.FlexTrackPath `json:"flexPath"`
+	GeometryID       string                      `json:"geometryId"`
+	PositionXMM      float64                     `json:"positionXMm"`
+	PositionYMM      float64                     `json:"positionYMm"`
+	RotationDegrees  float64                     `json:"rotationDegrees"`
+	ElevationStartMM float64                     `json:"elevationStartMm"`
+	ElevationEndMM   float64                     `json:"elevationEndMm"`
+	FlexPath         *domain.FlexTrackPath       `json:"flexPath"`
+	TransitionPath   *domain.TransitionCurvePath `json:"transitionPath"`
 }
 
 type UpdatePlanTrackObjectInput struct {
-	PositionXMM      float64               `json:"positionXMm"`
-	PositionYMM      float64               `json:"positionYMm"`
-	RotationDegrees  float64               `json:"rotationDegrees"`
-	ElevationStartMM float64               `json:"elevationStartMm"`
-	ElevationEndMM   float64               `json:"elevationEndMm"`
-	ExpectedVersion  int                   `json:"expectedVersion"`
-	FlexPath         *domain.FlexTrackPath `json:"flexPath"`
+	PositionXMM      float64                     `json:"positionXMm"`
+	PositionYMM      float64                     `json:"positionYMm"`
+	RotationDegrees  float64                     `json:"rotationDegrees"`
+	ElevationStartMM float64                     `json:"elevationStartMm"`
+	ElevationEndMM   float64                     `json:"elevationEndMm"`
+	ExpectedVersion  int                         `json:"expectedVersion"`
+	FlexPath         *domain.FlexTrackPath       `json:"flexPath"`
+	TransitionPath   *domain.TransitionCurvePath `json:"transitionPath"`
 }
 
 type FlexTrackPreviewInput struct {
@@ -294,8 +296,16 @@ func (service *TrackPlannerService) CreateObject(
 		return nil, ErrTrackPlanValidation
 	}
 	input.RotationDegrees = domain.NormalizeTrackRotation(input.RotationDegrees)
+	if input.FlexPath != nil && input.TransitionPath != nil {
+		return nil, ErrTrackPlanValidation
+	}
 	if input.FlexPath != nil {
 		if _, err := domain.BuildFlexTrackGeometry(*input.FlexPath); err != nil {
+			return nil, ErrTrackPlanValidation
+		}
+	}
+	if input.TransitionPath != nil {
+		if _, err := domain.BuildTransitionTrackGeometry(*input.TransitionPath); err != nil {
 			return nil, ErrTrackPlanValidation
 		}
 	}
@@ -336,7 +346,15 @@ func (service *TrackPlannerService) UpdateObject(
 	moving.ElevationStartMM = input.ElevationStartMM
 	moving.ElevationEndMM = input.ElevationEndMM
 	moving.FlexPath = input.FlexPath
-	if (moving.Geometry.Kind == domain.TrackGeometryFlex) != (input.FlexPath != nil) {
+	moving.TransitionPath = input.TransitionPath
+	pathCount := 0
+	if input.FlexPath != nil {
+		pathCount++
+	}
+	if input.TransitionPath != nil {
+		pathCount++
+	}
+	if (moving.Geometry.Kind == domain.TrackGeometryFlex) != (pathCount == 1) {
 		return nil, ErrTrackPlanValidation
 	}
 	if _, err := domain.EffectiveGeometryForObject(*moving); err != nil {

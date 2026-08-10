@@ -204,6 +204,58 @@ func TestTrackPlannerRepositoryPersistsAndHydratesFlexPath(t *testing.T) {
 	}
 }
 
+func TestTrackPlannerRepositoryPersistsAndHydratesTransitionPath(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	ctx := t.Context()
+	layout, err := layouts.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Übergangsbogenanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := layouts.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Modul", Kind: domain.LayoutUnitKindModule, WidthMM: 1200, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := layouts.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{Name: "Plan"}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	draft, err := layouts.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := domain.TransitionCurvePath{
+		SchemaVersion: 1, LengthMM: 500, EndRadiusMM: 700, Direction: domain.TransitionLeft,
+	}
+	created, err := planner.CreateObject(ctx, draft.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", TransitionPath: &path,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.TransitionPath == nil || created.FlexPath != nil || created.EffectiveLengthMM != 500 ||
+		created.EffectiveMinimumRadiusMM == nil || *created.EffectiveMinimumRadiusMM != 700 {
+		t.Fatalf("transition path not hydrated: %#v", created)
+	}
+	updatedPath := path
+	updatedPath.Direction = domain.TransitionRight
+	updated, err := planner.UpdateObject(ctx, created.ID, application.UpdatePlanTrackObjectInput{
+		TransitionPath: &updatedPath, ExpectedVersion: created.Version,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.TransitionPath == nil || updated.TransitionPath.Direction != domain.TransitionRight ||
+		updated.FlexPath != nil || updated.Version != 2 {
+		t.Fatalf("transition path not updated: %#v", updated)
+	}
+}
+
 func TestTrackPlannerRepositoryRejectsUnverifiedGeometry(t *testing.T) {
 	db := openTrackPlannerSchemaDB(t)
 	seedTrackPlanRevision(t, db)

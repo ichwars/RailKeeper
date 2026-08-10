@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 11
+	backupVersion = 12
 )
 
 var (
@@ -312,28 +312,34 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 
 func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
 	rows := doc.Tables[table]
-	if doc.Version > 10 {
-		return rows
+	legacyColumns := []string{}
+	if doc.Version <= 10 {
+		legacyColumn := map[string]string{
+			"track_geometry_definitions": "minimum_radius_mm",
+			"plan_track_objects":         "flex_path_json",
+			"layouts":                    "minimum_flex_radius_mm",
+		}[table]
+		if legacyColumn != "" {
+			legacyColumns = append(legacyColumns, legacyColumn)
+		}
 	}
-	legacyColumn := map[string]string{
-		"track_geometry_definitions": "minimum_radius_mm",
-		"plan_track_objects":         "flex_path_json",
-		"layouts":                    "minimum_flex_radius_mm",
-	}[table]
-	if legacyColumn == "" {
+	if doc.Version <= 11 && table == "plan_track_objects" {
+		legacyColumns = append(legacyColumns, "transition_path_json")
+	}
+	if len(legacyColumns) == 0 {
 		return rows
 	}
 	normalized := make([]map[string]any, 0, len(rows))
 	for _, row := range rows {
-		if _, exists := row[legacyColumn]; exists {
-			normalized = append(normalized, row)
-			continue
-		}
-		copyRow := make(map[string]any, len(row)+1)
+		copyRow := make(map[string]any, len(row)+len(legacyColumns))
 		for column, value := range row {
 			copyRow[column] = value
 		}
-		copyRow[legacyColumn] = nil
+		for _, legacyColumn := range legacyColumns {
+			if _, exists := copyRow[legacyColumn]; !exists {
+				copyRow[legacyColumn] = nil
+			}
+		}
 		normalized = append(normalized, copyRow)
 	}
 	return normalized

@@ -169,7 +169,7 @@ func TestLayoutServiceWritesAuditTrail(t *testing.T) {
 	}
 }
 
-func TestLayoutRevisionClonePreservesFlexPath(t *testing.T) {
+func TestLayoutRevisionClonePreservesFlexiblePaths(t *testing.T) {
 	service, db := testRevisionServiceWithDB(t)
 	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
 	ctx := t.Context()
@@ -203,6 +203,15 @@ func TestLayoutRevisionClonePreservesFlexPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	transitionPath := domain.TransitionCurvePath{
+		SchemaVersion: 1, LengthMM: 450, EndRadiusMM: 700, Direction: domain.TransitionRight,
+	}
+	createdTransition, err := planner.CreateObject(ctx, base.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", TransitionPath: &transitionPath,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
 	base, err = service.SubmitRevision(ctx, base.ID, base.Version, "planner")
 	if err != nil {
 		t.Fatal(err)
@@ -221,9 +230,20 @@ func TestLayoutRevisionClonePreservesFlexPath(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(plan.Objects) != 1 || plan.Objects[0].LineageID != created.LineageID ||
-		plan.Objects[0].FlexPath == nil || plan.Objects[0].FlexPath.EndYMM != 100 {
+	if len(plan.Objects) != 2 {
+		t.Fatalf("flexible paths not cloned: %#v", plan.Objects)
+	}
+	cloned := map[string]domain.PlanTrackObject{}
+	for _, object := range plan.Objects {
+		cloned[object.LineageID] = object
+	}
+	if cloned[created.LineageID].FlexPath == nil || cloned[created.LineageID].FlexPath.EndYMM != 100 {
 		t.Fatalf("flex path not cloned: %#v", plan.Objects)
+	}
+	transitionClone := cloned[createdTransition.LineageID]
+	if transitionClone.TransitionPath == nil ||
+		transitionClone.TransitionPath.Direction != domain.TransitionRight || transitionClone.FlexPath != nil {
+		t.Fatalf("transition path not cloned: %#v", plan.Objects)
 	}
 }
 

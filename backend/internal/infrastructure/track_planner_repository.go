@@ -446,6 +446,10 @@ func (repository *TrackPlannerRepository) CreateObject(
 	if err != nil {
 		return nil, application.ErrTrackPlanValidation
 	}
+	transitionPathJSON, err := encodeTransitionCurvePath(input.TransitionPath)
+	if err != nil {
+		return nil, application.ErrTrackPlanValidation
+	}
 	err = repository.withTx(ctx, func(tx *sql.Tx) error {
 		status, err := trackRevisionStatus(ctx, tx, revisionID)
 		if err != nil {
@@ -458,16 +462,20 @@ func (repository *TrackPlannerRepository) CreateObject(
 		if err != nil {
 			return err
 		}
-		if !placeable || (kind == domain.TrackGeometryFlex) != (input.FlexPath != nil) {
+		if !placeable || (kind == domain.TrackGeometryFlex) != hasExactlyOneFlexPath(
+			input.FlexPath, input.TransitionPath,
+		) {
 			return application.ErrTrackPlanValidation
 		}
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO plan_track_objects(
   id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
-	elevation_start_mm, elevation_end_mm, flex_path_json, lineage_id, version, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
+	elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json,
+	lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, object.ID, revisionID, input.GeometryID,
 			input.PositionXMM, input.PositionYMM, input.RotationDegrees,
-			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, object.LineageID, now, now); err != nil {
+			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, transitionPathJSON,
+			object.LineageID, now, now); err != nil {
 			return fmt.Errorf("insert track plan object: %w", err)
 		}
 		return writeLayoutAudit(ctx, tx, "PlanTrackObjectCreated", "plan_track_object", object.ID, actor, now)
@@ -489,6 +497,10 @@ func (repository *TrackPlannerRepository) UpdateObject(
 	if err != nil {
 		return nil, application.ErrTrackPlanValidation
 	}
+	transitionPathJSON, err := encodeTransitionCurvePath(input.TransitionPath)
+	if err != nil || input.FlexPath != nil && input.TransitionPath != nil {
+		return nil, application.ErrTrackPlanValidation
+	}
 	err = repository.withTx(ctx, func(tx *sql.Tx) error {
 		status, version, err := trackObjectState(ctx, tx, id)
 		if err != nil {
@@ -503,9 +515,10 @@ func (repository *TrackPlannerRepository) UpdateObject(
 		result, err := tx.ExecContext(ctx, `
 UPDATE plan_track_objects
 SET position_x_mm=?, position_y_mm=?, rotation_degrees=?, elevation_start_mm=?, elevation_end_mm=?,
-    flex_path_json=?, version=version+1, updated_at=?
+    flex_path_json=?, transition_path_json=?, version=version+1, updated_at=?
 WHERE id=? AND version=?`, input.PositionXMM, input.PositionYMM, input.RotationDegrees,
-			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, now, id, input.ExpectedVersion)
+			input.ElevationStartMM, input.ElevationEndMM, flexPathJSON, transitionPathJSON,
+			now, id, input.ExpectedVersion)
 		if err != nil {
 			return fmt.Errorf("update track plan object: %w", err)
 		}
@@ -658,7 +671,7 @@ const trackObjectSelect = `
 SELECT object.id, object.lineage_id, object.revision_id, object.geometry_id,
        object.position_x_mm, object.position_y_mm, object.rotation_degrees,
 	   object.elevation_start_mm, object.elevation_end_mm,
-	   object.flex_path_json,
+	   object.flex_path_json, object.transition_path_json,
        object.version, object.created_at, object.updated_at,
        geometry.id, geometry.library_id, geometry.article_number, geometry.name, geometry.kind,
        geometry.length_mm, geometry.minimum_radius_mm, geometry.geometry_json,
@@ -696,11 +709,12 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 	var geometryJSON string
 	var minimumRadiusMM sql.NullFloat64
 	var flexPathJSON sql.NullString
+	var transitionPathJSON sql.NullString
 	geometry := &object.Geometry
 	if err := scanner.Scan(&object.ID, &object.LineageID, &object.RevisionID, &object.GeometryID,
 		&object.PositionXMM, &object.PositionYMM, &object.RotationDegrees,
 		&object.ElevationStartMM, &object.ElevationEndMM,
-		&flexPathJSON,
+		&flexPathJSON, &transitionPathJSON,
 		&object.Version, &object.CreatedAt, &object.UpdatedAt,
 		&geometry.ID, &geometry.LibraryID, &geometry.ArticleNumber, &geometry.Name,
 		&geometry.Kind, &geometry.LengthMM, &minimumRadiusMM, &geometryJSON,
@@ -718,6 +732,12 @@ func scanTrackObject(scanner trackScanner) (*domain.PlanTrackObject, error) {
 		object.FlexPath = &domain.FlexTrackPath{}
 		if err := json.Unmarshal([]byte(flexPathJSON.String), object.FlexPath); err != nil {
 			return nil, fmt.Errorf("decode flex track path %s: %w", object.ID, err)
+		}
+	}
+	if transitionPathJSON.Valid {
+		object.TransitionPath = &domain.TransitionCurvePath{}
+		if err := json.Unmarshal([]byte(transitionPathJSON.String), object.TransitionPath); err != nil {
+			return nil, fmt.Errorf("decode transition curve path %s: %w", object.ID, err)
 		}
 	}
 	effective, err := domain.EffectiveGeometryForObject(*object)
@@ -742,4 +762,22 @@ func encodeFlexTrackPath(path *domain.FlexTrackPath) (any, error) {
 		return nil, err
 	}
 	return string(encoded), nil
+}
+
+func encodeTransitionCurvePath(path *domain.TransitionCurvePath) (any, error) {
+	if path == nil {
+		return nil, nil
+	}
+	if _, err := domain.BuildTransitionTrackGeometry(*path); err != nil {
+		return nil, err
+	}
+	encoded, err := json.Marshal(path)
+	if err != nil {
+		return nil, err
+	}
+	return string(encoded), nil
+}
+
+func hasExactlyOneFlexPath(flexPath *domain.FlexTrackPath, transitionPath *domain.TransitionCurvePath) bool {
+	return (flexPath != nil) != (transitionPath != nil)
 }
