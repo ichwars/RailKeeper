@@ -6,10 +6,11 @@
 - Completed: verified official Tillig 83125 length and Tillig radius guidance.
 - Completed: compared polyline, cubic Bézier and full clothoid approaches.
 - Completed: user approved the bounded cubic Bézier Package G design.
-- Active slice: write, self-review and locally commit the design spec.
-- Pending: written-spec review, implementation plan, local implementation and acceptance.
-- Blocked on: written-spec review after the spec commit.
-- Next step: after review approval, create the detailed implementation plan without changing scope.
+- Completed: written design spec reviewed and approved by the user.
+- Active slice: write, self-review and locally commit the detailed implementation plan.
+- Pending: execute all six plan tasks inline, then complete local acceptance.
+- Blocked on: nothing.
+- Next step: use inline plan execution because the user explicitly prohibited subagents.
 
 ## ResumeStateHint
 
@@ -21,10 +22,11 @@ not from memory.
 ## DriftCheckDraft
 
 - Original intent: aligned with issue 36 flex-track optimization.
-- Goal and stop condition: aligned; this slice stops after written spec review is requested.
+- Goal and stop condition: aligned; the written spec is approved and implementation planning is active.
 - Compatibility: fixed geometry, object lineage, reservations and legacy backups remain explicit.
 - New owner or fallback: none; effective geometry has one domain owner and persistence has one write
   path.
 - Retirement track: no temporary compatibility branch is proposed.
-- Evidence: source-backed product data, current code read set and approved design.
-- Decision: continue to written-spec review.
+- Evidence: source-backed product data, current code read set, approved design and local spec commit
+  `28a68af`.
+- Decision: continue to inline plan execution after plan self-review.
