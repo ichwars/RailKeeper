@@ -2,7 +2,7 @@
 
 **Datum:** 2026-08-10
 
-**Status:** lokal zur Umsetzung freigegeben, keine Veröffentlichung
+**Status:** lokal umgesetzt und abgenommen, keine Veröffentlichung
 
 ## Ziel
 
@@ -82,3 +82,20 @@ Ebenenkollisionen und Flexgleisoptimierung.
 - Die Oberfläche zeigt Zähler und lokalisierten Detailtext und fokussiert das betroffene Gleis.
 - Backendtests, Frontendtests, OpenAPI-Vertrag, Produktionsbuild und lokale Browserprüfung laufen
   erfolgreich.
+
+## Lokales Abnahmeprotokoll
+
+- Branch: `dev/issue-36-advanced-geometry`, ausschließlich lokale Commits, kein Push, PR oder Merge.
+- Backend: `go test ./...` erfolgreich, alle sieben Go-Pakete bestanden.
+- Frontend: 66 Testdateien mit 353 Tests erfolgreich (drei neue Abnahmen gegenüber Paket D).
+- Produktionsbuild: TypeScript und Vite erfolgreich, 2173 Module transformiert.
+- Anlagenprofil: Der app-eigene Dialog speicherte `3,00 %`; Profil und Wert blieben nach Neuladen
+  erhalten.
+- Planprüfung: Ein G1 mit Anfangshöhe 9,15 mm und Endhöhe 0 mm erzeugte bei 166 mm Länge genau einen
+  Warnhinweis „Steigung -5,51 % überschreitet Grenzwert 3,00 %“.
+- Fokus: Anklicken des Hinweises öffnete genau dieses G1 mit der Steigung `-5,51 %` im Inspektor.
+- Korrektur: Nach manueller Angleichung der Endhöhe auf 9,15 mm zeigte der Plan `0,00 %` und
+  `0 Steigungsüberschreitungen`; beides blieb nach Neuladen gespeichert.
+- Laufzeit: `/health` antwortete mit HTTP 200, RailKeeper läuft lokal auf Port 18083 als PID 7096,
+  die Browser-Sitzung blieb als `codex-test` angemeldet und meldete keine Konsolenwarnungen oder
+  -fehler.

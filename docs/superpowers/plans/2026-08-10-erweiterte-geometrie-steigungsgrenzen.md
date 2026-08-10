@@ -5,6 +5,8 @@
 **Goal:** Eine optionale maximale Steigung pro Anlage speichern und Überschreitungen im Gleisplan als
 präzise, anklickbare Warnung anzeigen.
 
+**Status:** Lokal vollständig umgesetzt und am 2026-08-10 abgenommen. Kein Push, PR oder Merge.
+
 **Architecture:** Das Layout trägt den nullable Grenzwert durch SQLite, Anwendung, API und Frontend.
 Der Track-Plan-Repository-Leseweg liefert die aktuelle Anlagenkonfiguration als nicht serialisierte
 Analyseoption. Die Domänenanalyse bleibt ohne Option rückwärtskompatibel und ergänzt bei gesetzter
@@ -40,7 +42,7 @@ Grenze den Warncode `grade_limit_exceeded`.
 - Produces: `Layout.MaxGradePercent *float64`, `CreateLayoutInput.MaxGradePercent *float64`
 - Persists: `layouts.max_grade_percent REAL NULL`
 
-- [ ] **Step 1: Fehlende Layout-Validierung und Persistenz als fehlschlagende Tests ergänzen**
+- [x] **Step 1: Fehlende Layout-Validierung und Persistenz als fehlschlagende Tests ergänzen**
 
 ```go
 limit := 3.5
@@ -61,13 +63,13 @@ for _, invalid := range []float64{0, -1, 100.1, math.NaN(), math.Inf(1)} {
 }
 ```
 
-- [ ] **Step 2: Gezielte Layouttests ausführen und den erwarteten Compile-Fehler bestätigen**
+- [x] **Step 2: Gezielte Layouttests ausführen und den erwarteten Compile-Fehler bestätigen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure -run "Layout.*Grade|Grade.*Layout"`
 
 Expected: FAIL, `MaxGradePercent` ist noch nicht definiert.
 
-- [ ] **Step 3: Migration, Modell, Validierung und Repository implementieren**
+- [x] **Step 3: Migration, Modell, Validierung und Repository implementieren**
 
 ```sql
 ALTER TABLE layouts ADD COLUMN max_grade_percent REAL
@@ -96,20 +98,20 @@ func validLayoutInput(input CreateLayoutInput) bool {
 zwischen `description` und `version`. Nullable Werte werden direkt über `*float64` an `database/sql`
 übergeben und in ein lokales `sql.NullFloat64` gescannt.
 
-- [ ] **Step 4: Backup-Version und Legacy-Abnahme ergänzen**
+- [x] **Step 4: Backup-Version und Legacy-Abnahme ergänzen**
 
 `backupVersion` wird 9. Der vorhandene Future-Version-Test erwartet Version 10. Ein neuer Test
 exportiert eine Anlage mit 3,5 Prozent, stellt sie wieder her und prüft den Wert. Derselbe Export wird
 auf Version 8 zurückgestuft, `max_grade_percent` aus den Layoutzeilen entfernt und muss nach Restore
 `NULL` liefern.
 
-- [ ] **Step 5: Layout-, Infrastruktur- und Backuptests ausführen**
+- [x] **Step 5: Layout-, Infrastruktur- und Backuptests ausführen**
 
 Run: `cd backend; go test ./internal/application ./internal/infrastructure`
 
 Expected: PASS.
 
-- [ ] **Step 6: Persistenz lokal committen**
+- [x] **Step 6: Persistenz lokal committen**
 
 ```powershell
 git add backend/migrations/0050_layout_max_grade_percent.sql backend/internal/application/layouts.go `
@@ -133,7 +135,7 @@ git commit -m "feat(layouts): configure maximum grade"
 - Consumes: `layouts.max_grade_percent`
 - Produces: `TrackPlanLimits{MaxGradePercent *float64}` und `grade_limit_exceeded`
 
-- [ ] **Step 1: Grenzfalltests für Aufstieg, Abstieg, Gleichheit und fehlende Grenze schreiben**
+- [x] **Step 1: Grenzfalltests für Aufstieg, Abstieg, Gleichheit und fehlende Grenze schreiben**
 
 ```go
 func TestAnalyzeTrackPlanWithLimitsReportsAbsoluteGradeExcess(t *testing.T) {
@@ -164,13 +166,13 @@ func TestAnalyzeTrackPlanWithLimitsAllowsBoundaryAndUnsetLimit(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Domänentest ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Domänentest ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd backend; go test ./internal/domain -run GradeLimit`
 
 Expected: FAIL wegen fehlender Limits und Warncodes.
 
-- [ ] **Step 3: Optionsfähige Domänenanalyse minimal implementieren**
+- [x] **Step 3: Optionsfähige Domänenanalyse minimal implementieren**
 
 ```go
 const TrackGradeLimitTolerancePercent = 1e-9
@@ -198,20 +200,20 @@ Die berechnete Steigung wird in eine lokale Variable gelegt. Wenn die Grenze ges
 `math.Abs(grade)-*limits.MaxGradePercent > TrackGradeLimitTolerancePercent`, wird ein Warning-Issue
 mit einer Objekt-ID sowie Kopien von Steigung und Grenze angehängt.
 
-- [ ] **Step 4: Anlagenlimit mit jedem Plan laden und in Analyse sowie Preview verwenden**
+- [x] **Step 4: Anlagenlimit mit jedem Plan laden und in Analyse sowie Preview verwenden**
 
 `TrackPlan` erhält `Limits domain.TrackPlanLimits \`json:"-"\``. `GetPlan` verbindet Revision,
 Variante, Einheit und Anlage und scannt `layout.max_grade_percent` als `sql.NullFloat64`. `AnalyzePlan`
 ruft `AnalyzeTrackPlanWithLimits(plan.Objects, plan.Limits)` auf. `ChangePreview` verwendet
 `current.Limits` für Basis- und Arbeitsrevision, auch wenn noch keine Basisrevision existiert.
 
-- [ ] **Step 5: Domain-, Application- und Repositorytests ausführen**
+- [x] **Step 5: Domain-, Application- und Repositorytests ausführen**
 
 Run: `cd backend; go test ./internal/domain ./internal/application ./internal/infrastructure -run "TrackPlan|GradeLimit"`
 
 Expected: PASS.
 
-- [ ] **Step 6: Analyse lokal committen**
+- [x] **Step 6: Analyse lokal committen**
 
 ```powershell
 git add backend/internal/domain/track_plan_analysis.go backend/internal/domain/track_plan_analysis_test.go `
@@ -233,7 +235,7 @@ git commit -m "feat(planner): warn on excessive grades"
 - Produces: JSON `maxGradePercent`, `gradePercent`, `gradeLimitPercent`
 - Extends: `TrackPlanIssue.code` und `TrackPlanIssueChange.code` um `grade_limit_exceeded`
 
-- [ ] **Step 1: Handler-Vertrag mit 3-Prozent-Anlage und 4-Prozent-Gleis testen**
+- [x] **Step 1: Handler-Vertrag mit 3-Prozent-Anlage und 4-Prozent-Gleis testen**
 
 Der Layout-Handler-Test sendet `"maxGradePercent":3.0` bei Create und Update und prüft die Antwort.
 Der Track-Plan-Handler-Test erzeugt ein 166-mm-Gleis mit 6,64 mm Höhenänderung und erwartet:
@@ -246,26 +248,26 @@ if issue.Code != domain.TrackPlanIssueGradeLimitExceeded || issue.GradePercent =
 }
 ```
 
-- [ ] **Step 2: API-Tests ausführen und den fehlenden OpenAPI-Vertrag bestätigen**
+- [x] **Step 2: API-Tests ausführen und den fehlenden OpenAPI-Vertrag bestätigen**
 
 Run: `cd backend; go test ./internal/api -run "Layout|TrackPlanner|OpenAPI"`
 
 Expected: FAIL, die neuen Felder und Enumwerte fehlen im Schema.
 
-- [ ] **Step 3: OpenAPI-Schemas synchron erweitern**
+- [x] **Step 3: OpenAPI-Schemas synchron erweitern**
 
 `Layout` und `LayoutInput` erhalten `maxGradePercent` als nullable number mit `exclusiveMinimum: 0`
 und `maximum: 100`. `TrackPlanIssue` erhält den Enumwert sowie nullable `gradePercent` und
 `gradeLimitPercent`; letzterer hat `exclusiveMinimum: 0` und `maximum: 100`.
 `TrackPlanIssueChange.code` erhält denselben Enumwert.
 
-- [ ] **Step 4: API- und OpenAPI-Tests ausführen**
+- [x] **Step 4: API- und OpenAPI-Tests ausführen**
 
 Run: `cd backend; go test ./internal/api`
 
 Expected: PASS.
 
-- [ ] **Step 5: API-Vertrag lokal committen**
+- [x] **Step 5: API-Vertrag lokal committen**
 
 ```powershell
 git add backend/internal/api/layout_handlers_test.go backend/internal/api/track_planner_handlers_test.go `
@@ -289,7 +291,7 @@ git commit -m "feat(api): expose grade limit warnings"
 - Consumes: `Layout.maxGradePercent?: number`, `LayoutInput.maxGradePercent?: number | null`
 - Produces: `LayoutFormValue.maxGradePercent: string`
 
-- [ ] **Step 1: Fehlschlagende Formulartests für Setzen, Leeren und Validieren schreiben**
+- [x] **Step 1: Fehlschlagende Formulartests für Setzen, Leeren und Validieren schreiben**
 
 ```tsx
 const gradeInput = screen.getByRole("spinbutton", { name: "Maximale Steigung (%)" });
@@ -303,13 +305,13 @@ await user.type(gradeInput, "101");
 expect(screen.getByRole("button", { name: "Anlage speichern" })).toBeDisabled();
 ```
 
-- [ ] **Step 2: Gezielte Frontendtests ausführen und Compile-/Assertionfehler bestätigen**
+- [x] **Step 2: Gezielte Frontendtests ausführen und Compile-/Assertionfehler bestätigen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutFormDialog.test.tsx src/features/layouts/LayoutsView.test.tsx`
 
 Expected: FAIL wegen fehlendem Feld und fehlender Beschriftung.
 
-- [ ] **Step 3: Frontend-Typen und app-eigenes Zahlenfeld implementieren**
+- [x] **Step 3: Frontend-Typen und app-eigenes Zahlenfeld implementieren**
 
 `Layout` und `LayoutInput` erhalten `maxGradePercent?: number | null`. `LayoutFormValue` erhält
 `maxGradePercent: string`. `LayoutFormDialog` rendert:
@@ -326,14 +328,14 @@ Expected: FAIL wegen fehlendem Feld und fehlender Beschriftung.
 Create und Update senden bei leerem Feld `null`, sonst `Number(form.maxGradePercent)`. Das Profil
 zeigt `Intl.NumberFormat` mit zwei Nachkommastellen und `%` oder den vorhandenen Nicht-festgelegt-Text.
 
-- [ ] **Step 4: Deutsche und englische Texte ergänzen**
+- [x] **Step 4: Deutsche und englische Texte ergänzen**
 
 Deutsch: „Maximale Steigung (%)“, „Leer lassen, um die Warnung zu deaktivieren.“,
 „Bitte einen Wert über 0 bis einschließlich 100 eingeben.“
 Englisch: „Maximum grade (%)“, „Leave empty to disable the warning.“,
 „Enter a value greater than 0 and up to 100.“
 
-- [ ] **Step 5: Formulartests und Build ausführen**
+- [x] **Step 5: Formulartests und Build ausführen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/LayoutFormDialog.test.tsx src/features/layouts/LayoutsView.test.tsx`
 
@@ -341,7 +343,7 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: PASS.
 
-- [ ] **Step 6: Anlagenoberfläche lokal committen**
+- [x] **Step 6: Anlagenoberfläche lokal committen**
 
 ```powershell
 git add frontend/src/shared/apiLayoutsAccessories.ts frontend/src/features/layouts/LayoutFormDialog.tsx `
@@ -365,7 +367,7 @@ git commit -m "feat(layouts): edit maximum grade limit"
 - Consumes: `grade_limit_exceeded`, `gradePercent`, `gradeLimitPercent`
 - Produces: lokalisierter Zähler, Detailtext und vorhandenes `onSelectObject`-Fokusverhalten
 
-- [ ] **Step 1: UI-Test für Zähler, Detail und Fokus schreiben**
+- [x] **Step 1: UI-Test für Zähler, Detail und Fokus schreiben**
 
 ```tsx
 const issue = {
@@ -383,13 +385,13 @@ await user.click(warning);
 expect(selectObject).toHaveBeenCalledWith("track-2");
 ```
 
-- [ ] **Step 2: Paneltest ausführen und erwartetes Fehlschlagen bestätigen**
+- [x] **Step 2: Paneltest ausführen und erwartetes Fehlschlagen bestätigen**
 
 Run: `cd frontend; npm.cmd test -- --run src/features/layouts/TrackPlanAnalysisPanel.test.tsx`
 
 Expected: FAIL wegen fehlendem Code, Zähler und Detailtext.
 
-- [ ] **Step 3: Zähler, Detail und Übersetzungen implementieren**
+- [x] **Step 3: Zähler, Detail und Übersetzungen implementieren**
 
 `issueSymbols` erhält `grade_limit_exceeded`. Der Header zählt den Code. Die Ausgabe formatiert beide
 Werte mit zwei Nachkommastellen und verwendet:
@@ -405,7 +407,7 @@ Deutsch verwendet „{count} Steigungsüberschreitung(en)“ und
 „Steigung {grade} % überschreitet Grenzwert {limit} %“. Englisch verwendet
 „{count} grade limit exceedance(s)“ und „Grade {grade}% exceeds limit {limit}%“.
 
-- [ ] **Step 4: Vollständige automatisierte Prüfung ausführen**
+- [x] **Step 4: Vollständige automatisierte Prüfung ausführen**
 
 Run: `cd backend; go test ./...`
 
@@ -415,14 +417,14 @@ Run: `cd frontend; npm.cmd run build`
 
 Expected: Alle Go-Pakete, Vitest-Dateien und der Produktionsbuild bestehen.
 
-- [ ] **Step 5: Lokalen Server mit aktuellem Build neu starten und Browser prüfen**
+- [x] **Step 5: Lokalen Server mit aktuellem Build neu starten und Browser prüfen**
 
 Die Browserabnahme setzt die Anlage auf 3,00 Prozent, erzeugt an einem 166-mm-Gleis eine betragsmäßig
 größere Steigung, prüft Zähler, Detailtext und Fokus, gleicht das Höhenprofil anschließend auf einen
 zulässigen Wert an und lädt die Seite neu. `/health` muss HTTP 200 liefern, die Sitzung bleibt als
 `codex-test` angemeldet und die Browserkonsole bleibt fehlerfrei.
 
-- [ ] **Step 6: Abnahme dokumentieren und lokal committen**
+- [x] **Step 6: Abnahme dokumentieren und lokal committen**
 
 Die Spec erhält Branch, Testzahlen, Buildzahl, Browserwerte, Server-PID und die Bestätigung „kein
 Push, PR oder Merge“. Dieser Plan erhält den Status „lokal vollständig umgesetzt“ und alle erledigten
