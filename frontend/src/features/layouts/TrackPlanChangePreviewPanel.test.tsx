@@ -11,6 +11,7 @@ const preview: TrackPlanChangePreview = {
     { type: "added", lineageId: "lineage-2" },
     { type: "changed", lineageId: "lineage-1" }
   ],
+  freeObjectChanges: [],
   materialDeltas: [{
     geometryId: "g1", libraryId: "tillig-v1", articleNumber: "83101", name: "Gleisstück G1",
     baseQuantity: 1, currentQuantity: 2, delta: 1

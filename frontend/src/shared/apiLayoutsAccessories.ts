@@ -351,10 +351,37 @@ export type PlanTrackObject = {
   createdAt: string;
   updatedAt: string;
 };
+export type FreePlanObjectKind = "rectangle" | "ellipse" | "line" | "label";
+export type FreePlanObjectCategory = "structure" | "platform" | "scenery" | "annotation";
+export type FreePlanObjectShape = {
+  schemaVersion: 1;
+  kind: FreePlanObjectKind;
+  widthMm?: number;
+  heightMm?: number;
+  endXMm?: number;
+  endYMm?: number;
+  text?: string;
+  fontSizeMm?: number;
+};
+export type PlanFreeObject = {
+  id: string;
+  lineageId: string;
+  revisionId: string;
+  name: string;
+  category: FreePlanObjectCategory;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  shape: FreePlanObjectShape;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
 export type TrackPlan = {
   revisionId: string;
   status: PlanRevisionStatus;
   objects: PlanTrackObject[];
+  freeObjects: PlanFreeObject[];
 };
 export type TrackPlanConnection = {
   objectAId: string;
@@ -424,6 +451,12 @@ export type TrackPlanObjectChange = {
   before?: PlanTrackObject;
   after?: PlanTrackObject;
 };
+export type PlanFreeObjectChange = {
+  type: TrackPlanObjectChangeType;
+  lineageId: string;
+  before?: PlanFreeObject;
+  after?: PlanFreeObject;
+};
 export type TrackPlanMaterialDelta = {
   geometryId: string;
   libraryId: string;
@@ -443,6 +476,7 @@ export type TrackPlanChangePreview = {
   revisionId: string;
   baseRevisionId: string;
   objectChanges: TrackPlanObjectChange[];
+  freeObjectChanges: PlanFreeObjectChange[];
   materialDeltas: TrackPlanMaterialDelta[];
   issues: { added: TrackPlanIssueChange[]; resolved: TrackPlanIssueChange[] };
   affectedConfigurations: { id: string; name: string }[];
@@ -477,6 +511,15 @@ export type CreatePlanTrackObjectInput = {
   flexPath?: FlexTrackPath | null;
   transitionPath?: TransitionCurvePath | null;
 };
+export type CreateFreePlanObjectInput = {
+  name: string;
+  category: FreePlanObjectCategory;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  shape: FreePlanObjectShape;
+};
+export type UpdateFreePlanObjectInput = CreateFreePlanObjectInput & { expectedVersion: number };
 export type UpdatePlanTrackObjectInput = {
   positionXMm: number;
   positionYMm: number;
@@ -1081,6 +1124,12 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<PlanTrackObject>(
         `/plan-revisions/${encodeURIComponent(revisionId)}/track-objects`, json("POST", input)
       ),
+    createFreePlanObject: (revisionId: string, input: CreateFreePlanObjectInput) =>
+      request<PlanFreeObject>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/free-objects`, json("POST", input)
+      ),
+    updateFreePlanObject: (id: string, input: UpdateFreePlanObjectInput) =>
+      request<PlanFreeObject>(`/plan-free-objects/${encodeURIComponent(id)}`, json("PUT", input)),
     updatePlanTrackObject: (id: string, input: UpdatePlanTrackObjectInput) =>
       request<PlanTrackObject>(`/plan-track-objects/${encodeURIComponent(id)}`, json("PUT", input)),
     previewFlexTrackPath: (id: string, input: FlexTrackPreviewInput) =>
@@ -1094,6 +1143,11 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
     deletePlanTrackObject: (id: string, expectedVersion: number) =>
       request<void>(
         `/plan-track-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,
+        { method: "DELETE" }
+      ),
+    deleteFreePlanObject: (id: string, expectedVersion: number) =>
+      request<void>(
+        `/plan-free-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,
         { method: "DELETE" }
       ),
     accessoryArticles: (filters: AccessoryArticleListQuery = {}) =>

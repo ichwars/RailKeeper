@@ -835,11 +835,60 @@
 }
 .transition-curve-preview-facts span { color: var(--muted); font-size: var(--font-size-sm); }
 
+.free-plan-object-layer { z-index: 155; }
+.free-plan-object-dialog { width: min(760px, calc(100vw - 28px)); }
+.free-plan-object-body { display: grid; gap: 14px; }
+.free-plan-object-common-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.free-plan-object-shape-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+.free-plan-object-dialog .app-select { width: 100%; }
+.free-plan-object {
+  cursor: pointer;
+  color: var(--muted);
+  outline: none;
+}
+.free-plan-object-shape {
+  fill: var(--panel-subtle);
+  stroke: currentColor;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+.free-plan-object text.free-plan-object-shape {
+  fill: currentColor;
+  stroke: none;
+  font-weight: var(--font-weight-bold);
+}
+.free-plan-object line.free-plan-object-shape { fill: none; }
+.free-plan-object-category-platform { color: var(--accent-strong); }
+.free-plan-object-category-scenery { color: var(--accent); }
+.free-plan-object-category-annotation { color: var(--warning); }
+.free-plan-object:hover,
+.free-plan-object:focus-visible { color: var(--accent-strong); }
+.free-plan-object-selection {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-dasharray: 7 4;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
 @media (max-width: 680px) {
   .flex-track-editor-fields,
   .flex-track-preview-facts,
   .transition-curve-editor-fields,
-  .transition-curve-preview-facts { grid-template-columns: minmax(0, 1fr); }
+  .transition-curve-preview-facts,
+  .free-plan-object-common-fields,
+  .free-plan-object-shape-fields { grid-template-columns: minmax(0, 1fr); }
   .flex-track-preview,
   .transition-curve-preview { min-height: 170px; }
 }

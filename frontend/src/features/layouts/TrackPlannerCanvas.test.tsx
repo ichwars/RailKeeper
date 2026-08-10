@@ -90,13 +90,15 @@ describe("TrackPlannerCanvas", () => {
 
   beforeEach(() => {
     vi.spyOn(api, "trackGeometries").mockResolvedValue([geometry, { ...geometry, id: "draft-geometry", status: "draft" }]);
-    vi.spyOn(api, "trackPlan").mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [] });
+    vi.spyOn(api, "trackPlan").mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [], freeObjects: []
+    });
     vi.spyOn(api, "trackPlanAnalysis").mockResolvedValue({
       revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [], grades: [],
       materials: [], reservations: []
     });
     vi.spyOn(api, "trackPlanChangePreview").mockResolvedValue({
-      revisionId: draft.id, baseRevisionId: "", objectChanges: [], materialDeltas: [],
+      revisionId: draft.id, baseRevisionId: "", objectChanges: [], freeObjectChanges: [], materialDeltas: [],
       issues: { added: [], resolved: [] }, affectedConfigurations: []
     });
   });
@@ -124,7 +126,9 @@ describe("TrackPlannerCanvas", () => {
 
   it("moves on pointer release, rotates by 15 degrees and confirms deletion", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [trackObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [trackObject], freeObjects: []
+    });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockImplementation(async (_id, input) => ({
       ...trackObject, ...input,
       flexPath: input.flexPath ?? undefined,
@@ -160,7 +164,7 @@ describe("TrackPlannerCanvas", () => {
     const target = { ...trackObject, id: "target", positionXMm: 0, positionYMm: 0 };
     const moving = { ...trackObject, id: "moving", positionXMm: 200, positionYMm: 0 };
     vi.mocked(api.trackPlan).mockResolvedValue({
-      revisionId: draft.id, status: "draft", objects: [target, moving]
+      revisionId: draft.id, status: "draft", objects: [target, moving], freeObjects: []
     });
     const update = vi.spyOn(api, "updatePlanTrackObject").mockResolvedValue({
       ...moving, positionXMm: 165.5, version: 2
@@ -190,7 +194,7 @@ describe("TrackPlannerCanvas", () => {
     const moving = { ...trackObject, id: "moving", positionXMm: 166 };
     const conflicting = { ...trackObject, id: "conflicting", positionXMm: 500 };
     vi.mocked(api.trackPlan).mockResolvedValue({
-      revisionId: draft.id, status: "draft", objects: [target, moving, conflicting]
+      revisionId: draft.id, status: "draft", objects: [target, moving, conflicting], freeObjects: []
     });
     vi.mocked(api.trackPlanAnalysis).mockResolvedValue({
       revisionId: draft.id,
@@ -218,7 +222,9 @@ describe("TrackPlannerCanvas", () => {
 
   it("edits an elevation profile with app inputs and displays the derived grade", async () => {
     const user = userEvent.setup();
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [trackObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [trackObject], freeObjects: []
+    });
     vi.mocked(api.trackPlanAnalysis).mockResolvedValue({
       revisionId: draft.id, status: "draft", connections: [], issues: [], bom: [],
       grades: [{
@@ -256,7 +262,9 @@ describe("TrackPlannerCanvas", () => {
   it("renders effective flex geometry and saves an explicitly accepted preview", async () => {
     const user = userEvent.setup();
     vi.mocked(api.trackGeometries).mockResolvedValue([geometry, flexGeometry]);
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [flexObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [flexObject], freeObjects: []
+    });
     vi.spyOn(api, "previewFlexTrackPath").mockResolvedValue({
       path: { ...flexObject.flexPath!, endXMm: 520 },
       effectiveGeometry: flexObject.effectiveGeometry!,
@@ -294,7 +302,9 @@ describe("TrackPlannerCanvas", () => {
   it("converts a free flex path to a transition curve and preserves it on pose updates", async () => {
     const user = userEvent.setup();
     vi.mocked(api.trackGeometries).mockResolvedValue([geometry, flexGeometry]);
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [flexObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [flexObject], freeObjects: []
+    });
     vi.spyOn(api, "previewTransitionCurvePath").mockResolvedValue({
       path: { schemaVersion: 1, lengthMm: 500, endRadiusMm: 700, direction: "left" },
       effectiveGeometry: flexObject.effectiveGeometry,
@@ -341,7 +351,9 @@ describe("TrackPlannerCanvas", () => {
   it("keeps published plans read-only and reports version conflicts", async () => {
     const user = userEvent.setup();
     const published = { ...draft, status: "published" as const };
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: published.id, status: "published", objects: [trackObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: published.id, status: "published", objects: [trackObject], freeObjects: []
+    });
     const { rerender } = render(
       <TrackPlannerCanvas unit={unit} gauge="TT" revision={published} canPlan onClose={vi.fn()} />
     );
@@ -353,7 +365,9 @@ describe("TrackPlannerCanvas", () => {
     expect(screen.queryByRole("button", { name: "+15°" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Tillig 83101 · Gleisstück G1" })).not.toBeInTheDocument();
 
-    vi.mocked(api.trackPlan).mockResolvedValue({ revisionId: draft.id, status: "draft", objects: [trackObject] });
+    vi.mocked(api.trackPlan).mockResolvedValue({
+      revisionId: draft.id, status: "draft", objects: [trackObject], freeObjects: []
+    });
     vi.spyOn(api, "updatePlanTrackObject").mockRejectedValue(new ApiError("changed", "track_plan_conflict", 409));
     rerender(<TrackPlannerCanvas unit={unit} gauge="TT" revision={draft} canPlan onClose={vi.fn()} />);
     await user.click(await screen.findByRole("button", { name: "Gleis Tillig 83101 G1" }));
