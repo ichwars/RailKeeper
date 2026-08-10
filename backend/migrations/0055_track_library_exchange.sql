@@ -5,6 +5,16 @@ ALTER TABLE track_geometry_libraries
 ALTER TABLE track_geometry_libraries
   ADD COLUMN verified_by TEXT;
 
+CREATE UNIQUE INDEX ux_track_geometry_libraries_identity_nocase
+  ON track_geometry_libraries(
+    manufacturer COLLATE NOCASE,
+    track_system COLLATE NOCASE,
+    gauge COLLATE NOCASE,
+    version COLLATE NOCASE
+  );
+CREATE UNIQUE INDEX ux_track_geometry_definitions_article_nocase
+  ON track_geometry_definitions(library_id, article_number COLLATE NOCASE);
+
 ALTER TABLE plan_track_objects
   ADD COLUMN geometry_snapshot_json TEXT;
 

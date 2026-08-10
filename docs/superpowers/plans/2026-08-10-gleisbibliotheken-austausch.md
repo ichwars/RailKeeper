@@ -28,12 +28,12 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 3: Bibliotheksworkflow im Backend
 
-- [ ] Repository für Liste, Export, Konfliktprüfung, Draftimport und Statuswechsel testen
-- [ ] Servicevorschau normalisiert ohne Mutation
-- [ ] Bestätigter Import bleibt `draft`, bestätigte Admin-Prüfung setzt alle Definitionen
+- [x] Repository für Liste, Export, Konfliktprüfung, Draftimport und Statuswechsel testen
+- [x] Servicevorschau normalisiert ohne Mutation
+- [x] Bestätigter Import bleibt `draft`, bestätigte Admin-Prüfung setzt alle Definitionen
   `verified`, Stilllegung entfernt sie aus der Palette
-- [ ] Audit-Ereignisse und eindeutige Versionen prüfen
-- [ ] Lokal committen
+- [x] Audit-Ereignisse und eindeutige Versionen prüfen
+- [x] Lokal committen
 
 ## Task 4: API und OpenAPI
 
