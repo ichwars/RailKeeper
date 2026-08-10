@@ -54,12 +54,12 @@ implementiert. Importdaten sind untrusted, Status wird immer auf `draft` zurück
 
 ## Task 6: Vollständige Abnahme
 
-- [ ] `go test ./...`
-- [ ] `npm.cmd test -- --run`
-- [ ] `npm.cmd run build`
-- [ ] aktuellen lokalen Server neu starten und `/health` prüfen
-- [ ] Browser: Export, Vorschau, Draftimport, Freigabe, Palette und Stilllegung prüfen
-- [ ] Browser: Stückliste und vorhandene Revision bleiben nach Bibliotheksstatus unverändert
-- [ ] Browserkonsolen auf Fehler prüfen
-- [ ] Evidenz unter `docs/aegis/work/2026-08-10-track-libraries-exchange/` dokumentieren
-- [ ] Plan abhaken, lokal committen und sauberen Arbeitsbaum prüfen
+- [x] `go test ./...`
+- [x] `npm.cmd test -- --run`
+- [x] `npm.cmd run build`
+- [x] aktuellen lokalen Server neu starten und `/health` prüfen
+- [x] Browser: Export, Vorschau, Draftimport, Freigabe, Palette und Stilllegung prüfen
+- [x] Browser: Stückliste und vorhandene Revision bleiben nach Bibliotheksstatus unverändert
+- [x] Browserkonsolen auf Fehler prüfen
+- [x] Evidenz unter `docs/aegis/work/2026-08-10-track-libraries-exchange/` dokumentieren
+- [x] Plan abhaken, lokal committen und sauberen Arbeitsbaum prüfen
