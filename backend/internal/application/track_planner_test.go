@@ -23,6 +23,55 @@ type trackPlannerRepositorySpy struct {
 	baseRevisionID  string
 	affected        []TrackPlanAffectedConfiguration
 	reserved        ReserveTrackPlanMaterialsInput
+	freeCreated     CreateFreePlanObjectInput
+	freeUpdated     UpdateFreePlanObjectInput
+	freeDeletedID   string
+	freeDeleted     int
+}
+
+func (spy *trackPlannerRepositorySpy) CreateFreeObject(
+	_ context.Context,
+	_ string,
+	input CreateFreePlanObjectInput,
+	_ string,
+) (*domain.PlanFreeObject, error) {
+	spy.freeCreated = input
+	return &domain.PlanFreeObject{
+		Name: input.Name, Category: input.Category, PositionXMM: input.PositionXMM,
+		PositionYMM: input.PositionYMM, RotationDegrees: input.RotationDegrees, Shape: input.Shape,
+	}, nil
+}
+
+func (spy *trackPlannerRepositorySpy) UpdateFreeObject(
+	_ context.Context,
+	_ string,
+	input UpdateFreePlanObjectInput,
+	_ string,
+) (*domain.PlanFreeObject, error) {
+	spy.freeUpdated = input
+	return &domain.PlanFreeObject{
+		Name: input.Name, Category: input.Category, PositionXMM: input.PositionXMM,
+		PositionYMM: input.PositionYMM, RotationDegrees: input.RotationDegrees, Shape: input.Shape,
+		Version: input.ExpectedVersion + 1,
+	}, nil
+}
+
+func (spy *trackPlannerRepositorySpy) DeleteFreeObject(
+	_ context.Context,
+	id string,
+	expectedVersion int,
+	_ string,
+) error {
+	spy.freeDeletedID = id
+	spy.freeDeleted = expectedVersion
+	return nil
+}
+
+func (spy *trackPlannerRepositorySpy) GetPlanForFreeObject(
+	_ context.Context,
+	_ string,
+) (*TrackPlan, error) {
+	return spy.planForObject, nil
 }
 
 func (spy *trackPlannerRepositorySpy) ListGeometries(

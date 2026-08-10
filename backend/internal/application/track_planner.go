@@ -178,6 +178,14 @@ type TrackPlannerRepository interface {
 		context.Context, string, UpdatePlanTrackObjectInput, string,
 	) (*domain.PlanTrackObject, error)
 	DeleteObject(context.Context, string, int, string) error
+	CreateFreeObject(
+		context.Context, string, CreateFreePlanObjectInput, string,
+	) (*domain.PlanFreeObject, error)
+	UpdateFreeObject(
+		context.Context, string, UpdateFreePlanObjectInput, string,
+	) (*domain.PlanFreeObject, error)
+	DeleteFreeObject(context.Context, string, int, string) error
+	GetPlanForFreeObject(context.Context, string) (*TrackPlan, error)
 }
 
 type TrackPlannerService struct {

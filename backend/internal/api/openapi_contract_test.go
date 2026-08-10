@@ -162,6 +162,37 @@ func TestOpenAPIDocumentsTransitionCurvePreview(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsFreePlanObjects(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{
+		"FreePlanObjectShape", "PlanFreeObject", "CreateFreePlanObjectInput",
+		"UpdateFreePlanObjectInput", "PlanFreeObjectChange",
+	} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	for _, path := range []string{
+		"  /plan-revisions/{id}/free-objects:\n", "  /plan-free-objects/{id}:\n",
+	} {
+		if !strings.Contains(contract, path) {
+			t.Errorf("OpenAPI contract is missing path %s", strings.TrimSpace(path))
+		}
+	}
+	plan := openAPIIndentedBlock(t, contract, "TrackPlan", 4)
+	if !strings.Contains(plan, "freeObjects:") {
+		t.Errorf("TrackPlan is missing freeObjects: %s", plan)
+	}
+	preview := openAPIIndentedBlock(t, contract, "TrackPlanChangePreview", 4)
+	if !strings.Contains(preview, "freeObjectChanges:") {
+		t.Errorf("TrackPlanChangePreview is missing freeObjectChanges: %s", preview)
+	}
+}
+
 func TestOpenAPIDocumentsLayoutGradeLimitAndWarning(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

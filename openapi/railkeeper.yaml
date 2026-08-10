@@ -2890,6 +2890,78 @@ components:
         direction:
           type: string
           enum: [left, right]
+    FreePlanObjectShape:
+      type: object
+      required: [schemaVersion, kind]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        kind:
+          type: string
+          enum: [rectangle, ellipse, line, label]
+        widthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        heightMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        text:
+          type: string
+          minLength: 1
+          maxLength: 120
+        fontSizeMm:
+          type: number
+          format: double
+          minimum: 2
+          maximum: 50
+    PlanFreeObject:
+      type: object
+      required: [id, lineageId, revisionId, name, category, positionXMm, positionYMm, rotationDegrees, shape, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        lineageId:
+          type: string
+        revisionId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          enum: [structure, platform, scenery, annotation]
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+          minimum: 0
+          exclusiveMaximum: 360
+        shape:
+          $ref: "#/components/schemas/FreePlanObjectShape"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     PlanTrackObject:
       type: object
       required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, effectiveGeometry, effectiveLengthMm, version, createdAt, updatedAt]
@@ -2944,7 +3016,7 @@ components:
           format: date-time
     TrackPlan:
       type: object
-      required: [revisionId, status, objects]
+      required: [revisionId, status, objects, freeObjects]
       properties:
         revisionId:
           type: string
@@ -2955,6 +3027,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/PlanTrackObject"
+        freeObjects:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanFreeObject"
     TrackPlanConnection:
       type: object
       required: [objectAId, portAId, objectBId, portBId]
@@ -3145,6 +3221,19 @@ components:
           $ref: "#/components/schemas/PlanTrackObject"
         after:
           $ref: "#/components/schemas/PlanTrackObject"
+    PlanFreeObjectChange:
+      type: object
+      required: [type, lineageId]
+      properties:
+        type:
+          type: string
+          enum: [added, removed, changed]
+        lineageId:
+          type: string
+        before:
+          $ref: "#/components/schemas/PlanFreeObject"
+        after:
+          $ref: "#/components/schemas/PlanFreeObject"
     TrackPlanMaterialDelta:
       type: object
       required: [geometryId, libraryId, articleNumber, name, baseQuantity, currentQuantity, delta]
@@ -3207,6 +3296,7 @@ components:
         - revisionId
         - baseRevisionId
         - objectChanges
+        - freeObjectChanges
         - materialDeltas
         - issues
         - affectedConfigurations
@@ -3219,6 +3309,10 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/TrackPlanObjectChange"
+        freeObjectChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanFreeObjectChange"
         materialDeltas:
           type: array
           items:
@@ -3302,6 +3396,37 @@ components:
           $ref: "#/components/schemas/FlexTrackPath"
         transitionPath:
           $ref: "#/components/schemas/TransitionCurvePath"
+    CreateFreePlanObjectInput:
+      type: object
+      required: [name, category, positionXMm, positionYMm, rotationDegrees, shape]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          enum: [structure, platform, scenery, annotation]
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        shape:
+          $ref: "#/components/schemas/FreePlanObjectShape"
+    UpdateFreePlanObjectInput:
+      allOf:
+        - $ref: "#/components/schemas/CreateFreePlanObjectInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
     UpdatePlanTrackObjectInput:
       type: object
       required: [positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, expectedVersion]
@@ -6477,6 +6602,142 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/free-objects:
+    post:
+      tags: [Layouts]
+      summary: Add a free visual object to a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFreePlanObjectInput"
+      responses:
+        "201":
+          description: Free plan object created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanFreeObject"
+        "400":
+          description: Free plan object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-free-objects/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a free object in a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFreePlanObjectInput"
+      responses:
+        "200":
+          description: Free plan object updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanFreeObject"
+        "400":
+          description: Free plan object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Free plan object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Layouts]
+      summary: Delete a free object from a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expectedVersion
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Free plan object deleted
+        "400":
+          description: Expected version is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Free plan object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
           content:
             application/json:
               schema:
