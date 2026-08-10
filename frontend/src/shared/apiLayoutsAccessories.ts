@@ -9,6 +9,7 @@ export type Layout = {
   gauge: string;
   scale: string;
   description?: string;
+  maxGradePercent?: number | null;
   version: number;
   archived: boolean;
   createdAt: string;
@@ -21,6 +22,7 @@ export type LayoutInput = {
   gauge: string;
   scale: string;
   description?: string;
+  maxGradePercent?: number | null;
   archived?: boolean;
 };
 

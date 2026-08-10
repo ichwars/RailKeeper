@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import type { LayoutInput, LayoutKind } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppCheckbox } from "../../shared/ui/AppCheckbox";
+import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextArea } from "../../shared/ui/AppTextArea";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
@@ -14,6 +15,7 @@ export type LayoutFormMode = "create" | "edit";
 
 export type LayoutFormValue = Required<Pick<LayoutInput, "name" | "kind" | "gauge" | "scale">> & {
   description: string;
+  maxGradePercent: string;
   archived: boolean;
 };
 
@@ -46,6 +48,10 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
   const initialSnapshot = JSON.stringify(initialValue);
   const dirty = JSON.stringify(form) !== initialSnapshot;
   const title = t(mode === "create" ? "layouts.create.title" : "layouts.edit.title");
+  const gradeLimitValue = form.maxGradePercent.trim();
+  const gradeLimitNumber = Number(gradeLimitValue);
+  const gradeLimitValid = gradeLimitValue === "" || Number.isFinite(gradeLimitNumber) &&
+    gradeLimitNumber > 0 && gradeLimitNumber <= 100;
 
   useEffect(() => {
     setForm(initialValue);
@@ -67,12 +73,13 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!form.name.trim() || !form.gauge.trim() || !form.scale.trim()) return;
+    if (!form.name.trim() || !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid) return;
     void onSubmit({
       ...form,
       name: form.name.trim(),
       gauge: form.gauge.trim(),
       scale: form.scale.trim(),
+      maxGradePercent: gradeLimitValue,
       description: form.description.trim()
     });
   };
@@ -127,6 +134,11 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
             <AppTextInput label={t("layouts.field.scale")} required value={form.scale} disabled={saving}
               onChange={(event) => setForm((current) => ({ ...current, scale: event.target.value }))} />
           </div>
+          <AppNumberInput label={t("layouts.field.maxGradePercent")} value={form.maxGradePercent}
+            min="0.1" max="100" step="0.1" disabled={saving}
+            helpText={t("layouts.field.maxGradePercentHelp")}
+            error={gradeLimitValid ? undefined : t("layouts.field.maxGradePercentError")}
+            onValueChange={(value) => setForm((current) => ({ ...current, maxGradePercent: value }))} />
           <AppTextArea label={t("layouts.field.description")} value={form.description} disabled={saving}
             onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} />
           {mode === "edit" ? <AppCheckbox label={t("layouts.field.archived")} checked={form.archived}
@@ -142,7 +154,7 @@ export function LayoutFormDialog({ mode, initialValue, saving, message, conflict
           <button type="button" className="secondary-button" disabled={saving}
             onClick={requestClose}>{t("common.cancel")}</button>
           <button type="submit" className="primary-button" disabled={saving || !form.name.trim() ||
-            !form.gauge.trim() || !form.scale.trim()}>
+            !form.gauge.trim() || !form.scale.trim() || !gradeLimitValid}>
             {saving ? t("common.saving") : t(mode === "create" ? "layouts.create.save" : "layouts.edit.save")}
           </button>
         </footer>

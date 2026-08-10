@@ -24,6 +24,7 @@ function layoutFormValue(layout: Layout): LayoutFormValue {
     kind: layout.kind,
     gauge: layout.gauge,
     scale: layout.scale,
+    maxGradePercent: layout.maxGradePercent == null ? "" : String(layout.maxGradePercent),
     description: layout.description || "",
     archived: layout.archived
   };
@@ -43,7 +44,12 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
   const [message, setMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const editTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const formattedMaxGrade = layout.maxGradePercent == null
+    ? t("layouts.field.maxGradePercentUnset")
+    : `${new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB", {
+      minimumFractionDigits: 2, maximumFractionDigits: 2
+    }).format(layout.maxGradePercent)} %`;
 
   const reloadStructure = useCallback(async () => {
     const [nextUnits, nextConfigurations] = await Promise.all([
@@ -85,6 +91,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
         kind: form.kind,
         gauge: form.gauge,
         scale: form.scale,
+        maxGradePercent: form.maxGradePercent ? Number(form.maxGradePercent) : null,
         description: form.description?.trim() || undefined,
         archived: form.archived,
         expectedVersion: layout.version
@@ -132,6 +139,7 @@ export function LayoutWorkspace({ layout, canPlan, onLayoutChanged }: {
               ? t("layouts.status.archived") : t("layouts.status.active")}</dd></div>
             <div><dt>{t("layouts.field.gauge")}</dt><dd>{layout.gauge}</dd></div>
             <div><dt>{t("layouts.field.scale")}</dt><dd>{layout.scale}</dd></div>
+            <div><dt>{t("layouts.field.maxGradePercent")}</dt><dd>{formattedMaxGrade}</dd></div>
             <div><dt>{t("layouts.overview.version")}</dt><dd>{t("layouts.version", { version: layout.version })}</dd></div>
             <div><dt>{t("layouts.overview.units")}</dt><dd>{units.length}</dd></div>
             <div><dt>{t("layouts.overview.setups")}</dt><dd>{configurations.length}</dd></div>

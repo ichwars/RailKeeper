@@ -10,6 +10,7 @@ const initialValue: LayoutFormValue = {
   kind: "private",
   gauge: "TT",
   scale: "1:120",
+  maxGradePercent: "",
   description: "",
   archived: false
 };
@@ -133,5 +134,31 @@ describe("LayoutFormDialog", () => {
     );
 
     expect(screen.getByRole("checkbox", { name: "Archiviert" }).closest(".app-checkbox")).not.toBeNull();
+  });
+
+  it("uses the app-owned number input and submits an optional maximum grade", async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn();
+    render(<LayoutFormDialog mode="create" initialValue={initialValue} saving={false} message=""
+      conflict={false} onSubmit={onSubmit} onClose={() => undefined} />);
+
+    const grade = screen.getByRole("spinbutton", { name: "Maximale Steigung (%)" });
+    expect(grade.closest(".app-number-input")).not.toBeNull();
+    await user.type(grade, "3.5");
+    await user.click(screen.getByRole("button", { name: "Anlage speichern" }));
+
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ maxGradePercent: "3.5" }));
+  });
+
+  it("rejects a maximum grade outside the supported range", async () => {
+    const user = userEvent.setup();
+    render(<LayoutFormDialog mode="create" initialValue={initialValue} saving={false} message=""
+      conflict={false} onSubmit={() => undefined} onClose={() => undefined} />);
+
+    const grade = screen.getByRole("spinbutton", { name: "Maximale Steigung (%)" });
+    await user.type(grade, "101");
+
+    expect(screen.getByText("Bitte einen Wert über 0 bis einschließlich 100 eingeben.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Anlage speichern" })).toBeDisabled();
   });
 });

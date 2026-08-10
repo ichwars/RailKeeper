@@ -7,7 +7,8 @@ import { LayoutFormDialog, type LayoutFormValue } from "./LayoutFormDialog";
 import { LayoutWorkspace } from "./LayoutWorkspace";
 
 const emptyLayout: LayoutFormValue = {
-  name: "", kind: "private", gauge: "TT", scale: "1:120", description: "", archived: false
+  name: "", kind: "private", gauge: "TT", scale: "1:120", maxGradePercent: "",
+  description: "", archived: false
 };
 
 export function LayoutsView({ roles }: { roles: string[] }) {
@@ -56,6 +57,7 @@ export function LayoutsView({ roles }: { roles: string[] }) {
         kind: form.kind,
         gauge: form.gauge,
         scale: form.scale,
+        maxGradePercent: form.maxGradePercent ? Number(form.maxGradePercent) : null,
         description: form.description || undefined
       });
       await loadLayouts(created.id);
