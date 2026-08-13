@@ -2,7 +2,7 @@
 
 ## Current Todo
 
-Task 3: Zubehör-Feldadapter testgetrieben ergänzen.
+Task 4: Barcode- und Artikeldatensuche in den Zubehördialog integrieren.
 
 ## Completed Todos
 
@@ -12,17 +12,18 @@ Task 3: Zubehör-Feldadapter testgetrieben ergänzen.
 - Baseline Backend und Frontend vollständig grün geprüft.
 - Task 1 als `8eacf57` committed.
 - Task 2 gemeinsame Suchmodelle, Präferenzen und Dialoge umgesetzt; Fahrzeugtests und Build grün.
+- Task 3 Zubehör-Feldadapter mit fünf fachlichen Tests grün umgesetzt.
 
 ## Active Slice
 
 Slice Card:
 
-- Goal: Zubehörsuchkriterien und kontrollierte Feldzuordnung als reine Funktionen definieren.
+- Goal: Suchblock, Barcodeablauf und Ergebnisdialog in den Zubehör-Artikel-Dialog integrieren.
 - Parent plan/spec: `docs/superpowers/plans/2026-08-13-zubehoer-artikelsuche.md`.
-- Files: `accessoryArticleSearch.ts` und zugehöriger Test.
-- Boundary: keine UI-Integration, keine Backendänderung, keine Anlage-Datei.
-- Verification: gezielter Adaptertest erst rot, dann grün.
-- Stop: Task-3-Commit oder fachlich unerwarteter Testfehler.
+- Files: Zubehör-Suchcontroller, Artikel-Tab, Editor-Dialog, View, Tests und Übersetzungen.
+- Boundary: noch kein dauerhafter Bildimport, keine Backendänderung, keine Anlage-Datei.
+- Verification: gezielte Controller- und Dialogtests erst rot, dann grün.
+- Stop: Task-4-Commit oder fachlich unerwarteter Testfehler.
 
 ## Evidence Refs
 
@@ -33,6 +34,8 @@ Slice Card:
 - Task 1 Grün: zwei Testdateien, 16 Tests erfolgreich.
 - Task 2 Rot: gemeinsames Modell fehlte am neuen Importpfad.
 - Task 2 Grün: drei Fahrzeug-Testdateien, acht Tests erfolgreich; Produktionsbuild erfolgreich.
+- Task 3 Rot: Zubehöradaptermodul fehlte.
+- Task 3 Grün: eine Testdatei, fünf Tests erfolgreich.
 
 ## Blocked On
 
@@ -40,7 +43,7 @@ Nichts.
 
 ## Next Step
 
-Task-3-Tests für Kriterien, Stammdaten, Konflikte und Feldabbildung schreiben.
+Task-4-Tests für Suchblock, Barcode, Rollen, Suchzustände und Trefferübernahme schreiben.
 
 ## Resume State Hint
 
