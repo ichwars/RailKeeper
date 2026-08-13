@@ -45,13 +45,36 @@ func (r *AccessoryRepository) CreateDocument(
 	input application.CreateAccessoryDocumentInput,
 	actor string,
 ) (*application.AccessoryDocument, error) {
-	documentID := randomID()
+	documentID := input.DocumentID
+	if documentID == "" {
+		documentID = randomID()
+	} else {
+		existing, err := r.GetDocument(ctx, documentID)
+		if err == nil {
+			if existing.ProductID != input.ProductID {
+				return nil, application.ErrAccessoryConflict
+			}
+			return existing, nil
+		}
+		if !errors.Is(err, application.ErrAccessoryNotFound) {
+			return nil, err
+		}
+	}
 	now := timestamp()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
 		if err := requireAccessoryDocumentReferences(ctx, tx, input.ProductID, input.FileBlobID); err != nil {
 			return err
 		}
-		if input.IsPrimary {
+		isPrimary := input.IsPrimary
+		if input.PrimaryIfMissing {
+			var primaryCount int
+			if err := tx.QueryRowContext(ctx, `SELECT COUNT(*) FROM accessory_documents
+WHERE product_id=? AND category='image' AND is_primary=1`, input.ProductID).Scan(&primaryCount); err != nil {
+				return fmt.Errorf("check accessory primary document: %w", err)
+			}
+			isPrimary = primaryCount == 0
+		}
+		if isPrimary {
 			if err := clearAccessoryPrimaryDocument(ctx, tx, input.ProductID, now); err != nil {
 				return err
 			}
@@ -62,7 +85,7 @@ INSERT INTO accessory_documents(
   size_bytes, is_primary, created_by, created_at, updated_at
 ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, documentID, input.ProductID, input.FileBlobID,
 			input.FileName, input.OriginalName, input.Description, input.Category, input.MimeType,
-			input.SizeBytes, boolToInt(input.IsPrimary), actor, now, now); err != nil {
+			input.SizeBytes, boolToInt(isPrimary), actor, now, now); err != nil {
 			if isSQLiteConstraint(err) {
 				return application.ErrAccessoryConflict
 			}
@@ -72,6 +95,12 @@ INSERT INTO accessory_documents(
 			documentID, actor, now, "{}")
 	})
 	if err != nil {
+		if input.DocumentID != "" && errors.Is(err, application.ErrAccessoryConflict) {
+			existing, getErr := r.GetDocument(ctx, documentID)
+			if getErr == nil && existing.ProductID == input.ProductID {
+				return existing, nil
+			}
+		}
 		return nil, err
 	}
 	return r.GetDocument(ctx, documentID)

@@ -16,7 +16,7 @@ describe("Shell article navigation", () => {
     });
   });
 
-  it("uses the approved vehicle and article navigation labels", async () => {
+  it("uses the approved vehicle and accessory navigation labels", async () => {
     render(
       <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
         <p>Inhalt</p>
@@ -25,21 +25,34 @@ describe("Shell article navigation", () => {
 
     const navigation = screen.getByRole("navigation", { name: "Hauptnavigation" });
     expect(navigation).toHaveTextContent("Fahrzeugbestand");
-    expect(navigation).toHaveTextContent("Artikelübersicht");
+    expect(navigation).toHaveTextContent("Zubehör");
     expect(navigation).not.toHaveTextContent(/^Bestand$/);
-    expect(navigation).not.toHaveTextContent(/^Zubehör$/);
+    expect(navigation).not.toHaveTextContent("Artikelübersicht");
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
 
-  it("does not expose the article overview to Messe users", () => {
+  it("does not expose accessories to Messe users", () => {
     render(
       <Shell username="messe" roles={["Messe"]} activeView="exhibition" onLogout={vi.fn()}>
         <p>Inhalt</p>
       </Shell>
     );
 
-    expect(screen.queryByRole("link", { name: "Artikelübersicht" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Zubehör" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Ausstellung" })).toBeInTheDocument();
+  });
+
+  it("uses the English accessories navigation label", async () => {
+    window.localStorage.setItem("railkeeper.settings.language", "en");
+    render(
+      <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
+        <p>Content</p>
+      </Shell>
+    );
+
+    expect(screen.getByRole("link", { name: "Accessories" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Article overview" })).not.toBeInTheDocument();
+    await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
 
   it("shows the singular layout item but does not expose it as a link", async () => {
