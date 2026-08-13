@@ -238,6 +238,23 @@ func TestOpenAPIArticleSchemasMatchRuntimeSemantics(t *testing.T) {
 	}
 }
 
+func TestOpenAPIAccessoryImageImportContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := openAPIIndentedBlock(
+		t, string(data), "/accessory-products/{id}/documents/import-url", 2,
+	)
+	for _, expected := range []string{
+		"post:", "AccessoryDocumentImportURLInput", `"201":`, `"400":`, `"403":`, `"413":`, `"415":`, `"502":`,
+	} {
+		if !strings.Contains(contract, expected) {
+			t.Errorf("accessory image import contract is missing %q: %s", expected, contract)
+		}
+	}
+}
+
 func TestOpenAPIArticleListDocumentsValidatedStringFilters(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {
