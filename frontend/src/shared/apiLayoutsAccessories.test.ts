@@ -218,6 +218,7 @@ describe("layout and accessory API client", () => {
   it("imports a selected article-search image through the protected accessory route", async () => {
     const input = {
       url: "https://www.tillig.com/images/83101.jpg",
+      idempotencyKey: "article-result-image-83101",
       title: "Tillig 83101",
       description: "https://www.tillig.com/83101",
       isPrimary: true

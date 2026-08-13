@@ -1,6 +1,8 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Barcode, Camera, PackageSearch, X } from "lucide-react";
 import { useI18n } from "../i18n";
+import { useModalDialogLayer } from "../ui/useModalDialogLayer";
 
 type BarcodeSearchDialogProps = {
   value: string;
@@ -24,6 +26,7 @@ type BarcodeReader = {
 export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }: BarcodeSearchDialogProps) {
   const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, inputRef);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const scannerControlsRef = useRef<ScannerControls | null>(null);
   const readerRef = useRef<BarcodeReader | null>(null);
@@ -123,9 +126,9 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
     onClose();
   };
 
-  return (
-    <div className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true"
-      aria-label={t("vehicles.barcode.title")}>
+  const dialog = (
+    <div ref={layerRef} className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true"
+      aria-label={t("vehicles.barcode.title")} onKeyDown={onKeyDown}>
       <form className="barcode-search-dialog" onSubmit={onSubmit}>
         <header className="panel-head form-head">
           <div>
@@ -190,4 +193,8 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
       </form>
     </div>
   );
+  return <>
+    <span ref={anchorRef} hidden aria-hidden="true" />
+    {createPortal(dialog, document.body)}
+  </>;
 }

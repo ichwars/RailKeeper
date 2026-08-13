@@ -25,12 +25,52 @@ func TestAccessoryImageImportRouteValidatesURLAndRole(t *testing.T) {
 	assertProblem(t, missing, http.StatusBadRequest, "accessory_image_url_missing")
 
 	private := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
-		map[string]any{"url": "http://127.0.0.1/private.png"}, true)
+		map[string]any{"url": "http://127.0.0.1/private.png", "idempotencyKey": "private-image"}, true)
 	assertProblem(t, private, http.StatusBadRequest, "accessory_image_url_invalid")
+
+	missingKey := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost, path,
+		map[string]any{"url": "https://example.com/photo.png"}, true)
+	assertProblem(t, missingKey, http.StatusBadRequest, "accessory_image_idempotency_key_invalid")
 
 	viewer := layoutRequest(t, fixture.router, fixture.sessions["viewer"], http.MethodPost, path,
 		map[string]any{"url": "https://example.com/photo.png"}, true)
 	assertStatus(t, viewer, http.StatusForbidden)
+}
+
+func TestAccessoryImageImportRouteReturnsCommittedIdempotentResultWithoutRedownload(t *testing.T) {
+	fixture := newAccessoryAPIFixture(t, 1024*1024)
+	key := "article-result-image-83101"
+	blobs := application.NewFileBlobService(fixture.db, "")
+	blobID, err := blobs.Store(t.Context(), []byte("committed image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	documents := application.NewAccessoryDocumentService(
+		infrastructure.NewAccessoryRepository(fixture.db), blobs,
+	)
+	committed, err := documents.CreateDocument(t.Context(), application.CreateAccessoryDocumentInput{
+		DocumentID: remoteAccessoryImageDocumentID(fixture.product.ID, key),
+		ProductID:  fixture.product.ID, FileBlobID: blobID,
+		AccessoryDocumentUploadMetadata: application.AccessoryDocumentUploadMetadata{
+			FileName: "photo.png", OriginalName: "photo.png",
+			Category: application.AccessoryDocumentImage, MimeType: "image/png", SizeBytes: 15,
+		},
+	}, 1024*1024, "editor")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	response := layoutRequest(t, fixture.router, fixture.sessions["editor"], http.MethodPost,
+		"/api/v1/accessory-products/"+fixture.product.ID+"/documents/import-url",
+		map[string]any{
+			"url": "https://unavailable.invalid/photo.png", "idempotencyKey": key, "isPrimary": true,
+		}, true)
+	assertStatus(t, response, http.StatusOK)
+	var retried application.AccessoryDocument
+	decodeResponse(t, response, &retried)
+	if retried.ID != committed.ID {
+		t.Fatalf("idempotent retry returned %q, want %q", retried.ID, committed.ID)
+	}
 }
 
 func TestDownloadRemoteAccessoryImageEnforcesTypeAndSize(t *testing.T) {

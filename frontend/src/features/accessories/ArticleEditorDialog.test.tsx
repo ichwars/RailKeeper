@@ -148,6 +148,41 @@ describe("ArticleEditorDialog", () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it("keeps Escape and keyboard focus inside the nested barcode dialog", async () => {
+    const user = userEvent.setup();
+    const setBarcodeOpen = vi.fn();
+    const onRequestClose = vi.fn();
+    const articleSearch = {
+      state: {
+        open: false, loading: false, canRun: true, response: null, error: "", barcodeOpen: true,
+        barcodeValue: "83101", selectedFields: {}, selectedImages: {}
+      },
+      setters: { setOpen: vi.fn(), setBarcodeOpen, setBarcodeValue: vi.fn() },
+      commands: {
+        run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+        toggleImage: vi.fn(), applyResult: vi.fn(), canSelectField: vi.fn().mockReturnValue(true)
+      }
+    } as unknown as AccessoryArticleSearchController;
+
+    render(<ArticleEditorDialog {...props({ articleSearch, onRequestClose })} />);
+    const editor = document.querySelector<HTMLElement>(".article-editor-layer");
+    expect(editor).not.toBeNull();
+    const barcodeDialog = screen.getByRole("dialog", { name: "Barcode suchen" });
+    expect(editor).toHaveAttribute("aria-hidden", "true");
+    expect(editor).toHaveAttribute("inert");
+    expect(editor).not.toContainElement(barcodeDialog);
+
+    const search = within(barcodeDialog).getByRole("button", { name: "Artikeldaten suchen" });
+    const close = within(barcodeDialog).getAllByRole("button", { name: "Abbrechen" })[0];
+    search.focus();
+    await user.tab();
+    expect(close).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(setBarcodeOpen).toHaveBeenCalledWith(false);
+    expect(onRequestClose).not.toHaveBeenCalled();
+  });
+
   it("renders create, view, and edit modes through one shell and disables view controls", () => {
     const { rerender } = render(<ArticleEditorDialog {...props()} />);
     expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();

@@ -21,7 +21,7 @@ import {
   applyAccessorySearchResult,
   currentAccessorySearchValue,
   hasAccessorySearchCriteria,
-  isUsableAccessorySearchValue
+  isSelectableAccessorySearchValue
 } from "./accessoryArticleSearch";
 import type { ArticleEditorForm } from "./articleEditorModel";
 
@@ -67,6 +67,9 @@ export function useAccessoryArticleSearchController({
   const [selectedFields, setSelectedFields] = useState<Record<string, boolean>>({});
   const [selectedImages, setSelectedImages] = useState<Record<string, boolean>>({});
 
+  const canSelectField = (key: string, value: string) =>
+    isSelectableAccessorySearchValue(key, value, manufacturers, gauges);
+
   const run = (searchForm = form, searchInput?: ArticleSearchInput) => {
     if (readOnly) return;
     if (!articleSearchEnabled()) {
@@ -91,7 +94,7 @@ export function useAccessoryArticleSearchController({
       const initialSelection: Record<string, boolean> = {};
       nextResponse.results.forEach((result, index) => {
         Object.entries(result.fields).forEach(([key, field]) => {
-          if (!isUsableAccessorySearchValue(key, field.value)) return;
+          if (!canSelectField(key, field.value)) return;
           initialSelection[articleSelectionKey(result, key, index)] =
             currentAccessorySearchValue(searchForm, key) === "";
         });
@@ -123,6 +126,8 @@ export function useAccessoryArticleSearchController({
   };
 
   const toggleField = (result: ArticleSearchResult, index: number, key: string, checked: boolean) => {
+    const value = result.fields[key]?.value || "";
+    if (!canSelectField(key, value)) return;
     setSelectedFields((current) => ({ ...current, [articleSelectionKey(result, key, index)]: checked }));
   };
 
@@ -173,7 +178,7 @@ export function useAccessoryArticleSearchController({
       selectedImages
     },
     setters: { setOpen, setBarcodeOpen, setBarcodeValue },
-    commands: { run, openBarcode, submitBarcode, toggleField, toggleImage, applyResult }
+    commands: { run, openBarcode, submitBarcode, toggleField, toggleImage, applyResult, canSelectField }
   };
 }
 

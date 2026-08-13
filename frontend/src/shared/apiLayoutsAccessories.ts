@@ -455,6 +455,7 @@ export type AccessoryDocumentUploadInput = {
 
 export type AccessoryDocumentImportURLInput = {
   url: string;
+  idempotencyKey: string;
   title?: string;
   description?: string;
   isPrimary?: boolean;

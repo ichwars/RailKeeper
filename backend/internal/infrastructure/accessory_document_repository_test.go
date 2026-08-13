@@ -88,3 +88,81 @@ func TestAccessoryDocumentRepositoryRequiresExistingProductAndBlob(t *testing.T)
 		t.Fatalf("expected missing blob rejection, got %v", err)
 	}
 }
+
+func TestAccessoryDocumentImportIsIdempotentAndOnlyFillsMissingPrimary(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	repository := infrastructure.NewAccessoryRepository(fixture.db)
+	blobs := application.NewFileBlobService(fixture.db, "")
+	documents := application.NewAccessoryDocumentService(repository, blobs)
+
+	primaryBlobID, err := blobs.Store(ctx, []byte("existing primary"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	primary, err := documents.CreateDocument(ctx, application.CreateAccessoryDocumentInput{
+		ProductID: fixture.quantityProduct.ID, FileBlobID: primaryBlobID,
+		AccessoryDocumentUploadMetadata: application.AccessoryDocumentUploadMetadata{
+			FileName: "primary.png", OriginalName: "primary.png",
+			Category: application.AccessoryDocumentImage, MimeType: "image/png", SizeBytes: 16,
+			IsPrimary: true,
+		},
+	}, 1024, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	importBlobID, err := blobs.Store(ctx, []byte("remote image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := application.CreateAccessoryDocumentInput{
+		DocumentID: "remote-import-stable-id", ProductID: fixture.quantityProduct.ID, FileBlobID: importBlobID,
+		PrimaryIfMissing: true,
+		AccessoryDocumentUploadMetadata: application.AccessoryDocumentUploadMetadata{
+			FileName: "remote.jpg", OriginalName: "remote.jpg",
+			Category: application.AccessoryDocumentImage, MimeType: "image/jpeg", SizeBytes: 12,
+		},
+	}
+	imported, err := documents.CreateDocument(ctx, input, 1024, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if imported.IsPrimary {
+		t.Fatal("remote import replaced an existing primary image")
+	}
+
+	retried, err := documents.CreateDocument(ctx, input, 1024, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if retried.ID != imported.ID {
+		t.Fatalf("retry created another document: first=%q retry=%q", imported.ID, retried.ID)
+	}
+	listed, err := documents.ListDocuments(ctx, fixture.quantityProduct.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 2 || listed[0].ID != primary.ID || !listed[0].IsPrimary {
+		t.Fatalf("unexpected documents after retry: %#v", listed)
+	}
+
+	firstBlobID, err := blobs.Store(ctx, []byte("first remote"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := documents.CreateDocument(ctx, application.CreateAccessoryDocumentInput{
+		DocumentID: "remote-import-first-id", ProductID: fixture.individualProduct.ID, FileBlobID: firstBlobID,
+		PrimaryIfMissing: true,
+		AccessoryDocumentUploadMetadata: application.AccessoryDocumentUploadMetadata{
+			FileName: "first.jpg", OriginalName: "first.jpg",
+			Category: application.AccessoryDocumentImage, MimeType: "image/jpeg", SizeBytes: 12,
+		},
+	}, 1024, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !first.IsPrimary {
+		t.Fatal("first imported image was not assigned as primary")
+	}
+}

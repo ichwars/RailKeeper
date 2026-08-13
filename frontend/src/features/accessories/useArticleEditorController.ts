@@ -400,6 +400,7 @@ export function useArticleEditorController({
         try {
           const document = await api.importAccessoryDocumentFromUrl(saved.id, {
             url: image.url,
+            idempotencyKey: image.id,
             title: image.title,
             description: image.source,
             isPrimary

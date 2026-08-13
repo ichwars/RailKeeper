@@ -1679,11 +1679,15 @@ components:
           type: boolean
     AccessoryDocumentImportURLInput:
       type: object
-      required: [url]
+      required: [url, idempotencyKey]
       properties:
         url:
           type: string
           format: uri
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 8192
         title:
           type: string
         description:
@@ -3855,6 +3859,12 @@ paths:
             schema:
               $ref: "#/components/schemas/AccessoryDocumentImportURLInput"
       responses:
+        "200":
+          description: Previously imported accessory image returned for an idempotent retry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
         "201":
           description: Accessory image imported as a private document blob
           content:

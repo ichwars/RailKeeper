@@ -101,6 +101,47 @@ describe("useAccessoryArticleSearchController", () => {
     expect(result.current.state.barcodeOpen).toBe(false);
   });
 
+  it("does not offer unknown or inactive master-data values for selection", async () => {
+    const unknownResult: ArticleSearchResult = {
+      ...searchResult,
+      fields: {
+        ...searchResult.fields,
+        manufacturer: { label: "Hersteller", value: "Unbekannt GmbH", confidence: 1 },
+        gauge: { label: "Spurweite", value: "IIm", confidence: 1 }
+      }
+    };
+    vi.spyOn(api, "articleSearch").mockResolvedValue({ query: "4012278000011", results: [unknownResult] });
+    const updateForm = vi.fn();
+    const { result } = renderHook(() => useAccessoryArticleSearchController({
+      form: { ...emptyArticleEditorForm(), ean: "4012278000011" },
+      readOnly: false,
+      pendingImageCount: 0,
+      manufacturers: entries("manufacturer", "legacy", "Unbekannt GmbH")
+        .map((entry) => ({ ...entry, active: false })),
+      gauges: [],
+      updateForm,
+      addImages: vi.fn()
+    }));
+
+    act(() => result.current.commands.run());
+    await waitFor(() => expect(result.current.state.loading).toBe(false));
+
+    const manufacturerKey = articleSelectionKey(unknownResult, "manufacturer", 0);
+    const gaugeKey = articleSelectionKey(unknownResult, "gauge", 0);
+    expect(result.current.state.selectedFields[manufacturerKey]).toBeUndefined();
+    expect(result.current.state.selectedFields[gaugeKey]).toBeUndefined();
+    expect(result.current.commands.canSelectField("manufacturer", "Unbekannt GmbH")).toBe(false);
+    expect(result.current.commands.canSelectField("gauge", "IIm")).toBe(false);
+
+    act(() => result.current.commands.toggleField(unknownResult, 0, "manufacturer", true));
+    expect(result.current.state.selectedFields[manufacturerKey]).toBeUndefined();
+    act(() => result.current.commands.applyResult(unknownResult));
+    expect(updateForm).toHaveBeenCalledWith(expect.not.objectContaining({
+      manufacturer: expect.anything(),
+      gauges: expect.anything()
+    }));
+  });
+
   it("does not open searches in read-only mode", () => {
     const articleSearch = vi.spyOn(api, "articleSearch");
     const { result } = renderController(true);

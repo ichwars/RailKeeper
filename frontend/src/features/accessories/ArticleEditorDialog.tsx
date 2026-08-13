@@ -362,6 +362,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
       error={props.articleSearch.state.error}
       selectedFields={props.articleSearch.state.selectedFields}
       selectedImages={props.articleSearch.state.selectedImages}
+      canSelectField={props.articleSearch.commands.canSelectField}
       onApply={props.articleSearch.commands.applyResult}
       onClose={() => props.articleSearch?.setters.setOpen(false)}
       onToggleField={props.articleSearch.commands.toggleField}

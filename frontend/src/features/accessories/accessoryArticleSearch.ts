@@ -41,6 +41,18 @@ function knownActiveLabel(entries: MasterDataEntry[], value: string) {
   ))?.label;
 }
 
+export function isSelectableAccessorySearchValue(
+  key: string,
+  value: string,
+  manufacturers: MasterDataEntry[],
+  gauges: MasterDataEntry[]
+) {
+  if (!isUsableAccessorySearchValue(key, value)) return false;
+  if (key === "manufacturer") return Boolean(knownActiveLabel(manufacturers, value));
+  if (key === "gauge") return Boolean(knownActiveLabel(gauges, value));
+  return true;
+}
+
 export function accessorySearchInput(form: ArticleEditorForm): ArticleSearchInput {
   const fields = Object.fromEntries(Object.entries({
     ean: form.ean,

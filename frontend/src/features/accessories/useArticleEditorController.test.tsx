@@ -358,10 +358,12 @@ describe("useArticleEditorController", () => {
 
     expect(api.createAccessoryArticle).toHaveBeenCalledOnce();
     expect(api.importAccessoryDocumentFromUrl).toHaveBeenNthCalledWith(1, article.id, {
-      url: "https://example.com/1.jpg", title: "Bild 1", description: "https://example.com/article", isPrimary: true
+      url: "https://example.com/1.jpg", title: "Bild 1", description: "https://example.com/article",
+      isPrimary: true, idempotencyKey: "image-1"
     });
     expect(api.importAccessoryDocumentFromUrl).toHaveBeenNthCalledWith(2, article.id, {
-      url: "https://example.com/2.jpg", title: "Bild 2", description: "https://example.com/article", isPrimary: false
+      url: "https://example.com/2.jpg", title: "Bild 2", description: "https://example.com/article",
+      isPrimary: false, idempotencyKey: "image-2"
     });
     expect(result.current.pendingArticleImages).toEqual([]);
     expect(result.current.isOpen).toBe(false);
@@ -420,7 +422,8 @@ describe("useArticleEditorController", () => {
       url: "https://example.com/1.jpg",
       title: "Neues Bild",
       description: "https://example.com/article",
-      isPrimary: false
+      isPrimary: false,
+      idempotencyKey: "image-1"
     });
 
     act(() => result.current.openCreate());
