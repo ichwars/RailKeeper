@@ -2,7 +2,7 @@
 
 ## Current Todo
 
-Task 4: Barcode- und Artikeldatensuche in den Zubehördialog integrieren.
+Task 5: Sicheren serverseitigen Bildimport für Zubehörartikel ergänzen.
 
 ## Completed Todos
 
@@ -13,17 +13,18 @@ Task 4: Barcode- und Artikeldatensuche in den Zubehördialog integrieren.
 - Task 1 als `8eacf57` committed.
 - Task 2 gemeinsame Suchmodelle, Präferenzen und Dialoge umgesetzt; Fahrzeugtests und Build grün.
 - Task 3 Zubehör-Feldadapter mit fünf fachlichen Tests grün umgesetzt.
+- Task 4 Suchcontroller, Barcodeablauf, Ergebnisdialog und Bildvormerkung in den Zubehördialog integriert.
 
 ## Active Slice
 
 Slice Card:
 
-- Goal: Suchblock, Barcodeablauf und Ergebnisdialog in den Zubehör-Artikel-Dialog integrieren.
+- Goal: Ausgewählte externe Bilder sicher als Zubehördokument importieren.
 - Parent plan/spec: `docs/superpowers/plans/2026-08-13-zubehoer-artikelsuche.md`.
-- Files: Zubehör-Suchcontroller, Artikel-Tab, Editor-Dialog, View, Tests und Übersetzungen.
-- Boundary: noch kein dauerhafter Bildimport, keine Backendänderung, keine Anlage-Datei.
-- Verification: gezielte Controller- und Dialogtests erst rot, dann grün.
-- Stop: Task-4-Commit oder fachlich unerwarteter Testfehler.
+- Files: Backend-Handler, sichere Downloadhilfe, Router, OpenAPI und Tests.
+- Boundary: nur öffentliche HTTP(S)-Bilder, bestehende SSRF- und Größenlimits, keine Anlage-Datei.
+- Verification: Handler- und Vertragstests erst rot, dann grün.
+- Stop: Task-5-Commit oder fachlich unerwarteter Sicherheitsfehler.
 
 ## Evidence Refs
 
@@ -36,6 +37,8 @@ Slice Card:
 - Task 2 Grün: drei Fahrzeug-Testdateien, acht Tests erfolgreich; Produktionsbuild erfolgreich.
 - Task 3 Rot: Zubehöradaptermodul fehlte.
 - Task 3 Grün: eine Testdatei, fünf Tests erfolgreich.
+- Task 4 Rot: Zubehör-Suchcontroller fehlte; danach fehlten die beiden Suchaktionen im Dialog.
+- Task 4 Grün: drei gezielte Testdateien, 77 Tests erfolgreich; Produktionsbuild erfolgreich.
 
 ## Blocked On
 
@@ -43,12 +46,12 @@ Nichts.
 
 ## Next Step
 
-Task-4-Tests für Suchblock, Barcode, Rollen, Suchzustände und Trefferübernahme schreiben.
+Task-5-Tests für Rollen, URL-Validierung, SSRF, MIME-Typ, Größe und erfolgreichen Import schreiben.
 
 ## Resume State Hint
 
 Worktree: `C:\Users\droth\Documents\GitHub\RailKeeper\.worktrees\accessory-article-search`.
-Branch: `dev/accessory-article-search`. Task 1 ist committed; Task 2 ist vor dem Commit vollständig grün.
+Branch: `dev/accessory-article-search`. Tasks 1 bis 3 sind committed; Task 4 ist vollständig grün.
 
 ## Drift Check
 

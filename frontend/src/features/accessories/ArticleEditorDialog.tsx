@@ -8,7 +8,10 @@ import type {
   MasterDataEntry
 } from "../../shared/api";
 import { api } from "../../shared/api";
+import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
+import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
 import { useI18n } from "../../shared/i18n";
+import { accessorySearchFieldGroups, currentAccessorySearchValue } from "./accessoryArticleSearch";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
 import { ArticleStockTab } from "./ArticleStockTab";
@@ -22,6 +25,7 @@ import type {
   ArticleEditorTabErrors
 } from "./articleEditorModel";
 import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import {
   compatibleAttributesForType,
@@ -63,6 +67,7 @@ export type ArticleEditorDialogProps = {
   resources: ArticleEditorResources;
   resourcesStale: boolean;
   returnFocusTo?: HTMLElement | null;
+  articleSearch?: AccessoryArticleSearchController;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
   onTabChange: (tab: ArticleEditorTab) => void;
   onSubmit: () => void | Promise<void>;
@@ -267,6 +272,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               coreMasterDataLoading={props.coreMasterDataLoading}
               coreMasterDataError={props.coreMasterDataError}
               articleTypeTriggerRef={articleTypeTriggerRef}
+              articleSearch={props.articleSearch}
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
@@ -348,6 +354,25 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </button> : null}
       </footer>
     </section>
+    {props.articleSearch?.state.open ? <ArticleSearchDialog
+      fieldGroups={accessorySearchFieldGroups(t)}
+      currentValue={(key) => currentAccessorySearchValue(props.form, key)}
+      loading={props.articleSearch.state.loading}
+      response={props.articleSearch.state.response}
+      error={props.articleSearch.state.error}
+      selectedFields={props.articleSearch.state.selectedFields}
+      selectedImages={props.articleSearch.state.selectedImages}
+      onApply={props.articleSearch.commands.applyResult}
+      onClose={() => props.articleSearch?.setters.setOpen(false)}
+      onToggleField={props.articleSearch.commands.toggleField}
+      onToggleImage={props.articleSearch.commands.toggleImage}
+    /> : null}
+    {props.articleSearch?.state.barcodeOpen ? <BarcodeSearchDialog
+      value={props.articleSearch.state.barcodeValue}
+      onValueChange={props.articleSearch.setters.setBarcodeValue}
+      onClose={() => props.articleSearch?.setters.setBarcodeOpen(false)}
+      onSubmit={props.articleSearch.commands.submitBarcode}
+    /> : null}
     <AccessoryConfirmDialog action={props.closeConfirmationOpen ? {
       title: t("accessories.editor.dirty.title"),
       body: t("accessories.editor.dirty.body"),

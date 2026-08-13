@@ -7,6 +7,7 @@ import { api, type AccessoryDocument, type MasterDataEntry } from "../../shared/
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { ArticleEditorDialog, type ArticleEditorDialogProps } from "./ArticleEditorDialog";
 import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 
 const customFields: CustomArticleSubjectFieldDefinition[] = [
   { key: "material", kind: "text", label: "Material" },
@@ -119,6 +120,34 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
 }
 
 describe("ArticleEditorDialog", () => {
+  it("offers the vehicle-style barcode and article-data searches in the article tab", async () => {
+    const user = userEvent.setup();
+    const run = vi.fn();
+    const openBarcode = vi.fn();
+    const articleSearch = {
+      state: {
+        open: false, loading: false, canRun: true, response: null, error: "", barcodeOpen: false,
+        barcodeValue: "", selectedFields: {}, selectedImages: {}
+      },
+      setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+      commands: {
+        run,
+        openBarcode,
+        submitBarcode: vi.fn(),
+        toggleField: vi.fn(),
+        toggleImage: vi.fn(),
+        applyResult: vi.fn()
+      }
+    } as unknown as AccessoryArticleSearchController;
+
+    render(<ArticleEditorDialog {...props({ articleSearch })} />);
+    await user.click(screen.getByRole("button", { name: "Barcode suchen" }));
+    await user.click(screen.getByRole("button", { name: "Artikeldaten suchen" }));
+
+    expect(openBarcode).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it("renders create, view, and edit modes through one shell and disables view controls", () => {
     const { rerender } = render(<ArticleEditorDialog {...props()} />);
     expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();

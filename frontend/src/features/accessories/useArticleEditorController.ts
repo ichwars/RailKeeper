@@ -38,6 +38,7 @@ import {
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
 import { articleTypeOrder } from "./articleTypes";
+import type { PendingAccessoryArticleImage } from "./useAccessoryArticleSearchController";
 
 export type ArticleEditorPermissions = {
   canEdit: boolean;
@@ -122,6 +123,7 @@ export function useArticleEditorController({
   const [duplicateDraft, setDuplicateDraft] = useState<ArticleEditorForm | null>(null);
   const [subdraftDirty, setSubdraftDirtyState] = useState<Record<string, boolean>>({});
   const [sessionKey, setSessionKey] = useState(0);
+  const [pendingArticleImages, setPendingArticleImages] = useState<PendingAccessoryArticleImage[]>([]);
   const generationRef = useRef(0);
   const createGenerationRef = useRef<number | null>(null);
   const resourceRequestRef = useRef(0);
@@ -157,6 +159,7 @@ export function useArticleEditorController({
     setCloseConfirmationOpen(false);
     setError("");
     setResourceError("");
+    setPendingArticleImages([]);
   };
 
   const isCurrent = useCallback((generation: number) =>
@@ -481,6 +484,13 @@ export function useArticleEditorController({
     setSubdraftDirtyState((current) => current[scope] === dirty ? current : { ...current, [scope]: dirty });
   };
 
+  const addPendingArticleImages = (images: PendingAccessoryArticleImage[]) => {
+    setPendingArticleImages((current) => {
+      const existing = new Set(current.map((image) => image.id));
+      return [...current, ...images.filter((image) => !existing.has(image.id))];
+    });
+  };
+
   return {
     mode,
     isOpen,
@@ -510,11 +520,13 @@ export function useArticleEditorController({
     resources,
     resourcesStale,
     sessionKey,
+    pendingArticleImages,
     permissions,
     isFormReadOnly: mode === "view" || !permissions.canEdit,
     openCreate,
     openArticle,
     changeForm,
+    addPendingArticleImages,
     setActiveTab,
     submit,
     requestClose,

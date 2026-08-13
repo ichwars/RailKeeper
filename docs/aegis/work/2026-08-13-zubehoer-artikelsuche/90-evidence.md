@@ -16,6 +16,7 @@
 | Task 1 Benennung | vier erwartete alte Bezeichnungen | 2 Dateien, 16 Tests PASS |
 | Task 2 gemeinsame Suche | neuer gemeinsamer Importpfad fehlte | 3 Dateien, 8 Tests PASS; Build PASS |
 | Task 3 Zubehöradapter | Adaptermodul fehlte | 1 Datei, 5 Tests PASS |
+| Task 4 Dialogintegration | Controller fehlte; Suchaktionen fehlten | 3 Dateien, 77 Tests PASS; Build PASS |
 
 ## Remaining Evidence
 

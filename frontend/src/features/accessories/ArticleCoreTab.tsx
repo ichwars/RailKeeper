@@ -1,4 +1,5 @@
 import type { Ref } from "react";
+import { Barcode, PackageSearch } from "lucide-react";
 
 import type {
   AccessoryArticle,
@@ -15,6 +16,7 @@ import { AppTextInput } from "../../shared/ui/AppTextInput";
 import type { ArticleEditorFieldErrors, ArticleEditorForm } from "./articleEditorModel";
 import { articleSubtypeOptions } from "./articleSubtypes";
 import { articleTypeOptions } from "./articleTypes";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 const statuses: AccessoryManufacturerStatus[] = ["announced", "available", "discontinued", "unknown"];
 
 function includeCurrentEntry(
@@ -51,6 +53,7 @@ export function ArticleCoreTab({
   coreMasterDataLoading = false,
   coreMasterDataError = false,
   articleTypeTriggerRef,
+  articleSearch,
   onChange
 }: {
   form: ArticleEditorForm;
@@ -70,6 +73,7 @@ export function ArticleCoreTab({
   coreMasterDataLoading?: boolean;
   coreMasterDataError?: boolean;
   articleTypeTriggerRef?: Ref<HTMLButtonElement>;
+  articleSearch?: AccessoryArticleSearchController;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
 }) {
   const { t } = useI18n();
@@ -88,6 +92,30 @@ export function ArticleCoreTab({
   const inactiveSuffix = ` (${t("accessories.editor.fields.inactiveMasterData")})`;
   return (
     <section className="article-editor-tab article-core-tab" aria-label={t("accessories.editor.tabs.article")}>
+      {articleSearch ? <div className="article-search-box">
+        <div>
+          <strong>{t("vehicles.articleSearch.title")}</strong>
+          <span>{t("vehicles.articleSearch.subtitle")}</span>
+        </div>
+        <div className="article-search-actions">
+          <button type="button" className="secondary-button"
+            onClick={articleSearch.commands.openBarcode}
+            disabled={disabled || articleSearch.state.loading}
+            title={t("vehicles.articleSearch.barcodeTitle")}>
+            <Barcode size={15} aria-hidden="true" />
+            {t("vehicles.articleSearch.barcode")}
+          </button>
+          <button type="button" className="secondary-button"
+            onClick={() => articleSearch.commands.run()}
+            disabled={disabled || articleSearch.state.loading || !articleSearch.state.canRun}
+            title={!articleSearch.state.canRun ? t("vehicles.articleSearch.missingInput") : undefined}>
+            <PackageSearch size={15} aria-hidden="true" />
+            {articleSearch.state.loading
+              ? t("vehicles.articleSearch.searching")
+              : t("vehicles.articleSearch.search")}
+          </button>
+        </div>
+      </div> : null}
       <div className="article-editor-image">
         {article?.primaryImageUrl ? <img src={article.primaryImageUrl} alt={t("accessories.editor.fields.productImage")} />
           : <span>{t("accessories.editor.fields.noProductImage")}</span>}
