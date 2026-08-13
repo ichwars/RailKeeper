@@ -107,7 +107,7 @@ Artikelbezogene Tabellen-, Formular- und Aktionsbegriffe bleiben unverändert.
 
 - [ ] **Step 4: Zieltests grün ausführen**
 
-Run: derselbe Vitest-Befehl wie in Step 2.  
+Run: derselbe Vitest-Befehl wie in Step 2.
 Expected: PASS.
 
 - [ ] **Step 5: Commit erstellen**
@@ -370,7 +370,7 @@ liefert einen Patch statt den Entwurf selbst zu mutieren.
 
 - [ ] **Step 4: Adaptertests grün ausführen**
 
-Run: derselbe Vitest-Befehl wie in Step 2.  
+Run: derselbe Vitest-Befehl wie in Step 2.
 Expected: PASS.
 
 - [ ] **Step 5: Commit erstellen**
@@ -726,7 +726,7 @@ Expected: PASS.
 
 - [ ] **Step 6: Gesamte Backend-Suite ausführen**
 
-Run: `go test ./...`  
+Run: `go test ./...`
 Expected: alle Pakete PASS.
 
 - [ ] **Step 7: Commit erstellen**
@@ -929,7 +929,7 @@ Expected: alle Testdateien und Tests PASS.
 
 - [ ] **Step 4: Produktionsbuild erstellen**
 
-Run: `npm.cmd run build`  
+Run: `npm.cmd run build`
 Expected: TypeScript und Vite exit code 0.
 
 - [ ] **Step 5: Lokalen Browser-Smoke-Test durchführen**

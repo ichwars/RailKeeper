@@ -1,8 +1,8 @@
 # Zubehör-Artikelsuche
 
-**Datum:** 2026-08-13  
-**Branch:** `dev/accessory-article-search`  
-**Basis:** `origin/main`  
+**Datum:** 2026-08-13
+**Branch:** `dev/accessory-article-search`
+**Basis:** `origin/main`
 **Bereich:** Zubehörübersicht und Zubehör-Artikel-Dialog
 
 ## Ziel

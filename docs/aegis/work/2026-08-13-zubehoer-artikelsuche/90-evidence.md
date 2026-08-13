@@ -20,6 +20,21 @@
 | Task 5 sicherer Bildimport | Downloadhilfe und OpenAPI-Pfad fehlten | API-Paket PASS; `go test ./...` PASS |
 | Task 6 Bildpersistenz | API-Methode und Importschritt fehlten | 5 Dateien, 96 Tests PASS; Build PASS |
 
+## Final Local Verification
+
+| Evidence | Result |
+| --- | --- |
+| `go test ./...` | alle sieben Backendpakete PASS |
+| `npm.cmd run test:coverage` | 53 Testdateien, 316 Tests PASS |
+| `npm.cmd run build` | TypeScript und Vite-Build PASS |
+| `go test ./internal/api -run OpenAPI -count=1` | PASS |
+| `go vet ./...` | PASS |
+| Branchbasis | `origin/main` bei `5b5ea1d` |
+| Anlage-Isolation | keine Anlage-Datei im Branchdiff |
+
+`golangci-lint` ist lokal nicht installiert. Der identische konfigurierte Lauf bleibt durch den
+GitHub-CI-Job `Backend lint` abgedeckt.
+
 ## Remaining Evidence
 
 - Rot- und Grün-Nachweis je Task,
