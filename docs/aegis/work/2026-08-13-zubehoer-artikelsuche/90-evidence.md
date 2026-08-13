@@ -18,6 +18,7 @@
 | Task 3 Zubehöradapter | Adaptermodul fehlte | 1 Datei, 5 Tests PASS |
 | Task 4 Dialogintegration | Controller fehlte; Suchaktionen fehlten | 3 Dateien, 77 Tests PASS; Build PASS |
 | Task 5 sicherer Bildimport | Downloadhilfe und OpenAPI-Pfad fehlten | API-Paket PASS; `go test ./...` PASS |
+| Task 6 Bildpersistenz | API-Methode und Importschritt fehlten | 5 Dateien, 96 Tests PASS; Build PASS |
 
 ## Remaining Evidence
 

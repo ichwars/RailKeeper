@@ -18,9 +18,10 @@ var (
 )
 
 type accessoryDocumentImportURLInput struct {
-	URL       string `json:"url"`
-	Title     string `json:"title"`
-	IsPrimary bool   `json:"isPrimary"`
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	IsPrimary   bool   `json:"isPrimary"`
 }
 
 func downloadRemoteAccessoryImage(
@@ -70,6 +71,7 @@ func (a *App) importAccessoryDocumentFromURL(w http.ResponseWriter, r *http.Requ
 	}
 	input.URL = strings.TrimSpace(input.URL)
 	input.Title = strings.TrimSpace(input.Title)
+	input.Description = strings.TrimSpace(input.Description)
 	if input.URL == "" {
 		respondProblem(w, http.StatusBadRequest, "accessory_image_url_missing", "An image URL is required.")
 		return
@@ -124,7 +126,7 @@ func (a *App) importAccessoryDocumentFromURL(w http.ResponseWriter, r *http.Requ
 	}
 	document, err := a.accessoryDocumentService.CreateDocument(r.Context(), application.CreateAccessoryDocumentInput{
 		ProductID: r.PathValue("id"), FileBlobID: blobID, AccessoryDocumentUploadMetadata: metadata,
-		Description: input.Title,
+		Description: input.Description,
 	}, a.maxAttachmentBytes, actorUserID(r))
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)

@@ -2,7 +2,13 @@ import { StrictMode, type PropsWithChildren } from "react";
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type AccessoryArticle, type AccessoryStockSummary, type MasterDataEntry } from "../../shared/api";
+import {
+  api,
+  type AccessoryArticle,
+  type AccessoryDocument,
+  type AccessoryStockSummary,
+  type MasterDataEntry
+} from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { useArticleEditorController } from "./useArticleEditorController";
@@ -74,6 +80,20 @@ const inactiveOtherArticleType: MasterDataEntry = {
   updatedAt: "2026-08-08T08:00:00Z"
 };
 const activeOtherArticleType: MasterDataEntry = { ...inactiveOtherArticleType, active: true };
+const importedDocument: AccessoryDocument = {
+  id: "document-1",
+  productId: article.id,
+  fileName: "tillig-83101.jpg",
+  originalName: "tillig-83101.jpg",
+  description: "Tillig 83101",
+  category: "image",
+  mimeType: "image/jpeg",
+  sizeBytes: 2048,
+  isPrimary: true,
+  createdBy: "editor",
+  createdAt: "2026-08-13T08:00:00Z",
+  updatedAt: "2026-08-13T08:00:00Z"
+};
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -102,6 +122,7 @@ describe("useArticleEditorController", () => {
     vi.spyOn(api, "accessoryAssets").mockResolvedValue([]);
     vi.spyOn(api, "accessoryPurchases").mockResolvedValue([]);
     vi.spyOn(api, "accessoryDocuments").mockResolvedValue([]);
+    vi.spyOn(api, "importAccessoryDocumentFromUrl").mockResolvedValue(importedDocument);
     vi.spyOn(api, "accessoryReservations").mockResolvedValue([]);
     vi.spyOn(api, "accessoryInstallations").mockResolvedValue([]);
     vi.spyOn(api, "accessoryUsageHistory").mockResolvedValue({ productId: article.id, events: [] });
@@ -319,6 +340,91 @@ describe("useArticleEditorController", () => {
     expect(result.current.isOpen).toBe(true);
     expect(result.current.form.internalNotes).toBe("Wert aus unmontiertem Reiter");
     expect(result.current.error).toBe("Netzwerkfehler");
+  });
+
+  it("imports selected search images after create and assigns one primary image", async () => {
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+    act(() => result.current.changeForm({ manufacturer: "Tillig", name: "Gleis", subtype: "other" }));
+    act(() => result.current.addPendingArticleImages([
+      { id: "image-1", url: "https://example.com/1.jpg", title: "Bild 1",
+        source: "https://example.com/article", isPrimary: true },
+      { id: "image-2", url: "https://example.com/2.jpg", title: "Bild 2",
+        source: "https://example.com/article", isPrimary: false }
+    ]));
+
+    await act(async () => result.current.submit());
+
+    expect(api.createAccessoryArticle).toHaveBeenCalledOnce();
+    expect(api.importAccessoryDocumentFromUrl).toHaveBeenNthCalledWith(1, article.id, {
+      url: "https://example.com/1.jpg", title: "Bild 1", description: "https://example.com/article", isPrimary: true
+    });
+    expect(api.importAccessoryDocumentFromUrl).toHaveBeenNthCalledWith(2, article.id, {
+      url: "https://example.com/2.jpg", title: "Bild 2", description: "https://example.com/article", isPrimary: false
+    });
+    expect(result.current.pendingArticleImages).toEqual([]);
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("keeps only failed images and retries them as an edit without creating a duplicate article", async () => {
+    vi.mocked(api.importAccessoryDocumentFromUrl)
+      .mockRejectedValueOnce(new Error("Bild 1 nicht erreichbar"))
+      .mockResolvedValueOnce({ ...importedDocument, id: "document-2", isPrimary: true });
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openCreate());
+    await waitFor(() => expect(result.current.articleTypeEntriesLoading).toBe(false));
+    act(() => result.current.changeForm({ manufacturer: "Tillig", name: "Gleis", subtype: "other" }));
+    act(() => result.current.addPendingArticleImages([
+      { id: "image-1", url: "https://example.com/1.jpg", title: "Bild 1",
+        source: "https://example.com/article", isPrimary: true },
+      { id: "image-2", url: "https://example.com/2.jpg", title: "Bild 2",
+        source: "https://example.com/article", isPrimary: false }
+    ]));
+
+    await act(async () => result.current.submit());
+
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.mode).toBe("edit");
+    expect(result.current.pendingArticleImages.map((image) => image.id)).toEqual(["image-1"]);
+    expect(result.current.error).toContain("Bild 1 nicht erreichbar");
+    expect(api.createAccessoryArticle).toHaveBeenCalledOnce();
+    expect(api.importAccessoryDocumentFromUrl).toHaveBeenNthCalledWith(2, article.id,
+      expect.objectContaining({ url: "https://example.com/2.jpg", isPrimary: true }));
+
+    vi.mocked(api.importAccessoryDocumentFromUrl).mockResolvedValueOnce(importedDocument);
+    await act(async () => result.current.submit());
+
+    expect(api.createAccessoryArticle).toHaveBeenCalledOnce();
+    expect(api.updateAccessoryArticle).toHaveBeenCalledOnce();
+    expect(result.current.pendingArticleImages).toEqual([]);
+    expect(result.current.isOpen).toBe(false);
+  });
+
+  it("preserves an existing primary image and clears image drafts for a different editor session", async () => {
+    vi.mocked(api.accessoryDocuments).mockResolvedValueOnce([importedDocument]);
+    const { result } = renderHook(() => useArticleEditorController({ roles: ["Editor"] }));
+    act(() => result.current.openArticle(article.id, "edit", false));
+    await waitFor(() => expect(result.current.resources.documents).toEqual([importedDocument]));
+    act(() => result.current.addPendingArticleImages([{
+      id: "image-1",
+      url: "https://example.com/1.jpg",
+      title: "Neues Bild",
+      source: "https://example.com/article",
+      isPrimary: true
+    }]));
+
+    await act(async () => result.current.submit());
+
+    expect(api.importAccessoryDocumentFromUrl).toHaveBeenCalledWith(article.id, {
+      url: "https://example.com/1.jpg",
+      title: "Neues Bild",
+      description: "https://example.com/article",
+      isPrimary: false
+    });
+
+    act(() => result.current.openCreate());
+    expect(result.current.pendingArticleImages).toEqual([]);
   });
 
   it("preserves and resubmits hidden historical custom attributes after a failed edit save", async () => {

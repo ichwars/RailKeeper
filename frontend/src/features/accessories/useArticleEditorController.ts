@@ -361,7 +361,7 @@ export function useArticleEditorController({
   };
 
   const requestClose = () => {
-    const formDirty = mode !== "view" && isArticleEditorDirty(form, initialForm);
+    const formDirty = mode !== "view" && (isArticleEditorDirty(form, initialForm) || pendingArticleImages.length > 0);
     const writableSubdraftDirty = mode === "view"
       ? !permissions.canEdit && permissions.canReserve && Boolean(subdraftDirty.reservation)
       : Object.values(subdraftDirty).some(Boolean);
@@ -387,8 +387,43 @@ export function useArticleEditorController({
         ? await api.updateAccessoryArticle(article.id, input)
         : await api.createAccessoryArticle(input);
       setArticle(saved);
+      setMode("edit");
       setInitialForm(draft);
+
+      const failedImages: PendingAccessoryArticleImage[] = [];
+      const importedDocuments: AccessoryDocument[] = [];
+      let importError = "";
+      let hasPrimaryImage = resources.documents.some((document) =>
+        document.category === "image" && document.isPrimary);
+      for (const image of pendingArticleImages) {
+        const isPrimary = !hasPrimaryImage;
+        try {
+          const document = await api.importAccessoryDocumentFromUrl(saved.id, {
+            url: image.url,
+            title: image.title,
+            description: image.source,
+            isPrimary
+          });
+          importedDocuments.push(document);
+          if (isPrimary) hasPrimaryImage = true;
+        } catch (reason) {
+          failedImages.push(image);
+          if (!importError) importError = errorMessage(reason);
+        }
+      }
+      setPendingArticleImages(failedImages);
+      if (importedDocuments.length > 0) {
+        setResources((current) => ({
+          ...current,
+          documents: [...current.documents, ...importedDocuments],
+          documentsLoaded: true
+        }));
+      }
       await onSaved?.();
+      if (failedImages.length > 0) {
+        setError(importError);
+        return;
+      }
       closeNow();
     } catch (reason) {
       setError(errorMessage(reason));

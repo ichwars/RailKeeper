@@ -215,6 +215,23 @@ describe("layout and accessory API client", () => {
     expect(init.headers["X-CSRF-Token"]).toBe("client-test-token");
   });
 
+  it("imports a selected article-search image through the protected accessory route", async () => {
+    const input = {
+      url: "https://www.tillig.com/images/83101.jpg",
+      title: "Tillig 83101",
+      description: "https://www.tillig.com/83101",
+      isPrimary: true
+    };
+
+    await api.importAccessoryDocumentFromUrl("product/1", input);
+
+    expectRequests([[
+      "POST",
+      "/api/v1/accessory-products/product%2F1/documents/import-url",
+      input
+    ]]);
+  });
+
   function expectRequests(expected: Array<[string, string, object?]>) {
     expect(fetchMock).toHaveBeenCalledTimes(expected.length);
     expected.forEach(([method, path, body], index) => {

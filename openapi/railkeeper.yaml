@@ -1686,6 +1686,8 @@ components:
           format: uri
         title:
           type: string
+        description:
+          type: string
         isPrimary:
           type: boolean
     AccessoryTechnicalPlacement:
