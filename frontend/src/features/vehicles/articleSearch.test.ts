@@ -4,12 +4,14 @@ import type { ArticleSearchImage, ArticleSearchResult, CreateVehicleRequest } fr
 import {
   articleFieldStatus,
   articleSelectionKey,
-  articleValueForForm,
-  booleanFromArticleValue,
-  currentArticleValue,
   imageSelectionKey,
   sourceDisplayName,
   sourceShortLink
+} from "../../shared/articleSearch/articleSearchModel";
+import {
+  articleValueForForm,
+  booleanFromArticleValue,
+  currentArticleValue
 } from "./articleSearch";
 
 const result: ArticleSearchResult = {
