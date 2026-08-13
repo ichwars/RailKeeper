@@ -30,6 +30,9 @@ func downloadRemoteAccessoryImage(
 	rawURL string,
 	maxBytes int64,
 ) ([]byte, string, error) {
+	// The caller validates the initial URL, while safefetch's transport independently validates
+	// every request, redirect, DNS result, and dial target immediately before network access.
+	// codeql[go/request-forgery]
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, "", err

@@ -36,6 +36,14 @@
 `golangci-lint` ist lokal nicht installiert. Der identische konfigurierte Lauf bleibt durch den
 GitHub-CI-Job `Backend lint` abgedeckt.
 
+## GitHub CI Follow-up
+
+CodeQL meldete `go/request-forgery` am Erzeugen des externen Bildrequests. Der Befund war ein
+Falschalarm für den bewusst flexiblen URL-Import: Der Handler prüft das erste Ziel vorab und der
+`safefetch`-Transport prüft Request, Redirect, DNS-Ergebnis und tatsächliches Dial-Ziel erneut.
+Diese projektspezifische Sanitizer-Kette wurde am Sink dokumentiert und nur für diese CodeQL-Regel
+unterdrückt. Die gezielten Sicherheitsprüfungen und `go test ./...` liefen danach erneut erfolgreich.
+
 ## Remaining Evidence
 
 - Rot- und Grün-Nachweis je Task,
