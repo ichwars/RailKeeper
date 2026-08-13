@@ -65,7 +65,8 @@ RailKeeper is built around operational views instead of marketing pages:
 
 - **Overview** for inventory, value, maintenance and data quality
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
-- **Article Overview** for article search, sortable inventory data, stock, reservations, installations, documents and history
+- **Accessories** for article-data and barcode search, sortable inventory data, stock, reservations,
+  installations, documents and history
 - **Exhibition List** for fair/show operations
 - **Import/Export** for CSV, TSV, XML and JSON imports, controlled updates and ECoS readout
 - **Settings** for master data, appearance, backups, updates and authentication
@@ -112,7 +113,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.16
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17
 ```
 
 If you intentionally want to build the checked-out source tree, use:

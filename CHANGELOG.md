@@ -4,6 +4,38 @@
 
 All notable changes to RailKeeper are documented in this file.
 
+## [0.1.17] - 2026-08-13
+
+### Added
+
+- Article-data and barcode search are now available directly while creating or editing accessories,
+  with source previews and explicit field-by-field selection before values are applied.
+- Selected product images from article-search results can be imported as private accessory
+  documents after saving the article.
+- GitHub sponsorship links now include Buy Me a Coffee and PayPal.
+
+### Changed
+
+- The former `Article Overview` area is now named `Accessories` while its existing `/accessories`
+  route remains stable.
+- Shared article-search and barcode dialogs now use app-owned modal, keyboard, focus-trap, and focus
+  restoration behavior in both vehicle and accessory workflows.
+- Updated `modernc.org/sqlite` to 1.56.0, `lucide-react` to 1.29.0, and Vite to 8.2.1.
+
+### Fixed
+
+- Unknown or inactive manufacturer and gauge suggestions can no longer be selected when the
+  corresponding master-data value is unavailable.
+- Remote image-import retries are idempotent, preserve existing primary images, and return an
+  already committed document without downloading it again.
+- Escape and Tab remain scoped to the active nested search dialog instead of reaching the accessory
+  editor behind it.
+
+### Security
+
+- Remote accessory images are restricted to public HTTP(S) targets with URL, DNS, redirect, MIME,
+  and attachment-size validation before they are stored.
+
 ## [0.1.16] - 2026-08-09
 
 ### Added
@@ -43,4 +75,5 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ichwars/RailKeeper/compare/v0.1.15...v0.1.16
