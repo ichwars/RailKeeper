@@ -65,6 +65,11 @@ func TestDownloadRemoteAccessoryImageEnforcesTypeAndSize(t *testing.T) {
 	); !errors.Is(err, errRemoteAccessoryImageTypeUnsupported) {
 		t.Fatalf("expected MIME error, got %v", err)
 	}
+	if _, _, err := downloadRemoteAccessoryImage(
+		t.Context(), server.Client(), "javascript:alert(1)", 64,
+	); !errors.Is(err, errRemoteAccessoryImageURLInvalid) {
+		t.Fatalf("expected URL error, got %v", err)
+	}
 }
 
 type accessoryAPIFixture struct {

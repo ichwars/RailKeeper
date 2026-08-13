@@ -41,8 +41,9 @@ GitHub-CI-Job `Backend lint` abgedeckt.
 CodeQL meldete `go/request-forgery` am Erzeugen des externen Bildrequests. Der Befund war ein
 Falschalarm für den bewusst flexiblen URL-Import: Der Handler prüft das erste Ziel vorab und der
 `safefetch`-Transport prüft Request, Redirect, DNS-Ergebnis und tatsächliches Dial-Ziel erneut.
-Diese projektspezifische Sanitizer-Kette wurde am Sink dokumentiert und nur für diese CodeQL-Regel
-unterdrückt. Die gezielten Sicherheitsprüfungen und `go test ./...` liefen danach erneut erfolgreich.
+Der Downloader validiert deshalb jetzt zusätzlich direkt vor dem Request noch einmal Syntax,
+absoluten Host und das exakte Schema `http` oder `https`; danach wird nur die kanonisch geparste URL
+verwendet. Die gezielten Sicherheitsprüfungen und `go test ./...` liefen danach erneut erfolgreich.
 
 ## Remaining Evidence
 

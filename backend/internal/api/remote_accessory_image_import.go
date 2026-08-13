@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 var (
 	errRemoteAccessoryImageTooLarge        = errors.New("remote accessory image too large")
 	errRemoteAccessoryImageTypeUnsupported = errors.New("remote accessory image type unsupported")
+	errRemoteAccessoryImageURLInvalid      = errors.New("remote accessory image URL invalid")
 )
 
 type accessoryDocumentImportURLInput struct {
@@ -30,10 +32,12 @@ func downloadRemoteAccessoryImage(
 	rawURL string,
 	maxBytes int64,
 ) ([]byte, string, error) {
-	// The caller validates the initial URL, while safefetch's transport independently validates
-	// every request, redirect, DNS result, and dial target immediately before network access.
-	// codeql[go/request-forgery]
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	parsedURL, err := url.ParseRequestURI(strings.TrimSpace(rawURL))
+	if err != nil || parsedURL == nil || parsedURL.Hostname() == "" ||
+		(parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+		return nil, "", errRemoteAccessoryImageURLInvalid
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, parsedURL.String(), nil)
 	if err != nil {
 		return nil, "", err
 	}
