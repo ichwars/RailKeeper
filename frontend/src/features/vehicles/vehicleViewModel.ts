@@ -15,6 +15,11 @@ import type {
   VehicleMaintenanceInput,
   VehicleSparePartInput
 } from "../../shared/api";
+import { isBadCommonArticleValue } from "../../shared/articleSearch/articleSearchModel";
+export {
+  articleSearchEnabled,
+  articleSearchSources
+} from "../../shared/articleSearch/articleSearchPreferences";
 import type { ArticleFieldKey } from "./articleSearch";
 
 export const emptyVehicle: CreateVehicleRequest = {
@@ -190,12 +195,6 @@ export const sortLabels: Record<SortKey, string> = {
   category: "Kategorie"
 };
 
-export const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
-export const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
-export const articleSearchSourceIds = ["web", "manufacturer", "catalogs", "dealers", "wiki"];
-export const defaultArticleSearchSources = ["manufacturer", "catalogs", "dealers", "web"];
-const legacyArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
-const previousArticleSearchSources = ["manufacturer", "dealers", "web"];
 export const inventoryViewSettingKey = "railkeeper.inventoryViewMode";
 
 export function inferFunctionTypeFromSymbol(symbolKey: string, symbols: MasterDataEntry[], fallback = "standard") {
@@ -282,33 +281,6 @@ export function valueForSort(vehicle: Vehicle, key: SortKey) {
   return (vehicle[key] || "").toLocaleLowerCase("de-DE");
 }
 
-export function articleSearchEnabled() {
-  return window.localStorage.getItem(articleSearchSettingKey) !== "false";
-}
-
-function isLegacyArticleSearchDefault(sources: string[]) {
-  return (
-    sources.length === legacyArticleSearchSources.length && legacyArticleSearchSources.every((source) => sources.includes(source))
-  ) || (
-    sources.length === previousArticleSearchSources.length && previousArticleSearchSources.every((source) => sources.includes(source))
-  );
-}
-
-export function articleSearchSources() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(articleSearchSourcesSettingKey) || "[]") as string[];
-    const allowed = new Set(articleSearchSourceIds);
-    const sources = stored.filter((source) => allowed.has(source));
-    if (isLegacyArticleSearchDefault(sources)) {
-      window.localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(defaultArticleSearchSources));
-      return defaultArticleSearchSources;
-    }
-    return sources.length > 0 ? sources : defaultArticleSearchSources;
-  } catch {
-    return defaultArticleSearchSources;
-  }
-}
-
 export function compactValue(value: unknown) {
   return String(value ?? "").trim();
 }
@@ -360,22 +332,10 @@ export function fieldValue(form: CreateVehicleRequest, key: string) {
 export function isBadArticleValue(key: string, value: string) {
   const normalized = value.trim();
   const lower = normalized.toLocaleLowerCase("de-DE");
-  if (!normalized) return true;
+  if (isBadCommonArticleValue(key, value)) return true;
   if (key === "lengthMm") {
     const number = Number(normalized.replace(",", "."));
     return !Number.isFinite(number) || number < 20 || number > 600;
-  }
-  if (key === "description") {
-    return [
-      "die absicht ist",
-      "anzeigen zu zeigen",
-      "personalisierte anzeigen",
-      "cookie",
-      "google_analytics",
-      "altersempfehlung",
-      "downloads",
-      "bedienungsanleitung"
-    ].some((token) => lower.includes(token));
   }
   if (key === "lightingDescription") {
     return lower.includes("fahrtrichtung") || lower.includes("lichtwechsel") || lower.includes("spitzenlicht") || lower.includes("schlusslicht");

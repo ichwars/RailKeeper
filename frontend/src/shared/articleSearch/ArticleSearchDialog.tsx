@@ -1,31 +1,27 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Check, ExternalLink, X } from "lucide-react";
 import {
-  ArticleSearchImage,
-  ArticleSearchResponse,
-  ArticleSearchResult,
-  CreateVehicleRequest
-} from "../../shared/api";
-import { useI18n } from "../../shared/i18n";
+  type ArticleSearchImage,
+  type ArticleSearchResponse,
+  type ArticleSearchResult
+} from "../api";
+import { useI18n } from "../i18n";
 import {
-  ArticleFieldKey,
-  articleFieldGroups,
-  articleFieldLabels,
   articleFieldStatus,
   articleResultKey,
   articleSelectionKey,
-  currentArticleValue,
   imageSelectionKey,
-  isArticleFieldKey,
-  sourceDisplayName
-} from "./articleSearch";
+  sourceDisplayName,
+  type ArticleSearchFieldGroup
+} from "./articleSearchModel";
 
 function previewImageUrl(image?: { url: string; thumbnailUrl?: string }) {
   return image?.thumbnailUrl || image?.url || "";
 }
 
 export function ArticleSearchDialog({
-  form,
+  fieldGroups,
+  currentValue,
   loading,
   response,
   error,
@@ -36,7 +32,8 @@ export function ArticleSearchDialog({
   onToggleField,
   onToggleImage
 }: {
-  form: CreateVehicleRequest;
+  fieldGroups: ArticleSearchFieldGroup[];
+  currentValue: (key: string) => string;
   loading: boolean;
   response: ArticleSearchResponse | null;
   error: string;
@@ -49,16 +46,10 @@ export function ArticleSearchDialog({
 }) {
   const { t } = useI18n();
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
+  const fieldDefinitions = new Map(fieldGroups.flatMap((group) =>
+    group.fields.map((field) => [field.key, field] as const)));
   const articleFieldLabel = (key: string, fallback?: string) => {
-    const label = t(`vehicle.field.${key}`);
-    return label === `vehicle.field.${key}` ? fallback || articleFieldLabels[key as ArticleFieldKey] || key : label;
-  };
-  const articleGroupTitle = (title: string) => {
-    if (title === "Modell") return t("vehicles.articleSearch.group.model");
-    if (title === "Masse / Bauart") return t("vehicles.articleSearch.group.mass");
-    if (title === "Technik") return t("vehicles.articleSearch.group.technology");
-    if (title === "Weitere Daten") return t("vehicles.articleSearch.group.more");
-    return title;
+    return fieldDefinitions.get(key)?.label || fallback || key;
   };
   const sourceLabel = (source: string) => t(`settings.articleSearch.source.${source}`);
   const sources = response?.sources || [];
@@ -126,7 +117,7 @@ export function ArticleSearchDialog({
         <div className="article-result-list">
           {response?.results.map((result, index) => {
             const resultKey = articleResultKey(result, index);
-            const selectableKeys = Object.keys(result.fields).filter(isArticleFieldKey);
+            const selectableKeys = Object.keys(result.fields).filter((key) => fieldDefinitions.has(key));
             const visibleImages = (result.images || []).filter((image) => image.url && !failedImages[image.url]);
             const resultImage = visibleImages[0];
             return (
@@ -188,14 +179,14 @@ export function ArticleSearchDialog({
                 )}
 
                 <div className="article-field-groups">
-                  {articleFieldGroups.map((group) => {
-                    const rows = group.keys
-                      .filter((key) => result.fields[key])
-                      .map((key) => ({ key, field: result.fields[key] }));
+                  {fieldGroups.map((group) => {
+                    const rows = group.fields
+                      .filter(({ key }) => result.fields[key])
+                      .map(({ key }) => ({ key, field: result.fields[key] }));
                     if (rows.length === 0) return null;
                     return (
-                      <section key={group.title} className="article-field-group">
-                        <h3>{articleGroupTitle(group.title)}</h3>
+                      <section key={group.key} className="article-field-group">
+                        <h3>{group.label}</h3>
                         <table>
                           <thead>
                             <tr>
@@ -208,7 +199,7 @@ export function ArticleSearchDialog({
                           </thead>
                           <tbody>
                             {rows.map(({ key, field }) => {
-                              const current = currentArticleValue(form, key);
+                              const current = currentValue(key);
                               const status = articleFieldStatus(current, field.value);
                               const foundDisplay = key === "articleSourceUrl" ? sourceDisplayName(field.value) : field.value;
                               const currentDisplay = key === "articleSourceUrl" && current ? sourceDisplayName(current) : current;

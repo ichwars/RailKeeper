@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Barcode, Camera, PackageSearch, X } from "lucide-react";
-import { useI18n } from "../../shared/i18n";
+import { useI18n } from "../i18n";
 
 type BarcodeSearchDialogProps = {
   value: string;
@@ -124,14 +124,16 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
   };
 
   return (
-    <div className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.barcode.title")}>
+    <div className="confirm-layer barcode-search-layer" role="dialog" aria-modal="true"
+      aria-label={t("vehicles.barcode.title")}>
       <form className="barcode-search-dialog" onSubmit={onSubmit}>
         <header className="panel-head form-head">
           <div>
             <h2>{t("vehicles.barcode.title")}</h2>
             <p>{t("vehicles.barcode.help")}</p>
           </div>
-          <button type="button" className="icon-button" onClick={handleClose} aria-label={t("vehicles.close")} title={t("vehicles.close")}>
+          <button type="button" className="icon-button" onClick={handleClose}
+            aria-label={t("common.cancel")} title={t("common.cancel")}>
             <X size={17} />
           </button>
         </header>
@@ -178,7 +180,7 @@ export function BarcodeSearchDialog({ value, onValueChange, onClose, onSubmit }:
 
         <footer className="barcode-search-actions">
           <button type="button" className="secondary-button" onClick={handleClose}>
-            {t("vehicles.cancel")}
+            {t("common.cancel")}
           </button>
           <button type="submit" className="primary-button">
             <PackageSearch size={15} aria-hidden="true" />

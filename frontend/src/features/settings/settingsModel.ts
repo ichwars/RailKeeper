@@ -1,5 +1,11 @@
 import type { AppView } from "../../app/App";
 import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
+export {
+  articleSearchSettingKey,
+  articleSearchSourcesSettingKey,
+  defaultArticleSearchSources,
+  readArticleSearchSources
+} from "../../shared/articleSearch/articleSearchPreferences";
 
 export type SettingsTab =
   | "general"
@@ -33,11 +39,6 @@ export const masterDataTypes: MasterDataType[] = [
 ];
 
 export const loadableMasterDataTypes = masterDataTypes;
-export const articleSearchSettingKey = "railkeeper.articleSearchEnabled";
-export const articleSearchSourcesSettingKey = "railkeeper.articleSearchSources";
-export const defaultArticleSearchSources = ["manufacturer", "catalogs", "dealers", "web"];
-const legacyArticleSearchSources = ["web", "manufacturer", "dealers", "wiki"];
-const previousArticleSearchSources = ["manufacturer", "dealers", "web"];
 export const articleSearchSourceOptions = [
   { id: "web", labelKey: "settings.articleSearch.source.web", helpKey: "settings.articleSearch.source.webHelp" },
   { id: "manufacturer", labelKey: "settings.articleSearch.source.manufacturer", helpKey: "settings.articleSearch.source.manufacturerHelp" },
@@ -99,29 +100,6 @@ export function readLocalBool(key: string, fallback: boolean) {
   const value = window.localStorage.getItem(key);
   if (value === null) return fallback;
   return value === "true";
-}
-
-function isLegacyArticleSearchDefault(sources: string[]) {
-  return (
-    sources.length === legacyArticleSearchSources.length && legacyArticleSearchSources.every((source) => sources.includes(source))
-  ) || (
-    sources.length === previousArticleSearchSources.length && previousArticleSearchSources.every((source) => sources.includes(source))
-  );
-}
-
-export function readArticleSearchSources() {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(articleSearchSourcesSettingKey) || "[]") as string[];
-    const allowed = new Set(articleSearchSourceOptions.map((option) => option.id));
-    const sources = stored.filter((source) => allowed.has(source));
-    if (isLegacyArticleSearchDefault(sources)) {
-      window.localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(defaultArticleSearchSources));
-      return defaultArticleSearchSources;
-    }
-    return sources.length > 0 ? sources : defaultArticleSearchSources;
-  } catch {
-    return defaultArticleSearchSources;
-  }
 }
 
 export function sidebarPrefsKey(username: string) {
