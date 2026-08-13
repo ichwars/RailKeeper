@@ -4,6 +4,27 @@
 
 Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
+## [0.1.17.1] - 2026-08-13
+
+### Hinzugefügt
+
+- Die Zubehör-Artikelsuche erfasst beschriftete Gleis-Fachangaben wie Gleissystem, Abmessungen,
+  Richtung, Bettung, Anschlüsse und Digitaltauglichkeit als einzeln auswählbare, typisierte
+  Vorschläge.
+- Die Auswahl einer Spurweite trägt den konfigurierten Maßstab automatisch ein, bis das
+  Maßstabsfeld manuell bearbeitet wird.
+- Neue oder bisher unverschlagwortete Artikel erhalten synchronisierte Schlagwortvorschläge aus
+  Bezeichnung, Hersteller, Artikelart und Unterart, bis das Schlagwortfeld manuell bearbeitet wird.
+
+### Behoben
+
+- Der Zubehör-Artikelsuchdialog wird jetzt über dem Editor angezeigt, statt hinter dessen
+  Modalebene verborgen zu bleiben.
+- Spurweiten-Mehrfachauswahlen reagieren auf eingegebene Optionsbezeichnungen und begrenzen Escape
+  auf die geöffnete Auswahlliste, statt den gesamten Artikeleditor zu schließen.
+- Fehlerhafte oder unpassende Gleis-Fachangaben externer Seiten lassen sich nicht auswählen oder
+  importieren.
+
 ## [0.1.17] - 2026-08-13
 
 ### Hinzugefügt
@@ -81,5 +102,6 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
 [0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ichwars/RailKeeper/compare/v0.1.15...v0.1.16

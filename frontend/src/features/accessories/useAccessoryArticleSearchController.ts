@@ -68,7 +68,7 @@ export function useAccessoryArticleSearchController({
   const [selectedImages, setSelectedImages] = useState<Record<string, boolean>>({});
 
   const canSelectField = (key: string, value: string) =>
-    isSelectableAccessorySearchValue(key, value, manufacturers, gauges);
+    isSelectableAccessorySearchValue(key, value, manufacturers, gauges, form.articleType);
 
   const run = (searchForm = form, searchInput?: ArticleSearchInput) => {
     if (readOnly) return;

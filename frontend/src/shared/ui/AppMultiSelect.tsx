@@ -5,6 +5,7 @@ import {
   Fragment,
   KeyboardEvent,
   ReactNode,
+  isValidElement,
   useEffect,
   useId,
   useRef,
@@ -33,6 +34,13 @@ export type AppMultiSelectProps = {
   placeholder: string;
   "aria-describedby"?: string;
 };
+
+function optionLabelText(label: ReactNode): string {
+  if (typeof label === "string" || typeof label === "number") return String(label);
+  if (Array.isArray(label)) return label.map(optionLabelText).join(" ");
+  if (isValidElement<{ children?: ReactNode }>(label)) return optionLabelText(label.props.children);
+  return "";
+}
 
 export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>(function AppMultiSelect(
   {
@@ -64,6 +72,8 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const typeaheadRef = useRef("");
+  const typeaheadTimerRef = useRef<number | null>(null);
   const firstEnabled = options.findIndex((option) => !option.disabled);
   const lastEnabled = options
     .map((option, index) => ({ option, index }))
@@ -90,6 +100,10 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
     document.addEventListener("pointerdown", closeOutside);
     return () => document.removeEventListener("pointerdown", closeOutside);
   }, [open]);
+
+  useEffect(() => () => {
+    if (typeaheadTimerRef.current !== null) window.clearTimeout(typeaheadTimerRef.current);
+  }, []);
 
   const setTriggerRef = (node: HTMLButtonElement | null) => {
     triggerRef.current = node;
@@ -128,6 +142,30 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
     }
   };
 
+  const applyTypeahead = (key: string) => {
+    if (disabled || readOnly || options.length === 0) return;
+    if (typeaheadTimerRef.current !== null) window.clearTimeout(typeaheadTimerRef.current);
+    typeaheadRef.current = `${typeaheadRef.current}${key}`.slice(-30);
+    typeaheadTimerRef.current = window.setTimeout(() => {
+      typeaheadRef.current = "";
+      typeaheadTimerRef.current = null;
+    }, 700);
+    const repeatedCharacterSearch = typeaheadRef.current.length > 1 &&
+      new Set(typeaheadRef.current.toLocaleLowerCase("de-DE")).size === 1;
+    const query = (repeatedCharacterSearch ? key : typeaheadRef.current).trim().toLocaleLowerCase("de-DE");
+    const candidates = options.map((option, index) => ({
+      index,
+      option,
+      label: optionLabelText(option.label).trim().toLocaleLowerCase("de-DE")
+    }));
+    const ordered = [...candidates.slice(activeIndex + 1), ...candidates.slice(0, activeIndex + 1)];
+    const match = ordered.find((candidate) => !candidate.option.disabled && candidate.label.startsWith(query)) ||
+      ordered.find((candidate) => !candidate.option.disabled && candidate.label.includes(query));
+    if (!match) return;
+    setActiveIndex(match.index);
+    setOpen(true);
+  };
+
   const handleTriggerKeyboard = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "ArrowDown" || event.key === "ArrowUp") {
       event.preventDefault();
@@ -139,7 +177,12 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      if (open) event.stopPropagation();
       setOpen(false);
+    }
+    if (event.key.length === 1 && event.key !== " " && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      applyTypeahead(event.key);
     }
   };
 
@@ -159,9 +202,14 @@ export const AppMultiSelect = forwardRef<HTMLButtonElement, AppMultiSelectProps>
     }
     if (event.key === "Escape") {
       event.preventDefault();
+      event.stopPropagation();
       closeAndFocusTrigger();
     }
     if (event.key === "Tab") window.setTimeout(() => setOpen(false), 0);
+    if (event.key.length === 1 && event.key !== " " && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      applyTypeahead(event.key);
+    }
   };
 
   const handleFocusLeave = (event: FocusEvent<HTMLDivElement>) => {

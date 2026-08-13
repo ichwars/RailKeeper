@@ -51,7 +51,7 @@
 }
 
 .barcode-search-layer {
-  z-index: 42;
+  z-index: 160;
 }
 
 .barcode-search-dialog {
@@ -271,7 +271,7 @@
 }
 
 .article-search-layer {
-  z-index: 42;
+  z-index: 160;
 }
 
 .article-search-dialog {

@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 
 const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
 const accessoriesCss = readFileSync(resolve(process.cwd(), "src/styles/accessories.css"), "utf8");
+const vehicleDialogsCss = readFileSync(resolve(process.cwd(), "src/styles/vehicle-dialogs.css"), "utf8");
+
+function zIndex(css: string, selector: string) {
+  const match = css.match(new RegExp(`${selector}\\s*\\{[^}]*z-index:\\s*(\\d+)`, "s"));
+  return match ? Number(match[1]) : -1;
+}
 
 describe("article editor responsive tabs", () => {
   it("restores horizontally reachable tabs in the later mobile override stylesheet", () => {
@@ -51,5 +57,12 @@ describe("article editor responsive tabs", () => {
     );
     expect(accessoriesCss).not.toMatch(/\.article-stock-form\s*\{[^}]*height:\s*100%/s);
     expect(accessoriesCss).not.toContain(".article-stock-form > .primary-button");
+  });
+
+  it("stacks article and barcode search dialogs above the article editor", () => {
+    const editorLayer = zIndex(accessoriesCss, "\\.article-editor-layer");
+
+    expect(zIndex(vehicleDialogsCss, "\\.article-search-layer")).toBeGreaterThan(editorLayer);
+    expect(zIndex(vehicleDialogsCss, "\\.barcode-search-layer")).toBeGreaterThan(editorLayer);
   });
 });

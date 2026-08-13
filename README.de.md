@@ -41,7 +41,8 @@ Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
 - Fahrzeugdatensätze mit Modelldaten, technischen Feldern, Eigentumsangaben, Bildern, Anhängen, QR-Codes und übersichtlichen Leseansichten
 - Artikelbestand mit generierten Inventarnummern, sortierbarer Auswahlspalte, Mengen- oder Einzelverfolgung, Lagerortbeständen, Reservierungen, Einbauten, Dokumenten und Nutzungshistorie
 - Fundament für Anlagen, Module, Aufbauten und Planrevisionen mit Versionskonfliktschutz; der Eintrag in der Hauptnavigation bleibt vorübergehend deaktiviert, solange der Arbeitsbereich weiter verfeinert wird
-- Websuche nach Artikeldaten mit konfigurierbaren Quellen, Barcode-/EAN-Eingabe, ZXing-Kamerascanner und ausdrücklicher feldweiser Prüfung
+- Websuche nach Artikeldaten mit konfigurierbaren Quellen, Barcode-/EAN-Eingabe,
+  ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
 - PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern
 - Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
 - Digitalzentralen-Adapter: ECoS-Lese-/Schreibsynchronisation sowie Verbindungstests für Z21 per UDP und CS3 per HTTP
@@ -123,7 +124,7 @@ SQLite-Datenbank, Uploads und lokale Dateien bleiben im Docker-Volume `railkeepe
 Um statt `latest` ein bestimmtes Release festzulegen, trage Folgendes in `.env` ein:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17.1
 ```
 
 Wenn du bewusst den ausgecheckten Quellstand bauen möchtest, verwende:
