@@ -5,8 +5,13 @@ import {
   Vehicle
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
-import { ArticleSearchDialog } from "./ArticleSearchDialog";
-import { BarcodeSearchDialog } from "./BarcodeSearchDialog";
+import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
+import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
+import {
+  currentArticleValue,
+  vehicleArticleSearchGroups,
+  type ArticleFieldKey
+} from "./articleSearch";
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
@@ -930,7 +935,8 @@ export function VehiclesView({ username }: { username: string }) {
       )}
       {articleSearchOpen && (
         <ArticleSearchDialog
-          form={form}
+          fieldGroups={vehicleArticleSearchGroups(t)}
+          currentValue={(key) => currentArticleValue(form, key as ArticleFieldKey)}
           loading={articleSearchLoading}
           response={articleSearchResponse}
           error={articleSearchError}

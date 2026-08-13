@@ -1,8 +1,16 @@
-import {
-  ArticleSearchImage,
-  ArticleSearchResult,
-  CreateVehicleRequest
-} from "../../shared/api";
+import type { CreateVehicleRequest } from "../../shared/api";
+import type {
+  ArticleSearchFieldGroup,
+  Translate
+} from "../../shared/articleSearch/articleSearchModel";
+export {
+  articleFieldStatus,
+  articleResultKey,
+  articleSelectionKey,
+  imageSelectionKey,
+  sourceDisplayName,
+  sourceShortLink
+} from "../../shared/articleSearch/articleSearchModel";
 
 export type ArticleFieldKey = keyof CreateVehicleRequest;
 
@@ -73,6 +81,26 @@ export const articleFieldGroups: { title: string; keys: ArticleFieldKey[] }[] = 
   }
 ];
 
+export function vehicleArticleSearchGroups(t: Translate): ArticleSearchFieldGroup[] {
+  const groupLabels: Record<string, string> = {
+    "Modell": t("vehicles.articleSearch.group.model"),
+    "Masse / Bauart": t("vehicles.articleSearch.group.mass"),
+    "Technik": t("vehicles.articleSearch.group.technology"),
+    "Weitere Daten": t("vehicles.articleSearch.group.more")
+  };
+  return articleFieldGroups.map((group) => ({
+    key: group.title,
+    label: groupLabels[group.title] || group.title,
+    fields: group.keys.map((key) => {
+      const translated = t(`vehicle.field.${key}`);
+      return {
+        key,
+        label: translated === `vehicle.field.${key}` ? articleFieldLabels[key] || key : translated
+      };
+    })
+  }));
+}
+
 const booleanArticleFields = new Set<ArticleFieldKey>([
   "digital",
   "dtDecoder",
@@ -89,18 +117,6 @@ const booleanArticleFields = new Set<ArticleFieldKey>([
 
 export function isArticleFieldKey(key: string): key is ArticleFieldKey {
   return key in articleFieldLabels;
-}
-
-export function articleResultKey(result: ArticleSearchResult, index = 0) {
-  return `${result.url || result.title}-${index}`;
-}
-
-export function articleSelectionKey(result: ArticleSearchResult, key: string, index = 0) {
-  return `${articleResultKey(result, index)}::${key}`;
-}
-
-export function imageSelectionKey(result: ArticleSearchResult, image: ArticleSearchImage, index = 0) {
-  return `${articleResultKey(result, index)}::image::${image.url}`;
 }
 
 export function booleanFromArticleValue(value: string) {
@@ -120,35 +136,4 @@ export function currentArticleValue(form: CreateVehicleRequest, key: ArticleFiel
     return value ? "Ja" : "Nein";
   }
   return String(value || "").trim();
-}
-
-export function articleFieldStatus(current: string, found: string) {
-  if (!current) return "empty";
-  if (current.toLocaleLowerCase("de-DE") === found.toLocaleLowerCase("de-DE")) return "same";
-  return "conflict";
-}
-
-export function sourceDisplayName(rawUrl: string) {
-  try {
-    const host = new URL(rawUrl).hostname.replace(/^www\./, "");
-    const [name] = host.split(".");
-    return name ? name.charAt(0).toUpperCase() + name.slice(1) : host;
-  } catch {
-    return "Quelle";
-  }
-}
-
-export function sourceShortLink(rawUrl?: string) {
-  const value = String(rawUrl || "").trim();
-  if (!value) return "";
-  try {
-    const url = new URL(value);
-    const host = url.hostname.replace(/^www\./, "");
-    const path = `${url.pathname}${url.search}`.replace(/\/$/, "");
-    if (!path || path === "/") return host;
-    const shortenedPath = path.length > 44 ? `${path.slice(0, 24)}...${path.slice(-16)}` : path;
-    return `${host}${shortenedPath}`;
-  } catch {
-    return value.length > 54 ? `${value.slice(0, 32)}...${value.slice(-18)}` : value;
-  }
 }

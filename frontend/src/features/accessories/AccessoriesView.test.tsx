@@ -113,7 +113,7 @@ describe("AccessoriesView", () => {
   it("renders one table-only article overview with four global metrics", async () => {
     render(<AccessoriesView roles={["Editor"]} />);
 
-    expect(await screen.findByRole("heading", { name: "Artikelübersicht" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Zubehör" })).toBeInTheDocument();
     expect(screen.getByText("Modellbahnartikel suchen, erfassen und pflegen")).toBeInTheDocument();
     expect(screen.queryByText("WERKSTATT UND SAMMLUNG")).not.toBeInTheDocument();
     const metrics = screen.getByLabelText("Kennzahlen der Artikelverwaltung");
@@ -313,7 +313,7 @@ describe("AccessoriesView", () => {
 
   it("renders no article workspace and performs no request for Messe", () => {
     render(<AccessoriesView roles={["Messe"]} />);
-    expect(screen.getByText("Kein Zugriff auf die Artikelübersicht.")).toBeInTheDocument();
+    expect(screen.getByText("Kein Zugriff auf Zubehör.")).toBeInTheDocument();
     expect(api.accessoryArticles).not.toHaveBeenCalled();
   });
 
