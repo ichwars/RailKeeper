@@ -31,6 +31,7 @@
 | `go vet ./...` | PASS |
 | Branchbasis | `origin/main` bei `5b5ea1d` |
 | Anlage-Isolation | keine Anlage-Datei im Branchdiff |
+| isolierter Laufzeit-Smoke-Test | Port 18084, `/health` 200, App-Root 200, Testprozess beendet |
 
 `golangci-lint` ist lokal nicht installiert. Der identische konfigurierte Lauf bleibt durch den
 GitHub-CI-Job `Backend lint` abgedeckt.
