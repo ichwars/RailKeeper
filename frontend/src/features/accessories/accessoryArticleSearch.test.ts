@@ -5,9 +5,11 @@ import { articleSelectionKey } from "../../shared/articleSearch/articleSearchMod
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import {
   accessorySearchInput,
+  accessorySearchFieldGroups,
   applyAccessorySearchResult,
   currentAccessorySearchValue,
   hasAccessorySearchCriteria,
+  isSelectableAccessorySearchValue,
   isUsableAccessorySearchValue
 } from "./accessoryArticleSearch";
 
@@ -58,23 +60,35 @@ const result: ArticleSearchResult = {
 };
 
 describe("accessory article search", () => {
-  it("maps article criteria without inferring article type", () => {
+  it("maps article criteria and current typed subject values as search context", () => {
     const input = accessorySearchInput({
       ...emptyArticleEditorForm(),
       manufacturer: "Tillig",
       articleNumber: "83101",
       gauges: ["TT"],
-      ean: "4012500831012"
+      ean: "4012500831012",
+      articleType: "track",
+      subtype: "turnout",
+      attributes: [
+        { key: "trackSystem", kind: "text", textValue: "TT Modellgleis" },
+        { key: "roadbed", kind: "boolean", booleanValue: false }
+      ],
+      attributeNumberDrafts: { lengthMm: "129,5" }
     });
 
     expect(input).toEqual(expect.objectContaining({
       manufacturer: "Tillig",
       articleNumber: "83101",
       gauge: "TT",
-      fields: expect.objectContaining({ ean: "4012500831012" })
+      fields: expect.objectContaining({
+        ean: "4012500831012",
+        articleType: "track",
+        subtype: "turnout",
+        trackSystem: "TT Modellgleis",
+        roadbed: "false",
+        lengthMm: "129.5"
+      })
     }));
-    expect(input.fields).not.toHaveProperty("articleType");
-    expect(input.fields).not.toHaveProperty("subtype");
   });
 
   it("accepts EAN alone or manufacturer, gauge, and article identity", () => {
@@ -141,8 +155,80 @@ describe("accessory article search", () => {
   });
 
   it("formats current accessory values for conflict comparison", () => {
-    const form = { ...emptyArticleEditorForm(), gauges: ["TT", "H0"], productUrl: result.url };
+    const form = {
+      ...emptyArticleEditorForm(),
+      articleType: "track" as const,
+      gauges: ["TT", "H0"],
+      productUrl: result.url,
+      attributes: [
+        { key: "trackSystem", kind: "text" as const, textValue: "TT Modellgleis" },
+        { key: "roadbed", kind: "boolean" as const, booleanValue: false }
+      ],
+      attributeNumberDrafts: { lengthMm: "129,5" }
+    };
     expect(currentAccessorySearchValue(form, "gauge")).toBe("TT, H0");
     expect(currentAccessorySearchValue(form, "articleSourceUrl")).toBe(result.url);
+    expect(currentAccessorySearchValue(form, "trackSystem")).toBe("TT Modellgleis");
+    expect(currentAccessorySearchValue(form, "roadbed")).toBe("false");
+    expect(currentAccessorySearchValue(form, "lengthMm")).toBe("129.5");
+  });
+
+  it("shows and validates the track subject field group", () => {
+    const t = (key: string, values?: Record<string, string | number>) =>
+      key === "accessories.editor.tabs.subject" ? `Fachangaben: ${values?.type}` : key;
+    const groups = accessorySearchFieldGroups(t, "track");
+
+    expect(groups.at(-1)).toMatchObject({
+      key: "subject",
+      label: "Fachangaben: accessories.articleType.track"
+    });
+    expect(groups.at(-1)?.fields.map((field) => field.key)).toEqual(expect.arrayContaining([
+      "trackSystem", "lengthMm", "radiusMm", "direction", "roadbed", "digitalReady"
+    ]));
+    expect(isSelectableAccessorySearchValue("direction", "left", [manufacturer], [gauge], "track"))
+      .toBe(true);
+    expect(isSelectableAccessorySearchValue("direction", "up", [manufacturer], [gauge], "track"))
+      .toBe(false);
+    expect(isSelectableAccessorySearchValue("lengthMm", "129,5", [manufacturer], [gauge], "track"))
+      .toBe(true);
+    expect(isSelectableAccessorySearchValue("lengthMm", "-2", [manufacturer], [gauge], "track"))
+      .toBe(false);
+  });
+
+  it("applies selected track subject fields as typed values", () => {
+    const trackResult: ArticleSearchResult = {
+      ...result,
+      fields: {
+        trackSystem: { label: "Gleissystem", value: "TT Modellgleis", confidence: 1 },
+        lengthMm: { label: "Länge", value: "129,5", confidence: 1 },
+        direction: { label: "Richtung", value: "left", confidence: 1 },
+        roadbed: { label: "Bettung", value: "false", confidence: 1 },
+        digitalReady: { label: "Digitaltauglich", value: "true", confidence: 1 }
+      }
+    };
+    const selectedFields = Object.fromEntries(Object.keys(trackResult.fields).map((key) => [
+      articleSelectionKey(trackResult, key, 0), true
+    ]));
+    const patch = applyAccessorySearchResult({
+      form: {
+        ...emptyArticleEditorForm(),
+        articleType: "track",
+        attributes: [{ key: "trackSystem", kind: "text", textValue: "Alt" }]
+      },
+      result: trackResult,
+      resultIndex: 0,
+      selectedFields,
+      manufacturers: [manufacturer],
+      gauges: [gauge]
+    });
+
+    expect(patch.attributeNumberDrafts).toEqual({ lengthMm: "129.5" });
+    expect(patch.attributes).toEqual(expect.arrayContaining([
+      { key: "trackSystem", kind: "text", textValue: "TT Modellgleis" },
+      { key: "direction", kind: "single_select", optionValues: ["left"] },
+      { key: "roadbed", kind: "boolean", booleanValue: false },
+      { key: "digitalReady", kind: "boolean", booleanValue: true }
+    ]));
+    expect(patch.attributes?.filter((attribute) => attribute.key === "trackSystem")).toHaveLength(1);
   });
 });

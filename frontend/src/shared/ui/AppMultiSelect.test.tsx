@@ -73,9 +73,10 @@ describe("AppMultiSelect", () => {
   it("uses one roving option focus and supports listbox keyboard navigation", async () => {
     const user = userEvent.setup();
     const onValueChange = vi.fn();
+    const onParentKeyDown = vi.fn();
 
     render(
-      <>
+      <div onKeyDown={onParentKeyDown}>
         <AppMultiSelect
           label="Spurweiten"
           options={options}
@@ -84,7 +85,7 @@ describe("AppMultiSelect", () => {
           placeholder="Spurweiten auswählen"
         />
         <button type="button">Danach</button>
-      </>
+      </div>
     );
 
     const trigger = screen.getByRole("button", { name: "Spurweiten Spurweiten auswählen" });
@@ -105,15 +106,43 @@ describe("AppMultiSelect", () => {
     expect(h0).toHaveFocus();
     await user.keyboard("{End}");
     expect(tt).toHaveFocus();
+    onParentKeyDown.mockClear();
     await user.keyboard("{Escape}");
     expect(trigger).toHaveFocus();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(onParentKeyDown).not.toHaveBeenCalled();
 
     await user.keyboard("{Enter}");
     expect(screen.getByRole("option", { name: "H0" })).toHaveFocus();
     await user.tab();
     expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Danach" })).toHaveFocus();
+  });
+
+  it("opens and moves focus to an option when its label is typed", async () => {
+    const user = userEvent.setup();
+    const onValueChange = vi.fn();
+
+    render(
+      <AppMultiSelect
+        label="Spurweite"
+        options={options}
+        value={[]}
+        onValueChange={onValueChange}
+        placeholder="Spurweite auswählen"
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: "Spurweite Spurweite auswählen" });
+    trigger.focus();
+    await user.keyboard("tt");
+
+    expect(screen.getByRole("listbox", { name: "Spurweite" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "TT" })).toHaveFocus();
+    expect(onValueChange).not.toHaveBeenCalled();
+
+    await user.keyboard(" ");
+    expect(onValueChange).toHaveBeenCalledWith(["tt"]);
   });
 
   it("submits selected values and redirects required validation to the visible control", () => {

@@ -141,6 +141,11 @@ func buildArticleFields(input ArticleSearchInput, title, resultURL, snippet stri
 	} else if hasExplicitInteriorLighting(combinedLower) {
 		fields["lightingEnabled"] = ArticleSearchField{Label: "Beleuchtung", Value: "Ja", Confidence: 34}
 	}
+	for key, field := range buildTrackArticleFields(input, combined) {
+		if existing, ok := fields[key]; !ok || field.Confidence > existing.Confidence {
+			fields[key] = field
+		}
+	}
 	return fields
 }
 

@@ -479,6 +479,77 @@ func TestBuildArticleFieldsExtractsModellbahnFokusDetails(t *testing.T) {
 	}
 }
 
+func TestBuildArticleFieldsExtractsTrackSubjectFields(t *testing.T) {
+	input := ArticleSearchInput{
+		Manufacturer:  "Tillig",
+		ArticleNumber: "83329",
+		Gauge:         "TT",
+		Fields:        map[string]string{"articleType": "track"},
+	}
+	fields := buildArticleFields(input,
+		"Tillig 83329 Einfache Weiche EW1 links",
+		"https://www.tillig.com/83329",
+		`Gleissystem: TT Modellgleis
+Länge: 129,5 mm
+Radius: 353 mm
+Winkel: 15°
+Richtung: links
+Herzstückwinkel: 12°
+Schwellenart: Holz
+Profilhöhe: 2,07 mm
+Bettung: nein
+Anzahl Anschlüsse: 3
+Digitaltauglich: ja`,
+	)
+
+	expected := map[string]string{
+		"trackSystem":      "TT Modellgleis",
+		"lengthMm":         "129.5",
+		"radiusMm":         "353",
+		"angleDegrees":     "15",
+		"direction":        "left",
+		"frogAngleDegrees": "12",
+		"sleeperType":      "Holz",
+		"railHeightMm":     "2.07",
+		"roadbed":          "false",
+		"connectionCount":  "3",
+		"digitalReady":     "true",
+	}
+	for key, value := range expected {
+		if fields[key].Value != value {
+			t.Errorf("expected %s=%q, got %#v", key, value, fields[key])
+		}
+	}
+}
+
+func TestBuildArticleFieldsRestrictsTrackSubjectFieldsToTrackArticles(t *testing.T) {
+	fields := buildArticleFields(
+		ArticleSearchInput{Fields: map[string]string{"articleType": "signal"}},
+		"Tillig Signal", "https://example.test/signal",
+		"Gleissystem: TT Modellgleis\nRadius: 353 mm\nRichtung: links\nDigitaltauglich: ja",
+	)
+
+	for _, key := range []string{"trackSystem", "radiusMm", "direction", "digitalReady"} {
+		if _, ok := fields[key]; ok {
+			t.Errorf("non-track result must not contain %s: %#v", key, fields[key])
+		}
+	}
+}
+
+func TestBuildArticleFieldsRejectsAmbiguousTrackBooleans(t *testing.T) {
+	fields := buildArticleFields(
+		ArticleSearchInput{Fields: map[string]string{"articleType": "track"}},
+		"Modellgleis", "https://example.test/track",
+		"Bettung: optional erhältlich\nDigitaltauglich: mit zusätzlichem Decoder möglich",
+	)
+
+	for _, key := range []string{"roadbed", "digitalReady"} {
+		if _, ok := fields[key]; ok {
+			t.Errorf("ambiguous value must not produce %s: %#v", key, fields[key])
+		}
+	}
+}
+
 func TestBuildArticleFieldsKeepsProductDataClean(t *testing.T) {
 	input := ArticleSearchInput{Manufacturer: "Piko", ArticleNumber: "47284", Name: "V 180", Gauge: "TT"}
 	fields := buildArticleFields(input,

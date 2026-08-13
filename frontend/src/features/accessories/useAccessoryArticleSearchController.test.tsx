@@ -142,6 +142,49 @@ describe("useAccessoryArticleSearchController", () => {
     }));
   });
 
+  it("preselects and applies compatible track subject suggestions", async () => {
+    const trackResult: ArticleSearchResult = {
+      ...searchResult,
+      fields: {
+        lengthMm: { label: "Länge", value: "129.5", confidence: 1 },
+        direction: { label: "Richtung", value: "left", confidence: 1 }
+      }
+    };
+    const articleSearch = vi.spyOn(api, "articleSearch")
+      .mockResolvedValue({ query: "Tillig 83101 TT", results: [trackResult] });
+    const form = {
+      ...emptyArticleEditorForm(),
+      manufacturer: "Tillig",
+      articleNumber: "83101",
+      gauges: ["TT"],
+      articleType: "track" as const
+    };
+    const updateForm = vi.fn();
+    const { result } = renderHook(() => useAccessoryArticleSearchController({
+      form,
+      readOnly: false,
+      pendingImageCount: 0,
+      manufacturers: entries("manufacturer", "tillig", "Tillig"),
+      gauges: entries("gauge", "tt", "TT"),
+      updateForm,
+      addImages: vi.fn()
+    }));
+
+    act(() => result.current.commands.run());
+    await waitFor(() => expect(result.current.state.loading).toBe(false));
+
+    expect(articleSearch).toHaveBeenCalledWith(expect.objectContaining({
+      fields: expect.objectContaining({ articleType: "track" })
+    }));
+    expect(result.current.state.selectedFields[articleSelectionKey(trackResult, "lengthMm", 0)])
+      .toBe(true);
+    act(() => result.current.commands.applyResult(trackResult));
+    expect(updateForm).toHaveBeenCalledWith(expect.objectContaining({
+      attributeNumberDrafts: { lengthMm: "129.5" },
+      attributes: [{ key: "direction", kind: "single_select", optionValues: ["left"] }]
+    }));
+  });
+
   it("does not open searches in read-only mode", () => {
     const articleSearch = vi.spyOn(api, "articleSearch");
     const { result } = renderController(true);
