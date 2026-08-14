@@ -9,10 +9,12 @@ type ArticleCardGridProps = {
   articleTypeEntries: MasterDataEntry[];
   subtypeEntries: MasterDataEntry[];
   canEdit: boolean;
+  canDelete?: boolean;
   onView: (article: AccessoryArticleListItem) => void;
   onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
+  onDelete?: (article: AccessoryArticleListItem) => void;
 };
 
 export function ArticleCardGrid({
@@ -20,10 +22,12 @@ export function ArticleCardGrid({
   articleTypeEntries,
   subtypeEntries,
   canEdit,
+  canDelete = false,
   onView,
   onEdit,
   onArchive,
-  onRestore
+  onRestore,
+  onDelete
 }: ArticleCardGridProps) {
   const { t } = useI18n();
 
@@ -90,8 +94,9 @@ export function ArticleCardGrid({
                   installed: article.installed
                 })}</small>
               </div>
-              <ArticleActions article={article} canEdit={canEdit} onView={onView} onEdit={onEdit}
-                onArchive={onArchive} onRestore={onRestore} />
+              <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
+                onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
+                onDelete={onDelete} />
             </div>
           </article>
         );

@@ -9,6 +9,7 @@ import { ArticleMetrics } from "./ArticleMetrics";
 import { ArticleOverviewHeader } from "./ArticleOverviewHeader";
 import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
+import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import { persistArticleViewMode, storedArticleViewMode, type ArticleViewMode } from "./articleViewMode";
 import { useArticleOverview } from "./useArticleOverview";
 import { useArticleEditorController } from "./useArticleEditorController";
@@ -47,12 +48,15 @@ export function AccessoriesView({
 }: AccessoriesViewProps) {
   const canRead = roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
+  const canDelete = roles.includes("Admin");
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const coreMasterData = useArticleCoreMasterData(editor.isOpen);
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
   const [selectedArticleIDs, setSelectedArticleIDs] = useState<Set<string>>(new Set());
+  const [pendingDeleteArticle, setPendingDeleteArticle] =
+    useState<AccessoryArticleListItem | null>(null);
   const [viewMode, setViewMode] = useState<ArticleViewMode>(storedArticleViewMode);
   const compactOverview = useCompactArticleOverview();
   const { t } = useI18n();
@@ -167,10 +171,12 @@ export function AccessoriesView({
                 articleTypeEntries={articleTypeEntries}
                 subtypeEntries={subtypeEntries}
                 canEdit={canEdit}
+                canDelete={canDelete}
                 onView={(article) => openArticle(article, "view")}
                 onEdit={(article) => openArticle(article, "edit")}
                 onArchive={(article) => overview.archiveArticle(article.id)}
                 onRestore={(article) => overview.restoreArticle(article.id)}
+                onDelete={setPendingDeleteArticle}
               />
             ) : (
               <div className="article-desktop-content">
@@ -180,10 +186,12 @@ export function AccessoriesView({
                     articleTypeEntries={articleTypeEntries}
                     subtypeEntries={subtypeEntries}
                     canEdit={canEdit}
+                    canDelete={canDelete}
                     onView={(article) => openArticle(article, "view")}
                     onEdit={(article) => openArticle(article, "edit")}
                     onArchive={(article) => overview.archiveArticle(article.id)}
                     onRestore={(article) => overview.restoreArticle(article.id)}
+                    onDelete={setPendingDeleteArticle}
                   />
                 ) : (
                   <ArticleTable
@@ -193,6 +201,7 @@ export function AccessoriesView({
                     sort={overview.sort}
                     direction={overview.direction}
                     canEdit={canEdit}
+                    canDelete={canDelete}
                     selectedIDs={selectedArticleIDs}
                     onToggleSelection={toggleSelection}
                     onToggleAll={toggleAll}
@@ -201,6 +210,7 @@ export function AccessoriesView({
                     onEdit={(article) => openArticle(article, "edit")}
                     onArchive={(article) => overview.archiveArticle(article.id)}
                     onRestore={(article) => overview.restoreArticle(article.id)}
+                    onDelete={setPendingDeleteArticle}
                   />
                 )}
               </div>
@@ -258,6 +268,19 @@ export function AccessoriesView({
         onRetryCoreMasterData={coreMasterData.retry}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
+      <AccessoryConfirmDialog
+        action={pendingDeleteArticle ? {
+          title: t("accessories.delete.title"),
+          body: t("accessories.delete.body", {
+            inventoryNumber: pendingDeleteArticle.inventoryNumber,
+            name: pendingDeleteArticle.name
+          }),
+          confirmLabel: t("accessories.delete.confirm"),
+          dangerous: true,
+          run: () => overview.deleteArticle(pendingDeleteArticle.id)
+        } : null}
+        onClose={() => setPendingDeleteArticle(null)}
+      />
     </>
   );
 }

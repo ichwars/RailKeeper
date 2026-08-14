@@ -1590,6 +1590,11 @@ export const enTranslations: Record<string, string> = {
     "accessories.actions.moreNamed": "More actions: {name}",
     "accessories.actions.archive": "Archive article",
     "accessories.actions.restore": "Restore article",
+    "accessories.actions.delete": "Delete article",
+    "accessories.delete.title": "Permanently delete article",
+    "accessories.delete.body":
+      "Permanently delete {inventoryNumber}: {name}? This is only possible for completely unused articles.",
+    "accessories.delete.confirm": "Delete permanently",
     "accessories.articleType.track": "Track",
     "accessories.articleType.signal": "Signal",
     "accessories.articleType.decoder": "Decoder",

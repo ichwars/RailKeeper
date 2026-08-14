@@ -13,19 +13,23 @@ import { useI18n } from "../../shared/i18n";
 type ArticleActionsProps = {
   article: AccessoryArticleListItem;
   canEdit: boolean;
+  canDelete?: boolean;
   onView?: (article: AccessoryArticleListItem) => void;
   onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
+  onDelete?: (article: AccessoryArticleListItem) => void;
 };
 
 export function ArticleActions({
   article,
   canEdit,
+  canDelete = false,
   onView,
   onEdit,
   onArchive,
-  onRestore
+  onRestore,
+  onDelete
 }: ArticleActionsProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -58,12 +62,24 @@ export function ArticleActions({
   }, [open]);
 
   const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) {
-      event.preventDefault();
-      menuRef.current?.querySelector<HTMLButtonElement>("[role='menuitem']")?.focus();
-    } else if (event.key === "Tab") {
+    if (event.key === "Tab") {
       setOpen(false);
+      return;
     }
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const items = Array.from(
+      menuRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']") || []
+    );
+    if (items.length === 0) return;
+    const focusedIndex = items.findIndex((item) => item === document.activeElement);
+    const current = focusedIndex >= 0 ? focusedIndex : 0;
+    let next = current;
+    if (event.key === "Home") next = 0;
+    else if (event.key === "End") next = items.length - 1;
+    else if (event.key === "ArrowDown") next = (current + 1) % items.length;
+    else next = (current - 1 + items.length) % items.length;
+    items[next]?.focus();
   };
 
   return (
@@ -90,7 +106,7 @@ export function ArticleActions({
           <Pencil size={16} aria-hidden="true" />
         </button>
       ) : null}
-      {canEdit ? (
+      {canEdit || canDelete ? (
         <div className="article-overflow">
           <button
             ref={triggerRef}
@@ -111,17 +127,33 @@ export function ArticleActions({
               role="menu"
               onKeyDown={handleMenuKeyDown}
             >
-              <button
-                type="button"
-                role="menuitem"
-                tabIndex={0}
-                onClick={() => {
-                  setOpen(false);
-                  void (article.archived ? onRestore(article) : onArchive(article));
-                }}
-              >
-                {t(article.archived ? "accessories.actions.restore" : "accessories.actions.archive")}
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={0}
+                  onClick={() => {
+                    setOpen(false);
+                    void (article.archived ? onRestore(article) : onArchive(article));
+                  }}
+                >
+                  {t(article.archived ? "accessories.actions.restore" : "accessories.actions.archive")}
+                </button>
+              ) : null}
+              {canDelete && onDelete ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  tabIndex={-1}
+                  className="danger-menu-item"
+                  onClick={() => {
+                    setOpen(false);
+                    onDelete(article);
+                  }}
+                >
+                  {t("accessories.actions.delete")}
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>

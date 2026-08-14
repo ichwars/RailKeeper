@@ -19,6 +19,7 @@ type ArticleTableProps = {
   sort: AccessoryArticleSort;
   direction: AccessorySortDirection;
   canEdit: boolean;
+  canDelete?: boolean;
   onSort: (sort: AccessoryArticleSort) => void;
   selectedIDs?: Set<string>;
   onToggleSelection?: (id: string) => void;
@@ -27,6 +28,7 @@ type ArticleTableProps = {
   onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
+  onDelete?: (article: AccessoryArticleListItem) => void;
 };
 
 const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
@@ -48,6 +50,7 @@ export function ArticleTable({
   sort,
   direction,
   canEdit,
+  canDelete = false,
   onSort,
   selectedIDs = new Set<string>(),
   onToggleSelection,
@@ -55,7 +58,8 @@ export function ArticleTable({
   onView,
   onEdit,
   onArchive,
-  onRestore
+  onRestore,
+  onDelete
 }: ArticleTableProps) {
   const selectAllRef = useRef<HTMLInputElement | null>(null);
   const { t } = useI18n();
@@ -164,8 +168,9 @@ export function ArticleTable({
                   ) : null}
                 </td>
                 <td className="actions-cell">
-                  <ArticleActions article={article} canEdit={canEdit} onView={onView} onEdit={onEdit}
-                    onArchive={onArchive} onRestore={onRestore} />
+                  <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
+                    onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
+                    onDelete={onDelete} />
                 </td>
               </tr>
             );

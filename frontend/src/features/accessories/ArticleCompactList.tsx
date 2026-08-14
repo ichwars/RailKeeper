@@ -9,10 +9,12 @@ type ArticleCompactListProps = {
   articleTypeEntries: MasterDataEntry[];
   subtypeEntries: MasterDataEntry[];
   canEdit: boolean;
+  canDelete?: boolean;
   onView: (article: AccessoryArticleListItem) => void;
   onEdit?: (article: AccessoryArticleListItem) => void;
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
+  onDelete?: (article: AccessoryArticleListItem) => void;
 };
 
 export function ArticleCompactList({
@@ -20,10 +22,12 @@ export function ArticleCompactList({
   articleTypeEntries,
   subtypeEntries,
   canEdit,
+  canDelete = false,
   onView,
   onEdit,
   onArchive,
-  onRestore
+  onRestore,
+  onDelete
 }: ArticleCompactListProps) {
   const { t } = useI18n();
 
@@ -60,8 +64,9 @@ export function ArticleCompactList({
               <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
             </div>
             <div className="article-mobile-actions">
-              <ArticleActions article={article} canEdit={canEdit} onView={onView} onEdit={onEdit}
-                onArchive={onArchive} onRestore={onRestore} />
+              <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
+                onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
+                onDelete={onDelete} />
             </div>
           </article>
         );

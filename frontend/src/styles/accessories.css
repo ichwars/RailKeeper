@@ -296,6 +296,12 @@
   outline: none;
 }
 
+.article-action-menu .danger-menu-item,
+.article-action-menu .danger-menu-item:hover,
+.article-action-menu .danger-menu-item:focus-visible {
+  color: var(--danger);
+}
+
 .article-table tr.archived {
   opacity: 0.74;
 }

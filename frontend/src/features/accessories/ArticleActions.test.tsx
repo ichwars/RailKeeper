@@ -38,17 +38,44 @@ describe("ArticleActions", () => {
     expect(onRestore).toHaveBeenCalledWith(archived);
   });
 
+  it("shows delete only when explicitly allowed and routes the selected article", async () => {
+    const user = userEvent.setup();
+    const onDelete = vi.fn();
+    render(<ArticleActions article={article} canEdit canDelete onView={vi.fn()} onEdit={vi.fn()}
+      onArchive={vi.fn()} onRestore={vi.fn()} onDelete={onDelete} />);
+
+    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+
+    expect(onDelete).toHaveBeenCalledWith(article);
+  });
+
+  it("does not expose delete to editors", async () => {
+    const user = userEvent.setup();
+    render(<ArticleActions article={article} canEdit canDelete={false} onView={vi.fn()}
+      onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
+    expect(screen.queryByRole("menuitem", { name: "Artikel löschen" })).not.toBeInTheDocument();
+  });
+
   it("moves focus through the menu and restores it on Escape", async () => {
     const user = userEvent.setup();
-    render(<ArticleActions article={article} canEdit onView={vi.fn()} onEdit={vi.fn()}
-      onArchive={vi.fn()} onRestore={vi.fn()} />);
+    render(<ArticleActions article={article} canEdit canDelete onView={vi.fn()} onEdit={vi.fn()}
+      onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: "Weitere Aktionen: Gerades Modellgleis" });
 
     await user.click(trigger);
-    const menuItem = screen.getByRole("menuitem");
-    expect(menuItem).toHaveFocus();
-    await user.keyboard("{ArrowDown}{ArrowUp}{Home}{End}");
-    expect(menuItem).toHaveFocus();
+    const [archiveItem, deleteItem] = screen.getAllByRole("menuitem");
+    expect(archiveItem).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(deleteItem).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(archiveItem).toHaveFocus();
+    await user.keyboard("{End}");
+    expect(deleteItem).toHaveFocus();
+    await user.keyboard("{Home}");
+    expect(archiveItem).toHaveFocus();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();

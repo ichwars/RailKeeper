@@ -1590,6 +1590,11 @@ export const deTranslations: Record<string, string> = {
     "accessories.actions.moreNamed": "Weitere Aktionen: {name}",
     "accessories.actions.archive": "Artikel archivieren",
     "accessories.actions.restore": "Artikel wiederherstellen",
+    "accessories.actions.delete": "Artikel löschen",
+    "accessories.delete.title": "Artikel endgültig löschen",
+    "accessories.delete.body":
+      "Soll {inventoryNumber}: {name} endgültig gelöscht werden? Dies ist nur bei vollständig unbenutzten Artikeln möglich.",
+    "accessories.delete.confirm": "Endgültig löschen",
     "accessories.articleType.track": "Gleis",
     "accessories.articleType.signal": "Signal",
     "accessories.articleType.decoder": "Decoder",
