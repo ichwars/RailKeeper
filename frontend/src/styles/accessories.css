@@ -75,11 +75,11 @@
   overflow-x: auto;
 }
 
-.article-table-wrap.menu-open {
+.article-table-wrap:has(.article-action-menu) {
   padding-bottom: 48px;
 }
 
-.article-table-wrap.menu-open .article-table {
+.article-table-wrap:has(.article-action-menu) .article-table {
   overflow: visible;
 }
 
