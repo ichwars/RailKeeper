@@ -4,6 +4,37 @@
 
 Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
+## [0.1.17.2] - 2026-08-14
+
+### Hinzugefügt
+
+- Der Anlagen-Arbeitsbereich bietet jetzt einen interaktiven digitalen Zwilling, bearbeitbare
+  technische Positionen, Modulports, Gleispläne, Revisionsvorschauen, Materialreservierungen und
+  den Austausch von Gleisbibliotheken.
+- Die Gleisplanung unterstützt geprüfte Tillig-Geometrien, Flexgleise, Übergangsbögen,
+  Höhenprofile, freie Planobjekte, Abstandsprüfungen, Steigungsgrenzen und Verbindungsanalysen.
+- Die Zubehörübersicht bietet eine persistente Tabellen- und Kachelansicht sowie eine kompakte
+  Mobilansicht.
+- Administratoren können vollständig unbenutzte Zubehörartikel nach ausdrücklicher Bestätigung
+  endgültig löschen.
+
+### Geändert
+
+- Die Anlagen-Navigation ist wieder aktiv und öffnet den erweiterten Arbeitsbereich.
+- Aktionen in Zubehörzeilen und -karten verwenden dasselbe tastaturbedienbare Menüverhalten.
+
+### Behoben
+
+- Hersteller importierter Gleise bleiben erhalten und Gleisbibliotheken werden stabil geladen.
+- Zubehör-Aktionsmenüs bleiben an Tabellen- und Mobilkartenrändern sichtbar, lange Metadatenfelder
+  in Karten bleiben klar getrennt.
+
+### Sicherheit
+
+- Die endgültige Zubehörlöschung wird serverseitig auf Administratoren begrenzt und abgewiesen,
+  sobald Bestand, Käufe, Bewegungen, Reservierungen, Einbauten, Historie, Assets oder
+  Anlagenreferenzen vorhanden sind.
+
 ## [0.1.17.1] - 2026-08-13
 
 ### Hinzugefügt
@@ -102,6 +133,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2
 [0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
 [0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ichwars/RailKeeper/compare/v0.1.15...v0.1.16
