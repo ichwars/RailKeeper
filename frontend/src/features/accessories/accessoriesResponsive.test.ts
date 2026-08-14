@@ -34,6 +34,15 @@ describe("article editor responsive tabs", () => {
     );
   });
 
+  it("keeps long card metadata labels separated in a two-column grid", () => {
+    expect(articleOverviewCss).toMatch(
+      /\.article-card-body dl\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /\.article-card-body dl div:nth-child\(3\)\s*\{[^}]*grid-column:\s*1 \/ -1/s
+    );
+  });
+
   it("keeps stacked article filters compact on narrow screens", () => {
     expect(accessoriesCss).toMatch(
       /@media\s*\(max-width:\s*560px\)[\s\S]*?\.article-filter-select,[\s\S]*?\.article-location-filter\s*\{[^}]*flex:\s*0 0 auto/s,
