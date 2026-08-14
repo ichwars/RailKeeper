@@ -4,6 +4,22 @@
 
 Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
+## Unveröffentlicht
+
+### Hinzugefügt
+
+- Dateien für Repository-Zuständigkeit, Beiträge, Verhaltensregeln, Support, Projektkennzeichen und
+  Drittanbieterhinweise wurden ergänzt.
+
+### Geändert
+
+- Neue RailKeeper-Fassungen stehen unter `AGPL-3.0-only`, damit veränderte, über ein Netzwerk
+  angebotene Fassungen offen bleiben und ihren Nutzern den korrespondierenden Quellcode anbieten.
+  Bestehende Releases behalten ihre bisherigen Lizenzbedingungen; die AGPL erlaubt weiterhin
+  kommerzielle Nutzung.
+- Die Projektunterstützung verweist nur noch auf GitHub Sponsors und Ko-fi als freiwillige
+  Zuwendungen ohne Vorteile, bezahlten Support, SLA oder besonderen Zugang.
+
 ## [0.1.17.2] - 2026-08-14
 
 ### Hinzugefügt

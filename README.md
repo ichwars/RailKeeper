@@ -15,7 +15,7 @@
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
-  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/License-MIT%20Self--Hosting-7AC943?style=for-the-badge"></a>
+  <a href="LICENSE.md"><img alt="License" src="https://img.shields.io/badge/License-AGPL--3.0--only-7AC943?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
 </p>
 
@@ -262,10 +262,24 @@ The README includes a GitHub release download badge. GitHub does not provide a r
 
 ## License
 
-RailKeeper is released under the MIT Self-Hosting License. See [LICENSE.md](LICENSE.md).
+RailKeeper is released under `AGPL-3.0-only`. See [LICENSE.md](LICENSE.md).
+
+RailKeeper is a local, self-hosted application. AGPL-3.0 keeps modifications open and requires an
+operator of a modified version offered over a network to provide its users access to the
+corresponding source code. This protects the project's long-term openness more effectively than
+the former permissive license. AGPL permits commercial use. Versions already published under the
+former license retain the terms under which they were released.
+
+The software license does not grant rights to project identifiers or third-party trademarks,
+graphics, documentation, or protocol rights. See [TRADEMARKS.md](TRADEMARKS.md) and
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Support
 
-If RailKeeper saves you time, coffee is a perfectly acceptable bug fuel:
+Voluntary tips help cover development and project-related costs. They do not provide paid features,
+support entitlements, response times, or special access.
 
-<a href="https://www.buymeacoffee.com/ichwars" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+- [GitHub Sponsors](https://github.com/sponsors/ichwars)
+- [Ko-fi](https://ko-fi.com/ichwars)
+
+Support channels and boundaries are documented in [SUPPORT.md](SUPPORT.md).
