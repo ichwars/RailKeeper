@@ -39,7 +39,10 @@ The project is designed for private collections, clubs and small workshops that 
   typed track details, and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
-- Digital command-station adapters: ECoS live read/write sync plus Z21 UDP and CS3 HTTP connection tests
+- Reviewed ECoS locomotive exchange reads master data, CV values, and static function keys, then
+  writes name, address, and protocol only after preview and confirmation. It does not monitor speed,
+  direction, active function states, or ECoS layout object managers. Z21 UDP and CS3 HTTP remain
+  connection-test adapters.
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles, NMRA CV8 manufacturer master data and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle

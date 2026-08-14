@@ -18,6 +18,11 @@ All notable changes to RailKeeper are documented in this file.
   previous license terms; AGPL continues to permit commercial use.
 - Project funding now links only to GitHub Sponsors and Ko-fi as voluntary tips without benefits,
   paid support, SLA, or special access.
+- ECoS integration now reads only locomotive master data, CV values, and static function
+  definitions. Write sync remains limited to name, address, and protocol after review and
+  confirmation.
+- Current speed, direction, active function states, locomotive images, switch objects, routes,
+  S88, boosters, and other ECoS object managers were removed from queries and UI contracts.
 
 ## [0.1.17.2] - 2026-08-14
 

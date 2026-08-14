@@ -45,7 +45,10 @@ Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
   ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
 - PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern
 - Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
-- Digitalzentralen-Adapter: ECoS-Lese-/Schreibsynchronisation sowie Verbindungstests für Z21 per UDP und CS3 per HTTP
+- Der kontrollierte ECoS-Lokabgleich liest Stammdaten, CV-Werte und statische Funktionstasten und
+  schreibt Name, Adresse und Protokoll erst nach Vorschau und Bestätigung. Geschwindigkeit,
+  Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Z21 per
+  UDP und CS3 per HTTP bleiben reine Verbindungsadapter.
 - Decoder-Funktionszuordnung von F0 bis F31 mit Symbolbibliothek und gespeicherten SVG-/PNG-Grafiken
 - Strukturierte CV-Werte, CV-Import und -Export, Decoderprofile, NMRA-CV8-Herstellerstammdaten und ESU-/LokProgrammer-Dateimetadaten
 - Wartungen, Zustandshistorie und durchsuchbare Dokumentation je Fahrzeug

@@ -19,6 +19,11 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
   kommerzielle Nutzung.
 - Die Projektunterstützung verweist nur noch auf GitHub Sponsors und Ko-fi als freiwillige
   Zuwendungen ohne Vorteile, bezahlten Support, SLA oder besonderen Zugang.
+- Die ECoS-Anbindung liest nur noch Lokstammdaten, CV-Werte und statische Funktionsdefinitionen.
+  Der Schreibabgleich bleibt nach Prüfung und Bestätigung auf Name, Adresse und Protokoll begrenzt.
+- Aktuelle Geschwindigkeit, Richtung, aktive Funktionszustände, Lokbilder, Schaltartikel,
+  Fahrwege, S88, Booster und weitere ECoS-Objektmanager wurden aus Abfragen und UI-Verträgen
+  entfernt.
 
 ## [0.1.17.2] - 2026-08-14
 
