@@ -2,7 +2,6 @@ import type {
   ArticleSearchInput,
   ArticleSearchResponse,
   CreateVehicleRequest,
-  ECoSImageSuggestion,
   ExhibitionEntry,
   ExhibitionList,
   MasterDataEntry,
@@ -111,7 +110,6 @@ export type ECoSVehicleDraftPayload = {
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
   functionValues: (VehicleFunctionInput & { functionKey: string })[];
-  imageSuggestions: ECoSImageSuggestion[];
   unclearFields: ECoSRequiredField[];
   returnToEcos?: {
     sessionId: string;

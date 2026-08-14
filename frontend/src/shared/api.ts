@@ -592,25 +592,6 @@ export type ArticleSearchImage = {
   source: string;
 };
 
-export type ECoSImageCandidate = {
-  key: string;
-  value: string;
-  kind: "url" | "data" | "base64" | "id" | "reference" | string;
-  previewUrl?: string;
-  mimeType?: string;
-  transferable: boolean;
-};
-
-export type ECoSImageSuggestion = ArticleSearchImage & {
-  id: string;
-  thumbnailUrl?: string;
-  mimeType?: string;
-  ecosKey: string;
-  ecosKind: string;
-  rawValue: string;
-  isPrimary?: boolean;
-};
-
 export type ArticleSearchSparePart = {
   articleNumber: string;
   description: string;
@@ -743,21 +724,14 @@ export type ECoSRawLocomotive = {
   address?: number;
   protocol?: string;
   profile?: string;
-  speed?: number;
-  speedStep?: number;
-  direction?: number;
-  functionSet?: string;
-  numberOfFunctions?: number;
   functions?: Array<{
     index: number;
-    active: boolean;
     description?: number;
   }>;
   cvs?: Array<{
     number: number;
     value: number;
   }>;
-  imageCandidates?: ECoSImageCandidate[];
   attributes?: Record<string, string[]>;
   supportedFields?: string[];
   missingFields?: string[];
