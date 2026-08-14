@@ -1677,6 +1677,23 @@ components:
           enum: [invoice, delivery_note, manual, data_sheet, floor_plan, image, other]
         isPrimary:
           type: boolean
+    AccessoryDocumentImportURLInput:
+      type: object
+      required: [url, idempotencyKey]
+      properties:
+        url:
+          type: string
+          format: uri
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 8192
+        title:
+          type: string
+        description:
+          type: string
+        isPrimary:
+          type: boolean
     AccessoryTechnicalPlacement:
       type: object
       properties:
@@ -5286,6 +5303,75 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "415":
           description: Unsafe or unsupported extension, MIME type, or content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /accessory-products/{id}/documents/import-url:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      tags: [Accessories]
+      summary: Import an accessory image from a public URL
+      description: Editor or Admin role required. The URL and every redirect are checked against private networks.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccessoryDocumentImportURLInput"
+      responses:
+        "200":
+          description: Previously imported accessory image returned for an idempotent retry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
+        "201":
+          description: Accessory image imported as a private document blob
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessoryDocument"
+        "400":
+          description: Missing, malformed, or non-public image URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Editor or Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: Remote image exceeds the configured attachment size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "415":
+          description: Remote file is not a supported JPG, PNG, or WebP image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Remote image could not be downloaded
           content:
             application/json:
               schema:

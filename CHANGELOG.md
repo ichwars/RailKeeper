@@ -4,6 +4,57 @@
 
 All notable changes to RailKeeper are documented in this file.
 
+## [0.1.17.1] - 2026-08-13
+
+### Added
+
+- Accessory article search now extracts labelled track specifications such as track system,
+  dimensions, direction, roadbed, connections, and digital suitability as individually selectable
+  typed suggestions.
+- Selecting a gauge automatically fills its configured scale until the scale is edited manually.
+- New or previously untagged accessories receive synchronized keyword suggestions from their name,
+  manufacturer, article type, and subtype until the keyword field is edited manually.
+
+### Fixed
+
+- The accessory article-search dialog now renders above the editor instead of remaining hidden
+  behind its modal layer.
+- Gauge multi-selects react to typed option labels and keep Escape scoped to the open option list
+  instead of closing the complete article editor.
+- Malformed or incompatible track specifications from external pages cannot be selected or imported.
+
+## [0.1.17] - 2026-08-13
+
+### Added
+
+- Article-data and barcode search are now available directly while creating or editing accessories,
+  with source previews and explicit field-by-field selection before values are applied.
+- Selected product images from article-search results can be imported as private accessory
+  documents after saving the article.
+- GitHub sponsorship links now include Buy Me a Coffee and PayPal.
+
+### Changed
+
+- The former `Article Overview` area is now named `Accessories` while its existing `/accessories`
+  route remains stable.
+- Shared article-search and barcode dialogs now use app-owned modal, keyboard, focus-trap, and focus
+  restoration behavior in both vehicle and accessory workflows.
+- Updated `modernc.org/sqlite` to 1.56.0, `lucide-react` to 1.29.0, and Vite to 8.2.1.
+
+### Fixed
+
+- Unknown or inactive manufacturer and gauge suggestions can no longer be selected when the
+  corresponding master-data value is unavailable.
+- Remote image-import retries are idempotent, preserve existing primary images, and return an
+  already committed document without downloading it again.
+- Escape and Tab remain scoped to the active nested search dialog instead of reaching the accessory
+  editor behind it.
+
+### Security
+
+- Remote accessory images are restricted to public HTTP(S) targets with URL, DNS, redirect, MIME,
+  and attachment-size validation before they are stored.
+
 ## [0.1.16] - 2026-08-09
 
 ### Added
@@ -43,4 +94,6 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
+[0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ichwars/RailKeeper/compare/v0.1.15...v0.1.16

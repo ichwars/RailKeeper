@@ -970,6 +970,14 @@ export type AccessoryDocumentUploadInput = {
   isPrimary?: boolean;
 };
 
+export type AccessoryDocumentImportURLInput = {
+  url: string;
+  idempotencyKey: string;
+  title?: string;
+  description?: string;
+  isPrimary?: boolean;
+};
+
 export type AccessoryDocumentUpdateInput = {
   category: AccessoryDocumentCategory;
   description?: string;
@@ -1274,6 +1282,11 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<AccessoryDocument>(
         `/accessory-products/${encodeURIComponent(productId)}/documents`,
         { method: "POST", body: accessoryDocumentForm(input) }
+      ),
+    importAccessoryDocumentFromUrl: (productId: string, input: AccessoryDocumentImportURLInput) =>
+      request<AccessoryDocument>(
+        `/accessory-products/${encodeURIComponent(productId)}/documents/import-url`,
+        json("POST", input)
       ),
     accessoryDocument: (productId: string, documentId: string) =>
       request<AccessoryDocument>(accessoryDocumentPath(productId, documentId)),

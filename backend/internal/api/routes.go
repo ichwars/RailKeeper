@@ -128,6 +128,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPut, "/api/v1/accessory-assets/{id}", routeAccessEditor, (*App).updateAccessoryAsset, nil},
 		{http.MethodGet, "/api/v1/accessory-products/{id}/documents", routeAccessViewer, (*App).listAccessoryDocuments, nil},
 		{http.MethodPost, "/api/v1/accessory-products/{id}/documents", routeAccessEditor, (*App).uploadAccessoryDocument, nil},
+		{http.MethodPost, "/api/v1/accessory-products/{id}/documents/import-url", routeAccessEditor, (*App).importAccessoryDocumentFromURL, nil},
 		{http.MethodGet, "/api/v1/accessory-products/{id}/documents/{documentID}", routeAccessViewer, (*App).getAccessoryDocument, nil},
 		{http.MethodPut, "/api/v1/accessory-products/{id}/documents/{documentID}", routeAccessEditor, (*App).updateAccessoryDocument, nil},
 		{http.MethodDelete, "/api/v1/accessory-products/{id}/documents/{documentID}", routeAccessEditor, (*App).deleteAccessoryDocument, nil},

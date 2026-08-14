@@ -35,7 +35,8 @@ The project is designed for private collections, clubs and small workshops that 
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
 - Article inventory with generated inventory numbers, sortable selection-first overview, quantity or individual tracking, storage-location stock, reservations, installations, documents and usage history
 - Layout, module, setup and plan-revision foundation with version-conflict protection; its main-navigation entry remains temporarily disabled while the workspace is refined
-- Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning and explicit field-by-field review
+- Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning,
+  typed track details, and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
 - Digital command-station adapters: ECoS live read/write sync plus Z21 UDP and CS3 HTTP connection tests
@@ -65,7 +66,8 @@ RailKeeper is built around operational views instead of marketing pages:
 
 - **Overview** for inventory, value, maintenance and data quality
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
-- **Article Overview** for article search, sortable inventory data, stock, reservations, installations, documents and history
+- **Accessories** for article-data and barcode search, sortable inventory data, stock, reservations,
+  installations, documents and history
 - **Exhibition List** for fair/show operations
 - **Import/Export** for CSV, TSV, XML and JSON imports, controlled updates and ECoS readout
 - **Settings** for master data, appearance, backups, updates and authentication
@@ -112,7 +114,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.16
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17.1
 ```
 
 If you intentionally want to build the checked-out source tree, use:

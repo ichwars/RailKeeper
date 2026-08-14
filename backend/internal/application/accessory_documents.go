@@ -56,8 +56,10 @@ type AccessoryDocumentUploadMetadata struct {
 }
 
 type CreateAccessoryDocumentInput struct {
-	ProductID  string `json:"productId"`
-	FileBlobID string `json:"fileBlobId"`
+	DocumentID       string `json:"-"`
+	ProductID        string `json:"productId"`
+	FileBlobID       string `json:"fileBlobId"`
+	PrimaryIfMissing bool   `json:"-"`
 	AccessoryDocumentUploadMetadata
 	Description string `json:"description,omitempty"`
 }
@@ -119,6 +121,7 @@ func (s *AccessoryDocumentService) CreateDocument(
 ) (*AccessoryDocument, error) {
 	input = cleanAccessoryDocumentInput(input)
 	if input.ProductID == "" || input.FileBlobID == "" ||
+		(input.PrimaryIfMissing && input.Category != AccessoryDocumentImage) ||
 		ValidateAccessoryDocumentUpload(input.AccessoryDocumentUploadMetadata, maxSize) != nil {
 		return nil, ErrAccessoryValidation
 	}
@@ -171,6 +174,7 @@ func ValidateAccessoryDocumentUpload(metadata AccessoryDocumentUploadMetadata, m
 }
 
 func cleanAccessoryDocumentInput(input CreateAccessoryDocumentInput) CreateAccessoryDocumentInput {
+	input.DocumentID = strings.TrimSpace(input.DocumentID)
 	input.ProductID = strings.TrimSpace(input.ProductID)
 	input.FileBlobID = strings.TrimSpace(input.FileBlobID)
 	input.Description = strings.TrimSpace(input.Description)

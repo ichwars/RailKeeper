@@ -14,6 +14,7 @@ import { persistArticleViewMode, storedArticleViewMode, type ArticleViewMode } f
 import { useArticleOverview } from "./useArticleOverview";
 import { useArticleEditorController } from "./useArticleEditorController";
 import { useArticleCoreMasterData } from "./useArticleCoreMasterData";
+import { useAccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 
 export type ArticleOpenMode = "view" | "edit";
 
@@ -52,6 +53,15 @@ export function AccessoriesView({
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const coreMasterData = useArticleCoreMasterData(editor.isOpen);
+  const articleSearch = useAccessoryArticleSearchController({
+    form: editor.form,
+    readOnly: editor.isFormReadOnly,
+    pendingImageCount: editor.pendingArticleImages.length,
+    manufacturers: coreMasterData.manufacturers,
+    gauges: coreMasterData.gauges,
+    updateForm: editor.changeForm,
+    addImages: editor.addPendingArticleImages
+  });
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
   const [selectedArticleIDs, setSelectedArticleIDs] = useState<Set<string>>(new Set());
@@ -252,6 +262,7 @@ export function AccessoriesView({
         resources={editor.resources}
         resourcesStale={editor.resourcesStale}
         returnFocusTo={editor.returnFocusTo}
+        articleSearch={articleSearch}
         onChange={editor.changeForm}
         onTabChange={editor.setActiveTab}
         onSubmit={editor.submit}

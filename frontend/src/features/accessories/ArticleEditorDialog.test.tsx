@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,7 @@ import { api, type AccessoryDocument, type MasterDataEntry } from "../../shared/
 import { emptyArticleEditorForm } from "./articleEditorModel";
 import { ArticleEditorDialog, type ArticleEditorDialogProps } from "./ArticleEditorDialog";
 import type { CustomArticleSubjectFieldDefinition } from "./articleTypeFields";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 
 const customFields: CustomArticleSubjectFieldDefinition[] = [
   { key: "material", kind: "text", label: "Material" },
@@ -50,7 +51,8 @@ const manufacturerEntries: MasterDataEntry[] = [{
 }];
 const gaugeEntries: MasterDataEntry[] = [{
   id: "gauge:tt", type: "gauge", key: "tt", label: "TT", active: true,
-  sortOrder: 10, metadata: {}, createdAt: "2026-08-08T08:00:00Z", updatedAt: "2026-08-08T08:00:00Z"
+  sortOrder: 10, metadata: { scale: "1:120" }, createdAt: "2026-08-08T08:00:00Z",
+  updatedAt: "2026-08-08T08:00:00Z"
 }];
 const stockUnitEntries: MasterDataEntry[] = [{
   id: "stock-unit-piece", type: "stock_unit", key: "piece", label: "Piece", active: true,
@@ -118,7 +120,144 @@ function props(overrides: Partial<ArticleEditorDialogProps> = {}): ArticleEditor
   };
 }
 
+function AutomationHarness({
+  initialForm,
+  gauges = [
+    ...gaugeEntries,
+    { ...gaugeEntries[0]!, id: "gauge:h0", key: "h0", label: "H0", metadata: { scale: "1:87" } }
+  ]
+}: {
+  initialForm: ReturnType<typeof emptyArticleEditorForm>;
+  gauges?: MasterDataEntry[];
+}) {
+  const [form, setForm] = useState(initialForm);
+  const change = (patch: Partial<typeof form>) => setForm((current) => ({ ...current, ...patch }));
+  return <>
+    <button type="button" onClick={() => change({ gauges: ["TT"] })}>Testspur TT</button>
+    <button type="button" onClick={() => change({ gauges: ["H0"] })}>Testspur H0</button>
+    <button type="button" onClick={() => change({ name: "Neue Bezeichnung" })}>Testname ändern</button>
+    <ArticleEditorDialog {...props({ form, gaugeEntries: gauges, onChange: change })} />
+  </>;
+}
+
 describe("ArticleEditorDialog", () => {
+  it("updates an automatically derived scale until the scale is edited manually", async () => {
+    const user = userEvent.setup();
+    render(<AutomationHarness initialForm={emptyArticleEditorForm()} />);
+
+    await user.click(screen.getByRole("button", { name: "Testspur TT" }));
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Maßstab" })).toHaveValue("1:120"));
+    await user.click(screen.getByRole("button", { name: "Testspur H0" }));
+    await waitFor(() => expect(screen.getByRole("textbox", { name: "Maßstab" })).toHaveValue("1:87"));
+
+    const scale = screen.getByRole("textbox", { name: "Maßstab" });
+    await user.clear(scale);
+    await user.type(scale, "1:100");
+    await user.click(screen.getByRole("button", { name: "Testspur TT" }));
+    expect(scale).toHaveValue("1:100");
+  });
+
+  it("synchronizes generated keywords until their first manual edit", async () => {
+    const user = userEvent.setup();
+    render(<AutomationHarness initialForm={{
+      ...emptyArticleEditorForm(),
+      name: "Einfache Weiche EW1 links",
+      manufacturer: "Tillig",
+      articleType: "track",
+      subtype: "straight"
+    }} />);
+
+    await user.click(screen.getByText("Weitere Angaben"));
+    const keywords = screen.getByRole("textbox", { name: "Schlagwörter" });
+    await waitFor(() => expect(keywords)
+      .toHaveValue("Einfache Weiche EW1 links, Tillig, Gleis, Gerade"));
+
+    await user.clear(keywords);
+    await user.type(keywords, "eigene, werte");
+    await user.click(screen.getByRole("button", { name: "Testname ändern" }));
+    expect(keywords).toHaveValue("eigene, werte");
+  });
+
+  it("treats persisted nonempty keywords as manual content", async () => {
+    const user = userEvent.setup();
+    render(<AutomationHarness initialForm={{
+      ...emptyArticleEditorForm(),
+      name: "Alte Bezeichnung",
+      manufacturer: "Tillig",
+      articleType: "track",
+      subtype: "straight",
+      keywords: "Bestandswert"
+    }} />);
+
+    await user.click(screen.getByText("Weitere Angaben"));
+    const keywords = screen.getByRole("textbox", { name: "Schlagwörter" });
+    await user.click(screen.getByRole("button", { name: "Testname ändern" }));
+    expect(keywords).toHaveValue("Bestandswert");
+  });
+
+  it("offers the vehicle-style barcode and article-data searches in the article tab", async () => {
+    const user = userEvent.setup();
+    const run = vi.fn();
+    const openBarcode = vi.fn();
+    const articleSearch = {
+      state: {
+        open: false, loading: false, canRun: true, response: null, error: "", barcodeOpen: false,
+        barcodeValue: "", selectedFields: {}, selectedImages: {}
+      },
+      setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+      commands: {
+        run,
+        openBarcode,
+        submitBarcode: vi.fn(),
+        toggleField: vi.fn(),
+        toggleImage: vi.fn(),
+        applyResult: vi.fn()
+      }
+    } as unknown as AccessoryArticleSearchController;
+
+    render(<ArticleEditorDialog {...props({ articleSearch })} />);
+    await user.click(screen.getByRole("button", { name: "Barcode suchen" }));
+    await user.click(screen.getByRole("button", { name: "Artikeldaten suchen" }));
+
+    expect(openBarcode).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledOnce();
+  });
+
+  it("keeps Escape and keyboard focus inside the nested barcode dialog", async () => {
+    const user = userEvent.setup();
+    const setBarcodeOpen = vi.fn();
+    const onRequestClose = vi.fn();
+    const articleSearch = {
+      state: {
+        open: false, loading: false, canRun: true, response: null, error: "", barcodeOpen: true,
+        barcodeValue: "83101", selectedFields: {}, selectedImages: {}
+      },
+      setters: { setOpen: vi.fn(), setBarcodeOpen, setBarcodeValue: vi.fn() },
+      commands: {
+        run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+        toggleImage: vi.fn(), applyResult: vi.fn(), canSelectField: vi.fn().mockReturnValue(true)
+      }
+    } as unknown as AccessoryArticleSearchController;
+
+    render(<ArticleEditorDialog {...props({ articleSearch, onRequestClose })} />);
+    const editor = document.querySelector<HTMLElement>(".article-editor-layer");
+    expect(editor).not.toBeNull();
+    const barcodeDialog = screen.getByRole("dialog", { name: "Barcode suchen" });
+    expect(editor).toHaveAttribute("aria-hidden", "true");
+    expect(editor).toHaveAttribute("inert");
+    expect(editor).not.toContainElement(barcodeDialog);
+
+    const search = within(barcodeDialog).getByRole("button", { name: "Artikeldaten suchen" });
+    const close = within(barcodeDialog).getAllByRole("button", { name: "Abbrechen" })[0];
+    search.focus();
+    await user.tab();
+    expect(close).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(setBarcodeOpen).toHaveBeenCalledWith(false);
+    expect(onRequestClose).not.toHaveBeenCalled();
+  });
+
   it("renders create, view, and edit modes through one shell and disables view controls", () => {
     const { rerender } = render(<ArticleEditorDialog {...props()} />);
     expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();

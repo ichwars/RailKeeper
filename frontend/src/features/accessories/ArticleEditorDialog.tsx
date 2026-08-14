@@ -8,12 +8,16 @@ import type {
   MasterDataEntry
 } from "../../shared/api";
 import { api } from "../../shared/api";
+import { ArticleSearchDialog } from "../../shared/articleSearch/ArticleSearchDialog";
+import { BarcodeSearchDialog } from "../../shared/articleSearch/BarcodeSearchDialog";
 import { useI18n } from "../../shared/i18n";
+import { accessorySearchFieldGroups, currentAccessorySearchValue } from "./accessoryArticleSearch";
 import { ArticleCoreTab } from "./ArticleCoreTab";
 import { ArticlePurchaseDocumentsTab } from "./ArticlePurchaseDocumentsTab";
 import { ArticleStockTab } from "./ArticleStockTab";
 import { ArticleSubjectTab } from "./ArticleSubjectTab";
 import { ArticleUsageHistoryTab } from "./ArticleUsageHistoryTab";
+import { scaleForGauges, suggestedArticleKeywords } from "./articleEditorAutomation";
 import type {
   ArticleEditorFieldErrors,
   ArticleEditorForm,
@@ -22,12 +26,14 @@ import type {
   ArticleEditorTabErrors
 } from "./articleEditorModel";
 import type { ArticleEditorPermissions, ArticleEditorResources } from "./useArticleEditorController";
+import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import {
   compatibleAttributesForType,
   compatibleNumberDraftsForType,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
+import { articleSubtypeLabel } from "./articleSubtypes";
 import { articleTypeLabel } from "./articleTypes";
 
 export type ArticleEditorDialogProps = {
@@ -63,6 +69,7 @@ export type ArticleEditorDialogProps = {
   resources: ArticleEditorResources;
   resourcesStale: boolean;
   returnFocusTo?: HTMLElement | null;
+  articleSearch?: AccessoryArticleSearchController;
   onChange: (patch: Partial<ArticleEditorForm>) => void;
   onTabChange: (tab: ArticleEditorTab) => void;
   onSubmit: () => void | Promise<void>;
@@ -106,6 +113,10 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   const viewInitialFocusRef = useRef<HTMLButtonElement | null>(null);
   const articleTypeTriggerRef = useRef<HTMLButtonElement | null>(null);
   const tabListRef = useRef<HTMLElement | null>(null);
+  const automationInitializedRef = useRef(false);
+  const scaleAutoManagedRef = useRef(false);
+  const keywordsAutoManagedRef = useRef(false);
+  const lastAutoScaleRef = useRef("");
   const [pendingArticleType, setPendingArticleType] = useState<AccessoryArticleType | null>(null);
   const confirmationPending = props.closeConfirmationOpen || props.duplicateCandidates.length > 0 ||
     pendingArticleType !== null;
@@ -115,6 +126,9 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     ? t("accessories.editor.create")
     : props.mode === "edit" ? t("accessories.editor.edit") : t("accessories.editor.view");
   const configuredArticleTypeLabel = articleTypeLabel(props.form.articleType, props.articleTypeEntries, t);
+  const configuredSubtypeLabel = props.form.subtype
+    ? articleSubtypeLabel(props.form.articleType, props.form.subtype, props.subtypeEntries, t)
+    : "";
   const primaryImageDocument = props.resources.documents.find((document) =>
     document.category === "image" && document.isPrimary);
   const displayedArticle = props.article ? {
@@ -125,6 +139,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   } : null;
   const createTypeConfigurationUnavailable = props.mode === "create" &&
     (props.articleTypeEntriesLoading || Boolean(props.articleTypeEntriesError));
+  const automationEnabled = props.mode !== "view" && props.permissions.canEdit;
   const tabs: Array<{ key: ArticleEditorTab; label: string; subject?: boolean }> = [
     { key: "article", label: t("accessories.editor.tabs.article") },
     { key: "stock", label: t("accessories.editor.tabs.stock") },
@@ -140,6 +155,8 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
   ];
 
   const changeCore = (patch: Partial<ArticleEditorForm>) => {
+    if (patch.scale !== undefined) scaleAutoManagedRef.current = false;
+    if (patch.keywords !== undefined) keywordsAutoManagedRef.current = false;
     const nextType = patch.articleType;
     if (!nextType || nextType === props.form.articleType) {
       props.onChange(patch);
@@ -176,6 +193,44 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
     });
     setPendingArticleType(null);
   };
+
+  useEffect(() => {
+    if (props.loading || !automationEnabled || automationInitializedRef.current) return;
+    scaleAutoManagedRef.current = !props.form.scale.trim();
+    keywordsAutoManagedRef.current = !props.form.keywords.trim();
+    automationInitializedRef.current = true;
+  }, [automationEnabled, props.loading]);
+
+  useEffect(() => {
+    if (props.loading || !automationEnabled || !automationInitializedRef.current ||
+        !scaleAutoManagedRef.current) return;
+    const scale = scaleForGauges(props.form.gauges, props.gaugeEntries || []);
+    if (!scale || scale === props.form.scale) return;
+    lastAutoScaleRef.current = scale;
+    props.onChange({ scale });
+  }, [automationEnabled, props.form.gauges, props.form.scale, props.gaugeEntries, props.loading]);
+
+  useEffect(() => {
+    if (props.loading || !automationEnabled || !automationInitializedRef.current ||
+        !keywordsAutoManagedRef.current) return;
+    const keywords = suggestedArticleKeywords(
+      props.form,
+      configuredArticleTypeLabel,
+      configuredSubtypeLabel
+    );
+    if (keywords === props.form.keywords) return;
+    props.onChange({ keywords });
+  }, [
+    props.form.name,
+    props.form.manufacturer,
+    props.form.articleType,
+    props.form.subtype,
+    props.form.keywords,
+    configuredArticleTypeLabel,
+    configuredSubtypeLabel,
+    automationEnabled,
+    props.loading
+  ]);
 
   useEffect(() => {
     if (props.loading) return;
@@ -267,6 +322,7 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
               coreMasterDataLoading={props.coreMasterDataLoading}
               coreMasterDataError={props.coreMasterDataError}
               articleTypeTriggerRef={articleTypeTriggerRef}
+              articleSearch={props.articleSearch}
               onChange={changeCore} />
           </div>
           <div hidden={props.activeTab !== "stock"} aria-hidden={props.activeTab !== "stock"}>
@@ -348,6 +404,26 @@ export function ArticleEditorDialog(props: ArticleEditorDialogProps) {
         </button> : null}
       </footer>
     </section>
+    {props.articleSearch?.state.open ? <ArticleSearchDialog
+      fieldGroups={accessorySearchFieldGroups(t, props.form.articleType)}
+      currentValue={(key) => currentAccessorySearchValue(props.form, key)}
+      loading={props.articleSearch.state.loading}
+      response={props.articleSearch.state.response}
+      error={props.articleSearch.state.error}
+      selectedFields={props.articleSearch.state.selectedFields}
+      selectedImages={props.articleSearch.state.selectedImages}
+      canSelectField={props.articleSearch.commands.canSelectField}
+      onApply={props.articleSearch.commands.applyResult}
+      onClose={() => props.articleSearch?.setters.setOpen(false)}
+      onToggleField={props.articleSearch.commands.toggleField}
+      onToggleImage={props.articleSearch.commands.toggleImage}
+    /> : null}
+    {props.articleSearch?.state.barcodeOpen ? <BarcodeSearchDialog
+      value={props.articleSearch.state.barcodeValue}
+      onValueChange={props.articleSearch.setters.setBarcodeValue}
+      onClose={() => props.articleSearch?.setters.setBarcodeOpen(false)}
+      onSubmit={props.articleSearch.commands.submitBarcode}
+    /> : null}
     <AccessoryConfirmDialog action={props.closeConfirmationOpen ? {
       title: t("accessories.editor.dirty.title"),
       body: t("accessories.editor.dirty.body"),
