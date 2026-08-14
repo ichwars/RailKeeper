@@ -169,7 +169,7 @@ describe("layout and accessory API client", () => {
     );
   });
 
-  it("calls article purchase, transfer, individualization, archive, restore, and history routes", async () => {
+  it("calls article purchase, transfer, individualization, archive, restore, delete, and history routes", async () => {
     const purchase = {
       purchasedAt: "2026-08-08",
       supplier: "Fachhändler",
@@ -205,6 +205,7 @@ describe("layout and accessory API client", () => {
     await api.individualizeAccessoryProduct("product/1", individualization);
     await api.archiveAccessoryProduct("product/1");
     await api.restoreAccessoryProduct("product/1");
+    await api.deleteAccessoryProduct("product/1");
     await api.accessoryUsageHistory("product/1");
 
     expectRequests([
@@ -215,6 +216,7 @@ describe("layout and accessory API client", () => {
       ["POST", "/api/v1/accessory-products/product%2F1/individualizations", individualization],
       ["POST", "/api/v1/accessory-products/product%2F1/archive"],
       ["POST", "/api/v1/accessory-products/product%2F1/restore"],
+      ["DELETE", "/api/v1/accessory-products/product%2F1"],
       ["GET", "/api/v1/accessory-products/product%2F1/usage-history"]
     ]);
   });

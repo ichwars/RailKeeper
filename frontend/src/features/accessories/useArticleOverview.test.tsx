@@ -27,6 +27,28 @@ function deferred<T>() {
 describe("useArticleOverview", () => {
   beforeEach(() => {
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(emptyResult);
+    vi.spyOn(api, "deleteAccessoryProduct").mockResolvedValue(undefined);
+  });
+
+  it("deletes an article and reloads the overview", async () => {
+    const { result } = renderHook(() => useArticleOverview());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    vi.mocked(api.accessoryArticles).mockClear();
+
+    await act(async () => result.current.deleteArticle("product/1"));
+
+    expect(api.deleteAccessoryProduct).toHaveBeenCalledWith("product/1");
+    await waitFor(() => expect(api.accessoryArticles).toHaveBeenCalledTimes(1));
+  });
+
+  it("rejects a delete failure without reloading", async () => {
+    vi.mocked(api.deleteAccessoryProduct).mockRejectedValueOnce(new Error("Artikel wird verwendet"));
+    const { result } = renderHook(() => useArticleOverview());
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    await expect(act(async () => result.current.deleteArticle("product/1")))
+      .rejects.toThrow("Artikel wird verwendet");
+    expect(api.accessoryArticles).toHaveBeenCalledTimes(1);
   });
 
   it("maps instant search and every filter to a stable server query", async () => {

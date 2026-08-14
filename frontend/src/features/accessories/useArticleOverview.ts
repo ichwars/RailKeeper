@@ -148,6 +148,12 @@ export function useArticleOverview({ enabled = true }: { enabled?: boolean } = {
     }
   }, [reload]);
 
+  const deleteArticle = useCallback(async (id: string) => {
+    setError("");
+    await api.deleteAccessoryProduct(id);
+    reload();
+  }, [reload]);
+
   return {
     data,
     filters,
@@ -161,6 +167,7 @@ export function useArticleOverview({ enabled = true }: { enabled?: boolean } = {
     setSort,
     reload,
     archiveArticle,
-    restoreArticle
+    restoreArticle,
+    deleteArticle
   };
 }

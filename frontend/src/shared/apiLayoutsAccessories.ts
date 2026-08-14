@@ -1231,6 +1231,8 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/archive`, { method: "POST" }),
     restoreAccessoryProduct: (id: string) =>
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    deleteAccessoryProduct: (id: string) =>
+      request<void>(`/accessory-products/${encodeURIComponent(id)}`, { method: "DELETE" }),
     storageLocations: () => request<StorageLocation[]>("/storage-locations"),
     createStorageLocation: (input: StorageLocationInput) =>
       request<StorageLocation>("/storage-locations", json("POST", input)),
