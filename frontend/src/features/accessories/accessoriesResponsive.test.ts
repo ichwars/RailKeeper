@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
 const accessoriesCss = readFileSync(resolve(process.cwd(), "src/styles/accessories.css"), "utf8");
+const articleOverviewCss = readFileSync(resolve(process.cwd(), "src/styles/article-overview.css"), "utf8");
+const appCss = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
 
 describe("article editor responsive tabs", () => {
   it("restores horizontally reachable tabs in the later mobile override stylesheet", () => {
@@ -16,6 +18,20 @@ describe("article editor responsive tabs", () => {
     expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*9[0-9]px/s);
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
     expect(accessoriesCss).toMatch(/\.article-table \.select-cell\s*\{[^}]*width:\s*4[0-9]px/s);
+  });
+
+  it("loads focused overview styles and switches presentations at the mobile breakpoint", () => {
+    expect(appCss).toContain('@import "../styles/article-overview.css";');
+    expect(articleOverviewCss).toMatch(/\.article-mobile-list\s*\{[^}]*display:\s*none/s);
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-desktop-content\s*\{[^}]*display:\s*none/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-mobile-list\s*\{[^}]*display:\s*grid/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-view-tools\s*\{[^}]*display:\s*none/s
+    );
   });
 
   it("keeps stacked article filters compact on narrow screens", () => {
