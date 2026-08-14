@@ -113,6 +113,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/accessory-products/duplicate-check", routeAccessEditor, (*App).checkAccessoryProductDuplicates, nil},
 		{http.MethodGet, "/api/v1/accessory-products/{id}", routeAccessViewer, (*App).getAccessoryProduct, nil},
 		{http.MethodPut, "/api/v1/accessory-products/{id}", routeAccessEditor, (*App).updateAccessoryProduct, nil},
+		{http.MethodDelete, "/api/v1/accessory-products/{id}", routeAccessAdmin, (*App).deleteAccessoryProduct, nil},
 		{http.MethodPost, "/api/v1/accessory-products/{id}/archive", routeAccessEditor, (*App).archiveAccessoryProduct, nil},
 		{http.MethodPost, "/api/v1/accessory-products/{id}/restore", routeAccessEditor, (*App).restoreAccessoryProduct, nil},
 		{http.MethodGet, "/api/v1/accessory-products/{id}/stock", routeAccessViewer, (*App).getAccessoryStock, nil},

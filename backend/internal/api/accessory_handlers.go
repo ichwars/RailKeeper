@@ -124,6 +124,16 @@ func (a *App) updateAccessoryProduct(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, product)
 }
 
+func (a *App) deleteAccessoryProduct(w http.ResponseWriter, r *http.Request) {
+	if err := a.accessoryService.DeleteProduct(
+		r.Context(), r.PathValue("id"), actorUserID(r),
+	); err != nil {
+		a.accessoryError(w, err, "delete accessory product")
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *App) archiveAccessoryProduct(w http.ResponseWriter, r *http.Request) {
 	a.setAccessoryProductArchived(w, r, true)
 }
@@ -318,6 +328,9 @@ func (a *App) accessoryError(w http.ResponseWriter, err error, action string) {
 		respondProblem(w, http.StatusBadRequest, "accessory_validation", message)
 	case errors.Is(err, application.ErrAccessoryNotFound):
 		respondProblem(w, http.StatusNotFound, "accessory_not_found", "Accessory resource not found.")
+	case errors.Is(err, application.ErrAccessoryDeleteBlocked):
+		respondProblem(w, http.StatusConflict, "accessory_delete_blocked",
+			"Accessory product has stock or usage history and cannot be deleted.")
 	case errors.Is(err, application.ErrAccessoryConflict):
 		respondProblem(w, http.StatusConflict, "accessory_conflict", "Accessory data conflicts with existing data.")
 	case errors.Is(err, application.ErrAccessoryInsufficientStock):

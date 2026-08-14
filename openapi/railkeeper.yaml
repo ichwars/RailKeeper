@@ -4626,6 +4626,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Accessories]
+      summary: Permanently delete an unused accessory product
+      description: >-
+        Admin role required. Deletion is rejected while stock, assets, purchases,
+        stock movements, reservations, installations, usage history, or layout
+        technical positions reference the product. Product metadata is deleted.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Accessory product deleted
+        "403":
+          description: Admin role and valid CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory product has stock or usage references
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /accessory-products/duplicate-check:
     post:
       tags: [Accessories]
