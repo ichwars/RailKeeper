@@ -128,7 +128,7 @@ func main() {
 	trackPlannerService := application.NewTrackPlannerService(trackPlannerRepository)
 	trackLibraryService := application.NewTrackLibraryService(trackPlannerRepository)
 	accessoryRepository := infrastructure.NewAccessoryRepository(db)
-	accessoryService := application.NewAccessoryService(accessoryRepository)
+	accessoryService := application.NewAccessoryService(accessoryRepository, fileBlobService)
 	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
 	accessoryDocumentService := application.NewAccessoryDocumentService(accessoryRepository, fileBlobService)
 

@@ -14,6 +14,7 @@ var (
 	ErrAccessoryValidation        = errors.New("accessory validation failed")
 	ErrAccessoryNotFound          = errors.New("accessory resource not found")
 	ErrAccessoryConflict          = errors.New("accessory resource conflict")
+	ErrAccessoryDeleteBlocked     = errors.New("accessory deletion blocked")
 	ErrAccessoryInsufficientStock = errors.New("insufficient accessory stock")
 	ErrAccessoryTrackingMode      = errors.New("invalid accessory tracking mode")
 )
@@ -148,6 +149,7 @@ type AccessoryCatalogRepository interface {
 		AccessoryProductMutationValidator,
 	) (*AccessoryProduct, error)
 	SetProductArchived(context.Context, string, bool, string) (*AccessoryProduct, error)
+	DeleteProduct(context.Context, string, string) ([]string, error)
 }
 
 type AccessoryLocationRepository interface {
@@ -179,10 +181,18 @@ type AccessoryRepository interface {
 
 type AccessoryService struct {
 	repository AccessoryRepository
+	blobs      FileBlobReferenceCleaner
 }
 
-func NewAccessoryService(repository AccessoryRepository) *AccessoryService {
-	return &AccessoryService{repository: repository}
+func NewAccessoryService(
+	repository AccessoryRepository,
+	blobCleaners ...FileBlobReferenceCleaner,
+) *AccessoryService {
+	var blobs FileBlobReferenceCleaner
+	if len(blobCleaners) > 0 {
+		blobs = blobCleaners[0]
+	}
+	return &AccessoryService{repository: repository, blobs: blobs}
 }
 
 func (s *AccessoryService) ListProducts(ctx context.Context, query string) ([]AccessoryProduct, error) {
@@ -191,6 +201,26 @@ func (s *AccessoryService) ListProducts(ctx context.Context, query string) ([]Ac
 
 func (s *AccessoryService) GetProduct(ctx context.Context, id string) (*AccessoryProduct, error) {
 	return s.repository.GetProduct(ctx, strings.TrimSpace(id))
+}
+
+func (s *AccessoryService) DeleteProduct(ctx context.Context, id, actor string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return ErrAccessoryValidation
+	}
+	blobIDs, err := s.repository.DeleteProduct(ctx, id, actor)
+	if err != nil {
+		return err
+	}
+	if s.blobs == nil {
+		return nil
+	}
+	for _, blobID := range blobIDs {
+		if err := s.blobs.DeleteIfUnreferenced(ctx, blobID); err != nil {
+			return fmt.Errorf("delete accessory product blob %q: %w", blobID, err)
+		}
+	}
+	return nil
 }
 
 func (s *AccessoryService) CreateProduct(
