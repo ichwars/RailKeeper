@@ -79,6 +79,10 @@
   padding-bottom: 48px;
 }
 
+.article-table-wrap.menu-open .article-table {
+  overflow: visible;
+}
+
 .article-table {
   width: 100%;
   min-width: 1460px;
