@@ -27,6 +27,17 @@ describe("article editor responsive tabs", () => {
     expect(accessoriesCss).not.toMatch(/\.article-table th:nth-child/);
   });
 
+  it("keeps truncation constraints off configurable table headers", () => {
+    expect(accessoriesCss).toContain(`.article-table td.article-main-cell,
+.article-table td.article-inventory-cell,
+.article-table td.article-manufacturer-cell,
+.article-table td.article-number-cell,
+.article-table td.article-storage-cell {
+  min-width: 0;
+  max-width: 0;
+}`);
+  });
+
   it("loads focused overview styles and switches presentations at the mobile breakpoint", () => {
     expect(appCss).toContain('@import "../styles/article-overview.css";');
     expect(articleOverviewCss).toMatch(/\.article-mobile-list\s*\{[^}]*display:\s*none/s);

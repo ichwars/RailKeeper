@@ -169,11 +169,11 @@
   border-radius: 2px;
 }
 
-.article-main-cell,
-.article-inventory-cell,
-.article-manufacturer-cell,
-.article-number-cell,
-.article-storage-cell {
+.article-table td.article-main-cell,
+.article-table td.article-inventory-cell,
+.article-table td.article-manufacturer-cell,
+.article-table td.article-number-cell,
+.article-table td.article-storage-cell {
   min-width: 0;
   max-width: 0;
 }
