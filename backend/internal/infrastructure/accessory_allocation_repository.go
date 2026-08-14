@@ -54,6 +54,10 @@ func (r *AccessoryRepository) CreateReservation(
 		if err := requireAllocationTarget(ctx, tx, input.AllocationTargetInput); err != nil {
 			return err
 		}
+		if err := requireTechnicalPosition(ctx, tx, input.TechnicalPositionID,
+			input.LayoutUnitID, input.ProductID); err != nil {
+			return err
+		}
 		usesAsset, err := accessoryAllocationUsesAsset(strategy, input.AssetID)
 		if err != nil {
 			return err
@@ -85,6 +89,13 @@ INSERT INTO accessory_reservations(
 				return application.ErrAccessoryConflict
 			}
 			return fmt.Errorf("insert accessory reservation: %w", err)
+		}
+		if input.TechnicalPositionID != "" {
+			if _, err := tx.ExecContext(ctx, `
+INSERT INTO accessory_reservation_positions(reservation_id, position_id) VALUES(?, ?)`,
+				reservationID, input.TechnicalPositionID); err != nil {
+				return fmt.Errorf("link accessory reservation position: %w", err)
+			}
 		}
 		if input.AssetID != "" {
 			result, err := tx.ExecContext(ctx, `
@@ -308,15 +319,50 @@ func requireAllocationTarget(
 	return nil
 }
 
-const accessoryReservationSelect = `SELECT id, product_id, COALESCE(asset_id, ''), location_id, quantity,
-COALESCE(vehicle_id, ''), COALESCE(layout_id, ''), COALESCE(layout_unit_id, ''),
+func requireTechnicalPosition(
+	ctx context.Context,
+	tx *sql.Tx,
+	positionID string,
+	layoutUnitID string,
+	productID string,
+) error {
+	if positionID == "" {
+		return nil
+	}
+	if layoutUnitID == "" {
+		return application.ErrAccessoryConflict
+	}
+	var storedUnitID, storedProductID string
+	var archived bool
+	err := tx.QueryRowContext(ctx, `
+SELECT layout_unit_id, COALESCE(product_id, ''), archived
+FROM layout_technical_positions WHERE id=?`, positionID).
+		Scan(&storedUnitID, &storedProductID, &archived)
+	if errors.Is(err, sql.ErrNoRows) {
+		return application.ErrAccessoryNotFound
+	}
+	if err != nil {
+		return fmt.Errorf("read allocation technical position: %w", err)
+	}
+	if archived || storedUnitID != layoutUnitID || (storedProductID != "" && storedProductID != productID) {
+		return application.ErrAccessoryConflict
+	}
+	return nil
+}
+
+const accessoryReservationSelect = `SELECT reservation.id, reservation.product_id,
+COALESCE(reservation.asset_id, ''), reservation.location_id,
+COALESCE((SELECT position_id FROM accessory_reservation_positions WHERE reservation_id=reservation.id), ''),
+reservation.quantity, COALESCE(reservation.vehicle_id, ''), COALESCE(reservation.layout_id, ''),
+COALESCE(reservation.layout_unit_id, ''),
 status, note, created_by, created_at, updated_at, placement, digital_address, decoder_output,
-connection, wiring_notes FROM accessory_reservations`
+connection, wiring_notes FROM accessory_reservations reservation`
 
 func scanAccessoryReservation(scanner rowScanner) (*application.AccessoryReservation, error) {
 	reservation := &application.AccessoryReservation{}
 	err := scanner.Scan(&reservation.ID, &reservation.ProductID, &reservation.AssetID,
-		&reservation.LocationID, &reservation.Quantity, &reservation.VehicleID, &reservation.LayoutID,
+		&reservation.LocationID, &reservation.TechnicalPositionID, &reservation.Quantity,
+		&reservation.VehicleID, &reservation.LayoutID,
 		&reservation.LayoutUnitID, &reservation.Status, &reservation.Note, &reservation.CreatedBy,
 		&reservation.CreatedAt, &reservation.UpdatedAt, &reservation.Placement,
 		&reservation.DigitalAddress, &reservation.DecoderOutput, &reservation.Connection,

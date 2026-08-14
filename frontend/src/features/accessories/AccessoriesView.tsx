@@ -2,17 +2,39 @@ import { useEffect, useState } from "react";
 
 import { api, type AccessoryArticleListItem, type MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
-import { ArticleMetrics } from "./ArticleMetrics";
+import { ArticleCardGrid } from "./ArticleCardGrid";
+import { ArticleCompactList } from "./ArticleCompactList";
 import { ArticleEditorDialog } from "./ArticleEditorDialog";
+import { ArticleMetrics } from "./ArticleMetrics";
 import { ArticleOverviewHeader } from "./ArticleOverviewHeader";
 import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
+import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
+import { persistArticleViewMode, storedArticleViewMode, type ArticleViewMode } from "./articleViewMode";
 import { useArticleOverview } from "./useArticleOverview";
 import { useArticleEditorController } from "./useArticleEditorController";
 import { useArticleCoreMasterData } from "./useArticleCoreMasterData";
 import { useAccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 
 export type ArticleOpenMode = "view" | "edit";
+
+const compactOverviewQuery = "(max-width: 900px)";
+
+function useCompactArticleOverview() {
+  const [compact, setCompact] = useState(() =>
+    typeof window.matchMedia === "function" && window.matchMedia(compactOverviewQuery).matches);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mediaQuery = window.matchMedia(compactOverviewQuery);
+    const update = () => setCompact(mediaQuery.matches);
+    update();
+    mediaQuery.addEventListener("change", update);
+    return () => mediaQuery.removeEventListener("change", update);
+  }, []);
+
+  return compact;
+}
 
 type AccessoriesViewProps = {
   roles: string[];
@@ -27,6 +49,7 @@ export function AccessoriesView({
 }: AccessoriesViewProps) {
   const canRead = roles.some((role) => ["Admin", "Editor", "Viewer", "Planner"].includes(role));
   const canEdit = roles.includes("Admin") || roles.includes("Editor");
+  const canDelete = roles.includes("Admin");
   const overview = useArticleOverview({ enabled: canRead });
   const editor = useArticleEditorController({ roles, onSaved: overview.reload });
   const coreMasterData = useArticleCoreMasterData(editor.isOpen);
@@ -42,6 +65,10 @@ export function AccessoriesView({
   const [subtypeEntries, setSubtypeEntries] = useState<MasterDataEntry[]>([]);
   const [articleTypeEntries, setArticleTypeEntries] = useState<MasterDataEntry[]>([]);
   const [selectedArticleIDs, setSelectedArticleIDs] = useState<Set<string>>(new Set());
+  const [pendingDeleteArticle, setPendingDeleteArticle] =
+    useState<AccessoryArticleListItem | null>(null);
+  const [viewMode, setViewMode] = useState<ArticleViewMode>(storedArticleViewMode);
+  const compactOverview = useCompactArticleOverview();
   const { t } = useI18n();
 
   useEffect(() => {
@@ -73,6 +100,21 @@ export function AccessoriesView({
     else editor.openArticle(article.id, mode, article.hasUsageHistory);
   };
   const createArticle = onCreateArticle || editor.openCreate;
+  const changeViewMode = (mode: ArticleViewMode) => {
+    setViewMode(mode);
+    persistArticleViewMode(mode);
+  };
+  const toggleSelection = (id: string) => setSelectedArticleIDs((current) => {
+    const next = new Set(current);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+  const toggleAll = () => setSelectedArticleIDs((current) => {
+    const visibleIDs = overview.data.items.map((item) => item.id);
+    const allSelected = visibleIDs.length > 0 && visibleIDs.every((id) => current.has(id));
+    return allSelected ? new Set() : new Set(visibleIDs);
+  });
 
   const isFirstLoad = overview.loading && overview.data.items.length === 0;
   const hasNoArticles = overview.data.items.length === 0 &&
@@ -103,7 +145,9 @@ export function AccessoriesView({
             options={overview.data.filters}
             articleTypeEntries={articleTypeEntries}
             resultCount={overview.data.items.length}
+            viewMode={viewMode}
             hasActiveFilters={overview.hasActiveFilters}
+            onViewModeChange={changeViewMode}
             onFilterChange={overview.setFilter}
             onReset={overview.resetFilters}
           />
@@ -130,31 +174,58 @@ export function AccessoriesView({
             ) : null}
           </div>
         ) : (
-          <ArticleTable
-            items={overview.data.items}
-            articleTypeEntries={articleTypeEntries}
-            subtypeEntries={subtypeEntries}
-            sort={overview.sort}
-            direction={overview.direction}
-            canEdit={canEdit}
-            selectedIDs={selectedArticleIDs}
-            onToggleSelection={(id) => setSelectedArticleIDs((current) => {
-              const next = new Set(current);
-              if (next.has(id)) next.delete(id);
-              else next.add(id);
-              return next;
-            })}
-            onToggleAll={() => setSelectedArticleIDs((current) => {
-              const visibleIDs = overview.data.items.map((item) => item.id);
-              const allSelected = visibleIDs.length > 0 && visibleIDs.every((id) => current.has(id));
-              return allSelected ? new Set() : new Set(visibleIDs);
-            })}
-            onSort={overview.setSort}
-            onView={(article) => openArticle(article, "view")}
-            onEdit={(article) => openArticle(article, "edit")}
-            onArchive={(article) => overview.archiveArticle(article.id)}
-            onRestore={(article) => overview.restoreArticle(article.id)}
-          />
+          <>
+            {compactOverview ? (
+              <ArticleCompactList
+                items={overview.data.items}
+                articleTypeEntries={articleTypeEntries}
+                subtypeEntries={subtypeEntries}
+                canEdit={canEdit}
+                canDelete={canDelete}
+                onView={(article) => openArticle(article, "view")}
+                onEdit={(article) => openArticle(article, "edit")}
+                onArchive={(article) => overview.archiveArticle(article.id)}
+                onRestore={(article) => overview.restoreArticle(article.id)}
+                onDelete={setPendingDeleteArticle}
+              />
+            ) : (
+              <div className="article-desktop-content">
+                {viewMode === "cards" ? (
+                  <ArticleCardGrid
+                    items={overview.data.items}
+                    articleTypeEntries={articleTypeEntries}
+                    subtypeEntries={subtypeEntries}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    onView={(article) => openArticle(article, "view")}
+                    onEdit={(article) => openArticle(article, "edit")}
+                    onArchive={(article) => overview.archiveArticle(article.id)}
+                    onRestore={(article) => overview.restoreArticle(article.id)}
+                    onDelete={setPendingDeleteArticle}
+                  />
+                ) : (
+                  <ArticleTable
+                    items={overview.data.items}
+                    articleTypeEntries={articleTypeEntries}
+                    subtypeEntries={subtypeEntries}
+                    sort={overview.sort}
+                    direction={overview.direction}
+                    canEdit={canEdit}
+                    canDelete={canDelete}
+                    selectedIDs={selectedArticleIDs}
+                    onToggleSelection={toggleSelection}
+                    onToggleAll={toggleAll}
+                    onSort={overview.setSort}
+                    onView={(article) => openArticle(article, "view")}
+                    onEdit={(article) => openArticle(article, "edit")}
+                    onArchive={(article) => overview.archiveArticle(article.id)}
+                    onRestore={(article) => overview.restoreArticle(article.id)}
+                    onDelete={setPendingDeleteArticle}
+                  />
+                )}
+              </div>
+            )}
+          </>
         )}
       </section>
       {editor.isOpen ? <ArticleEditorDialog
@@ -208,6 +279,19 @@ export function AccessoriesView({
         onRetryCoreMasterData={coreMasterData.retry}
         onSubdraftDirty={editor.setSubdraftDirty}
       /> : null}
+      <AccessoryConfirmDialog
+        action={pendingDeleteArticle ? {
+          title: t("accessories.delete.title"),
+          body: t("accessories.delete.body", {
+            inventoryNumber: pendingDeleteArticle.inventoryNumber,
+            name: pendingDeleteArticle.name
+          }),
+          confirmLabel: t("accessories.delete.confirm"),
+          dangerous: true,
+          run: () => overview.deleteArticle(pendingDeleteArticle.id)
+        } : null}
+        onClose={() => setPendingDeleteArticle(null)}
+      />
     </>
   );
 }

@@ -26,6 +26,10 @@ type accessoryRepositorySpy struct {
 	activeArticleTypeKeys map[domain.AccessoryArticleType]bool
 	customAttributes      []domain.AccessoryAttributeDefinition
 	currentProduct        *AccessoryProduct
+	deleteProductID       string
+	deleteActor           string
+	deleteBlobIDs         []string
+	deleteProductErr      error
 }
 
 func stringPointer(value string) *string { return &value }
@@ -80,6 +84,65 @@ func (spy *accessoryRepositorySpy) GetProduct(_ context.Context, _ string) (*Acc
 		ArticleType: domain.AccessoryArticleOther,
 		Subtype:     "other:other",
 	}, nil
+}
+
+func (spy *accessoryRepositorySpy) DeleteProduct(
+	_ context.Context,
+	id string,
+	actor string,
+) ([]string, error) {
+	spy.deleteProductID = id
+	spy.deleteActor = actor
+	return append([]string(nil), spy.deleteBlobIDs...), spy.deleteProductErr
+}
+
+type accessoryBlobCleanerSpy struct {
+	deleted []string
+	err     error
+}
+
+func (spy *accessoryBlobCleanerSpy) DeleteIfUnreferenced(_ context.Context, id string) error {
+	spy.deleted = append(spy.deleted, id)
+	return spy.err
+}
+
+func TestAccessoryServiceDeletesProductAndCleansUnreferencedBlobs(t *testing.T) {
+	repository := &accessoryRepositorySpy{deleteBlobIDs: []string{"blob-1", "blob-2"}}
+	blobs := &accessoryBlobCleanerSpy{}
+	service := NewAccessoryService(repository, blobs)
+
+	if err := service.DeleteProduct(t.Context(), " product-1 ", "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	if repository.deleteProductID != "product-1" || repository.deleteActor != "admin-1" {
+		t.Fatalf("unexpected repository call: id=%q actor=%q",
+			repository.deleteProductID, repository.deleteActor)
+	}
+	if !slices.Equal(blobs.deleted, []string{"blob-1", "blob-2"}) {
+		t.Fatalf("deleted blob IDs = %#v", blobs.deleted)
+	}
+}
+
+func TestAccessoryServiceRejectsEmptyDeleteIDAndPreservesErrors(t *testing.T) {
+	repository := &accessoryRepositorySpy{deleteProductErr: ErrAccessoryDeleteBlocked}
+	service := NewAccessoryService(repository)
+
+	if err := service.DeleteProduct(t.Context(), "  ", "admin-1"); !errors.Is(err, ErrAccessoryValidation) {
+		t.Fatalf("empty product ID error = %v", err)
+	}
+	if err := service.DeleteProduct(t.Context(), "product-1", "admin-1"); !errors.Is(err, ErrAccessoryDeleteBlocked) {
+		t.Fatalf("repository delete error = %v", err)
+	}
+}
+
+func TestAccessoryServiceReportsBlobCleanupFailure(t *testing.T) {
+	want := errors.New("cleanup failed")
+	repository := &accessoryRepositorySpy{deleteBlobIDs: []string{"blob-1"}}
+	service := NewAccessoryService(repository, &accessoryBlobCleanerSpy{err: want})
+
+	if err := service.DeleteProduct(t.Context(), "product-1", "admin-1"); !errors.Is(err, want) {
+		t.Fatalf("blob cleanup error = %v", err)
+	}
 }
 
 func TestAccessoryServiceEnforcesAuthoritativeArticleTypeLifecycle(t *testing.T) {

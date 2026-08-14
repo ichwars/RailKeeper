@@ -9,6 +9,9 @@ export type Layout = {
   gauge: string;
   scale: string;
   description?: string;
+  maxGradePercent?: number | null;
+  minimumTrackClearanceMm?: number | null;
+  minimumFlexRadiusMm?: number | null;
   version: number;
   archived: boolean;
   createdAt: string;
@@ -21,6 +24,9 @@ export type LayoutInput = {
   gauge: string;
   scale: string;
   description?: string;
+  maxGradePercent?: number | null;
+  minimumTrackClearanceMm?: number | null;
+  minimumFlexRadiusMm?: number | null;
   archived?: boolean;
 };
 
@@ -50,6 +56,155 @@ export type LayoutUnitInput = {
 };
 
 export type LayoutUnitUpdateInput = LayoutUnitInput & { expectedVersion: number };
+
+export type LayoutUnitPortKind = "track" | "power" | "digital" | "feedback" | "accessory" | "other";
+
+export type LayoutUnitPort = {
+  id: string;
+  layoutUnitId: string;
+  name: string;
+  kind: LayoutUnitPortKind;
+  interfaceKey: string;
+  xMm: number;
+  yMm: number;
+  directionDegrees: number;
+  notes?: string;
+  version: number;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LayoutUnitPortInput = {
+  name: string;
+  kind: LayoutUnitPortKind;
+  interfaceKey: string;
+  xMm: number;
+  yMm: number;
+  directionDegrees: number;
+  notes?: string;
+  archived?: boolean;
+};
+
+export type LayoutUnitPortUpdateInput = LayoutUnitPortInput & { expectedVersion: number };
+
+export type LayoutTechnicalPositionKind =
+  | "turnout"
+  | "signal"
+  | "feedback"
+  | "decoder"
+  | "lighting"
+  | "power"
+  | "sensor"
+  | "other";
+
+export type LayoutTechnicalPosition = {
+  id: string;
+  layoutUnitId: string;
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  productId?: string;
+  description?: string;
+  version: number;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type LayoutTechnicalPositionInput = {
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees?: number;
+  productId?: string;
+  description?: string;
+  archived?: boolean;
+};
+
+export type LayoutTechnicalPositionUpdateInput = LayoutTechnicalPositionInput & { expectedVersion: number };
+
+export type LayoutTwinStatus = "planned" | "reserved" | "installed" | "maintenance_due" | "defective";
+
+export type LayoutTwinAllocation = {
+  id: string;
+  productId: string;
+  inventoryNumber: string;
+  manufacturer: string;
+  articleNumber?: string;
+  productName: string;
+  quantity: number;
+  reservationStatus?: AccessoryReservationStatus;
+  installationCondition?: AccessoryCondition;
+  placement?: string;
+  digitalAddress?: string;
+  decoderOutput?: string;
+  connection?: string;
+  wiringNotes?: string;
+  note?: string;
+};
+
+export type LayoutTwinPosition = {
+  id: string;
+  layoutUnitId: string;
+  label: string;
+  kind: LayoutTechnicalPositionKind;
+  localXMm: number;
+  localYMm: number;
+  localRotationDegrees: number;
+  globalXMm: number;
+  globalYMm: number;
+  rotationDegrees: number;
+  productId?: string;
+  inventoryNumber?: string;
+  manufacturer?: string;
+  articleNumber?: string;
+  productName?: string;
+  description?: string;
+  version: number;
+  outsideOutline: boolean;
+  statuses: LayoutTwinStatus[];
+  reservations: LayoutTwinAllocation[];
+  installations: LayoutTwinAllocation[];
+};
+
+export type LayoutTwinUnit = {
+  id: string;
+  name: string;
+  kind: LayoutUnitKind;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  version: number;
+  localOutline: Array<{ xMm: number; yMm: number }>;
+  outline: Array<{ xMm: number; yMm: number }>;
+  positions: LayoutTwinPosition[];
+};
+
+export type LayoutTwin = {
+  layoutId: string;
+  configurationId?: string;
+  configurationName?: string;
+  unitId?: string;
+  bounds: { minXMm: number; minYMm: number; widthMm: number; heightMm: number };
+  hasGeometry: boolean;
+  units: LayoutTwinUnit[];
+  warnings: Array<{ code: "outline_fallback" | "missing_geometry"; unitId?: string }>;
+};
+
+export type LayoutTwinSelection = { configurationId?: string; unitId?: string };
+export type LayoutUnitOutline = {
+  layoutUnitId: string;
+  points: Array<{ xMm: number; yMm: number }>;
+  version: number;
+};
+export type LayoutUnitOutlineUpdateInput = {
+  points: Array<{ xMm: number; yMm: number }>;
+  expectedVersion: number;
+};
 
 export type ConfigurationUnit = {
   unitId: string;
@@ -89,6 +244,46 @@ export type LayoutConfigurationInput = {
 
 export type LayoutConfigurationUpdateInput = LayoutConfigurationInput & { expectedVersion: number };
 
+export type ModulePortConnection = {
+  unitAId: string;
+  unitAName: string;
+  portAId: string;
+  portAName: string;
+  unitBId: string;
+  unitBName: string;
+  portBId: string;
+  portBName: string;
+};
+
+export type ModulePortIssue = {
+  code: "open_port" | "incompatible_port";
+  unitIds: string[];
+  unitNames: string[];
+  portIds: string[];
+  portNames: string[];
+};
+
+export type ModulePortAnalysis = {
+  connections: ModulePortConnection[];
+  issues: ModulePortIssue[];
+};
+
+export type ConfigurationUnitSnapPreviewInput = {
+  unitId: string;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+};
+
+export type ModulePortSnapResult = {
+  snapped: boolean;
+  pose: { positionXMm: number; positionYMm: number; rotationDegrees: number };
+  movingPortId?: string;
+  targetUnitId?: string;
+  targetPortId?: string;
+  distanceMm?: number;
+};
+
 export type PlanRevision = {
   id: string;
   variantId: string;
@@ -116,6 +311,328 @@ export type PlanVariant = {
 
 export type PlanVariantInput = { name: string; description?: string };
 export type PlanRevisionInput = { baseRevisionId?: string };
+
+export type TrackGeometryKind = "straight" | "curve" | "turnout" | "crossing" | "flex";
+export type TrackGeometryStatus = "draft" | "verified" | "retired";
+export type TrackPoint = { xMm: number; yMm: number };
+export type TrackPort = TrackPoint & { id: string; directionDegrees: number };
+export type TrackRoute = { id: string; points: TrackPoint[] };
+export type TrackGeometry = { schemaVersion: number; ports: TrackPort[]; routes: TrackRoute[] };
+export type TrackGeometryDefinition = {
+  id: string;
+  libraryId: string;
+  manufacturer: string;
+  articleNumber: string;
+  name: string;
+  kind: TrackGeometryKind;
+  lengthMm: number;
+  minimumRadiusMm?: number | null;
+  geometry: TrackGeometry;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+  createdAt: string;
+};
+export type TrackGeometryLibrary = {
+  id: string;
+  manufacturer: string;
+  trackSystem: string;
+  gauge: string;
+  scale: string;
+  version: string;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+  verificationNote: string;
+  verifiedAt?: string;
+  verifiedBy?: string;
+  definitionCount: number;
+  createdAt: string;
+};
+export type TrackLibraryPackageMetadata = {
+  manufacturer: string;
+  trackSystem: string;
+  gauge: string;
+  scale: string;
+  version: string;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+};
+export type TrackLibraryPackageDefinition = {
+  articleNumber: string;
+  name: string;
+  kind: TrackGeometryKind;
+  lengthMm: number;
+  minimumRadiusMm?: number;
+  geometry: TrackGeometry;
+  sourceUrl: string;
+  status: TrackGeometryStatus;
+};
+export type TrackLibraryPackage = {
+  format: "railkeeper.track-library";
+  schemaVersion: 1;
+  exportedAt?: string;
+  library: TrackLibraryPackageMetadata;
+  definitions: TrackLibraryPackageDefinition[];
+};
+export type TrackLibraryImportPreview = {
+  package: TrackLibraryPackage;
+  definitionCount: number;
+  warnings: Array<"verification_status_reset">;
+  conflict: boolean;
+  canImport: boolean;
+};
+export type ImportTrackLibraryInput = { confirmed: boolean; package: TrackLibraryPackage };
+export type UpdateTrackLibraryStatusInput = {
+  confirmed: boolean;
+  status: "verified" | "retired";
+  verificationNote: string;
+};
+export type PlanTrackObject = {
+  id: string;
+  lineageId: string;
+  revisionId: string;
+  geometryId: string;
+  geometry: TrackGeometryDefinition;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
+  flexPath?: FlexTrackPath;
+  transitionPath?: TransitionCurvePath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+export type FreePlanObjectKind = "rectangle" | "ellipse" | "line" | "label";
+export type FreePlanObjectCategory = "structure" | "platform" | "scenery" | "annotation";
+export type FreePlanObjectShape = {
+  schemaVersion: 1;
+  kind: FreePlanObjectKind;
+  widthMm?: number;
+  heightMm?: number;
+  endXMm?: number;
+  endYMm?: number;
+  text?: string;
+  fontSizeMm?: number;
+};
+export type PlanFreeObject = {
+  id: string;
+  lineageId: string;
+  revisionId: string;
+  name: string;
+  category: FreePlanObjectCategory;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  shape: FreePlanObjectShape;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+};
+export type TrackPlan = {
+  revisionId: string;
+  status: PlanRevisionStatus;
+  objects: PlanTrackObject[];
+  freeObjects: PlanFreeObject[];
+};
+export type TrackPlanConnection = {
+  objectAId: string;
+  portAId: string;
+  objectBId: string;
+  portBId: string;
+};
+export type TrackPlanIssueCode = "open_end" | "incompatible_connection" | "overlap" | "broken_geometry"
+  | "elevation_mismatch" | "grade_limit_exceeded" | "insufficient_clearance"
+  | "flex_radius_below_limit";
+export type TrackPlanIssue = {
+  code: TrackPlanIssueCode;
+  severity: "warning" | "error";
+  objectIds: string[];
+  portIds?: string[];
+  elevationDifferenceMm?: number;
+  gradePercent?: number;
+  gradeLimitPercent?: number;
+  radiusMm?: number;
+  radiusLimitMm?: number;
+  clearanceMm?: number;
+  clearanceLimitMm?: number;
+  intersectionXMm?: number;
+  intersectionYMm?: number;
+};
+export type TrackBOMLine = {
+  geometryId: string;
+  libraryId: string;
+  articleNumber: string;
+  name: string;
+  quantity: number;
+};
+export type TrackGrade = {
+  objectId: string;
+  elevationStartMm: number;
+  elevationEndMm: number;
+  lengthMm: number;
+  gradePercent: number;
+};
+export type TrackMaterialStatus = {
+  geometryId: string;
+  manufacturer: string;
+  articleNumber: string;
+  name: string;
+  requiredQuantity: number;
+  productIds: string[];
+  inventoryNumbers: string[];
+  physicalQuantity: number;
+  reservedQuantity: number;
+  availableQuantity: number;
+  missingQuantity: number;
+};
+export type TrackPlanAnalysis = {
+  revisionId: string;
+  status: PlanRevisionStatus;
+  connections: TrackPlanConnection[];
+  issues: TrackPlanIssue[];
+  bom: TrackBOMLine[];
+  grades: TrackGrade[];
+  materials: TrackMaterialStatus[];
+  reservations: TrackPlanObjectReservation[];
+};
+export type TrackPlanObjectChangeType = "added" | "removed" | "changed";
+export type TrackPlanObjectChange = {
+  type: TrackPlanObjectChangeType;
+  lineageId: string;
+  before?: PlanTrackObject;
+  after?: PlanTrackObject;
+};
+export type PlanFreeObjectChange = {
+  type: TrackPlanObjectChangeType;
+  lineageId: string;
+  before?: PlanFreeObject;
+  after?: PlanFreeObject;
+};
+export type TrackPlanMaterialDelta = {
+  geometryId: string;
+  libraryId: string;
+  manufacturer: string;
+  articleNumber: string;
+  name: string;
+  baseQuantity: number;
+  currentQuantity: number;
+  delta: number;
+};
+export type TrackPlanIssueChange = {
+  code: TrackPlanIssueCode;
+  severity: "warning" | "error";
+  lineageIds: string[];
+  portIds?: string[];
+};
+export type TrackPlanChangePreview = {
+  revisionId: string;
+  baseRevisionId: string;
+  objectChanges: TrackPlanObjectChange[];
+  freeObjectChanges: PlanFreeObjectChange[];
+  materialDeltas: TrackPlanMaterialDelta[];
+  issues: { added: TrackPlanIssueChange[]; resolved: TrackPlanIssueChange[] };
+  affectedConfigurations: { id: string; name: string }[];
+};
+export type TrackPlanReservationInput = {
+  trackObjectId: string;
+  productId: string;
+  locationId: string;
+  assetId?: string;
+  expectedObjectVersion: number;
+};
+export type ReserveTrackPlanMaterialsInput = {
+  confirmed: boolean;
+  items: TrackPlanReservationInput[];
+};
+export type TrackPlanObjectReservation = {
+  trackObjectId: string;
+  reservation: AccessoryReservation;
+};
+export type TrackPlanReservationBatch = {
+  revisionId: string;
+  reservations: TrackPlanObjectReservation[];
+  materials: TrackMaterialStatus[];
+};
+export type CreatePlanTrackObjectInput = {
+  geometryId: string;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
+  flexPath?: FlexTrackPath | null;
+  transitionPath?: TransitionCurvePath | null;
+};
+export type CreateFreePlanObjectInput = {
+  name: string;
+  category: FreePlanObjectCategory;
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  shape: FreePlanObjectShape;
+};
+export type UpdateFreePlanObjectInput = CreateFreePlanObjectInput & { expectedVersion: number };
+export type UpdatePlanTrackObjectInput = {
+  positionXMm: number;
+  positionYMm: number;
+  rotationDegrees: number;
+  elevationStartMm: number;
+  elevationEndMm: number;
+  flexPath?: FlexTrackPath | null;
+  transitionPath?: TransitionCurvePath | null;
+  expectedVersion: number;
+};
+export type FlexTrackPath = {
+  schemaVersion: 1;
+  endXMm: number;
+  endYMm: number;
+  endDirectionDegrees: number;
+  startHandleMm: number;
+  endHandleMm: number;
+};
+export type FlexTrackPreviewInput = {
+  endXMm: number;
+  endYMm: number;
+  endDirectionDegrees: number;
+  expectedVersion: number;
+};
+export type FlexTrackPreview = {
+  path: FlexTrackPath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
+  radiusLimitMm: number;
+  lengthExceeded: boolean;
+  radiusBelowLimit: boolean;
+  applicable: boolean;
+};
+export type TransitionDirection = "left" | "right";
+export type TransitionCurvePath = {
+  schemaVersion: 1;
+  lengthMm: number;
+  endRadiusMm: number;
+  direction: TransitionDirection;
+};
+export type TransitionCurvePreviewInput = {
+  lengthMm: number;
+  endRadiusMm: number;
+  direction: TransitionDirection;
+  expectedVersion: number;
+};
+export type TransitionCurvePreview = {
+  path: TransitionCurvePath;
+  effectiveGeometry: TrackGeometry;
+  effectiveLengthMm: number;
+  effectiveMinimumRadiusMm?: number | null;
+  radiusLimitMm: number;
+  lengthExceeded: boolean;
+  radiusBelowLimit: boolean;
+  applicable: boolean;
+};
 
 export type AccessoryTrackingMode = "quantity" | "individual";
 export type AccessoryInventoryStrategy = "quantity" | "individual" | "quantity_later_individual";
@@ -485,6 +1002,7 @@ export type AccessoryReservation = AllocationTarget & AccessoryTechnicalPlacemen
   productId: string;
   assetId?: string;
   locationId: string;
+  technicalPositionId?: string;
   quantity: number;
   status: AccessoryReservationStatus;
   note?: string;
@@ -497,6 +1015,7 @@ export type AccessoryReservationInput = AllocationTarget & AccessoryTechnicalPla
   productId: string;
   assetId?: string;
   locationId: string;
+  technicalPositionId?: string;
   quantity: number;
   note?: string;
 };
@@ -506,6 +1025,7 @@ export type AccessoryInstallation = AllocationTarget & AccessoryTechnicalPlaceme
   productId: string;
   assetId?: string;
   sourceLocationId: string;
+  technicalPositionId?: string;
   quantity: number;
   condition: AccessoryCondition;
   installedBy: string;
@@ -522,6 +1042,7 @@ export type AccessoryInstallationInput = AllocationTarget & AccessoryTechnicalPl
   productId: string;
   assetId?: string;
   sourceLocationId: string;
+  technicalPositionId?: string;
   quantity: number;
   condition?: AccessoryCondition;
   notes?: string;
@@ -560,6 +1081,7 @@ type AccessoryUsageEventBase = {
   vehicleId?: string;
   layoutId?: string;
   layoutUnitId?: string;
+  technicalPositionId?: string;
   placement?: string;
   digitalAddress?: string;
   decoderOutput?: string;
@@ -586,10 +1108,19 @@ type APIRequest = <T>(path: string, init?: RequestInit, options?: RequestOptions
 
 export function createLayoutsAccessoriesAPI(request: APIRequest) {
   const productQuery = (productId?: string) => productId ? `?productId=${encodeURIComponent(productId)}` : "";
+  const twinQuery = (selection: LayoutTwinSelection) => {
+    const query = new URLSearchParams();
+    if (selection.configurationId) query.set("configurationId", selection.configurationId);
+    if (selection.unitId) query.set("unitId", selection.unitId);
+    const encoded = query.toString();
+    return encoded ? `?${encoded}` : "";
+  };
   return {
     layouts: () => request<Layout[]>("/layouts"),
     createLayout: (input: LayoutInput) => request<Layout>("/layouts", json("POST", input)),
     layout: (id: string) => request<Layout>(`/layouts/${encodeURIComponent(id)}`),
+    layoutTwin: (id: string, selection: LayoutTwinSelection = {}) =>
+      request<LayoutTwin>(`/layouts/${encodeURIComponent(id)}/twin${twinQuery(selection)}`),
     updateLayout: (id: string, input: LayoutUpdateInput) =>
       request<Layout>(`/layouts/${encodeURIComponent(id)}`, json("PUT", input)),
     layoutUnits: (layoutId: string) => request<LayoutUnit[]>(`/layouts/${encodeURIComponent(layoutId)}/units`),
@@ -597,12 +1128,38 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<LayoutUnit>(`/layouts/${encodeURIComponent(layoutId)}/units`, json("POST", input)),
     updateLayoutUnit: (id: string, input: LayoutUnitUpdateInput) =>
       request<LayoutUnit>(`/layout-units/${encodeURIComponent(id)}`, json("PUT", input)),
+    layoutUnitPorts: (unitId: string) =>
+      request<LayoutUnitPort[]>(`/layout-units/${encodeURIComponent(unitId)}/ports`),
+    createLayoutUnitPort: (unitId: string, input: LayoutUnitPortInput) =>
+      request<LayoutUnitPort>(`/layout-units/${encodeURIComponent(unitId)}/ports`, json("POST", input)),
+    updateLayoutUnitPort: (id: string, input: LayoutUnitPortUpdateInput) =>
+      request<LayoutUnitPort>(`/layout-unit-ports/${encodeURIComponent(id)}`, json("PUT", input)),
+    updateLayoutUnitOutline: (id: string, input: LayoutUnitOutlineUpdateInput) =>
+      request<LayoutUnitOutline>(`/layout-units/${encodeURIComponent(id)}/outline`, json("PUT", input)),
+    layoutTechnicalPositions: (unitId: string) =>
+      request<LayoutTechnicalPosition[]>(`/layout-units/${encodeURIComponent(unitId)}/technical-positions`),
+    createLayoutTechnicalPosition: (unitId: string, input: LayoutTechnicalPositionInput) =>
+      request<LayoutTechnicalPosition>(
+        `/layout-units/${encodeURIComponent(unitId)}/technical-positions`,
+        json("POST", input)
+      ),
+    updateLayoutTechnicalPosition: (id: string, input: LayoutTechnicalPositionUpdateInput) =>
+      request<LayoutTechnicalPosition>(
+        `/layout-technical-positions/${encodeURIComponent(id)}`,
+        json("PUT", input)
+      ),
     layoutConfigurations: (layoutId: string) =>
       request<LayoutConfiguration[]>(`/layouts/${encodeURIComponent(layoutId)}/configurations`),
     createLayoutConfiguration: (layoutId: string, input: LayoutConfigurationInput) =>
       request<LayoutConfiguration>(`/layouts/${encodeURIComponent(layoutId)}/configurations`, json("POST", input)),
     updateLayoutConfiguration: (id: string, input: LayoutConfigurationUpdateInput) =>
       request<LayoutConfiguration>(`/layout-configurations/${encodeURIComponent(id)}`, json("PUT", input)),
+    layoutConfigurationPortAnalysis: (id: string) =>
+      request<ModulePortAnalysis>(`/layout-configurations/${encodeURIComponent(id)}/port-analysis`),
+    previewLayoutConfigurationUnitSnap: (id: string, input: ConfigurationUnitSnapPreviewInput) =>
+      request<ModulePortSnapResult>(
+        `/layout-configurations/${encodeURIComponent(id)}/unit-snap-preview`, json("POST", input)
+      ),
     planVariants: (unitId: string) =>
       request<PlanVariant[]>(`/layout-units/${encodeURIComponent(unitId)}/plan-variants`),
     createPlanVariant: (unitId: string, input: PlanVariantInput) =>
@@ -613,6 +1170,61 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<PlanRevision>(`/plan-revisions/${encodeURIComponent(id)}/submit`, json("POST", { expectedVersion })),
     publishPlanRevision: (id: string, expectedVersion: number) =>
       request<PlanRevision>(`/plan-revisions/${encodeURIComponent(id)}/publish`, json("POST", { expectedVersion })),
+    trackGeometries: (gauge: string) =>
+      request<TrackGeometryDefinition[]>(`/track-geometries?gauge=${encodeURIComponent(gauge)}`),
+    trackLibraries: () => request<TrackGeometryLibrary[]>("/track-libraries"),
+    exportTrackLibrary: (id: string) =>
+      request<TrackLibraryPackage>(`/track-libraries/${encodeURIComponent(id)}/export`),
+    previewTrackLibraryImport: (input: TrackLibraryPackage) =>
+      request<TrackLibraryImportPreview>("/track-libraries/import/preview", json("POST", input)),
+    importTrackLibrary: (input: ImportTrackLibraryInput) =>
+      request<TrackGeometryLibrary>("/track-libraries/import", json("POST", input)),
+    updateTrackLibraryStatus: (id: string, input: UpdateTrackLibraryStatusInput) =>
+      request<TrackGeometryLibrary>(
+        `/track-libraries/${encodeURIComponent(id)}/status`, json("PUT", input)
+      ),
+    trackPlan: (revisionId: string) =>
+      request<TrackPlan>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-plan`),
+    trackPlanAnalysis: (revisionId: string) =>
+      request<TrackPlanAnalysis>(`/plan-revisions/${encodeURIComponent(revisionId)}/track-analysis`),
+    trackPlanChangePreview: (revisionId: string) =>
+      request<TrackPlanChangePreview>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-change-preview`
+      ),
+    reserveTrackPlanMaterials: (revisionId: string, input: ReserveTrackPlanMaterialsInput) =>
+      request<TrackPlanReservationBatch>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-reservations`, json("POST", input)
+      ),
+    createPlanTrackObject: (revisionId: string, input: CreatePlanTrackObjectInput) =>
+      request<PlanTrackObject>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/track-objects`, json("POST", input)
+      ),
+    createFreePlanObject: (revisionId: string, input: CreateFreePlanObjectInput) =>
+      request<PlanFreeObject>(
+        `/plan-revisions/${encodeURIComponent(revisionId)}/free-objects`, json("POST", input)
+      ),
+    updateFreePlanObject: (id: string, input: UpdateFreePlanObjectInput) =>
+      request<PlanFreeObject>(`/plan-free-objects/${encodeURIComponent(id)}`, json("PUT", input)),
+    updatePlanTrackObject: (id: string, input: UpdatePlanTrackObjectInput) =>
+      request<PlanTrackObject>(`/plan-track-objects/${encodeURIComponent(id)}`, json("PUT", input)),
+    previewFlexTrackPath: (id: string, input: FlexTrackPreviewInput) =>
+      request<FlexTrackPreview>(
+        `/plan-track-objects/${encodeURIComponent(id)}/flex-preview`, json("POST", input)
+      ),
+    previewTransitionCurvePath: (id: string, input: TransitionCurvePreviewInput) =>
+      request<TransitionCurvePreview>(
+        `/plan-track-objects/${encodeURIComponent(id)}/transition-preview`, json("POST", input)
+      ),
+    deletePlanTrackObject: (id: string, expectedVersion: number) =>
+      request<void>(
+        `/plan-track-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,
+        { method: "DELETE" }
+      ),
+    deleteFreePlanObject: (id: string, expectedVersion: number) =>
+      request<void>(
+        `/plan-free-objects/${encodeURIComponent(id)}?expectedVersion=${encodeURIComponent(expectedVersion)}`,
+        { method: "DELETE" }
+      ),
     accessoryArticles: (filters: AccessoryArticleListQuery = {}) =>
       request<AccessoryArticleListResult>(`/accessory-products${articleQuery(filters)}`),
     createAccessoryArticle: (input: AccessoryArticleWriteInput) =>
@@ -627,6 +1239,8 @@ export function createLayoutsAccessoriesAPI(request: APIRequest) {
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/archive`, { method: "POST" }),
     restoreAccessoryProduct: (id: string) =>
       request<AccessoryArticle>(`/accessory-products/${encodeURIComponent(id)}/restore`, { method: "POST" }),
+    deleteAccessoryProduct: (id: string) =>
+      request<void>(`/accessory-products/${encodeURIComponent(id)}`, { method: "DELETE" }),
     storageLocations: () => request<StorageLocation[]>("/storage-locations"),
     createStorageLocation: (input: StorageLocationInput) =>
       request<StorageLocation>("/storage-locations", json("POST", input)),

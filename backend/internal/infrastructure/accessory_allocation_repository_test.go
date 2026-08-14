@@ -233,6 +233,67 @@ func TestAccessoryInstallationInheritsReservationTechnicalDataWithNonEmptyOverri
 	}
 }
 
+func TestAccessoryAllocationsLinkTechnicalPositionAndInheritItOnInstallation(t *testing.T) {
+	fixture := newAllocationFixture(t)
+	ctx := t.Context()
+	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(fixture.db))
+	position, err := layouts.CreateTechnicalPosition(ctx, fixture.unit.ID,
+		application.CreateLayoutTechnicalPositionInput{
+			Label: "Signal A", Kind: domain.LayoutPositionSignal,
+			PositionXMM: 120, PositionYMM: 40, ProductID: fixture.quantityProduct.ID,
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := application.AllocationTargetInput{LayoutUnitID: fixture.unit.ID}
+	reservation, err := fixture.allocations.CreateReservation(ctx,
+		application.CreateAccessoryReservationInput{
+			ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
+			AllocationTargetInput: target, TechnicalPositionID: position.ID,
+		}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reservation.TechnicalPositionID != position.ID {
+		t.Fatalf("reservation lost technical position: %#v", reservation)
+	}
+	installation, err := fixture.allocations.Install(ctx,
+		application.CreateAccessoryInstallationInput{
+			ReservationID: reservation.ID, ProductID: fixture.quantityProduct.ID,
+			SourceLocationID: fixture.location.ID, Quantity: 1,
+			AllocationTargetInput: target, Condition: domain.AccessoryConditionReady,
+		}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if installation.TechnicalPositionID != position.ID {
+		t.Fatalf("installation did not inherit technical position: %#v", installation)
+	}
+
+	otherUnit, err := layouts.CreateUnit(ctx, fixture.layout.ID, application.CreateLayoutUnitInput{
+		Name: "Modul 2", Kind: domain.LayoutUnitKindModule,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.quantityProduct.ID, LocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: application.AllocationTargetInput{LayoutUnitID: otherUnit.ID},
+		TechnicalPositionID:   position.ID,
+	}, "planner-1")
+	if !errors.Is(err, application.ErrAccessoryConflict) {
+		t.Fatalf("expected unit mismatch conflict, got %v", err)
+	}
+	_, err = fixture.allocations.CreateReservation(ctx, application.CreateAccessoryReservationInput{
+		ProductID: fixture.individualProduct.ID, AssetID: fixture.asset.ID,
+		LocationID: fixture.location.ID, Quantity: 1,
+		AllocationTargetInput: target, TechnicalPositionID: position.ID,
+	}, "planner-1")
+	if !errors.Is(err, application.ErrAccessoryConflict) {
+		t.Fatalf("expected product mismatch conflict, got %v", err)
+	}
+}
+
 func TestAccessoryAllocationsTrackIndividualAssetLifecycle(t *testing.T) {
 	fixture := newAllocationFixture(t)
 	ctx := t.Context()

@@ -18,25 +18,31 @@ var (
 )
 
 type Layout struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Kind        domain.LayoutKind `json:"kind"`
-	Gauge       string            `json:"gauge"`
-	Scale       string            `json:"scale"`
-	Description string            `json:"description,omitempty"`
-	Version     int               `json:"version"`
-	Archived    bool              `json:"archived"`
-	CreatedAt   string            `json:"createdAt"`
-	UpdatedAt   string            `json:"updatedAt"`
+	ID                      string            `json:"id"`
+	Name                    string            `json:"name"`
+	Kind                    domain.LayoutKind `json:"kind"`
+	Gauge                   string            `json:"gauge"`
+	Scale                   string            `json:"scale"`
+	Description             string            `json:"description,omitempty"`
+	MaxGradePercent         *float64          `json:"maxGradePercent,omitempty"`
+	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm,omitempty"`
+	MinimumFlexRadiusMM     *float64          `json:"minimumFlexRadiusMm,omitempty"`
+	Version                 int               `json:"version"`
+	Archived                bool              `json:"archived"`
+	CreatedAt               string            `json:"createdAt"`
+	UpdatedAt               string            `json:"updatedAt"`
 }
 
 type CreateLayoutInput struct {
-	Name        string            `json:"name"`
-	Kind        domain.LayoutKind `json:"kind"`
-	Gauge       string            `json:"gauge"`
-	Scale       string            `json:"scale"`
-	Description string            `json:"description"`
-	Archived    bool              `json:"archived"`
+	Name                    string            `json:"name"`
+	Kind                    domain.LayoutKind `json:"kind"`
+	Gauge                   string            `json:"gauge"`
+	Scale                   string            `json:"scale"`
+	Description             string            `json:"description"`
+	MaxGradePercent         *float64          `json:"maxGradePercent"`
+	MinimumTrackClearanceMM *float64          `json:"minimumTrackClearanceMm"`
+	MinimumFlexRadiusMM     *float64          `json:"minimumFlexRadiusMm"`
+	Archived                bool              `json:"archived"`
 }
 
 type UpdateLayoutInput struct {
@@ -69,6 +75,38 @@ type CreateLayoutUnitInput struct {
 
 type UpdateLayoutUnitInput struct {
 	CreateLayoutUnitInput
+	ExpectedVersion int `json:"expectedVersion"`
+}
+
+type LayoutUnitPort struct {
+	ID               string                    `json:"id"`
+	LayoutUnitID     string                    `json:"layoutUnitId"`
+	Name             string                    `json:"name"`
+	Kind             domain.LayoutUnitPortKind `json:"kind"`
+	InterfaceKey     string                    `json:"interfaceKey"`
+	XMM              float64                   `json:"xMm"`
+	YMM              float64                   `json:"yMm"`
+	DirectionDegrees float64                   `json:"directionDegrees"`
+	Notes            string                    `json:"notes,omitempty"`
+	Version          int                       `json:"version"`
+	Archived         bool                      `json:"archived"`
+	CreatedAt        string                    `json:"createdAt"`
+	UpdatedAt        string                    `json:"updatedAt"`
+}
+
+type CreateLayoutUnitPortInput struct {
+	Name             string                    `json:"name"`
+	Kind             domain.LayoutUnitPortKind `json:"kind"`
+	InterfaceKey     string                    `json:"interfaceKey"`
+	XMM              float64                   `json:"xMm"`
+	YMM              float64                   `json:"yMm"`
+	DirectionDegrees float64                   `json:"directionDegrees"`
+	Notes            string                    `json:"notes"`
+	Archived         bool                      `json:"archived"`
+}
+
+type UpdateLayoutUnitPortInput struct {
+	CreateLayoutUnitPortInput
 	ExpectedVersion int `json:"expectedVersion"`
 }
 
@@ -146,6 +184,15 @@ type LayoutRepository interface {
 	ListUnits(context.Context, string) ([]LayoutUnit, error)
 	CreateUnit(context.Context, string, CreateLayoutUnitInput, string) (*LayoutUnit, error)
 	UpdateUnit(context.Context, string, UpdateLayoutUnitInput, string) (*LayoutUnit, error)
+	UpdateUnitOutline(context.Context, string, UpdateLayoutUnitOutlineInput, string) (*LayoutUnitOutline, error)
+	ListTechnicalPositions(context.Context, string) ([]LayoutTechnicalPosition, error)
+	CreateTechnicalPosition(
+		context.Context, string, CreateLayoutTechnicalPositionInput, string,
+	) (*LayoutTechnicalPosition, error)
+	UpdateTechnicalPosition(
+		context.Context, string, UpdateLayoutTechnicalPositionInput, string,
+	) (*LayoutTechnicalPosition, error)
+	GetTwin(context.Context, string, LayoutTwinSelection) (*LayoutTwin, error)
 	ListConfigurations(context.Context, string) ([]LayoutConfiguration, error)
 	SaveConfiguration(context.Context, string, SaveLayoutConfigurationInput, string) (*LayoutConfiguration, error)
 	ListVariants(context.Context, string) ([]PlanVariant, error)
@@ -155,12 +202,37 @@ type LayoutRepository interface {
 	PublishRevision(context.Context, string, int, string) (*PlanRevision, error)
 }
 
+type LayoutUnitPortRepository interface {
+	GetUnit(context.Context, string) (*LayoutUnit, error)
+	ListUnitPorts(context.Context, string) ([]LayoutUnitPort, error)
+	GetUnitForPort(context.Context, string) (*LayoutUnit, error)
+	CreateUnitPort(context.Context, string, CreateLayoutUnitPortInput, string) (*LayoutUnitPort, error)
+	UpdateUnitPort(context.Context, string, UpdateLayoutUnitPortInput, string) (*LayoutUnitPort, error)
+}
+
+type LayoutConfigurationPortRepository interface {
+	LoadConfigurationPortPlacements(context.Context, string) ([]domain.ModulePortPlacement, error)
+	ConfigurationContainsUnit(context.Context, string, string) (bool, error)
+}
+
+type PreviewConfigurationUnitSnapInput struct {
+	UnitID          string  `json:"unitId"`
+	PositionXMM     float64 `json:"positionXMm"`
+	PositionYMM     float64 `json:"positionYMm"`
+	RotationDegrees float64 `json:"rotationDegrees"`
+}
+
 type LayoutService struct {
-	repository LayoutRepository
+	repository                  LayoutRepository
+	portRepository              LayoutUnitPortRepository
+	configurationPortRepository LayoutConfigurationPortRepository
 }
 
 func NewLayoutService(repository LayoutRepository) *LayoutService {
-	return &LayoutService{repository: repository}
+	portRepository, _ := repository.(LayoutUnitPortRepository)
+	configurationPortRepository, _ := repository.(LayoutConfigurationPortRepository)
+	return &LayoutService{repository: repository, portRepository: portRepository,
+		configurationPortRepository: configurationPortRepository}
 }
 
 func (s *LayoutService) ListLayouts(ctx context.Context) ([]Layout, error) {
@@ -207,8 +279,103 @@ func (s *LayoutService) UpdateUnit(ctx context.Context, id string, input UpdateL
 	return s.repository.UpdateUnit(ctx, strings.TrimSpace(id), input, actor)
 }
 
+func (s *LayoutService) ListUnitPorts(ctx context.Context, unitID string) ([]LayoutUnitPort, error) {
+	unitID = strings.TrimSpace(unitID)
+	if unitID == "" {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.ListUnitPorts(ctx, unitID)
+}
+
+func (s *LayoutService) CreateUnitPort(
+	ctx context.Context,
+	unitID string,
+	input CreateLayoutUnitPortInput,
+	actor string,
+) (*LayoutUnitPort, error) {
+	unitID = strings.TrimSpace(unitID)
+	input = cleanLayoutUnitPortInput(input)
+	if unitID == "" || !validLayoutUnitPortInput(input) {
+		return nil, ErrLayoutValidation
+	}
+	unit, err := s.portRepository.GetUnit(ctx, unitID)
+	if err != nil {
+		return nil, err
+	}
+	if !layoutUnitPortWithinBounds(input, *unit) {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.CreateUnitPort(ctx, unitID, input, actor)
+}
+
+func (s *LayoutService) UpdateUnitPort(
+	ctx context.Context,
+	id string,
+	input UpdateLayoutUnitPortInput,
+	actor string,
+) (*LayoutUnitPort, error) {
+	id = strings.TrimSpace(id)
+	input.CreateLayoutUnitPortInput = cleanLayoutUnitPortInput(input.CreateLayoutUnitPortInput)
+	if id == "" || input.ExpectedVersion < 1 || !validLayoutUnitPortInput(input.CreateLayoutUnitPortInput) {
+		return nil, ErrLayoutValidation
+	}
+	unit, err := s.portRepository.GetUnitForPort(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if !layoutUnitPortWithinBounds(input.CreateLayoutUnitPortInput, *unit) {
+		return nil, ErrLayoutValidation
+	}
+	return s.portRepository.UpdateUnitPort(ctx, id, input, actor)
+}
+
 func (s *LayoutService) ListConfigurations(ctx context.Context, layoutID string) ([]LayoutConfiguration, error) {
 	return s.repository.ListConfigurations(ctx, strings.TrimSpace(layoutID))
+}
+
+func (s *LayoutService) AnalyzeConfigurationPorts(
+	ctx context.Context,
+	configurationID string,
+) (*domain.ModulePortAnalysis, error) {
+	configurationID = strings.TrimSpace(configurationID)
+	if configurationID == "" {
+		return nil, ErrLayoutValidation
+	}
+	placements, err := s.configurationPortRepository.LoadConfigurationPortPlacements(ctx, configurationID)
+	if err != nil {
+		return nil, err
+	}
+	analysis := domain.AnalyzeModulePorts(placements)
+	return &analysis, nil
+}
+
+func (s *LayoutService) PreviewConfigurationUnitSnap(
+	ctx context.Context,
+	configurationID string,
+	input PreviewConfigurationUnitSnapInput,
+) (*domain.ModulePortSnapResult, error) {
+	configurationID = strings.TrimSpace(configurationID)
+	input.UnitID = strings.TrimSpace(input.UnitID)
+	if configurationID == "" || input.UnitID == "" || !finite(input.PositionXMM) ||
+		!finite(input.PositionYMM) || !finite(input.RotationDegrees) {
+		return nil, ErrLayoutValidation
+	}
+	placements, err := s.configurationPortRepository.LoadConfigurationPortPlacements(ctx, configurationID)
+	if err != nil {
+		return nil, err
+	}
+	found, err := s.configurationPortRepository.ConfigurationContainsUnit(ctx, configurationID, input.UnitID)
+	if err != nil {
+		return nil, err
+	}
+	if !found {
+		return nil, ErrLayoutValidation
+	}
+	result := domain.FindModulePortSnap(input.UnitID, domain.TrackPose{
+		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
+		RotationDegrees: input.RotationDegrees,
+	}, placements)
+	return &result, nil
 }
 
 func (s *LayoutService) SaveConfiguration(ctx context.Context, layoutID string, input SaveLayoutConfigurationInput, actor string) (*LayoutConfiguration, error) {
@@ -249,7 +416,13 @@ func cleanLayoutInput(input CreateLayoutInput) CreateLayoutInput {
 }
 
 func validLayoutInput(input CreateLayoutInput) bool {
-	return input.Name != "" && input.Gauge != "" && input.Scale != "" && input.Kind.Valid()
+	return input.Name != "" && input.Gauge != "" && input.Scale != "" && input.Kind.Valid() &&
+		(input.MaxGradePercent == nil || finite(*input.MaxGradePercent) &&
+			*input.MaxGradePercent > 0 && *input.MaxGradePercent <= 100) &&
+		(input.MinimumTrackClearanceMM == nil ||
+			finite(*input.MinimumTrackClearanceMM) && *input.MinimumTrackClearanceMM > 0) &&
+		(input.MinimumFlexRadiusMM == nil ||
+			finite(*input.MinimumFlexRadiusMM) && *input.MinimumFlexRadiusMM > 0)
 }
 
 func cleanLayoutUnitInput(input CreateLayoutUnitInput) CreateLayoutUnitInput {
@@ -261,6 +434,25 @@ func cleanLayoutUnitInput(input CreateLayoutUnitInput) CreateLayoutUnitInput {
 func validLayoutUnitInput(input CreateLayoutUnitInput) bool {
 	return input.Name != "" && input.Kind.Valid() && finite(input.WidthMM) && finite(input.HeightMM) &&
 		input.WidthMM >= 0 && input.HeightMM >= 0
+}
+
+func cleanLayoutUnitPortInput(input CreateLayoutUnitPortInput) CreateLayoutUnitPortInput {
+	input.Name = strings.TrimSpace(input.Name)
+	input.InterfaceKey = strings.ToLower(strings.TrimSpace(input.InterfaceKey))
+	input.Notes = strings.TrimSpace(input.Notes)
+	input.DirectionDegrees = normalizeRotation(input.DirectionDegrees)
+	return input
+}
+
+func validLayoutUnitPortInput(input CreateLayoutUnitPortInput) bool {
+	return input.Name != "" && input.Kind.Valid() && input.InterfaceKey != "" &&
+		finite(input.XMM) && finite(input.YMM) && finite(input.DirectionDegrees) &&
+		input.XMM >= 0 && input.YMM >= 0
+}
+
+func layoutUnitPortWithinBounds(input CreateLayoutUnitPortInput, unit LayoutUnit) bool {
+	return (unit.WidthMM <= 0 || input.XMM <= unit.WidthMM) &&
+		(unit.HeightMM <= 0 || input.YMM <= unit.HeightMM)
 }
 
 func normalizeRotation(value float64) float64 {

@@ -4,6 +4,35 @@
 
 All notable changes to RailKeeper are documented in this file.
 
+## [0.1.17.2] - 2026-08-14
+
+### Added
+
+- The layout workspace now provides an interactive digital twin, editable technical positions,
+  module ports, track plans, revision previews, material reservations, and track-library exchange.
+- Track planning supports verified Tillig geometry, flex tracks, transition curves, elevation
+  profiles, free plan objects, clearance checks, grade limits, and connection analysis.
+- The accessory overview now offers persistent table and card views plus a compact mobile list.
+- Administrators can permanently delete completely unused accessory articles after an explicit
+  confirmation.
+
+### Changed
+
+- The layout navigation is enabled again and opens the expanded operational workspace.
+- Accessory row and card actions share the same keyboard-accessible menu behavior.
+
+### Fixed
+
+- Imported track manufacturers remain intact and track libraries load consistently.
+- Accessory action menus stay visible at table and mobile-card edges, and long card metadata labels
+  remain separated.
+
+### Security
+
+- Permanent accessory deletion is enforced server-side for administrators and is rejected whenever
+  stock, purchases, movements, reservations, installations, history, assets, or layout references
+  exist.
+
 ## [0.1.17.1] - 2026-08-13
 
 ### Added
@@ -94,6 +123,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2
 [0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
 [0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17
 [0.1.16]: https://github.com/ichwars/RailKeeper/compare/v0.1.15...v0.1.16

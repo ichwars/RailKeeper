@@ -71,6 +71,102 @@ func TestAccessoryRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
 }
 
+func TestAccessoryProductDeleteRequiresAdminAndCSRF(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	for _, user := range []application.CreateUserInput{
+		{Username: "admin-delete", Password: "admin-password", Roles: []string{"Admin"}},
+		{Username: "editor-delete", Password: "editor-password", Roles: []string{"Editor"}},
+		{Username: "viewer-delete", Password: "viewer-password", Roles: []string{"Viewer"}},
+		{Username: "planner-delete", Password: "planner-password", Roles: []string{"Planner"}},
+		{Username: "messe-delete", Password: "messe-password", Roles: []string{"Messe"}},
+	} {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	router := NewRouter(Config{
+		AuthService: auth,
+		AccessoryService: application.NewAccessoryService(
+			infrastructure.NewAccessoryRepository(db),
+		),
+	})
+	admin := loginRouteTestUser(t, auth, "admin-delete", "admin-password")
+	nonAdmins := []*application.LoginResult{
+		loginRouteTestUser(t, auth, "editor-delete", "editor-password"),
+		loginRouteTestUser(t, auth, "viewer-delete", "viewer-password"),
+		loginRouteTestUser(t, auth, "planner-delete", "planner-password"),
+		loginRouteTestUser(t, auth, "messe-delete", "messe-password"),
+	}
+	create := func(articleNumber string) application.AccessoryProduct {
+		response := layoutRequest(t, router, admin, http.MethodPost,
+			"/api/v1/accessory-products", map[string]any{
+				"manufacturer": "Tillig", "articleNumber": articleNumber,
+				"name": "Löschtest", "category": "Gleismaterial", "trackingMode": "quantity",
+			}, true)
+		assertStatus(t, response, http.StatusCreated)
+		var product application.AccessoryProduct
+		decodeResponse(t, response, &product)
+		return product
+	}
+
+	protected := create("DELETE-CSRF")
+	path := "/api/v1/accessory-products/" + protected.ID
+	for _, session := range nonAdmins {
+		assertProblem(t, layoutRequest(t, router, session, http.MethodDelete, path, nil, true),
+			http.StatusForbidden, "forbidden")
+	}
+	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, false),
+		http.StatusForbidden, "csrf_required")
+	assertStatus(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, true),
+		http.StatusNoContent)
+	assertProblem(t, layoutRequest(t, router, admin, http.MethodGet, path, nil, true),
+		http.StatusNotFound, "accessory_not_found")
+	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/accessory-products/missing", nil, true),
+		http.StatusNotFound, "accessory_not_found")
+}
+
+func TestAccessoryProductDeleteRejectsUsedProduct(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "admin-blocked-delete", Password: "admin-password", Roles: []string{"Admin"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	admin := loginRouteTestUser(t, auth, "admin-blocked-delete", "admin-password")
+	router := NewRouter(Config{
+		AuthService: auth,
+		AccessoryService: application.NewAccessoryService(
+			infrastructure.NewAccessoryRepository(db),
+		),
+	})
+	locationResponse := layoutRequest(t, router, admin, http.MethodPost,
+		"/api/v1/storage-locations", map[string]any{"name": "Sperrlager"}, true)
+	assertStatus(t, locationResponse, http.StatusCreated)
+	var location application.StorageLocation
+	decodeResponse(t, locationResponse, &location)
+
+	productResponse := layoutRequest(t, router, admin, http.MethodPost,
+		"/api/v1/accessory-products", map[string]any{
+			"manufacturer": "Tillig", "articleNumber": "DELETE-BLOCKED", "name": "Benutzter Artikel",
+			"category": "Gleismaterial", "trackingMode": "quantity",
+		}, true)
+	assertStatus(t, productResponse, http.StatusCreated)
+	var product application.AccessoryProduct
+	decodeResponse(t, productResponse, &product)
+	path := "/api/v1/accessory-products/" + product.ID
+	assertStatus(t, layoutRequest(t, router, admin, http.MethodPost,
+		path+"/stock-adjustments", map[string]any{
+			"locationId": location.ID, "delta": 1,
+		}, true), http.StatusOK)
+
+	assertProblem(t, layoutRequest(t, router, admin, http.MethodDelete, path, nil, true),
+		http.StatusConflict, "accessory_delete_blocked")
+	assertStatus(t, layoutRequest(t, router, admin, http.MethodGet, path, nil, true), http.StatusOK)
+}
+
 func TestAccessoryRoutesCoverCatalogueLocationsAndInventory(t *testing.T) {
 	db := testRouterDB(t)
 	auth := application.NewAuthService(db)

@@ -1,0 +1,123 @@
+.track-library-panel .panel-title {
+  align-items: flex-start;
+}
+
+.track-library-panel .panel-title p {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  margin: 3px 0 0;
+}
+
+.track-library-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.track-library-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 9px;
+  padding: 11px 12px;
+}
+
+.track-library-main,
+.track-library-main > div {
+  align-items: flex-start;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.track-library-main > div {
+  flex-direction: column;
+  gap: 2px;
+}
+
+.track-library-main span,
+.track-library-note {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.track-library-card dl,
+.track-library-preview dl {
+  display: grid;
+  gap: 6px 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+}
+
+.track-library-card dl > div,
+.track-library-preview dl > div {
+  display: grid;
+  gap: 2px;
+}
+
+.track-library-card dt,
+.track-library-preview dt {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  text-transform: uppercase;
+}
+
+.track-library-card dd,
+.track-library-preview dd,
+.track-library-note {
+  margin: 0;
+}
+
+.track-library-dialog-layer {
+  z-index: 170;
+}
+
+.track-library-dialog {
+  display: grid;
+  gap: 14px;
+  max-height: min(760px, calc(100vh - 32px));
+  max-width: 680px;
+  overflow: auto;
+  width: min(680px, calc(100vw - 32px));
+}
+
+.track-library-dialog h2,
+.track-library-dialog p {
+  margin: 0;
+}
+
+.track-library-preview {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+}
+
+.track-library-preview > div:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.track-library-preview > div:first-child span,
+.track-library-warning {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.track-library-warning::before {
+  content: "⚠ ";
+}
+
+@media (max-width: 700px) {
+  .track-library-panel .layout-panel-head,
+  .track-library-main {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .track-library-card dl,
+  .track-library-preview dl {
+    grid-template-columns: 1fr;
+  }
+}

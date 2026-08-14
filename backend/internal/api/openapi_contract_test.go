@@ -68,9 +68,16 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 	contract := string(data)
 	want := []string{
 		"Layout", "LayoutInput", "UpdateLayoutInput", "LayoutUnit", "LayoutUnitInput",
-		"UpdateLayoutUnitInput", "LayoutConfiguration", "LayoutConfigurationInput",
+		"UpdateLayoutUnitInput", "LayoutUnitPort", "LayoutUnitPortInput", "UpdateLayoutUnitPortInput",
+		"LayoutTechnicalPosition", "LayoutTechnicalPositionInput",
+		"UpdateLayoutTechnicalPositionInput", "LayoutConfiguration", "LayoutConfigurationInput",
 		"UpdateLayoutConfigurationInput", "PlanVariant", "PlanVariantInput", "PlanRevision",
-		"PlanRevisionInput", "PlanRevisionTransitionInput", "AccessoryProduct", "AccessoryProductInput",
+		"ModulePortConnection", "ModulePortIssue", "ModulePortAnalysis", "ConfigurationUnitSnapPreviewInput",
+		"ModulePortSnapResult",
+		"PlanRevisionInput", "PlanRevisionTransitionInput", "TrackPoint", "TrackPort", "TrackRoute",
+		"TrackGeometry", "TrackGeometryDefinition", "PlanTrackObject", "TrackPlan",
+		"TrackPlanConnection", "TrackPlanIssue", "TrackBOMLine", "TrackGrade", "TrackMaterialStatus", "TrackPlanAnalysis",
+		"CreatePlanTrackObjectInput", "UpdatePlanTrackObjectInput", "AccessoryProduct", "AccessoryProductInput",
 		"StorageLocation", "StorageLocationInput", "AccessoryStockSummary", "AccessoryStockAdjustmentInput",
 		"AccessoryAsset", "AccessoryAssetInput", "AccessoryAllocationTarget", "AccessoryReservation",
 		"AccessoryReservationInput", "AccessoryInstallation", "AccessoryInstallationInput",
@@ -88,6 +95,151 @@ func TestOpenAPIDocumentsLayoutAndAccessorySchemas(t *testing.T) {
 		if !strings.Contains(contract, "    "+schema+":\n") {
 			t.Errorf("OpenAPI contract is missing schema %s", schema)
 		}
+	}
+}
+
+func TestOpenAPIDocumentsTrackElevationMismatch(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	if !strings.Contains(issue,
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]") {
+		t.Errorf("TrackPlanIssue is missing elevation_mismatch: %s", issue)
+	}
+	if !strings.Contains(issue, "elevationDifferenceMm:") || !strings.Contains(issue, "minimum: 0") {
+		t.Errorf("TrackPlanIssue is missing elevation difference details: %s", issue)
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change,
+		"enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]") {
+		t.Errorf("TrackPlanIssueChange is missing elevation_mismatch: %s", change)
+	}
+}
+
+func TestOpenAPIDocumentsFlexTrackPreview(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"FlexTrackPath", "FlexTrackPreviewInput", "FlexTrackPreview"} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	for _, field := range []string{"flex_radius_below_limit", "radiusMm:", "radiusLimitMm:"} {
+		if !strings.Contains(issue, field) {
+			t.Errorf("TrackPlanIssue is missing %s: %s", field, issue)
+		}
+	}
+}
+
+func TestOpenAPIDocumentsTransitionCurvePreview(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{
+		"TransitionCurvePath", "TransitionCurvePreviewInput", "TransitionCurvePreview",
+	} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	for _, schema := range []string{"PlanTrackObject", "CreatePlanTrackObjectInput", "UpdatePlanTrackObjectInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "transitionPath:") {
+			t.Errorf("%s is missing transitionPath: %s", schema, block)
+		}
+	}
+	if !strings.Contains(contract, "  /plan-track-objects/{id}/transition-preview:\n") {
+		t.Error("OpenAPI contract is missing transition preview path")
+	}
+}
+
+func TestOpenAPIDocumentsFreePlanObjects(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{
+		"FreePlanObjectShape", "PlanFreeObject", "CreateFreePlanObjectInput",
+		"UpdateFreePlanObjectInput", "PlanFreeObjectChange",
+	} {
+		if !strings.Contains(contract, "    "+schema+":\n") {
+			t.Errorf("OpenAPI contract is missing schema %s", schema)
+		}
+	}
+	for _, path := range []string{
+		"  /plan-revisions/{id}/free-objects:\n", "  /plan-free-objects/{id}:\n",
+	} {
+		if !strings.Contains(contract, path) {
+			t.Errorf("OpenAPI contract is missing path %s", strings.TrimSpace(path))
+		}
+	}
+	plan := openAPIIndentedBlock(t, contract, "TrackPlan", 4)
+	if !strings.Contains(plan, "freeObjects:") {
+		t.Errorf("TrackPlan is missing freeObjects: %s", plan)
+	}
+	preview := openAPIIndentedBlock(t, contract, "TrackPlanChangePreview", 4)
+	if !strings.Contains(preview, "freeObjectChanges:") {
+		t.Errorf("TrackPlanChangePreview is missing freeObjectChanges: %s", preview)
+	}
+}
+
+func TestOpenAPIDocumentsLayoutGradeLimitAndWarning(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"Layout", "LayoutInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "maxGradePercent:") || !strings.Contains(block, "maximum: 100") ||
+			!strings.Contains(block, "exclusiveMinimum: 0") {
+			t.Errorf("%s is missing maximum grade constraints: %s", schema, block)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	if !strings.Contains(issue, "grade_limit_exceeded") || !strings.Contains(issue, "gradePercent:") ||
+		!strings.Contains(issue, "gradeLimitPercent:") {
+		t.Errorf("TrackPlanIssue is missing grade limit details: %s", issue)
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change, "grade_limit_exceeded") {
+		t.Errorf("TrackPlanIssueChange is missing grade_limit_exceeded: %s", change)
+	}
+}
+
+func TestOpenAPIDocumentsTrackClearanceLimitAndWarning(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	for _, schema := range []string{"Layout", "LayoutInput"} {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		if !strings.Contains(block, "minimumTrackClearanceMm:") ||
+			!strings.Contains(block, "exclusiveMinimum: 0") {
+			t.Errorf("%s is missing minimum clearance constraints: %s", schema, block)
+		}
+	}
+	issue := openAPIIndentedBlock(t, contract, "TrackPlanIssue", 4)
+	for _, token := range []string{"insufficient_clearance", "clearanceMm:", "clearanceLimitMm:",
+		"intersectionXMm:", "intersectionYMm:"} {
+		if !strings.Contains(issue, token) {
+			t.Errorf("TrackPlanIssue is missing %s: %s", token, issue)
+		}
+	}
+	change := openAPIIndentedBlock(t, contract, "TrackPlanIssueChange", 4)
+	if !strings.Contains(change, "insufficient_clearance") {
+		t.Errorf("TrackPlanIssueChange is missing insufficient_clearance: %s", change)
 	}
 }
 

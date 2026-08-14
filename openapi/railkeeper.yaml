@@ -1834,6 +1834,8 @@ components:
               type: string
             locationId:
               type: string
+            technicalPositionId:
+              type: string
             quantity:
               type: integer
               minimum: 1
@@ -1872,6 +1874,8 @@ components:
               type: string
             locationId:
               type: string
+            technicalPositionId:
+              type: string
             quantity:
               type: integer
               minimum: 1
@@ -1901,6 +1905,8 @@ components:
             assetId:
               type: string
             sourceLocationId:
+              type: string
+            technicalPositionId:
               type: string
             quantity:
               type: integer
@@ -1948,6 +1954,8 @@ components:
             assetId:
               type: string
             sourceLocationId:
+              type: string
+            technicalPositionId:
               type: string
             quantity:
               type: integer
@@ -2036,6 +2044,19 @@ components:
           type: string
         description:
           type: string
+        maxGradePercent:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
+        minimumTrackClearanceMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        minimumFlexRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         version:
           type: integer
           minimum: 1
@@ -2062,6 +2083,19 @@ components:
           type: string
         description:
           type: string
+        maxGradePercent:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
+        minimumTrackClearanceMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        minimumFlexRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
         archived:
           type: boolean
     UpdateLayoutInput:
@@ -2133,6 +2167,462 @@ components:
             expectedVersion:
               type: integer
               minimum: 1
+    LayoutUnitPort:
+      type: object
+      required:
+        [id, layoutUnitId, name, kind, interfaceKey, xMm, yMm, directionDegrees,
+         version, archived, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [track, power, digital, feedback, accessory, other]
+        interfaceKey:
+          type: string
+        xMm:
+          type: number
+          minimum: 0
+        yMm:
+          type: number
+          minimum: 0
+        directionDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        notes:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutUnitPortInput:
+      type: object
+      required: [name, kind, interfaceKey, xMm, yMm, directionDegrees]
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [track, power, digital, feedback, accessory, other]
+        interfaceKey:
+          type: string
+        xMm:
+          type: number
+          minimum: 0
+        yMm:
+          type: number
+          minimum: 0
+        directionDegrees:
+          type: number
+        notes:
+          type: string
+        archived:
+          type: boolean
+    UpdateLayoutUnitPortInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutUnitPortInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    ModulePortConnection:
+      type: object
+      required: [unitAId, unitAName, portAId, portAName, unitBId, unitBName, portBId, portBName]
+      properties:
+        unitAId:
+          type: string
+        unitAName:
+          type: string
+        portAId:
+          type: string
+        portAName:
+          type: string
+        unitBId:
+          type: string
+        unitBName:
+          type: string
+        portBId:
+          type: string
+        portBName:
+          type: string
+    ModulePortIssue:
+      type: object
+      required: [code, unitIds, unitNames, portIds, portNames]
+      properties:
+        code:
+          type: string
+          enum: [open_port, incompatible_port]
+        unitIds:
+          type: array
+          items:
+            type: string
+        unitNames:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+        portNames:
+          type: array
+          items:
+            type: string
+    ModulePortAnalysis:
+      type: object
+      required: [connections, issues]
+      properties:
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModulePortConnection"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/ModulePortIssue"
+    ConfigurationUnitSnapPreviewInput:
+      type: object
+      required: [unitId, positionXMm, positionYMm, rotationDegrees]
+      properties:
+        unitId:
+          type: string
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+    ModulePortSnapResult:
+      type: object
+      required: [snapped, pose]
+      properties:
+        snapped:
+          type: boolean
+        pose:
+          type: object
+          required: [positionXMm, positionYMm, rotationDegrees]
+          properties:
+            positionXMm:
+              type: number
+            positionYMm:
+              type: number
+            rotationDegrees:
+              type: number
+              minimum: 0
+              exclusiveMaximum: 360
+        movingPortId:
+          type: string
+        targetUnitId:
+          type: string
+        targetPortId:
+          type: string
+        distanceMm:
+          type: number
+          minimum: 0
+    LayoutTechnicalPosition:
+      type: object
+      required:
+        - id
+        - layoutUnitId
+        - label
+        - kind
+        - positionXMm
+        - positionYMm
+        - rotationDegrees
+        - version
+        - archived
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        productId:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        archived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    LayoutTechnicalPositionInput:
+      type: object
+      required: [label, kind, positionXMm, positionYMm]
+      properties:
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+        productId:
+          type: string
+        description:
+          type: string
+        archived:
+          type: boolean
+    UpdateLayoutTechnicalPositionInput:
+      allOf:
+        - $ref: "#/components/schemas/LayoutTechnicalPositionInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    LayoutTwinPoint:
+      type: object
+      required: [xMm, yMm]
+      properties:
+        xMm:
+          type: number
+        yMm:
+          type: number
+    LayoutTwinBounds:
+      type: object
+      required: [minXMm, minYMm, widthMm, heightMm]
+      properties:
+        minXMm:
+          type: number
+        minYMm:
+          type: number
+        widthMm:
+          type: number
+          minimum: 0
+        heightMm:
+          type: number
+          minimum: 0
+    LayoutTwinWarning:
+      type: object
+      required: [code]
+      properties:
+        code:
+          type: string
+          enum: [outline_fallback, missing_geometry]
+        unitId:
+          type: string
+    LayoutTwinAllocation:
+      type: object
+      required: [id, productId, inventoryNumber, manufacturer, productName, quantity]
+      properties:
+        id:
+          type: string
+        productId:
+          type: string
+        inventoryNumber:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        productName:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        reservationStatus:
+          type: string
+          enum: [active, fulfilled, cancelled]
+        installationCondition:
+          type: string
+          enum: [ready, maintenance_due, defective, unknown]
+        placement:
+          type: string
+        digitalAddress:
+          type: string
+        decoderOutput:
+          type: string
+        connection:
+          type: string
+        wiringNotes:
+          type: string
+        note:
+          type: string
+    LayoutTwinPosition:
+      type: object
+      required:
+        [id, layoutUnitId, label, kind, localXMm, localYMm, localRotationDegrees,
+         globalXMm, globalYMm, rotationDegrees, version, outsideOutline,
+         statuses, reservations, installations]
+      properties:
+        id:
+          type: string
+        layoutUnitId:
+          type: string
+        label:
+          type: string
+        kind:
+          type: string
+          enum: [turnout, signal, feedback, decoder, lighting, power, sensor, other]
+        localXMm:
+          type: number
+        localYMm:
+          type: number
+        localRotationDegrees:
+          type: number
+        globalXMm:
+          type: number
+        globalYMm:
+          type: number
+        rotationDegrees:
+          type: number
+          minimum: 0
+          exclusiveMaximum: 360
+        productId:
+          type: string
+        inventoryNumber:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        productName:
+          type: string
+        description:
+          type: string
+        version:
+          type: integer
+          minimum: 1
+        outsideOutline:
+          type: boolean
+        statuses:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [planned, reserved, installed, maintenance_due, defective]
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinAllocation"
+        installations:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinAllocation"
+    LayoutTwinUnit:
+      type: object
+      required:
+        [id, name, kind, positionXMm, positionYMm, rotationDegrees, version,
+         localOutline, outline, positions]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [baseboard, module, segment, area]
+        positionXMm:
+          type: number
+        positionYMm:
+          type: number
+        rotationDegrees:
+          type: number
+        version:
+          type: integer
+          minimum: 1
+        localOutline:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        outline:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        positions:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinPosition"
+    LayoutTwin:
+      type: object
+      required: [layoutId, bounds, hasGeometry, units, warnings]
+      properties:
+        layoutId:
+          type: string
+        configurationId:
+          type: string
+        configurationName:
+          type: string
+        unitId:
+          type: string
+        bounds:
+          $ref: "#/components/schemas/LayoutTwinBounds"
+        hasGeometry:
+          type: boolean
+        units:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinUnit"
+        warnings:
+          type: array
+          items:
+            $ref: "#/components/schemas/LayoutTwinWarning"
+    LayoutUnitOutline:
+      type: object
+      required: [layoutUnitId, points, version]
+      properties:
+        layoutUnitId:
+          type: string
+        points:
+          type: array
+          minItems: 3
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        version:
+          type: integer
+          minimum: 1
+    UpdateLayoutUnitOutlineInput:
+      type: object
+      required: [points, expectedVersion]
+      properties:
+        points:
+          type: array
+          minItems: 3
+          items:
+            $ref: "#/components/schemas/LayoutTwinPoint"
+        expectedVersion:
+          type: integer
+          minimum: 1
     ConfigurationUnit:
       type: object
       required: [unitId, positionXMm, positionYMm, rotationDegrees, sortOrder]
@@ -2292,6 +2782,954 @@ components:
         expectedVersion:
           type: integer
           minimum: 1
+    TrackPoint:
+      type: object
+      required: [xMm, yMm]
+      properties:
+        xMm:
+          type: number
+          format: double
+        yMm:
+          type: number
+          format: double
+    TrackPort:
+      type: object
+      required: [id, xMm, yMm, directionDegrees]
+      properties:
+        id:
+          type: string
+        xMm:
+          type: number
+          format: double
+        yMm:
+          type: number
+          format: double
+        directionDegrees:
+          type: number
+          format: double
+    TrackRoute:
+      type: object
+      required: [id, points]
+      properties:
+        id:
+          type: string
+        points:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPoint"
+    TrackGeometry:
+      type: object
+      required: [schemaVersion, ports, routes]
+      properties:
+        schemaVersion:
+          type: integer
+          minimum: 1
+        ports:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPort"
+        routes:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackRoute"
+    TrackGeometryDefinition:
+      type: object
+      required:
+        [id, libraryId, manufacturer, articleNumber, name, kind, lengthMm, geometry,
+         sourceUrl, status, createdAt]
+      properties:
+        id:
+          type: string
+        libraryId:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [straight, curve, turnout, crossing, flex]
+        lengthMm:
+          type: number
+          format: double
+        minimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        geometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        sourceUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [draft, verified, retired]
+        createdAt:
+          type: string
+          format: date-time
+    TrackGeometryLibrary:
+      type: object
+      required:
+        [id, manufacturer, trackSystem, gauge, scale, version, sourceUrl, status,
+         verificationNote, definitionCount, createdAt]
+      properties:
+        id:
+          type: string
+        manufacturer:
+          type: string
+        trackSystem:
+          type: string
+        gauge:
+          type: string
+        scale:
+          type: string
+        version:
+          type: string
+        sourceUrl:
+          type: string
+          format: uri
+        status:
+          type: string
+          enum: [draft, verified, retired]
+        verificationNote:
+          type: string
+        verifiedAt:
+          type: string
+          format: date-time
+        verifiedBy:
+          type: string
+        definitionCount:
+          type: integer
+          minimum: 0
+        createdAt:
+          type: string
+          format: date-time
+    TrackLibraryPackageMetadata:
+      type: object
+      additionalProperties: false
+      required: [manufacturer, trackSystem, gauge, scale, version, sourceUrl, status]
+      properties:
+        manufacturer:
+          type: string
+          minLength: 1
+          maxLength: 120
+        trackSystem:
+          type: string
+          minLength: 1
+          maxLength: 120
+        gauge:
+          type: string
+          minLength: 1
+          maxLength: 32
+        scale:
+          type: string
+          minLength: 1
+          maxLength: 32
+        version:
+          type: string
+          minLength: 1
+          maxLength: 64
+        sourceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        status:
+          type: string
+          enum: [draft, verified, retired]
+    TrackLibraryPackageDefinition:
+      type: object
+      additionalProperties: false
+      required: [articleNumber, name, kind, lengthMm, geometry, sourceUrl, status]
+      properties:
+        articleNumber:
+          type: string
+          minLength: 1
+          maxLength: 80
+        name:
+          type: string
+          minLength: 1
+          maxLength: 160
+        kind:
+          type: string
+          enum: [straight, curve, turnout, crossing, flex]
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100000
+        minimumRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100000
+        geometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        sourceUrl:
+          type: string
+          format: uri
+          maxLength: 2048
+        status:
+          type: string
+          enum: [draft, verified, retired]
+    TrackLibraryPackage:
+      type: object
+      additionalProperties: false
+      required: [format, schemaVersion, library, definitions]
+      properties:
+        format:
+          type: string
+          const: railkeeper.track-library
+        schemaVersion:
+          type: integer
+          const: 1
+        exportedAt:
+          type: string
+          format: date-time
+        library:
+          $ref: "#/components/schemas/TrackLibraryPackageMetadata"
+        definitions:
+          type: array
+          minItems: 1
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/TrackLibraryPackageDefinition"
+    TrackLibraryImportPreview:
+      type: object
+      required: [package, definitionCount, warnings, conflict, canImport]
+      properties:
+        package:
+          $ref: "#/components/schemas/TrackLibraryPackage"
+        definitionCount:
+          type: integer
+          minimum: 1
+        warnings:
+          type: array
+          items:
+            type: string
+            enum: [verification_status_reset]
+        conflict:
+          type: boolean
+        canImport:
+          type: boolean
+    ImportTrackLibraryInput:
+      type: object
+      additionalProperties: false
+      required: [confirmed, package]
+      properties:
+        confirmed:
+          type: boolean
+        package:
+          $ref: "#/components/schemas/TrackLibraryPackage"
+    UpdateTrackLibraryStatusInput:
+      type: object
+      additionalProperties: false
+      required: [confirmed, status, verificationNote]
+      properties:
+        confirmed:
+          type: boolean
+        status:
+          type: string
+          enum: [verified, retired]
+        verificationNote:
+          type: string
+          maxLength: 500
+    FlexTrackPath:
+      type: object
+      required: [schemaVersion, endXMm, endYMm, endDirectionDegrees, startHandleMm, endHandleMm]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        endDirectionDegrees:
+          type: number
+          format: double
+        startHandleMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endHandleMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+    TransitionCurvePath:
+      type: object
+      required: [schemaVersion, lengthMm, endRadiusMm, direction]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        direction:
+          type: string
+          enum: [left, right]
+    FreePlanObjectShape:
+      type: object
+      required: [schemaVersion, kind]
+      properties:
+        schemaVersion:
+          type: integer
+          enum: [1]
+        kind:
+          type: string
+          enum: [rectangle, ellipse, line, label]
+        widthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        heightMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        text:
+          type: string
+          minLength: 1
+          maxLength: 120
+        fontSizeMm:
+          type: number
+          format: double
+          minimum: 2
+          maximum: 50
+    PlanFreeObject:
+      type: object
+      required: [id, lineageId, revisionId, name, category, positionXMm, positionYMm, rotationDegrees, shape, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        lineageId:
+          type: string
+        revisionId:
+          type: string
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          enum: [structure, platform, scenery, annotation]
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+          minimum: 0
+          exclusiveMaximum: 360
+        shape:
+          $ref: "#/components/schemas/FreePlanObjectShape"
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    PlanTrackObject:
+      type: object
+      required: [id, lineageId, revisionId, geometryId, geometry, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, effectiveGeometry, effectiveLengthMm, version, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        lineageId:
+          type: string
+        revisionId:
+          type: string
+        geometryId:
+          type: string
+        geometry:
+          $ref: "#/components/schemas/TrackGeometryDefinition"
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          minimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    TrackPlan:
+      type: object
+      required: [revisionId, status, objects, freeObjects]
+      properties:
+        revisionId:
+          type: string
+        status:
+          type: string
+          enum: [draft, review, published, archived]
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanTrackObject"
+        freeObjects:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanFreeObject"
+    TrackPlanConnection:
+      type: object
+      required: [objectAId, portAId, objectBId, portBId]
+      properties:
+        objectAId:
+          type: string
+        portAId:
+          type: string
+        objectBId:
+          type: string
+        portBId:
+          type: string
+    TrackPlanIssue:
+      type: object
+      required: [code, severity, objectIds]
+      properties:
+        code:
+          type: string
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]
+        severity:
+          type: string
+          enum: [warning, error]
+        objectIds:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+        elevationDifferenceMm:
+          type: number
+          format: double
+          minimum: 0
+        gradePercent:
+          type: number
+          format: double
+        gradeLimitPercent:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+          maximum: 100
+        clearanceMm:
+          type: number
+          format: double
+          minimum: 0
+        clearanceLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        intersectionXMm:
+          type: number
+          format: double
+        intersectionYMm:
+          type: number
+          format: double
+        radiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+    TrackBOMLine:
+      type: object
+      required: [geometryId, libraryId, articleNumber, name, quantity]
+      properties:
+        geometryId:
+          type: string
+        libraryId:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        quantity:
+          type: integer
+          minimum: 0
+    TrackGrade:
+      type: object
+      required: [objectId, elevationStartMm, elevationEndMm, lengthMm, gradePercent]
+      properties:
+        objectId:
+          type: string
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
+        lengthMm:
+          type: number
+          format: double
+          minimum: 0
+        gradePercent:
+          type: number
+          format: double
+    TrackMaterialStatus:
+      type: object
+      required:
+        - geometryId
+        - manufacturer
+        - articleNumber
+        - name
+        - requiredQuantity
+        - productIds
+        - inventoryNumbers
+        - physicalQuantity
+        - reservedQuantity
+        - availableQuantity
+        - missingQuantity
+      properties:
+        geometryId:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        requiredQuantity:
+          type: integer
+          minimum: 0
+        productIds:
+          type: array
+          items:
+            type: string
+        inventoryNumbers:
+          type: array
+          items:
+            type: string
+        physicalQuantity:
+          type: integer
+          minimum: 0
+        reservedQuantity:
+          type: integer
+          minimum: 0
+        availableQuantity:
+          type: integer
+          minimum: 0
+        missingQuantity:
+          type: integer
+          minimum: 0
+    TrackPlanAnalysis:
+      type: object
+      required: [revisionId, status, connections, issues, bom, grades, materials, reservations]
+      properties:
+        revisionId:
+          type: string
+        status:
+          type: string
+          enum: [draft, review, published, archived]
+        connections:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanConnection"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssue"
+        bom:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackBOMLine"
+        grades:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackGrade"
+        materials:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackMaterialStatus"
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectReservation"
+    TrackPlanObjectChange:
+      type: object
+      required: [type, lineageId]
+      properties:
+        type:
+          type: string
+          enum: [added, removed, changed]
+        lineageId:
+          type: string
+        before:
+          $ref: "#/components/schemas/PlanTrackObject"
+        after:
+          $ref: "#/components/schemas/PlanTrackObject"
+    PlanFreeObjectChange:
+      type: object
+      required: [type, lineageId]
+      properties:
+        type:
+          type: string
+          enum: [added, removed, changed]
+        lineageId:
+          type: string
+        before:
+          $ref: "#/components/schemas/PlanFreeObject"
+        after:
+          $ref: "#/components/schemas/PlanFreeObject"
+    TrackPlanMaterialDelta:
+      type: object
+      required:
+        [geometryId, libraryId, manufacturer, articleNumber, name, baseQuantity,
+         currentQuantity, delta]
+      properties:
+        geometryId:
+          type: string
+        libraryId:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        name:
+          type: string
+        baseQuantity:
+          type: integer
+        currentQuantity:
+          type: integer
+        delta:
+          type: integer
+    TrackPlanIssueChange:
+      type: object
+      required: [code, severity, lineageIds]
+      properties:
+        code:
+          type: string
+          enum: [open_end, incompatible_connection, overlap, broken_geometry, elevation_mismatch, grade_limit_exceeded, insufficient_clearance, flex_radius_below_limit]
+        severity:
+          type: string
+          enum: [warning, error]
+        lineageIds:
+          type: array
+          items:
+            type: string
+        portIds:
+          type: array
+          items:
+            type: string
+    TrackPlanIssueDiff:
+      type: object
+      required: [added, resolved]
+      properties:
+        added:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssueChange"
+        resolved:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanIssueChange"
+    TrackPlanAffectedConfiguration:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    TrackPlanChangePreview:
+      type: object
+      required:
+        - revisionId
+        - baseRevisionId
+        - objectChanges
+        - freeObjectChanges
+        - materialDeltas
+        - issues
+        - affectedConfigurations
+      properties:
+        revisionId:
+          type: string
+        baseRevisionId:
+          type: string
+        objectChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectChange"
+        freeObjectChanges:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlanFreeObjectChange"
+        materialDeltas:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanMaterialDelta"
+        issues:
+          $ref: "#/components/schemas/TrackPlanIssueDiff"
+        affectedConfigurations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanAffectedConfiguration"
+    TrackPlanReservationInput:
+      type: object
+      required: [trackObjectId, productId, locationId, expectedObjectVersion]
+      properties:
+        trackObjectId:
+          type: string
+        productId:
+          type: string
+        locationId:
+          type: string
+        assetId:
+          type: string
+        expectedObjectVersion:
+          type: integer
+          minimum: 1
+    ReserveTrackPlanMaterialsInput:
+      type: object
+      required: [confirmed, items]
+      properties:
+        confirmed:
+          type: boolean
+        items:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/TrackPlanReservationInput"
+    TrackPlanObjectReservation:
+      type: object
+      required: [trackObjectId, reservation]
+      properties:
+        trackObjectId:
+          type: string
+        reservation:
+          $ref: "#/components/schemas/AccessoryReservation"
+    TrackPlanReservationBatch:
+      type: object
+      required: [revisionId, reservations, materials]
+      properties:
+        revisionId:
+          type: string
+        reservations:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackPlanObjectReservation"
+        materials:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrackMaterialStatus"
+    CreatePlanTrackObjectInput:
+      type: object
+      required: [geometryId, positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm]
+      properties:
+        geometryId:
+          type: string
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
+    CreateFreePlanObjectInput:
+      type: object
+      required: [name, category, positionXMm, positionYMm, rotationDegrees, shape]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+        category:
+          type: string
+          enum: [structure, platform, scenery, annotation]
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        shape:
+          $ref: "#/components/schemas/FreePlanObjectShape"
+    UpdateFreePlanObjectInput:
+      allOf:
+        - $ref: "#/components/schemas/CreateFreePlanObjectInput"
+        - type: object
+          required: [expectedVersion]
+          properties:
+            expectedVersion:
+              type: integer
+              minimum: 1
+    UpdatePlanTrackObjectInput:
+      type: object
+      required: [positionXMm, positionYMm, rotationDegrees, elevationStartMm, elevationEndMm, expectedVersion]
+      properties:
+        positionXMm:
+          type: number
+          format: double
+        positionYMm:
+          type: number
+          format: double
+        rotationDegrees:
+          type: number
+          format: double
+        elevationStartMm:
+          type: number
+          format: double
+        elevationEndMm:
+          type: number
+          format: double
+        flexPath:
+          $ref: "#/components/schemas/FlexTrackPath"
+        transitionPath:
+          $ref: "#/components/schemas/TransitionCurvePath"
+        expectedVersion:
+          type: integer
+          minimum: 1
+    FlexTrackPreviewInput:
+      type: object
+      required: [endXMm, endYMm, endDirectionDegrees, expectedVersion]
+      properties:
+        endXMm:
+          type: number
+          format: double
+        endYMm:
+          type: number
+          format: double
+        endDirectionDegrees:
+          type: number
+          format: double
+        expectedVersion:
+          type: integer
+          minimum: 1
+    FlexTrackPreview:
+      type: object
+      required: [path, effectiveGeometry, effectiveLengthMm, radiusLimitMm, lengthExceeded, radiusBelowLimit, applicable]
+      properties:
+        path:
+          $ref: "#/components/schemas/FlexTrackPath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          minimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lengthExceeded:
+          type: boolean
+        radiusBelowLimit:
+          type: boolean
+        applicable:
+          type: boolean
+    TransitionCurvePreviewInput:
+      type: object
+      required: [lengthMm, endRadiusMm, direction, expectedVersion]
+      properties:
+        lengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        endRadiusMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        direction:
+          type: string
+          enum: [left, right]
+        expectedVersion:
+          type: integer
+          minimum: 1
+    TransitionCurvePreview:
+      type: object
+      required: [path, effectiveGeometry, effectiveLengthMm, radiusLimitMm, lengthExceeded, radiusBelowLimit, applicable]
+      properties:
+        path:
+          $ref: "#/components/schemas/TransitionCurvePath"
+        effectiveGeometry:
+          $ref: "#/components/schemas/TrackGeometry"
+        effectiveLengthMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        effectiveMinimumRadiusMm:
+          type: [number, "null"]
+          format: double
+          exclusiveMinimum: 0
+        radiusLimitMm:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        lengthExceeded:
+          type: boolean
+        radiusBelowLimit:
+          type: boolean
+        applicable:
+          type: boolean
     ExhibitionList:
       type: object
       required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
@@ -3201,6 +4639,37 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Accessory product state conflicts with existing data, excluding duplicate equality
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Accessories]
+      summary: Permanently delete an unused accessory product
+      description: >-
+        Admin role required. Deletion is rejected while stock, assets, purchases,
+        stock movements, reservations, installations, usage history, or layout
+        technical positions reference the product. Product metadata is deleted.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Accessory product deleted
+        "403":
+          description: Admin role and valid CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Accessory product has stock or usage references
           content:
             application/json:
               schema:
@@ -4648,6 +6117,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /layouts/{id}/twin:
+    get:
+      tags: [Layouts]
+      summary: Get the transformed interactive layout twin
+      description: Viewer, Planner, Editor, or Admin role required. Messe is excluded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: configurationId
+          in: query
+          schema:
+            type: string
+        - name: unitId
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transformed layout twin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTwin"
+        "400":
+          description: Configuration and unit selectors cannot be combined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout, configuration, or unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /layouts/{id}/units:
     get:
       tags: [Layouts]
@@ -4712,6 +6219,251 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/LayoutUnit"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/ports:
+    get:
+      tags: [Layouts]
+      summary: List module ports in a layout unit
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Module port list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutUnitPort"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Layouts]
+      summary: Create a module port
+      description: Planner or Admin role required.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutUnitPortInput"
+      responses:
+        "201":
+          description: Module port created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitPort"
+        "400":
+          description: Invalid module port
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-unit-ports/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a module port
+      description: Planner or Admin role required. The port version is checked atomically.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutUnitPortInput"
+      responses:
+        "200":
+          description: Module port updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitPort"
+        "400":
+          description: Invalid module port
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Module port not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/outline:
+    put:
+      tags: [Layouts]
+      summary: Replace a layout unit outline
+      description: Planner or Admin role required. The unit version is checked atomically.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutUnitOutlineInput"
+      responses:
+        "200":
+          description: Updated layout unit outline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutUnitOutline"
+        "400":
+          description: Invalid outline
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-units/{id}/technical-positions:
+    get:
+      tags: [Layouts]
+      summary: List technical positions in a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Technical position list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "404":
+          description: Layout unit not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [Layouts]
+      summary: Create a technical position in a layout unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LayoutTechnicalPositionInput"
+      responses:
+        "201":
+          description: Technical position created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "400":
+          description: Invalid technical position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout unit or accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-technical-positions/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a technical layout position
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLayoutTechnicalPositionInput"
+      responses:
+        "200":
+          description: Technical position updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LayoutTechnicalPosition"
+        "400":
+          description: Invalid technical position
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Technical position or accessory product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Stale expected version
           content:
@@ -4784,6 +6536,64 @@ paths:
                 $ref: "#/components/schemas/LayoutConfiguration"
         "409":
           description: Stale expected version
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-configurations/{id}/port-analysis:
+    get:
+      tags: [Layouts]
+      summary: Analyze derived module-port connections in a layout configuration
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived module-port connections and issues
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModulePortAnalysis"
+        "404":
+          description: Layout configuration not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /layout-configurations/{id}/unit-snap-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview alignment of one configuration unit to the nearest compatible module port
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigurationUnitSnapPreviewInput"
+      responses:
+        "200":
+          description: Non-persistent module-port snap preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModulePortSnapResult"
+        "400":
+          description: Invalid configuration unit pose
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Layout configuration not found
           content:
             application/json:
               schema:
@@ -4906,6 +6716,661 @@ paths:
                 $ref: "#/components/schemas/PlanRevision"
         "409":
           description: Revision is immutable or has changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-geometries:
+    get:
+      tags: [Layouts]
+      summary: List verified track geometries for a gauge
+      parameters:
+        - name: gauge
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+      responses:
+        "200":
+          description: Verified track geometry list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackGeometryDefinition"
+        "400":
+          description: Gauge is missing or invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries:
+    get:
+      tags: [Layouts]
+      summary: List installed versioned track libraries
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Installed track library list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TrackGeometryLibrary"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/{id}/export:
+    get:
+      tags: [Layouts]
+      summary: Export one library as versioned RailKeeper JSON
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Portable RailKeeper track library document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackLibraryPackage"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track library not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/import/preview:
+    post:
+      tags: [Layouts]
+      summary: Validate an untrusted track library without writing data
+      description: Admin role and CSRF token required. The request is limited to 4 MiB.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TrackLibraryPackage"
+      responses:
+        "200":
+          description: Normalized import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackLibraryImportPreview"
+        "400":
+          description: Invalid JSON or track library document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/import:
+    post:
+      tags: [Layouts]
+      summary: Import a reviewed document as a non-placeable draft library
+      description: Admin role, explicit confirmation, and CSRF token required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportTrackLibraryInput"
+      responses:
+        "201":
+          description: Draft track library imported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackGeometryLibrary"
+        "400":
+          description: Invalid or unconfirmed import
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: The same manufacturer, system, gauge, and version already exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /track-libraries/{id}/status:
+    put:
+      tags: [Layouts]
+      summary: Verify or retire a track library
+      description: Admin role, explicit confirmation, and CSRF token required.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTrackLibraryStatusInput"
+      responses:
+        "200":
+          description: Updated track library status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackGeometryLibrary"
+        "400":
+          description: Invalid status transition or missing verification note
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role and CSRF token required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track library not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-plan:
+    get:
+      tags: [Layouts]
+      summary: Read the track plan of a revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revision-bound track plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlan"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-analysis:
+    get:
+      tags: [Layouts]
+      summary: Analyze connections, issues, and material availability for a track plan
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived track plan analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanAnalysis"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-change-preview:
+    get:
+      tags: [Layouts]
+      summary: Compare a track plan revision with its base revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Derived track plan revision changes and affected configurations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanChangePreview"
+        "404":
+          description: Plan revision or base revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-reservations:
+    post:
+      tags: [Layouts]
+      summary: Reserve accessory stock for selected track plan objects
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReserveTrackPlanMaterialsInput"
+      responses:
+        "201":
+          description: Track materials reserved atomically
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TrackPlanReservationBatch"
+        "400":
+          description: Confirmation or reservation input is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan, object, product, location, or individual item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Object changed, stock is insufficient, or material cannot be reserved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/track-objects:
+    post:
+      tags: [Layouts]
+      summary: Add a verified track geometry to a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePlanTrackObjectInput"
+      responses:
+        "201":
+          description: Track object created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanTrackObject"
+        "400":
+          description: Track object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan revision or track geometry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-revisions/{id}/free-objects:
+    post:
+      tags: [Layouts]
+      summary: Add a free visual object to a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFreePlanObjectInput"
+      responses:
+        "201":
+          description: Free plan object created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanFreeObject"
+        "400":
+          description: Free plan object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Plan revision not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-free-objects/{id}:
+    put:
+      tags: [Layouts]
+      summary: Update a free object in a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFreePlanObjectInput"
+      responses:
+        "200":
+          description: Free plan object updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanFreeObject"
+        "400":
+          description: Free plan object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Free plan object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Layouts]
+      summary: Delete a free object from a draft plan revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expectedVersion
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Free plan object deleted
+        "400":
+          description: Expected version is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Free plan object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}/flex-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview a deterministic flex track path without saving it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FlexTrackPreviewInput"
+      responses:
+        "200":
+          description: Flex track preview calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlexTrackPreview"
+        "400":
+          description: Preview data or object type is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Track object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}/transition-preview:
+    post:
+      tags: [Layouts]
+      summary: Preview a deterministic transition curve without saving it
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransitionCurvePreviewInput"
+      responses:
+        "200":
+          description: Transition curve preview calculated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransitionCurvePreview"
+        "400":
+          description: Preview data or object type is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Planner access or CSRF token is missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Track object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /plan-track-objects/{id}:
+    put:
+      tags: [Layouts]
+      summary: Move or rotate a track object in a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePlanTrackObjectInput"
+      responses:
+        "200":
+          description: Track object updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PlanTrackObject"
+        "400":
+          description: Track object data is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [Layouts]
+      summary: Delete a track object from a draft revision
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expectedVersion
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        "204":
+          description: Track object deleted
+        "400":
+          description: Expected version is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Track object not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Plan revision is immutable or object version is stale
           content:
             application/json:
               schema:

@@ -1,15 +1,171 @@
 package infrastructure_test
 
 import (
+	"database/sql"
 	"errors"
 	"math"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/domain"
 	"railkeeper/backend/internal/infrastructure"
 )
+
+func TestLayoutUnitPortRepositoryPersistsAndRejectsStaleUpdates(t *testing.T) {
+	db, service := testLayoutServiceWithDB(t)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Club", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Module A", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	east, err := service.CreateUnitPort(ctx, unit.ID, application.CreateLayoutUnitPortInput{
+		Name: "East", Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+		XMM: 1000, YMM: 250, DirectionDegrees: 0,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	west, err := service.CreateUnitPort(ctx, unit.ID, application.CreateLayoutUnitPortInput{
+		Name: "west", Kind: domain.LayoutUnitPortPower, InterfaceKey: "power:16v-ac",
+		XMM: 0, YMM: 250, DirectionDegrees: 180, Archived: true,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ports, err := service.ListUnitPorts(ctx, unit.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ports) != 2 || ports[0].ID != east.ID || ports[1].ID != west.ID {
+		t.Fatalf("unexpected active-first module port order: %#v", ports)
+	}
+
+	updated, err := service.UpdateUnitPort(ctx, east.ID, application.UpdateLayoutUnitPortInput{
+		CreateLayoutUnitPortInput: application.CreateLayoutUnitPortInput{
+			Name: "East main", Kind: domain.LayoutUnitPortTrack,
+			InterfaceKey: "track:tillig-tt-modellgleis", XMM: 1000, YMM: 250, DirectionDegrees: 360,
+		},
+		ExpectedVersion: east.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Version != 2 || updated.DirectionDegrees != 0 || updated.Name != "East main" {
+		t.Fatalf("unexpected updated module port: %#v", updated)
+	}
+	if _, err := service.UpdateUnitPort(ctx, east.ID, application.UpdateLayoutUnitPortInput{
+		CreateLayoutUnitPortInput: application.CreateLayoutUnitPortInput{
+			Name: "Stale", Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+		},
+		ExpectedVersion: east.Version,
+	}, "planner-1"); !errors.Is(err, application.ErrLayoutVersionConflict) {
+		t.Fatalf("expected module port version conflict, got %v", err)
+	}
+	if _, err := service.CreateUnitPort(ctx, unit.ID, application.CreateLayoutUnitPortInput{
+		Name: "EAST MAIN", Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+	}, "planner-1"); err == nil {
+		t.Fatal("expected case-insensitive duplicate port name rejection")
+	}
+
+	var auditCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM audit_logs WHERE target_type='layout_unit_port' AND target_id=?`,
+		east.ID).Scan(&auditCount); err != nil {
+		t.Fatal(err)
+	}
+	if auditCount != 2 {
+		t.Fatalf("expected create and update audit records, got %d", auditCount)
+	}
+}
+
+func TestLayoutConfigurationPortRepositoryLoadsActivePlacements(t *testing.T) {
+	db, service := testLayoutServiceWithDB(t)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Club", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	west, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "West", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	east, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "East", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	active, err := service.CreateUnitPort(ctx, west.ID, application.CreateLayoutUnitPortInput{
+		Name: "East track", Kind: domain.LayoutUnitPortTrack,
+		InterfaceKey: "track:tillig-tt-modellgleis", XMM: 1000, YMM: 250,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.CreateUnitPort(ctx, west.ID, application.CreateLayoutUnitPortInput{
+		Name: "Archived", Kind: domain.LayoutUnitPortPower,
+		InterfaceKey: "power:16v-ac", Archived: true,
+	}, "planner"); err != nil {
+		t.Fatal(err)
+	}
+	configuration, err := service.SaveConfiguration(ctx, layout.ID, application.SaveLayoutConfigurationInput{
+		Name: "Exhibition", Units: []application.ConfigurationUnitInput{
+			{UnitID: west.ID, PositionXMM: 10, PositionYMM: 20, RotationDegrees: 90},
+			{UnitID: east.ID, PositionXMM: 510, PositionYMM: 20},
+		},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	repository := infrastructure.NewLayoutRepository(db)
+	placements, err := repository.LoadConfigurationPortPlacements(ctx, configuration.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(placements) != 1 || placements[0].PortID != active.ID || placements[0].UnitID != west.ID ||
+		placements[0].UnitName != "West" || placements[0].UnitPose.PositionXMM != 10 ||
+		placements[0].UnitPose.PositionYMM != 20 || placements[0].UnitPose.RotationDegrees != 90 {
+		t.Fatalf("unexpected configuration port placements: %#v", placements)
+	}
+	contained, err := repository.ConfigurationContainsUnit(ctx, configuration.ID, east.ID)
+	if err != nil || !contained {
+		t.Fatalf("expected unit without active ports to belong to configuration, contained=%t err=%v", contained, err)
+	}
+	contained, err = repository.ConfigurationContainsUnit(ctx, configuration.ID, "missing-unit")
+	if err != nil || contained {
+		t.Fatalf("expected missing unit to be rejected, contained=%t err=%v", contained, err)
+	}
+	if _, err := repository.LoadConfigurationPortPlacements(ctx, "missing"); !errors.Is(err, application.ErrLayoutNotFound) {
+		t.Fatalf("expected missing configuration error, got %v", err)
+	}
+}
+
+func TestLayoutUnitPortMigrationSchema(t *testing.T) {
+	db, _ := testLayoutServiceWithDB(t)
+	var tableSQL string
+	if err := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='layout_unit_ports'`).Scan(&tableSQL); err != nil {
+		t.Fatal(err)
+	}
+	for _, fragment := range []string{"layout_unit_id", "interface_key", "direction_degrees"} {
+		if !strings.Contains(strings.ToLower(tableSQL), fragment) {
+			t.Fatalf("module port schema missing %q: %s", fragment, tableSQL)
+		}
+	}
+}
 
 func TestLayoutServicePersistsStructureAndRejectsStaleUpdates(t *testing.T) {
 	service := testLayoutService(t)
@@ -169,7 +325,130 @@ func TestLayoutServicePersistsStructureAndRejectsStaleUpdates(t *testing.T) {
 	}
 }
 
+func TestLayoutRepositoryPersistsMaximumGradePercent(t *testing.T) {
+	service := testLayoutService(t)
+	ctx := t.Context()
+	limit := 3.5
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Steigungsanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MaxGradePercent: &limit,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if layout.MaxGradePercent == nil || *layout.MaxGradePercent != limit {
+		t.Fatalf("maximum grade not persisted: %#v", layout)
+	}
+
+	updated, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+		},
+		ExpectedVersion: layout.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MaxGradePercent != nil {
+		t.Fatalf("maximum grade not cleared: %#v", updated)
+	}
+}
+
+func TestLayoutRepositoryPersistsMinimumTrackClearanceMM(t *testing.T) {
+	service := testLayoutService(t)
+	ctx := t.Context()
+	limit := 40.0
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Abstandsanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MinimumTrackClearanceMM: &limit,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if layout.MinimumTrackClearanceMM == nil || *layout.MinimumTrackClearanceMM != limit {
+		t.Fatalf("minimum track clearance not persisted: %#v", layout)
+	}
+
+	updatedLimit := 25.5
+	updated, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+			MinimumTrackClearanceMM: &updatedLimit,
+		},
+		ExpectedVersion: layout.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MinimumTrackClearanceMM == nil || *updated.MinimumTrackClearanceMM != updatedLimit {
+		t.Fatalf("minimum track clearance not updated: %#v", updated)
+	}
+
+	cleared, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+		},
+		ExpectedVersion: updated.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.MinimumTrackClearanceMM != nil {
+		t.Fatalf("minimum track clearance not cleared: %#v", cleared)
+	}
+}
+
+func TestLayoutRepositoryPersistsMinimumFlexRadiusMM(t *testing.T) {
+	service := testLayoutService(t)
+	ctx := t.Context()
+	limit := 700.0
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Flexgleisanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+		MinimumFlexRadiusMM: &limit,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if layout.MinimumFlexRadiusMM == nil || *layout.MinimumFlexRadiusMM != limit {
+		t.Fatalf("minimum flex radius not persisted: %#v", layout)
+	}
+
+	updatedLimit := 650.0
+	updated, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+			MinimumFlexRadiusMM: &updatedLimit,
+		},
+		ExpectedVersion: layout.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MinimumFlexRadiusMM == nil || *updated.MinimumFlexRadiusMM != updatedLimit {
+		t.Fatalf("minimum flex radius not updated: %#v", updated)
+	}
+
+	cleared, err := service.UpdateLayout(ctx, layout.ID, application.UpdateLayoutInput{
+		CreateLayoutInput: application.CreateLayoutInput{
+			Name: layout.Name, Kind: layout.Kind, Gauge: layout.Gauge, Scale: layout.Scale,
+		},
+		ExpectedVersion: updated.Version,
+	}, "planner-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cleared.MinimumFlexRadiusMM != nil {
+		t.Fatalf("minimum flex radius not cleared: %#v", cleared)
+	}
+}
+
 func testLayoutService(t *testing.T) *application.LayoutService {
+	t.Helper()
+	_, service := testLayoutServiceWithDB(t)
+	return service
+}
+
+func testLayoutServiceWithDB(t *testing.T) (*sql.DB, *application.LayoutService) {
 	t.Helper()
 	db, err := infrastructure.OpenSQLite(t.TempDir())
 	if err != nil {
@@ -179,5 +458,5 @@ func testLayoutService(t *testing.T) *application.LayoutService {
 	if err := infrastructure.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
 		t.Fatal(err)
 	}
-	return application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	return db, application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 }

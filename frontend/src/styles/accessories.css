@@ -75,8 +75,12 @@
   overflow-x: auto;
 }
 
-.article-table-wrap.menu-open {
+.article-table-wrap:has(.article-action-menu) {
   padding-bottom: 48px;
+}
+
+.article-table-wrap:has(.article-action-menu) .article-table {
+  overflow: visible;
 }
 
 .article-table {
@@ -290,6 +294,12 @@
   background: color-mix(in srgb, var(--accent) 8%, transparent);
   color: var(--accent-strong);
   outline: none;
+}
+
+.article-action-menu .danger-menu-item,
+.article-action-menu .danger-menu-item:hover,
+.article-action-menu .danger-menu-item:focus-visible {
+  color: var(--danger);
 }
 
 .article-table tr.archived {

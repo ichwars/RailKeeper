@@ -6,6 +6,27 @@
 
 **Umsetzung:** Stufenweise, beginnend mit dem gemeinsamen Fundament
 
+**Umsetzungsstand 2026-08-09:** Gleisplaner Paket A, B und C sind lokal umgesetzt. Paket A enthält
+die versionierte, geprüfte Tillig-TT-Modellgleis-Bibliothek mit dem geraden Gleis G1 (83101, 166 mm),
+revisionsgebundene Planobjekte und eine maßhaltige SVG-Arbeitsfläche. Paket B ergänzt
+autoritatives Anschluss-Snapping, abgeleitete Verbindungen und Prüfhinweise sowie eine Stückliste mit
+lokalem Bestandsstatus. Paket C ergänzt die Änderungsvorschau zur Basisrevision, stabile Objekt-Lineage,
+atomare planobjektbezogene Materialreservierungen und Backup-Format 6. Die Pakete bleiben bewusst auf
+diese eine verifizierte Geometrie begrenzt.
+
+**Umsetzungsstand 2026-08-10:** Etappe 4, Paket A ist lokal umgesetzt und abgenommen. Benannte,
+typisierte Modulports besitzen eine millimetergenaue Position, Richtung und normalisierte
+Schnittstellenkennung. Rollen, CSRF-Schutz, optimistische Versionierung, OpenAPI und die
+deutsch/englische Oberfläche sind abgedeckt. Backup-Format 7 erhält die Ports, ältere Formate 1 bis
+6 bleiben importierbar. Kompatibilitätsanalyse, Snapping und automatische Modulbewegung bleiben
+bewusst Folgepaketen vorbehalten.
+
+**Umsetzungsstand 2026-08-10, Etappe 4 Paket B:** Aufbaukonfigurationen leiten globale Modulports,
+exakte Verbindungen, offene Ports und fachlich inkompatible Übergänge deterministisch ab. Eine
+serverseitige Einrastvorschau richtet eine Einheit nur nach ausdrücklicher Aktion aus und übernimmt
+die Pose zunächst ungespeichert in das Formular. Es gibt weiterhin keine automatische
+Modulreihenfolge und keine neue Persistenz- oder Backup-Struktur.
+
 ## Ziel
 
 RailKeeper erweitert die bestehende Fahrzeugverwaltung um einen eigenständigen Bereich für Zubehör,
@@ -324,6 +345,11 @@ Wartungsanzeige und Einbauhistorie machen Anlagen und Module interaktiv.
 
 Geprüfte Geometrien für Tillig TT Modellgleis, Platzierung, Einrasten, Planprüfung, Stückliste,
 planobjektbezogene Reservierung und Änderungsvorschau bilden den ersten vollständigen Planer.
+
+Der lokale Stand umfasst mit Paket A und B die geprüfte G1-Geometrie, revisionsgebundene Platzierung,
+magnetisches Einrasten, abgeleitete Verbindungen und Warnungen sowie die bestandsbezogene Stückliste.
+Der bestätigte Reservierungsablauf und die Änderungsvorschau gegenüber einer Basisrevision bleiben als
+Paket C offen.
 
 ### Etappe 4: Erweiterte Geometrie
 

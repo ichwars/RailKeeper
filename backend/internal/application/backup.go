@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 3
+	backupVersion = 14
 )
 
 var (
@@ -103,12 +103,22 @@ var backupTableOrder = []string{
 	"accessory_documents",
 	"layouts",
 	"layout_units",
+	"layout_unit_ports",
+	"layout_unit_outline_points",
+	"layout_technical_positions",
 	"plan_variants",
 	"plan_revisions",
+	"track_geometry_libraries",
+	"track_geometry_definitions",
+	"plan_track_objects",
+	"plan_free_objects",
 	"layout_configurations",
 	"layout_configuration_units",
 	"accessory_reservations",
+	"accessory_reservation_positions",
+	"plan_track_object_reservations",
 	"accessory_installations",
+	"accessory_installation_positions",
 	"accessory_installation_condition_history",
 	"exhibition_lists",
 	"exhibition_entries",
@@ -145,12 +155,22 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"accessory_documents":                      {introduced: 3, required: 3},
 	"layouts":                                  {introduced: 2, required: 2},
 	"layout_units":                             {introduced: 2, required: 2},
+	"layout_unit_ports":                        {introduced: 7, required: 7},
+	"layout_unit_outline_points":               {introduced: 4, required: 4},
+	"layout_technical_positions":               {introduced: 4, required: 4},
 	"plan_variants":                            {introduced: 2, required: 2},
 	"plan_revisions":                           {introduced: 2, required: 2},
+	"track_geometry_libraries":                 {introduced: 5, required: 5},
+	"track_geometry_definitions":               {introduced: 5, required: 5},
+	"plan_track_objects":                       {introduced: 5, required: 5},
+	"plan_free_objects":                        {introduced: 13, required: 13},
 	"layout_configurations":                    {introduced: 2, required: 2},
 	"layout_configuration_units":               {introduced: 2, required: 2},
 	"accessory_reservations":                   {introduced: 2, required: 2},
+	"accessory_reservation_positions":          {introduced: 4, required: 4},
+	"plan_track_object_reservations":           {introduced: 6, required: 6},
 	"accessory_installations":                  {introduced: 2, required: 2},
+	"accessory_installation_positions":         {introduced: 4, required: 4},
 	"accessory_installation_condition_history": {introduced: 3, required: 3},
 	"exhibition_lists":                         {introduced: 1, required: 3},
 	"exhibition_entries":                       {introduced: 1, required: 3},
@@ -251,7 +271,7 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 				return nil, err
 			}
 		}
-		rows := doc.Tables[table]
+		rows := backupRowsForRestore(doc, table)
 		if len(rows) == 0 {
 			continue
 		}
@@ -273,6 +293,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
 		return nil, err
 	}
+	if err := backfillRestoredTrackGeometrySnapshots(ctx, tx); err != nil {
+		return nil, err
+	}
 	if err := restoreLegacyAccessoryProductDefaults(ctx, tx, doc); err != nil {
 		return nil, err
 	}
@@ -290,6 +313,70 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
+}
+
+func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {
+	rows := doc.Tables[table]
+	legacyColumns := []string{}
+	if doc.Version <= 10 {
+		legacyColumn := map[string]string{
+			"track_geometry_definitions": "minimum_radius_mm",
+			"plan_track_objects":         "flex_path_json",
+			"layouts":                    "minimum_flex_radius_mm",
+		}[table]
+		if legacyColumn != "" {
+			legacyColumns = append(legacyColumns, legacyColumn)
+		}
+	}
+	if doc.Version <= 11 && table == "plan_track_objects" {
+		legacyColumns = append(legacyColumns, "transition_path_json")
+	}
+	if doc.Version <= 13 && table == "plan_track_objects" {
+		legacyColumns = append(legacyColumns, "geometry_snapshot_json")
+	}
+	if len(legacyColumns) == 0 {
+		return rows
+	}
+	normalized := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		copyRow := make(map[string]any, len(row)+len(legacyColumns))
+		for column, value := range row {
+			copyRow[column] = value
+		}
+		for _, legacyColumn := range legacyColumns {
+			if _, exists := copyRow[legacyColumn]; !exists {
+				copyRow[legacyColumn] = nil
+			}
+		}
+		normalized = append(normalized, copyRow)
+	}
+	return normalized
+}
+
+func backfillRestoredTrackGeometrySnapshots(ctx context.Context, tx *sql.Tx) error {
+	if _, err := tx.ExecContext(ctx, `
+UPDATE plan_track_objects
+SET geometry_snapshot_json = (
+  SELECT json_object(
+    'id', geometry.id,
+    'libraryId', geometry.library_id,
+    'articleNumber', geometry.article_number,
+    'name', geometry.name,
+    'kind', geometry.kind,
+    'lengthMm', geometry.length_mm,
+    'minimumRadiusMm', geometry.minimum_radius_mm,
+    'geometry', json(geometry.geometry_json),
+    'sourceUrl', geometry.source_url,
+    'status', geometry.status,
+    'createdAt', geometry.created_at
+  )
+  FROM track_geometry_definitions geometry
+  WHERE geometry.id = plan_track_objects.geometry_id
+)
+WHERE geometry_snapshot_json IS NULL`); err != nil {
+		return fmt.Errorf("backfill restored track geometry snapshots: %w", err)
+	}
+	return nil
 }
 
 func restoreLegacyAccessoryProductDefaults(

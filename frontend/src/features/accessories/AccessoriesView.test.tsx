@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   api,
@@ -16,6 +16,7 @@ import {
   type StorageLocation
 } from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
+import { articleViewSettingKey } from "./articleViewMode";
 import { AccessoriesView } from "./AccessoriesView";
 
 const overview: AccessoryArticleListResult = {
@@ -97,7 +98,11 @@ function deferred<T>() {
 }
 
 describe("AccessoriesView", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   beforeEach(() => {
+    window.localStorage.removeItem(articleViewSettingKey);
+    setLanguage("de");
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
@@ -108,9 +113,68 @@ describe("AccessoriesView", () => {
               : type === "stock_unit" ? [stockUnitEntry] : []);
     vi.spyOn(api, "archiveAccessoryProduct").mockResolvedValue({} as never);
     vi.spyOn(api, "restoreAccessoryProduct").mockResolvedValue({} as never);
+    vi.spyOn(api, "deleteAccessoryProduct").mockResolvedValue(undefined);
   });
 
-  it("renders one table-only article overview with four global metrics", async () => {
+  it("keeps permanent deletion hidden from editors", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
+    expect(screen.queryByRole("menuitem", { name: "Artikel löschen" })).not.toBeInTheDocument();
+  });
+
+  it("confirms admin deletion with article identity and reloads", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Admin"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+    const dialog = screen.getByRole("dialog", { name: "Artikel endgültig löschen" });
+    expect(within(dialog).getByText(/RK-ART-000001/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/Gerades Modellgleis/)).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Endgültig löschen" }));
+
+    expect(api.deleteAccessoryProduct).toHaveBeenCalledWith("article-1");
+    await waitFor(() => expect(api.accessoryArticles).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole("dialog", { name: "Artikel endgültig löschen" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("keeps the dialog and article visible when deletion is blocked", async () => {
+    vi.mocked(api.deleteAccessoryProduct).mockRejectedValueOnce(
+      new Error("Accessory product has stock or usage history and cannot be deleted.")
+    );
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Admin"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+    await user.click(screen.getByRole("button", { name: "Endgültig löschen" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("stock or usage history");
+    expect(screen.getByRole("dialog", { name: "Artikel endgültig löschen" })).toBeInTheDocument();
+    expect(screen.getByText("Gerades Modellgleis")).toBeInTheDocument();
+  });
+
+  it("localizes the admin delete action and confirmation in English", async () => {
+    setLanguage("en");
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Admin"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    await user.click(screen.getByRole("button", { name: /More actions/ }));
+    await user.click(screen.getByRole("menuitem", { name: "Delete article" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Permanently delete article" });
+    expect(within(dialog).getByRole("button", { name: "Delete permanently" })).toBeInTheDocument();
+    expect(within(dialog).getByText(/RK-ART-000001: Gerades Modellgleis/)).toBeInTheDocument();
+  });
+
+  it("renders the table article overview with four global metrics by default", async () => {
     render(<AccessoriesView roles={["Editor"]} />);
 
     expect(await screen.findByRole("heading", { name: "Zubehör" })).toBeInTheDocument();
@@ -134,12 +198,68 @@ describe("AccessoriesView", () => {
     expect(careMetric).not.toBeNull();
     expect(within(careMetric!).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/Kartenansicht/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tabellenansicht" })).toHaveClass("active");
+    expect(screen.getByRole("button", { name: "Kachelansicht" })).toBeInTheDocument();
     expect(screen.getByText("1 Ergebnis")).toBeInTheDocument();
     const list = screen.getByRole("region", { name: "Artikel" });
     expect(list).toHaveClass("inventory-panel");
     expect(within(list).getByRole("searchbox", { name: "Artikel suchen" })).toBeInTheDocument();
     expect(within(list).getByRole("table")).toHaveClass("inventory-table");
+  });
+
+  it("switches desktop views without reloading data and restores the persisted choice", async () => {
+    const user = userEvent.setup();
+    const view = render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByText("Gerades Modellgleis");
+
+    expect(screen.getByRole("button", { name: "Tabellenansicht" })).toHaveClass("active");
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    const requestCount = vi.mocked(api.accessoryArticles).mock.calls.length;
+
+    await user.click(screen.getByRole("button", { name: "Kachelansicht" }));
+    expect(screen.getByRole("button", { name: "Kachelansicht" })).toHaveClass("active");
+    expect(screen.getByRole("list", { name: "Artikel-Kachelansicht" })).toBeInTheDocument();
+    expect(screen.queryByRole("list", { name: "Kompakte Artikelliste" })).not.toBeInTheDocument();
+    expect(api.accessoryArticles).toHaveBeenCalledTimes(requestCount);
+    expect(window.localStorage.getItem(articleViewSettingKey)).toBe("cards");
+
+    view.unmount();
+    render(<AccessoriesView roles={["Editor"]} />);
+    expect(await screen.findByRole("list", { name: "Artikel-Kachelansicht" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kachelansicht" })).toHaveClass("active");
+  });
+
+  it("localizes the view controls", async () => {
+    setLanguage("en");
+    vi.mocked(api.accessoryArticles).mockResolvedValueOnce({
+      ...overview,
+      items: overview.items.map((item) => ({ ...item, name: "Straight model track" }))
+    });
+    render(<AccessoriesView roles={["Viewer"]} />);
+
+    await screen.findByText("Straight model track");
+    expect(screen.getByRole("button", { name: "Table view" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Card view" })).toBeInTheDocument();
+  });
+
+  it("uses the compact article list automatically at the mobile breakpoint", async () => {
+    const matchMedia = vi.fn().mockReturnValue({
+      matches: true,
+      media: "(max-width: 900px)",
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn()
+    });
+    vi.stubGlobal("matchMedia", matchMedia);
+
+    render(<AccessoriesView roles={["Editor"]} />);
+
+    expect(await screen.findByRole("list", { name: "Kompakte Artikelliste" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(matchMedia).toHaveBeenCalledWith("(max-width: 900px)");
   });
 
   it("uses English singular metric nouns for one article and one type", async () => {

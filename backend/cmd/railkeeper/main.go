@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	version               = "0.1.17.1"
+	version               = "0.1.17.2"
 	defaultUpdateCheckURL = "https://api.github.com/repos/ichwars/RailKeeper/releases/latest"
 )
 
@@ -124,8 +124,11 @@ func main() {
 		os.Exit(1)
 	}
 	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
+	trackPlannerRepository := infrastructure.NewTrackPlannerRepository(db)
+	trackPlannerService := application.NewTrackPlannerService(trackPlannerRepository)
+	trackLibraryService := application.NewTrackLibraryService(trackPlannerRepository)
 	accessoryRepository := infrastructure.NewAccessoryRepository(db)
-	accessoryService := application.NewAccessoryService(accessoryRepository)
+	accessoryService := application.NewAccessoryService(accessoryRepository, fileBlobService)
 	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
 	accessoryDocumentService := application.NewAccessoryDocumentService(accessoryRepository, fileBlobService)
 
@@ -149,6 +152,8 @@ func main() {
 		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
 		ExhibitionService:           application.NewExhibitionService(db),
 		LayoutService:               layoutService,
+		TrackPlannerService:         trackPlannerService,
+		TrackLibraryService:         trackLibraryService,
 		AccessoryService:            accessoryService,
 		AccessoryAllocationService:  accessoryAllocationService,
 		AccessoryDocumentService:    accessoryDocumentService,

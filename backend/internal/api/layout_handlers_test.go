@@ -46,6 +46,97 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 			t.Fatalf("%s read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
 		}
 	}
+	layout, err := layouts.CreateLayout(t.Context(), application.CreateLayoutInput{
+		Name: "Twin", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := layouts.CreateUnit(t.Context(), layout.ID, application.CreateLayoutUnitInput{
+		Name: "Module", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layouts/"+layout.ID+"/twin", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s twin read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layout-units/"+unit.ID+"/ports", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s port read: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+				"name": "Port " + role, "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+				"xMm": 0, "yMm": 250, "directionDegrees": 180,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusCreated
+		}
+		if response.Code != want {
+			t.Fatalf("%s port write: got %d, want %d: %s", role, response.Code, want, response.Body.String())
+		}
+	}
+	withoutPortCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+			"name": "No CSRF port", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+		}, false)
+	assertProblem(t, withoutPortCSRF, http.StatusForbidden, "csrf_required")
+	configuration, err := layouts.SaveConfiguration(t.Context(), layout.ID,
+		application.SaveLayoutConfigurationInput{Name: "Port analysis", Units: []application.ConfigurationUnitInput{
+			{UnitID: unit.ID},
+		}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodGet,
+			"/api/v1/layout-configurations/"+configuration.ID+"/port-analysis", nil, true)
+		want := http.StatusOK
+		if role == "messe" {
+			want = http.StatusForbidden
+		}
+		if response.Code != want {
+			t.Fatalf("%s configuration port analysis: got %d, want %d: %s",
+				role, response.Code, want, response.Body.String())
+		}
+	}
+	for role, session := range sessions {
+		response := layoutRequest(t, router, session, http.MethodPost,
+			"/api/v1/layout-configurations/"+configuration.ID+"/unit-snap-preview", map[string]any{
+				"unitId": unit.ID, "positionXMm": 0, "positionYMm": 0, "rotationDegrees": 0,
+			}, true)
+		want := http.StatusForbidden
+		if role == "admin" || role == "planner" {
+			want = http.StatusOK
+		}
+		if response.Code != want {
+			t.Fatalf("%s configuration port preview: got %d, want %d: %s",
+				role, response.Code, want, response.Body.String())
+		}
+	}
+	withoutPreviewCSRF := layoutRequest(t, router, sessions["planner"], http.MethodPost,
+		"/api/v1/layout-configurations/"+configuration.ID+"/unit-snap-preview", map[string]any{
+			"unitId": unit.ID,
+		}, false)
+	assertProblem(t, withoutPreviewCSRF, http.StatusForbidden, "csrf_required")
 	for role, session := range sessions {
 		response := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 			"name": "Layout " + role, "kind": "private", "gauge": "TT", "scale": "1:120",
@@ -80,20 +171,35 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 
 	layoutResponse := layoutRequest(t, router, session, http.MethodPost, "/api/v1/layouts", map[string]any{
 		"name": "Heimanlage", "kind": "private", "gauge": "TT", "scale": "1:120",
+		"maxGradePercent": 3.5, "minimumTrackClearanceMm": 40,
 	}, true)
 	if layoutResponse.Code != http.StatusCreated {
 		t.Fatalf("create layout: %d: %s", layoutResponse.Code, layoutResponse.Body.String())
 	}
 	var layout application.Layout
 	decodeResponse(t, layoutResponse, &layout)
+	if layout.MaxGradePercent == nil || *layout.MaxGradePercent != 3.5 {
+		t.Fatalf("unexpected layout grade limit: %#v", layout)
+	}
+	if layout.MinimumTrackClearanceMM == nil || *layout.MinimumTrackClearanceMM != 40 {
+		t.Fatalf("unexpected layout clearance limit: %#v", layout)
+	}
 
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts", nil, true), http.StatusOK)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts/"+layout.ID, nil, true), http.StatusOK)
 	updatedLayoutResponse := layoutRequest(t, router, session, http.MethodPut, "/api/v1/layouts/"+layout.ID, map[string]any{
 		"name": "Heimanlage erweitert", "kind": "private", "gauge": "TT", "scale": "1:120",
-		"expectedVersion": layout.Version,
+		"maxGradePercent": 2.5, "minimumTrackClearanceMm": 25.5, "expectedVersion": layout.Version,
 	}, true)
 	assertStatus(t, updatedLayoutResponse, http.StatusOK)
+	var updatedLayout application.Layout
+	decodeResponse(t, updatedLayoutResponse, &updatedLayout)
+	if updatedLayout.MaxGradePercent == nil || *updatedLayout.MaxGradePercent != 2.5 {
+		t.Fatalf("unexpected updated layout grade limit: %#v", updatedLayout)
+	}
+	if updatedLayout.MinimumTrackClearanceMM == nil || *updatedLayout.MinimumTrackClearanceMM != 25.5 {
+		t.Fatalf("unexpected updated layout clearance limit: %#v", updatedLayout)
+	}
 	staleLayout := layoutRequest(t, router, session, http.MethodPut, "/api/v1/layouts/"+layout.ID, map[string]any{
 		"name": "Stale", "kind": "private", "gauge": "TT", "scale": "1:120", "expectedVersion": 1,
 	}, true)
@@ -112,6 +218,32 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 	assertStatus(t, updatedUnitResponse, http.StatusOK)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet, "/api/v1/layouts/"+layout.ID+"/units", nil, true), http.StatusOK)
 
+	portResponse := layoutRequest(t, router, session, http.MethodPost,
+		"/api/v1/layout-units/"+unit.ID+"/ports", map[string]any{
+			"name": "West", "kind": "track", "interfaceKey": "TRACK:Tillig-TT-Modellgleis",
+			"xMm": 0, "yMm": 500, "directionDegrees": -180,
+		}, true)
+	assertStatus(t, portResponse, http.StatusCreated)
+	var port application.LayoutUnitPort
+	decodeResponse(t, portResponse, &port)
+	if port.InterfaceKey != "track:tillig-tt-modellgleis" || port.DirectionDegrees != 180 {
+		t.Fatalf("unexpected normalized module port: %#v", port)
+	}
+	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layout-units/"+unit.ID+"/ports", nil, true), http.StatusOK)
+	portUpdate := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/layout-unit-ports/"+port.ID, map[string]any{
+			"name": "West main", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+			"xMm": 0, "yMm": 500, "directionDegrees": 180, "expectedVersion": port.Version,
+		}, true)
+	assertStatus(t, portUpdate, http.StatusOK)
+	stalePort := layoutRequest(t, router, session, http.MethodPut,
+		"/api/v1/layout-unit-ports/"+port.ID, map[string]any{
+			"name": "Stale", "kind": "track", "interfaceKey": "track:tillig-tt-modellgleis",
+			"expectedVersion": port.Version,
+		}, true)
+	assertProblem(t, stalePort, http.StatusConflict, "layout_version_conflict")
+
 	configurationResponse := layoutRequest(
 		t, router, session, http.MethodPost, "/api/v1/layouts/"+layout.ID+"/configurations", map[string]any{
 			"name":  "Standardaufbau",
@@ -123,6 +255,11 @@ func TestLayoutRoutesCoverStructureAndRevisionWorkflow(t *testing.T) {
 	decodeResponse(t, configurationResponse, &configuration)
 	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
 		"/api/v1/layouts/"+layout.ID+"/configurations", nil, true), http.StatusOK)
+	assertStatus(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layouts/"+layout.ID+"/twin?configurationId="+configuration.ID, nil, true), http.StatusOK)
+	assertProblem(t, layoutRequest(t, router, session, http.MethodGet,
+		"/api/v1/layouts/"+layout.ID+"/twin?configurationId="+configuration.ID+"&unitId="+unit.ID,
+		nil, true), http.StatusBadRequest, "layout_validation")
 	configurationUpdate := layoutRequest(
 		t, router, session, http.MethodPut, "/api/v1/layout-configurations/"+configuration.ID, map[string]any{
 			"name": "Standardaufbau erweitert", "expectedVersion": configuration.Version,

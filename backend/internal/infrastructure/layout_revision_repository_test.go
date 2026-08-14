@@ -169,6 +169,149 @@ func TestLayoutServiceWritesAuditTrail(t *testing.T) {
 	}
 }
 
+func TestLayoutRevisionClonePreservesFlexiblePaths(t *testing.T) {
+	service, db := testRevisionServiceWithDB(t)
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Flexanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Segment", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := service.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{Name: "Flex"}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := domain.FlexTrackPath{
+		SchemaVersion: 1, EndXMM: 500, EndYMM: 100,
+		StartHandleMM: 180, EndHandleMM: 180,
+	}
+	created, err := planner.CreateObject(ctx, base.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", FlexPath: &path,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	transitionPath := domain.TransitionCurvePath{
+		SchemaVersion: 1, LengthMM: 450, EndRadiusMM: 700, Direction: domain.TransitionRight,
+	}
+	createdTransition, err := planner.CreateObject(ctx, base.ID, application.CreatePlanTrackObjectInput{
+		GeometryID: "tillig-tt-modellgleis-83125-v1", TransitionPath: &transitionPath,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.SubmitRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.PublishRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{
+		BaseRevisionID: base.ID,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := planner.GetPlan(ctx, clone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Objects) != 2 {
+		t.Fatalf("flexible paths not cloned: %#v", plan.Objects)
+	}
+	cloned := map[string]domain.PlanTrackObject{}
+	for _, object := range plan.Objects {
+		cloned[object.LineageID] = object
+	}
+	if cloned[created.LineageID].FlexPath == nil || cloned[created.LineageID].FlexPath.EndYMM != 100 {
+		t.Fatalf("flex path not cloned: %#v", plan.Objects)
+	}
+	transitionClone := cloned[createdTransition.LineageID]
+	if transitionClone.TransitionPath == nil ||
+		transitionClone.TransitionPath.Direction != domain.TransitionRight || transitionClone.FlexPath != nil {
+		t.Fatalf("transition path not cloned: %#v", plan.Objects)
+	}
+}
+
+func TestLayoutRevisionClonePreservesFreePlanObjects(t *testing.T) {
+	service, db := testRevisionServiceWithDB(t)
+	repository := infrastructure.NewTrackPlannerRepository(db)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Objektanlage", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Segment", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	variant, err := service.CreateVariant(ctx, unit.ID, application.CreatePlanVariantInput{
+		Name: "Objekte",
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	width, height := 500.0, 70.0
+	created, err := repository.CreateFreeObject(ctx, base.ID, application.CreateFreePlanObjectInput{
+		Name: "Bahnsteig", Category: domain.FreePlanPlatform,
+		PositionXMM: 200, PositionYMM: 100, RotationDegrees: 15,
+		Shape: domain.FreePlanObjectShape{
+			SchemaVersion: 1, Kind: domain.FreePlanRectangle, WidthMM: &width, HeightMM: &height,
+		},
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.SubmitRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, err = service.PublishRevision(ctx, base.ID, base.Version, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	clone, err := service.CreateDraft(ctx, variant.ID, application.CreatePlanRevisionInput{
+		BaseRevisionID: base.ID,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	plan, err := repository.GetPlan(ctx, clone.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.FreeObjects) != 1 {
+		t.Fatalf("free plan object not cloned: %#v", plan.FreeObjects)
+	}
+	cloned := plan.FreeObjects[0]
+	if cloned.ID == created.ID || cloned.LineageID != created.LineageID || cloned.Version != 1 ||
+		cloned.Name != "Bahnsteig" || cloned.Shape.WidthMM == nil || *cloned.Shape.WidthMM != width {
+		t.Fatalf("unexpected cloned free plan object: %#v", cloned)
+	}
+}
+
 func testRevisionServiceWithDB(t *testing.T) (*application.LayoutService, *sql.DB) {
 	t.Helper()
 	db, err := infrastructure.OpenSQLite(t.TempDir())

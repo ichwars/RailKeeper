@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected backup version 3, got %d", backup.Version)
+	if backup.Version != 14 {
+		t.Fatalf("expected backup version 14, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -136,7 +136,7 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 }
 
-func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T) {
+func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
 	ctx := context.Background()
@@ -153,8 +153,8 @@ func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected version 3 export, got %d", backup.Version)
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -199,6 +199,397 @@ func TestBackupVersionThreeRoundTripPreservesStageOneDataReferences(t *testing.T
 	defer func() { _ = rows.Close() }()
 	if rows.Next() {
 		t.Fatal("expected no foreign-key violations after version 2 restore")
+	}
+}
+
+func TestBackupVersionFourRoundTripPreservesLayoutTwinPositions(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	vehicle, err := application.NewVehicleService(db).Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Tillig", Name: "V 100", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedStageOneBackupData(t, db, vehicle.ID)
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layout_unit_outline_points(layout_unit_id, point_index, position_x_mm, position_y_mm) VALUES
+  ('unit-1', 0, 0, 0), ('unit-1', 1, 1200, 0), ('unit-1', 2, 1200, 500), ('unit-1', 3, 0, 500);
+INSERT INTO layout_technical_positions(
+  id, layout_unit_id, label, kind, position_x_mm, position_y_mm, rotation_degrees,
+  product_id, description, version, archived, created_at, updated_at
+) VALUES (
+  'position-1', 'unit-1', 'Signal A', 'signal', 250, 80, 90,
+  'product-quantity', 'Einfahrsignal', 1, 0, '2026-08-09T10:00:00Z', '2026-08-09T10:00:00Z'
+);
+INSERT INTO accessory_reservation_positions(reservation_id, position_id)
+  VALUES ('reservation-1', 'position-1');
+INSERT INTO accessory_installation_positions(installation_id, position_id)
+  VALUES ('installation-1', 'position-1');
+`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
+	}
+	for _, table := range []string{
+		"layout_unit_outline_points", "layout_technical_positions",
+		"accessory_reservation_positions", "accessory_installation_positions",
+	} {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected layout-twin table %q in backup", table)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layout_technical_positions SET label='Changed' WHERE id='position-1'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+
+	var label, reservationPositionID, installationPositionID string
+	if err := db.QueryRowContext(ctx, `SELECT label FROM layout_technical_positions WHERE id='position-1'`).Scan(&label); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT position_id FROM accessory_reservation_positions WHERE reservation_id='reservation-1'
+`).Scan(&reservationPositionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT position_id FROM accessory_installation_positions WHERE installation_id='installation-1'
+`).Scan(&installationPositionID); err != nil {
+		t.Fatal(err)
+	}
+	if label != "Signal A" || reservationPositionID != "position-1" || installationPositionID != "position-1" {
+		t.Fatalf("layout-twin references changed: label=%q reservation=%q installation=%q",
+			label, reservationPositionID, installationPositionID)
+	}
+}
+
+func TestBackupVersionSixRoundTripPreservesTrackPlannerData(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	vehicle, err := application.NewVehicleService(db).Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Tillig", Name: "V 100", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	seedStageOneBackupData(t, db, vehicle.ID)
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+	elevation_start_mm, elevation_end_mm, version, created_at, updated_at
+) VALUES
+	('track-published', 'revision-1', 'tillig-tt-modellgleis-83101-v1', 125.5, 80, 0, 0, 0,
+	 1, '2026-08-09T10:00:00Z', '2026-08-09T10:00:00Z'),
+	('track-draft', 'revision-2', 'tillig-tt-modellgleis-83101-v1', 291.5, 80, 15, -2, 2.15,
+	 3, '2026-08-09T10:00:00Z', '2026-08-09T11:00:00Z');
+INSERT INTO accessory_reservations(
+  id, product_id, location_id, quantity, layout_unit_id, status, note, created_by, created_at, updated_at
+) VALUES(
+  'track-plan-reservation', 'product-quantity', 'location-child', 1, 'unit-1', 'active',
+  'Gleisplanobjekt track-draft', 'planner-1', '2026-08-09T11:00:00Z', '2026-08-09T11:00:00Z'
+);
+INSERT INTO plan_track_object_reservations(
+  reservation_id, track_object_id, active, created_at, updated_at
+) VALUES(
+  'track-plan-reservation', 'track-draft', 1,
+  '2026-08-09T11:00:00Z', '2026-08-09T11:00:00Z'
+)`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
+	}
+	for _, table := range versionFiveBackupTableNames() {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected track-planner table %q in backup", table)
+		}
+	}
+	for _, table := range versionSixBackupTableNames() {
+		if len(backup.Tables[table]) == 0 {
+			t.Fatalf("expected track-reservation table %q in backup", table)
+		}
+	}
+	if _, err := db.ExecContext(ctx, `
+UPDATE track_geometry_libraries SET manufacturer='Changed';
+UPDATE track_geometry_definitions SET name='Changed', geometry_json='{}';
+UPDATE plan_track_objects SET position_x_mm=999, rotation_degrees=90,
+       elevation_start_mm=99, elevation_end_mm=100;
+UPDATE plan_track_object_reservations SET active=0;
+`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+
+	var manufacturer, name, geometryJSON, revisionID, geometryID, lineageID string
+	var positionX, positionY, rotation, elevationStart, elevationEnd float64
+	var version, reservationActive int
+	if err := db.QueryRowContext(ctx, `
+SELECT l.manufacturer, g.name, g.geometry_json, o.revision_id, o.geometry_id,
+	   o.position_x_mm, o.position_y_mm, o.rotation_degrees,
+	   o.elevation_start_mm, o.elevation_end_mm, o.version, o.lineage_id
+FROM plan_track_objects o
+JOIN track_geometry_definitions g ON g.id=o.geometry_id
+JOIN track_geometry_libraries l ON l.id=g.library_id
+WHERE o.id='track-draft'
+`).Scan(&manufacturer, &name, &geometryJSON, &revisionID, &geometryID,
+		&positionX, &positionY, &rotation, &elevationStart, &elevationEnd, &version, &lineageID); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT active FROM plan_track_object_reservations WHERE reservation_id='track-plan-reservation'
+`).Scan(&reservationActive); err != nil {
+		t.Fatal(err)
+	}
+	if manufacturer != "Tillig" || name != "Gleisstück G1" ||
+		!strings.Contains(geometryJSON, `"xMm":166`) || revisionID != "revision-2" ||
+		geometryID != "tillig-tt-modellgleis-83101-v1" || positionX != 291.5 || positionY != 80 ||
+		rotation != 15 || elevationStart != -2 || elevationEnd != 2.15 || version != 3 ||
+		lineageID != "track-draft" || reservationActive != 1 {
+		t.Fatalf("track-planner data changed after restore: manufacturer=%q name=%q geometry=%q "+
+			"revision=%q geometryID=%q position=%v/%v rotation=%v elevation=%v/%v version=%d",
+			manufacturer, name, geometryJSON, revisionID, geometryID, positionX, positionY, rotation,
+			elevationStart, elevationEnd, version)
+	}
+
+	legacy := *backup
+	legacy.Version = 7
+	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
+	for table, rows := range backup.Tables {
+		legacy.Tables[table] = rows
+	}
+	legacyTrackRows := make([]map[string]any, 0, len(backup.Tables["plan_track_objects"]))
+	for _, row := range backup.Tables["plan_track_objects"] {
+		legacyRow := make(map[string]any, len(row))
+		for key, value := range row {
+			if key != "elevation_start_mm" && key != "elevation_end_mm" {
+				legacyRow[key] = value
+			}
+		}
+		legacyTrackRows = append(legacyTrackRows, legacyRow)
+	}
+	legacy.Tables["plan_track_objects"] = legacyTrackRows
+	if _, err := service.Import(ctx, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT elevation_start_mm, elevation_end_mm FROM plan_track_objects WHERE id='track-draft'
+`).Scan(&elevationStart, &elevationEnd); err != nil {
+		t.Fatal(err)
+	}
+	if elevationStart != 0 || elevationEnd != 0 {
+		t.Fatalf("expected version 7 restore defaults, got %v/%v", elevationStart, elevationEnd)
+	}
+}
+
+func TestBackupVersionSevenRoundTripPreservesLayoutUnitPorts(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layouts(id, name, kind, gauge, scale, description, version, archived, created_at, updated_at)
+VALUES('layout-port', 'Module layout', 'club', 'TT', '1:120', '', 1, 0,
+       '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z');
+INSERT INTO layout_units(id, layout_id, name, kind, owner_label, width_mm, height_mm, version, archived, created_at, updated_at)
+VALUES('unit-port', 'layout-port', 'Module A', 'module', '', 1000, 500, 1, 0,
+       '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z');
+INSERT INTO layout_unit_ports(
+  id, layout_unit_id, name, kind, interface_key, x_mm, y_mm, direction_degrees,
+  notes, version, archived, created_at, updated_at
+) VALUES(
+  'port-west', 'unit-port', 'West', 'track', 'track:tillig-tt-modellgleis', 0, 250, 180,
+  'Main line', 2, 0, '2026-08-10T10:00:00Z', '2026-08-10T11:00:00Z'
+);`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 14 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 14 module-port export, got version=%d rows=%d",
+			backup.Version, len(backup.Tables["layout_unit_ports"]))
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	var name, unitID, interfaceKey string
+	var xMM, direction float64
+	if err := db.QueryRowContext(ctx, `
+SELECT name, layout_unit_id, interface_key, x_mm, direction_degrees
+FROM layout_unit_ports WHERE id='port-west'`).Scan(&name, &unitID, &interfaceKey, &xMM, &direction); err != nil {
+		t.Fatal(err)
+	}
+	if name != "West" || unitID != "unit-port" || interfaceKey != "track:tillig-tt-modellgleis" ||
+		xMM != 0 || direction != 180 {
+		t.Fatalf("module port changed after restore: name=%q unit=%q interface=%q x=%v direction=%v",
+			name, unitID, interfaceKey, xMM, direction)
+	}
+
+	legacyTables := make(map[string][]map[string]any, len(backup.Tables)-1)
+	for table, rows := range backup.Tables {
+		if table != "layout_unit_ports" {
+			legacyTables[table] = rows
+		}
+	}
+	legacy := &application.BackupDocument{
+		Format: backup.Format, Version: 6, CreatedAt: backup.CreatedAt,
+		Tables: legacyTables, Files: backup.Files,
+	}
+	validation, err := service.Validate(ctx, legacy)
+	if err != nil || !validation.Compatible {
+		t.Fatalf("expected version 6 without module ports to remain compatible: %#v, %v", validation, err)
+	}
+}
+
+func TestBackupVersionNinePreservesAndLegacyVersionEightOmitsLayoutGradeLimit(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layouts(id, name, kind, gauge, scale, description, max_grade_percent,
+                    version, archived, created_at, updated_at)
+VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
+       1, 0, '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	var restored sql.NullFloat64
+	if err := db.QueryRowContext(ctx, `SELECT max_grade_percent FROM layouts WHERE id='layout-grade'`).
+		Scan(&restored); err != nil {
+		t.Fatal(err)
+	}
+	if !restored.Valid || restored.Float64 != 3.5 {
+		t.Fatalf("expected restored 3.5 percent limit, got %#v", restored)
+	}
+
+	legacy := *backup
+	legacy.Version = 8
+	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
+	for table, rows := range backup.Tables {
+		legacyRows := make([]map[string]any, 0, len(rows))
+		for _, row := range rows {
+			legacyRow := make(map[string]any, len(row))
+			for key, value := range row {
+				if table != "layouts" || key != "max_grade_percent" {
+					legacyRow[key] = value
+				}
+			}
+			legacyRows = append(legacyRows, legacyRow)
+		}
+		legacy.Tables[table] = legacyRows
+	}
+	if _, err := service.Import(ctx, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `SELECT max_grade_percent FROM layouts WHERE id='layout-grade'`).
+		Scan(&restored); err != nil {
+		t.Fatal(err)
+	}
+	if restored.Valid {
+		t.Fatalf("expected legacy version 8 restore without limit, got %#v", restored)
+	}
+}
+
+func TestBackupVersionTenPreservesAndLegacyVersionNineOmitsTrackClearance(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := t.Context()
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO layouts(id, name, kind, gauge, scale, description, max_grade_percent,
+                    minimum_track_clearance_mm, version, archived, created_at, updated_at)
+VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
+       40, 1, 0, '2026-08-10T10:00:00Z', '2026-08-10T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewBackupService(db, dataDir)
+	backup, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
+	}
+	if _, err := db.ExecContext(ctx, `
+UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	var restored sql.NullFloat64
+	if err := db.QueryRowContext(ctx, `
+SELECT minimum_track_clearance_mm FROM layouts WHERE id='layout-clearance'`).Scan(&restored); err != nil {
+		t.Fatal(err)
+	}
+	if !restored.Valid || restored.Float64 != 40 {
+		t.Fatalf("expected restored 40 mm limit, got %#v", restored)
+	}
+
+	legacy := *backup
+	legacy.Version = 9
+	legacy.Tables = make(map[string][]map[string]any, len(backup.Tables))
+	for table, rows := range backup.Tables {
+		legacyRows := make([]map[string]any, 0, len(rows))
+		for _, row := range rows {
+			legacyRow := make(map[string]any, len(row))
+			for key, value := range row {
+				if table != "layouts" || key != "minimum_track_clearance_mm" {
+					legacyRow[key] = value
+				}
+			}
+			legacyRows = append(legacyRows, legacyRow)
+		}
+		legacy.Tables[table] = legacyRows
+	}
+	if _, err := service.Import(ctx, &legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRowContext(ctx, `
+SELECT minimum_track_clearance_mm FROM layouts WHERE id='layout-clearance'`).Scan(&restored); err != nil {
+		t.Fatal(err)
+	}
+	if restored.Valid {
+		t.Fatalf("expected legacy version 9 restore without limit, got %#v", restored)
 	}
 }
 
@@ -310,7 +701,7 @@ func TestBackupVersionTwoRestoreBackfillsIndividualInventoryStrategy(t *testing.
 	}
 }
 
-func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T) {
+func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
 	ctx := context.Background()
@@ -439,8 +830,8 @@ func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 3 {
-		t.Fatalf("expected version 3 export, got %d", backup.Version)
+	if backup.Version != 14 {
+		t.Fatalf("expected version 14 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -460,7 +851,7 @@ func TestBackupVersionThreeRoundTripPreservesArticleManagementData(t *testing.T)
 		t.Fatal(err)
 	}
 	if !validation.Compatible {
-		t.Fatalf("expected complete version 3 backup, got %#v", validation)
+		t.Fatalf("expected complete version 8 backup, got %#v", validation)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE accessory_products SET name='Changed after export' WHERE id=?`, product.ID); err != nil {
 		t.Fatal(err)
@@ -759,6 +1150,26 @@ func backupDocumentTablesThroughVersion(version int) map[string][]map[string]any
 			tables[table] = []map[string]any{}
 		}
 	}
+	if version >= 4 {
+		for _, table := range versionFourBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
+	if version >= 5 {
+		for _, table := range versionFiveBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
+	if version >= 6 {
+		for _, table := range versionSixBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
+	if version >= 7 {
+		for _, table := range versionSevenBackupTableNames() {
+			tables[table] = []map[string]any{}
+		}
+	}
 	return tables
 }
 
@@ -837,6 +1248,11 @@ func TestBackupVersionOneWithoutStageOneTablesRemainsImportable(t *testing.T) {
 			t.Fatalf("expected version-three compatibility warning for %s, got %#v", table, result.Warnings)
 		}
 	}
+	for _, table := range versionFourBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected version-four compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
 	if _, err := service.Import(context.Background(), doc); err != nil {
 		t.Fatalf("expected compatible version 1 backup to import, got %v", err)
 	}
@@ -910,6 +1326,95 @@ func TestBackupVersionThreeRequiresVersionThreeTables(t *testing.T) {
 	}
 }
 
+func TestBackupVersionThreeWithoutVersionFourTablesRemainsCompatible(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 3
+	for _, table := range versionFourBackupTableNames() {
+		delete(doc.Tables, table)
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected version 3 without version-four tables to remain compatible, got %#v", result)
+	}
+	for _, table := range versionFourBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected version-four compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
+}
+
+func TestBackupVersionFourRequiresVersionFourTables(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc := &application.BackupDocument{
+		Format: "railkeeper-backup", Version: 4, Tables: backupDocumentTablesThroughVersion(3),
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Compatible || !containsWarning(result.Errors, "Tabelle layout_technical_positions fehlt") {
+		t.Fatalf("expected missing version-four table error, got %#v", result)
+	}
+}
+
+func TestBackupVersionFourWithoutTrackPlannerTablesRemainsCompatible(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 4
+	for _, table := range versionFiveBackupTableNames() {
+		delete(doc.Tables, table)
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Compatible {
+		t.Fatalf("expected version 4 without track-planner tables to remain compatible, got %#v", result)
+	}
+	for _, table := range versionFiveBackupTableNames() {
+		if !containsWarning(result.Warnings, "Optionale Tabelle "+table+" fehlt") {
+			t.Fatalf("expected version-five compatibility warning for %s, got %#v", table, result.Warnings)
+		}
+	}
+}
+
+func TestBackupVersionFiveRequiresTrackPlannerTables(t *testing.T) {
+	db := backupTestDB(t, t.TempDir())
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 5
+	for _, table := range versionFiveBackupTableNames() {
+		delete(doc.Tables, table)
+	}
+
+	result, err := service.Validate(t.Context(), doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Compatible || !containsWarning(result.Errors, "Tabelle track_geometry_libraries fehlt") {
+		t.Fatalf("expected missing version-five track-planner table error, got %#v", result)
+	}
+}
+
 func TestBackupVersionTwoRestoresRowsUsingVersionThreeColumnDefaults(t *testing.T) {
 	db := backupTestDB(t, t.TempDir())
 	service := application.NewBackupService(db, t.TempDir())
@@ -972,7 +1477,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 4
+		doc.Version = 15
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}
@@ -1458,6 +1963,25 @@ func versionThreeBackupTableNames() []string {
 		"accessory_product_attributes", "accessory_purchases", "accessory_documents",
 		"accessory_stock_movements", "accessory_installation_condition_history",
 	}
+}
+
+func versionFourBackupTableNames() []string {
+	return []string{
+		"layout_unit_outline_points", "layout_technical_positions",
+		"accessory_reservation_positions", "accessory_installation_positions",
+	}
+}
+
+func versionFiveBackupTableNames() []string {
+	return []string{"track_geometry_libraries", "track_geometry_definitions", "plan_track_objects"}
+}
+
+func versionSixBackupTableNames() []string {
+	return []string{"plan_track_object_reservations"}
+}
+
+func versionSevenBackupTableNames() []string {
+	return []string{"layout_unit_ports"}
 }
 
 func legacyOptionalBackupTableNames() []string {

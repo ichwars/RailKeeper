@@ -4,6 +4,8 @@ import { describe, expect, it } from "vitest";
 
 const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
 const accessoriesCss = readFileSync(resolve(process.cwd(), "src/styles/accessories.css"), "utf8");
+const articleOverviewCss = readFileSync(resolve(process.cwd(), "src/styles/article-overview.css"), "utf8");
+const appCss = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
 const vehicleDialogsCss = readFileSync(resolve(process.cwd(), "src/styles/vehicle-dialogs.css"), "utf8");
 
 function zIndex(css: string, selector: string) {
@@ -22,6 +24,35 @@ describe("article editor responsive tabs", () => {
     expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*9[0-9]px/s);
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
     expect(accessoriesCss).toMatch(/\.article-table \.select-cell\s*\{[^}]*width:\s*4[0-9]px/s);
+  });
+
+  it("loads focused overview styles and switches presentations at the mobile breakpoint", () => {
+    expect(appCss).toContain('@import "../styles/article-overview.css";');
+    expect(articleOverviewCss).toMatch(/\.article-mobile-list\s*\{[^}]*display:\s*none/s);
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-desktop-content\s*\{[^}]*display:\s*none/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-mobile-list\s*\{[^}]*display:\s*grid/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /@media\s*\(max-width:\s*900px\)[\s\S]*?\.article-view-tools\s*\{[^}]*display:\s*none/s
+    );
+  });
+
+  it("keeps long card metadata labels separated in a two-column grid", () => {
+    expect(articleOverviewCss).toMatch(
+      /\.article-card-body dl\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s
+    );
+    expect(articleOverviewCss).toMatch(
+      /\.article-card-body dl div:nth-child\(3\)\s*\{[^}]*grid-column:\s*1 \/ -1/s
+    );
+  });
+
+  it("opens the mobile row action menu above the bottom-edge controls", () => {
+    expect(articleOverviewCss).toMatch(
+      /\.article-mobile-actions \.article-action-menu\s*\{[^}]*top:\s*auto;[^}]*bottom:\s*calc\(100% \+ 3px\)/s
+    );
   });
 
   it("keeps stacked article filters compact on narrow screens", () => {

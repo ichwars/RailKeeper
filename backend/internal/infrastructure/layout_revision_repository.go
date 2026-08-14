@@ -116,12 +116,123 @@ INSERT INTO plan_revisions(
 			revision.RevisionNumber, revision.Status, revision.BaseRevisionID, actor, now, now); err != nil {
 			return fmt.Errorf("insert plan draft: %w", err)
 		}
+		if input.BaseRevisionID != "" {
+			rows, err := tx.QueryContext(ctx, `
+SELECT geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+       elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json,
+       geometry_snapshot_json, lineage_id
+FROM plan_track_objects WHERE revision_id=? ORDER BY created_at, id`, input.BaseRevisionID)
+			if err != nil {
+				return fmt.Errorf("list base revision track objects: %w", err)
+			}
+			type baseTrackObject struct {
+				geometryID           string
+				positionXMM          float64
+				positionYMM          float64
+				rotationDegrees      float64
+				elevationStartMM     float64
+				elevationEndMM       float64
+				flexPathJSON         sql.NullString
+				transitionPathJSON   sql.NullString
+				geometrySnapshotJSON sql.NullString
+				lineageID            string
+			}
+			objects := []baseTrackObject{}
+			for rows.Next() {
+				object := baseTrackObject{}
+				if err := rows.Scan(&object.geometryID, &object.positionXMM, &object.positionYMM,
+					&object.rotationDegrees, &object.elevationStartMM, &object.elevationEndMM,
+					&object.flexPathJSON, &object.transitionPathJSON,
+					&object.geometrySnapshotJSON, &object.lineageID); err != nil {
+					_ = rows.Close()
+					return fmt.Errorf("scan base revision track object: %w", err)
+				}
+				objects = append(objects, object)
+			}
+			if err := rows.Err(); err != nil {
+				_ = rows.Close()
+				return fmt.Errorf("iterate base revision track objects: %w", err)
+			}
+			if err := rows.Close(); err != nil {
+				return fmt.Errorf("close base revision track objects: %w", err)
+			}
+			for _, object := range objects {
+				if _, err := tx.ExecContext(ctx, `
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+	elevation_start_mm, elevation_end_mm, flex_path_json, transition_path_json,
+	geometry_snapshot_json, lineage_id, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), revision.ID, object.geometryID,
+					object.positionXMM, object.positionYMM, object.rotationDegrees,
+					object.elevationStartMM, object.elevationEndMM, object.flexPathJSON,
+					object.transitionPathJSON, object.geometrySnapshotJSON,
+					object.lineageID, now, now); err != nil {
+					return fmt.Errorf("copy base revision track object: %w", err)
+				}
+			}
+			if err := cloneBaseFreePlanObjects(ctx, tx, input.BaseRevisionID, revision.ID, now); err != nil {
+				return err
+			}
+		}
 		return writeLayoutAudit(ctx, tx, "PlanDraftCreated", "plan_revision", revision.ID, actor, now)
 	})
 	if err != nil {
 		return nil, err
 	}
 	return revision, nil
+}
+
+func cloneBaseFreePlanObjects(
+	ctx context.Context,
+	tx *sql.Tx,
+	baseRevisionID string,
+	revisionID string,
+	now string,
+) error {
+	rows, err := tx.QueryContext(ctx, `
+SELECT lineage_id, name, category, position_x_mm, position_y_mm, rotation_degrees, shape_json
+FROM plan_free_objects WHERE revision_id=? ORDER BY created_at, id`, baseRevisionID)
+	if err != nil {
+		return fmt.Errorf("list base revision free plan objects: %w", err)
+	}
+	type baseFreePlanObject struct {
+		lineageID      string
+		name           string
+		category       string
+		positionXMM    float64
+		positionYMM    float64
+		rotationDegree float64
+		shapeJSON      string
+	}
+	objects := []baseFreePlanObject{}
+	for rows.Next() {
+		object := baseFreePlanObject{}
+		if err := rows.Scan(&object.lineageID, &object.name, &object.category, &object.positionXMM,
+			&object.positionYMM, &object.rotationDegree, &object.shapeJSON); err != nil {
+			_ = rows.Close()
+			return fmt.Errorf("scan base revision free plan object: %w", err)
+		}
+		objects = append(objects, object)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return fmt.Errorf("iterate base revision free plan objects: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return fmt.Errorf("close base revision free plan objects: %w", err)
+	}
+	for _, object := range objects {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO plan_free_objects(
+  id, lineage_id, revision_id, name, category, position_x_mm, position_y_mm,
+  rotation_degrees, shape_json, version, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`, randomID(), object.lineageID, revisionID,
+			object.name, object.category, object.positionXMM, object.positionYMM, object.rotationDegree,
+			object.shapeJSON, now, now); err != nil {
+			return fmt.Errorf("copy base revision free plan object: %w", err)
+		}
+	}
+	return nil
 }
 
 func (r *LayoutRepository) SubmitRevision(

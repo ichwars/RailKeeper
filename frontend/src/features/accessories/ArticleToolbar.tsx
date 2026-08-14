@@ -1,8 +1,9 @@
-import { Search, X } from "lucide-react";
+import { Grid2X2, Search, Table2, X } from "lucide-react";
 
 import type { AccessoryArticleFilterOptions, MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import type { ArticleViewMode } from "./articleViewMode";
 import type { ArticleOverviewFilters } from "./useArticleOverview";
 import { articleTypeLabel, articleTypeOrder } from "./articleTypes";
 
@@ -29,7 +30,9 @@ export function ArticleToolbar({
   options,
   articleTypeEntries,
   resultCount,
+  viewMode,
   hasActiveFilters,
+  onViewModeChange,
   onFilterChange,
   onReset
 }: {
@@ -37,7 +40,9 @@ export function ArticleToolbar({
   options: AccessoryArticleFilterOptions;
   articleTypeEntries: MasterDataEntry[];
   resultCount: number;
+  viewMode: ArticleViewMode;
   hasActiveFilters: boolean;
+  onViewModeChange: (mode: ArticleViewMode) => void;
   onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
   onReset: () => void;
 }) {
@@ -46,18 +51,42 @@ export function ArticleToolbar({
 
   return (
     <div className="article-toolbar" aria-label={t("accessories.toolbar.label")}>
-      <label className="search-field article-search-field">
-        <span>
-          <Search size={16} aria-hidden="true" />
-          <input
-            type="search"
-            value={filters.query}
-            onChange={(event) => onFilterChange("query", event.target.value)}
-            placeholder={t("accessories.toolbar.searchPlaceholder")}
-            aria-label={t("accessories.toolbar.search")}
-          />
+      <div className="article-toolbar-primary">
+        <label className="search-field article-search-field">
+          <span>
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              value={filters.query}
+              onChange={(event) => onFilterChange("query", event.target.value)}
+              placeholder={t("accessories.toolbar.searchPlaceholder")}
+              aria-label={t("accessories.toolbar.search")}
+            />
+          </span>
+        </label>
+        <span className="inventory-view-tools article-view-tools" aria-label={t("accessories.view.label")}>
+          <button
+            type="button"
+            className={`icon-button${viewMode === "table" ? " active" : ""}`}
+            aria-label={t("accessories.view.table")}
+            aria-pressed={viewMode === "table"}
+            title={t("accessories.view.table")}
+            onClick={() => onViewModeChange("table")}
+          >
+            <Table2 size={16} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={`icon-button${viewMode === "cards" ? " active" : ""}`}
+            aria-label={t("accessories.view.cards")}
+            aria-pressed={viewMode === "cards"}
+            title={t("accessories.view.cards")}
+            onClick={() => onViewModeChange("cards")}
+          >
+            <Grid2X2 size={16} aria-hidden="true" />
+          </button>
         </span>
-      </label>
+      </div>
       <div className="article-filter-row">
         <AppSelect
           className="article-filter-select"

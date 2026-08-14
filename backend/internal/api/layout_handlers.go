@@ -39,6 +39,18 @@ func (a *App) getLayout(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, layout)
 }
 
+func (a *App) getLayoutTwin(w http.ResponseWriter, r *http.Request) {
+	twin, err := a.layoutService.GetTwin(r.Context(), r.PathValue("id"), application.LayoutTwinSelection{
+		ConfigurationID: r.URL.Query().Get("configurationId"),
+		UnitID:          r.URL.Query().Get("unitId"),
+	})
+	if err != nil {
+		a.layoutError(w, err, "get layout twin")
+		return
+	}
+	respondJSON(w, http.StatusOK, twin)
+}
+
 func (a *App) updateLayout(w http.ResponseWriter, r *http.Request) {
 	var input application.UpdateLayoutInput
 	if !decodeLayoutJSON(w, r, &input) {
@@ -87,6 +99,41 @@ func (a *App) updateLayoutUnit(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, unit)
 }
 
+func (a *App) listLayoutUnitPorts(w http.ResponseWriter, r *http.Request) {
+	ports, err := a.layoutService.ListUnitPorts(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.layoutError(w, err, "list layout unit ports")
+		return
+	}
+	respondJSON(w, http.StatusOK, ports)
+}
+
+func (a *App) createLayoutUnitPort(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateLayoutUnitPortInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	port, err := a.layoutService.CreateUnitPort(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		a.layoutError(w, err, "create layout unit port")
+		return
+	}
+	respondJSON(w, http.StatusCreated, port)
+}
+
+func (a *App) updateLayoutUnitPort(w http.ResponseWriter, r *http.Request) {
+	var input application.UpdateLayoutUnitPortInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	port, err := a.layoutService.UpdateUnitPort(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		a.layoutError(w, err, "update layout unit port")
+		return
+	}
+	respondJSON(w, http.StatusOK, port)
+}
+
 func (a *App) listLayoutConfigurations(w http.ResponseWriter, r *http.Request) {
 	configurations, err := a.layoutService.ListConfigurations(r.Context(), r.PathValue("id"))
 	if err != nil {
@@ -128,6 +175,28 @@ func (a *App) updateLayoutConfiguration(w http.ResponseWriter, r *http.Request) 
 	respondJSON(w, http.StatusOK, configuration)
 }
 
+func (a *App) analyzeLayoutConfigurationPorts(w http.ResponseWriter, r *http.Request) {
+	analysis, err := a.layoutService.AnalyzeConfigurationPorts(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.layoutError(w, err, "analyze layout configuration ports")
+		return
+	}
+	respondJSON(w, http.StatusOK, analysis)
+}
+
+func (a *App) previewLayoutConfigurationUnitSnap(w http.ResponseWriter, r *http.Request) {
+	var input application.PreviewConfigurationUnitSnapInput
+	if !decodeLayoutJSON(w, r, &input) {
+		return
+	}
+	preview, err := a.layoutService.PreviewConfigurationUnitSnap(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		a.layoutError(w, err, "preview layout configuration unit snap")
+		return
+	}
+	respondJSON(w, http.StatusOK, preview)
+}
+
 func decodeLayoutJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
@@ -144,6 +213,12 @@ func (a *App) layoutError(w http.ResponseWriter, err error, action string) {
 		respondProblem(w, http.StatusNotFound, "layout_not_found", "Layout resource not found.")
 	case errors.Is(err, application.ErrLayoutVersionConflict):
 		respondProblem(w, http.StatusConflict, "layout_version_conflict", "Layout data has changed.")
+	case errors.Is(err, application.ErrLayoutPositionNotFound):
+		respondProblem(w, http.StatusNotFound, "layout_position_not_found", "Layout position not found.")
+	case errors.Is(err, application.ErrLayoutPositionProductNotFound):
+		respondProblem(w, http.StatusNotFound, "layout_position_product_not_found", "Accessory product not found.")
+	case errors.Is(err, application.ErrLayoutPositionVersionConflict):
+		respondProblem(w, http.StatusConflict, "layout_position_version_conflict", "Layout position has changed.")
 	case errors.Is(err, application.ErrPlanRevisionImmutable):
 		respondProblem(w, http.StatusConflict, "plan_revision_immutable", "Published plan revisions are immutable.")
 	case errors.Is(err, application.ErrPlanRevisionConflict):

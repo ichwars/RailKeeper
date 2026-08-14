@@ -29,6 +29,27 @@ func (kind LayoutUnitKind) Valid() bool {
 	}
 }
 
+type LayoutUnitPortKind string
+
+const (
+	LayoutUnitPortTrack     LayoutUnitPortKind = "track"
+	LayoutUnitPortPower     LayoutUnitPortKind = "power"
+	LayoutUnitPortDigital   LayoutUnitPortKind = "digital"
+	LayoutUnitPortFeedback  LayoutUnitPortKind = "feedback"
+	LayoutUnitPortAccessory LayoutUnitPortKind = "accessory"
+	LayoutUnitPortOther     LayoutUnitPortKind = "other"
+)
+
+func (kind LayoutUnitPortKind) Valid() bool {
+	switch kind {
+	case LayoutUnitPortTrack, LayoutUnitPortPower, LayoutUnitPortDigital,
+		LayoutUnitPortFeedback, LayoutUnitPortAccessory, LayoutUnitPortOther:
+		return true
+	default:
+		return false
+	}
+}
+
 type PlanRevisionStatus string
 
 const (
