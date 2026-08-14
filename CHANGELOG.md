@@ -6,10 +6,15 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.17.3] - 2026-08-14
+
 ### Added
 
 - Added repository ownership, contribution, conduct, support, trademark, and third-party notice
   files.
+- The accessory table now provides persistent column selection for image, inventory number,
+  manufacturer, article number, name, type, gauge, stock, and storage. Inventory number and name
+  cannot both be hidden.
 
 ### Changed
 
@@ -23,6 +28,8 @@ All notable changes to RailKeeper are documented in this file.
   confirmation.
 - Current speed, direction, active function states, locomotive images, switch objects, routes,
   S88, boosters, and other ECoS object managers were removed from queries and UI contracts.
+- Archive, restore, and permanent deletion are now direct, labelled icon actions in table, card,
+  and compact views. The previous three-dot menu has been removed.
 
 ## [0.1.17.2] - 2026-08-14
 
@@ -143,6 +150,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3
 [0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2
 [0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
 [0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17

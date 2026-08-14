@@ -16,6 +16,7 @@ import {
   type StorageLocation
 } from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
+import { articleTableColumnSettingKey } from "./articleTableColumns";
 import { articleViewSettingKey } from "./articleViewMode";
 import { AccessoriesView } from "./AccessoriesView";
 
@@ -102,6 +103,7 @@ describe("AccessoriesView", () => {
 
   beforeEach(() => {
     window.localStorage.removeItem(articleViewSettingKey);
+    window.localStorage.removeItem(articleTableColumnSettingKey);
     setLanguage("de");
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
@@ -117,12 +119,11 @@ describe("AccessoriesView", () => {
   });
 
   it("keeps permanent deletion hidden from editors", async () => {
-    const user = userEvent.setup();
     render(<AccessoriesView roles={["Editor"]} />);
     await screen.findByText("Gerades Modellgleis");
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    expect(screen.queryByRole("menuitem", { name: "Artikel löschen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel löschen:/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Artikel archivieren:/ })).toBeInTheDocument();
   });
 
   it("confirms admin deletion with article identity and reloads", async () => {
@@ -130,8 +131,7 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Admin"]} />);
     await screen.findByText("Gerades Modellgleis");
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+    await user.click(screen.getByRole("button", { name: /Artikel löschen:/ }));
     const dialog = screen.getByRole("dialog", { name: "Artikel endgültig löschen" });
     expect(within(dialog).getByText(/RK-ART-000001/)).toBeInTheDocument();
     expect(within(dialog).getByText(/Gerades Modellgleis/)).toBeInTheDocument();
@@ -151,8 +151,7 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Admin"]} />);
     await screen.findByText("Gerades Modellgleis");
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+    await user.click(screen.getByRole("button", { name: /Artikel löschen:/ }));
     await user.click(screen.getByRole("button", { name: "Endgültig löschen" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("stock or usage history");
@@ -166,8 +165,7 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Admin"]} />);
     await screen.findByText("Gerades Modellgleis");
 
-    await user.click(screen.getByRole("button", { name: /More actions/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Delete article" }));
+    await user.click(screen.getByRole("button", { name: /Delete article:/ }));
 
     const dialog = screen.getByRole("dialog", { name: "Permanently delete article" });
     expect(within(dialog).getByRole("button", { name: "Delete permanently" })).toBeInTheDocument();
@@ -227,6 +225,30 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Editor"]} />);
     expect(await screen.findByRole("list", { name: "Artikel-Kachelansicht" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kachelansicht" })).toHaveClass("active");
+  });
+
+  it("shows the column picker only for the desktop table view", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Editor"]} />);
+    await screen.findByRole("table");
+
+    expect(screen.getByRole("button", { name: "Tabellenspalten auswählen" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Kachelansicht" }));
+    expect(screen.queryByRole("button", { name: "Tabellenspalten auswählen" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("persists hidden table columns from the toolbar picker", async () => {
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Admin"]} />);
+    await screen.findByRole("table");
+
+    await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
+    await user.click(screen.getByRole("checkbox", { name: "Hersteller" }));
+
+    expect(screen.queryByRole("columnheader", { name: "Hersteller" })).not.toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(articleTableColumnSettingKey) || "[]"))
+      .not.toContain("manufacturer");
   });
 
   it("localizes the view controls", async () => {
@@ -426,7 +448,8 @@ describe("AccessoriesView", () => {
     expect(screen.getByRole("button", { name: /Artikel ansehen/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Artikel bearbeiten/ })).toBeInTheDocument();
     expect(screen.getByText("Gerades Modellgleis").closest("button")).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Weitere Aktionen/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Artikel archivieren:/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Neuer Artikel" }));
     expect(screen.getByRole("dialog", { name: "Artikel anlegen" })).toBeInTheDocument();
   });

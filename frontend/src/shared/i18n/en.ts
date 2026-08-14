@@ -1534,6 +1534,8 @@ export const enTranslations: Record<string, string> = {
     "accessories.view.label": "Change view",
     "accessories.view.table": "Table view",
     "accessories.view.cards": "Card view",
+    "accessories.view.columns": "Choose table columns",
+    "accessories.view.columnsGroup": "Table columns",
     "accessories.view.cardsLabel": "Article card view",
     "accessories.view.mobileLabel": "Compact article list",
     "accessories.toolbar.articleType": "Article type",
@@ -1576,6 +1578,9 @@ export const enTranslations: Record<string, string> = {
     "accessories.actions.archive": "Archive article",
     "accessories.actions.restore": "Restore article",
     "accessories.actions.delete": "Delete article",
+    "accessories.actions.archiveNamed": "Archive article: {name}",
+    "accessories.actions.restoreNamed": "Restore article: {name}",
+    "accessories.actions.deleteNamed": "Delete article: {name}",
     "accessories.delete.title": "Permanently delete article",
     "accessories.delete.body":
       "Permanently delete {inventoryNumber}: {name}? This is only possible for completely unused articles.",

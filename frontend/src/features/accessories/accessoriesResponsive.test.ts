@@ -19,11 +19,12 @@ describe("article editor responsive tabs", () => {
     expect(responsiveCss).toMatch(/\.article-editor-tabs button\s*\{[^}]*flex:\s*0 0 auto/s);
   });
 
-  it("keeps the eleven-column article table horizontally reachable at every width", () => {
-    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*14[0-9]{2}px/s);
-    expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*9[0-9]px/s);
+  it("keeps the configurable article table horizontally reachable at every width", () => {
+    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*var\(--article-table-min-width\)/s);
+    expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*13[0-9]px/s);
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
     expect(accessoriesCss).toMatch(/\.article-table \.select-cell\s*\{[^}]*width:\s*4[0-9]px/s);
+    expect(accessoriesCss).not.toMatch(/\.article-table th:nth-child/);
   });
 
   it("loads focused overview styles and switches presentations at the mobile breakpoint", () => {
@@ -49,10 +50,14 @@ describe("article editor responsive tabs", () => {
     );
   });
 
-  it("opens the mobile row action menu above the bottom-edge controls", () => {
+  it("positions the column picker and removes obsolete action-menu styles", () => {
+    expect(articleOverviewCss).toMatch(/\.article-column-picker\s*\{[^}]*position:\s*relative/s);
     expect(articleOverviewCss).toMatch(
-      /\.article-mobile-actions \.article-action-menu\s*\{[^}]*top:\s*auto;[^}]*bottom:\s*calc\(100% \+ 3px\)/s
+      /\.article-column-picker-popover\s*\{[^}]*position:\s*absolute/s
     );
+    expect(articleOverviewCss).not.toMatch(/\.article-action-menu/);
+    expect(accessoriesCss).not.toMatch(/\.article-action-menu/);
+    expect(accessoriesCss).not.toMatch(/\.article-overflow/);
   });
 
   it("keeps stacked article filters compact on narrow screens", () => {

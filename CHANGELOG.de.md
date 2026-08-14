@@ -6,10 +6,15 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.17.3] - 2026-08-14
+
 ### Hinzugefügt
 
 - Dateien für Repository-Zuständigkeit, Beiträge, Verhaltensregeln, Support, Projektkennzeichen und
   Drittanbieterhinweise wurden ergänzt.
+- Die Zubehör-Tabelle bietet eine persistente Spaltenauswahl für Bild, Inventarnummer, Hersteller,
+  Artikelnummer, Name, Art, Spur, Bestand und Lagerung. Inventarnummer und Name können nicht
+  gleichzeitig ausgeblendet werden.
 
 ### Geändert
 
@@ -24,6 +29,9 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Aktuelle Geschwindigkeit, Richtung, aktive Funktionszustände, Lokbilder, Schaltartikel,
   Fahrwege, S88, Booster und weitere ECoS-Objektmanager wurden aus Abfragen und UI-Verträgen
   entfernt.
+- Archivieren, Wiederherstellen und endgültiges Löschen stehen in Tabellen-, Kachel- und
+  Kompaktansicht als direkte, beschriftete Symbolaktionen zur Verfügung. Das bisherige
+  Drei-Punkte-Menü entfällt.
 
 ## [0.1.17.2] - 2026-08-14
 
@@ -154,6 +162,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3
 [0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2
 [0.1.17.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.17...v0.1.17.1
 [0.1.17]: https://github.com/ichwars/RailKeeper/compare/v0.1.16...v0.1.17

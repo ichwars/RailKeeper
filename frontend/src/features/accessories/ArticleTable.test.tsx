@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { AccessoryArticleListItem, MasterDataEntry } from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
 import { ArticleTable } from "./ArticleTable";
+import type { ArticleTableColumn } from "./articleTableColumns";
 
 const article: AccessoryArticleListItem = {
   id: "article-1",
@@ -144,7 +145,7 @@ describe("ArticleTable", () => {
     expect(screen.queryByText("track:straight")).not.toBeInTheDocument();
   });
 
-  it("uses accessible transparent row actions and archive or restore in overflow", async () => {
+  it("uses accessible transparent direct row actions for archive and restore", async () => {
     const onView = vi.fn();
     const onEdit = vi.fn();
     const onArchive = vi.fn();
@@ -158,13 +159,12 @@ describe("ArticleTable", () => {
     const row = screen.getByRole("row", { name: /Gerades Modellgleis/ });
     const view = within(row).getByRole("button", { name: "Artikel ansehen: Gerades Modellgleis mit besonders langer Bezeichnung" });
     const edit = within(row).getByRole("button", { name: "Artikel bearbeiten: Gerades Modellgleis mit besonders langer Bezeichnung" });
-    const more = within(row).getByRole("button", { name: "Weitere Aktionen: Gerades Modellgleis mit besonders langer Bezeichnung" });
+    const archive = within(row).getByRole("button", { name: "Artikel archivieren: Gerades Modellgleis mit besonders langer Bezeichnung" });
     expect(view).toHaveClass("icon-button", "article-action-button");
     expect(view).toHaveAttribute("title", "Artikel ansehen");
     await user.click(view);
     await user.click(edit);
-    await user.click(more);
-    await user.click(screen.getByRole("menuitem", { name: "Artikel archivieren" }));
+    await user.click(archive);
     expect(onView).toHaveBeenCalledWith(article);
     expect(onEdit).toHaveBeenCalledWith(article);
     expect(onArchive).toHaveBeenCalledWith(article);
@@ -173,9 +173,9 @@ describe("ArticleTable", () => {
       <ArticleTable items={[{ ...article, archived: true }]} sort="article" direction="asc" canEdit
         onSort={vi.fn()} onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore} />
     );
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel wiederherstellen" }));
+    await user.click(screen.getByRole("button", { name: /Artikel wiederherstellen:/ }));
     expect(onRestore).toHaveBeenCalledWith(expect.objectContaining({ id: "article-1", archived: true }));
+    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
   });
 
   it("keeps full long values accessible while visually truncating them", () => {
@@ -188,52 +188,37 @@ describe("ArticleTable", () => {
     expect(screen.getByText(article.manufacturer)).toHaveAttribute("title", article.manufacturer);
     expect(screen.getByText(article.locationNames[0]!)).toHaveAttribute("title", article.locationNames[0]);
     expect(screen.queryByRole("button", { name: /bearbeiten/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel archivieren:/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Artikel ansehen/ })).toBeInTheDocument();
   });
 
-  it("moves focus into the correct row menu and returns it on Escape", async () => {
-    const user = userEvent.setup();
+  it("renders direct admin delete in the correct table row", () => {
     render(
-      <ArticleTable items={[article, secondArticle]} sort="article" direction="asc" canEdit
-        onSort={vi.fn()} onView={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />
+      <ArticleTable items={[article, secondArticle]} sort="article" direction="asc" canEdit canDelete
+        onSort={vi.fn()} onView={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()}
+        onDelete={vi.fn()} />
     );
-    const triggers = screen.getAllByRole("button", { name: /Weitere Aktionen/ });
 
-    await user.click(triggers[1]!);
-    const menuItem = screen.getByRole("menuitem", { name: "Artikel archivieren" });
-    expect(menuItem).toHaveFocus();
-    expect(menuItem).toHaveAttribute("tabindex", "0");
-    expect(screen.getByRole("menu").closest(".article-table-wrap")).not.toBeNull();
-
-    await user.keyboard("{ArrowDown}{ArrowUp}{Home}{End}");
-    expect(menuItem).toHaveFocus();
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(triggers[1]).toHaveFocus();
+    const rows = screen.getAllByRole("row");
+    expect(within(rows[1]!).getByRole("button", { name: /Artikel löschen: Gerades/ })).toBeInTheDocument();
+    expect(within(rows[2]!).getByRole("button", { name: /Artikel löschen: Lichtsignal/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
   });
 
-  it("closes the menu on Tab or outside click without returning focus to the old trigger", async () => {
-    const user = userEvent.setup();
+  it("hides matching headers and cells while retaining selection and actions", () => {
+    const visibleColumns = new Set<ArticleTableColumn>(["inventoryNumber", "name"]);
     render(
-      <div>
-        <ArticleTable items={[article]} sort="article" direction="asc" canEdit onSort={vi.fn()}
-          onView={vi.fn()} onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} />
-        <button type="button">Nach Tabelle</button>
-      </div>
+      <ArticleTable items={[article]} visibleColumns={visibleColumns}
+        sort="article" direction="asc" canEdit onSort={vi.fn()} onView={vi.fn()}
+        onArchive={vi.fn()} onRestore={vi.fn()} />
     );
-    const trigger = screen.getByRole("button", { name: /Weitere Aktionen/ });
 
-    await user.click(trigger);
-    expect(screen.getByRole("menuitem")).toHaveFocus();
-    await user.tab();
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(trigger).not.toHaveFocus();
-
-    await user.click(trigger);
-    expect(screen.getByRole("menuitem")).toHaveFocus();
-    await user.click(screen.getByRole("button", { name: "Nach Tabelle" }));
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nach Tabelle" })).toHaveFocus();
+    expect(screen.queryByRole("columnheader", { name: "Hersteller" })).not.toBeInTheDocument();
+    expect(screen.queryByText(article.manufacturer)).not.toBeInTheDocument();
+    expect(screen.getByText(article.inventoryNumber)).toBeInTheDocument();
+    expect(screen.getByText(article.name)).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Auswahl" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Aktionen" })).toBeInTheDocument();
+    expect(screen.getByRole("table")).toHaveStyle("--article-table-min-width: 524px");
   });
 });

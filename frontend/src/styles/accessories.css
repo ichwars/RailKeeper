@@ -75,17 +75,9 @@
   overflow-x: auto;
 }
 
-.article-table-wrap:has(.article-action-menu) {
-  padding-bottom: 48px;
-}
-
-.article-table-wrap:has(.article-action-menu) .article-table {
-  overflow: visible;
-}
-
 .article-table {
   width: 100%;
-  min-width: 1460px;
+  min-width: var(--article-table-min-width);
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -100,52 +92,54 @@
   text-align: center;
 }
 
-.article-table th:nth-child(2),
+.article-table th.article-image-cell,
 .article-table td.article-image-cell {
   width: 86px;
 }
 
-.article-table th:nth-child(3),
+.article-table th.article-inventoryNumber-cell,
 .article-table td.article-inventory-cell {
   width: 142px;
 }
 
-.article-table th:nth-child(4),
+.article-table th.article-manufacturer-cell,
 .article-table td.article-manufacturer-cell {
   width: 150px;
 }
 
-.article-table th:nth-child(5),
+.article-table th.article-articleNumber-cell,
 .article-table td.article-number-cell {
   width: 126px;
 }
 
-.article-table th:nth-child(6),
+.article-table th.article-name-cell,
 .article-table td.article-main-cell {
   width: 210px;
 }
 
-.article-table th:nth-child(7) {
+.article-table th.article-type-cell,
+.article-table td.article-type-cell {
   width: 175px;
 }
 
-.article-table th:nth-child(8) {
+.article-table th.article-gauge-cell,
+.article-table td.article-gauge-cell {
   width: 80px;
 }
 
-.article-table th:nth-child(9),
+.article-table th.article-stock-cell,
 .article-table td.article-stock-cell {
   width: 210px;
 }
 
-.article-table th:nth-child(10),
+.article-table th.article-storage-cell,
 .article-table td.article-storage-cell {
   width: 170px;
 }
 
 .article-table th.actions-cell,
 .article-table td.actions-cell {
-  width: 96px;
+  width: 136px;
   text-align: right;
 }
 
@@ -258,48 +252,6 @@
   border-color: transparent;
   background: transparent;
   color: var(--accent-strong);
-}
-
-.article-overflow {
-  position: relative;
-}
-
-.article-action-menu {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 3px);
-  right: 0;
-  min-width: 180px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 4px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
-.article-action-menu button {
-  width: 100%;
-  border: 0;
-  border-radius: 4px;
-  padding: 7px 9px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  font: inherit;
-  text-align: left;
-}
-
-.article-action-menu button:hover,
-.article-action-menu button:focus-visible {
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
-  color: var(--accent-strong);
-  outline: none;
-}
-
-.article-action-menu .danger-menu-item,
-.article-action-menu .danger-menu-item:hover,
-.article-action-menu .danger-menu-item:focus-visible {
-  color: var(--danger);
 }
 
 .article-table tr.archived {

@@ -8,7 +8,7 @@ import { ArticleActions } from "./ArticleActions";
 const article = accessoryArticleFixture();
 
 describe("ArticleActions", () => {
-  it("routes view, edit, and archive for writers", async () => {
+  it("routes direct view, edit, and archive actions for writers", async () => {
     const user = userEvent.setup();
     const onView = vi.fn();
     const onEdit = vi.fn();
@@ -18,95 +18,56 @@ describe("ArticleActions", () => {
 
     await user.click(screen.getByRole("button", { name: "Artikel ansehen: Gerades Modellgleis" }));
     await user.click(screen.getByRole("button", { name: "Artikel bearbeiten: Gerades Modellgleis" }));
-    await user.click(screen.getByRole("button", { name: "Weitere Aktionen: Gerades Modellgleis" }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel archivieren" }));
+    await user.click(screen.getByRole("button", { name: "Artikel archivieren: Gerades Modellgleis" }));
 
     expect(onView).toHaveBeenCalledWith(article);
     expect(onEdit).toHaveBeenCalledWith(article);
     expect(onArchive).toHaveBeenCalledWith(article);
+    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
   });
 
-  it("routes restore for archived articles", async () => {
+  it("routes a direct restore action for archived articles", async () => {
     const user = userEvent.setup();
     const archived = accessoryArticleFixture({ archived: true });
     const onRestore = vi.fn();
     render(<ArticleActions article={archived} canEdit onView={vi.fn()} onEdit={vi.fn()}
       onArchive={vi.fn()} onRestore={onRestore} />);
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel wiederherstellen" }));
+    await user.click(screen.getByRole("button", {
+      name: "Artikel wiederherstellen: Gerades Modellgleis"
+    }));
     expect(onRestore).toHaveBeenCalledWith(archived);
+    expect(screen.queryByRole("button", { name: /Artikel archivieren:/ })).not.toBeInTheDocument();
   });
 
-  it("shows delete only when explicitly allowed and routes the selected article", async () => {
+  it("shows direct delete only when explicitly allowed and routes the selected article", async () => {
     const user = userEvent.setup();
     const onDelete = vi.fn();
     render(<ArticleActions article={article} canEdit canDelete onView={vi.fn()} onEdit={vi.fn()}
       onArchive={vi.fn()} onRestore={vi.fn()} onDelete={onDelete} />);
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    await user.click(screen.getByRole("menuitem", { name: "Artikel löschen" }));
+    const deleteButton = screen.getByRole("button", { name: "Artikel löschen: Gerades Modellgleis" });
+    expect(deleteButton).toHaveClass("danger");
+    await user.click(deleteButton);
 
     expect(onDelete).toHaveBeenCalledWith(article);
   });
 
-  it("does not expose delete to editors", async () => {
-    const user = userEvent.setup();
+  it("does not expose delete to editors", () => {
     render(<ArticleActions article={article} canEdit canDelete={false} onView={vi.fn()}
       onEdit={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
 
-    await user.click(screen.getByRole("button", { name: /Weitere Aktionen/ }));
-    expect(screen.queryByRole("menuitem", { name: "Artikel löschen" })).not.toBeInTheDocument();
-  });
-
-  it("moves focus through the menu and restores it on Escape", async () => {
-    const user = userEvent.setup();
-    render(<ArticleActions article={article} canEdit canDelete onView={vi.fn()} onEdit={vi.fn()}
-      onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
-    const trigger = screen.getByRole("button", { name: "Weitere Aktionen: Gerades Modellgleis" });
-
-    await user.click(trigger);
-    const [archiveItem, deleteItem] = screen.getAllByRole("menuitem");
-    expect(archiveItem).toHaveFocus();
-    await user.keyboard("{ArrowDown}");
-    expect(deleteItem).toHaveFocus();
-    await user.keyboard("{ArrowDown}");
-    expect(archiveItem).toHaveFocus();
-    await user.keyboard("{End}");
-    expect(deleteItem).toHaveFocus();
-    await user.keyboard("{Home}");
-    expect(archiveItem).toHaveFocus();
-    await user.keyboard("{Escape}");
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
-  });
-
-  it("closes on Tab and outside click without restoring the trigger", async () => {
-    const user = userEvent.setup();
-    render(<div>
-      <ArticleActions article={article} canEdit onView={vi.fn()} onEdit={vi.fn()}
-        onArchive={vi.fn()} onRestore={vi.fn()} />
-      <button type="button">Nach Aktionen</button>
-    </div>);
-    const trigger = screen.getByRole("button", { name: /Weitere Aktionen/ });
-
-    await user.click(trigger);
-    await user.tab();
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(trigger).not.toHaveFocus();
-
-    await user.click(trigger);
-    await user.click(screen.getByRole("button", { name: "Nach Aktionen" }));
-    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Nach Aktionen" })).toHaveFocus();
+    expect(screen.queryByRole("button", { name: /Artikel löschen:/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Artikel archivieren:/ })).toBeInTheDocument();
   });
 
   it("keeps mutation actions hidden for read-only users", () => {
     render(<ArticleActions article={article} canEdit={false} onView={vi.fn()} onEdit={vi.fn()}
-      onArchive={vi.fn()} onRestore={vi.fn()} />);
+      onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
 
     expect(screen.getByRole("button", { name: /Artikel ansehen/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Artikel bearbeiten/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel archivieren:/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel löschen:/ })).not.toBeInTheDocument();
   });
 });

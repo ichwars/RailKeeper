@@ -9,6 +9,12 @@ import { ArticleMetrics } from "./ArticleMetrics";
 import { ArticleOverviewHeader } from "./ArticleOverviewHeader";
 import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
+import {
+  persistArticleTableColumns,
+  storedArticleTableColumns,
+  toggleArticleTableColumn,
+  type ArticleTableColumn
+} from "./articleTableColumns";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import { persistArticleViewMode, storedArticleViewMode, type ArticleViewMode } from "./articleViewMode";
 import { useArticleOverview } from "./useArticleOverview";
@@ -68,6 +74,7 @@ export function AccessoriesView({
   const [pendingDeleteArticle, setPendingDeleteArticle] =
     useState<AccessoryArticleListItem | null>(null);
   const [viewMode, setViewMode] = useState<ArticleViewMode>(storedArticleViewMode);
+  const [visibleColumns, setVisibleColumns] = useState(storedArticleTableColumns);
   const compactOverview = useCompactArticleOverview();
   const { t } = useI18n();
 
@@ -104,6 +111,11 @@ export function AccessoriesView({
     setViewMode(mode);
     persistArticleViewMode(mode);
   };
+  const toggleColumn = (column: ArticleTableColumn) => setVisibleColumns((current) => {
+    const next = toggleArticleTableColumn(current, column);
+    persistArticleTableColumns(next);
+    return next;
+  });
   const toggleSelection = (id: string) => setSelectedArticleIDs((current) => {
     const next = new Set(current);
     if (next.has(id)) next.delete(id);
@@ -148,6 +160,8 @@ export function AccessoriesView({
             viewMode={viewMode}
             hasActiveFilters={overview.hasActiveFilters}
             onViewModeChange={changeViewMode}
+            visibleColumns={visibleColumns}
+            onToggleColumn={toggleColumn}
             onFilterChange={overview.setFilter}
             onReset={overview.resetFilters}
           />
@@ -212,6 +226,7 @@ export function AccessoriesView({
                     direction={overview.direction}
                     canEdit={canEdit}
                     canDelete={canDelete}
+                    visibleColumns={visibleColumns}
                     selectedIDs={selectedArticleIDs}
                     onToggleSelection={toggleSelection}
                     onToggleAll={toggleAll}
