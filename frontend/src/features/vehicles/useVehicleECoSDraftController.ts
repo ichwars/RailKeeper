@@ -62,21 +62,8 @@ export function useVehicleECoSDraftController({
   );
 
   const openDraft = useCallback((nextDraft: ECoSVehicleDraftPayload) => {
-    const images: PendingArticleImage[] = (nextDraft.imageSuggestions || []).map((image, index) => ({
-      ...image,
-      id: image.id || `ecos-${nextDraft.sourceSummary.objectId}-${index}`,
-      isPrimary: index === 0,
-      maintenanceId: ""
-    }));
-    const mergeImages = (current: PendingArticleImage[]) => {
-      if (images.length === 0) return current;
-      const existing = new Set(current.map((image) => image.url));
-      const merged = [...current, ...images.filter((image) => !existing.has(image.url))];
-      if (!merged.some((image) => image.isPrimary) && merged.length > 0) {
-        merged[0] = { ...merged[0], isPrimary: true };
-      }
-      return merged;
-    };
+    const images: PendingArticleImage[] = [];
+    const mergeImages = (current: PendingArticleImage[]) => current;
     const functionEdits: FunctionEditState = Object.fromEntries((nextDraft.functionValues || []).map((item) => [
       item.functionKey,
       {

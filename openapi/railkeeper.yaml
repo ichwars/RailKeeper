@@ -8399,7 +8399,7 @@ paths:
   /ecos/locomotives/raw:
     post:
       tags: [Vehicles]
-      summary: Read raw locomotive data from an ECoS station
+      summary: Read allowed locomotive master data, CV values, and static function definitions from ECoS
       responses:
         "200":
           description: Raw ECoS locomotive payload
@@ -8503,7 +8503,7 @@ paths:
   /digital-centers/ecos/live/status:
     get:
       tags: [DigitalCenters]
-      summary: Read the current ECoS live connection status
+      summary: Read the ECoS base-station connection monitor status
       responses:
         "200":
           description: ECoS live connection status
@@ -8516,7 +8516,7 @@ paths:
   /digital-centers/ecos/live/start:
     post:
       tags: [DigitalCenters]
-      summary: Start an ECoS live connection and subscribe to base objects
+      summary: Start ECoS base-station monitoring without locomotive or layout-state subscriptions
       responses:
         "200":
           description: ECoS live connection status

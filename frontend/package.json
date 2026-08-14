@@ -1,4 +1,7 @@
 {
+  "name": "railkeeper-frontend",
+  "private": true,
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc -b && vite build",

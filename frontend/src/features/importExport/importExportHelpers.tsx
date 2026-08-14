@@ -1,4 +1,4 @@
-import { CreateVehicleRequest, ECoSImageSuggestion, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
+import { CreateVehicleRequest, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput, VehicleExternalMapping, VehicleExternalMappingInput, VehicleFunctionInput } from "../../shared/api";
 
 export type ImportRow = {
   id: string;
@@ -11,14 +11,12 @@ export type ImportRow = {
   externalMapping?: VehicleExternalMappingInput;
   functionSuggestions?: FunctionImportSuggestion[];
   cvSuggestions?: VehicleCVValueInput[];
-  imageSuggestions?: ECoSImageSuggestion[];
   vehicle: CreateVehicleRequest;
 };
 
 export type FunctionImportSuggestion = VehicleFunctionInput & {
   functionKey: string;
   ecosDescription?: number;
-  active?: boolean;
 };
 
 export type ECoSMatch = {
@@ -61,7 +59,6 @@ export type ECoSVehicleDraftPayload = {
   externalMapping: VehicleExternalMappingInput;
   cvValues: VehicleCVValueInput[];
   functionValues: FunctionImportSuggestion[];
-  imageSuggestions: ECoSImageSuggestion[];
   unclearFields: VehicleImportField[];
   returnToEcos?: {
     sessionId: string;
@@ -658,26 +655,6 @@ export function ecosExternalMapping(locomotive: ECoSMatchable & { protocol?: str
   };
 }
 
-export function formatECoSDirection(direction?: number) {
-  if (direction === 0) {
-    return "Vorwärts";
-  }
-  if (direction === 1) {
-    return "Rückwärts";
-  }
-  return "-";
-}
-
-export function formatECoSFunctions(locomotive: ECoSRawLocomotive) {
-  const functions = locomotive.functions?.filter((fn) => fn.active || fn.description) || [];
-  if (functions.length === 0) {
-    return "-";
-  }
-  return functions
-    .map((fn) => `F${fn.index}${fn.description ?`:${fn.description}` : ""}${fn.active ?"*" : ""}`)
-    .join(", ");
-}
-
 export function inferFunctionTypeFromSymbol(symbolKey: string, symbols: MasterDataEntry[], fallback = "standard") {
   const symbol = symbols.find((item) => item.active && item.key === symbolKey);
   const signal = `${symbolKey} ${symbol?.label || ""}`.toLocaleLowerCase("de-DE");
@@ -765,7 +742,7 @@ export function fallbackECoSFunction(index: number, code?: number): Partial<Vehi
 
 export function ecosFunctionSuggestions(locomotive: ECoSRawLocomotive, symbols: MasterDataEntry[]): FunctionImportSuggestion[] {
   return (locomotive.functions || [])
-    .filter((fn) => fn.index >= 0 && (fn.description || fn.active))
+    .filter((fn) => fn.index >= 0 && typeof fn.description === "number")
     .map((fn) => {
       const symbol = fn.description ?findSymbolByECoSCode(fn.description, symbols) : undefined;
       const symbolLabel = symbol?.label || "";
@@ -783,11 +760,8 @@ export function ecosFunctionSuggestions(locomotive: ECoSRawLocomotive, symbols: 
         functionType,
         mode: "dauer",
         directionDependent: false,
-        notes: fn.description
-          ?`Aus ECoS funcdesc ${fn.description}${fn.active ?", aktuell aktiv" : ""}.`
-          : fn.active ?"Aus aktivem ECoS-Funktionsstatus abgeleitet." : "",
-        ecosDescription: fn.description,
-        active: fn.active
+        notes: `Aus ECoS funcdesc ${fn.description}.`,
+        ecosDescription: fn.description
       };
     });
 }
@@ -823,18 +797,22 @@ export const ecosRawKnownAttributes = new Set([
   "decoder",
   "decodername",
   "decodertype",
-  "dir",
-  "func",
   "funcdesc",
-  "funcset",
+  "functionmapping",
   "name",
   "profile",
   "protocol",
-  "speed",
-  "speedstep",
   "cv",
   "cvs",
-  "cvlist",
+  "cvlist"
+]);
+
+export const ignoredECoSRuntimeAttributes = new Set([
+  "dir",
+  "func",
+  "funcset",
+  "speed",
+  "speedstep",
   "icon",
   "image",
   "pic",
@@ -867,49 +845,20 @@ export function renderECoSRawDefinitionList(entries: { label: string; value: str
 }
 
 export function rawECoSFunctions(locomotive: ECoSRawLocomotive) {
-  const byIndex = new Map<number, { index: number; active: boolean; description?: number }>();
-  for (const fn of locomotive.functions || []) {
-    byIndex.set(fn.index, fn);
-  }
-  if (byIndex.size === 0 && locomotive.functionSet) {
-    Array.from(locomotive.functionSet).forEach((state, index) => {
-      byIndex.set(index, { index, active: state === "1" });
-    });
-  }
-  return Array.from(byIndex.values())
-    .filter((fn) => fn.active || typeof fn.description === "number")
+  return [...(locomotive.functions || [])]
+    .filter((fn) => typeof fn.description === "number")
     .sort((left, right) => left.index - right.index);
 }
 
 export function rawECoSUnknownAttributes(locomotive: ECoSRawLocomotive) {
   return Object.entries(locomotive.attributes || {})
-    .filter(([key, values]) => values.length > 0 && !ecosRawKnownAttributes.has(key.toLowerCase()))
+    .filter(([key, values]) => {
+      const normalized = key.toLowerCase();
+      return values.length > 0 &&
+        !ecosRawKnownAttributes.has(normalized) &&
+        !ignoredECoSRuntimeAttributes.has(normalized);
+    })
     .sort(([left], [right]) => left.localeCompare(right));
-}
-
-export function formatECoSImageValue(value: string) {
-  const trimmed = String(value || "").trim();
-  return trimmed.length > 70 ?`${trimmed.slice(0, 70)}...` : trimmed;
-}
-
-export function ecosImageSuggestions(locomotive: ECoSRawLocomotive): ECoSImageSuggestion[] {
-  return (locomotive.imageCandidates || [])
-    .filter((candidate) => candidate.transferable && candidate.previewUrl)
-    .map((candidate, index) => {
-      const source = candidate.kind === "url" ?candidate.previewUrl || "" : `ECoS ${locomotive.objectId} / ${candidate.key}`;
-      return {
-        id: `ecos-${locomotive.objectId}-${candidate.key}-${index}`,
-        url: candidate.previewUrl || "",
-        thumbnailUrl: candidate.previewUrl,
-        title: `${locomotive.name || `ECoS ${locomotive.objectId}`} - ${candidate.key}`,
-        source,
-        mimeType: candidate.mimeType || "",
-        ecosKey: candidate.key,
-        ecosKind: candidate.kind,
-        rawValue: candidate.value,
-        isPrimary: index === 0
-      };
-    });
 }
 
 export function normalizeECoSProtocolForCV(protocol?: string) {
@@ -1268,7 +1217,6 @@ export function renderECoSWorklist(
               const actionLabel = match ?t("importExport.ecos.updateVehicleDraft") : t("importExport.ecos.openVehicleDraft");
               const manufacturer = getECoSDecoderManufacturer(locomotive, manufacturers);
               const cvCount = eCoSCVValuesWithInferredManufacturer(locomotive).length;
-              const imageCount = ecosImageSuggestions(locomotive).length;
               const syncPlan = syncPlans?.[String(locomotive.objectId)];
               const syncBusy = syncBusyObjectId === locomotive.objectId;
               return (
@@ -1279,7 +1227,7 @@ export function renderECoSWorklist(
                   </td>
                   <td>{match ?`${match.vehicle.inventoryNumber} · ${match.vehicle.name}` : t("importExport.ecos.noMatch")}</td>
                   <td>{[manufacturer?.name, locomotive.profile, normalizeECoSProtocolForCV(locomotive.protocol)].filter(Boolean).join(" · ") || "-"}</td>
-                  <td>{t("importExport.ecos.worklist.valueSummary", { cvs: cvCount, images: imageCount })}</td>
+                  <td>{t("importExport.ecos.worklist.valueSummary", { cvs: cvCount })}</td>
                   <td><span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span></td>
                   <td>
                     <div className="ecos-row-actions">
@@ -1325,78 +1273,6 @@ export function renderECoSWorklist(
   );
 }
 
-export function renderECoSImagePreview(
-  raw: ECoSRawProbe | null,
-  vehicles: Vehicle[],
-  t: Translate,
-  onOpenVehicleDraft?: (locomotive: ECoSRawLocomotive) => void,
-  sessionStatuses?: ECoSImportSession["statuses"],
-  onSkipLocomotive?: (locomotive: ECoSRawLocomotive) => void
-) {
-  const locomotives = (raw?.locomotives || []).filter((locomotive) => (locomotive.imageCandidates || []).length > 0);
-  if (locomotives.length === 0) {
-    return null;
-  }
-  const transferableCount = locomotives.reduce((sum, locomotive) => sum + ecosImageSuggestions(locomotive).length, 0);
-  return (
-    <section className="ecos-image-review-panel">
-      <div className="ecos-preview-toolbar">
-        <span>{t("importExport.ecos.images.title")}</span>
-        <span>{t("importExport.ecos.images.summary", { count: locomotives.length, transferable: transferableCount })}</span>
-      </div>
-      <p>{t("importExport.ecos.images.subtitle")}</p>
-      <div className="ecos-image-grid">
-        {locomotives.map((locomotive) => {
-          const status = sessionStatuses?.[String(locomotive.objectId)]?.status || "open";
-          const match = findECoSMatch(locomotive, vehicles);
-          const actionLabel = match ?t("importExport.ecos.updateVehicleDraft") : t("importExport.ecos.openVehicleDraft");
-          const suggestions = ecosImageSuggestions(locomotive);
-          return (
-            <div key={locomotive.objectId} className={`ecos-image-card ${status}`}>
-              <div className="ecos-card-head">
-                <strong>{locomotive.name || `ECoS ${locomotive.objectId}`}</strong>
-                <span className={`ecos-cv-status ${status}`}>{t(`importExport.ecos.sessionStatus.${status}`)}</span>
-              </div>
-              {suggestions.length > 0 ?(
-                <div className="ecos-image-strip">
-                  {suggestions.map((image) => (
-                    <figure key={image.id}>
-                      <img src={image.thumbnailUrl || image.url} alt="" />
-                      <figcaption>{image.ecosKey}</figcaption>
-                    </figure>
-                  ))}
-                </div>
-              ) : (
-                <p className="ecos-image-placeholder">{t("importExport.ecos.images.noTransferable")}</p>
-              )}
-              <dl className="ecos-image-candidates">
-                {(locomotive.imageCandidates || []).map((candidate, index) => (
-                  <div key={`${candidate.key}-${index}`}>
-                    <dt>{candidate.key}</dt>
-                    <dd>
-                      <span>{t(`importExport.ecos.images.kind.${candidate.kind}`)}</span>
-                      <small>{formatECoSImageValue(candidate.value)}</small>
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-              <div className="ecos-card-actions">
-                <button type="button" className="secondary-button" onClick={() => onOpenVehicleDraft?.(locomotive)} disabled={status === "saved"}>
-                  {actionLabel}
-                </button>
-                <button type="button" className="secondary-button" onClick={() => onSkipLocomotive?.(locomotive)} disabled={status === "saved" || status === "skipped"}>
-                  {t("importExport.ecos.skip")}
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-      <p className="source-note backup-note">{t("importExport.ecos.images.note")}</p>
-    </section>
-  );
-}
-
 export function renderECoSRawProbe(
   raw: ECoSRawProbe | null,
   vehicles: Vehicle[],
@@ -1419,10 +1295,7 @@ export function renderECoSRawProbe(
         <span>{t("importExport.ecos.rawProbeFields", { count: raw.probeFields.length })}</span>
       </div>
       {raw.locomotives.length === 0 ?<p className="empty-state">{t("importExport.ecos.rawEmpty")}</p> : (
-        <>
-          {renderECoSImagePreview(raw, vehicles, t, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive)}
-          {renderECoSWorklist(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive, onSyncLocomotive, syncPlans, syncBusyObjectId)}
-        </>
+        renderECoSWorklist(raw, vehicles, t, manufacturers, onOpenVehicleDraft, sessionStatuses, onSkipLocomotive, onSyncLocomotive, syncPlans, syncBusyObjectId)
       )}
       <p className="source-note backup-note">{t("importExport.ecos.rawNote")}</p>
     </div>
@@ -1527,7 +1400,6 @@ export function buildECoSVehicleDraftRow(
     externalMapping: ecosExternalMapping(locomotive),
     functionSuggestions: ecosFunctionSuggestions(locomotive, symbols),
     cvSuggestions: ecosCVSuggestions(locomotive),
-    imageSuggestions: ecosImageSuggestions(locomotive),
     vehicle
   };
 }

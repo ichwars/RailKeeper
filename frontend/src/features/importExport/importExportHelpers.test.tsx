@@ -4,6 +4,7 @@ import { analogVehicleFixture, vehicleFixture } from "../../test/fixtures/vehicl
 import {
   defaultColumnMappings,
   detectDelimiter,
+  ecosFunctionSuggestions,
   findECoSMatch,
   getImportChanges,
   importRowsFromTable,
@@ -12,6 +13,8 @@ import {
   parseBoolean,
   parseDelimited,
   parseXMLImport,
+  rawECoSFunctions,
+  rawECoSUnknownAttributes,
   vehiclesToCSV
 } from "./importExportHelpers";
 
@@ -69,6 +72,35 @@ describe("import/export helpers", () => {
     expect(findECoSMatch({ objectId: 77, name: "Unknown", address: 999 }, [mapped])?.source).toBe("mapping");
     expect(findECoSMatch({ objectId: 12, name: "Unknown", address: 1001 }, [vehicleFixture()])?.source).toBe("decoder");
     expect(findECoSMatch({ objectId: 13, name: "BR106", address: 0 }, [vehicleFixture()])?.source).toBe("name");
+  });
+
+  it("creates ECoS function suggestions only from static descriptions", () => {
+    const suggestions = ecosFunctionSuggestions({
+      objectId: 1001,
+      functions: [{ index: 0, description: 3 }]
+    }, []);
+
+    expect(suggestions).toHaveLength(1);
+    expect(suggestions[0]).toMatchObject({ functionKey: "F0" });
+    expect(suggestions[0]).not.toHaveProperty("active");
+    expect(suggestions[0].notes).toBe("Aus ECoS funcdesc 3.");
+  });
+
+  it("keeps runtime and image attributes out of raw ECoS review", () => {
+    const locomotive = {
+      objectId: 1001,
+      functions: [{ index: 2, description: 6 }],
+      attributes: {
+        speed: ["22"],
+        dir: ["1"],
+        funcset: ["101"],
+        image: ["12"],
+        custom: ["retained"]
+      }
+    };
+
+    expect(rawECoSFunctions(locomotive)).toEqual([{ index: 2, description: 6 }]);
+    expect(rawECoSUnknownAttributes(locomotive)).toEqual([["custom", ["retained"]]]);
   });
 
   it("merges selected fields and reports import changes", () => {

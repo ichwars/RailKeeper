@@ -616,7 +616,6 @@ export function ImportExportView() {
       externalMapping: row.externalMapping || ecosExternalMapping(locomotive),
       cvValues: row.cvSuggestions || [],
       functionValues: row.functionSuggestions || [],
-      imageSuggestions: row.imageSuggestions || [],
       unclearFields,
       returnToEcos: updatedSession ? { sessionId: updatedSession.id, objectId: locomotive.objectId } : undefined
     };
@@ -771,6 +770,7 @@ export function ImportExportView() {
           <div>
             <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.title")}</h2>
             <p>{t("importExport.ecos.subtitle")}</p>
+            <p className="source-note">{t("importExport.ecos.scopeNote")}</p>
           </div>
           <span className="settings-pill active">{t("settings.digital.active")}</span>
         </div>
@@ -978,7 +978,6 @@ export function ImportExportView() {
                                       <span key={fn.functionKey} title={fn.notes || undefined}>
                                         <strong>{fn.functionKey}</strong>
                                         {fn.name || (typeof fn.ecosDescription === "number" ? `ECoS ${fn.ecosDescription}` : "ECoS")}
-                                        {fn.active && <em>{t("common.active")}</em>}
                                       </span>
                                     ))}
                                   </div>

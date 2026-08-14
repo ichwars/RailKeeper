@@ -15,7 +15,7 @@
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white">
   <img alt="React" src="https://img.shields.io/badge/React-UI-61DAFB?style=for-the-badge&logo=react&logoColor=111">
   <img alt="SQLite" src="https://img.shields.io/badge/SQLite-local--first-003B57?style=for-the-badge&logo=sqlite&logoColor=white">
-  <a href="LICENSE.md"><img alt="Lizenz" src="https://img.shields.io/badge/License-MIT%20Self--Hosting-7AC943?style=for-the-badge"></a>
+  <a href="LICENSE.md"><img alt="Lizenz" src="https://img.shields.io/badge/License-AGPL--3.0--only-7AC943?style=for-the-badge"></a>
   <a href="https://github.com/ichwars/RailKeeper/releases"><img alt="Downloads" src="https://img.shields.io/github/downloads/ichwars/RailKeeper/total?style=for-the-badge"></a>
 </p>
 
@@ -45,7 +45,10 @@ Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
   ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
 - PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern
 - Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
-- Digitalzentralen-Adapter: ECoS-Lese-/Schreibsynchronisation sowie Verbindungstests für Z21 per UDP und CS3 per HTTP
+- Der kontrollierte ECoS-Lokabgleich liest Stammdaten, CV-Werte und statische Funktionstasten und
+  schreibt Name, Adresse und Protokoll erst nach Vorschau und Bestätigung. Geschwindigkeit,
+  Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Z21 per
+  UDP und CS3 per HTTP bleiben reine Verbindungsadapter.
 - Decoder-Funktionszuordnung von F0 bis F31 mit Symbolbibliothek und gespeicherten SVG-/PNG-Grafiken
 - Strukturierte CV-Werte, CV-Import und -Export, Decoderprofile, NMRA-CV8-Herstellerstammdaten und ESU-/LokProgrammer-Dateimetadaten
 - Wartungen, Zustandshistorie und durchsuchbare Dokumentation je Fahrzeug
@@ -280,10 +283,25 @@ nichts davon.
 
 ## Lizenz
 
-RailKeeper wird unter der MIT Self-Hosting License veröffentlicht. Siehe [LICENSE.md](LICENSE.md).
+RailKeeper wird unter `AGPL-3.0-only` veröffentlicht. Siehe [LICENSE.md](LICENSE.md).
+
+RailKeeper ist eine lokale, selbst gehostete Anwendung. Die AGPL-3.0 hält Weiterentwicklungen offen
+und verpflichtet Betreiber einer über ein Netzwerk bereitgestellten, veränderten Fassung, ihren
+Nutzern den korrespondierenden Quellcode zugänglich zu machen. Damit schützt sie die dauerhafte
+Offenheit des Projekts besser als die bisherige freizügige Lizenz. Die AGPL erlaubt kommerzielle
+Nutzung. Bereits veröffentlichte Fassungen behalten die Lizenzbedingungen, unter denen sie
+veröffentlicht wurden.
+
+Die Softwarelizenz überträgt keine Rechte an Projektkennzeichen oder fremden Marken, Grafiken,
+Dokumentationen oder Protokollrechten. Siehe [TRADEMARKS.md](TRADEMARKS.md) und
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Unterstützung
 
-Wenn RailKeeper dir Zeit spart, ist Kaffee ein vollkommen akzeptabler Treibstoff für Fehlerbehebungen:
+Freiwillige Zuwendungen helfen bei Entwicklungs- und Projektkosten. Sie begründen keinen Anspruch
+auf kostenpflichtige Funktionen, Support, Reaktionszeiten oder besonderen Zugang.
 
-<a href="https://www.buymeacoffee.com/ichwars" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+- [GitHub Sponsors](https://github.com/sponsors/ichwars)
+- [Ko-fi](https://ko-fi.com/ichwars)
+
+Supportwege und Abgrenzungen stehen in [SUPPORT.md](SUPPORT.md).
