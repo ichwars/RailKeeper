@@ -3,6 +3,7 @@ package application
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -32,11 +33,48 @@ func TestParseECoSLocomotives(t *testing.T) {
 	if locomotives[0].ObjectID != 1001 || locomotives[0].Name != "BR 218" || locomotives[0].Address != 3 || locomotives[0].Protocol != "DCC128" {
 		t.Fatalf("unexpected first locomotive: %#v", locomotives[0])
 	}
-	if locomotives[0].Speed != 12 || locomotives[0].SpeedStep != 3 || locomotives[0].Direction != 1 {
-		t.Fatalf("unexpected movement state: %#v", locomotives[0])
-	}
-	if len(locomotives[0].Functions) != 3 || !locomotives[0].Functions[0].Active || locomotives[0].Functions[2].Description != 6 {
+	if len(locomotives[0].Functions) != 2 || locomotives[0].Functions[0].Description != 3 || locomotives[0].Functions[1].Description != 6 {
 		t.Fatalf("unexpected functions: %#v", locomotives[0].Functions)
+	}
+	payload, err := json.Marshal(locomotives[0])
+	if err != nil {
+		t.Fatalf("marshal locomotive: %v", err)
+	}
+	text := string(payload)
+	for _, forbidden := range []string{"speed", "direction", "functionSet", "active"} {
+		if strings.Contains(text, forbidden) {
+			t.Fatalf("forbidden JSON field %q in %s", forbidden, text)
+		}
+	}
+}
+
+func TestECoSCommandsExcludeRuntimeAndLayoutState(t *testing.T) {
+	commands := append([]string{
+		eCoSLocomotiveListCommand,
+		eCoSLocomotiveDetailCommand(1001),
+	}, eCoSLiveSubscriptionCommands()...)
+	joined := strings.ToLower(strings.Join(commands, "\n"))
+	for _, forbidden := range []string{
+		"speed", "speedstep", " dir", "funcset", "switching",
+		"queryobjects(11", "queryobjects(26", "request(11", "request(26",
+		"icon", "image", "picture", "pic", "userimage",
+	} {
+		if strings.Contains(joined, forbidden) {
+			t.Fatalf("forbidden ECoS field or manager %q in %q", forbidden, joined)
+		}
+	}
+}
+
+func TestECoSLiveCommandsOnlyMonitorBaseObject(t *testing.T) {
+	want := []string{"request(1, view)", "get(1, info, status)"}
+	got := eCoSLiveSubscriptionCommands()
+	if len(got) != len(want) {
+		t.Fatalf("unexpected live commands: %#v", got)
+	}
+	for index := range want {
+		if got[index] != want[index] {
+			t.Fatalf("unexpected live commands: %#v", got)
+		}
 	}
 }
 
@@ -70,7 +108,7 @@ func TestECoSServiceTestConnection(t *testing.T) {
 func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 	listener := startECoSTestServer(t, func(command string) []string {
 		switch {
-		case command == "queryObjects(10, addr, name, protocol)":
+		case command == eCoSLocomotiveListCommand:
 			return []string{
 				"<REPLY queryObjects(10, addr, name, protocol)>",
 				`1001 addr[3] name["BR 218"] protocol[DCC128]`,
@@ -81,16 +119,10 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 				"<REPLY request(1001, view)>",
 				"<END 0 (OK)>",
 			}
-		case command == "get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)":
+		case command == eCoSLocomotiveDetailCommand(1001):
 			return []string{
-				"<REPLY get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)>",
-				`1001 speed[0] protocol[DCC128] name["BR 218"] addr[3] funcset[10] funcdesc[0,3]`,
-				"<END 0 (OK)>",
-			}
-		case command == "get(1001, image)":
-			return []string{
-				"<REPLY get(1001, image)>",
-				`1001 image[12]`,
+				fmt.Sprintf("<REPLY %s>", command),
+				`1001 protocol[DCC128] name["BR 218"] addr[3] funcdesc[0,3]`,
 				"<END 0 (OK)>",
 			}
 		case command == "get(1001, cv)":
@@ -132,11 +164,8 @@ func TestECoSServiceProbeLocomotiveRaw(t *testing.T) {
 		t.Fatalf("unexpected locomotive count: %#v", probe)
 	}
 	locomotive := probe.Locomotives[0]
-	if locomotive.Attributes["image"][0] != "12" {
-		t.Fatalf("expected image field in raw attributes: %#v", locomotive.Attributes)
-	}
-	if len(locomotive.InterestingFields) == 0 {
-		t.Fatalf("expected image to be marked as interesting: %#v", locomotive)
+	if len(locomotive.Functions) != 1 || locomotive.Functions[0].Description != 3 {
+		t.Fatalf("expected static function description: %#v", locomotive.Functions)
 	}
 	if len(locomotive.CVs) != 4 || locomotive.CVs[2].Number != 8 || locomotive.CVs[2].Value != 151 {
 		t.Fatalf("expected structured CV values: %#v", locomotive.CVs)
@@ -150,7 +179,7 @@ func TestECoSServiceCountLocomotivesUsesOnlyObjectList(t *testing.T) {
 		mu.Lock()
 		commands = append(commands, command)
 		mu.Unlock()
-		if command != "queryObjects(10, addr, name, protocol)" {
+		if command != eCoSLocomotiveListCommand {
 			t.Fatalf("unexpected command: %s", command)
 		}
 		return []string{
@@ -228,9 +257,9 @@ func TestECoSServiceSyncLocomotiveDryRunDoesNotWrite(t *testing.T) {
 				"<REPLY request(1001, view)>",
 				"<END 0 (OK)>",
 			}
-		case "get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)":
+		case eCoSLocomotiveDetailCommand(1001):
 			return []string{
-				"<REPLY get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)>",
+				fmt.Sprintf("<REPLY %s>", command),
 				`1001 protocol[DCC128] name["BR 218"] addr[3]`,
 				"<END 0 (OK)>",
 			}
@@ -285,9 +314,9 @@ func TestECoSServiceSyncLocomotiveWritesConfirmed(t *testing.T) {
 				"<REPLY request(1001, view)>",
 				"<END 0 (OK)>",
 			}
-		case "get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)":
+		case eCoSLocomotiveDetailCommand(1001):
 			return []string{
-				"<REPLY get(1001, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)>",
+				fmt.Sprintf("<REPLY %s>", command),
 				`1001 protocol[DCC128] name["BR 218"] addr[3]`,
 				"<END 0 (OK)>",
 			}

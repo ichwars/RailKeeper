@@ -3,13 +3,9 @@ package application
 import (
 	"bufio"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
-	"mime"
 	"net"
-	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -19,9 +15,10 @@ import (
 )
 
 const (
-	defaultECoSPort      = ecospkg.DefaultPort
-	eCoSLiveIdleTimeout  = 20 * time.Minute
-	eCoSLiveReadDeadline = 750 * time.Millisecond
+	defaultECoSPort           = ecospkg.DefaultPort
+	eCoSLiveIdleTimeout       = 20 * time.Minute
+	eCoSLiveReadDeadline      = 750 * time.Millisecond
+	eCoSLocomotiveListCommand = "queryObjects(10, addr, name, protocol)"
 )
 
 type ECoSService struct {
@@ -51,31 +48,42 @@ type ECoSConnectionResult struct {
 }
 
 type ECoSLocomotive struct {
-	ObjectID          int                 `json:"objectId"`
-	Name              string              `json:"name,omitempty"`
-	Address           int                 `json:"address"`
-	Protocol          string              `json:"protocol,omitempty"`
-	Profile           string              `json:"profile,omitempty"`
-	Speed             int                 `json:"speed"`
-	SpeedStep         int                 `json:"speedStep"`
-	Direction         int                 `json:"direction"`
-	FunctionSet       string              `json:"functionSet,omitempty"`
-	NumberOfFunctions int                 `json:"numberOfFunctions,omitempty"`
-	Functions         []ECoSFunction      `json:"functions,omitempty"`
-	Attributes        map[string][]string `json:"attributes,omitempty"`
-	DetailError       string              `json:"detailError,omitempty"`
+	ObjectID    int                 `json:"objectId"`
+	Name        string              `json:"name,omitempty"`
+	Address     int                 `json:"address"`
+	Protocol    string              `json:"protocol,omitempty"`
+	Profile     string              `json:"profile,omitempty"`
+	Functions   []ECoSFunction      `json:"functions,omitempty"`
+	Attributes  map[string][]string `json:"attributes,omitempty"`
+	DetailError string              `json:"detailError,omitempty"`
 }
 
 type ECoSFunction struct {
-	Index       int  `json:"index"`
-	Active      bool `json:"active"`
-	Description int  `json:"description,omitempty"`
+	Index       int `json:"index"`
+	Description int `json:"description,omitempty"`
 }
 
 type ecosArgument struct {
 	Key    string
 	Value  string
 	Params []string
+}
+
+var eCoSAllowedLocomotiveAttributes = map[string]struct{}{
+	"addr":            {},
+	"cv":              {},
+	"cvlist":          {},
+	"cvs":             {},
+	"funcdesc":        {},
+	"functionmapping": {},
+	"name":            {},
+	"profile":         {},
+	"protocol":        {},
+}
+
+func isAllowedECoSLocomotiveAttribute(key string) bool {
+	_, allowed := eCoSAllowedLocomotiveAttributes[strings.ToLower(strings.TrimSpace(key))]
+	return allowed
 }
 
 type ECoSRawProbe struct {
@@ -100,14 +108,8 @@ type ECoSRawLocomotive struct {
 	Address           int                   `json:"address,omitempty"`
 	Protocol          string                `json:"protocol,omitempty"`
 	Profile           string                `json:"profile,omitempty"`
-	Speed             int                   `json:"speed"`
-	SpeedStep         int                   `json:"speedStep"`
-	Direction         int                   `json:"direction"`
-	FunctionSet       string                `json:"functionSet,omitempty"`
-	NumberOfFunctions int                   `json:"numberOfFunctions,omitempty"`
 	Functions         []ECoSFunction        `json:"functions,omitempty"`
 	CVs               []ECoSCVValue         `json:"cvs,omitempty"`
-	ImageCandidates   []ECoSImageCandidate  `json:"imageCandidates,omitempty"`
 	Attributes        map[string][]string   `json:"attributes,omitempty"`
 	SupportedFields   []string              `json:"supportedFields,omitempty"`
 	MissingFields     []string              `json:"missingFields,omitempty"`
@@ -129,15 +131,6 @@ type ECoSRawCommandProbe struct {
 type ECoSCVValue struct {
 	Number int `json:"number"`
 	Value  int `json:"value"`
-}
-
-type ECoSImageCandidate struct {
-	Key          string `json:"key"`
-	Value        string `json:"value"`
-	Kind         string `json:"kind"`
-	PreviewURL   string `json:"previewUrl,omitempty"`
-	MimeType     string `json:"mimeType,omitempty"`
-	Transferable bool   `json:"transferable"`
 }
 
 type ECoSLiveStatus struct {
@@ -485,7 +478,7 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 	if err != nil {
 		return nil, err
 	}
-	lines, err := s.exchange(ctx, target.Host, target.Port, "queryObjects(10, addr, name, protocol)")
+	lines, err := s.exchange(ctx, target.Host, target.Port, eCoSLocomotiveListCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -529,7 +522,6 @@ func (s *ECoSService) ProbeLocomotiveRaw(ctx context.Context, input ECoSConnecti
 		raw.SupportedFields = sortedECoSFieldNames(supported)
 		raw.MissingFields = sortedMissingECoSFieldNames(missing, supported)
 		raw.CVs = parseECoSCVValues(raw.Attributes)
-		raw.ImageCandidates = parseECoSImageCandidates(raw.Attributes)
 		raw.InterestingFields = interestingECoSFields(raw.Attributes)
 		rawLocomotives = append(rawLocomotives, raw)
 	}
@@ -548,7 +540,7 @@ func (s *ECoSService) CountLocomotives(ctx context.Context, input ECoSConnection
 	if err != nil {
 		return nil, err
 	}
-	lines, err := s.exchange(ctx, target.Host, target.Port, "queryObjects(10, addr, name, protocol)")
+	lines, err := s.exchange(ctx, target.Host, target.Port, eCoSLocomotiveListCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -562,7 +554,7 @@ func (s *ECoSService) CountLocomotives(ctx context.Context, input ECoSConnection
 }
 
 func (s *ECoSService) fetchLocomotiveDetails(ctx context.Context, host string, port int, objectID int) (*ECoSLocomotive, error) {
-	command := fmt.Sprintf("get(%d, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)", objectID)
+	command := eCoSLocomotiveDetailCommand(objectID)
 	lines, err := s.exchangeRequestedGet(ctx, host, port, objectID, command)
 	if err != nil {
 		return nil, err
@@ -580,8 +572,8 @@ func (s *ECoSService) fetchLocomotiveRawProbes(ctx context.Context, host string,
 		fields  []string
 	}{
 		{
-			command: fmt.Sprintf("get(%d, speed, speedstep, profile, protocol, name, addr, dir, funcset, funcdesc)", objectID),
-			fields:  []string{"speed", "speedstep", "profile", "protocol", "name", "addr", "dir", "funcset", "funcdesc"},
+			command: eCoSLocomotiveDetailCommand(objectID),
+			fields:  []string{"profile", "protocol", "name", "addr", "funcdesc"},
 		},
 	}
 	for _, field := range eCoSRawProbeFields() {
@@ -768,22 +760,15 @@ func eCoSLiveSubscriptionCommands() []string {
 	return []string{
 		"request(1, view)",
 		"get(1, info, status)",
-		"request(10, view)",
-		"queryObjects(10, addr, name, protocol)",
-		"request(11, view)",
-		"queryObjects(11, addr, protocol, type, addrext, mode, symbol, name1, name2, name3, switching)",
-		"queryObjects(26, ports)",
-		"request(26, view)",
 	}
+}
+
+func eCoSLocomotiveDetailCommand(objectID int) string {
+	return fmt.Sprintf("get(%d, profile, protocol, name, addr, funcdesc)", objectID)
 }
 
 func eCoSRawProbeFields() []string {
 	return []string{
-		"icon",
-		"image",
-		"picture",
-		"pic",
-		"userimage",
 		"cv",
 		"cvs",
 		"cvlist",
@@ -823,7 +808,11 @@ func parseECoSAttributes(lines []string) map[string][]string {
 			continue
 		}
 		for _, arg := range parseECoSArgumentList(line) {
-			attributes[arg.Key] = append(attributes[arg.Key], cleanECoSValue(arg.Value))
+			key := strings.ToLower(arg.Key)
+			if !isAllowedECoSLocomotiveAttribute(key) {
+				continue
+			}
+			attributes[key] = append(attributes[key], cleanECoSValue(arg.Value))
 		}
 	}
 	return attributes
@@ -864,140 +853,12 @@ func interestingECoSFields(attributes map[string][]string) []string {
 	interesting := []string{}
 	for key := range attributes {
 		normalized := strings.ToLower(key)
-		if strings.Contains(normalized, "cv") || strings.Contains(normalized, "image") || strings.Contains(normalized, "pic") || strings.Contains(normalized, "icon") {
+		if strings.Contains(normalized, "cv") || normalized == "functionmapping" {
 			interesting = append(interesting, key)
 		}
 	}
 	sortStrings(interesting)
 	return interesting
-}
-
-func parseECoSImageCandidates(attributes map[string][]string) []ECoSImageCandidate {
-	candidates := []ECoSImageCandidate{}
-	seen := map[string]bool{}
-	for _, key := range sortedECoSImageAttributeKeys(attributes) {
-		for _, value := range attributes[key] {
-			candidate := classifyECoSImageCandidate(key, value)
-			if candidate.Value == "" {
-				continue
-			}
-			seenKey := strings.ToLower(candidate.Key + "::" + candidate.Value)
-			if seen[seenKey] {
-				continue
-			}
-			seen[seenKey] = true
-			candidates = append(candidates, candidate)
-		}
-	}
-	return candidates
-}
-
-func sortedECoSImageAttributeKeys(attributes map[string][]string) []string {
-	keys := []string{}
-	for key := range attributes {
-		if isECoSImageAttributeKey(key) {
-			keys = append(keys, key)
-		}
-	}
-	sortStrings(keys)
-	return keys
-}
-
-func isECoSImageAttributeKey(key string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(key))
-	return normalized == "icon" ||
-		normalized == "image" ||
-		normalized == "picture" ||
-		normalized == "pic" ||
-		normalized == "userimage" ||
-		strings.Contains(normalized, "image") ||
-		strings.Contains(normalized, "picture")
-}
-
-func classifyECoSImageCandidate(key string, value string) ECoSImageCandidate {
-	value = cleanECoSValue(value)
-	candidate := ECoSImageCandidate{
-		Key:   strings.TrimSpace(key),
-		Value: value,
-		Kind:  "reference",
-	}
-	if value == "" {
-		return candidate
-	}
-	lower := strings.ToLower(value)
-	switch {
-	case strings.HasPrefix(lower, "data:image/"):
-		candidate.Kind = "data"
-		candidate.PreviewURL = value
-		candidate.MimeType = mimeFromDataURL(value)
-		candidate.Transferable = true
-	case strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://"):
-		candidate.Kind = "url"
-		candidate.PreviewURL = value
-		candidate.MimeType = mime.TypeByExtension(filepath.Ext(value))
-		candidate.Transferable = true
-	case isIntegerText(value):
-		candidate.Kind = "id"
-	case strings.HasPrefix(strings.TrimSpace(value), "<svg"):
-		encoded := base64.StdEncoding.EncodeToString([]byte(value))
-		candidate.Kind = "data"
-		candidate.PreviewURL = "data:image/svg+xml;base64," + encoded
-		candidate.MimeType = "image/svg+xml"
-		candidate.Transferable = true
-	default:
-		previewURL, mimeType := imageDataURLFromBase64(value)
-		if previewURL != "" {
-			candidate.Kind = "base64"
-			candidate.PreviewURL = previewURL
-			candidate.MimeType = mimeType
-			candidate.Transferable = true
-		}
-	}
-	return candidate
-}
-
-func mimeFromDataURL(value string) string {
-	withoutPrefix := strings.TrimPrefix(value, "data:")
-	end := strings.Index(withoutPrefix, ";")
-	if end < 0 {
-		end = strings.Index(withoutPrefix, ",")
-	}
-	if end < 0 {
-		return ""
-	}
-	return withoutPrefix[:end]
-}
-
-func imageDataURLFromBase64(value string) (string, string) {
-	compact := strings.NewReplacer("\r", "", "\n", "", " ", "", "\t", "").Replace(strings.TrimSpace(value))
-	if len(compact) < 64 {
-		return "", ""
-	}
-	decoded, err := base64.StdEncoding.DecodeString(compact)
-	if err != nil {
-		decoded, err = base64.RawStdEncoding.DecodeString(compact)
-	}
-	if err != nil || len(decoded) == 0 {
-		return "", ""
-	}
-	mimeType := http.DetectContentType(decoded)
-	if !strings.HasPrefix(mimeType, "image/") {
-		return "", ""
-	}
-	return "data:" + mimeType + ";base64," + compact, mimeType
-}
-
-func isIntegerText(value string) bool {
-	value = strings.TrimSpace(value)
-	if value == "" {
-		return false
-	}
-	for _, char := range value {
-		if char < '0' || char > '9' {
-			return false
-		}
-	}
-	return true
 }
 
 func parseECoSCVValues(attributes map[string][]string) []ECoSCVValue {
@@ -1160,26 +1021,21 @@ func mergeECoSRawLocomotive(target *ECoSRawLocomotive, source ECoSLocomotive) {
 	if source.Profile != "" {
 		target.Profile = source.Profile
 	}
-	target.Speed = source.Speed
-	target.SpeedStep = source.SpeedStep
-	target.Direction = source.Direction
-	if source.FunctionSet != "" {
-		target.FunctionSet = source.FunctionSet
-	}
-	if source.NumberOfFunctions != 0 {
-		target.NumberOfFunctions = source.NumberOfFunctions
-	}
 	if len(source.Functions) > 0 {
 		target.Functions = source.Functions
 	}
 }
 
 func applyECoSArgument(locomotive *ECoSLocomotive, arg ecosArgument) {
+	key := strings.ToLower(arg.Key)
+	if !isAllowedECoSLocomotiveAttribute(key) {
+		return
+	}
 	if locomotive.Attributes == nil {
 		locomotive.Attributes = map[string][]string{}
 	}
-	locomotive.Attributes[arg.Key] = append(locomotive.Attributes[arg.Key], cleanECoSValue(arg.Value))
-	switch strings.ToLower(arg.Key) {
+	locomotive.Attributes[key] = append(locomotive.Attributes[key], cleanECoSValue(arg.Value))
+	switch key {
 	case "name":
 		locomotive.Name = cleanECoSValue(arg.Value)
 	case "protocol":
@@ -1188,28 +1044,12 @@ func applyECoSArgument(locomotive *ECoSLocomotive, arg ecosArgument) {
 		locomotive.Profile = cleanECoSValue(arg.Value)
 	case "addr":
 		locomotive.Address = parseECoSInt(arg.Value)
-	case "speed":
-		locomotive.Speed = parseECoSInt(arg.Value)
-	case "speedstep":
-		locomotive.SpeedStep = parseECoSInt(arg.Value)
-	case "dir":
-		locomotive.Direction = parseECoSInt(arg.Value)
-	case "funcset":
-		locomotive.FunctionSet = cleanECoSValue(arg.Value)
-		locomotive.NumberOfFunctions = len(locomotive.FunctionSet)
-		for index, state := range locomotive.FunctionSet {
-			function := ensureECoSFunction(locomotive, index)
-			function.Active = state == '1'
-		}
-	case "func":
-		if len(arg.Params) >= 2 {
-			index := parseECoSInt(arg.Params[0])
-			function := ensureECoSFunction(locomotive, index)
-			function.Active = parseECoSInt(arg.Params[1]) == 1
-		}
 	case "funcdesc":
 		if len(arg.Params) >= 2 {
 			index := parseECoSInt(arg.Params[0])
+			if index < 0 || index > 31 {
+				return
+			}
 			function := ensureECoSFunction(locomotive, index)
 			function.Description = parseECoSInt(arg.Params[1])
 		}
@@ -1217,10 +1057,19 @@ func applyECoSArgument(locomotive *ECoSLocomotive, arg ecosArgument) {
 }
 
 func ensureECoSFunction(locomotive *ECoSLocomotive, index int) *ECoSFunction {
-	for len(locomotive.Functions) <= index {
-		locomotive.Functions = append(locomotive.Functions, ECoSFunction{Index: len(locomotive.Functions)})
+	for functionIndex := range locomotive.Functions {
+		if locomotive.Functions[functionIndex].Index == index {
+			return &locomotive.Functions[functionIndex]
+		}
 	}
-	return &locomotive.Functions[index]
+	locomotive.Functions = append(locomotive.Functions, ECoSFunction{Index: index})
+	position := len(locomotive.Functions) - 1
+	for position > 0 && locomotive.Functions[position-1].Index > index {
+		locomotive.Functions[position-1], locomotive.Functions[position] =
+			locomotive.Functions[position], locomotive.Functions[position-1]
+		position--
+	}
+	return &locomotive.Functions[position]
 }
 
 func parseECoSArguments(line string) map[string]string {
