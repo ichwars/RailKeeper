@@ -43,6 +43,12 @@ describe("article editor responsive tabs", () => {
     );
   });
 
+  it("opens the mobile row action menu above the bottom-edge controls", () => {
+    expect(articleOverviewCss).toMatch(
+      /\.article-mobile-actions \.article-action-menu\s*\{[^}]*top:\s*auto;[^}]*bottom:\s*calc\(100% \+ 3px\)/s
+    );
+  });
+
   it("keeps stacked article filters compact on narrow screens", () => {
     expect(accessoriesCss).toMatch(
       /@media\s*\(max-width:\s*560px\)[\s\S]*?\.article-filter-select,[\s\S]*?\.article-location-filter\s*\{[^}]*flex:\s*0 0 auto/s,

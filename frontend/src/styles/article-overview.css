@@ -274,6 +274,11 @@
   justify-content: flex-end;
 }
 
+.article-mobile-actions .article-action-menu {
+  top: auto;
+  bottom: calc(100% + 3px);
+}
+
 @media (max-width: 920px) {
   .article-toolbar-primary {
     grid-column: 1;
