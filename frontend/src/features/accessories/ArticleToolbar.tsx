@@ -3,6 +3,11 @@ import { Grid2X2, Search, Table2, X } from "lucide-react";
 import type { AccessoryArticleFilterOptions, MasterDataEntry } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
+import { ArticleColumnPicker } from "./ArticleColumnPicker";
+import {
+  defaultArticleTableColumns,
+  type ArticleTableColumn
+} from "./articleTableColumns";
 import type { ArticleViewMode } from "./articleViewMode";
 import type { ArticleOverviewFilters } from "./useArticleOverview";
 import { articleTypeLabel, articleTypeOrder } from "./articleTypes";
@@ -33,6 +38,8 @@ export function ArticleToolbar({
   viewMode,
   hasActiveFilters,
   onViewModeChange,
+  visibleColumns = defaultArticleTableColumns,
+  onToggleColumn = () => undefined,
   onFilterChange,
   onReset
 }: {
@@ -43,6 +50,8 @@ export function ArticleToolbar({
   viewMode: ArticleViewMode;
   hasActiveFilters: boolean;
   onViewModeChange: (mode: ArticleViewMode) => void;
+  visibleColumns?: ReadonlySet<ArticleTableColumn>;
+  onToggleColumn?: (column: ArticleTableColumn) => void;
   onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
   onReset: () => void;
 }) {
@@ -85,6 +94,9 @@ export function ArticleToolbar({
           >
             <Grid2X2 size={16} aria-hidden="true" />
           </button>
+          {viewMode === "table" ? (
+            <ArticleColumnPicker visibleColumns={visibleColumns} onToggle={onToggleColumn} />
+          ) : null}
         </span>
       </div>
       <div className="article-filter-row">

@@ -1534,6 +1534,8 @@ export const deTranslations: Record<string, string> = {
     "accessories.view.label": "Ansicht wechseln",
     "accessories.view.table": "Tabellenansicht",
     "accessories.view.cards": "Kachelansicht",
+    "accessories.view.columns": "Tabellenspalten auswählen",
+    "accessories.view.columnsGroup": "Tabellenspalten",
     "accessories.view.cardsLabel": "Artikel-Kachelansicht",
     "accessories.view.mobileLabel": "Kompakte Artikelliste",
     "accessories.toolbar.articleType": "Artikelart",
@@ -1576,6 +1578,9 @@ export const deTranslations: Record<string, string> = {
     "accessories.actions.archive": "Artikel archivieren",
     "accessories.actions.restore": "Artikel wiederherstellen",
     "accessories.actions.delete": "Artikel löschen",
+    "accessories.actions.archiveNamed": "Artikel archivieren: {name}",
+    "accessories.actions.restoreNamed": "Artikel wiederherstellen: {name}",
+    "accessories.actions.deleteNamed": "Artikel löschen: {name}",
     "accessories.delete.title": "Artikel endgültig löschen",
     "accessories.delete.body":
       "Soll {inventoryNumber}: {name} endgültig gelöscht werden? Dies ist nur bei vollständig unbenutzten Artikeln möglich.",

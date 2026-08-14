@@ -61,6 +61,20 @@ describe("ArticleCardGrid", () => {
 
     expect(screen.getAllByRole("button", { name: /Artikel ansehen/ }).length).toBeGreaterThan(0);
     expect(screen.queryByRole("button", { name: /Artikel bearbeiten/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel archivieren:/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Artikel löschen:/ })).not.toBeInTheDocument();
+  });
+
+  it("renders archive and admin delete as direct card actions", () => {
+    const article = accessoryArticleFixture();
+    render(<ArticleCardGrid items={[article]} articleTypeEntries={accessoryArticleTypes}
+      subtypeEntries={accessorySubtypes} canEdit canDelete onView={vi.fn()} onEdit={vi.fn()}
+      onArchive={vi.fn()} onRestore={vi.fn()} onDelete={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Artikel archivieren: Gerades Modellgleis" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Artikel löschen: Gerades Modellgleis" }))
+      .toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Weitere Aktionen/ })).not.toBeInTheDocument();
   });
 });

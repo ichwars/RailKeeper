@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type CSSProperties, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type {
@@ -9,6 +9,10 @@ import type {
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { ArticleActions } from "./ArticleActions";
+import {
+  defaultArticleTableColumns,
+  type ArticleTableColumn
+} from "./articleTableColumns";
 import { articleSubtypeLabel } from "./articleSubtypes";
 import { articleTypeLabel } from "./articleTypes";
 
@@ -29,9 +33,10 @@ type ArticleTableProps = {
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
   onDelete?: (article: AccessoryArticleListItem) => void;
+  visibleColumns?: ReadonlySet<ArticleTableColumn>;
 };
 
-const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
+const sortableColumns: Array<{ sort: AccessoryArticleSort; key: ArticleTableColumn }> = [
   { sort: "image", key: "image" },
   { sort: "inventoryNumber", key: "inventoryNumber" },
   { sort: "manufacturer", key: "manufacturer" },
@@ -42,6 +47,25 @@ const sortableColumns: Array<{ sort: AccessoryArticleSort; key: string }> = [
   { sort: "stock", key: "stock" },
   { sort: "storage", key: "storage" }
 ];
+
+const articleColumnWidths: Record<ArticleTableColumn, number> = {
+  image: 86,
+  inventoryNumber: 142,
+  manufacturer: 150,
+  articleNumber: 126,
+  name: 210,
+  type: 175,
+  gauge: 80,
+  stock: 210,
+  storage: 170
+};
+
+function articleTableStyle(visibleColumns: ReadonlySet<ArticleTableColumn>) {
+  const dataWidth = [...visibleColumns]
+    .reduce((total, column) => total + articleColumnWidths[column], 0);
+  const minimumWidth = Math.max(420, 44 + 128 + dataWidth);
+  return { "--article-table-min-width": `${minimumWidth}px` } as CSSProperties;
+}
 
 export function ArticleTable({
   items,
@@ -59,7 +83,8 @@ export function ArticleTable({
   onEdit,
   onArchive,
   onRestore,
-  onDelete
+  onDelete,
+  visibleColumns = defaultArticleTableColumns
 }: ArticleTableProps) {
   const selectAllRef = useRef<HTMLInputElement | null>(null);
   const { t } = useI18n();
@@ -70,11 +95,15 @@ export function ArticleTable({
     if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected && !allSelected;
   }, [allSelected, someSelected]);
 
-  const renderSortHeader = ({ sort: columnSort, key }: { sort: AccessoryArticleSort; key: string }) => {
+  const renderSortHeader = ({
+    sort: columnSort,
+    key
+  }: { sort: AccessoryArticleSort; key: ArticleTableColumn }) => {
     const active = sort === columnSort;
     const label = t(`accessories.table.${key}`);
     return (
-      <th key={columnSort} aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
+      <th key={columnSort} className={`article-${key}-cell`}
+        aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
         <button
           type="button"
           className={active ? "article-sort-button active" : "article-sort-button"}
@@ -93,7 +122,7 @@ export function ArticleTable({
 
   return (
     <div className="table-wrap article-table-wrap">
-      <table className="inventory-table article-table">
+      <table className="inventory-table article-table" style={articleTableStyle(visibleColumns)}>
         <thead>
           <tr>
             <th className="select-cell" aria-label={t("accessories.table.select")}>
@@ -103,7 +132,7 @@ export function ArticleTable({
                   onChange={() => onToggleAll?.()} />
               </label>
             </th>
-            {sortableColumns.map(renderSortHeader)}
+            {sortableColumns.filter(({ key }) => visibleColumns.has(key)).map(renderSortHeader)}
             <th className="actions-cell">{t("accessories.table.actions")}</th>
           </tr>
         </thead>
@@ -123,50 +152,52 @@ export function ArticleTable({
                       onChange={() => onToggleSelection?.(article.id)} />
                   </label>
                 </td>
-                <td className="article-image-cell">
+                {visibleColumns.has("image") ? <td className="article-image-cell">
                   {article.primaryImageUrl
                     ? <img className="inventory-thumb" src={article.primaryImageUrl} alt="" />
                     : <div className="image-placeholder">{t("exhibition.noPreview")}</div>}
-                </td>
-                <td className="article-inventory-cell">
+                </td> : null}
+                {visibleColumns.has("inventoryNumber") ? <td className="article-inventoryNumber-cell article-inventory-cell">
                   <span className="article-truncate" title={article.inventoryNumber}>{article.inventoryNumber}</span>
-                </td>
-                <td className="article-manufacturer-cell">
+                </td> : null}
+                {visibleColumns.has("manufacturer") ? <td className="article-manufacturer-cell">
                   <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
-                </td>
-                <td className="article-number-cell">
+                </td> : null}
+                {visibleColumns.has("articleNumber") ? <td className="article-articleNumber-cell article-number-cell">
                   <span className="article-truncate" title={article.articleNumber || undefined}>
                     {article.articleNumber || t("common.none")}
                   </span>
-                </td>
-                <td className="article-main-cell">
+                </td> : null}
+                {visibleColumns.has("name") ? <td className="article-name-cell article-main-cell">
                   {onView ? <button type="button" className="article-name-button" onClick={() => onView(article)}>
                     <strong className="article-truncate" title={article.name}>{article.name}</strong>
                   </button> : <div className="article-name-content">
                     <strong className="article-truncate" title={article.name}>{article.name}</strong>
                   </div>}
-                </td>
-                <td>
+                </td> : null}
+                {visibleColumns.has("type") ? <td className="article-type-cell">
                   <strong>{articleTypeLabel(article.articleType, articleTypeEntries, t)}</strong>
                   <small>{article.subtype
                     ? articleSubtypeLabel(article.articleType, article.subtype, subtypeEntries, t)
                     : t("common.none")}</small>
-                </td>
-                <td>{article.gauges.length ? article.gauges.join(", ") : t("common.none")}</td>
-                <td className="article-stock-cell">
+                </td> : null}
+                {visibleColumns.has("gauge") ? <td className="article-gauge-cell">
+                  {article.gauges.length ? article.gauges.join(", ") : t("common.none")}
+                </td> : null}
+                {visibleColumns.has("stock") ? <td className="article-stock-cell">
                   <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
                   <small>{t("accessories.table.stockBreakdown", {
                     available: article.available,
                     reserved: article.reserved,
                     installed: article.installed
                   })}</small>
-                </td>
-                <td className="article-storage-cell">
+                </td> : null}
+                {visibleColumns.has("storage") ? <td className="article-storage-cell">
                   <span className="article-truncate" title={storageTitle || primaryLocation}>{primaryLocation}</span>
                   {article.locationNames.length > 1 ? (
                     <small>{t("accessories.table.moreLocations", { count: article.locationNames.length - 1 })}</small>
                   ) : null}
-                </td>
+                </td> : null}
                 <td className="actions-cell">
                   <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
                     onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
