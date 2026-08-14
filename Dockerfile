@@ -15,6 +15,8 @@ COPY backend ./
 RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/railkeeper ./cmd/railkeeper
 
 FROM alpine:3.24 AS runtime
+LABEL org.opencontainers.image.source="https://github.com/ichwars/RailKeeper" \
+  org.opencontainers.image.licenses="AGPL-3.0-only"
 RUN apk add --no-cache ca-certificates tzdata \
   && adduser -D -H -u 10001 railkeeper \
   && mkdir -p /app/web /data \
