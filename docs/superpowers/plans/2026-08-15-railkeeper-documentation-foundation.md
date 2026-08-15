@@ -18,7 +18,7 @@ GitHub Actions, GitHub Pages.
 ## Global Constraints
 
 - English is the public default; German is complete and equal, with identical paths below `/de/`.
-- User and administration pages describe stable RailKeeper v0.1.17.5.
+- User and administration pages describe stable RailKeeper v0.1.17.6.
 - Development and architecture pages describe `main`.
 - Every published page has `audience`, `status`, `reviewedVersion`, and `lastReviewed` metadata.
 - Search remains local in the browser. Do not add analytics, cookies, or an external search service.
@@ -305,7 +305,7 @@ Create `docs/.vitepress/theme/custom.css`:
 - [ ] **Step 6: Create paired landing pages with real scope statements**
 
 Create the page pairs below. Every file starts with the listed metadata. Use `status: stable` and
-`reviewedVersion: 0.1.17.5` for home, guide, and administration. Use `status: development` and
+`reviewedVersion: 0.1.17.6` for home, guide, and administration. Use `status: development` and
 `reviewedVersion: main` for development and reference. All use `lastReviewed: 2026-08-15`.
 
 - `site/index.md` and `site/de/index.md`, audience `reference`: use the headings
@@ -330,7 +330,7 @@ title: User Guide
 description: Learn every stable RailKeeper workflow.
 audience: user
 status: stable
-reviewedVersion: 0.1.17.5
+reviewedVersion: 0.1.17.6
 lastReviewed: 2026-08-15
 ---
 ```
@@ -379,7 +379,7 @@ Create `docs/versions.json`:
 
 ```json
 {
-  "stable": "0.1.17.5",
+  "stable": "0.1.17.6",
   "development": "main"
 }
 ```
@@ -392,14 +392,14 @@ Create `docs/scripts/validate-docs.test.mjs`. Use `node:test`, `node:assert/stri
 ```js
 test("accepts a complete matching language pair", async () => {
   const root = await fixture({
-    "index.md": page("reference", "stable", "0.1.17.5"),
-    "de/index.md": page("reference", "stable", "0.1.17.5"),
+    "index.md": page("reference", "stable", "0.1.17.6"),
+    "de/index.md": page("reference", "stable", "0.1.17.6"),
   });
   assert.deepEqual(await validateDocumentTree(root, versions), []);
 });
 
 test("reports a missing German counterpart", async () => {
-  const root = await fixture({ "guide/index.md": page("user", "stable", "0.1.17.5") });
+  const root = await fixture({ "guide/index.md": page("user", "stable", "0.1.17.6") });
   assert.deepEqual(await validateDocumentTree(root, versions), [
     "guide/index.md: missing counterpart de/guide/index.md",
   ]);
@@ -407,7 +407,7 @@ test("reports a missing German counterpart", async () => {
 
 test("reports missing and mismatched metadata", async () => {
   const root = await fixture({
-    "index.md": page("reference", "stable", "0.1.17.5"),
+    "index.md": page("reference", "stable", "0.1.17.6"),
     "de/index.md": page("developer", "development", "main"),
   });
   const errors = await validateDocumentTree(root, versions);
@@ -422,7 +422,7 @@ test("enforces the canonical version for each status", async () => {
     "de/index.md": page("reference", "stable", "0.1.14"),
   });
   assert((await validateDocumentTree(root, versions)).some((error) =>
-    error.includes("reviewedVersion must be 0.1.17.5"),
+    error.includes("reviewedVersion must be 0.1.17.6"),
   ));
 });
 ```
@@ -1032,26 +1032,29 @@ entry points.
 
 **Interfaces:**
 
-- Consumes: tag `v0.1.17.5`, `.github/workflows/windows-portable.yml`, public GitHub Releases, and
+- Consumes: tag `v0.1.17.6`, `.github/workflows/windows-portable.yml`, public GitHub Releases, and
   the deployed Pages site.
-- Produces: verified public latest release `v0.1.17.5` and an accepted Etappe 1 deployment.
+- Produces: verified public latest release `v0.1.17.6` and an accepted Etappe 1 deployment.
+
+Execution update: RailKeeper v0.1.17.6 was published while this foundation was being implemented.
+It supersedes the earlier v0.1.17.5 baseline and is therefore the canonical stable version below.
 
 - [ ] **Step 1: Verify the local and remote tag before changing GitHub state**
 
 Run:
 
 ```powershell
-git show -s --format="%H %D %cs %s" v0.1.17.5
-git ls-remote --tags origin refs/tags/v0.1.17.5
-gh release view v0.1.17.5 --repo ichwars/RailKeeper --json tagName,isDraft,isPrerelease,assets,url
+git show -s --format="%H %D %cs %s" v0.1.17.6
+git ls-remote --tags origin refs/tags/v0.1.17.6
+gh release view v0.1.17.6 --repo ichwars/RailKeeper --json tagName,isDraft,isPrerelease,assets,url
 ```
 
-Expected: the local tag resolves to commit `9e81856313c759f733d97405bb9fa606d47e74b5`; the remote tag
+Expected: the local tag resolves to commit `4be00148dc1a99b8249d4fd831ecd749afc1bc9c`; the remote tag
 exists; the release is non-draft and non-prerelease with the portable ZIP asset. If the remote tag
 is absent, confirm the local tag still points to that exact reviewed commit, then run:
 
 ```powershell
-git push origin refs/tags/v0.1.17.5
+git push origin refs/tags/v0.1.17.6
 ```
 
 Stop instead of pushing if the commit differs.
@@ -1061,23 +1064,23 @@ Stop instead of pushing if the commit differs.
 If the release or portable ZIP is missing, run:
 
 ```powershell
-gh workflow run windows-portable.yml --repo ichwars/RailKeeper --ref v0.1.17.5
+gh workflow run windows-portable.yml --repo ichwars/RailKeeper --ref v0.1.17.6
 $releaseRunId = gh run list --repo ichwars/RailKeeper `
   --workflow windows-portable.yml --limit 1 --json databaseId --jq '.[0].databaseId'
 gh run watch --repo ichwars/RailKeeper $releaseRunId --exit-status
 ```
 
-Expected: the workflow succeeds and publishes the ZIP to a non-prerelease v0.1.17.5 release. Do
+Expected: the workflow succeeds and publishes the ZIP to a non-prerelease v0.1.17.6 release. Do
 not upload an unverified local ZIP manually.
 
 - [ ] **Step 3: Mark the verified release as latest and confirm the public API**
 
 ```powershell
-gh release edit v0.1.17.5 --repo ichwars/RailKeeper --latest
+gh release edit v0.1.17.6 --repo ichwars/RailKeeper --latest
 gh api repos/ichwars/RailKeeper/releases/latest --jq .tag_name
 ```
 
-Expected: `v0.1.17.5`.
+Expected: `v0.1.17.6`.
 
 - [ ] **Step 4: Enable GitHub Pages from Actions if not already enabled**
 
@@ -1130,7 +1133,7 @@ Update the implementation pull request description with:
 - GitHub Pages deployment: passed
 - English/German path parity: passed
 - Light/dark and 390/768/1440 px visual checks: passed
-- Latest stable GitHub Release: v0.1.17.5
+- Latest stable GitHub Release: v0.1.17.6
 - Remaining content work: Etappen 2 through 5 from the approved design specification
 ```
 

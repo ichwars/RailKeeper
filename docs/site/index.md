@@ -4,12 +4,12 @@ title: RailKeeper Documentation
 description: Complete user, administration, and development documentation for RailKeeper.
 audience: reference
 status: stable
-reviewedVersion: 0.1.17.5
+reviewedVersion: 0.1.17.6
 lastReviewed: 2026-08-15
 hero:
   name: RailKeeper Documentation
   text: Workshop knowledge, kept with the project
-  tagline: User guidance follows stable v0.1.17.5. Development documentation follows main.
+  tagline: User guidance follows stable v0.1.17.6. Development documentation follows main.
   image:
     src: /brand/railkeeper-mark.svg
     alt: RailKeeper

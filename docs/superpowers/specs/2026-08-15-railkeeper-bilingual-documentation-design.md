@@ -28,12 +28,12 @@ Das Handbuch trennt drei Zielgruppen in der Hauptnavigation:
    Tests, Releases und Beiträge.
 
 Benutzer- und Administrationsinhalte beschreiben den jeweils neuesten stabilen Release. Beim
-ersten Handbuch-Release ist dies RailKeeper v0.1.17.5. Entwicklungs- und Architekturinhalt
+ersten Handbuch-Release ist dies RailKeeper v0.1.17.6. Entwicklungs- und Architekturinhalt
 beschreibt ausdrücklich den Stand von `main`.
 
 Die öffentliche GitHub-Kennzeichnung „Latest Release“ verweist derzeit abweichend auf v0.1.14.
 Vor Veröffentlichung des Handbuchs wird geprüft, ob Releases oder Release-Artefakte fehlen, und
-v0.1.17.5 wird korrekt als neuester stabiler GitHub Release veröffentlicht beziehungsweise
+v0.1.17.6 wird korrekt als neuester stabiler GitHub Release veröffentlicht beziehungsweise
 gekennzeichnet. Diese Korrektur darf keine unvollständigen oder ungeprüften Release-Artefakte
 veröffentlichen.
 
@@ -236,7 +236,7 @@ testen und einen regelkonformen Pull Request vorbereiten.
 
 Coverage, Sprachgleichheit, Links, Medien, mobile und Desktop-Darstellung sowie helle und dunkle
 Darstellung werden geprüft. Die GitHub-Release-Kennzeichnung wird korrigiert, bevor das Handbuch
-öffentlich als Dokumentation für v0.1.17.5 bezeichnet wird.
+öffentlich als Dokumentation für v0.1.17.6 bezeichnet wird.
 
 Abnahme: Alle Coverage-Einträge sind dokumentiert oder begründet klassifiziert, beide Sprachen
 sind vollständig, alle automatischen Prüfungen bestehen und GitHub Pages ist öffentlich
