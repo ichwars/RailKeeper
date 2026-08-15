@@ -1,4 +1,5 @@
 import type { Vehicle } from "../../shared/api";
+import type { Language } from "../../shared/i18n";
 
 export const vehicleTableColumnKeys = [
   "image",
@@ -63,6 +64,8 @@ export type VehicleColumnDefinition = {
   group: VehicleColumnGroup;
   kind: VehicleColumnKind;
 };
+
+type Translator = (key: string, values?: Record<string, string | number>) => string;
 
 const booleanColumns = new Set<VehicleTableColumn>([
   "digital",
@@ -225,4 +228,30 @@ export function vehicleColumnSortValue(vehicle: Vehicle, key: VehicleSortableCol
   const value = vehicle[key];
   if (typeof value === "boolean") return value ? "1" : "0";
   return String(value ?? "").trim().toLocaleLowerCase("de-DE");
+}
+
+export function vehicleColumnLabel(column: VehicleTableColumn, t: Translator) {
+  return column === "image" ? t("vehicles.image") : t(`vehicle.field.${column}`);
+}
+
+export function vehicleColumnText(
+  vehicle: Vehicle,
+  column: VehicleTableColumn,
+  language: Language,
+  t: Translator
+) {
+  if (column === "image") return "";
+  const value = vehicle[column];
+  if (typeof value === "boolean") return t(value ? "common.yes" : "common.no");
+  if (column === "purchaseDate" && value) {
+    const date = new Date(`${String(value)}T00:00:00`);
+    if (!Number.isNaN(date.getTime())) {
+      return new Intl.DateTimeFormat(language === "de" ? "de-DE" : "en-GB", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+      }).format(date);
+    }
+  }
+  return String(value ?? "").trim() || t("common.placeholder");
 }

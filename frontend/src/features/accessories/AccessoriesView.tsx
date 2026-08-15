@@ -11,6 +11,7 @@ import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
 import {
   persistArticleTableColumns,
+  resetArticleTableColumns,
   storedArticleTableColumns,
   toggleArticleTableColumn,
   type ArticleTableColumn
@@ -116,6 +117,11 @@ export function AccessoriesView({
     persistArticleTableColumns(next);
     return next;
   });
+  const resetColumns = () => {
+    const next = resetArticleTableColumns();
+    persistArticleTableColumns(next);
+    setVisibleColumns(next);
+  };
   const toggleSelection = (id: string) => setSelectedArticleIDs((current) => {
     const next = new Set(current);
     if (next.has(id)) next.delete(id);
@@ -162,6 +168,7 @@ export function AccessoriesView({
             onViewModeChange={changeViewMode}
             visibleColumns={visibleColumns}
             onToggleColumn={toggleColumn}
+            onResetColumns={resetColumns}
             onFilterChange={overview.setFilter}
             onReset={overview.resetFilters}
           />

@@ -40,6 +40,7 @@ export function ArticleToolbar({
   onViewModeChange,
   visibleColumns = defaultArticleTableColumns,
   onToggleColumn = () => undefined,
+  onResetColumns = () => undefined,
   onFilterChange,
   onReset
 }: {
@@ -52,6 +53,7 @@ export function ArticleToolbar({
   onViewModeChange: (mode: ArticleViewMode) => void;
   visibleColumns?: ReadonlySet<ArticleTableColumn>;
   onToggleColumn?: (column: ArticleTableColumn) => void;
+  onResetColumns?: () => void;
   onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
   onReset: () => void;
 }) {
@@ -95,7 +97,11 @@ export function ArticleToolbar({
             <Grid2X2 size={16} aria-hidden="true" />
           </button>
           {viewMode === "table" ? (
-            <ArticleColumnPicker visibleColumns={visibleColumns} onToggle={onToggleColumn} />
+            <ArticleColumnPicker
+              visibleColumns={visibleColumns}
+              onToggle={onToggleColumn}
+              onReset={onResetColumns}
+            />
           ) : null}
         </span>
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Columns3 } from "lucide-react";
+import { Columns3, RotateCcw } from "lucide-react";
 
 import { useI18n } from "../../shared/i18n";
 import { articleTableColumns, type ArticleTableColumn } from "./articleTableColumns";
@@ -7,9 +7,10 @@ import { articleTableColumns, type ArticleTableColumn } from "./articleTableColu
 type ArticleColumnPickerProps = {
   visibleColumns: ReadonlySet<ArticleTableColumn>;
   onToggle: (column: ArticleTableColumn) => void;
+  onReset: () => void;
 };
 
-export function ArticleColumnPicker({ visibleColumns, onToggle }: ArticleColumnPickerProps) {
+export function ArticleColumnPicker({ visibleColumns, onToggle, onReset }: ArticleColumnPickerProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -70,6 +71,10 @@ export function ArticleColumnPicker({ visibleColumns, onToggle }: ArticleColumnP
               <span>{t(`accessories.table.${column}`)}</span>
             </label>
           ))}
+          <button type="button" className="article-column-picker-reset" onClick={onReset}>
+            <RotateCcw size={15} aria-hidden="true" />
+            {t("accessories.view.resetColumns")}
+          </button>
         </div>
       ) : null}
     </div>

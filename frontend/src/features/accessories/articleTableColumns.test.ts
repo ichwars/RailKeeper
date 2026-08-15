@@ -4,6 +4,7 @@ import {
   articleTableColumns,
   articleTableColumnSettingKey,
   persistArticleTableColumns,
+  resetArticleTableColumns,
   storedArticleTableColumns,
   toggleArticleTableColumn,
   type ArticleTableColumn
@@ -45,5 +46,9 @@ describe("article table columns", () => {
     persistArticleTableColumns(new Set<ArticleTableColumn>(["storage", "name"]));
 
     expect(window.localStorage.getItem(articleTableColumnSettingKey)).toBe('["name","storage"]');
+  });
+
+  it("restores every supported column", () => {
+    expect([...resetArticleTableColumns()]).toEqual(articleTableColumns);
   });
 });

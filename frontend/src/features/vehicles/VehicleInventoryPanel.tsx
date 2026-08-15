@@ -20,11 +20,21 @@ import { Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { formatDate } from "./vehicleFormat";
 import { maintenanceReminderText } from "./vehicleMaintenance";
-import { previewImageUrl, primaryImage, vehicleExhibitionEligible } from "./vehicleTransforms";
+import { previewImageUrl, primaryImage } from "./vehicleTransforms";
 import { AppSelect } from "../../shared/ui/AppSelect";
-import type { InventoryQualityFilter } from "./vehicleViewModel";
+import { VehicleColumnPicker } from "./VehicleColumnPicker";
+import { VehicleInventoryMobileList } from "./VehicleInventoryMobileList";
+import { VehicleInventoryTable } from "./VehicleInventoryTable";
+import type {
+  InventoryQualityFilter,
+  SortDirection,
+  SortKey
+} from "./vehicleViewModel";
+import type {
+  VehicleColumnMove,
+  VehicleTableColumn
+} from "./vehicleTableColumns";
 
-type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
 type InventoryViewMode = "table" | "cards";
 type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages";
 type MaintenanceFilter = "all" | "due" | "none";
@@ -41,6 +51,9 @@ type InventoryPanelProps = {
   loading: boolean;
   message: string;
   query: string;
+  columns: readonly VehicleTableColumn[];
+  columnsLoading: boolean;
+  sort: { key: SortKey; direction: SortDirection };
   inventoryView: InventoryViewMode;
   inventoryFilter: InventoryFilter;
   maintenanceFilter: MaintenanceFilter;
@@ -48,6 +61,9 @@ type InventoryPanelProps = {
   manufacturerFilter: string;
   categoryFilter: string;
   gattungFilter: string;
+  railwayCompanyFilter: string;
+  epochFilter: string;
+  adapterFilter: string;
   exhibitionReadyFilter: boolean;
   inventorySummary: {
     categories: number;
@@ -70,6 +86,9 @@ type InventoryPanelProps = {
     manufacturers: string[];
     categories: string[];
     gattungen: string[];
+    railwayCompanies: string[];
+    epochs: string[];
+    adapters: string[];
   };
   hasActiveInventoryFilters: boolean;
   allVisibleSelected: boolean;
@@ -78,6 +97,10 @@ type InventoryPanelProps = {
   onReload: () => void;
   onOpenReport: () => void;
   onQueryChange: (value: string) => void;
+  onToggleColumn: (column: VehicleTableColumn) => void;
+  onMoveColumn: (column: VehicleTableColumn, direction: VehicleColumnMove) => void;
+  onResetColumns: () => void;
+  onToggleSort: (key: SortKey) => void;
   onInventoryViewChange: (value: InventoryViewMode) => void;
   onInventoryFilterChange: (value: InventoryFilter) => void;
   onMaintenanceFilterChange: (value: MaintenanceFilter) => void;
@@ -85,6 +108,9 @@ type InventoryPanelProps = {
   onManufacturerFilterChange: (value: string) => void;
   onCategoryFilterChange: (value: string) => void;
   onGattungFilterChange: (value: string) => void;
+  onRailwayCompanyFilterChange: (value: string) => void;
+  onEpochFilterChange: (value: string) => void;
+  onAdapterFilterChange: (value: string) => void;
   onExhibitionReadyFilterChange: (value: boolean) => void;
   onResetFilters: () => void;
   onOpenDetail: (vehicle: Vehicle, tab?: "model" | "control" | "cv" | "uploads" | "maintenance" | "spareParts") => void;
@@ -93,7 +119,6 @@ type InventoryPanelProps = {
   onToggleSelection: (vehicleID: string) => void;
   onToggleAllVisibleSelection: () => void;
   onToggleExhibition: (vehicle: Vehicle, exhibition: boolean) => void;
-  renderSortHeader: (key: SortKey) => ReactNode;
   renderQuickMenu: (vehicle: Vehicle) => ReactNode;
 };
 
@@ -103,6 +128,9 @@ export function VehicleInventoryPanel({
   loading,
   message,
   query,
+  columns,
+  columnsLoading,
+  sort,
   inventoryView,
   inventoryFilter,
   maintenanceFilter,
@@ -110,6 +138,9 @@ export function VehicleInventoryPanel({
   manufacturerFilter,
   categoryFilter,
   gattungFilter,
+  railwayCompanyFilter,
+  epochFilter,
+  adapterFilter,
   exhibitionReadyFilter,
   inventorySummary,
   maintenanceReminderSummary,
@@ -124,6 +155,10 @@ export function VehicleInventoryPanel({
   onReload,
   onOpenReport,
   onQueryChange,
+  onToggleColumn,
+  onMoveColumn,
+  onResetColumns,
+  onToggleSort,
   onInventoryViewChange,
   onInventoryFilterChange,
   onMaintenanceFilterChange,
@@ -131,6 +166,9 @@ export function VehicleInventoryPanel({
   onManufacturerFilterChange,
   onCategoryFilterChange,
   onGattungFilterChange,
+  onRailwayCompanyFilterChange,
+  onEpochFilterChange,
+  onAdapterFilterChange,
   onExhibitionReadyFilterChange,
   onResetFilters,
   onOpenDetail,
@@ -139,7 +177,6 @@ export function VehicleInventoryPanel({
   onToggleSelection,
   onToggleAllVisibleSelection,
   onToggleExhibition,
-  renderSortHeader,
   renderQuickMenu
 }: InventoryPanelProps) {
   const { t } = useI18n();
@@ -165,7 +202,7 @@ export function VehicleInventoryPanel({
       </section>
 
       <section className="inventory-status-row" aria-label={t("vehicles.status")}>
-        <article className={inventoryFilter === "all" && maintenanceFilter === "all" && qualityFilter === "none" && !manufacturerFilter && !categoryFilter && !gattungFilter && !exhibitionReadyFilter ? "inventory-status-card active" : "inventory-status-card"}>
+        <article className={inventoryFilter === "all" && maintenanceFilter === "all" && qualityFilter === "none" && !manufacturerFilter && !categoryFilter && !gattungFilter && !railwayCompanyFilter && !epochFilter && !adapterFilter && !exhibitionReadyFilter ? "inventory-status-card active" : "inventory-status-card"}>
           <button
             type="button"
             onClick={onResetFilters}
@@ -253,6 +290,13 @@ export function VehicleInventoryPanel({
                   <Grid2X2 size={16} />
                 </button>
               </span>
+              <VehicleColumnPicker
+                columns={columns}
+                loading={columnsLoading}
+                onToggle={onToggleColumn}
+                onMove={onMoveColumn}
+                onReset={onResetColumns}
+              />
               <button type="button" className="icon-button" onClick={onOpenReport} aria-label={t("vehicles.report.open")} title={t("vehicles.report.open")} disabled={loading || vehicles.length === 0}>
                 <Printer size={16} />
               </button>
@@ -323,6 +367,27 @@ export function VehicleInventoryPanel({
               ))}
             </AppSelect>
 
+            <AppSelect className="inventory-filter-select" value={railwayCompanyFilter} onChange={(event) => onRailwayCompanyFilterChange(event.target.value)} aria-label={t("vehicles.filter.railwayCompany")}>
+              <option value="">{t("vehicles.filter.railwayCompany")}</option>
+              {inventoryFilterOptions.railwayCompanies.map((railwayCompany) => (
+                <option key={railwayCompany} value={railwayCompany}>{railwayCompany}</option>
+              ))}
+            </AppSelect>
+
+            <AppSelect className="inventory-filter-select" value={epochFilter} onChange={(event) => onEpochFilterChange(event.target.value)} aria-label={t("vehicles.filter.epoch")}>
+              <option value="">{t("vehicles.filter.epoch")}</option>
+              {inventoryFilterOptions.epochs.map((epoch) => (
+                <option key={epoch} value={epoch}>{epoch}</option>
+              ))}
+            </AppSelect>
+
+            <AppSelect className="inventory-filter-select" value={adapterFilter} onChange={(event) => onAdapterFilterChange(event.target.value)} aria-label={t("vehicles.filter.adapter")}>
+              <option value="">{t("vehicles.filter.adapter")}</option>
+              {inventoryFilterOptions.adapters.map((adapter) => (
+                <option key={adapter} value={adapter}>{adapter}</option>
+              ))}
+            </AppSelect>
+
             <button
               type="button"
               className={exhibitionReadyFilter ? "inventory-filter-pill inventory-filter-toggle active" : "inventory-filter-pill inventory-filter-toggle"}
@@ -365,42 +430,16 @@ export function VehicleInventoryPanel({
 
         {message && <p className="form-message">{message}</p>}
 
-        {!loading && sortedVehicles.length > 0 && (
-          <div className="inventory-mobile-list" aria-label="Kompakte Fahrzeugliste">
-            {sortedVehicles.map((vehicle) => {
-              const image = primaryImage(vehicle.images);
-              return (
-                <article key={vehicle.id} className="inventory-mobile-item">
-                  <button type="button" className="inventory-mobile-media" onClick={() => onOpenDetail(vehicle)} aria-label={`${vehicle.inventoryNumber} anzeigen`}>
-                    {image ? (
-                      <img src={previewImageUrl(image)} alt="" />
-                    ) : (
-                      <div className="image-placeholder">{t("exhibition.noPreview")}</div>
-                    )}
-                  </button>
-                  <button type="button" className="inventory-mobile-main" onClick={() => onOpenDetail(vehicle)}>
-                    <span>{vehicle.inventoryNumber}</span>
-                    <strong>{vehicle.name}</strong>
-                    <small>{vehicle.manufacturer || "-"} · {vehicle.articleNumber || "-"} · {vehicle.category || "-"}</small>
-                  </button>
-                  <div className="inventory-mobile-meta">
-                    <span>{vehicle.gauge || "-"}</span>
-                    <small>{vehicle.epoch || "-"}</small>
-                  </div>
-                  <div className="inventory-mobile-actions">
-                    <button type="button" className="icon-button" onClick={() => onOpenEdit(vehicle)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                      <Pencil size={16} />
-                    </button>
-                    <button type="button" className="icon-button danger" onClick={() => onDelete(vehicle)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                      <Trash2 size={16} />
-                    </button>
-                    {renderQuickMenu(vehicle)}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+        {!loading && sortedVehicles.length > 0 ? (
+          <VehicleInventoryMobileList
+            vehicles={sortedVehicles}
+            columns={columns}
+            onOpenDetail={onOpenDetail}
+            onOpenEdit={onOpenEdit}
+            onDelete={onDelete}
+            renderQuickMenu={renderQuickMenu}
+          />
+        ) : null}
 
         {loading && vehicles.length === 0 ? (
           <p className="empty-state">{t("vehicles.loading")}</p>
@@ -464,100 +503,21 @@ export function VehicleInventoryPanel({
                 })}
               </div>
             ) : (
-              <div className="table-wrap">
-                <table className="inventory-table">
-                  <thead>
-                    <tr>
-                      <th className="select-cell">
-                        <label className="table-select-field" title={t("vehicles.report.selectAll")}>
-                          <input
-                            type="checkbox"
-                            checked={allVisibleSelected}
-                            onChange={onToggleAllVisibleSelection}
-                            aria-label={t("vehicles.report.selectAll")}
-                            disabled={sortedVehicles.length === 0}
-                          />
-                        </label>
-                      </th>
-                      <th>{t("vehicles.image")}</th>
-                      <th>{renderSortHeader("inventoryNumber")}</th>
-                      <th>{renderSortHeader("manufacturer")}</th>
-                      <th className="inventory-table-center">{renderSortHeader("articleNumber")}</th>
-                      <th>{renderSortHeader("name")}</th>
-                      <th className="inventory-table-center">{renderSortHeader("gauge")}</th>
-                      <th className="inventory-table-center">{renderSortHeader("epoch")}</th>
-                      <th>{t("vehicle.field.exhibition")}</th>
-                      <th className="actions-cell">{t("vehicles.actions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sortedVehicles.map((vehicle) => {
-                      const image = primaryImage(vehicle.images);
-                      return (
-                        <tr key={vehicle.id} className={selectedVehicleIDs.has(vehicle.id) ? "selected-row" : ""}>
-                          <td className="select-cell">
-                            <label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
-                              <input
-                                type="checkbox"
-                                checked={selectedVehicleIDs.has(vehicle.id)}
-                                onChange={() => onToggleSelection(vehicle.id)}
-                                aria-label={`${vehicle.inventoryNumber} ${t("vehicles.report.selectVehicle")}`}
-                              />
-                            </label>
-                          </td>
-                          <td>
-                            {image ? (
-                              <img className="inventory-thumb" src={previewImageUrl(image)} alt="" />
-                            ) : (
-                              <div className="image-placeholder">{t("exhibition.noPreview")}</div>
-                            )}
-                          </td>
-                          <td>{vehicle.inventoryNumber}</td>
-                          <td>{vehicle.manufacturer}</td>
-                          <td className="inventory-table-center">{vehicle.articleNumber || "-"}</td>
-                          <td>
-                            <button type="button" className="inventory-name-link" onClick={() => onOpenDetail(vehicle)}>
-                              {vehicle.name}
-                            </button>
-                          </td>
-                          <td className="inventory-table-center">{vehicle.gauge}</td>
-                          <td className="inventory-table-center">{vehicle.epoch || "-"}</td>
-                          <td>
-                            <label
-                              className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}
-                              title={vehicle.exhibition || vehicleExhibitionEligible(vehicle) ? t("vehicles.exhibition.toggle") : t("vehicles.exhibition.requiresDecoder")}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={Boolean(vehicle.exhibition)}
-                                disabled={!vehicle.exhibition && !vehicleExhibitionEligible(vehicle)}
-                                onChange={(event) => onToggleExhibition(vehicle, event.target.checked)}
-                                aria-label={t("vehicles.exhibition.toggle")}
-                              />
-                              <span aria-hidden="true" />
-                              <em>{vehicle.exhibition ? t("common.yes") : t("common.no")}</em>
-                            </label>
-                          </td>
-                          <td className="actions-cell">
-                            <div className="table-actions">
-                              <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
-                                <Eye size={16} />
-                              </button>
-                              <button type="button" className="icon-button" onClick={() => onOpenEdit(vehicle)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                                <Pencil size={16} />
-                              </button>
-                              <button type="button" className="icon-button danger" onClick={() => onDelete(vehicle)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                                <Trash2 size={16} />
-                              </button>
-                              {renderQuickMenu(vehicle)}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <VehicleInventoryTable
+                vehicles={sortedVehicles}
+                columns={columns}
+                allVisibleSelected={allVisibleSelected}
+                selectedVehicleIDs={selectedVehicleIDs}
+                sort={sort}
+                onToggleSort={onToggleSort}
+                onToggleSelection={onToggleSelection}
+                onToggleAllVisibleSelection={onToggleAllVisibleSelection}
+                onOpenDetail={onOpenDetail}
+                onOpenEdit={onOpenEdit}
+                onDelete={onDelete}
+                onToggleExhibition={onToggleExhibition}
+                renderQuickMenu={renderQuickMenu}
+              />
             )}
           </div>
         )}
