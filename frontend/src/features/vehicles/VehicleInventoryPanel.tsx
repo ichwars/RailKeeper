@@ -436,7 +436,6 @@ export function VehicleInventoryPanel({
             columns={columns}
             onOpenDetail={onOpenDetail}
             onOpenEdit={onOpenEdit}
-            onDelete={onDelete}
             renderQuickMenu={renderQuickMenu}
           />
         ) : null}

@@ -1216,6 +1216,8 @@ export const enTranslations: Record<string, string> = {
     "vehicles.emptyFilter": "No vehicles found for this filter.",
     "vehicles.actions": "Actions",
     "vehicles.mobileList": "Compact vehicle list",
+    "vehicles.mobile.expand": "Show details for {inventoryNumber}",
+    "vehicles.mobile.collapse": "Hide details for {inventoryNumber}",
     "vehicles.exhibition.assign": "Add",
     "vehicles.exhibition.assigned": "Vehicle was added to the exhibition list.",
     "vehicles.exhibition.checkDecoder": "Digital yes and decoder no. available",

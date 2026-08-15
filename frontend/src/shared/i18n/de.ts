@@ -1216,6 +1216,8 @@ export const deTranslations: Record<string, string> = {
     "vehicles.emptyFilter": "Keine Fahrzeuge für diesen Filter gefunden.",
     "vehicles.actions": "Aktionen",
     "vehicles.mobileList": "Kompakte Fahrzeugliste",
+    "vehicles.mobile.expand": "Details für {inventoryNumber} anzeigen",
+    "vehicles.mobile.collapse": "Details für {inventoryNumber} ausblenden",
     "vehicles.exhibition.assign": "Eintragen",
     "vehicles.exhibition.assigned": "Fahrzeug wurde in die Ausstellungsliste übernommen.",
     "vehicles.exhibition.checkDecoder": "Digital ja und Decoder-Nr. vorhanden",
