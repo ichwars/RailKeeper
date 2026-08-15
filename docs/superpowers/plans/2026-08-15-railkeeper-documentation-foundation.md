@@ -5,11 +5,14 @@
 **Goal:** Build the bilingual VitePress foundation, automated documentation checks, coverage
 inventory, and GitHub Pages deployment for the RailKeeper handbook.
 
-**Architecture:** VitePress 1.6.4 runs as an isolated Node 24 workspace under `docs/`, with authored
-content in `docs/site/`. English uses the site root and German uses `/de/`. Small dependency-free
-Node scripts enforce paired pages and map repository surfaces into a reviewed coverage manifest.
+**Architecture:** VitePress 2.0.0-alpha.19 runs as an isolated Node 24 workspace under `docs/`, with
+the prerelease version pinned exactly after explicit approval. The stable VitePress 1.6.4 line was
+rejected because its Vite 5 dependency has an unresolved high-severity Windows path vulnerability.
+Authored content lives in `docs/site/`. English uses the site root and German uses `/de/`. Small
+dependency-free Node scripts enforce paired pages and map repository surfaces into a reviewed
+coverage manifest.
 
-**Tech Stack:** Node.js 24, npm, VitePress 1.6.4, Markdown, CSS, Node's built-in test runner,
+**Tech Stack:** Node.js 24, npm, VitePress 2.0.0-alpha.19, Markdown, CSS, Node's built-in test runner,
 GitHub Actions, GitHub Pages.
 
 ## Global Constraints
@@ -115,7 +118,7 @@ Create `docs/package.json`:
     "check": "npm test && node scripts/validate-docs.mjs && vitepress build"
   },
   "devDependencies": {
-    "vitepress": "1.6.4"
+    "vitepress": "2.0.0-alpha.19"
   }
 }
 ```
@@ -129,8 +132,8 @@ cd docs
 npm.cmd install
 ```
 
-Expected: `docs/package-lock.json` is created, `npm audit` reports no unresolved high or critical
-finding, and no root-level `package.json` is introduced.
+Expected: `docs/package-lock.json` is created, `npm audit` reports no high or critical finding, and
+no root-level `package.json` is introduced.
 
 - [ ] **Step 4: Create the VitePress configuration**
 
