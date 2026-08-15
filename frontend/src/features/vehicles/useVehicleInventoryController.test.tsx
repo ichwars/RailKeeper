@@ -1,8 +1,12 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { analogVehicleFixture, maintenanceFixture, vehicleFixture } from "../../test/fixtures/vehicles";
 import { inventoryViewSettingKey } from "./vehicleViewModel";
+import {
+  defaultVehicleTableColumns,
+  type VehicleTableColumn
+} from "./vehicleTableColumns";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
 
 describe("useVehicleInventoryController", () => {
@@ -65,5 +69,55 @@ describe("useVehicleInventoryController", () => {
     act(() => result.current.setInventoryViewMode("cards"));
     expect(result.current.inventoryView).toBe("cards");
     expect(window.localStorage.getItem(inventoryViewSettingKey)).toBe("cards");
+  });
+
+  it("combines railway company, epoch, and adapter filters", () => {
+    const db = vehicleFixture({
+      id: "db",
+      railwayCompany: "DB",
+      epoch: "IV",
+      adapter: "PluX22"
+    });
+    const dr = analogVehicleFixture({
+      id: "dr",
+      railwayCompany: "DR",
+      epoch: "III",
+      adapter: "NEM 652"
+    });
+    const { result } = renderHook(() =>
+      useVehicleInventoryController([db, dr], defaultVehicleTableColumns)
+    );
+
+    act(() => result.current.setRailwayCompanyFilter("DB"));
+    act(() => result.current.setEpochFilter("IV"));
+    act(() => result.current.setAdapterFilter("PluX22"));
+
+    expect(result.current.filteredVehicles.map((vehicle) => vehicle.id)).toEqual(["db"]);
+    expect(result.current.inventoryFilterOptions).toMatchObject({
+      railwayCompanies: ["DB", "DR"],
+      epochs: ["III", "IV"],
+      adapters: ["NEM 652", "PluX22"]
+    });
+
+    act(() => result.current.resetInventoryFilters());
+    expect(result.current.hasActiveInventoryFilters).toBe(false);
+  });
+
+  it("falls back when the active sort column is hidden", async () => {
+    const { result, rerender } = renderHook(
+      ({ columns }: { columns: VehicleTableColumn[] }) =>
+        useVehicleInventoryController(
+          [vehicleFixture(), analogVehicleFixture()],
+          columns
+        ),
+      { initialProps: { columns: ["inventoryNumber", "series"] } }
+    );
+
+    act(() => result.current.toggleSort("series"));
+    rerender({ columns: ["inventoryNumber"] });
+
+    await waitFor(() => {
+      expect(result.current.sort).toEqual({ key: "inventoryNumber", direction: "asc" });
+    });
   });
 });
