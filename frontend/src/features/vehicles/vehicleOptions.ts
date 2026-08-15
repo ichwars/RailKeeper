@@ -1,7 +1,17 @@
 export const wheelsetOptions = ["2-Leiter DC", "3-Leiter AC", "NEM", "RP25", "Metall", "Kunststoff"];
 export const couplingOptions = ["NEM-Schacht", "Kurzkupplung", "Bügelkupplung", "Klauenkupplung", "Schraubenkupplung"];
 export const powerPickupOptions = ["Schiene", "Oberleitung", "Batterie", "Akku"];
-export const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
+export const adapterOptions = [
+  "NEM 651",
+  "NEM 652",
+  "PluX12",
+  "PluX16",
+  "PluX22",
+  "MTC21",
+  "Next18",
+  "8-polig",
+  "21-polig"
+];
 export const acquisitionOptions = ["Kauf", "Tausch", "Geschenk", "Erbe", "Leihgabe", "Sonstiges"];
 export const acquiredFromOptions = ["Händler", "Privat", "Messe / Börse", "Online", "Auktion", "Hersteller", "Verein", "Sonstiges"];
 export const storageLocationOptions = ["Auf Anlage", "Vitrine", "Lager", "Werkstatt", "Transportbox", "Ausgeliehen", "Sonstiges"];
