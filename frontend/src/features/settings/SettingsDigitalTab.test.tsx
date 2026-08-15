@@ -1,0 +1,110 @@
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { api, type DigitalCenterSettings, type ECoSLiveStatus } from "../../shared/api";
+import { SettingsDigitalTab } from "./SettingsDigitalTab";
+
+const settings = (ecosEnabled = false): DigitalCenterSettings => ({
+  provider: "ecos",
+  ecos: { enabled: ecosEnabled, host: "192.168.2.151", port: "15471" },
+  z21: { enabled: false, host: "", port: "21105" },
+  intellibox3: { enabled: false, host: "", port: "21105" },
+  cs3: { enabled: false, host: "", port: "80" }
+});
+
+const liveStatus: ECoSLiveStatus = {
+  provider: "ecos",
+  connected: false,
+  blocksReceived: 0,
+  repliesReceived: 0,
+  eventsReceived: 0,
+  message: "ECoS-Live-Verbindung inaktiv."
+};
+
+describe("SettingsDigitalTab commissioning workflow", () => {
+  beforeEach(() => {
+    vi.spyOn(api, "digitalSettings").mockResolvedValue(settings());
+    vi.spyOn(api, "updateDigitalSettings").mockImplementation(async (input) => input);
+    vi.spyOn(api, "getECoSLiveStatus").mockResolvedValue(liveStatus);
+    vi.spyOn(api, "testECoSConnection").mockResolvedValue({
+      connected: true,
+      host: "192.168.2.151",
+      port: 15471,
+      applicationVersion: "4.3.1",
+      message: "ECoS-Verbindung erfolgreich getestet."
+    });
+  });
+
+  it("requires a successful test before activating the adapter", async () => {
+    const user = userEvent.setup();
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    expect(await screen.findByText("192.168.2.151:15471")).toBeInTheDocument();
+    const activate = screen.getByRole("button", { name: "Adapter aktivieren" });
+    expect(activate).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "Verbindung testen" }));
+    expect(await screen.findByText("Verbindung erfolgreich geprüft")).toBeInTheDocument();
+    expect(activate).toBeEnabled();
+
+    await user.click(activate);
+    await waitFor(() => {
+      expect(api.updateDigitalSettings).toHaveBeenLastCalledWith(
+        expect.objectContaining({ ecos: expect.objectContaining({ enabled: true }) })
+      );
+    });
+    expect(await screen.findByText("Adapter und Importbereich wurden aktiviert.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Live-Monitor starten" })).toBeEnabled();
+  });
+
+  it("makes the diagnostic and ECoS message tabs interactive", async () => {
+    const user = userEvent.setup();
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(screen.getByRole("tab", { name: "Letzte Diagnose" }));
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("Dieser Adapter bietet derzeit nur den Verbindungstest.");
+
+    await user.click(screen.getByRole("tab", { name: "ECoS-Meldungen" }));
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("ECoS-Live-Verbindung inaktiv.");
+    expect(screen.getByRole("button", { name: "Status aktualisieren" })).toBeEnabled();
+  });
+
+  it("removes a configured connection only after confirmation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.digitalSettings).mockResolvedValue(settings(true));
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
+
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    await screen.findByText("192.168.2.151:15471");
+    await user.click(screen.getByRole("button", { name: "Verbindung entfernen" }));
+
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("ESU ECoS"));
+    await waitFor(() => {
+      expect(api.updateDigitalSettings).toHaveBeenLastCalledWith(
+        expect.objectContaining({ ecos: { enabled: false, host: "", port: "15471" } })
+      );
+    });
+    expect(await screen.findByText("Adapter-Verbindung wurde entfernt.")).toBeInTheDocument();
+  });
+});

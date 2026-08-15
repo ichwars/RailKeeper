@@ -6,6 +6,18 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.17.6] - 2026-08-15
+
+### Changed
+
+- Digital-center setup now guides users through four explicit steps from adapter selection and
+  configuration to connection testing and deliberate activation.
+- Connection testing, diagnostics, technical details, ECoS messages, and the safety scope now share
+  one operational workspace.
+- Adapters can be activated, deactivated, and removed completely. The ECoS live monitor remains
+  gated by a successful test and an active connection.
+- The redesigned workflow adapts to narrow screens without horizontal overflow.
+
 ## [0.1.17.5] - 2026-08-15
 
 ### Changed
@@ -164,6 +176,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4
 [0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3

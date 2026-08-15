@@ -2127,7 +2127,7 @@ export function SettingsView({ username }: { username: string }) {
       )}
 
       {activeSettingsTab === "digital" && (
-        <SettingsDigitalTab canManageUsers={canManageUsers} formatDateTime={formatDateTime} />
+        <SettingsDigitalTab canManageUsers={canManageUsers} formatDateTime={formatDateTime} username={username} />
       )}
 
       {activeSettingsTab === "appearance" && (

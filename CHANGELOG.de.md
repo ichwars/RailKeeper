@@ -6,6 +6,18 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.17.6] - 2026-08-15
+
+### Geändert
+
+- Die Konfiguration von Digitalzentralen führt jetzt in vier klaren Schritten von der Adapterwahl
+  über Konfiguration und Verbindungstest bis zur bewussten Aktivierung.
+- Verbindungstest, Diagnose, technische Details, ECoS-Meldungen und Sicherheitsumfang sind in
+  einem gemeinsamen Arbeitsbereich zusammengeführt.
+- Adapter können aktiviert, deaktiviert und vollständig entfernt werden. Der ECoS-Live-Monitor
+  bleibt an einen erfolgreichen Test und eine aktive Verbindung gebunden.
+- Die neue Oberfläche passt sich ohne horizontalen Überlauf an schmale Ansichten an.
+
 ## [0.1.17.5] - 2026-08-15
 
 ### Geändert
@@ -176,6 +188,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4
 [0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3
