@@ -1,0 +1,62 @@
+import { describe, expect, it } from "vitest";
+
+import { vehicleFixture } from "../../test/fixtures/vehicles";
+import {
+  defaultVehicleTableColumns,
+  moveVehicleTableColumn,
+  normalizeVehicleTableColumns,
+  parseVehicleTableColumns,
+  serializeVehicleTableColumns,
+  toggleVehicleTableColumn,
+  vehicleColumnSortValue
+} from "./vehicleTableColumns";
+
+describe("vehicle table columns", () => {
+  it("keeps the current desktop columns as defaults", () => {
+    expect(defaultVehicleTableColumns).toEqual([
+      "image",
+      "inventoryNumber",
+      "manufacturer",
+      "articleNumber",
+      "name",
+      "gauge",
+      "epoch",
+      "exhibition"
+    ]);
+  });
+
+  it("preserves saved order without appending unknown, duplicate, or new keys", () => {
+    expect(normalizeVehicleTableColumns([
+      "series",
+      "manufacturer",
+      "futureColumn",
+      "series"
+    ])).toEqual(["series", "manufacturer"]);
+  });
+
+  it("restores inventory number when only presentation columns remain", () => {
+    expect(normalizeVehicleTableColumns(["image", "exhibition"]))
+      .toEqual(["image", "exhibition", "inventoryNumber"]);
+  });
+
+  it("uses defaults for missing, malformed, or non-array settings", () => {
+    expect(parseVehicleTableColumns(undefined)).toEqual(defaultVehicleTableColumns);
+    expect(parseVehicleTableColumns("not-json")).toEqual(defaultVehicleTableColumns);
+    expect(parseVehicleTableColumns("{}")).toEqual(defaultVehicleTableColumns);
+  });
+
+  it("toggles, moves, and serializes a normalized ordered list", () => {
+    const shown = toggleVehicleTableColumn(defaultVehicleTableColumns, "series");
+    const moved = moveVehicleTableColumn(shown, "series", "up");
+
+    expect(moved.at(-2)).toBe("series");
+    expect(parseVehicleTableColumns(serializeVehicleTableColumns(moved))).toEqual(moved);
+  });
+
+  it("returns stable sortable values for booleans and text", () => {
+    const vehicle = vehicleFixture({ digital: true, series: " BR 218 " });
+
+    expect(vehicleColumnSortValue(vehicle, "digital")).toBe("1");
+    expect(vehicleColumnSortValue(vehicle, "series")).toBe("br 218");
+  });
+});
