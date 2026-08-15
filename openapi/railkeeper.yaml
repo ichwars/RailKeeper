@@ -418,7 +418,11 @@ components:
           type: boolean
         dtDecoderNumber:
           type: string
+        decoderType:
+          type: string
         exhibitionReady:
+          type: boolean
+        exhibition:
           type: boolean
         abcBrakes:
           type: boolean
@@ -427,6 +431,21 @@ components:
         productionPeriod:
           type: string
         listPrice:
+          type: string
+        acquisitionType:
+          type: string
+        acquiredFrom:
+          type: string
+        purchasePrice:
+          type: string
+        purchaseDate:
+          type: string
+          format: date
+        storageLocation:
+          type: string
+        condition:
+          type: string
+        packaging:
           type: string
         lengthMm:
           type: string
@@ -534,7 +553,11 @@ components:
           type: boolean
         dtDecoderNumber:
           type: string
+        decoderType:
+          type: string
         exhibitionReady:
+          type: boolean
+        exhibition:
           type: boolean
         abcBrakes:
           type: boolean
@@ -543,6 +566,21 @@ components:
         productionPeriod:
           type: string
         listPrice:
+          type: string
+        acquisitionType:
+          type: string
+        acquiredFrom:
+          type: string
+        purchasePrice:
+          type: string
+        purchaseDate:
+          type: string
+          format: date
+        storageLocation:
+          type: string
+        condition:
+          type: string
+        packaging:
           type: string
         lengthMm:
           type: string
@@ -7381,6 +7419,7 @@ paths:
       parameters:
         - name: q
           in: query
+          description: Case-insensitive substring search across inventory number, manufacturer, article number, designation, series, vehicle number, and decoder type.
           schema:
             type: string
       responses:

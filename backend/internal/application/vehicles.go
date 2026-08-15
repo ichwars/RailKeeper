@@ -25,18 +25,28 @@ func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, err
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
-       COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
-       digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''), COALESCE(decoder_type, ''),
-       exhibition_ready, exhibition, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
-       created_at, updated_at
-FROM vehicles
-WHERE ? = '%%'
-   OR inventory_number LIKE ?
-   OR manufacturer LIKE ?
-   OR article_number LIKE ?
-   OR name LIKE ?
-ORDER BY updated_at DESC, inventory_number ASC
-`, like, like, like, like, like)
+	       COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
+	       digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''), COALESCE(decoder_type, ''),
+	       exhibition_ready, exhibition, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
+	       COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''), COALESCE(purchase_date, ''),
+	       COALESCE(storage_location, ''), COALESCE(condition, ''), COALESCE(packaging, ''),
+	       COALESCE(length_mm, ''), COALESCE(weight_g, ''), COALESCE(color, ''), COALESCE(lettering, ''),
+	       COALESCE(load, ''), COALESCE(interior, ''), COALESCE(axles, ''), COALESCE(axle_count, ''),
+	       COALESCE(traction_tire_count, ''), COALESCE(wheelset, ''), COALESCE(coupling_front, ''),
+	       COALESCE(coupling_rear, ''), COALESCE(power_pickup, ''), COALESCE(adapter, ''),
+	       drive_enabled, headlights_enabled, lighting_enabled, sound_generator_enabled, smoke_generator_enabled,
+	       created_at, updated_at
+	FROM vehicles
+	WHERE ? = '%%'
+	   OR inventory_number LIKE ? COLLATE NOCASE
+	   OR manufacturer LIKE ? COLLATE NOCASE
+	   OR article_number LIKE ? COLLATE NOCASE
+	   OR name LIKE ? COLLATE NOCASE
+	   OR series LIKE ? COLLATE NOCASE
+	   OR vehicle_number LIKE ? COLLATE NOCASE
+	   OR decoder_type LIKE ? COLLATE NOCASE
+	ORDER BY updated_at DESC, inventory_number ASC
+	`, like, like, like, like, like, like, like, like)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicles: %w", err)
 	}
@@ -50,6 +60,11 @@ ORDER BY updated_at DESC, inventory_number ASC
 		var exhibitionReady int
 		var exhibition int
 		var abcBrakes int
+		var driveEnabled int
+		var headlightsEnabled int
+		var lightingEnabled int
+		var soundGeneratorEnabled int
+		var smokeGeneratorEnabled int
 		if err := rows.Scan(
 			&vehicle.ID,
 			&vehicle.InventoryNumber,
@@ -76,6 +91,32 @@ ORDER BY updated_at DESC, inventory_number ASC
 			&vehicle.EAN,
 			&vehicle.ProductionPeriod,
 			&vehicle.ListPrice,
+			&vehicle.AcquisitionType,
+			&vehicle.AcquiredFrom,
+			&vehicle.PurchasePrice,
+			&vehicle.PurchaseDate,
+			&vehicle.StorageLocation,
+			&vehicle.Condition,
+			&vehicle.Packaging,
+			&vehicle.LengthMM,
+			&vehicle.WeightG,
+			&vehicle.Color,
+			&vehicle.Lettering,
+			&vehicle.Load,
+			&vehicle.Interior,
+			&vehicle.Axles,
+			&vehicle.AxleCount,
+			&vehicle.TractionTireCount,
+			&vehicle.Wheelset,
+			&vehicle.CouplingFront,
+			&vehicle.CouplingRear,
+			&vehicle.PowerPickup,
+			&vehicle.Adapter,
+			&driveEnabled,
+			&headlightsEnabled,
+			&lightingEnabled,
+			&soundGeneratorEnabled,
+			&smokeGeneratorEnabled,
 			&vehicle.CreatedAt,
 			&vehicle.UpdatedAt,
 		); err != nil {
@@ -86,6 +127,11 @@ ORDER BY updated_at DESC, inventory_number ASC
 		vehicle.ExhibitionReady = exhibitionReady == 1
 		vehicle.Exhibition = exhibition == 1
 		vehicle.ABCBrakes = abcBrakes == 1
+		vehicle.DriveEnabled = driveEnabled == 1
+		vehicle.HeadlightsEnabled = headlightsEnabled == 1
+		vehicle.LightingEnabled = lightingEnabled == 1
+		vehicle.SoundGeneratorEnabled = soundGeneratorEnabled == 1
+		vehicle.SmokeGeneratorEnabled = smokeGeneratorEnabled == 1
 		vehicles = append(vehicles, vehicle)
 	}
 	if err := rows.Err(); err != nil {

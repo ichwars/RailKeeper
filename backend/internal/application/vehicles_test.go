@@ -179,6 +179,79 @@ func TestListVehiclesFiltersByQuery(t *testing.T) {
 	}
 }
 
+func TestListVehiclesSearchesExtendedFields(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer:          "Roco",
+		Name:                  "Diesellok",
+		Gauge:                 "H0",
+		Category:              "Lokomotive",
+		Gattung:               "Diesellok",
+		Series:                "BR 218",
+		VehicleNumber:         "218 217-8",
+		DecoderType:           "LokSound 5",
+		RailwayCompany:        "DB",
+		Epoch:                 "IV",
+		Adapter:               "PluX22",
+		AcquisitionType:       "Kauf",
+		AcquiredFrom:          "Fachhandel",
+		PurchasePrice:         "199,90",
+		PurchaseDate:          "2026-08-15",
+		StorageLocation:       "Vitrine 1",
+		Condition:             "Sehr gut",
+		Packaging:             "OVP",
+		LengthMM:              "189",
+		WeightG:               "420",
+		Color:                 "ozeanblau/beige",
+		Lettering:             "DB",
+		Interior:              "Führerstand",
+		Axles:                 "Bo'Bo'",
+		AxleCount:             "4",
+		TractionTireCount:     "2",
+		Wheelset:              "AC",
+		CouplingFront:         "Kurzkupplung",
+		CouplingRear:          "Kurzkupplung",
+		PowerPickup:           "Schleifer",
+		Digital:               true,
+		DigitalDecoderNumber:  "21",
+		DTDecoder:             true,
+		DTDecoderNumber:       "88",
+		ABCBrakes:             true,
+		DriveEnabled:          true,
+		HeadlightsEnabled:     true,
+		LightingEnabled:       true,
+		SoundGeneratorEnabled: true,
+		ExhibitionReady:       true,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, query := range []string{"br 218", "217-8", "loksound"} {
+		items, listErr := service.List(ctx, "  "+query+"  ")
+		if listErr != nil {
+			t.Fatal(listErr)
+		}
+		if len(items) != 1 || items[0].ID != created.ID {
+			t.Fatalf("query %q returned %#v", query, items)
+		}
+	}
+
+	items, err := service.List(ctx, "218")
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := items[0]
+	if got.Adapter != "PluX22" || got.PurchasePrice != "199,90" ||
+		got.StorageLocation != "Vitrine 1" || got.AxleCount != "4" ||
+		!got.DriveEnabled || !got.ExhibitionReady {
+		t.Fatalf("short list fields missing: %#v", got)
+	}
+}
+
 func TestGetVehicleReturnsDetail(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
