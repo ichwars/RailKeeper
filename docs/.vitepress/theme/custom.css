@@ -31,3 +31,18 @@
 .VPHero .name {
   color: var(--vp-c-text-1);
 }
+
+@media (min-width: 768px) and (max-width: 1099px) {
+  .VPNavBarMenu,
+  .VPNavBarExtra {
+    display: none !important;
+  }
+
+  .VPNavBarHamburger {
+    display: flex !important;
+  }
+
+  .VPNavScreen {
+    display: block !important;
+  }
+}
