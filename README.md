@@ -34,7 +34,8 @@ The project is designed for private collections, clubs and small workshops that 
 - Local-first inventory with SQLite, uploads and JSON backups
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
 - Article inventory with generated inventory numbers, sortable selection-first overview, quantity or individual tracking, storage-location stock, reservations, installations, documents and usage history
-- Layout, module, setup and plan-revision foundation with version-conflict protection; its main-navigation entry remains temporarily disabled while the workspace is refined
+- Layout, module, setup and plan-revision foundation with version-conflict protection; the workspace
+  remains temporarily hidden from the main navigation while it is refined
 - Article data web search with configurable sources, barcode/EAN entry, ZXing-based camera scanning,
   typed track details, and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
@@ -117,7 +118,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17.4
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17.5
 ```
 
 If you intentionally want to build the checked-out source tree, use:

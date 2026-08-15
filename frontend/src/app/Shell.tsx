@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, FileInput, LayoutTemplate, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
@@ -11,7 +11,6 @@ const navItems = [
   { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
   { view: "vehicles", href: "/vehicles", labelKey: "nav.vehicles", icon: Box },
   { view: "accessories", href: "/accessories", labelKey: "nav.accessories", icon: Boxes },
-  { view: "layouts", href: "/layouts", labelKey: "nav.layouts", icon: LayoutTemplate },
   { view: "exhibition", href: "/exhibition", labelKey: "nav.exhibition", icon: CalendarDays },
   { view: "importExport", href: "/import-export", labelKey: "nav.importExport", icon: FileInput },
   { view: "settings", href: "/settings", labelKey: "nav.settings", icon: Settings }
