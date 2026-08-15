@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the noisy mobile vehicle list with compact expandable cards and keep every vehicle quick menu visible above table rows and mobile cards.
+**Goal:** Replace the noisy mobile vehicle list with compact expandable cards, keep every vehicle quick menu visible, and add the missing PluX12 option from Issue #85.
 
-**Architecture:** `VehicleInventoryMobileList` owns only the set of expanded vehicle IDs. A new presentational `VehicleInventoryMobileCard` renders the fixed compact hierarchy, remaining selected columns, and actions from the existing vehicle column definitions. Focused vehicle inventory CSS exempts action cells from ellipsis clipping and provides stacking for open quick menus without changing API, persistence, or permissions.
+**Architecture:** `VehicleInventoryMobileList` owns only the set of expanded vehicle IDs. A new presentational `VehicleInventoryMobileCard` renders the fixed compact hierarchy, remaining selected columns, and actions from the existing vehicle column definitions. Focused vehicle inventory CSS fixes menu stacking, while the existing vehicle adapter option module becomes the single source for vehicle and exhibition dropdowns.
 
 **Tech Stack:** React 19, TypeScript 7, Testing Library, Vitest, CSS, existing RailKeeper i18n and vehicle column helpers.
 
@@ -17,6 +17,7 @@
 - Do not repeat compact-header fields in the expanded details.
 - Keep long values inside the card without horizontal document overflow.
 - Keep View, Edit, and Quick menu directly available; Delete remains available through the existing quick menu.
+- Add `PluX12` to vehicle and exhibition dropdowns from one shared option list; do not change accessories or article-source parsing.
 - Use existing design tokens and German/English i18n.
 - Do not push, publish, close issues, or change backend code as part of this plan.
 
@@ -31,6 +32,10 @@
 - Modify `frontend/src/shared/i18n/en.ts`: English expand/collapse labels.
 - Modify `frontend/src/styles/vehicle-inventory.css`: compact card layout, detail layout, quick-menu stacking, and table action-cell overflow exception.
 - Modify `frontend/src/features/vehicles/vehicleInventoryResponsive.test.ts`: lock the responsive card and overflow rules with focused CSS regression tests.
+- Modify `frontend/src/features/vehicles/vehicleOptions.ts`: add `PluX12` in numeric PluX order and serve as the shared adapter option source.
+- Create `frontend/src/features/vehicles/vehicleOptions.test.ts`: lock the shared adapter option order.
+- Modify `frontend/src/features/exhibition/ExhibitionView.tsx`: import the shared adapter options instead of keeping a duplicate list.
+- Modify `frontend/src/features/exhibition/ExhibitionView.test.tsx`: verify that the exhibition entry dropdown exposes `PluX12`.
 
 ---
 
@@ -662,15 +667,149 @@ git commit -m "fix: refine mobile inventory and quick menus"
 
 ---
 
-### Task 3: Verify the complete frontend behavior locally
+### Task 3: Add PluX12 from one shared adapter option list
+
+**Files:**
+- Modify: `frontend/src/features/vehicles/vehicleOptions.ts`
+- Create: `frontend/src/features/vehicles/vehicleOptions.test.ts`
+- Modify: `frontend/src/features/exhibition/ExhibitionView.tsx`
+- Modify: `frontend/src/features/exhibition/ExhibitionView.test.tsx`
+
+**Interfaces:**
+- Consumes: the existing exported `adapterOptions: string[]` used by `VehicleFormFields`.
+- Produces: `adapterOptions` ordered as `NEM 651`, `NEM 652`, `PluX12`, `PluX16`, `PluX22`, `MTC21`, `Next18`, `8-polig`, `21-polig`, imported by both vehicle and exhibition forms.
+
+- [ ] **Step 1: Add failing shared-option and exhibition-dropdown tests**
+
+Create `frontend/src/features/vehicles/vehicleOptions.test.ts` with:
+
+```ts
+import { describe, expect, it } from "vitest";
+
+import { adapterOptions } from "./vehicleOptions";
+
+describe("vehicle adapter options", () => {
+  it("includes PluX12 in numeric PluX order", () => {
+    expect(adapterOptions).toEqual([
+      "NEM 651",
+      "NEM 652",
+      "PluX12",
+      "PluX16",
+      "PluX22",
+      "MTC21",
+      "Next18",
+      "8-polig",
+      "21-polig"
+    ]);
+  });
+});
+```
+
+Replace the existing Testing Library import in
+`frontend/src/features/exhibition/ExhibitionView.test.tsx` and add `userEvent`:
+
+```ts
+import userEvent from "@testing-library/user-event";
+import { render, screen, waitFor, within } from "@testing-library/react";
+```
+
+Add this test inside the existing `describe` block:
+
+```tsx
+  it("offers PluX12 from the shared vehicle adapter options", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "exhibitionLists").mockResolvedValue([{
+      id: "list-1",
+      designation: "Clubabend",
+      date: "2026-08-15",
+      locked: false,
+      entryCount: 0,
+      createdAt: "2026-08-15T18:00:00Z",
+      updatedAt: "2026-08-15T18:00:00Z"
+    }]);
+    vi.spyOn(api, "exhibitionEntries").mockResolvedValue([]);
+    vi.spyOn(api, "masterData").mockResolvedValue([]);
+    vi.spyOn(api, "masterDataAll").mockResolvedValue({});
+
+    render(<ExhibitionView roles={["Admin"]} />);
+    await user.click(await screen.findByRole("button", { name: "Eintrag" }));
+
+    const adapter = screen.getByLabelText("Adapter / Schnittstelle");
+    expect(within(adapter).getByRole("option", { name: "PluX12" })).toHaveValue("PluX12");
+  });
+```
+
+- [ ] **Step 2: Run both focused tests and verify they fail**
+
+Run:
+
+```powershell
+cd frontend
+npm.cmd run test:run -- src/features/vehicles/vehicleOptions.test.ts src/features/exhibition/ExhibitionView.test.tsx
+```
+
+Expected: the option-order test FAILS because `PluX12` is missing, and the exhibition test FAILS
+because its local duplicate list does not contain `PluX12`.
+
+- [ ] **Step 3: Add PluX12 to the shared list and remove the exhibition duplicate**
+
+Change the adapter export in `frontend/src/features/vehicles/vehicleOptions.ts` to:
+
+```ts
+export const adapterOptions = [
+  "NEM 651",
+  "NEM 652",
+  "PluX12",
+  "PluX16",
+  "PluX22",
+  "MTC21",
+  "Next18",
+  "8-polig",
+  "21-polig"
+];
+```
+
+In `frontend/src/features/exhibition/ExhibitionView.tsx`, add:
+
+```ts
+import { adapterOptions } from "../vehicles/vehicleOptions";
+```
+
+Delete the local `const adapterOptions = [...]` declaration. Keep the existing dropdown mapping
+unchanged so it now consumes the shared export.
+
+- [ ] **Step 4: Run the focused tests and production build**
+
+Run:
+
+```powershell
+cd frontend
+npm.cmd run test:run -- src/features/vehicles/vehicleOptions.test.ts src/features/exhibition/ExhibitionView.test.tsx
+npm.cmd run build
+```
+
+Expected: both test files PASS and the TypeScript/Vite production build PASS.
+
+- [ ] **Step 5: Commit Issue #85 as an independent change**
+
+```powershell
+git add -- frontend/src/features/vehicles/vehicleOptions.ts frontend/src/features/vehicles/vehicleOptions.test.ts frontend/src/features/exhibition/ExhibitionView.tsx frontend/src/features/exhibition/ExhibitionView.test.tsx
+git commit -m "feat: add PluX12 adapter option"
+```
+
+---
+
+### Task 4: Verify the complete frontend behavior locally
 
 **Files:**
 - Verify: `frontend/src/features/vehicles/VehicleInventoryMobileCard.tsx`
 - Verify: `frontend/src/features/vehicles/VehicleInventoryMobileList.tsx`
 - Verify: `frontend/src/styles/vehicle-inventory.css`
+- Verify: `frontend/src/features/vehicles/vehicleOptions.ts`
+- Verify: `frontend/src/features/exhibition/ExhibitionView.tsx`
 
 **Interfaces:**
-- Consumes: the complete implementation from Tasks 1 and 2.
+- Consumes: the complete implementation from Tasks 1 through 3.
 - Produces: automated and visual evidence that the approved mobile hierarchy and quick-menu fix work together without regressions.
 
 - [ ] **Step 1: Run the full frontend test suite**
@@ -721,6 +860,9 @@ At `http://127.0.0.1:8081/vehicles`, use a 390 x 844 viewport and verify:
    usable.
 6. Long German values wrap only in the expanded detail area; the collapsed card stays compact.
 7. Repeat in English and in light and dark themes.
+
+Also open a vehicle form and a new exhibition entry, then verify that both adapter dropdowns show
+`PluX12`, `PluX16`, and `PluX22` in that order.
 
 - [ ] **Step 5: Check the desktop quick menu at representative rows**
 
