@@ -15,8 +15,20 @@ describe("vehicle inventory column layout", () => {
     expect(css).toMatch(/@media\s*\(max-width:\s*720px\)[\s\S]*\.vehicle-column-picker-popover\s*\{[^}]*position:\s*fixed[^}]*inset:\s*auto\s+12px\s+12px/s);
   });
 
-  it("stacks grouped and mobile fields on narrow screens", () => {
+  it("uses an expandable compact mobile card with a narrow fallback", () => {
+    expect(css).toMatch(/\.vehicle-mobile-toggle\s*\{[^}]*grid-template-columns:\s*64px\s+minmax\(0,\s*1fr\)\s+24px/s);
     expect(css).toMatch(/\.vehicle-mobile-fields\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)/s);
-    expect(css).toMatch(/@media\s*\(max-width:\s*720px\)[\s\S]*\.vehicle-column-groups,[\s\S]*\.vehicle-mobile-fields\s*\{[^}]*grid-template-columns:\s*1fr/s);
+    expect(css).toMatch(/@media\s*\(max-width:\s*420px\)[\s\S]*\.vehicle-mobile-fields\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  });
+
+  it("keeps open mobile quick menus above following cards", () => {
+    expect(css).toMatch(/\.vehicle-mobile-item:has\(\.quick-menu\)\s*\{[^}]*z-index:\s*5/s);
+    expect(css).toMatch(/\.vehicle-mobile-item\s*\{[^}]*overflow:\s*visible/s);
+  });
+
+  it("clips long data cells without clipping the desktop action menu", () => {
+    expect(css).toMatch(/\.vehicle-inventory-table td:not\(\.actions-cell\)\s*\{[^}]*overflow:\s*hidden/s);
+    expect(css).toMatch(/\.vehicle-inventory-table td\.actions-cell\s*\{[^}]*overflow:\s*visible/s);
+    expect(css).toMatch(/\.vehicle-inventory-table tbody tr:has\(\.quick-menu\)\s*\{[^}]*z-index:\s*5/s);
   });
 });
