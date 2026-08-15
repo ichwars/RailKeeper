@@ -6,6 +6,13 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.17.5] - 2026-08-15
+
+### Changed
+
+- The layout workspace remains available by direct URL but is no longer shown in the main
+  navigation.
+
 ## [0.1.17.4] - 2026-08-14
 
 ### Fixed
@@ -157,6 +164,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4
 [0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3
 [0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2

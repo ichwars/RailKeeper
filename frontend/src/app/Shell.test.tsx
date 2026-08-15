@@ -55,20 +55,18 @@ describe("Shell article navigation", () => {
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
 
-  it("exposes the singular layout item as a link", async () => {
+  it("does not expose the layout workspace in the navigation", async () => {
     render(
       <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
         <p>Inhalt</p>
       </Shell>
     );
 
-    const link = screen.getByRole("link", { name: "Anlage" });
-    expect(link).toHaveAttribute("href", "/layouts");
-    expect(link).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByRole("link", { name: "Anlage" })).not.toBeInTheDocument();
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
 
-  it("uses the singular English layout label", async () => {
+  it("does not expose the layout workspace in the English navigation", async () => {
     window.localStorage.setItem("railkeeper.settings.language", "en");
     render(
       <Shell username="editor" roles={["Editor"]} activeView="accessories" onLogout={vi.fn()}>
@@ -76,9 +74,7 @@ describe("Shell article navigation", () => {
       </Shell>
     );
 
-    const link = screen.getByRole("link", { name: "Layout" });
-    expect(link).toHaveAttribute("href", "/layouts");
-    expect(link).not.toHaveAttribute("aria-disabled");
+    expect(screen.queryByRole("link", { name: "Layout" })).not.toBeInTheDocument();
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
 });

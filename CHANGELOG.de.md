@@ -6,6 +6,13 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.17.5] - 2026-08-15
+
+### Geändert
+
+- Der Anlagen-Arbeitsbereich bleibt über den Direktzugriff verfügbar, wird aber nicht mehr in der
+  Hauptnavigation angezeigt.
+
 ## [0.1.17.4] - 2026-08-14
 
 ### Behoben
@@ -169,6 +176,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4
 [0.1.17.3]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.2...v0.1.17.3
 [0.1.17.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.1...v0.1.17.2
