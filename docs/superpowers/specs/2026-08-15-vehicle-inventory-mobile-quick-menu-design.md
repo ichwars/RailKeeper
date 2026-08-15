@@ -7,7 +7,8 @@ für den schnellen Überblick wichtigsten Daten zuerst zeigen und weitere ausgew
 bei Bedarf öffnen. Gleichzeitig wird das Kurzmenü der Desktop-Tabelle so korrigiert, dass es nicht
 mehr an der Zeilengrenze abgeschnitten wird.
 
-Die Änderung ergänzt die Umsetzung der Issues #80 und #81. Suche, Filter, gespeicherte
+Die Änderung ergänzt die Umsetzung der Issues #80 und #81. Issue #85 wird im selben Arbeitsstand
+als kleine, unabhängige Korrektur der Adapterauswahl umgesetzt. Suche, Filter, gespeicherte
 Spaltenauswahl, Spaltenreihenfolge und fachliche Daten bleiben unverändert.
 
 ## Gewählte mobile Darstellung
@@ -74,6 +75,21 @@ Die Korrektur ändert weder Inhalt noch Berechtigungen des Menüs. Das Menü ble
 Button ausgerichtet, liegt über den folgenden Zeilen und bleibt innerhalb des sichtbaren
 Tabellenbereichs bedienbar.
 
+## PluX12 in den Adapterauswahlen (#85)
+
+`PluX12` wird als auswählbare Adapter-/Schnittstellenoption ergänzt. Die Option erscheint sowohl im
+Fahrzeugformular als auch in der Ausstellung, weil beide Oberflächen denselben fachlichen Wert
+bearbeiten. Die Reihenfolge lautet `PluX12`, `PluX16`, `PluX22`.
+
+Die vorhandene Fahrzeug-Optionsliste wird zur gemeinsamen Quelle für beide Dropdowns. Die bisher
+lokal duplizierte Liste der Ausstellung entfällt. Dadurch können die beiden Auswahllisten bei
+späteren Ergänzungen nicht erneut auseinanderlaufen.
+
+Es entstehen keine Migration, kein neuer API-Wert und keine Änderung am Speicherformat. Adapter
+bleiben freie Zeichenketten; bestehende Fahrzeuge und Ausstellungseinträge bleiben unverändert.
+Zubehör-Dropdowns und die automatische Adaptererkennung aus Artikelquellen gehören nicht zu
+Issue #85 und werden nicht verändert.
+
 ## Fehler- und Randfälle
 
 - Fahrzeuge ohne Bild verwenden die vorhandene neutrale Bilddarstellung, sofern die Bildspalte
@@ -86,6 +102,8 @@ Tabellenbereichs bedienbar.
   geschlossen.
 - Viewer-, Editor- und Admin-Berechtigungen bleiben unverändert; nicht erlaubte Aktionen werden
   weiterhin nicht angeboten.
+- `PluX12` wird wie die vorhandenen Adapterwerte gespeichert und geladen; unbekannte bestehende
+  Freitextwerte werden nicht normalisiert oder ersetzt.
 
 ## Tests und lokale Abnahme
 
@@ -97,7 +115,8 @@ Frontend-Tests decken mindestens folgende Fälle ab:
 - zusätzliche Felder erscheinen ohne Duplikate in gespeicherter Reihenfolge,
 - ausgeblendete Felder und Bildbereiche erzeugen keine Lücken,
 - Aktionsschaltflächen lösen nicht versehentlich das Aufklappen aus,
-- das Desktop-Kurzmenü wird nicht durch die Aktionszelle abgeschnitten.
+- das Desktop-Kurzmenü wird nicht durch die Aktionszelle abgeschnitten,
+- Fahrzeugformular und Ausstellung bieten `PluX12` aus derselben Optionsliste an.
 
 Danach werden die betroffenen Frontend-Tests und `npm.cmd run build` ausgeführt. Die lokale
 Sichtprüfung umfasst Mobil- und Desktopbreite, Hell- und Dunkelmodus, lange deutsche Texte,
