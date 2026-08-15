@@ -1,10 +1,14 @@
+import { existsSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import { buildSourceInventory } from "./source-inventory.mjs";
+
 const requiredFields = ["audience", "status", "reviewedVersion", "lastReviewed"];
 const allowedAudiences = ["admin", "developer", "reference", "user"];
 const allowedStatuses = ["development", "stable"];
+const allowedCoverageStatuses = ["documented", "internal", "not-published", "planned"];
 const pairFields = ["audience", "status", "reviewedVersion", "lastReviewed"];
 const unfinishedMarkerPattern = /\b(TODO|TBD|FIXME)\b/;
 
@@ -148,11 +152,110 @@ export async function validateDocumentTree(root, versions) {
   return errors.sort((left, right) => left.localeCompare(right, "en"));
 }
 
+function longestPrefixOwner(value, owners, matches) {
+  const prefixes = Object.keys(owners)
+    .filter((prefix) => matches(value, prefix))
+    .sort((left, right) => right.length - left.length || left.localeCompare(right, "en"));
+  return prefixes.length > 0 ? owners[prefixes[0]] : "";
+}
+
+export function validateCoverage(inventory, manifest, contentRoot) {
+  const errors = [];
+  const topics = Array.isArray(manifest.topics) ? manifest.topics : [];
+  const topicIds = new Set();
+
+  for (const topic of topics) {
+    if (topicIds.has(topic.id)) {
+      errors.push(`duplicate coverage topic ${topic.id}`);
+    }
+    topicIds.add(topic.id);
+
+    if (!allowedAudiences.includes(topic.audience)) {
+      errors.push(`coverage topic ${topic.id} has invalid audience ${topic.audience}`);
+    }
+    if (!allowedCoverageStatuses.includes(topic.status)) {
+      errors.push(`coverage topic ${topic.id} has invalid status ${topic.status}`);
+    }
+
+    if (topic.status === "documented") {
+      const destinations = [
+        ["English", topic.englishPath],
+        ["German", topic.germanPath],
+      ];
+      for (const [language, path] of destinations) {
+        const absolutePath = path
+          ? resolve(contentRoot, ...path.split("/"))
+          : resolve(contentRoot, "__missing__");
+        if (!path || !existsSync(absolutePath)) {
+          errors.push(`coverage topic ${topic.id} references missing ${language} page ${path || ""}`);
+        }
+      }
+    }
+  }
+
+  const owners = manifest.owners ?? {};
+  const frontendOwners = owners.frontendRoutes ?? {};
+  const translationOwners = owners.translationPrefixes ?? {};
+  const apiOwners = owners.apiPrefixes ?? {};
+  const environmentOwners = owners.environmentVariables ?? {};
+  const ownerMaps = [
+    ["frontend route", frontendOwners],
+    ["translation prefix", translationOwners],
+    ["API prefix", apiOwners],
+    ["environment variable", environmentOwners],
+  ];
+
+  for (const [label, ownerMap] of ownerMaps) {
+    for (const [source, topicId] of Object.entries(ownerMap)) {
+      if (!topicIds.has(topicId)) {
+        errors.push(`${label} owner ${source} references unknown topic ${topicId}`);
+      }
+    }
+  }
+
+  for (const route of inventory.frontendRoutes ?? []) {
+    if (!frontendOwners[route]) {
+      errors.push(`frontend route ${route} is not covered`);
+    }
+  }
+  for (const key of inventory.translationKeys ?? []) {
+    const owner = longestPrefixOwner(
+      key,
+      translationOwners,
+      (value, prefix) => value === prefix || value.startsWith(`${prefix}.`),
+    );
+    if (!owner) {
+      errors.push(`translation key ${key} is not covered`);
+    }
+  }
+  for (const route of inventory.apiRoutes ?? []) {
+    const owner = longestPrefixOwner(route.path, apiOwners, (value, prefix) =>
+      value.startsWith(prefix),
+    );
+    if (!owner) {
+      errors.push(`API route ${route.method} ${route.path} is not covered`);
+    }
+  }
+  for (const variable of inventory.environmentVariables ?? []) {
+    if (!environmentOwners[variable]) {
+      errors.push(`environment variable ${variable} is not covered`);
+    }
+  }
+
+  return errors.sort((left, right) => left.localeCompare(right, "en"));
+}
+
 async function runCli() {
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+  const repositoryRoot = resolve(scriptDirectory, "../..");
   const contentRoot = resolve(scriptDirectory, "../site");
   const versions = JSON.parse(await readFile(resolve(scriptDirectory, "../versions.json"), "utf8"));
-  const errors = await validateDocumentTree(contentRoot, versions);
+  const manifest = JSON.parse(await readFile(resolve(scriptDirectory, "../coverage.json"), "utf8"));
+  const inventory = await buildSourceInventory(repositoryRoot);
+  const errors = [
+    ...(await validateDocumentTree(contentRoot, versions)),
+    ...validateCoverage(inventory, manifest, contentRoot),
+  ].sort((left, right) => left.localeCompare(right, "en"));
 
   for (const error of errors) {
     console.error(error);

@@ -1,0 +1,275 @@
+{
+  "schemaVersion": 1,
+  "topics": [
+    {
+      "id": "setup-auth",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/getting-started/index.md",
+      "germanPath": "de/guide/getting-started/index.md"
+    },
+    {
+      "id": "overview",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/overview/index.md",
+      "germanPath": "de/guide/overview/index.md"
+    },
+    {
+      "id": "vehicles-core",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/vehicles/index.md",
+      "germanPath": "de/guide/vehicles/index.md"
+    },
+    {
+      "id": "vehicle-media",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/vehicles/media.md",
+      "germanPath": "de/guide/vehicles/media.md"
+    },
+    {
+      "id": "vehicle-maintenance",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/vehicles/maintenance.md",
+      "germanPath": "de/guide/vehicles/maintenance.md"
+    },
+    {
+      "id": "vehicle-decoder-cv",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/vehicles/decoder-cv.md",
+      "germanPath": "de/guide/vehicles/decoder-cv.md"
+    },
+    {
+      "id": "vehicle-search-spares",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/vehicles/search-and-spares.md",
+      "germanPath": "de/guide/vehicles/search-and-spares.md"
+    },
+    {
+      "id": "accessories",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/accessories/index.md",
+      "germanPath": "de/guide/accessories/index.md"
+    },
+    {
+      "id": "exhibition",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/exhibition/index.md",
+      "germanPath": "de/guide/exhibition/index.md"
+    },
+    {
+      "id": "import-export",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/import-export/index.md",
+      "germanPath": "de/guide/import-export/index.md"
+    },
+    {
+      "id": "settings-general",
+      "audience": "user",
+      "status": "planned",
+      "englishPath": "guide/settings/index.md",
+      "germanPath": "de/guide/settings/index.md"
+    },
+    {
+      "id": "master-data",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/master-data.md",
+      "germanPath": "de/administration/master-data.md"
+    },
+    {
+      "id": "users-sessions-security",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/users-sessions-security.md",
+      "germanPath": "de/administration/users-sessions-security.md"
+    },
+    {
+      "id": "backup-restore",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/backup-restore.md",
+      "germanPath": "de/administration/backup-restore.md"
+    },
+    {
+      "id": "digital-centers",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/digital-centers.md",
+      "germanPath": "de/administration/digital-centers.md"
+    },
+    {
+      "id": "system-operations",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/system-operations.md",
+      "germanPath": "de/administration/system-operations.md"
+    },
+    {
+      "id": "layouts-unpublished",
+      "audience": "developer",
+      "status": "not-published",
+      "englishPath": "development/layouts.md",
+      "germanPath": "de/development/layouts.md"
+    },
+    {
+      "id": "deployment-configuration",
+      "audience": "admin",
+      "status": "planned",
+      "englishPath": "administration/deployment-configuration.md",
+      "germanPath": "de/administration/deployment-configuration.md"
+    },
+    {
+      "id": "development-architecture",
+      "audience": "developer",
+      "status": "planned",
+      "englishPath": "development/architecture.md",
+      "germanPath": "de/development/architecture.md"
+    },
+    {
+      "id": "releases-support",
+      "audience": "reference",
+      "status": "planned",
+      "englishPath": "reference/releases-and-support.md",
+      "germanPath": "de/reference/releases-and-support.md"
+    },
+    {
+      "id": "shared-navigation",
+      "audience": "reference",
+      "status": "planned",
+      "englishPath": "reference/navigation-and-glossary.md",
+      "germanPath": "de/reference/navigation-and-glossary.md"
+    }
+  ],
+  "owners": {
+    "frontendRoutes": {
+      "/overview": "overview",
+      "/vehicles": "vehicles-core",
+      "/accessories": "accessories",
+      "/layouts": "layouts-unpublished",
+      "/exhibition": "exhibition",
+      "/import-export": "import-export",
+      "/settings": "settings-general"
+    },
+    "translationPrefixes": {
+      "accessories": "accessories",
+      "app": "setup-auth",
+      "auth": "setup-auth",
+      "common": "shared-navigation",
+      "exhibition": "exhibition",
+      "importExport": "import-export",
+      "layouts": "layouts-unpublished",
+      "nav": "shared-navigation",
+      "overview": "overview",
+      "settings.articleManagement": "master-data",
+      "settings.articleSearch": "vehicle-search-spares",
+      "settings.audit": "users-sessions-security",
+      "settings.auditAction": "users-sessions-security",
+      "settings.auth": "users-sessions-security",
+      "settings.backup": "backup-restore",
+      "settings.digital": "digital-centers",
+      "settings.inventoryNumbers": "master-data",
+      "settings.master": "master-data",
+      "settings.masterTransfer": "master-data",
+      "settings.password": "users-sessions-security",
+      "settings.role": "users-sessions-security",
+      "settings.roles": "users-sessions-security",
+      "settings.session": "users-sessions-security",
+      "settings.sessions": "users-sessions-security",
+      "settings.smtp": "users-sessions-security",
+      "settings.storage": "system-operations",
+      "settings.updates": "releases-support",
+      "settings.users": "users-sessions-security",
+      "settings": "settings-general",
+      "setup": "setup-auth",
+      "vehicle": "vehicles-core",
+      "vehicles.articleSearch": "vehicle-search-spares",
+      "vehicles.barcode": "vehicle-search-spares",
+      "vehicles.cv": "vehicle-decoder-cv",
+      "vehicles.functionMode": "vehicle-decoder-cv",
+      "vehicles.functionType": "vehicle-decoder-cv",
+      "vehicles.functions": "vehicle-decoder-cv",
+      "vehicles.image": "vehicle-media",
+      "vehicles.imageCare": "vehicle-media",
+      "vehicles.imagePreview": "vehicle-media",
+      "vehicles.maintenance": "vehicle-maintenance",
+      "vehicles.search": "vehicle-search-spares",
+      "vehicles.spareParts": "vehicle-search-spares",
+      "vehicles.speedCurve": "vehicle-decoder-cv",
+      "vehicles.uploads": "vehicle-media",
+      "vehicles": "vehicles-core"
+    },
+    "apiPrefixes": {
+      "/health": "system-operations",
+      "/api/v1/version": "releases-support",
+      "/api/v1/system/digital-settings": "digital-centers",
+      "/api/v1/system/smtp": "users-sessions-security",
+      "/api/v1/system": "system-operations",
+      "/api/v1/setup": "setup-auth",
+      "/api/v1/auth/two-factor": "users-sessions-security",
+      "/api/v1/auth/password": "users-sessions-security",
+      "/api/v1/auth": "setup-auth",
+      "/api/v1/profile": "settings-general",
+      "/api/v1/roles": "users-sessions-security",
+      "/api/v1/users": "users-sessions-security",
+      "/api/v1/sessions": "users-sessions-security",
+      "/api/v1/ecos": "digital-centers",
+      "/api/v1/digital-centers": "digital-centers",
+      "/api/v1/vehicles/{id}/images": "vehicle-media",
+      "/api/v1/vehicles/{id}/attachments": "vehicle-media",
+      "/api/v1/vehicles/{id}/maintenance": "vehicle-maintenance",
+      "/api/v1/vehicles/{id}/spare-parts": "vehicle-search-spares",
+      "/api/v1/vehicles/{id}/functions": "vehicle-decoder-cv",
+      "/api/v1/vehicles/{id}/cv-values": "vehicle-decoder-cv",
+      "/api/v1/vehicles/{id}/cv-files": "vehicle-decoder-cv",
+      "/api/v1/cv-files": "vehicle-decoder-cv",
+      "/api/v1/article-search": "vehicle-search-spares",
+      "/api/v1/vehicles": "vehicles-core",
+      "/api/v1/accessory": "accessories",
+      "/api/v1/storage-locations": "accessories",
+      "/api/v1/layout": "layouts-unpublished",
+      "/api/v1/plan-": "layouts-unpublished",
+      "/api/v1/track-": "layouts-unpublished",
+      "/api/v1/inventory-number-schemes": "master-data",
+      "/api/v1/master-data": "master-data",
+      "/api/v1/backup": "backup-restore",
+      "/api/v1/exhibition-lists": "exhibition"
+    },
+    "environmentVariables": {
+      "RAILKEEPER_ADDR": "deployment-configuration",
+      "RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS": "deployment-configuration",
+      "RAILKEEPER_COOKIE_SECURE": "deployment-configuration",
+      "RAILKEEPER_DATA_DIR": "deployment-configuration",
+      "RAILKEEPER_DEFAULT_PRINTER": "deployment-configuration",
+      "RAILKEEPER_IMAGE": "deployment-configuration",
+      "RAILKEEPER_MAX_ATTACHMENT_MB": "deployment-configuration",
+      "RAILKEEPER_MAX_ATTACHMENT_BYTES": "deployment-configuration",
+      "RAILKEEPER_MAX_IMAGE_MB": "deployment-configuration",
+      "RAILKEEPER_MAX_IMAGE_BYTES": "deployment-configuration",
+      "RAILKEEPER_MIGRATIONS_DIR": "deployment-configuration",
+      "RAILKEEPER_OPEN_BROWSER": "deployment-configuration",
+      "RAILKEEPER_PDF_OCR": "deployment-configuration",
+      "RAILKEEPER_PDF_OCR_MAX_PAGES": "deployment-configuration",
+      "RAILKEEPER_PORTABLE": "deployment-configuration",
+      "RAILKEEPER_PRINTERS": "deployment-configuration",
+      "RAILKEEPER_PUBLIC_URL": "deployment-configuration",
+      "RAILKEEPER_SEEDS_DIR": "deployment-configuration",
+      "RAILKEEPER_SMTP_FROM": "deployment-configuration",
+      "RAILKEEPER_SMTP_HOST": "deployment-configuration",
+      "RAILKEEPER_SMTP_PASSWORD": "deployment-configuration",
+      "RAILKEEPER_SMTP_PORT": "deployment-configuration",
+      "RAILKEEPER_SMTP_TLS": "deployment-configuration",
+      "RAILKEEPER_SMTP_USER": "deployment-configuration",
+      "RAILKEEPER_STATIC_DIR": "deployment-configuration",
+      "RAILKEEPER_UPDATE_CHECK_URL": "deployment-configuration"
+    }
+  }
+}

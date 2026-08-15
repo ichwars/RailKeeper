@@ -91,7 +91,10 @@ export default defineConfig({
           "/reference/": [
             {
               text: "Reference",
-              items: [{ text: "Overview", link: "/reference/" }],
+              items: [
+                { text: "Overview", link: "/reference/" },
+                { text: "Documentation Coverage", link: "/reference/coverage" },
+              ],
             },
           ],
         },
@@ -127,7 +130,10 @@ export default defineConfig({
           "/de/reference/": [
             {
               text: "Referenz",
-              items: [{ text: "Überblick", link: "/de/reference/" }],
+              items: [
+                { text: "Überblick", link: "/de/reference/" },
+                { text: "Dokumentationsabdeckung", link: "/de/reference/coverage" },
+              ],
             },
           ],
         },

@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { parseFrontmatter, validateDocumentTree } from "./validate-docs.mjs";
+import { parseFrontmatter, validateCoverage, validateDocumentTree } from "./validate-docs.mjs";
 
 const versions = {
   stable: "0.1.17.5",
@@ -156,4 +156,112 @@ hero:
       hero: "",
     },
   );
+});
+
+test("coverage validation reports every unmapped source surface", async () => {
+  const contentRoot = await fixture({});
+  const inventory = {
+    frontendRoutes: ["/unmapped"],
+    translationKeys: ["settings.newArea.title"],
+    apiRoutes: [{ access: "Viewer", method: "GET", path: "/api/v1/unmapped" }],
+    environmentVariables: ["RAILKEEPER_UNMAPPED"],
+  };
+  const manifest = {
+    schemaVersion: 1,
+    topics: [
+      {
+        id: "vehicles",
+        audience: "user",
+        status: "documented",
+        englishPath: "guide/vehicles/index.md",
+        germanPath: "de/guide/vehicles/index.md",
+      },
+    ],
+    owners: {
+      frontendRoutes: {},
+      translationPrefixes: {},
+      apiPrefixes: {},
+      environmentVariables: {},
+    },
+  };
+
+  const errors = validateCoverage(inventory, manifest, contentRoot);
+  assert(errors.includes("frontend route /unmapped is not covered"));
+  assert(errors.includes("translation key settings.newArea.title is not covered"));
+  assert(errors.includes("API route GET /api/v1/unmapped is not covered"));
+  assert(errors.includes("environment variable RAILKEEPER_UNMAPPED is not covered"));
+  assert(
+    errors.includes(
+      "coverage topic vehicles references missing English page guide/vehicles/index.md",
+    ),
+  );
+});
+
+test("coverage validation accepts one owner for every source item", async () => {
+  const contentRoot = await fixture({});
+  const inventory = {
+    frontendRoutes: ["/vehicles"],
+    translationKeys: ["vehicles.cv.title"],
+    apiRoutes: [{ access: "Viewer", method: "GET", path: "/api/v1/vehicles" }],
+    environmentVariables: ["RAILKEEPER_ADDR"],
+  };
+  const manifest = {
+    schemaVersion: 1,
+    topics: [
+      {
+        id: "vehicles",
+        audience: "user",
+        status: "planned",
+        englishPath: "guide/vehicles/index.md",
+        germanPath: "de/guide/vehicles/index.md",
+      },
+    ],
+    owners: {
+      frontendRoutes: { "/vehicles": "vehicles" },
+      translationPrefixes: { vehicles: "vehicles", "vehicles.cv": "vehicles" },
+      apiPrefixes: { "/api/v1/vehicles": "vehicles" },
+      environmentVariables: { RAILKEEPER_ADDR: "vehicles" },
+    },
+  };
+
+  assert.deepEqual(validateCoverage(inventory, manifest, contentRoot), []);
+});
+
+test("coverage validation rejects invalid topics and unknown owner references", async () => {
+  const contentRoot = await fixture({});
+  const manifest = {
+    schemaVersion: 1,
+    topics: [
+      {
+        id: "duplicate",
+        audience: "reader",
+        status: "draft",
+        englishPath: "guide/index.md",
+        germanPath: "de/guide/index.md",
+      },
+      {
+        id: "duplicate",
+        audience: "user",
+        status: "planned",
+        englishPath: "guide/index.md",
+        germanPath: "de/guide/index.md",
+      },
+    ],
+    owners: {
+      frontendRoutes: { "/vehicles": "missing" },
+      translationPrefixes: {},
+      apiPrefixes: {},
+      environmentVariables: {},
+    },
+  };
+  const errors = validateCoverage(
+    { frontendRoutes: [], translationKeys: [], apiRoutes: [], environmentVariables: [] },
+    manifest,
+    contentRoot,
+  );
+
+  assert(errors.includes("coverage topic duplicate has invalid audience reader"));
+  assert(errors.includes("coverage topic duplicate has invalid status draft"));
+  assert(errors.includes("duplicate coverage topic duplicate"));
+  assert(errors.includes("frontend route owner /vehicles references unknown topic missing"));
 });
