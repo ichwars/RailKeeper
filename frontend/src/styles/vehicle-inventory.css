@@ -148,6 +148,11 @@
   z-index: 5;
 }
 
+.quick-menu.open-above {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
 .vehicle-mobile-toggle {
   display: grid;
   grid-template-columns: 64px minmax(0, 1fr) 24px;

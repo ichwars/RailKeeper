@@ -24,6 +24,7 @@ describe("vehicle inventory column layout", () => {
   it("keeps open mobile quick menus above following cards", () => {
     expect(css).toMatch(/\.vehicle-mobile-item:has\(\.quick-menu\)\s*\{[^}]*z-index:\s*5/s);
     expect(css).toMatch(/\.vehicle-mobile-item\s*\{[^}]*overflow:\s*visible/s);
+    expect(css).toMatch(/\.quick-menu\.open-above\s*\{[^}]*top:\s*auto[^}]*bottom:\s*calc\(100%\s*\+\s*6px\)/s);
   });
 
   it("clips long data cells without clipping the desktop action menu", () => {
