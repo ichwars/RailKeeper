@@ -223,3 +223,80 @@ Footer und Formularfelder erreichbar; ein Dokumentüberlauf tritt nicht auf.
 ## Ergebnis
 
 passed
+
+---
+
+# Design QA: Digitalzentralen
+
+## Ergebnis
+
+`passed`
+
+Die Seite bildet das freigegebene Zielbild als funktionalen Inbetriebnahme-Workflow ab. Es gibt
+keine offenen P0-, P1- oder P2-Befunde.
+
+## Referenz und Prüfzustand
+
+- Referenzbild: `C:\Users\droth\.codex\generated_images\01a003f1-6222-7100-a0b8-76b31be7fde7\exec-8fdd5aaf-7157-4c1b-9dcf-6999cad9d173.png`
+- Implementierungsbild: `C:\Users\droth\Documents\GitHub\RailKeeper\design-qa-digital-implementation.png`
+- Gesamtvergleich: `C:\Users\droth\Documents\GitHub\RailKeeper\design-qa-digital-comparison.png`
+- Detailvergleich: `C:\Users\droth\Documents\GitHub\RailKeeper\design-qa-digital-focused-comparison.png`
+- Mobile-Prüfbild: `C:\Users\droth\Documents\GitHub\RailKeeper\design-qa-digital-mobile.png`
+- Referenz: 1680 x 945 Pixel
+- Implementierung: 1680 x 944 Pixel nach Dichte-Normalisierung einer 1512 x 850 Aufnahme
+- CSS-Viewport Desktop: 1680 x 944
+- CSS-Viewport Mobil: 711 x 1000
+- Zustand: ESU ECoS konfiguriert, noch nicht getestet, nicht aktiviert
+
+## Geprüfte Oberflächen
+
+- Typografie und Hierarchie entsprechen der bestehenden RailKeeper-Oberfläche und dem Zielbild.
+- Abstände, Kartenraster und Workflow-Höhe wurden auf vollständige Sichtbarkeit im Desktop-Viewport
+  abgestimmt.
+- Farben verwenden bestehende Design-Tokens und den vorhandenen grünen Akzent.
+- Alle vier Adapter sind auswählbar. Die Zustände „konfiguriert“, „getestet“ und „aktiv“ sind
+  voneinander getrennt und werden nicht nur über Farbe vermittelt.
+- Die Diagnoseansicht enthält Verbindungstest, letzte Diagnose, ECoS-Meldungen und technische
+  Details.
+- Konfiguration, Verbindungstest, Aktivierung, Deaktivierung, Live-Monitor und Entfernen der
+  Verbindung sind bedienbar und an die vorhandenen APIs angebunden.
+- Tabs, Schaltflächen und Statusangaben besitzen passende semantische Rollen und deaktivierte
+  Zustände.
+- Bei 711 Pixel CSS-Breite entsteht kein horizontaler Überlauf. Adapter, Workflow und Seitenkarten
+  wechseln in ein einspaltiges Layout.
+
+## Browserprüfung
+
+- Konfigurationsdialog geöffnet, Host und Port geändert und gespeichert.
+- Die Tabs „Letzte Diagnose“ und „ECoS-Meldungen“ geöffnet.
+- Statusaktualisierung und Detailbereich bedient.
+- Aktivierungsabhängigkeit, erfolgreicher Test und Entfernen der Verbindung zusätzlich durch
+  Komponententests geprüft.
+- Browserkonsole: keine Fehler oder Warnungen.
+
+## Vergleichsverlauf
+
+1. Erste Fassung: Der Adapterwähler lief über die gesamte Breite, die rechte Sicherheits- und
+   Aktionsspalte begann zu tief. Außerdem drängten ein zusätzlicher Statushinweis und zu großzügige
+   Innenabstände die Fußzeile aus dem sichtbaren Bereich. Behoben durch getrennte linke und rechte
+   Spalten, stille initiale Statusabfrage und kompaktere Abstände.
+2. Zweite Fassung: Bei 1680 x 944 CSS-Pixeln blieb ein geringer vertikaler Überlauf. Behoben durch
+   spezifische Panel-Innenabstände und kompaktere Abstände im Digitalzentralen-Tab. Die gesamte
+   Bedienoberfläche ist jetzt im Zielviewport sichtbar.
+
+## Bewusste Abweichungen
+
+- Die reale RailKeeper-App behält ihre einklappbare globale Seitenleiste. Das Zielbild zeigt nur den
+  Seiteninhalt.
+- Die im generierten Referenzbild angedeuteten Herstellerlogos wurden nicht als neue Markenassets
+  übernommen. Die Implementierung verwendet die bestehende Icon-Sprache der App.
+- Das Zielbild bezeichnet die ECoS-Karte trotz gesperrtem Aktivierungsschritt als „Aktiv“. Die
+  Implementierung zeigt in diesem Zustand korrekt „Konfiguriert“.
+- Zeitstempel, Benutzername und Zentralenversion stammen aus dem tatsächlichen Zustand statt aus
+  den statischen Beispieldaten des Zielbilds.
+
+## Niedrige Restabweichungen
+
+- P3: Durch die globale Seitenleiste ist die rechte Spalte etwas schmaler als im freigestellten
+  Zielbild. Inhalt, Reihenfolge und Bedienbarkeit bleiben vollständig erhalten.
+- P3: Adapter werden durch einheitliche Linienicons statt durch Herstellerlogos repräsentiert.

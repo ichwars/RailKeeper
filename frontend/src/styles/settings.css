@@ -2392,6 +2392,772 @@
   font: inherit;
 }
 
+.digital-workflow-page {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.main:has(.digital-workflow-page) {
+  padding-top: 24px;
+}
+
+.main:has(.digital-workflow-page) .settings-head {
+  margin-bottom: 16px;
+}
+
+.main:has(.digital-workflow-page) .settings-primary-tabs {
+  min-height: 36px;
+  margin-bottom: 12px;
+}
+
+.main:has(.digital-workflow-page) .settings-primary-tabs button {
+  padding-bottom: 6px;
+}
+
+.panel.digital-provider-selector {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.digital-provider-selector > header {
+  display: grid;
+  gap: 2px;
+}
+
+.digital-provider-selector h2,
+.digital-safety-card h2,
+.digital-actions-card h2 {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  line-height: var(--line-height-title-sm);
+}
+
+.digital-provider-selector p,
+.digital-safety-card p,
+.digital-actions-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-control-md);
+}
+
+.digital-provider-options {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.digital-provider-options > button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 60px;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.digital-provider-options > button:hover,
+.digital-provider-options > button:focus-visible {
+  border-color: color-mix(in srgb, var(--accent) 52%, var(--line));
+  outline: none;
+}
+
+.digital-provider-options > button.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 7%, var(--panel-subtle));
+}
+
+.digital-provider-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  color: var(--text);
+  background: var(--input-bg);
+}
+
+.digital-provider-copy {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.digital-provider-copy strong {
+  overflow: hidden;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-control-md);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.digital-provider-copy small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.digital-provider-options > button.selected .digital-provider-copy small,
+.digital-provider-check {
+  color: var(--accent-strong);
+}
+
+.digital-workflow-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+}
+
+.digital-workflow-main {
+  display: grid;
+  min-width: 0;
+  gap: 12px;
+}
+
+.panel.digital-commissioning {
+  display: grid;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.digital-workflow-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  min-width: 0;
+  gap: 10px;
+  padding: 8px 14px 8px 10px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.digital-workflow-step:last-child {
+  border-bottom: 0;
+}
+
+.digital-workflow-step.expanded.current {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 2%, var(--panel));
+}
+
+.digital-workflow-step.expanded.done {
+  border-inline: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+  background: color-mix(in srgb, var(--accent) 2%, var(--panel));
+}
+
+.digital-workflow-step.locked {
+  color: color-mix(in srgb, var(--text) 68%, var(--muted));
+}
+
+.digital-step-number {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin: 0 auto;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--line-strong);
+  color: var(--text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-heavy);
+}
+
+.digital-workflow-step:not(:last-child) .digital-step-number::after {
+  position: absolute;
+  top: 31px;
+  left: 50%;
+  z-index: -1;
+  width: 2px;
+  height: calc(100% + 28px);
+  background: var(--line-strong);
+  content: "";
+  transform: translateX(-50%);
+}
+
+.digital-workflow-step.done .digital-step-number,
+.digital-workflow-step.current .digital-step-number {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #0b1706;
+}
+
+.digital-workflow-step.done:not(:last-child) .digital-step-number::after,
+.digital-workflow-step.current:not(:last-child) .digital-step-number::after {
+  background: var(--accent);
+}
+
+.digital-workflow-step.expanded.current .digital-step-number {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.digital-step-body {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+}
+
+.digital-step-body > header,
+.digital-step-body.activation {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 12px;
+}
+
+.digital-step-body > header > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.digital-step-body h3 {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-control-md);
+}
+
+.digital-step-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-control-md);
+}
+
+.digital-workflow-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--panel-subtle);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.digital-workflow-status.done,
+.digital-workflow-status.current {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  color: var(--accent-strong);
+  background: color-mix(in srgb, var(--accent) 8%, var(--panel-subtle));
+}
+
+.digital-step-summary {
+  display: grid;
+  grid-template-columns: minmax(130px, 0.25fr) minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 36px;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+  font-size: var(--font-size-sm);
+}
+
+.digital-step-summary.split {
+  grid-template-columns: minmax(112px, 0.22fr) minmax(150px, 0.32fr) minmax(76px, 0.15fr) minmax(150px, 0.31fr) auto;
+}
+
+.digital-step-summary > span {
+  color: var(--muted);
+}
+
+.digital-step-summary > strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inline-action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  gap: 6px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  color: var(--accent-strong);
+  background: transparent;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+
+.inline-action:hover,
+.inline-action:focus-visible {
+  background: var(--accent-soft);
+  outline: none;
+}
+
+.digital-test-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.digital-test-actions > button {
+  min-width: 210px;
+}
+
+.digital-diagnostics-panel {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--panel-subtle);
+}
+
+.digital-diagnostic-tabs {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 38px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.digital-diagnostic-tabs button {
+  align-self: stretch;
+  padding: 0 2px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  background: transparent;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.digital-diagnostic-tabs button[aria-selected="true"] {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.digital-diagnostic-tabs button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.digital-diagnostic-content {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.38fr) minmax(360px, 0.62fr);
+  min-width: 0;
+  min-height: 148px;
+}
+
+.digital-diagnostic-content.single {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-height: 148px;
+  padding: 12px;
+}
+
+.digital-test-summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  border-right: 1px solid var(--line);
+  text-align: left;
+}
+
+.digital-test-summary > div {
+  display: grid;
+  max-width: 320px;
+  gap: 3px;
+}
+
+.digital-test-summary strong,
+.digital-diagnostic-toolbar strong {
+  font-size: var(--font-size-md);
+}
+
+.digital-test-summary span,
+.digital-test-summary small,
+.digital-diagnostic-toolbar span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-control-sm);
+}
+
+.digital-test-summary.success .digital-pulse-icon,
+.digital-probe-summary.success {
+  color: var(--accent-strong);
+}
+
+.digital-test-summary.error .digital-pulse-icon,
+.digital-probe-summary.error {
+  color: var(--danger);
+}
+
+.digital-pulse-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 999px;
+  color: var(--muted);
+}
+
+.digital-technical-details {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.digital-technical-details > strong {
+  font-size: var(--font-size-sm);
+}
+
+.digital-technical-details dl,
+.digital-workflow-field-list,
+.digital-workflow-command-list dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px 18px;
+  margin: 0;
+}
+
+.digital-technical-details dl > div,
+.digital-workflow-field-list > div,
+.digital-workflow-command-list dl > div {
+  display: grid;
+  grid-template-columns: minmax(110px, 0.46fr) minmax(0, 0.54fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.digital-technical-details dt,
+.digital-workflow-field-list dt,
+.digital-workflow-command-list dt {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.digital-technical-details dd,
+.digital-workflow-field-list dd,
+.digital-workflow-command-list dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+.digital-diagnostic-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.digital-diagnostic-toolbar > div {
+  display: grid;
+  gap: 2px;
+}
+
+.digital-probe-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+  font-size: var(--font-size-sm);
+}
+
+.digital-workflow-field-list {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+}
+
+.digital-workflow-command-list {
+  display: grid;
+  gap: 7px;
+}
+
+.digital-workflow-command-list details {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+}
+
+.digital-workflow-command-list summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.digital-workflow-command-list summary > span {
+  display: grid;
+  gap: 2px;
+}
+
+.digital-workflow-command-list summary small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.digital-workflow-command-list summary em {
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-bold);
+}
+
+.digital-workflow-command-list summary em.success {
+  color: var(--accent-strong);
+}
+
+.digital-workflow-command-list summary em.error,
+.digital-workflow-command-list details > p {
+  color: var(--danger);
+}
+
+.digital-workflow-command-list dl,
+.digital-workflow-command-list details > p {
+  margin: 0;
+  padding: 0 10px 10px;
+}
+
+.digital-diagnostic-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 84px;
+  gap: 9px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.digital-message-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.digital-message-status > div {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+}
+
+.digital-message-status span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.digital-message-status strong {
+  font-size: var(--font-size-md);
+}
+
+.digital-message-status > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--input-bg);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.digital-step-body.activation {
+  align-items: center;
+}
+
+.digital-step-body.activation > header {
+  flex: 1 1 auto;
+}
+
+.digital-step-body.activation > button {
+  flex: 0 0 auto;
+}
+
+.digital-workflow-aside {
+  display: grid;
+  gap: 12px;
+}
+
+.panel.digital-safety-card,
+.panel.digital-actions-card {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.digital-safety-card > header,
+.digital-actions-card > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.digital-safety-card > header > svg,
+.digital-actions-card > header > svg {
+  flex: 0 0 auto;
+  color: var(--accent-strong);
+}
+
+.digital-safety-card > header > div {
+  display: grid;
+  gap: 3px;
+}
+
+.digital-capability-list {
+  display: grid;
+  border-top: 1px solid var(--line);
+}
+
+.digital-capability-list article {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 20px;
+  align-items: start;
+  gap: 9px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.digital-capability-list article > svg {
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.digital-capability-list article > div {
+  display: grid;
+  gap: 2px;
+}
+
+.digital-capability-list strong {
+  font-size: var(--font-size-sm);
+}
+
+.digital-capability-list article > div > span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-control-sm);
+}
+
+.capability-state {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-heavy);
+}
+
+.capability-state.available {
+  color: #0b1706;
+  background: var(--accent);
+}
+
+.capability-state.limited,
+.capability-state.locked {
+  color: var(--muted);
+  background: var(--line);
+}
+
+.digital-safety-details summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  color: var(--accent-strong);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  list-style: none;
+}
+
+.digital-safety-details[open] summary svg {
+  transform: rotate(180deg);
+}
+
+.digital-safety-details p {
+  padding-top: 6px;
+}
+
+.digital-actions-card > button {
+  width: 100%;
+}
+
+.digital-actions-card .danger-outline {
+  margin-top: 2px;
+  color: var(--text);
+}
+
+.digital-actions-card .danger-outline:hover:not(:disabled),
+.digital-actions-card .danger-outline:focus-visible:not(:disabled) {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.digital-workflow-message {
+  margin: 0;
+}
+
+.digital-workflow-footnote {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: var(--panel-subtle);
+  font-size: var(--font-size-xs);
+}
+
 @media (max-width: 760px) {
   .article-master-data-form,
   .storage-location-settings-grid {

@@ -1,20 +1,31 @@
 import { useEffect, useState } from "react";
-import { Database, Monitor, MonitorOff, Power, PowerOff, RefreshCw, Save, Server, X } from "lucide-react";
+import { Database, RefreshCw, Save, Server, X } from "lucide-react";
 import { api, DigitalCenterConnectionResult, DigitalCenterProbeResult, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSummary } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { DigitalCenterWorkflowView, type DigitalDiagnosticsTab, type DigitalProvider } from "./DigitalCenterWorkflowView";
 import { localSettingKeys, readLocalBool, readLocalSetting } from "./settingsModel";
 
-type BusyState = "idle" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing";
-type DigitalProvider = DigitalCenterSettings["provider"];
+type BusyState = "idle" | "testing" | "diagnosing" | "probing" | "starting" | "stopping" | "refreshing" | "activating" | "deactivating" | "removing";
+type ConfigurationMeta = Partial<Record<DigitalProvider, { configuredAt: string; configuredBy: string }>>;
 
 type SettingsDigitalTabProps = {
   canManageUsers: boolean;
   formatDateTime: (value: string) => string;
+  username: string;
 };
 
 const digitalProviders: DigitalProvider[] = ["ecos", "z21", "intellibox3", "cs3"];
+const configurationMetaKey = "railkeeper.digital.configurationMeta";
 
-export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsDigitalTabProps) {
+function readConfigurationMeta(): ConfigurationMeta {
+  try {
+    return JSON.parse(window.localStorage.getItem(configurationMetaKey) || "{}") as ConfigurationMeta;
+  } catch {
+    return {};
+  }
+}
+
+export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }: SettingsDigitalTabProps) {
   const { t } = useI18n();
   const [provider, setProvider] = useState<DigitalProvider>(() => {
     const stored = readLocalSetting(localSettingKeys.digitalProvider, "ecos");
@@ -44,6 +55,11 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [message, setMessage] = useState("");
   const [dialogMessage, setDialogMessage] = useState("");
+  const [diagnosticsTab, setDiagnosticsTab] = useState<DigitalDiagnosticsTab>("test");
+  const [lastTestedProvider, setLastTestedProvider] = useState<DigitalProvider | null>(null);
+  const [lastTestedAt, setLastTestedAt] = useState("");
+  const [testError, setTestError] = useState("");
+  const [configurationMeta, setConfigurationMeta] = useState<ConfigurationMeta>(() => readConfigurationMeta());
 
   const ecosInput = () => ({
     host: ecosHost.trim(),
@@ -76,7 +92,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     port: Number(providerPort(providerId))
   });
 
-  const providerConfigured = (providerId: DigitalProvider) => providerEnabled(providerId) && Boolean(providerHost(providerId));
+  const providerConfigured = (providerId: DigitalProvider) => Boolean(providerHost(providerId));
+  const providerActive = (providerId: DigitalProvider) => providerEnabled(providerId) && providerConfigured(providerId);
 
   const currentDigitalSettings = (nextProvider: DigitalProvider = provider): DigitalCenterSettings => ({
     provider: nextProvider,
@@ -115,13 +132,6 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
       settings.cs3?.enabled
     );
 
-  const setActiveProviderEnabled = (enabled: boolean) => {
-    if (activeDialogProvider === "ecos") setEcosEnabled(enabled);
-    if (activeDialogProvider === "z21") setZ21Enabled(enabled);
-    if (activeDialogProvider === "intellibox3") setIntellibox3Enabled(enabled);
-    if (activeDialogProvider === "cs3") setCS3Enabled(enabled);
-  };
-
   const setActiveProviderHost = (host: string) => {
     if (activeDialogProvider === "ecos") setEcosHost(host);
     if (activeDialogProvider === "z21") setZ21Host(host);
@@ -136,8 +146,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     if (activeDialogProvider === "cs3") setCS3Port(port);
   };
 
-  const rememberSettings = (nextProvider: DigitalProvider = provider) => {
-    const settings = currentDigitalSettings(nextProvider);
+  const storeSettingsLocally = (settings: DigitalCenterSettings) => {
+    const nextProvider = settings.provider;
     window.localStorage.setItem(localSettingKeys.digitalProvider, nextProvider);
     window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(settings.ecos.enabled));
     window.localStorage.setItem(localSettingKeys.digitalEcosHost, settings.ecos.host);
@@ -152,19 +162,55 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     window.localStorage.setItem(localSettingKeys.digitalCS3Host, settings.cs3.host);
     window.localStorage.setItem(localSettingKeys.digitalCS3Port, settings.cs3.port);
     window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
+  };
+
+  const persistSettings = async (settings: DigitalCenterSettings) => {
+    storeSettingsLocally(settings);
+    const saved = await api.updateDigitalSettings(settings);
+    applyDigitalSettings(saved);
+    return saved;
+  };
+
+  const rememberSettings = (nextProvider: DigitalProvider = provider) => {
+    const settings = currentDigitalSettings(nextProvider);
+    storeSettingsLocally(settings);
     void api.updateDigitalSettings(settings).then(applyDigitalSettings).catch(() => undefined);
   };
 
-  const refreshLiveStatus = async (nextBusy: BusyState = "refreshing") => {
+  const settingsWithProviderEnabled = (providerId: DigitalProvider, enabled: boolean): DigitalCenterSettings => {
+    const settings = currentDigitalSettings(providerId);
+    return {
+      ...settings,
+      [providerId]: {
+        ...settings[providerId],
+        enabled
+      }
+    };
+  };
+
+  const settingsWithoutProviderConnection = (providerId: DigitalProvider): DigitalCenterSettings => {
+    const settings = currentDigitalSettings(providerId);
+    const defaultPort = providerId === "ecos" ? "15471" : providerId === "cs3" ? "80" : "21105";
+    return {
+      ...settings,
+      [providerId]: {
+        enabled: false,
+        host: "",
+        port: defaultPort
+      }
+    };
+  };
+
+  const refreshLiveStatus = async (nextBusy: BusyState = "refreshing", announce = true) => {
     if (!canManageUsers) return;
     setBusy(nextBusy);
-    setMessage("");
+    if (announce) setMessage("");
     try {
       const status = await api.getECoSLiveStatus();
       setLiveStatus(status);
-      setMessage(status.message);
+      if (announce) setMessage(status.message);
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+      if (announce) setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
     } finally {
       setBusy("idle");
     }
@@ -185,7 +231,7 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
           }
         })
         .catch(() => undefined);
-      void refreshLiveStatus("idle");
+      void refreshLiveStatus("idle", false);
     }
   }, [canManageUsers]);
 
@@ -193,6 +239,18 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     setActiveDialogProvider(nextProvider);
     setDialogMessage("");
     setProbeResult(null);
+  };
+
+  const selectProvider = (nextProvider: DigitalProvider) => {
+    if (nextProvider === provider) return;
+    setProvider(nextProvider);
+    setConnectionResult(null);
+    setProbeResult(null);
+    setLastTestedProvider(null);
+    setLastTestedAt("");
+    setTestError("");
+    setDiagnosticsTab("test");
+    rememberSettings(nextProvider);
   };
 
   const closeAdapter = () => {
@@ -207,8 +265,18 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
       setDialogMessage(t("settings.digital.hostRequired"));
       return;
     }
-    setProvider(activeDialogProvider);
-    rememberSettings(activeDialogProvider);
+    const savedProvider = activeDialogProvider;
+    const nextMeta = {
+      ...configurationMeta,
+      [savedProvider]: {
+        configuredAt: new Date().toISOString(),
+        configuredBy: username
+      }
+    };
+    setProvider(savedProvider);
+    rememberSettings(savedProvider);
+    setConfigurationMeta(nextMeta);
+    window.localStorage.setItem(configurationMetaKey, JSON.stringify(nextMeta));
     setLocomotiveSummary(null);
     setMessage(t("settings.digital.saved"));
     closeAdapter();
@@ -221,6 +289,11 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     setMessage("");
     setDialogMessage("");
     setProbeResult(null);
+    setConnectionResult(null);
+    setLastTestedProvider(testedProvider);
+    setLastTestedAt("");
+    setTestError("");
+    setDiagnosticsTab("test");
     try {
       const result = testedProvider === "ecos"
         ? await api.testECoSConnection(providerInput("ecos"))
@@ -230,6 +303,36 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
             ? await api.testIntellibox3Connection(providerInput("intellibox3"))
           : await api.testCS3Connection(providerInput("cs3"));
       setConnectionResult(result);
+      setLastTestedAt(new Date().toISOString());
+      setMessage(result.message);
+      setDialogMessage(result.message);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t("settings.digital.error");
+      setTestError(errorMessage);
+      setLastTestedAt(new Date().toISOString());
+      setMessage(errorMessage);
+      setDialogMessage(errorMessage);
+    } finally {
+      setBusy("idle");
+    }
+  };
+
+  const canProbeProvider = (providerId: DigitalProvider | null) => providerId === "z21" || providerId === "intellibox3";
+
+  const probeConnection = async () => {
+    const probedProvider = activeDialogProvider || provider;
+    if (!canProbeProvider(probedProvider)) return;
+    rememberSettings(probedProvider);
+    setBusy("diagnosing");
+    setMessage("");
+    setDialogMessage("");
+    setProbeResult(null);
+    try {
+      const result = probedProvider === "z21"
+        ? await api.probeZ21Connection(providerInput("z21"))
+        : await api.probeIntellibox3Connection(providerInput("intellibox3"));
+      setProbeResult(result);
+      setDiagnosticsTab("diagnosis");
       setMessage(result.message);
       setDialogMessage(result.message);
     } catch (error) {
@@ -241,27 +344,63 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
     }
   };
 
-  const canProbeProvider = (providerId: DigitalProvider | null) => providerId === "z21" || providerId === "intellibox3";
-
-  const probeConnection = async () => {
-    if (!activeDialogProvider || !canProbeProvider(activeDialogProvider)) return;
-    const probedProvider = activeDialogProvider;
-    rememberSettings(probedProvider);
-    setBusy("diagnosing");
+  const activateProvider = async () => {
+    const hasSuccessfulTest = (lastTestedProvider === provider && Boolean(connectionResult?.connected))
+      || (provider === "ecos" && Boolean(liveStatus?.connected));
+    if (!providerConfigured(provider) || !hasSuccessfulTest) return;
+    setBusy("activating");
     setMessage("");
-    setDialogMessage("");
-    setProbeResult(null);
     try {
-      const result = probedProvider === "z21"
-        ? await api.probeZ21Connection(providerInput("z21"))
-        : await api.probeIntellibox3Connection(providerInput("intellibox3"));
-      setProbeResult(result);
-      setMessage(result.message);
-      setDialogMessage(result.message);
+      await persistSettings(settingsWithProviderEnabled(provider, true));
+      setMessage(t("settings.digital.workflow.activated"));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : t("settings.digital.error");
-      setMessage(errorMessage);
-      setDialogMessage(errorMessage);
+      setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+    } finally {
+      setBusy("idle");
+    }
+  };
+
+  const deactivateProvider = async () => {
+    setBusy("deactivating");
+    setMessage("");
+    try {
+      if (provider === "ecos" && liveStatus?.connected) {
+        const status = await api.stopECoSLive();
+        setLiveStatus(status);
+      }
+      await persistSettings(settingsWithProviderEnabled(provider, false));
+      setMessage(t("settings.digital.workflow.deactivated"));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
+    } finally {
+      setBusy("idle");
+    }
+  };
+
+  const removeProviderConnection = async () => {
+    if (!providerConfigured(provider)) return;
+    if (!window.confirm(t("settings.digital.workflow.removeConfirm", { provider: providerLabel(provider) }))) return;
+    setBusy("removing");
+    setMessage("");
+    try {
+      if (provider === "ecos" && liveStatus?.connected) {
+        const status = await api.stopECoSLive();
+        setLiveStatus(status);
+      }
+      await persistSettings(settingsWithoutProviderConnection(provider));
+      const nextMeta = { ...configurationMeta };
+      delete nextMeta[provider];
+      setConfigurationMeta(nextMeta);
+      window.localStorage.setItem(configurationMetaKey, JSON.stringify(nextMeta));
+      setConnectionResult(null);
+      setProbeResult(null);
+      setLastTestedProvider(null);
+      setLastTestedAt("");
+      setTestError("");
+      setLocomotiveSummary(null);
+      setMessage(t("settings.digital.workflow.removed"));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("settings.digital.error"));
     } finally {
       setBusy("idle");
     }
@@ -324,19 +463,30 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
   };
 
   const providerLabel = (providerId: DigitalProvider) => t(`settings.digital.provider.${providerId}`);
-  const providerReady = providerConfigured(provider);
-  const ecosReady = provider === "ecos" && providerConfigured("ecos");
-  const liveSince = liveStatus?.startedAt ? formatDateTime(liveStatus.startedAt) : t("settings.digital.notActive");
-  const liveSeen = liveStatus?.lastSeenAt ? formatDateTime(liveStatus.lastSeenAt) : t("settings.digital.notSeen");
-  const connectionConnected = Boolean(connectionResult?.connected || liveStatus?.connected);
-  const connectionDetail = connectionResult
-    ? ("applicationVersion" in connectionResult && connectionResult.applicationVersion) || connectionResult.fields?.version || connectionResult.fields?.serialNumber || connectionResult.message
-    : liveStatus?.connected
-      ? t("settings.digital.liveActive")
-    : t("settings.digital.noTest");
+  const ecosReady = provider === "ecos" && providerActive("ecos");
   const dialogCanTest = canManageUsers && Boolean(activeDialogProvider);
   const dialogCanSave = Boolean(activeDialogProvider);
   const probeFieldEntries = Object.entries(probeResult?.fields || {});
+  const configuredProviders = Object.fromEntries(
+    digitalProviders.map((providerId) => [providerId, providerConfigured(providerId)])
+  ) as Record<DigitalProvider, boolean>;
+  const activeProviders = Object.fromEntries(
+    digitalProviders.map((providerId) => [providerId, providerActive(providerId)])
+  ) as Record<DigitalProvider, boolean>;
+  const currentConnectionResult = lastTestedProvider === provider ? connectionResult : null;
+  const currentTestError = lastTestedProvider === provider ? testError : "";
+  const testSucceeded = Boolean(
+    currentConnectionResult?.connected || (provider === "ecos" && liveStatus?.connected)
+  );
+  const providerProtocols = Object.fromEntries(
+    digitalProviders.map((providerId) => [providerId, t(`settings.digital.workflow.protocol.${providerId}`)])
+  ) as Record<DigitalProvider, string>;
+  const providerTimeouts: Record<DigitalProvider, string> = {
+    ecos: "8 s",
+    z21: "4 s",
+    intellibox3: "4 s",
+    cs3: "4 s"
+  };
 
   useEffect(() => {
     if (!liveStatus?.connected || !ecosReady || locomotiveSummary || busy !== "idle") return;
@@ -345,144 +495,41 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
 
   return (
     <>
-      <section className="digital-settings-grid">
-        <section className="panel settings-card settings-tool-card digital-command-card">
-          <div className="settings-section-head">
-            <div className="settings-marker-row digital-state-icons">
-              <span
-                className={providerReady ? "digital-state-icon active" : "digital-state-icon inactive"}
-                aria-label={providerReady ? t("settings.digital.active") : t("settings.digital.inactive")}
-                title={providerReady ? t("settings.digital.active") : t("settings.digital.inactive")}
-              >
-                <span className="digital-state-dot" />
-              </span>
-              <span
-                className={liveStatus?.connected ? "digital-state-icon monitor active" : "digital-state-icon monitor inactive"}
-                aria-label={liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}
-                title={liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}
-              >
-                {liveStatus?.connected ? <Monitor size={17} /> : <MonitorOff size={17} />}
-              </span>
-            </div>
-          </div>
-          <div className="digital-provider-note">
-            <Server size={17} />
-            <span>{t("settings.digital.importVisibilityNote")}</span>
-          </div>
-
-          {!canManageUsers && (
-            <div className="current-user-card">
-              <strong>{t("settings.users.adminRequired")}</strong>
-              <span>{t("settings.digital.adminHelp")}</span>
-            </div>
-          )}
-
-          <div className="digital-overview-grid">
-            <article className={providerReady ? "digital-active-provider ready" : "digital-active-provider"}>
-              <span className="digital-card-label">{t("settings.digital.configuredTitle")}</span>
-              <strong>{providerLabel(provider)}</strong>
-              <small>
-                {providerReady
-                  ? t("settings.digital.configuredEndpoint", { host: providerHost(provider), port: providerPort(provider) })
-                  : t("settings.digital.notConfigured")}
-              </small>
-            </article>
-            <article className="digital-active-provider">
-              <span className="digital-card-label">{t("settings.digital.connection")}</span>
-              <strong>{connectionConnected ? t("settings.digital.connected") : t("settings.digital.notConnected")}</strong>
-              <small>{connectionDetail}</small>
-            </article>
-            <article className="digital-active-provider">
-              <span className="digital-card-label">{t("settings.digital.locomotives")}</span>
-              <strong>{locomotiveSummary?.count ?? 0}</strong>
-              <small>{locomotiveSummary ? locomotiveSummary.message : t("settings.digital.noLocomotiveProbe")}</small>
-            </article>
-          </div>
-
-          <div className="settings-action-row digital-action-row">
-            <button type="button" className="secondary-button" onClick={() => openAdapter(provider)}>
-              <Server size={16} />
-              {t("settings.digital.configure")}
-            </button>
-            <button
-              type="button"
-              className={liveStatus?.connected ? "secondary-button" : "primary-button"}
-              onClick={liveStatus?.connected ? stopLive : startLive}
-              disabled={!canManageUsers || busy !== "idle" || (!liveStatus?.connected && !ecosReady)}
-            >
-              {liveStatus?.connected ? <PowerOff size={16} /> : <Power size={16} />}
-              {busy === "starting"
-                ? t("settings.digital.starting")
-                : busy === "stopping"
-                  ? t("settings.digital.stopping")
-                  : liveStatus?.connected
-                    ? t("settings.digital.stopLive")
-                    : t("settings.digital.startLive")}
-            </button>
-          </div>
-
-          {message && <p className="form-message">{message}</p>}
-        </section>
-
-        <aside className="settings-card-stack">
-          <section className="panel settings-card settings-tool-card">
-            <div className="settings-card-title">
-              <Database size={18} />
-              <div>
-                <h2>{t("settings.digital.statusTitle")}</h2>
-                <p>{t("settings.digital.statusSubtitle")}</p>
-              </div>
-            </div>
-            <div className="digital-status-grid">
-              <article>
-                <span className="settings-pill">{t("settings.digital.live")}</span>
-                <strong>{liveStatus?.connected ? t("settings.digital.liveActive") : t("settings.digital.liveInactive")}</strong>
-                <small>{t("settings.digital.liveSince", { value: liveSince })}</small>
-              </article>
-              <article>
-                <span className="settings-pill">{t("settings.digital.blocks")}</span>
-                <strong>{liveStatus?.blocksReceived || 0}</strong>
-                <small>{t("settings.digital.lastSeen", { value: liveSeen })}</small>
-              </article>
-            </div>
-          </section>
-
-          <section className="panel settings-card settings-tool-card">
-            <div className="settings-card-title">
-              <Server size={18} />
-              <div>
-                <h2>{t("settings.digital.roadmapTitle")}</h2>
-                <p>{t("settings.digital.roadmapSubtitle")}</p>
-              </div>
-            </div>
-            <div className="digital-roadmap-list">
-              {digitalProviders.map((providerId) => (
-                <button
-                  type="button"
-                  key={providerId}
-                  className={`${providerId === provider ? "active" : ""} ${providerId !== "ecos" ? "prepared" : ""}`.trim()}
-                  onClick={() => openAdapter(providerId)}
-                >
-                  <strong>
-                    {providerLabel(providerId)}
-                    <span className={providerConfigured(providerId) ? "digital-provider-state active" : "digital-provider-state inactive"}>
-                      <span />
-                      {providerConfigured(providerId) ? t("settings.digital.active") : t("settings.work.open")}
-                    </span>
-                  </strong>
-                  <span>
-                    {providerId === "ecos"
-                      ? t("settings.digital.ecosReady")
-                      : providerId === "intellibox3"
-                        ? t("settings.digital.intellibox3Ready")
-                        : t("settings.digital.adapterReady")}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
-        </aside>
-      </section>
+      <DigitalCenterWorkflowView
+        provider={provider}
+        configuredProviders={configuredProviders}
+        activeProviders={activeProviders}
+        host={providerHost(provider)}
+        port={providerPort(provider)}
+        protocol={providerProtocols[provider]}
+        timeout={providerTimeouts[provider]}
+        adapterId={provider === "intellibox3" ? "intellibox3" : provider}
+        configuredAt={configurationMeta[provider]?.configuredAt}
+        configuredBy={configurationMeta[provider]?.configuredBy}
+        canManageUsers={canManageUsers}
+        busy={busy}
+        message={message}
+        connectionResult={currentConnectionResult}
+        testError={currentTestError}
+        testSucceeded={testSucceeded}
+        testedAt={lastTestedProvider === provider ? lastTestedAt : undefined}
+        probeResult={probeResult}
+        liveStatus={liveStatus}
+        diagnosticsTab={diagnosticsTab}
+        formatDateTime={formatDateTime}
+        t={t}
+        onSelectProvider={selectProvider}
+        onConfigure={() => openAdapter(provider)}
+        onTest={testConnection}
+        onActivate={activateProvider}
+        onDeactivate={deactivateProvider}
+        onStartLive={startLive}
+        onStopLive={stopLive}
+        onRemove={removeProviderConnection}
+        onSelectDiagnosticsTab={setDiagnosticsTab}
+        onProbe={probeConnection}
+        onRefreshLive={() => refreshLiveStatus()}
+      />
 
       {activeDialogProvider && (
         <div className="modal-layer digital-adapter-layer" role="dialog" aria-modal="true" aria-label={t("settings.digital.dialogTitle", { provider: providerLabel(activeDialogProvider) })}>
@@ -504,13 +551,6 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime }: SettingsD
                   <span>{t("settings.digital.adminHelp")}</span>
                 </div>
               )}
-              <label className="settings-toggle-row digital-enable-row">
-                <span className="digital-enable-main">
-                  <input type="checkbox" checked={activeDialogProvider ? providerEnabled(activeDialogProvider) : false} onChange={(event) => setActiveProviderEnabled(event.target.checked)} />
-                  <strong>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}`) : t("settings.digital.configure")}</strong>
-                </span>
-                <small>{activeDialogProvider ? t(`settings.digital.enable.${activeDialogProvider}.help`) : t("settings.digital.dialogSubtitle")}</small>
-              </label>
               <div className="settings-field-grid">
                 <label>
                   {activeDialogProvider ? t(`settings.digital.${activeDialogProvider}.host`) : t("settings.digital.ecos.host")}

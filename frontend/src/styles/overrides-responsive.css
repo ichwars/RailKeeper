@@ -6,6 +6,108 @@
   color: var(--text);
 }
 
+@media (max-width: 1180px) {
+  .digital-provider-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .digital-workflow-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-workflow-aside {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .digital-provider-options,
+  .digital-workflow-aside {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .panel.digital-provider-selector,
+  .panel.digital-safety-card,
+  .panel.digital-actions-card {
+    padding: 12px;
+  }
+
+  .digital-workflow-step {
+    grid-template-columns: 36px minmax(0, 1fr);
+    gap: 7px;
+    padding: 11px 10px 11px 7px;
+  }
+
+  .digital-step-number {
+    width: 28px;
+    height: 28px;
+  }
+
+  .digital-workflow-step:not(:last-child) .digital-step-number::after {
+    top: 27px;
+  }
+
+  .digital-step-body > header,
+  .digital-step-body.activation,
+  .digital-diagnostic-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-workflow-status {
+    justify-self: start;
+  }
+
+  .digital-step-summary,
+  .digital-step-summary.split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+
+  .digital-step-summary > strong {
+    margin-bottom: 4px;
+  }
+
+  .digital-step-summary .inline-action {
+    justify-self: start;
+  }
+
+  .digital-test-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-test-actions > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .digital-diagnostic-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-test-summary {
+    justify-content: flex-start;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .digital-technical-details dl,
+  .digital-workflow-field-list,
+  .digital-workflow-command-list dl,
+  .digital-message-status {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-message-status > p {
+    grid-column: auto;
+  }
+
+  .digital-diagnostic-tabs {
+    gap: 12px;
+  }
+}
+
 :root[data-theme="dark"] th,
 :root[data-theme="dark"] .inventory-list-head {
   background: transparent;
