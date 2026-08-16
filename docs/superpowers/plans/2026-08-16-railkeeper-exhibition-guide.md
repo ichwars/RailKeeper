@@ -357,7 +357,8 @@ check, and one scoped commit.
 Use `git show` and `git grep` on tag `v0.1.17.6` to confirm:
 
 - designation and date are required and normalized by the stable service;
-- new lists default to today's local date in the UI;
+- new lists default to the browser-generated UTC calendar date; users must verify it near local
+  midnight;
 - create, edit, lock, unlock, and list deletion require Admin on the server;
 - normal workspace access still requires Messe in the stable UI;
 - locking preserves reading, viewing, and printing but rejects entry mutations;
