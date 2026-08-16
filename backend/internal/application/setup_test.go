@@ -104,6 +104,9 @@ func testDB(t *testing.T) *sql.DB {
 	if err := infrastructure.Migrate(db, migrationsDir); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := db.Exec(`UPDATE master_data_entries SET origin='bundled'`); err != nil {
+		t.Fatal(err)
+	}
 	if err := infrastructure.SeedRoles(db); err != nil {
 		t.Fatal(err)
 	}

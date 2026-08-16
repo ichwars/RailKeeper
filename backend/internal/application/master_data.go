@@ -34,6 +34,7 @@ type MasterDataCapabilities struct {
 }
 
 const masterDataExportFormat = "railkeeper-master-data"
+const masterDataExportVersion = 2
 const standardArticleType = "article_type"
 const standardAccessorySubtype = "accessory_subtype"
 const legacyArticleSubtype = "article_subtype"
@@ -381,7 +382,7 @@ func (s *MasterDataService) Export(ctx context.Context) (*MasterDataDocument, er
 	}
 	return &MasterDataDocument{
 		Format:    masterDataExportFormat,
-		Version:   1,
+		Version:   masterDataExportVersion,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		Entries:   entries,
 		Relations: relations,
@@ -389,7 +390,8 @@ func (s *MasterDataService) Export(ctx context.Context) (*MasterDataDocument, er
 }
 
 func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument) (*MasterDataImportResult, error) {
-	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 {
+	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 ||
+		doc.Version > masterDataExportVersion {
 		return nil, ErrMasterDataValidation
 	}
 	importedArticleTypes, err := validateImportedArticleTypes(doc.Entries)
@@ -428,107 +430,13 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 		return nil, err
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin master data import: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
-		return nil, err
-	}
-	if err := validateImportedAccessoryCustomFieldReferences(ctx, tx, entriesByType); err != nil {
-		return nil, err
-	}
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_relations`); err != nil {
-		return nil, fmt.Errorf("clear master data relations: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_entries`); err != nil {
-		return nil, fmt.Errorf("clear master data entries: %w", err)
-	}
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	result := &MasterDataImportResult{ImportedTypes: len(doc.Entries)}
-	for typeName, entries := range entriesByType {
-		typeName = strings.TrimSpace(typeName)
-		for _, entry := range entries {
-			entryType := effectiveMasterDataType(typeName, entry)
-			key := strings.TrimSpace(entry.Key)
-			label := strings.TrimSpace(entry.Label)
-			if entryType == "" || label == "" {
-				return nil, ErrMasterDataValidation
-			}
-			if key == "" {
-				key = slugKey(label)
-			}
-			id := strings.TrimSpace(entry.ID)
-			if id == "" {
-				id = entryType + ":" + key
-			}
-			metadata := entry.Metadata
-			if metadata == nil {
-				metadata = map[string]any{}
-			}
-			metadataJSON, err := json.Marshal(metadata)
-			if err != nil {
-				return nil, fmt.Errorf("marshal imported master data metadata: %w", err)
-			}
-			createdAt := strings.TrimSpace(entry.CreatedAt)
-			if createdAt == "" {
-				createdAt = now
-			}
-			updatedAt := strings.TrimSpace(entry.UpdatedAt)
-			if updatedAt == "" {
-				updatedAt = now
-			}
-			origin := entry.Origin
-			if origin != MasterDataOriginBundled && origin != MasterDataOriginCustom {
-				origin = MasterDataOriginCustom
-			}
-			if _, err := tx.ExecContext(ctx, `
-INSERT INTO master_data_entries(
-  id, type, key, label, active, sort_order, source_url, metadata_json,
-  created_at, updated_at, origin
-)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder,
-				strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt, origin); err != nil {
-				return nil, fmt.Errorf("insert imported master data entry: %w", err)
-			}
-			preservedArticleType := entryType == standardArticleType && !articleTypesWereImported
-			preservedAccessorySubtype := entryType == standardAccessorySubtype && !accessorySubtypesWereImported
-			if !preservedArticleType && !preservedAccessorySubtype {
-				result.ImportedEntries++
-			}
-		}
-	}
-
-	for _, relation := range doc.Relations {
-		relation.ParentType = strings.TrimSpace(relation.ParentType)
-		relation.ParentKey = strings.TrimSpace(relation.ParentKey)
-		relation.ChildType = strings.TrimSpace(relation.ChildType)
-		relation.ChildKey = strings.TrimSpace(relation.ChildKey)
-		if relation.ParentType == "" || relation.ParentKey == "" || relation.ChildType == "" || relation.ChildKey == "" {
-			return nil, ErrMasterDataValidation
-		}
-		id := strings.TrimSpace(relation.ID)
-		if id == "" {
-			id = randomID()
-		}
-		if _, err := tx.ExecContext(ctx, `
-INSERT INTO master_data_relations(id, parent_type, parent_key, child_type, child_key, sort_order, created_at)
-VALUES(?, ?, ?, ?, ?, ?, ?)
-`, id, relation.ParentType, relation.ParentKey, relation.ChildType, relation.ChildKey, relation.SortOrder, now); err != nil {
-			return nil, fmt.Errorf("insert imported master data relation: %w", err)
-		}
-		result.ImportedRelations++
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit master data import: %w", err)
-	}
-	s.invalidateCache()
-	return result, nil
+	return s.importReconciledMasterData(
+		ctx,
+		doc,
+		entriesByType,
+		articleTypesWereImported,
+		accessorySubtypesWereImported,
+	)
 }
 
 func normalizeImportedAccessoryCustomFields(entriesByType map[string][]MasterDataEntry) error {
