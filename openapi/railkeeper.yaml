@@ -464,6 +464,8 @@ components:
         vehicleSetSize:
           type: integer
           minimum: 1
+        vehicleSet:
+          $ref: "#/components/schemas/VehicleSetSummary"
         inventoryNumber:
           type: string
         manufacturer:
@@ -783,6 +785,40 @@ components:
           type: string
         packaging:
           type: string
+    VehicleSetSummary:
+      type: object
+      required: [id, inventoryNumber, name, manufacturer, gauge, memberCount, position]
+      properties:
+        id:
+          type: string
+          format: uuid
+        inventoryNumber:
+          type: string
+        name:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        gauge:
+          type: string
+        epoch:
+          type: string
+        acquisitionType:
+          type: string
+        purchaseDate:
+          type: string
+          format: date
+        purchasePrice:
+          type: string
+        condition:
+          type: string
+        memberCount:
+          type: integer
+          minimum: 1
+        position:
+          type: integer
+          minimum: 1
     CreateVehicleSetRequest:
       type: object
       required: [set, members]
@@ -891,11 +927,13 @@ components:
       allOf:
         - $ref: "#/components/schemas/VehicleSetInput"
         - type: object
-          required: [id, members, createdAt, updatedAt]
+          required: [id, inventoryNumber, members, createdAt, updatedAt]
           properties:
             id:
               type: string
               format: uuid
+            inventoryNumber:
+              type: string
             members:
               type: array
               items:
@@ -7896,6 +7934,70 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicle-sets/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Vehicles]
+      summary: Get a vehicle set with its ordered member vehicles
+      responses:
+        "200":
+          description: Vehicle set
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSet"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle set not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    patch:
+      tags: [Vehicles]
+      summary: Update shared vehicle set data and member snapshots atomically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleSetInput"
+      responses:
+        "200":
+          description: Vehicle set updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSet"
+        "400":
+          description: Invalid vehicle set data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role or missing CSRF token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Vehicle set not found
           content:
             application/json:
               schema:

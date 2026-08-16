@@ -40,6 +40,15 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	       COALESCE((SELECT s.name FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
 	       COALESCE((SELECT m.position FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), 0),
 	       COALESCE((SELECT COUNT(*) FROM vehicle_set_members m WHERE m.vehicle_set_id=(SELECT own.vehicle_set_id FROM vehicle_set_members own WHERE own.vehicle_id=vehicles.id)), 0),
+	       COALESCE((SELECT s.inventory_number FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.manufacturer FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.article_number FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.gauge FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.epoch FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.acquisition_type FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.purchase_date FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.purchase_price FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.condition FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
 	       created_at, updated_at
 	FROM vehicles
 	WHERE ? = '%%'
@@ -80,6 +89,7 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 		var soundGeneratorEnabled int
 		var smokeGeneratorEnabled int
 		var maximumSpeed sql.NullInt64
+		var setSummary VehicleSetSummary
 		if err := rows.Scan(
 			&vehicle.ID,
 			&vehicle.InventoryNumber,
@@ -138,6 +148,15 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 			&vehicle.VehicleSetName,
 			&vehicle.VehicleSetPosition,
 			&vehicle.VehicleSetSize,
+			&setSummary.InventoryNumber,
+			&setSummary.Manufacturer,
+			&setSummary.ArticleNumber,
+			&setSummary.Gauge,
+			&setSummary.Epoch,
+			&setSummary.AcquisitionType,
+			&setSummary.PurchaseDate,
+			&setSummary.PurchasePrice,
+			&setSummary.Condition,
 			&vehicle.CreatedAt,
 			&vehicle.UpdatedAt,
 		); err != nil {
@@ -156,6 +175,13 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 		if maximumSpeed.Valid {
 			value := int(maximumSpeed.Int64)
 			vehicle.MaximumSpeedKmh = &value
+		}
+		if vehicle.VehicleSetID != "" {
+			setSummary.ID = vehicle.VehicleSetID
+			setSummary.Name = vehicle.VehicleSetName
+			setSummary.MemberCount = vehicle.VehicleSetSize
+			setSummary.Position = vehicle.VehicleSetPosition
+			vehicle.VehicleSet = &setSummary
 		}
 		vehicles = append(vehicles, vehicle)
 	}
