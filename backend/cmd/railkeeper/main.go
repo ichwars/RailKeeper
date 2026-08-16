@@ -14,9 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
-	"railkeeper/backend/internal/infrastructure"
 	"railkeeper/backend/internal/startup"
 )
 
@@ -67,8 +65,6 @@ func main() {
 	standalone := runtimeConfig.Standalone
 	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
 	dataDir := runtimeConfig.DataDir
-	migrationsDir := runtimeConfig.MigrationsDir
-	seedsDir := runtimeConfig.SeedsDir
 	staticDir := runtimeConfig.StaticDir
 	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
 	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
@@ -95,101 +91,49 @@ func main() {
 		From:     env("RAILKEEPER_SMTP_FROM", ""),
 		TLSMode:  env("RAILKEEPER_SMTP_TLS", "starttls"),
 	}
-	passwordResetMailer, err := application.NewSMTPPasswordResetMailer(smtpConfig)
-	if err != nil {
-		logger.Error("smtp configuration invalid", "error", err)
-		os.Exit(1)
-	}
-
-	databasePath := filepath.Join(dataDir, "railkeeper.db")
-	databaseExisted := exists(databasePath)
-	db, err := infrastructure.OpenSQLite(dataDir)
-	if err != nil {
-		logger.Error("database open failed", "error", err)
-		os.Exit(1)
-	}
-	defer func() { _ = db.Close() }()
-
-	migrationResult, err := infrastructure.MigrateSafely(
+	startupResult, err := prepareStartup(
 		context.Background(),
-		db,
-		dataDir,
-		migrationsDir,
-		infrastructure.MigrationSafetyOptions{DatabaseExisted: databaseExisted},
+		runtimeConfig,
+		version,
+		defaultStartupDependencies(applicationHandlerOptions{
+			Version:                     version,
+			UpdateCheckURL:              updateCheckURL,
+			StaticDir:                   staticDir,
+			MaxImageBytes:               maxImageBytes,
+			MaxAttachmentBytes:          maxAttachmentBytes,
+			AllowedAttachmentExtensions: allowedAttachmentExtensions,
+			Logger:                      logger,
+			SMTPConfig:                  smtpConfig,
+			PublicURL:                   publicURL,
+			CookieSecure:                cookieSecure,
+		}),
 	)
 	if err != nil {
-		logger.Error("database migration failed", "error", err)
+		logger.Error("application startup failed", "error", err)
 		os.Exit(1)
 	}
-	if migrationResult.BackupPath != "" {
-		logger.Info("database migration safety copy created", "path", migrationResult.BackupPath)
+	if startupResult.Database != nil {
+		defer func() { _ = startupResult.Database.Close() }()
 	}
-	if err = infrastructure.SeedRoles(db); err != nil {
-		logger.Error("role seed failed", "error", err)
-		os.Exit(1)
+	dataDir = startupResult.State.Runtime.DataDir
+	if startupResult.State.SafetyBackupPath != "" {
+		logger.Info("database migration safety copy created", "path", startupResult.State.SafetyBackupPath)
 	}
-	if err = infrastructure.SeedMasterData(db, seedsDir); err != nil {
-		logger.Error("master data seed failed", "error", err)
-		os.Exit(1)
+	if startupResult.Conflict != nil {
+		if !addressIsLoopback(listener.Addr()) {
+			logger.Error("legacy data conflict page requires a loopback listener", "addr", listener.Addr().String())
+			os.Exit(1)
+		}
+		logger.Warn(
+			"legacy data conflict detected",
+			"safe_path", startupResult.Conflict.SafePath,
+			"legacy_path", startupResult.Conflict.LegacyPath,
+		)
 	}
-	fileBlobService := application.NewFileBlobService(db, dataDir)
-	if err = fileBlobService.MigrateFilesystemBlobs(context.Background()); err != nil {
-		logger.Error("file blob migration failed", "error", err)
-		os.Exit(1)
-	}
-
-	masterDataService := application.NewMasterDataService(db)
-	if err = masterDataService.WarmCache(context.Background()); err != nil {
-		logger.Error("master data cache warmup failed", "error", err)
-		os.Exit(1)
-	}
-	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	trackPlannerRepository := infrastructure.NewTrackPlannerRepository(db)
-	trackPlannerService := application.NewTrackPlannerService(trackPlannerRepository)
-	trackLibraryService := application.NewTrackLibraryService(trackPlannerRepository)
-	accessoryRepository := infrastructure.NewAccessoryRepository(db)
-	accessoryService := application.NewAccessoryService(accessoryRepository, fileBlobService)
-	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
-	accessoryDocumentService := application.NewAccessoryDocumentService(accessoryRepository, fileBlobService)
-
-	handler := api.NewRouter(api.Config{
-		Version:                     version,
-		UpdateCheckURL:              updateCheckURL,
-		StaticDir:                   staticDir,
-		DataDir:                     dataDir,
-		MaxImageBytes:               maxImageBytes,
-		MaxAttachmentBytes:          maxAttachmentBytes,
-		AllowedAttachmentExtensions: allowedAttachmentExtensions,
-		Logger:                      logger,
-		SetupService:                application.NewSetupService(db),
-		AuthService:                 application.NewAuthService(db),
-		VehicleService:              application.NewVehicleService(db),
-		OverviewValuationService:    application.NewOverviewValuationService(db),
-		MasterDataService:           masterDataService,
-		ArticleSearch:               application.NewArticleSearchService(masterDataService),
-		InventoryNumbers:            application.NewInventoryNumberService(db),
-		BackupService:               application.NewBackupService(db, dataDir),
-		FileBlobService:             fileBlobService,
-		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
-		ExhibitionService:           application.NewExhibitionService(db),
-		LayoutService:               layoutService,
-		TrackPlannerService:         trackPlannerService,
-		TrackLibraryService:         trackLibraryService,
-		AccessoryService:            accessoryService,
-		AccessoryAllocationService:  accessoryAllocationService,
-		AccessoryDocumentService:    accessoryDocumentService,
-		ECoSService:                 application.NewECoSService(),
-		RateLimitService:            application.NewRateLimitService(db),
-		SettingsService:             application.NewSettingsService(db),
-		PasswordResetMailer:         passwordResetMailer,
-		SMTPSettingsService:         application.NewSMTPSettingsService(db, smtpConfig, publicURL),
-		PublicURL:                   publicURL,
-		CookieSecure:                cookieSecure,
-	})
 
 	server := &http.Server{
 		Addr:              listener.Addr().String(),
-		Handler:           handler,
+		Handler:           startupResult.Handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
@@ -253,6 +197,18 @@ func browserURL(addr string) string {
 		host = "[" + host + "]"
 	}
 	return "http://" + host + ":" + port
+}
+
+func addressIsLoopback(addr net.Addr) bool {
+	if tcpAddress, ok := addr.(*net.TCPAddr); ok {
+		return tcpAddress.IP.IsLoopback()
+	}
+	host, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return false
+	}
+	address := net.ParseIP(strings.Trim(host, "[]"))
+	return address != nil && address.IsLoopback()
 }
 
 func printPortableStart(appURL, dataDir string) {
