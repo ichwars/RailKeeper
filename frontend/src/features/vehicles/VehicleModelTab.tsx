@@ -270,7 +270,7 @@ export function VehicleModelTab({
                     onChange={(event) => onUpdate({
                       maximumSpeedKmh: event.target.value === ""
                         ? undefined
-                        : Number.parseInt(event.target.value, 10)
+                        : Number(event.target.value)
                     })}
                     disabled={readonly}
                   />

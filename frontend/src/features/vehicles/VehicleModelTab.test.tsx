@@ -49,6 +49,10 @@ describe("VehicleModelTab operational fields", () => {
 
     await user.clear(speed);
     expect(onUpdate).toHaveBeenCalledWith({ maximumSpeedKmh: undefined });
+    fireEvent.change(speed, { target: { value: "120.5" } });
+    expect(onUpdate).toHaveBeenLastCalledWith({ maximumSpeedKmh: 120.5 });
+    fireEvent.change(speed, { target: { value: "1e2" } });
+    expect(onUpdate).toHaveBeenLastCalledWith({ maximumSpeedKmh: 100 });
     fireEvent.change(homeBase, { target: { value: "Bw Dresden" } });
     expect(onUpdate).toHaveBeenLastCalledWith({ homeBase: "Bw Dresden" });
   });

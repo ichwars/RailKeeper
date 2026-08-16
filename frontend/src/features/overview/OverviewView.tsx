@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Box, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
 import { api, type OverviewValuation, Vehicle, VehicleMaintenance } from "../../shared/api";
 import { translate, useI18n } from "../../shared/i18n";
@@ -132,6 +132,7 @@ export function OverviewView() {
   const [valuation, setValuation] = useState<OverviewValuation | null>(null);
   const [valuationLoading, setValuationLoading] = useState(true);
   const [valuationError, setValuationError] = useState("");
+  const valuationRequestId = useRef(0);
   const [hiddenWidgets, setHiddenWidgets] = useState<OverviewWidgetID[]>(readHiddenWidgets);
   const [widgetOrder, setWidgetOrder] = useState<OverviewWidgetID[]>(readWidgetOrder);
 
@@ -145,11 +146,21 @@ export function OverviewView() {
       .finally(() => setLoading(false));
     setValuationLoading(true);
     setValuationError("");
+    const requestId = valuationRequestId.current + 1;
+    valuationRequestId.current = requestId;
     api
       .overviewValuation()
-      .then(setValuation)
-      .catch(() => setValuationError(translate(language, "overview.valuation.error")))
-      .finally(() => setValuationLoading(false));
+      .then((nextValuation) => {
+        if (requestId === valuationRequestId.current) setValuation(nextValuation);
+      })
+      .catch(() => {
+        if (requestId === valuationRequestId.current) {
+          setValuationError(translate(language, "overview.valuation.error"));
+        }
+      })
+      .finally(() => {
+        if (requestId === valuationRequestId.current) setValuationLoading(false);
+      });
   }, [language]);
 
   useEffect(() => {
