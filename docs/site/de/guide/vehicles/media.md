@@ -32,8 +32,9 @@ RailKeeper lädt ausgewählte Bilder nacheinander hoch. Wenn anfangs noch kein B
 markiert jede Anfrage eines Mehrfachuploads ihr Bild als **Hauptbild**. Daher ist die zuletzt
 erfolgreich hochgeladene Datei das Hauptbild. Frühere erfolgreiche Dateien bleiben gespeichert,
 wenn eine spätere Datei fehlschlägt; weitere spätere Dateien werden in diesem Durchlauf nicht mehr
-versucht. Prüfe den Fehler und lade die fehlgeschlagene sowie die nicht versuchten Dateien erneut
-hoch. Der Bildupload wirkt unmittelbar und wartet nicht auf **Änderungen speichern**.
+versucht. Lade oder öffne das Fahrzeug vor einem erneuten Versuch neu. Vergleiche die aktualisierte
+Bildliste und das Hauptbild und lade nur weiterhin fehlende Dateien hoch. Der Bildupload wirkt
+unmittelbar und wartet nicht auf **Änderungen speichern**.
 
 ## Bildmetadaten ordnen
 
@@ -63,8 +64,9 @@ RailKeeper für jede Datei eine Kategorie.
 
 Wie Bilder werden Beilagen nacheinander hochgeladen. Eine frühere erfolgreiche Datei bleibt
 gespeichert, wenn eine spätere Datei fehlschlägt, und RailKeeper versucht weitere Dateien in diesem
-Durchlauf nicht. Prüfe den gemeldeten Fehler und lade die fehlenden Dateien erneut hoch.
-Gespeicherte Beilagen zeigen Originalname, Kategorie, MIME-Typ und Größe.
+Durchlauf nicht. Lade oder öffne das Fahrzeug neu, vergleiche die Liste gespeicherter Beilagen und
+lade nur weiterhin fehlende Dateien hoch. Gespeicherte Beilagen zeigen Originalname, Kategorie,
+MIME-Typ und Größe.
 
 ## Formate, Grenzen und Kategorien für Beilagen
 
@@ -90,7 +92,10 @@ Die automatische Kategorisierung nutzt diese Priorität. Die erste zutreffende R
 
 Kategorie und Bemerkung lassen sich für jede gespeicherte Beilage einzeln ändern. Diese Änderungen
 werden nur über die Speichern-Aktion der jeweiligen Zeile gespeichert, nicht über
-**Änderungen speichern** am Fahrzeug.
+**Änderungen speichern** am Fahrzeug. Beim Speichern einer Beilagenzeile wird das Fahrzeug neu
+geladen, wodurch andere ungespeicherte Medienänderungen verworfen werden. Speichere zuerst
+ausstehende Bildmetadaten. Bearbeite und speichere danach jeweils eine Beilagenzeile, bevor du die
+nächste änderst.
 
 ## Beilagen anzeigen, öffnen und herunterladen
 
@@ -112,11 +117,13 @@ Metadaten entfernt wurden.
 
 ## Rollen-, Speicher- und Sicherungsgrenzen
 
-Medien sind lokale und private RailKeeper-Daten, keine öffentlichen Website-Inhalte. Sie werden mit
-den Anwendungsdaten gespeichert und gehören zum Sicherungs- und Wiederherstellungsumfang der
-Anwendung. Erstelle vor umfangreichen Aufräumarbeiten eine aktuelle RailKeeper-Sicherung. Diese
-Seite verspricht nichts über Kopien, die du zuvor heruntergeladen oder außerhalb von RailKeeper
-angelegt hast.
+Medien sind lokale und private RailKeeper-Daten, keine öffentlichen Website-Inhalte.
+Anwendungssicherungen enthalten gespeicherte Fahrzeugmedien. RailKeeper akzeptiert in v0.1.17.6
+jedoch nur Sicherungsdateien bis 250 MiB für Prüfung und Wiederherstellung. Exportiere vor
+umfangreichen Aufräumarbeiten eine Sicherung und bitte einen Admin, diese Datei im
+Wiederherstellungsbereich auszuwählen. Verlasse dich erst darauf, wenn RailKeeper sie als kompatibel
+akzeptiert. Diese Seite verspricht nichts über Kopien, die du zuvor heruntergeladen oder außerhalb
+von RailKeeper angelegt hast.
 
 Admin, Editor, Viewer und Planner können vorhandene Medien ansehen. Serverseitige Schreibzugriffe
 erfordern Admin oder Editor. **Quelle öffnen** ist der Übergang für importierte Bildquellen.
@@ -132,7 +139,7 @@ Seite nicht erklärt.
 | Keine Bilder oder Beilagen | Nutze die Uploadaktion des Leerzustands am richtigen Fahrzeug. |
 | Format ist nicht erlaubt | Wähle eines der genannten Formate. Die abgelehnte Datei wird nicht gespeichert. |
 | Datei ist leer oder zu groß | Korrigiere oder verkleinere die Datei und beachte die Servergrenze. |
-| Mehrfachupload schlägt teilweise fehl | Frühere Dateien bleiben gespeichert. Prüfe fehlgeschlagene und nicht versuchte spätere Dateien und lade sie erneut hoch. |
+| Mehrfachupload schlägt teilweise fehl | Frühere Dateien bleiben gespeichert. Lade das Fahrzeug neu, vergleiche die aktualisierte Liste und lade nur weiterhin fehlende Dateien hoch. |
 | Bildmetadaten werden nicht gespeichert | Lasse den Fahrzeugdialog offen, lies den Fehler und nutze erneut **Änderungen speichern**. |
 | Verknüpftes Bild kann nicht gelöscht werden | Wähle **Keine Wartung**, speichere das Fahrzeug und entferne danach das Bild. |
 | Vorschau ist nicht verfügbar | Lade die Datei herunter oder öffne sie mit einem geeigneten lokalen Programm. |

@@ -182,13 +182,18 @@ The prose must explicitly state all of the following:
   `Ersatzteilliste`, `Zertifikat`, and `Sonstiges`;
 - automatic category priority exactly matches `attachmentCategoryForFile()`;
 - each stored attachment shows original name, category, MIME type, and size;
-- category and note changes persist only through the row save action;
+- category and note changes persist only through the row save action; saving reloads the vehicle,
+  so pending image metadata must be saved first and attachment rows must be edited and saved one at
+  a time;
 - PDF, image, TXT, CSV, JSON, and XML previews are supported, while ZIP has no inline preview;
 - Preview, Open file, and Download file are distinct actions;
 - image removal is immediate without an extra confirmation, attachment removal asks for confirmation;
 - successful earlier files remain stored when a later file in a batch fails, and later files are not
-  attempted in that run;
-- uploads are local/private RailKeeper data and belong to the application backup scope;
+  attempted in that run; reload the vehicle and compare stored media before retrying only files that
+  are still missing;
+- uploads are local/private RailKeeper data and belong to the application backup scope; v0.1.17.6
+  accepts backup files only up to 250 MiB for validation and restore, so the exported backup must be
+  accepted as compatible before destructive cleanup;
 - web-document import, remote article images, spare-part extraction, CV files, and maintenance
   editing are specialist boundaries, not workflows explained on this page.
 

@@ -163,7 +163,10 @@ Die Reihenfolge ist relevant. Eine frühere Regel gewinnt.
 ### Gespeicherte Beilagen
 
 Die Liste zeigt Originalname, Kategorie, erkannten Dateityp und Dateigröße. Kategorie und Bemerkung
-können für jede Beilage separat geändert und über deren Speichern-Aktion persistiert werden.
+können für jede Beilage separat geändert und über deren Speichern-Aktion persistiert werden. Diese
+Aktion lädt den Fahrzeugdatensatz neu und verwirft andere ungespeicherte Medienänderungen. Deshalb
+werden ausstehende Bildmetadaten zuerst gespeichert und Beilagenzeilen nacheinander bearbeitet und
+jeweils sofort gespeichert.
 
 Das Kapitel unterscheidet drei Aktionen:
 
@@ -190,8 +193,11 @@ entfernt RailKeeper den Datenbankeintrag und löscht die gespeicherten Dateidate
 Referenz mehr besteht. Ein fehlgeschlagener Löschvorgang wird nicht als Erfolg dargestellt.
 
 Vor umfangreichen Aufräumarbeiten empfiehlt das Kapitel einen aktuellen RailKeeper-Export. Die
-Anwendungssicherung umfasst Fahrzeug- und Uploaddaten. Das Kapitel verspricht keine außerhalb von
-RailKeeper angelegten Dateikopien oder Browserdownloads zu entfernen.
+Anwendungssicherung umfasst Fahrzeug- und Uploaddaten. v0.1.17.6 akzeptiert Sicherungsdateien bis
+250 MiB für Prüfung und Wiederherstellung. Das Kapitel verlangt deshalb, den Export vor destruktiven
+Aufräumarbeiten erneut zur Prüfung auszuwählen und sich erst nach bestätigter Kompatibilität darauf
+zu verlassen. Es verspricht keine außerhalb von RailKeeper angelegten Dateikopien oder
+Browserdownloads zu entfernen.
 
 ## Fehler- und Teilzustände
 
@@ -203,7 +209,7 @@ Die englische und deutsche Seite erklären mindestens:
 | Keine Bilder oder Beilagen | Stabilen Leerzustand benennen und passende Uploadaktion zeigen. |
 | Format nicht erlaubt | Unterstützte Formate nennen und keine Datei als gespeichert behandeln. |
 | Datei leer oder zu groß | Servergrenze beachten, Datei korrigieren oder verkleinern. |
-| Mehrfachupload scheitert teilweise | Frühere erfolgreiche Dateien bleiben gespeichert, die fehlerhafte und spätere Dateien prüfen und gezielt erneut hochladen. |
+| Mehrfachupload scheitert teilweise | Frühere erfolgreiche Dateien bleiben gespeichert, das Fahrzeug neu laden, den aktualisierten Bestand vergleichen und nur weiterhin fehlende Dateien erneut hochladen. |
 | Bildmetadaten nicht gespeichert | Fahrzeugdialog geöffnet lassen, Fehlermeldung beachten und erneut speichern. |
 | Wartungsverknüpftes Bild kann nicht gelöscht werden | Verknüpfung entfernen, speichern und Löschung wiederholen. |
 | Vorschau nicht verfügbar | Datei herunterladen oder in einem geeigneten lokalen Programm öffnen. |
@@ -212,8 +218,9 @@ Die englische und deutsche Seite erklären mindestens:
 
 Bei Mehrfachuploads arbeitet RailKeeper sequenziell. Schlägt eine spätere Datei fehl, bleiben zuvor
 erfolgreich gespeicherte Dateien erhalten und nachfolgende Dateien werden in diesem Durchlauf nicht
-mehr verarbeitet. Dieser Teilzustand wird ausdrücklich erklärt, damit keine unbemerkten Lücken
-entstehen.
+mehr verarbeitet. Da die Oberfläche bei diesem Fehler nicht erfolgreich neu lädt, muss das Fahrzeug
+vor einem erneuten Upload neu geladen und der gespeicherte Bestand verglichen werden. Dieser
+Teilzustand wird ausdrücklich erklärt, damit keine Duplikate oder unbemerkten Lücken entstehen.
 
 ## Sicherheits- und Speichergrenzen
 

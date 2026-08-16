@@ -30,9 +30,9 @@ type.
 RailKeeper uploads selected images sequentially. When the vehicle initially has no image, every
 request in a multi-file upload marks its image as main. The last successfully uploaded file is
 therefore the main image. Earlier successful files stay stored if a later file fails; remaining
-later files are not attempted in that run. Review the error, then upload the failed and unattempted
-files again. Image upload is immediate, so it does not wait for the vehicle's **Save changes**
-action.
+later files are not attempted in that run. Reload or reopen the vehicle before retrying. Compare
+the refreshed image list and main image, then upload only files that are still missing. Image upload
+is immediate, so it does not wait for the vehicle's **Save changes** action.
 
 ## Organize image metadata
 
@@ -57,8 +57,9 @@ the vehicle has been saved. The category and note selected before uploading appl
 that upload. With **Category automatically**, RailKeeper determines a category for each file.
 
 Attachment batches are sequential. A successful earlier file remains stored if a later file fails,
-and RailKeeper does not attempt later files in that run. Check the reported error, then upload the
-missing files again. Stored attachments show their original name, category, MIME type, and size.
+and RailKeeper does not attempt later files in that run. Reload or reopen the vehicle, compare the
+stored attachment list, and upload only files that are still missing. Stored attachments show their
+original name, category, MIME type, and size.
 
 ## Attachment formats, limits, and categories
 
@@ -82,7 +83,9 @@ Automatic categorization uses this priority, with the first matching rule winnin
 7. Any other allowed file: `Sonstiges`.
 
 You can edit the category and note for each stored attachment. These changes persist only through
-that row's save action, not through the vehicle's **Save changes** action.
+that row's save action, not through the vehicle's **Save changes** action. Saving an attachment row
+reloads the vehicle and discards other unsaved media edits. Save pending image metadata first, then
+edit and save one attachment row before changing another.
 
 ## Preview, open, and download attachments
 
@@ -101,10 +104,11 @@ name. If deletion fails, reload the record and do not assume the file or metadat
 
 ## Roles, storage, and backup boundaries
 
-Media is local and private RailKeeper data, not public website content. It is stored with the
-application data and belongs to the application backup and restore scope. Keep a current RailKeeper
-backup before extensive cleanup; this page makes no promise about copies downloaded or created
-outside RailKeeper.
+Media is local and private RailKeeper data, not public website content. Application backups include
+stored vehicle media. In v0.1.17.6, however, RailKeeper accepts backup files up to 250 MiB for
+validation and restore. Before extensive cleanup, export a backup and ask an Admin to select that
+file in the restore panel. Rely on it only after RailKeeper accepts it as compatible. This page
+makes no promise about copies downloaded or created outside RailKeeper.
 
 Admin, Editor, Viewer, and Planner may inspect existing media. Server-side writes require Admin or
 Editor. **Open source** is the transition for imported image sources. **Found documents**,
@@ -119,7 +123,7 @@ maintenance records are specialist boundaries, not workflows explained on this p
 | No images or attachments | Use the empty-state upload action after checking the correct vehicle. |
 | Format is not allowed | Choose one of the listed formats. The rejected file is not stored. |
 | File is empty or too large | Correct or reduce the file, taking the server limit into account. |
-| Batch upload partly fails | Earlier files remain stored. Check failed and unattempted later files, then upload them again. |
+| Batch upload partly fails | Earlier files remain stored. Reload the vehicle, compare the refreshed list, then upload only files that are still missing. |
 | Image metadata does not save | Keep the editor open, read the error, and use **Save changes** again. |
 | Linked image cannot be removed | Choose **No maintenance**, save the vehicle, then remove the image. |
 | Preview is unavailable | Download the file or open it with an appropriate local program. |
