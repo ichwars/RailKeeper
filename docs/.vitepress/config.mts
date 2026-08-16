@@ -50,6 +50,10 @@ export default defineConfig({
                 { text: "Fahrzeugbilder und Beilagen", link: "/de/guide/vehicles/media" },
                 { text: "Fahrzeugwartung und Zustand", link: "/de/guide/vehicles/maintenance" },
                 { text: "Decoder, Funktionen und CV-Daten", link: "/de/guide/vehicles/decoder-cv" },
+                {
+                  text: "Artikelsuche, Web-Dokumente und Ersatzteile",
+                  link: "/de/guide/vehicles/search-and-spares",
+                },
               ],
             },
           ],
@@ -121,6 +125,10 @@ export default defineConfig({
             { text: "Vehicle images and attachments", link: "/guide/vehicles/media" },
             { text: "Vehicle maintenance and condition", link: "/guide/vehicles/maintenance" },
             { text: "Decoder, functions, and CV data", link: "/guide/vehicles/decoder-cv" },
+            {
+              text: "Article search, web documents, and spare parts",
+              link: "/guide/vehicles/search-and-spares",
+            },
           ],
         },
       ],
