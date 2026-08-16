@@ -33,3 +33,7 @@ Alternativbilder, allgemeine Beilagen, Anzeigen und Herunterladen sowie das sich
 
 [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance) erklärt Wartungseinträge,
 Fälligkeiten, Abschluss, Kosten, verknüpfte Medien und sicheres Löschen.
+
+[Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv) behandelt Zuordnungen F0-F31,
+die schreibgeschützte Fahrkurve, CV-Werte und Austausch, Decoder-Dateivorschauen und sicheres
+Speichern.

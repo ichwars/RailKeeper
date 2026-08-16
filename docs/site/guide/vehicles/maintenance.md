@@ -158,6 +158,7 @@ A failed action does not undo an earlier successful independent maintenance or m
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Vehicle inventory and core records](/guide/vehicles/)
 - [Vehicle images and attachments](/guide/vehicles/media)
+- [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
 
 ## Documented RailKeeper version
 

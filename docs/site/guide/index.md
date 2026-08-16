@@ -32,3 +32,6 @@ image handling, general attachments, preview and download, and safe removal.
 
 [Vehicle maintenance and condition](/guide/vehicles/maintenance) explains maintenance entries,
 due dates, completion, costs, linked media, and safe deletion.
+
+[Decoder, functions, and CV data](/guide/vehicles/decoder-cv) covers F0-F31 mappings, the read-only
+speed curve, CV values and exchange, decoder-file previews, and safe persistence.

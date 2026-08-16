@@ -171,6 +171,7 @@ Medienaktion nicht rückgängig.
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
+- [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 
 ## Dokumentierte RailKeeper-Version
 

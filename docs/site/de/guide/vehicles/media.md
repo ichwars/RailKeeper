@@ -153,6 +153,7 @@ Seite nicht erklärt.
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
+- [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 
 ## Dokumentierte RailKeeper-Version
 
