@@ -13,8 +13,8 @@ export default defineConfig({
       "link",
       {
         rel: "icon",
-        type: "image/svg+xml",
-        href: "/RailKeeper/brand/railkeeper-mark.svg",
+        type: "image/png",
+        href: "/RailKeeper/brand/railkeeper-mark.png",
       },
     ],
   ],
@@ -88,7 +88,7 @@ export default defineConfig({
     },
   },
   themeConfig: {
-    logo: "/brand/railkeeper-mark.svg",
+    logo: "/brand/railkeeper-mark.png",
     siteTitle: "RailKeeper Docs",
     socialLinks: [{ icon: "github", link: repositoryUrl }],
     editLink: {
