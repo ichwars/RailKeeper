@@ -18,6 +18,7 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { RequiredLabel } from "./VehicleFormFields";
 import { VehicleModelTab } from "./VehicleModelTab";
 import type { PendingArticleImage } from "./vehicleTransforms";
+import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 
 export type VehicleSetMemberDraft = {
   inventoryNumber: string;
@@ -33,6 +34,7 @@ type VehicleCreateWizardProps = {
   onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
   onClose: () => void;
   setCreationDisabled?: boolean;
+	prefill?: VehicleCreatePrefill | null;
 };
 
 type CreationKind = "single" | "set";
@@ -49,12 +51,17 @@ export function VehicleCreateWizard({
   onSubmitSingle,
   onSubmitSet,
   onClose,
-  setCreationDisabled = false
+	setCreationDisabled = false,
+	prefill
 }: VehicleCreateWizardProps) {
   const { t } = useI18n();
   const [step, setStep] = useState(1);
-  const [kind, setKind] = useState<CreationKind>("single");
-  const [members, setMembers] = useState<VehicleSetMemberDraft[]>(initialMembers);
+	const [kind, setKind] = useState<CreationKind>(prefill?.kind || "single");
+	const [members, setMembers] = useState<VehicleSetMemberDraft[]>(() => prefill?.members.map((member) => ({
+		inventoryNumber: member.inventoryNumber || "",
+		name: member.name,
+		vehicleNumber: member.vehicleNumber || ""
+	})) || initialMembers);
   const { form, options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
   const basicsComplete = Boolean(
     form.name.trim() && form.manufacturer.trim() && form.gauge.trim() && form.category?.trim() && form.gattung?.trim()

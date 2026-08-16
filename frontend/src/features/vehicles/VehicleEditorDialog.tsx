@@ -13,6 +13,7 @@ import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
 import type { ModalMode, ModalTab } from "./vehicleViewModel";
+import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 
 type EditorTabs = {
   model: ComponentProps<typeof VehicleModelTab>;
@@ -40,6 +41,7 @@ type VehicleEditorDialogProps = {
   onQr: () => void;
   onPreviewImage: ComponentProps<typeof VehicleReadOnlyView>["onPreviewImage"];
   setCreationDisabled?: boolean;
+	createPrefill?: VehicleCreatePrefill | null;
 };
 
 const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = [
@@ -67,7 +69,8 @@ export function VehicleEditorDialog({
   onPrint,
   onQr,
   onPreviewImage,
-  setCreationDisabled = false
+	setCreationDisabled = false,
+	createPrefill
 }: VehicleEditorDialogProps) {
   const { t } = useI18n();
 
@@ -82,6 +85,7 @@ export function VehicleEditorDialog({
           onSubmitSet={onSubmitSet}
           onClose={onClose}
           setCreationDisabled={setCreationDisabled}
+					prefill={createPrefill}
         />
       ) : (
         <form

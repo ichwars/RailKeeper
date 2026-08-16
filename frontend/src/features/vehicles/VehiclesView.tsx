@@ -15,6 +15,9 @@ import {
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
+import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
+import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import {
   vehicleSetInputFromForm,
   vehicleSetMembersFromForm,
@@ -53,7 +56,7 @@ import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 import { createVehicleFilterDefinitions, createVehicleInventoryRenderers } from "./vehicleInventoryRenderers";
 import type { MasterDataOptions } from "./vehicleViewModel";
 
-export function VehiclesView({ username }: { username: string }) {
+export function VehiclesView({ username, roles = ["Editor"] }: { username: string; roles?: string[] }) {
   const { language, t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
@@ -62,6 +65,10 @@ export function VehiclesView({ username }: { username: string }) {
   const [loading, setLoading] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
+	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
+	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
+	const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
 
   const {
     state: {
@@ -694,6 +701,7 @@ export function VehiclesView({ username }: { username: string }) {
         closeModal();
       }
       await load();
+			setCreatePrefill(null);
       setMessage(t("vehicles.wizard.created", { count: created.members.length }));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
@@ -701,6 +709,23 @@ export function VehiclesView({ username }: { username: string }) {
       setSaving(false);
     }
   };
+	const closeVehicleSetDialog = () => {
+		setSelectedVehicleSetID("");
+		setVehicleSetMode(null);
+	};
+	const openVehicleSet = (setID: string, nextMode: "view" | "edit") => {
+		setSelectedVehicleSetID(setID);
+		setVehicleSetMode(nextMode);
+	};
+	const duplicateVehicleSet = (prefill: VehicleCreatePrefill) => {
+		closeVehicleSetDialog();
+		setCreatePrefill(prefill);
+		openCreate(prefill.shared);
+	};
+	const handleVehicleSetUpdated = async () => {
+		await load();
+		setVehicleSetMode("view");
+	};
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -751,7 +776,10 @@ export function VehiclesView({ username }: { username: string }) {
         hasActiveInventoryFilters={hasActiveInventoryFilters}
         allVisibleSelected={allVisibleSelected}
         selectedVehicleIDs={selectedVehicleIDs}
-        onCreate={openCreate}
+		onCreate={() => {
+			setCreatePrefill(null);
+			openCreate();
+		}}
         onReload={load}
         onOpenReport={() => setReportDialogOpen(true)}
         onQueryChange={setQuery}
@@ -818,6 +846,7 @@ export function VehiclesView({ username }: { username: string }) {
           onQr={generateQr}
           onPreviewImage={setPreviewImage}
           setCreationDisabled={Boolean(ecosDraft)}
+					createPrefill={createPrefill}
           tabs={{
             model: {
               form,
@@ -986,6 +1015,30 @@ export function VehiclesView({ username }: { username: string }) {
           }}
         />
       )}
+		{vehicleSetMode === "view" && selectedVehicleSetID && (
+			<VehicleSetSummaryDialog
+				setId={selectedVehicleSetID}
+				canEdit={canEditVehicleSets}
+				onClose={closeVehicleSetDialog}
+				onUpdated={() => undefined}
+				onEdit={(setID) => openVehicleSet(setID, "edit")}
+				onDuplicate={duplicateVehicleSet}
+				onOpenVehicle={(vehicleID) => {
+					const vehicle = vehicles.find((entry) => entry.id === vehicleID);
+					if (vehicle) {
+						closeVehicleSetDialog();
+						openDetail(vehicle);
+					}
+				}}
+			/>
+		)}
+		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (
+			<VehicleSetEditorDialog
+				setId={selectedVehicleSetID}
+				onClose={closeVehicleSetDialog}
+				onUpdated={handleVehicleSetUpdated}
+			/>
+		)}
       {articleSearchOpen && (
         <ArticleSearchDialog
           fieldGroups={vehicleArticleSearchGroups(t)}
