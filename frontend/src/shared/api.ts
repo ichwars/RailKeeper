@@ -863,8 +863,11 @@ export type VersionInfo = {
   sourceUrl?: string;
   releaseUrl?: string;
   releaseNotes?: string;
-  assetUrl?: string;
-  assetName?: string;
+  windowsPackage?: {
+    version: string;
+    name: string;
+    url: string;
+  };
   checkedAt: string;
   status: "local" | "not_configured" | "current" | "update_available" | "unavailable" | "no_release";
   message: string;

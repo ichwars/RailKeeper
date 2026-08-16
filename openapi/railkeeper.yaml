@@ -356,6 +356,20 @@ components:
           type: string
         releaseUrl:
           type: string
+          format: uri
+        releaseNotes:
+          type: string
+        windowsPackage:
+          type: object
+          required: [version, name, url]
+          properties:
+            version:
+              type: string
+            name:
+              type: string
+            url:
+              type: string
+              format: uri
         checkedAt:
           type: string
           format: date-time
