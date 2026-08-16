@@ -9,12 +9,62 @@ lastReviewed: 2026-08-16
 
 # Installation and Administration
 
-This section covers Windows Portable and Docker installation, runtime configuration, users and
+This section covers Windows Standalone and Docker installation, runtime configuration, users and
 roles, SMTP, backups and restores, updates, TLS, uploads, OCR, printers, operational checks, and
 conservative troubleshooting.
 
 Administration guidance describes the stable v0.1.17.6 runtime and preserves RailKeeper's
 local-first, self-hosted security model.
+
+## Safe Windows Standalone updates
+
+The Windows Standalone ZIP contains the application only. It never contains a database, uploads,
+attachments, thumbnails, or backups. By default, persistent data is stored independently from the
+replaceable program folder in `%LOCALAPPDATA%\RailKeeper\data`.
+
+After a successful check under **Settings > General > Updates**, Windows Standalone shows
+**Download version X** only when the matching ZIP belongs to the detected GitHub release. The
+browser downloads that ZIP directly. RailKeeper does not extract, install, replace, migrate, or
+restart anything. If the trusted package is unavailable, the GitHub release page remains linked.
+
+For an update:
+
+1. Download the matching ZIP from the versioned button or the linked release page.
+2. Create a current application backup and close RailKeeper.
+3. Extract the ZIP into a new program folder. Do not copy a database into that folder.
+4. Start the new `RailKeeper.exe`.
+5. Sign in, check the active storage location under **Settings > Data storage**, and verify the
+   inventory before deleting the previous program folder.
+
+Older Standalone versions stored data in a `data` folder beside `RailKeeper.exe`. On first startup,
+RailKeeper copies that legacy data to the safe location and keeps the source unchanged. If both
+locations already contain a database, RailKeeper stops before opening or migrating either database
+and displays both paths. Close RailKeeper, create separate copies of both folders, and decide which
+database is current. Rename the existing safe folder instead of overwriting or merging it, then
+copy the chosen complete data folder to `%LOCALAPPDATA%\RailKeeper\data`. Keep both source copies
+until the inventory and attachments have been verified.
+
+An explicitly configured `RAILKEEPER_DATA_DIR` always takes precedence and disables automatic
+legacy migration. Do not point it at a replaceable program folder or an unreliable removable
+drive. Administrators can see the exact active path in **Settings > Data storage**. Opening that
+folder in Explorer is available only for a local Windows Standalone instance.
+
+Before pending database migrations, RailKeeper creates a validated private copy under
+`safety-backups`. It includes the complete database, including local authentication data. This is a
+startup safeguard, not a replacement for an application backup or a filesystem/volume backup.
+
+## Docker updates
+
+Docker keeps persistent data in the mounted `/data` volume. Update the application with:
+
+```powershell
+docker compose pull
+docker compose up -d
+```
+
+Back up the volume before an update and verify `/health`, login, inventory, and backup validation
+afterwards. The automatic pre-migration database copy remains inside `/data` and therefore does not
+protect against loss of the volume itself.
 
 ## Master-data lifecycle
 

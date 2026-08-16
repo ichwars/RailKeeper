@@ -1,10 +1,58 @@
 package application_test
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 )
+
+func TestMigrateFilesystemBlobsRetainsFilesForPreMigrationSafetyCopy(t *testing.T) {
+	db := testDB(t)
+	ctx := context.Background()
+	vehicleService := application.NewVehicleService(db)
+	vehicle, err := vehicleService.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko", Name: "BR 118", Gauge: "TT", Category: "Lokomotive", Gattung: "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	relativePath := "uploads/vehicles/test/manual.pdf"
+	attachment, err := vehicleService.CreateAttachment(ctx, vehicle.ID, application.VehicleAttachmentInput{
+		FileName: "manual.pdf", OriginalName: "manual.pdf", MimeType: "application/pdf",
+		SizeBytes: 6, StoragePath: relativePath,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dataDir := t.TempDir()
+	fullPath := filepath.Join(dataDir, filepath.FromSlash(relativePath))
+	if err = os.MkdirAll(filepath.Dir(fullPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(fullPath, []byte("manual"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	blobs := application.NewFileBlobService(db, dataDir)
+	if err = blobs.MigrateFilesystemBlobs(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if data, readErr := os.ReadFile(fullPath); readErr != nil || string(data) != "manual" {
+		t.Fatalf("filesystem payload needed by safety copy was removed: data=%q err=%v", data, readErr)
+	}
+	var blobID string
+	if err = db.QueryRowContext(ctx,
+		`SELECT blob_id FROM vehicle_attachments WHERE id=?`, attachment.ID,
+	).Scan(&blobID); err != nil {
+		t.Fatal(err)
+	}
+	if blobID == "" {
+		t.Fatal("active database did not receive migrated blob")
+	}
+}
 
 func TestFileBlobDeleteRetainsAccessoryDocumentReferences(t *testing.T) {
 	db := testDB(t)

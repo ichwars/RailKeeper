@@ -863,8 +863,11 @@ export type VersionInfo = {
   sourceUrl?: string;
   releaseUrl?: string;
   releaseNotes?: string;
-  assetUrl?: string;
-  assetName?: string;
+  windowsPackage?: {
+    version: string;
+    name: string;
+    url: string;
+  };
   checkedAt: string;
   status: "local" | "not_configured" | "current" | "update_available" | "unavailable" | "no_release";
   message: string;
@@ -888,6 +891,20 @@ export type StorageOptimizeResult = {
   afterBytes: number;
   reclaimedBytes: number;
   optimizedAt: string;
+};
+
+export type StorageLocationInfo = {
+  dataPath: string;
+  mode: "windows_standalone" | "configured" | "server";
+  openFolderAvailable: boolean;
+  migrationReceipt?: {
+    sourcePath: string;
+    targetPath: string;
+    migratedAt: string;
+    version: string;
+    filesVerified: number;
+    acknowledged: boolean;
+  };
 };
 
 export type SystemPrinter = {
@@ -1163,6 +1180,10 @@ export const api = {
     ),
   storageUsage: () => request<StorageUsage>("/system/storage", {}, { timeoutMs: 30000 }),
   optimizeStorage: () => request<StorageOptimizeResult>("/system/storage/optimize", { method: "POST" }, { timeoutMs: 120000 }),
+  storageLocationInfo: () => request<StorageLocationInfo>("/system/storage/info"),
+  openStorageFolder: () => request<void>("/system/storage/open-folder", { method: "POST" }),
+  acknowledgeStorageMigration: () =>
+    request<void>("/system/storage/migration-receipt/acknowledge", { method: "POST" }),
   systemPrinters: () => request<SystemPrinters>("/system/printers", {}, { timeoutMs: 10000 }),
   auditLog: (limit = 50) => request<AuditLogResponse>(`/system/audit-log?limit=${encodeURIComponent(String(limit))}`, {}, { timeoutMs: 10000 }),
   smtpSettings: () => request<SMTPSettings>("/system/smtp", {}, { timeoutMs: 10000 }),

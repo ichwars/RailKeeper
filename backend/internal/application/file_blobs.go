@@ -120,35 +120,20 @@ func (s *FileBlobService) MigrateFilesystemBlobs(ctx context.Context) error {
 	if s == nil || s.db == nil || strings.TrimSpace(s.dataDir) == "" {
 		return nil
 	}
-	paths, err := s.migrateTablePaths(ctx, "vehicle_images", "blob_id", "storage_path")
+	_, err := s.migrateTablePaths(ctx, "vehicle_images", "blob_id", "storage_path")
 	if err != nil {
 		return err
 	}
-	more, err := s.migrateTablePaths(ctx, "vehicle_images", "thumbnail_blob_id", "thumbnail_path")
+	_, err = s.migrateTablePaths(ctx, "vehicle_images", "thumbnail_blob_id", "thumbnail_path")
 	if err != nil {
 		return err
 	}
-	paths = append(paths, more...)
-	more, err = s.migrateTablePaths(ctx, "vehicle_attachments", "blob_id", "storage_path")
+	_, err = s.migrateTablePaths(ctx, "vehicle_attachments", "blob_id", "storage_path")
 	if err != nil {
 		return err
 	}
-	paths = append(paths, more...)
-	more, err = s.migrateTablePaths(ctx, "vehicle_cv_files", "blob_id", "storage_path")
+	_, err = s.migrateTablePaths(ctx, "vehicle_cv_files", "blob_id", "storage_path")
 	if err != nil {
-		return err
-	}
-	paths = append(paths, more...)
-
-	for _, relativePath := range uniqueStrings(paths) {
-		if s.filesystemPathStillReferenced(ctx, relativePath) {
-			continue
-		}
-		if fullPath, err := confinedDataPath(s.dataDir, relativePath); err == nil {
-			_ = os.Remove(fullPath)
-		}
-	}
-	if err := s.cleanupUnneededUploadFiles(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -226,58 +211,6 @@ func (s *FileBlobService) readConfinedDataFile(relativePath string) ([]byte, err
 	return data, nil
 }
 
-func (s *FileBlobService) filesystemPathStillReferenced(ctx context.Context, relativePath string) bool {
-	var count int
-	if err := s.db.QueryRowContext(ctx, `
-SELECT
-  (SELECT COUNT(*) FROM vehicle_images WHERE (storage_path=? AND blob_id='') OR (thumbnail_path=? AND thumbnail_blob_id='')) +
-  (SELECT COUNT(*) FROM vehicle_attachments WHERE storage_path=? AND blob_id='') +
-  (SELECT COUNT(*) FROM vehicle_cv_files WHERE storage_path=? AND blob_id='')
-`, relativePath, relativePath, relativePath, relativePath).Scan(&count); err != nil {
-		return true
-	}
-	return count > 0
-}
-
-func (s *FileBlobService) cleanupUnneededUploadFiles(ctx context.Context) error {
-	uploadsDir := filepath.Join(s.dataDir, "uploads")
-	if _, err := os.Stat(uploadsDir); errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	dirs := []string{}
-	if err := filepath.WalkDir(uploadsDir, func(path string, entry os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if entry.IsDir() {
-			dirs = append(dirs, path)
-			return nil
-		}
-		relative, err := filepath.Rel(s.dataDir, path)
-		if err != nil {
-			return err
-		}
-		relative = filepath.ToSlash(relative)
-		if s.filesystemPathStillReferenced(ctx, relative) {
-			return nil
-		}
-		legacyRelative := filepath.FromSlash(relative)
-		if legacyRelative != relative && s.filesystemPathStillReferenced(ctx, legacyRelative) {
-			return nil
-		}
-		return os.Remove(path)
-	}); err != nil {
-		return fmt.Errorf("cleanup migrated upload files: %w", err)
-	}
-	for i := len(dirs) - 1; i >= 0; i-- {
-		if dirs[i] == uploadsDir {
-			continue
-		}
-		_ = os.Remove(dirs[i])
-	}
-	return nil
-}
-
 func compressBlobData(data []byte) ([]byte, error) {
 	var buffer bytes.Buffer
 	writer := zlib.NewWriter(&buffer)
@@ -305,23 +238,6 @@ func decompressBlobData(data []byte, compression string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unsupported blob compression %q", compression)
 	}
-}
-
-func uniqueStrings(values []string) []string {
-	seen := map[string]struct{}{}
-	out := []string{}
-	for _, value := range values {
-		value = strings.TrimSpace(value)
-		if value == "" {
-			continue
-		}
-		if _, ok := seen[value]; ok {
-			continue
-		}
-		seen[value] = struct{}{}
-		out = append(out, value)
-	}
-	return out
 }
 
 func confinedDataPath(dataDir, relativePath string) (string, error) {

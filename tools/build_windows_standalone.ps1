@@ -4,11 +4,13 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+. (Join-Path $PSScriptRoot "windows_package_validation.ps1")
+
 $repo = Resolve-Path (Join-Path $PSScriptRoot "..")
 $frontend = Join-Path $repo "frontend"
 $backend = Join-Path $repo "backend"
-$packageRoot = Join-Path $repo "dist\windows-portable"
-$packageDir = Join-Path $packageRoot "RailKeeper-Portable"
+$packageRoot = Join-Path $repo "dist\windows-standalone"
+$packageDir = Join-Path $packageRoot "RailKeeper-Windows-Standalone"
 $brandIconSource = Join-Path $repo "frontend\public\brand\railkeeper-mark.png"
 
 function Write-UInt16LE {
@@ -192,11 +194,24 @@ if ([string]::IsNullOrWhiteSpace($Version)) {
 
 $zipPath = Join-Path $packageRoot ("RailKeeper-windows-x64-v{0}.zip" -f $Version)
 
-if (Test-Path $packageDir) {
+$resolvedPackageRoot = [IO.Path]::GetFullPath($packageRoot)
+$resolvedPackageDir = [IO.Path]::GetFullPath($packageDir)
+$resolvedZipPath = [IO.Path]::GetFullPath($zipPath)
+if (-not $resolvedPackageDir.StartsWith(
+    $resolvedPackageRoot + [IO.Path]::DirectorySeparatorChar,
+    [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Package directory escaped package root: $resolvedPackageDir"
+}
+if (-not $resolvedZipPath.StartsWith(
+    $resolvedPackageRoot + [IO.Path]::DirectorySeparatorChar,
+    [StringComparison]::OrdinalIgnoreCase)) {
+  throw "Package archive escaped package root: $resolvedZipPath"
+}
+
+if (Test-Path -LiteralPath $resolvedPackageDir) {
   Remove-Item -LiteralPath $packageDir -Recurse -Force
 }
 New-Item -ItemType Directory -Force -Path $packageDir | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $packageDir "data") | Out-Null
 
 Push-Location $frontend
 try {
@@ -224,7 +239,7 @@ try {
   $env:GOARCH = "amd64"
   $env:GOCACHE = Join-Path $repo ".cache\go-build"
   New-Item -ItemType Directory -Force -Path $env:GOCACHE | Out-Null
-  & go build -trimpath -ldflags "-s -w" -o $exePath ./cmd/railkeeper
+  & go build -buildvcs=false -trimpath -ldflags "-s -w" -o $exePath ./cmd/railkeeper
   if ($LASTEXITCODE -ne 0) {
     throw "Windows backend build failed with exit code $LASTEXITCODE"
   }
@@ -236,10 +251,13 @@ try {
   Pop-Location
 }
 
-if (Test-Path $zipPath) {
+Assert-RailKeeperPackageDirectory -PackageDir $packageDir
+
+if (Test-Path -LiteralPath $zipPath) {
   Remove-Item -LiteralPath $zipPath -Force
 }
 Compress-Archive -Path (Join-Path $packageDir "*") -DestinationPath $zipPath -Force
+Assert-RailKeeperPackageArchive -ZipPath $zipPath
 
-Write-Host "Portable package created:"
+Write-Host "Windows Standalone package created:"
 Write-Host $zipPath

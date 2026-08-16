@@ -48,3 +48,17 @@ Verwendungshistorie.
 
 [Messearbeitsbereich](/de/guide/exhibition/) erklärt, wie du Listen vorbereitest, Betriebseinträge
 pflegst, Sperren verwendest, DCC- und SX-Adresskonflikte löst und den Veranstaltungsreport druckst.
+
+## Windows Standalone aktualisieren
+
+Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper
+das passende vertrauenswürdige Windows-ZIP, enthält die Download-Schaltfläche dessen Version. Die
+Schaltfläche startet ausschließlich den Browser-Download. RailKeeper installiert oder ersetzt keine
+Dateien.
+
+Eine Anwendungssicherung erstellen, RailKeeper beenden und das heruntergeladene ZIP in einen neuen
+Programmordner entpacken. Diese Kopie starten und den aktiven Datenpfad sowie den Bestand prüfen,
+bevor der vorherige Programmordner entfernt wird. Der sichere Standardpfad
+`%LOCALAPPDATA%\RailKeeper\data` bleibt getrennt und unverändert. Fehlt die passende
+Download-Schaltfläche, die verlinkte GitHub-Release-Seite verwenden. Docker-Installationen werden
+weiterhin mit `docker compose pull` und anschließend `docker compose up -d` aktualisiert.

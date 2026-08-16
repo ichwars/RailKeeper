@@ -14,9 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
-	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/startup"
 )
 
 const (
@@ -43,32 +42,36 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	portable := portableMode()
 	baseDir := executableDir()
-	addrDefault := ":8080"
-	dataDirDefault := "./data"
-	migrationsDirDefault := "./migrations"
-	seedsDirDefault := "./seeds"
-	staticDirDefault := "../../frontend/dist"
-	if portable {
-		addrDefault = "127.0.0.1:8080"
-		dataDirDefault = filepath.Join(baseDir, "data")
-		migrationsDirDefault = filepath.Join(baseDir, "migrations")
-		seedsDirDefault = filepath.Join(baseDir, "seeds")
-		staticDirDefault = filepath.Join(baseDir, "web")
+	workingDir, err := os.Getwd()
+	if err != nil {
+		logger.Error("working directory resolution failed", "error", err)
+		os.Exit(1)
 	}
-	addr := env("RAILKEEPER_ADDR", addrDefault)
-	dataDir := env("RAILKEEPER_DATA_DIR", dataDirDefault)
-	migrationsDir := env("RAILKEEPER_MIGRATIONS_DIR", migrationsDirDefault)
-	seedsDir := env("RAILKEEPER_SEEDS_DIR", seedsDirDefault)
-	staticDir := env("RAILKEEPER_STATIC_DIR", staticDirDefault)
+	runtimeConfig, err := startup.ResolveRuntimeConfig(startup.RuntimeInputs{
+		GOOS:          runtime.GOOS,
+		Args:          os.Args[1:],
+		ExecutableDir: baseDir,
+		WorkingDir:    workingDir,
+		LookupEnv:     os.LookupEnv,
+		PathExists:    exists,
+		JoinPath:      filepath.Join,
+		AbsPath:       filepath.Abs,
+	})
+	if err != nil {
+		logger.Error("runtime configuration failed", "error", err)
+		os.Exit(1)
+	}
+	standalone := runtimeConfig.Standalone
+	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
+	staticDir := runtimeConfig.StaticDir
 	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
 	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
 	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 	updateCheckURL := env("RAILKEEPER_UPDATE_CHECK_URL", defaultUpdateCheckURL)
 
-	listener, appURL, err := listen(addr, portable)
+	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
 		logger.Error("server listen failed", "error", err, "addr", addr)
 		os.Exit(1)
@@ -76,7 +79,7 @@ func main() {
 	defer func() { _ = listener.Close() }()
 
 	publicURL := env("RAILKEEPER_PUBLIC_URL", "")
-	if portable && publicURL == "" {
+	if standalone && publicURL == "" {
 		publicURL = appURL
 	}
 	smtpConfig := application.SMTPPasswordResetMailConfig{
@@ -87,95 +90,55 @@ func main() {
 		From:     env("RAILKEEPER_SMTP_FROM", ""),
 		TLSMode:  env("RAILKEEPER_SMTP_TLS", "starttls"),
 	}
-	passwordResetMailer, err := application.NewSMTPPasswordResetMailer(smtpConfig)
+	startupResult, err := prepareStartup(
+		context.Background(),
+		runtimeConfig,
+		version,
+		defaultStartupDependencies(applicationHandlerOptions{
+			Version:                     version,
+			UpdateCheckURL:              updateCheckURL,
+			StaticDir:                   staticDir,
+			MaxImageBytes:               maxImageBytes,
+			MaxAttachmentBytes:          maxAttachmentBytes,
+			AllowedAttachmentExtensions: allowedAttachmentExtensions,
+			Logger:                      logger,
+			SMTPConfig:                  smtpConfig,
+			PublicURL:                   publicURL,
+			CookieSecure:                cookieSecure,
+		}),
+	)
 	if err != nil {
-		logger.Error("smtp configuration invalid", "error", err)
+		logger.Error("application startup failed", "error", err)
 		os.Exit(1)
 	}
-
-	db, err := infrastructure.OpenSQLite(dataDir)
-	if err != nil {
-		logger.Error("database open failed", "error", err)
-		os.Exit(1)
+	if startupResult.Database != nil {
+		defer func() { _ = startupResult.Database.Close() }()
 	}
-	defer func() { _ = db.Close() }()
-
-	if err = infrastructure.Migrate(db, migrationsDir); err != nil {
-		logger.Error("database migration failed", "error", err)
-		os.Exit(1)
+	dataDir := startupResult.State.Runtime.DataDir
+	if startupResult.State.SafetyBackupPath != "" {
+		logger.Info("database migration safety copy created", "path", startupResult.State.SafetyBackupPath)
 	}
-	if err = infrastructure.SeedRoles(db); err != nil {
-		logger.Error("role seed failed", "error", err)
-		os.Exit(1)
+	if startupResult.Conflict != nil {
+		if !addressIsLoopback(listener.Addr()) {
+			logger.Error("legacy data conflict page requires a loopback listener", "addr", listener.Addr().String())
+			os.Exit(1)
+		}
+		logger.Warn(
+			"legacy data conflict detected",
+			"safe_path", startupResult.Conflict.SafePath,
+			"legacy_path", startupResult.Conflict.LegacyPath,
+		)
 	}
-	if err = infrastructure.SeedMasterData(db, seedsDir); err != nil {
-		logger.Error("master data seed failed", "error", err)
-		os.Exit(1)
-	}
-	fileBlobService := application.NewFileBlobService(db, dataDir)
-	if err = fileBlobService.MigrateFilesystemBlobs(context.Background()); err != nil {
-		logger.Error("file blob migration failed", "error", err)
-		os.Exit(1)
-	}
-
-	masterDataService := application.NewMasterDataService(db)
-	if err = masterDataService.WarmCache(context.Background()); err != nil {
-		logger.Error("master data cache warmup failed", "error", err)
-		os.Exit(1)
-	}
-	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
-	trackPlannerRepository := infrastructure.NewTrackPlannerRepository(db)
-	trackPlannerService := application.NewTrackPlannerService(trackPlannerRepository)
-	trackLibraryService := application.NewTrackLibraryService(trackPlannerRepository)
-	accessoryRepository := infrastructure.NewAccessoryRepository(db)
-	accessoryService := application.NewAccessoryService(accessoryRepository, fileBlobService)
-	accessoryAllocationService := application.NewAccessoryAllocationService(accessoryRepository)
-	accessoryDocumentService := application.NewAccessoryDocumentService(accessoryRepository, fileBlobService)
-
-	handler := api.NewRouter(api.Config{
-		Version:                     version,
-		UpdateCheckURL:              updateCheckURL,
-		StaticDir:                   staticDir,
-		DataDir:                     dataDir,
-		MaxImageBytes:               maxImageBytes,
-		MaxAttachmentBytes:          maxAttachmentBytes,
-		AllowedAttachmentExtensions: allowedAttachmentExtensions,
-		Logger:                      logger,
-		SetupService:                application.NewSetupService(db),
-		AuthService:                 application.NewAuthService(db),
-		VehicleService:              application.NewVehicleService(db),
-		OverviewValuationService:    application.NewOverviewValuationService(db),
-		MasterDataService:           masterDataService,
-		ArticleSearch:               application.NewArticleSearchService(masterDataService),
-		InventoryNumbers:            application.NewInventoryNumberService(db),
-		BackupService:               application.NewBackupService(db, dataDir),
-		FileBlobService:             fileBlobService,
-		DatabaseMaintenance:         application.NewDatabaseMaintenanceService(db, dataDir),
-		ExhibitionService:           application.NewExhibitionService(db),
-		LayoutService:               layoutService,
-		TrackPlannerService:         trackPlannerService,
-		TrackLibraryService:         trackLibraryService,
-		AccessoryService:            accessoryService,
-		AccessoryAllocationService:  accessoryAllocationService,
-		AccessoryDocumentService:    accessoryDocumentService,
-		ECoSService:                 application.NewECoSService(),
-		RateLimitService:            application.NewRateLimitService(db),
-		SettingsService:             application.NewSettingsService(db),
-		PasswordResetMailer:         passwordResetMailer,
-		SMTPSettingsService:         application.NewSMTPSettingsService(db, smtpConfig, publicURL),
-		PublicURL:                   publicURL,
-		CookieSecure:                cookieSecure,
-	})
 
 	server := &http.Server{
 		Addr:              listener.Addr().String(),
-		Handler:           handler,
+		Handler:           startupResult.Handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "portable", portable)
-	if portable {
-		printPortableStart(appURL, dataDir)
+	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
+	if standalone {
+		printStandaloneStart(appURL, dataDir)
 		if env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {
 			go openBrowser(logger, appURL)
 		}
@@ -184,21 +147,6 @@ func main() {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
-}
-
-func portableMode() bool {
-	if env("RAILKEEPER_PORTABLE", "false") == "true" {
-		return true
-	}
-	for _, arg := range os.Args[1:] {
-		if arg == "--portable" {
-			return true
-		}
-	}
-	baseDir := executableDir()
-	return exists(filepath.Join(baseDir, "web", "index.html")) &&
-		exists(filepath.Join(baseDir, "migrations")) &&
-		exists(filepath.Join(baseDir, "seeds"))
 }
 
 func executableDir() string {
@@ -250,9 +198,21 @@ func browserURL(addr string) string {
 	return "http://" + host + ":" + port
 }
 
-func printPortableStart(appURL, dataDir string) {
+func addressIsLoopback(addr net.Addr) bool {
+	if tcpAddress, ok := addr.(*net.TCPAddr); ok {
+		return tcpAddress.IP.IsLoopback()
+	}
+	host, _, err := net.SplitHostPort(addr.String())
+	if err != nil {
+		return false
+	}
+	address := net.ParseIP(strings.Trim(host, "[]"))
+	return address != nil && address.IsLoopback()
+}
+
+func printStandaloneStart(appURL, dataDir string) {
 	fmt.Println()
-	fmt.Println("RailKeeper Portable wurde gestartet.")
+	fmt.Println("RailKeeper Windows Standalone wurde gestartet.")
 	fmt.Println("Adresse: " + appURL)
 	fmt.Println("Datenordner: " + dataDir)
 	fmt.Println("Dieses Fenster waehrend der Nutzung geoeffnet lassen.")

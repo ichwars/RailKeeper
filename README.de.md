@@ -89,18 +89,34 @@ RailKeeper ist um Arbeitsansichten statt Marketingseiten aufgebaut:
 
 ## Schnellstart
 
-### Windows Portable
+### Windows Standalone (ohne Installation)
 
-Lade das Windows-Portable-ZIP aus einem Release herunter, entpacke es vollständig und starte:
+Lade das Windows-x64-ZIP aus einem Release herunter, entpacke es vollständig und starte:
 
 ```text
 start-railkeeper.bat
 ```
 
-RailKeeper läuft lokal ohne Installation oder zusätzliche Software und speichert Datenbank, Uploads
-und Backups im Ordner `data` neben `RailKeeper.exe`. Der Betrieb von einem USB-Stick ist möglich.
-Für den täglichen Einsatz sollte der entpackte Ordner auf einem lokalen Laufwerk liegen, weil dies
-für die SQLite-Datenbank schneller und sicherer ist.
+RailKeeper läuft lokal ohne zusätzliche Software. Persistente Daten liegen standardmäßig außerhalb
+des austauschbaren Programmordners unter `%LOCALAPPDATA%\RailKeeper\data`. Das ZIP enthält bewusst
+keine Datenbank, Uploads, Backups oder einen Ordner `data`. Das Ersetzen des entpackten
+Programmordners ersetzt deshalb nicht die aktiven Benutzerdaten.
+
+Beim ersten Start nach einer älteren Portable- oder Standalone-Version kopiert RailKeeper einen
+vorhandenen Ordner `data` neben `RailKeeper.exe` in den sicheren Pfad und lässt die Quelle
+unverändert. Enthalten beide Pfade unterschiedliche Datenbanken oder sonstige persistente Dateien,
+stoppt der Start auf einer lokalen Sicherheitsseite und verändert keine der beiden Kopien. Den
+aktiven absoluten Datenpfad und eine beibehaltene Migrationsquelle sehen Administratoren unter
+**Einstellungen > Allgemein**. Setze `RAILKEEPER_DATA_DIR` nur für einen ausdrücklich gewünschten
+alternativen Datenpfad. Ein Pfad im Programmordner oder auf einem Wechseldatenträger kann weiterhin
+verloren gehen, wenn dieser Speicherort gelöscht oder ersetzt wird. Externe Backups bleiben nötig.
+
+Erkennt Windows Standalone unter **Einstellungen > Allgemein > Updates** ein neueres Release, nennt
+die Schaltfläche die verfügbare Version und startet den Download des passenden GitHub-ZIP. RailKeeper
+entpackt, installiert, ersetzt oder startet dabei nichts automatisch neu. Erstelle eine Sicherung,
+beende RailKeeper, entpacke das heruntergeladene ZIP in einen neuen Programmordner und prüfe nach dem
+Start den angezeigten Datenpfad sowie den Bestand. Fehlt ein vertrauenswürdiges passendes ZIP, nutze
+stattdessen die verlinkte GitHub-Release-Seite.
 
 ### Docker Compose
 
@@ -176,14 +192,15 @@ npm run build
 
 Die Produktionslaufzeit stellt das gebaute Frontend aus `frontend/dist` bereit.
 
-Erstelle ein Windows-Portable-Paket:
+Erstelle ein Windows-Standalone-Paket:
 
 ```powershell
-.\tools\build_windows_portable.ps1
+.\tools\build_windows_standalone.ps1
 ```
 
-Das Skript baut das Frontend, kompiliert `RailKeeper.exe` für Windows x64 und erstellt
-`dist\windows-portable\RailKeeper-windows-x64-v<version>.zip`.
+Das Skript baut das Frontend, kompiliert `RailKeeper.exe` für Windows x64, weist Benutzerdaten im
+Paketbaum und ZIP zurück und erstellt
+`dist\windows-standalone\RailKeeper-windows-x64-v<version>.zip`.
 
 Nützliche lokale Standardwerte:
 

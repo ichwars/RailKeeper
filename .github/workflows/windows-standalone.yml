@@ -1,4 +1,4 @@
-name: Windows Portable Package
+name: Windows Standalone Package
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 jobs:
-  windows-portable:
+  windows-standalone:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v7
@@ -30,15 +30,15 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: Build portable package
+      - name: Build standalone package
         shell: pwsh
-        run: .\tools\build_windows_portable.ps1
+        run: .\tools\build_windows_standalone.ps1
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: railkeeper-windows-portable
-          path: dist/windows-portable/*.zip
+          name: railkeeper-windows-standalone
+          path: dist/windows-standalone/*.zip
 
       - name: Upload release asset
         if: startsWith(github.ref, 'refs/tags/')
@@ -46,4 +46,4 @@ jobs:
         with:
           generate_release_notes: true
           prerelease: ${{ contains(github.ref_name, '-') }}
-          files: dist/windows-portable/*.zip
+          files: dist/windows-standalone/*.zip

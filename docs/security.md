@@ -29,6 +29,16 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 - executable attachment extension blocklist
 - server-side MIME detection for attachments
 - attachment storage path confinement to the configured data directory
+- Windows Standalone stores persistent data outside the replaceable program directory by default
+- legacy Windows data migration uses verified manifests, SQLite-consistent snapshots, link and
+  reparse-point rejection, atomic promotion, and an unchanged retained source
+- different legacy and safe databases stop on a loopback-only static safety page before normal APIs,
+  seeds, or schema migrations start
+- pending migrations on existing databases require a validated private SQLite safety copy
+- the Admin folder-opening API accepts no client path and is capability-gated to local Windows
+  Standalone operation
+- Windows release-package validation rejects data, upload, attachment, thumbnail, backup, and SQLite
+  content in both the staged directory and final ZIP
 - external article, image and document fetches require public HTTP(S) URLs and reject private, loopback, link-local, multicast and unspecified targets before redirects and TCP dial
 - static asset cache separation from API responses
 - security headers: `nosniff`, `same-origin` referrer policy, frame blocking, CSP and permissions policy with camera limited to same-origin barcode scanning while microphone and geolocation stay disabled
@@ -37,6 +47,11 @@ RailKeeper is intended for local-first and small self-hosted installations. This
 
 - Put RailKeeper behind HTTPS before setting `RAILKEEPER_COOKIE_SECURE=true`.
 - Keep the `/data` directory private and backed up.
+- Keep `%LOCALAPPDATA%\RailKeeper\data` private and backed up for Windows Standalone.
+- Treat `safety-backups` as private production data. These copies include local authentication data
+  and are not public diagnostics or substitutes for an external backup.
+- An explicit `RAILKEEPER_DATA_DIR` inside a program folder or on removable media bypasses the safe
+  Windows default and can be lost with that location.
 - Do not expose the service directly to the internet without a reverse proxy and TLS.
 - Article search fetches third-party pages and should be considered untrusted input; results are suggestions and require explicit user selection.
 

@@ -62,6 +62,8 @@ import {
   type SettingsLocation
 } from "./settingsDataModel";
 import { SettingsTabList } from "./SettingsTabList";
+import { StorageLocationPanel } from "./StorageLocationPanel";
+import { WindowsUpdateDownload } from "./WindowsUpdateDownload";
 
 import {
   applyVisibleMetadata,
@@ -1718,12 +1720,7 @@ export function SettingsView({ username }: { username: string }) {
                   {versionLoading ? t("settings.updates.checking") : t("settings.updates.checkNow")}
                 </button>
               </div>
-              {versionInfo?.releaseUrl && (
-                <a className="settings-link-row" href={versionInfo.releaseUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink size={15} />
-                  {t("settings.updates.openRelease")}
-                </a>
-              )}
+              {versionInfo && <WindowsUpdateDownload info={versionInfo} />}
               {versionInfo?.updateAvailable && (
                 <div className="update-decision-panel">
                   <div>
@@ -1751,6 +1748,7 @@ export function SettingsView({ username }: { username: string }) {
                 </div>
               </div>
               <p>{t("settings.storage.subtitle")}</p>
+              {canManageUsers && <StorageLocationPanel />}
               <div className="storage-total">
                 <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
                 <span>{storageUsage?.updatedAt ? t("settings.storage.updated", { date: formatDateTime(storageUsage.updatedAt) }) : t("settings.storage.notUpdated")}</span>

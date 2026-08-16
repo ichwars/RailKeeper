@@ -153,6 +153,28 @@ describe("SettingsView data navigation", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Daten" })).toHaveTextContent(/^Daten$/);
   });
 
+  it("composes the trusted Windows package action in the updates card", async () => {
+    vi.mocked(api.version).mockResolvedValue({
+      version: "0.1.0",
+      latestVersion: "v0.2.0",
+      updateAvailable: true,
+      releaseUrl: "https://github.com/ichwars/RailKeeper/releases/tag/v0.2.0",
+      windowsPackage: {
+        version: "v0.2.0",
+        name: "RailKeeper-windows-x64-v0.2.0.zip",
+        url: "https://github.com/ichwars/RailKeeper/releases/download/v0.2.0/RailKeeper-windows-x64-v0.2.0.zip"
+      },
+      checkedAt: "2026-08-16T16:00:00Z",
+      status: "update_available",
+      message: "Eine neuere RailKeeper-Version ist verfügbar."
+    });
+
+    render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("link", { name: "Version v0.2.0 herunterladen" }))
+      .toHaveAttribute("href", expect.stringContaining("RailKeeper-windows-x64-v0.2.0.zip"));
+  });
+
   it("enables Anlage as a start page and displays a stored layout preference", async () => {
     const user = userEvent.setup();
     window.localStorage.setItem("railkeeper.settings.defaultView", "layouts");

@@ -14,17 +14,22 @@ import (
 )
 
 type versionInfoResponse struct {
-	Version         string `json:"version"`
-	LatestVersion   string `json:"latestVersion,omitempty"`
-	UpdateAvailable bool   `json:"updateAvailable"`
-	SourceURL       string `json:"sourceUrl,omitempty"`
-	ReleaseURL      string `json:"releaseUrl,omitempty"`
-	ReleaseNotes    string `json:"releaseNotes,omitempty"`
-	AssetURL        string `json:"assetUrl,omitempty"`
-	AssetName       string `json:"assetName,omitempty"`
-	CheckedAt       string `json:"checkedAt"`
-	Status          string `json:"status"`
-	Message         string `json:"message"`
+	Version         string                  `json:"version"`
+	LatestVersion   string                  `json:"latestVersion,omitempty"`
+	UpdateAvailable bool                    `json:"updateAvailable"`
+	SourceURL       string                  `json:"sourceUrl,omitempty"`
+	ReleaseURL      string                  `json:"releaseUrl,omitempty"`
+	ReleaseNotes    string                  `json:"releaseNotes,omitempty"`
+	WindowsPackage  *windowsPackageResponse `json:"windowsPackage,omitempty"`
+	CheckedAt       string                  `json:"checkedAt"`
+	Status          string                  `json:"status"`
+	Message         string                  `json:"message"`
+}
+
+type windowsPackageResponse struct {
+	Version string `json:"version"`
+	Name    string `json:"name"`
+	URL     string `json:"url"`
 }
 
 type updateReleaseResponse struct {
@@ -93,7 +98,6 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	response.LatestVersion = firstUpdateVersion(release.Version, release.TagName, release.Name)
 	response.ReleaseURL = release.HTMLURL
 	response.ReleaseNotes = strings.TrimSpace(release.Body)
-	response.AssetName, response.AssetURL = firstReleaseAsset(release.Assets)
 	if response.LatestVersion == "" {
 		response.Status = "unavailable"
 		response.Message = "Updatequelle enthielt keine auswertbare Version."
@@ -105,6 +109,13 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 		response.UpdateAvailable = true
 		response.Status = "update_available"
 		response.Message = "Eine neuere RailKeeper-Version ist verfügbar."
+		response.WindowsPackage = selectTrustedWindowsPackage(
+			a.windowsStandaloneDownload,
+			updateURL,
+			response.LatestVersion,
+			release.TagName,
+			release.Assets,
+		)
 	} else {
 		response.Status = "current"
 		response.Message = "RailKeeper ist aktuell."
@@ -205,13 +216,63 @@ func firstUpdateVersion(values ...string) string {
 	return ""
 }
 
-func firstReleaseAsset(assets []updateReleaseAsset) (string, string) {
+func selectTrustedWindowsPackage(
+	enabled bool,
+	updateURL string,
+	version string,
+	tagName string,
+	assets []updateReleaseAsset,
+) *windowsPackageResponse {
+	if !enabled || !isTrustedRailKeeperReleaseAPI(updateURL) {
+		return nil
+	}
+
+	normalizedVersion := strings.TrimPrefix(strings.TrimSpace(version), "v")
+	tagName = strings.TrimSpace(tagName)
+	if normalizedVersion == "" || tagName == "" {
+		return nil
+	}
+	expectedName := fmt.Sprintf("RailKeeper-windows-x64-v%s.zip", normalizedVersion)
 	for _, asset := range assets {
-		if trimmed := strings.TrimSpace(asset.BrowserDownloadURL); trimmed != "" {
-			return strings.TrimSpace(asset.Name), trimmed
+		if strings.TrimSpace(asset.Name) != expectedName {
+			continue
+		}
+		assetURL := strings.TrimSpace(asset.BrowserDownloadURL)
+		if !isTrustedRailKeeperAssetURL(assetURL, tagName, expectedName) {
+			continue
+		}
+		return &windowsPackageResponse{
+			Version: strings.TrimSpace(version),
+			Name:    expectedName,
+			URL:     assetURL,
 		}
 	}
-	return "", ""
+	return nil
+}
+
+func isTrustedRailKeeperReleaseAPI(rawURL string) bool {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "api.github.com" {
+		return false
+	}
+	path := strings.TrimSuffix(parsed.EscapedPath(), "/")
+	const releasesPath = "/repos/ichwars/RailKeeper/releases"
+	return path == releasesPath || strings.HasPrefix(path, releasesPath+"/")
+}
+
+func isTrustedRailKeeperAssetURL(rawURL, tagName, expectedName string) bool {
+	parsed, err := url.Parse(rawURL)
+	if err != nil || parsed.Scheme != "https" || parsed.Host != "github.com" {
+		return false
+	}
+	segments := strings.Split(strings.Trim(parsed.EscapedPath(), "/"), "/")
+	if len(segments) != 6 || segments[0] != "ichwars" || segments[1] != "RailKeeper" ||
+		segments[2] != "releases" || segments[3] != "download" {
+		return false
+	}
+	assetTag, tagErr := url.PathUnescape(segments[4])
+	assetName, nameErr := url.PathUnescape(segments[5])
+	return tagErr == nil && nameErr == nil && assetTag == tagName && assetName == expectedName
 }
 
 func compareVersionStrings(latest, current string) int {

@@ -250,6 +250,7 @@
       "/api/v1/exhibition-lists": "exhibition"
     },
     "environmentVariables": {
+      "LOCALAPPDATA": "deployment-configuration",
       "RAILKEEPER_ADDR": "deployment-configuration",
       "RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS": "deployment-configuration",
       "RAILKEEPER_COOKIE_SECURE": "deployment-configuration",
