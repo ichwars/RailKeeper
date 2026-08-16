@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 17
+	backupVersion = 18
 )
 
 var (
@@ -274,6 +274,11 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 
 	result := &BackupImportResult{}
 	for _, table := range backupTableOrder {
+		if table == "vehicle_sets" {
+			if err := prepareBackupVehicleSetInventoryNumbers(ctx, tx, doc); err != nil {
+				return nil, err
+			}
+		}
 		if table == "accessory_products" {
 			if err := prepareBackupArticleInventoryNumbers(ctx, tx, doc, articleInventoryScheme); err != nil {
 				return nil, err
