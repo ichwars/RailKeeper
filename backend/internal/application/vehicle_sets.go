@@ -52,7 +52,11 @@ func (s *VehicleService) CreateSet(
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	setID := randomID()
-	if err = insertVehicleSetTx(ctx, tx, setID, setInput, now); err != nil {
+	setInventoryNumber, err := s.nextVehicleSetInventoryNumber(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	if err = insertVehicleSetTx(ctx, tx, setID, setInventoryNumber, setInput, now); err != nil {
 		return nil, err
 	}
 
@@ -93,7 +97,30 @@ VALUES(?, ?, 'VehicleSetCreated', 'vehicle_set', ?, ?, '{}')
 		members[index].Images = images
 	}
 
-	return vehicleSetFromInput(setID, setInput, members, now), nil
+	return vehicleSetFromInput(setID, setInventoryNumber, setInput, members, now), nil
+}
+
+func (s *VehicleService) nextVehicleSetInventoryNumber(ctx context.Context, tx *sql.Tx) (string, error) {
+	return ReserveInventoryNumber(ctx, tx, "Set", "", func(candidate string) error {
+		return s.ensureVehicleSetInventoryNumberAvailable(ctx, tx, candidate)
+	})
+}
+
+func (s *VehicleService) ensureVehicleSetInventoryNumberAvailable(
+	ctx context.Context,
+	tx *sql.Tx,
+	inventoryNumber string,
+) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM vehicle_sets WHERE inventory_number=?
+`, strings.TrimSpace(inventoryNumber)).Scan(&count); err != nil {
+		return fmt.Errorf("check vehicle set inventory number availability: %w", err)
+	}
+	if count > 0 {
+		return ErrInventoryNumberConflict
+	}
+	return nil
 }
 
 func cleanVehicleSetInput(input VehicleSetInput) VehicleSetInput {
@@ -187,18 +214,19 @@ func insertVehicleSetTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	setID string,
+	inventoryNumber string,
 	input VehicleSetInput,
 	now string,
 ) error {
 	if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_sets(
-  id, name, manufacturer, article_number, article_source_url, gauge, epoch, railway_company,
+  id, inventory_number, name, manufacturer, article_number, article_source_url, gauge, epoch, railway_company,
   category, gattung, description, ean, production_period, list_price, acquisition_type,
   acquired_from, purchase_price, purchase_date, storage_location, storage_details, condition,
   condition_details, packaging, created_at, updated_at
 )
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, setID, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge,
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, setID, inventoryNumber, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge,
 		input.Epoch, input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN,
 		input.ProductionPeriod, input.ListPrice, input.AcquisitionType, input.AcquiredFrom,
 		input.PurchasePrice, input.PurchaseDate, input.StorageLocation, input.StorageDetails,
@@ -208,9 +236,16 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	return nil
 }
 
-func vehicleSetFromInput(setID string, input VehicleSetInput, members []Vehicle, now string) *VehicleSet {
+func vehicleSetFromInput(
+	setID string,
+	inventoryNumber string,
+	input VehicleSetInput,
+	members []Vehicle,
+	now string,
+) *VehicleSet {
 	return &VehicleSet{
-		ID: setID, Name: input.Name, Manufacturer: input.Manufacturer, ArticleNumber: input.ArticleNumber,
+		ID: setID, InventoryNumber: inventoryNumber, Name: input.Name, Manufacturer: input.Manufacturer,
+		ArticleNumber:    input.ArticleNumber,
 		ArticleSourceURL: input.ArticleSourceURL, Gauge: input.Gauge, Epoch: input.Epoch,
 		RailwayCompany: input.RailwayCompany, Category: input.Category, Gattung: input.Gattung,
 		Description: input.Description, EAN: input.EAN, ProductionPeriod: input.ProductionPeriod,

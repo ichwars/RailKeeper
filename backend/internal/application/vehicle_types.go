@@ -172,6 +172,7 @@ type CreateVehicleSetInput struct {
 
 type VehicleSet struct {
 	ID               string    `json:"id"`
+	InventoryNumber  string    `json:"inventoryNumber"`
 	Name             string    `json:"name"`
 	Manufacturer     string    `json:"manufacturer"`
 	ArticleNumber    string    `json:"articleNumber,omitempty"`

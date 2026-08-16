@@ -59,6 +59,9 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	if len(created.Members) != 2 {
 		t.Fatalf("expected two set members, got %d", len(created.Members))
 	}
+	if created.InventoryNumber != "RK-SET-000001" {
+		t.Fatalf("unexpected set inventory number %q", created.InventoryNumber)
+	}
 	for index, member := range created.Members {
 		if member.VehicleSetID != created.ID || member.VehicleSetName != "TEE Roland" {
 			t.Fatalf("member %d has incomplete set metadata: %#v", index, member)
@@ -114,6 +117,19 @@ func TestCreateVehicleSetRollsBackAllMembersOnConflict(t *testing.T) {
 	}
 	if vehicleCount != 1 || setCount != 0 {
 		t.Fatalf("set creation was not atomic: vehicles=%d sets=%d", vehicleCount, setCount)
+	}
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Folgeset", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.InventoryNumber != "RK-SET-000001" {
+		t.Fatalf("rolled-back set consumed an inventory number: %q", created.InventoryNumber)
 	}
 }
 
