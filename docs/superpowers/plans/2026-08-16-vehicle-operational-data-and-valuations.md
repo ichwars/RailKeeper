@@ -772,7 +772,7 @@ git commit -m "feat: expose overview valuation API"
 - Modify: `frontend/src/shared/i18n/de.ts`
 - Modify: `frontend/src/shared/i18n/en.ts`
 
-- [ ] **Step 1: Add failing API/component/overview tests**
+- [x] **Step 1: Add failing API/component/overview tests**
 
 Define the expected frontend shape:
 
@@ -805,7 +805,7 @@ npm.cmd run test:run -- OverviewValuationCard OverviewView
 
 Expected: FAIL.
 
-- [ ] **Step 2: Add API method and exact browser formatter**
+- [x] **Step 2: Add API method and exact browser formatter**
 
 Add:
 
@@ -819,7 +819,7 @@ whole string with `/\B(?=(\d{3})+(?!\d))/g`. Render German as
 `${groupedWhole},${cents} €` and English as `€${groupedWhole}.${cents}`. Always preserve exactly two
 cents. Export the formatter from the focused component for direct tests.
 
-- [ ] **Step 3: Implement `OverviewValuationCard`**
+- [x] **Step 3: Implement `OverviewValuationCard`**
 
 The component accepts:
 
@@ -845,7 +845,7 @@ Render a heading `overview.valuation.title`, a short basis text, and four labell
 Use `role="status"` for loading and `role="alert"` for the local failure. Keep the card usable in
 light/dark mode using existing tokens only.
 
-- [ ] **Step 4: Load valuation independently in `OverviewView`**
+- [x] **Step 4: Load valuation independently in `OverviewView`**
 
 Add separate `valuation`, `valuationLoading`, and `valuationError` state. The refresh action starts
 both requests, but each request owns its own `.catch` and `.finally`. A valuation failure must not
@@ -856,14 +856,14 @@ in that position while keeping total inventory, digitalization, and maintenance 
 existing maintenance-cost formatter behavior unchanged unless a focused test shows it also needs
 two decimals.
 
-- [ ] **Step 5: Implement the approved responsive layout**
+- [x] **Step 5: Implement the approved responsive layout**
 
 Use a hero grid where the valuation card spans the width of two ordinary KPI cells on desktop. Its
 inner matrix uses two equal columns. At the current tablet breakpoint it remains two columns if
 space allows; at the narrow mobile breakpoint it becomes one column. Add `min-width: 0` to grid
 children and wrap long German labels. Do not add horizontal document scrolling.
 
-- [ ] **Step 6: Add German and English text**
+- [x] **Step 6: Add German and English text**
 
 Use these meanings:
 
@@ -879,7 +879,7 @@ Use these meanings:
 
 Provide natural English equivalents and plural handling consistent with the current i18n helper.
 
-- [ ] **Step 7: Rerun focused tests and build**
+- [x] **Step 7: Rerun focused tests and build**
 
 ```powershell
 npm.cmd run test:run -- OverviewValuationCard OverviewView
@@ -888,7 +888,7 @@ npm.cmd run build
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit Task 7**
+- [x] **Step 8: Commit Task 7**
 
 ```powershell
 git add frontend/src/shared/api.ts frontend/src/features/overview `
