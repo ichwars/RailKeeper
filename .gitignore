@@ -18,6 +18,12 @@ frontend/coverage/
 frontend/*.tsbuildinfo
 dist/
 
+# Documentation site
+docs/node_modules/
+docs/.vitepress/cache/
+docs/.vitepress/dist/
+.superpowers/
+
 # Runtime data
 data/
 backend/data/

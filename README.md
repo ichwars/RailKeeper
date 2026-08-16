@@ -20,7 +20,8 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> · <a href="README.de.md">Deutsch</a>
+  <strong>English</strong> · <a href="README.de.md">Deutsch</a> ·
+  <a href="https://ichwars.github.io/RailKeeper/">Documentation</a>
 </p>
 
 ## Overview
@@ -28,6 +29,9 @@
 RailKeeper is a complete self-hosted application for managing model railway vehicles, decoder data, images, documents, maintenance, exhibition lists and imports in one local-first workspace. It runs as a single Go service with an integrated React frontend and stores all operational data in SQLite.
 
 The project is designed for private collections, clubs and small workshops that want a serious inventory system without a cloud dependency. RailKeeper keeps data, uploads and backups under your control while still offering modern workflows such as article web search, structured import review, ECoS readout and release update checks.
+
+The handbook brings together complete user, operator, and developer guidance, with coverage tracked
+against the project sources in both English and German.
 
 ## Highlights
 

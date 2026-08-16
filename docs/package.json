@@ -1,0 +1,15 @@
+{
+  "name": "railkeeper-documentation",
+  "private": true,
+  "license": "AGPL-3.0-only",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview",
+    "test": "node --test scripts/*.test.mjs",
+    "check": "npm test && node scripts/validate-docs.mjs && vitepress build"
+  },
+  "devDependencies": {
+    "vitepress": "2.0.0-alpha.19"
+  }
+}

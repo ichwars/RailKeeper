@@ -35,6 +35,15 @@ Run `gofmt` after Go changes. Keep backend routes, frontend API types, and
 `openapi/railkeeper.yaml` aligned when the API changes. Update German and English translations
 together.
 
+## Documentation changes
+
+- Update the English and German page in the same pull request when behavior changes.
+- Keep identical relative paths below `docs/site/` and `docs/site/de/`.
+- Run `cd docs` followed by `npm run check` before opening the pull request.
+- Update `docs/coverage.json` when a route, API area, translation namespace, configuration value,
+  or documentation topic is introduced.
+- A one-language-only change is allowed only for a wording correction that does not change meaning.
+
 ## Pull Requests
 
 Explain the problem, the chosen solution, and the verification performed. Include screenshots for

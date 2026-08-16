@@ -20,7 +20,8 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a> · <strong>Deutsch</strong>
+  <a href="README.md">English</a> · <strong>Deutsch</strong> ·
+  <a href="https://ichwars.github.io/RailKeeper/de/">Dokumentation</a>
 </p>
 
 ## Überblick
@@ -34,6 +35,9 @@ Das Projekt richtet sich an private Sammlungen, Vereine und kleine Werkstätten,
 Bestandssystem ohne Cloud-Abhängigkeit benötigen. RailKeeper hält Daten, Uploads und Backups unter
 deiner Kontrolle und bietet gleichzeitig moderne Abläufe wie Artikelsuche im Web, strukturierte
 Importprüfung, ECoS-Auslesung und die Suche nach neuen Releases.
+
+Das Handbuch bündelt die vollständige Anleitung für Benutzer, Betrieb und Entwicklung. Die
+Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquellen geprüft.
 
 ## Funktionsumfang
 
