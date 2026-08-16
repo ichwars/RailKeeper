@@ -39,7 +39,7 @@
     {
       "id": "vehicle-decoder-cv",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/decoder-cv.md",
       "germanPath": "de/guide/vehicles/decoder-cv.md"
     },
