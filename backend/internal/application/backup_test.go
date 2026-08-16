@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected backup version 15, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected backup version 16, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -136,6 +136,99 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 }
 
+func TestBackupRestorePreservesInactiveBundledAndCustomOrigins(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	if _, err := db.Exec(`
+UPDATE master_data_entries
+SET origin='bundled', active=0, label='Gleismaterial'
+WHERE type='article_type' AND key='track'`); err != nil {
+		t.Fatal(err)
+	}
+	masterData := application.NewMasterDataService(db)
+	if _, err := masterData.Create(t.Context(), "manufacturer", application.MasterDataInput{
+		Key: "club", Label: "Club",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Version != 16 {
+		t.Fatalf("version=%d", doc.Version)
+	}
+	if _, err := service.Import(t.Context(), doc); err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataOrigin(t, db, "article_type", "track", "bundled", false)
+	assertMasterDataOrigin(t, db, "manufacturer", "club", "custom", true)
+}
+
+func TestBackupRestoreVersion15ReconcilesCurrentBundledKeys(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	if _, err := db.Exec(`
+UPDATE master_data_entries SET origin='bundled', active=0
+WHERE type='article_type' AND key='track'`); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 15
+	for _, row := range doc.Tables["master_data_entries"] {
+		delete(row, "origin")
+	}
+	if _, err := service.Import(t.Context(), doc); err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataOrigin(t, db, "article_type", "track", "bundled", false)
+}
+
+func TestBackupRestoreDoesNotTrustUnknownBundledOrigin(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Tables["master_data_entries"] = append(doc.Tables["master_data_entries"], map[string]any{
+		"id": "manufacturer:unknown", "type": "manufacturer", "key": "unknown",
+		"label": "Unknown", "active": 1, "sort_order": 0, "source_url": "",
+		"metadata_json": "{}", "created_at": "now", "updated_at": "now", "origin": "bundled",
+	})
+	if _, err := service.Import(t.Context(), doc); err != nil {
+		t.Fatal(err)
+	}
+	assertMasterDataOrigin(t, db, "manufacturer", "unknown", "custom", true)
+}
+
+func assertMasterDataOrigin(
+	t *testing.T,
+	db *sql.DB,
+	typeName, key, wantOrigin string,
+	wantActive bool,
+) {
+	t.Helper()
+	var origin string
+	var active int
+	if err := db.QueryRow(`
+SELECT origin, active FROM master_data_entries WHERE type=? AND key=?`, typeName, key).Scan(
+		&origin,
+		&active,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if origin != wantOrigin || (active == 1) != wantActive {
+		t.Fatalf("master data %s/%s origin=%q active=%d", typeName, key, origin, active)
+	}
+}
+
 func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	ctx := context.Background()
 	sourceDir := t.TempDir()
@@ -163,8 +256,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 15 {
-		t.Fatalf("expected backup version 15 for operational fields and accessory list price, got %d",
+	if document.Version != 16 {
+		t.Fatalf("expected backup version 16 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -241,8 +334,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -324,8 +417,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -402,8 +495,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -515,8 +608,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 15 module-port export, got version=%d rows=%d",
+	if backup.Version != 16 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 16 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -571,8 +664,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -634,8 +727,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -918,8 +1011,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -1565,7 +1658,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 16
+		doc.Version = 17
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}

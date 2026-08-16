@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 15
+	backupVersion = 16
 )
 
 var (
@@ -252,6 +252,10 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err != nil {
 		return nil, err
 	}
+	bundledMasterData, err := readBundledMasterDataIdentities(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
 	articleInventoryScheme, err := readBackupArticleInventoryScheme(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -280,7 +284,8 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 			return nil, err
 		}
 		for _, row := range rows {
-			inserted, err := insertBackupRow(ctx, tx, table, columns, row)
+			restoreRow := backupRowForRestore(table, row)
+			inserted, err := insertBackupRow(ctx, tx, table, columns, restoreRow)
 			if err != nil {
 				return nil, err
 			}
@@ -291,6 +296,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		result.RestoredTables++
 	}
 	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
+		return nil, err
+	}
+	if err := reconcileBundledMasterDataIdentities(ctx, tx, bundledMasterData); err != nil {
 		return nil, err
 	}
 	if err := backfillRestoredTrackGeometrySnapshots(ctx, tx); err != nil {
@@ -313,6 +321,58 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	result.RestoredFiles = stagedFiles.restoredFiles
 
 	return result, nil
+}
+
+func readBundledMasterDataIdentities(
+	ctx context.Context,
+	tx *sql.Tx,
+) ([]masterDataIdentity, error) {
+	rows, err := tx.QueryContext(ctx, `
+SELECT type, key FROM master_data_entries WHERE origin='bundled' ORDER BY type, key`)
+	if err != nil {
+		return nil, fmt.Errorf("read bundled master data identities: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	identities := []masterDataIdentity{}
+	for rows.Next() {
+		var identity masterDataIdentity
+		if err := rows.Scan(&identity.typeName, &identity.key); err != nil {
+			return nil, fmt.Errorf("scan bundled master data identity: %w", err)
+		}
+		identities = append(identities, identity)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate bundled master data identities: %w", err)
+	}
+	return identities, nil
+}
+
+func reconcileBundledMasterDataIdentities(
+	ctx context.Context,
+	tx *sql.Tx,
+	identities []masterDataIdentity,
+) error {
+	for _, identity := range identities {
+		if _, err := tx.ExecContext(ctx, `
+UPDATE master_data_entries SET origin='bundled' WHERE type=? AND key=?
+`, identity.typeName, identity.key); err != nil {
+			return fmt.Errorf("reconcile bundled master data %s/%s: %w",
+				identity.typeName, identity.key, err)
+		}
+	}
+	return nil
+}
+
+func backupRowForRestore(table string, row map[string]any) map[string]any {
+	if table != "master_data_entries" {
+		return row
+	}
+	restoreRow := make(map[string]any, len(row)+1)
+	for column, value := range row {
+		restoreRow[column] = value
+	}
+	restoreRow["origin"] = string(MasterDataOriginCustom)
+	return restoreRow
 }
 
 func backupRowsForRestore(doc *BackupDocument, table string) []map[string]any {

@@ -14,6 +14,12 @@ func TestLegacyBackupRestorePreservesCurrentArticleMasterData(t *testing.T) {
 		t.Run(backupVersionName(version), func(t *testing.T) {
 			ctx := context.Background()
 			db := backupTestDB(t, t.TempDir())
+			if _, err := db.Exec(`
+UPDATE master_data_entries SET origin='bundled'
+WHERE (type='article_type' AND key='track')
+   OR (type='accessory_subtype' AND key='track:straight')`); err != nil {
+				t.Fatal(err)
+			}
 			masterData := application.NewMasterDataService(db)
 			active := true
 			if _, err := masterData.Update(ctx, "accessory_subtype", "track:straight", application.MasterDataInput{
@@ -54,6 +60,23 @@ func TestLegacyBackupRestorePreservesCurrentArticleMasterData(t *testing.T) {
 			}
 			if straight.Label != "Workshop straight" {
 				t.Fatalf("legacy restore lost current configured subtype label: %#v", straight)
+			}
+			if straight.Origin != application.MasterDataOriginBundled {
+				t.Fatalf("legacy restore changed current subtype origin: %#v", straight)
+			}
+			track, err := after.Get(ctx, "article_type", "track")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if track.Origin != application.MasterDataOriginBundled {
+				t.Fatalf("legacy restore changed current article-type origin: %#v", track)
+			}
+			club, err := after.Get(ctx, "accessory_subtype", "track:club_profile")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if club.Origin != application.MasterDataOriginCustom {
+				t.Fatalf("legacy restore changed custom subtype origin: %#v", club)
 			}
 		})
 	}

@@ -28,8 +28,8 @@ INSERT INTO plan_track_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 15 {
-		t.Fatalf("expected version 15 export, got %d", backup.Version)
+	if backup.Version != 16 {
+		t.Fatalf("expected version 16 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx,
 		`UPDATE plan_track_objects SET transition_path_json=NULL WHERE id='track-transition'`); err != nil {
