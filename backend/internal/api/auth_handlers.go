@@ -24,7 +24,7 @@ func (a *App) setupStatus(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
-	allowed, ok := a.allowRequest(w, r, "setup", clientIP(r), 5, 10*time.Minute)
+	allowed, ok := a.allowRequest(w, r, "setup", a.clientIP(r), 5, 10*time.Minute)
 	if !ok {
 		return
 	}
@@ -34,8 +34,7 @@ func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input application.CreateAdminInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
 
@@ -56,7 +55,7 @@ func (a *App) createAdmin(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) login(w http.ResponseWriter, r *http.Request) {
-	allowed, ok := a.allowRequest(w, r, "login", clientIP(r), 10, 5*time.Minute)
+	allowed, ok := a.allowRequest(w, r, "login", a.clientIP(r), 10, 5*time.Minute)
 	if !ok {
 		return
 	}
@@ -66,8 +65,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input application.LoginInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
 
@@ -92,7 +90,7 @@ func (a *App) login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
-	allowed, ok := a.allowRequest(w, r, "password-reset", clientIP(r), 5, 10*time.Minute)
+	allowed, ok := a.allowRequest(w, r, "password-reset", a.clientIP(r), 5, 10*time.Minute)
 	if !ok {
 		return
 	}
@@ -102,8 +100,7 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input application.PasswordResetRequestInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
 	result, err := a.authService.RequestPasswordReset(r.Context(), input)
@@ -136,8 +133,7 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 				a.logger.Error("password reset email failed", "error", err)
 			}
 		} else {
-			resetURL := a.passwordResetURL(r, result.ResetToken)
-			a.logger.Warn("password reset email disabled; link is available in server log for local recovery only", "reset_url", resetURL)
+			a.logger.Warn("password reset email disabled; reset request was not delivered")
 		}
 	}
 	result.ResetToken = ""
@@ -146,7 +142,7 @@ func (a *App) requestPasswordReset(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
-	allowed, ok := a.allowRequest(w, r, "password-reset-confirm", clientIP(r), 10, 10*time.Minute)
+	allowed, ok := a.allowRequest(w, r, "password-reset-confirm", a.clientIP(r), 10, 10*time.Minute)
 	if !ok {
 		return
 	}
@@ -156,8 +152,7 @@ func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var input application.PasswordResetConfirmInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
 	if err := a.authService.ResetPassword(r.Context(), input); err != nil {

@@ -5,8 +5,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"hash/crc32"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +22,73 @@ import (
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 )
+
+func TestSetupRejectsOversizedJSONBody(t *testing.T) {
+	db := testRouterDB(t)
+	router := NewRouter(Config{SetupService: application.NewSetupService(db)})
+	body := `{"username":"` + strings.Repeat("a", 70*1024) +
+		`","email":"admin@example.test","password":"very-secure-password"}`
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/setup/admin", strings.NewReader(body))
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusRequestEntityTooLarge {
+		t.Fatalf("expected status 413 for oversized JSON, got %d: %s", response.Code, response.Body.String())
+	}
+}
+
+func TestPasswordResetDoesNotLogBearerToken(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin", Email: "admin@example.test", Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	var logs bytes.Buffer
+	router := NewRouter(Config{
+		SetupService: setup,
+		AuthService:  application.NewAuthService(db),
+		Logger:       slog.New(slog.NewJSONHandler(&logs, nil)),
+	})
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/auth/password-reset",
+		strings.NewReader(`{"email":"admin@example.test"}`),
+	)
+	response := httptest.NewRecorder()
+
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusAccepted {
+		t.Fatalf("expected status 202, got %d: %s", response.Code, response.Body.String())
+	}
+	if strings.Contains(logs.String(), "reset_url") || strings.Contains(logs.String(), "token=") {
+		t.Fatalf("password reset bearer token leaked to logs: %s", logs.String())
+	}
+}
+
+func TestVehicleThumbnailRejectsExcessiveDimensionsBeforeDecode(t *testing.T) {
+	app := &App{}
+	_, err := app.createVehicleImageThumbnail(t.Context(), pngHeader(20000, 20000), "oversized.png")
+	if err == nil || !strings.Contains(err.Error(), "Bildabmessungen") {
+		t.Fatalf("expected excessive image dimensions to be rejected, got %v", err)
+	}
+}
+
+func pngHeader(width, height uint32) []byte {
+	data := make([]byte, 33)
+	copy(data, []byte{137, 80, 78, 71, 13, 10, 26, 10})
+	binary.BigEndian.PutUint32(data[8:12], 13)
+	copy(data[12:16], "IHDR")
+	binary.BigEndian.PutUint32(data[16:20], width)
+	binary.BigEndian.PutUint32(data[20:24], height)
+	data[24] = 8
+	data[25] = 2
+	binary.BigEndian.PutUint32(data[29:33], crc32.ChecksumIEEE(data[12:29]))
+	return data
+}
 
 type capturePasswordResetMailer struct {
 	sent      bool

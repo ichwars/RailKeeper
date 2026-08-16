@@ -50,6 +50,15 @@ export async function downloadQrPngFile(payload: string, fileBase: string) {
   link.click();
 }
 
+function escapeQrLabelText(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 export function printQrSvgLabel(qrSvg: string, form: CreateVehicleRequest) {
   if (!qrSvg) return;
   const printWindow = window.open("", "railkeeper-qr-print", "width=520,height=680");
@@ -66,7 +75,10 @@ export function printQrSvgLabel(qrSvg: string, form: CreateVehicleRequest) {
     "@media print { body { margin: 0; } .label { border: 0; } }",
     "</style></head><body><div class=\"label\">",
     qrSvg,
-    "<div><strong>", form.inventoryNumber || "", "</strong><span>", form.name || "", "</span><span>", form.digitalDecoderNumber || form.dtDecoderNumber || "", "</span></div>",
+    "<div><strong>", escapeQrLabelText(form.inventoryNumber || ""),
+    "</strong><span>", escapeQrLabelText(form.name || ""),
+    "</span><span>", escapeQrLabelText(form.digitalDecoderNumber || form.dtDecoderNumber || ""),
+    "</span></div>",
     "</div></body></html>"
   ].join(""));
   printWindow.document.close();

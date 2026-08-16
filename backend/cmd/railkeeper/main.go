@@ -70,6 +70,7 @@ func main() {
 	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 	updateCheckURL := env("RAILKEEPER_UPDATE_CHECK_URL", defaultUpdateCheckURL)
+	trustedProxyCIDRs := envList("RAILKEEPER_TRUSTED_PROXY_CIDRS")
 
 	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
@@ -101,6 +102,7 @@ func main() {
 			MaxImageBytes:               maxImageBytes,
 			MaxAttachmentBytes:          maxAttachmentBytes,
 			AllowedAttachmentExtensions: allowedAttachmentExtensions,
+			TrustedProxyCIDRs:           trustedProxyCIDRs,
 			Logger:                      logger,
 			SMTPConfig:                  smtpConfig,
 			PublicURL:                   publicURL,
@@ -130,11 +132,7 @@ func main() {
 		)
 	}
 
-	server := &http.Server{
-		Addr:              listener.Addr().String(),
-		Handler:           startupResult.Handler,
-		ReadHeaderTimeout: 5 * time.Second,
-	}
+	server := newHTTPServer(listener.Addr().String(), startupResult.Handler)
 
 	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
 	if standalone {
@@ -146,6 +144,17 @@ func main() {
 	if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
+	}
+}
+
+func newHTTPServer(addr string, handler http.Handler) *http.Server {
+	return &http.Server{
+		Addr:              addr,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 }
 
@@ -262,6 +271,21 @@ func envMegabytes(key string, fallback int64) int64 {
 		return fallback * 1024 * 1024
 	}
 	return parsed * 1024 * 1024
+}
+
+func envList(key string) []string {
+	value := env(key, "")
+	if value == "" {
+		return nil
+	}
+	parts := strings.Split(value, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if trimmed := strings.TrimSpace(part); trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
 
 func envExtensionSet(key string) map[string]struct{} {

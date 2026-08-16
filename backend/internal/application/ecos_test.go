@@ -244,6 +244,16 @@ func TestBuildECoSLocomotiveSyncCommand(t *testing.T) {
 	}
 }
 
+func TestBuildECoSLocomotiveSyncCommandRejectsControlCharacters(t *testing.T) {
+	current := &ECoSLocomotive{Name: "BR 218", Address: 3, Protocol: "DCC128"}
+	_, _, err := buildECoSLocomotiveSyncCommand(1001, current, ECoSLocomotiveSyncDesired{
+		Name: "BR 218\r\nget(1, status)",
+	})
+	if err == nil || !strings.Contains(err.Error(), "unzulässige Zeichen") {
+		t.Fatalf("expected unsafe ECoS name to be rejected, got %v", err)
+	}
+}
+
 func TestECoSServiceSyncLocomotiveDryRunDoesNotWrite(t *testing.T) {
 	commands := []string{}
 	var mu sync.Mutex

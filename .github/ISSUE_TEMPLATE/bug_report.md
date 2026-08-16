@@ -7,6 +7,10 @@ assignees: ''
 
 ---
 
+> **Security issue?** Do not disclose vulnerabilities, secrets, tokens, private data, or complete
+> security scan output here. Use [GitHub private vulnerability reporting](https://github.com/ichwars/RailKeeper/security/advisories/new)
+> as described in [SECURITY.md](https://github.com/ichwars/RailKeeper/security/policy). Remove secrets and personal data from logs and screenshots.
+
 **Describe the bug**
 A clear and concise description of what the bug is.
 

@@ -53,7 +53,6 @@ export type PasswordResetRequest = {
 export type PasswordResetResult = {
   status: string;
   message: string;
-  expiresAt?: string;
 };
 
 export type PasswordResetConfirmRequest = {
