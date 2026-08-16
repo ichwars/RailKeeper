@@ -29,3 +29,6 @@ edit their core data, produce reports and QR labels, and understand safe deletio
 
 [Vehicle images and attachments](/guide/vehicles/media) covers local images, main and alternative
 image handling, general attachments, preview and download, and safe removal.
+
+[Vehicle maintenance and condition](/guide/vehicles/maintenance) explains maintenance entries,
+due dates, completion, costs, linked media, and safe deletion.

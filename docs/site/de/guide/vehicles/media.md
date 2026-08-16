@@ -152,6 +152,7 @@ Seite nicht erklärt.
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
+- [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 
 ## Dokumentierte RailKeeper-Version
 
