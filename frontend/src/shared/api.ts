@@ -154,6 +154,8 @@ export type Vehicle = {
   description?: string;
   series?: string;
   vehicleNumber?: string;
+  maximumSpeedKmh?: number;
+  homeBase?: string;
   digital: boolean;
   digitalDecoderNumber?: string;
   dtDecoder: boolean;
@@ -453,6 +455,8 @@ export type CreateVehicleRequest = {
   description?: string;
   series?: string;
   vehicleNumber?: string;
+  maximumSpeedKmh?: number;
+  homeBase?: string;
   digital?: boolean;
   digitalDecoderNumber?: string;
   dtDecoder?: boolean;

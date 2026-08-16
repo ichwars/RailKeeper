@@ -15,6 +15,8 @@ export const vehicleTableColumnKeys = [
   "gattung",
   "series",
   "vehicleNumber",
+  "maximumSpeedKmh",
+  "homeBase",
   "ean",
   "productionPeriod",
   "digital",
@@ -93,6 +95,8 @@ const groupByColumn: Record<VehicleTableColumn, VehicleColumnGroup> = {
   gattung: "identity",
   series: "identity",
   vehicleNumber: "identity",
+  maximumSpeedKmh: "identity",
+  homeBase: "identity",
   ean: "identity",
   productionPeriod: "identity",
   digital: "digital",
@@ -243,6 +247,7 @@ export function vehicleColumnText(
   if (column === "image") return "";
   const value = vehicle[column];
   if (typeof value === "boolean") return t(value ? "common.yes" : "common.no");
+  if (column === "maximumSpeedKmh" && typeof value === "number") return `${value} km/h`;
   if (column === "purchaseDate" && value) {
     const date = new Date(`${String(value)}T00:00:00`);
     if (!Number.isNaN(date.getTime())) {

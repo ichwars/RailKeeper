@@ -257,6 +257,37 @@ export function VehicleModelTab({
               </label>
             </div>
 
+            <div className="form-row">
+              <label>
+                {t("vehicle.field.maximumSpeedKmh")}
+                <span className="input-with-unit">
+                  <input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    step={1}
+                    value={form.maximumSpeedKmh ?? ""}
+                    onChange={(event) => onUpdate({
+                      maximumSpeedKmh: event.target.value === ""
+                        ? undefined
+                        : Number.parseInt(event.target.value, 10)
+                    })}
+                    disabled={readonly}
+                  />
+                  <span aria-hidden="true">km/h</span>
+                </span>
+              </label>
+              <label>
+                {t("vehicle.field.homeBase")}
+                <input
+                  value={form.homeBase || ""}
+                  onChange={(event) => onUpdate({ homeBase: event.target.value })}
+                  disabled={readonly}
+                  maxLength={200}
+                />
+              </label>
+            </div>
+
             <div className="form-row three-columns decoder-row">
               <label>
                 {t("vehicle.field.digitalDecoderNumber")}

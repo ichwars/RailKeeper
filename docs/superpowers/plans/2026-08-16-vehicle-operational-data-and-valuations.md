@@ -166,7 +166,7 @@ git commit -m "feat: add vehicle operational data"
 - Test: `frontend/src/features/importExport/importExportHelpers.test.tsx`
 - Test: `frontend/src/features/vehicles/vehicleReports.test.ts`
 
-- [ ] **Step 1: Add failing frontend model and flow tests**
+- [x] **Step 1: Add failing frontend model and flow tests**
 
 Test these behaviors:
 
@@ -189,7 +189,7 @@ npm.cmd run test:run -- VehicleModelTab vehicleTableColumns importExportHelpers 
 
 Expected: FAIL because the new fields are absent.
 
-- [ ] **Step 2: Extend shared vehicle types and form/view models**
+- [x] **Step 2: Extend shared vehicle types and form/view models**
 
 Add after `vehicleNumber`:
 
@@ -202,7 +202,7 @@ Initialize an empty form with `maximumSpeedKmh: undefined` and `homeBase: ""`. P
 all vehicle-to-form and form-to-request transforms. When converting the number input, map an empty
 value to `undefined`, otherwise use `Number.parseInt(value, 10)`.
 
-- [ ] **Step 3: Implement the approved 2×2 model layout**
+- [x] **Step 3: Implement the approved 2×2 model layout**
 
 Keep the existing responsive form grid. Directly below the row containing series and vehicle
 number, add:
@@ -237,7 +237,7 @@ number, add:
 Adapt the callback syntax to the existing `VehicleModelTab` props rather than introducing a second
 form state mechanism.
 
-- [ ] **Step 4: Add read-only and report group `Vorbild & Betrieb`**
+- [x] **Step 4: Add read-only and report group `Vorbild & Betrieb`**
 
 Place the group near the model identity data and render:
 
@@ -249,20 +249,20 @@ Place the group near the model identity data and render:
 Use the same ordering in HTML read-only view and generated report. Do not mix `homeBase` with the
 physical storage location.
 
-- [ ] **Step 5: Add CSV import/export mappings**
+- [x] **Step 5: Add CSV import/export mappings**
 
 Add stable field IDs `maximumSpeedKmh` and `homeBase` to the vehicle export header and import field
 registry. Validate imported speeds as whole numbers from 1 to 1000 before constructing the request.
 Keep missing columns backward compatible.
 
-- [ ] **Step 6: Add default-hidden table columns**
+- [x] **Step 6: Add default-hidden table columns**
 
 Add both keys to `vehicleTableColumnKeys`, map them to the `identity` group, and keep
 `defaultVehicleTableColumns` unchanged. For speed display, append `km/h`; for sorting, use the
 numeric string padded or compare numerically through the table's existing comparator extension so
 `120` sorts after `90`.
 
-- [ ] **Step 7: Add translations**
+- [x] **Step 7: Add translations**
 
 Use exactly:
 
@@ -280,7 +280,7 @@ and:
 "vehicle.section.prototypeOperation": "Prototype & operation"
 ```
 
-- [ ] **Step 8: Rerun focused frontend tests and build**
+- [x] **Step 8: Rerun focused frontend tests and build**
 
 ```powershell
 npm.cmd run test:run -- VehicleModelTab vehicleTableColumns importExportHelpers vehicleReports
@@ -289,7 +289,7 @@ npm.cmd run build
 
 Expected: PASS, including strict TypeScript checks.
 
-- [ ] **Step 9: Commit Task 2**
+- [x] **Step 9: Commit Task 2**
 
 ```powershell
 git add frontend/src/shared/api.ts frontend/src/features/vehicles `

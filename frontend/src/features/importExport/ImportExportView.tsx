@@ -95,6 +95,7 @@ export function ImportExportView() {
     missingGauge: t("importExport.issue.missingGauge"),
     missingCategory: t("importExport.issue.missingCategory"),
     missingGattung: t("importExport.issue.missingGattung"),
+    invalidMaximumSpeed: t("importExport.issue.invalidMaximumSpeed"),
     duplicate: t("importExport.issue.duplicate"),
     ecosMatched: t("importExport.ecos.matched")
   };

@@ -125,12 +125,33 @@ describe("import/export helpers", () => {
 
   it("exports escaped CSV values", () => {
     const csv = vehiclesToCSV(
-      [vehicleFixture({ description: "Diesel; DR" })],
+      [vehicleFixture({
+        description: "Diesel; DR",
+        maximumSpeedKmh: 120,
+        homeBase: "Bw Leipzig-West"
+      })],
       (key) => key,
       "ja",
       "nein"
     );
     expect(csv).toContain("inventoryNumber;manufacturer");
     expect(csv).toContain('"Diesel; DR"');
+    expect(csv).toContain("maximumSpeedKmh;homeBase");
+    expect(csv).toContain("120;Bw Leipzig-West");
+  });
+
+  it("imports and validates the optional maximum speed", () => {
+    const valid = importRowsFromTable([
+      ["Hersteller", "Bezeichnung", "Spurweite", "Kategorie", "Gattung", "Höchstgeschwindigkeit", "Heimat-Bw"],
+      ["Piko", "BR 118", "H0", "Lokomotive", "Diesellok", "120", "Bw Leipzig-West"]
+    ], []);
+    expect(valid[0].vehicle).toMatchObject({ maximumSpeedKmh: 120, homeBase: "Bw Leipzig-West" });
+    expect(valid[0].issues).toEqual([]);
+
+    const invalid = importRowsFromTable([
+      ["Hersteller", "Bezeichnung", "Spurweite", "Kategorie", "Gattung", "Höchstgeschwindigkeit"],
+      ["Piko", "BR 118", "H0", "Lokomotive", "Diesellok", "1001"]
+    ], []);
+    expect(invalid[0].issues).toContain("Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen");
   });
 });

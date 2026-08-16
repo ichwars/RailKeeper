@@ -36,6 +36,8 @@ export function vehicleToForm(vehicle: Vehicle): CreateVehicleRequest {
     description: vehicle.description || "",
     series: vehicle.series || "",
     vehicleNumber: vehicle.vehicleNumber || "",
+    maximumSpeedKmh: vehicle.maximumSpeedKmh,
+    homeBase: vehicle.homeBase || "",
     digital: vehicle.digital,
     digitalDecoderNumber: vehicle.digitalDecoderNumber || "",
     dtDecoder: vehicle.dtDecoder,
