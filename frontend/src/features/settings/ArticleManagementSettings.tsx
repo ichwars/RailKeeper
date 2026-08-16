@@ -48,6 +48,7 @@ function MasterDataSettingsSection({
   canEdit,
   onChanged,
   onRemoved,
+  onReload,
   onConfirmAction
 }: {
   type: MasterDataType;
@@ -55,6 +56,7 @@ function MasterDataSettingsSection({
   canEdit: boolean;
   onChanged: (type: MasterDataType, entry: MasterDataEntry) => void;
   onRemoved: (type: MasterDataType, key: string) => void;
+  onReload: (type: MasterDataType) => Promise<void>;
   onConfirmAction: (request: MasterDataConfirmationRequest) => void;
 }) {
   const { t } = useI18n();
@@ -116,6 +118,7 @@ function MasterDataSettingsSection({
             ...(type === "accessory_custom_field" ? { metadata: customFieldMetadata } : {})
           });
       onChanged(type, result);
+      await onReload(type);
       reset();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : t("settings.articleManagement.error.generic"));
@@ -385,10 +388,22 @@ export function ArticleManagementSettings({
     }));
   };
 
+  const reloadType = async (type: MasterDataType) => {
+    setMasterMessage("");
+    try {
+      const entries = await api.managedMasterData(type);
+      setEntriesByType((current) => ({ ...current, [type]: entries }));
+      setLoadedTypes((current) => ({ ...current, [type]: true }));
+    } catch (reason) {
+      setMasterMessage(reason instanceof Error ? reason.message :
+        t("settings.articleManagement.error.generic"));
+    }
+  };
+
   const renderMasterData = (type: MasterDataType) => (
     <MasterDataSettingsSection type={type} entries={entriesByType[type] || []}
       canEdit={canEdit} onChanged={updateEntry} onRemoved={removeEntry}
-      onConfirmAction={onConfirmAction} />
+      onReload={reloadType} onConfirmAction={onConfirmAction} />
   );
 
   return (

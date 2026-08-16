@@ -1933,7 +1933,7 @@ export function SettingsView({ username }: { username: string }) {
                   </div>
                 )}
 
-                <div className="table-wrap master-data-table">
+                <div className={`table-wrap master-data-table master-data-table-${activeType}`}>
                   <table>
                     <thead>
                       <tr>

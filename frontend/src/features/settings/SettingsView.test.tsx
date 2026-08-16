@@ -62,6 +62,7 @@ describe("SettingsView data navigation", () => {
     expect(screen.getByRole("tab", { name: "Hersteller" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("columnheader", { name: "Herstellerseite" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Suchdomains" })).toBeInTheDocument();
+    expect(document.querySelector(".master-data-table-manufacturer")).toBeInTheDocument();
 
     await user.click(within(groups).getByRole("tab", { name: "Artikelstammdaten" }));
     expect(screen.getByRole("tab", { name: "Bestandseinheiten" })).toHaveAttribute("aria-selected", "true");

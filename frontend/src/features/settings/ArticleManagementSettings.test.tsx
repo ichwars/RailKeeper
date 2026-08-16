@@ -271,9 +271,21 @@ describe("ArticleManagementSettings", () => {
 
   it("creates a typed controlled custom field", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "createMasterData").mockResolvedValue({
+    const createdField = {
       ...entry("accessory_custom_field", "color", "Farbe"),
+      origin: "custom" as const,
+      capabilities: { canDeactivate: true, canReactivate: false, canDelete: true },
       metadata: { kind: "single_select", options: ["Rot", "Grün"] }
+    };
+    vi.spyOn(api, "createMasterData").mockResolvedValue({
+      ...createdField,
+      capabilities: undefined
+    });
+    vi.mocked(api.managedMasterData).mockImplementation(async (type) => {
+      if (type !== "accessory_custom_field") return [];
+      return vi.mocked(api.createMasterData).mock.calls.length > 0
+        ? [entry("accessory_custom_field", "material", "Material"), createdField]
+        : [entry("accessory_custom_field", "material", "Material")];
     });
     render(<ArticleManagementHarness roles={["Admin"]} />);
 
@@ -293,6 +305,7 @@ describe("ArticleManagementSettings", () => {
       active: true,
       metadata: { kind: "single_select", options: ["Rot", "Grün"] }
     }));
+    expect(await screen.findByRole("button", { name: "Farbe endgültig löschen" })).toBeInTheDocument();
   });
 });
 
