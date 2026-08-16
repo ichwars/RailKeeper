@@ -103,6 +103,12 @@ Settings. Set `RAILKEEPER_DATA_DIR` only when an explicit alternative is require
 program folder or on removable media can still be lost when that location is deleted or replaced.
 External backups remain necessary.
 
+When Windows Standalone detects a newer release under **Settings > General > Updates**, the button
+names the available version and starts the matching GitHub ZIP download. RailKeeper does not extract,
+install, replace, or restart anything. Create a backup, close RailKeeper, extract the downloaded ZIP
+into a new program folder, and verify the displayed data path and inventory after starting it. If no
+trusted matching ZIP is available, use the linked GitHub release page instead.
+
 ### Docker Compose
 
 ```bash

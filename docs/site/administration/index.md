@@ -22,12 +22,18 @@ The Windows Standalone ZIP contains the application only. It never contains a da
 attachments, thumbnails, or backups. By default, persistent data is stored independently from the
 replaceable program folder in `%LOCALAPPDATA%\RailKeeper\data`.
 
+After a successful check under **Settings > General > Updates**, Windows Standalone shows
+**Download version X** only when the matching ZIP belongs to the detected GitHub release. The
+browser downloads that ZIP directly. RailKeeper does not extract, install, replace, migrate, or
+restart anything. If the trusted package is unavailable, the GitHub release page remains linked.
+
 For an update:
 
-1. Close RailKeeper and create a current application backup.
-2. Extract the new ZIP into a new program folder. Do not copy a database into that folder.
-3. Start the new `RailKeeper.exe`.
-4. Sign in, check the active storage location under **Settings > Data storage**, and verify the
+1. Download the matching ZIP from the versioned button or the linked release page.
+2. Create a current application backup and close RailKeeper.
+3. Extract the ZIP into a new program folder. Do not copy a database into that folder.
+4. Start the new `RailKeeper.exe`.
+5. Sign in, check the active storage location under **Settings > Data storage**, and verify the
    inventory before deleting the previous program folder.
 
 Older Standalone versions stored data in a `data` folder beside `RailKeeper.exe`. On first startup,

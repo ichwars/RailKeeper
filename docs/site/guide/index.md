@@ -35,3 +35,15 @@ due dates, completion, costs, linked media, and safe deletion.
 
 [Decoder, functions, and CV data](/guide/vehicles/decoder-cv) covers F0-F31 mappings, the read-only
 speed curve, CV values and exchange, decoder-file previews, and safe persistence.
+
+## Updating Windows Standalone
+
+Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the
+matching trusted Windows ZIP, the download button includes its version. The button only starts the
+browser download. RailKeeper does not install or replace files.
+
+Create an application backup, close RailKeeper, and extract the downloaded ZIP into a new program
+folder. Start that copy and verify the active data path and inventory before removing the previous
+program folder. The safe default `%LOCALAPPDATA%\RailKeeper\data` remains separate and unchanged.
+Use the linked GitHub release page if no matching download button is available. Docker installations
+continue to update with `docker compose pull` followed by `docker compose up -d`.

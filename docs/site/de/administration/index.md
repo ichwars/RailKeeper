@@ -23,12 +23,19 @@ Anhänge, Vorschaubilder und Sicherungen sind niemals enthalten. Dauerhafte Date
 standardmäßig unabhängig vom austauschbaren Programmordner unter
 `%LOCALAPPDATA%\RailKeeper\data`.
 
+Nach erfolgreicher Prüfung unter **Einstellungen > Allgemein > Updates** zeigt Windows Standalone
+**Version X herunterladen** nur an, wenn das passende ZIP zum erkannten GitHub-Release gehört. Der
+Browser lädt dieses ZIP direkt herunter. RailKeeper entpackt, installiert, ersetzt, migriert oder
+startet dabei nichts neu. Fehlt das vertrauenswürdige Paket, bleibt die GitHub-Release-Seite
+verlinkt.
+
 So wird RailKeeper aktualisiert:
 
-1. RailKeeper beenden und eine aktuelle Anwendungssicherung erstellen.
-2. Das neue ZIP in einen neuen Programmordner entpacken. Keine Datenbank in diesen Ordner kopieren.
-3. Die neue `RailKeeper.exe` starten.
-4. Anmelden, unter **Einstellungen > Datenspeicher** den aktiven Speicherort prüfen und den Bestand
+1. Das passende ZIP über die Schaltfläche mit Versionsangabe oder die Release-Seite herunterladen.
+2. Eine aktuelle Anwendungssicherung erstellen und RailKeeper beenden.
+3. Das ZIP in einen neuen Programmordner entpacken. Keine Datenbank in diesen Ordner kopieren.
+4. Die neue `RailKeeper.exe` starten.
+5. Anmelden, unter **Einstellungen > Datenspeicher** den aktiven Speicherort prüfen und den Bestand
    kontrollieren, bevor der bisherige Programmordner gelöscht wird.
 
 Ältere Standalone-Versionen speicherten Daten in einem Ordner `data` neben `RailKeeper.exe`. Beim

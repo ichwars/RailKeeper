@@ -59,11 +59,14 @@ Wichtig
 Update
 ------
 
-1. RailKeeper beenden.
-2. Den aktiven Datenordner und das letzte RailKeeper-Backup sichern.
-3. Das neue ZIP in einen neuen Programmordner entpacken.
-4. start-railkeeper.bat starten.
-5. Unter Einstellungen den angezeigten Datenordner und den Bestand pruefen.
+1. Unter Einstellungen > Allgemein > Updates nach einer neuen Version suchen.
+2. Die Schaltflaeche "Version X herunterladen" laedt nur das passende ZIP
+   von GitHub herunter. RailKeeper installiert, entpackt oder ersetzt nichts.
+3. Ein RailKeeper-Backup erstellen und RailKeeper beenden.
+4. Das heruntergeladene ZIP in einen neuen Programmordner entpacken.
+5. start-railkeeper.bat im neuen Ordner starten.
+6. Unter Einstellungen den angezeigten Datenordner und den Bestand pruefen.
 
 Kopieren Sie keine Datenbank in den neuen Programmordner. RailKeeper verwendet
-den persistenten Datenordner automatisch weiter.
+den persistenten Datenordner automatisch weiter. Fehlt eine vertrauenswuerdige,
+passende ZIP-Datei, verwenden Sie stattdessen die verlinkte GitHub-Release-Seite.
