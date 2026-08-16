@@ -1,4 +1,11 @@
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction
+} from "react";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -36,6 +43,126 @@ type VehicleInventoryRenderersOptions = {
   setDeleteCandidate: Dispatch<SetStateAction<Vehicle | null>>;
   t: Translator;
 };
+
+type QuickMenuPlacementInput = {
+  anchorTop: number;
+  anchorBottom: number;
+  menuHeight: number;
+  viewportHeight: number;
+};
+
+export function quickMenuShouldOpenAbove({
+  anchorTop,
+  anchorBottom,
+  menuHeight,
+  viewportHeight
+}: QuickMenuPlacementInput) {
+  const menuGap = 6;
+  const spaceBelow = viewportHeight - anchorBottom;
+  const spaceAbove = anchorTop;
+  return spaceBelow < menuHeight + menuGap && spaceAbove > spaceBelow;
+}
+
+type VehicleQuickMenuProps = {
+  vehicle: Vehicle;
+  open: boolean;
+  onToggle: () => void;
+  onClose: () => void;
+  openDetail: (vehicle: Vehicle) => void;
+  openEdit: (vehicle: Vehicle, tab?: ModalTab) => void;
+  openQr: (vehicle: Vehicle) => void;
+  printVehicle: (vehicle: Vehicle) => void;
+  setDeleteCandidate: Dispatch<SetStateAction<Vehicle | null>>;
+  t: Translator;
+};
+
+function VehicleQuickMenu({
+  vehicle,
+  open,
+  onToggle,
+  onClose,
+  openDetail,
+  openEdit,
+  openQr,
+  printVehicle,
+  setDeleteCandidate,
+  t
+}: VehicleQuickMenuProps) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [openAbove, setOpenAbove] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const updatePlacement = () => {
+      const anchor = buttonRef.current?.getBoundingClientRect();
+      const menu = menuRef.current?.getBoundingClientRect();
+      if (!anchor || !menu) return;
+      setOpenAbove(quickMenuShouldOpenAbove({
+        anchorTop: anchor.top,
+        anchorBottom: anchor.bottom,
+        menuHeight: menu.height,
+        viewportHeight: window.innerHeight
+      }));
+    };
+    updatePlacement();
+    window.addEventListener("resize", updatePlacement);
+    window.addEventListener("scroll", updatePlacement, true);
+    return () => {
+      window.removeEventListener("resize", updatePlacement);
+      window.removeEventListener("scroll", updatePlacement, true);
+    };
+  }, [open]);
+
+  return (
+    <div className="quick-menu-wrap">
+      <button
+        ref={buttonRef}
+        type="button"
+        className={open ? "icon-button active" : "icon-button"}
+        onClick={onToggle}
+        aria-label={t("vehicles.quickMenu")}
+        title={t("vehicles.quickMenu")}
+      >
+        <MoreVertical size={16} />
+      </button>
+      {open && (
+        <div
+          ref={menuRef}
+          className={openAbove ? "quick-menu open-above" : "quick-menu"}
+          role="menu"
+        >
+          <button type="button" role="menuitem" onClick={() => { onClose(); openDetail(vehicle); }}>
+            <Eye size={14} />{t("vehicles.view")}
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onClose(); openEdit(vehicle); }}>
+            <Pencil size={14} />{t("vehicles.edit")}
+          </button>
+          <span className="quick-menu-separator" role="separator" />
+          <button type="button" role="menuitem" onClick={() => { onClose(); openQr(vehicle); }}>
+            <QrCode size={14} />QR-Code
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onClose(); printVehicle(vehicle); }}>
+            <Printer size={14} />{t("overview.print")}
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onClose(); openEdit(vehicle, "uploads"); }}>
+            <Upload size={14} />Uploads
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onClose(); openEdit(vehicle, "maintenance"); }}>
+            <Wrench size={14} />{t("vehicles.maintenance")}
+          </button>
+          <button type="button" role="menuitem" onClick={() => { onClose(); openEdit(vehicle, "spareParts"); }}>
+            <PackageSearch size={14} />{t("vehicles.tab.spareParts")}
+          </button>
+          <span className="quick-menu-separator" role="separator" />
+          <button type="button" role="menuitem" className="danger" onClick={() => { onClose(); setDeleteCandidate(vehicle); }}>
+            <Trash2 size={14} />{t("vehicles.delete")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function createVehicleFilterDefinitions({
   vehicleCount,
@@ -99,47 +226,20 @@ export function createVehicleInventoryRenderers({
   );
 
   const vehicleQuickMenu = (vehicle: Vehicle) => (
-    <div className="quick-menu-wrap">
-      <button
-        type="button"
-        className={quickMenuVehicleID === vehicle.id ? "icon-button active" : "icon-button"}
-        onClick={() => setQuickMenuVehicleID((current) => current === vehicle.id ? "" : vehicle.id)}
-        aria-label={t("vehicles.quickMenu")}
-        title={t("vehicles.quickMenu")}
-      >
-        <MoreVertical size={16} />
-      </button>
-      {quickMenuVehicleID === vehicle.id && (
-        <div className="quick-menu" role="menu">
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openDetail(vehicle); }}>
-            <Eye size={14} />{t("vehicles.view")}
-          </button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle); }}>
-            <Pencil size={14} />{t("vehicles.edit")}
-          </button>
-          <span className="quick-menu-separator" role="separator" />
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openQr(vehicle); }}>
-            <QrCode size={14} />QR-Code
-          </button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); printVehicle(vehicle); }}>
-            <Printer size={14} />{t("overview.print")}
-          </button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "uploads"); }}>
-            <Upload size={14} />Uploads
-          </button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "maintenance"); }}>
-            <Wrench size={14} />{t("vehicles.maintenance")}
-          </button>
-          <button type="button" role="menuitem" onClick={() => { setQuickMenuVehicleID(""); openEdit(vehicle, "spareParts"); }}>
-            <PackageSearch size={14} />{t("vehicles.tab.spareParts")}
-          </button>
-          <span className="quick-menu-separator" role="separator" />
-          <button type="button" role="menuitem" className="danger" onClick={() => { setQuickMenuVehicleID(""); setDeleteCandidate(vehicle); }}>
-            <Trash2 size={14} />{t("vehicles.delete")}
-          </button>
-        </div>
-      )}
-    </div>
+    <VehicleQuickMenu
+      vehicle={vehicle}
+      open={quickMenuVehicleID === vehicle.id}
+      onToggle={() => setQuickMenuVehicleID((current) => (
+        current === vehicle.id ? "" : vehicle.id
+      ))}
+      onClose={() => setQuickMenuVehicleID("")}
+      openDetail={openDetail}
+      openEdit={openEdit}
+      openQr={openQr}
+      printVehicle={printVehicle}
+      setDeleteCandidate={setDeleteCandidate}
+      t={t}
+    />
   );
 
   const selectOptions = (items: MasterDataEntry[], emptyLabel = "Keine Auswahl"): ReactNode => (

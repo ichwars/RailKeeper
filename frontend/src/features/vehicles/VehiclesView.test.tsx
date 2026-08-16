@@ -12,6 +12,7 @@ describe("VehiclesView", () => {
     vi.spyOn(api, "vehicles").mockResolvedValue([vehicleFixture()]);
     vi.spyOn(api, "masterDataAll").mockResolvedValue({});
     vi.spyOn(api, "masterDataRelations").mockResolvedValue([]);
+    vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {} });
   });
 
   it("loads and renders the inventory", async () => {

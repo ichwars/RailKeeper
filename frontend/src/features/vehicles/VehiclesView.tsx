@@ -32,6 +32,7 @@ import {
   inferFunctionTypeFromSymbol,
 } from "./vehicleViewModel";
 import { useVehicleInventoryController } from "./useVehicleInventoryController";
+import { useVehicleColumnPreferences } from "./useVehicleColumnPreferences";
 import { useVehicleEditorController } from "./useVehicleEditorController";
 import { useArticleSearchController } from "./useArticleSearchController";
 import { useVehicleMediaController } from "./useVehicleMediaController";
@@ -389,9 +390,13 @@ export function VehiclesView({ username }: { username: string }) {
     addImages: addPendingImages
   });
 
+  const columnPreferences = useVehicleColumnPreferences(setMessage);
+
   const {
+    adapterFilter,
     allVisibleSelected,
     categoryFilter,
+    epochFilter,
     exhibitionReadyFilter,
     gattungFilter,
     hasActiveInventoryFilters,
@@ -405,10 +410,13 @@ export function VehiclesView({ username }: { username: string }) {
     manufacturerFilter,
     nextMaintenanceReminder,
     qualityFilter,
+    railwayCompanyFilter,
     resetInventoryFilters,
     selectedVehicleIDs,
     selectedVisibleVehicles,
+    setAdapterFilter,
     setCategoryFilter,
+    setEpochFilter,
     setExhibitionReadyFilter,
     setGattungFilter,
     setInventoryFilter,
@@ -416,13 +424,14 @@ export function VehiclesView({ username }: { username: string }) {
     setMaintenanceFilter,
     setManufacturerFilter,
     setQualityFilter,
+    setRailwayCompanyFilter,
     someVisibleSelected,
     sort,
     sortedVehicles,
     toggleAllVisibleSelection,
     toggleSort,
     toggleVehicleSelection
-  } = useVehicleInventoryController(vehicles);
+  } = useVehicleInventoryController(vehicles, columnPreferences.columns);
   const load = useCallback(() => {
     setLoading(true);
     setMessage("");
@@ -663,7 +672,7 @@ export function VehiclesView({ username }: { username: string }) {
     onMessage: setMessage,
     t
   });
-  const { sortHeader, vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
+  const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
     setQuickMenuVehicleID,
@@ -690,6 +699,9 @@ export function VehiclesView({ username }: { username: string }) {
         loading={loading}
         message={message}
         query={query}
+        columns={columnPreferences.columns}
+        columnsLoading={columnPreferences.loading}
+        sort={sort}
         inventoryView={inventoryView}
         inventoryFilter={inventoryFilter}
         maintenanceFilter={maintenanceFilter}
@@ -697,6 +709,9 @@ export function VehiclesView({ username }: { username: string }) {
         manufacturerFilter={manufacturerFilter}
         categoryFilter={categoryFilter}
         gattungFilter={gattungFilter}
+        railwayCompanyFilter={railwayCompanyFilter}
+        epochFilter={epochFilter}
+        adapterFilter={adapterFilter}
         exhibitionReadyFilter={exhibitionReadyFilter}
         inventorySummary={inventorySummary}
         maintenanceReminderSummary={maintenanceReminderSummary}
@@ -711,6 +726,10 @@ export function VehiclesView({ username }: { username: string }) {
         onReload={load}
         onOpenReport={() => setReportDialogOpen(true)}
         onQueryChange={setQuery}
+        onToggleColumn={columnPreferences.toggleColumn}
+        onMoveColumn={columnPreferences.moveColumn}
+        onResetColumns={columnPreferences.resetColumns}
+        onToggleSort={toggleSort}
         onInventoryViewChange={setInventoryViewMode}
         onInventoryFilterChange={setInventoryFilter}
         onMaintenanceFilterChange={setMaintenanceFilter}
@@ -718,6 +737,9 @@ export function VehiclesView({ username }: { username: string }) {
         onManufacturerFilterChange={setManufacturerFilter}
         onCategoryFilterChange={setCategoryFilter}
         onGattungFilterChange={setGattungFilter}
+        onRailwayCompanyFilterChange={setRailwayCompanyFilter}
+        onEpochFilterChange={setEpochFilter}
+        onAdapterFilterChange={setAdapterFilter}
         onExhibitionReadyFilterChange={setExhibitionReadyFilter}
         onResetFilters={resetInventoryFilters}
         onOpenDetail={openDetail}
@@ -726,7 +748,6 @@ export function VehiclesView({ username }: { username: string }) {
         onToggleSelection={toggleVehicleSelection}
         onToggleAllVisibleSelection={toggleAllVisibleSelection}
         onToggleExhibition={toggleVehicleExhibition}
-        renderSortHeader={sortHeader}
         renderQuickMenu={vehicleQuickMenu}
       />
       {reportDialogOpen && (

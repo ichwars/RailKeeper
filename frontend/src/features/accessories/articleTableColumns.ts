@@ -15,6 +15,10 @@ export type ArticleTableColumn = typeof articleTableColumns[number];
 export const articleTableColumnSettingKey = "railkeeper.accessories.tableColumns";
 export const defaultArticleTableColumns = new Set<ArticleTableColumn>(articleTableColumns);
 
+export function resetArticleTableColumns() {
+  return new Set<ArticleTableColumn>(articleTableColumns);
+}
+
 type ColumnStorage = Pick<Storage, "getItem" | "setItem">;
 
 function isArticleTableColumn(value: unknown): value is ArticleTableColumn {

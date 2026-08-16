@@ -20,6 +20,10 @@ export {
   articleSearchSources
 } from "../../shared/articleSearch/articleSearchPreferences";
 import type { ArticleFieldKey } from "./articleSearch";
+import {
+  vehicleColumnSortValue,
+  type VehicleSortableColumn
+} from "./vehicleTableColumns";
 
 export const emptyVehicle: CreateVehicleRequest = {
   manufacturer: "",
@@ -85,7 +89,7 @@ export const emptyVehicle: CreateVehicleRequest = {
 
 export type ModalMode = "create" | "view" | "edit";
 export type ModalTab = "model" | "control" | "speedCurve" | "cv" | "uploads" | "maintenance" | "spareParts";
-export type SortKey = "inventoryNumber" | "manufacturer" | "articleNumber" | "name" | "gauge" | "epoch" | "category";
+export type SortKey = VehicleSortableColumn;
 export type SortDirection = "asc" | "desc";
 export type InventoryViewMode = "table" | "cards";
 export type InventoryFilter = "all" | "digital" | "analog" | "withImages" | "withoutImages";
@@ -183,7 +187,7 @@ export const emptyOptions: MasterDataOptions = {
   categoryRelations: []
 };
 
-export const sortLabels: Record<SortKey, string> = {
+export const sortLabels: Partial<Record<SortKey, string>> = {
   inventoryNumber: "Inventar",
   manufacturer: "Hersteller",
   articleNumber: "Artikel",
@@ -276,7 +280,7 @@ export function missingVehicleModelFieldLabels(
 }
 
 export function valueForSort(vehicle: Vehicle, key: SortKey) {
-  return (vehicle[key] || "").toLocaleLowerCase("de-DE");
+  return vehicleColumnSortValue(vehicle, key);
 }
 
 export function compactValue(value: unknown) {

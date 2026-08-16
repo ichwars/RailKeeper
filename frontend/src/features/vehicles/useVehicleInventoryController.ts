@@ -16,6 +16,11 @@ import type {
   SortDirection,
   SortKey
 } from "./vehicleViewModel";
+import {
+  defaultVehicleTableColumns,
+  sortableVehicleColumn,
+  type VehicleTableColumn
+} from "./vehicleTableColumns";
 
 type InventorySort = {
   key: SortKey;
@@ -59,7 +64,10 @@ function clearVehicleFilterURL() {
   window.history.replaceState(null, "", "/vehicles");
 }
 
-export function useVehicleInventoryController(vehicles: Vehicle[]) {
+export function useVehicleInventoryController(
+  vehicles: Vehicle[],
+  columns: readonly VehicleTableColumn[] = defaultVehicleTableColumns
+) {
   const initialPreset = filterPresetFromLocation();
   const [selectedVehicleIDs, setSelectedVehicleIDs] = useState<Set<string>>(() => new Set());
   const [inventoryView, setInventoryView] = useState<InventoryViewMode>(inventoryViewMode);
@@ -69,6 +77,9 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
   const [manufacturerFilter, setManufacturerFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [gattungFilter, setGattungFilter] = useState("");
+  const [railwayCompanyFilter, setRailwayCompanyFilter] = useState("");
+  const [epochFilter, setEpochFilter] = useState("");
+  const [adapterFilter, setAdapterFilter] = useState("");
   const [exhibitionReadyFilter, setExhibitionReadyFilter] = useState(false);
   const [sort, setSort] = useState<InventorySort>({
     key: "inventoryNumber",
@@ -91,6 +102,9 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     setManufacturerFilter("");
     setCategoryFilter("");
     setGattungFilter("");
+    setRailwayCompanyFilter("");
+    setEpochFilter("");
+    setAdapterFilter("");
     setExhibitionReadyFilter(false);
   }, []);
 
@@ -134,7 +148,10 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     return {
       manufacturers: unique(vehicles.map((vehicle) => vehicle.manufacturer)),
       categories: unique(vehicles.map((vehicle) => vehicle.category || "")),
-      gattungen: unique(gattungSource.map((vehicle) => vehicle.gattung || ""))
+      gattungen: unique(gattungSource.map((vehicle) => vehicle.gattung || "")),
+      railwayCompanies: unique(vehicles.map((vehicle) => vehicle.railwayCompany || "")),
+      epochs: unique(vehicles.map((vehicle) => vehicle.epoch || "")),
+      adapters: unique(vehicles.map((vehicle) => vehicle.adapter || ""))
     };
   }, [categoryFilter, vehicles]);
 
@@ -154,11 +171,25 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
       if (manufacturerFilter && vehicle.manufacturer !== manufacturerFilter) return false;
       if (categoryFilter && vehicle.category !== categoryFilter) return false;
       if (gattungFilter && vehicle.gattung !== gattungFilter) return false;
+      if (railwayCompanyFilter && vehicle.railwayCompany !== railwayCompanyFilter) return false;
+      if (epochFilter && vehicle.epoch !== epochFilter) return false;
+      if (adapterFilter && vehicle.adapter !== adapterFilter) return false;
       if (exhibitionReadyFilter && !vehicle.exhibitionReady) return false;
 
       return true;
     });
-  }, [categoryFilter, exhibitionReadyFilter, gattungFilter, inventoryFilter, maintenanceFilter, manufacturerFilter, qualityFilter, vehicles]);
+  }, [adapterFilter, categoryFilter, epochFilter, exhibitionReadyFilter, gattungFilter, inventoryFilter, maintenanceFilter, manufacturerFilter, qualityFilter, railwayCompanyFilter, vehicles]);
+
+  useEffect(() => {
+    setSort((current) => {
+      if (columns.includes(current.key)) return current;
+
+      const fallback = columns.includes("inventoryNumber")
+        ? "inventoryNumber"
+        : columns.find(sortableVehicleColumn);
+      return fallback ? { key: fallback, direction: "asc" } : current;
+    });
+  }, [columns]);
 
   const sortedVehicles = useMemo(() => {
     return [...filteredVehicles].sort((left, right) => {
@@ -216,7 +247,10 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     inventoryFilter !== "all" ||
     maintenanceFilter !== "all" ||
     qualityFilter !== "none" ||
-    Boolean(manufacturerFilter || categoryFilter || gattungFilter || exhibitionReadyFilter);
+    Boolean(
+      manufacturerFilter || categoryFilter || gattungFilter || railwayCompanyFilter ||
+      epochFilter || adapterFilter || exhibitionReadyFilter
+    );
 
   const resetInventoryFilters = () => {
     clearVehicleFilterURL();
@@ -226,6 +260,9 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     setManufacturerFilter("");
     setCategoryFilter("");
     setGattungFilter("");
+    setRailwayCompanyFilter("");
+    setEpochFilter("");
+    setAdapterFilter("");
     setExhibitionReadyFilter(false);
   };
 
@@ -277,8 +314,10 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
   };
 
   return {
+    adapterFilter,
     allVisibleSelected,
     categoryFilter,
+    epochFilter,
     exhibitionReadyFilter,
     filteredVehicles,
     gattungFilter,
@@ -294,10 +333,13 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     manufacturerFilter,
     nextMaintenanceReminder,
     qualityFilter,
+    railwayCompanyFilter,
     resetInventoryFilters,
     selectedVehicleIDs,
     selectedVisibleVehicles,
+    setAdapterFilter,
     setCategoryFilter,
+    setEpochFilter,
     setExhibitionReadyFilter,
     setGattungFilter,
     setInventoryFilter,
@@ -305,6 +347,7 @@ export function useVehicleInventoryController(vehicles: Vehicle[]) {
     setMaintenanceFilter,
     setManufacturerFilter,
     setQualityFilter,
+    setRailwayCompanyFilter,
     someVisibleSelected,
     sort,
     sortedVehicles,

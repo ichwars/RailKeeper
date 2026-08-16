@@ -251,6 +251,24 @@ describe("AccessoriesView", () => {
       .not.toContain("manufacturer");
   });
 
+  it("restores and persists the default table columns", async () => {
+    window.localStorage.setItem(
+      articleTableColumnSettingKey,
+      JSON.stringify(["inventoryNumber"])
+    );
+    const user = userEvent.setup();
+    render(<AccessoriesView roles={["Admin"]} />);
+    await screen.findByRole("table");
+
+    expect(screen.queryByRole("columnheader", { name: "Hersteller" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
+    await user.click(screen.getByRole("button", { name: "Auf Standard zurücksetzen" }));
+
+    expect(screen.getByRole("columnheader", { name: "Hersteller" })).toBeInTheDocument();
+    expect(JSON.parse(window.localStorage.getItem(articleTableColumnSettingKey) || "[]"))
+      .toEqual(["image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge", "stock", "storage"]);
+  });
+
   it("localizes the view controls", async () => {
     setLanguage("en");
     vi.mocked(api.accessoryArticles).mockResolvedValueOnce({

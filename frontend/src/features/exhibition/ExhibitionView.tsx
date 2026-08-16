@@ -15,6 +15,7 @@ import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppDateInput } from "../../shared/ui/AppDateInput";
+import { adapterOptions } from "../vehicles/vehicleOptions";
 
 type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
@@ -64,7 +65,6 @@ const emptyExhibitionOptions: ExhibitionMasterDataOptions = {
 };
 const functionKeys = Array.from({ length: 32 }, (_, index) => `F${index}`);
 const functionTypes = ["standard", "licht", "sound", "kupplung", "rauch", "sonderfunktion"];
-const adapterOptions = ["NEM 651", "NEM 652", "PluX16", "PluX22", "MTC21", "Next18", "8-polig", "21-polig"];
 const dayScopes = ["all", "day1", "day2", "day3", "day4"];
 const selectableDayScopes = dayScopes.filter((scope) => scope !== "all");
 const htmlEscapes: Record<string, string> = {
