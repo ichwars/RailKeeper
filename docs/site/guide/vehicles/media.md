@@ -111,9 +111,10 @@ file in the restore panel. Rely on it only after RailKeeper accepts it as compat
 makes no promise about copies downloaded or created outside RailKeeper.
 
 Admin, Editor, Viewer, and Planner may inspect existing media. Server-side writes require Admin or
-Editor. **Open source** is the transition for imported image sources. **Found documents**,
-**Extract spare parts**, web-document import, remote article images, CV files, and editing
-maintenance records are specialist boundaries, not workflows explained on this page.
+Editor. **Open source** is the transition for imported image sources. See
+[Article search, web documents, and spare parts](/guide/vehicles/search-and-spares) for remote
+article images, **Found documents**, web-document import, and **Extract spare parts**. CV files and
+editing maintenance records remain specialist boundaries that are not explained on this page.
 
 ## Empty, partial, and error states
 
@@ -138,6 +139,7 @@ maintenance records are specialist boundaries, not workflows explained on this p
 - [Vehicle inventory and basic data](/guide/vehicles/)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
+- [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
 
 ## Documented RailKeeper version
 

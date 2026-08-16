@@ -318,6 +318,7 @@ nacheinander ausgeführten Aktion rückgängig.
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
+- [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
 
 ## Dokumentierte RailKeeper-Version
 

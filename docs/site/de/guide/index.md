@@ -37,3 +37,7 @@ Fälligkeiten, Abschluss, Kosten, verknüpfte Medien und sicheres Löschen.
 [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv) behandelt Zuordnungen F0-F31,
 die schreibgeschützte Fahrkurve, CV-Werte und Austausch, Decoder-Dateivorschauen und sicheres
 Speichern.
+
+[Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares) erklärt, wie du
+externe Vorschläge prüfst, ausgewählte Artikeldaten und Bilder speicherst, Dokumente importierst und
+Ersatzteile pflegst, ohne teilweise Schreibvorgänge zu übersehen.
