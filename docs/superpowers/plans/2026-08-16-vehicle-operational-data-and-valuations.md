@@ -409,7 +409,7 @@ git commit -m "feat: add accessory list price"
 - Test: `frontend/src/features/accessories/ArticleColumnPicker.test.tsx`
 - Test: `frontend/src/features/accessories/ArticleTable.test.tsx`
 
-- [ ] **Step 1: Add failing editor and column-preference tests**
+- [x] **Step 1: Add failing editor and column-preference tests**
 
 Test form/API round trips, the `0.00` value, comma-decimal input, rejection of negative and
 unambiguously malformed decimal inputs such as `1.2345`, and display with two locale-aware
@@ -431,20 +431,20 @@ npm.cmd run test:run -- articleEditorModel articleTableColumns ArticleColumnPick
 
 Expected: FAIL.
 
-- [ ] **Step 2: Extend accessory API and editor types**
+- [x] **Step 2: Extend accessory API and editor types**
 
 Add `listPrice: string` to the article read/write interfaces and editor form model. Preserve the
 text until submit, normalize accepted comma input to the API's stored decimal form only through an
 exact string conversion, and never call `parseFloat` for money.
 
-- [ ] **Step 3: Add the editor field**
+- [x] **Step 3: Add the editor field**
 
 Place the field with the article's commercial core data, labelled "Listenpreis pro Stück" /
 "List price per unit". Use the existing app-owned number input where it supports decimal text;
 otherwise use an input with `inputMode="decimal"`, `min="0"`, and a validation message. Do not use
 native numeric conversion that turns an empty value into zero.
 
-- [ ] **Step 4: Separate all columns from default columns**
+- [x] **Step 4: Separate all columns from default columns**
 
 Change the definitions to this shape:
 
@@ -466,7 +466,7 @@ Make `resetArticleTableColumns` and all no-storage/invalid-storage fallbacks use
 `defaultArticleTableColumnOrder`. Normalization must not append newly introduced columns. Preserve
 the existing safety rule that at least inventory number or name remains visible.
 
-- [ ] **Step 5: Render the table column and picker entry**
+- [x] **Step 5: Render the table column and picker entry**
 
 Render blank prices as the shared placeholder and nonblank prices through an exact formatter with
 two decimals and EUR. Add the picker label without changing existing column order or mobile card
@@ -474,7 +474,7 @@ layout. Refactor `ArticleTable`'s header registry from a list of always-sortable
 definitions shaped as `{ key, sort?: AccessoryArticleSort }`; render `listPrice` with a plain
 `<th>` and retain the existing sort button for definitions that carry `sort`.
 
-- [ ] **Step 6: Add translations and rerun tests**
+- [x] **Step 6: Add translations and rerun tests**
 
 Use:
 
@@ -492,7 +492,7 @@ npm.cmd run build
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 4**
+- [x] **Step 7: Commit Task 4**
 
 ```powershell
 git add frontend/src/shared/apiLayoutsAccessories.ts `

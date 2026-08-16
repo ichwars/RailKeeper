@@ -314,7 +314,8 @@ export function useArticleEditorController({
       integer: t("accessories.editor.validation.integer"),
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
-      invalidStep: t("accessories.editor.validation.invalidStep")
+      invalidStep: t("accessories.editor.validation.invalidStep"),
+      invalidMoney: t("accessories.editor.validation.invalidMoney")
     }, customFields, historicalAttributes);
     setFieldErrors((current) => {
       const next = { ...current };
@@ -449,7 +450,8 @@ export function useArticleEditorController({
       integer: t("accessories.editor.validation.integer"),
       invalidSubject: t("accessories.editor.validation.invalidSubject"),
       invalidOption: t("accessories.editor.validation.invalidOption"),
-      invalidStep: t("accessories.editor.validation.invalidStep")
+      invalidStep: t("accessories.editor.validation.invalidStep"),
+      invalidMoney: t("accessories.editor.validation.invalidMoney")
     }, customFields, historicalAttributes);
     setFieldErrors(validation.fieldErrors);
     setTabErrors(validation.tabErrors);

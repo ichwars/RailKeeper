@@ -15,6 +15,7 @@ import {
 } from "./articleTableColumns";
 import { articleSubtypeLabel } from "./articleSubtypes";
 import { articleTypeLabel } from "./articleTypes";
+import { formatAccessoryMoney } from "./accessoryMoney";
 
 type ArticleTableProps = {
   items: AccessoryArticleListItem[];
@@ -36,7 +37,7 @@ type ArticleTableProps = {
   visibleColumns?: ReadonlySet<ArticleTableColumn>;
 };
 
-const sortableColumns: Array<{ sort: AccessoryArticleSort; key: ArticleTableColumn }> = [
+const tableColumns: Array<{ sort?: AccessoryArticleSort; key: ArticleTableColumn }> = [
   { sort: "image", key: "image" },
   { sort: "inventoryNumber", key: "inventoryNumber" },
   { sort: "manufacturer", key: "manufacturer" },
@@ -44,6 +45,7 @@ const sortableColumns: Array<{ sort: AccessoryArticleSort; key: ArticleTableColu
   { sort: "name", key: "name" },
   { sort: "type", key: "type" },
   { sort: "gauge", key: "gauge" },
+  { key: "listPrice" },
   { sort: "stock", key: "stock" },
   { sort: "storage", key: "storage" }
 ];
@@ -56,6 +58,7 @@ const articleColumnWidths: Record<ArticleTableColumn, number> = {
   name: 210,
   type: 175,
   gauge: 80,
+  listPrice: 130,
   stock: 210,
   storage: 170
 };
@@ -87,7 +90,7 @@ export function ArticleTable({
   visibleColumns = defaultArticleTableColumns
 }: ArticleTableProps) {
   const selectAllRef = useRef<HTMLInputElement | null>(null);
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const allSelected = items.length > 0 && items.every((item) => selectedIDs.has(item.id));
   const someSelected = items.some((item) => selectedIDs.has(item.id));
 
@@ -120,6 +123,13 @@ export function ArticleTable({
     );
   };
 
+  const renderHeader = (column: { sort?: AccessoryArticleSort; key: ArticleTableColumn }) => {
+    if (column.sort) return renderSortHeader({ sort: column.sort, key: column.key });
+    return <th key={column.key} className={`article-${column.key}-cell`}>
+      {t(`accessories.table.${column.key}`)}
+    </th>;
+  };
+
   return (
     <div className="table-wrap article-table-wrap">
       <table className="inventory-table article-table" style={articleTableStyle(visibleColumns)}>
@@ -132,7 +142,7 @@ export function ArticleTable({
                   onChange={() => onToggleAll?.()} />
               </label>
             </th>
-            {sortableColumns.filter(({ key }) => visibleColumns.has(key)).map(renderSortHeader)}
+            {tableColumns.filter(({ key }) => visibleColumns.has(key)).map(renderHeader)}
             <th className="actions-cell">{t("accessories.table.actions")}</th>
           </tr>
         </thead>
@@ -183,6 +193,9 @@ export function ArticleTable({
                 </td> : null}
                 {visibleColumns.has("gauge") ? <td className="article-gauge-cell">
                   {article.gauges.length ? article.gauges.join(", ") : t("common.none")}
+                </td> : null}
+                {visibleColumns.has("listPrice") ? <td className="article-listPrice-cell">
+                  {formatAccessoryMoney(article.listPrice, language) || t("common.none")}
                 </td> : null}
                 {visibleColumns.has("stock") ? <td className="article-stock-cell">
                   <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
