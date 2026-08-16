@@ -20,7 +20,7 @@ describe("VehiclesView", () => {
 
     expect((await screen.findAllByText("BR 106")).length).toBeGreaterThan(0);
     expect(api.vehicles).toHaveBeenCalledWith("");
-    expect(api.masterDataAll).toHaveBeenCalledWith(true);
+    expect(api.masterDataAll).toHaveBeenCalledWith();
     expect(api.masterDataRelations).toHaveBeenCalledWith("vehicle_category", "vehicle_gattung");
   });
 

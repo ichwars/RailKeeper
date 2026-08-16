@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { emptyVehicle } from "./vehicleViewModel";
 import { VehicleModelTab } from "./VehicleModelTab";
+import { createVehicleInventoryRenderers } from "./vehicleInventoryRenderers";
 
 describe("VehicleModelTab operational fields", () => {
   it("renders speed and home base directly as constrained model inputs", async () => {
@@ -55,5 +56,70 @@ describe("VehicleModelTab operational fields", () => {
     expect(onUpdate).toHaveBeenLastCalledWith({ maximumSpeedKmh: 100 });
     fireEvent.change(homeBase, { target: { value: "Bw Dresden" } });
     expect(onUpdate).toHaveBeenLastCalledWith({ homeBase: "Bw Dresden" });
+  });
+
+  it("shows only the current inactive manufacturer with an inactive suffix", async () => {
+    const user = userEvent.setup();
+    const base = {
+      id: "manufacturer:piko",
+      type: "manufacturer",
+      key: "piko",
+      label: "Piko",
+      active: true,
+      sortOrder: 0,
+      metadata: {},
+      createdAt: "2026-08-16T00:00:00Z",
+      updatedAt: "2026-08-16T00:00:00Z"
+    };
+    const renderers = createVehicleInventoryRenderers({
+      sort: { key: "inventoryNumber", direction: "asc" },
+      quickMenuVehicleID: "",
+      setQuickMenuVehicleID: vi.fn(),
+      toggleSort: vi.fn(),
+      openDetail: vi.fn(),
+      openEdit: vi.fn(),
+      openQr: vi.fn(),
+      printVehicle: vi.fn(),
+      setDeleteCandidate: vi.fn(),
+      t: (key) => key === "common.inactive" ? "inaktiv" : key
+    });
+
+    render(
+      <VehicleModelTab
+        form={{ ...emptyVehicle, manufacturer: "Roco" }}
+        externalMappings={[]}
+        readonly={false}
+        articleSearchLoading={false}
+        canRunArticleSearch={false}
+        options={{
+          manufacturers: [
+            base,
+            { ...base, id: "manufacturer:roco", key: "roco", label: "Roco", active: false },
+            { ...base, id: "manufacturer:esu", key: "esu", label: "ESU", active: false }
+          ],
+          gauges: [], epochs: [], railwayCompanies: [], categories: [], gattungen: [],
+          symbols: [], categoryRelations: []
+        }}
+        filteredGattungen={[]}
+        openSections={{ model: true, details: false, vehicle: false }}
+        selectOptions={renderers.selectOptions}
+        ecosFieldClass={() => ""}
+        showRequiredErrors={false}
+        onToggleSection={vi.fn()}
+        onOpenBarcodeSearch={vi.fn()}
+        onRunArticleSearch={vi.fn()}
+        onUpdate={vi.fn()}
+        onUpdateCategory={vi.fn()}
+        onOpenQr={vi.fn()}
+        canOpenQr={false}
+        onUpdateCouplingFront={vi.fn()}
+        onUpdateCouplingSame={vi.fn()}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: "Hersteller" }));
+    expect(screen.getByRole("option", { name: "Roco (inaktiv)" })).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Piko" })).toBeEnabled();
+    expect(screen.queryByRole("option", { name: "ESU" })).not.toBeInTheDocument();
   });
 });

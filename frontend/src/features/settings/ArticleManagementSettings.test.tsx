@@ -25,6 +25,8 @@ const entry = (type: string, key: string, label: string): MasterDataEntry => ({
   active: true,
   sortOrder: 10,
   metadata: {},
+  origin: "bundled",
+  capabilities: { canDeactivate: true, canReactivate: false, canDelete: false },
   createdAt: "2026-08-08T10:00:00Z",
   updatedAt: "2026-08-08T10:00:00Z"
 });
@@ -54,6 +56,7 @@ function ArticleManagementHarness({
       roles={roles}
       activeSection={activeSection}
       onSectionChange={setActiveSection}
+      onConfirmAction={({ onConfirm }) => onConfirm()}
     />
   );
 }
@@ -67,7 +70,7 @@ describe("ArticleManagementSettings", () => {
       accessory_subtype: [entry("accessory_subtype", "track:straight", "Straight")],
       accessory_custom_field: [entry("accessory_custom_field", "material", "Material")]
     };
-    vi.spyOn(api, "masterData").mockImplementation(async (type) => entries[type] || []);
+    vi.spyOn(api, "managedMasterData").mockImplementation(async (type) => entries[type] || []);
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
   });
 
@@ -93,8 +96,8 @@ describe("ArticleManagementSettings", () => {
     expect(await screen.findByRole("heading", { name: "Lagerorthierarchie" })).toBeInTheDocument();
     expect(api.storageLocations).toHaveBeenCalledOnce();
 
-    await waitFor(() => expect(api.masterData).toHaveBeenCalledTimes(4));
-    expect(vi.mocked(api.masterData).mock.calls.map(([type]) => type)).toEqual([
+    await waitFor(() => expect(api.managedMasterData).toHaveBeenCalledTimes(4));
+    expect(vi.mocked(api.managedMasterData).mock.calls.map(([type]) => type)).toEqual([
       "stock_unit",
       "article_type",
       "accessory_subtype",
@@ -135,7 +138,7 @@ describe("ArticleManagementSettings", () => {
   it("settles the active location request when an earlier master-data request finishes late", async () => {
     const user = userEvent.setup();
     const stockUnitRequest = deferred<MasterDataEntry[]>();
-    vi.mocked(api.masterData).mockImplementation((type) => type === "stock_unit"
+    vi.mocked(api.managedMasterData).mockImplementation((type) => type === "stock_unit"
       ? stockUnitRequest.promise
       : Promise.resolve([]));
     vi.mocked(api.storageLocations).mockResolvedValue(locations);
@@ -210,17 +213,23 @@ describe("ArticleManagementSettings", () => {
 
   it("preserves an active-state toggle when saving an editor that was already open", async () => {
     const user = userEvent.setup();
+    vi.spyOn(api, "setMasterDataActive").mockImplementation(async (type, key, active) => ({
+      ...entry(type, key, "Track"),
+      active,
+      capabilities: { canDeactivate: active, canReactivate: !active, canDelete: false }
+    }));
     vi.spyOn(api, "updateMasterData").mockImplementation(async (type, key, input) => ({
       ...entry(type, key, input.label),
-      active: input.active ?? true
+      active: false,
+      capabilities: { canDeactivate: false, canReactivate: true, canDelete: false }
     }));
     render(<ArticleManagementHarness roles={["Editor"]} />);
 
     await user.click(await screen.findByRole("tab", { name: "Artikelarten und Unterarten" }));
     await screen.findByText("Gleis");
     await user.click(screen.getByRole("button", { name: "Gleis bearbeiten" }));
-    await user.click(screen.getByRole("button", { name: "Gleis archivieren" }));
-    await waitFor(() => expect(api.updateMasterData).toHaveBeenCalledTimes(1));
+    await user.click(screen.getByRole("button", { name: "Gleis deaktivieren" }));
+    await waitFor(() => expect(api.setMasterDataActive).toHaveBeenCalledWith("article_type", "track", false));
 
     const label = screen.getByRole("textbox", { name: "Bezeichnung" });
     await user.clear(label);
@@ -234,11 +243,49 @@ describe("ArticleManagementSettings", () => {
     ));
   });
 
+  it("shows origin and only deletes an unused custom entry after confirmation", async () => {
+    const user = userEvent.setup();
+    const custom = {
+      ...entry("stock_unit", "box", "Box"),
+      origin: "custom" as const,
+      capabilities: { canDeactivate: true, canReactivate: false, canDelete: true }
+    };
+    vi.mocked(api.managedMasterData).mockResolvedValue([custom]);
+    vi.spyOn(api, "deleteMasterData").mockResolvedValue(undefined);
+    const onConfirmAction = vi.fn(({ onConfirm }: { onConfirm: () => void }) => onConfirm());
+    render(
+      <ArticleManagementSettings roles={["Editor"]} activeSection="stock_unit"
+        onSectionChange={vi.fn()} onConfirmAction={onConfirmAction} />
+    );
+
+    expect(await screen.findByText("Eigener Eintrag")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Box endgültig löschen" }));
+
+    expect(onConfirmAction).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Stammdateneintrag endgültig löschen",
+      confirmLabel: "Endgültig löschen",
+      danger: true
+    }));
+    await waitFor(() => expect(api.deleteMasterData).toHaveBeenCalledWith("stock_unit", "box"));
+  });
+
   it("creates a typed controlled custom field", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "createMasterData").mockResolvedValue({
+    const createdField = {
       ...entry("accessory_custom_field", "color", "Farbe"),
+      origin: "custom" as const,
+      capabilities: { canDeactivate: true, canReactivate: false, canDelete: true },
       metadata: { kind: "single_select", options: ["Rot", "Grün"] }
+    };
+    vi.spyOn(api, "createMasterData").mockResolvedValue({
+      ...createdField,
+      capabilities: undefined
+    });
+    vi.mocked(api.managedMasterData).mockImplementation(async (type) => {
+      if (type !== "accessory_custom_field") return [];
+      return vi.mocked(api.createMasterData).mock.calls.length > 0
+        ? [entry("accessory_custom_field", "material", "Material"), createdField]
+        : [entry("accessory_custom_field", "material", "Material")];
     });
     render(<ArticleManagementHarness roles={["Admin"]} />);
 
@@ -258,6 +305,7 @@ describe("ArticleManagementSettings", () => {
       active: true,
       metadata: { kind: "single_select", options: ["Rot", "Grün"] }
     }));
+    expect(await screen.findByRole("button", { name: "Farbe endgültig löschen" })).toBeInTheDocument();
   });
 });
 

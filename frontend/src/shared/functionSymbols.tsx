@@ -1,6 +1,8 @@
 import { AlertTriangle, Circle, Cloud, Gauge, Lightbulb, Link, Megaphone, Volume2 } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 import type { MasterDataEntry } from "./api";
+import { useI18n } from "./i18n";
+import { masterDataOptions } from "./masterDataOptions";
 
 const fallbackFunctionSymbols = [
   { key: "light", label: "Licht" },
@@ -58,20 +60,29 @@ export function functionSymbolIcon(symbolKey?: string, functionType?: string, me
 
 export function functionSymbolMetadata(symbols: MasterDataEntry[], key?: string) {
   if (!key) return undefined;
-  return symbols.find((symbol) => symbol.key === key && symbol.active)?.metadata;
+  return symbols.find((symbol) => symbol.key === key)?.metadata;
 }
 
-function functionSymbolOptions(symbols: MasterDataEntry[]) {
-  const merged = new Map<string, { key: string; label: string; metadata?: Record<string, unknown> }>();
-  for (const symbol of fallbackFunctionSymbols) {
-    merged.set(symbol.key, symbol);
-  }
-  for (const symbol of symbols) {
-    if (symbol.active) {
-      merged.set(symbol.key, { key: symbol.key, label: symbol.label, metadata: symbol.metadata });
-    }
-  }
-  return [...merged.values()];
+function functionSymbolOptions(symbols: MasterDataEntry[], currentKey?: string) {
+  const source = symbols.length > 0
+    ? symbols
+    : fallbackFunctionSymbols.map((symbol, index): MasterDataEntry => ({
+        id: `fallback:${symbol.key}`,
+        type: "symbols",
+        key: symbol.key,
+        label: symbol.label,
+        active: true,
+        sortOrder: index,
+        metadata: {},
+        createdAt: "",
+        updatedAt: ""
+      }));
+  return masterDataOptions(source, [currentKey || ""], (symbol) => symbol.key).map((option) => ({
+    key: option.value,
+    label: option.label,
+    active: option.active,
+    metadata: source.find((symbol) => symbol.id === option.id)?.metadata
+  }));
 }
 
 export function FunctionSymbolPicker({
@@ -89,9 +100,13 @@ export function FunctionSymbolPicker({
   label: string;
   onChange: (value: string, label?: string) => void;
 }) {
+  const { t } = useI18n();
   const detailsRef = useRef<HTMLDetailsElement | null>(null);
-  const options = functionSymbolOptions(symbols);
+  const options = functionSymbolOptions(symbols, value);
   const selected = options.find((symbol) => symbol.key === value);
+  const optionLabel = (symbol: { label: string; active: boolean }) => (
+    `${symbol.label}${symbol.active ? "" : ` (${t("common.inactive")})`}`
+  );
   const selectSymbol = (nextValue: string, nextLabel?: string) => {
     onChange(nextValue, nextLabel);
     detailsRef.current?.removeAttribute("open");
@@ -100,7 +115,7 @@ export function FunctionSymbolPicker({
     <details ref={detailsRef} className="function-symbol-picker">
       <summary aria-label={label}>
         {functionSymbolIcon(value, functionType, selected?.metadata)}
-        <span>{selected?.label || "Symbol"}</span>
+        <span>{selected ? optionLabel(selected) : "Symbol"}</span>
       </summary>
       <div className="function-symbol-menu">
         <button type="button" className={!value ? "active" : ""} onClick={() => selectSymbol("")} disabled={disabled}>
@@ -108,9 +123,9 @@ export function FunctionSymbolPicker({
           <span>Kein Symbol</span>
         </button>
         {options.map((symbol) => (
-          <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => selectSymbol(symbol.key, symbol.label)} disabled={disabled} title={symbol.label}>
+          <button type="button" key={symbol.key} className={value === symbol.key ? "active" : ""} onClick={() => selectSymbol(symbol.key, symbol.label)} disabled={disabled || !symbol.active} title={optionLabel(symbol)}>
             {functionSymbolIcon(symbol.key, functionType, symbol.metadata)}
-            <span>{symbol.label}</span>
+            <span>{optionLabel(symbol)}</span>
           </button>
         ))}
       </div>

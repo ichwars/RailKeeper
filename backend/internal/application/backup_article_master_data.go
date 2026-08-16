@@ -17,6 +17,7 @@ type backupArticleMasterDataEntry struct {
 	metadataJSON string
 	createdAt    string
 	updatedAt    string
+	origin       string
 }
 
 func readLegacyRestoreArticleMasterData(
@@ -28,7 +29,8 @@ func readLegacyRestoreArticleMasterData(
 		return nil, nil
 	}
 	rows, err := tx.QueryContext(ctx, `
-SELECT id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at
+SELECT id, type, key, label, active, sort_order, source_url, metadata_json,
+       created_at, updated_at, origin
 FROM master_data_entries
 WHERE type IN ('article_type', 'accessory_subtype')
 ORDER BY type, key
@@ -44,7 +46,7 @@ ORDER BY type, key
 		var entry backupArticleMasterDataEntry
 		if err := rows.Scan(
 			&entry.id, &entry.typeName, &entry.key, &entry.label, &entry.active, &entry.sortOrder,
-			&entry.sourceURL, &entry.metadataJSON, &entry.createdAt, &entry.updatedAt,
+			&entry.sourceURL, &entry.metadataJSON, &entry.createdAt, &entry.updatedAt, &entry.origin,
 		); err != nil {
 			return nil, fmt.Errorf("scan current article master data: %w", err)
 		}
@@ -84,10 +86,11 @@ WHERE type IN ('article_type', 'accessory_subtype', 'article_subtype')
 	for _, entry := range entries {
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO master_data_entries(
-  id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  id, type, key, label, active, sort_order, source_url, metadata_json,
+  created_at, updated_at, origin
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `, entry.id, entry.typeName, entry.key, entry.label, entry.active, entry.sortOrder, entry.sourceURL,
-			entry.metadataJSON, entry.createdAt, entry.updatedAt); err != nil {
+			entry.metadataJSON, entry.createdAt, entry.updatedAt, entry.origin); err != nil {
 			return fmt.Errorf("restore current article master data: %w", err)
 		}
 	}

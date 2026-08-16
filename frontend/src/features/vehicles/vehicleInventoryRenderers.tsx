@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 
 import type { MasterDataEntry, Vehicle } from "../../shared/api";
+import { masterDataOptions } from "../../shared/masterDataOptions";
 import { optionValue, type ModalTab, type SortDirection, type SortKey } from "./vehicleViewModel";
 
 type Translator = (key: string, values?: Record<string, string | number>) => string;
@@ -242,11 +243,17 @@ export function createVehicleInventoryRenderers({
     />
   );
 
-  const selectOptions = (items: MasterDataEntry[], emptyLabel = "Keine Auswahl"): ReactNode => (
+  const selectOptions = (
+    items: MasterDataEntry[],
+    currentValue: string,
+    emptyLabel = "Keine Auswahl"
+  ): ReactNode => (
     <>
       <option value="">{emptyLabel}</option>
-      {items.map((entry) => (
-        <option key={entry.key} value={optionValue(entry)}>{entry.label}</option>
+      {masterDataOptions(items, [currentValue], optionValue).map((option) => (
+        <option key={option.id} value={option.value} disabled={!option.active}>
+          {option.label}{option.active ? "" : ` (${t("common.inactive")})`}
+        </option>
       ))}
     </>
   );

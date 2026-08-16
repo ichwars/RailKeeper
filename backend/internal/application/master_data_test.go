@@ -706,6 +706,169 @@ VALUES('rel-1', 'vehicle_category', 'lokomotive', 'vehicle_gattung', 'diesellok'
 	}
 }
 
+func TestMasterDataExportVersionTwoIncludesOrigin(t *testing.T) {
+	db := testDB(t)
+	if _, err := db.Exec(`
+UPDATE master_data_entries SET origin='bundled' WHERE type='article_type'`); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewMasterDataService(db)
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if doc.Version != 2 {
+		t.Fatalf("version=%d", doc.Version)
+	}
+	if doc.Entries["article_type"][0].Origin != application.MasterDataOriginBundled {
+		t.Fatalf("origin=%q", doc.Entries["article_type"][0].Origin)
+	}
+}
+
+func TestMasterDataImportRejectsNewerVersionBeforeMutation(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	if _, err := service.Create(t.Context(), "manufacturer", application.MasterDataInput{
+		Key: "sentinel", Label: "Sentinel",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 3,
+		Entries: map[string][]application.MasterDataEntry{},
+	})
+	if !errors.Is(err, application.ErrMasterDataValidation) {
+		t.Fatalf("import error=%v", err)
+	}
+	if _, err := service.Get(t.Context(), "manufacturer", "sentinel"); err != nil {
+		t.Fatalf("newer document mutated data: %v", err)
+	}
+}
+
+func TestMasterDataImportDoesNotTrustBundledOriginForUnknownKey(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	if _, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 2,
+		Entries: map[string][]application.MasterDataEntry{
+			"manufacturer": {{
+				Key: "unknown", Label: "Unknown", Active: true,
+				Origin: application.MasterDataOriginBundled,
+			}},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := service.Get(t.Context(), "manufacturer", "unknown")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Origin != application.MasterDataOriginCustom {
+		t.Fatalf("unknown imported origin=%q", entry.Origin)
+	}
+}
+
+func TestMasterDataImportRetainsOmittedBundledEntriesAndRelations(t *testing.T) {
+	db := testDB(t)
+	insertLifecycleEntry(t, db, "vehicle_category", "bundled-parent", "Bundled Parent", "bundled", true)
+	insertLifecycleEntry(t, db, "vehicle_gattung", "bundled-child", "Bundled Child", "bundled", false)
+	if _, err := db.Exec(`
+INSERT INTO master_data_relations(
+  id, parent_type, parent_key, child_type, child_key, sort_order, created_at
+) VALUES(
+  'bundled-relation', 'vehicle_category', 'bundled-parent',
+  'vehicle_gattung', 'bundled-child', 11, 'now'
+)`); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewMasterDataService(db)
+	if _, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 2,
+		Entries: map[string][]application.MasterDataEntry{},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	child, err := service.Get(t.Context(), "vehicle_gattung", "bundled-child")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if child.Active || child.Origin != application.MasterDataOriginBundled {
+		t.Fatalf("retained bundled child=%#v", child)
+	}
+	relations, err := service.Relations(t.Context(), "vehicle_category", "vehicle_gattung")
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, relation := range relations {
+		if relation.ParentKey == "bundled-parent" && relation.ChildKey == "bundled-child" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("bundled relation was removed: %#v", relations)
+	}
+}
+
+func TestMasterDataImportRemovesOmittedUnusedCustomEntry(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	if _, err := service.Create(t.Context(), "manufacturer", application.MasterDataInput{
+		Key: "unused", Label: "Unused",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 2,
+		Entries: map[string][]application.MasterDataEntry{},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.Get(t.Context(), "manufacturer", "unused"); !errors.Is(
+		err, application.ErrMasterDataNotFound,
+	) {
+		t.Fatalf("omitted unused entry error=%v", err)
+	}
+}
+
+func TestMasterDataImportRejectsOmittedUsedCustomEntryBeforeMutation(t *testing.T) {
+	db := testDB(t)
+	insertLifecycleEntry(t, db, "manufacturer", "used", "Used", "custom", true)
+	useVehicleColumn("manufacturer")(t, db, "used", "Used")
+	service := application.NewMasterDataService(db)
+	_, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 2,
+		Entries: map[string][]application.MasterDataEntry{},
+	})
+	if !errors.Is(err, application.ErrMasterDataInUse) {
+		t.Fatalf("import error=%v", err)
+	}
+	if _, err := service.Get(t.Context(), "manufacturer", "used"); err != nil {
+		t.Fatalf("rejected import mutated used entry: %v", err)
+	}
+}
+
+func TestMasterDataImportKeepsCurrentBundledOriginAndImportedInactiveState(t *testing.T) {
+	db := testDB(t)
+	insertLifecycleEntry(t, db, "epoch", "bundled", "Bundled", "bundled", true)
+	service := application.NewMasterDataService(db)
+	if _, err := service.Import(t.Context(), &application.MasterDataDocument{
+		Format: "railkeeper-master-data", Version: 2,
+		Entries: map[string][]application.MasterDataEntry{
+			"epoch": {{
+				Key: "bundled", Label: "Bundled", Active: false,
+				Origin: application.MasterDataOriginCustom,
+			}},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := service.Get(t.Context(), "epoch", "bundled")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Active || entry.Origin != application.MasterDataOriginBundled {
+		t.Fatalf("imported bundled entry=%#v", entry)
+	}
+}
+
 func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 	service := application.NewMasterDataService(testDB(t))
 	if _, err := service.Import(context.Background(), &application.MasterDataDocument{

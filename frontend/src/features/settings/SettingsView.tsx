@@ -49,6 +49,7 @@ import { applyStoredThemeOptions, applyThemePreference, readThemePreference, the
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import { MasterDataLifecycleActions } from "./MasterDataLifecycleActions";
 import {
   generalDataTypes,
   isArticleDataType,
@@ -500,7 +501,7 @@ export function SettingsView({ username }: { username: string }) {
     }));
 
     api
-      .masterDataAll()
+      .managedMasterDataAll()
       .then((entriesByType) => {
         if (cancelled) return;
 
@@ -534,7 +535,7 @@ export function SettingsView({ username }: { username: string }) {
     setLoadingTypes((current) => ({ ...current, [activeType]: true }));
     setMessage("");
     api
-      .masterData(activeType)
+      .managedMasterData(activeType)
       .then((entries) => {
         setItemsByType((current) => ({ ...current, [activeType]: entries }));
         setLoadedTypes((current) => ({ ...current, [activeType]: true }));
@@ -1144,11 +1145,37 @@ export function SettingsView({ username }: { username: string }) {
       .finally(() => setSaving(false));
   };
 
+  const setEntryActive = (entry: MasterDataEntry, active: boolean) => {
+    setMessage("");
+    api
+      .setMasterDataActive(activeType, entry.key, active)
+      .then((updated) => {
+        setItemsByType((current) => ({
+          ...current,
+          [activeType]: (current[activeType] || []).map((item) => item.key === updated.key ? updated : item)
+        }));
+        if (editing?.key === updated.key) {
+          setEditing(updated);
+          setForm(entryToForm(updated));
+        }
+      })
+      .catch((error: Error) => setMessage(error.message));
+  };
+
+  const deactivateEntry = (entry: MasterDataEntry) => {
+    setConfirmDialog({
+      title: t("settings.master.deactivateTitle"),
+      body: t("settings.master.deactivateBody"),
+      confirmLabel: t("settings.master.deactivate"),
+      onConfirm: () => setEntryActive(entry, false)
+    });
+  };
+
   const deleteEntry = (entry: MasterDataEntry) => {
     setConfirmDialog({
-      title: t("vehicles.delete"),
-      body: t("settings.master.deleteConfirm", { label: entry.label }),
-      confirmLabel: t("vehicles.delete"),
+      title: t("settings.master.deleteTitle"),
+      body: t("settings.master.deleteBody"),
+      confirmLabel: t("settings.master.deletePermanently"),
       danger: true,
       onConfirm: () => {
         api
@@ -1361,20 +1388,37 @@ export function SettingsView({ username }: { username: string }) {
       render: (entry) => metadataString(entry, "description") || "-"
     });
   }
+  masterDataColumns.push(
+    {
+      key: "status",
+      label: t("settings.master.status"),
+      align: "center",
+      sortValue: (entry) => entry.active ? 1 : 0,
+      render: (entry) => t(entry.active ? "settings.articleManagement.active" :
+        "settings.articleManagement.inactive")
+    },
+    {
+      key: "origin",
+      label: t("settings.master.origin"),
+      align: "center",
+      sortValue: (entry) => entry.origin || "custom",
+      render: (entry) => t(`settings.master.origin.${entry.origin || "custom"}`)
+    }
+  );
   masterDataColumns.push({
     key: "actions",
     label: t("settings.data.actions"),
     align: "right",
     sortable: false,
     render: (entry) => (
-      <div className="table-actions">
-        <button type="button" className="icon-button" onClick={() => startEdit(entry)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-          <Pencil size={16} />
-        </button>
-        <button type="button" className="icon-button danger" onClick={() => deleteEntry(entry)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-          <Trash2 size={16} />
-        </button>
-      </div>
+      <MasterDataLifecycleActions
+        entry={entry}
+        displayLabel={isCV8ManufacturerData ? cv8NameText(entry) : entry.label}
+        onEdit={() => startEdit(entry)}
+        onDeactivate={() => deactivateEntry(entry)}
+        onReactivate={() => setEntryActive(entry, true)}
+        onDelete={() => deleteEntry(entry)}
+      />
     )
   });
   const activeSortColumn =
@@ -1889,7 +1933,7 @@ export function SettingsView({ username }: { username: string }) {
                   </div>
                 )}
 
-                <div className="table-wrap master-data-table">
+                <div className={`table-wrap master-data-table master-data-table-${activeType}`}>
                   <table>
                     <thead>
                       <tr>
@@ -1934,7 +1978,7 @@ export function SettingsView({ username }: { username: string }) {
                         </tr>
                       ) : (
                         sortedItems.map((entry) => (
-                          <tr key={entry.id}>
+                          <tr key={entry.id} className={entry.active ? "" : "muted-row"}>
                             {masterDataColumns.map((column) => {
                               const className = [
                                 `master-data-col-${column.key}`,
@@ -1958,6 +2002,7 @@ export function SettingsView({ username }: { username: string }) {
               roles={currentSession?.roles || []}
               activeSection={activeArticleType}
               onSectionChange={selectArticleType}
+              onConfirmAction={setConfirmDialog}
             />
           )}
         </section>

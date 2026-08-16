@@ -1,0 +1,5021 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:bridge"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:building"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:figure"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:interior_equipment"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:platform"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:road_vehicle"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:street_equipment"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "building_equipment:tunnel_portal"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:accessory"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:feedback"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:function"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:locomotive"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:servo"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "decoder:switching"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:booster"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:control_element"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:distribution"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:feedback"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:power_supply"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:relay"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:sensor"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "electrical_control:turnout_drive"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:adhesive"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:ballast"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:cable"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:fastener"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:grass"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:paint"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:scatter"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:tree"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:water"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "landscape_consumable:wire"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "lighting:building_lighting"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "lighting:effect_lighting"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "lighting:lamp"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "lighting:led"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "lighting:light_strip"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "other:other"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:block"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:distant"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:entry"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:exit"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:light"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:main"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:semaphore"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "signal:shunting"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:buffer_stop"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:crossing"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:curve"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:double_slip"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:flex"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:straight"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:transition"
+    },
+    {
+      "type": "accessory_subtype",
+      "key": "track:turnout"
+    },
+    {
+      "type": "article_type",
+      "key": "building_equipment"
+    },
+    {
+      "type": "article_type",
+      "key": "decoder"
+    },
+    {
+      "type": "article_type",
+      "key": "electrical_control"
+    },
+    {
+      "type": "article_type",
+      "key": "landscape_consumable"
+    },
+    {
+      "type": "article_type",
+      "key": "lighting"
+    },
+    {
+      "type": "article_type",
+      "key": "other"
+    },
+    {
+      "type": "article_type",
+      "key": "signal"
+    },
+    {
+      "type": "article_type",
+      "key": "track"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "boolean"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "date"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "multi_select"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "number"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "single_select"
+    },
+    {
+      "type": "controlled_field_kind",
+      "key": "text"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-001"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-002"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-011"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-012"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-013"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-014"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-015"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-017"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-018"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-019"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-020"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-021"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-022"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-023"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-024"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-025"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-026"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-027"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-028"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-029"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-030"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-031"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-032"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-033"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-034"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-035"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-036"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-037"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-038"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-039"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-040"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-041"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-042"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-043"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-044"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-045"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-046"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-047"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-048"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-049"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-050"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-051"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-052"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-053"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-054"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-055"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-056"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-057"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-058"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-059"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-060"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-061"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-062"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-063"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-064"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-065"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-066"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-067"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-068"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-069"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-070"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-071"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-072"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-073"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-074"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-075"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-076"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-077"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-078"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-079"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-080"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-081"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-082"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-083"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-084"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-085"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-086"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-087"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-088"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-089"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-090"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-091"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-092"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-093"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-094"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-095"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-096"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-097"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-098"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-099"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-100"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-101"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-102"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-103"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-104"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-105"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-106"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-107"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-108"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-109"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-110"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-111"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-112"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-113"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-114"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-115"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-116"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-117"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-118"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-119"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-120"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-122"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-123"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-124"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-125"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-126"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-127"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-128"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-129"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-130"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-131"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-132"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-133"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-134"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-135"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-136"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-138"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-139"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-140"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-141"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-142"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-143"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-144"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-145"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-146"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-147"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-148"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-149"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-150"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-151"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-152"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-153"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-154"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-155"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-156"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-157"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-158"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-159"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-160"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-161"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-162"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-163"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-164"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-165"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-166"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-167"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-168"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-169"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-170"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-171"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-172"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-173"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-174"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-186"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-204"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-225"
+    },
+    {
+      "type": "cv8_manufacturer",
+      "key": "cv8-238"
+    },
+    {
+      "type": "epoch",
+      "key": "i"
+    },
+    {
+      "type": "epoch",
+      "key": "ii"
+    },
+    {
+      "type": "epoch",
+      "key": "iii"
+    },
+    {
+      "type": "epoch",
+      "key": "iv"
+    },
+    {
+      "type": "epoch",
+      "key": "v"
+    },
+    {
+      "type": "epoch",
+      "key": "vi"
+    },
+    {
+      "type": "gauge",
+      "key": "0"
+    },
+    {
+      "type": "gauge",
+      "key": "00-12"
+    },
+    {
+      "type": "gauge",
+      "key": "00-9"
+    },
+    {
+      "type": "gauge",
+      "key": "0e"
+    },
+    {
+      "type": "gauge",
+      "key": "0f"
+    },
+    {
+      "type": "gauge",
+      "key": "0m"
+    },
+    {
+      "type": "gauge",
+      "key": "0p"
+    },
+    {
+      "type": "gauge",
+      "key": "eem"
+    },
+    {
+      "type": "gauge",
+      "key": "em"
+    },
+    {
+      "type": "gauge",
+      "key": "h0"
+    },
+    {
+      "type": "gauge",
+      "key": "h0e"
+    },
+    {
+      "type": "gauge",
+      "key": "h0f"
+    },
+    {
+      "type": "gauge",
+      "key": "h0m"
+    },
+    {
+      "type": "gauge",
+      "key": "h0p"
+    },
+    {
+      "type": "gauge",
+      "key": "i"
+    },
+    {
+      "type": "gauge",
+      "key": "ie"
+    },
+    {
+      "type": "gauge",
+      "key": "if"
+    },
+    {
+      "type": "gauge",
+      "key": "ii"
+    },
+    {
+      "type": "gauge",
+      "key": "iie"
+    },
+    {
+      "type": "gauge",
+      "key": "iif"
+    },
+    {
+      "type": "gauge",
+      "key": "iim"
+    },
+    {
+      "type": "gauge",
+      "key": "iip"
+    },
+    {
+      "type": "gauge",
+      "key": "im"
+    },
+    {
+      "type": "gauge",
+      "key": "ip"
+    },
+    {
+      "type": "gauge",
+      "key": "n"
+    },
+    {
+      "type": "gauge",
+      "key": "ne"
+    },
+    {
+      "type": "gauge",
+      "key": "nm"
+    },
+    {
+      "type": "gauge",
+      "key": "p4"
+    },
+    {
+      "type": "gauge",
+      "key": "s"
+    },
+    {
+      "type": "gauge",
+      "key": "se"
+    },
+    {
+      "type": "gauge",
+      "key": "sf"
+    },
+    {
+      "type": "gauge",
+      "key": "sm"
+    },
+    {
+      "type": "gauge",
+      "key": "sp"
+    },
+    {
+      "type": "gauge",
+      "key": "tt"
+    },
+    {
+      "type": "gauge",
+      "key": "tte"
+    },
+    {
+      "type": "gauge",
+      "key": "ttf"
+    },
+    {
+      "type": "gauge",
+      "key": "ttm"
+    },
+    {
+      "type": "gauge",
+      "key": "z"
+    },
+    {
+      "type": "gauge",
+      "key": "zm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "a-bucherer-co"
+    },
+    {
+      "type": "manufacturer",
+      "key": "accurail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "adachi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "addie-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ade-eisenbahn-modelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "adler-modellbahnmanufaktur"
+    },
+    {
+      "type": "manufacturer",
+      "key": "adp-modelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "agder-modell-teknikk"
+    },
+    {
+      "type": "manufacturer",
+      "key": "aimx-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "airfix"
+    },
+    {
+      "type": "manufacturer",
+      "key": "akane"
+    },
+    {
+      "type": "manufacturer",
+      "key": "aku"
+    },
+    {
+      "type": "manufacturer",
+      "key": "albatros"
+    },
+    {
+      "type": "manufacturer",
+      "key": "albert-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "allmo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "alpha-trains-modelleisenbahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "american-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "american-z-line"
+    },
+    {
+      "type": "manufacturer",
+      "key": "american-z-lines"
+    },
+    {
+      "type": "manufacturer",
+      "key": "amintiri-feroviare"
+    },
+    {
+      "type": "manufacturer",
+      "key": "amjl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "anonima-costruzioni-modellistiche-esatte"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ap-modely"
+    },
+    {
+      "type": "manufacturer",
+      "key": "apc-adams"
+    },
+    {
+      "type": "manufacturer",
+      "key": "aristo-craft"
+    },
+    {
+      "type": "manufacturer",
+      "key": "arnold"
+    },
+    {
+      "type": "manufacturer",
+      "key": "artitec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "as"
+    },
+    {
+      "type": "manufacturer",
+      "key": "asm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "asoa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "aspenmodel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "associated-hobby-manufacturers"
+    },
+    {
+      "type": "manufacturer",
+      "key": "atelier-barkvieren"
+    },
+    {
+      "type": "manufacturer",
+      "key": "athearn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "atlas-model-railroad"
+    },
+    {
+      "type": "manufacturer",
+      "key": "atm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "auhagen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "auscision-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "austrains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "austromodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "azar"
+    },
+    {
+      "type": "manufacturer",
+      "key": "b-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bachmann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bachmann-branchline"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bachmann-china"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bahls"
+    },
+    {
+      "type": "manufacturer",
+      "key": "balboa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bastelbogen-von-hanspeter-stahli"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bauer-ladeguter"
+    },
+    {
+      "type": "manufacturer",
+      "key": "baumann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bavaria-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "beckert-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "beckmann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "beka-modelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bemo-modelleisenbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bemo-zeuke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "benecken"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bernard-s-fire-station"
+    },
+    {
+      "type": "manufacturer",
+      "key": "biemo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "big-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bing"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bisschop-modelbouw"
+    },
+    {
+      "type": "manufacturer",
+      "key": "blackstone-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bockholt"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bodan"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bolz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bowser"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bramos"
+    },
+    {
+      "type": "manufacturer",
+      "key": "brassline"
+    },
+    {
+      "type": "manufacturer",
+      "key": "brawa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "brekina"
+    },
+    {
+      "type": "manufacturer",
+      "key": "brimalm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "broadway-limited-imports"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bub"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bubimodel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "buco-spur-0"
+    },
+    {
+      "type": "manufacturer",
+      "key": "bultrains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "busch"
+    },
+    {
+      "type": "manufacturer",
+      "key": "c-f-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "carl-liebmann-metallwerke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "cdt-modelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "challenger-imports"
+    },
+    {
+      "type": "manufacturer",
+      "key": "changming"
+    },
+    {
+      "type": "manufacturer",
+      "key": "classix"
+    },
+    {
+      "type": "manufacturer",
+      "key": "cmd-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "cmr-line"
+    },
+    {
+      "type": "manufacturer",
+      "key": "comofer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "con-cor"
+    },
+    {
+      "type": "manufacturer",
+      "key": "costruzioni-modellistiche-laser"
+    },
+    {
+      "type": "manufacturer",
+      "key": "creanorm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "crown"
+    },
+    {
+      "type": "manufacturer",
+      "key": "cstrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "d-i-t-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "d-s-b-1-87-spor-00"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dahmer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dan-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dansk-hobby"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dapol"
+    },
+    {
+      "type": "manufacturer",
+      "key": "darstaed"
+    },
+    {
+      "type": "manufacturer",
+      "key": "darstead"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dc-car"
+    },
+    {
+      "type": "manufacturer",
+      "key": "deak-modellsport"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dekas"
+    },
+    {
+      "type": "manufacturer",
+      "key": "demko"
+    },
+    {
+      "type": "manufacturer",
+      "key": "deutscher-modelleisenbahn-verband-der-ddr"
+    },
+    {
+      "type": "manufacturer",
+      "key": "df-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "df-modeltog"
+    },
+    {
+      "type": "manufacturer",
+      "key": "di-mo-tec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dietzel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "digitrax"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dingler-prazisionsmodelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dioras"
+    },
+    {
+      "type": "manufacturer",
+      "key": "division-point"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dj-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "djh-model-loco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dk-model"
+    },
+    {
+      "type": "manufacturer",
+      "key": "doehler-haass"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dom-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "domalip"
+    },
+    {
+      "type": "manufacturer",
+      "key": "dressler"
+    },
+    {
+      "type": "manufacturer",
+      "key": "drushba"
+    },
+    {
+      "type": "manufacturer",
+      "key": "e-r-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "efc-loko"
+    },
+    {
+      "type": "manufacturer",
+      "key": "egger-bahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "eisenbahn-canada"
+    },
+    {
+      "type": "manufacturer",
+      "key": "eisenbahnmodelle-alfred-kauth"
+    },
+    {
+      "type": "manufacturer",
+      "key": "electric-train-systems"
+    },
+    {
+      "type": "manufacturer",
+      "key": "electrotren"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ema"
+    },
+    {
+      "type": "manufacturer",
+      "key": "emb"
+    },
+    {
+      "type": "manufacturer",
+      "key": "endo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "epm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "epokemodeller"
+    },
+    {
+      "type": "manufacturer",
+      "key": "erbert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "esu"
+    },
+    {
+      "type": "manufacturer",
+      "key": "etablissements-industrielles-derobert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "eureka-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "euro-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "euroforce"
+    },
+    {
+      "type": "manufacturer",
+      "key": "euromodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "euromodell-fp"
+    },
+    {
+      "type": "manufacturer",
+      "key": "eurotrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "exact-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "exact-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "exactrail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "faller"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ferro-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fichtelbahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fine-art-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fine-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fischer-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fleischmann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fobbi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fomras-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fox-valley-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "framos-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "frateschi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "freudenreich"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fuchs"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fuggerth"
+    },
+    {
+      "type": "manufacturer",
+      "key": "fulgurex"
+    },
+    {
+      "type": "manufacturer",
+      "key": "funaro"
+    },
+    {
+      "type": "manufacturer",
+      "key": "g-r-wrenn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gabor-modelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ganer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gebauer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gebert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gecon"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gege"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gem"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gi-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gogtram"
+    },
+    {
+      "type": "manufacturer",
+      "key": "golden-arrow"
+    },
+    {
+      "type": "manufacturer",
+      "key": "graham-farish"
+    },
+    {
+      "type": "manufacturer",
+      "key": "greenmax"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gt-modelli"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gunther"
+    },
+    {
+      "type": "manufacturer",
+      "key": "gutzold"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ha-we"
+    },
+    {
+      "type": "manufacturer",
+      "key": "haberl-und-partner"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hadl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hag-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hag-modelleisenbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "haidar"
+    },
+    {
+      "type": "manufacturer",
+      "key": "halling"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hallmark"
+    },
+    {
+      "type": "manufacturer",
+      "key": "halwa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hamann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hamo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hampli"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hanreich"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hansen-trains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hapo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hartel-modellbahn-systeme"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hartland-hlw"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heckl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hegob"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hehl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heico"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heinzl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heki"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heless"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heljan"
+    },
+    {
+      "type": "manufacturer",
+      "key": "henke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "heris"
+    },
+    {
+      "type": "manufacturer",
+      "key": "herkat"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hermann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "herpa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "herrmann-und-partner"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hfr160"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hielscher"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hirsiger"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hnoll"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hobby-developments-ireland"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hobbytrade"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hobbytrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hodl-linie-8"
+    },
+    {
+      "type": "manufacturer",
+      "key": "horak"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hornby"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hos-modellbahntechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hosse-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hruska"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hubner-feinwerktechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "huhnerbein"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hui-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "hummel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ibertren"
+    },
+    {
+      "type": "manufacturer",
+      "key": "igra-model"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ihc"
+    },
+    {
+      "type": "manufacturer",
+      "key": "imon"
+    },
+    {
+      "type": "manufacturer",
+      "key": "imotec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "imperial-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "intermodel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "intermountain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "island-modelworks"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jaffas-moba-shop"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jagerndorfer-collection"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jago"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jatt"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jcr"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jeco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jeike-modelltechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jeweha"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jm-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jocadis"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jorger"
+    },
+    {
+      "type": "manufacturer",
+      "key": "joswood"
+    },
+    {
+      "type": "manufacturer",
+      "key": "jouef"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kadee"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kairyu"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kaiser-feinmechanik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "karl-schiek"
+    },
+    {
+      "type": "manufacturer",
+      "key": "karsei"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kastenbahner"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kato"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kawai"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kehi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kesselbauer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "key-model-imports"
+    },
+    {
+      "type": "manufacturer",
+      "key": "keyser"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kh-modellbahnbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kibri"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kiskun-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kiss-modellbahn-service"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kiss-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kiss-modellbahnen-schweiz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kittler"
+    },
+    {
+      "type": "manufacturer",
+      "key": "klein-modellbahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kleinbahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "klunker"
+    },
+    {
+      "type": "manufacturer",
+      "key": "km1"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kolb-modelltechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kombimodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "konig"
+    },
+    {
+      "type": "manufacturer",
+      "key": "koppe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "krapp"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kres"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kroner"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kruger"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ksh160-org"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ktm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kuehn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kunze"
+    },
+    {
+      "type": "manufacturer",
+      "key": "kuswa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "l-herr"
+    },
+    {
+      "type": "manufacturer",
+      "key": "l-s-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "langela"
+    },
+    {
+      "type": "manufacturer",
+      "key": "laserfirstcut"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lehmann-gro-bahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lemaco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lemke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lenz-elektronik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "life-like"
+    },
+    {
+      "type": "manufacturer",
+      "key": "liliput"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lima"
+    },
+    {
+      "type": "manufacturer",
+      "key": "linea-model"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lionel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "littfinski-datentechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "littke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lkm-model-railways"
+    },
+    {
+      "type": "manufacturer",
+      "key": "loco-diffusion"
+    },
+    {
+      "type": "manufacturer",
+      "key": "locomodels"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lokstoredigital"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lombardi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lone-star"
+    },
+    {
+      "type": "manufacturer",
+      "key": "long"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lorenz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "luck-feinmechanik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "luetke-modellbahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "lux-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mabar"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mader-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "magnus"
+    },
+    {
+      "type": "manufacturer",
+      "key": "makette"
+    },
+    {
+      "type": "manufacturer",
+      "key": "malutram"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mam-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mantua"
+    },
+    {
+      "type": "manufacturer",
+      "key": "marienbrunner-modellbahn-manufaktur"
+    },
+    {
+      "type": "manufacturer",
+      "key": "marklin"
+    },
+    {
+      "type": "manufacturer",
+      "key": "marks-klein-kunst"
+    },
+    {
+      "type": "manufacturer",
+      "key": "marks-metallmodellclassics"
+    },
+    {
+      "type": "manufacturer",
+      "key": "markscheffel-lennartz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "marsch-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "max-grey"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mayerhofer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mbw"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mckinley"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mehano"
+    },
+    {
+      "type": "manufacturer",
+      "key": "merker-und-fischer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "merkur-styroplast"
+    },
+    {
+      "type": "manufacturer",
+      "key": "merten"
+    },
+    {
+      "type": "manufacturer",
+      "key": "metcalfe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mftrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mg-togmodelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micro-ace"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micro-cast-mizuno"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micro-feinmechanik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micro-metakit"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micro-trains-line"
+    },
+    {
+      "type": "manufacturer",
+      "key": "micron-art"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mikadotrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mikroantriebe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "miniatuura-nl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "minitec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mistral"
+    },
+    {
+      "type": "manufacturer",
+      "key": "miyazawa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mk-modells"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mkm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mo-miniatur-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "model-power"
+    },
+    {
+      "type": "manufacturer",
+      "key": "model-rail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "model-shop"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelena"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modell-rail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modell-und-dioramenbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahn-engl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahn-klunker"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahn-manufaktur-matthias-hummel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahn-manufaktur-possible-schintgen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahn-union"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahnmanufaktur-crottendorf"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbahnmanufaktur-sebnitz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbau-hilbert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbau-laggies"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbau-veit"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbaustudio-born"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellbauwerkstatt-halle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelleisenbahn-claus"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelleisenbahn-gesellschaft"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelleisenbahn-schirmer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelleisenbahnbau-werner-ehlcke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modellhobby-orenburg"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelltec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelltechnik-renfer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modelspoor-design"
+    },
+    {
+      "type": "manufacturer",
+      "key": "modist"
+    },
+    {
+      "type": "manufacturer",
+      "key": "moko"
+    },
+    {
+      "type": "manufacturer",
+      "key": "montageservice-uwe-schuster"
+    },
+    {
+      "type": "manufacturer",
+      "key": "moog-modellbautechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "morep"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mse-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mtb-model"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mtc"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mth"
+    },
+    {
+      "type": "manufacturer",
+      "key": "murphy-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mw-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mz-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "mzz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "nansenstreet"
+    },
+    {
+      "type": "manufacturer",
+      "key": "navitren"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ndetail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "nickel-plate-products"
+    },
+    {
+      "type": "manufacturer",
+      "key": "nmj"
+    },
+    {
+      "type": "manufacturer",
+      "key": "noch"
+    },
+    {
+      "type": "manufacturer",
+      "key": "norbrass"
+    },
+    {
+      "type": "manufacturer",
+      "key": "npe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "nurnberger-modelleisenbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ok-engines"
+    },
+    {
+      "type": "manufacturer",
+      "key": "olaerts"
+    },
+    {
+      "type": "manufacturer",
+      "key": "oriental"
+    },
+    {
+      "type": "manufacturer",
+      "key": "os-kar"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ostmodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "overland-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "oxford-rail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pa-sporet"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pacific-fast-mail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "panier"
+    },
+    {
+      "type": "manufacturer",
+      "key": "paulo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "peco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pein"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pennzee"
+    },
+    {
+      "type": "manufacturer",
+      "key": "peresvet"
+    },
+    {
+      "type": "manufacturer",
+      "key": "perfecttrains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "permot"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pesolillo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "petau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "philotrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "piko-spielwaren"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pirata"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pocher"
+    },
+    {
+      "type": "manufacturer",
+      "key": "pola"
+    },
+    {
+      "type": "manufacturer",
+      "key": "powerline"
+    },
+    {
+      "type": "manufacturer",
+      "key": "precision-craft-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "precision-miniatures"
+    },
+    {
+      "type": "manufacturer",
+      "key": "precision-scale"
+    },
+    {
+      "type": "manufacturer",
+      "key": "prefo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "preiser"
+    },
+    {
+      "type": "manufacturer",
+      "key": "profi-modell-thyrow"
+    },
+    {
+      "type": "manufacturer",
+      "key": "proform"
+    },
+    {
+      "type": "manufacturer",
+      "key": "proto-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "r37"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rai-mo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rail87"
+    },
+    {
+      "type": "manufacturer",
+      "key": "railad"
+    },
+    {
+      "type": "manufacturer",
+      "key": "railex"
+    },
+    {
+      "type": "manufacturer",
+      "key": "railnscale"
+    },
+    {
+      "type": "manufacturer",
+      "key": "railtop"
+    },
+    {
+      "type": "manufacturer",
+      "key": "railway-classics"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rainershagener-naturals"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rapido-trains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rassmann-modell-kw"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rautenhaus"
+    },
+    {
+      "type": "manufacturer",
+      "key": "raznoe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "realtrack-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "red-star-railways"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ree-modeles"
+    },
+    {
+      "type": "manufacturer",
+      "key": "regner"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rehse"
+    },
+    {
+      "type": "manufacturer",
+      "key": "reinhold-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "reitz-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "revell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rietze"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ritter-c-b-von-krauthauser-e-k"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rivarossi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "robo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rocky-rail"
+    },
+    {
+      "type": "manufacturer",
+      "key": "roco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rokal"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rokuhan"
+    },
+    {
+      "type": "manufacturer",
+      "key": "roskopf"
+    },
+    {
+      "type": "manufacturer",
+      "key": "roth-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rothe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "roundhouse"
+    },
+    {
+      "type": "manufacturer",
+      "key": "rowa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "roxy"
+    },
+    {
+      "type": "manufacturer",
+      "key": "ruco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "russian-custom-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sachsenmodelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "saechsische-waggonfabrik-stollberg"
+    },
+    {
+      "type": "manufacturer",
+      "key": "saller"
+    },
+    {
+      "type": "manufacturer",
+      "key": "samhongsa"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sanying"
+    },
+    {
+      "type": "manufacturer",
+      "key": "saxonia"
+    },
+    {
+      "type": "manufacturer",
+      "key": "scaleplus-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "scaletrains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schicht"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schiffer-design"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schlesienmodelle"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schmidt"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schmidt-modellbahntechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schnabel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schnellenkamp"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schonlau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schuco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "schulz"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sd-edv-und-modellbauservice"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sds-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "searails"
+    },
+    {
+      "type": "manufacturer",
+      "key": "semblat"
+    },
+    {
+      "type": "manufacturer",
+      "key": "setec-htm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "seuthe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "shirescenes"
+    },
+    {
+      "type": "manufacturer",
+      "key": "siemon-modell-technik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "siku"
+    },
+    {
+      "type": "manufacturer",
+      "key": "skaladesign"
+    },
+    {
+      "type": "manufacturer",
+      "key": "smf"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sn-filigranmodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sol-expert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sommerfeldt"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sondermodellez"
+    },
+    {
+      "type": "manufacturer",
+      "key": "south-eastern-finecast"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sowa-n"
+    },
+    {
+      "type": "manufacturer",
+      "key": "spieth"
+    },
+    {
+      "type": "manufacturer",
+      "key": "spring"
+    },
+    {
+      "type": "manufacturer",
+      "key": "spur-01-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "spur-1-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "srm"
+    },
+    {
+      "type": "manufacturer",
+      "key": "stadt-im-modell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "stangel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "stangl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "startrain"
+    },
+    {
+      "type": "manufacturer",
+      "key": "stefan-schwegler"
+    },
+    {
+      "type": "manufacturer",
+      "key": "steiner-modellwerke"
+    },
+    {
+      "type": "manufacturer",
+      "key": "streetsystem"
+    },
+    {
+      "type": "manufacturer",
+      "key": "stuardi"
+    },
+    {
+      "type": "manufacturer",
+      "key": "studer-modellbauplane"
+    },
+    {
+      "type": "manufacturer",
+      "key": "sunset-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "swedtram"
+    },
+    {
+      "type": "manufacturer",
+      "key": "swimo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "symoba"
+    },
+    {
+      "type": "manufacturer",
+      "key": "szl"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tab-gerard"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tams-elektronik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "technikron"
+    },
+    {
+      "type": "manufacturer",
+      "key": "technomodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tenshodo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tesmo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "thiel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "thonfeld"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tillig-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tm-debrush"
+    },
+    {
+      "type": "manufacturer",
+      "key": "togdillen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tololoko"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tomix"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tomytec"
+    },
+    {
+      "type": "manufacturer",
+      "key": "top-train"
+    },
+    {
+      "type": "manufacturer",
+      "key": "train-o-matic"
+    },
+    {
+      "type": "manufacturer",
+      "key": "train-safe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "train-world"
+    },
+    {
+      "type": "manufacturer",
+      "key": "trainmodules"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tren-militaria"
+    },
+    {
+      "type": "manufacturer",
+      "key": "trens"
+    },
+    {
+      "type": "manufacturer",
+      "key": "trix"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tt-club"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tt-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tunds-kabeltechnik"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tutto-treno"
+    },
+    {
+      "type": "manufacturer",
+      "key": "tyco"
+    },
+    {
+      "type": "manufacturer",
+      "key": "uhlenbrock"
+    },
+    {
+      "type": "manufacturer",
+      "key": "united"
+    },
+    {
+      "type": "manufacturer",
+      "key": "urban-modellmanufaktur"
+    },
+    {
+      "type": "manufacturer",
+      "key": "usa-trains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "van-biervliet"
+    },
+    {
+      "type": "manufacturer",
+      "key": "veb-piko-sonneberg"
+    },
+    {
+      "type": "manufacturer",
+      "key": "veb-prefo-dresden"
+    },
+    {
+      "type": "manufacturer",
+      "key": "velmo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "vieg"
+    },
+    {
+      "type": "manufacturer",
+      "key": "viessmann"
+    },
+    {
+      "type": "manufacturer",
+      "key": "vitrains"
+    },
+    {
+      "type": "manufacturer",
+      "key": "voigtlander"
+    },
+    {
+      "type": "manufacturer",
+      "key": "vollmer"
+    },
+    {
+      "type": "manufacturer",
+      "key": "volus"
+    },
+    {
+      "type": "manufacturer",
+      "key": "voluznev"
+    },
+    {
+      "type": "manufacturer",
+      "key": "walthers"
+    },
+    {
+      "type": "manufacturer",
+      "key": "weigel-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "weihe"
+    },
+    {
+      "type": "manufacturer",
+      "key": "weinert"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wemoba"
+    },
+    {
+      "type": "manufacturer",
+      "key": "westmodel"
+    },
+    {
+      "type": "manufacturer",
+      "key": "westside"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wheels-of-time"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wiener-modellbau-kro"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wiking"
+    },
+    {
+      "type": "manufacturer",
+      "key": "woodland-scenics"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wordsworth-model-railway"
+    },
+    {
+      "type": "manufacturer",
+      "key": "world-craft"
+    },
+    {
+      "type": "manufacturer",
+      "key": "world-kougei"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wuiske-models"
+    },
+    {
+      "type": "manufacturer",
+      "key": "wunder"
+    },
+    {
+      "type": "manufacturer",
+      "key": "xylona"
+    },
+    {
+      "type": "manufacturer",
+      "key": "yamorc"
+    },
+    {
+      "type": "manufacturer",
+      "key": "z-bahn"
+    },
+    {
+      "type": "manufacturer",
+      "key": "z-modellbau"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zetna220"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zeuke-wegwerth"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zimo"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zmodell"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zt-modellbahnen"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zthek"
+    },
+    {
+      "type": "manufacturer",
+      "key": "zundmeer"
+    },
+    {
+      "type": "railway_company",
+      "key": "aae"
+    },
+    {
+      "type": "railway_company",
+      "key": "arriva"
+    },
+    {
+      "type": "railway_company",
+      "key": "awt"
+    },
+    {
+      "type": "railway_company",
+      "key": "badstb"
+    },
+    {
+      "type": "railway_company",
+      "key": "bc"
+    },
+    {
+      "type": "railway_company",
+      "key": "bdz"
+    },
+    {
+      "type": "railway_company",
+      "key": "be"
+    },
+    {
+      "type": "railway_company",
+      "key": "bls-bls-cargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "bug"
+    },
+    {
+      "type": "railway_company",
+      "key": "captrain"
+    },
+    {
+      "type": "railway_company",
+      "key": "cd"
+    },
+    {
+      "type": "railway_company",
+      "key": "cd-cargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "ces"
+    },
+    {
+      "type": "railway_company",
+      "key": "cfl"
+    },
+    {
+      "type": "railway_company",
+      "key": "cfr"
+    },
+    {
+      "type": "railway_company",
+      "key": "clr"
+    },
+    {
+      "type": "railway_company",
+      "key": "crossrail"
+    },
+    {
+      "type": "railway_company",
+      "key": "csd"
+    },
+    {
+      "type": "railway_company",
+      "key": "db"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-ag"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-autozug"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-cargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-nachtzug"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-netz-instandsetzung"
+    },
+    {
+      "type": "railway_company",
+      "key": "db-schenker"
+    },
+    {
+      "type": "railway_company",
+      "key": "deutsche-bundespost"
+    },
+    {
+      "type": "railway_company",
+      "key": "deutsche-post"
+    },
+    {
+      "type": "railway_company",
+      "key": "dlb"
+    },
+    {
+      "type": "railway_company",
+      "key": "dr"
+    },
+    {
+      "type": "railway_company",
+      "key": "drg"
+    },
+    {
+      "type": "railway_company",
+      "key": "dsb"
+    },
+    {
+      "type": "railway_company",
+      "key": "ebs"
+    },
+    {
+      "type": "railway_company",
+      "key": "egp"
+    },
+    {
+      "type": "railway_company",
+      "key": "elsass-lothringen"
+    },
+    {
+      "type": "railway_company",
+      "key": "ermewa"
+    },
+    {
+      "type": "railway_company",
+      "key": "err"
+    },
+    {
+      "type": "railway_company",
+      "key": "eurovia"
+    },
+    {
+      "type": "railway_company",
+      "key": "eutin-lubecker"
+    },
+    {
+      "type": "railway_company",
+      "key": "evb"
+    },
+    {
+      "type": "railway_company",
+      "key": "fs"
+    },
+    {
+      "type": "railway_company",
+      "key": "gatx"
+    },
+    {
+      "type": "railway_company",
+      "key": "green-cargo-ab"
+    },
+    {
+      "type": "railway_company",
+      "key": "grupa-azoty-koltar"
+    },
+    {
+      "type": "railway_company",
+      "key": "gysev"
+    },
+    {
+      "type": "railway_company",
+      "key": "halberstadt-blankenburg"
+    },
+    {
+      "type": "railway_company",
+      "key": "hgk"
+    },
+    {
+      "type": "railway_company",
+      "key": "hsb"
+    },
+    {
+      "type": "railway_company",
+      "key": "hsl"
+    },
+    {
+      "type": "railway_company",
+      "key": "hvle"
+    },
+    {
+      "type": "railway_company",
+      "key": "hz"
+    },
+    {
+      "type": "railway_company",
+      "key": "igt"
+    },
+    {
+      "type": "railway_company",
+      "key": "itl"
+    },
+    {
+      "type": "railway_company",
+      "key": "jz"
+    },
+    {
+      "type": "railway_company",
+      "key": "k-bay-sts-b"
+    },
+    {
+      "type": "railway_company",
+      "key": "k-p-e-v"
+    },
+    {
+      "type": "railway_company",
+      "key": "k-sachs-sts-e-b"
+    },
+    {
+      "type": "railway_company",
+      "key": "keg"
+    },
+    {
+      "type": "railway_company",
+      "key": "kwstb"
+    },
+    {
+      "type": "railway_company",
+      "key": "lds-gmbh"
+    },
+    {
+      "type": "railway_company",
+      "key": "lg"
+    },
+    {
+      "type": "railway_company",
+      "key": "llk"
+    },
+    {
+      "type": "railway_company",
+      "key": "lokomotion"
+    },
+    {
+      "type": "railway_company",
+      "key": "lotos-kolej"
+    },
+    {
+      "type": "railway_company",
+      "key": "lte"
+    },
+    {
+      "type": "railway_company",
+      "key": "m-f-f-e"
+    },
+    {
+      "type": "railway_company",
+      "key": "mav"
+    },
+    {
+      "type": "railway_company",
+      "key": "mav-start"
+    },
+    {
+      "type": "railway_company",
+      "key": "mbc"
+    },
+    {
+      "type": "railway_company",
+      "key": "meg"
+    },
+    {
+      "type": "railway_company",
+      "key": "metrans"
+    },
+    {
+      "type": "railway_company",
+      "key": "metronom"
+    },
+    {
+      "type": "railway_company",
+      "key": "mrce"
+    },
+    {
+      "type": "railway_company",
+      "key": "mwb"
+    },
+    {
+      "type": "railway_company",
+      "key": "nacco"
+    },
+    {
+      "type": "railway_company",
+      "key": "nah-sh"
+    },
+    {
+      "type": "railway_company",
+      "key": "nbe-rail"
+    },
+    {
+      "type": "railway_company",
+      "key": "nkb"
+    },
+    {
+      "type": "railway_company",
+      "key": "nordcargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "nrs"
+    },
+    {
+      "type": "railway_company",
+      "key": "ns"
+    },
+    {
+      "type": "railway_company",
+      "key": "nwe"
+    },
+    {
+      "type": "railway_company",
+      "key": "obb"
+    },
+    {
+      "type": "railway_company",
+      "key": "ogeg"
+    },
+    {
+      "type": "railway_company",
+      "key": "ohe"
+    },
+    {
+      "type": "railway_company",
+      "key": "on-rail-gmbh"
+    },
+    {
+      "type": "railway_company",
+      "key": "ose"
+    },
+    {
+      "type": "railway_company",
+      "key": "pbsv"
+    },
+    {
+      "type": "railway_company",
+      "key": "pkp"
+    },
+    {
+      "type": "railway_company",
+      "key": "pkp-cargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "pkp-intercity"
+    },
+    {
+      "type": "railway_company",
+      "key": "pkp-przewozy-regionalne"
+    },
+    {
+      "type": "railway_company",
+      "key": "pne"
+    },
+    {
+      "type": "railway_company",
+      "key": "press"
+    },
+    {
+      "type": "railway_company",
+      "key": "rail-re-lease-b-v"
+    },
+    {
+      "type": "railway_company",
+      "key": "railadventure"
+    },
+    {
+      "type": "railway_company",
+      "key": "railion-nl"
+    },
+    {
+      "type": "railway_company",
+      "key": "railpool"
+    },
+    {
+      "type": "railway_company",
+      "key": "rbg"
+    },
+    {
+      "type": "railway_company",
+      "key": "regiojet"
+    },
+    {
+      "type": "railway_company",
+      "key": "renfe"
+    },
+    {
+      "type": "railway_company",
+      "key": "rheincargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "rtc"
+    },
+    {
+      "type": "railway_company",
+      "key": "ryko-plus-s-r-o"
+    },
+    {
+      "type": "railway_company",
+      "key": "rzd"
+    },
+    {
+      "type": "railway_company",
+      "key": "saar-bahnen"
+    },
+    {
+      "type": "railway_company",
+      "key": "sbb-cargo"
+    },
+    {
+      "type": "railway_company",
+      "key": "sbb-cff-ffs"
+    },
+    {
+      "type": "railway_company",
+      "key": "setg"
+    },
+    {
+      "type": "railway_company",
+      "key": "sgl"
+    },
+    {
+      "type": "railway_company",
+      "key": "siemens-ag"
+    },
+    {
+      "type": "railway_company",
+      "key": "sj"
+    },
+    {
+      "type": "railway_company",
+      "key": "sncb"
+    },
+    {
+      "type": "railway_company",
+      "key": "sncf"
+    },
+    {
+      "type": "railway_company",
+      "key": "stadtebahn-sachsen"
+    },
+    {
+      "type": "railway_company",
+      "key": "steiermarkbahn"
+    },
+    {
+      "type": "railway_company",
+      "key": "suas"
+    },
+    {
+      "type": "railway_company",
+      "key": "szd"
+    },
+    {
+      "type": "railway_company",
+      "key": "szu"
+    },
+    {
+      "type": "railway_company",
+      "key": "tcdd"
+    },
+    {
+      "type": "railway_company",
+      "key": "ustc"
+    },
+    {
+      "type": "railway_company",
+      "key": "uwhj"
+    },
+    {
+      "type": "railway_company",
+      "key": "uz"
+    },
+    {
+      "type": "railway_company",
+      "key": "viamont-a-s"
+    },
+    {
+      "type": "railway_company",
+      "key": "vr"
+    },
+    {
+      "type": "railway_company",
+      "key": "vtg"
+    },
+    {
+      "type": "railway_company",
+      "key": "wascosa"
+    },
+    {
+      "type": "railway_company",
+      "key": "wfl"
+    },
+    {
+      "type": "railway_company",
+      "key": "wlc"
+    },
+    {
+      "type": "railway_company",
+      "key": "zsr"
+    },
+    {
+      "type": "railway_company",
+      "key": "zssk"
+    },
+    {
+      "type": "railway_company",
+      "key": "zssk-cargo"
+    },
+    {
+      "type": "stock_unit",
+      "key": "gram"
+    },
+    {
+      "type": "stock_unit",
+      "key": "meter"
+    },
+    {
+      "type": "stock_unit",
+      "key": "milliliter"
+    },
+    {
+      "type": "stock_unit",
+      "key": "pack"
+    },
+    {
+      "type": "stock_unit",
+      "key": "piece"
+    },
+    {
+      "type": "symbols",
+      "key": "coupling"
+    },
+    {
+      "type": "symbols",
+      "key": "drive"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f002-allgemeine-funktion"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f003-stirnbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f004-innenraumbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f005-allgemeines-licht-1"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f006-fahrgeraeusch"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f007-allgemeines-geraeusch"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f008-bahnhofsdurchsage"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f009-rangiergang"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f010-abv"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f011-automatische-kupplung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f012-rauchgenerator"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f013-panthograph"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f014-fernlicht"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f015-glocke"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f016-horn"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f017-pfeife"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f018-tueren"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f019-luefter"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f020-kohle-schaufeln"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f021-shift"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f022-zugzielanzeige"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f023-bremsenquietschen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f024-kranarm-heben-senken"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f025-kranhaken-heben-senken"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f026-triebwerksbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f027-kran-drehen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f028-dampf-ablassen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f029-betriebsfunk"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f030-kupplungsgeraeusch"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f031-schienenstoss"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f032-diesel-fahrstufe-auf"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f033-diesel-fahrstufe-ab"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f034-schaffnerpfiff"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f035-pufferstoss"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f036-allgemeines-licht-2"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f038-kurvengeraeusch"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f039-weichengeraeusch"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f040-sicherheitsventil"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f041-oelbrenner"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f042-stoker"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f043-dynamische-bremse"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f044-kompressor"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f045-pressluft-ablassen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f046-handbremse"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f047-luftpumpe"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f048-wasserpumpe"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f050-ditchlight"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f051-marslight"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f054-rotary-beacon"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f055-feuerbuechse"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f057-sanden"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f058-abschlammen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f059-bremse-setzen"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f060-rangierbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f061-fuehrerpultbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f062-injektor"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f063-hilfsdiesel"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f065-dopplereffekt"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f066-kurzpfiff"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f068-heizung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f069-lichtmaschine"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f074-sifa-meldung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f076-lastbetrieb"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f077-leerlaufbetrieb"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f078-licht-hinten"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f079-licht-vorne"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f080-fernlicht-hinten"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f081-fernlicht-vorne"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f084-tischbeleuchtung-1"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f086-trittstufenbeleuchtung"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f087-fuehrerstandsbeleuchtung-hinten"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f088-fuehrerstandsbeleuchtung-vorne"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f089-panthograph-hinten"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f090-panthograph-vorne"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f093-entkuppler-hinten"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f094-entkuppler-vorne"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f095-kran-links"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f096-kran-rechts"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f097-kran-auf"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f098-kran-ab"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f099-kranarm-links-rechts"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f101-soundfader-mute"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f106-doppelhorn"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f107-party"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f114-kran-magnet"
+    },
+    {
+      "type": "symbols",
+      "key": "esu-f124-tanken-diesel"
+    },
+    {
+      "type": "symbols",
+      "key": "horn"
+    },
+    {
+      "type": "symbols",
+      "key": "light"
+    },
+    {
+      "type": "symbols",
+      "key": "smoke"
+    },
+    {
+      "type": "symbols",
+      "key": "sound"
+    },
+    {
+      "type": "symbols",
+      "key": "standard"
+    },
+    {
+      "type": "symbols",
+      "key": "warning"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "dienstfahrzeug"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "gepackwagen"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "guterwagen"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "lokomotive"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "personenwagen"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "sonderfahrzeug"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "steuerwagen"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "triebwagen"
+    },
+    {
+      "type": "vehicle_category",
+      "key": "triebzug"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "abteilwagen-tee"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "akku-lokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "akku-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "aussichtswagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "autotransportwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "bahndienst-traktor"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "bahnpostwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "barwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "barwagen-tee"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "baudienstwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "behalterwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "benzin-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "bierwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "bistrowagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "brennstoffzellen-lokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "containerwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "dampf-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "dampflokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "dampfschneeschleuder"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "diesel-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "diesel-triebzug"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "diesellokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "doppeltragwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "drehschemelwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "druckgaskesselwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "dynamischer-gleisstabilisator"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "eigenbau"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "einheitswagen-ew-i"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "einheitswagen-ew-ii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "einheitswagen-ew-iii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "einheitswagen-ew-iv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "elektro-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "elektro-triebzug"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "elektrolokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "erzwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "flachwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gedeckter-guterwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "generatorwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gepackwagen-ew-i"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gepackwagen-ew-ii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gepackwagen-ew-iv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gepackwagen-tee"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gepackwagen-uic-x"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "getreidewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "glastransportwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gleisbauwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "gleisstopfmaschine"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "guterwagen-allg"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "guterzugbegleitwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "heizwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "hochbordwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "holztransportwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "hubdachwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "hubkippwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "hybridlokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kesselwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kieswagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "klappdeckelwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "knickkesselwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kombirail-wagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kranschutzwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kranwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "kuhlwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "leichtstahlgepackwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "leichtstahlwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "liegewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "magazinwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "manschaftswagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "muldenkippwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "niederbordwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "niederflurwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "offener-guterwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "panoramawagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "panzertranzportwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-d-zug"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ec"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ew-i"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ew-ii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ew-iii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ew-iv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ic-2000"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ic-2020"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ice"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-ric"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-tee"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-tgv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "personenwagen-uic-x"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "planenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "postwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "propeller-triebwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "rolldachwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "rollentranzportwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "rungenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "salonwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "sauretopfwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schiebedachwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schiebeplanenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schiebewandwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schienenreinigungswagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schneefrase"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schneepflug"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schneeschleuder"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schotterwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schuttgut-kippwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schuttgutwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schwenkdachwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "schwerlastwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "seetalbahnwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "seitenentladewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "selbstentladerwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "servicewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "silowagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "sonstige-lokomotiven"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen-ew-iii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen-ew-iv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen-ic-2000"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen-tee"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "speisewagen-uic-x"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-allgemein"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-dosto"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-ew-i"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-ew-ii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-ew-iii"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-ew-iv"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-ic-2000"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-leichtstahlwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "steuerwagen-s-bahn"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "strassenbahn"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "tachowagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "taschenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "teleskophaubenwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "tiefladewagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "tragschnabelwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "tunnelgerustwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "velowagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "videowagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "viehwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "weinfasswagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "werkslokomotive"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "werkstattwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "wohn-und-schlafwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "zementwagen"
+    },
+    {
+      "type": "vehicle_gattung",
+      "key": "zweiwegefahrzeug"
+    }
+  ]
+}

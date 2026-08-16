@@ -99,7 +99,7 @@ export function VehicleModelTab({
   options: MasterDataOptions;
   filteredGattungen: MasterDataEntry[];
   openSections: OpenSections;
-  selectOptions: (entries: MasterDataEntry[], emptyLabel?: string) => ReactNode;
+  selectOptions: (entries: MasterDataEntry[], currentValue: string, emptyLabel?: string) => ReactNode;
   ecosFieldClass: (field: ECoSRequiredField) => string;
   showRequiredErrors: boolean;
   onToggleSection: (section: keyof OpenSections) => void;
@@ -195,13 +195,13 @@ export function VehicleModelTab({
               <label className={ecosFieldClass("manufacturer")}>
                 <RequiredLabel label={t("vehicle.field.manufacturer")} filled={Boolean(compactValue(form.manufacturer))} showError={showRequiredErrors} />
                 <AppSelect value={form.manufacturer} onChange={(event) => onUpdate({ manufacturer: event.target.value })} disabled={readonly} required>
-                  {selectOptions(options.manufacturers, t("vehicles.select.placeholder"))}
+                  {selectOptions(options.manufacturers, form.manufacturer, t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
               <label className={ecosFieldClass("gauge")}>
                 <RequiredLabel label={t("vehicle.field.gauge")} filled={Boolean(compactValue(form.gauge))} showError={showRequiredErrors} />
                 <AppSelect value={form.gauge} onChange={(event) => onUpdate({ gauge: event.target.value })} disabled={readonly} required>
-                  {selectOptions(options.gauges, t("vehicles.select.placeholder"))}
+                  {selectOptions(options.gauges, form.gauge, t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
             </div>
@@ -215,13 +215,13 @@ export function VehicleModelTab({
               <label>
                 {t("vehicle.field.railwayCompany")}
                 <AppSelect value={form.railwayCompany || ""} onChange={(event) => onUpdate({ railwayCompany: event.target.value })} disabled={readonly}>
-                  {selectOptions(options.railwayCompanies)}
+                  {selectOptions(options.railwayCompanies, form.railwayCompany || "")}
                 </AppSelect>
               </label>
               <label>
                 {t("vehicle.field.epoch")}
                 <AppSelect value={form.epoch || ""} onChange={(event) => onUpdate({ epoch: event.target.value })} disabled={readonly}>
-                  {selectOptions(options.epochs)}
+                  {selectOptions(options.epochs, form.epoch || "")}
                 </AppSelect>
               </label>
             </div>
@@ -230,13 +230,13 @@ export function VehicleModelTab({
               <label className={ecosFieldClass("category")}>
                 <RequiredLabel label={t("vehicle.field.category")} filled={Boolean(compactValue(form.category))} showError={showRequiredErrors} />
                 <AppSelect value={form.category || ""} onChange={(event) => onUpdateCategory(event.target.value)} disabled={readonly} required>
-                  {selectOptions(options.categories, t("vehicles.select.placeholder"))}
+                  {selectOptions(options.categories, form.category || "", t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
               <label className={ecosFieldClass("gattung")}>
                 <RequiredLabel label={t("vehicle.field.gattung")} filled={Boolean(compactValue(form.gattung))} showError={showRequiredErrors} />
                 <AppSelect value={form.gattung || ""} onChange={(event) => onUpdate({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0} required>
-                  {selectOptions(filteredGattungen, t("vehicles.select.placeholder"))}
+                  {selectOptions(filteredGattungen, form.gattung || "", t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
             </div>

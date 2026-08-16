@@ -1893,6 +1893,10 @@
   min-width: 760px;
 }
 
+.master-data-table-manufacturer table {
+  min-width: 1100px;
+}
+
 .master-data-table th {
   background: var(--panel-subtle);
 }
@@ -1931,8 +1935,24 @@
   width: 74px;
 }
 
+.master-data-table .master-data-col-status,
+.master-data-table .master-data-col-origin {
+  width: 112px;
+  white-space: nowrap;
+}
+
 .master-data-table .master-data-col-actions {
-  width: 92px;
+  width: 148px;
+}
+
+.master-data-table .muted-row,
+.article-master-data-table .muted-row {
+  color: var(--muted);
+}
+
+.master-data-lifecycle-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
 }
 
 .table-icon-link {
@@ -2350,7 +2370,13 @@
 }
 
 .article-master-data-table table {
-  min-width: 620px;
+  min-width: 760px;
+}
+
+.article-master-data-table th:nth-last-child(2),
+.article-master-data-table td:nth-last-child(2) {
+  width: 118px;
+  white-space: nowrap;
 }
 
 .storage-location-settings-grid {

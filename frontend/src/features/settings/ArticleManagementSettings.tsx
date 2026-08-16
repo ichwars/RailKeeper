@@ -1,4 +1,4 @@
-import { Archive, ArchiveRestore, Pencil, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 
 import { api, type MasterDataEntry, type MasterDataInput, type StorageLocation } from "../../shared/api";
@@ -6,6 +6,7 @@ import { masterDataDisplayLabel, masterDataPersistedLabel } from "../../shared/a
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
+import { MasterDataLifecycleActions } from "./MasterDataLifecycleActions";
 import { SettingsTabList } from "./SettingsTabList";
 import { StorageLocationsSettings } from "./StorageLocationsSettings";
 
@@ -13,6 +14,14 @@ export type ArticleDataSection = "stock_unit" | "types" | "customFields" | "loca
 type MasterDataType = "stock_unit" | "article_type" | "accessory_subtype" |
   "accessory_custom_field";
 type CustomFieldKind = "text" | "number" | "boolean" | "date" | "single_select" | "multi_select";
+
+export type MasterDataConfirmationRequest = {
+  title: string;
+  body?: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+};
 
 const sections: ArticleDataSection[] = ["stock_unit", "types", "customFields", "locations"];
 
@@ -37,12 +46,18 @@ function MasterDataSettingsSection({
   type,
   entries,
   canEdit,
-  onChanged
+  onChanged,
+  onRemoved,
+  onReload,
+  onConfirmAction
 }: {
   type: MasterDataType;
   entries: MasterDataEntry[];
   canEdit: boolean;
   onChanged: (type: MasterDataType, entry: MasterDataEntry) => void;
+  onRemoved: (type: MasterDataType, key: string) => void;
+  onReload: (type: MasterDataType) => Promise<void>;
+  onConfirmAction: (request: MasterDataConfirmationRequest) => void;
 }) {
   const { t } = useI18n();
   const [creating, setCreating] = useState(false);
@@ -103,6 +118,7 @@ function MasterDataSettingsSection({
             ...(type === "accessory_custom_field" ? { metadata: customFieldMetadata } : {})
           });
       onChanged(type, result);
+      await onReload(type);
       reset();
     } catch (reason) {
       setMessage(reason instanceof Error ? reason.message : t("settings.articleManagement.error.generic"));
@@ -116,7 +132,7 @@ function MasterDataSettingsSection({
     setBusy(true);
     setMessage("");
     try {
-      const updated = await api.updateMasterData(type, entry.key, entryInput(entry, entry.label, active));
+      const updated = await api.setMasterDataActive(type, entry.key, active);
       onChanged(type, updated);
       if (editing?.key === updated.key) setEditing(updated);
     } catch (reason) {
@@ -124,6 +140,35 @@ function MasterDataSettingsSection({
     } finally {
       setBusy(false);
     }
+  };
+
+  const requestDeactivate = (entry: MasterDataEntry) => {
+    onConfirmAction({
+      title: t("settings.master.deactivateTitle"),
+      body: t("settings.master.deactivateBody"),
+      confirmLabel: t("settings.master.deactivate"),
+      onConfirm: () => void setActive(entry, false)
+    });
+  };
+
+  const requestDelete = (entry: MasterDataEntry) => {
+    onConfirmAction({
+      title: t("settings.master.deleteTitle"),
+      body: t("settings.master.deleteBody"),
+      confirmLabel: t("settings.master.deletePermanently"),
+      danger: true,
+      onConfirm: () => {
+        setBusy(true);
+        setMessage("");
+        api.deleteMasterData(type, entry.key)
+          .then(() => {
+            if (editing?.key === entry.key) reset();
+            onRemoved(type, entry.key);
+          })
+          .catch((reason: Error) => setMessage(reason.message))
+          .finally(() => setBusy(false));
+      }
+    });
   };
 
   return (
@@ -205,12 +250,13 @@ function MasterDataSettingsSection({
               <th>{t("settings.articleManagement.label")}</th>
               <th>{t("settings.articleManagement.key")}</th>
               <th>{t("settings.articleManagement.status")}</th>
+              <th>{t("settings.master.origin")}</th>
               {canEdit && <th className="is-right">{t("settings.articleManagement.actions")}</th>}
             </tr>
           </thead>
           <tbody>
             {entries.length === 0 ? (
-              <tr><td colSpan={canEdit ? 4 : 3} className="loading-cell">
+              <tr><td colSpan={canEdit ? 5 : 4} className="loading-cell">
                 {t("settings.articleManagement.empty")}
               </td></tr>
             ) : entries.map((entry) => {
@@ -219,24 +265,14 @@ function MasterDataSettingsSection({
                 <td><strong>{displayLabel}</strong></td>
                 <td><code>{entry.key}</code></td>
                 <td>{t(entry.active ? "settings.articleManagement.active" : "settings.articleManagement.inactive")}</td>
+                <td>{t(`settings.master.origin.${entry.origin || "custom"}`)}</td>
                 {canEdit && (
                   <td className="is-right">
-                    <div className="settings-card-actions">
-                      <button type="button" className="icon-button" onClick={() => startEditing(entry)}
-                        aria-label={t("settings.articleManagement.edit", { label: displayLabel })}
-                        title={t("settings.articleManagement.editShort")}>
-                        <Pencil size={15} aria-hidden="true" />
-                      </button>
-                      <button type="button" className="icon-button" onClick={() => void setActive(entry, !entry.active)}
-                        disabled={busy}
-                        aria-label={t(entry.active ? "settings.articleManagement.archive" :
-                          "settings.articleManagement.reactivate", { label: displayLabel })}
-                        title={t(entry.active ? "settings.articleManagement.archiveShort" :
-                          "settings.articleManagement.reactivateShort")}>
-                        {entry.active ? <Archive size={15} aria-hidden="true" /> :
-                          <ArchiveRestore size={15} aria-hidden="true" />}
-                      </button>
-                    </div>
+                    <MasterDataLifecycleActions entry={entry} displayLabel={displayLabel} disabled={busy}
+                      onEdit={() => startEditing(entry)}
+                      onDeactivate={() => requestDeactivate(entry)}
+                      onReactivate={() => void setActive(entry, true)}
+                      onDelete={() => requestDelete(entry)} />
                   </td>
                 )}
               </tr>;
@@ -252,12 +288,14 @@ export type ArticleManagementSettingsProps = {
   roles: string[];
   activeSection: ArticleDataSection;
   onSectionChange: (section: ArticleDataSection) => void;
+  onConfirmAction: (request: MasterDataConfirmationRequest) => void;
 };
 
 export function ArticleManagementSettings({
   roles,
   activeSection,
-  onSectionChange
+  onSectionChange,
+  onConfirmAction
 }: ArticleManagementSettingsProps) {
   const { t } = useI18n();
   const canRead = roles.some((role) => ["Admin", "Editor", "Planner", "Viewer"].includes(role));
@@ -302,7 +340,7 @@ export function ArticleManagementSettings({
       return;
     }
     setLoadingSection(activeSection);
-    Promise.all(typesToLoad.map(async (type) => [type, await api.masterData(type)] as const))
+    Promise.all(typesToLoad.map(async (type) => [type, await api.managedMasterData(type)] as const))
       .then((results) => {
         if (requestID !== masterRequestID.current) return;
         setEntriesByType((current) => ({ ...current, ...Object.fromEntries(results) }));
@@ -343,9 +381,29 @@ export function ArticleManagementSettings({
     }));
   };
 
+  const removeEntry = (type: MasterDataType, key: string) => {
+    setEntriesByType((current) => ({
+      ...current,
+      [type]: (current[type] || []).filter((entry) => entry.key !== key)
+    }));
+  };
+
+  const reloadType = async (type: MasterDataType) => {
+    setMasterMessage("");
+    try {
+      const entries = await api.managedMasterData(type);
+      setEntriesByType((current) => ({ ...current, [type]: entries }));
+      setLoadedTypes((current) => ({ ...current, [type]: true }));
+    } catch (reason) {
+      setMasterMessage(reason instanceof Error ? reason.message :
+        t("settings.articleManagement.error.generic"));
+    }
+  };
+
   const renderMasterData = (type: MasterDataType) => (
     <MasterDataSettingsSection type={type} entries={entriesByType[type] || []}
-      canEdit={canEdit} onChanged={updateEntry} />
+      canEdit={canEdit} onChanged={updateEntry} onRemoved={removeEntry}
+      onReload={reloadType} onConfirmAction={onConfirmAction} />
   );
 
   return (

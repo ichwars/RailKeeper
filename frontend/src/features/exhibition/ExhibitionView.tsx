@@ -447,7 +447,7 @@ export function ExhibitionView({ roles }: { roles: string[] }) {
   }, []);
 
   useEffect(() => {
-    api.masterData("symbols", true).then(setSymbols).catch((error: Error) => setMessage(error.message));
+    api.masterData("symbols").then(setSymbols).catch((error: Error) => setMessage(error.message));
   }, []);
 
   useEffect(() => {

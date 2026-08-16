@@ -20,7 +20,21 @@ var (
 	ErrMasterDataProtected  = fmt.Errorf("%w: standard article type keys are protected", ErrMasterDataValidation)
 )
 
+type MasterDataOrigin string
+
+const (
+	MasterDataOriginBundled MasterDataOrigin = "bundled"
+	MasterDataOriginCustom  MasterDataOrigin = "custom"
+)
+
+type MasterDataCapabilities struct {
+	CanDeactivate bool `json:"canDeactivate"`
+	CanReactivate bool `json:"canReactivate"`
+	CanDelete     bool `json:"canDelete"`
+}
+
 const masterDataExportFormat = "railkeeper-master-data"
+const masterDataExportVersion = 2
 const standardArticleType = "article_type"
 const standardAccessorySubtype = "accessory_subtype"
 const legacyArticleSubtype = "article_subtype"
@@ -39,16 +53,18 @@ type MasterDataService struct {
 }
 
 type MasterDataEntry struct {
-	ID        string         `json:"id"`
-	Type      string         `json:"type"`
-	Key       string         `json:"key"`
-	Label     string         `json:"label"`
-	Active    bool           `json:"active"`
-	SortOrder int            `json:"sortOrder"`
-	SourceURL string         `json:"sourceUrl,omitempty"`
-	Metadata  map[string]any `json:"metadata"`
-	CreatedAt string         `json:"createdAt"`
-	UpdatedAt string         `json:"updatedAt"`
+	ID           string                  `json:"id"`
+	Type         string                  `json:"type"`
+	Key          string                  `json:"key"`
+	Label        string                  `json:"label"`
+	Active       bool                    `json:"active"`
+	SortOrder    int                     `json:"sortOrder"`
+	SourceURL    string                  `json:"sourceUrl,omitempty"`
+	Metadata     map[string]any          `json:"metadata"`
+	Origin       MasterDataOrigin        `json:"origin"`
+	Capabilities *MasterDataCapabilities `json:"capabilities,omitempty"`
+	CreatedAt    string                  `json:"createdAt"`
+	UpdatedAt    string                  `json:"updatedAt"`
 }
 
 type MasterDataInput struct {
@@ -121,7 +137,8 @@ func (s *MasterDataService) List(ctx context.Context, typeName string, activeOnl
 	}
 
 	query := `
-SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
+SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json,
+       created_at, updated_at, origin
 FROM master_data_entries
 WHERE type=?`
 	args := []any{typeName}
@@ -174,7 +191,8 @@ func (s *MasterDataService) ListAll(ctx context.Context, activeOnly bool) (map[s
 
 func loadMasterDataSnapshot(ctx context.Context, db *sql.DB) (map[string][]MasterDataEntry, error) {
 	query := `
-SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
+SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json,
+       created_at, updated_at, origin
 FROM master_data_entries`
 	query += " ORDER BY type ASC, active DESC, sort_order ASC, label ASC"
 
@@ -234,9 +252,13 @@ func (s *MasterDataService) Create(ctx context.Context, typeName string, input M
 	now := time.Now().UTC().Format(time.RFC3339)
 	id := typeName + ":" + input.Key
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO master_data_entries(id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, typeName, input.Key, input.Label, boolToInt(active), sortOrder, input.SourceURL, string(metadata), now, now); err != nil {
+INSERT INTO master_data_entries(
+  id, type, key, label, active, sort_order, source_url, metadata_json,
+  created_at, updated_at, origin
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'custom')
+`, id, typeName, input.Key, input.Label, boolToInt(active), sortOrder,
+		input.SourceURL, string(metadata), now, now); err != nil {
 		return nil, fmt.Errorf("create master data: %w", err)
 	}
 	s.invalidateCache()
@@ -248,7 +270,8 @@ func (s *MasterDataService) Get(ctx context.Context, typeName, key string) (*Mas
 	var active int
 	var item MasterDataEntry
 	err := s.db.QueryRowContext(ctx, `
-SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json, created_at, updated_at
+SELECT id, type, key, label, active, sort_order, COALESCE(source_url, ''), metadata_json,
+       created_at, updated_at, origin
 FROM master_data_entries
 WHERE type=? AND key=?
 `, strings.TrimSpace(typeName), strings.TrimSpace(key)).Scan(
@@ -262,6 +285,7 @@ WHERE type=? AND key=?
 		&metadataJSON,
 		&item.CreatedAt,
 		&item.UpdatedAt,
+		&item.Origin,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -321,30 +345,6 @@ WHERE type=? AND key=?
 	return s.Get(ctx, typeName, key)
 }
 
-func (s *MasterDataService) Delete(ctx context.Context, typeName, key string) error {
-	typeName = strings.TrimSpace(typeName)
-	key = strings.TrimSpace(key)
-	if typeName == standardArticleType {
-		return ErrMasterDataProtected
-	}
-	if typeName == accessoryCustomField {
-		return s.deleteAccessoryCustomField(ctx, key)
-	}
-	result, err := s.db.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`, typeName, key)
-	if err != nil {
-		return fmt.Errorf("delete master data: %w", err)
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read master data delete result: %w", err)
-	}
-	if affected == 0 {
-		return ErrMasterDataNotFound
-	}
-	s.invalidateCache()
-	return nil
-}
-
 func (s *MasterDataService) Relations(ctx context.Context, parentType, childType string) ([]MasterDataRelation, error) {
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, parent_type, parent_key, child_type, child_key, sort_order
@@ -382,7 +382,7 @@ func (s *MasterDataService) Export(ctx context.Context) (*MasterDataDocument, er
 	}
 	return &MasterDataDocument{
 		Format:    masterDataExportFormat,
-		Version:   1,
+		Version:   masterDataExportVersion,
 		CreatedAt: time.Now().UTC().Format(time.RFC3339),
 		Entries:   entries,
 		Relations: relations,
@@ -390,7 +390,8 @@ func (s *MasterDataService) Export(ctx context.Context) (*MasterDataDocument, er
 }
 
 func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument) (*MasterDataImportResult, error) {
-	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 {
+	if doc == nil || doc.Format != masterDataExportFormat || doc.Version < 1 ||
+		doc.Version > masterDataExportVersion {
 		return nil, ErrMasterDataValidation
 	}
 	importedArticleTypes, err := validateImportedArticleTypes(doc.Entries)
@@ -429,99 +430,13 @@ func (s *MasterDataService) Import(ctx context.Context, doc *MasterDataDocument)
 		return nil, err
 	}
 
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("begin master data import: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
-		return nil, err
-	}
-	if err := validateImportedAccessoryCustomFieldReferences(ctx, tx, entriesByType); err != nil {
-		return nil, err
-	}
-
-	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_relations`); err != nil {
-		return nil, fmt.Errorf("clear master data relations: %w", err)
-	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM master_data_entries`); err != nil {
-		return nil, fmt.Errorf("clear master data entries: %w", err)
-	}
-
-	now := time.Now().UTC().Format(time.RFC3339)
-	result := &MasterDataImportResult{ImportedTypes: len(doc.Entries)}
-	for typeName, entries := range entriesByType {
-		typeName = strings.TrimSpace(typeName)
-		for _, entry := range entries {
-			entryType := effectiveMasterDataType(typeName, entry)
-			key := strings.TrimSpace(entry.Key)
-			label := strings.TrimSpace(entry.Label)
-			if entryType == "" || label == "" {
-				return nil, ErrMasterDataValidation
-			}
-			if key == "" {
-				key = slugKey(label)
-			}
-			id := strings.TrimSpace(entry.ID)
-			if id == "" {
-				id = entryType + ":" + key
-			}
-			metadata := entry.Metadata
-			if metadata == nil {
-				metadata = map[string]any{}
-			}
-			metadataJSON, err := json.Marshal(metadata)
-			if err != nil {
-				return nil, fmt.Errorf("marshal imported master data metadata: %w", err)
-			}
-			createdAt := strings.TrimSpace(entry.CreatedAt)
-			if createdAt == "" {
-				createdAt = now
-			}
-			updatedAt := strings.TrimSpace(entry.UpdatedAt)
-			if updatedAt == "" {
-				updatedAt = now
-			}
-			if _, err := tx.ExecContext(ctx, `
-INSERT INTO master_data_entries(id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, entryType, key, label, boolToInt(entry.Active), entry.SortOrder, strings.TrimSpace(entry.SourceURL), string(metadataJSON), createdAt, updatedAt); err != nil {
-				return nil, fmt.Errorf("insert imported master data entry: %w", err)
-			}
-			preservedArticleType := entryType == standardArticleType && !articleTypesWereImported
-			preservedAccessorySubtype := entryType == standardAccessorySubtype && !accessorySubtypesWereImported
-			if !preservedArticleType && !preservedAccessorySubtype {
-				result.ImportedEntries++
-			}
-		}
-	}
-
-	for _, relation := range doc.Relations {
-		relation.ParentType = strings.TrimSpace(relation.ParentType)
-		relation.ParentKey = strings.TrimSpace(relation.ParentKey)
-		relation.ChildType = strings.TrimSpace(relation.ChildType)
-		relation.ChildKey = strings.TrimSpace(relation.ChildKey)
-		if relation.ParentType == "" || relation.ParentKey == "" || relation.ChildType == "" || relation.ChildKey == "" {
-			return nil, ErrMasterDataValidation
-		}
-		id := strings.TrimSpace(relation.ID)
-		if id == "" {
-			id = randomID()
-		}
-		if _, err := tx.ExecContext(ctx, `
-INSERT INTO master_data_relations(id, parent_type, parent_key, child_type, child_key, sort_order, created_at)
-VALUES(?, ?, ?, ?, ?, ?, ?)
-`, id, relation.ParentType, relation.ParentKey, relation.ChildType, relation.ChildKey, relation.SortOrder, now); err != nil {
-			return nil, fmt.Errorf("insert imported master data relation: %w", err)
-		}
-		result.ImportedRelations++
-	}
-
-	if err := tx.Commit(); err != nil {
-		return nil, fmt.Errorf("commit master data import: %w", err)
-	}
-	s.invalidateCache()
-	return result, nil
+	return s.importReconciledMasterData(
+		ctx,
+		doc,
+		entriesByType,
+		articleTypesWereImported,
+		accessorySubtypesWereImported,
+	)
 }
 
 func normalizeImportedAccessoryCustomFields(entriesByType map[string][]MasterDataEntry) error {
@@ -685,7 +600,14 @@ func (s *MasterDataService) invalidateCache() {
 func cloneMasterDataMap(input map[string][]MasterDataEntry) map[string][]MasterDataEntry {
 	out := make(map[string][]MasterDataEntry, len(input))
 	for key, entries := range input {
-		out[key] = append([]MasterDataEntry(nil), entries...)
+		cloned := append([]MasterDataEntry(nil), entries...)
+		for index := range cloned {
+			if cloned[index].Capabilities != nil {
+				capabilities := *cloned[index].Capabilities
+				cloned[index].Capabilities = &capabilities
+			}
+		}
+		out[key] = cloned
 	}
 	return out
 }
@@ -720,6 +642,7 @@ func scanMasterDataEntry(scanner masterDataScanner) (MasterDataEntry, error) {
 		&metadataJSON,
 		&item.CreatedAt,
 		&item.UpdatedAt,
+		&item.Origin,
 	); err != nil {
 		return item, fmt.Errorf("scan master data: %w", err)
 	}

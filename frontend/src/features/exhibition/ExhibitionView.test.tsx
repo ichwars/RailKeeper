@@ -17,7 +17,7 @@ describe("ExhibitionView", () => {
 
     expect(await screen.findByText("Messeliste")).toBeInTheDocument();
     await waitFor(() => expect(api.exhibitionLists).toHaveBeenCalledOnce());
-    expect(api.masterData).toHaveBeenCalledWith("symbols", true);
+    expect(api.masterData).toHaveBeenCalledWith("symbols");
     expect(masterDataAll).not.toHaveBeenCalled();
     expect(screen.queryByText("Insufficient role.")).not.toBeInTheDocument();
   });

@@ -127,7 +127,7 @@ func masterDataCacheTestDB(t *testing.T) *sql.DB {
 CREATE TABLE master_data_entries (
   id TEXT PRIMARY KEY, type TEXT NOT NULL, key TEXT NOT NULL, label TEXT NOT NULL, active INTEGER NOT NULL,
   sort_order INTEGER NOT NULL, source_url TEXT, metadata_json TEXT NOT NULL, created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL, UNIQUE(type, key)
+  updated_at TEXT NOT NULL, origin TEXT NOT NULL DEFAULT 'custom', UNIQUE(type, key)
 )`); err != nil {
 		t.Fatal(err)
 	}
@@ -148,8 +148,8 @@ func insertMasterDataCacheEntry(t *testing.T, db *sql.DB, entry MasterDataEntry)
 	t.Helper()
 	if _, err := db.Exec(`
 INSERT INTO master_data_entries(
-  id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, '', '{}', ?, ?)`, entry.ID, entry.Type, entry.Key, entry.Label,
+  id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at, origin
+) VALUES(?, ?, ?, ?, ?, ?, '', '{}', ?, ?, 'custom')`, entry.ID, entry.Type, entry.Key, entry.Label,
 		boolToInt(entry.Active), entry.SortOrder, entry.CreatedAt, entry.UpdatedAt); err != nil {
 		t.Fatal(err)
 	}

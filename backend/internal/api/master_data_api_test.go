@@ -10,6 +10,130 @@ import (
 	"railkeeper/backend/internal/infrastructure"
 )
 
+func TestMasterDataAPILifecycleManagement(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	masterData := application.NewMasterDataService(db)
+	router := NewRouter(Config{
+		SetupService: setup, AuthService: auth, MasterDataService: masterData,
+	})
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin", Email: "admin@example.test", Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	adminSession, adminCookies := loginTestUser(t, router, "admin", "very-secure-password")
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users",
+		`{"username":"editor","email":"editor@example.test","password":"editor-secure-password","roles":["Editor"]}`,
+		adminSession, adminCookies, http.StatusCreated)
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users",
+		`{"username":"viewer","email":"viewer@example.test","password":"viewer-secure-password","roles":["Viewer"]}`,
+		adminSession, adminCookies, http.StatusCreated)
+	editorSession, editorCookies := loginTestUser(t, router, "editor", "editor-secure-password")
+	viewerSession, viewerCookies := loginTestUser(t, router, "viewer", "viewer-secure-password")
+
+	if _, err := masterData.Create(t.Context(), "manufacturer", application.MasterDataInput{
+		Key: "unused", Label: "Unused",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+INSERT INTO master_data_entries(
+  id, type, key, label, active, sort_order, source_url, metadata_json,
+  created_at, updated_at, origin
+) VALUES
+  ('manufacturer:bundled', 'manufacturer', 'bundled', 'Bundled', 1, 0, '', '{}', 'now', 'now', 'bundled'),
+  ('manufacturer:used', 'manufacturer', 'used', 'Used', 1, 0, '', '{}', 'now', 'now', 'custom')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+INSERT INTO vehicles(
+  id, inventory_number, manufacturer, name, gauge, category, created_at, updated_at
+) VALUES('v1', 'RK-1', 'Used', 'Test', 'H0', 'Lokomotive', 'now', 'now')`); err != nil {
+		t.Fatal(err)
+	}
+
+	response := doAuthedJSON(t, router, http.MethodGet,
+		"/api/v1/master-data/manufacturer?management=true", "",
+		editorSession, editorCookies, http.StatusOK)
+	var entries []application.MasterDataEntry
+	if err := json.Unmarshal(response.Body.Bytes(), &entries); err != nil {
+		t.Fatal(err)
+	}
+	byKey := make(map[string]application.MasterDataEntry, len(entries))
+	for _, entry := range entries {
+		byKey[entry.Key] = entry
+	}
+	if byKey["bundled"].Capabilities == nil || byKey["bundled"].Capabilities.CanDelete {
+		t.Fatalf("bundled capabilities=%#v", byKey["bundled"].Capabilities)
+	}
+	if byKey["unused"].Capabilities == nil || !byKey["unused"].Capabilities.CanDelete {
+		t.Fatalf("unused capabilities=%#v", byKey["unused"].Capabilities)
+	}
+	if byKey["used"].Capabilities == nil || byKey["used"].Capabilities.CanDelete {
+		t.Fatalf("used capabilities=%#v", byKey["used"].Capabilities)
+	}
+
+	allResponse := doAuthedJSON(t, router, http.MethodGet,
+		"/api/v1/master-data-all?management=true", "",
+		editorSession, editorCookies, http.StatusOK)
+	var all map[string][]application.MasterDataEntry
+	if err := json.Unmarshal(allResponse.Body.Bytes(), &all); err != nil {
+		t.Fatal(err)
+	}
+	if len(all["manufacturer"]) != len(entries) || all["manufacturer"][0].Capabilities == nil {
+		t.Fatalf("all management response=%#v", all["manufacturer"])
+	}
+
+	response = doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/unused/active", `{"active":false}`,
+		editorSession, editorCookies, http.StatusOK)
+	var entry application.MasterDataEntry
+	if err := json.Unmarshal(response.Body.Bytes(), &entry); err != nil {
+		t.Fatal(err)
+	}
+	if entry.Active {
+		t.Fatal("entry remained active")
+	}
+	doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/unused/active", `{}`,
+		editorSession, editorCookies, http.StatusBadRequest)
+	doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/missing/active", `{"active":false}`,
+		editorSession, editorCookies, http.StatusNotFound)
+	doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/unused/active", `{"active":true}`,
+		viewerSession, viewerCookies, http.StatusForbidden)
+	doJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/unused/active", `{"active":true}`,
+		editorCookies, http.StatusForbidden)
+
+	assertMasterDataDeleteProblem(t, router, editorSession, editorCookies,
+		"bundled", "master_data_bundled")
+	assertMasterDataDeleteProblem(t, router, editorSession, editorCookies,
+		"used", "master_data_in_use")
+}
+
+func assertMasterDataDeleteProblem(
+	t *testing.T,
+	router http.Handler,
+	session application.SessionView,
+	cookies []*http.Cookie,
+	key, wantCode string,
+) {
+	t.Helper()
+	response := doAuthedJSON(t, router, http.MethodDelete,
+		"/api/v1/master-data/manufacturer/"+key, "", session, cookies, http.StatusConflict)
+	var problem map[string]string
+	if err := json.Unmarshal(response.Body.Bytes(), &problem); err != nil {
+		t.Fatal(err)
+	}
+	if problem["error"] != wantCode {
+		t.Fatalf("delete %s problem=%#v", key, problem)
+	}
+}
+
 func TestMasterDataAPIProtectsStandardArticleTypeKeys(t *testing.T) {
 	db := testRouterDB(t)
 	setup := application.NewSetupService(db)
@@ -84,13 +208,13 @@ func TestMasterDataAPIDeleteReportsReferencedCustomFieldWithoutMutation(t *testi
 
 	response := doAuthedJSON(t, fixture.router, http.MethodDelete,
 		"/api/v1/master-data/accessory_custom_field/length", "", fixture.session, fixture.cookies,
-		http.StatusBadRequest)
+		http.StatusConflict)
 	var problem map[string]string
 	if err := json.Unmarshal(response.Body.Bytes(), &problem); err != nil {
 		t.Fatal(err)
 	}
-	if problem["error"] != "master_data_validation" ||
-		problem["message"] != `master data validation failed: referenced custom field "length" cannot be deleted` {
+	if problem["error"] != "master_data_in_use" ||
+		problem["message"] != "This master data entry is still in use and can only be deactivated." {
 		t.Fatalf("unexpected referenced custom field delete problem: %#v", problem)
 	}
 	fixture.assertUnchanged(t)
@@ -115,7 +239,7 @@ func TestMasterDataAPIImportReportsOmittedReferencedCustomFieldWithoutMutation(t
 		t.Fatal(err)
 	}
 	if problem["error"] != "master_data_import_invalid" ||
-		problem["message"] != `master data validation failed: referenced custom field "length" is missing from import` {
+		problem["message"] != `master data validation failed: master data entry is in use: omitted referenced master data accessory_custom_field/length` {
 		t.Fatalf("unexpected referenced custom field import problem: %#v", problem)
 	}
 	fixture.assertUnchanged(t)

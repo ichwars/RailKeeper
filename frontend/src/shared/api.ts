@@ -515,6 +515,14 @@ export type CreateVehicleRequest = {
   images?: VehicleImageInput[];
 };
 
+export type MasterDataOrigin = "bundled" | "custom";
+
+export type MasterDataCapabilities = {
+  canDeactivate: boolean;
+  canReactivate: boolean;
+  canDelete: boolean;
+};
+
 export type MasterDataEntry = {
   id: string;
   type: string;
@@ -524,6 +532,8 @@ export type MasterDataEntry = {
   sortOrder: number;
   sourceUrl?: string;
   metadata: Record<string, unknown>;
+  origin?: MasterDataOrigin;
+  capabilities?: MasterDataCapabilities;
   createdAt: string;
   updatedAt: string;
 };
@@ -1546,6 +1556,16 @@ export const api = {
       {},
       { retries: 1, timeoutMs: 30000 }
     ),
+  managedMasterData: (type: string) =>
+    request<MasterDataEntry[]>(
+      `/master-data/${encodeURIComponent(type)}?management=true`
+    ),
+  managedMasterDataAll: () =>
+    request<Record<string, MasterDataEntry[]>>(
+      "/master-data-all?management=true",
+      {},
+      { retries: 1, timeoutMs: 30000 }
+    ),
   createMasterData: (type: string, input: MasterDataInput) =>
     request<MasterDataEntry>(`/master-data/${encodeURIComponent(type)}`, {
       method: "POST",
@@ -1556,6 +1576,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(input)
     }),
+  setMasterDataActive: (type: string, key: string, active: boolean) =>
+    request<MasterDataEntry>(
+      `/master-data/${encodeURIComponent(type)}/${encodeURIComponent(key)}/active`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ active })
+      }
+    ),
   deleteMasterData: (type: string, key: string) =>
     request<void>(`/master-data/${encodeURIComponent(type)}/${encodeURIComponent(key)}`, {
       method: "DELETE"
