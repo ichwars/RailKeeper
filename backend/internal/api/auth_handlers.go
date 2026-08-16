@@ -171,30 +171,6 @@ func (a *App) confirmPasswordReset(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (a *App) passwordResetURL(r *http.Request, token string) string {
-	if resetURL, err := configuredPasswordResetURL(token, a.publicURL); err == nil {
-		return resetURL
-	}
-
-	scheme := "http"
-	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-Proto")); forwarded != "" {
-		if strings.EqualFold(strings.Split(forwarded, ",")[0], "https") {
-			scheme = "https"
-		}
-	} else if r.TLS != nil {
-		scheme = "https"
-	}
-	u := url.URL{
-		Scheme: scheme,
-		Host:   r.Host,
-		Path:   "/password-reset",
-	}
-	query := u.Query()
-	query.Set("token", token)
-	u.RawQuery = query.Encode()
-	return u.String()
-}
-
 func configuredPasswordResetURL(token, baseURL string) (string, error) {
 	baseURL = strings.TrimRight(strings.TrimSpace(baseURL), "/")
 	if baseURL == "" {

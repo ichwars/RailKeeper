@@ -121,7 +121,7 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := validateVehicleImageDimensions(data); err != nil {
-		respondProblem(w, http.StatusBadRequest, "image_dimensions_invalid", err.Error())
+		respondProblem(w, http.StatusBadRequest, "image_dimensions_invalid", "Bildabmessungen überschreiten das erlaubte Limit.")
 		return
 	}
 	vehicleID := r.PathValue("id")
@@ -391,7 +391,7 @@ func validateVehicleImageDimensions(data []byte) error {
 	if config.Width <= 0 || config.Height <= 0 ||
 		config.Width > maxImageDimension || config.Height > maxImageDimension ||
 		int64(config.Width)*int64(config.Height) > maxImagePixels {
-		return errors.New("Bildabmessungen überschreiten das erlaubte Limit")
+		return errors.New("bildabmessungen überschreiten das erlaubte Limit")
 	}
 	return nil
 }

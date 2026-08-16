@@ -72,7 +72,7 @@ func TestPasswordResetDoesNotLogBearerToken(t *testing.T) {
 func TestVehicleThumbnailRejectsExcessiveDimensionsBeforeDecode(t *testing.T) {
 	app := &App{}
 	_, err := app.createVehicleImageThumbnail(t.Context(), pngHeader(20000, 20000), "oversized.png")
-	if err == nil || !strings.Contains(err.Error(), "Bildabmessungen") {
+	if err == nil || !strings.Contains(err.Error(), "bildabmessungen") {
 		t.Fatalf("expected excessive image dimensions to be rejected, got %v", err)
 	}
 }
