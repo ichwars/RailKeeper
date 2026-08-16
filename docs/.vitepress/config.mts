@@ -94,7 +94,14 @@ export default defineConfig({
           "/de/administration/": [
             {
               text: "Administration",
-              items: [{ text: "Überblick", link: "/de/administration/" }],
+              items: [
+                { text: "Überblick", link: "/de/administration/" },
+                { text: "Stammdaten-Administration", link: "/de/administration/master-data" },
+                { text: "Allgemeine Stammdaten", link: "/de/administration/master-data-general" },
+                { text: "Artikelstammdaten und Lagerorte", link: "/de/administration/master-data-articles" },
+                { text: "Inventarnummernschemata", link: "/de/administration/master-data-inventory-numbers" },
+                { text: "Stammdatentransfer", link: "/de/administration/master-data-transfer" },
+              ],
             },
           ],
           "/de/development/": [
@@ -203,7 +210,14 @@ export default defineConfig({
       "/administration/": [
         {
           text: "Administration",
-          items: [{ text: "Overview", link: "/administration/" }],
+          items: [
+            { text: "Overview", link: "/administration/" },
+            { text: "Master-data administration", link: "/administration/master-data" },
+            { text: "General master data", link: "/administration/master-data-general" },
+            { text: "Article master data and locations", link: "/administration/master-data-articles" },
+            { text: "Inventory-number schemes", link: "/administration/master-data-inventory-numbers" },
+            { text: "Master-data transfer", link: "/administration/master-data-transfer" },
+          ],
         },
       ],
       "/development/": [

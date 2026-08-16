@@ -40,13 +40,13 @@ entfernt niemals Berechtigungen.
 | --- | --- | --- |
 | **Allgemein** | Sprache, Startseite, Datums- und Zeitvorgaben, Druckvorgabe und Seitenleisten-Reihenfolge | [Persönliche Einstellungen](/de/guide/settings/personal-preferences) |
 | **Darstellung** | System-, Hell- oder Dunkelmodus sowie getrennte Farb- und Stilvarianten | [Darstellung](/de/guide/settings/appearance) |
-| **Allgemein > Inventarnummern** | Nummernschemata für Bestandskategorien | Stammdaten-Administration |
+| **Allgemein > Inventarnummern** | Nummernschemata für Bestandskategorien | [Stammdaten-Administration](/de/administration/master-data) |
 | **Allgemein > Artikelsuche** | Artikelsuche aktivieren und Quellgruppen wählen | [Artikelsuche](/de/guide/vehicles/search-and-spares) |
 | **Allgemein > Updates** | Versionsprüfung und Download des Windows-Pakets | Releases und Support |
 | **Allgemein > Speicher** | Speichernutzung und Optimierung | Systembetrieb |
-| **Daten** | Allgemeine und Zubehör-Stammdaten, Lebenszyklus und Transfer | Stammdaten-Administration |
+| **Daten** | Allgemeine und Zubehör-Stammdaten, Lebenszyklus und Transfer | [Stammdaten-Administration](/de/administration/master-data) |
 | **Digitalzentralen** | ECoS-, Z21-, Intellibox-3- und CS3-Konfiguration | Digitalzentralen-Administration |
-| **Import/Export** | Sicherung, Wiederherstellung und Stammdaten-Transfer innerhalb der Einstellungen | Sicherungs- und Stammdaten-Administration |
+| **Import/Export** | Sicherung, Wiederherstellung und Stammdaten-Transfer innerhalb der Einstellungen | Sicherungs- und [Stammdaten-Administration](/de/administration/master-data) |
 | **Authentifizierung** | Eigenes Passwort und Zwei-Faktor-Einrichtung; Admin-Werkzeuge für Benutzer, Sitzungen, Audit und SMTP | Benutzer, Sitzungen und Sicherheit |
 
 Der allgemeine [Arbeitsbereich Import und Export](/de/guide/import-export/) ist eine andere Seite. Er
