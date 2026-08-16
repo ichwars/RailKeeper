@@ -315,7 +315,7 @@ git commit -m "feat: expose vehicle operational data"
 - Test: `backend/internal/infrastructure/accessory_repository_test.go`
 - Test: `backend/internal/application/accessory_overview_test.go`
 
-- [ ] **Step 1: Add failing accessory list-price tests**
+- [x] **Step 1: Add failing accessory list-price tests**
 
 Test create, get, update, and article-list round trips using `listPrice: "129.90"`. Add rejected
 inputs `-1`, `1.2345`, and malformed text. Verify an omitted price stays empty and existing records
@@ -330,7 +330,7 @@ go test ./internal/application ./internal/infrastructure -run "Accessory.*ListPr
 
 Expected: FAIL because `listPrice` is not part of accessory articles.
 
-- [ ] **Step 2: Add migration 0057**
+- [x] **Step 2: Add migration 0057**
 
 ```sql
 ALTER TABLE accessory_products ADD COLUMN list_price TEXT NOT NULL DEFAULT '';
@@ -338,7 +338,7 @@ ALTER TABLE accessory_products ADD COLUMN list_price TEXT NOT NULL DEFAULT '';
 
 Do not derive a list price from purchases.
 
-- [ ] **Step 3: Extend accessory domain/API types and validation**
+- [x] **Step 3: Extend accessory domain/API types and validation**
 
 Add `ListPrice string \`json:"listPrice,omitempty"\`` to `AccessoryProduct` and
 `AccessoryArticleListItem`, and `ListPrice string \`json:"listPrice"\`` to
@@ -354,7 +354,7 @@ Validation rules:
 - accepted separators match RailKeeper's price parser;
 - persist the trimmed original compatible string, not a float.
 
-- [ ] **Step 4: Extend repository CRUD and article list query**
+- [x] **Step 4: Extend repository CRUD and article list query**
 
 Add `list_price` to every accessory product SELECT, INSERT, UPDATE, and scan target. Add
 `product.list_price` to `article_rows` and scan it into `AccessoryArticleListItem.ListPrice`.
@@ -362,7 +362,7 @@ Keep this new column nonsortable because the compatible text storage contains mu
 notations and lexical ordering would be incorrect. Do not add `listPrice` to
 `AccessoryArticleSort` or the backend sort map.
 
-- [ ] **Step 5: Format and rerun focused tests**
+- [x] **Step 5: Format and rerun focused tests**
 
 ```powershell
 gofmt -w internal/application/accessories.go internal/application/accessory_overview.go `
@@ -376,7 +376,7 @@ go test ./internal/application ./internal/infrastructure -run "Accessory.*ListPr
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 3**
+- [x] **Step 6: Commit Task 3**
 
 ```powershell
 git add backend/migrations/0057_accessory_list_price.sql `

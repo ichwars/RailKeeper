@@ -21,6 +21,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	unit := "mm"
 	input := application.CreateAccessoryProductInput{
 		Manufacturer: "Tillig", ArticleNumber: "83101", Name: "Straight track", Category: "Track",
+		ListPrice:   "129.90",
 		Description: "Description", EAN: "4012500831012", ManufacturerStatus: "available",
 		ArticleType: domain.AccessoryArticleTrack, Subtype: "track:straight", Gauges: []string{"TT"}, Scale: "1:120",
 		PackageQuantity: 2, StockUnit: "piece", MinimumStock: 3,
@@ -50,6 +51,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 		loaded.MinimumStock != input.MinimumStock || loaded.InventoryStrategy != input.InventoryStrategy ||
 		loaded.ManufacturerURL != input.ManufacturerURL || loaded.ProductURL != input.ProductURL ||
 		loaded.CompatibilityNotes != input.CompatibilityNotes || loaded.InternalNotes != input.InternalNotes ||
+		loaded.ListPrice != input.ListPrice ||
 		!loaded.Archived {
 		t.Fatalf("full product did not round trip:\ninput=%#v\nloaded=%#v", input, loaded)
 	}
@@ -58,6 +60,7 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	}
 
 	input.Name = "Updated track"
+	input.ListPrice = "139,90"
 	input.Archived = false
 	input.Attributes = input.Attributes[1:]
 	updatedUnit := "cm"
@@ -67,7 +70,8 @@ func TestAccessoryArticlePersistsFullProductAndAttributes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Name != input.Name || updated.Archived || !reflect.DeepEqual(updated.Attributes, input.Attributes) {
+	if updated.Name != input.Name || updated.ListPrice != input.ListPrice || updated.Archived ||
+		!reflect.DeepEqual(updated.Attributes, input.Attributes) {
 		t.Fatalf("full update did not round trip: %#v", updated)
 	}
 	if updated.Attributes[0].Unit == nil || *updated.Attributes[0].Unit != "cm" {
@@ -216,7 +220,8 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	trackSystem := "TT Modellgleis"
 	track := create(application.CreateAccessoryProductInput{
 		Manufacturer: "Z-Tillig", ArticleNumber: "83125", EAN: "4012500831258", Name: "Right turnout",
-		Category: "Track", ArticleType: domain.AccessoryArticleTrack, Subtype: "track:turnout", Gauges: []string{"TT"},
+		ListPrice: "29.90",
+		Category:  "Track", ArticleType: domain.AccessoryArticleTrack, Subtype: "track:turnout", Gauges: []string{"TT"},
 		PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: domain.AccessoryInventoryQuantity,
 		Attributes: []domain.AccessoryAttributeValue{
 			{Key: "trackSystem", Kind: domain.AccessoryAttributeText, TextValue: &trackSystem},
@@ -337,6 +342,7 @@ func TestAccessoryArticleCatalogueSearchFiltersSortsAndAggregates(t *testing.T) 
 	trackItem := result.Items[0]
 	if trackItem.Owned != 14 || trackItem.Available != 7 || trackItem.Reserved != 3 ||
 		trackItem.Installed != 4 || !trackItem.HasUsageHistory ||
+		trackItem.ListPrice != "29.90" ||
 		trackItem.InventoryNumber != track.InventoryNumber ||
 		trackItem.PrimaryImageURL != "/api/v1/accessory-products/"+track.ID+
 			"/documents/track-primary-image/download" ||

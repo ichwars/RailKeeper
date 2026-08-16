@@ -34,6 +34,7 @@ type AccessoryProduct struct {
 	Subtype            string                            `json:"subtype"`
 	Gauges             []string                          `json:"gauges"`
 	Scale              string                            `json:"scale,omitempty"`
+	ListPrice          string                            `json:"listPrice,omitempty"`
 	PackageQuantity    int                               `json:"packageQuantity"`
 	StockUnit          string                            `json:"stockUnit"`
 	MinimumStock       int                               `json:"minimumStock"`
@@ -64,6 +65,7 @@ type CreateAccessoryProductInput struct {
 	Subtype            string                            `json:"subtype"`
 	Gauges             []string                          `json:"gauges"`
 	Scale              string                            `json:"scale"`
+	ListPrice          string                            `json:"listPrice"`
 	PackageQuantity    int                               `json:"packageQuantity"`
 	StockUnit          string                            `json:"stockUnit"`
 	MinimumStock       int                               `json:"minimumStock"`
@@ -310,6 +312,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	input.ManufacturerStatus = strings.TrimSpace(input.ManufacturerStatus)
 	input.Subtype = strings.TrimSpace(input.Subtype)
 	input.Scale = strings.TrimSpace(input.Scale)
+	input.ListPrice = strings.TrimSpace(input.ListPrice)
 	input.StockUnit = strings.TrimSpace(input.StockUnit)
 	input.ManufacturerURL = strings.TrimSpace(input.ManufacturerURL)
 	input.ProductURL = strings.TrimSpace(input.ProductURL)
@@ -438,7 +441,76 @@ func validAccessoryProductInput(input CreateAccessoryProductInput) bool {
 	return input.Manufacturer != "" && input.Name != "" && input.Category != "" && input.TrackingMode.Valid() &&
 		input.ArticleType.Valid() && accessorySubtypeMatchesType(input.ArticleType, input.Subtype) &&
 		input.InventoryStrategy.Valid() && input.PackageQuantity > 0 && input.StockUnit != "" &&
-		input.MinimumStock >= 0
+		input.MinimumStock >= 0 && validAccessoryListPrice(input.ListPrice)
+}
+
+func validAccessoryListPrice(value string) bool {
+	if value == "" {
+		return true
+	}
+	for _, character := range value {
+		if (character < '0' || character > '9') && character != '.' && character != ',' {
+			return false
+		}
+	}
+	if strings.HasPrefix(value, ".") || strings.HasPrefix(value, ",") ||
+		strings.HasSuffix(value, ".") || strings.HasSuffix(value, ",") {
+		return false
+	}
+
+	dots := strings.Count(value, ".")
+	commas := strings.Count(value, ",")
+	if dots == 0 && commas == 0 {
+		return true
+	}
+	if dots > 0 && commas > 0 {
+		decimalSeparator := "."
+		groupingSeparator := ","
+		if strings.LastIndex(value, ",") > strings.LastIndex(value, ".") {
+			decimalSeparator, groupingSeparator = ",", "."
+		}
+		parts := strings.Split(value, decimalSeparator)
+		return len(parts) == 2 && len(parts[1]) <= 2 && digitsOnly(parts[1]) &&
+			validGroupedDigits(parts[0], groupingSeparator)
+	}
+
+	separator := "."
+	if commas > 0 {
+		separator = ","
+	}
+	parts := strings.Split(value, separator)
+	if len(parts) == 2 && (len(parts[1]) == 1 || len(parts[1]) == 2) {
+		return digitsOnly(parts[0]) && digitsOnly(parts[1])
+	}
+	return validGroupedParts(parts)
+}
+
+func validGroupedDigits(value, separator string) bool {
+	return validGroupedParts(strings.Split(value, separator))
+}
+
+func validGroupedParts(parts []string) bool {
+	if len(parts) < 2 || len(parts[0]) < 1 || len(parts[0]) > 3 || !digitsOnly(parts[0]) {
+		return false
+	}
+	for _, part := range parts[1:] {
+		if len(part) != 3 || !digitsOnly(part) {
+			return false
+		}
+	}
+	return true
+}
+
+func digitsOnly(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, character := range value {
+		if character < '0' || character > '9' {
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeAccessorySubtype(articleType domain.AccessoryArticleType, subtype string) string {
