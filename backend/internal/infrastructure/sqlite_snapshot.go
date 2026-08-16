@@ -6,11 +6,18 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 )
+
+type sqliteArtifactDigest struct {
+	name   string
+	digest [sha256.Size]byte
+}
 
 func CreateSQLiteSnapshot(ctx context.Context, source *sql.DB, targetPath string) error {
 	if source == nil {
@@ -49,14 +56,42 @@ func CreateSQLiteSnapshotFromPath(ctx context.Context, sourcePath, targetPath st
 	if sourcePath == "" {
 		return errors.New("snapshot source path is required")
 	}
-	source, err := sql.Open("sqlite", readOnlySQLiteDSN(sourcePath))
+	workingDir, err := os.MkdirTemp("", ".railkeeper-snapshot-source-")
 	if err != nil {
-		return fmt.Errorf("open snapshot source: %w", err)
+		return fmt.Errorf("create snapshot working directory: %w", err)
+	}
+	defer func() { _ = os.RemoveAll(workingDir) }()
+
+	before, err := sqliteArtifactManifest(sourcePath)
+	if err != nil {
+		return fmt.Errorf("inspect snapshot source: %w", err)
+	}
+	workingPath := filepath.Join(workingDir, "railkeeper.db")
+	if err := copySQLiteArtifact(sourcePath, workingPath); err != nil {
+		return fmt.Errorf("copy snapshot source database: %w", err)
+	}
+	walPath := sourcePath + "-wal"
+	if artifactDigestExists(before, filepath.Base(walPath)) {
+		if err := copySQLiteArtifact(walPath, workingPath+"-wal"); err != nil {
+			return fmt.Errorf("copy snapshot source WAL: %w", err)
+		}
+	}
+	after, err := sqliteArtifactManifest(sourcePath)
+	if err != nil {
+		return fmt.Errorf("verify snapshot source: %w", err)
+	}
+	if !slices.Equal(before, after) {
+		return errors.New("snapshot source changed while creating working copy")
+	}
+
+	source, err := sql.Open("sqlite", readWriteSQLiteDSN(workingPath))
+	if err != nil {
+		return fmt.Errorf("open snapshot working copy: %w", err)
 	}
 	source.SetMaxOpenConns(1)
 	defer func() { _ = source.Close() }()
 	if err := source.PingContext(ctx); err != nil {
-		return fmt.Errorf("ping snapshot source: %w", err)
+		return fmt.Errorf("ping snapshot working copy: %w", err)
 	}
 	return CreateSQLiteSnapshot(ctx, source, targetPath)
 }
@@ -109,11 +144,11 @@ func SQLiteSnapshotsEquivalent(ctx context.Context, leftPath, rightPath, tempDir
 	if err := CreateSQLiteSnapshotFromPath(ctx, rightPath, rightSnapshot); err != nil {
 		return false, fmt.Errorf("snapshot right database: %w", err)
 	}
-	leftHash, err := fileSHA256(leftSnapshot)
+	leftHash, err := normalizedSQLiteFileSHA256(leftSnapshot)
 	if err != nil {
 		return false, err
 	}
-	rightHash, err := fileSHA256(rightSnapshot)
+	rightHash, err := normalizedSQLiteFileSHA256(rightSnapshot)
 	if err != nil {
 		return false, err
 	}
@@ -121,6 +156,14 @@ func SQLiteSnapshotsEquivalent(ctx context.Context, leftPath, rightPath, tempDir
 }
 
 func readOnlySQLiteDSN(path string) string {
+	return sqliteFileDSN(path, "ro")
+}
+
+func readWriteSQLiteDSN(path string) string {
+	return sqliteFileDSN(path, "rw")
+}
+
+func sqliteFileDSN(path, mode string) string {
 	absolute, err := filepath.Abs(path)
 	if err != nil {
 		absolute = path
@@ -131,16 +174,85 @@ func readOnlySQLiteDSN(path string) string {
 	}
 	location := &url.URL{Scheme: "file", Path: slashPath}
 	query := location.Query()
-	query.Set("mode", "ro")
+	query.Set("mode", mode)
 	query.Set("_foreign_keys", "on")
 	location.RawQuery = query.Encode()
 	return location.String()
+}
+
+func sqliteArtifactManifest(sourcePath string) ([]sqliteArtifactDigest, error) {
+	artifacts := []string{sourcePath, sourcePath + "-wal", sourcePath + "-shm"}
+	manifest := make([]sqliteArtifactDigest, 0, len(artifacts))
+	for _, path := range artifacts {
+		info, err := os.Stat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("SQLite artifact is not a regular file: %s", path)
+		}
+		digest, err := fileSHA256(path)
+		if err != nil {
+			return nil, err
+		}
+		manifest = append(manifest, sqliteArtifactDigest{name: filepath.Base(path), digest: digest})
+	}
+	if len(manifest) == 0 || manifest[0].name != filepath.Base(sourcePath) {
+		return nil, fmt.Errorf("snapshot source database does not exist: %s", sourcePath)
+	}
+	return manifest, nil
+}
+
+func artifactDigestExists(manifest []sqliteArtifactDigest, name string) bool {
+	return slices.ContainsFunc(manifest, func(artifact sqliteArtifactDigest) bool {
+		return artifact.name == name
+	})
+}
+
+func copySQLiteArtifact(sourcePath, targetPath string) error {
+	source, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = source.Close() }()
+	target, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	if _, err := io.Copy(target, source); err != nil {
+		_ = target.Close()
+		return err
+	}
+	if err := target.Sync(); err != nil {
+		_ = target.Close()
+		return err
+	}
+	return target.Close()
 }
 
 func fileSHA256(path string) ([sha256.Size]byte, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return [sha256.Size]byte{}, fmt.Errorf("read file for checksum: %w", err)
+	}
+	return sha256.Sum256(data), nil
+}
+
+func normalizedSQLiteFileSHA256(path string) ([sha256.Size]byte, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return [sha256.Size]byte{}, fmt.Errorf("read SQLite file for checksum: %w", err)
+	}
+	if len(data) < 100 || string(data[:16]) != "SQLite format 3\x00" {
+		return [sha256.Size]byte{}, fmt.Errorf("invalid SQLite header: %s", path)
+	}
+	// VACUUM INTO may advance these administrative counters even when schema and
+	// user data are unchanged. The schema b-tree and all content pages remain hashed.
+	for _, bounds := range [][2]int{{24, 28}, {40, 44}, {92, 96}} {
+		clear(data[bounds[0]:bounds[1]])
 	}
 	return sha256.Sum256(data), nil
 }

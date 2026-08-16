@@ -2,9 +2,12 @@ package infrastructure
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -63,6 +66,7 @@ func TestCreateSQLiteSnapshotFromPath(t *testing.T) {
 	if err = db.Close(); err != nil {
 		t.Fatalf("close source DB: %v", err)
 	}
+	sourceBefore := snapshotSourceDigest(t, sourceDir)
 
 	target := filepath.Join(t.TempDir(), "snapshot.db")
 	if err = CreateSQLiteSnapshotFromPath(
@@ -79,6 +83,50 @@ func TestCreateSQLiteSnapshotFromPath(t *testing.T) {
 	}
 	if value != "copied" {
 		t.Fatalf("snapshot value = %q, want copied", value)
+	}
+	sourceAfter := snapshotSourceDigest(t, sourceDir)
+	if !reflect.DeepEqual(sourceBefore, sourceAfter) {
+		t.Fatalf("snapshot changed source directory:\nbefore=%v\nafter=%v", sourceBefore, sourceAfter)
+	}
+}
+
+func TestCreateSQLiteSnapshotFromPathIncludesWALWithoutChangingSource(t *testing.T) {
+	sourceDir := t.TempDir()
+	db, err := OpenSQLite(sourceDir)
+	if err != nil {
+		t.Fatalf("OpenSQLite() error = %v", err)
+	}
+	defer func() { _ = db.Close() }()
+	if _, err = db.Exec(`PRAGMA wal_autocheckpoint=0`); err != nil {
+		t.Fatalf("disable auto checkpoint: %v", err)
+	}
+	if _, err = db.Exec(`CREATE TABLE source_wal_items(value TEXT NOT NULL)`); err != nil {
+		t.Fatalf("create WAL table: %v", err)
+	}
+	if _, err = db.Exec(`INSERT INTO source_wal_items(value) VALUES ('from-wal')`); err != nil {
+		t.Fatalf("insert WAL row: %v", err)
+	}
+	sourceBefore := snapshotSourceDigest(t, sourceDir)
+
+	target := filepath.Join(t.TempDir(), "snapshot.db")
+	if err = CreateSQLiteSnapshotFromPath(
+		context.Background(), filepath.Join(sourceDir, "railkeeper.db"), target,
+	); err != nil {
+		t.Fatalf("CreateSQLiteSnapshotFromPath() error = %v", err)
+	}
+
+	snapshot := openSnapshotTestDB(t, target)
+	defer func() { _ = snapshot.Close() }()
+	var value string
+	if err = snapshot.QueryRow(`SELECT value FROM source_wal_items`).Scan(&value); err != nil {
+		t.Fatalf("read WAL snapshot row: %v", err)
+	}
+	if value != "from-wal" {
+		t.Fatalf("WAL snapshot value = %q, want from-wal", value)
+	}
+	sourceAfter := snapshotSourceDigest(t, sourceDir)
+	if !reflect.DeepEqual(sourceBefore, sourceAfter) {
+		t.Fatalf("WAL snapshot changed source directory:\nbefore=%v\nafter=%v", sourceBefore, sourceAfter)
 	}
 }
 
@@ -145,6 +193,22 @@ func TestSQLiteSnapshotsEquivalentComparesLogicalContent(t *testing.T) {
 	}
 }
 
+func TestSQLiteSnapshotsEquivalentAcceptsDatabaseAndItsSnapshot(t *testing.T) {
+	source := createEquivalentSnapshotDB(t, "same")
+	snapshot := filepath.Join(t.TempDir(), "snapshot.db")
+	if err := CreateSQLiteSnapshotFromPath(context.Background(), source, snapshot); err != nil {
+		t.Fatalf("CreateSQLiteSnapshotFromPath() error = %v", err)
+	}
+
+	equivalent, err := SQLiteSnapshotsEquivalent(context.Background(), source, snapshot, t.TempDir())
+	if err != nil {
+		t.Fatalf("SQLiteSnapshotsEquivalent() error = %v", err)
+	}
+	if !equivalent {
+		t.Fatal("expected database and its snapshot to be equivalent")
+	}
+}
+
 func createEquivalentSnapshotDB(t *testing.T, value string) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -177,4 +241,24 @@ func openSnapshotTestDB(t *testing.T, path string) *sql.DB {
 		t.Fatalf("ping snapshot DB: %v", err)
 	}
 	return db
+}
+
+func snapshotSourceDigest(t *testing.T, root string) map[string]string {
+	t.Helper()
+	digest := map[string]string{}
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatalf("read snapshot source directory: %v", err)
+	}
+	for _, entry := range entries {
+		if !entry.Type().IsRegular() {
+			continue
+		}
+		content, readErr := os.ReadFile(filepath.Join(root, entry.Name()))
+		if readErr != nil {
+			t.Fatalf("read snapshot source file %s: %v", entry.Name(), readErr)
+		}
+		digest[entry.Name()] = fmt.Sprintf("%x", sha256.Sum256(content))
+	}
+	return digest
 }
