@@ -11,15 +11,15 @@
 
 ## Active slice
 
-Write, self-review, and commit the complete design specification and continuity records.
+Obtain the execution-method selection for the committed implementation plan.
 
 ## Todo map
 
 - [x] Determine the next coverage topic.
 - [x] Audit stable frontend, backend, routes, translations, storage, and backup boundaries.
 - [x] Present alternatives and obtain design approval.
-- [ ] Commit and obtain user review of the written specification.
-- [ ] Write and commit the detailed implementation plan.
+- [x] Commit and obtain user review of the written specification.
+- [x] Write and commit the detailed implementation plan.
 - [ ] Implement coverage, paired pages, navigation, and cross-links.
 - [ ] Verify, independently review, correct, and re-review.
 - [ ] Push, open PR, await exact-head checks, merge, and verify publication.
@@ -34,12 +34,12 @@ Write, self-review, and commit the complete design specification and continuity 
 
 ## Blocked on
 
-Nothing for the active slice. User review is the next required gate after the spec commit.
+User selection between subagent-driven and inline execution.
 
 ## Resume state hint
 
-Read `10-intent.md`, this checkpoint, the committed design specification, and current worktree
-status. Do not resume from the dirty local `main` checkout.
+Read `10-intent.md`, this checkpoint, the committed design specification, the implementation plan,
+and current worktree status. Do not resume from the dirty local `main` checkout.
 
 ## Drift check draft
 
@@ -47,5 +47,7 @@ status. Do not resume from the dirty local `main` checkout.
 - Scope fence respected: yes.
 - Stable compatibility boundary respected: yes.
 - New runtime owner or adapter introduced: no.
-- Evidence sufficient for next step: yes.
-- Decision: continue.
+- Plan covers every approved workflow, persistence boundary, recovery case, role, coverage change,
+  navigation change, source audit, review gate, and exact-head publication gate: yes.
+- Evidence sufficient for execution selection: yes.
+- Decision: await execution selection.

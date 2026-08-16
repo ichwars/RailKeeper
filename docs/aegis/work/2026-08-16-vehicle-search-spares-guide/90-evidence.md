@@ -26,4 +26,6 @@
 
 ## Review state
 
-Design discussion approved. Written spec self-review and user review remain pending.
+Design discussion, written-spec self-review, and written-spec user review completed. The detailed
+implementation plan passed a spec-coverage, placeholder, type/name, line-hygiene, and scope review.
+`npm.cmd run check` passed again with 19 tests, coverage validation, and the VitePress build.
