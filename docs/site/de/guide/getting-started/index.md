@@ -3,7 +3,7 @@ title: Ersteinrichtung und Anmeldung
 description: Ersten Administrator anlegen, sicher anmelden und den Zugang zu RailKeeper wiederherstellen.
 audience: user
 status: stable
-reviewedVersion: 0.1.17.6
+reviewedVersion: 0.1.18
 lastReviewed: 2026-08-16
 ---
 
@@ -11,7 +11,7 @@ lastReviewed: 2026-08-16
 
 Dieses Kapitel erklärt das erste Administratorkonto, die normale Anmeldung und Anmeldung mit
 Zwei-Faktor-Code, die Abmeldung sowie die Passwort-Wiederherstellung. Es beschreibt den stabilen
-RailKeeper-Stand v0.1.17.6.
+RailKeeper-Stand v0.1.18.
 
 ## Voraussetzungen
 
@@ -77,7 +77,7 @@ Die Passwort-Wiederherstellung verwendet die für das Konto gespeicherte E-Mail-
 6. Setze das Passwort, kehre zur Anmeldung zurück und verwende die neuen Zugangsdaten.
 
 Die im Anmeldeformular angezeigte Bestätigung ist für bekannte und unbekannte Adressen absichtlich
-identisch. Die HTTP-Antwort von v0.1.17.6 enthält jedoch nur bei einem bekannten Konto den Wert
+identisch. Die HTTP-Antwort von v0.1.18 enthält jedoch nur bei einem bekannten Konto den Wert
 `expiresAt`. API-Clients oder Personen, die Netzwerkantworten untersuchen, können daraus ableiten,
 ob ein Konto existiert. Betreiber müssen dies als bekannte Einschränkung beim Schutz vor
 Kontenermittlung in dieser Version behandeln.
@@ -111,7 +111,7 @@ Reset-Bestätigungen auf zehn innerhalb von zehn Minuten.
   Administrator-Zugangsdaten.
 - Verwende HTTPS und sichere Cookies, wenn die Instanz über ein Netzwerk erreichbar ist. Die
   Betriebsanforderungen stehen unter [Installation und Administration](/de/administration/).
-- Die allgemeine Formularmeldung bietet in v0.1.17.6 keinen vollständigen Schutz vor
+- Die allgemeine Formularmeldung bietet in v0.1.18 keinen vollständigen Schutz vor
   Kontenermittlung, weil sich die HTTP-Antwort für bekannte Konten unterscheidet. Begrenze den
   Netzwerkzugriff, überwache wiederholte Reset-Anfragen und installiere eine Version mit korrigiertem
   Verhalten, sobald sie verfügbar ist.
@@ -125,5 +125,5 @@ Reset-Bestätigungen auf zehn innerhalb von zehn Minuten.
 
 ## Dokumentierter RailKeeper-Stand
 
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.17.6** und wurde zuletzt am
+Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.18** und wurde zuletzt am
 2026-08-16 mit der Anwendung abgeglichen.

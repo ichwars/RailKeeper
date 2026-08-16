@@ -139,7 +139,7 @@ The SQLite database, uploads and local files stay in the `railkeeper_data` Docke
 To pin a specific release instead of `latest`, set this in `.env`:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.17.6
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.18
 ```
 
 If you intentionally want to build the checked-out source tree, use:
