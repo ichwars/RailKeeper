@@ -223,6 +223,7 @@ rückgängig machen. Prüfen Sie vorher eine aktuelle Sicherung.
 
 ## Verwandte Seiten
 
+- [Überblick zum Benutzerhandbuch](/de/guide/)
 - [Zubehörübersicht](./)
 - [Bestand, Einkäufe und Dokumente](./stock-purchases-documents)
 - [Zuordnungen und Nutzungsverlauf](./allocations-history)

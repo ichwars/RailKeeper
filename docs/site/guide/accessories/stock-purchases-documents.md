@@ -230,6 +230,7 @@ Reload before attempting to delete again.
 
 ## Related pages
 
+- [User Guide overview](/guide/)
 - [Accessories overview](./)
 - [Article records and technical data](./article-records)
 - [Reservations, installations, and usage](./allocations-history)

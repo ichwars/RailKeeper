@@ -287,6 +287,8 @@ have been stored.
 ## Related pages
 
 - [User Guide overview](/guide/)
+- [Accessories overview](/guide/accessories/), for accessory articles and stock kept separately
+  from vehicle-specific spare-part records
 - [Vehicle inventory and basic data](/guide/vehicles/)
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)

@@ -307,6 +307,8 @@ was bereits geschrieben worden sein kann.
 ## Verwandte Seiten
 
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
+- [Zubehörübersicht](/de/guide/accessories/) für Zubehörartikel und -bestand, getrennt von
+  fahrzeugspezifischen Ersatzteildatensätzen
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)

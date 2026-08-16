@@ -242,6 +242,7 @@ bereits aus der Liste entfernten Eintrag folgen. Laden Sie neu, bevor Sie erneut
 
 ## Verwandte Seiten
 
+- [Überblick zum Benutzerhandbuch](/de/guide/)
 - [Zubehörübersicht](./)
 - [Artikelstammdaten und Fachangaben](./article-records)
 - [Reservierungen, Einbauten und Verwendung](./allocations-history)

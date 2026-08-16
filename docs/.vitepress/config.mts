@@ -56,6 +56,15 @@ export default defineConfig({
                 },
               ],
             },
+            {
+              text: "Zubehör",
+              items: [
+                { text: "Zubehörübersicht", link: "/de/guide/accessories/" },
+                { text: "Artikelstammdaten und Fachangaben", link: "/de/guide/accessories/article-records" },
+                { text: "Bestand, Käufe und Dokumente", link: "/de/guide/accessories/stock-purchases-documents" },
+                { text: "Reservierungen, Einbauten und Verwendung", link: "/de/guide/accessories/allocations-history" },
+              ],
+            },
           ],
           "/de/administration/": [
             {
@@ -129,6 +138,15 @@ export default defineConfig({
               text: "Article search, web documents, and spare parts",
               link: "/guide/vehicles/search-and-spares",
             },
+          ],
+        },
+        {
+          text: "Accessories",
+          items: [
+            { text: "Accessories overview", link: "/guide/accessories/" },
+            { text: "Article records and technical data", link: "/guide/accessories/article-records" },
+            { text: "Stock, purchases, and documents", link: "/guide/accessories/stock-purchases-documents" },
+            { text: "Reservations, installations, and usage", link: "/guide/accessories/allocations-history" },
           ],
         },
       ],

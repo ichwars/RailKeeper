@@ -190,6 +190,7 @@ availability or lifecycle state.
 
 ## Related pages
 
+- [User Guide overview](/guide/)
 - [Accessories overview](./)
 - [Article records and technical data](./article-records)
 - [Stock, purchases, and documents](./stock-purchases-documents)

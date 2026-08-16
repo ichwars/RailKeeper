@@ -208,6 +208,7 @@ unreferenced stored blobs. Deletion has no undo, so validate a current backup fi
 
 ## Related pages
 
+- [User Guide overview](/guide/)
 - [Accessories overview](./)
 - [Stock, purchases, and documents](./stock-purchases-documents)
 - [Allocations and usage history](./allocations-history)

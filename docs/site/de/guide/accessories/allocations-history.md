@@ -194,6 +194,7 @@ verwendet kein zweiter Befehl einen alten Verfügbarkeits- oder Lebenszyklusstan
 
 ## Verwandte Seiten
 
+- [Überblick zum Benutzerhandbuch](/de/guide/)
 - [Zubehörübersicht](./)
 - [Artikelstammdaten und Fachangaben](./article-records)
 - [Bestand, Käufe und Dokumente](./stock-purchases-documents)
