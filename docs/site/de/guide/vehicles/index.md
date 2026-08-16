@@ -156,6 +156,7 @@ Artikeldatensuche.
 | Bahngesellschaft, Epoche | Optionale konfigurierte Stammdaten. |
 | Kategorie, Gattung | Beide sind Pflichtfelder. Die verfügbaren Gattungen hängen von der Kategorie ab. |
 | Beschreibung, Baureihe, Fahrzeug-Nr. | Optionale freie Modellbeschreibung und Vorbildidentität. |
+| Höchstgeschwindigkeit, Heimat-Bw / Einsatzstelle | Optionale Vorbild- und Betriebsdaten. Die Höchstgeschwindigkeit akzeptiert ganze Werte von 1 bis 1000 km/h; die Einsatzstelle ist Freitext. |
 | EAN, Produktionszeit, Listenpreis | Optionale Handelsdaten. Produktionszeit und Listenpreis werden als bereinigter Text gespeichert. Die Übersicht wertet parsebare Listenpreise aus. |
 | Digital, Digital / Decoder-Nr. | Der Schalter aktiviert die primäre digitale Decodernummer. Der Ausstellungsschalter prüft diese primäre Nummer. |
 | DT / Decoder, DT / Decoder-Nr., Decoder-Typ | Optionaler zweiter Decoderschalter mit Nummer und Beschreibung. |
