@@ -101,6 +101,8 @@ func main() {
 		os.Exit(1)
 	}
 
+	databasePath := filepath.Join(dataDir, "railkeeper.db")
+	databaseExisted := exists(databasePath)
 	db, err := infrastructure.OpenSQLite(dataDir)
 	if err != nil {
 		logger.Error("database open failed", "error", err)
@@ -108,9 +110,19 @@ func main() {
 	}
 	defer func() { _ = db.Close() }()
 
-	if err = infrastructure.Migrate(db, migrationsDir); err != nil {
+	migrationResult, err := infrastructure.MigrateSafely(
+		context.Background(),
+		db,
+		dataDir,
+		migrationsDir,
+		infrastructure.MigrationSafetyOptions{DatabaseExisted: databaseExisted},
+	)
+	if err != nil {
 		logger.Error("database migration failed", "error", err)
 		os.Exit(1)
+	}
+	if migrationResult.BackupPath != "" {
+		logger.Info("database migration safety copy created", "path", migrationResult.BackupPath)
 	}
 	if err = infrastructure.SeedRoles(db); err != nil {
 		logger.Error("role seed failed", "error", err)
