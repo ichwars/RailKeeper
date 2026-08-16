@@ -9,9 +9,7 @@ import (
 
 func parseMoneyCents(value string) (int64, bool) {
 	value = strings.TrimSpace(value)
-	if strings.HasPrefix(value, "+") {
-		value = strings.TrimPrefix(value, "+")
-	}
+	value = strings.TrimPrefix(value, "+")
 	if value == "" {
 		return 0, false
 	}

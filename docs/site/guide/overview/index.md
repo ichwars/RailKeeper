@@ -22,26 +22,36 @@ dashboard and filtered results, but must ask an Admin or Editor to correct missi
 ## Open and refresh the overview
 
 Select **Overview** in the sidebar. RailKeeper loads the vehicles available to the current session
-and calculates the dashboard values in the browser. The overview is therefore a current summary of
-vehicle data, not a separately stored server report.
+and requests the current vehicle and accessory valuation totals from the server. The overview is a
+current summary of stored inventory data, not a separately stored report.
 
 Use the refresh icon in the page header after changing vehicle or maintenance data in another
-view. The control is disabled while data is loading. If loading fails, RailKeeper shows the error
-above the dashboard. Previously loaded values remain visible when available, so check the error
-before relying on them.
+view. The control is disabled while data is loading. If vehicle loading fails, RailKeeper shows the
+error above the dashboard. If only the valuation request fails, the other metrics remain available
+and the valuation area shows its own error. Previously loaded vehicle values remain visible when
+available, so check the error before relying on them.
 
 The Import/Export icon in the same header opens **Import/Export**.
 
-## Read the four summary metrics
+## Read the four summary areas
 
 | Metric | Meaning |
 | --- | --- |
 | **Total inventory** | Number of vehicles. The line below reports how many category and gauge groups occur among the five most frequent values in each list. Missing values form the **No category** and **No gauge** groups. It is not a count of every distinct value when more than five exist. |
 | **Digitalization** | Digital vehicles divided by all vehicles, rounded to a whole percentage. The detail line shows the digital and analog counts. |
-| **Recorded list value** | Sum of parseable, maintained vehicle list prices. RailKeeper accepts common comma and point number formats and displays the euro total rounded to whole euros. Missing or unparseable prices contribute zero. This is not a market-value estimate. |
+| **Recorded inventory values** | Four cent-exact euro totals: vehicle list value, vehicle purchase price, accessory list value, and accessory purchase costs. The values are kept separate rather than combined into one total. |
 | **Maintenance** | Number of incomplete maintenance entries whose due date is today or earlier. The detail line separately shows incomplete entries due in the next 30 days and all incomplete entries, including entries without a due date. |
 
-With no vehicles, inventory and value are zero and percentage metrics show 0%.
+Vehicle totals add the maintained list and purchase prices once per vehicle. Accessory list value
+multiplies each maintained unit list price by the currently owned quantity. Accessory purchase costs
+use recorded euro purchase quantities and unit prices and also include manually maintained purchase
+prices for individual assets that are not linked to a purchase. Purchases explicitly recorded in a
+foreign currency are excluded and reported below the values.
+
+RailKeeper accepts common comma and point number formats. Missing or unparseable prices contribute
+zero. These totals describe recorded acquisition data and are not market-value estimates. With no
+vehicles, vehicle inventory, vehicle values, and percentage metrics are zero; accessory values can
+still be present.
 
 ## Use the dashboard widgets
 
@@ -179,6 +189,7 @@ shared with other browsers or saved as account-wide dashboard settings.
 | No major data gaps | A confirmation in **Action needed** | Continue with maintenance or other inventory details |
 | All widgets hidden | **Dashboard empty** with **Reset layout** | Reset the layout to restore all widgets |
 | Vehicle loading fails | Error text above the dashboard | Check the connection and session, then refresh again |
+| Valuation loading fails | Error text in **Recorded inventory values** while the other metrics remain available | Check the connection and session, then refresh again |
 
 ## Related pages
 

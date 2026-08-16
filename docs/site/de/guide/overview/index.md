@@ -25,26 +25,39 @@ oder Editor korrigieren lassen.
 ## Übersicht öffnen und aktualisieren
 
 Wähle **Übersicht** in der Seitenleiste. RailKeeper lädt die für die aktuelle Sitzung verfügbaren
-Fahrzeuge und berechnet die Dashboard-Werte im Browser. Die Übersicht ist damit eine aktuelle
-Zusammenfassung der Fahrzeugdaten und kein separat gespeicherter Serverbericht.
+Fahrzeuge und ruft die aktuellen Wert-Summen für Fahrzeuge und Zubehör vom Server ab. Die Übersicht
+ist eine aktuelle Zusammenfassung der gespeicherten Bestandsdaten und kein separat gespeicherter
+Bericht.
 
 Verwende das Aktualisieren-Symbol im Seitenkopf, nachdem Fahrzeug- oder Wartungsdaten in einem
 anderen Bereich geändert wurden. Während des Ladens ist die Schaltfläche deaktiviert. Schlägt das
-Laden fehl, zeigt RailKeeper den Fehler oberhalb des Dashboards. Zuvor geladene Werte bleiben, wenn
-vorhanden, sichtbar. Prüfe deshalb den Fehler, bevor du dich auf diese Werte verlässt.
+Laden der Fahrzeuge fehl, zeigt RailKeeper den Fehler oberhalb des Dashboards. Schlägt nur die
+Wertabfrage fehl, bleiben die übrigen Kennzahlen verfügbar und der Wertebereich zeigt einen eigenen
+Fehler. Zuvor geladene Fahrzeugwerte bleiben, wenn vorhanden, sichtbar. Prüfe deshalb den Fehler,
+bevor du dich auf diese Werte verlässt.
 
 Das Import/Export-Symbol im selben Seitenkopf öffnet **Import/Export**.
 
-## Die vier Hauptkennzahlen lesen
+## Die vier Kennzahlenbereiche lesen
 
 | Kennzahl | Bedeutung |
 | --- | --- |
 | **Gesamtbestand** | Anzahl der Fahrzeuge. Die Zeile darunter meldet, wie viele Kategorie- und Spurweitengruppen in den jeweils fünf häufigsten Werten vorkommen. Fehlende Angaben bilden die Gruppen **Ohne Kategorie** und **Ohne Spur**. Bei mehr als fünf Werten ist dies nicht die Anzahl aller unterschiedlichen Werte. |
 | **Digitalisierung** | Digitale Fahrzeuge geteilt durch alle Fahrzeuge, auf ganze Prozent gerundet. Die Detailzeile zeigt die Anzahl digitaler und analoger Fahrzeuge. |
-| **Erfasster Listenwert** | Summe der auswertbaren, gepflegten Fahrzeug-Listenpreise. RailKeeper verarbeitet übliche Zahlenformate mit Komma oder Punkt und zeigt die Euro-Summe auf ganze Euro gerundet. Fehlende oder nicht auswertbare Preise zählen als null. Die Kennzahl ist keine Marktwertschätzung. |
+| **Erfasste Bestandswerte** | Vier centgenaue Euro-Summen: Listenwert der Fahrzeuge, Kaufpreis der Fahrzeuge, Listenwert des Zubehörs und Kaufkosten des Zubehörs. Die Werte bleiben getrennt und werden nicht zu einer Gesamtsumme vermischt. |
 | **Wartung** | Anzahl nicht erledigter Wartungseinträge, deren Fälligkeitsdatum heute oder früher liegt. Die Detailzeile zeigt getrennt die in den nächsten 30 Tagen fälligen und alle offenen Einträge, einschließlich Einträgen ohne Fälligkeitsdatum. |
 
-Ohne Fahrzeuge sind Bestand und Wert null, Prozentkennzahlen werden mit 0 % angezeigt.
+Die Fahrzeugwerte addieren den gepflegten Listen- und Kaufpreis einmal je Fahrzeug. Beim
+Zubehör-Listenwert wird der gepflegte Einzel-Listenpreis mit der aktuell vorhandenen Menge
+multipliziert. Die Zubehör-Kaufkosten verwenden erfasste Euro-Einkäufe mit Menge und Einzelpreis.
+Zusätzlich zählen manuell gepflegte Kaufpreise einzelner Zubehör-Exemplare, die keinem Einkauf
+zugeordnet sind. Ausdrücklich in Fremdwährung erfasste Einkäufe werden nicht eingerechnet und unter
+den Werten als Hinweis ausgewiesen.
+
+RailKeeper verarbeitet übliche Zahlenformate mit Komma oder Punkt. Fehlende oder nicht auswertbare
+Preise zählen als null. Die Summen beschreiben erfasste Anschaffungsdaten und sind keine
+Marktwertschätzung. Ohne Fahrzeuge sind Fahrzeugbestand, Fahrzeugwerte und Prozentkennzahlen null;
+Zubehörwerte können weiterhin vorhanden sein.
 
 ## Dashboard-Kacheln verwenden
 
@@ -188,6 +201,7 @@ gespeichert.
 | Keine größeren Datenlücken | Bestätigung unter **Handlungsbedarf** | Mit Wartung oder weiteren Bestandsangaben fortfahren |
 | Alle Kacheln ausgeblendet | **Dashboard leer** mit **Layout zurücksetzen** | Layout zurücksetzen, um alle Kacheln wiederherzustellen |
 | Laden der Fahrzeuge fehlgeschlagen | Fehlertext oberhalb des Dashboards | Verbindung und Sitzung prüfen, danach erneut aktualisieren |
+| Laden der Bestandswerte fehlgeschlagen | Fehlertext unter **Erfasste Bestandswerte**, die übrigen Kennzahlen bleiben verfügbar | Verbindung und Sitzung prüfen, danach erneut aktualisieren |
 
 ## Verwandte Seiten
 
