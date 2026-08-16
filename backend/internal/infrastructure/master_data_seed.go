@@ -16,6 +16,16 @@ type masterDataSeed struct {
 	Relations []seedRelation `json:"relations"`
 }
 
+type bundledMasterDataManifest struct {
+	Version int                    `json:"version"`
+	Entries []bundledMasterDataKey `json:"entries"`
+}
+
+type bundledMasterDataKey struct {
+	Type string `json:"type"`
+	Key  string `json:"key"`
+}
+
 type seedEntry struct {
 	ID        string         `json:"id"`
 	Type      string         `json:"type"`
@@ -55,6 +65,24 @@ func SeedMasterData(db *sql.DB, seedsDir string) error {
 		return fmt.Errorf("parse master data seed: %w", err)
 	}
 
+	manifestPath := filepath.Join(seedsDir, "bundled_master_data_manifest.json")
+	manifestBody, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return fmt.Errorf("read bundled master data manifest: %w", err)
+	}
+	var manifest bundledMasterDataManifest
+	if err := json.Unmarshal(manifestBody, &manifest); err != nil {
+		return fmt.Errorf("parse bundled master data manifest: %w", err)
+	}
+	if manifest.Version != 1 {
+		return fmt.Errorf("unsupported bundled master data manifest version %d", manifest.Version)
+	}
+	for index, item := range manifest.Entries {
+		if item.Type == "" || item.Key == "" {
+			return fmt.Errorf("invalid bundled master data manifest entry %d", index)
+		}
+	}
+
 	now := time.Now().UTC().Format(time.RFC3339)
 	ctx := context.Background()
 	tx, err := db.BeginTx(ctx, nil)
@@ -73,11 +101,23 @@ func SeedMasterData(db *sql.DB, seedsDir string) error {
 			return fmt.Errorf("marshal metadata for %s: %w", item.ID, err)
 		}
 		if _, err = tx.ExecContext(ctx, `
-INSERT INTO master_data_entries(id, type, key, label, active, sort_order, source_url, metadata_json, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-ON CONFLICT(type, key) DO NOTHING
-`, item.ID, item.Type, item.Key, item.Label, boolToInt(item.Active), item.SortOrder, item.SourceURL, string(metadata), now, now); err != nil {
+INSERT INTO master_data_entries(
+  id, type, key, label, active, sort_order, source_url, metadata_json,
+  created_at, updated_at, origin
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bundled')
+ON CONFLICT(type, key) DO UPDATE SET origin='bundled'
+`, item.ID, item.Type, item.Key, item.Label, boolToInt(item.Active), item.SortOrder,
+			item.SourceURL, string(metadata), now, now); err != nil {
 			return fmt.Errorf("seed master data %s: %w", item.ID, err)
+		}
+	}
+
+	for _, item := range manifest.Entries {
+		if _, err = tx.ExecContext(ctx, `
+UPDATE master_data_entries SET origin='bundled' WHERE type=? AND key=?
+`, item.Type, item.Key); err != nil {
+			return fmt.Errorf("reconcile bundled master data %s/%s: %w", item.Type, item.Key, err)
 		}
 	}
 
