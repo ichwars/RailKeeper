@@ -45,6 +45,7 @@ export default defineConfig({
               items: [
                 { text: "Überblick", link: "/de/guide/" },
                 { text: "Erste Schritte", link: "/de/guide/getting-started/" },
+                { text: "Dashboard und Datenqualität", link: "/de/guide/overview/" },
               ],
             },
           ],
@@ -111,6 +112,7 @@ export default defineConfig({
           items: [
             { text: "Overview", link: "/guide/" },
             { text: "Getting started", link: "/guide/getting-started/" },
+            { text: "Dashboard and data quality", link: "/guide/overview/" },
           ],
         },
       ],

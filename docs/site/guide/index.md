@@ -20,3 +20,6 @@ development and is therefore not presented as a stable user feature.
 
 [First setup and sign-in](/guide/getting-started/) explains how to create the first administrator,
 sign in and out, complete a two-factor sign-in, and recover a forgotten password.
+
+Continue with [Overview, metrics, and data quality](/guide/overview/) to understand the dashboard,
+follow inventory gaps into filtered vehicle lists, and arrange its widgets.

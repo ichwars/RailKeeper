@@ -11,7 +11,7 @@
     {
       "id": "overview",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/overview/index.md",
       "germanPath": "de/guide/overview/index.md"
     },
