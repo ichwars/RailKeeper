@@ -15,7 +15,9 @@ function canonicalMoney(integer: string, fraction = ""): string {
 }
 
 export function normalizeAccessoryMoney(value: string): string | undefined {
-  const trimmed = value.trim();
+  const source = value.trim();
+  const trimmed = source.replace(/^\+/, "");
+  if (source && !trimmed) return undefined;
   if (!trimmed) return "";
   if (!/^[\d.,]+$/.test(trimmed) || /^[.,]|[.,]$/.test(trimmed)) return undefined;
 

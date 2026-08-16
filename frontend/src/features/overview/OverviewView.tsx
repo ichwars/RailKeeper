@@ -136,7 +136,7 @@ export function OverviewView() {
   const [hiddenWidgets, setHiddenWidgets] = useState<OverviewWidgetID[]>(readHiddenWidgets);
   const [widgetOrder, setWidgetOrder] = useState<OverviewWidgetID[]>(readWidgetOrder);
 
-  const loadOverview = useCallback(() => {
+  const loadVehicles = useCallback(() => {
     setLoading(true);
     setMessage("");
     api
@@ -144,6 +144,9 @@ export function OverviewView() {
       .then(setVehicles)
       .catch((error: Error) => setMessage(error.message))
       .finally(() => setLoading(false));
+  }, []);
+
+  const loadValuation = useCallback(() => {
     setValuationLoading(true);
     setValuationError("");
     const requestId = valuationRequestId.current + 1;
@@ -164,8 +167,17 @@ export function OverviewView() {
   }, [language]);
 
   useEffect(() => {
-    loadOverview();
-  }, [loadOverview]);
+    loadVehicles();
+  }, [loadVehicles]);
+
+  useEffect(() => {
+    loadValuation();
+  }, [loadValuation]);
+
+  const refreshOverview = () => {
+    loadVehicles();
+    loadValuation();
+  };
 
   const hideWidget = (widget: OverviewWidgetID) => {
     setHiddenWidgets((current) => {
@@ -277,7 +289,7 @@ export function OverviewView() {
           <p>{t("overview.subtitle")}</p>
         </div>
         <div className="overview-actions" aria-label={t("overview.tools")}>
-          <button type="button" className="icon-button" onClick={loadOverview}
+          <button type="button" className="icon-button" onClick={refreshOverview}
             disabled={loading || valuationLoading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
             <RefreshCw size={15} aria-hidden="true" />
           </button>

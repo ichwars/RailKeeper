@@ -64,6 +64,17 @@ describe("OverviewView valuation", () => {
     expect(screen.getByText("€100.00")).toBeInTheDocument();
   });
 
+  it("does not refetch language-independent vehicles after the language changes", async () => {
+    render(<OverviewView />);
+    await waitFor(() => expect(api.vehicles).toHaveBeenCalledOnce());
+
+    act(() => setLanguage("en"));
+
+    await screen.findByRole("heading", { name: "Recorded inventory values" });
+    expect(api.vehicles).toHaveBeenCalledOnce();
+    expect(api.overviewValuation).toHaveBeenCalledTimes(2);
+  });
+
   it("defines responsive two-column and one-column valuation layouts without overflow", () => {
     const responsive = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
     const overview = readFileSync(resolve(process.cwd(), "src/styles/overview.css"), "utf8");
