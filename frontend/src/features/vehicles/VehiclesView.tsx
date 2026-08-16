@@ -15,6 +15,7 @@ import {
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import { vehicleSetInputFromForm, type VehicleSetMemberDraft } from "./VehicleCreateWizard";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
@@ -672,6 +673,36 @@ export function VehiclesView({ username }: { username: string }) {
     onMessage: setMessage,
     t
   });
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[]) => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const created = await api.createVehicleSet({
+        set: vehicleSetInputFromForm(form),
+        members: members.map((member, index) => ({
+          ...form,
+          inventoryNumber: member.inventoryNumber,
+          name: member.name.trim() || `${form.name} (${index + 1})`,
+          vehicleNumber: member.vehicleNumber,
+          images: []
+        }))
+      });
+      const firstMember = created.members[0];
+      if (firstMember) {
+        setSelectedDetail(firstMember);
+        setMode("edit");
+        setActiveTab("model");
+      } else {
+        closeModal();
+      }
+      await load();
+      setMessage(t("vehicles.wizard.created", { count: created.members.length }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -777,6 +808,7 @@ export function VehiclesView({ username }: { username: string }) {
           saving={saving}
           message={message}
           onSubmit={submit}
+          onSubmitSet={submitVehicleSet}
           onClose={closeModal}
           onTabChange={setActiveTab}
           onEdit={() => {

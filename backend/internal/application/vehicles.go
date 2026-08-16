@@ -36,6 +36,10 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	       COALESCE(traction_tire_count, ''), COALESCE(wheelset, ''), COALESCE(coupling_front, ''),
 	       COALESCE(coupling_rear, ''), COALESCE(power_pickup, ''), COALESCE(adapter, ''),
 	       drive_enabled, headlights_enabled, lighting_enabled, sound_generator_enabled, smoke_generator_enabled,
+	       COALESCE((SELECT m.vehicle_set_id FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.name FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT m.position FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), 0),
+	       COALESCE((SELECT COUNT(*) FROM vehicle_set_members m WHERE m.vehicle_set_id=(SELECT own.vehicle_set_id FROM vehicle_set_members own WHERE own.vehicle_id=vehicles.id)), 0),
 	       created_at, updated_at
 	FROM vehicles
 	WHERE ? = '%%'
@@ -48,8 +52,15 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	   OR decoder_type LIKE ? COLLATE NOCASE
 	   OR home_base LIKE ? COLLATE NOCASE
 	   OR CAST(maximum_speed_kmh AS TEXT) LIKE ? COLLATE NOCASE
+	   OR EXISTS (
+	     SELECT 1
+	     FROM vehicle_set_members m
+	     JOIN vehicle_sets s ON s.id=m.vehicle_set_id
+	     WHERE m.vehicle_id=vehicles.id
+	       AND (s.name LIKE ? COLLATE NOCASE OR s.article_number LIKE ? COLLATE NOCASE)
+	   )
 	ORDER BY updated_at DESC, inventory_number ASC
-	`, like, like, like, like, like, like, like, like, like, like)
+	`, like, like, like, like, like, like, like, like, like, like, like, like)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicles: %w", err)
 	}
@@ -123,6 +134,10 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 			&lightingEnabled,
 			&soundGeneratorEnabled,
 			&smokeGeneratorEnabled,
+			&vehicle.VehicleSetID,
+			&vehicle.VehicleSetName,
+			&vehicle.VehicleSetPosition,
+			&vehicle.VehicleSetSize,
 			&vehicle.CreatedAt,
 			&vehicle.UpdatedAt,
 		); err != nil {

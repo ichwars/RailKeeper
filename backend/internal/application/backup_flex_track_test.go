@@ -31,8 +31,8 @@ INSERT INTO plan_track_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 16 {
-		t.Fatalf("expected version 16 export, got %d", backup.Version)
+	if backup.Version != 17 {
+		t.Fatalf("expected version 17 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_flex_radius_mm=NULL WHERE id='layout-1';

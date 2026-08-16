@@ -137,6 +137,99 @@
   overflow: visible;
 }
 
+.vehicle-inventory-table .vehicle-set-group-row td {
+  max-width: none;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-bottom: 1px solid var(--line);
+  padding: 0;
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel-subtle));
+}
+
+.vehicle-set-group-row td > button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  padding: 7px 12px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.vehicle-set-group-row td > button:hover {
+  color: var(--accent);
+}
+
+.vehicle-set-group-row strong {
+  font-size: var(--font-size-sm);
+}
+
+.vehicle-set-group-row span,
+.vehicle-set-group-row small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.vehicle-set-group-row small {
+  margin-left: auto;
+}
+
+.vehicle-inventory-table .vehicle-set-child-row td:first-child {
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.vehicle-inventory-table .vehicle-set-child-row .inventory-name-link {
+  padding-left: 9px;
+}
+
+.vehicle-mobile-set {
+  overflow: visible;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+
+.vehicle-mobile-set-head {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 20px;
+  gap: 9px;
+  align-items: center;
+  width: 100%;
+  min-height: 54px;
+  border: 0;
+  padding: 9px 11px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.vehicle-mobile-set-head > span {
+  display: grid;
+  gap: 2px;
+}
+
+.vehicle-mobile-set-head small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.vehicle-mobile-set-members {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 8px;
+}
+
+.vehicle-mobile-set-members .vehicle-mobile-item {
+  border-left: 3px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
 .vehicle-mobile-item {
   position: relative;
   display: block;

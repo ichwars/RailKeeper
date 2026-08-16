@@ -89,7 +89,8 @@ export function VehicleModelTab({
   onOpenQr,
   canOpenQr,
   onUpdateCouplingFront,
-  onUpdateCouplingSame
+  onUpdateCouplingSame,
+  hideInventoryNumber = false
 }: {
   form: CreateVehicleRequest;
   externalMappings: VehicleExternalMapping[];
@@ -111,6 +112,7 @@ export function VehicleModelTab({
   canOpenQr: boolean;
   onUpdateCouplingFront: (couplingFront: string) => void;
   onUpdateCouplingSame: (couplingSame: boolean) => void;
+  hideInventoryNumber?: boolean;
 }) {
   const { t } = useI18n();
   const externalMapping = externalMappings.find((mapping) => compactValue(mapping.externalId)) || externalMappings[0];
@@ -181,10 +183,12 @@ export function VehicleModelTab({
             )}
 
             <div className="form-row">
-              <label>
-                {t("vehicle.field.inventoryNumber")}
-                <input value={form.inventoryNumber || ""} onChange={(event) => onUpdate({ inventoryNumber: event.target.value })} disabled={readonly} placeholder={t("vehicles.inventoryNumberAuto")} />
-              </label>
+              {!hideInventoryNumber && (
+                <label>
+                  {t("vehicle.field.inventoryNumber")}
+                  <input value={form.inventoryNumber || ""} onChange={(event) => onUpdate({ inventoryNumber: event.target.value })} disabled={readonly} placeholder={t("vehicles.inventoryNumberAuto")} />
+                </label>
+              )}
               <label>
                 {t("vehicle.field.articleNumber")}
                 <input value={form.articleNumber || ""} onChange={(event) => onUpdate({ articleNumber: event.target.value })} disabled={readonly} />

@@ -149,6 +149,10 @@ export type OverviewValuation = {
 
 export type Vehicle = {
   id: string;
+  vehicleSetId?: string;
+  vehicleSetName?: string;
+  vehicleSetPosition?: number;
+  vehicleSetSize?: number;
   inventoryNumber: string;
   manufacturer: string;
   articleNumber?: string;
@@ -219,6 +223,43 @@ export type Vehicle = {
   cvValues?: VehicleCVValue[];
   cvFiles?: VehicleCVFile[];
   externalMappings?: VehicleExternalMapping[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type VehicleSetInput = Pick<CreateVehicleRequest,
+  | "name"
+  | "manufacturer"
+  | "articleNumber"
+  | "articleSourceUrl"
+  | "gauge"
+  | "epoch"
+  | "railwayCompany"
+  | "category"
+  | "gattung"
+  | "description"
+  | "ean"
+  | "productionPeriod"
+  | "listPrice"
+  | "acquisitionType"
+  | "acquiredFrom"
+  | "purchasePrice"
+  | "purchaseDate"
+  | "storageLocation"
+  | "storageDetails"
+  | "condition"
+  | "conditionDetails"
+  | "packaging"
+>;
+
+export type CreateVehicleSetRequest = {
+  set: VehicleSetInput;
+  members: CreateVehicleRequest[];
+};
+
+export type VehicleSet = VehicleSetInput & {
+  id: string;
+  members: Vehicle[];
   createdAt: string;
   updatedAt: string;
 };
@@ -1244,6 +1285,11 @@ export const api = {
   overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
   createVehicle: (input: CreateVehicleRequest) =>
     request<Vehicle>("/vehicles", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  createVehicleSet: (input: CreateVehicleSetRequest) =>
+    request<VehicleSet>("/vehicle-sets", {
       method: "POST",
       body: JSON.stringify(input)
     }),

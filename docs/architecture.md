@@ -43,7 +43,9 @@ Node.js is only used to build the frontend.
 
 ## Scope Decisions
 
-- Vehicles are the core inventory aggregate.
+- Vehicles are the core inventory aggregate. A vehicle set owns shared catalogue and acquisition data,
+  while its ordered members remain ordinary vehicles with their own inventory numbers, technical data,
+  maintenance, CV values, uploads, and exhibition assignments.
 - Accessories are a separate catalogue and inventory area. Quantity stock and individually tracked assets
   share storage locations, reservations, installations, condition, and history workflows.
 - Private and club layouts contain modules, segments, baseboards, areas, setup configurations, plan
@@ -56,9 +58,9 @@ Node.js is only used to build the frontend.
   can be replaced later.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
-- Backup version 2 covers vehicles, accessories, storage, layouts, plan revisions, setups, reservations,
-  installations, exhibitions, and uploads. Version 1 remains importable with the Stage 1 tables restored
-  empty. Restore defers foreign-key checks inside its transaction so self-references can be replaced
-  atomically and are still validated at commit.
+- Backup version 17 covers vehicle sets, vehicles, accessories, storage, layouts, plan revisions, setups,
+  reservations, installations, exhibitions, and uploads. Older supported versions remain importable;
+  tables introduced later are restored empty. Restore defers foreign-key checks inside its transaction
+  so self-references can be replaced atomically and are still validated at commit.
 - Backup and restore intentionally exclude local authentication and installation data such as users,
   roles, sessions, password hashes, audit logs, SMTP settings, and user UI settings.

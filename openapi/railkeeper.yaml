@@ -454,6 +454,16 @@ components:
         id:
           type: string
           format: uuid
+        vehicleSetId:
+          type: string
+        vehicleSetName:
+          type: string
+        vehicleSetPosition:
+          type: integer
+          minimum: 1
+        vehicleSetSize:
+          type: integer
+          minimum: 2
         inventoryNumber:
           type: string
         manufacturer:
@@ -724,6 +734,86 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VehicleImageInput"
+    VehicleSetInput:
+      type: object
+      required: [name, manufacturer, gauge, category, gattung]
+      properties:
+        name:
+          type: string
+        manufacturer:
+          type: string
+        articleNumber:
+          type: string
+        articleSourceUrl:
+          type: string
+        gauge:
+          type: string
+        epoch:
+          type: string
+        railwayCompany:
+          type: string
+        category:
+          type: string
+        gattung:
+          type: string
+        description:
+          type: string
+        ean:
+          type: string
+        productionPeriod:
+          type: string
+        listPrice:
+          type: string
+        acquisitionType:
+          type: string
+        acquiredFrom:
+          type: string
+        purchasePrice:
+          type: string
+        purchaseDate:
+          type: string
+          format: date
+        storageLocation:
+          type: string
+        storageDetails:
+          type: string
+        condition:
+          type: string
+        conditionDetails:
+          type: string
+        packaging:
+          type: string
+    CreateVehicleSetRequest:
+      type: object
+      required: [set, members]
+      properties:
+        set:
+          $ref: "#/components/schemas/VehicleSetInput"
+        members:
+          type: array
+          minItems: 2
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/CreateVehicleRequest"
+    VehicleSet:
+      allOf:
+        - $ref: "#/components/schemas/VehicleSetInput"
+        - type: object
+          required: [id, members, createdAt, updatedAt]
+          properties:
+            id:
+              type: string
+              format: uuid
+            members:
+              type: array
+              items:
+                $ref: "#/components/schemas/Vehicle"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
     VehicleImage:
       type: object
       required: [id, vehicleId, url, isPrimary, sortOrder, createdAt]
@@ -7673,6 +7763,41 @@ paths:
                 $ref: "#/components/schemas/Vehicle"
         "400":
           description: Invalid vehicle data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /vehicle-sets:
+    post:
+      tags: [Vehicles]
+      summary: Create a vehicle set and all of its member vehicles atomically
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateVehicleSetRequest"
+      responses:
+        "201":
+          description: Vehicle set created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSet"
+        "400":
+          description: Invalid set or member data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: An inventory number already exists
           content:
             application/json:
               schema:

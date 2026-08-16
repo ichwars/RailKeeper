@@ -4,6 +4,7 @@ import { X } from "lucide-react";
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleCVTab } from "./VehicleCVTab";
+import { VehicleCreateWizard, type VehicleSetMemberDraft } from "./VehicleCreateWizard";
 import { VehicleFunctionsTab } from "./VehicleFunctionsTab";
 import { VehicleMaintenanceTab } from "./VehicleMaintenanceTab";
 import { VehicleModelTab } from "./VehicleModelTab";
@@ -31,6 +32,7 @@ type VehicleEditorDialogProps = {
   message: string;
   tabs: EditorTabs;
   onSubmit: FormEventHandler<HTMLFormElement>;
+  onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
   onClose: () => void;
   onTabChange: (tab: ModalTab) => void;
   onEdit: () => void;
@@ -57,6 +59,7 @@ export function VehicleEditorDialog({
   message,
   tabs,
   onSubmit,
+  onSubmitSet,
   onClose,
   onTabChange,
   onEdit,
@@ -68,16 +71,24 @@ export function VehicleEditorDialog({
 
   return (
     <div className="modal-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.modal.aria")}>
-      <form
-        key={`${mode}-${selected?.id || "new"}`}
-        className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal"}
-        onSubmit={onSubmit}
-      >
+      {mode === "create" ? (
+        <VehicleCreateWizard
+          model={tabs.model}
+          saving={saving}
+          message={message}
+          onSubmitSingle={onSubmit}
+          onSubmitSet={onSubmitSet}
+          onClose={onClose}
+        />
+      ) : (
+        <form
+          key={`${mode}-${selected?.id || "new"}`}
+          className={mode === "view" ? "vehicle-modal vehicle-read-modal-shell" : "vehicle-modal"}
+          onSubmit={onSubmit}
+        >
         <header className="modal-head">
           <h2>
-            {mode === "create"
-              ? t("vehicles.modal.create")
-              : mode === "edit"
+            {mode === "edit"
                 ? t("vehicles.modal.edit")
                 : t("vehicles.modal.view")}
           </h2>
@@ -133,14 +144,13 @@ export function VehicleEditorDialog({
               <button className="primary-button" disabled={saving}>
                 {saving
                   ? t("vehicles.saving")
-                  : mode === "create"
-                    ? t("vehicles.createAndContinue")
-                    : t("vehicles.saveChanges")}
+                  : t("vehicles.saveChanges")}
               </button>
             </footer>
           </>
         )}
-      </form>
+        </form>
+      )}
     </div>
   );
 }
