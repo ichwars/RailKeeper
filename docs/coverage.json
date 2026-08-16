@@ -18,7 +18,7 @@
     {
       "id": "vehicles-core",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/index.md",
       "germanPath": "de/guide/vehicles/index.md"
     },
