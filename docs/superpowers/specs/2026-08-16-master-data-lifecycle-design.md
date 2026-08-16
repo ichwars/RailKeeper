@@ -182,7 +182,8 @@ Import reconciliation is server-authoritative:
 - an unknown key is custom even if the file claims it is bundled
 - current bundled entries omitted from an import are retained rather than physically removed
 - imported active states and editable values are applied to matching entries
-- custom entries follow the imported document, subject to existing validation and reference safety
+- an omitted unused custom entry may be removed
+- an omitted custom entry that is still used rejects the import with a precise validation error
 
 The import remains an all-or-nothing transaction and refreshes the cache only after commit.
 
