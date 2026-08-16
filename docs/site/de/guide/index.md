@@ -27,3 +27,6 @@ verstehen, Bestandslücken als gefilterte Fahrzeuglisten zu öffnen und die Kach
 
 [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/) erklärt Suche und Filter, das Anlegen und
 Bearbeiten von Grunddaten, Reports und QR-Etiketten sowie das sichere Löschen.
+
+[Fahrzeugbilder und Beilagen](/de/guide/vehicles/media) behandelt lokale Bilder, Haupt- und
+Alternativbilder, allgemeine Beilagen, Anzeigen und Herunterladen sowie das sichere Entfernen.

@@ -298,6 +298,7 @@ important records; the application does not promise physical cleanup of every re
 ## Related pages
 
 - [User Guide overview](/guide/)
+- [Vehicle images and attachments](/guide/vehicles/media)
 - [First setup and sign-in](/guide/getting-started/)
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Administration overview](/administration/)

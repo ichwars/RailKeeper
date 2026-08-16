@@ -307,6 +307,7 @@ Datei physisch zu entfernen.
 ## Verwandte Seiten
 
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
+- [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Übersicht der Administration](/de/administration/)
