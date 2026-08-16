@@ -3,7 +3,9 @@ package api
 import (
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"strings"
+	"sync"
 
 	"railkeeper/backend/internal/application"
 )
@@ -16,6 +18,7 @@ type Config struct {
 	MaxImageBytes               int64
 	MaxAttachmentBytes          int64
 	AllowedAttachmentExtensions map[string]struct{}
+	TrustedProxyCIDRs           []string
 	Logger                      *slog.Logger
 	SetupService                *application.SetupService
 	AuthService                 *application.AuthService
@@ -82,6 +85,9 @@ type App struct {
 	windowsStandaloneDownload   bool
 	rateLimits                  rateLimitStore
 	storageLocation             *storageLocationState
+	trustedProxyPrefixes        []netip.Prefix
+	versionCheckMu              sync.Mutex
+	versionCheckCache           map[bool]cachedUpdateCheck
 }
 
 func NewRouter(config Config) http.Handler {
@@ -90,6 +96,11 @@ func NewRouter(config Config) http.Handler {
 	}
 	if config.DataDir == "" {
 		config.DataDir = "./data"
+	}
+	trustedProxyPrefixes, err := parseTrustedProxyPrefixes(config.TrustedProxyCIDRs)
+	if err != nil {
+		config.Logger.Error("trusted proxy configuration rejected", "error", err)
+		trustedProxyPrefixes = nil
 	}
 	app := &App{
 		version:                     config.Version,
@@ -127,6 +138,8 @@ func NewRouter(config Config) http.Handler {
 		windowsStandaloneDownload:   config.WindowsStandaloneDownload,
 		rateLimits:                  config.RateLimitService,
 		storageLocation:             newStorageLocationState(config.StorageLocation, config.DataDir),
+		trustedProxyPrefixes:        trustedProxyPrefixes,
+		versionCheckCache:           map[bool]cachedUpdateCheck{},
 	}
 	if app.rateLimits == nil {
 		app.rateLimits = newRateLimiter()

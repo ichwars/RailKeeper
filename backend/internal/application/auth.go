@@ -135,7 +135,7 @@ type PasswordResetRequestResult struct {
 	Message    string `json:"message"`
 	ResetToken string `json:"-"`
 	ResetURL   string `json:"-"`
-	ExpiresAt  string `json:"expiresAt,omitempty"`
+	ExpiresAt  string `json:"-"`
 }
 
 type PasswordResetConfirmInput struct {

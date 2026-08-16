@@ -36,11 +36,15 @@ Mindestanforderungen:
 - Extern nur HTTPS anbieten.
 - HTTP auf HTTPS umleiten.
 - WebSocket-Sonderregeln sind nicht nötig.
-- Upload-Limits des Proxys passend zu `RAILKEEPER_MAX_IMAGE_BYTES` und `RAILKEEPER_MAX_ATTACHMENT_BYTES` setzen.
+- Upload-Limits des Proxys passend zu `RAILKEEPER_MAX_IMAGE_MB` und `RAILKEEPER_MAX_ATTACHMENT_MB` setzen.
+- Wenn der Proxy die Client-IP über `X-Forwarded-For` übermittelt, seine internen Netze explizit
+  als kommaseparierte CIDRs in `RAILKEEPER_TRUSTED_PROXY_CIDRS` eintragen. Ohne diese Einstellung
+  ignoriert RailKeeper Forwarding-Header für Rate-Limits.
 - Bei produktivem HTTPS setzen:
 
   ```env
   RAILKEEPER_COOKIE_SECURE=true
+  RAILKEEPER_TRUSTED_PROXY_CIDRS=172.18.0.0/16
   ```
 
 Wenn lokal oder nur über HTTP getestet wird, muss `RAILKEEPER_COOKIE_SECURE=false` bleiben, sonst sendet der Browser die Session-Cookies nicht.

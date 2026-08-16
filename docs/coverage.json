@@ -277,6 +277,7 @@
       "RAILKEEPER_SMTP_TLS": "deployment-configuration",
       "RAILKEEPER_SMTP_USER": "deployment-configuration",
       "RAILKEEPER_STATIC_DIR": "deployment-configuration",
+      "RAILKEEPER_TRUSTED_PROXY_CIDRS": "deployment-configuration",
       "RAILKEEPER_UPDATE_CHECK_URL": "deployment-configuration"
     }
   }

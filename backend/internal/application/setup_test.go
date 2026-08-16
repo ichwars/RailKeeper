@@ -5,11 +5,50 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 )
+
+func TestCreateAdminRaceReturnsAlreadySetup(t *testing.T) {
+	db := testDB(t)
+	service := application.NewSetupService(db)
+	start := make(chan struct{})
+	errorsByAttempt := make(chan error, 2)
+	var workers sync.WaitGroup
+	for index := range 2 {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			<-start
+			errorsByAttempt <- service.CreateAdmin(context.Background(), application.CreateAdminInput{
+				Username: "admin" + string(rune('a'+index)),
+				Email:    "admin" + string(rune('a'+index)) + "@example.test",
+				Password: "very-secure-password",
+			})
+		}()
+	}
+	close(start)
+	workers.Wait()
+	close(errorsByAttempt)
+
+	var created, alreadySetup int
+	for err := range errorsByAttempt {
+		switch {
+		case err == nil:
+			created++
+		case errors.Is(err, application.ErrAlreadySetup):
+			alreadySetup++
+		default:
+			t.Fatalf("unexpected concurrent setup error: %v", err)
+		}
+	}
+	if created != 1 || alreadySetup != 1 {
+		t.Fatalf("expected one admin and one already-setup result, got created=%d already=%d", created, alreadySetup)
+	}
+}
 
 func TestCreateAdminCompletesSetup(t *testing.T) {
 	db := testDB(t)

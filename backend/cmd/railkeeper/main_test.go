@@ -2,9 +2,19 @@ package main
 
 import (
 	"net"
+	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestNewHTTPServerConfiguresConnectionTimeouts(t *testing.T) {
+	server := newHTTPServer("127.0.0.1:8080", http.NewServeMux())
+	if server.ReadHeaderTimeout != 5*time.Second || server.ReadTimeout != 15*time.Second ||
+		server.WriteTimeout != 30*time.Second || server.IdleTimeout != 60*time.Second {
+		t.Fatalf("unexpected HTTP server timeouts: %#v", server)
+	}
+}
 
 func TestBrowserURLUsesLocalhostForWildcardAddress(t *testing.T) {
 	got := browserURL("[::]:8080")

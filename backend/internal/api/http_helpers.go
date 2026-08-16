@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -19,6 +21,8 @@ import (
 type rateLimitStore interface {
 	Allow(ctx context.Context, scope, key string, limit int, window time.Duration) (bool, error)
 }
+
+const maxJSONBodyBytes = 64 * 1024
 
 type rateLimiter struct {
 	mu       sync.Mutex
@@ -64,15 +68,65 @@ func (a *App) allowRequest(w http.ResponseWriter, r *http.Request, scope, key st
 	return allowed, true
 }
 
-func clientIP(r *http.Request) string {
+func parseTrustedProxyPrefixes(values []string) ([]netip.Prefix, error) {
+	prefixes := make([]netip.Prefix, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		prefix, err := netip.ParsePrefix(value)
+		if err != nil {
+			return nil, fmt.Errorf("parse trusted proxy CIDR %q: %w", value, err)
+		}
+		prefixes = append(prefixes, prefix)
+	}
+	return prefixes, nil
+}
+
+func clientIP(r *http.Request, trustedProxyPrefixes []netip.Prefix) string {
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil && host != "" {
+	if err != nil || host == "" {
+		host = r.RemoteAddr
+	}
+	remoteIP, err := netip.ParseAddr(host)
+	if err != nil {
+		if host == "" {
+			return "unknown"
+		}
 		return host
 	}
-	if r.RemoteAddr == "" {
+	if !isTrustedProxy(remoteIP, trustedProxyPrefixes) {
+		return remoteIP.String()
+	}
+
+	forwarded := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+	for index := len(forwarded) - 1; index >= 0; index-- {
+		candidate, parseErr := netip.ParseAddr(strings.TrimSpace(forwarded[index]))
+		if parseErr != nil {
+			continue
+		}
+		if !isTrustedProxy(candidate, trustedProxyPrefixes) {
+			return candidate.String()
+		}
+	}
+	return remoteIP.String()
+}
+
+func isTrustedProxy(ip netip.Addr, prefixes []netip.Prefix) bool {
+	for _, prefix := range prefixes {
+		if prefix.Contains(ip) {
+			return true
+		}
+	}
+	return false
+}
+
+func (a *App) clientIP(r *http.Request) string {
+	if a == nil {
 		return "unknown"
 	}
-	return r.RemoteAddr
+	return clientIP(r, a.trustedProxyPrefixes)
 }
 
 func respondJSON(w http.ResponseWriter, status int, value any) {
@@ -86,6 +140,20 @@ func respondProblem(w http.ResponseWriter, status int, code, message string) {
 		"error":   code,
 		"message": message,
 	})
+}
+
+func decodeBoundedJSON(w http.ResponseWriter, r *http.Request, target any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
+	if err := json.NewDecoder(r.Body).Decode(target); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			respondProblem(w, http.StatusRequestEntityTooLarge, "request_too_large", "Request body is too large.")
+			return false
+		}
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return false
+	}
+	return true
 }
 
 func vehicleECoSMappingForSync(vehicle *application.Vehicle, objectID int) *application.VehicleExternalMap {

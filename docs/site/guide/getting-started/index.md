@@ -73,13 +73,11 @@ Password recovery depends on the email address stored for the account.
 5. Enter and repeat a new password with at least 12 characters.
 6. Set the password, return to sign-in, and use the new credentials.
 
-The confirmation shown in the sign-in form is deliberately identical for known and unknown
-addresses. However, the v0.1.19 HTTP response includes an `expiresAt` value only for a known
-account. API clients or people inspecting network responses can therefore infer whether an account
-exists. Operators must treat this as a known account-enumeration limitation of this release.
+The confirmation shown in the sign-in form and the HTTP response is deliberately identical for
+known and unknown addresses so the reset flow does not disclose whether an account exists.
 
-When SMTP is configured, RailKeeper sends the link by email. Without SMTP, the operator can obtain
-the local recovery URL from the RailKeeper server log. Contact an administrator or operator if no
+When SMTP is configured, RailKeeper sends the link by email. Without SMTP, reset tokens are neither
+returned to the browser nor written to server logs. Contact an administrator or operator if no
 message arrives.
 
 Only the newest open reset request remains valid. A reset link expires after 30 minutes and can be
@@ -106,9 +104,8 @@ confirmations to ten within ten minutes.
 - Use a unique password and do not share administrator credentials.
 - Use HTTPS and secure cookies when the instance is reachable over a network. See
   [Installation and Administration](/administration/) for the operating requirements.
-- The generic message shown by the form is not complete account-enumeration protection in
-  v0.1.19 because the HTTP response schema differs for known accounts. Restrict network access,
-  monitor repeated reset attempts, and apply a release that corrects this behavior when available.
+- RailKeeper returns the same reset response for known and unknown addresses. Continue to monitor
+  repeated reset attempts and keep network access as narrow as practical.
 - Ask an administrator to review unexpected sign-in or recovery activity rather than continuing to
   guess credentials.
 

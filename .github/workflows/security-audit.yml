@@ -20,8 +20,8 @@ jobs:
     name: Go vulnerability audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           go-version-file: backend/go.mod
           cache-dependency-path: backend/go.sum
@@ -29,14 +29,19 @@ jobs:
         run: go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
       - name: Scan reachable Go vulnerabilities
         working-directory: backend
-        run: govulncheck ./... | tee -a "$GITHUB_STEP_SUMMARY"
+        shell: bash
+        run: |
+          if ! govulncheck ./... > "$RUNNER_TEMP/govulncheck.txt" 2>&1; then
+            echo "::error::Go vulnerability audit failed. Re-run govulncheck locally for details."
+            exit 1
+          fi
 
   npm-audit:
     name: npm runtime dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: 24
           cache: npm
@@ -46,70 +51,9 @@ jobs:
         run: npm ci
       - name: Scan runtime dependencies
         working-directory: frontend
-        run: npm audit --omit=dev --audit-level=high | tee -a "$GITHUB_STEP_SUMMARY"
-
-  report:
-    name: Reconcile scheduled audit issue
-    if: always() && github.event_name == 'schedule'
-    needs:
-      - govulncheck
-      - npm-audit
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-    steps:
-      - name: Create or update audit issue
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const title = "Security audit requires attention";
-            const runURL = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            const { data: issues } = await github.rest.issues.listForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: "all",
-              per_page: 100
-            });
-            const existing = issues.find((issue) => !issue.pull_request && issue.title === title);
-            const failed = ${{ contains(needs.*.result, 'failure') }};
-            if (failed) {
-              const body = `The scheduled dependency audit failed. Review the workflow run: ${runURL}`;
-              if (existing) {
-                if (existing.state !== "open") {
-                  await github.rest.issues.update({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: existing.number,
-                    state: "open"
-                  });
-                }
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: existing.number,
-                  body
-                });
-              } else {
-                await github.rest.issues.create({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  title,
-                  body
-                });
-              }
-            } else if (existing?.state === "open") {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                body: `The scheduled dependency audit is healthy again. Successful run: ${runURL}`
-              });
-              await github.rest.issues.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: existing.number,
-                state: "closed",
-                state_reason: "completed"
-              });
-            }
+        shell: bash
+        run: |
+          if ! npm audit --omit=dev --audit-level=high > "$RUNNER_TEMP/npm-audit.txt" 2>&1; then
+            echo "::error::npm dependency audit failed. Re-run npm audit locally for details."
+            exit 1
+          fi

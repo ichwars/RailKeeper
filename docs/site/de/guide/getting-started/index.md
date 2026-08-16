@@ -76,14 +76,11 @@ Die Passwort-Wiederherstellung verwendet die für das Konto gespeicherte E-Mail-
 5. Gib ein neues Passwort mit mindestens 12 Zeichen ein und wiederhole es.
 6. Setze das Passwort, kehre zur Anmeldung zurück und verwende die neuen Zugangsdaten.
 
-Die im Anmeldeformular angezeigte Bestätigung ist für bekannte und unbekannte Adressen absichtlich
-identisch. Die HTTP-Antwort von v0.1.19 enthält jedoch nur bei einem bekannten Konto den Wert
-`expiresAt`. API-Clients oder Personen, die Netzwerkantworten untersuchen, können daraus ableiten,
-ob ein Konto existiert. Betreiber müssen dies als bekannte Einschränkung beim Schutz vor
-Kontenermittlung in dieser Version behandeln.
+Die im Anmeldeformular angezeigte Bestätigung und die HTTP-Antwort sind für bekannte und unbekannte
+Adressen absichtlich identisch. Der Reset-Ablauf legt dadurch nicht offen, ob ein Konto existiert.
 
-Bei eingerichtetem SMTP-Versand sendet RailKeeper den Link per E-Mail. Ohne SMTP kann der Betreiber
-die lokale Wiederherstellungs-URL dem RailKeeper-Serverprotokoll entnehmen. Wende dich an einen
+Bei eingerichtetem SMTP-Versand sendet RailKeeper den Link per E-Mail. Ohne SMTP werden Reset-Token
+weder an den Browser zurückgegeben noch ins Serverprotokoll geschrieben. Wende dich an einen
 Administrator oder Betreiber, wenn keine Nachricht ankommt.
 
 Nur die neueste offene Reset-Anfrage bleibt gültig. Ein Wiederherstellungslink läuft nach 30
@@ -111,10 +108,8 @@ Reset-Bestätigungen auf zehn innerhalb von zehn Minuten.
   Administrator-Zugangsdaten.
 - Verwende HTTPS und sichere Cookies, wenn die Instanz über ein Netzwerk erreichbar ist. Die
   Betriebsanforderungen stehen unter [Installation und Administration](/de/administration/).
-- Die allgemeine Formularmeldung bietet in v0.1.19 keinen vollständigen Schutz vor
-  Kontenermittlung, weil sich die HTTP-Antwort für bekannte Konten unterscheidet. Begrenze den
-  Netzwerkzugriff, überwache wiederholte Reset-Anfragen und installiere eine Version mit korrigiertem
-  Verhalten, sobald sie verfügbar ist.
+- RailKeeper verwendet für bekannte und unbekannte Adressen dieselbe Reset-Antwort. Überwache
+  trotzdem wiederholte Reset-Anfragen und halte den Netzwerkzugriff so eng wie möglich.
 - Bitte einen Administrator, unerwartete Anmelde- oder Wiederherstellungsaktivität zu prüfen, statt
   weiterhin Zugangsdaten zu erraten.
 

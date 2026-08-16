@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	ecospkg "railkeeper/backend/internal/ecos"
 )
@@ -1198,6 +1199,9 @@ func buildECoSLocomotiveSyncCommand(objectID int, current *ECoSLocomotive, desir
 	changes := []ECoSLocomotiveSyncChange{}
 	parts := []string{}
 	if desired.Name != "" && desired.Name != current.Name {
+		if strings.IndexFunc(desired.Name, unicode.IsControl) >= 0 {
+			return nil, "", errors.New("ECoS-Name enthielt unzulässige Zeichen")
+		}
 		changes = append(changes, ECoSLocomotiveSyncChange{Field: "name", Current: current.Name, Desired: desired.Name})
 		parts = append(parts, "name["+quoteECoSString(desired.Name)+"]")
 	}

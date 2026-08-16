@@ -321,6 +321,29 @@ func TestVersionInfoHandlesEmptyReleaseList(t *testing.T) {
 	}
 }
 
+func TestVersionInfoCachesRepeatedExternalChecks(t *testing.T) {
+	var requests int
+	updateServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		requests++
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"tag_name":"v0.2.0","html_url":"https://example.test/releases/v0.2.0"}`))
+	}))
+	defer updateServer.Close()
+
+	router := NewRouter(Config{Version: "0.1.0", UpdateCheckURL: updateServer.URL})
+	for range 2 {
+		request := httptest.NewRequest(http.MethodGet, "/api/v1/version?check=true", nil)
+		response := httptest.NewRecorder()
+		router.ServeHTTP(response, request)
+		if response.Code != http.StatusOK {
+			t.Fatalf("expected status 200, got %d", response.Code)
+		}
+	}
+	if requests != 1 {
+		t.Fatalf("expected one external request for repeated checks, got %d", requests)
+	}
+}
+
 func TestReleaseListURLConvertsGithubLatestEndpoint(t *testing.T) {
 	got := releaseListURL("https://api.github.com/repos/ichwars/RailKeeper/releases/latest")
 	want := "https://api.github.com/repos/ichwars/RailKeeper/releases"

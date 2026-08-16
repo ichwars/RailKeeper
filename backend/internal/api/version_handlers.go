@@ -50,6 +50,14 @@ type updateReleaseAsset struct {
 
 var errNoUpdateRelease = errors.New("no update release available")
 
+const updateCheckCacheDuration = 5 * time.Minute
+
+type cachedUpdateCheck struct {
+	release   *updateReleaseResponse
+	err       error
+	checkedAt time.Time
+}
+
 func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	response := versionInfoResponse{
 		Version:   a.version,
@@ -79,7 +87,7 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	includePrerelease := r.URL.Query().Get("prerelease") == "true"
-	release, err := fetchUpdateRelease(r.Context(), updateURL, includePrerelease)
+	release, err := a.fetchCachedUpdateRelease(r.Context(), updateURL, includePrerelease)
 	response.SourceURL = updateURL
 	if err != nil {
 		if errors.Is(err, errNoUpdateRelease) {
@@ -121,6 +129,26 @@ func (a *App) versionInfo(w http.ResponseWriter, r *http.Request) {
 		response.Message = "RailKeeper ist aktuell."
 	}
 	respondJSON(w, http.StatusOK, response)
+}
+
+func (a *App) fetchCachedUpdateRelease(
+	ctx context.Context,
+	updateURL string,
+	includePrerelease bool,
+) (*updateReleaseResponse, error) {
+	a.versionCheckMu.Lock()
+	defer a.versionCheckMu.Unlock()
+
+	if cached, ok := a.versionCheckCache[includePrerelease]; ok && time.Since(cached.checkedAt) < updateCheckCacheDuration {
+		return cached.release, cached.err
+	}
+	release, err := fetchUpdateRelease(ctx, updateURL, includePrerelease)
+	a.versionCheckCache[includePrerelease] = cachedUpdateCheck{
+		release:   release,
+		err:       err,
+		checkedAt: time.Now(),
+	}
+	return release, err
 }
 
 func isAllowedUpdateURL(rawURL string) bool {

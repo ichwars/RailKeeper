@@ -69,6 +69,9 @@ func (a *App) localizeVehicleImage(ctx context.Context, vehicleID string, image 
 	if !isAllowedImageMime(mimeType) {
 		return image, fmt.Errorf("image type %s is not allowed", mimeType)
 	}
+	if err := validateVehicleImageDimensions(data); err != nil {
+		return image, err
+	}
 	storageName := fmt.Sprintf("%d-%s", time.Now().UTC().UnixNano(), remoteImageFileName(image, mimeType))
 	blobID, err := a.storeFileBlob(ctx, data)
 	if err != nil {
@@ -104,17 +107,21 @@ func (a *App) uploadVehicleImage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer func() { _ = file.Close() }()
 	if header.Size > a.maxImageBytes {
-		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gro?.")
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu groß.")
 		return
 	}
 	data, err := io.ReadAll(io.LimitReader(file, a.maxImageBytes+1))
 	if err != nil || int64(len(data)) > a.maxImageBytes {
-		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu gro?.")
+		respondProblem(w, http.StatusBadRequest, "image_too_large", "Das Bild ist zu groß.")
 		return
 	}
 	mimeType := http.DetectContentType(data)
 	if !isAllowedImageMime(mimeType) {
 		respondProblem(w, http.StatusBadRequest, "image_type_blocked", "Erlaubt sind JPG, PNG und WebP.")
+		return
+	}
+	if err := validateVehicleImageDimensions(data); err != nil {
+		respondProblem(w, http.StatusBadRequest, "image_dimensions_invalid", "Bildabmessungen überschreiten das erlaubte Limit.")
 		return
 	}
 	vehicleID := r.PathValue("id")
@@ -357,6 +364,9 @@ func (a *App) downloadVehicleImageThumbnail(w http.ResponseWriter, r *http.Reque
 }
 
 func (a *App) createVehicleImageThumbnail(ctx context.Context, data []byte, storageName string) (string, error) {
+	if err := validateVehicleImageDimensions(data); err != nil {
+		return "", err
+	}
 	src, _, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return "", err
@@ -367,6 +377,23 @@ func (a *App) createVehicleImageThumbnail(ctx context.Context, data []byte, stor
 		return "", err
 	}
 	return a.storeFileBlob(ctx, out.Bytes())
+}
+
+func validateVehicleImageDimensions(data []byte) error {
+	config, _, err := image.DecodeConfig(bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	const (
+		maxImageDimension = 12000
+		maxImagePixels    = 40_000_000
+	)
+	if config.Width <= 0 || config.Height <= 0 ||
+		config.Width > maxImageDimension || config.Height > maxImageDimension ||
+		int64(config.Width)*int64(config.Height) > maxImagePixels {
+		return errors.New("bildabmessungen überschreiten das erlaubte Limit")
+	}
+	return nil
 }
 
 func scaleImageToFit(src image.Image, maxWidth, maxHeight int) image.Image {

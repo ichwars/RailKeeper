@@ -48,14 +48,6 @@ func (s *SetupService) CreateAdmin(ctx context.Context, input CreateAdminInput) 
 		return ErrWeakSetup
 	}
 
-	required, err := s.SetupRequired(ctx)
-	if err != nil {
-		return err
-	}
-	if !required {
-		return ErrAlreadySetup
-	}
-
 	hash, err := hashPassword(input.Password)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
@@ -65,24 +57,30 @@ func (s *SetupService) CreateAdmin(ctx context.Context, input CreateAdminInput) 
 	if err != nil {
 		return fmt.Errorf("begin setup transaction: %w", err)
 	}
-	defer func() {
-		if err != nil {
-			_ = tx.Rollback()
-		}
-	}()
+	defer func() { _ = tx.Rollback() }()
 
 	userID := randomID()
 	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err = tx.ExecContext(
+	result, err := tx.ExecContext(
 		ctx,
-		`INSERT INTO users(id, username, email, password_hash, created_at) VALUES(?, ?, ?, ?, ?)`,
+		`INSERT INTO users(id, username, email, password_hash, created_at)
+		 SELECT ?, ?, ?, ?, ?
+		  WHERE NOT EXISTS (SELECT 1 FROM users)`,
 		userID,
 		username,
 		email,
 		hash,
 		now,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("insert admin user: %w", err)
+	}
+	created, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read setup insert result: %w", err)
+	}
+	if created == 0 {
+		return ErrAlreadySetup
 	}
 
 	if _, err = tx.ExecContext(

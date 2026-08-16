@@ -201,6 +201,7 @@ RAILKEEPER_SEEDS_DIR=./backend/seeds
 RAILKEEPER_STATIC_DIR=./frontend/dist
 RAILKEEPER_COOKIE_SECURE=false
 RAILKEEPER_UPDATE_CHECK_URL=https://api.github.com/repos/ichwars/RailKeeper/releases/latest
+RAILKEEPER_TRUSTED_PROXY_CIDRS=
 ```
 
 Optional SMTP settings for password reset emails can be configured in the Admin UI under
@@ -221,7 +222,8 @@ Password-reset emails are sent only when `RAILKEEPER_PUBLIC_URL` or the public U
 Admin UI is a valid HTTP(S) origin. RailKeeper never derives emailed reset links from the request
 `Host` header.
 
-If SMTP is not configured, password reset links are not returned to the browser. For local recovery only, the backend writes the link to the server log.
+If SMTP is not configured, password reset links are neither returned to the browser nor written to
+the server log. An administrator must configure SMTP before the reset flow can deliver a link.
 
 ### Optional OCR for scanned spare-parts PDFs
 
@@ -275,6 +277,7 @@ RailKeeper is intended for trusted self-hosted environments, but the default ins
 - password reset links are sent by email when SMTP is configured
 - audit log for relevant security and data actions
 - upload size limits and executable attachment blocking
+- image dimension limits of 12,000 pixels per side and 40 megapixels before decoding
 - runtime data ignored by Git
 
 For HTTPS deployments set:

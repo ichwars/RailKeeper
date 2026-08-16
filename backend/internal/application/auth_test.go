@@ -6,6 +6,7 @@ import (
 	"crypto/sha1"
 	"encoding/base32"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -14,6 +15,20 @@ import (
 
 	"railkeeper/backend/internal/application"
 )
+
+func TestPasswordResetResultDoesNotExposeAccountDependentExpiry(t *testing.T) {
+	data, err := json.Marshal(application.PasswordResetRequestResult{
+		Status:    "ready",
+		Message:   "generic",
+		ExpiresAt: "2030-01-01T00:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "expiresAt") || strings.Contains(string(data), "2030-01-01") {
+		t.Fatalf("password reset response exposes account-dependent expiry: %s", data)
+	}
+}
 
 func TestLoginCreatesReadableSession(t *testing.T) {
 	db := testDB(t)

@@ -68,6 +68,7 @@ type applicationHandlerOptions struct {
 	MaxImageBytes               int64
 	MaxAttachmentBytes          int64
 	AllowedAttachmentExtensions map[string]struct{}
+	TrustedProxyCIDRs           []string
 	Logger                      *slog.Logger
 	PasswordResetMailer         application.PasswordResetMailer
 	SMTPConfig                  application.SMTPPasswordResetMailConfig
@@ -233,6 +234,7 @@ func buildApplicationHandler(
 		MaxImageBytes:               options.MaxImageBytes,
 		MaxAttachmentBytes:          options.MaxAttachmentBytes,
 		AllowedAttachmentExtensions: options.AllowedAttachmentExtensions,
+		TrustedProxyCIDRs:           options.TrustedProxyCIDRs,
 		Logger:                      options.Logger,
 		SetupService:                application.NewSetupService(database),
 		AuthService:                 application.NewAuthService(database),
