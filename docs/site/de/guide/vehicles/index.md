@@ -135,30 +135,42 @@ Schnellmenü der Zeile führt außerdem direkt zu Uploads, Wartung und Ersatztei
 werden in eigenen Kapiteln beschrieben. Auch nach **Bearbeiten** benötigt das Speichern Admin- oder
 Editor-Rechte.
 
-## Fahrzeug anlegen
+## Fahrzeug oder Set anlegen
 
-Admin und Editor können einen Datensatz anlegen:
+Admin und Editor legen Einzelfahrzeuge und zusammengehörige Produktsets über denselben geführten
+Dialog an:
 
-1. Klicke auf **Neues Fahrzeug**.
-2. Fülle die fünf Pflichtfelder **Hersteller**, **Bezeichnung**, **Spurweite**, **Kategorie** und
-   **Gattung** aus.
-3. Lasse die **Inventarnummer** für eine automatische Vergabe leer oder trage eine eindeutige Nummer
-   ein.
-4. Ergänze optionale Modell-, Detail-, Eigentums-, Steuerungs- oder QR-Einstellungen.
-5. Klicke auf **Anlegen**.
+1. Klicke auf **Neues Fahrzeug**. Wähle unter **Typ & Grunddaten** zwischen **Einzelfahrzeug** und
+   **Set** und fülle **Bezeichnung / Bezeichnung des Sets**, **Hersteller**, **Spurweite**,
+   **Kategorie** und **Gattung** aus. Die Epoche ist optional.
+2. Nutze unter **Artikeldaten** den **Barcode**, **Artikeldaten suchen** oder die manuelle Eingabe für
+   Artikelnummer, EAN, Produktionszeit und Quellen-URL. Dieser Schritt ist optional. Vorschläge aus
+   externen Quellen müssen weiterhin vor der Übernahme geprüft werden.
+3. Ergänze unter **Fahrzeugdaten** die übrigen Modell-, Kauf-, Lager-, Zustands-, Steuerungs- und
+   QR-Daten. Für ein Set werden außerdem mindestens zwei Mitglieder definiert. Jedes Mitglied kann
+   eine eigene Bezeichnung, Inventarnummer und Fahrzeugnummer erhalten; weitere Mitglieder lassen
+   sich hinzufügen.
+4. Klicke auf **Anlegen** oder **Set anlegen**.
 
-Die automatische Vergabe nutzt das aktive Inventarnummernschema der ausgewählten Kategorie. Ohne
-aktives Schema schlägt das Anlegen fehl. Eine manuell eingegebene Nummer muss eindeutig sein. Der
-Server entfernt beim Speichern Leerraum am Anfang und Ende von Textfeldern.
+Bei einem Einzelfahrzeug verwendet eine leere **Inventarnummer** das aktive Inventarnummernschema
+der ausgewählten Kategorie. Ohne aktives Schema schlägt das Anlegen fehl. Eine manuell eingegebene
+Nummer muss eindeutig sein. Nach dem Anlegen wechselt der Dialog in den Bearbeitungsmodus, damit die
+von einer gespeicherten Fahrzeug-ID abhängigen Bereiche für Funktionen, Geschwindigkeitskurve, CVs,
+Uploads, Wartungen und Ersatzteile bearbeitet werden können.
 
-Nach dem Anlegen bleibt der Dialog im Bearbeitungsmodus geöffnet und meldet, dass die weiteren Tabs
-nun bearbeitet werden können. Funktionen, Geschwindigkeitskurve, CVs, Uploads, Wartungen und
-Ersatzteile benötigen die gespeicherte Fahrzeug-ID und können nicht vor den Grunddaten persistiert
+Ein Set wird transaktional angelegt: Entweder werden das Set und alle Mitglieder gespeichert oder
+keines davon. Gemeinsame Artikel-, Kauf-, Lager-, Zustands- und Verpackungsdaten werden am Set
+gespeichert und beim Anlegen auf alle Mitglieder angewendet. Eine leere Mitgliedsbezeichnung wird
+aus Setbezeichnung und Position gebildet, beispielsweise `TEE Roland (1)`. Leere Inventarnummern
+werden automatisch vergeben. Nach dem Anlegen wird das erste Mitglied zur weiteren Bearbeitung
+geöffnet.
+
+Der Bestand zeigt ein Set auf Desktop und Mobilgeräten als aufklappbare Gruppe. Die enthaltenen
+physischen Fahrzeuge bleiben eigenständige Datensätze und können einzeln geöffnet oder bearbeitet
 werden.
 
-Die Funktionen **Barcode** und **Artikeldaten suchen** können Felder und Bilder aus externen Quellen
-vorschlagen. Vorschläge müssen geprüft werden und gehören zum gesonderten Ablauf der
-Artikeldatensuche.
+Noch nicht Bestandteil dieser Stufe sind das nachträgliche Bearbeiten gemeinsamer Setdaten, das
+Zuordnen bestehender Fahrzeuge, das Herauslösen von Mitgliedern und das Löschen eines gesamten Sets.
 
 ## Referenz der Grunddaten
 

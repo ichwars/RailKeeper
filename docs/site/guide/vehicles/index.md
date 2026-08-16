@@ -131,27 +131,38 @@ The header actions open **Edit**, an individual detail report, or a QR code. The
 opens Uploads, Maintenance, and Spare parts directly. Those specialized editors are covered by their
 dedicated chapters. Selecting **Edit** still requires Admin or Editor permission at save time.
 
-## Create a vehicle
+## Create a vehicle or set
 
-Admin and Editor users can create a record:
+Admin and Editor users create individual vehicles and related product sets through the same guided
+dialog:
 
-1. Select **New vehicle**.
-2. Complete the five required fields: **Manufacturer**, **Designation**, **Gauge**, **Category**, and
-   **Subtype**.
-3. Leave **Inventory number** empty for automatic assignment, or enter a unique number manually.
-4. Add any optional model, detail, ownership, control, or QR settings.
-5. Select **Create**.
+1. Select **New vehicle**. Under **Type & basics**, choose **Individual vehicle** or **Set** and
+   complete **Designation / Set designation**, **Manufacturer**, **Gauge**, **Category**, and
+   **Subtype**. Epoch is optional.
+2. Under **Article data**, use **Barcode**, **Search article data**, or manual entry for article
+   number, EAN, production period, and source URL. This step is optional. External suggestions still
+   require review before they are applied.
+3. Under **Vehicle data**, complete the remaining model, purchase, storage, condition, control, and
+   QR fields. For a set, also define at least two members. Each member can have its own designation,
+   inventory number, and vehicle number; additional members can be added as needed.
+4. Select **Create** or **Create set**.
 
-Automatic assignment uses the active inventory-number scheme for the selected category. Creation
-fails if that category has no active scheme. A manual number must be unique. Surrounding whitespace
-is removed from text fields when the server saves the record.
+For an individual vehicle, leaving **Inventory number** empty uses the active inventory-number
+scheme for the selected category. Creation fails if that category has no active scheme. A manual
+number must be unique. After creation, the dialog switches to edit mode so the ID-dependent tabs for
+functions, speed curve, CV, uploads, maintenance, and spare parts can be edited.
 
-After creation, the dialog remains open in edit mode and reports that the other tabs can now be
-edited. Functions, speed curve, CV, uploads, maintenance, and spare-parts data depend on the saved
-vehicle ID and cannot be persisted before the core record exists.
+A set is created transactionally: either the set and all members are stored, or none of them are.
+Shared article, purchase, storage, condition, and packaging values are stored on the set and applied
+to every member during creation. A blank member designation becomes the set designation followed by
+its position, for example `TEE Roland (1)`. Blank member inventory numbers are assigned
+automatically. After creation, the first member opens for further editing.
 
-The **Barcode** and **Search article data** controls can propose fields and images from external
-sources. Suggestions require user review and belong to the separate article-search workflow.
+The inventory displays a set as an expandable group on desktop and mobile. Its physical vehicles
+remain independent records and can be opened or edited individually.
+
+This stage does not yet support editing shared set data after creation, assigning existing vehicles
+to a set, detaching members, or deleting a complete set.
 
 ## Core field reference
 
