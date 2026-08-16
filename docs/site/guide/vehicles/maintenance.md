@@ -39,10 +39,15 @@ undated entries, earlier due dates come first, and equal entries use newest crea
 
 ## Add a maintenance entry
 
-Save or intentionally discard all other pending vehicle changes first. Enter the maintenance data
-and choose **Add entry**. Creation is immediate and does not wait for the vehicle's **Save changes**
-action. After success, RailKeeper reloads the complete vehicle and resets the form to type
-`Wartung` and status `geplant`.
+Every maintenance write, **Add entry**, **Save entry**, **Done**, or **Delete maintenance**, is an
+immediate request that does not wait for the vehicle's **Save changes** action. After success,
+RailKeeper reloads the complete vehicle, replaces the core form, and reloads the feature-specific
+editor state. This can discard unsaved core fields, image metadata, attachment edits, a partially
+entered maintenance form, and pending changes on other tabs. Save or intentionally discard all
+pending vehicle changes before any maintenance write.
+
+Enter the maintenance data and choose **Add entry**. After success, RailKeeper resets the form to
+type `Wartung` and status `geplant`.
 
 ## Fields, values, and validation
 
@@ -54,7 +59,8 @@ action. After success, RailKeeper reloads the complete vehicle and resets the fo
   planned, due, and done. The German spelling `fällig` is normalized to `faellig`. Default:
   `geplant`.
 - **Condition:** Optional. Stored values are `neuwertig`, `sehr gut`, `gut`, `gebraucht`, and
-  `reparaturbedürftig`. They remain German in stored data.
+  `reparaturbedürftig`. These values are displayed unchanged in the English interface and also
+  remain German in stored data.
 - **Due on:** Optional valid calendar date in `YYYY-MM-DD` form. It controls date-based due
   calculation.
 - **Completed on:** Optional valid calendar date in `YYYY-MM-DD` form. Saving a done entry without

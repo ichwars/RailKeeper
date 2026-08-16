@@ -40,10 +40,16 @@ angelegten Einträge zuerst.
 
 ## Wartungseintrag hinzufügen
 
-Speichere oder verwirf zuerst bewusst alle anderen ausstehenden Fahrzeugänderungen. Trage die
-Wartungsdaten ein und wähle **Eintrag hinzufügen**. Das Anlegen wirkt sofort und wartet nicht auf
-**Änderungen speichern** am Fahrzeug. Nach Erfolg lädt RailKeeper das vollständige Fahrzeug neu und
-setzt das Formular auf Art `Wartung` und Status `geplant` zurück.
+Jede Wartungs-Schreibaktion, **Eintrag hinzufügen**, **Eintrag speichern**, **Erledigt** oder
+**Wartung löschen**, wirkt sofort und wartet nicht auf **Änderungen speichern** am Fahrzeug. Nach
+Erfolg lädt RailKeeper das vollständige Fahrzeug neu, ersetzt das Grunddatenformular und lädt den
+funktionsbezogenen Editorzustand neu. Dadurch können ungespeicherte Grunddaten, Bildmetadaten,
+Beilagenänderungen, ein teilweise ausgefülltes Wartungsformular und ausstehende Änderungen anderer
+Tabs verloren gehen. Speichere oder verwirf bewusst alle ausstehenden Fahrzeugänderungen vor jeder
+Wartungs-Schreibaktion.
+
+Trage die Wartungsdaten ein und wähle **Eintrag hinzufügen**. Nach Erfolg setzt RailKeeper das
+Formular auf Art `Wartung` und Status `geplant` zurück.
 
 ## Felder, Werte und Validierung
 
