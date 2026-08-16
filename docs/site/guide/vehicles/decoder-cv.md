@@ -121,11 +121,11 @@ The manual form contains:
 | --- | --- |
 | CV number | Required integer from 1 through 1024 |
 | Value | Required integer from 0 through 255 |
-| Category | Optional stored German category |
-| Protocol | Optional protocol |
-| Decoder profile | Optional free text |
+| Category | Optional stored German category, up to 80 characters |
+| Protocol | Optional protocol, up to 80 characters |
+| Decoder profile | Optional free text, up to 160 characters |
 | Source file | Optional decoder file belonging to this vehicle |
-| Description | Optional text |
+| Description | Optional text, up to 1,000 characters |
 
 Stable categories are `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder`, and `Sonstiges`. They remain German in the English interface.

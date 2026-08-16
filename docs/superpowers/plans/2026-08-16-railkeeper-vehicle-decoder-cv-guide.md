@@ -238,11 +238,11 @@ The manual form contains:
 | --- | --- |
 | CV number | Required integer from 1 through 1024 |
 | Value | Required integer from 0 through 255 |
-| Category | Optional stored German category |
-| Protocol | Optional protocol |
-| Decoder profile | Optional free text |
+| Category | Optional stored German category, up to 80 characters |
+| Protocol | Optional protocol, up to 80 characters |
+| Decoder profile | Optional free text, up to 160 characters |
 | Source file | Optional decoder file belonging to this vehicle |
-| Description | Optional text |
+| Description | Optional text, up to 1,000 characters |
 
 Stable categories are `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder`, and `Sonstiges`. They remain German in the English interface.
@@ -541,11 +541,11 @@ Das manuelle Formular enthält:
 | --- | --- |
 | CV-Nummer | Erforderliche Ganzzahl von 1 bis 1024 |
 | Wert | Erforderliche Ganzzahl von 0 bis 255 |
-| Kategorie | Optionale gespeicherte deutsche Kategorie |
-| Protokoll | Optionales Protokoll |
-| Decoderprofil | Optionaler Freitext |
+| Kategorie | Optionale gespeicherte deutsche Kategorie, bis 80 Zeichen |
+| Protokoll | Optionales Protokoll, bis 80 Zeichen |
+| Decoderprofil | Optionaler Freitext, bis 160 Zeichen |
 | Quelldatei | Optionale Decoder-Datei dieses Fahrzeugs |
-| Beschreibung | Optionaler Text |
+| Beschreibung | Optionaler Text, bis 1.000 Zeichen |
 
 Stabile Kategorien sind `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder` und `Sonstiges`.

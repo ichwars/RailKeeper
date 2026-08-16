@@ -222,11 +222,11 @@ contains:
 
 - CV number, integer 1-1024;
 - value, integer 0-255;
-- optional category;
-- optional protocol;
-- optional decoder profile;
+- optional category, up to 80 characters;
+- optional protocol, up to 80 characters;
+- optional decoder profile, up to 160 characters;
 - optional source decoder file;
-- optional description.
+- optional description, up to 1,000 characters.
 
 The stable category options are stored and displayed in German: `Adresse`, `Fahrverhalten`,
 `Motor`, `Licht`, `Sound`, `Funktion`, `Decoder`, and `Sonstiges`. Protocol options include the

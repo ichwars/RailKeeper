@@ -128,11 +128,11 @@ Das manuelle Formular enthält:
 | --- | --- |
 | CV-Nummer | Erforderliche Ganzzahl von 1 bis 1024 |
 | Wert | Erforderliche Ganzzahl von 0 bis 255 |
-| Kategorie | Optionale gespeicherte deutsche Kategorie |
-| Protokoll | Optionales Protokoll |
-| Decoderprofil | Optionaler Freitext |
+| Kategorie | Optionale gespeicherte deutsche Kategorie, bis 80 Zeichen |
+| Protokoll | Optionales Protokoll, bis 80 Zeichen |
+| Decoderprofil | Optionaler Freitext, bis 160 Zeichen |
 | Quelldatei | Optionale Decoder-Datei dieses Fahrzeugs |
-| Beschreibung | Optionaler Text |
+| Beschreibung | Optionaler Text, bis 1.000 Zeichen |
 
 Stabile Kategorien sind `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder` und `Sonstiges`.
