@@ -21,3 +21,6 @@ sich noch in Entwicklung und wird deshalb nicht als stabile Benutzerfunktion dar
 [Ersteinrichtung und Anmeldung](/de/guide/getting-started/) erklärt, wie der erste Administrator
 angelegt wird, die An- und Abmeldung funktioniert, eine Anmeldung mit Zwei-Faktor-Code abgeschlossen
 und ein vergessenes Passwort wiederhergestellt wird.
+
+Fahre mit [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/) fort, um das Dashboard zu
+verstehen, Bestandslücken als gefilterte Fahrzeuglisten zu öffnen und die Kacheln anzuordnen.
