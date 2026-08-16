@@ -750,7 +750,7 @@ components:
           type: string
     MasterDataEntry:
       type: object
-      required: [id, type, key, label, active, sortOrder, metadata, createdAt, updatedAt]
+      required: [id, type, key, label, active, sortOrder, metadata, origin, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -769,12 +769,33 @@ components:
         metadata:
           type: object
           additionalProperties: true
+        origin:
+          type: string
+          enum: [bundled, custom]
+        capabilities:
+          $ref: "#/components/schemas/MasterDataCapabilities"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+    MasterDataCapabilities:
+      type: object
+      required: [canDeactivate, canReactivate, canDelete]
+      properties:
+        canDeactivate:
+          type: boolean
+        canReactivate:
+          type: boolean
+        canDelete:
+          type: boolean
+    MasterDataActiveInput:
+      type: object
+      required: [active]
+      properties:
+        active:
+          type: boolean
     MasterDataInput:
       type: object
       required: [label]
@@ -817,7 +838,7 @@ components:
           example: railkeeper-master-data
         version:
           type: integer
-          example: 1
+          example: 2
         createdAt:
           type: string
           format: date-time
@@ -7909,6 +7930,11 @@ paths:
           in: query
           schema:
             type: boolean
+        - name: management
+          in: query
+          description: Include server-calculated lifecycle capabilities.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Master data entries
@@ -8002,6 +8028,51 @@ paths:
           description: Master data entry deleted
         "400":
           description: Protected master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Master data entry not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Bundled or referenced master data cannot be permanently deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /master-data/{type}/{key}/active:
+    patch:
+      tags: [MasterData]
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDataActiveInput"
+      responses:
+        "200":
+          description: Updated master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MasterDataEntry"
+        "400":
+          description: Invalid active-state request
           content:
             application/json:
               schema:
@@ -8663,9 +8734,27 @@ paths:
     get:
       tags: [MasterData]
       summary: List all master-data groups and relations
+      parameters:
+        - name: active
+          in: query
+          schema:
+            type: boolean
+        - name: management
+          in: query
+          description: Include server-calculated lifecycle capabilities.
+          schema:
+            type: boolean
       responses:
         "200":
           description: Combined master-data response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: array
+                  items:
+                    $ref: "#/components/schemas/MasterDataEntry"
         "403":
           description: Viewer role required
           content:

@@ -365,6 +365,20 @@ func (a *App) updateInventoryNumberScheme(w http.ResponseWriter, r *http.Request
 }
 
 func (a *App) listMasterData(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("management") == "true" {
+		items, err := a.masterDataService.ListForManagement(r.Context(), r.PathValue("type"))
+		if err != nil {
+			if errors.Is(err, application.ErrMasterDataValidation) {
+				respondProblem(w, http.StatusBadRequest, "master_data_validation", "Master data type is required.")
+				return
+			}
+			a.logger.Error("managed master data list failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "master_data_list_failed", "Could not list master data.")
+			return
+		}
+		respondJSON(w, http.StatusOK, items)
+		return
+	}
 	activeOnly := r.URL.Query().Get("active") == "true"
 	items, err := a.masterDataService.List(r.Context(), r.PathValue("type"), activeOnly)
 	if err != nil {
@@ -381,6 +395,16 @@ func (a *App) listMasterData(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) listAllMasterData(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("management") == "true" {
+		items, err := a.masterDataService.ListAllForManagement(r.Context())
+		if err != nil {
+			a.logger.Error("managed master data list all failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "master_data_list_failed", "Could not list master data.")
+			return
+		}
+		respondJSON(w, http.StatusOK, items)
+		return
+	}
 	activeOnly := r.URL.Query().Get("active") == "true"
 	items, err := a.masterDataService.ListAll(r.Context(), activeOnly)
 	if err != nil {
@@ -454,23 +478,62 @@ func masterDataValidationMessageOr(err error, fallback string) string {
 	return fallback
 }
 
+type masterDataActiveInput struct {
+	Active *bool `json:"active"`
+}
+
+func (a *App) setMasterDataActive(w http.ResponseWriter, r *http.Request) {
+	var input masterDataActiveInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	if input.Active == nil {
+		respondProblem(w, http.StatusBadRequest, "master_data_validation", "Active state is required.")
+		return
+	}
+	item, err := a.masterDataService.SetActive(
+		r.Context(),
+		r.PathValue("type"),
+		r.PathValue("key"),
+		*input.Active,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrMasterDataValidation):
+			respondProblem(w, http.StatusBadRequest, "master_data_validation", "Master data type and key are required.")
+		case errors.Is(err, application.ErrMasterDataNotFound):
+			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
+		default:
+			a.logger.Error("master data active-state update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "master_data_update_failed",
+				"Could not update master data active state.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, item)
+}
+
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
 	if err := a.masterDataService.Delete(r.Context(), r.PathValue("type"), r.PathValue("key")); err != nil {
-		if errors.Is(err, application.ErrMasterDataProtected) {
+		switch {
+		case errors.Is(err, application.ErrMasterDataBundled):
+			respondProblem(w, http.StatusConflict, "master_data_bundled",
+				"Bundled master data cannot be permanently deleted.")
+		case errors.Is(err, application.ErrMasterDataInUse):
+			respondProblem(w, http.StatusConflict, "master_data_in_use",
+				"This master data entry is still in use and can only be deactivated.")
+		case errors.Is(err, application.ErrMasterDataProtected):
 			respondProblem(w, http.StatusBadRequest, "master_data_validation", masterDataProtectedMessage)
-			return
-		}
-		if errors.Is(err, application.ErrMasterDataValidation) {
+		case errors.Is(err, application.ErrMasterDataValidation):
 			respondProblem(w, http.StatusBadRequest, "master_data_validation",
 				masterDataValidationMessageOr(err, "This master data entry cannot be deleted."))
-			return
-		}
-		if errors.Is(err, application.ErrMasterDataNotFound) {
+		case errors.Is(err, application.ErrMasterDataNotFound):
 			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
-			return
+		default:
+			a.logger.Error("master data delete failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "master_data_delete_failed", "Could not delete master data.")
 		}
-		a.logger.Error("master data delete failed", "error", err)
-		respondProblem(w, http.StatusInternalServerError, "master_data_delete_failed", "Could not delete master data.")
 		return
 	}
 
