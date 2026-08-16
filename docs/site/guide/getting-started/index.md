@@ -73,10 +73,14 @@ Password recovery depends on the email address stored for the account.
 5. Enter and repeat a new password with at least 12 characters.
 6. Set the password, return to sign-in, and use the new credentials.
 
-The response to a reset request is deliberately identical for known and unknown addresses. It does
-not confirm whether an account exists. When SMTP is configured, RailKeeper sends the link by email.
-Without SMTP, the operator can obtain the local recovery URL from the RailKeeper server log. Contact
-an administrator or operator if no message arrives.
+The confirmation shown in the sign-in form is deliberately identical for known and unknown
+addresses. However, the v0.1.17.6 HTTP response includes an `expiresAt` value only for a known
+account. API clients or people inspecting network responses can therefore infer whether an account
+exists. Operators must treat this as a known account-enumeration limitation of this release.
+
+When SMTP is configured, RailKeeper sends the link by email. Without SMTP, the operator can obtain
+the local recovery URL from the RailKeeper server log. Contact an administrator or operator if no
+message arrives.
 
 Only the newest open reset request remains valid. A reset link expires after 30 minutes and can be
 used once. Completing the reset revokes every existing session for that user, including sessions in
@@ -93,7 +97,7 @@ confirmations to ten within ten minutes.
 | Setup is rejected | Check the 3-character username minimum, the email format, the 12-character password minimum, and both password entries. If attempts were repeated, wait for the ten-minute rate-limit window. |
 | Sign-in reports invalid credentials | Check the username and password. RailKeeper deliberately uses the same error for an unknown account and a wrong password. |
 | RailKeeper asks for a two-factor code | The account has two-factor authentication enabled. Enter the current code from its authenticator. A wrong or expired code is reported as invalid credentials. |
-| No password-reset email arrives | Check the address and spam folder, then contact an administrator. SMTP may not be configured, and the generic response does not confirm that the account exists. |
+| No password-reset email arrives | Check the address and spam folder, then contact an administrator. SMTP may not be configured, and the confirmation displayed by the form does not confirm that the account exists. |
 | A reset link is invalid or expired | Request a new link. Earlier links become invalid when a newer request is created, after 30 minutes, or after first use. |
 | RailKeeper reports too many attempts | Stop submitting the form and wait for the applicable five-minute or ten-minute rate-limit window. |
 
@@ -102,8 +106,9 @@ confirmations to ten within ten minutes.
 - Use a unique password and do not share administrator credentials.
 - Use HTTPS and secure cookies when the instance is reachable over a network. See
   [Installation and Administration](/administration/) for the operating requirements.
-- The generic reset response protects account information. It must not be used to determine which
-  email addresses are registered.
+- The generic message shown by the form is not complete account-enumeration protection in
+  v0.1.17.6 because the HTTP response schema differs for known accounts. Restrict network access,
+  monitor repeated reset attempts, and apply a release that corrects this behavior when available.
 - Ask an administrator to review unexpected sign-in or recovery activity rather than continuing to
   guess credentials.
 

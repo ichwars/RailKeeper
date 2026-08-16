@@ -26,8 +26,9 @@ React/TypeScript and Go sources as the behavior contract.
 - The two language versions must be semantically equivalent, not literal machine translations.
 - Do not document user management, two-factor setup, session administration, or SMTP setup as part
   of this chapter. Mention these only as prerequisites or related administrative work.
-- Do not claim that a password-reset email is always sent. The public response intentionally does
-  not reveal whether the entered address belongs to an account.
+- Do not claim that a password-reset email is always sent. The visible confirmation is identical
+  for known and unknown addresses, but stable v0.1.17.6 includes `expiresAt` only for known accounts
+  in the HTTP response. Document this account-enumeration limitation explicitly.
 - Do not include credentials, reset tokens, real email addresses, private paths, or productive
   data.
 - Keep generated output, `docs/.vitepress/dist`, and `docs/node_modules` out of Git.
@@ -106,7 +107,9 @@ content requirements:
    - signing out revokes the current server-side session and returns to sign-in.
 6. `Recover a forgotten password`:
    - open `Forgot password?`, enter the account email, and request the reset;
-   - the response stays identical for known and unknown addresses;
+   - the visible confirmation stays identical for known and unknown addresses;
+   - the v0.1.17.6 HTTP response can still reveal a known account through its optional `expiresAt`
+     field, which must be identified as a security limitation;
    - configured SMTP sends a time-limited link; without SMTP, an operator can obtain the local
      recovery URL from the server log;
    - contact an administrator if no email arrives;
@@ -117,7 +120,7 @@ content requirements:
 7. `Troubleshooting` table covering absent setup form, rejected setup, invalid sign-in, missing
    two-factor code, missing reset email, invalid/expired reset link, and rate limiting.
 8. `Security notes` covering HTTPS for network-exposed instances, unique credentials, and the
-   deliberate account-enumeration protection of the generic reset response.
+   incomplete account-enumeration protection of the v0.1.17.6 reset response.
 9. `Related pages` linking to `/guide/` and `/administration/` only, so no link points to an
    unpublished page.
 10. `Documented RailKeeper version` stating stable `v0.1.17.6` and review date 2026-08-16.
@@ -186,4 +189,3 @@ the sources; later administrative features are not expanded here.
 git add docs/site/guide docs/site/de/guide docs/.vitepress/config.mts docs/coverage.json
 git commit -m "docs: add getting started user guide"
 ```
-

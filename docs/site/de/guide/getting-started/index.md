@@ -76,11 +76,15 @@ Die Passwort-Wiederherstellung verwendet die für das Konto gespeicherte E-Mail-
 5. Gib ein neues Passwort mit mindestens 12 Zeichen ein und wiederhole es.
 6. Setze das Passwort, kehre zur Anmeldung zurück und verwende die neuen Zugangsdaten.
 
-Die Antwort auf eine Reset-Anfrage ist für bekannte und unbekannte Adressen absichtlich identisch.
-Sie bestätigt nicht, ob ein Konto existiert. Bei eingerichtetem SMTP-Versand sendet RailKeeper den
-Link per E-Mail. Ohne SMTP kann der Betreiber die lokale Wiederherstellungs-URL dem RailKeeper-
-Serverprotokoll entnehmen. Wende dich an einen Administrator oder Betreiber, wenn keine Nachricht
-ankommt.
+Die im Anmeldeformular angezeigte Bestätigung ist für bekannte und unbekannte Adressen absichtlich
+identisch. Die HTTP-Antwort von v0.1.17.6 enthält jedoch nur bei einem bekannten Konto den Wert
+`expiresAt`. API-Clients oder Personen, die Netzwerkantworten untersuchen, können daraus ableiten,
+ob ein Konto existiert. Betreiber müssen dies als bekannte Einschränkung beim Schutz vor
+Kontenermittlung in dieser Version behandeln.
+
+Bei eingerichtetem SMTP-Versand sendet RailKeeper den Link per E-Mail. Ohne SMTP kann der Betreiber
+die lokale Wiederherstellungs-URL dem RailKeeper-Serverprotokoll entnehmen. Wende dich an einen
+Administrator oder Betreiber, wenn keine Nachricht ankommt.
 
 Nur die neueste offene Reset-Anfrage bleibt gültig. Ein Wiederherstellungslink läuft nach 30
 Minuten ab und kann einmal verwendet werden. Der erfolgreiche Reset widerruft alle bestehenden
@@ -97,17 +101,20 @@ Reset-Bestätigungen auf zehn innerhalb von zehn Minuten.
 | Die Ersteinrichtung wird abgelehnt | Prüfe die Mindestlänge von 3 Zeichen für den Benutzernamen, das E-Mail-Format, die Mindestlänge von 12 Zeichen für das Passwort und beide Passworteingaben. Warte nach wiederholten Versuchen das zehnminütige Begrenzungsfenster ab. |
 | Die Anmeldung meldet ungültige Zugangsdaten | Prüfe Benutzername und Passwort. RailKeeper verwendet für ein unbekanntes Konto und ein falsches Passwort absichtlich dieselbe Meldung. |
 | RailKeeper verlangt einen Zwei-Faktor-Code | Für das Konto ist Zwei-Faktor-Authentifizierung aktiviert. Gib den aktuellen Code aus der Authenticator-App ein. Ein falscher oder abgelaufener Code wird als ungültige Zugangsdaten gemeldet. |
-| Es kommt keine E-Mail zur Passwort-Wiederherstellung an | Prüfe Adresse und Spam-Ordner und wende dich danach an einen Administrator. SMTP ist möglicherweise nicht eingerichtet, und die allgemeine Antwort bestätigt nicht, dass das Konto existiert. |
+| Es kommt keine E-Mail zur Passwort-Wiederherstellung an | Prüfe Adresse und Spam-Ordner und wende dich danach an einen Administrator. SMTP ist möglicherweise nicht eingerichtet, und die im Formular angezeigte Bestätigung bestätigt nicht, dass das Konto existiert. |
 | Ein Reset-Link ist ungültig oder abgelaufen | Fordere einen neuen Link an. Frühere Links werden durch eine neuere Anfrage, nach 30 Minuten oder nach der ersten Verwendung ungültig. |
 | RailKeeper meldet zu viele Versuche | Sende das Formular nicht weiter ab und warte das zutreffende fünf- oder zehnminütige Begrenzungsfenster ab. |
 
 ## Sicherheitshinweise
 
-- Verwende ein einmaliges Passwort und teile keine Administrator-Zugangsdaten.
+- Verwende ein nur für RailKeeper genutztes, nicht wiederverwendetes Passwort und teile keine
+  Administrator-Zugangsdaten.
 - Verwende HTTPS und sichere Cookies, wenn die Instanz über ein Netzwerk erreichbar ist. Die
   Betriebsanforderungen stehen unter [Installation und Administration](/de/administration/).
-- Die allgemeine Reset-Antwort schützt Kontoinformationen. Sie darf nicht dazu verwendet werden,
-  registrierte E-Mail-Adressen zu ermitteln.
+- Die allgemeine Formularmeldung bietet in v0.1.17.6 keinen vollständigen Schutz vor
+  Kontenermittlung, weil sich die HTTP-Antwort für bekannte Konten unterscheidet. Begrenze den
+  Netzwerkzugriff, überwache wiederholte Reset-Anfragen und installiere eine Version mit korrigiertem
+  Verhalten, sobald sie verfügbar ist.
 - Bitte einen Administrator, unerwartete Anmelde- oder Wiederherstellungsaktivität zu prüfen, statt
   weiterhin Zugangsdaten zu erraten.
 
