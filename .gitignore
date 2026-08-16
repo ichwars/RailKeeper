@@ -24,6 +24,12 @@ docs/.vitepress/cache/
 docs/.vitepress/dist/
 .superpowers/
 
+# Local QA and agent work artifacts
+design-qa.md
+design-qa-*.png
+docs/aegis/work/
+docs/superpowers/
+
 # Runtime data
 data/
 backend/data/
