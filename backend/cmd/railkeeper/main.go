@@ -17,6 +17,7 @@ import (
 	"railkeeper/backend/internal/api"
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
+	"railkeeper/backend/internal/startup"
 )
 
 const (
@@ -43,32 +44,39 @@ func main() {
 	}
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	portable := portableMode()
 	baseDir := executableDir()
-	addrDefault := ":8080"
-	dataDirDefault := "./data"
-	migrationsDirDefault := "./migrations"
-	seedsDirDefault := "./seeds"
-	staticDirDefault := "../../frontend/dist"
-	if portable {
-		addrDefault = "127.0.0.1:8080"
-		dataDirDefault = filepath.Join(baseDir, "data")
-		migrationsDirDefault = filepath.Join(baseDir, "migrations")
-		seedsDirDefault = filepath.Join(baseDir, "seeds")
-		staticDirDefault = filepath.Join(baseDir, "web")
+	workingDir, err := os.Getwd()
+	if err != nil {
+		logger.Error("working directory resolution failed", "error", err)
+		os.Exit(1)
 	}
-	addr := env("RAILKEEPER_ADDR", addrDefault)
-	dataDir := env("RAILKEEPER_DATA_DIR", dataDirDefault)
-	migrationsDir := env("RAILKEEPER_MIGRATIONS_DIR", migrationsDirDefault)
-	seedsDir := env("RAILKEEPER_SEEDS_DIR", seedsDirDefault)
-	staticDir := env("RAILKEEPER_STATIC_DIR", staticDirDefault)
+	runtimeConfig, err := startup.ResolveRuntimeConfig(startup.RuntimeInputs{
+		GOOS:          runtime.GOOS,
+		Args:          os.Args[1:],
+		ExecutableDir: baseDir,
+		WorkingDir:    workingDir,
+		LookupEnv:     os.LookupEnv,
+		PathExists:    exists,
+		JoinPath:      filepath.Join,
+		AbsPath:       filepath.Abs,
+	})
+	if err != nil {
+		logger.Error("runtime configuration failed", "error", err)
+		os.Exit(1)
+	}
+	standalone := runtimeConfig.Standalone
+	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
+	dataDir := runtimeConfig.DataDir
+	migrationsDir := runtimeConfig.MigrationsDir
+	seedsDir := runtimeConfig.SeedsDir
+	staticDir := runtimeConfig.StaticDir
 	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
 	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
 	maxAttachmentBytes := envMegabytes("RAILKEEPER_MAX_ATTACHMENT_MB", 25)
 	allowedAttachmentExtensions := envExtensionSet("RAILKEEPER_ALLOWED_ATTACHMENT_EXTENSIONS")
 	updateCheckURL := env("RAILKEEPER_UPDATE_CHECK_URL", defaultUpdateCheckURL)
 
-	listener, appURL, err := listen(addr, portable)
+	listener, appURL, err := listen(addr, standalone)
 	if err != nil {
 		logger.Error("server listen failed", "error", err, "addr", addr)
 		os.Exit(1)
@@ -76,7 +84,7 @@ func main() {
 	defer func() { _ = listener.Close() }()
 
 	publicURL := env("RAILKEEPER_PUBLIC_URL", "")
-	if portable && publicURL == "" {
+	if standalone && publicURL == "" {
 		publicURL = appURL
 	}
 	smtpConfig := application.SMTPPasswordResetMailConfig{
@@ -173,8 +181,8 @@ func main() {
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 
-	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "portable", portable)
-	if portable {
+	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
+	if standalone {
 		printPortableStart(appURL, dataDir)
 		if env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {
 			go openBrowser(logger, appURL)
@@ -184,21 +192,6 @@ func main() {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
-}
-
-func portableMode() bool {
-	if env("RAILKEEPER_PORTABLE", "false") == "true" {
-		return true
-	}
-	for _, arg := range os.Args[1:] {
-		if arg == "--portable" {
-			return true
-		}
-	}
-	baseDir := executableDir()
-	return exists(filepath.Join(baseDir, "web", "index.html")) &&
-		exists(filepath.Join(baseDir, "migrations")) &&
-		exists(filepath.Join(baseDir, "seeds"))
 }
 
 func executableDir() string {
