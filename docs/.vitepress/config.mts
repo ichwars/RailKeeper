@@ -65,6 +65,14 @@ export default defineConfig({
                 { text: "Reservierungen, Einbauten und Verwendung", link: "/de/guide/accessories/allocations-history" },
               ],
             },
+            {
+              text: "Messe",
+              items: [
+                { text: "Messearbeitsbereich", link: "/de/guide/exhibition/" },
+                { text: "Listen und Sperren", link: "/de/guide/exhibition/lists-and-locking" },
+                { text: "Einträge und Drucken", link: "/de/guide/exhibition/entries-and-printing" },
+              ],
+            },
           ],
           "/de/administration/": [
             {
@@ -147,6 +155,14 @@ export default defineConfig({
             { text: "Article records and technical data", link: "/guide/accessories/article-records" },
             { text: "Stock, purchases, and documents", link: "/guide/accessories/stock-purchases-documents" },
             { text: "Reservations, installations, and usage", link: "/guide/accessories/allocations-history" },
+          ],
+        },
+        {
+          text: "Exhibition",
+          items: [
+            { text: "Exhibition workspace", link: "/guide/exhibition/" },
+            { text: "Lists and locking", link: "/guide/exhibition/lists-and-locking" },
+            { text: "Entries and printing", link: "/guide/exhibition/entries-and-printing" },
           ],
         },
       ],

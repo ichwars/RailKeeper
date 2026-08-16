@@ -46,6 +46,9 @@ Ersatzteile pflegst, ohne teilweise Schreibvorgänge zu übersehen.
 Produktdaten, Mengen- und Einzelbestand, Käufe, Dokumente, Reservierungen, Einbauten und
 Verwendungshistorie.
 
+[Messearbeitsbereich](/de/guide/exhibition/) erklärt, wie du Listen vorbereitest, Betriebseinträge
+pflegst, Sperren verwendest, DCC- und SX-Adresskonflikte löst und den Veranstaltungsreport druckst.
+
 ## Windows Standalone aktualisieren
 
 Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper

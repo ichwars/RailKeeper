@@ -60,7 +60,7 @@
     {
       "id": "exhibition",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/exhibition/index.md",
       "germanPath": "de/guide/exhibition/index.md"
     },

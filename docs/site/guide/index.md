@@ -44,6 +44,9 @@ spare parts without overlooking partial writes.
 product data, counted and individual stock, purchases, documents, reservations, installations, and
 usage history.
 
+[Exhibition workspace](/guide/exhibition/) explains how to prepare lists, maintain operating
+entries, use locks, resolve DCC and SX address conflicts, and print the event report.
+
 ## Updating Windows Standalone
 
 Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the
