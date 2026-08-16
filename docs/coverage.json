@@ -25,7 +25,7 @@
     {
       "id": "vehicle-media",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/media.md",
       "germanPath": "de/guide/vehicles/media.md"
     },
@@ -204,6 +204,9 @@
       "vehicles.search": "vehicle-search-spares",
       "vehicles.spareParts": "vehicle-search-spares",
       "vehicles.speedCurve": "vehicle-decoder-cv",
+      "vehicles.uploads.extractSpareParts": "vehicle-search-spares",
+      "vehicles.uploads.webDocument": "vehicle-search-spares",
+      "vehicles.uploads.webDocuments": "vehicle-search-spares",
       "vehicles.uploads": "vehicle-media",
       "vehicles": "vehicles-core"
     },
@@ -223,7 +226,9 @@
       "/api/v1/sessions": "users-sessions-security",
       "/api/v1/ecos": "digital-centers",
       "/api/v1/digital-centers": "digital-centers",
+      "/api/v1/vehicles/{id}/images/import-url": "vehicle-search-spares",
       "/api/v1/vehicles/{id}/images": "vehicle-media",
+      "/api/v1/vehicles/{id}/attachments/import-url": "vehicle-search-spares",
       "/api/v1/vehicles/{id}/attachments": "vehicle-media",
       "/api/v1/vehicles/{id}/maintenance": "vehicle-maintenance",
       "/api/v1/vehicles/{id}/spare-parts": "vehicle-search-spares",

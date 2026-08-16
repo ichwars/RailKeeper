@@ -26,3 +26,6 @@ follow inventory gaps into filtered vehicle lists, and arrange its widgets.
 
 Use [Vehicle inventory and core records](/guide/vehicles/) to search and filter vehicles, create or
 edit their core data, produce reports and QR labels, and understand safe deletion.
+
+[Vehicle images and attachments](/guide/vehicles/media) covers local images, main and alternative
+image handling, general attachments, preview and download, and safe removal.
