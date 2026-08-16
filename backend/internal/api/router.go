@@ -42,6 +42,7 @@ type Config struct {
 	SMTPSettingsService         *application.SMTPSettingsService
 	PublicURL                   string
 	CookieSecure                bool
+	StorageLocation             StorageLocationConfig
 }
 
 type App struct {
@@ -78,6 +79,7 @@ type App struct {
 	publicURL                   string
 	cookieSecure                bool
 	rateLimits                  rateLimitStore
+	storageLocation             *storageLocationState
 }
 
 func NewRouter(config Config) http.Handler {
@@ -121,6 +123,7 @@ func NewRouter(config Config) http.Handler {
 		publicURL:                   strings.TrimRight(strings.TrimSpace(config.PublicURL), "/"),
 		cookieSecure:                config.CookieSecure,
 		rateLimits:                  config.RateLimitService,
+		storageLocation:             newStorageLocationState(config.StorageLocation, config.DataDir),
 	}
 	if app.rateLimits == nil {
 		app.rateLimits = newRateLimiter()

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"os/exec"
 	"path/filepath"
 
 	"railkeeper/backend/internal/api"
@@ -55,7 +56,9 @@ type startupDependencies struct {
 	) (infrastructure.MigrationSafetyResult, error)
 	SeedRoles      func(*sql.DB) error
 	SeedMasterData func(*sql.DB, string) error
-	BuildHandler   func(context.Context, *sql.DB, applicationDataPaths) (http.Handler, error)
+	BuildHandler   func(
+		context.Context, *sql.DB, applicationDataPaths, StartupState,
+	) (http.Handler, error)
 }
 
 type applicationHandlerOptions struct {
@@ -144,7 +147,7 @@ func prepareStartup(
 	if seedErr := dependencies.SeedMasterData(database, result.State.Runtime.SeedsDir); seedErr != nil {
 		return startupResult{}, fmt.Errorf("seed master data: %w", seedErr)
 	}
-	handler, buildErr := dependencies.BuildHandler(ctx, database, paths)
+	handler, buildErr := dependencies.BuildHandler(ctx, database, paths, result.State)
 	if buildErr != nil {
 		return startupResult{}, fmt.Errorf("build application handler: %w", buildErr)
 	}
@@ -194,9 +197,10 @@ func defaultStartupDependencies(options applicationHandlerOptions) startupDepend
 			ctx context.Context,
 			database *sql.DB,
 			paths applicationDataPaths,
+			state StartupState,
 		) (http.Handler, error) {
 			options.PasswordResetMailer = passwordResetMailer
-			return buildApplicationHandler(ctx, database, paths, options)
+			return buildApplicationHandler(ctx, database, paths, state, options)
 		},
 	}
 }
@@ -205,6 +209,7 @@ func buildApplicationHandler(
 	ctx context.Context,
 	database *sql.DB,
 	paths applicationDataPaths,
+	state StartupState,
 	options applicationHandlerOptions,
 ) (http.Handler, error) {
 	fileBlobService := application.NewFileBlobService(database, paths.BlobDataDir)
@@ -255,5 +260,21 @@ func buildApplicationHandler(
 		SMTPSettingsService: application.NewSMTPSettingsService(database, options.SMTPConfig, options.PublicURL),
 		PublicURL:           options.PublicURL,
 		CookieSecure:        options.CookieSecure,
+		StorageLocation: api.StorageLocationConfig{
+			DataPath:             paths.DataDir,
+			Mode:                 state.Runtime.StorageMode,
+			OpenFolderAvailable:  state.Runtime.OpenDataFolderSupported,
+			MigrationReceipt:     state.Receipt,
+			OpenFolder:           openStorageFolder,
+			AcknowledgeMigration: startup.AcknowledgeMigrationReceipt,
+		},
 	}), nil
+}
+
+func storageFolderCommand(ctx context.Context, dataPath string) *exec.Cmd {
+	return exec.CommandContext(ctx, "explorer.exe", dataPath)
+}
+
+func openStorageFolder(ctx context.Context, dataPath string) error {
+	return storageFolderCommand(ctx, dataPath).Start()
 }

@@ -62,6 +62,7 @@ import {
   type SettingsLocation
 } from "./settingsDataModel";
 import { SettingsTabList } from "./SettingsTabList";
+import { StorageLocationPanel } from "./StorageLocationPanel";
 
 import {
   applyVisibleMetadata,
@@ -1751,6 +1752,7 @@ export function SettingsView({ username }: { username: string }) {
                 </div>
               </div>
               <p>{t("settings.storage.subtitle")}</p>
+              {canManageUsers && <StorageLocationPanel />}
               <div className="storage-total">
                 <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
                 <span>{storageUsage?.updatedAt ? t("settings.storage.updated", { date: formatDateTime(storageUsage.updatedAt) }) : t("settings.storage.notUpdated")}</span>

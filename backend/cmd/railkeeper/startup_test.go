@@ -48,7 +48,9 @@ func TestPrepareStartupConflictSkipsDatabaseMigrationsSeedsAndRouter(t *testing.
 		},
 		SeedRoles:      func(*sql.DB) error { calls = append(calls, "seed-roles"); return nil },
 		SeedMasterData: func(*sql.DB, string) error { calls = append(calls, "seed-master"); return nil },
-		BuildHandler: func(context.Context, *sql.DB, applicationDataPaths) (http.Handler, error) {
+		BuildHandler: func(
+			context.Context, *sql.DB, applicationDataPaths, StartupState,
+		) (http.Handler, error) {
 			calls = append(calls, "router")
 			return http.NotFoundHandler(), nil
 		},
@@ -77,6 +79,7 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 	receipt := &startup.MigrationReceipt{SourcePath: legacyDir, TargetPath: safeDir}
 	calls := []string{}
 	var capturedPaths applicationDataPaths
+	var capturedState StartupState
 	dependencies := startupDependencies{
 		ResolveLegacyData: func(
 			_ context.Context, gotSafe, gotLegacy string, options startup.LegacyMigrationOptions,
@@ -131,9 +134,12 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 			}
 			return nil
 		},
-		BuildHandler: func(_ context.Context, _ *sql.DB, paths applicationDataPaths) (http.Handler, error) {
+		BuildHandler: func(
+			_ context.Context, _ *sql.DB, paths applicationDataPaths, state StartupState,
+		) (http.Handler, error) {
 			calls = append(calls, "router")
 			capturedPaths = paths
+			capturedState = state
 			return http.NotFoundHandler(), nil
 		},
 	}
@@ -155,6 +161,9 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 	}
 	if capturedPaths != wantPaths {
 		t.Fatalf("application data paths = %#v, want %#v", capturedPaths, wantPaths)
+	}
+	if capturedState.Runtime.DataDir != safeDir || capturedState.Receipt != receipt {
+		t.Fatalf("handler startup state = %#v", capturedState)
 	}
 	wantCalls := []string{
 		"resolve", "preflight", "exists", "open", "migrate", "seed-roles", "seed-master", "router",
@@ -181,7 +190,9 @@ func TestPrepareStartupClosesDatabaseWhenLaterStartupFails(t *testing.T) {
 		},
 		SeedRoles:      func(*sql.DB) error { return nil },
 		SeedMasterData: func(*sql.DB, string) error { return nil },
-		BuildHandler: func(context.Context, *sql.DB, applicationDataPaths) (http.Handler, error) {
+		BuildHandler: func(
+			context.Context, *sql.DB, applicationDataPaths, StartupState,
+		) (http.Handler, error) {
 			return nil, errors.New("router failed")
 		},
 	}
@@ -192,5 +203,13 @@ func TestPrepareStartupClosesDatabaseWhenLaterStartupFails(t *testing.T) {
 	}
 	if pingErr := database.PingContext(context.Background()); pingErr == nil {
 		t.Fatal("database remained open after startup failure")
+	}
+}
+
+func TestStorageFolderCommandUsesExplorerWithOnlyConfiguredPath(t *testing.T) {
+	dataPath := `C:\Users\Ada\AppData\Local\RailKeeper\data`
+	command := storageFolderCommand(context.Background(), dataPath)
+	if len(command.Args) != 2 || command.Args[0] != "explorer.exe" || command.Args[1] != dataPath {
+		t.Fatalf("storage folder command args = %v", command.Args)
 	}
 }

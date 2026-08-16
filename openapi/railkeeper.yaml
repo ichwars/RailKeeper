@@ -402,6 +402,37 @@ components:
         optimizedAt:
           type: string
           format: date-time
+    StorageMigrationReceipt:
+      type: object
+      required: [sourcePath, targetPath, migratedAt, version, filesVerified, acknowledged]
+      properties:
+        sourcePath:
+          type: string
+        targetPath:
+          type: string
+        migratedAt:
+          type: string
+          format: date-time
+        version:
+          type: string
+        filesVerified:
+          type: integer
+          minimum: 1
+        acknowledged:
+          type: boolean
+    StorageLocationInfo:
+      type: object
+      required: [dataPath, mode, openFolderAvailable]
+      properties:
+        dataPath:
+          type: string
+        mode:
+          type: string
+          enum: [windows_standalone, configured, server]
+        openFolderAvailable:
+          type: boolean
+        migrationReceipt:
+          $ref: "#/components/schemas/StorageMigrationReceipt"
     Vehicle:
       type: object
       required: [id, inventoryNumber, manufacturer, name, gauge, createdAt, updatedAt]
@@ -4210,6 +4241,84 @@ paths:
                 $ref: "#/components/schemas/StorageOptimizeResult"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/storage/info:
+    get:
+      tags: [System]
+      responses:
+        "200":
+          description: Resolved persistent data location and optional legacy-migration receipt
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StorageLocationInfo"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/storage/open-folder:
+    post:
+      tags: [System]
+      description: Opens the configured local data folder. No path, query, or request body is accepted.
+      responses:
+        "204":
+          description: Folder opening started
+        "400":
+          description: Request contained unsupported input (`storage_folder_request_invalid`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or valid CSRF token required (`csrf_required`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Capability unavailable (`storage_folder_open_unavailable`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Operating-system folder action failed (`storage_folder_open_failed`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /system/storage/migration-receipt/acknowledge:
+    post:
+      tags: [System]
+      description: Atomically acknowledges the retained legacy-migration receipt in the active data folder.
+      responses:
+        "204":
+          description: Receipt acknowledged
+        "400":
+          description: Request contained unsupported input (`storage_migration_request_invalid`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or valid CSRF token required (`csrf_required`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: No receipt is available (`storage_migration_receipt_unavailable`)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Receipt update failed (`storage_migration_acknowledgement_failed`)
           content:
             application/json:
               schema:
