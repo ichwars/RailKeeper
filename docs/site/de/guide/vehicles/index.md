@@ -312,6 +312,7 @@ Datei physisch zu entfernen.
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
+- [Messearbeitsbereich](/de/guide/exhibition/)
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Übersicht der Administration](/de/administration/)

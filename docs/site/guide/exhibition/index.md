@@ -115,8 +115,9 @@ already have succeeded before the refresh failed.
 ## Related pages
 
 - [User Guide overview](/guide/)
+- [Lists and locking](./lists-and-locking)
+- [Entries and printing](./entries-and-printing)
 - [Vehicle inventory and core records](/guide/vehicles/)
-- [Accessories overview](/guide/accessories/)
 
 ## Documented RailKeeper version
 

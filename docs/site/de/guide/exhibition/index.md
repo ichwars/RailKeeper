@@ -124,8 +124,9 @@ versehentlich doppelt ausgeführt.
 ## Verwandte Seiten
 
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
+- [Listen und Sperren](./lists-and-locking)
+- [Einträge und Drucken](./entries-and-printing)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
-- [Zubehörübersicht](/de/guide/accessories/)
 
 ## Dokumentierte RailKeeper-Version
 
