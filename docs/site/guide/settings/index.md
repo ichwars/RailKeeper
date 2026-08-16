@@ -38,13 +38,13 @@ operations on the server. Reordering or hiding a navigation entry never grants o
 | --- | --- | --- |
 | **General** | Language, start page, date and time preferences, printing preference, and sidebar order | [Personal preferences](/guide/settings/personal-preferences) |
 | **Appearance** | System, light, or dark mode plus separate color and style variants | [Appearance](/guide/settings/appearance) |
-| **General > Inventory numbers** | Number schemes for inventory categories | Master data administration |
+| **General > Inventory numbers** | Number schemes for inventory categories | [Master-data administration](/administration/master-data) |
 | **General > Article search** | Enable article search and choose source groups | [Article search](/guide/vehicles/search-and-spares) |
 | **General > Updates** | Release checks and Windows package download | Releases and support |
 | **General > Storage** | Storage usage and optimization | System operations |
-| **Data** | General and accessory master data, lifecycle, and transfer | Master data administration |
+| **Data** | General and accessory master data, lifecycle, and transfer | [Master-data administration](/administration/master-data) |
 | **Command stations** | ECoS, Z21, Intellibox 3, and CS3 configuration | Digital-center administration |
-| **Import/Export** | Backup, restore, and master-data transfer inside Settings | Backup and master-data administration |
+| **Import/Export** | Backup, restore, and master-data transfer inside Settings | Backup and [master-data administration](/administration/master-data) |
 | **Authentication** | Own password and two-factor setup; Admin user, session, audit, and SMTP tools | Users, sessions, and security |
 
 The main [Import and export workspace](/guide/import-export/) is a different page. It exchanges

@@ -16,6 +16,11 @@ Betriebsprüfungen und konservative Fehlerbehebung.
 Die Administrationsanleitungen beschreiben die stabile Laufzeit v0.1.18 und erhalten das lokale,
 selbst gehostete Sicherheitsmodell von RailKeeper.
 
+## Administrative Abläufe
+
+- [Stammdaten-Administration](./master-data) behandelt kontrollierte Werte, Lebenszyklus,
+  Lagerorte, Inventarnummernschemata und den JSON-Transfer.
+
 ## Sichere Updates unter Windows
 
 Das ZIP-Paket von Windows Standalone enthält ausschließlich die Anwendung. Datenbank, Uploads,
@@ -86,3 +91,6 @@ Bearbeitungen und Deaktivierungen bleiben nach einem Neustart, einem Abgleich de
 Stammdaten, einem Update, dem Export und Import von Stammdaten sowie einer Sicherung und
 Wiederherstellung der Anwendung erhalten. Vor umfangreichen Stammdatenänderungen wird dennoch eine
 aktuelle RailKeeper-Sicherung empfohlen.
+
+Die vollständigen Feld-, Berechtigungs-, Nummerierungs-, Lagerort- und Importregeln beschreibt die
+[Stammdaten-Administration](./master-data).

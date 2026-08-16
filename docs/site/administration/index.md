@@ -16,6 +16,11 @@ conservative troubleshooting.
 Administration guidance describes the stable v0.1.18 runtime and preserves RailKeeper's
 local-first, self-hosted security model.
 
+## Administrative workflows
+
+- [Master-data administration](./master-data) covers controlled values, lifecycle, storage
+  locations, inventory-number schemes, and the JSON transfer.
+
 ## Safe Windows Standalone updates
 
 The Windows Standalone ZIP contains the application only. It never contains a database, uploads,
@@ -80,3 +85,6 @@ invalidate historical inventory data.
 Edits and deactivation states survive application restarts, seed reconciliation, updates,
 master-data export and import, and application backup and restore. A current RailKeeper backup is
 still recommended before extensive master-data changes.
+
+The complete field, permission, numbering, location, and import rules are documented in
+[Master-data administration](./master-data).

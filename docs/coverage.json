@@ -81,7 +81,7 @@
     {
       "id": "master-data",
       "audience": "admin",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "administration/master-data.md",
       "germanPath": "de/administration/master-data.md"
     },
