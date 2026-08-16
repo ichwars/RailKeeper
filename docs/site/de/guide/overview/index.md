@@ -157,7 +157,7 @@ Das Anlegen, Importieren und Ändern von Fahrzeugen erfordert die Rolle Admin od
 5. Kehre zur **Übersicht** zurück und aktualisiere das Dashboard.
 
 Bei einer Lücke für Artikelnummer, EAN oder Decoder entfernt das Schließen des aktiven
-Qualitätsfilter-Eintrags den Datenlücken-Parameter aus der Browseradresse. **Filter entfernen**
+Qualitätsfilter-Eintrags den Datenlücken-Parameter aus der Browseradresse.
 Andere Filtergruppen lassen diese Qualitätslücke aktiv und behalten den Parameter bei. Bei **Ohne
 Hauptbild** ersetzt die Wahl eines anderen Bestandsfilters die aktive Bildlücke, lässt aber den nun
 veralteten Parameter `gap=no-main-image` in der Adresse stehen. **Filter entfernen** entfernt den
