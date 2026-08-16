@@ -1,5 +1,5 @@
-RailKeeper Portable fuer Windows
-================================
+RailKeeper Windows Standalone (ohne Installation)
+=================================================
 
 Dieses Paket kann ohne Installation gestartet werden. Es werden keine
 zusaetzlichen Programme, Datenbanken oder Laufzeitumgebungen benoetigt.
@@ -16,33 +16,54 @@ Starten Sie anschliessend:
 start-railkeeper.bat
 
 RailKeeper oeffnet danach automatisch den Browser. Falls der Browser nicht
-automatisch startet, oeffnen Sie diese Adresse manuell:
+automatisch startet, oeffnen Sie die im Fenster angezeigte lokale Adresse.
 
-http://127.0.0.1:8080
+Sicherer Datenordner
+--------------------
 
-USB-Stick
----------
+Ihre Daten liegen standardmaessig nicht im austauschbaren Programmordner,
+sondern hier:
 
-RailKeeper kann grundsaetzlich auch direkt von einem USB-Stick gestartet
-werden. Fuer den taeglichen Betrieb wird dies jedoch nicht empfohlen, da
-USB-Sticks je nach Qualitaet langsamer sein koennen und bei versehentlichem
-Abziehen Daten beschaedigt werden koennen.
+%LOCALAPPDATA%\RailKeeper\data
+
+Das ZIP enthaelt absichtlich keinen Datenordner. Ein neuer Programmordner
+verwendet deshalb beim naechsten Start wieder dieselben vorhandenen Daten.
+
+Beim ersten Start nach einer aelteren Standalone- oder Portable-Version wird
+ein vorhandener Ordner "data" neben RailKeeper.exe in den sicheren Ordner
+uebernommen. Der bisherige Ordner bleibt dabei unveraendert erhalten. Wenn an
+beiden Stellen unterschiedliche Datenbanken vorhanden sind, stoppt RailKeeper
+und zeigt eine Sicherheitsseite. Keine Datenbank wird automatisch ausgewaehlt,
+ueberschrieben oder zusammengefuehrt.
+
+Expliziter Datenordner
+----------------------
+
+Fortgeschrittene Benutzer koennen RAILKEEPER_DATA_DIR vor dem Start auf einen
+anderen absoluten Ordner setzen. Dieser Modus deaktiviert die automatische
+Uebernahme. Liegt der Ordner innerhalb des Programmverzeichnisses oder auf
+einem USB-Stick, gehen Daten beim Loeschen, Ueberschreiben oder Abziehen dieses
+Speichers verloren. Regelmaessige externe Backups bleiben erforderlich.
 
 Wichtig
 -------
 
 - Lassen Sie das RailKeeper-Fenster waehrend der Nutzung geoeffnet.
-- Ihre Daten werden im Ordner "data" neben RailKeeper.exe gespeichert.
-- Sichern Sie den gesamten RailKeeper-Ordner regelmaessig.
+- Pruefen Sie den aktiven Datenordner unter Einstellungen > Allgemein.
+- Erstellen Sie vor Updates ein RailKeeper-Backup und nach Moeglichkeit eine
+  zusaetzliche Kopie von %LOCALAPPDATA%\RailKeeper\data.
 - Wenn Port 8080 belegt ist, waehlt RailKeeper automatisch einen der naechsten
   freien lokalen Ports und zeigt die Adresse im Fenster an.
-- RailKeeper bindet im Portable-Modus nur lokal an 127.0.0.1.
+- Windows Standalone bindet standardmaessig nur lokal an 127.0.0.1.
 
 Update
 ------
 
 1. RailKeeper beenden.
-2. Den alten Ordner sichern.
-3. Das neue ZIP in einen neuen Ordner entpacken.
-4. Den Ordner "data" aus der alten Version in den neuen Ordner kopieren.
-5. start-railkeeper.bat starten.
+2. Den aktiven Datenordner und das letzte RailKeeper-Backup sichern.
+3. Das neue ZIP in einen neuen Programmordner entpacken.
+4. start-railkeeper.bat starten.
+5. Unter Einstellungen den angezeigten Datenordner und den Bestand pruefen.
+
+Kopieren Sie keine Datenbank in den neuen Programmordner. RailKeeper verwendet
+den persistenten Datenordner automatisch weiter.
