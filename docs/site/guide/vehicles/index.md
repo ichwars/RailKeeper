@@ -68,10 +68,10 @@ Filter groups combine with AND logic. A vehicle must satisfy every active group.
 The **Without maintenance** label is imprecise in v0.1.17.6. It selects vehicles without a due
 maintenance entry, including vehicles that have completed or non-due maintenance history.
 
-Selecting a category limits the subtype choices to its configured category-subtype relations and
-clears the current subtype selection. **Clear filters** returns all groups to their defaults and
-removes an Overview `gap` parameter from the browser address. The result counter always reports the
-number after every active filter.
+Selecting a category limits the subtype choices to distinct subtypes among the currently loaded
+server-search results in that category and clears the current subtype selection. **Clear filters**
+returns all groups to their defaults and removes an Overview `gap` parameter from the browser
+address. The result counter always reports the number after every active filter.
 
 Additional railway-company, epoch, and adapter filters available in later development are not part
 of stable v0.1.17.6.
@@ -229,6 +229,9 @@ can download PNG or SVG and open a printable label. The quick menu and read-only
 QR code whenever identity data exists. The **Create QR code** switch controls only the QR button in
 the edit-form Details section in v0.1.17.6.
 
+When either inventory number or designation is empty, the payload writes `-` for that field. At
+least one of the two fields must contain a value before RailKeeper creates the QR code.
+
 ## Create inventory reports
 
 The dialog starts with **Overview list**, title `Fahrzeugsammlung`, scope **All**, and QR code plus
@@ -286,6 +289,9 @@ important records; the application does not promise physical cleanup of every re
 | Automatic number fails | Ask an administrator to configure an active inventory-number scheme for the category. |
 | Manual number conflicts | Choose a different unique inventory number. |
 | Save/delete is forbidden | Sign in with Admin or Editor. Visible controls do not override the server role check. |
+| Save fails | The error appears above the inventory and the editor remains open. Treat the change as unsaved, check the session and connection, then retry. |
+| Delete fails | The error appears above the inventory and the confirmation remains open. Treat the vehicle as not deleted, resolve the reported cause, then retry. |
+| Report creation fails | The error appears above the inventory and the report dialog remains open. Check the connection and popup handling, then create it again. |
 | Report has no rows | Adjust search/filter or select at least one visible row. |
 | Delete is blocked | Remove or change the layout/accessory allocation that still references the vehicle, then retry. |
 

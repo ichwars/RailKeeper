@@ -70,10 +70,10 @@ Filtergruppen sind UND-verknüpft. Ein Fahrzeug muss jede aktive Gruppe erfülle
 Die Bezeichnung **Ohne Wartung** ist in v0.1.17.6 ungenau. Der Filter zeigt Fahrzeuge ohne fälligen
 Wartungseintrag. Dazu können Fahrzeuge mit erledigten oder noch nicht fälligen Wartungen gehören.
 
-Eine ausgewählte Kategorie beschränkt die Gattungen auf konfigurierte Kategorie-Gattung-Zuordnungen
-und entfernt die aktuelle Gattungsauswahl. **Filter entfernen** setzt alle Gruppen zurück und
-entfernt einen `gap`-Parameter der Übersicht aus der Browseradresse. Der Ergebniszähler bezieht sich
-immer auf alle aktiven Filter.
+Eine ausgewählte Kategorie beschränkt die Gattungen auf die unterschiedlichen Werte der aktuell vom
+Server geladenen Suchergebnisse in dieser Kategorie und entfernt die aktuelle Gattungsauswahl.
+**Filter entfernen** setzt alle Gruppen zurück und entfernt einen `gap`-Parameter der Übersicht aus
+der Browseradresse. Der Ergebniszähler bezieht sich immer auf alle aktiven Filter.
 
 Zusätzliche Filter für Bahngesellschaft, Epoche und Schnittstelle aus späteren Entwicklungsständen
 gehören nicht zur stabilen v0.1.17.6.
@@ -85,7 +85,7 @@ speichert die Auswahl im lokalen Speicher des aktuellen Browsers, nicht im Benut
 schmalen Bildschirmen zeigt die Oberfläche unabhängig davon eine kompakte mobile Liste.
 
 Die Tabelle enthält Auswahl, Bild, Inventarnummer, Hersteller, Artikelnummer, Bezeichnung,
-Spurweite, Epoche, Messestatus und Aktionen. Sortierbar sind Inventarnummer, Hersteller,
+Spurweite, Epoche, Ausstellungsstatus und Aktionen. Sortierbar sind Inventarnummer, Hersteller,
 Artikelnummer, Bezeichnung, Spurweite und Epoche.
 
 Die Anfangssortierung ist Inventarnummer aufsteigend und berücksichtigt Zahlen, sodass `...2` vor
@@ -156,10 +156,10 @@ Artikeldatensuche.
 | Bahngesellschaft, Epoche | Optionale konfigurierte Stammdaten. |
 | Kategorie, Gattung | Beide sind Pflichtfelder. Die verfügbaren Gattungen hängen von der Kategorie ab. |
 | Beschreibung, Baureihe, Fahrzeug-Nr. | Optionale freie Modellbeschreibung und Vorbildidentität. |
-| EAN, Produktionszeitraum, Listenpreis | Optionale Handelsdaten. Produktionszeitraum und Listenpreis werden als bereinigter Text gespeichert. Die Übersicht wertet parsebare Listenpreise aus. |
-| Digital, Digital- / Decoder-Nr. | Der Schalter aktiviert die primäre digitale Decodernummer. Die Messetauglichkeit verwendet diese primäre Nummer. |
-| DT / Decoder, DT- / Decoder-Nr., Decodertyp | Optionaler zweiter Decoderschalter mit Nummer und Beschreibung. |
-| Messe tauglich, Messe | Betriebsmerkmale. **Messe tauglich** ist ein normales Datensatzmerkmal, **Messe** wird mit der Messeliste koordiniert. |
+| EAN, Produktionszeit, Listenpreis | Optionale Handelsdaten. Produktionszeit und Listenpreis werden als bereinigter Text gespeichert. Die Übersicht wertet parsebare Listenpreise aus. |
+| Digital, Digital / Decoder-Nr. | Der Schalter aktiviert die primäre digitale Decodernummer. Der Ausstellungsschalter prüft diese primäre Nummer. |
+| DT / Decoder, DT / Decoder-Nr., Decoder-Typ | Optionaler zweiter Decoderschalter mit Nummer und Beschreibung. |
+| Messe tauglich, Ausstellung | Getrennte Betriebsmerkmale. **Messe tauglich** ist ein normales Datensatzmerkmal, **Ausstellung** wird mit der Ausstellungsliste koordiniert. |
 | ABC-Bremsen | Erfasst die ABC-Bremsfähigkeit. |
 
 ### Technische Details
@@ -168,10 +168,10 @@ Artikeldatensuche.
 | --- | --- |
 | Länge (mm), Gewicht (g) | Freie numerische Texteingaben für Abmessungen. |
 | Farbe, Beschriftung, Beladung, Inneneinrichtung, Achsen | Beschreibende physische und optische Details. |
-| Achsanzahl, Haftreifenanzahl | Zählfelder mit numerischem Tastaturhinweis. Der Server speichert bereinigten Text. |
-| Radsystem, Stromaufnahme, Schnittstelle | Technische Auswahl aus den nachfolgenden stabilen Listen. |
-| Kupplung (V=H), Kupplung vorn, Kupplung hinten | Sind vorn und hinten gleich, folgt der hintere Wert dem vorderen und kann nicht getrennt bearbeitet werden. |
-| Antrieb, Frontlicht, Beleuchtung, Soundgenerator, Rauchgenerator | Jeder Schalter aktiviert das zugehörige Beschreibungsfeld. Ausschalten löscht eine vorhandene Beschreibung nicht automatisch. |
+| Anzahl Achsen, Anzahl Haftreifen | Zählfelder mit numerischem Tastaturhinweis. Der Server speichert bereinigten Text. |
+| Radsatz, Stromabnahme, Adapter / Schnittstelle | Technische Auswahl aus den nachfolgenden stabilen Listen. |
+| Kupplung (V=H), Kupplung vorne, Kupplung hinten | Sind vorne und hinten gleich, folgt der hintere Wert dem vorderen und kann nicht getrennt bearbeitet werden. |
+| Antrieb, Fahrlicht, Beleuchtung, Soundgenerator, Rauchgenerator | Jeder Schalter aktiviert das zugehörige Beschreibungsfeld. Ausschalten löscht eine vorhandene Beschreibung nicht automatisch. |
 | QR-Code erstellen | Aktiviert die QR-Schaltfläche im Bearbeitungsformular, wenn Inventarnummer oder Bezeichnung vorhanden ist. |
 
 ### Fahrzeug, Eigentum und Zustand
@@ -183,7 +183,7 @@ Artikeldatensuche.
 | Standort, Details | Allgemeiner Lagerort sowie genaueres Regal, Fach oder Position. |
 | Zustand, Details | Standardisierter Zustand und freie Ergänzung. |
 | Verpackung | Zustand oder Art der Verpackung. |
-| Zusätzliche Informationen | Längere Hinweise, die keinem anderen Grunddatenfeld zugeordnet sind. |
+| Zusatzinformationen | Längere Hinweise, die keinem anderen Grunddatenfeld zugeordnet sind. |
 
 ## Stabile Auswahllisten
 
@@ -192,10 +192,10 @@ Deutsch gespeichert.
 
 | Feld | Werte |
 | --- | --- |
-| Radsystem | `2-Leiter DC`, `3-Leiter AC`, `NEM`, `RP25`, `Metall`, `Kunststoff` |
+| Radsatz | `2-Leiter DC`, `3-Leiter AC`, `NEM`, `RP25`, `Metall`, `Kunststoff` |
 | Kupplung | `NEM-Schacht`, `Kurzkupplung`, `Bügelkupplung`, `Klauenkupplung`, `Schraubenkupplung` |
-| Stromaufnahme | `Schiene`, `Oberleitung`, `Batterie`, `Akku` |
-| Schnittstelle | `NEM 651`, `NEM 652`, `PluX16`, `PluX22`, `MTC21`, `Next18`, `8-polig`, `21-polig` |
+| Stromabnahme | `Schiene`, `Oberleitung`, `Batterie`, `Akku` |
+| Adapter / Schnittstelle | `NEM 651`, `NEM 652`, `PluX16`, `PluX22`, `MTC21`, `Next18`, `8-polig`, `21-polig` |
 | Erwerb | `Kauf`, `Tausch`, `Geschenk`, `Erbe`, `Leihgabe`, `Sonstiges` |
 | von/bei | `Händler`, `Privat`, `Messe / Börse`, `Online`, `Auktion`, `Hersteller`, `Verein`, `Sonstiges` |
 | Standort | `Auf Anlage`, `Vitrine`, `Lager`, `Werkstatt`, `Transportbox`, `Ausgeliehen`, `Sonstiges` |
@@ -236,6 +236,9 @@ Fahrzeugansicht können bei vorhandenen Identitätsdaten immer einen QR-Code erz
 **QR-Code erstellen** steuert in v0.1.17.6 nur die QR-Schaltfläche im Detailbereich des
 Bearbeitungsformulars.
 
+Ist Inventarnummer oder Bezeichnung leer, schreibt die Nutzlast für dieses Feld `-`. Mindestens eines
+der beiden Felder muss einen Wert enthalten, bevor RailKeeper den QR-Code erzeugt.
+
 ## Bestandsreports erstellen
 
 Der Dialog startet mit **Übersichtsliste**, dem Titel `Fahrzeugsammlung`, dem Umfang **Alles** sowie
@@ -259,16 +262,17 @@ Schnellmenü oder Fahrzeugansicht ist immer ein Detailreport mit QR-Code und Bil
 Existiert kein passendes Fahrzeug, erstellt RailKeeper keinen Report. Erlaube das Druckfenster, falls
 der Browser Pop-ups blockiert.
 
-## Grenze des Messeschalters
+## Grenze des Ausstellungsschalters
 
-Der Schalter **Messe** in der Tabelle kann nur aktiviert werden, wenn **Digital** eingeschaltet und
-die primäre **Digital- / Decoder-Nr.** gefüllt ist. Die DT-Decodernummer allein genügt nicht.
+Der Schalter **Ausstellung** in der Tabelle kann nur aktiviert werden, wenn **Digital** eingeschaltet
+und die primäre **Digital / Decoder-Nr.** gefüllt ist. Die DT-Decodernummer allein genügt nicht.
 
-Beim Aktivieren öffnet RailKeeper eine entsperrte Messeliste und verhindert ein doppeltes Fahrzeug
-für dieselbe Eigentümer-Namens-Kombination sowie eine doppelte Decodernummer in dieser Liste. Der
-gesamte Ablauf benötigt Adminrechte oder eine Kombination aus Editor- und Messeberechtigung.
+Beim Aktivieren öffnet RailKeeper eine entsperrte Ausstellungsliste und verhindert ein doppeltes
+Fahrzeug für dieselbe Eigentümer-Namens-Kombination sowie eine doppelte Decodernummer in dieser
+Liste. Der gesamte Ablauf benötigt Adminrechte oder eine Kombination aus Editor- und
+Messeberechtigung.
 Das Deaktivieren benötigt Schreibrechte und setzt das Fahrzeugmerkmal zurück, löscht aber keinen
-bereits vorhandenen Messelisteneintrag.
+bereits vorhandenen Ausstellungslisteneintrag.
 
 ## Fahrzeug löschen
 
@@ -286,7 +290,7 @@ Datei physisch zu entfernen.
 
 | Situation | Ergebnis und nächster Schritt |
 | --- | --- |
-| Erstes Laden | **Fahrzeuge aus lokaler Datenbank laden...** erscheint bis zum Abschluss der Anfrage. |
+| Erstes Laden | **Lade Fahrzeuge aus lokaler Datenbank...** erscheint bis zum Abschluss der Anfrage. |
 | Noch kein Fahrzeug | **Noch keine Fahrzeuge vorhanden.** Admin oder Editor können ein Fahrzeug anlegen oder Import/Export verwenden. |
 | Suche oder Filter ohne Treffer | **Keine Fahrzeuge für diesen Filter gefunden.** Entferne Filter oder ändere die Suche. |
 | Liste oder Details schlagen fehl | RailKeeper zeigt den Serverfehler über dem Bestand. Prüfe Sitzung und Verbindung und aktualisiere danach. |
@@ -294,6 +298,9 @@ Datei physisch zu entfernen.
 | Automatische Nummer schlägt fehl | Bitte einen Administrator, ein aktives Inventarnummernschema für die Kategorie einzurichten. |
 | Manuelle Nummer kollidiert | Wähle eine andere eindeutige Inventarnummer. |
 | Speichern oder Löschen verboten | Melde dich als Admin oder Editor an. Sichtbare Bedienelemente ersetzen die serverseitige Rollenprüfung nicht. |
+| Speichern schlägt fehl | Der Fehler erscheint über dem Bestand und der Editor bleibt geöffnet. Betrachte die Änderung als ungespeichert, prüfe Sitzung und Verbindung und versuche es erneut. |
+| Löschen schlägt fehl | Der Fehler erscheint über dem Bestand und die Bestätigung bleibt geöffnet. Betrachte das Fahrzeug als nicht gelöscht, behebe die gemeldete Ursache und versuche es erneut. |
+| Reporterzeugung schlägt fehl | Der Fehler erscheint über dem Bestand und der Reportdialog bleibt geöffnet. Prüfe Verbindung und Pop-up-Behandlung und erstelle ihn erneut. |
 | Report ohne Zeilen | Passe Suche oder Filter an oder markiere mindestens eine sichtbare Zeile. |
 | Löschen blockiert | Entferne oder ändere die Anlagen- oder Zubehörzuordnung, die das Fahrzeug noch referenziert, und versuche es erneut. |
 
