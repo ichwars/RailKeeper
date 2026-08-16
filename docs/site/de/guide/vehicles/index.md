@@ -13,9 +13,9 @@ Der **Fahrzeugbestand** ist der zentrale Arbeitsbereich für Modellbahnfahrzeuge
 Bestandsstatus, Suche, Filter, Tabellen- und Kartenansicht, Fahrzeuggrunddaten, QR-Etiketten und
 druckbare Reports. Dieses Kapitel beschreibt die stabile RailKeeper-Version v0.1.17.6.
 
-Admin, Bearbeiter, Betrachter und Planer können den Bestand einsehen. Fahrzeuge anlegen, ändern und
-löschen dürfen nur Admin und Bearbeiter. In v0.1.17.6 können Schreibfunktionen für Betrachter und
-Planer trotzdem sichtbar sein. Der Server lehnt ihre Schreibversuche ab und RailKeeper zeigt den
+Admin, Editor, Viewer und Planner können den Bestand einsehen. Fahrzeuge anlegen, ändern und
+löschen dürfen nur Admin und Editor. In v0.1.17.6 können Schreibfunktionen für Viewer und Planner
+trotzdem sichtbar sein. Der Server lehnt ihre Schreibversuche ab und RailKeeper zeigt den
 Fehler an.
 
 Medien, Wartung, Decoder- und CV-Daten, Artikeldatensuche sowie Ersatzteile haben eigene Abläufe.
@@ -117,11 +117,11 @@ angezeigt. Die Ansicht kann enthalten:
 Die Kopfaktionen öffnen **Bearbeiten**, einen einzelnen Detailreport oder einen QR-Code. Das
 Schnellmenü der Zeile führt außerdem direkt zu Uploads, Wartung und Ersatzteilen. Diese Fachbereiche
 werden in eigenen Kapiteln beschrieben. Auch nach **Bearbeiten** benötigt das Speichern Admin- oder
-Bearbeiterrechte.
+Editor-Rechte.
 
 ## Fahrzeug anlegen
 
-Admin und Bearbeiter können einen Datensatz anlegen:
+Admin und Editor können einen Datensatz anlegen:
 
 1. Klicke auf **Neues Fahrzeug**.
 2. Fülle die fünf Pflichtfelder **Hersteller**, **Bezeichnung**, **Spurweite**, **Kategorie** und
@@ -218,7 +218,7 @@ aktualisieren dann beide Werte.
 Eine geänderte Inventarnummer muss erneut eindeutig sein. RailKeeper schreibt alte und neue Nummer
 in die Inventarnummernhistorie und protokolliert die Fahrzeugänderung im Audit-Log. Nach
 erfolgreichem Speichern wird der Bestand neu geladen und der Dialog bleibt im Bearbeitungsmodus.
-Der Server erzwingt die Admin- oder Bearbeiterberechtigung unabhängig von sichtbaren Schaltflächen.
+Der Server erzwingt die Admin- oder Editor-Berechtigung unabhängig von sichtbaren Schaltflächen.
 
 ## QR-Etiketten erstellen
 
@@ -266,13 +266,13 @@ die primäre **Digital- / Decoder-Nr.** gefüllt ist. Die DT-Decodernummer allei
 
 Beim Aktivieren öffnet RailKeeper eine entsperrte Messeliste und verhindert ein doppeltes Fahrzeug
 für dieselbe Eigentümer-Namens-Kombination sowie eine doppelte Decodernummer in dieser Liste. Der
-gesamte Ablauf benötigt Adminrechte oder eine Kombination aus Bearbeiter- und Messeberechtigung.
+gesamte Ablauf benötigt Adminrechte oder eine Kombination aus Editor- und Messeberechtigung.
 Das Deaktivieren benötigt Schreibrechte und setzt das Fahrzeugmerkmal zurück, löscht aber keinen
 bereits vorhandenen Messelisteneintrag.
 
 ## Fahrzeug löschen
 
-Admin und Bearbeiter können **Löschen** wählen und das durch Inventarnummer und Bezeichnung
+Admin und Editor können **Löschen** wählen und das durch Inventarnummer und Bezeichnung
 identifizierte Fahrzeug bestätigen. v0.1.17.6 bietet weder Rückgängig noch eine Eingabebestätigung.
 
 Das Löschen entfernt das Fahrzeug und seine abhängigen Datenbankeinträge, darunter
@@ -287,13 +287,13 @@ Datei physisch zu entfernen.
 | Situation | Ergebnis und nächster Schritt |
 | --- | --- |
 | Erstes Laden | **Fahrzeuge aus lokaler Datenbank laden...** erscheint bis zum Abschluss der Anfrage. |
-| Noch kein Fahrzeug | **Noch keine Fahrzeuge vorhanden.** Admin oder Bearbeiter können ein Fahrzeug anlegen oder Import/Export verwenden. |
+| Noch kein Fahrzeug | **Noch keine Fahrzeuge vorhanden.** Admin oder Editor können ein Fahrzeug anlegen oder Import/Export verwenden. |
 | Suche oder Filter ohne Treffer | **Keine Fahrzeuge für diesen Filter gefunden.** Entferne Filter oder ändere die Suche. |
 | Liste oder Details schlagen fehl | RailKeeper zeigt den Serverfehler über dem Bestand. Prüfe Sitzung und Verbindung und aktualisiere danach. |
 | Pflichtfeld fehlt | Der Bereich Modell öffnet sich und nennt Hersteller, Bezeichnung, Spurweite, Kategorie oder Gattung als fehlend. |
 | Automatische Nummer schlägt fehl | Bitte einen Administrator, ein aktives Inventarnummernschema für die Kategorie einzurichten. |
 | Manuelle Nummer kollidiert | Wähle eine andere eindeutige Inventarnummer. |
-| Speichern oder Löschen verboten | Melde dich als Admin oder Bearbeiter an. Sichtbare Bedienelemente ersetzen die serverseitige Rollenprüfung nicht. |
+| Speichern oder Löschen verboten | Melde dich als Admin oder Editor an. Sichtbare Bedienelemente ersetzen die serverseitige Rollenprüfung nicht. |
 | Report ohne Zeilen | Passe Suche oder Filter an oder markiere mindestens eine sichtbare Zeile. |
 | Löschen blockiert | Entferne oder ändere die Anlagen- oder Zubehörzuordnung, die das Fahrzeug noch referenziert, und versuche es erneut. |
 
