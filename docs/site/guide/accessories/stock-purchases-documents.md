@@ -234,7 +234,6 @@ Reload before attempting to delete again.
 - [Accessories overview](./)
 - [Article records and technical data](./article-records)
 - [Reservations, installations, and usage](./allocations-history)
-- [Administration and operations](/administration/)
 
 ## Documented RailKeeper version
 

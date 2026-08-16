@@ -193,6 +193,9 @@ write.
 ## Related pages
 
 - [User Guide overview](/guide/)
+- [Article records and technical data](./article-records)
+- [Stock, purchases, and documents](./stock-purchases-documents)
+- [Reservations, installations, and usage](./allocations-history)
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Vehicle inventory and core records](/guide/vehicles/)
 - [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)

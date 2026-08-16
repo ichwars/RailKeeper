@@ -213,7 +213,6 @@ unreferenced stored blobs. Deletion has no undo, so validate a current backup fi
 - [Stock, purchases, and documents](./stock-purchases-documents)
 - [Allocations and usage history](./allocations-history)
 - [Article search, web documents, and spare parts](../vehicles/search-and-spares)
-- [Master-data administration](/administration/#master-data-lifecycle)
 
 ## Documented RailKeeper version
 

@@ -198,6 +198,9 @@ sofortige Bestands- oder Lebenszyklusaktion startest.
 ## Verwandte Seiten
 
 - [Überblick zum Benutzerhandbuch](/de/guide/)
+- [Artikelstammdaten und Fachangaben](./article-records)
+- [Bestand, Käufe und Dokumente](./stock-purchases-documents)
+- [Reservierungen, Einbauten und Verwendung](./allocations-history)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)

@@ -246,7 +246,6 @@ bereits aus der Liste entfernten Eintrag folgen. Laden Sie neu, bevor Sie erneut
 - [Zubehörübersicht](./)
 - [Artikelstammdaten und Fachangaben](./article-records)
 - [Reservierungen, Einbauten und Verwendung](./allocations-history)
-- [Administration und Betrieb](/de/administration/)
 
 ## Dokumentierte RailKeeper-Version
 

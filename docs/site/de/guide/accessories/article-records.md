@@ -228,7 +228,6 @@ rückgängig machen. Prüfen Sie vorher eine aktuelle Sicherung.
 - [Bestand, Einkäufe und Dokumente](./stock-purchases-documents)
 - [Zuordnungen und Nutzungsverlauf](./allocations-history)
 - [Artikelsuche, Web-Dokumente und Ersatzteile](../vehicles/search-and-spares)
-- [Stammdatenverwaltung](/de/administration/#lebenszyklus-der-stammdaten)
 
 ## Dokumentierte RailKeeper-Version
 
