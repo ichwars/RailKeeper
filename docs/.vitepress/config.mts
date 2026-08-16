@@ -82,6 +82,14 @@ export default defineConfig({
                 { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
               ],
             },
+            {
+              text: "Einstellungen",
+              items: [
+                { text: "Überblick und Berechtigungen", link: "/de/guide/settings/" },
+                { text: "Persönliche Einstellungen", link: "/de/guide/settings/personal-preferences" },
+                { text: "Darstellung", link: "/de/guide/settings/appearance" },
+              ],
+            },
           ],
           "/de/administration/": [
             {
@@ -181,6 +189,14 @@ export default defineConfig({
             { text: "Import vehicle files", link: "/guide/import-export/file-import" },
             { text: "Export inventory", link: "/guide/import-export/exports" },
             { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
+          ],
+        },
+        {
+          text: "Settings",
+          items: [
+            { text: "Overview and permissions", link: "/guide/settings/" },
+            { text: "Personal preferences", link: "/guide/settings/personal-preferences" },
+            { text: "Appearance", link: "/guide/settings/appearance" },
           ],
         },
       ],
