@@ -30,3 +30,6 @@ Bearbeiten von Grunddaten, Reports und QR-Etiketten sowie das sichere Löschen.
 
 [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media) behandelt lokale Bilder, Haupt- und
 Alternativbilder, allgemeine Beilagen, Anzeigen und Herunterladen sowie das sichere Entfernen.
+
+[Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance) erklärt Wartungseinträge,
+Fälligkeiten, Abschluss, Kosten, verknüpfte Medien und sicheres Löschen.

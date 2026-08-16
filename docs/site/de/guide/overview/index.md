@@ -206,6 +206,7 @@ gespeichert.
 ## Verwandte Seiten
 
 - [Überblick zum Benutzerhandbuch](/de/guide/)
+- [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Überblick zur Administration](/de/administration/)
 
