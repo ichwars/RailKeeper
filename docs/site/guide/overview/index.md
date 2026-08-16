@@ -194,6 +194,7 @@ shared with other browsers or saved as account-wide dashboard settings.
 ## Related pages
 
 - [User Guide overview](/guide/)
+- [Accessories overview](/guide/accessories/)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [First setup and sign-in](/guide/getting-started/)
 - [Administration overview](/administration/)
