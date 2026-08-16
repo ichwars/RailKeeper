@@ -47,6 +47,10 @@ usage history.
 [Exhibition workspace](/guide/exhibition/) explains how to prepare lists, maintain operating
 entries, use locks, resolve DCC and SX address conflicts, and print the event report.
 
+[Import and export](/guide/import-export/) covers reviewed CSV, TSV, XML, and JSON vehicle imports,
+the three inventory outputs, their round-trip limits, and the separate Admin-only ECoS locomotive
+workflow.
+
 ## Updating Windows Standalone
 
 Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the

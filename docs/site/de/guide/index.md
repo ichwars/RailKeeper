@@ -49,6 +49,10 @@ Verwendungshistorie.
 [Messearbeitsbereich](/de/guide/exhibition/) erklärt, wie du Listen vorbereitest, Betriebseinträge
 pflegst, Sperren verwendest, DCC- und SX-Adresskonflikte löst und den Veranstaltungsreport druckst.
 
+[Import und Export](/de/guide/import-export/) behandelt geprüfte Fahrzeugimporte aus CSV, TSV, XML
+und JSON, die drei Bestandsausgaben, deren Rundlaufgrenzen sowie den getrennten Admin-ECoS-
+Lokabgleich.
+
 ## Windows Standalone aktualisieren
 
 Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper

@@ -67,7 +67,7 @@
     {
       "id": "import-export",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/import-export/index.md",
       "germanPath": "de/guide/import-export/index.md"
     },

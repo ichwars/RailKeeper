@@ -73,6 +73,15 @@ export default defineConfig({
                 { text: "Einträge und Drucken", link: "/de/guide/exhibition/entries-and-printing" },
               ],
             },
+            {
+              text: "Import und Export",
+              items: [
+                { text: "Überblick und Berechtigungen", link: "/de/guide/import-export/" },
+                { text: "Fahrzeugdateien importieren", link: "/de/guide/import-export/file-import" },
+                { text: "Bestand exportieren", link: "/de/guide/import-export/exports" },
+                { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
+              ],
+            },
           ],
           "/de/administration/": [
             {
@@ -163,6 +172,15 @@ export default defineConfig({
             { text: "Exhibition workspace", link: "/guide/exhibition/" },
             { text: "Lists and locking", link: "/guide/exhibition/lists-and-locking" },
             { text: "Entries and printing", link: "/guide/exhibition/entries-and-printing" },
+          ],
+        },
+        {
+          text: "Import and export",
+          items: [
+            { text: "Overview and permissions", link: "/guide/import-export/" },
+            { text: "Import vehicle files", link: "/guide/import-export/file-import" },
+            { text: "Export inventory", link: "/guide/import-export/exports" },
+            { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
           ],
         },
       ],
