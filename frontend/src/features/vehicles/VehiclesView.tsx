@@ -594,7 +594,7 @@ export function VehiclesView({ username }: { username: string }) {
   useEffect(() => {
     if (!quickMenuVehicleID) return;
     const closeOnPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Element && event.target.closest(".quick-menu-wrap")) {
+      if (event.target instanceof Element && event.target.closest(".quick-menu-wrap, .quick-menu")) {
         return;
       }
       setQuickMenuVehicleID("");

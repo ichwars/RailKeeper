@@ -241,9 +241,14 @@
   z-index: 5;
 }
 
-.quick-menu.open-above {
+.quick-menu.quick-menu-floating {
+  position: fixed;
   top: auto;
-  bottom: calc(100% + 6px);
+  right: auto;
+  z-index: 130;
+  max-width: calc(100vw - 16px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .vehicle-mobile-toggle {
