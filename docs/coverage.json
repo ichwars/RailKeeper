@@ -46,7 +46,7 @@
     {
       "id": "vehicle-search-spares",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/search-and-spares.md",
       "germanPath": "de/guide/vehicles/search-and-spares.md"
     },
