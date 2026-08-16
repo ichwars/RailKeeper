@@ -136,6 +136,89 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 }
 
+func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
+	ctx := context.Background()
+	sourceDir := t.TempDir()
+	sourceDB := backupTestDB(t, sourceDir)
+	speed := 120
+	vehicle, err := application.NewVehicleService(sourceDB).Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko", Name: "BR 118", Gauge: "H0", Category: "Lokomotive", Gattung: "Diesellok",
+		MaximumSpeedKmh: &speed, HomeBase: "Bw Leipzig",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := sourceDB.Exec(`INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, name, category, tracking_mode, article_type, subtype,
+  gauges_json, package_quantity, stock_unit, minimum_stock, inventory_strategy, list_price,
+  created_at, updated_at
+) VALUES(
+  'product-valued', 'RK-ART-BACKUP-000001', 'Tillig', 'Gleis', 'other', 'quantity',
+  'other', 'other:other', '[]', 1, 'piece', 0, 'quantity', '129,90', 'now', 'now'
+)`); err != nil {
+		t.Fatal(err)
+	}
+
+	document, err := application.NewBackupService(sourceDB, sourceDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	targetDir := t.TempDir()
+	targetDB := backupTestDB(t, targetDir)
+	if _, err := application.NewBackupService(targetDB, targetDir).Import(ctx, document); err != nil {
+		t.Fatal(err)
+	}
+	assertRestoredOperationalValues(t, targetDB, vehicle.ID, &speed, "Bw Leipzig", "129,90")
+
+	encoded, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacy := &application.BackupDocument{}
+	if err := json.Unmarshal(encoded, legacy); err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range legacy.Tables["vehicles"] {
+		delete(row, "maximum_speed_kmh")
+		delete(row, "home_base")
+	}
+	for _, row := range legacy.Tables["accessory_products"] {
+		delete(row, "list_price")
+	}
+	legacyDir := t.TempDir()
+	legacyDB := backupTestDB(t, legacyDir)
+	if _, err := application.NewBackupService(legacyDB, legacyDir).Import(ctx, legacy); err != nil {
+		t.Fatalf("restore older backup without new columns: %v", err)
+	}
+	assertRestoredOperationalValues(t, legacyDB, vehicle.ID, nil, "", "")
+}
+
+func assertRestoredOperationalValues(
+	t *testing.T,
+	db *sql.DB,
+	vehicleID string,
+	wantSpeed *int,
+	wantHomeBase string,
+	wantListPrice string,
+) {
+	t.Helper()
+	vehicle, err := application.NewVehicleService(db).Get(t.Context(), vehicleID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(vehicle.MaximumSpeedKmh, wantSpeed) || vehicle.HomeBase != wantHomeBase {
+		t.Fatalf("unexpected restored operational fields: speed=%v home=%q",
+			vehicle.MaximumSpeedKmh, vehicle.HomeBase)
+	}
+	var listPrice string
+	if err := db.QueryRow(`SELECT list_price FROM accessory_products WHERE id='product-valued'`).Scan(&listPrice); err != nil {
+		t.Fatal(err)
+	}
+	if listPrice != wantListPrice {
+		t.Fatalf("restored list price = %q, want %q", listPrice, wantListPrice)
+	}
+}
+
 func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)

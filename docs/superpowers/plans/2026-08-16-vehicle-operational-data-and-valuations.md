@@ -907,7 +907,7 @@ git commit -m "feat: show detailed inventory valuations"
 - Modify: `backend/internal/api/smoke_test.go`
 - Modify: `docs/superpowers/specs/2026-08-16-vehicle-operational-data-and-valuations-design.md` only if implementation reveals an approved factual correction
 
-- [ ] **Step 1: Add failing backup round-trip coverage**
+- [x] **Step 1: Add failing backup round-trip coverage**
 
 Create a vehicle with both operational fields and an accessory product with a list price. Export a
 backup, restore it into a clean migrated database, and assert all three values survive exactly.
@@ -923,20 +923,20 @@ go test ./internal/application -run "Backup.*Operational|Backup.*ListPrice|Backu
 
 Expected before coverage/compatibility fixes: FAIL.
 
-- [ ] **Step 2: Make only required backup compatibility changes**
+- [x] **Step 2: Make only required backup compatibility changes**
 
 The current generic table backup should carry the new columns automatically. If tests pass without
 production changes, retain only the regression tests. If older restore validation rejects absent
 fields, make the smallest compatibility adjustment and do not include authentication tables or
 change the backup security boundary.
 
-- [ ] **Step 3: Extend the smoke test**
+- [x] **Step 3: Extend the smoke test**
 
 Add authenticated `GET /api/v1/overview/valuation` coverage for Admin/Viewer and forbidden coverage
 for Messe. Include the new vehicle fields in the create/read smoke flow without weakening CSRF or
 role checks.
 
-- [ ] **Step 4: Run all backend checks**
+- [x] **Step 4: Run all backend checks**
 
 ```powershell
 gofmt -w internal/application/backup_test.go internal/api/smoke_test.go
@@ -945,7 +945,7 @@ go test ./...
 
 Expected: PASS.
 
-- [ ] **Step 5: Run all frontend checks**
+- [x] **Step 5: Run all frontend checks**
 
 ```powershell
 cd ..\frontend
@@ -955,7 +955,7 @@ npm.cmd run build
 
 Expected: all Vitest suites pass and production build succeeds.
 
-- [ ] **Step 6: Review the final diff for scope and generated files**
+- [x] **Step 6: Review the final diff for scope and generated files**
 
 ```powershell
 cd ..
@@ -975,7 +975,7 @@ Confirm manually:
 - no existing stored column preference automatically reveals the new columns;
 - valuation money never passes through floating point.
 
-- [ ] **Step 7: Perform local visual acceptance before publishing**
+- [x] **Step 7: Perform local visual acceptance before publishing**
 
 Start the local server with the repo-local cache and inspect:
 
@@ -989,7 +989,7 @@ Start the local server with the repo-local cache and inspect:
 Do not push, open a PR, merge, close issues, or publish a release until the user has approved this
 local result.
 
-- [ ] **Step 8: Commit verification tests and any narrow compatibility fix**
+- [x] **Step 8: Commit verification tests and any narrow compatibility fix**
 
 ```powershell
 git add backend/internal/application/backup_test.go backend/internal/api/smoke_test.go
