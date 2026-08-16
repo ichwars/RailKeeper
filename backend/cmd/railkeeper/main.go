@@ -139,7 +139,7 @@ func main() {
 
 	logger.Info("railkeeper started", "addr", server.Addr, "url", appURL, "version", version, "standalone", standalone)
 	if standalone {
-		printPortableStart(appURL, dataDir)
+		printStandaloneStart(appURL, dataDir)
 		if env("RAILKEEPER_OPEN_BROWSER", "true") != "false" {
 			go openBrowser(logger, appURL)
 		}
@@ -211,9 +211,9 @@ func addressIsLoopback(addr net.Addr) bool {
 	return address != nil && address.IsLoopback()
 }
 
-func printPortableStart(appURL, dataDir string) {
+func printStandaloneStart(appURL, dataDir string) {
 	fmt.Println()
-	fmt.Println("RailKeeper Portable wurde gestartet.")
+	fmt.Println("RailKeeper Windows Standalone wurde gestartet.")
 	fmt.Println("Adresse: " + appURL)
 	fmt.Println("Datenordner: " + dataDir)
 	fmt.Println("Dieses Fenster waehrend der Nutzung geoeffnet lassen.")

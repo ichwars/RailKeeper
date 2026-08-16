@@ -9,12 +9,60 @@ lastReviewed: 2026-08-16
 
 # Installation und Administration
 
-Dieser Bereich behandelt Windows Portable, Docker, Laufzeitkonfiguration, Benutzer und Rollen,
+Dieser Bereich behandelt Windows Standalone, Docker, Laufzeitkonfiguration, Benutzer und Rollen,
 SMTP, Sicherung und Wiederherstellung, Updates, TLS, Uploads, OCR, Drucker,
 Betriebsprüfungen und konservative Fehlerbehebung.
 
 Die Administrationsanleitungen beschreiben die stabile Laufzeit v0.1.17.6 und erhalten das lokale,
 selbst gehostete Sicherheitsmodell von RailKeeper.
+
+## Sichere Updates unter Windows
+
+Das ZIP-Paket von Windows Standalone enthält ausschließlich die Anwendung. Datenbank, Uploads,
+Anhänge, Vorschaubilder und Sicherungen sind niemals enthalten. Dauerhafte Daten liegen
+standardmäßig unabhängig vom austauschbaren Programmordner unter
+`%LOCALAPPDATA%\RailKeeper\data`.
+
+So wird RailKeeper aktualisiert:
+
+1. RailKeeper beenden und eine aktuelle Anwendungssicherung erstellen.
+2. Das neue ZIP in einen neuen Programmordner entpacken. Keine Datenbank in diesen Ordner kopieren.
+3. Die neue `RailKeeper.exe` starten.
+4. Anmelden, unter **Einstellungen > Datenspeicher** den aktiven Speicherort prüfen und den Bestand
+   kontrollieren, bevor der bisherige Programmordner gelöscht wird.
+
+Ältere Standalone-Versionen speicherten Daten in einem Ordner `data` neben `RailKeeper.exe`. Beim
+ersten Start kopiert RailKeeper diese Altdaten an den sicheren Speicherort und lässt die Quelle
+unverändert. Enthalten beide Orte bereits eine Datenbank, beendet RailKeeper den Start, bevor eine
+der Datenbanken geöffnet oder migriert wird, und zeigt beide Pfade an. RailKeeper dann beenden,
+getrennte Kopien beider Ordner erstellen und die aktuelle Datenbank bestimmen. Den vorhandenen
+sicheren Ordner umbenennen, statt ihn zu überschreiben oder Ordner zusammenzuführen. Anschließend
+den gewählten vollständigen Datenordner nach `%LOCALAPPDATA%\RailKeeper\data` kopieren. Beide
+Quellkopien aufbewahren, bis Bestand und Anhänge geprüft wurden.
+
+Ein ausdrücklich konfiguriertes `RAILKEEPER_DATA_DIR` hat immer Vorrang und deaktiviert die
+automatische Altdatenübernahme. Der Pfad darf nicht auf einen austauschbaren Programmordner oder
+einen unzuverlässigen Wechseldatenträger zeigen. Administratoren sehen den exakten aktiven Pfad
+unter **Einstellungen > Datenspeicher**. Das Öffnen im Explorer steht nur bei einer lokalen Windows
+Standalone-Instanz zur Verfügung.
+
+Vor ausstehenden Datenbankmigrationen erstellt RailKeeper unter `safety-backups` eine geprüfte,
+private Kopie. Sie enthält die vollständige Datenbank einschließlich lokaler Anmeldedaten. Diese
+Startabsicherung ersetzt weder eine Anwendungssicherung noch eine Datei- oder Volumensicherung.
+
+## Docker-Updates
+
+Docker bewahrt dauerhafte Daten im eingebundenen Volume `/data` auf. Die Anwendung wird so
+aktualisiert:
+
+```powershell
+docker compose pull
+docker compose up -d
+```
+
+Das Volume vor dem Update sichern. Anschließend `/health`, Anmeldung, Bestand und die
+Sicherungsprüfung kontrollieren. Die automatische Datenbankkopie vor einer Migration liegt
+ebenfalls innerhalb von `/data` und schützt daher nicht vor dem Verlust des Volumes selbst.
 
 ## Lebenszyklus der Stammdaten
 

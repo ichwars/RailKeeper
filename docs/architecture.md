@@ -25,6 +25,22 @@ The production runtime is a Go binary that serves:
 
 Node.js is only used to build the frontend.
 
+## Persistent storage and startup safety
+
+- Windows Standalone resolves its default data directory to `%LOCALAPPDATA%\RailKeeper\data`.
+- Docker keeps the fixed `/data` volume. Explicit `RAILKEEPER_DATA_DIR` configuration takes
+  precedence and disables automatic legacy-directory migration.
+- A legacy Windows `data` directory beside the executable is copied into a verified sibling staging
+  directory. SQLite state is captured through a consistent snapshot, ordinary files are compared by
+  path, type, size, and SHA-256, and the complete staging directory is promoted atomically. The
+  source is never modified or removed.
+- Two different databases produce a typed conflict outcome. Only a loopback safety page starts;
+  migrations, seeds, file services, authentication routes, and the normal frontend remain inactive.
+- Pending schema migrations on an existing database require a validated SQLite snapshot under
+  `safety-backups` before any migration statement runs.
+- The Admin storage API exposes only the already resolved path and capabilities. It never accepts a
+  filesystem path from the browser.
+
 ## Scope Decisions
 
 - Vehicles are the core inventory aggregate.

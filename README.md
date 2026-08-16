@@ -82,15 +82,26 @@ RailKeeper is built around operational views instead of marketing pages:
 
 ## Quick Start
 
-### Windows Portable
+### Windows Standalone (no installation required)
 
-Download the Windows portable ZIP from a release, extract it completely and start:
+Download the Windows x64 ZIP from a release, extract it completely and start:
 
 ```text
 start-railkeeper.bat
 ```
 
-RailKeeper runs locally without installation or additional software and stores its database, uploads and backups in the `data` folder next to `RailKeeper.exe`. It can also be started from a USB stick, but for daily use the extracted folder should live on the local computer because this is faster and safer for the SQLite database.
+RailKeeper runs locally without additional software. By default, persistent data is stored outside
+the replaceable program folder at `%LOCALAPPDATA%\RailKeeper\data`. The ZIP deliberately contains
+no database, uploads, backups, or `data` directory. Replacing the extracted program folder therefore
+does not replace the active user data.
+
+On the first start after an older Portable or Standalone version, RailKeeper copies a legacy `data`
+folder beside `RailKeeper.exe` into the safe location and retains the source unchanged. If both
+locations contain different databases, startup stops on a local safety page and changes neither
+copy. The active absolute path and the retained migration source are visible to administrators under
+Settings. Set `RAILKEEPER_DATA_DIR` only when an explicit alternative is required. A path inside the
+program folder or on removable media can still be lost when that location is deleted or replaced.
+External backups remain necessary.
 
 ### Docker Compose
 
@@ -164,13 +175,15 @@ npm run build
 
 The production runtime serves the built frontend from `frontend/dist`.
 
-Create a Windows portable package:
+Create a Windows Standalone package:
 
 ```powershell
-.\tools\build_windows_portable.ps1
+.\tools\build_windows_standalone.ps1
 ```
 
-The script builds the frontend, cross-compiles `RailKeeper.exe` for Windows x64 and creates `dist\windows-portable\RailKeeper-windows-x64-v<version>.zip`.
+The script builds the frontend, cross-compiles `RailKeeper.exe` for Windows x64, rejects any user-data
+content in the staged tree and ZIP, and creates
+`dist\windows-standalone\RailKeeper-windows-x64-v<version>.zip`.
 
 Useful local defaults:
 
