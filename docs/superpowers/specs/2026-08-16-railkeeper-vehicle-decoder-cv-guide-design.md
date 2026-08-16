@@ -308,6 +308,12 @@ multi-file preview request fails, no file has been persisted and the batch does 
 normal preview. Stored files can be downloaded or deleted. File deletion has no additional
 confirmation dialog and removes the stored file data when it is no longer referenced.
 
+A CV value can store a decoder file as its source. Stable v0.1.17.6 does not automatically clear
+that source identifier when the file is deleted, and the CV table does not show the assignment.
+Before deleting a file, the user must edit CV rows, inspect **Source file**, choose **No file** for
+every matching row, and save each change. Deleting the file does not delete the CV values, but
+skipping this sequence can leave stale source identifiers.
+
 ## ECoS input boundary
 
 An ECoS locomotive draft can provide preview CV values before the vehicle has been saved. The CV
@@ -368,6 +374,7 @@ Both language pages cover at least:
 | CV import marks a duplicate invalid | Keep only one CV-number/profile identity in the source file. |
 | File preview has no metadata | The file can still be stored; no metadata, CV, or function suggestion is promised. |
 | File is rejected | Check extension, content, empty-file status, and the operator's size limit. |
+| A decoder file is still a CV source | Clear **Source file** on matching CV rows before deleting the file. |
 | Multi-row or multi-file action fails | Reload, compare stored results, and retry only missing items. |
 | A write discards other edits | Explain the full-record refresh and restore from a suitable backup when needed. |
 | A CV value or decoder file was deleted without a prompt | Explain immediate deletion and recovery boundary. |
