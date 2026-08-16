@@ -81,9 +81,9 @@ Der Benutzer öffnet ein gespeichertes Fahrzeug im Bearbeitungsmodus und wechsel
 Das Standardlimit beträgt 10 MB pro Bild. Der Betreiber kann den serverseitigen Grenzwert ändern.
 Die Oberfläche prüft die Dateiendung, der Server prüft zusätzlich Größe und erkannten MIME-Typ.
 
-Uploads werden nacheinander ausgeführt. Ist noch kein Bild vorhanden, wird das erste erfolgreich
-gespeicherte Bild automatisch Hauptbild. Nach Abschluss lädt RailKeeper den vollständigen
-Fahrzeugdatensatz neu.
+Uploads werden nacheinander ausgeführt. Ist zu Beginn noch kein Bild vorhanden, markiert jede
+Anfrage eines Mehrfachuploads ihr Bild als Hauptbild. Das zuletzt erfolgreich gespeicherte Bild wird
+dadurch Hauptbild. Nach Abschluss lädt RailKeeper den vollständigen Fahrzeugdatensatz neu.
 
 ### Anzeige und Metadaten
 

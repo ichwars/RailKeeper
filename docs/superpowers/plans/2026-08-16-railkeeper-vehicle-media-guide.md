@@ -166,7 +166,8 @@ The prose must explicitly state all of the following:
 - a vehicle must be saved before local media can be added;
 - Admin, Editor, Viewer, and Planner can inspect media, while server writes require Admin or Editor;
 - local image formats are JPG/JPEG, PNG, and WebP, with a default 10 MB server limit per image;
-- multiple files upload sequentially, the first image becomes the main image when none exists;
+- multiple files upload sequentially; when none exists initially, the last successfully uploaded
+  image becomes the main image;
 - upload and persisted-image deletion are immediate operations;
 - description, order, main-image selection, and maintenance link require **Save changes**;
 - deleting a linked image requires clearing its maintenance link and saving first;
