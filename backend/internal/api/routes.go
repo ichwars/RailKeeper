@@ -72,6 +72,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/digital-centers/ecos/live/start", routeAccessAdmin, (*App).startECoSLive, nil},
 		{http.MethodPost, "/api/v1/digital-centers/ecos/live/stop", routeAccessAdmin, (*App).stopECoSLive, nil},
 		{http.MethodGet, "/api/v1/vehicles", routeAccessViewer, (*App).listVehicles, nil},
+		{http.MethodGet, "/api/v1/overview/valuation", routeAccessViewer, (*App).overviewValuation, nil},
 		{http.MethodPost, "/api/v1/vehicles", routeAccessEditor, (*App).createVehicle, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}", routeAccessViewer, (*App).getVehicle, nil},
 		{http.MethodPut, "/api/v1/vehicles/{id}", routeAccessEditor, (*App).updateVehicle, nil},

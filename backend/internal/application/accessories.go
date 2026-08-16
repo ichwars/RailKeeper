@@ -34,6 +34,7 @@ type AccessoryProduct struct {
 	Subtype            string                            `json:"subtype"`
 	Gauges             []string                          `json:"gauges"`
 	Scale              string                            `json:"scale,omitempty"`
+	ListPrice          string                            `json:"listPrice,omitempty"`
 	PackageQuantity    int                               `json:"packageQuantity"`
 	StockUnit          string                            `json:"stockUnit"`
 	MinimumStock       int                               `json:"minimumStock"`
@@ -64,6 +65,7 @@ type CreateAccessoryProductInput struct {
 	Subtype            string                            `json:"subtype"`
 	Gauges             []string                          `json:"gauges"`
 	Scale              string                            `json:"scale"`
+	ListPrice          string                            `json:"listPrice"`
 	PackageQuantity    int                               `json:"packageQuantity"`
 	StockUnit          string                            `json:"stockUnit"`
 	MinimumStock       int                               `json:"minimumStock"`
@@ -310,6 +312,7 @@ func cleanAccessoryProductInput(input CreateAccessoryProductInput) CreateAccesso
 	input.ManufacturerStatus = strings.TrimSpace(input.ManufacturerStatus)
 	input.Subtype = strings.TrimSpace(input.Subtype)
 	input.Scale = strings.TrimSpace(input.Scale)
+	input.ListPrice = strings.TrimSpace(input.ListPrice)
 	input.StockUnit = strings.TrimSpace(input.StockUnit)
 	input.ManufacturerURL = strings.TrimSpace(input.ManufacturerURL)
 	input.ProductURL = strings.TrimSpace(input.ProductURL)
@@ -438,7 +441,15 @@ func validAccessoryProductInput(input CreateAccessoryProductInput) bool {
 	return input.Manufacturer != "" && input.Name != "" && input.Category != "" && input.TrackingMode.Valid() &&
 		input.ArticleType.Valid() && accessorySubtypeMatchesType(input.ArticleType, input.Subtype) &&
 		input.InventoryStrategy.Valid() && input.PackageQuantity > 0 && input.StockUnit != "" &&
-		input.MinimumStock >= 0
+		input.MinimumStock >= 0 && validAccessoryListPrice(input.ListPrice)
+}
+
+func validAccessoryListPrice(value string) bool {
+	if value == "" {
+		return true
+	}
+	_, ok := parseMoneyCents(value)
+	return ok
 }
 
 func normalizeAccessorySubtype(articleType domain.AccessoryArticleType, subtype string) string {

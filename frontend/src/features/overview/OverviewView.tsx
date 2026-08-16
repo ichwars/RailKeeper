@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, BarChart3, Box, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
-import { api, Vehicle, VehicleMaintenance } from "../../shared/api";
-import { useI18n } from "../../shared/i18n";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Box, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
+import { api, type OverviewValuation, Vehicle, VehicleMaintenance } from "../../shared/api";
+import { translate, useI18n } from "../../shared/i18n";
+import { OverviewValuationCard } from "./OverviewValuationCard";
 
 type OverviewWidgetID = "mix" | "quality" | "actions" | "manufacturers" | "quickActions" | "maintenance" | "recommendation";
 
@@ -128,6 +129,10 @@ export function OverviewView() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
+  const [valuation, setValuation] = useState<OverviewValuation | null>(null);
+  const [valuationLoading, setValuationLoading] = useState(true);
+  const [valuationError, setValuationError] = useState("");
+  const valuationRequestId = useRef(0);
   const [hiddenWidgets, setHiddenWidgets] = useState<OverviewWidgetID[]>(readHiddenWidgets);
   const [widgetOrder, setWidgetOrder] = useState<OverviewWidgetID[]>(readWidgetOrder);
 
@@ -141,9 +146,38 @@ export function OverviewView() {
       .finally(() => setLoading(false));
   }, []);
 
+  const loadValuation = useCallback(() => {
+    setValuationLoading(true);
+    setValuationError("");
+    const requestId = valuationRequestId.current + 1;
+    valuationRequestId.current = requestId;
+    api
+      .overviewValuation()
+      .then((nextValuation) => {
+        if (requestId === valuationRequestId.current) setValuation(nextValuation);
+      })
+      .catch(() => {
+        if (requestId === valuationRequestId.current) {
+          setValuationError(translate(language, "overview.valuation.error"));
+        }
+      })
+      .finally(() => {
+        if (requestId === valuationRequestId.current) setValuationLoading(false);
+      });
+  }, [language]);
+
   useEffect(() => {
     loadVehicles();
   }, [loadVehicles]);
+
+  useEffect(() => {
+    loadValuation();
+  }, [loadValuation]);
+
+  const refreshOverview = () => {
+    loadVehicles();
+    loadValuation();
+  };
 
   const hideWidget = (widget: OverviewWidgetID) => {
     setHiddenWidgets((current) => {
@@ -191,7 +225,6 @@ export function OverviewView() {
   );
 
   const stats = useMemo(() => {
-    const totalValue = vehicles.reduce((sum, vehicle) => sum + numberValue(vehicle.listPrice), 0);
     const digital = vehicles.filter((vehicle) => vehicle.digital).length;
     const analog = vehicles.length - digital;
     const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
@@ -219,7 +252,6 @@ export function OverviewView() {
       { id: "digital-no-decoder", label: t("overview.gap.digitalNoDecoder"), count: digitalWithoutDecoder, detail: t("overview.gap.digitalNoDecoderDetail") }
     ].filter((gap) => gap.count > 0);
     return {
-      totalValue,
       digital,
       analog,
       withImages,
@@ -257,7 +289,8 @@ export function OverviewView() {
           <p>{t("overview.subtitle")}</p>
         </div>
         <div className="overview-actions" aria-label={t("overview.tools")}>
-          <button type="button" className="icon-button" onClick={loadVehicles} disabled={loading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
+          <button type="button" className="icon-button" onClick={refreshOverview}
+            disabled={loading || valuationLoading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
             <RefreshCw size={15} aria-hidden="true" />
           </button>
           {hiddenWidgets.length > 0 && (
@@ -284,11 +317,7 @@ export function OverviewView() {
           <strong>{digitalShare}%</strong>
           <small>{t("overview.digitalAnalog", { digital: stats.digital, analog: stats.analog })}</small>
         </div>
-        <div>
-          <p className="overview-hero-title"><span className="overview-icon"><BarChart3 size={20} aria-hidden="true" /></span>{t("overview.listValue")}</p>
-          <strong>{currency(stats.totalValue, language)}</strong>
-          <small>{t("overview.listValueBasis")}</small>
-        </div>
+        <OverviewValuationCard valuation={valuation} loading={valuationLoading} error={valuationError} />
         <div className={stats.due > 0 ? "attention" : ""}>
           <p className="overview-hero-title"><span className="overview-icon">{stats.due > 0 ? <AlertTriangle size={20} aria-hidden="true" /> : <Wrench size={20} aria-hidden="true" />}</span>{t("overview.maintenance")}</p>
           <strong>{stats.due}</strong>

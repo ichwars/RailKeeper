@@ -139,6 +139,14 @@ export type SessionRecord = {
   active: boolean;
 };
 
+export type OverviewValuation = {
+  vehicleListValue: string;
+  vehiclePurchaseValue: string;
+  accessoryListValue: string;
+  accessoryPurchaseCost: string;
+  excludedForeignCurrencyPurchases: number;
+};
+
 export type Vehicle = {
   id: string;
   inventoryNumber: string;
@@ -154,6 +162,8 @@ export type Vehicle = {
   description?: string;
   series?: string;
   vehicleNumber?: string;
+  maximumSpeedKmh?: number;
+  homeBase?: string;
   digital: boolean;
   digitalDecoderNumber?: string;
   dtDecoder: boolean;
@@ -453,6 +463,8 @@ export type CreateVehicleRequest = {
   description?: string;
   series?: string;
   vehicleNumber?: string;
+  maximumSpeedKmh?: number;
+  homeBase?: string;
   digital?: boolean;
   digitalDecoderNumber?: string;
   dtDecoder?: boolean;
@@ -1198,6 +1210,7 @@ export const api = {
     }),
   vehicles: (query = "") =>
     request<Vehicle[]>(`/vehicles${query ? `?q=${encodeURIComponent(query)}` : ""}`),
+  overviewValuation: () => request<OverviewValuation>("/overview/valuation"),
   createVehicle: (input: CreateVehicleRequest) =>
     request<Vehicle>("/vehicles", {
       method: "POST",

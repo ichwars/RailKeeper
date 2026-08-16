@@ -95,6 +95,8 @@ export function ImportExportView() {
     missingGauge: t("importExport.issue.missingGauge"),
     missingCategory: t("importExport.issue.missingCategory"),
     missingGattung: t("importExport.issue.missingGattung"),
+    invalidMaximumSpeed: t("importExport.issue.invalidMaximumSpeed"),
+    invalidHomeBase: t("importExport.issue.invalidHomeBase"),
     duplicate: t("importExport.issue.duplicate"),
     ecosMatched: t("importExport.ecos.matched")
   };
@@ -441,11 +443,28 @@ export function ImportExportView() {
           fieldLabel("railwayCompany"),
           fieldLabel("category"),
           fieldLabel("gattung"),
+          fieldLabel("maximumSpeedKmh"),
+          fieldLabel("homeBase"),
           fieldLabel("digital"),
           fieldLabel("digitalDecoderNumber"),
           fieldLabel("listPrice")
         ],
-        ...source.map((vehicle) => [vehicle.inventoryNumber, vehicle.manufacturer, vehicle.articleNumber || "", vehicle.name, vehicle.gauge, vehicle.epoch || "", vehicle.railwayCompany || "", vehicle.category || "", vehicle.gattung || "", vehicle.digital ? t("common.yes") : t("common.no"), vehicle.digitalDecoderNumber || "", vehicle.listPrice || ""])
+        ...source.map((vehicle) => [
+          vehicle.inventoryNumber,
+          vehicle.manufacturer,
+          vehicle.articleNumber || "",
+          vehicle.name,
+          vehicle.gauge,
+          vehicle.epoch || "",
+          vehicle.railwayCompany || "",
+          vehicle.category || "",
+          vehicle.gattung || "",
+          vehicle.maximumSpeedKmh ? String(vehicle.maximumSpeedKmh) : "",
+          vehicle.homeBase || "",
+          vehicle.digital ? t("common.yes") : t("common.no"),
+          vehicle.digitalDecoderNumber || "",
+          vehicle.listPrice || ""
+        ])
       ];
       loadImportTable(table, file.name);
       return;

@@ -504,6 +504,20 @@
   align-items: center;
 }
 
+.input-with-unit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.input-with-unit > span {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
 .compact-switch-row {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: start;

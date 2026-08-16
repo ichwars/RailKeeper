@@ -245,6 +245,30 @@ func TestAccessoryServiceValidatesAndNormalizesArticleCore(t *testing.T) {
 	}
 }
 
+func TestAccessoryServiceValidatesAndTrimsListPrice(t *testing.T) {
+	repository := &accessoryRepositorySpy{}
+	service := NewAccessoryService(repository)
+
+	for _, value := range []string{"", "0", "129.90", "129,90", "1.299,90", "1,299.90"} {
+		input := validOtherAccessoryProductInput(nil)
+		input.ListPrice = "  " + value + "  "
+		if _, err := service.CreateProduct(t.Context(), input, "editor"); err != nil {
+			t.Fatalf("valid list price %q rejected: %v", value, err)
+		}
+		if repository.createdProduct.ListPrice != value {
+			t.Fatalf("list price not trimmed: got %q, want %q", repository.createdProduct.ListPrice, value)
+		}
+	}
+
+	for _, value := range []string{"-1", "1.2345", "abc"} {
+		input := validOtherAccessoryProductInput(nil)
+		input.ListPrice = value
+		if _, err := service.CreateProduct(t.Context(), input, "editor"); !errors.Is(err, ErrAccessoryValidation) {
+			t.Fatalf("invalid list price %q accepted: %v", value, err)
+		}
+	}
+}
+
 func TestAccessoryServiceEnforcesControlledCustomAttributeDefinitions(t *testing.T) {
 	text := "Club"
 	number := 12.5

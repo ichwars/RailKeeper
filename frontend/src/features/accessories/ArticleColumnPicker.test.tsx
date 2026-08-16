@@ -16,7 +16,8 @@ describe("ArticleColumnPicker", () => {
 
     await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
     expect(screen.getByRole("group", { name: "Tabellenspalten" })).toBeInTheDocument();
-    expect(screen.getAllByRole("checkbox")).toHaveLength(9);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(10);
+    expect(screen.getByRole("checkbox", { name: "Listenpreis pro Stück" })).not.toBeChecked();
 
     await user.click(screen.getByRole("checkbox", { name: "Hersteller" }));
     expect(onToggle).toHaveBeenCalledWith("manufacturer");

@@ -156,14 +156,14 @@ func (r *AccessoryRepository) CreateProduct(
 		if _, err := tx.ExecContext(ctx, `
 INSERT INTO accessory_products(
 	  id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
-	  ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
+	  ean, manufacturer_status, article_type, subtype, gauges_json, scale, list_price, package_quantity,
 	  stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
 	  alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
 	  created_at, updated_at
-	) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), 'unknown'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+	) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(NULLIF(?, ''), 'unknown'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			productID, inventoryNumber, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
 			input.Description, input.EAN, input.ManufacturerStatus, input.ArticleType, input.Subtype, gauges,
-			input.Scale, input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy,
+			input.Scale, input.ListPrice, input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy,
 			input.ManufacturerURL, input.ProductURL, alternativeNumbers, keywords, input.CompatibilityNotes,
 			input.InternalNotes, boolToInt(input.Archived), now, now); err != nil {
 			if isSQLiteConstraint(err) {
@@ -219,11 +219,12 @@ func (r *AccessoryRepository) UpdateProduct(
 		result, err := tx.ExecContext(ctx, `
 UPDATE accessory_products
 SET manufacturer=?, article_number=?, name=?, category=?, tracking_mode=?, description=?, ean=?,
-    manufacturer_status=COALESCE(NULLIF(?, ''), 'unknown'), article_type=?, subtype=?, gauges_json=?, scale=?,
+    manufacturer_status=COALESCE(NULLIF(?, ''), 'unknown'), article_type=?, subtype=?, gauges_json=?, scale=?, list_price=?,
     package_quantity=?, stock_unit=?, minimum_stock=?, inventory_strategy=?, manufacturer_url=?, product_url=?,
     alternative_numbers_json=?, keywords_json=?, compatibility_notes=?, internal_notes=?, archived=?, updated_at=?
 WHERE id=?`, input.Manufacturer, input.ArticleNumber, input.Name, input.Category, input.TrackingMode,
 			input.Description, input.EAN, input.ManufacturerStatus, input.ArticleType, input.Subtype, gauges, input.Scale,
+			input.ListPrice,
 			input.PackageQuantity, input.StockUnit, input.MinimumStock, input.InventoryStrategy, input.ManufacturerURL,
 			input.ProductURL, alternativeNumbers, keywords, input.CompatibilityNotes, input.InternalNotes,
 			boolToInt(input.Archived), now, id)
@@ -446,7 +447,7 @@ UPDATE storage_locations SET parent_id=NULLIF(?, ''), name=?, description=?, arc
 
 const accessoryProductSelect = `SELECT
   id, inventory_number, manufacturer, article_number, name, category, tracking_mode, description,
-  ean, manufacturer_status, article_type, subtype, gauges_json, scale, package_quantity,
+  ean, manufacturer_status, article_type, subtype, gauges_json, scale, list_price, package_quantity,
   stock_unit, minimum_stock, inventory_strategy, manufacturer_url, product_url,
   alternative_numbers_json, keywords_json, compatibility_notes, internal_notes, archived,
   created_at, updated_at
@@ -460,7 +461,7 @@ func scanAccessoryProduct(scanner rowScanner) (*application.AccessoryProduct, er
 	var archived int
 	err := scanner.Scan(&product.ID, &product.InventoryNumber, &product.Manufacturer, &product.ArticleNumber, &product.Name,
 		&product.Category, &product.TrackingMode, &product.Description, &product.EAN, &product.ManufacturerStatus,
-		&product.ArticleType, &product.Subtype, &gauges, &product.Scale, &product.PackageQuantity,
+		&product.ArticleType, &product.Subtype, &gauges, &product.Scale, &product.ListPrice, &product.PackageQuantity,
 		&product.StockUnit, &product.MinimumStock, &product.InventoryStrategy, &product.ManufacturerURL,
 		&product.ProductURL, &alternativeNumbers, &keywords, &product.CompatibilityNotes, &product.InternalNotes,
 		&archived, &product.CreatedAt, &product.UpdatedAt)

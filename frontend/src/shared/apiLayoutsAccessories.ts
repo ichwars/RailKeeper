@@ -694,6 +694,7 @@ export type AccessoryArticle = {
   subtype: string;
   gauges: string[];
   scale?: string;
+  listPrice?: string;
   packageQuantity: number;
   stockUnit: string;
   minimumStock: number;
@@ -724,6 +725,7 @@ export type AccessoryArticleWriteInput = {
   subtype: string;
   gauges?: string[];
   scale?: string;
+  listPrice: string;
   packageQuantity: number;
   stockUnit: string;
   minimumStock?: number;
@@ -759,6 +761,7 @@ export type AccessoryArticleListItem = {
   articleType: AccessoryArticleType;
   subtype: string;
   gauges: string[];
+  listPrice?: string;
   inventoryStrategy: AccessoryInventoryStrategy;
   archived: boolean;
   owned: number;

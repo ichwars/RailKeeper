@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 14
+	backupVersion = 15
 )
 
 var (

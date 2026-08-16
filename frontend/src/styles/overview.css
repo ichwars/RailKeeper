@@ -340,7 +340,7 @@
 
 .overview-hero {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -360,6 +360,75 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel-subtle);
+}
+
+.overview-hero > * {
+  min-width: 0;
+}
+
+.overview-valuation-card {
+  grid-column: span 2;
+}
+
+.overview-valuation-head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.overview-valuation-head > div {
+  min-width: 0;
+}
+
+.overview-valuation-head h2 {
+  margin: 0;
+  font-size: var(--font-size-title-sm);
+  line-height: var(--line-height-copy-lg);
+}
+
+.overview-valuation-head p {
+  margin-top: 3px;
+}
+
+.overview-valuation-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.overview-valuation-grid > div {
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+
+.overview-valuation-grid dt {
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-strong);
+}
+
+.overview-valuation-grid dd {
+  margin: 3px 0 0;
+  color: var(--text);
+  font-size: var(--font-size-title-sm);
+  font-weight: var(--font-weight-black);
+  line-height: var(--line-height-copy-lg);
+}
+
+.overview-valuation-state,
+.overview-valuation-hint {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.overview-valuation-state.error {
+  color: var(--danger);
 }
 
 .overview-hero > div.attention {

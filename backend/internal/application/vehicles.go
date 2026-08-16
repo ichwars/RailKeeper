@@ -26,6 +26,7 @@ func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, err
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
 	       COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
+	       maximum_speed_kmh, COALESCE(home_base, ''),
 	       digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''), COALESCE(decoder_type, ''),
 	       exhibition_ready, exhibition, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
 	       COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''), COALESCE(purchase_date, ''),
@@ -45,8 +46,10 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	   OR series LIKE ? COLLATE NOCASE
 	   OR vehicle_number LIKE ? COLLATE NOCASE
 	   OR decoder_type LIKE ? COLLATE NOCASE
+	   OR home_base LIKE ? COLLATE NOCASE
+	   OR CAST(maximum_speed_kmh AS TEXT) LIKE ? COLLATE NOCASE
 	ORDER BY updated_at DESC, inventory_number ASC
-	`, like, like, like, like, like, like, like, like)
+	`, like, like, like, like, like, like, like, like, like, like)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicles: %w", err)
 	}
@@ -65,6 +68,7 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 		var lightingEnabled int
 		var soundGeneratorEnabled int
 		var smokeGeneratorEnabled int
+		var maximumSpeed sql.NullInt64
 		if err := rows.Scan(
 			&vehicle.ID,
 			&vehicle.InventoryNumber,
@@ -80,6 +84,8 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 			&vehicle.Description,
 			&vehicle.Series,
 			&vehicle.VehicleNumber,
+			&maximumSpeed,
+			&vehicle.HomeBase,
 			&digital,
 			&vehicle.DigitalDecoderNumber,
 			&dtDecoder,
@@ -132,6 +138,10 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 		vehicle.LightingEnabled = lightingEnabled == 1
 		vehicle.SoundGeneratorEnabled = soundGeneratorEnabled == 1
 		vehicle.SmokeGeneratorEnabled = smokeGeneratorEnabled == 1
+		if maximumSpeed.Valid {
+			value := int(maximumSpeed.Int64)
+			vehicle.MaximumSpeedKmh = &value
+		}
 		vehicles = append(vehicles, vehicle)
 	}
 	if err := rows.Err(); err != nil {

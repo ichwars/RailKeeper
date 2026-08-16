@@ -38,6 +38,8 @@ export const emptyVehicle: CreateVehicleRequest = {
   description: "",
   series: "",
   vehicleNumber: "",
+  maximumSpeedKmh: undefined,
+  homeBase: "",
   digital: false,
   digitalDecoderNumber: "",
   dtDecoder: false,

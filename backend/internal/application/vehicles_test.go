@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -139,6 +140,110 @@ func TestCreateVehicleValidatesRequiredFields(t *testing.T) {
 	}, "actor-1")
 	if !errors.Is(err, application.ErrVehicleValidation) {
 		t.Fatalf("expected validation error, got %v", err)
+	}
+}
+
+func TestVehicleOperationalFieldsRoundTripValidateAndSearch(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+	maximumSpeed := 120
+
+	created, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer:    "Piko",
+		Name:            "BR 118",
+		Gauge:           "H0",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
+		MaximumSpeedKmh: &maximumSpeed,
+		HomeBase:        "  Bw Leipzig-West  ",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.MaximumSpeedKmh == nil || *created.MaximumSpeedKmh != 120 {
+		t.Fatalf("unexpected maximum speed: %#v", created.MaximumSpeedKmh)
+	}
+	if created.HomeBase != "Bw Leipzig-West" {
+		t.Fatalf("unexpected home base %q", created.HomeBase)
+	}
+
+	detail, err := service.Get(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if detail.MaximumSpeedKmh == nil || *detail.MaximumSpeedKmh != 120 || detail.HomeBase != "Bw Leipzig-West" {
+		t.Fatalf("operational fields missing from detail: %#v", detail)
+	}
+
+	updatedSpeed := 160
+	updated, err := service.Update(ctx, created.ID, application.CreateVehicleInput{
+		InventoryNumber: created.InventoryNumber,
+		Manufacturer:    created.Manufacturer,
+		Name:            created.Name,
+		Gauge:           created.Gauge,
+		Category:        created.Category,
+		Gattung:         created.Gattung,
+		MaximumSpeedKmh: &updatedSpeed,
+		HomeBase:        "Bw Dresden-Friedrichstadt",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.MaximumSpeedKmh == nil || *updated.MaximumSpeedKmh != 160 ||
+		updated.HomeBase != "Bw Dresden-Friedrichstadt" {
+		t.Fatalf("operational fields missing after update: %#v", updated)
+	}
+
+	for _, query := range []string{"Dresden-Friedrichstadt", "160"} {
+		vehicles, listErr := service.List(ctx, query)
+		if listErr != nil {
+			t.Fatal(listErr)
+		}
+		if len(vehicles) != 1 || vehicles[0].ID != created.ID {
+			t.Fatalf("query %q returned %#v", query, vehicles)
+		}
+	}
+
+	for _, invalidSpeed := range []int{0, 1001} {
+		invalidSpeed := invalidSpeed
+		_, createErr := service.Create(ctx, application.CreateVehicleInput{
+			Manufacturer:    "Roco",
+			Name:            "V 200",
+			Gauge:           "H0",
+			Category:        "Lokomotive",
+			Gattung:         "Diesellok",
+			MaximumSpeedKmh: &invalidSpeed,
+		}, "actor-1")
+		if !errors.Is(createErr, application.ErrVehicleOperationalValidation) {
+			t.Fatalf("expected speed %d to be rejected, got %v", invalidSpeed, createErr)
+		}
+	}
+
+	_, err = service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Roco",
+		Name:         "V 200",
+		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
+		HomeBase:     strings.Repeat("ä", 201),
+	}, "actor-1")
+	if !errors.Is(err, application.ErrVehicleOperationalValidation) {
+		t.Fatalf("expected long home base to be rejected, got %v", err)
+	}
+
+	omitted, err := service.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Roco",
+		Name:         "V 200",
+		Gauge:        "H0",
+		Category:     "Lokomotive",
+		Gattung:      "Diesellok",
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if omitted.MaximumSpeedKmh != nil || omitted.HomeBase != "" {
+		t.Fatalf("expected empty operational defaults, got %#v", omitted)
 	}
 }
 

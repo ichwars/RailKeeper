@@ -20,6 +20,7 @@ const archivedArticle: AccessoryArticle = {
   articleType: "track",
   subtype: "straight",
   gauges: ["TT"],
+  listPrice: "129.90",
   packageQuantity: 1,
   stockUnit: "piece",
   minimumStock: 0,
@@ -33,6 +34,30 @@ const archivedArticle: AccessoryArticle = {
 };
 
 describe("articleEditorModel", () => {
+  it("roundtrips and exactly normalizes compatible list-price input", () => {
+    expect(articleToEditorForm(archivedArticle).listPrice).toBe("129.90");
+    expect(articleEditorWriteInput({
+      ...emptyArticleEditorForm(),
+      listPrice: "1.299,90"
+    }).listPrice).toBe("1299.90");
+    expect(articleEditorWriteInput({
+      ...emptyArticleEditorForm(),
+      listPrice: "0"
+    }).listPrice).toBe("0.00");
+  });
+
+  it("rejects negative and malformed list-price drafts without changing them", () => {
+    for (const listPrice of ["-1", "1.2345", "abc"]) {
+      const form = { ...emptyArticleEditorForm(), listPrice };
+      const validation = validateArticleEditorForm(form);
+
+      expect(validation.fieldErrors.listPrice).toBeDefined();
+      expect(validation.tabErrors.article).toBe(true);
+      expect(() => articleEditorWriteInput(form)).toThrow("invalid list price");
+      expect(form.listPrice).toBe(listPrice);
+    }
+  });
+
   it("keeps archived articles archived through edit mapping while create starts active", () => {
     expect(articleEditorWriteInput(articleToEditorForm(archivedArticle)).archived).toBe(true);
     expect(articleEditorWriteInput(emptyArticleEditorForm()).archived).toBe(false);
@@ -52,7 +77,8 @@ describe("articleEditorModel", () => {
       integer: "Ganzzahlig",
       invalidSubject: "Fachwert ungültig",
       invalidOption: "Auswahl ungültig",
-      invalidStep: "Schrittweite ungültig"
+      invalidStep: "Schrittweite ungültig",
+      invalidMoney: "Preis ungültig"
     });
 
     expect(validation.fieldErrors.attributes).toBe("Fachwert ungültig");
@@ -95,7 +121,8 @@ describe("articleEditorModel", () => {
       integer: "Enter a whole number",
       invalidSubject: "Invalid subject",
       invalidOption: "Invalid option",
-      invalidStep: "Invalid step"
+      invalidStep: "Invalid step",
+      invalidMoney: "Invalid money"
     });
 
     expect(() => articleEditorWriteInput(form)).toThrow("invalid article quantities");

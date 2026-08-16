@@ -56,6 +56,7 @@ WITH stock_stats AS (
   GROUP BY product_id
 ), article_rows AS (
   SELECT product.id, product.inventory_number, product.manufacturer, product.article_number, product.name,
+         product.list_price,
          product.article_type, product.subtype, product.gauges_json, product.inventory_strategy,
          product.archived, product.updated_at, COALESCE(primary_images.document_id, '') AS primary_document_id,
          CASE WHEN primary_images.document_id IS NULL THEN 0 ELSE 1 END AS has_primary_image,
@@ -138,7 +139,7 @@ func (r *AccessoryRepository) ListArticles(
 	orderSQL := strings.Join(orderParts, ", ") + ", id " + direction
 
 	rows, err := r.db.QueryContext(ctx, accessoryArticleAggregationCTE+`
-SELECT id, inventory_number, primary_document_id, manufacturer, article_number, name,
+SELECT id, inventory_number, primary_document_id, manufacturer, article_number, name, list_price,
        article_type, subtype, gauges_json, inventory_strategy,
        archived, owned, available, reserved, installed, location_names, has_usage_history,
        care_hint_count, updated_at
@@ -154,7 +155,7 @@ FROM article_rows`+where+` ORDER BY `+orderSQL, args...)
 		var gauges, locations, primaryDocumentID string
 		var archived, usageHistory int
 		if err := rows.Scan(&item.ID, &item.InventoryNumber, &primaryDocumentID, &item.Manufacturer,
-			&item.ArticleNumber, &item.Name, &item.ArticleType,
+			&item.ArticleNumber, &item.Name, &item.ListPrice, &item.ArticleType,
 			&item.Subtype, &gauges, &item.InventoryStrategy, &archived, &item.Owned, &item.Available,
 			&item.Reserved, &item.Installed, &locations, &usageHistory, &item.CareHintCount,
 			&item.UpdatedAt); err != nil {

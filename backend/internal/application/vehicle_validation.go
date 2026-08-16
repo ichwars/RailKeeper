@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {
@@ -21,6 +22,7 @@ func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {
 	input.Description = strings.TrimSpace(input.Description)
 	input.Series = strings.TrimSpace(input.Series)
 	input.VehicleNumber = strings.TrimSpace(input.VehicleNumber)
+	input.HomeBase = strings.TrimSpace(input.HomeBase)
 	input.DigitalDecoderNumber = strings.TrimSpace(input.DigitalDecoderNumber)
 	input.DTDecoderNumber = strings.TrimSpace(input.DTDecoderNumber)
 	input.DecoderType = strings.TrimSpace(input.DecoderType)
@@ -61,6 +63,21 @@ func cleanVehicleInput(input CreateVehicleInput) CreateVehicleInput {
 		input.CouplingRear = input.CouplingFront
 	}
 	return input
+}
+
+func isValidVehicleOperationalInput(input CreateVehicleInput) bool {
+	if utf8.RuneCountInString(input.HomeBase) > 200 {
+		return false
+	}
+	return input.MaximumSpeedKmh == nil ||
+		(*input.MaximumSpeedKmh >= 1 && *input.MaximumSpeedKmh <= 1000)
+}
+
+func nullableInt(value *int) any {
+	if value == nil {
+		return nil
+	}
+	return *value
 }
 
 func cleanVehicleImageInputs(images []VehicleImageInput) []VehicleImageInput {

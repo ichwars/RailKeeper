@@ -10,6 +10,7 @@ tags:
   - name: System
   - name: Users
   - name: Vehicles
+  - name: Overview
   - name: InventoryNumbers
   - name: MasterData
   - name: ArticleSearch
@@ -38,6 +39,30 @@ components:
           type: string
         message:
           type: string
+    OverviewValuation:
+      type: object
+      required:
+        - vehicleListValue
+        - vehiclePurchaseValue
+        - accessoryListValue
+        - accessoryPurchaseCost
+        - excludedForeignCurrencyPurchases
+      properties:
+        vehicleListValue:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+        vehiclePurchaseValue:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+        accessoryListValue:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+        accessoryPurchaseCost:
+          type: string
+          pattern: '^[0-9]+\.[0-9]{2}$'
+        excludedForeignCurrencyPurchases:
+          type: integer
+          minimum: 0
     SetupStatus:
       type: object
       required: [setupRequired]
@@ -410,6 +435,13 @@ components:
           type: string
         vehicleNumber:
           type: string
+        maximumSpeedKmh:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 1000
+        homeBase:
+          type: string
+          maxLength: 200
         digital:
           type: boolean
         digitalDecoderNumber:
@@ -545,6 +577,13 @@ components:
           type: string
         vehicleNumber:
           type: string
+        maximumSpeedKmh:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 1000
+        homeBase:
+          type: string
+          maxLength: 200
         digital:
           type: boolean
         digitalDecoderNumber:
@@ -1175,6 +1214,8 @@ components:
             type: string
         scale:
           type: string
+        listPrice:
+          type: string
         packageQuantity:
           type: integer
           minimum: 1
@@ -1250,6 +1291,8 @@ components:
             type: string
         scale:
           type: string
+        listPrice:
+          type: string
         packageQuantity:
           type: integer
           minimum: 1
@@ -1312,6 +1355,8 @@ components:
           type: array
           items:
             type: string
+        listPrice:
+          type: string
         inventoryStrategy:
           type: string
           enum: [quantity, individual, quantity_later_individual]
@@ -7409,6 +7454,42 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Plan revision is immutable or object version is stale
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /overview/valuation:
+    get:
+      tags: [Overview]
+      summary: Calculate current list values and historical purchase costs
+      description: Viewer, Editor, Planner, or Admin role required. Messe is excluded.
+      responses:
+        "200":
+          description: Exact inventory valuation in EUR-compatible decimal strings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OverviewValuation"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Viewer-equivalent role required; Messe is excluded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "500":
+          description: Valuation calculation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "503":
+          description: Valuation service is unavailable
           content:
             application/json:
               schema:
