@@ -43,3 +43,6 @@ spare parts without overlooking partial writes.
 [Accessories](/guide/accessories/) covers the separate accessory article inventory, technical
 product data, counted and individual stock, purchases, documents, reservations, installations, and
 usage history.
+
+[Exhibition workspace](/guide/exhibition/) explains how to prepare lists, maintain operating
+entries, use locks, resolve DCC and SX address conflicts, and print the event report.
