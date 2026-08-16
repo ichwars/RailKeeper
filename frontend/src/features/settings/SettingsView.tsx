@@ -63,6 +63,7 @@ import {
 } from "./settingsDataModel";
 import { SettingsTabList } from "./SettingsTabList";
 import { StorageLocationPanel } from "./StorageLocationPanel";
+import { WindowsUpdateDownload } from "./WindowsUpdateDownload";
 
 import {
   applyVisibleMetadata,
@@ -1719,12 +1720,7 @@ export function SettingsView({ username }: { username: string }) {
                   {versionLoading ? t("settings.updates.checking") : t("settings.updates.checkNow")}
                 </button>
               </div>
-              {versionInfo?.releaseUrl && (
-                <a className="settings-link-row" href={versionInfo.releaseUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink size={15} />
-                  {t("settings.updates.openRelease")}
-                </a>
-              )}
+              {versionInfo && <WindowsUpdateDownload info={versionInfo} />}
               {versionInfo?.updateAvailable && (
                 <div className="update-decision-panel">
                   <div>

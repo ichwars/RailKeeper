@@ -295,6 +295,31 @@
   color: var(--accent-bright);
 }
 
+.windows-update-download {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.windows-update-download-button {
+  width: fit-content;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.windows-update-download p {
+  max-width: 68ch;
+}
+
+@media (max-width: 700px) {
+  .windows-update-download-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 .sidebar-order-box {
   display: grid;
   gap: 10px;
