@@ -19,7 +19,7 @@ Der Tab **Uploads** verwaltet lokale Fahrzeugbilder und allgemeine Beilagen am F
 
 Wähle mit **Bild hochladen** eine oder mehrere lokale Dateien. RailKeeper akzeptiert JPG/JPEG, PNG und WebP. Das Standardlimit des Servers beträgt 10 MB pro Bild, ein Betreiber kann eine strengere Grenze konfigurieren. Der Browser prüft die gewählte Endung, der Server zusätzlich Dateigröße und erkannten MIME-Typ.
 
-RailKeeper lädt ausgewählte Bilder nacheinander hoch. Wenn noch kein Bild vorhanden ist, wird das erste erfolgreich gespeicherte Bild zum **Hauptbild**. Frühere erfolgreiche Dateien bleiben gespeichert, wenn eine spätere Datei fehlschlägt; weitere spätere Dateien werden in diesem Durchlauf nicht mehr versucht. Prüfe den Fehler und lade die fehlgeschlagene sowie die nicht versuchten Dateien erneut hoch. Der Bildupload wirkt unmittelbar und wartet nicht auf **Änderungen speichern**.
+RailKeeper lädt ausgewählte Bilder nacheinander hoch. Wenn anfangs noch kein Bild vorhanden ist, markiert jede Anfrage eines Mehrfachuploads ihr Bild als **Hauptbild**. Daher ist die zuletzt erfolgreich hochgeladene Datei das Hauptbild. Frühere erfolgreiche Dateien bleiben gespeichert, wenn eine spätere Datei fehlschlägt; weitere spätere Dateien werden in diesem Durchlauf nicht mehr versucht. Prüfe den Fehler und lade die fehlgeschlagene sowie die nicht versuchten Dateien erneut hoch. Der Bildupload wirkt unmittelbar und wartet nicht auf **Änderungen speichern**.
 
 ## Bildmetadaten ordnen
 
@@ -67,7 +67,7 @@ Das Entfernen eines gespeicherten Bildes wirkt sofort und benötigt keine zusät
 
 Medien sind lokale und private RailKeeper-Daten, keine öffentlichen Website-Inhalte. Sie werden mit den Anwendungsdaten gespeichert und gehören zum Sicherungs- und Wiederherstellungsumfang der Anwendung. Erstelle vor umfangreichen Aufräumarbeiten eine aktuelle RailKeeper-Sicherung. Diese Seite verspricht nichts über Kopien, die du zuvor heruntergeladen oder außerhalb von RailKeeper angelegt hast.
 
-Admin, Editor, Viewer und Planner können vorhandene Medien ansehen. Serverseitige Schreibzugriffe erfordern Admin oder Editor. Web-Dokument-Import, externe Artikelbilder, Ersatzteil-Extraktion, CV-Dateien und das Bearbeiten von Wartungen sind Fachgrenzen. Ihre Arbeitsabläufe werden auf dieser Seite nicht erklärt.
+Admin, Editor, Viewer und Planner können vorhandene Medien ansehen. Serverseitige Schreibzugriffe erfordern Admin oder Editor. **Quelle öffnen** ist der Übergang für importierte Bildquellen. **Gefundene Dokumente**, **Ersatzteile extrahieren**, Web-Dokument-Import, externe Artikelbilder, CV-Dateien und das Bearbeiten von Wartungen sind Fachgrenzen. Ihre Arbeitsabläufe werden auf dieser Seite nicht erklärt.
 
 ## Leere, teilweise und fehlerhafte Zustände
 

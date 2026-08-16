@@ -27,11 +27,12 @@ WebP. The default server limit is 10 MB per image; an operator can configure a s
 browser checks the selected extension, and the server also checks the file size and detected MIME
 type.
 
-RailKeeper uploads selected images sequentially. When the vehicle has no image, the first image
-stored successfully becomes the main image. Earlier successful files stay stored if a later file
-fails; remaining later files are not attempted in that run. Review the error, then upload the
-failed and unattempted files again. Image upload is immediate, so it does not wait for the
-vehicle's **Save changes** action.
+RailKeeper uploads selected images sequentially. When the vehicle initially has no image, every
+request in a multi-file upload marks its image as main. The last successfully uploaded file is
+therefore the main image. Earlier successful files stay stored if a later file fails; remaining
+later files are not attempted in that run. Review the error, then upload the failed and unattempted
+files again. Image upload is immediate, so it does not wait for the vehicle's **Save changes**
+action.
 
 ## Organize image metadata
 
@@ -105,7 +106,8 @@ backup before extensive cleanup; this page makes no promise about copies downloa
 outside RailKeeper.
 
 Admin, Editor, Viewer, and Planner may inspect existing media. Server-side writes require Admin or
-Editor. Web-document import, remote article images, spare-part extraction, CV files, and editing
+Editor. **Open source** is the transition for imported image sources. **Found documents**,
+**Extract spare parts**, web-document import, remote article images, CV files, and editing
 maintenance records are specialist boundaries, not workflows explained on this page.
 
 ## Empty, partial, and error states
