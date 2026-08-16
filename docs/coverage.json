@@ -53,7 +53,7 @@
     {
       "id": "accessories",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/accessories/index.md",
       "germanPath": "de/guide/accessories/index.md"
     },
