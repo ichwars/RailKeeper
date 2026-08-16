@@ -24,3 +24,6 @@ und ein vergessenes Passwort wiederhergestellt wird.
 
 Fahre mit [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/) fort, um das Dashboard zu
 verstehen, Bestandslücken als gefilterte Fahrzeuglisten zu öffnen und die Kacheln anzuordnen.
+
+[Fahrzeugbestand und Grunddaten](/de/guide/vehicles/) erklärt Suche und Filter, das Anlegen und
+Bearbeiten von Grunddaten, Reports und QR-Etiketten sowie das sichere Löschen.

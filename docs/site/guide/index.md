@@ -23,3 +23,6 @@ sign in and out, complete a two-factor sign-in, and recover a forgotten password
 
 Continue with [Overview, metrics, and data quality](/guide/overview/) to understand the dashboard,
 follow inventory gaps into filtered vehicle lists, and arrange its widgets.
+
+Use [Vehicle inventory and core records](/guide/vehicles/) to search and filter vehicles, create or
+edit their core data, produce reports and QR labels, and understand safe deletion.
