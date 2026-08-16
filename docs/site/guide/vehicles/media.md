@@ -137,6 +137,7 @@ maintenance records are specialist boundaries, not workflows explained on this p
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Vehicle inventory and basic data](/guide/vehicles/)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
+- [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
 
 ## Documented RailKeeper version
 

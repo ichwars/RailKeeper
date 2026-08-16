@@ -310,6 +310,7 @@ Datei physisch zu entfernen.
 - [Übersicht des Benutzerhandbuchs](/de/guide/)
 - [Fahrzeugbilder und Beilagen](/de/guide/vehicles/media)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
+- [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
 - [Ersteinrichtung und Anmeldung](/de/guide/getting-started/)
 - [Übersicht, Kennzahlen und Datenqualität](/de/guide/overview/)
 - [Übersicht der Administration](/de/administration/)
