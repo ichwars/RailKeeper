@@ -109,6 +109,12 @@ Die bestehende Kopfzeile bleibt kompakt. Die bisherige Kachel "Erfasster Listenw
 breiteren Block "Erfasste Bestandswerte". Gesamtbestand, Digitalisierung und Wartung behalten ihre
 Positionen und ihr bisheriges Verhalten.
 
+Auf Desktopbreiten verwendet die Kennzahlenzeile fünf gleich breite Rasterspalten: Gesamtbestand
+und Digitalisierung belegen je eine Spalte, der Werteblock zwei Spalten und Wartung die fünfte
+Spalte. Damit bleiben alle vier Bereiche in genau einer Zeile. Bis 900 px darf das bestehende
+zweispaltige Tablet-Raster umbrechen; bis 640 px stehen die Bereiche einspaltig untereinander.
+Inhalt, Kartenhöhe und innere 2×2-Matrix des Werteblocks bleiben unverändert.
+
 Im Werteblock stehen die vier Summen als 2×2-Matrix:
 
 1. Fahrzeuge · Listenwert
