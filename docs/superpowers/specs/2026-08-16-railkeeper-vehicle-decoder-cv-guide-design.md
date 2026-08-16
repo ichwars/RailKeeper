@@ -134,9 +134,10 @@ decoder type, and ABC-braking fields. The new chapter links back to that page an
 specialist tabs.
 
 A vehicle must normally have been saved once before function, CV, or decoder-file data can be
-persisted because those records need a stored vehicle ID. An ECoS-created unsaved draft is the one
-preview boundary: RailKeeper can display imported draft CV values and derive a speed curve, but the
-normal write and file actions remain unavailable until the vehicle exists.
+persisted because those records need a stored vehicle ID. An ECoS-created unsaved draft can display
+imported draft CV values, derive a speed curve, and load draft function mappings into **Control**.
+Its vehicle save is a special sequential write path for the ECoS mapping, CVs, and functions; normal
+individual write and file actions remain unavailable until the vehicle exists.
 
 Admin, Editor, Viewer, and Planner can read stored functions, CV values, CV history, and decoder
 files. Viewer-level access can also export functions and CV values and download decoder files.
@@ -160,15 +161,17 @@ Each row contains:
 - note;
 - immediate save and delete actions.
 
-The selected symbol supplies its label when the name is empty and determines the function type.
+The selected symbol replaces the current name with its label and determines the function type. The
+chapter warns users to choose the symbol before entering a custom name or restore the name after a
+symbol change.
 Stable stored types are `standard`, `sound`, `licht`, `kupplung`, `rauch`, and
 `sonderfunktion`. The English UI translates those meanings, while the stored identifiers remain
 unchanged. A new F0 row defaults to the name `Fahrlicht`, the light symbol, and type `licht`; the
 other empty rows default to type `standard`. Every row defaults to mode `dauer`.
 
 A new row cannot be saved when name, symbol, and note are all empty. The server accepts only
-F0-F31, limits the name to 120 characters, the symbol key to 80 characters, and notes to 1,000
-characters, and validates the type and mode lists.
+F0-F31, limits the name to 120 UTF-8 bytes, the symbol key to 80 UTF-8 bytes, and notes to 1,000
+UTF-8 bytes, and validates the type and mode lists.
 
 ### Function JSON export
 
@@ -222,11 +225,11 @@ contains:
 
 - CV number, integer 1-1024;
 - value, integer 0-255;
-- optional category, up to 80 characters;
-- optional protocol, up to 80 characters;
-- optional decoder profile, up to 160 characters;
+- optional category, up to 80 UTF-8 bytes;
+- optional protocol, up to 80 UTF-8 bytes;
+- optional decoder profile, up to 160 UTF-8 bytes;
 - optional source decoder file;
-- optional description, up to 1,000 characters.
+- optional description, up to 1,000 UTF-8 bytes.
 
 The stable category options are stored and displayed in German: `Adresse`, `Fahrverhalten`,
 `Motor`, `Licht`, `Sound`, `Funktion`, `Decoder`, and `Sonstiges`. Protocol options include the
@@ -287,7 +290,10 @@ default is 25 MiB per file, but an operator can configure a stricter or differen
 File selection first uploads each file to the preview endpoint only. The preview can display file
 type and size, recognized project, decoder, address, type, manufacturer, LokProgrammer metadata,
 an extracted preview image, and counts of suggested CV values and functions. Preview alone does not
-store the original file on the vehicle.
+store the original file on the vehicle. Each file preview returns at most 32 CV suggestions and 32
+function suggestions. The chapter warns that a displayed count of 32 may be truncated and directs
+users to compare the project source and import remaining values or mappings through the direct CV
+or function workflows.
 
 The chapter distinguishes four independent actions:
 
@@ -316,10 +322,18 @@ skipping this sequence can leave stale source identifiers.
 
 ## ECoS input boundary
 
-An ECoS locomotive draft can provide preview CV values before the vehicle has been saved. The CV
-tab displays the first 18 values, reports the number of additional values, and identifies the
-source locomotive; the Speed Curve tab can derive its read-only chart from the same draft values.
-Once the core vehicle is saved, normal CV, function, and file operations use the stored vehicle.
+An ECoS locomotive draft can provide CV values and function mappings before the vehicle has been
+saved. The CV tab displays the first 18 values, reports the number of additional values, and
+identifies the source locomotive; the Speed Curve tab can derive its read-only chart from the same
+draft values, and Control loads its function mappings into editable rows.
+
+Saving a vehicle while the ECoS draft is active first persists the vehicle and other pending
+vehicle work. RailKeeper then upserts the external mapping, writes draft CV values, and writes all
+currently assigned function rows sequentially. Only full success marks the import session as saved
+and reloads the vehicle. The chapter warns that a later failure leaves the vehicle and earlier ECoS
+writes stored, then tells users to reload, compare mapping, CVs, and functions, and repeat only
+missing work. Once this path succeeds, normal CV, function, and file operations use the stored
+vehicle.
 
 The chapter does not describe ECoS host configuration, connection tests, raw probes,
 synchronization, conflict handling, or confirmed writes to the command station. It names the later
@@ -330,7 +344,7 @@ that chapter remains unpublished.
 
 Function saves and deletes, CV saves and deletes, successful CV imports, detected-function
 application, decoder-file saves, and decoder-file deletion persist immediately. They are not part
-of the vehicle form's **Save changes** action.
+of the vehicle form's **Save changes** action, except for the explicit ECoS draft workflow above.
 
 After a successful write workflow, the frontend reloads the selected vehicle and replaces the main
 vehicle form and specialist editor state with fresh server data. Unrelated unsaved core fields,
@@ -343,6 +357,9 @@ sequential API requests without one encompassing transaction. If a later request
 requests remain stored, later rows or files are not attempted, and the normal success refresh does
 not run. The user must reload the vehicle, compare stored state with the source, and retry only the
 missing items to avoid duplicates or unintended overwrites.
+
+The ECoS vehicle-save path is likewise non-atomic across its core vehicle, mapping, CV, and function
+writes. Its persistence table row makes this exception visible alongside the specialist actions.
 
 Preview generation, row selection, profile shortcuts, metadata suggestion, and the Speed Curve tab
 do not themselves persist data.

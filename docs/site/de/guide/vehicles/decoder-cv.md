@@ -48,8 +48,10 @@ Jede Zeile enthält:
 - **Notiz**
 - **Speichern** und **Löschen**
 
-Die Auswahl eines Symbols kann einen leeren Namen füllen und leitet den gespeicherten Funktionstyp
-ab. Der Typ ist in dieser stabilen Ansicht kein eigenes Bedienelement.
+Die Auswahl eines Symbols ersetzt den aktuellen Funktionsnamen durch die Symbolbezeichnung und
+leitet den gespeicherten Funktionstyp ab. Wähle das Symbol vor einem eigenen Namen oder stelle den
+gewünschten Namen nach einem Symbolwechsel wieder her. Der Typ ist in dieser stabilen Ansicht kein
+eigenes Bedienelement.
 
 | Gespeicherter Typ | Deutsche Bedeutung |
 | --- | --- |
@@ -69,8 +71,8 @@ beginnen mit `standard`. Jede neue Zeile verwendet zunächst `dauer`. Eine neue 
 mindestens Name, Symbol oder Notiz, bevor sie gespeichert werden kann. Der lokale F0-Standard zählt
 daher bereits vor **F0 speichern** als belegt.
 
-Der Server akzeptiert nur F0-F31, bekannte Typen und Betriebsarten, Namen bis 120 Zeichen,
-Symbolschlüssel bis 80 Zeichen und Notizen bis 1.000 Zeichen. Speichern oder Löschen einer Zeile
+Der Server akzeptiert nur F0-F31, bekannte Typen und Betriebsarten, Namen bis 120 UTF-8-Bytes,
+Symbolschlüssel bis 80 UTF-8-Bytes und Notizen bis 1.000 UTF-8-Bytes. Speichern oder Löschen einer Zeile
 wirkt sofort, lädt das vollständige Fahrzeug neu und besitzt keine zusätzliche Löschbestätigung.
 
 ### Funktionen importieren und exportieren
@@ -128,11 +130,11 @@ Das manuelle Formular enthält:
 | --- | --- |
 | CV-Nummer | Erforderliche Ganzzahl von 1 bis 1024 |
 | Wert | Erforderliche Ganzzahl von 0 bis 255 |
-| Kategorie | Optionale gespeicherte deutsche Kategorie, bis 80 Zeichen |
-| Protokoll | Optionales Protokoll, bis 80 Zeichen |
-| Decoderprofil | Optionaler Freitext, bis 160 Zeichen |
+| Kategorie | Optionale gespeicherte deutsche Kategorie, bis 80 UTF-8-Bytes |
+| Protokoll | Optionales Protokoll, bis 80 UTF-8-Bytes |
+| Decoderprofil | Optionaler Freitext, bis 160 UTF-8-Bytes |
 | Quelldatei | Optionale Decoder-Datei dieses Fahrzeugs |
-| Beschreibung | Optionaler Text, bis 1.000 Zeichen |
+| Beschreibung | Optionaler Text, bis 1.000 UTF-8-Bytes |
 
 Stabile Kategorien sind `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder` und `Sonstiges`.
@@ -204,6 +206,11 @@ Die Auswahl erzeugt zuerst eine **Upload-Vorschau**. Sie kann Größe, MIME-Typ,
 Projekt, Decoder, Adresse, Typ, Hersteller, LokProgrammer-Metadaten sowie die Anzahl erkannter
 CV-Werte und Funktionstasten anzeigen. Eine Vorschau speichert die Originaldatei nicht.
 
+Jede Dateivorschau liefert höchstens 32 erkannte CV-Werte und 32 erkannte Funktionen. Eine
+angezeigte Anzahl von 32 kann daher bedeuten, dass die Quelle weitere Einträge enthält. Vergleiche
+die Vorschau mit der Projektdatei. Importiere übrige CVs über den direkten CV-Import und übrige
+Funktionen per Funktions-JSON oder manueller Eingabe.
+
 Die Vorschauaktionen sind unabhängig:
 
 1. **Vorschlag übernehmen** kopiert das erste erkannte Profil und die Beschreibung in die noch
@@ -239,12 +246,21 @@ veraltete Referenzen verbleiben.
 
 ## ECoS-Vorschau als Eingangspfad verwenden
 
-Ein ungespeicherter ECoS-Lokomotiventwurf kann CV-Werte liefern, bevor das Fahrzeug existiert. Der
-Tab **CV** zeigt die ersten 18 Werte, die Anzahl weiterer Werte und die Quelllokomotive.
-**Fahrkurve** kann daraus seine schreibgeschützte Anzeige ableiten.
+Ein ungespeicherter ECoS-Lokomotiventwurf kann CV-Werte und Funktionszuordnungen liefern, bevor das
+Fahrzeug existiert. Der Tab **CV** zeigt die ersten 18 Werte, die Anzahl weiterer Werte und die
+Quelllokomotive. **Fahrkurve** kann daraus seine schreibgeschützte Anzeige ableiten. **Steuerung**
+lädt die Funktionszuordnungen des Entwurfs in die bearbeitbaren Funktionszeilen.
 
-Nach dem Speichern des Grunddatensatzes verwenden normale Funktions-, CV- und Dateiaktionen das
-gespeicherte Fahrzeug. Dieses Kapitel erklärt keine ECoS-Verbindung, Rohprüfung, Synchronisierung,
+Mit aktivem ECoS-Entwurf ist das Speichern des Grunddatensatzes ein besonderer mehrstufiger Ablauf.
+RailKeeper speichert zuerst das Fahrzeug und andere ausstehende Fahrzeugdaten, danach nacheinander
+die externe ECoS-Zuordnung, die CV-Werte des Entwurfs und alle derzeit belegten Funktionszeilen. Nur
+bei vollständigem Erfolg markiert RailKeeper den ECoS-Import als gespeichert und lädt das Fahrzeug
+neu. Ein später Fehler macht weder das Fahrzeug noch frühere ECoS-Schreibvorgänge rückgängig. Lade
+neu, vergleiche gespeicherte Zuordnung, CVs und Funktionen mit dem Entwurf und wiederhole nur
+fehlende Arbeiten.
+
+Nach erfolgreichem Abschluss verwenden normale Funktions-, CV- und Dateiaktionen das gespeicherte
+Fahrzeug. Dieses Kapitel erklärt keine ECoS-Verbindung, Rohprüfung, Synchronisierung,
 Konfliktbehandlung oder Schreibvorgänge zur Digitalzentrale. Diese Abläufe gehören zum geplanten
 Kapitel Digitalzentralen.
 
@@ -257,6 +273,7 @@ Kapitel Digitalzentralen.
 | Funktions-JSON importieren | Nacheinander | Nur nach vollständigem Erfolg |
 | Funktions-JSON exportieren | Nein | Nein |
 | Fahrkurve ansehen | Nein | Nein |
+| Mit aktivem ECoS-Entwurf speichern | Fahrzeug, Zuordnung, CVs und Funktionen nacheinander | Nach Gesamterfolg |
 | CV-Importvorschau erzeugen oder auswählen | Nein | Nein |
 | Ausgewählte CV-Zeilen übernehmen | Nacheinander | Nur nach vollständigem Erfolg |
 | Einzelnen CV hinzufügen, speichern oder löschen | Sofort | Nach Erfolg |

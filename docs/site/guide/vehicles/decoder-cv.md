@@ -46,8 +46,9 @@ Each row contains:
 - **Note**
 - **Save** and **Delete**
 
-Selecting a symbol can fill an empty name and infers the stored function type. The type is not a
-separate control in this stable view.
+Selecting a symbol replaces the current function name with that symbol's label and infers the
+stored function type. Choose the symbol before entering a custom name, or restore the intended name
+after changing the symbol. The type is not a separate control in this stable view.
 
 | Stored type | English meaning |
 | --- | --- |
@@ -65,8 +66,8 @@ F0 starts with name `Fahrlicht`, the light symbol, and type `licht`. Other new r
 `standard`. Every new row starts in mode `dauer`. A new row needs at least a name, symbol, or note
 before it can be saved. The local F0 default therefore counts as assigned even before **Save F0**.
 
-The server accepts only F0-F31, known types and modes, names up to 120 characters, symbol keys up to
-80 characters, and notes up to 1,000 characters. Saving or deleting one row acts immediately,
+The server accepts only F0-F31, known types and modes, names up to 120 UTF-8 bytes, symbol keys up to
+80 UTF-8 bytes, and notes up to 1,000 UTF-8 bytes. Saving or deleting one row acts immediately,
 reloads the complete vehicle, and has no additional delete confirmation.
 
 ### Import and export functions
@@ -121,11 +122,11 @@ The manual form contains:
 | --- | --- |
 | CV number | Required integer from 1 through 1024 |
 | Value | Required integer from 0 through 255 |
-| Category | Optional stored German category, up to 80 characters |
-| Protocol | Optional protocol, up to 80 characters |
-| Decoder profile | Optional free text, up to 160 characters |
+| Category | Optional stored German category, up to 80 UTF-8 bytes |
+| Protocol | Optional protocol, up to 80 UTF-8 bytes |
+| Decoder profile | Optional free text, up to 160 UTF-8 bytes |
 | Source file | Optional decoder file belonging to this vehicle |
-| Description | Optional text, up to 1,000 characters |
+| Description | Optional text, up to 1,000 UTF-8 bytes |
 
 Stable categories are `Adresse`, `Fahrverhalten`, `Motor`, `Licht`, `Sound`, `Funktion`,
 `Decoder`, and `Sonstiges`. They remain German in the English interface.
@@ -193,6 +194,11 @@ Selection first creates an **Upload preview**. It can show size, MIME type, a pr
 project, decoder, address, type, manufacturer, LokProgrammer metadata, and counts of detected CV
 values and function keys. A preview does not store the original file.
 
+Each file preview returns at most 32 detected CV values and 32 detected functions. A displayed
+count of 32 can therefore mean that more entries exist in the source. Compare the preview with the
+project file. Import remaining CVs through the direct CV import and remaining functions through
+function JSON import or manual entry.
+
 The preview actions are independent:
 
 1. **Apply suggestion** copies the first recognized profile and description into the unsaved file
@@ -224,11 +230,19 @@ clear their stored source identifier, so skipping this sequence can leave stale 
 
 ## Use an ECoS preview as an input path
 
-An unsaved ECoS locomotive draft can supply CV values before the vehicle exists. The **CV** tab
-shows the first 18 values, the count of additional values, and the source locomotive. **Speed
-curve** can derive its read-only display from the same draft.
+An unsaved ECoS locomotive draft can supply CV values and function mappings before the vehicle
+exists. The **CV** tab shows the first 18 values, the count of additional values, and the source
+locomotive. **Speed curve** can derive its read-only display from the same draft. **Control** loads
+the draft's function mappings into the editable function rows.
 
-After the core vehicle is saved, normal function, CV, and file actions use the stored vehicle. This
+With an ECoS draft active, saving the core vehicle is a special multi-step workflow. RailKeeper
+saves the vehicle and other pending vehicle data first, then writes the ECoS external mapping, the
+draft CV values, and all currently assigned function rows in sequence. Only full success marks the
+ECoS import as saved and reloads the vehicle. A later failure does not roll back the vehicle or
+earlier ECoS writes. Reload, compare the stored mapping, CVs, and functions with the draft, then
+repeat only the missing work.
+
+After successful completion, normal function, CV, and file actions use the stored vehicle. This
 chapter does not cover ECoS connection setup, raw probes, synchronization, conflict handling, or
 writes to a command station. Those operations belong to the planned Digital centers chapter.
 
@@ -241,6 +255,7 @@ writes to a command station. Those operations belong to the planned Digital cent
 | Import function JSON | Sequentially | Only after full success |
 | Export function JSON | No | No |
 | View the speed curve | No | No |
+| Save with an active ECoS draft | Vehicle, mapping, CVs, and functions sequentially | After full success |
 | Build or select a CV import preview | No | No |
 | Apply selected CV rows | Sequentially | Only after full success |
 | Add, save, or delete one CV | Immediately | After success |
