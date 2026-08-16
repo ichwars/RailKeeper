@@ -15,7 +15,11 @@ import {
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
-import { vehicleSetInputFromForm, type VehicleSetMemberDraft } from "./VehicleCreateWizard";
+import {
+  vehicleSetInputFromForm,
+  vehicleSetMembersFromForm,
+  type VehicleSetMemberDraft
+} from "./VehicleCreateWizard";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
@@ -679,13 +683,7 @@ export function VehiclesView({ username }: { username: string }) {
     try {
       const created = await api.createVehicleSet({
         set: vehicleSetInputFromForm(form),
-        members: members.map((member, index) => ({
-          ...form,
-          inventoryNumber: member.inventoryNumber,
-          name: member.name.trim() || `${form.name} (${index + 1})`,
-          vehicleNumber: member.vehicleNumber,
-          images: []
-        }))
+        members: vehicleSetMembersFromForm(form, members, pendingArticleImages)
       });
       const firstMember = created.members[0];
       if (firstMember) {
@@ -819,11 +817,13 @@ export function VehiclesView({ username }: { username: string }) {
           }}
           onQr={generateQr}
           onPreviewImage={setPreviewImage}
+          setCreationDisabled={Boolean(ecosDraft)}
           tabs={{
             model: {
               form,
               externalMappings: selected?.externalMappings || [],
               readonly,
+              sharedFieldsReadonly: Boolean(selected?.vehicleSetId),
               articleSearchLoading,
               canRunArticleSearch,
               showRequiredErrors,

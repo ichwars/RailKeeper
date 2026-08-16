@@ -30,6 +30,11 @@ func (s *VehicleService) CreateSet(
 			return nil, err
 		}
 		memberIDs[index] = randomID()
+		preparedMembers[index] = member
+	}
+
+	for index, member := range preparedMembers {
+		var err error
 		if s.imageLocalizer != nil && len(member.Images) > 0 {
 			member.Images, err = s.imageLocalizer(ctx, memberIDs[index], member.Images)
 			if err != nil {
@@ -126,6 +131,10 @@ func mergeVehicleSetMember(setInput VehicleSetInput, member CreateVehicleInput, 
 	if strings.TrimSpace(member.Name) == "" {
 		member.Name = fmt.Sprintf("%s (%d)", setInput.Name, index+1)
 	}
+	return applyVehicleSetFields(setInput, member)
+}
+
+func applyVehicleSetFields(setInput VehicleSetInput, member CreateVehicleInput) CreateVehicleInput {
 	member.Manufacturer = setInput.Manufacturer
 	member.ArticleNumber = setInput.ArticleNumber
 	member.ArticleSourceURL = setInput.ArticleSourceURL
@@ -148,6 +157,30 @@ func mergeVehicleSetMember(setInput VehicleSetInput, member CreateVehicleInput, 
 	member.ConditionDetails = setInput.ConditionDetails
 	member.Packaging = setInput.Packaging
 	return member
+}
+
+func (s *VehicleService) vehicleSetInput(ctx context.Context, setID string) (VehicleSetInput, error) {
+	var input VehicleSetInput
+	err := s.db.QueryRowContext(ctx, `
+SELECT name, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), gauge,
+       COALESCE(epoch, ''), COALESCE(railway_company, ''), category, gattung, COALESCE(description, ''),
+       COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
+       COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''),
+       COALESCE(purchase_date, ''), COALESCE(storage_location, ''), COALESCE(storage_details, ''),
+       COALESCE(condition, ''), COALESCE(condition_details, ''), COALESCE(packaging, '')
+FROM vehicle_sets
+WHERE id=?
+`, setID).Scan(
+		&input.Name, &input.Manufacturer, &input.ArticleNumber, &input.ArticleSourceURL, &input.Gauge,
+		&input.Epoch, &input.RailwayCompany, &input.Category, &input.Gattung, &input.Description,
+		&input.EAN, &input.ProductionPeriod, &input.ListPrice, &input.AcquisitionType, &input.AcquiredFrom,
+		&input.PurchasePrice, &input.PurchaseDate, &input.StorageLocation, &input.StorageDetails,
+		&input.Condition, &input.ConditionDetails, &input.Packaging,
+	)
+	if err != nil {
+		return VehicleSetInput{}, fmt.Errorf("load vehicle set data: %w", err)
+	}
+	return input, nil
 }
 
 func insertVehicleSetTx(

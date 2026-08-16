@@ -43,6 +43,37 @@ func TestOverviewValuationSeparatesCurrentListValueAndHistoricalPurchaseCost(t *
 	}
 }
 
+func TestOverviewValuationCountsSharedVehicleSetPricesOnce(t *testing.T) {
+	db, err := infrastructure.OpenSQLite(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	if err := infrastructure.Migrate(db, filepath.Join("..", "..", "migrations")); err != nil {
+		t.Fatal(err)
+	}
+
+	service := application.NewVehicleService(db)
+	_, err = service.CreateSet(context.Background(), application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Dreiteiliges Set", Manufacturer: "Roco", Gauge: "H0", Category: "Triebzug",
+			Gattung: "Elektrotriebzug", ListPrice: "399.00", PurchasePrice: "299.00",
+		},
+		Members: []application.CreateVehicleInput{{Name: "A"}, {Name: "B"}, {Name: "C"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	valuation, err := application.NewOverviewValuationService(db).Get(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if valuation.VehicleListValue != "399.00" || valuation.VehiclePurchaseValue != "299.00" {
+		t.Fatalf("set prices were not counted once: %#v", valuation)
+	}
+}
+
 func execValuationFixture(t *testing.T, db *sql.DB) {
 	t.Helper()
 	exec := func(query string, args ...any) {

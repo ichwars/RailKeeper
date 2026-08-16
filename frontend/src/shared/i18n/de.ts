@@ -1308,6 +1308,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.wizard.singleHint": "Eine Lok, ein Wagen oder ein Triebfahrzeug",
     "vehicles.wizard.set": "Set",
     "vehicles.wizard.setHint": "Mehrere fest zusammengehörige Fahrzeuge",
+    "vehicles.wizard.setDisabledEcos": "ECoS-Entwürfe müssen als Einzelfahrzeug gespeichert werden.",
     "vehicles.wizard.basicData": "Grunddaten",
     "vehicles.wizard.requiredHint": "Pflichtfelder sind markiert",
     "vehicles.wizard.setName": "Bezeichnung des Sets",

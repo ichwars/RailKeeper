@@ -221,65 +221,68 @@ export function VehicleDetailsFields({
 export function VehicleOwnershipFields({
   form,
   readonly,
+  sharedFieldsReadonly = false,
   update
 }: {
   form: CreateVehicleRequest;
   readonly: boolean;
+  sharedFieldsReadonly?: boolean;
   update: (patch: Partial<CreateVehicleRequest>) => void;
 }) {
   const { t } = useI18n();
+  const sharedReadonly = readonly || sharedFieldsReadonly;
   return (
     <>
       <div className="form-row four-columns">
         <label>
           {t("vehicle.field.acquisitionType")}
-          <AppSelect value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={sharedReadonly}>
             {renderStaticOptions(acquisitionOptions, t("vehicles.select.placeholder"))}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.acquiredFrom")}
-          <AppSelect value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={sharedReadonly}>
             {renderStaticOptions(acquiredFromOptions, t("vehicles.select.placeholder"))}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.purchasePrice")}
-          <input value={form.purchasePrice || ""} onChange={(event) => update({ purchasePrice: event.target.value })} disabled={readonly} inputMode="decimal" />
+          <input value={form.purchasePrice || ""} onChange={(event) => update({ purchasePrice: event.target.value })} disabled={sharedReadonly} inputMode="decimal" />
         </label>
         <label>
           {t("vehicle.field.purchaseDate")}
-          <AppDateInput value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={readonly} />
+          <AppDateInput value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={sharedReadonly} />
         </label>
       </div>
 
       <div className="form-row">
         <label>
           {t("vehicle.field.storageLocation")}
-          <AppSelect value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={sharedReadonly}>
             {renderStaticOptions(storageLocationOptions, t("vehicles.select.placeholder"))}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.storageDetails")}
-          <input value={form.storageDetails || ""} onChange={(event) => update({ storageDetails: event.target.value })} disabled={readonly} />
+          <input value={form.storageDetails || ""} onChange={(event) => update({ storageDetails: event.target.value })} disabled={sharedReadonly} />
         </label>
       </div>
 
       <div className="form-row three-columns">
         <label>
           {t("vehicle.field.condition")}
-          <AppSelect value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={sharedReadonly}>
             {renderStaticOptions(vehicleConditionOptions, t("vehicles.select.placeholder"))}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.conditionDetails")}
-          <input value={form.conditionDetails || ""} onChange={(event) => update({ conditionDetails: event.target.value })} disabled={readonly} />
+          <input value={form.conditionDetails || ""} onChange={(event) => update({ conditionDetails: event.target.value })} disabled={sharedReadonly} />
         </label>
         <label>
           {t("vehicle.field.packaging")}
-          <AppSelect value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={readonly}>
+          <AppSelect value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={sharedReadonly}>
             {renderStaticOptions(packagingOptions, t("vehicles.select.placeholder"))}
           </AppSelect>
         </label>

@@ -61,6 +61,13 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 
 	replaceImages := input.Images != nil
 	input = cleanVehicleInput(input)
+	if existing.VehicleSetID != "" {
+		setInput, setErr := s.vehicleSetInput(ctx, existing.VehicleSetID)
+		if setErr != nil {
+			return nil, setErr
+		}
+		input = applyVehicleSetFields(setInput, input)
+	}
 	if input.InventoryNumber == "" {
 		input.InventoryNumber = existing.InventoryNumber
 	}
@@ -81,6 +88,10 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 	now := time.Now().UTC().Format(time.RFC3339)
 	vehicle := Vehicle{
 		ID:                        id,
+		VehicleSetID:              existing.VehicleSetID,
+		VehicleSetName:            existing.VehicleSetName,
+		VehicleSetPosition:        existing.VehicleSetPosition,
+		VehicleSetSize:            existing.VehicleSetSize,
 		InventoryNumber:           input.InventoryNumber,
 		Manufacturer:              input.Manufacturer,
 		ArticleNumber:             input.ArticleNumber,

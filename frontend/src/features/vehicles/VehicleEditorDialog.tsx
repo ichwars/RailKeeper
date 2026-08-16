@@ -39,6 +39,7 @@ type VehicleEditorDialogProps = {
   onPrint: () => void;
   onQr: () => void;
   onPreviewImage: ComponentProps<typeof VehicleReadOnlyView>["onPreviewImage"];
+  setCreationDisabled?: boolean;
 };
 
 const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = [
@@ -65,7 +66,8 @@ export function VehicleEditorDialog({
   onEdit,
   onPrint,
   onQr,
-  onPreviewImage
+  onPreviewImage,
+  setCreationDisabled = false
 }: VehicleEditorDialogProps) {
   const { t } = useI18n();
 
@@ -79,6 +81,7 @@ export function VehicleEditorDialog({
           onSubmitSingle={onSubmit}
           onSubmitSet={onSubmitSet}
           onClose={onClose}
+          setCreationDisabled={setCreationDisabled}
         />
       ) : (
         <form

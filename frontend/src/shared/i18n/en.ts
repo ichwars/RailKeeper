@@ -1308,6 +1308,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.wizard.singleHint": "One locomotive, coach, wagon or railcar",
     "vehicles.wizard.set": "Set",
     "vehicles.wizard.setHint": "Several vehicles that permanently belong together",
+    "vehicles.wizard.setDisabledEcos": "ECoS drafts must be saved as a single vehicle.",
     "vehicles.wizard.basicData": "Basic data",
     "vehicles.wizard.requiredHint": "Required fields are marked",
     "vehicles.wizard.setName": "Set designation",

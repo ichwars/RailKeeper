@@ -17,6 +17,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { RequiredLabel } from "./VehicleFormFields";
 import { VehicleModelTab } from "./VehicleModelTab";
+import type { PendingArticleImage } from "./vehicleTransforms";
 
 export type VehicleSetMemberDraft = {
   inventoryNumber: string;
@@ -31,6 +32,7 @@ type VehicleCreateWizardProps = {
   onSubmitSingle: FormEventHandler<HTMLFormElement>;
   onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
   onClose: () => void;
+  setCreationDisabled?: boolean;
 };
 
 type CreationKind = "single" | "set";
@@ -46,7 +48,8 @@ export function VehicleCreateWizard({
   message,
   onSubmitSingle,
   onSubmitSet,
-  onClose
+  onClose,
+  setCreationDisabled = false
 }: VehicleCreateWizardProps) {
   const { t } = useI18n();
   const [step, setStep] = useState(1);
@@ -130,6 +133,8 @@ export function VehicleCreateWizard({
                 type="button"
                 className={kind === "set" ? "vehicle-kind-card selected" : "vehicle-kind-card"}
                 onClick={() => setKind("set")}
+                disabled={setCreationDisabled}
+                title={setCreationDisabled ? t("vehicles.wizard.setDisabledEcos") : undefined}
                 role="radio"
                 aria-checked={kind === "set"}
               >
@@ -335,4 +340,28 @@ export function vehicleSetInputFromForm(form: CreateVehicleRequest) {
     conditionDetails: form.conditionDetails,
     packaging: form.packaging
   };
+}
+
+export function vehicleSetMembersFromForm(
+  form: CreateVehicleRequest,
+  members: VehicleSetMemberDraft[],
+  images: PendingArticleImage[]
+): CreateVehicleRequest[] {
+  const firstMemberImages = images.map((image, index) => ({
+    id: image.persisted ? image.id : undefined,
+    url: image.url,
+    title: image.title,
+    sourceUrl: image.source,
+    maintenanceId: image.maintenanceId || "",
+    isPrimary: Boolean(image.isPrimary),
+    sortOrder: index
+  }));
+
+  return members.map((member, index) => ({
+    ...form,
+    inventoryNumber: member.inventoryNumber,
+    name: member.name.trim() || `${form.name} (${index + 1})`,
+    vehicleNumber: member.vehicleNumber,
+    images: index === 0 ? firstMemberImages : []
+  }));
 }

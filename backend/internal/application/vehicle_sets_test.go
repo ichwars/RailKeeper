@@ -8,6 +8,36 @@ import (
 	"railkeeper/backend/internal/application"
 )
 
+func TestCreateVehicleSetValidatesAllMembersBeforeLocalizingImages(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	localized := 0
+	service.SetImageLocalizer(func(
+		_ context.Context,
+		_ string,
+		images []application.VehicleImageInput,
+	) ([]application.VehicleImageInput, error) {
+		localized++
+		return images, nil
+	})
+
+	_, err := service.CreateSet(context.Background(), application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Bildtest", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{
+			{Name: "Wagen 1", Images: []application.VehicleImageInput{{URL: "https://example.test/image.jpg"}}},
+			{Name: "Wagen 2", MaximumSpeedKmh: intPointer(0)},
+		},
+	}, "actor-1")
+	if !errors.Is(err, application.ErrVehicleOperationalValidation) {
+		t.Fatalf("expected operational validation error, got %v", err)
+	}
+	if localized != 0 {
+		t.Fatalf("localized %d members before the complete request was valid", localized)
+	}
+}
+
 func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
@@ -115,4 +145,48 @@ func TestDeleteFinalVehicleSetMemberRemovesEmptySet(t *testing.T) {
 	if setCount != 0 {
 		t.Fatalf("expected empty set to be removed, got %d rows", setCount)
 	}
+}
+
+func TestUpdateVehicleSetMemberPreservesSharedSetData(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "TEE Roland", Manufacturer: "Märklin", ArticleNumber: "37605", Gauge: "H0",
+			Category: "Triebzug", Gattung: "Dieseltriebzug", PurchasePrice: "299.90",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Motorwagen"}, {Name: "Steuerwagen"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	member := created.Members[0]
+	input := application.CreateVehicleInput{
+		InventoryNumber: member.InventoryNumber,
+		Manufacturer:    "Roco",
+		ArticleNumber:   "changed",
+		Name:            "Motorwagen neu",
+		Gauge:           "N",
+		Category:        "Lokomotive",
+		Gattung:         "Diesellok",
+		PurchasePrice:   "1.00",
+	}
+	updated, err := service.Update(ctx, member.ID, input, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.Name != "Motorwagen neu" {
+		t.Fatalf("member-specific name was not updated: %q", updated.Name)
+	}
+	if updated.Manufacturer != "Märklin" || updated.ArticleNumber != "37605" || updated.Gauge != "H0" ||
+		updated.Category != "Triebzug" || updated.Gattung != "Dieseltriebzug" || updated.PurchasePrice != "299.90" {
+		t.Fatalf("shared set data changed through member update: %#v", updated)
+	}
+}
+
+func intPointer(value int) *int {
+	return &value
 }

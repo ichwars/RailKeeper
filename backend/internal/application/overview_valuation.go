@@ -59,7 +59,16 @@ func (s *OverviewValuationService) Get(ctx context.Context) (OverviewValuation, 
 }
 
 func (s *OverviewValuationService) vehicleValues(ctx context.Context) (int64, int64, error) {
-	rows, err := s.db.QueryContext(ctx, `SELECT list_price, purchase_price FROM vehicles`)
+	rows, err := s.db.QueryContext(ctx, `
+SELECT vehicles.list_price, vehicles.purchase_price
+FROM vehicles
+LEFT JOIN vehicle_set_members ON vehicle_set_members.vehicle_id=vehicles.id
+WHERE vehicle_set_members.vehicle_id IS NULL
+UNION ALL
+SELECT vehicle_sets.list_price, vehicle_sets.purchase_price
+FROM vehicle_sets
+WHERE EXISTS (SELECT 1 FROM vehicle_set_members WHERE vehicle_set_members.vehicle_set_id=vehicle_sets.id)
+`)
 	if err != nil {
 		return 0, 0, fmt.Errorf("calculate vehicle values: %w", err)
 	}

@@ -463,7 +463,7 @@ components:
           minimum: 1
         vehicleSetSize:
           type: integer
-          minimum: 2
+          minimum: 1
         inventoryNumber:
           type: string
         manufacturer:
@@ -794,7 +794,99 @@ components:
           minItems: 2
           maxItems: 100
           items:
-            $ref: "#/components/schemas/CreateVehicleRequest"
+            $ref: "#/components/schemas/CreateVehicleSetMemberRequest"
+    CreateVehicleSetMemberRequest:
+      type: object
+      properties:
+        inventoryNumber:
+          type: string
+        name:
+          type: string
+        series:
+          type: string
+        vehicleNumber:
+          type: string
+        maximumSpeedKmh:
+          type: [integer, "null"]
+          minimum: 1
+          maximum: 1000
+        homeBase:
+          type: string
+          maxLength: 200
+        digital:
+          type: boolean
+        digitalDecoderNumber:
+          type: string
+        dtDecoder:
+          type: boolean
+        dtDecoderNumber:
+          type: string
+        decoderType:
+          type: string
+        exhibitionReady:
+          type: boolean
+        exhibition:
+          type: boolean
+        abcBrakes:
+          type: boolean
+        lengthMm:
+          type: string
+        weightG:
+          type: string
+        color:
+          type: string
+        lettering:
+          type: string
+        load:
+          type: string
+        interior:
+          type: string
+        axles:
+          type: string
+        axleCount:
+          type: string
+        tractionTireCount:
+          type: string
+        wheelset:
+          type: string
+        couplingSame:
+          type: boolean
+        couplingFront:
+          type: string
+        couplingRear:
+          type: string
+        powerPickup:
+          type: string
+        adapter:
+          type: string
+        driveEnabled:
+          type: boolean
+        driveDescription:
+          type: string
+        headlightsEnabled:
+          type: boolean
+        headlightsDescription:
+          type: string
+        lightingEnabled:
+          type: boolean
+        lightingDescription:
+          type: string
+        soundGeneratorEnabled:
+          type: boolean
+        soundGeneratorDescription:
+          type: string
+        smokeGeneratorEnabled:
+          type: boolean
+        smokeGeneratorDescription:
+          type: string
+        additionalInfo:
+          type: string
+        qrCodeEnabled:
+          type: boolean
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleImageInput"
     VehicleSet:
       allOf:
         - $ref: "#/components/schemas/VehicleSetInput"
