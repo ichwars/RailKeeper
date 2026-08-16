@@ -11,7 +11,7 @@ hero:
   text: Werkstattwissen direkt beim Projekt
   tagline: Das Handbuch folgt v0.1.17.6, die Entwicklungsdokumentation dem Stand von main.
   image:
-    src: /brand/railkeeper-mark.svg
+    src: /brand/railkeeper-logo.png
     alt: RailKeeper
   actions:
     - theme: brand

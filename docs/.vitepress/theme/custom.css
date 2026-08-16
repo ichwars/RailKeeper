@@ -25,7 +25,12 @@
 
 .VPNavBarTitle .logo {
   height: 28px;
+  object-fit: contain;
   width: 28px;
+}
+
+.VPHero .VPImage {
+  object-fit: contain;
 }
 
 .VPHero .name {

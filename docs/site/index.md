@@ -11,7 +11,7 @@ hero:
   text: Workshop knowledge, kept with the project
   tagline: User guidance follows stable v0.1.17.6. Development documentation follows main.
   image:
-    src: /brand/railkeeper-mark.svg
+    src: /brand/railkeeper-logo.png
     alt: RailKeeper
   actions:
     - theme: brand
