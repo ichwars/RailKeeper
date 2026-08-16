@@ -676,7 +676,7 @@ git commit -m "feat: calculate exact inventory valuations"
 - Modify: `backend/internal/api/openapi_contract_test.go`
 - Modify: `openapi/railkeeper.yaml`
 
-- [ ] **Step 1: Add failing endpoint and authorization tests**
+- [x] **Step 1: Add failing endpoint and authorization tests**
 
 Build a router with `OverviewValuationService` and fixture data. Assert:
 
@@ -695,7 +695,7 @@ go test ./internal/api -run "OverviewValuation|OpenAPI|Route"
 
 Expected: FAIL because the route is absent.
 
-- [ ] **Step 2: Wire the service through router configuration**
+- [x] **Step 2: Wire the service through router configuration**
 
 Add:
 
@@ -710,7 +710,7 @@ to `api.Config`, add `overviewValuationService` to `App`, and copy it in `NewRou
 OverviewValuationService: application.NewOverviewValuationService(db),
 ```
 
-- [ ] **Step 3: Register the viewer route and thin handler**
+- [x] **Step 3: Register the viewer route and thin handler**
 
 Add to `apiRouteSpecs` near the vehicle/accessory read routes:
 
@@ -722,7 +722,7 @@ The handler returns `503` if the service is unavailable, maps service failures t
 JSON error helper, and otherwise responds `200` with the typed result. Do not expose query details
 or database errors to the client.
 
-- [ ] **Step 4: Update OpenAPI**
+- [x] **Step 4: Update OpenAPI**
 
 Add the path and an `OverviewValuation` schema with all five required properties. Define monetary
 values as strings matching `^[0-9]+\\.[0-9]{2}$` and the excluded count as a nonnegative integer.
@@ -734,7 +734,7 @@ In the same contract change, add:
 - accessory `listPrice`: string using the project's existing price conventions;
 - the fields to both read and write schemas, not only response schemas.
 
-- [ ] **Step 5: Format and run endpoint/contract tests**
+- [x] **Step 5: Format and run endpoint/contract tests**
 
 ```powershell
 gofmt -w internal/api/overview_handlers.go internal/api/overview_handlers_test.go `
@@ -745,7 +745,7 @@ go test ./internal/api ./cmd/railkeeper -run "OverviewValuation|OpenAPI|Route"
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 6**
+- [x] **Step 6: Commit Task 6**
 
 ```powershell
 git add backend/internal/api/overview_handlers.go `
