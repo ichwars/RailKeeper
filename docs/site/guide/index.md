@@ -4,7 +4,7 @@ description: Learn every stable RailKeeper workflow.
 audience: user
 status: stable
 reviewedVersion: 0.1.17.6
-lastReviewed: 2026-08-15
+lastReviewed: 2026-08-16
 ---
 
 # User Guide
@@ -15,3 +15,8 @@ documents, reports, exhibitions, and controlled import and export.
 
 Content in this section describes stable RailKeeper v0.1.17.6. The layout workspace is still under
 development and is therefore not presented as a stable user feature.
+
+## Start here
+
+[First setup and sign-in](/guide/getting-started/) explains how to create the first administrator,
+sign in and out, complete a two-factor sign-in, and recover a forgotten password.

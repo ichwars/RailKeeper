@@ -42,7 +42,10 @@ export default defineConfig({
           "/de/guide/": [
             {
               text: "Benutzerhandbuch",
-              items: [{ text: "Überblick", link: "/de/guide/" }],
+              items: [
+                { text: "Überblick", link: "/de/guide/" },
+                { text: "Erste Schritte", link: "/de/guide/getting-started/" },
+              ],
             },
           ],
           "/de/administration/": [
@@ -105,7 +108,10 @@ export default defineConfig({
       "/guide/": [
         {
           text: "User Guide",
-          items: [{ text: "Overview", link: "/guide/" }],
+          items: [
+            { text: "Overview", link: "/guide/" },
+            { text: "Getting started", link: "/guide/getting-started/" },
+          ],
         },
       ],
       "/administration/": [
