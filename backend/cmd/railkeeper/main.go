@@ -64,7 +64,6 @@ func main() {
 	}
 	standalone := runtimeConfig.Standalone
 	addr := env("RAILKEEPER_ADDR", runtimeConfig.AddrDefault)
-	dataDir := runtimeConfig.DataDir
 	staticDir := runtimeConfig.StaticDir
 	cookieSecure := env("RAILKEEPER_COOKIE_SECURE", "false") == "true"
 	maxImageBytes := envMegabytes("RAILKEEPER_MAX_IMAGE_MB", 10)
@@ -115,7 +114,7 @@ func main() {
 	if startupResult.Database != nil {
 		defer func() { _ = startupResult.Database.Close() }()
 	}
-	dataDir = startupResult.State.Runtime.DataDir
+	dataDir := startupResult.State.Runtime.DataDir
 	if startupResult.State.SafetyBackupPath != "" {
 		logger.Info("database migration safety copy created", "path", startupResult.State.SafetyBackupPath)
 	}

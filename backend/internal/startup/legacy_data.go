@@ -111,8 +111,8 @@ func ResolveLegacyData(
 			ctx, safeDB, legacyDB, os.TempDir(),
 		)
 		if compareErr != nil {
-			return legacyConflict(safeDataDir, legacyDataDir,
-				"database equivalence could not be proven: "+compareErr.Error()), nil
+			reason := "database equivalence could not be proven: " + compareErr.Error()
+			return legacyConflict(safeDataDir, legacyDataDir, reason), nil //nolint:nilerr // Comparison failures require explicit user resolution.
 		}
 		if !equivalent {
 			return legacyConflict(safeDataDir, legacyDataDir, "safe and legacy databases differ"), nil
