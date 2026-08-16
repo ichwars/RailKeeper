@@ -70,9 +70,10 @@ Diese Reihenfolge hält den Betrieb nachvollziehbar:
    wieder entsperren.
 
 Listen- und Eintragsaktionen sind getrennte Server-Schreibvorgänge. Das Schließen eines Dialogs
-ohne Absenden speichert dessen Formular nicht. Nach einem erfolgreichen Listenvorgang lädt
-RailKeeper die Listentabelle neu. Nach einem erfolgreichen Eintragsvorgang lädt es die Einträge der
-ausgewählten Liste neu und aktualisiert die angezeigte Anzahl.
+ohne Absenden speichert dessen Formular nicht. Nach dem Anlegen, Bearbeiten oder Löschen einer
+Liste lädt RailKeeper die Listentabelle neu; Sperren und Entsperren aktualisieren die betroffene
+Zeile direkt. Nach einem erfolgreichen Eintragsvorgang lädt es die Einträge der ausgewählten Liste
+neu und aktualisiert die angezeigte Anzahl.
 
 ## Mit einer offenen oder gesperrten Liste arbeiten
 

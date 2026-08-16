@@ -65,8 +65,9 @@ Use this sequence for predictable operation:
    deliberate correction.
 
 List actions and entry actions are separate server writes. Closing a dialog without submitting it
-does not save its form. After a successful list write, RailKeeper reloads the list table. After a
-successful entry write, it reloads the selected list's entries and updates the displayed count.
+does not save its form. After creating, editing, or deleting a list, RailKeeper reloads the list
+table; locking or unlocking updates the affected row directly. After a successful entry write, it
+reloads the selected list's entries and updates the displayed count.
 
 ## Work with an open or locked list
 
