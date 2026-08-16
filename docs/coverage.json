@@ -4,7 +4,7 @@
     {
       "id": "setup-auth",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/getting-started/index.md",
       "germanPath": "de/guide/getting-started/index.md"
     },
