@@ -481,9 +481,8 @@ and one scoped commit.
 Confirm from `v0.1.17.6`:
 
 - required fields are owner and locomotive designation;
-- optional general fields are manufacturer, type, class, epoch, railway company, DT state, DCC
-  address, SX address, decoder type, adapter/interface, analog state, day scope, features, notes,
-  and any stable vehicle link behavior;
+- optional general fields are manufacturer, type, class, epoch, railway company, DCC address, SX
+  address, decoder type, adapter/interface, analog state, day scope, and notes;
 - day scope normalizes no selection or all four individual days to `all`;
 - DCC and SX conflicts compare trimmed lowercase values inside the selected list and exclude the
   edited entry;
@@ -497,8 +496,8 @@ Confirm from `v0.1.17.6`:
 - earlier plain-text function values are parsed when stable code supports them;
 - entry create/update require an open list; entry deletion additionally requires Admin and
   confirmation;
-- initial entry sort is owner ascending; sortable keys are owner, locomotive name, DT state,
-  decoder number, and function keys;
+- initial entry sort is owner ascending; sortable keys are owner, locomotive name, decoder number,
+  and function keys;
 - detail view and report fetch current list entries before display;
 - report output is A4 landscape and optionally includes images, with browser print handling;
 - save, stale list, lock, image-read, detail-load, and print-load failures have safe recovery text.
@@ -564,8 +563,8 @@ lastReviewed: 2026-08-16
 # Einträge und Drucken
 ```
 
-Use exact stable labels for **Allgemein**, **Bilder upload**, **Funktionstasten**, **DT vorhanden**,
-**Adresse DCC**, **Adresse SX**, **Mit Bildern drucken**, and all save/delete confirmations.
+Use exact stable labels for **Allgemein**, **Bilder upload**, **Funktionstasten**, **Adresse DCC**,
+**Adresse SX**, **Mit Bildern drucken**, and all save/delete confirmations.
 
 - [ ] **Step 4: Verify and commit Task 3**
 

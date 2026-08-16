@@ -98,7 +98,7 @@ den Arbeitsbereich neu und lies die Spalte **Status**, bevor du einen Eintrag ä
 
 Admin wählt **Löschen** und bestätigt:
 
-> Messeliste "{name}" wirklich löschen?
+> Messeliste "Dortmund 2026" wirklich löschen?
 
 Das Löschen ist dauerhaft. Mit der Liste werden über die Datenbankbeziehung auch alle zugehörigen
 Messelisteneinträge entfernt. Allgemeine Fahrzeugdatensätze werden nicht gelöscht. Exportiere vor

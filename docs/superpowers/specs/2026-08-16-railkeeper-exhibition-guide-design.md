@@ -138,7 +138,7 @@ The entries page documents the stable entry dialog in its three tabs:
 - required owner and locomotive designation;
 - manufacturer, type, class, epoch, and railway company;
 - all-days or selected-day scope for days one through four;
-- DT availability, DCC address, SX address, decoder type, adapter or interface, and analog state;
+- DCC address, SX address, decoder type, adapter or interface, and analog state;
 - number, lettering, features, and notes;
 - exact behavior when optional master-data lists are unavailable to a pure Messe account.
 
@@ -164,7 +164,7 @@ The page also explains:
 - deleting entries only with Admin authority and confirmation;
 - DCC and SX duplicate detection within the current list, excluding the entry being edited;
 - case- and whitespace-normalized address comparison;
-- sorting by owner, locomotive designation, DT state, decoder number, and function keys;
+- sorting by owner, locomotive designation, decoder number, and function keys;
 - the read-only detail view;
 - the print dialog, **Print with images** option, A4 landscape report, empty report state, function
   symbols, and final browser print dialog.

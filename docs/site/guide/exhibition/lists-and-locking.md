@@ -94,7 +94,7 @@ If a lock request fails or the displayed state is uncertain, reload the workspac
 
 Admin selects **Delete** and confirms:
 
-> Really delete exhibition list "{name}"?
+> Really delete exhibition list "Dortmund 2026"?
 
 Deletion is permanent. Removing a list also removes all of its exhibition entries through the
 database relationship. It does not delete general vehicle records. Export a current validated app
