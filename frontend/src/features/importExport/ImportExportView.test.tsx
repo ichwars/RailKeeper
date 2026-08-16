@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api, type DigitalCenterSettings } from "../../shared/api";
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { ImportExportView } from "./ImportExportView";
+import { defaultColumnMappings, parseDelimited, vehicleImportFields } from "./importExportHelpers";
 
 const disabledDigitalSettings: DigitalCenterSettings = {
   provider: "ecos",
@@ -83,6 +84,37 @@ describe("ImportExportView", () => {
       maximumSpeedKmh: 120,
       homeBase: "Bw Leipzig-West"
     }));
+  });
+
+  it("exports unambiguous CSV headers for ownership and storage fields", async () => {
+    vi.mocked(api.vehicles).mockResolvedValue([vehicleFixture({
+      acquisitionType: "Gebrauchtkauf",
+      purchasePrice: "149.90",
+      storageDetails: "Vitrine, Fach 3",
+      conditionDetails: "Leichte Laufspuren"
+    })]);
+    const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:railkeeper-csv");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+
+    render(<ImportExportView />);
+    const exportButton = await screen.findByRole("button", { name: "CSV exportieren" });
+    await waitFor(() => expect(exportButton).toBeEnabled());
+    fireEvent.click(exportButton);
+
+    const blob = createObjectURL.mock.calls[0][0];
+    if (!(blob instanceof Blob)) {
+      throw new Error("CSV export did not create a Blob");
+    }
+    const csv = await blob.text();
+    expect(csv).toContain("Erwerbsart");
+    expect(csv).toContain("Kaufpreis");
+    expect(csv).toContain("Lagerdetails");
+    expect(csv).toContain("Zustandsdetails");
+    expect(csv).not.toContain(";Details;Details;");
+    expect(defaultColumnMappings(parseDelimited(csv, ";")).map((mapping) => mapping.key)).toEqual(
+      vehicleImportFields.map((field) => field.key)
+    );
   });
 });
 

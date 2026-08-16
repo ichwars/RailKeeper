@@ -15,6 +15,7 @@ import {
   parseXMLImport,
   rawECoSFunctions,
   rawECoSUnknownAttributes,
+  vehicleImportFields,
   vehiclesToCSV
 } from "./importExportHelpers";
 
@@ -138,6 +139,79 @@ describe("import/export helpers", () => {
     expect(csv).toContain('"Diesel; DR"');
     expect(csv).toContain("maximumSpeedKmh;homeBase");
     expect(csv).toContain("120;Bw Leipzig-West");
+  });
+
+  it("round-trips every scalar model field added to the CSV exchange", () => {
+    const csvLabels: Record<string, string> = {
+      decoderType: "Decoder-Typ",
+      acquisitionType: "Erwerbsart",
+      acquiredFrom: "Erworben von/bei",
+      purchasePrice: "Kaufpreis",
+      purchaseDate: "Kaufdatum",
+      storageLocation: "Lagerort",
+      storageDetails: "Lagerdetails",
+      condition: "Zustand",
+      conditionDetails: "Zustandsdetails",
+      packaging: "Verpackung"
+    };
+    const source = vehicleFixture({
+      decoderType: "ESU LokPilot 5",
+      acquisitionType: "Gebrauchtkauf",
+      acquiredFrom: "Modellbahn Börse",
+      purchasePrice: "149.90",
+      purchaseDate: "2026-08-15",
+      storageLocation: "Vitrine",
+      storageDetails: "Fach 3",
+      condition: "Sehr gut",
+      conditionDetails: "Leichte Laufspuren",
+      packaging: "Originalverpackung"
+    });
+
+    const csv = vehiclesToCSV([source], (key) => csvLabels[key] || key, "ja", "nein");
+    const imported = importRowsFromTable(parseDelimited(csv, ";"), []);
+
+    expect(vehicleImportFields.map((field) => field.key)).toEqual(expect.arrayContaining(Object.keys(csvLabels)));
+    expect(imported[0].vehicle).toMatchObject({
+      decoderType: source.decoderType,
+      acquisitionType: source.acquisitionType,
+      acquiredFrom: source.acquiredFrom,
+      purchasePrice: source.purchasePrice,
+      purchaseDate: source.purchaseDate,
+      storageLocation: source.storageLocation,
+      storageDetails: source.storageDetails,
+      condition: source.condition,
+      conditionDetails: source.conditionDetails,
+      packaging: source.packaging
+    });
+    expect(csv).not.toContain("images");
+  });
+
+  it("recognizes common English headers for the complete scalar model data", () => {
+    const headers = [
+      "Decoder type",
+      "Acquisition type",
+      "Acquired from",
+      "Purchase price",
+      "Purchase date",
+      "Storage location",
+      "Storage details",
+      "Condition",
+      "Condition details",
+      "Packaging"
+    ];
+
+    expect(defaultColumnMappings([headers]).map((mapping) => mapping.key)).toEqual([
+      "decoderType",
+      "acquisitionType",
+      "acquiredFrom",
+      "purchasePrice",
+      "purchaseDate",
+      "storageLocation",
+      "storageDetails",
+      "condition",
+      "conditionDetails",
+      "packaging"
+    ]);
   });
 
   it("imports and validates the optional maximum speed", () => {
