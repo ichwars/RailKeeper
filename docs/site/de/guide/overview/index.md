@@ -18,6 +18,10 @@ Benutzer mit den Rollen Admin, Editor, Viewer oder Planner können die Übersich
 das ausschließlich die Rolle Messe besitzt, startet unter **Ausstellung** und kann dieses Dashboard
 nicht aufrufen.
 
+Nur Benutzer mit der Rolle Admin oder Editor können Fahrzeugdaten ändern. Viewer und Planner
+können das Dashboard und gefilterte Ergebnisse prüfen, müssen fehlende Daten aber durch einen Admin
+oder Editor korrigieren lassen.
+
 ## Übersicht öffnen und aktualisieren
 
 Wähle **Übersicht** in der Seitenleiste. RailKeeper lädt die für die aktuelle Sitzung verfügbaren
@@ -35,7 +39,7 @@ Das Import/Export-Symbol im selben Seitenkopf öffnet **Import/Export**.
 
 | Kennzahl | Bedeutung |
 | --- | --- |
-| **Gesamtbestand** | Anzahl der Fahrzeuge. Die Zeile darunter meldet, wie viele Kategorie- und Spurweitengruppen in den jeweils fünf häufigsten Werten vorkommen. Bei mehr als fünf Werten ist dies nicht die Anzahl aller unterschiedlichen Werte. |
+| **Gesamtbestand** | Anzahl der Fahrzeuge. Die Zeile darunter meldet, wie viele Kategorie- und Spurweitengruppen in den jeweils fünf häufigsten Werten vorkommen. Fehlende Angaben bilden die Gruppen **Ohne Kategorie** und **Ohne Spur**. Bei mehr als fünf Werten ist dies nicht die Anzahl aller unterschiedlichen Werte. |
 | **Digitalisierung** | Digitale Fahrzeuge geteilt durch alle Fahrzeuge, auf ganze Prozent gerundet. Die Detailzeile zeigt die Anzahl digitaler und analoger Fahrzeuge. |
 | **Erfasster Listenwert** | Summe der auswertbaren, gepflegten Fahrzeug-Listenpreise. RailKeeper verarbeitet übliche Zahlenformate mit Komma oder Punkt und zeigt die Euro-Summe auf ganze Euro gerundet. Fehlende oder nicht auswertbare Preise zählen als null. Die Kennzahl ist keine Marktwertschätzung. |
 | **Wartung** | Anzahl nicht erledigter Wartungseinträge, deren Fälligkeitsdatum heute oder früher liegt. Die Detailzeile zeigt getrennt die in den nächsten 30 Tagen fälligen und alle offenen Einträge, einschließlich Einträgen ohne Fälligkeitsdatum. |
@@ -51,7 +55,8 @@ geändert und jede Kachel kann ausgeblendet werden.
 
 **Bestandsmix** zeigt bis zu fünf Kategorien mit den meisten Fahrzeugen. Fehlende Kategorien werden
 als **Ohne Kategorie** zusammengefasst. Der Balken zeigt den Anteil am Gesamtbestand, die Zahl die
-exakte Fahrzeuganzahl.
+exakte Fahrzeuganzahl. Ein Balken mit einem Wert größer null besitzt eine sichtbare Mindestbreite
+von 8 %. Kleine Kategorien können deshalb breiter als ihr exakter Prozentanteil erscheinen.
 
 ### Datenqualität
 
@@ -72,8 +77,9 @@ vollständig ist. Ohne Fahrzeuge stehen alle fünf Werte bei 0 %.
 
 ### Handlungsbedarf
 
-**Handlungsbedarf** zeigt Datenlücken mit einem Wert größer null. Wähle eine Zeile, um
-**Fahrzeuge** mit dem passenden aktiven Filter zu öffnen.
+**Handlungsbedarf** zeigt Datenlücken mit einem Wert größer null. Wähle eine Zeile, um den
+**Fahrzeugbestand**, dessen Seitenüberschrift **Bestand** lautet, mit dem passenden aktiven Filter
+zu öffnen.
 
 | Datenlücke | Ausgewählte Fahrzeuge |
 | --- | --- |
@@ -87,8 +93,8 @@ unterscheidet kein ausdrücklich ausgewähltes Hauptbild. Sind alle vier Werte n
 dass keine größeren Datenlücken erkannt wurden.
 
 Die Übersicht selbst besitzt keine allgemeine Suche und keine Filterleiste. Suche, kombinierte
-Filter und Änderungen erfolgen unter **Fahrzeuge**, nachdem eine Datenlücke gewählt oder der Bestand
-direkt geöffnet wurde.
+Filter und Änderungen erfolgen im **Fahrzeugbestand**, nachdem eine Datenlücke gewählt oder der
+Bestand direkt geöffnet wurde.
 
 ### Hersteller
 
@@ -99,7 +105,7 @@ unter **Ohne Hersteller** zusammengefasst.
 
 **Schnellaktionen** öffnet den nächsten Arbeitsbereich, ohne Daten zu ändern:
 
-- **Bestand pflegen** öffnet **Fahrzeuge**.
+- **Bestand pflegen** öffnet den **Fahrzeugbestand**.
 - **Import/Export** öffnet den Bereich zum Importieren, Exportieren und Drucken.
 - **Stammdaten prüfen** öffnet **Einstellungen**. Dort können berechtigte Benutzer Auswahlwerte und
   Einstellungen für Bestandsnummern verwalten.
@@ -110,9 +116,10 @@ zusätzliche Rolle.
 ### Wartungsradar
 
 **Wartungsradar** zeigt bis zu vier nicht erledigte Wartungseinträge mit Fälligkeitsdatum, sortiert
-nach dem nächsten Termin. Jede Zeile enthält Bestandsnummer, Fahrzeugname oder Wartungsart,
-Wartungsart, Fälligkeitshinweis und Datum. Heute fällige und überfällige Einträge werden
-hervorgehoben.
+nach dem frühesten Fälligkeitsdatum. Der am längsten überfällige Eintrag steht daher zuerst, danach
+folgen später überfällige, heute fällige und zukünftige Einträge. Jede Zeile enthält Bestandsnummer,
+Fahrzeugname oder Wartungsart, Wartungsart, Fälligkeitshinweis und Datum. Heute fällige und
+überfällige Einträge werden hervorgehoben.
 
 Die untere Zeile fasst zusammen:
 
@@ -136,26 +143,30 @@ Daten:
 4. Ersatzteile und strukturierte Preis-/Wertpflege erwägen, wenn keine frühere Bedingung zutrifft.
 
 Dies ist ein regelbasierter Hinweis und keine automatische Datenbewertung oder externe Empfehlung.
+Das Anlegen, Importieren und Ändern von Fahrzeugen erfordert die Rolle Admin oder Editor.
 
 ## Datenlücken bearbeiten
 
 1. Öffne **Handlungsbedarf** in der Übersicht.
 2. Wähle die passende Datenlücke.
-3. RailKeeper öffnet **Fahrzeuge** und aktiviert den zugehörigen Bestands- oder Qualitätsfilter.
-4. Öffne die betroffenen Datensätze und ergänze oder korrigiere die fehlenden Angaben.
+3. RailKeeper öffnet den **Fahrzeugbestand** und aktiviert den zugehörigen Bestands- oder
+   Qualitätsfilter.
+4. Öffne die betroffenen Datensätze. Ergänze oder korrigiere als Admin oder Editor die fehlenden
+   Angaben. Verwende als Viewer oder Planner das Ergebnis, um die Datensätze zu identifizieren, und
+   bitte einen Admin oder Editor um die Änderung.
 5. Kehre zur **Übersicht** zurück und aktualisiere das Dashboard.
 
-Das Zurücksetzen aller Filter unter **Fahrzeuge** entfernt den Datenlücken-Parameter aus der
-Browseradresse. Auch die Wahl eines anderen Qualitätsfilters entfernt ihn. Andere manuelle
-Filteränderungen können den ursprünglichen Parameter in der Adresse belassen, obwohl sich die
-sichtbare Auswahl bereits geändert hat.
+Bei einer Lücke für Artikelnummer, EAN oder Decoder entfernt das Schließen des aktiven
+Qualitätsfilter-Eintrags den Datenlücken-Parameter aus der Browseradresse. **Filter entfernen**
+entfernt ihn bei jeder Lücke. Andere manuelle Filteränderungen lassen die ursprüngliche Datenlücke
+aktiv und behalten den Parameter bei.
 
 ## Dashboard anordnen
 
 Jeder Kachelkopf enthält drei Bedienelemente:
 
-- Nach oben verschiebt die Kachel um eine Position nach vorn.
-- Nach unten verschiebt sie um eine Position nach hinten.
+- **Nach vorn** verschiebt die Kachel um eine Position nach vorn.
+- **Nach hinten** verschiebt sie um eine Position nach hinten.
 - Ausblenden entfernt die Kachel aus dem Dashboard.
 
 Sobald mindestens eine Kachel ausgeblendet wurde, erscheint das Zurücksetzen-Symbol im Seitenkopf.
@@ -170,7 +181,7 @@ gespeichert.
 
 | Situation | Anzeige in RailKeeper | Nächster Schritt |
 | --- | --- | --- |
-| Keine Fahrzeuge | Hauptkennzahlen mit null, leere Listen und Empfehlung zum Anlegen oder Importieren | Fahrzeuge anlegen oder eine Bestandsliste importieren |
+| Keine Fahrzeuge | Hauptkennzahlen mit null, leere Listen und Empfehlung zum Anlegen oder Importieren | Als Admin oder Editor Fahrzeuge anlegen oder eine Liste importieren. Als Viewer oder Planner eine dieser Rollen um das Befüllen des Bestands bitten. |
 | Keine offene Wartung mit Fälligkeitsdatum | Leerhinweis im Wartungsradar | Ein Fälligkeitsdatum ergänzen, wenn die Arbeit im Radar erscheinen soll |
 | Keine größeren Datenlücken | Bestätigung unter **Handlungsbedarf** | Mit Wartung oder weiteren Bestandsangaben fortfahren |
 | Alle Kacheln ausgeblendet | **Dashboard leer** mit **Layout zurücksetzen** | Layout zurücksetzen, um alle Kacheln wiederherzustellen |

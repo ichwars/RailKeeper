@@ -16,6 +16,9 @@ to continue from an indicator to the affected vehicles. It describes stable Rail
 Admin, Editor, Viewer, and Planner users can open the overview. An account with only the Messe role
 starts in **Exhibition** and cannot open this dashboard.
 
+Only Admin and Editor users can change vehicle data. Viewer and Planner users can inspect the
+dashboard and filtered results, but must ask an Admin or Editor to correct missing data.
+
 ## Open and refresh the overview
 
 Select **Overview** in the sidebar. RailKeeper loads the vehicles available to the current session
@@ -33,7 +36,7 @@ The Import/Export icon in the same header opens **Import/Export**.
 
 | Metric | Meaning |
 | --- | --- |
-| **Total inventory** | Number of vehicles. The line below reports how many category and gauge groups occur among the five most frequent values in each list. It is not a count of every distinct value when more than five exist. |
+| **Total inventory** | Number of vehicles. The line below reports how many category and gauge groups occur among the five most frequent values in each list. Missing values form the **No category** and **No gauge** groups. It is not a count of every distinct value when more than five exist. |
 | **Digitalization** | Digital vehicles divided by all vehicles, rounded to a whole percentage. The detail line shows the digital and analog counts. |
 | **Recorded list value** | Sum of parseable, maintained vehicle list prices. RailKeeper accepts common comma and point number formats and displays the euro total rounded to whole euros. Missing or unparseable prices contribute zero. This is not a market-value estimate. |
 | **Maintenance** | Number of incomplete maintenance entries whose due date is today or earlier. The detail line separately shows incomplete entries due in the next 30 days and all incomplete entries, including entries without a due date. |
@@ -49,7 +52,8 @@ each widget can be hidden.
 
 **Inventory mix** lists up to five categories with the most vehicles. Missing category values are
 grouped as **No category**. The bar shows the category's share of all vehicles, while the number is
-the exact vehicle count.
+the exact vehicle count. A non-zero bar has a minimum visible width of 8%, so small categories can
+look wider than their exact percentage.
 
 ### Data quality
 
@@ -70,8 +74,8 @@ field is complete. With no vehicles, all five percentages are 0%.
 
 ### Action needed
 
-**Action needed** lists non-zero data gaps. Select a row to open **Vehicles** with the matching
-filter active.
+**Action needed** lists non-zero data gaps. Select a row to open **Vehicle inventory**, whose page
+heading is **Inventory**, with the matching filter active.
 
 | Gap | Vehicles selected |
 | --- | --- |
@@ -85,7 +89,7 @@ distinguish a specifically selected main image. When all four counts are zero, t
 that no major data gaps were detected.
 
 The overview itself has no general search or filter bar. Searching, combining filters, and editing
-records happens in **Vehicles** after following a gap or opening the inventory directly.
+records happens in **Vehicle inventory** after following a gap or opening the inventory directly.
 
 ### Manufacturers
 
@@ -96,7 +100,7 @@ grouped as **No manufacturer**.
 
 **Quick actions** opens the next work area without changing data:
 
-- **Maintain inventory** opens **Vehicles**.
+- **Maintain inventory** opens **Vehicle inventory**.
 - **Import/Export** opens the import, export, and print area.
 - **Check master data** opens **Settings**, where authorized users can manage selection values and
   inventory-number settings.
@@ -107,8 +111,10 @@ additional role.
 ### Maintenance radar
 
 **Maintenance radar** shows up to four incomplete maintenance entries with a due date, ordered by
-the closest due date. Each row contains the vehicle inventory number, vehicle name or maintenance
-kind, maintenance kind, due-distance label, and date. Entries due today or overdue are highlighted.
+the earliest due date. The oldest overdue entry therefore appears first, followed by later overdue,
+today's, and upcoming entries. Each row contains the vehicle inventory number, vehicle name or
+maintenance kind, maintenance kind, due-distance label, and date. Entries due today or overdue are
+highlighted.
 
 The lower row summarizes:
 
@@ -131,25 +137,28 @@ maintenance without a due date still contributes to the summary metric at the to
    applies.
 
 This is a fixed rule-based hint, not an automated data assessment or external recommendation.
+Creating, importing, or changing vehicles requires the Admin or Editor role.
 
 ## Work from data gaps
 
 1. Open **Action needed** on the overview.
 2. Select the relevant gap.
-3. RailKeeper opens **Vehicles** and activates the corresponding inventory or quality filter.
-4. Open the affected records and add or correct the missing data.
+3. RailKeeper opens **Vehicle inventory** and activates the corresponding inventory or quality
+   filter.
+4. Open the affected records. As an Admin or Editor, add or correct the missing data. As a Viewer
+   or Planner, use the result to identify the records and ask an Admin or Editor to update them.
 5. Return to **Overview** and use refresh to recalculate the dashboard.
 
-Resetting all filters in **Vehicles** removes the gap parameter from the browser address. Selecting
-another quality filter also removes it. Other manual filter changes can leave the original
-parameter in the address even though the visible selection has changed.
+For an article-number, EAN, or decoder gap, clearing the active quality-filter pill removes the gap
+parameter from the browser address. **Clear filters** also removes it for every gap. Other manual
+filter changes leave the original gap active and retain the parameter.
 
 ## Arrange the dashboard
 
 Every widget header contains three controls:
 
-- Move up places the widget one position earlier.
-- Move down places it one position later.
+- **Move forward** places the widget one position earlier.
+- **Move backward** places it one position later.
 - Hide removes the widget from the dashboard.
 
 After at least one widget is hidden, the reset icon appears in the page header. **Reset layout**
@@ -163,7 +172,7 @@ shared with other browsers or saved as account-wide dashboard settings.
 
 | Situation | What RailKeeper shows | What to do |
 | --- | --- | --- |
-| No vehicles | Zero summary values, empty lists, and the create/import recommendation | Create vehicles or import an inventory list |
+| No vehicles | Zero summary values, empty lists, and the create/import recommendation | As an Admin or Editor, create vehicles or import a list. As a Viewer or Planner, ask one of those roles to populate the inventory. |
 | No due-dated open maintenance | An empty maintenance-radar message | Add a due date if the work should appear in the radar |
 | No major data gaps | A confirmation in **Action needed** | Continue with maintenance or other inventory details |
 | All widgets hidden | **Dashboard empty** with **Reset layout** | Reset the layout to restore all widgets |
