@@ -225,8 +225,10 @@ keine Lieferzusage.
 - das Fahrzeug ist gespeichert;
 - sein Herstellername enthält Piko oder Roco;
 - die Fahrzeug-Artikelnummer ist nicht leer;
-- die Artikelsuche ist in diesem Browser aktiviert;
 - der Benutzer hat als Admin oder Editor Zugriff auf den bearbeitbaren Dialog.
+
+Die Schaltfläche kann auch bei deaktivierter Artikelsuche gewählt werden. RailKeeper bricht dann
+vor der externen Anfrage ab, zeigt den Hinweis auf die Einstellungen und speichert nichts.
 
 RailKeeper durchsucht die Herstellerübersicht und erstellt einen zurückhaltenden Importplan. Die
 Zuordnung bevorzugt normalisierte Ersatzteil-Artikelnummer, dann Beschreibung, dann URL. Wiederholte

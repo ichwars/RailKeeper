@@ -295,8 +295,10 @@ held by RailKeeper.
 - a saved vehicle;
 - a manufacturer name containing Piko or Roco;
 - a non-empty vehicle article number;
-- enabled article search;
 - Admin or Editor UI access.
+
+The button remains enabled when article search is disabled. Selecting it then stops before the
+external request, shows the Settings message, and writes nothing.
 
 RailKeeper searches the manufacturer overview, builds a conservative import plan, updates existing
 matches first, and creates missing parts second. Matching prefers normalized spare-part article

@@ -210,8 +210,9 @@ Lookup and manufacturer overview
 - Opening the tab checks linked rows once. Piko/Roco use one overview request. Other manufacturers
   inspect only the first four linked rows that have article numbers.
 - Availability remains an unverified suggestion.
-- Find available spare parts requires a saved Piko/Roco vehicle, vehicle article number, enabled
-  article search, and writable UI.
+- Find available spare parts requires a saved Piko/Roco vehicle, vehicle article number, and
+  writable UI. With article search disabled, selecting the enabled button stops before the request,
+  shows the Settings message, and writes nothing.
 - Overview import consolidates duplicates, updates existing rows first, then creates missing rows.
 - Existing article number, description, price, and URL win. Only missing price/URL are filled.
 - The sequence is non-atomic and has no preview. No missing spare parts found can mean every

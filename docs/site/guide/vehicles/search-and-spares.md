@@ -209,8 +209,10 @@ a purchase promise.
 - the vehicle is saved;
 - its manufacturer name contains Piko or Roco;
 - the vehicle article number is not empty;
-- article search is enabled in this browser;
 - the user has Admin or Editor access to the editable UI.
+
+The button can still be selected while article search is disabled. In that case RailKeeper stops
+before the external request, displays the Settings message, and stores nothing.
 
 RailKeeper searches the manufacturer overview and builds a conservative import plan. Matching
 prefers normalized spare-part article number, then description, then URL. Repeated suggestions are
