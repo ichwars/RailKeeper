@@ -68,11 +68,12 @@ Gespeicherte Beilagen zeigen Originalname, Kategorie, MIME-Typ und Größe.
 
 ## Formate, Grenzen und Kategorien für Beilagen
 
-Erlaubte Beilagenformate sind PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG und WebP. Das
-Standardlimit beträgt 25 MB pro Datei; der Server kann eine strengere konfigurierte Grenze
-durchsetzen. Leere, ausführbare, nicht erlaubte, inhaltlich blockierte und zu große Dateien werden
-abgelehnt. Betrachte eine ausgewählte Datei erst dann als gespeichert, wenn RailKeeper den Upload
-als erfolgreich meldet.
+Standardmäßig akzeptiert RailKeeper PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG und WebP als
+Beilagen. Das Standardlimit beträgt 25 MB pro Datei. Ein Betreiber kann eine strengere
+Größenbegrenzung konfigurieren und einschränken, welche dieser Dateiendungen der Server akzeptiert.
+Leere, ausführbare, nicht erlaubte, inhaltlich blockierte und zu große Dateien werden abgelehnt.
+Betrachte eine ausgewählte Datei erst dann als gespeichert, wenn RailKeeper den Upload als
+erfolgreich meldet.
 
 Die gespeicherten Kategoriewerte sind `Anleitung`, `Rechnung`, `Decoder-Datei`,
 `Dokumentation`, `Ersatzteilliste`, `Zertifikat` und `Sonstiges`.

@@ -173,7 +173,8 @@ The prose must explicitly state all of the following:
 - deleting a linked image requires clearing its maintenance link and saving first;
 - deleting the main image promotes the next sorted image;
 - attachment upload supports file selection and drag-and-drop after the vehicle exists;
-- allowed attachment formats are PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG, and WebP;
+- default attachment formats are PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG, and WebP, and the
+  server can restrict this extension set;
 - the default attachment limit is 25 MB per file and the server can enforce stricter configuration;
 - empty, executable, disallowed, content-blocked, and oversized files are rejected;
 - one pre-upload category/note applies to all files in that upload;

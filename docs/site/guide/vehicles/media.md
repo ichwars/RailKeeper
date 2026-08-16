@@ -62,10 +62,11 @@ missing files again. Stored attachments show their original name, category, MIME
 
 ## Attachment formats, limits, and categories
 
-Allowed attachment formats are PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG, and WebP. The default
-limit is 25 MB per file, and the server can enforce a stricter configured limit. Empty, executable,
-disallowed, content-blocked, and oversized files are rejected. Do not treat a selected file as
-stored until RailKeeper reports a successful upload.
+By default, RailKeeper accepts PDF, TXT, CSV, JSON, XML, ZIP, JPG/JPEG, PNG, and WebP attachments.
+The default limit is 25 MB per file. An operator can configure a stricter size limit and restrict
+which of these attachment extensions the server accepts. Empty, executable, disallowed,
+content-blocked, and oversized files are rejected. Do not treat a selected file as stored until
+RailKeeper reports a successful upload.
 
 The stored category values are `Anleitung`, `Rechnung`, `Decoder-Datei`, `Dokumentation`,
 `Ersatzteilliste`, `Zertifikat`, and `Sonstiges`.
