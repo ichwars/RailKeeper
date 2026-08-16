@@ -29,8 +29,8 @@ Jede Reservierung und jeder Einbau benötigt genau ein Ziel:
 | Anlage | Eine nicht archivierte Anlage. |
 | Anlageneinheit | Eine nicht archivierte Anlageneinheit. |
 
-Der Dialog verwendet diese Ziele, legt aber keine Anlagen an und bearbeitet sie nicht. Fehlt das
-benötigte Ziel, pflegen Sie es zuerst in seinem zuständigen Arbeitsbereich.
+Der Dialog verwendet vorhandene Ziele, legt aber keine Anlagen an und bearbeitet sie nicht. Dieses
+Kapitel dokumentiert weder das Anlegen noch das Bearbeiten von Anlagen.
 
 Fünf optionale Felder begleiten beide Abläufe: **Platzierung**, **Digitaladresse**,
 **Decoderausgang**, **Anschluss** und **Verdrahtungshinweise**. Sie beschreiben, wo und wie das
@@ -61,7 +61,7 @@ Verfügbar.
 3. Wählen Sie bei einem Hybridartikel **Menge** oder **Einzelstück** als Quelle.
 4. Wählen Sie einen aktiven Lagerort. Bei Einzelverwaltung wählen Sie ein dort eingelagertes
    Einzelstück, die Menge ist fest eins. Andernfalls geben Sie eine positive ganze Menge ein.
-5. Ergänzen Sie optional eine Notiz, wählen Sie **Reservierung speichern** und bestätigen Sie.
+5. Ergänzen Sie optional eine Notiz, wählen Sie **Reservierung anlegen** und bestätigen Sie.
 
 Die bestätigte Transaktion prüft Artikel, Ziel, aktiven Lagerort, Strategie und verfügbare Quelle.
 Eine Mengenreservierung erzeugt eine aktive Reservierung und senkt nur Verfügbar. Sie ändert weder
@@ -97,7 +97,7 @@ Ohne Reservierung wählen Sie Ziel, optionale Platzierungsdaten, Quelle, positiv
 ein eingelagertes Einzelstück, Zustand und optionale Notizen. Hybridartikel erlauben erneut Menge
 oder Einzelstück. Der direkte Einbau eines Einzelstücks wird abgelehnt, wenn es aktiv reserviert ist.
 
-**Einbau speichern** öffnet eine Bestätigung. Die erfolgreiche Transaktion wirkt so:
+**Einbau erfassen** öffnet eine Bestätigung. Die erfolgreiche Transaktion wirkt so:
 
 | Quelle | Physischer Bestand oder Einzelstück | Reservierung | Einbau und Journal |
 | --- | --- | --- | --- |
@@ -111,7 +111,7 @@ Bewegung und Audit sind atomar. Scheitert eine Prüfung, bleibt nichts davon erh
 ## Einbauzustand ändern
 
 Wählen Sie bei einem aktiven Einbau Einsatzbereit, Wartung fällig, Defekt oder Unbekannt und danach
-**Zustand aktualisieren**. Auch bei scheinbar unveränderter Auswahl erscheint eine Bestätigung.
+**Zustand speichern**. Auch bei scheinbar unveränderter Auswahl erscheint eine Bestätigung.
 
 Die Bestätigung aktualisiert den Einbau, ergänzt den Zustandsverlauf um vorherigen und neuen Wert
 und übernimmt den Zustand bei einem eingebauten Einzelstück. Bei Mengenbestand existiert kein

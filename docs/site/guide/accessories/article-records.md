@@ -21,8 +21,8 @@ them, but article fields remain read-only. A Planner can create or cancel a rese
 otherwise read-only dialog; that does not grant permission to change the article itself. The Messe
 role has no general accessories access.
 
-The dialog separates **Article**, **Stock**, **Purchases & documents**, the article-type tab, and,
-when data exists, **Usage history**. The main **Save** action persists the article form, including
+The dialog separates **Article**, **Stock**, **Purchase & documents**, the article-type tab, and,
+when data exists, **Usage & history**. The main **Save changes** action persists the article form, including
 the article type, technical fields, inventory strategy, and minimum stock. Stock movements,
 purchases, documents, reservations, and installations use their own actions and can already be
 stored while other article fields remain unsaved. Finish or deliberately discard a draft before
@@ -40,7 +40,7 @@ the core article has been saved once.
 4. Complete the tab named after the selected article type where technical data is known.
 5. On **Stock**, choose the inventory strategy and minimum stock. The detailed consequences are
    covered in [Stock, purchases, and documents](./stock-purchases-documents).
-6. Select **Save** and resolve any marked tab or duplicate warning.
+6. Select **Save changes** and resolve any marked tab or duplicate warning.
 
 The required fields are manufacturer, name, subtype, stock unit, and a positive whole package
 quantity. Minimum stock must be a whole number of zero or more. Technical numbers must respect the
@@ -165,8 +165,8 @@ variants; it is not a merge and does not transfer stock, documents, or usage fro
 
 ## Edit without losing data
 
-Open **Edit article**, change the draft, and use the main **Save** action. Validation moves to the
-first affected tab in this order: Article, Stock, Purchases & documents, then the article-type tab.
+Open **Edit article**, change the draft, and use the main **Save changes** action. Validation moves to the
+first affected tab in this order: Article, Stock, Purchase & documents, then the article-type tab.
 Red tab markers identify tabs that still contain invalid values.
 
 Changing inventory strategy is allowed only when all existing inventory and allocation data remain

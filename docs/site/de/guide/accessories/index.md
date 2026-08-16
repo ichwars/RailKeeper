@@ -118,7 +118,7 @@ Die Tabelle bietet neun Datenspalten:
 
 | Spalte | Angezeigter Wert |
 | --- | --- |
-| Bild | Primäres Zubehörbild oder Platzhalter. |
+| Bild | Primäres Zubehörbild oder allgemeines Bildsymbol. |
 | Inventarnummer | Lokale Artikelidentität in RailKeeper. |
 | Hersteller | Produkthersteller. |
 | Artikelnummer | Hersteller- oder Katalognummer. |

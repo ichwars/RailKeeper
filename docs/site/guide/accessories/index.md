@@ -115,7 +115,7 @@ The table offers these nine data columns:
 
 | Column | Displayed value |
 | --- | --- |
-| Image | Primary accessory image, or a placeholder. |
+| Image | Primary accessory image, or the generic image symbol. |
 | Inventory number | RailKeeper's local article identity. |
 | Manufacturer | Product manufacturer. |
 | Article number | Manufacturer or catalogue number. |

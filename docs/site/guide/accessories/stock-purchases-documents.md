@@ -20,7 +20,7 @@ the article record once before creating any related resource.
 
 ## Choose an inventory strategy
 
-The strategy is stored with the article through the main **Save** action. It controls which stock
+The strategy is stored with the article through the main **Save changes** action. It controls which stock
 commands and records are available:
 
 | Strategy | Counted stock | Individual items | Purchase booked to stock |
@@ -195,7 +195,7 @@ document or inventory cleanup.
 ## Protect data during immediate writes
 
 Stock commands, item saves, purchase creation, document upload, primary-image changes, and document
-deletion persist independently of the main article **Save** action. Their confirmations protect the
+deletion persist independently of the main article **Save changes** action. Their confirmations protect the
 command shown above, not unsaved article fields elsewhere in the dialog.
 
 After each successful sub-action, RailKeeper requests stock, journal, items, purchases, documents,

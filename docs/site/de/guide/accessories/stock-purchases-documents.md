@@ -21,7 +21,7 @@ Ressourcen anlegen.
 
 ## Bestandsstrategie wählen
 
-Die Strategie wird zusammen mit dem Artikel über die zentrale Aktion **Speichern** gesichert. Sie
+Die Strategie wird zusammen mit dem Artikel über **Änderungen speichern** gesichert. Sie
 bestimmt, welche Bestandsbefehle und Datensätze verfügbar sind:
 
 | Strategie | Mengenbestand | Einzelstücke | In Bestand gebuchter Kauf |
@@ -204,7 +204,7 @@ Bestandsbereinigung eine aktuelle geprüfte Sicherung bereit.
 ## Daten bei Sofortaktionen schützen
 
 Bestandsbefehle, Speichern von Einzelstücken, Kaufanlage, Dokument-Upload, Hauptbildwechsel und
-Dokumentlöschung speichern unabhängig von der zentralen Artikelaktion **Speichern**. Ihre
+Dokumentlöschung speichern unabhängig von der Artikelaktion **Änderungen speichern**. Ihre
 Bestätigungen schützen den jeweils genannten Befehl, nicht ungespeicherte Artikelfelder an anderer
 Stelle im Dialog.
 

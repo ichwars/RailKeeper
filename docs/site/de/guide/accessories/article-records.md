@@ -21,8 +21,8 @@ sie ansehen, die Artikelfelder bleiben jedoch schreibgeschützt. Ein Planer kann
 schreibgeschützten Dialog Reservierungen anlegen oder stornieren. Daraus folgt kein Recht, den
 Artikel selbst zu ändern. Die Rolle Messe hat keinen allgemeinen Zugriff auf Zubehör.
 
-Der Dialog trennt **Artikel**, **Bestand**, **Einkäufe & Dokumente**, den artikelspezifischen Reiter
-und bei vorhandenen Daten den **Nutzungsverlauf**. Die zentrale Aktion **Speichern** schreibt das
+Der Dialog trennt **Artikel**, **Bestand**, **Kauf & Dokumente**, den artikelspezifischen Reiter
+und bei vorhandenen Daten **Verwendung & Historie**. Die zentrale Aktion **Änderungen speichern** schreibt das
 Artikelformular einschließlich Artikelart, Fachangaben, Bestandsstrategie und Mindestbestand.
 Bestandsbewegungen, Einkäufe, Dokumente, Reservierungen und Einbauten besitzen eigene Aktionen und
 können bereits gespeichert sein, während andere Artikelfelder noch ungespeichert sind. Schließen
@@ -41,7 +41,7 @@ Ressourcen erst speichern, nachdem der Artikelstamm einmal erfolgreich gespeiche
 4. Füllen Sie bekannte Fachangaben im Reiter der gewählten Artikelart aus.
 5. Wählen Sie unter **Bestand** Bestandsstrategie und Mindestbestand. Die Folgen beschreibt
    [Bestand, Einkäufe und Dokumente](./stock-purchases-documents) im Detail.
-6. Wählen Sie **Speichern** und bearbeiten Sie markierte Reiter oder die Dublettenwarnung.
+6. Wählen Sie **Änderungen speichern** und bearbeiten Sie markierte Reiter oder die Dublettenwarnung.
 
 Pflichtfelder sind Hersteller, Name, Unterart, Bestandseinheit und eine positive ganzzahlige
 Verpackungseinheit. Der Mindestbestand muss eine ganze Zahl ab null sein. Technische Zahlen müssen
@@ -176,8 +176,8 @@ Dokumente noch Nutzungen eines anderen Artikels.
 ## Bearbeiten ohne Datenverlust
 
 Öffnen Sie **Artikel bearbeiten**, ändern Sie den Entwurf und verwenden Sie die zentrale Aktion
-**Speichern**. Die Validierung wechselt zum ersten betroffenen Reiter in dieser Reihenfolge:
-Artikel, Bestand, Einkäufe & Dokumente, danach der artikelspezifische Reiter. Rote Markierungen an
+**Änderungen speichern**. Die Validierung wechselt zum ersten betroffenen Reiter in dieser Reihenfolge:
+Artikel, Bestand, Kauf & Dokumente, danach der artikelspezifische Reiter. Rote Markierungen an
 Reitern kennzeichnen noch ungültige Werte.
 
 Eine geänderte Bestandsstrategie ist nur erlaubt, wenn alle vorhandenen Bestands- und

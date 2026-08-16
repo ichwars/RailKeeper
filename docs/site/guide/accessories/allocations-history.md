@@ -28,8 +28,8 @@ Every reservation and installation requires exactly one target:
 | Layout | One non-archived layout. |
 | Layout unit | One non-archived layout unit. |
 
-The dialog consumes these targets but does not create or edit layouts. If the needed target is
-missing, maintain it in its owning workspace first.
+The dialog consumes existing targets but does not create or edit layouts. This chapter does not
+document layout creation or editing.
 
 Five optional placement fields can accompany either workflow: **Placement**, **Digital address**,
 **Decoder output**, **Connection**, and **Wiring notes**. They describe where and how the accessory
@@ -58,7 +58,7 @@ individual item, maintenance and retired items remain owned but are not Stored o
 3. For a hybrid article, choose **Quantity** or **Individual item** as the source.
 4. Select an active storage location. For individual tracking, select a Stored item at that same
    location; its quantity is fixed to 1. Otherwise enter a positive whole quantity.
-5. Add an optional note, select **Save reservation**, and confirm.
+5. Add an optional note, select **Create reservation**, and confirm.
 
 The confirmed transaction validates the article, target, active location, strategy, and available
 source. A counted reservation creates an Active reservation and reduces Available only. It neither
@@ -94,7 +94,7 @@ Without a reservation, select target, optional placement data, source, positive 
 one Stored item, condition, and optional notes. Hybrid articles again allow the quantity or item
 path. Direct item installation is rejected if the item has an active reservation.
 
-**Save installation** opens a confirmation. The successful transaction has these effects:
+**Record installation** opens a confirmation. The successful transaction has these effects:
 
 | Source | Physical stock or item | Reservation | Installation and journal |
 | --- | --- | --- | --- |
@@ -108,7 +108,7 @@ atomic. If one check fails, none is kept.
 ## Update installation condition
 
 For an active installation, choose Ready, Maintenance due, Defective, or Unknown and select
-**Update condition**. A confirmation appears even when the selection looks unchanged.
+**Save condition**. A confirmation appears even when the selection looks unchanged.
 
 Confirming updates the installation, appends a condition-history row with previous and new value,
 and updates the condition of an installed individual item. Counted stock has no item record to
@@ -133,7 +133,7 @@ one transaction.
 
 ## Read usage history
 
-The **Usage history** tab appears when the article has reservation, installation, or history data.
+The **Usage & history** tab appears when the article has reservation, installation, or history data.
 Its upper section repeats only current Active reservations and installations not yet removed in
 read-only form.
 
