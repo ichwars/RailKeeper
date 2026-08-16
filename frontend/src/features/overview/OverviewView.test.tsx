@@ -45,6 +45,9 @@ describe("OverviewView valuation", () => {
     expect(responsive).toContain(".overview-valuation-grid");
     expect(responsive).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
     expect(responsive).toContain("grid-template-columns: minmax(0, 1fr)");
+    expect(overview).toContain("grid-template-columns: repeat(5, minmax(0, 1fr))");
+    expect(overview).toContain(".overview-valuation-card");
+    expect(overview).toContain("grid-column: span 2");
     expect(overview).toContain("min-width: 0");
     expect(overview).toContain("overflow-wrap: anywhere");
   });
