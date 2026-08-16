@@ -56,7 +56,7 @@ func TestPrepareStartupConflictSkipsDatabaseMigrationsSeedsAndRouter(t *testing.
 		},
 	}
 
-	result, err := prepareStartup(context.Background(), runtimeConfig, "0.1.18", dependencies)
+	result, err := prepareStartup(context.Background(), runtimeConfig, "0.1.19", dependencies)
 	if err != nil {
 		t.Fatalf("prepareStartup() error = %v", err)
 	}
@@ -85,7 +85,7 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 			_ context.Context, gotSafe, gotLegacy string, options startup.LegacyMigrationOptions,
 		) (startup.LegacyMigrationResult, error) {
 			calls = append(calls, "resolve")
-			if gotSafe != safeDir || gotLegacy != legacyDir || options.Version != "0.1.18" {
+			if gotSafe != safeDir || gotLegacy != legacyDir || options.Version != "0.1.19" {
 				t.Fatalf("legacy inputs = %q, %q, %#v", gotSafe, gotLegacy, options)
 			}
 			return startup.LegacyMigrationResult{
@@ -144,7 +144,7 @@ func TestPrepareStartupUsesResolvedSafePathEverywhereAndCapturesExistenceBeforeO
 		},
 	}
 
-	result, err := prepareStartup(context.Background(), runtimeConfig, "0.1.18", dependencies)
+	result, err := prepareStartup(context.Background(), runtimeConfig, "0.1.19", dependencies)
 	if err != nil {
 		t.Fatalf("prepareStartup() error = %v", err)
 	}
@@ -197,7 +197,7 @@ func TestPrepareStartupClosesDatabaseWhenLaterStartupFails(t *testing.T) {
 		},
 	}
 
-	_, err = prepareStartup(context.Background(), startup.RuntimeConfig{DataDir: t.TempDir()}, "0.1.18", dependencies)
+	_, err = prepareStartup(context.Background(), startup.RuntimeConfig{DataDir: t.TempDir()}, "0.1.19", dependencies)
 	if err == nil {
 		t.Fatal("expected handler construction failure")
 	}

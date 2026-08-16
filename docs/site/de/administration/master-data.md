@@ -3,7 +3,7 @@ title: Stammdaten-Administration
 description: Stammdaten, Inventarnummern, Lagerorte und Transfer in RailKeeper sicher verwalten.
 audience: admin
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -15,7 +15,7 @@ Klassifizierungen, Symbole oder Nummerierungsregeln benötigen. Der größte Tei
 **Einstellungen > Allgemein**, der JSON-Stammdatentransfer unter
 **Einstellungen > Import/Export**.
 
-Dieser Bereich dokumentiert RailKeeper v0.1.18 und trennt vier administrative Abläufe:
+Dieser Bereich dokumentiert RailKeeper v0.1.19 und trennt vier administrative Abläufe:
 
 - [Allgemeine Stammdaten](./master-data-general) für Fahrzeuge, Hersteller, CV8-Kennungen und
   Funktionssymbole.
@@ -37,7 +37,7 @@ Dieser Bereich dokumentiert RailKeeper v0.1.18 und trennt vier administrative Ab
 
 Viewer und Planner erben den Lesezugriff. Die Artikelverwaltung zeigt ausdrücklich einen
 Nur-Lese-Zustand. Einige Bedienelemente für allgemeine Stammdaten und Inventarnummern können für
-diese Rollen in v0.1.18 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
+diese Rollen in v0.1.19 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
 Ein sichtbares Bedienelement erteilt niemals eine Berechtigung.
 
 Ein reines Messe-Konto kann die Einstellungen nicht öffnen. Es kann nur die aktiven
@@ -85,4 +85,4 @@ zusammen mit dem Bestand wiederherstellbar sein müssen, ist eine Anwendungssich
 
 ## Dokumentierte RailKeeper-Version
 
-Dieser Bereich dokumentiert RailKeeper **v0.1.18** und wurde zuletzt am 16.08.2026 geprüft.
+Dieser Bereich dokumentiert RailKeeper **v0.1.19** und wurde zuletzt am 16.08.2026 geprüft.

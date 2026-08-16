@@ -3,14 +3,14 @@ title: First setup and sign-in
 description: Create the first administrator, sign in securely, and recover access to RailKeeper.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
 # First setup and sign-in
 
 This chapter covers the first administrator account, normal and two-factor sign-in, sign-out, and
-password recovery. It describes stable RailKeeper v0.1.18.
+password recovery. It describes stable RailKeeper v0.1.19.
 
 ## Before you start
 
@@ -74,7 +74,7 @@ Password recovery depends on the email address stored for the account.
 6. Set the password, return to sign-in, and use the new credentials.
 
 The confirmation shown in the sign-in form is deliberately identical for known and unknown
-addresses. However, the v0.1.18 HTTP response includes an `expiresAt` value only for a known
+addresses. However, the v0.1.19 HTTP response includes an `expiresAt` value only for a known
 account. API clients or people inspecting network responses can therefore infer whether an account
 exists. Operators must treat this as a known account-enumeration limitation of this release.
 
@@ -107,7 +107,7 @@ confirmations to ten within ten minutes.
 - Use HTTPS and secure cookies when the instance is reachable over a network. See
   [Installation and Administration](/administration/) for the operating requirements.
 - The generic message shown by the form is not complete account-enumeration protection in
-  v0.1.18 because the HTTP response schema differs for known accounts. Restrict network access,
+  v0.1.19 because the HTTP response schema differs for known accounts. Restrict network access,
   monitor repeated reset attempts, and apply a release that corrects this behavior when available.
 - Ask an administrator to review unexpected sign-in or recovery activity rather than continuing to
   guess credentials.
@@ -119,5 +119,5 @@ confirmations to ten within ten minutes.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.18** and was last checked against the application on
+This page documents stable RailKeeper **v0.1.19** and was last checked against the application on
 2026-08-16.

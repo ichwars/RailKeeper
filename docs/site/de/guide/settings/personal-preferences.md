@@ -3,7 +3,7 @@ title: Persönliche Einstellungen
 description: Sprache, Startseite, Datum, Zeit, Druckausgabe und Seitenleisten-Reihenfolge konfigurieren.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -17,7 +17,7 @@ sofort; eine getrennte Speichern-Schaltfläche gibt es nicht.
 **Deutsch** oder **English** wählen. RailKeeper ändert sofort die Oberflächentexte und die vom
 Browser verwendete Dokumentensprache.
 
-Die Sprachwahl wird in RailKeeper v0.1.18 nur im aktuellen Browser gespeichert. Sie folgt dem
+Die Sprachwahl wird in RailKeeper v0.1.19 nur im aktuellen Browser gespeichert. Sie folgt dem
 Benutzerprofil nicht in einen anderen Browser oder auf ein anderes Gerät. Ein Browser ohne
 gespeicherte Auswahl startet auf Deutsch.
 
@@ -34,7 +34,7 @@ Dabei gelten folgende Grenzen:
   Arbeitsbereich. Die Standardansicht umgeht diese rollenabhängige Entscheidung nicht.
 - Darf die aktuelle Rolle ein gespeichertes Ziel nicht öffnen, verwendet RailKeeper die erste
   zulässige Ansicht.
-- **Anlage** ist in v0.1.18 auswählbar, bleibt aber ein unveröffentlichter Entwicklungsbereich und
+- **Anlage** ist in v0.1.19 auswählbar, bleibt aber ein unveröffentlichter Entwicklungsbereich und
   wird in der normalen Seitenleiste nicht angezeigt. Für den stabilen Benutzerablauf eine andere
   Startseite wählen.
 
@@ -43,7 +43,7 @@ Dabei gelten folgende Grenzen:
 Beim Datum stehen **Systemstandard**, ein deutsches Tag-Monat-Jahr-Format und das ISO-Format
 Jahr-Monat-Tag zur Auswahl. Für die Zeit gibt es **Systemstandard**, 24 Stunden und 12 Stunden.
 
-RailKeeper speichert und synchronisiert beide Vorgaben. In v0.1.18 sind sie noch nicht mit allen
+RailKeeper speichert und synchronisiert beide Vorgaben. In v0.1.19 sind sie noch nicht mit allen
 Datums- und Zeitausgaben der Anwendung verbunden. Viele Ansichten formatieren Werte weiterhin nach
 der gewählten Oberflächensprache oder mit einem eigenen festen Formatierer. Die Auswahl ist daher
 eine vorbereitete Vorgabe und noch keine verlässliche globale Überschreibung.
@@ -63,7 +63,7 @@ ermitteln, speichert es den gefundenen Druckernamen als Vorgabe. Die Druckererke
 nur für Admins zugänglich. Andere Rollen können die allgemeine Druckvorgabe weiterhin behalten und
 ändern.
 
-RailKeeper v0.1.18 speichert diesen Wert, leitet aber noch nicht jeden Druckvorgang automatisch an
+RailKeeper v0.1.19 speichert diesen Wert, leitet aber noch nicht jeden Druckvorgang automatisch an
 das gewählte Ziel. Fahrzeugbestandsdruck, Messeberichte und die Druckausgabe unter Import/Export
 öffnen weiterhin den Browser-Druckdialog. Browser und Betriebssystem bestimmen dort den
 tatsächlichen Drucker oder das Ziel **Als PDF speichern**.
@@ -81,7 +81,7 @@ Das Ausblenden entfernt nur den Link aus der Seitenleiste. Mit der erforderliche
 die zugrunde liegende Seite weiterhin direkt öffnen. Für die aktuelle Rolle unzulässige Einträge
 bleiben unabhängig von ihrer gespeicherten Position herausgefiltert.
 
-Die Liste kann **Anlage** enthalten, obwohl RailKeeper v0.1.18 diesen Arbeitsbereich nicht in der
+Die Liste kann **Anlage** enthalten, obwohl RailKeeper v0.1.19 diesen Arbeitsbereich nicht in der
 normalen Seitenleiste veröffentlicht. Verschieben oder Einblenden macht ihn nicht zu einer
 veröffentlichten Benutzerfunktion.
 
@@ -94,12 +94,12 @@ aktuellen Browser ein oder aus; dieser Zustand gehört nicht zu den Profileinste
 | Symptom | Prüfen |
 | --- | --- |
 | Eine Vorgabe änderte sich lokal, aber nicht in einem anderen Browser | Einstellungen mit demselben Benutzer neu laden. Der Hintergrundzugriff auf das Profil kann gescheitert sein, obwohl der lokale Wert aktiv blieb. |
-| Die Oberflächensprache unterscheidet sich auf einem anderen Gerät | Dort erneut einstellen. Die Sprache ist in v0.1.18 browserlokal. |
+| Die Oberflächensprache unterscheidet sich auf einem anderen Gerät | Dort erneut einstellen. Die Sprache ist in v0.1.19 browserlokal. |
 | Die gewählte Startseite öffnet sich nach der Anmeldung nicht | Rollenabhängige Anmeldung und direkte URLs haben Vorrang. Zum Testen der Vorgabe die Stammadresse öffnen. |
 | Eine ausgeblendete Seite lässt sich weiterhin öffnen | Ausblenden ändert nur die Navigation, nicht Berechtigung oder Routing. |
 | Es erscheinen keine benannten Drucker | Die Systemdrucker-Erkennung erfordert Admin und hängt vom Server-Betriebssystem oder der Druckerkonfiguration ab. |
-| Gewählter Drucker oder Datumsformat zeigen keine Wirkung | Die Vorgaben werden gespeichert, aber in v0.1.18 noch nicht von jedem Arbeitsablauf global verwendet. |
+| Gewählter Drucker oder Datumsformat zeigen keine Wirkung | Die Vorgaben werden gespeichert, aber in v0.1.19 noch nicht von jedem Arbeitsablauf global verwendet. |
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.18** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.19** und wurde zuletzt am 16.08.2026 geprüft.

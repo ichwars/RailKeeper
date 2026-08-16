@@ -7,7 +7,7 @@ import { dirname, join } from "node:path";
 import { parseFrontmatter, validateCoverage, validateDocumentTree } from "./validate-docs.mjs";
 
 const versions = {
-  stable: "0.1.18",
+  stable: "0.1.19",
   development: "main",
 };
 
@@ -58,14 +58,14 @@ lastReviewed: ${values.lastReviewed}
 
 test("accepts a complete matching language pair", async () => {
   const root = await fixture({
-    "index.md": page("reference", "stable", "0.1.18"),
-    "de/index.md": page("reference", "stable", "0.1.18"),
+    "index.md": page("reference", "stable", "0.1.19"),
+    "de/index.md": page("reference", "stable", "0.1.19"),
   });
   assert.deepEqual(await validateDocumentTree(root, versions), []);
 });
 
 test("reports a missing German counterpart", async () => {
-  const root = await fixture({ "guide/index.md": page("user", "stable", "0.1.18") });
+  const root = await fixture({ "guide/index.md": page("user", "stable", "0.1.19") });
   assert.deepEqual(await validateDocumentTree(root, versions), [
     "guide/index.md: missing counterpart de/guide/index.md",
   ]);
@@ -73,7 +73,7 @@ test("reports a missing German counterpart", async () => {
 
 test("reports a missing English counterpart", async () => {
   const root = await fixture({
-    "de/administration/index.md": page("admin", "stable", "0.1.18"),
+    "de/administration/index.md": page("admin", "stable", "0.1.19"),
   });
   assert.deepEqual(await validateDocumentTree(root, versions), [
     "de/administration/index.md: missing counterpart administration/index.md",
@@ -82,7 +82,7 @@ test("reports a missing English counterpart", async () => {
 
 test("reports missing and mismatched metadata", async () => {
   const root = await fixture({
-    "index.md": page("reference", "stable", "0.1.18"),
+    "index.md": page("reference", "stable", "0.1.19"),
     "de/index.md": page("developer", "development", "main"),
   });
   const errors = await validateDocumentTree(root, versions);
@@ -97,7 +97,7 @@ test("enforces the canonical version for each status", async () => {
     "de/index.md": page("reference", "stable", "0.1.14"),
   });
   assert((await validateDocumentTree(root, versions)).some((error) =>
-    error.includes("reviewedVersion must be 0.1.18"),
+    error.includes("reviewedVersion must be 0.1.19"),
   ));
 });
 

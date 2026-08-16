@@ -31,7 +31,7 @@ func TestStorageInfoRoutesRequireAdminAndReturnResolvedConfiguration(t *testing.
 	dataPath := `C:\Users\Ada\AppData\Local\RailKeeper\data`
 	receipt := &startup.MigrationReceipt{
 		SourcePath: `C:\RailKeeper\data`, TargetPath: dataPath,
-		MigratedAt: "2026-08-16T14:30:00Z", Version: "0.1.18", FilesVerified: 17,
+		MigratedAt: "2026-08-16T14:30:00Z", Version: "0.1.19", FilesVerified: 17,
 	}
 	router := NewRouter(Config{
 		SetupService: setup,
@@ -144,7 +144,7 @@ func TestStorageInfoAcknowledgementUpdatesOnlySafeReceiptAtomically(t *testing.T
 		SourcePath: legacyDir,
 		TargetPath: dataDir,
 		MigratedAt: time.Date(2026, 8, 16, 14, 30, 0, 0, time.UTC).Format(time.RFC3339),
-		Version:    "0.1.18", FilesVerified: 21,
+		Version:    "0.1.19", FilesVerified: 21,
 	}
 	receiptData, err := json.MarshalIndent(receipt, "", "  ")
 	if err != nil {

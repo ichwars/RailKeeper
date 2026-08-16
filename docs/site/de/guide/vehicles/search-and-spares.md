@@ -3,7 +3,7 @@ title: Artikelsuche, Web-Dokumente und Ersatzteile
 description: Externe Artikeldaten prüfen, Web-Dokumente importieren und Fahrzeugersatzteile pflegen.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -316,5 +316,5 @@ was bereits geschrieben worden sein kann.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.18** und wurde zuletzt am
+Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19** und wurde zuletzt am
 16.08.2026 geprüft.
