@@ -73,6 +73,8 @@ type Vehicle struct {
 	Description               string               `json:"description,omitempty"`
 	Series                    string               `json:"series,omitempty"`
 	VehicleNumber             string               `json:"vehicleNumber,omitempty"`
+	MaximumSpeedKmh           *int                 `json:"maximumSpeedKmh,omitempty"`
+	HomeBase                  string               `json:"homeBase,omitempty"`
 	Digital                   bool                 `json:"digital"`
 	DigitalDecoderNumber      string               `json:"digitalDecoderNumber,omitempty"`
 	DTDecoder                 bool                 `json:"dtDecoder"`
@@ -365,6 +367,8 @@ type CreateVehicleInput struct {
 	Description               string              `json:"description"`
 	Series                    string              `json:"series"`
 	VehicleNumber             string              `json:"vehicleNumber"`
+	MaximumSpeedKmh           *int                `json:"maximumSpeedKmh,omitempty"`
+	HomeBase                  string              `json:"homeBase"`
 	Digital                   bool                `json:"digital"`
 	DigitalDecoderNumber      string              `json:"digitalDecoderNumber"`
 	DTDecoder                 bool                `json:"dtDecoder"`

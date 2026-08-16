@@ -36,7 +36,7 @@
 - Test: `backend/internal/application/vehicles_test.go`
 - Test: `backend/internal/infrastructure/migrate_test.go`
 
-- [ ] **Step 1: Add failing migration and application tests**
+- [x] **Step 1: Add failing migration and application tests**
 
 Add tests that create and update a vehicle with both new values, read it back, and find it through
 the server-side search. Add invalid cases for speeds `0` and `1001`, plus a `homeBase` longer than
@@ -66,7 +66,7 @@ go test ./internal/application ./internal/infrastructure -run "VehicleOperationa
 
 Expected: FAIL because the fields and columns do not exist.
 
-- [ ] **Step 2: Add migration 0056**
+- [x] **Step 2: Add migration 0056**
 
 Create the forward-only migration:
 
@@ -78,7 +78,7 @@ ALTER TABLE vehicles ADD COLUMN home_base TEXT NOT NULL DEFAULT '';
 
 Do not assign a speed to existing vehicles.
 
-- [ ] **Step 3: Extend the vehicle types and validation**
+- [x] **Step 3: Extend the vehicle types and validation**
 
 Insert `MaximumSpeedKmh` and `HomeBase` directly after `VehicleNumber` in `Vehicle` and
 `CreateVehicleInput`. Use `*int` for the optional speed in both types. Trim `HomeBase`, reject
@@ -101,7 +101,7 @@ func isValidVehicleOperationalInput(input CreateVehicleInput) bool {
 Call it from both `Create` and `Update` alongside the existing required-field checks and return
 `ErrVehicleValidation` when it is false.
 
-- [ ] **Step 4: Extend every explicit vehicle SQL statement and scanner**
+- [x] **Step 4: Extend every explicit vehicle SQL statement and scanner**
 
 Add `maximum_speed_kmh` and `home_base` at the same stable position in list/get SELECTs, INSERT,
 UPDATE, argument lists, and scan targets. Pass the optional pointer through a small nullable-value
@@ -118,7 +118,7 @@ OR CAST(maximum_speed_kmh AS TEXT) LIKE ?
 Append matching wildcard arguments in the exact query order. Do not change pagination, ordering,
 or other search behavior.
 
-- [ ] **Step 5: Format and rerun focused backend tests**
+- [x] **Step 5: Format and rerun focused backend tests**
 
 ```powershell
 gofmt -w internal/application/vehicle_types.go internal/application/vehicle_validation.go `
@@ -130,7 +130,7 @@ go test ./internal/application ./internal/infrastructure -run "VehicleOperationa
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit Task 1**
+- [x] **Step 6: Commit Task 1**
 
 ```powershell
 git add backend/migrations/0056_vehicle_operational_fields.sql `
