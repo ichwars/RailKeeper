@@ -32,7 +32,7 @@
     {
       "id": "vehicle-maintenance",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/maintenance.md",
       "germanPath": "de/guide/vehicles/maintenance.md"
     },
