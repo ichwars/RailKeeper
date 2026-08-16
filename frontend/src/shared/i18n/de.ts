@@ -905,6 +905,7 @@ export const deTranslations: Record<string, string> = {
     "common.ready": "bereit",
     "common.saved": "gespeichert",
     "common.sort": "{label} sortieren",
+		"vehicle.field.type": "Typ",
     "vehicle.field.inventoryNumber": "Inventarnummer",
     "vehicle.field.manufacturer": "Hersteller",
     "vehicle.field.articleNumber": "Artikel-Nr.",

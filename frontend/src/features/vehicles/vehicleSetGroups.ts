@@ -1,37 +1,49 @@
-import type { Vehicle } from "../../shared/api";
+import type { Vehicle, VehicleSetSummary } from "../../shared/api";
 
 export type VehicleInventoryGroup =
   | { kind: "single"; vehicle: Vehicle }
-  | { kind: "set"; id: string; name: string; members: Vehicle[] };
+	| {
+		kind: "set";
+		id: string;
+		set: VehicleSetSummary;
+		members: Vehicle[];
+		visibleMemberCount: number;
+		totalMemberCount: number;
+	};
+
+export type VehicleInventorySetGroup = Extract<VehicleInventoryGroup, { kind: "set" }>;
 
 export function groupVehicleInventory(vehicles: Vehicle[]): VehicleInventoryGroup[] {
   const groups: VehicleInventoryGroup[] = [];
   const setIndexes = new Map<string, number>();
 
   for (const vehicle of vehicles) {
-    if (!vehicle.vehicleSetId) {
+		if (!vehicle.vehicleSet) {
       groups.push({ kind: "single", vehicle });
       continue;
     }
-    const existingIndex = setIndexes.get(vehicle.vehicleSetId);
+		const existingIndex = setIndexes.get(vehicle.vehicleSet.id);
     if (existingIndex !== undefined) {
       const existing = groups[existingIndex];
       if (existing.kind === "set") existing.members.push(vehicle);
       continue;
     }
-    setIndexes.set(vehicle.vehicleSetId, groups.length);
+		setIndexes.set(vehicle.vehicleSet.id, groups.length);
     groups.push({
       kind: "set",
-      id: vehicle.vehicleSetId,
-      name: vehicle.vehicleSetName || vehicle.name,
-      members: [vehicle]
+			id: vehicle.vehicleSet.id,
+			set: vehicle.vehicleSet,
+			members: [vehicle],
+			visibleMemberCount: 1,
+			totalMemberCount: vehicle.vehicleSet.memberCount
     });
   }
 
   for (const group of groups) {
     if (group.kind === "set") {
+			group.visibleMemberCount = group.members.length;
       group.members.sort((left, right) => (
-        (left.vehicleSetPosition || 0) - (right.vehicleSetPosition || 0)
+				(left.vehicleSet?.position || 0) - (right.vehicleSet?.position || 0)
       ));
     }
   }

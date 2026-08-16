@@ -72,7 +72,7 @@ export function VehicleInventoryMobileList({
               aria-expanded={!collapsedSetIDs.has(group.id)}
             >
               <Layers3 size={18} />
-              <span><strong>{group.name}</strong><small>{t("vehicles.set.memberCount", { count: group.members.length })}</small></span>
+								<span><strong>{group.set.name}</strong><small>{t("vehicles.set.memberCount", { count: group.totalMemberCount })}</small></span>
               {collapsedSetIDs.has(group.id) ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
             </button>
             {!collapsedSetIDs.has(group.id) && (

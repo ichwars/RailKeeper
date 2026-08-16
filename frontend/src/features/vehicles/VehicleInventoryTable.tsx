@@ -190,7 +190,7 @@ export function VehicleInventoryTable({
                   >
                     {collapsedSetIDs.has(group.id) ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
                     <Layers3 size={16} />
-                    <strong>{group.name}</strong>
+										<strong>{group.set.name}</strong>
                     <span>{t("vehicles.set.memberCount", { count: group.members.length })}</span>
                     <small>{group.members[0]?.manufacturer} {group.members[0]?.articleNumber || ""}</small>
                   </button>

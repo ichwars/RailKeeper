@@ -146,12 +146,29 @@ export type OverviewValuation = {
   excludedForeignCurrencyPurchases: number;
 };
 
+export type VehicleSetSummary = {
+	id: string;
+	inventoryNumber: string;
+	name: string;
+	manufacturer: string;
+	articleNumber?: string;
+	gauge: string;
+	epoch?: string;
+	acquisitionType?: string;
+	purchaseDate?: string;
+	purchasePrice?: string;
+	condition?: string;
+	memberCount: number;
+	position: number;
+};
+
 export type Vehicle = {
   id: string;
   vehicleSetId?: string;
   vehicleSetName?: string;
   vehicleSetPosition?: number;
   vehicleSetSize?: number;
+	vehicleSet?: VehicleSetSummary;
   inventoryNumber: string;
   manufacturer: string;
   articleNumber?: string;
@@ -258,6 +275,7 @@ export type CreateVehicleSetRequest = {
 
 export type VehicleSet = VehicleSetInput & {
   id: string;
+	inventoryNumber: string;
   members: Vehicle[];
   createdAt: string;
   updatedAt: string;
@@ -1292,6 +1310,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }),
+	vehicleSet: (id: string) => request<VehicleSet>(`/vehicle-sets/${encodeURIComponent(id)}`),
+	updateVehicleSet: (id: string, input: VehicleSetInput) =>
+		request<VehicleSet>(`/vehicle-sets/${encodeURIComponent(id)}`, {
+			method: "PATCH",
+			body: JSON.stringify(input)
+		}),
   vehicle: (id: string) => request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`),
   updateVehicle: (id: string, input: CreateVehicleRequest) =>
     request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`, {

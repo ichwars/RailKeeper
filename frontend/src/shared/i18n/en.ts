@@ -905,6 +905,7 @@ export const enTranslations: Record<string, string> = {
     "common.ready": "ready",
     "common.saved": "saved",
     "common.sort": "Sort {label}",
+		"vehicle.field.type": "Type",
     "vehicle.field.inventoryNumber": "Inventory number",
     "vehicle.field.manufacturer": "Manufacturer",
     "vehicle.field.articleNumber": "Article no.",

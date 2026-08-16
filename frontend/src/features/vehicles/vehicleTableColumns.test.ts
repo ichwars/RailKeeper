@@ -7,6 +7,7 @@ import {
   normalizeVehicleTableColumns,
   parseVehicleTableColumns,
   serializeVehicleTableColumns,
+	isVehicleDataColumn,
   toggleVehicleTableColumn,
   vehicleColumnSortValue
 } from "./vehicleTableColumns";
@@ -14,6 +15,7 @@ import {
 describe("vehicle table columns", () => {
   it("keeps the current desktop columns as defaults", () => {
     expect(defaultVehicleTableColumns).toEqual([
+	  "type",
       "image",
       "inventoryNumber",
       "manufacturer",
@@ -24,6 +26,12 @@ describe("vehicle table columns", () => {
       "exhibition"
     ]);
   });
+
+	it("treats type as a presentation-only column", () => {
+		expect(isVehicleDataColumn("type")).toBe(false);
+		expect(parseVehicleTableColumns('["inventoryNumber","series"]'))
+			.toEqual(["inventoryNumber", "series"]);
+	});
 
   it("preserves saved order without appending unknown, duplicate, or new keys", () => {
     expect(normalizeVehicleTableColumns([

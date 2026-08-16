@@ -2,6 +2,7 @@ import type { Vehicle } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
 
 export const vehicleTableColumnKeys = [
+	"type",
   "image",
   "inventoryNumber",
   "manufacturer",
@@ -56,7 +57,7 @@ export const vehicleTableColumnKeys = [
 ] as const;
 
 export type VehicleTableColumn = typeof vehicleTableColumnKeys[number];
-export type VehicleSortableColumn = Exclude<VehicleTableColumn, "image" | "exhibition">;
+export type VehicleSortableColumn = Exclude<VehicleTableColumn, "type" | "image" | "exhibition">;
 export type VehicleColumnMove = "up" | "down";
 export type VehicleColumnGroup = "identity" | "digital" | "ownership" | "technical" | "equipment";
 export type VehicleColumnKind = "text" | "boolean" | "date" | "image" | "exhibition";
@@ -82,6 +83,7 @@ const booleanColumns = new Set<VehicleTableColumn>([
 ]);
 
 const groupByColumn: Record<VehicleTableColumn, VehicleColumnGroup> = {
+	type: "identity",
   image: "identity",
   inventoryNumber: "identity",
   manufacturer: "identity",
@@ -149,6 +151,7 @@ export const vehicleTableColumns: VehicleColumnDefinition[] = vehicleTableColumn
 }));
 
 export const defaultVehicleTableColumns: VehicleTableColumn[] = [
+	"type",
   "image",
   "inventoryNumber",
   "manufacturer",
@@ -164,7 +167,7 @@ export function isVehicleTableColumn(value: unknown): value is VehicleTableColum
 }
 
 export function isVehicleDataColumn(column: VehicleTableColumn) {
-  return column !== "image" && column !== "exhibition";
+	return column !== "type" && column !== "image" && column !== "exhibition";
 }
 
 export function sortableVehicleColumn(column: VehicleTableColumn): column is VehicleSortableColumn {
@@ -244,7 +247,7 @@ export function vehicleColumnText(
   language: Language,
   t: Translator
 ) {
-  if (column === "image") return "";
+	if (column === "type" || column === "image") return "";
   const value = vehicle[column];
   if (typeof value === "boolean") return t(value ? "common.yes" : "common.no");
   if (column === "maximumSpeedKmh" && typeof value === "number") return `${value} km/h`;

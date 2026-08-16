@@ -27,15 +27,47 @@ const vehicle = (id: string, patch: Partial<Vehicle> = {}): Vehicle => ({
 });
 
 describe("groupVehicleInventory", () => {
+	it("uses canonical set data and distinguishes visible from total members", () => {
+		const set = {
+			id: "set-1",
+			inventoryNumber: "RK-SET-000001",
+			name: "Rheingold",
+			manufacturer: "Roco",
+			articleNumber: "45923",
+			gauge: "H0",
+			memberCount: 4,
+			position: 2
+		};
+		const grouped = groupVehicleInventory([
+			vehicle("member-2", { vehicleSet: set }),
+			vehicle("member-1", { vehicleSet: { ...set, position: 1 } })
+		]);
+
+		expect(grouped[0]).toMatchObject({
+			kind: "set",
+			id: "set-1",
+			set: { id: "set-1", inventoryNumber: "RK-SET-000001", memberCount: 4 },
+			visibleMemberCount: 2,
+			totalMemberCount: 4
+		});
+		if (grouped[0].kind === "set") {
+			expect(grouped[0].members.map((member) => member.id)).toEqual(["member-1", "member-2"]);
+		}
+	});
+
   it("keeps singles in order and collects ordered set members", () => {
+		const set = {
+			id: "set-1", inventoryNumber: "RK-SET-000001", name: "TEE", manufacturer: "Roco",
+			gauge: "H0", memberCount: 2, position: 1
+		};
     const grouped = groupVehicleInventory([
-      vehicle("member-2", { vehicleSetId: "set-1", vehicleSetName: "TEE", vehicleSetPosition: 2 }),
+			vehicle("member-2", { vehicleSet: { ...set, position: 2 } }),
       vehicle("single"),
-      vehicle("member-1", { vehicleSetId: "set-1", vehicleSetName: "TEE", vehicleSetPosition: 1 })
+			vehicle("member-1", { vehicleSet: set })
     ]);
 
     expect(grouped).toHaveLength(2);
-    expect(grouped[0]).toMatchObject({ kind: "set", id: "set-1", name: "TEE" });
+		expect(grouped[0]).toMatchObject({ kind: "set", id: "set-1", set: { name: "TEE" } });
     if (grouped[0].kind === "set") expect(grouped[0].members.map((member) => member.id)).toEqual(["member-1", "member-2"]);
     expect(grouped[1]).toMatchObject({ kind: "single", vehicle: { id: "single" } });
   });
