@@ -302,6 +302,7 @@ important records; the application does not promise physical cleanup of every re
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
 - [Decoder, functions, and CV data](/guide/vehicles/decoder-cv)
+- [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
 - [First setup and sign-in](/guide/getting-started/)
 - [Overview, metrics, and data quality](/guide/overview/)
 - [Administration overview](/administration/)

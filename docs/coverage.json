@@ -46,14 +46,14 @@
     {
       "id": "vehicle-search-spares",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/vehicles/search-and-spares.md",
       "germanPath": "de/guide/vehicles/search-and-spares.md"
     },
     {
       "id": "accessories",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/accessories/index.md",
       "germanPath": "de/guide/accessories/index.md"
     },

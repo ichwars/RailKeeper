@@ -298,6 +298,7 @@ No failed later request rolls back an earlier successful request in the same seq
 - [Vehicle inventory and core records](/guide/vehicles/)
 - [Vehicle images and attachments](/guide/vehicles/media)
 - [Vehicle maintenance and condition](/guide/vehicles/maintenance)
+- [Article search, web documents, and spare parts](/guide/vehicles/search-and-spares)
 
 ## Documented RailKeeper version
 

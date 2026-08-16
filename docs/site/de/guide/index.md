@@ -38,6 +38,14 @@ Fälligkeiten, Abschluss, Kosten, verknüpfte Medien und sicheres Löschen.
 die schreibgeschützte Fahrkurve, CV-Werte und Austausch, Decoder-Dateivorschauen und sicheres
 Speichern.
 
+[Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares) erklärt, wie du
+externe Vorschläge prüfst, ausgewählte Artikeldaten und Bilder speicherst, Dokumente importierst und
+Ersatzteile pflegst, ohne teilweise Schreibvorgänge zu übersehen.
+
+[Zubehör](/de/guide/accessories/) beschreibt den getrennten Zubehör-Artikelbestand, technische
+Produktdaten, Mengen- und Einzelbestand, Käufe, Dokumente, Reservierungen, Einbauten und
+Verwendungshistorie.
+
 ## Windows Standalone aktualisieren
 
 Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper

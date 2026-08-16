@@ -126,10 +126,10 @@ akzeptiert. Diese Seite verspricht nichts über Kopien, die du zuvor heruntergel
 von RailKeeper angelegt hast.
 
 Admin, Editor, Viewer und Planner können vorhandene Medien ansehen. Serverseitige Schreibzugriffe
-erfordern Admin oder Editor. **Quelle öffnen** ist der Übergang für importierte Bildquellen.
-**Gefundene Dokumente**, **Ersatzteile extrahieren**, Web-Dokument-Import, externe Artikelbilder,
-CV-Dateien und das Bearbeiten von Wartungen sind Fachgrenzen. Ihre Arbeitsabläufe werden auf dieser
-Seite nicht erklärt.
+erfordern Admin oder Editor. **Quelle öffnen** ist der Übergang für importierte Bildquellen. Externe
+Artikelbilder, **Gefundene Dokumente**, Web-Dokument-Import und **Ersatzteile extrahieren** erklärt
+[Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares). CV-Dateien und
+das Bearbeiten von Wartungen bleiben Fachgrenzen, die auf dieser Seite nicht erklärt werden.
 
 ## Leere, teilweise und fehlerhafte Zustände
 
@@ -154,6 +154,7 @@ Seite nicht erklärt.
 - [Fahrzeugbestand und Grunddaten](/de/guide/vehicles/)
 - [Fahrzeugwartung und Zustand](/de/guide/vehicles/maintenance)
 - [Decoder, Funktionen und CV-Daten](/de/guide/vehicles/decoder-cv)
+- [Artikelsuche, Web-Dokumente und Ersatzteile](/de/guide/vehicles/search-and-spares)
 
 ## Dokumentierte RailKeeper-Version
 

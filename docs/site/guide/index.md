@@ -36,6 +36,14 @@ due dates, completion, costs, linked media, and safe deletion.
 [Decoder, functions, and CV data](/guide/vehicles/decoder-cv) covers F0-F31 mappings, the read-only
 speed curve, CV values and exchange, decoder-file previews, and safe persistence.
 
+[Article search, web documents, and spare parts](/guide/vehicles/search-and-spares) explains how to
+verify external suggestions, save selected article data and images, import documents, and maintain
+spare parts without overlooking partial writes.
+
+[Accessories](/guide/accessories/) covers the separate accessory article inventory, technical
+product data, counted and individual stock, purchases, documents, reservations, installations, and
+usage history.
+
 ## Updating Windows Standalone
 
 Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the
