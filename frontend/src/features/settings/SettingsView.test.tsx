@@ -11,6 +11,8 @@ describe("SettingsView data navigation", () => {
     window.history.replaceState(null, "", "/settings");
     vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {} });
     vi.spyOn(api, "masterData").mockResolvedValue([]);
+    vi.spyOn(api, "managedMasterData").mockResolvedValue([]);
+    vi.spyOn(api, "managedMasterDataAll").mockResolvedValue({});
     vi.spyOn(api, "version").mockRejectedValue(new Error("offline"));
     vi.spyOn(api, "storageUsage").mockRejectedValue(new Error("offline"));
     vi.spyOn(api, "systemPrinters").mockRejectedValue(new Error("offline"));
@@ -28,7 +30,7 @@ describe("SettingsView data navigation", () => {
 
   it("restores manufacturers as the first general master-data type", async () => {
     window.history.replaceState(null, "", "/settings?tab=data");
-    vi.spyOn(api, "masterDataAll").mockResolvedValue({ manufacturer: [], vehicle_category: [] });
+    vi.mocked(api.managedMasterDataAll).mockResolvedValue({ manufacturer: [], vehicle_category: [] });
 
     render(<SettingsView username="viewer" />);
 
@@ -72,6 +74,50 @@ describe("SettingsView data navigation", () => {
     expect(query.get("tab")).toBe("data");
     expect(query.get("group")).toBe("article");
     expect(query.get("type")).toBe("stock_unit");
+  });
+
+  it("shows management metadata and confirms safe deactivation", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/settings?tab=data");
+    vi.mocked(api.session).mockResolvedValue({
+      username: "editor",
+      roles: ["Editor"],
+      csrfToken: "test",
+      twoFactorEnabled: false
+    });
+    const manufacturer = {
+      id: "manufacturer-tillig",
+      type: "manufacturer",
+      key: "tillig",
+      label: "Tillig",
+      active: true,
+      sortOrder: 10,
+      metadata: {},
+      origin: "bundled" as const,
+      capabilities: { canDeactivate: true, canReactivate: false, canDelete: false },
+      createdAt: "2026-08-16T10:00:00Z",
+      updatedAt: "2026-08-16T10:00:00Z"
+    };
+    vi.mocked(api.managedMasterDataAll).mockResolvedValue({ manufacturer: [manufacturer] });
+    vi.spyOn(api, "setMasterDataActive").mockResolvedValue({
+      ...manufacturer,
+      active: false,
+      capabilities: { canDeactivate: false, canReactivate: true, canDelete: false }
+    });
+
+    render(<SettingsView username="editor" />);
+
+    expect(await screen.findByRole("columnheader", { name: "Status" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Herkunft" })).toBeInTheDocument();
+    expect(screen.getByText("RailKeeper")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Tillig deaktivieren" }));
+
+    expect(screen.getByRole("dialog", { name: "Stammdateneintrag deaktivieren" }))
+      .toHaveTextContent("Bestehende gespeicherte Verwendungen bleiben unverändert");
+    await user.click(screen.getByRole("button", { name: "Deaktivieren" }));
+
+    await waitFor(() => expect(api.setMasterDataActive)
+      .toHaveBeenCalledWith("manufacturer", "tillig", false));
   });
 
   it.each([
