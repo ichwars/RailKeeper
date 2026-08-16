@@ -61,7 +61,7 @@ func TestResolveLegacyDataMigratesCompleteLegacyDirectoryAndPreservesMasterDataS
 	now := time.Date(2026, 8, 16, 14, 30, 0, 0, time.UTC)
 
 	result, err := ResolveLegacyData(context.Background(), safeDir, legacyDir, LegacyMigrationOptions{
-		Version:      "0.1.18",
+		Version:      "0.1.19",
 		Now:          func() time.Time { return now },
 		RandomSuffix: func() string { return "fixed" },
 	})

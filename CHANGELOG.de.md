@@ -6,6 +6,34 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.19] - 2026-08-16
+
+### Hinzugefügt
+
+- Die Fahrzeuganlage führt in drei Schritten durch Typ und Grunddaten, optionale Barcode- oder
+  Websuche sowie die übrigen Fahrzeugdaten.
+- Zusammengehörige Fahrzeuge können als Set mit gemeinsamen Artikel-, Erwerbs-, Lager- und
+  Zustandsdaten sowie eigenen Inventar- und Fahrzeugnummern angelegt werden. Sets erscheinen in
+  Tabellen- und Mobilansicht als aufklappbare Gruppe.
+- Das zweisprachige Handbuch dokumentiert jetzt zusätzlich Import und Export, allgemeine
+  Einstellungen sowie die Verwaltung allgemeiner und artikelbezogener Stammdaten.
+
+### Geändert
+
+- Die Setanlage validiert alle Mitglieder vor externen Bildabrufen. Gemeinsame Setdaten bleiben bei
+  der Bearbeitung einzelner Mitglieder geschützt, und Setpreise fließen genau einmal in die
+  Bestandsbewertung ein.
+- Der OpenAPI-Vertrag, Sicherungen und Wiederherstellungen enthalten das Setmodell und seine
+  geordneten Mitglieder.
+
+### Behoben
+
+- Ausgewählte Artikelfotos bleiben bei der Setanlage erhalten; ECoS-Entwürfe verwenden weiterhin
+  den vollständigen Speicherpfad für Zuordnung, CV-Werte und Funktionen.
+- Fahrzeug-Kurzmenüs bleiben auch bei geringer Höhe vollständig erreichbar.
+- Die Aktionsspalte der Stammdatenverwaltung bleibt am rechten Tabellenrand sichtbar und verursacht
+  keinen horizontalen Seitenüberlauf mehr.
+
 ## [0.1.18] - 2026-08-16
 
 ### Hinzugefügt
@@ -227,6 +255,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5

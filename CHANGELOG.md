@@ -6,6 +6,33 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.19] - 2026-08-16
+
+### Added
+
+- Vehicle creation now guides users through type and core data, optional barcode or web search, and
+  the remaining vehicle data in three steps.
+- Vehicles that belong together can be created as a set with shared article, acquisition, storage,
+  and condition data plus individual inventory and vehicle numbers. Sets appear as expandable
+  groups in table and mobile inventory views.
+- The bilingual handbook now also documents import and export, general settings, and management of
+  general and article-specific master data.
+
+### Changed
+
+- Set creation validates every member before external image retrieval. Shared set data remains
+  protected while individual members are edited, and set prices contribute exactly once to
+  inventory valuation.
+- The OpenAPI contract, backups, and restores include the set model and its ordered members.
+
+### Fixed
+
+- Selected article images survive set creation; ECoS drafts continue through the complete
+  persistence path for mappings, CV values, and functions.
+- Vehicle quick menus remain fully accessible at limited viewport heights.
+- The master-data action column stays visible at the right table edge without causing page-level
+  horizontal overflow.
+
 ## [0.1.18] - 2026-08-16
 
 ### Added
@@ -214,6 +241,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5

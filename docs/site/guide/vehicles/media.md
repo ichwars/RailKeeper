@@ -3,7 +3,7 @@ title: Vehicle images and attachments
 description: Upload, organize, preview, download, and safely remove vehicle images and attachments.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -105,7 +105,7 @@ name. If deletion fails, reload the record and do not assume the file or metadat
 ## Roles, storage, and backup boundaries
 
 Media is local and private RailKeeper data, not public website content. Application backups include
-stored vehicle media. In v0.1.18, however, RailKeeper accepts backup files up to 250 MiB for
+stored vehicle media. In v0.1.19, however, RailKeeper accepts backup files up to 250 MiB for
 validation and restore. Before extensive cleanup, export a backup and ask an Admin to select that
 file in the restore panel. Rely on it only after RailKeeper accepts it as compatible. This page
 makes no promise about copies downloaded or created outside RailKeeper.
@@ -143,4 +143,4 @@ editing maintenance records remain specialist boundaries that are not explained 
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.18** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.19** and was last reviewed on 2026-08-16.

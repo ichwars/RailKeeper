@@ -3,7 +3,7 @@ title: Inventarnummernschemata
 description: Automatische Inventarnummern für Fahrzeuge und Zubehörartikel kollisionsfrei konfigurieren.
 audience: admin
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ Unter **Einstellungen > Allgemein > Inventarnummern** werden die automatischen K
 Fahrzeuge und Zubehörartikel gesteuert. Ein Schema enthält eindeutige Kategorie, Präfix, nächste
 Nummer, Stellenzahl, Aktivstatus und Vorschau.
 
-RailKeeper v0.1.18 stellt normalerweise diese aktiven Schemata bereit:
+RailKeeper v0.1.19 stellt normalerweise diese aktiven Schemata bereit:
 
 | Kategorie | Standardpräfix | Standardbeispiel | Verwendung |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ nicht in einem gemeinsamen globalen Namensraum geprüft.
 3. Vorschau prüfen und **Anlegen** wählen.
 4. Bei einem vorhandenen Schema die Werte direkt ändern und **Speichern** wählen.
 
-In v0.1.18 gibt es keinen Löschendpunkt. Ein ungenutztes Schema stattdessen deaktivieren. Das
+In v0.1.19 gibt es keinen Löschendpunkt. Ein ungenutztes Schema stattdessen deaktivieren. Das
 Bearbeiten oder Deaktivieren nummeriert vorhandene Datensätze niemals um.
 
 Nur Admin und Editor dürfen Schemata anlegen oder speichern. Viewer und Planner können die Tabelle
@@ -96,4 +96,4 @@ Kollisionen sicher.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.18** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.19** und wurde zuletzt am 16.08.2026 geprüft.

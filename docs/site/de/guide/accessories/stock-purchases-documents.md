@@ -3,7 +3,7 @@ title: Bestand, Käufe und Dokumente
 description: Zubehörmengen, Einzelstücke, Käufe, Bilder und Dokumente verwalten.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 RailKeeper kann austauschbare Zubehöreinheiten als Menge zählen, physische Stücke einzeln verwalten
 oder Einheiten bei Bedarf aus dem Mengenbestand in die Einzelverwaltung überführen. Käufe und
 Dokumente gehören zum selben Artikel, besitzen aber eigene Sofortaktionen zum Speichern. Dieses
-Kapitel beschreibt das stabile Verhalten von RailKeeper v0.1.18.
+Kapitel beschreibt das stabile Verhalten von RailKeeper v0.1.19.
 
 Administratoren und Bearbeiter können diese Ressourcen verwalten. Betrachter und Planer können sie
 ansehen. Das Reservierungsrecht eines Planers umfasst jedoch keine Änderungen an Bestand, Käufen,
@@ -137,7 +137,7 @@ Lebenszyklus, Lagerort und Verlauf konsistent bleiben.
 
 ## Käufe erfassen
 
-Die Kaufliste ist eine stabile, absteigend chronologische Historie. RailKeeper v0.1.18 bietet das
+Die Kaufliste ist eine stabile, absteigend chronologische Historie. RailKeeper v0.1.19 bietet das
 Hinzufügen, aber keine Aktion zum Bearbeiten oder Löschen eines Kaufs.
 
 | Kauffeld | Stabile Regel |
@@ -249,4 +249,4 @@ bereits aus der Liste entfernten Eintrag folgen. Laden Sie neu, bevor Sie erneut
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.18** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.19** und wurde zuletzt am 16.08.2026 geprüft.

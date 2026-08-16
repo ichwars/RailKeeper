@@ -3,7 +3,7 @@ title: Decoder, functions, and CV data
 description: Map digital functions, inspect speed curves, manage CV values, and store decoder files.
 audience: user
 status: stable
-reviewedVersion: 0.1.18
+reviewedVersion: 0.1.19
 lastReviewed: 2026-08-16
 ---
 
@@ -302,4 +302,4 @@ No failed later request rolls back an earlier successful request in the same seq
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.18** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.19** and was last reviewed on 2026-08-16.
