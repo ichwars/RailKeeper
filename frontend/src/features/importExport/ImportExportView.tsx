@@ -96,6 +96,7 @@ export function ImportExportView() {
     missingCategory: t("importExport.issue.missingCategory"),
     missingGattung: t("importExport.issue.missingGattung"),
     invalidMaximumSpeed: t("importExport.issue.invalidMaximumSpeed"),
+    invalidHomeBase: t("importExport.issue.invalidHomeBase"),
     duplicate: t("importExport.issue.duplicate"),
     ecosMatched: t("importExport.ecos.matched")
   };

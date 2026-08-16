@@ -70,10 +70,10 @@ func (s *OverviewValuationService) vehicleValues(ctx context.Context) (int64, in
 		if err := rows.Scan(&listPrice, &purchasePrice); err != nil {
 			return 0, 0, fmt.Errorf("calculate vehicle values: %w", err)
 		}
-		if err := addParsedMoney(&listTotal, listPrice.String, 1); err != nil {
+		if err := addParsedVehicleMoney(&listTotal, listPrice.String); err != nil {
 			return 0, 0, fmt.Errorf("calculate vehicle list value: %w", err)
 		}
-		if err := addParsedMoney(&purchaseTotal, purchasePrice.String, 1); err != nil {
+		if err := addParsedVehicleMoney(&purchaseTotal, purchasePrice.String); err != nil {
 			return 0, 0, fmt.Errorf("calculate vehicle purchase value: %w", err)
 		}
 	}
@@ -81,6 +81,16 @@ func (s *OverviewValuationService) vehicleValues(ctx context.Context) (int64, in
 		return 0, 0, fmt.Errorf("calculate vehicle values: %w", err)
 	}
 	return listTotal, purchaseTotal, nil
+}
+
+func addParsedVehicleMoney(total *int64, value string) error {
+	cents, ok := parseVehicleMoneyCents(value)
+	if !ok {
+		return nil
+	}
+	var err error
+	*total, err = checkedMoneyAdd(*total, cents)
+	return err
 }
 
 func (s *OverviewValuationService) accessoryListValue(ctx context.Context) (int64, error) {
@@ -160,7 +170,10 @@ func (s *OverviewValuationService) accessoryPurchaseCost(ctx context.Context) (i
 
 func (s *OverviewValuationService) manualAssetPurchaseCost(ctx context.Context) (int64, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT purchase_price FROM accessory_assets WHERE purchase_id IS NULL`)
+SELECT asset.purchase_price
+FROM accessory_assets asset
+JOIN accessory_products product ON product.id=asset.product_id
+WHERE asset.purchase_id IS NULL AND product.inventory_strategy='individual'`)
 	if err != nil {
 		return 0, fmt.Errorf("calculate manual asset purchase cost: %w", err)
 	}

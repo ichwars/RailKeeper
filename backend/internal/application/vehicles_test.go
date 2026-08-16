@@ -215,7 +215,7 @@ func TestVehicleOperationalFieldsRoundTripValidateAndSearch(t *testing.T) {
 			Gattung:         "Diesellok",
 			MaximumSpeedKmh: &invalidSpeed,
 		}, "actor-1")
-		if !errors.Is(createErr, application.ErrVehicleValidation) {
+		if !errors.Is(createErr, application.ErrVehicleOperationalValidation) {
 			t.Fatalf("expected speed %d to be rejected, got %v", invalidSpeed, createErr)
 		}
 	}
@@ -228,7 +228,7 @@ func TestVehicleOperationalFieldsRoundTripValidateAndSearch(t *testing.T) {
 		Gattung:      "Diesellok",
 		HomeBase:     strings.Repeat("ä", 201),
 	}, "actor-1")
-	if !errors.Is(err, application.ErrVehicleValidation) {
+	if !errors.Is(err, application.ErrVehicleOperationalValidation) {
 		t.Fatalf("expected long home base to be rejected, got %v", err)
 	}
 

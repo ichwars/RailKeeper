@@ -25,6 +25,7 @@ const directFieldMap = {
   name: "name",
   ean: "ean",
   scale: "scale",
+  listPrice: "listPrice",
   description: "description",
   articleSourceUrl: "productUrl"
 } as const;
@@ -92,6 +93,7 @@ export function accessorySearchInput(form: ArticleEditorForm): ArticleSearchInpu
   const fields = Object.fromEntries(Object.entries({
     ean: form.ean,
     scale: form.scale,
+    listPrice: form.listPrice,
     description: form.description,
     articleSourceUrl: form.productUrl,
     articleType: form.articleType,
@@ -131,7 +133,8 @@ export function accessorySearchFieldGroups(
         { key: "name", label: t("accessories.field.name") },
         { key: "ean", label: t("accessories.editor.fields.ean") },
         { key: "gauge", label: t("accessories.toolbar.gauge") },
-        { key: "scale", label: t("accessories.editor.fields.scale") }
+        { key: "scale", label: t("accessories.editor.fields.scale") },
+        { key: "listPrice", label: t("accessories.field.listPrice") }
       ]
     },
     {

@@ -55,7 +55,7 @@ func execValuationFixture(t *testing.T, db *sql.DB) {
 	for _, vehicle := range []struct {
 		id, inventoryNumber, listPrice, purchasePrice string
 	}{
-		{"vehicle-1", "RK-VAL-000001", "100.00", "80.00"},
+		{"vehicle-1", "RK-VAL-000001", "100.00 €", "EUR 80.00"},
 		{"vehicle-2", "RK-VAL-000002", "29,90", "20.50"},
 		{"vehicle-3", "RK-VAL-000003", "invalid", ""},
 	} {
@@ -98,6 +98,7 @@ VALUES('location-1', 'Lager', 'now', 'now')`)
 		{"purchase-blank", "quantity", "3.50", "", 2},
 		{"purchase-eur", "quantity", "4.00", "EUR", 3},
 		{"purchase-linked", "individual", "50.00", "EUR", 1},
+		{"purchase-hybrid-eur", "hybrid", "4.00", "EUR", 1},
 		{"purchase-usd", "hybrid", "10.00", "USD", 4},
 		{"purchase-chf", "hybrid", "20.00", "CHF", 1},
 	} {

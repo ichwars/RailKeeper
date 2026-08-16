@@ -542,6 +542,7 @@ export function importRowsFromTable(
     missingCategory: "Kategorie fehlt",
     missingGattung: "Gattung fehlt",
     invalidMaximumSpeed: "Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen",
+    invalidHomeBase: "Heimat-Bw / Einsatzstelle darf höchstens 200 Zeichen enthalten",
     duplicate: "Bestehendes Fahrzeug gefunden"
   }
 ) {
@@ -568,6 +569,9 @@ export function importRowsFromTable(
         } else {
           vehicle.maximumSpeedKmh = maximumSpeed;
         }
+      } else if (key === "homeBase") {
+        if ([...value].length > 200) issues.push(labels.invalidHomeBase);
+        vehicle.homeBase = value;
       } else {
         (vehicle as Record<string, unknown>)[key] = value;
       }
@@ -590,7 +594,9 @@ export function importRowsFromTable(
       id: `row-${index + 1}`,
       selected: !duplicate && issues.length === 0,
       mode: duplicate ?"update" as const : "create" as const,
-      status: duplicate ?"warning" as const : issues.length === 0 ?"ok" as const : "error" as const,
+      status: issues.length > (duplicate ? 1 : 0)
+        ? "error" as const
+        : duplicate ? "warning" as const : "ok" as const,
       issues,
       importedKeys: Array.from(new Set(importedKeys)),
       duplicateVehicleId: duplicate?.id,

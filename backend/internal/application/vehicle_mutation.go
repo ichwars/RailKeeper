@@ -10,8 +10,11 @@ import (
 func (s *VehicleService) Create(ctx context.Context, input CreateVehicleInput, actorUserID string) (*Vehicle, error) {
 	input = cleanVehicleInput(input)
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" || input.Category == "" ||
-		input.Gattung == "" || !isValidVehicleOperationalInput(input) {
+		input.Gattung == "" {
 		return nil, ErrVehicleValidation
+	}
+	if !isValidVehicleOperationalInput(input) {
+		return nil, ErrVehicleOperationalValidation
 	}
 	vehicleID := randomID()
 	var err error
@@ -168,8 +171,11 @@ func (s *VehicleService) Update(ctx context.Context, id string, input CreateVehi
 		input.InventoryNumber = existing.InventoryNumber
 	}
 	if input.Manufacturer == "" || input.Name == "" || input.Gauge == "" || input.Category == "" ||
-		input.Gattung == "" || !isValidVehicleOperationalInput(input) {
+		input.Gattung == "" {
 		return nil, ErrVehicleValidation
+	}
+	if !isValidVehicleOperationalInput(input) {
+		return nil, ErrVehicleOperationalValidation
 	}
 	if s.imageLocalizer != nil && replaceImages && len(input.Images) > 0 {
 		input.Images, err = s.imageLocalizer(ctx, id, input.Images)

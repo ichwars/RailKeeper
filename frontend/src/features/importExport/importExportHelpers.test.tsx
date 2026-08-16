@@ -154,4 +154,25 @@ describe("import/export helpers", () => {
     ], []);
     expect(invalid[0].issues).toContain("Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen");
   });
+
+  it("keeps duplicate rows with an invalid maximum speed blocked", () => {
+    const existing = vehicleFixture();
+    const rows = importRowsFromTable([
+      ["Inventarnummer", "Höchstgeschwindigkeit"],
+      [existing.inventoryNumber, "1001"]
+    ], [existing]);
+
+    expect(rows[0]).toMatchObject({ mode: "update", status: "error", selected: false });
+    expect(rows[0].issues).toContain("Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen");
+  });
+
+  it("rejects a home base longer than 200 characters before saving", () => {
+    const rows = importRowsFromTable([
+      ["Hersteller", "Bezeichnung", "Spurweite", "Kategorie", "Gattung", "Heimat-Bw"],
+      ["Piko", "BR 118", "H0", "Lokomotive", "Diesellok", "B".repeat(201)]
+    ], []);
+
+    expect(rows[0]).toMatchObject({ status: "error", selected: false });
+    expect(rows[0].issues).toContain("Heimat-Bw / Einsatzstelle darf höchstens 200 Zeichen enthalten");
+  });
 });

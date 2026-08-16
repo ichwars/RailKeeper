@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -69,6 +70,13 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	if vehicle.ID == "" || vehicle.InventoryNumber == "" || vehicle.MaximumSpeedKmh == nil ||
 		*vehicle.MaximumSpeedKmh != 120 || vehicle.HomeBase != "Bw Leipzig" {
 		t.Fatalf("expected created vehicle identity, got %#v", vehicle)
+	}
+	invalidOperational := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles",
+		`{"manufacturer":"Piko","name":"V 200","gauge":"H0","category":"Lokomotive","gattung":"Diesellok","maximumSpeedKmh":1001}`,
+		adminSession, adminCookies, http.StatusBadRequest)
+	if body := invalidOperational.Body.String(); !strings.Contains(body, "vehicle_operational_validation") ||
+		!strings.Contains(body, "1 and 1000") || !strings.Contains(body, "200") {
+		t.Fatalf("expected actionable operational validation problem, got %s", body)
 	}
 
 	listResponse := doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", adminCookies, http.StatusOK)

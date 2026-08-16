@@ -18,6 +18,7 @@ func TestParseMoneyCents(t *testing.T) {
 		{"1.299,90", 129990, true},
 		{"1,299.90", 129990, true},
 		{"1.299", 129900, true},
+		{"129 €", 0, false},
 		{"-1.00", 0, false},
 		{"12.345", 1234500, true},
 		{"12.3456", 0, false},
@@ -32,6 +33,18 @@ func TestParseMoneyCents(t *testing.T) {
 					test.input, cents, ok, test.cents, test.ok)
 			}
 		})
+	}
+}
+
+func TestParseVehicleMoneyCentsAcceptsEuroDecorations(t *testing.T) {
+	for input, want := range map[string]int64{
+		"129 €":      12900,
+		"EUR 129":    12900,
+		"€ 1.299,90": 129990,
+	} {
+		if got, ok := parseVehicleMoneyCents(input); !ok || got != want {
+			t.Fatalf("parseVehicleMoneyCents(%q) = (%d, %t), want (%d, true)", input, got, ok, want)
+		}
 	}
 }
 

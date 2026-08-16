@@ -1142,6 +1142,7 @@ export const enTranslations: Record<string, string> = {
     "importExport.issue.missingCategory": "Category is missing",
     "importExport.issue.missingGattung": "Subtype is missing",
     "importExport.issue.invalidMaximumSpeed": "Maximum speed must be between 1 and 1000 km/h",
+    "importExport.issue.invalidHomeBase": "Home depot / operating location must not exceed 200 characters",
     "importExport.issue.duplicate": "Existing vehicle found",
     "importExport.issue.inventoryExists": "Inventory number already exists",
     "importExport.message.unmapped": "{count} columns were not mapped automatically. Select a mapping if needed.",

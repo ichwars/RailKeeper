@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrVehicleValidation = errors.New("vehicle validation failed")
-	ErrVehicleNotFound   = errors.New("vehicle not found")
-	ErrVehicleImageInUse = errors.New("vehicle image in use")
+	ErrVehicleValidation            = errors.New("vehicle validation failed")
+	ErrVehicleOperationalValidation = errors.New("vehicle operational validation failed")
+	ErrVehicleNotFound              = errors.New("vehicle not found")
+	ErrVehicleImageInUse            = errors.New("vehicle image in use")
 )
 
 var allowedMaintenanceKinds = map[string]struct{}{

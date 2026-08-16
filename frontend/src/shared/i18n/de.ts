@@ -1142,6 +1142,7 @@ export const deTranslations: Record<string, string> = {
     "importExport.issue.missingCategory": "Kategorie fehlt",
     "importExport.issue.missingGattung": "Gattung fehlt",
     "importExport.issue.invalidMaximumSpeed": "Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen",
+    "importExport.issue.invalidHomeBase": "Heimat-Bw / Einsatzstelle darf höchstens 200 Zeichen enthalten",
     "importExport.issue.duplicate": "Bestehendes Fahrzeug gefunden",
     "importExport.issue.inventoryExists": "Inventarnummer existiert bereits",
     "importExport.message.unmapped": "{count} Spalten nicht automatisch zugeordnet. Bitte bei Bedarf in der Spaltenzuordnung auswählen.",

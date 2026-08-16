@@ -47,6 +47,27 @@ func parseMoneyCents(value string) (int64, bool) {
 	return major*100 + fraction, true
 }
 
+func parseVehicleMoneyCents(value string) (int64, bool) {
+	return parseMoneyCents(trimEuroDecoration(value))
+}
+
+func trimEuroDecoration(value string) string {
+	value = strings.TrimSpace(value)
+	upper := strings.ToUpper(value)
+	if strings.HasPrefix(upper, "EUR") {
+		value = strings.TrimSpace(value[3:])
+	} else if strings.HasPrefix(value, "€") {
+		value = strings.TrimSpace(strings.TrimPrefix(value, "€"))
+	}
+	upper = strings.ToUpper(value)
+	if strings.HasSuffix(upper, "EUR") {
+		value = strings.TrimSpace(value[:len(value)-3])
+	} else if strings.HasSuffix(value, "€") {
+		value = strings.TrimSpace(strings.TrimSuffix(value, "€"))
+	}
+	return value
+}
+
 func splitMoneyParts(value string) (string, string, bool) {
 	dots := strings.Count(value, ".")
 	commas := strings.Count(value, ",")
