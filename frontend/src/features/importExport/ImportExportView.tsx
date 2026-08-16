@@ -38,6 +38,19 @@ import {
   vehiclesToCSV
 } from "./importExportHelpers";
 
+const csvFieldLabelKeys: Partial<Record<VehicleImportField, string>> = {
+  decoderType: "importExport.csvField.decoderType",
+  acquisitionType: "importExport.csvField.acquisitionType",
+  acquiredFrom: "importExport.csvField.acquiredFrom",
+  purchasePrice: "importExport.csvField.purchasePrice",
+  purchaseDate: "importExport.csvField.purchaseDate",
+  storageLocation: "importExport.csvField.storageLocation",
+  storageDetails: "importExport.csvField.storageDetails",
+  condition: "importExport.csvField.condition",
+  conditionDetails: "importExport.csvField.conditionDetails",
+  packaging: "importExport.csvField.packaging"
+};
+
 export function ImportExportView() {
   const { language, t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -89,6 +102,10 @@ export function ImportExportView() {
   const [ecosMessage, setEcosMessage] = useState("");
   const [ecosAutoFetchedFromLive, setEcosAutoFetchedFromLive] = useState(false);
   const fieldLabel = (key: VehicleImportField) => t(`vehicle.field.${key}`);
+  const csvFieldLabel = (key: VehicleImportField) => {
+    const translationKey = csvFieldLabelKeys[key];
+    return translationKey ? t(translationKey) : fieldLabel(key);
+  };
   const issueLabels = {
     missingManufacturer: t("importExport.issue.missingManufacturer"),
     missingName: t("importExport.issue.missingName"),
@@ -746,7 +763,7 @@ export function ImportExportView() {
             </div>
           </div>
           <div className="export-actions">
-            <button type="button" className="secondary-button" disabled={loading || vehicles.length === 0} onClick={() => downloadText("railkeeper-bestand.csv", `\uFEFF${vehiclesToCSV(vehicles, fieldLabel, t("common.yes"), t("common.no"))}`, "text/csv;charset=utf-8")}>
+            <button type="button" className="secondary-button" disabled={loading || vehicles.length === 0} onClick={() => downloadText("railkeeper-bestand.csv", `\uFEFF${vehiclesToCSV(vehicles, csvFieldLabel, t("common.yes"), t("common.no"))}`, "text/csv;charset=utf-8")}>
               <Download size={15} aria-hidden="true" />
               {t("importExport.export.csv")}
             </button>
@@ -880,7 +897,7 @@ export function ImportExportView() {
                 <AppSelect value={mapping.key} onChange={(event) => setColumnMapping(mapping.index, event.target.value as VehicleImportField | "")}>
                   <option value="">{t("importExport.mapping.ignore")}</option>
                   {vehicleImportFields.map((field) => (
-                    <option key={field.key} value={field.key}>{fieldLabel(field.key)}</option>
+                    <option key={field.key} value={field.key}>{csvFieldLabel(field.key)}</option>
                   ))}
                 </AppSelect>
               </label>
@@ -925,7 +942,7 @@ export function ImportExportView() {
               <tbody>
                 {rows.map((row) => {
                   const existing = row.duplicateVehicleId ? vehicles.find((vehicle) => vehicle.id === row.duplicateVehicleId) : undefined;
-                  const changes = getImportChanges(row, existing, fieldLabel, t("common.yes"), t("common.no"));
+                  const changes = getImportChanges(row, existing, csvFieldLabel, t("common.yes"), t("common.no"));
                   return (
                     <Fragment key={row.id}>
                       <tr className={row.status === "error" ? "import-row-error" : row.status === "warning" ? "import-row-warning" : row.status === "saved" ? "import-row-saved" : ""}>
