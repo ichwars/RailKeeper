@@ -695,6 +695,7 @@ export const deTranslations: Record<string, string> = {
     "settings.auditAction.ExhibitionEntryUpdated": "Messe-Eintrag geändert",
     "settings.auditAction.ExhibitionEntryDeleted": "Messe-Eintrag gelöscht",
     "common.active": "aktiv",
+    "common.inactive": "inaktiv",
     "common.roles": "{count} Rollen",
     "common.noRoles": "Keine Rollen",
     "overview.title": "Übersicht",

@@ -695,6 +695,7 @@ export const enTranslations: Record<string, string> = {
     "settings.auditAction.ExhibitionEntryUpdated": "Exhibition entry updated",
     "settings.auditAction.ExhibitionEntryDeleted": "Exhibition entry deleted",
     "common.active": "active",
+    "common.inactive": "inactive",
     "common.roles": "{count} roles",
     "common.noRoles": "No roles",
     "overview.title": "Overview",

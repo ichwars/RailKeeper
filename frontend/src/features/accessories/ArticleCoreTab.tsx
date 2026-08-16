@@ -9,6 +9,7 @@ import type {
 } from "../../shared/api";
 import { masterDataDisplayLabel } from "../../shared/articleMasterDataLabels";
 import { useI18n } from "../../shared/i18n";
+import { masterDataOptions } from "../../shared/masterDataOptions";
 import { AppMultiSelect } from "../../shared/ui/AppMultiSelect";
 import { AppNumberInput } from "../../shared/ui/AppNumberInput";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -18,22 +19,6 @@ import { articleSubtypeOptions } from "./articleSubtypes";
 import { articleTypeOptions } from "./articleTypes";
 import type { AccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
 const statuses: AccessoryManufacturerStatus[] = ["announced", "available", "discontinued", "unknown"];
-
-function includeCurrentEntry(
-  entries: MasterDataEntry[],
-  currentValues: string[],
-  persistedValue: (entry: MasterDataEntry) => string
-): Array<{ id: string; value: string; label: string; active: boolean }> {
-  const options = entries
-    .filter((entry) => entry.active || currentValues.includes(persistedValue(entry)))
-    .map((entry) => ({ id: entry.id, value: persistedValue(entry), label: entry.label, active: entry.active }));
-  currentValues.forEach((value) => {
-    if (value && !options.some((option) => option.value === value)) {
-      options.push({ id: `legacy:${value}`, value, label: value, active: false });
-    }
-  });
-  return options;
-}
 
 export function ArticleCoreTab({
   form,
@@ -80,16 +65,16 @@ export function ArticleCoreTab({
   const typeOptions = articleTypeOptions(articleTypeEntries, article?.articleType || null, t);
   const subtypeOptions = articleSubtypeOptions(form.articleType, form.subtype, subtypeEntries, t);
   const masterDataDisabled = disabled || coreMasterDataLoading || coreMasterDataError;
-  const manufacturers = includeCurrentEntry(manufacturerEntries, [form.manufacturer], (entry) => entry.label);
-  const gauges = includeCurrentEntry(gaugeEntries, form.gauges, (entry) => entry.label);
-  const stockUnits = includeCurrentEntry(stockUnitEntries, [form.stockUnit], (entry) => entry.key)
+  const manufacturers = masterDataOptions(manufacturerEntries, [form.manufacturer], (entry) => entry.label);
+  const gauges = masterDataOptions(gaugeEntries, form.gauges, (entry) => entry.label);
+  const stockUnits = masterDataOptions(stockUnitEntries, [form.stockUnit], (entry) => entry.key)
     .map((option) => ({
       ...option,
       label: option.id.startsWith("legacy:")
         ? option.label
         : masterDataDisplayLabel(stockUnitEntries.find((entry) => entry.id === option.id)!, t)
     }));
-  const inactiveSuffix = ` (${t("accessories.editor.fields.inactiveMasterData")})`;
+  const inactiveSuffix = ` (${t("common.inactive")})`;
   return (
     <section className="article-editor-tab article-core-tab" aria-label={t("accessories.editor.tabs.article")}>
       {articleSearch ? <div className="article-search-box">

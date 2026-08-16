@@ -293,13 +293,18 @@ describe("ArticleEditorDialog", () => {
       active: false };
     const inactiveStockUnit = { ...stockUnitEntries[0]!, id: "stock-unit-legacy", key: "legacy",
       label: "Legacy unit", active: false };
+    const unrelatedManufacturer = { ...inactiveManufacturer, id: "manufacturer:unused", key: "unused",
+      label: "Unbenutzt" };
+    const unrelatedGauge = { ...inactiveGauge, id: "gauge:unused", key: "unused", label: "Unbenutzte Spur" };
+    const unrelatedStockUnit = { ...inactiveStockUnit, id: "stock-unit-unused", key: "unused",
+      label: "Unused unit" };
     render(<ArticleEditorDialog {...props({
       mode: "edit",
       article: { ...persistedArticle, manufacturer: "Legacy Fabrik", gauges: ["Altspur"], stockUnit: "legacy" },
       form: { ...emptyArticleEditorForm(), manufacturer: "Legacy Fabrik", gauges: ["Altspur"], stockUnit: "legacy" },
-      manufacturerEntries: [...manufacturerEntries, inactiveManufacturer],
-      gaugeEntries: [...gaugeEntries, inactiveGauge],
-      stockUnitEntries: [...stockUnitEntries, inactiveStockUnit],
+      manufacturerEntries: [...manufacturerEntries, inactiveManufacturer, unrelatedManufacturer],
+      gaugeEntries: [...gaugeEntries, inactiveGauge, unrelatedGauge],
+      stockUnitEntries: [...stockUnitEntries, inactiveStockUnit, unrelatedStockUnit],
       onChange
     })} />);
 
@@ -307,10 +312,12 @@ describe("ArticleEditorDialog", () => {
     await user.click(screen.getByRole("button", { name: "Hersteller" }));
     expect(screen.getByRole("option", { name: "Legacy Fabrik (inaktiv)" })).toBeDisabled();
     expect(screen.getByRole("option", { name: "Tillig" })).toBeEnabled();
+    expect(screen.queryByRole("option", { name: "Unbenutzt (inaktiv)" })).not.toBeInTheDocument();
     await user.keyboard("{Escape}");
 
     await user.click(screen.getByRole("button", { name: /Spurweite/ }));
     expect(screen.getByRole("option", { name: "Altspur (inaktiv)" })).toBeEnabled();
+    expect(screen.queryByRole("option", { name: "Unbenutzte Spur (inaktiv)" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("option", { name: "Altspur (inaktiv)" }));
     expect(onChange).toHaveBeenCalledWith({ gauges: [] });
     await user.keyboard("{Escape}");
@@ -318,6 +325,7 @@ describe("ArticleEditorDialog", () => {
     await user.click(screen.getByRole("button", { name: "Bestandseinheit" }));
     expect(screen.getByRole("option", { name: "Legacy unit (inaktiv)" })).toBeDisabled();
     expect(screen.getByRole("option", { name: "Stück" })).toBeEnabled();
+    expect(screen.queryByRole("option", { name: "Unused unit (inaktiv)" })).not.toBeInTheDocument();
   });
 
   it("uses active configured article types and keeps only the current inactive historical type", async () => {

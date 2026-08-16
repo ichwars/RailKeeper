@@ -523,7 +523,7 @@ export function VehiclesView({ username }: { username: string }) {
 
   useEffect(() => {
     Promise.all([
-      api.masterDataAll(true),
+      api.masterDataAll(),
       api.masterDataRelations("vehicle_category", "vehicle_gattung")
     ])
       .then(([entriesByType, categoryRelations]) => {
