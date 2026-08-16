@@ -318,7 +318,7 @@ git commit -m "feat: expose vehicle operational data"
 - [ ] **Step 1: Add failing accessory list-price tests**
 
 Test create, get, update, and article-list round trips using `listPrice: "129.90"`. Add rejected
-inputs `-1`, `1.234`, and malformed text. Verify an omitted price stays empty and existing records
+inputs `-1`, `1.2345`, and malformed text. Verify an omitted price stays empty and existing records
 migrate safely.
 
 Run:
