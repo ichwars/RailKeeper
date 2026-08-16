@@ -29,6 +29,9 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Create(r.Context(), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleOperationalValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
+				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")
 		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name, gauge, category and subtype are required.")
 		case errors.Is(err, application.ErrInventoryNumberConflict):
@@ -70,6 +73,9 @@ func (a *App) updateVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Update(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleOperationalValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
+				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")
 		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
 			respondProblem(w, http.StatusBadRequest, "vehicle_validation", "Manufacturer, name, gauge, category and subtype are required.")
 		case errors.Is(err, application.ErrInventoryNumberConflict):

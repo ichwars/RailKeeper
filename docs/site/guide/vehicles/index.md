@@ -151,6 +151,7 @@ sources. Suggestions require user review and belong to the separate article-sear
 | Railway company, Epoch | Optional configured master data. |
 | Category, Subtype | Both required. Subtype choices depend on the selected category. |
 | Description, Series, Vehicle no. | Optional free-text model description and prototype identity. |
+| Maximum speed, Home depot / operating location | Optional prototype and operating data. Maximum speed accepts whole values from 1 to 1000 km/h; the operating location is free text. |
 | EAN, Production period, List price | Optional commercial data. Production period and list price are stored as trimmed text; the dashboard interprets parseable list prices. |
 | Digital, Digital / decoder no. | The switch enables the primary digital decoder-number input. Exhibition eligibility uses this primary number. |
 | DT / decoder, DT / decoder no., Decoder type | Optional second decoder flag/number and decoder description. |

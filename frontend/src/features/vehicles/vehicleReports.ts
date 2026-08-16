@@ -217,6 +217,10 @@ function vehicleDetailReport(vehicle: Vehicle, assets: InventoryReportAssets, in
         reportField("Ausstellung", vehicle.exhibition),
         reportField("QR-Code aktiv", vehicle.qrCodeEnabled)
       ])}
+      ${reportSection("Vorbild & Betrieb", [
+        reportField("Höchstgeschwindigkeit", vehicle.maximumSpeedKmh ? `${vehicle.maximumSpeedKmh} km/h` : ""),
+        reportField("Heimat-Bw / Einsatzstelle", vehicle.homeBase)
+      ])}
       ${reportSection("Details", [
         reportField("Länge", vehicle.lengthMm ? `${vehicle.lengthMm} mm` : ""),
         reportField("Gewicht", vehicle.weightG ? `${vehicle.weightG} g` : ""),

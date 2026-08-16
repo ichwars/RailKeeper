@@ -132,6 +132,8 @@ export const vehicleImportFields: { key: VehicleImportField; label: string }[] =
   { key: "description", label: "Beschreibung" },
   { key: "series", label: "Baureihe" },
   { key: "vehicleNumber", label: "Fahrzeug-Nr." },
+  { key: "maximumSpeedKmh", label: "Höchstgeschwindigkeit" },
+  { key: "homeBase", label: "Heimat-Bw / Einsatzstelle" },
   { key: "digital", label: "Digital" },
   { key: "digitalDecoderNumber", label: "Digital / Decoder-Nr." },
   { key: "dtDecoder", label: "DT / Decoder" },
@@ -269,6 +271,15 @@ export const columnAliases: Record<string, VehicleImportField> = {
   fahrzeugnummer: "vehicleNumber",
   fahrzeugnr: "vehicleNumber",
   "fahrzeug-nr": "vehicleNumber",
+  hoechstgeschwindigkeit: "maximumSpeedKmh",
+  maximalgeschwindigkeit: "maximumSpeedKmh",
+  maximumspeed: "maximumSpeedKmh",
+  vmax: "maximumSpeedKmh",
+  heimatbw: "homeBase",
+  "heimat-bw": "homeBase",
+  "heimat-bw-einsatzstelle": "homeBase",
+  einsatzstelle: "homeBase",
+  homebase: "homeBase",
   digital: "digital",
   decoderja: "digital",
   decoder: "digitalDecoderNumber",
@@ -530,6 +541,8 @@ export function importRowsFromTable(
     missingGauge: "Spur fehlt",
     missingCategory: "Kategorie fehlt",
     missingGattung: "Gattung fehlt",
+    invalidMaximumSpeed: "Höchstgeschwindigkeit muss zwischen 1 und 1000 km/h liegen",
+    invalidHomeBase: "Heimat-Bw / Einsatzstelle darf höchstens 200 Zeichen enthalten",
     duplicate: "Bestehendes Fahrzeug gefunden"
   }
 ) {
@@ -537,6 +550,7 @@ export function importRowsFromTable(
   return table.slice(1).map((cells, index) => {
     const vehicle: CreateVehicleRequest = { manufacturer: "", name: "", gauge: "" };
     const importedKeys: (keyof CreateVehicleRequest)[] = [];
+    const issues: string[] = [];
     mappings.forEach((mapping) => {
       const key = mapping.key;
       if (!key) {
@@ -548,13 +562,22 @@ export function importRowsFromTable(
       }
       if (booleanImportFields.has(key)) {
         (vehicle as Record<string, unknown>)[key] = parseBoolean(value);
+      } else if (key === "maximumSpeedKmh") {
+        const maximumSpeed = Number(value);
+        if (!Number.isInteger(maximumSpeed) || maximumSpeed < 1 || maximumSpeed > 1000) {
+          issues.push(labels.invalidMaximumSpeed);
+        } else {
+          vehicle.maximumSpeedKmh = maximumSpeed;
+        }
+      } else if (key === "homeBase") {
+        if ([...value].length > 200) issues.push(labels.invalidHomeBase);
+        vehicle.homeBase = value;
       } else {
         (vehicle as Record<string, unknown>)[key] = value;
       }
       importedKeys.push(key);
     });
 
-    const issues: string[] = [];
     const duplicate = vehicle.inventoryNumber ?existingByInventory.get(vehicle.inventoryNumber.toLowerCase()) : undefined;
     if (!duplicate) {
       if (!vehicle.manufacturer) issues.push(labels.missingManufacturer);
@@ -571,7 +594,9 @@ export function importRowsFromTable(
       id: `row-${index + 1}`,
       selected: !duplicate && issues.length === 0,
       mode: duplicate ?"update" as const : "create" as const,
-      status: duplicate ?"warning" as const : issues.length === 0 ?"ok" as const : "error" as const,
+      status: issues.length > (duplicate ? 1 : 0)
+        ? "error" as const
+        : duplicate ? "warning" as const : "ok" as const,
       issues,
       importedKeys: Array.from(new Set(importedKeys)),
       duplicateVehicleId: duplicate?.id,
@@ -595,6 +620,8 @@ export function vehicleToRequest(vehicle: Vehicle): CreateVehicleRequest {
     description: vehicle.description,
     series: vehicle.series,
     vehicleNumber: vehicle.vehicleNumber,
+    maximumSpeedKmh: vehicle.maximumSpeedKmh,
+    homeBase: vehicle.homeBase,
     digital: vehicle.digital,
     digitalDecoderNumber: vehicle.digitalDecoderNumber,
     dtDecoder: vehicle.dtDecoder,
@@ -1408,7 +1435,8 @@ export function mergeImportedVehicle(existing: Vehicle, incoming: CreateVehicleR
   const merged = vehicleToRequest(existing);
   importedKeys.forEach((key) => {
     const value = incoming[key];
-    if (typeof value === "boolean" || (typeof value === "string" && value.trim() !== "")) {
+    if (typeof value === "boolean" || typeof value === "number" ||
+      (typeof value === "string" && value.trim() !== "")) {
       (merged as Record<string, unknown>)[key] = value;
     }
   });
@@ -1421,6 +1449,9 @@ export function displayImportValue(value: unknown, yes = "ja", no = "nein") {
   }
   if (typeof value === "string") {
     return value.trim() || "-";
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
   }
   return "-";
 }

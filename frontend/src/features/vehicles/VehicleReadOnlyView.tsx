@@ -145,6 +145,17 @@ export function VehicleReadOnlyView({
           ]}
         />
         <VehicleViewSection
+          title={t("vehicle.section.prototypeOperation")}
+          t={t}
+          fields={[
+            {
+              label: t("vehicle.field.maximumSpeedKmh"),
+              value: vehicle.maximumSpeedKmh ? `${vehicle.maximumSpeedKmh} km/h` : ""
+            },
+            { label: t("vehicle.field.homeBase"), value: vehicle.homeBase }
+          ]}
+        />
+        <VehicleViewSection
           title={t("vehicles.details.title")}
           t={t}
           fields={[

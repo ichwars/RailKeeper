@@ -41,6 +41,7 @@ type AccessoryArticleListItem struct {
 	ArticleType       domain.AccessoryArticleType       `json:"articleType"`
 	Subtype           string                            `json:"subtype"`
 	Gauges            []string                          `json:"gauges"`
+	ListPrice         string                            `json:"listPrice,omitempty"`
 	InventoryStrategy domain.AccessoryInventoryStrategy `json:"inventoryStrategy"`
 	Archived          bool                              `json:"archived"`
 	Owned             int                               `json:"owned"`

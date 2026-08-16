@@ -6,6 +6,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -26,15 +27,16 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	accessories := application.NewAccessoryService(accessoryRepository)
 	layouts := application.NewLayoutService(infrastructure.NewLayoutRepository(db))
 	router := NewRouter(Config{
-		DataDir:           dataDir,
-		SetupService:      setup,
-		AuthService:       auth,
-		VehicleService:    vehicles,
-		MasterDataService: masterData,
-		BackupService:     backup,
-		FileBlobService:   fileBlobs,
-		ExhibitionService: exhibition,
-		AccessoryService:  accessories,
+		DataDir:                  dataDir,
+		SetupService:             setup,
+		AuthService:              auth,
+		VehicleService:           vehicles,
+		OverviewValuationService: application.NewOverviewValuationService(db),
+		MasterDataService:        masterData,
+		BackupService:            backup,
+		FileBlobService:          fileBlobs,
+		ExhibitionService:        exhibition,
+		AccessoryService:         accessories,
 		AccessoryAllocationService: application.NewAccessoryAllocationService(
 			accessoryRepository,
 		),
@@ -60,13 +62,21 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"editor","email":"editor@example.test","password":"editor-secure-password","roles":["Editor"]}`, adminSession, adminCookies, http.StatusCreated)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"planner","email":"planner@example.test","password":"planner-secure-password","roles":["Planner"]}`, adminSession, adminCookies, http.StatusCreated)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users", `{"username":"messe","email":"messe@example.test","password":"messe-secure-password","roles":["Messe"]}`, adminSession, adminCookies, http.StatusCreated)
-	createVehicleResponse := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Piko","name":"BR 118","gauge":"H0","category":"Lokomotive","gattung":"Diesellok"}`, adminSession, adminCookies, http.StatusCreated)
+	createVehicleResponse := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Piko","name":"BR 118","gauge":"H0","category":"Lokomotive","gattung":"Diesellok","maximumSpeedKmh":120,"homeBase":"Bw Leipzig","listPrice":"129.90","purchasePrice":"99.00"}`, adminSession, adminCookies, http.StatusCreated)
 	var vehicle application.Vehicle
 	if err := json.NewDecoder(createVehicleResponse.Body).Decode(&vehicle); err != nil {
 		t.Fatal(err)
 	}
-	if vehicle.ID == "" || vehicle.InventoryNumber == "" {
+	if vehicle.ID == "" || vehicle.InventoryNumber == "" || vehicle.MaximumSpeedKmh == nil ||
+		*vehicle.MaximumSpeedKmh != 120 || vehicle.HomeBase != "Bw Leipzig" {
 		t.Fatalf("expected created vehicle identity, got %#v", vehicle)
+	}
+	invalidOperational := doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles",
+		`{"manufacturer":"Piko","name":"V 200","gauge":"H0","category":"Lokomotive","gattung":"Diesellok","maximumSpeedKmh":1001}`,
+		adminSession, adminCookies, http.StatusBadRequest)
+	if body := invalidOperational.Body.String(); !strings.Contains(body, "vehicle_operational_validation") ||
+		!strings.Contains(body, "1 and 1000") || !strings.Contains(body, "200") {
+		t.Fatalf("expected actionable operational validation problem, got %s", body)
 	}
 
 	listResponse := doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", adminCookies, http.StatusOK)
@@ -74,7 +84,8 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	if err := json.NewDecoder(listResponse.Body).Decode(&listed); err != nil {
 		t.Fatal(err)
 	}
-	if len(listed) != 1 || listed[0].ID != vehicle.ID {
+	if len(listed) != 1 || listed[0].ID != vehicle.ID || listed[0].MaximumSpeedKmh == nil ||
+		*listed[0].MaximumSpeedKmh != 120 || listed[0].HomeBase != "Bw Leipzig" {
 		t.Fatalf("expected vehicle list to include created vehicle, got %#v", listed)
 	}
 
@@ -106,12 +117,23 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 	if err := json.NewDecoder(restoredResponse.Body).Decode(&restored); err != nil {
 		t.Fatal(err)
 	}
-	if len(restored) != 1 || restored[0].ID != vehicle.ID {
+	if len(restored) != 1 || restored[0].ID != vehicle.ID || restored[0].MaximumSpeedKmh == nil ||
+		*restored[0].MaximumSpeedKmh != 120 || restored[0].HomeBase != "Bw Leipzig" {
 		t.Fatalf("expected restore to bring vehicle back, got %#v", restored)
 	}
 
 	viewerSession, viewerCookies := loginTestUser(t, router, "viewer", "viewer-secure-password")
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", viewerCookies, http.StatusOK)
+	adminValuation := doJSON(t, router, http.MethodGet, "/api/v1/overview/valuation", "",
+		adminCookies, http.StatusOK)
+	var valuation application.OverviewValuation
+	if err := json.NewDecoder(adminValuation.Body).Decode(&valuation); err != nil {
+		t.Fatal(err)
+	}
+	if valuation.VehicleListValue != "129.90" || valuation.VehiclePurchaseValue != "99.00" {
+		t.Fatalf("unexpected smoke valuation: %#v", valuation)
+	}
+	doJSON(t, router, http.MethodGet, "/api/v1/overview/valuation", "", viewerCookies, http.StatusOK)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/vehicles", `{"manufacturer":"Roco","name":"V 200","gauge":"H0","category":"Lokomotive","gattung":"Diesellok"}`, viewerSession, viewerCookies, http.StatusForbidden)
 
 	editorSession, editorCookies := loginTestUser(t, router, "editor", "editor-secure-password")
@@ -154,6 +176,7 @@ func TestLocalSmokeLoginVehicleImportBackupAndRoles(t *testing.T) {
 
 	doJSON(t, router, http.MethodGet, "/api/v1/exhibition-lists", "", messeCookies, http.StatusOK)
 	doJSON(t, router, http.MethodGet, "/api/v1/vehicles", "", messeCookies, http.StatusForbidden)
+	doJSON(t, router, http.MethodGet, "/api/v1/overview/valuation", "", messeCookies, http.StatusForbidden)
 	doAuthedJSON(t, router, http.MethodPost, "/api/v1/exhibition-lists", `{"designation":"Leipzig 2026","date":"2026-05-12"}`, messeSession, messeCookies, http.StatusForbidden)
 }
 

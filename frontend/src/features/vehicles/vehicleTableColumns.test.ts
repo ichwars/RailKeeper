@@ -34,6 +34,13 @@ describe("vehicle table columns", () => {
     ])).toEqual(["series", "manufacturer"]);
   });
 
+  it("offers operational columns without enabling them by default or in old preferences", () => {
+    expect(defaultVehicleTableColumns).not.toContain("maximumSpeedKmh");
+    expect(defaultVehicleTableColumns).not.toContain("homeBase");
+    expect(parseVehicleTableColumns('["inventoryNumber","series"]'))
+      .toEqual(["inventoryNumber", "series"]);
+  });
+
   it("restores inventory number when only presentation columns remain", () => {
     expect(normalizeVehicleTableColumns(["image", "exhibition"]))
       .toEqual(["image", "exhibition", "inventoryNumber"]);
@@ -54,9 +61,10 @@ describe("vehicle table columns", () => {
   });
 
   it("returns stable sortable values for booleans and text", () => {
-    const vehicle = vehicleFixture({ digital: true, series: " BR 218 " });
+    const vehicle = vehicleFixture({ digital: true, series: " BR 218 ", maximumSpeedKmh: 120 });
 
     expect(vehicleColumnSortValue(vehicle, "digital")).toBe("1");
     expect(vehicleColumnSortValue(vehicle, "series")).toBe("br 218");
+    expect(vehicleColumnSortValue(vehicle, "maximumSpeedKmh")).toBe("120");
   });
 });

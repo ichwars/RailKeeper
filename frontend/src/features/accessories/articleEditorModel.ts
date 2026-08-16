@@ -12,6 +12,7 @@ import {
   subjectValidationIssues,
   type CustomArticleSubjectFieldDefinition
 } from "./articleTypeFields";
+import { normalizeAccessoryMoney } from "./accessoryMoney";
 
 export type ArticleEditorMode = "create" | "view" | "edit";
 export type ArticleEditorTab = "article" | "stock" | "purchaseDocuments" | "subject" | "usageHistory";
@@ -26,6 +27,7 @@ export type ArticleEditorForm = {
   subtype: string;
   gauges: string[];
   scale: string;
+  listPrice: string;
   packageQuantity: string;
   stockUnit: string;
   minimumStock: string;
@@ -57,6 +59,7 @@ export function emptyArticleEditorForm(): ArticleEditorForm {
     subtype: "",
     gauges: [],
     scale: "",
+    listPrice: "",
     packageQuantity: "1",
     stockUnit: "piece",
     minimumStock: "0",
@@ -85,6 +88,7 @@ export function articleToEditorForm(article: AccessoryArticle): ArticleEditorFor
     subtype: article.subtype,
     gauges: article.gauges,
     scale: article.scale || "",
+    listPrice: article.listPrice || "",
     packageQuantity: String(article.packageQuantity),
     stockUnit: article.stockUnit,
     minimumStock: String(article.minimumStock),
@@ -117,10 +121,12 @@ export function articleEditorWriteInput(
   )).length > 0) throw new Error("invalid subject values");
   const packageQuantity = editorNumber(form.packageQuantity);
   const minimumStock = editorNumber(form.minimumStock);
+  const listPrice = normalizeAccessoryMoney(form.listPrice);
   if (!Number.isInteger(packageQuantity) || packageQuantity <= 0 ||
       !Number.isInteger(minimumStock) || minimumStock < 0) {
     throw new Error("invalid article quantities");
   }
+  if (listPrice === undefined) throw new Error("invalid list price");
   const inventoryStrategy = form.inventoryStrategy;
   const numberDefinitions = new Map(fieldDefinitionsForType(form.articleType, customFields)
     .filter((definition) => definition.kind === "number").map((definition) => [definition.key, definition]));
@@ -148,6 +154,7 @@ export function articleEditorWriteInput(
     subtype: form.subtype.trim(),
     gauges: form.gauges,
     scale: optional(form.scale),
+    listPrice,
     packageQuantity,
     stockUnit: form.stockUnit.trim(),
     minimumStock,
@@ -184,7 +191,8 @@ export function validateArticleEditorForm(
     integer: "Nur ganze Zahlen sind zulässig",
     invalidSubject: "Fachwert ist ungültig",
     invalidOption: "Auswahl ist ungültig",
-    invalidStep: "Wert entspricht nicht der Schrittweite"
+    invalidStep: "Wert entspricht nicht der Schrittweite",
+    invalidMoney: "Preis ist ungültig"
   },
   customFields: readonly CustomArticleSubjectFieldDefinition[] = [],
   historicalAttributes: readonly AccessoryAttributeValue[] = []
@@ -202,6 +210,9 @@ export function validateArticleEditorForm(
   if (!form.stockUnit.trim()) fieldErrors.stockUnit = messages.required;
   const packageQuantity = editorNumber(form.packageQuantity);
   const minimumStock = editorNumber(form.minimumStock);
+  if (normalizeAccessoryMoney(form.listPrice) === undefined) {
+    fieldErrors.listPrice = messages.invalidMoney;
+  }
   if (!Number.isFinite(packageQuantity) || packageQuantity <= 0) {
     fieldErrors.packageQuantity = messages.positive;
   } else if (!Number.isInteger(packageQuantity)) {
@@ -223,7 +234,7 @@ export function validateArticleEditorForm(
     fieldErrors.attributes = messages.invalidSubject;
   }
   if (fieldErrors.manufacturer || fieldErrors.name || fieldErrors.subtype || fieldErrors.stockUnit ||
-      fieldErrors.packageQuantity) tabErrors.article = true;
+      fieldErrors.packageQuantity || fieldErrors.listPrice) tabErrors.article = true;
   if (fieldErrors.minimumStock) tabErrors.stock = true;
   if (fieldErrors.attributes) tabErrors.subject = true;
   return { fieldErrors, tabErrors, subjectFieldErrors };

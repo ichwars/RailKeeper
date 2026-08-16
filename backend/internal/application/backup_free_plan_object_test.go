@@ -27,8 +27,8 @@ INSERT INTO plan_free_objects(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 14 || len(backup.Tables["plan_free_objects"]) != 1 {
-		t.Fatalf("expected version 14 free-object export, got version=%d rows=%d",
+	if backup.Version != 15 || len(backup.Tables["plan_free_objects"]) != 1 {
+		t.Fatalf("expected version 15 free-object export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["plan_free_objects"]))
 	}
 	if _, err := db.ExecContext(ctx, `DELETE FROM plan_free_objects`); err != nil {

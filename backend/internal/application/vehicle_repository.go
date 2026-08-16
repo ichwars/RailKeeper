@@ -67,10 +67,12 @@ func (s *VehicleService) get(ctx context.Context, id string) (*Vehicle, error) {
 	var soundGeneratorEnabled int
 	var smokeGeneratorEnabled int
 	var qrCodeEnabled int
+	var maximumSpeed sql.NullInt64
 	if err := s.db.QueryRowContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,
        COALESCE(epoch, ''), COALESCE(railway_company, ''), COALESCE(category, ''), COALESCE(gattung, ''),
        COALESCE(description, ''), COALESCE(series, ''), COALESCE(vehicle_number, ''),
+       maximum_speed_kmh, COALESCE(home_base, ''),
        digital, COALESCE(digital_decoder_number, ''), dt_decoder, COALESCE(dt_decoder_number, ''), COALESCE(decoder_type, ''),
        exhibition_ready, exhibition, abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
        COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''), COALESCE(purchase_date, ''),
@@ -100,6 +102,8 @@ WHERE id=?
 		&vehicle.Description,
 		&vehicle.Series,
 		&vehicle.VehicleNumber,
+		&maximumSpeed,
+		&vehicle.HomeBase,
 		&digital,
 		&vehicle.DigitalDecoderNumber,
 		&dtDecoder,
@@ -167,6 +171,10 @@ WHERE id=?
 	vehicle.SoundGeneratorEnabled = soundGeneratorEnabled == 1
 	vehicle.SmokeGeneratorEnabled = smokeGeneratorEnabled == 1
 	vehicle.QRCodeEnabled = qrCodeEnabled == 1
+	if maximumSpeed.Valid {
+		value := int(maximumSpeed.Int64)
+		vehicle.MaximumSpeedKmh = &value
+	}
 	images, err := s.loadVehicleImages(ctx, id)
 	if err != nil {
 		return nil, err

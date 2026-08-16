@@ -144,6 +144,7 @@ func main() {
 		SetupService:                application.NewSetupService(db),
 		AuthService:                 application.NewAuthService(db),
 		VehicleService:              application.NewVehicleService(db),
+		OverviewValuationService:    application.NewOverviewValuationService(db),
 		MasterDataService:           masterDataService,
 		ArticleSearch:               application.NewArticleSearchService(masterDataService),
 		InventoryNumbers:            application.NewInventoryNumberService(db),

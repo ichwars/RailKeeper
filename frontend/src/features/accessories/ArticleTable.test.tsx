@@ -16,6 +16,7 @@ const article: AccessoryArticleListItem = {
   articleType: "track",
   subtype: "straight",
   gauges: ["TT"],
+  listPrice: "1299.90",
   inventoryStrategy: "quantity",
   archived: false,
   owned: 18,
@@ -220,5 +221,19 @@ describe("ArticleTable", () => {
     expect(screen.getByRole("columnheader", { name: "Auswahl" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Aktionen" })).toBeInTheDocument();
     expect(screen.getByRole("table")).toHaveStyle("--article-table-min-width: 524px");
+  });
+
+  it("renders an optional nonsortable list-price column with exact locale formatting", () => {
+    setLanguage("de");
+    render(
+      <ArticleTable items={[article]}
+        visibleColumns={new Set<ArticleTableColumn>(["inventoryNumber", "listPrice"])}
+        sort="article" direction="asc" canEdit={false} onSort={vi.fn()}
+        onArchive={vi.fn()} onRestore={vi.fn()} />
+    );
+
+    const header = screen.getByRole("columnheader", { name: "Listenpreis pro Stück" });
+    expect(within(header).queryByRole("button")).not.toBeInTheDocument();
+    expect(screen.getByText("1.299,90 €")).toBeInTheDocument();
   });
 });

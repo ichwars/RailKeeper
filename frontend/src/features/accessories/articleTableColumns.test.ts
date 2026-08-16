@@ -7,17 +7,25 @@ import {
   resetArticleTableColumns,
   storedArticleTableColumns,
   toggleArticleTableColumn,
+  defaultArticleTableColumns,
   type ArticleTableColumn
 } from "./articleTableColumns";
 
 describe("article table columns", () => {
   beforeEach(() => window.localStorage.clear());
 
-  it("defaults missing or malformed preferences to every supported column", () => {
-    expect([...storedArticleTableColumns()]).toEqual(articleTableColumns);
+  it("keeps newly introduced columns hidden for missing, malformed, and older preferences", () => {
+    expect(articleTableColumns).toContain("listPrice");
+    expect(defaultArticleTableColumns.has("listPrice")).toBe(false);
+    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
 
     window.localStorage.setItem(articleTableColumnSettingKey, "not-json");
-    expect([...storedArticleTableColumns()]).toEqual(articleTableColumns);
+    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
+
+    window.localStorage.setItem(articleTableColumnSettingKey, JSON.stringify([
+      "image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge", "stock", "storage"
+    ]));
+    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
   });
 
   it("filters stale values and restores an identity column", () => {
@@ -48,7 +56,8 @@ describe("article table columns", () => {
     expect(window.localStorage.getItem(articleTableColumnSettingKey)).toBe('["name","storage"]');
   });
 
-  it("restores every supported column", () => {
-    expect([...resetArticleTableColumns()]).toEqual(articleTableColumns);
+  it("restores the standard columns without the optional list price", () => {
+    expect(resetArticleTableColumns()).toEqual(defaultArticleTableColumns);
+    expect(resetArticleTableColumns().has("listPrice")).toBe(false);
   });
 });

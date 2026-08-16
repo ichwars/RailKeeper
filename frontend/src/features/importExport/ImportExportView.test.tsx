@@ -57,6 +57,33 @@ describe("ImportExportView", () => {
     }));
     expect(await screen.findByText("gespeichert")).toBeInTheDocument();
   });
+
+  it("preserves operational fields when importing a RailKeeper JSON export", async () => {
+    const vehicle = vehicleFixture({
+      id: "vehicle-json-import",
+      inventoryNumber: "RK-LOK-000004",
+      maximumSpeedKmh: 120,
+      homeBase: "Bw Leipzig-West"
+    });
+    vi.spyOn(api, "createVehicle").mockResolvedValue(vehicle);
+    const content = JSON.stringify({ format: "railkeeper-vehicles", version: 1, vehicles: [vehicle] });
+    const file = new File([content], "railkeeper-bestand.json", { type: "application/json" });
+    Object.defineProperty(file, "text", { value: () => Promise.resolve(content) });
+
+    const { container } = render(<ImportExportView />);
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]');
+    expect(input).not.toBeNull();
+    fireEvent.change(input!, { target: { files: [file] } });
+
+    expect(await screen.findByText("Spaltenzuordnung")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Auswahl speichern" }));
+
+    await waitFor(() => expect(api.createVehicle).toHaveBeenCalledOnce());
+    expect(api.createVehicle).toHaveBeenCalledWith(expect.objectContaining({
+      maximumSpeedKmh: 120,
+      homeBase: "Bw Leipzig-West"
+    }));
+  });
 });
 
 function fileContent() {

@@ -6,6 +6,7 @@ export const articleTableColumns = [
   "name",
   "type",
   "gauge",
+  "listPrice",
   "stock",
   "storage"
 ] as const;
@@ -13,10 +14,22 @@ export const articleTableColumns = [
 export type ArticleTableColumn = typeof articleTableColumns[number];
 
 export const articleTableColumnSettingKey = "railkeeper.accessories.tableColumns";
-export const defaultArticleTableColumns = new Set<ArticleTableColumn>(articleTableColumns);
+const defaultArticleTableColumnOrder: ArticleTableColumn[] = [
+  "image",
+  "inventoryNumber",
+  "manufacturer",
+  "articleNumber",
+  "name",
+  "type",
+  "gauge",
+  "stock",
+  "storage"
+];
+
+export const defaultArticleTableColumns = new Set<ArticleTableColumn>(defaultArticleTableColumnOrder);
 
 export function resetArticleTableColumns() {
-  return new Set<ArticleTableColumn>(articleTableColumns);
+  return new Set<ArticleTableColumn>(defaultArticleTableColumnOrder);
 }
 
 type ColumnStorage = Pick<Storage, "getItem" | "setItem">;
@@ -37,15 +50,15 @@ export function storedArticleTableColumns(
   storage: Pick<ColumnStorage, "getItem"> = window.localStorage
 ) {
   const raw = storage.getItem(articleTableColumnSettingKey);
-  if (!raw) return new Set<ArticleTableColumn>(articleTableColumns);
+  if (!raw) return new Set<ArticleTableColumn>(defaultArticleTableColumnOrder);
 
   try {
     const parsed: unknown = JSON.parse(raw);
     return Array.isArray(parsed)
       ? normalizeArticleTableColumns(parsed)
-      : new Set<ArticleTableColumn>(articleTableColumns);
+      : new Set<ArticleTableColumn>(defaultArticleTableColumnOrder);
   } catch {
-    return new Set<ArticleTableColumn>(articleTableColumns);
+    return new Set<ArticleTableColumn>(defaultArticleTableColumnOrder);
   }
 }
 

@@ -266,7 +266,6 @@
     padding: 12px;
   }
 
-  .overview-hero,
   .overview-grid,
   .exhibition-layout,
   .inventory-status-row,
@@ -278,6 +277,18 @@
   .digital-settings-grid,
   .appearance-config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .overview-hero {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .overview-valuation-card {
+    grid-column: span 2;
+  }
+
+  .overview-valuation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .inventory-status-card.wide {
@@ -630,8 +641,17 @@
   }
 
   .overview-hero {
+    grid-template-columns: minmax(0, 1fr);
     gap: 9px;
     margin-bottom: 12px;
+  }
+
+  .overview-valuation-card {
+    grid-column: span 1;
+  }
+
+  .overview-valuation-grid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .overview-hero > div {

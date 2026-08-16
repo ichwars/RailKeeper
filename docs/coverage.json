@@ -237,6 +237,7 @@
       "/api/v1/vehicles/{id}/cv-files": "vehicle-decoder-cv",
       "/api/v1/cv-files": "vehicle-decoder-cv",
       "/api/v1/article-search": "vehicle-search-spares",
+      "/api/v1/overview": "overview",
       "/api/v1/vehicles": "vehicles-core",
       "/api/v1/accessory": "accessories",
       "/api/v1/storage-locations": "accessories",

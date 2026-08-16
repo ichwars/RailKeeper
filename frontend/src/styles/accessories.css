@@ -127,6 +127,12 @@
   width: 80px;
 }
 
+.article-table th.article-listPrice-cell,
+.article-table td.article-listPrice-cell {
+  width: 130px;
+  white-space: nowrap;
+}
+
 .article-table th.article-stock-cell,
 .article-table td.article-stock-cell {
   width: 210px;

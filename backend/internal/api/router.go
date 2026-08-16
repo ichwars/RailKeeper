@@ -20,6 +20,7 @@ type Config struct {
 	SetupService                *application.SetupService
 	AuthService                 *application.AuthService
 	VehicleService              *application.VehicleService
+	OverviewValuationService    *application.OverviewValuationService
 	MasterDataService           *application.MasterDataService
 	ArticleSearch               *application.ArticleSearchService
 	InventoryNumbers            *application.InventoryNumberService
@@ -55,6 +56,7 @@ type App struct {
 	setupService                *application.SetupService
 	authService                 *application.AuthService
 	vehicleService              *application.VehicleService
+	overviewValuationService    *application.OverviewValuationService
 	masterDataService           *application.MasterDataService
 	articleSearch               *application.ArticleSearchService
 	inventoryNumbers            *application.InventoryNumberService
@@ -97,6 +99,7 @@ func NewRouter(config Config) http.Handler {
 		setupService:                config.SetupService,
 		authService:                 config.AuthService,
 		vehicleService:              config.VehicleService,
+		overviewValuationService:    config.OverviewValuationService,
 		masterDataService:           config.MasterDataService,
 		articleSearch:               config.ArticleSearch,
 		inventoryNumbers:            config.InventoryNumbers,
