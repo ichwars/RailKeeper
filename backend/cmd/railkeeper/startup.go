@@ -260,7 +260,7 @@ func buildApplicationHandler(
 		SMTPSettingsService:       application.NewSMTPSettingsService(database, options.SMTPConfig, options.PublicURL),
 		PublicURL:                 options.PublicURL,
 		CookieSecure:              options.CookieSecure,
-		WindowsStandaloneDownload: state.Runtime.StorageMode == startup.StorageModeWindowsStandalone,
+		WindowsStandaloneDownload: state.Runtime.WindowsStandalone,
 		StorageLocation: api.StorageLocationConfig{
 			DataPath:             paths.DataDir,
 			Mode:                 state.Runtime.StorageMode,
@@ -272,10 +272,14 @@ func buildApplicationHandler(
 	}), nil
 }
 
-func storageFolderCommand(ctx context.Context, dataPath string) *exec.Cmd {
-	return exec.CommandContext(ctx, "explorer.exe", dataPath)
+func storageFolderCommand(dataPath string) *exec.Cmd {
+	return exec.CommandContext(context.Background(), "explorer.exe", dataPath)
 }
 
-func openStorageFolder(ctx context.Context, dataPath string) error {
-	return storageFolderCommand(ctx, dataPath).Start()
+func openStorageFolder(_ context.Context, dataPath string) error {
+	command := storageFolderCommand(dataPath)
+	if err := command.Start(); err != nil {
+		return err
+	}
+	return command.Process.Release()
 }

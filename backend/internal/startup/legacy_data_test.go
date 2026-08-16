@@ -156,6 +156,34 @@ func TestResolveLegacyDataAcceptsEquivalentDatabases(t *testing.T) {
 	}
 }
 
+func TestResolveLegacyDataConflictsWhenEquivalentDatabasesHaveDifferentFiles(t *testing.T) {
+	root := t.TempDir()
+	safeDir := filepath.Join(root, "safe")
+	legacyDir := filepath.Join(root, "legacy")
+	createLegacyTestDB(t, legacyDir, "same")
+	if err := os.MkdirAll(safeDir, 0o700); err != nil {
+		t.Fatalf("create safe dir: %v", err)
+	}
+	if err := infrastructure.CreateSQLiteSnapshotFromPath(
+		context.Background(), filepath.Join(legacyDir, "railkeeper.db"),
+		filepath.Join(safeDir, "railkeeper.db"),
+	); err != nil {
+		t.Fatalf("create equivalent safe DB: %v", err)
+	}
+	writeLegacyFile(t, legacyDir, "uploads/vehicles/manual.pdf", "legacy-only")
+
+	result, err := ResolveLegacyData(context.Background(), safeDir, legacyDir, LegacyMigrationOptions{})
+	if err != nil {
+		t.Fatalf("ResolveLegacyData() error = %v", err)
+	}
+	if result.Status != LegacyConflict || result.Conflict == nil {
+		t.Fatalf("expected non-database data conflict, got %#v", result)
+	}
+	if _, statErr := os.Stat(filepath.Join(safeDir, "uploads", "vehicles", "manual.pdf")); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("conflict copied legacy-only file: %v", statErr)
+	}
+}
+
 func TestResolveLegacyDataConflictsWithNonEmptySafeDirectoryWithoutDatabase(t *testing.T) {
 	root := t.TempDir()
 	safeDir := filepath.Join(root, "safe")
@@ -226,6 +254,28 @@ func TestResolveLegacyDataCleansStagingAfterPromotionFailure(t *testing.T) {
 	staging := filepath.Join(filepath.Dir(safeDir), ".railkeeper-migration-promote-failure")
 	if _, statErr := os.Stat(staging); !errors.Is(statErr, os.ErrNotExist) {
 		t.Fatalf("promotion failure left staging directory: %v", statErr)
+	}
+}
+
+func TestResolveLegacyDataCleansVerifiedAbandonedStagingBeforeMigration(t *testing.T) {
+	root := t.TempDir()
+	safeDir := filepath.Join(root, "local", "data")
+	legacyDir := filepath.Join(root, "legacy")
+	createLegacyTestDB(t, legacyDir, "legacy")
+	abandoned := filepath.Join(filepath.Dir(safeDir), ".railkeeper-migration-abandoned")
+	writeLegacyFile(t, abandoned, "uploads/private.pdf", "private")
+
+	result, err := ResolveLegacyData(context.Background(), safeDir, legacyDir, LegacyMigrationOptions{
+		RandomSuffix: func() string { return "new" },
+	})
+	if err != nil {
+		t.Fatalf("ResolveLegacyData() error = %v", err)
+	}
+	if result.Status != LegacyMigrated {
+		t.Fatalf("migration status = %q", result.Status)
+	}
+	if _, statErr := os.Stat(abandoned); !errors.Is(statErr, os.ErrNotExist) {
+		t.Fatalf("abandoned staging remains: %v", statErr)
 	}
 }
 

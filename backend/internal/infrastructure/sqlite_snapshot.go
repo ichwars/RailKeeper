@@ -242,17 +242,35 @@ func fileSHA256(path string) ([sha256.Size]byte, error) {
 }
 
 func normalizedSQLiteFileSHA256(path string) ([sha256.Size]byte, error) {
-	data, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
-		return [sha256.Size]byte{}, fmt.Errorf("read SQLite file for checksum: %w", err)
+		return [sha256.Size]byte{}, fmt.Errorf("open SQLite file for checksum: %w", err)
 	}
-	if len(data) < 100 || string(data[:16]) != "SQLite format 3\x00" {
+	defer func() { _ = file.Close() }()
+	return normalizedSQLiteReaderSHA256(file, path)
+}
+
+func normalizedSQLiteReaderSHA256(reader io.Reader, path string) ([sha256.Size]byte, error) {
+	header := make([]byte, 100)
+	if _, err := io.ReadFull(reader, header); err != nil {
+		return [sha256.Size]byte{}, fmt.Errorf("read SQLite header for checksum: %w", err)
+	}
+	if string(header[:16]) != "SQLite format 3\x00" {
 		return [sha256.Size]byte{}, fmt.Errorf("invalid SQLite header: %s", path)
 	}
 	// VACUUM INTO may advance these administrative counters even when schema and
 	// user data are unchanged. The schema b-tree and all content pages remain hashed.
 	for _, bounds := range [][2]int{{24, 28}, {40, 44}, {92, 96}} {
-		clear(data[bounds[0]:bounds[1]])
+		clear(header[bounds[0]:bounds[1]])
 	}
-	return sha256.Sum256(data), nil
+	hash := sha256.New()
+	if _, err := hash.Write(header); err != nil {
+		return [sha256.Size]byte{}, fmt.Errorf("hash SQLite header: %w", err)
+	}
+	if _, err := io.Copy(hash, reader); err != nil {
+		return [sha256.Size]byte{}, fmt.Errorf("hash SQLite content: %w", err)
+	}
+	var digest [sha256.Size]byte
+	copy(digest[:], hash.Sum(nil))
+	return digest, nil
 }

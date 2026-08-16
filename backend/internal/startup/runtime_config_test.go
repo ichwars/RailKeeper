@@ -22,6 +22,7 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 		wantStatic     string
 		wantAddr       string
 		wantOpenFolder bool
+		wantWindowsApp bool
 	}{
 		{
 			name:           "new Windows standalone",
@@ -37,6 +38,7 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 			wantStatic:     `C:\RailKeeper\web`,
 			wantAddr:       "127.0.0.1:8080",
 			wantOpenFolder: true,
+			wantWindowsApp: true,
 		},
 		{
 			name:           "legacy portable flag keeps the safe default",
@@ -52,6 +54,7 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 			wantStatic:     `C:\RailKeeper\web`,
 			wantAddr:       "127.0.0.1:8080",
 			wantOpenFolder: true,
+			wantWindowsApp: true,
 		},
 		{
 			name:           "packaged layout is detected without a flag",
@@ -67,6 +70,7 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 			wantStatic:     `C:\RailKeeper\web`,
 			wantAddr:       "127.0.0.1:8080",
 			wantOpenFolder: true,
+			wantWindowsApp: true,
 		},
 		{
 			name: "explicit data directory wins",
@@ -85,6 +89,7 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 			wantStatic:     `C:\RailKeeper\web`,
 			wantAddr:       "127.0.0.1:8080",
 			wantOpenFolder: false,
+			wantWindowsApp: true,
 		},
 		{
 			name:           "server defaults remain inside the working directory",
@@ -138,9 +143,10 @@ func TestResolveRuntimeConfigSelectsSafeDataPaths(t *testing.T) {
 					config.MigrationsDir, config.SeedsDir, config.StaticDir)
 			}
 			if config.AddrDefault != tt.wantAddr ||
-				config.OpenDataFolderSupported != tt.wantOpenFolder {
-				t.Fatalf("runtime capabilities = addr:%q openFolder:%v",
-					config.AddrDefault, config.OpenDataFolderSupported)
+				config.OpenDataFolderSupported != tt.wantOpenFolder ||
+				config.WindowsStandalone != tt.wantWindowsApp {
+				t.Fatalf("runtime capabilities = addr:%q openFolder:%v windowsStandalone:%v",
+					config.AddrDefault, config.OpenDataFolderSupported, config.WindowsStandalone)
 			}
 		})
 	}

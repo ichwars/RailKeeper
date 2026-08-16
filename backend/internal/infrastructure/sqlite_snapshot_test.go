@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"database/sql"
@@ -207,6 +208,37 @@ func TestSQLiteSnapshotsEquivalentAcceptsDatabaseAndItsSnapshot(t *testing.T) {
 	if !equivalent {
 		t.Fatal("expected database and its snapshot to be equivalent")
 	}
+}
+
+func TestNormalizedSQLiteSHA256AcceptsIncrementalReader(t *testing.T) {
+	path := createEquivalentSnapshotDB(t, "streamed")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read SQLite test file: %v", err)
+	}
+	want, err := normalizedSQLiteFileSHA256(path)
+	if err != nil {
+		t.Fatalf("normalizedSQLiteFileSHA256() error = %v", err)
+	}
+	reader := &singleByteReader{reader: bytes.NewReader(data)}
+	got, err := normalizedSQLiteReaderSHA256(reader, path)
+	if err != nil {
+		t.Fatalf("normalizedSQLiteReaderSHA256() error = %v", err)
+	}
+	if got != want {
+		t.Fatalf("incremental digest = %x, want %x", got, want)
+	}
+}
+
+type singleByteReader struct {
+	reader *bytes.Reader
+}
+
+func (reader *singleByteReader) Read(buffer []byte) (int, error) {
+	if len(buffer) > 1 {
+		buffer = buffer[:1]
+	}
+	return reader.reader.Read(buffer)
 }
 
 func createEquivalentSnapshotDB(t *testing.T, value string) string {

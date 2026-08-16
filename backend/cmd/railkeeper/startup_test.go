@@ -208,7 +208,7 @@ func TestPrepareStartupClosesDatabaseWhenLaterStartupFails(t *testing.T) {
 
 func TestStorageFolderCommandUsesExplorerWithOnlyConfiguredPath(t *testing.T) {
 	dataPath := `C:\Users\Ada\AppData\Local\RailKeeper\data`
-	command := storageFolderCommand(context.Background(), dataPath)
+	command := storageFolderCommand(dataPath)
 	if len(command.Args) != 2 || command.Args[0] != "explorer.exe" || command.Args[1] != dataPath {
 		t.Fatalf("storage folder command args = %v", command.Args)
 	}

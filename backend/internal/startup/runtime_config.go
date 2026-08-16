@@ -27,6 +27,7 @@ type RuntimeInputs struct {
 
 type RuntimeConfig struct {
 	Standalone              bool
+	WindowsStandalone       bool
 	StorageMode             StorageMode
 	DataDir                 string
 	LegacyDataDir           string
@@ -44,12 +45,13 @@ func ResolveRuntimeConfig(inputs RuntimeInputs) (RuntimeConfig, error) {
 
 	standalone := standaloneRequested(inputs)
 	config := RuntimeConfig{
-		Standalone:    standalone,
-		StorageMode:   StorageModeServer,
-		AddrDefault:   ":8080",
-		MigrationsDir: "./migrations",
-		SeedsDir:      "./seeds",
-		StaticDir:     "../../frontend/dist",
+		Standalone:        standalone,
+		WindowsStandalone: standalone && inputs.GOOS == "windows",
+		StorageMode:       StorageModeServer,
+		AddrDefault:       ":8080",
+		MigrationsDir:     "./migrations",
+		SeedsDir:          "./seeds",
+		StaticDir:         "../../frontend/dist",
 	}
 	dataDir := "./data"
 	if standalone {

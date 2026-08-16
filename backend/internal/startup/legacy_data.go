@@ -117,6 +117,10 @@ func ResolveLegacyData(
 		if !equivalent {
 			return legacyConflict(safeDataDir, legacyDataDir, "safe and legacy databases differ"), nil
 		}
+		filesEquivalent, reason := nonDatabaseDataEquivalent(safeDataDir, legacyDataDir)
+		if !filesEquivalent {
+			return legacyConflict(safeDataDir, legacyDataDir, reason), nil
+		}
 		receipt, err := readMigrationReceipt(safeDataDir)
 		if err != nil {
 			return LegacyMigrationResult{}, err
@@ -145,6 +149,9 @@ func migrateLegacyData(
 	parent := filepath.Dir(safeDataDir)
 	if err := os.MkdirAll(parent, 0o700); err != nil {
 		return LegacyMigrationResult{}, fmt.Errorf("create safe data parent: %w", err)
+	}
+	if err := cleanupAbandonedLegacyStaging(parent, safeDataDir); err != nil {
+		return LegacyMigrationResult{}, err
 	}
 	suffix := randomLegacySuffix
 	if options.RandomSuffix != nil {
@@ -235,6 +242,51 @@ func migrateLegacyData(
 		DataDir: safeDataDir,
 		Receipt: receipt,
 	}, nil
+}
+
+func nonDatabaseDataEquivalent(safeDataDir, legacyDataDir string) (bool, string) {
+	safeContent, err := buildLegacyManifest(safeDataDir, false)
+	if err != nil {
+		return false, "safe non-database data could not be verified: " + err.Error()
+	}
+	legacyContent, err := buildLegacyManifest(legacyDataDir, false)
+	if err != nil {
+		return false, "legacy non-database data could not be verified: " + err.Error()
+	}
+	if !slices.Equal(safeContent, legacyContent) {
+		return false, "safe and legacy non-database data differ"
+	}
+	return true, ""
+}
+
+func cleanupAbandonedLegacyStaging(parent, safeDataDir string) error {
+	entries, err := os.ReadDir(parent)
+	if err != nil {
+		return fmt.Errorf("inspect legacy migration staging parent: %w", err)
+	}
+	for _, entry := range entries {
+		if !strings.HasPrefix(entry.Name(), ".railkeeper-migration-") {
+			continue
+		}
+		stagingPath := filepath.Join(parent, entry.Name())
+		if !pathWithin(parent, stagingPath) || samePath(stagingPath, safeDataDir) {
+			return fmt.Errorf("invalid abandoned legacy staging path: %s", stagingPath)
+		}
+		info, infoErr := entry.Info()
+		if infoErr != nil {
+			return fmt.Errorf("inspect abandoned legacy staging path: %w", infoErr)
+		}
+		if !entry.IsDir() || info.Mode()&os.ModeSymlink != 0 || isReparsePoint(info) {
+			return fmt.Errorf("abandoned legacy staging path is not a verified directory: %s", stagingPath)
+		}
+		if _, manifestErr := buildLegacyManifest(stagingPath, true); manifestErr != nil {
+			return fmt.Errorf("verify abandoned legacy staging directory: %w", manifestErr)
+		}
+		if removeErr := os.RemoveAll(stagingPath); removeErr != nil {
+			return fmt.Errorf("remove abandoned legacy staging directory: %w", removeErr)
+		}
+	}
+	return nil
 }
 
 func buildLegacyManifest(root string, includeDatabaseArtifacts bool) ([]legacyManifestEntry, error) {
