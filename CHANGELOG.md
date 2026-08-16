@@ -6,6 +6,44 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.18] - 2026-08-16
+
+### Added
+
+- The vehicle inventory now provides per-user column visibility and ordering, additional inventory
+  filters, expanded search, and compact expandable mobile cards.
+- Vehicles now record acquisition, purchase price and date, storage, condition, and packaging.
+  Vehicle and accessory list and purchase values are evaluated separately and summarized clearly
+  on the overview.
+- Master data can be deactivated, reactivated, and deleted only when no domain references remain.
+  Origin and lifecycle state survive exports and backups.
+- The Windows standalone build can show available versions and download the matching ZIP directly.
+  Persistent data paths, validated SQLite snapshots, and automatic pre-migration backups protect
+  existing installations.
+- The bilingual RailKeeper handbook now documents setup, overview, vehicles, maintenance, media,
+  decoder/CV data, search, accessories, and exhibition operation.
+
+### Changed
+
+- CSV import and export cover every scalar vehicle field. Unambiguous German and English headers,
+  additional aliases, and the existing change preview provide a lossless RailKeeper CSV round trip.
+- The vehicle inventory supports `PluX12`; action menus remain visible and keyboard-accessible in
+  table and mobile views.
+
+### Fixed
+
+- Overview metrics remain on a single row on wide screens.
+- Vehicle quick menus are no longer obscured at table or viewport edges.
+- Windows updates separate the program package from user data instead of risking data stored inside
+  an overwritten installation directory.
+
+### Security
+
+- A consistent SQLite snapshot is created before database migrations; unsafe or ambiguous Windows
+  data paths block startup with an actionable diagnostic.
+- Master-data imports and changes preserve referenced historical values and enforce lifecycle rules
+  on the server.
+
 ## [0.1.17.6] - 2026-08-15
 
 ### Changed
@@ -176,6 +214,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4

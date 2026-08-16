@@ -3,7 +3,7 @@ title: Reservierungen, Einbauten und Verwendung
 description: Zubehör reservieren, Einbauten erfassen und die Verwendungshistorie verstehen.
 audience: user
 status: stable
-reviewedVersion: 0.1.17.6
+reviewedVersion: 0.1.18
 lastReviewed: 2026-08-16
 ---
 
@@ -202,4 +202,4 @@ verwendet kein zweiter Befehl einen alten Verfügbarkeits- oder Lebenszyklusstan
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.17.6** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.18** und wurde zuletzt am 16.08.2026 geprüft.

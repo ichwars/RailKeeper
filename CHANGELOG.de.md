@@ -6,6 +6,45 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.18] - 2026-08-16
+
+### Hinzugefügt
+
+- Die Fahrzeugübersicht bietet pro Benutzer gespeicherte Spaltenauswahl und -reihenfolge,
+  zusätzliche Bestandsfilter, eine erweiterte Suche sowie kompakte, aufklappbare Mobilkarten.
+- Fahrzeuge erfassen jetzt Erwerb, Kaufpreis und -datum, Lagerung, Zustand und Verpackung. Listen-
+  und Kaufwerte werden für Fahrzeuge und Zubehör getrennt ausgewertet und in der Übersicht
+  nachvollziehbar zusammengefasst.
+- Stammdaten können sicher deaktiviert, reaktiviert und nur dann gelöscht werden, wenn keine
+  fachlichen Referenzen bestehen. Herkunft und Status bleiben in Exporten und Sicherungen erhalten.
+- Die Windows-Standalone-Ausgabe kann verfügbare Versionen anzeigen und das passende ZIP direkt
+  herunterladen. Die Anwendung schützt bestehende Installationen durch dauerhafte Datenpfade,
+  validierte SQLite-Sicherungen und automatische Sicherungskopien vor Migrationen.
+- Das zweisprachige RailKeeper-Handbuch dokumentiert Einrichtung, Übersicht, Fahrzeuge, Wartung,
+  Medien, Decoder/CV, Suche, Zubehör und Ausstellungsbetrieb.
+
+### Geändert
+
+- CSV-Import und -Export umfassen alle skalaren Fahrzeugfelder. Eindeutige deutsche und englische
+  Überschriften, zusätzliche Aliase und die bestehende Änderungsvorschau ermöglichen einen
+  verlustfreien RailKeeper-CSV-Rundlauf.
+- Die Fahrzeugübersicht unterstützt `PluX12`; Aktionsmenüs bleiben in Tabellen- und Mobilansichten
+  sichtbar und tastaturbedienbar.
+
+### Behoben
+
+- Kennzahlen der Übersicht bleiben auf breiten Ansichten in einer gemeinsamen Zeile.
+- Fahrzeug-Kurzmenüs werden nicht mehr an Tabellen- oder Bildschirmrändern verdeckt.
+- Windows-Aktualisierungen trennen Programmpaket und Benutzerdaten, statt Daten im
+  Installationsordner durch entpackte Dateien zu gefährden.
+
+### Sicherheit
+
+- Vor Datenbankmigrationen wird eine konsistente SQLite-Sicherung erstellt; unsichere oder
+  mehrdeutige Windows-Datenpfade blockieren den Start mit einer verständlichen Diagnose.
+- Stammdatenimporte und -änderungen bewahren referenzierte historische Werte und erzwingen die
+  serverseitigen Lebenszyklusregeln.
+
 ## [0.1.17.6] - 2026-08-15
 
 ### Geändert
@@ -188,6 +227,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
 [0.1.17.5]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.4...v0.1.17.5
 [0.1.17.4]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.3...v0.1.17.4

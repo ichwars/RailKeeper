@@ -3,7 +3,7 @@ title: Article records and technical data
 description: Create accessory records, maintain their identity, and verify technical data.
 audience: user
 status: stable
-reviewedVersion: 0.1.17.6
+reviewedVersion: 0.1.18
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 An accessory article is the shared product record behind stock, purchases, documents,
 reservations, and installations. Create it once for a manufacturer and catalogue article, then
 record quantities or individual items against it. This chapter covers the article identity and the
-type-specific data in stable RailKeeper v0.1.17.6.
+type-specific data in stable RailKeeper v0.1.18.
 
 ## Access rights and persistence
 
@@ -135,7 +135,7 @@ Settings, the command stops without changing the article.
 The result dialog can apply manufacturer, article number, name, EAN, scale, description, product
 URL, and gauge. A manufacturer or gauge is selectable only when it matches an active known master-
 data value. A selected gauge is added to the existing gauges. Invalid common values and non-HTTP(S)
-product URLs are ignored. In stable v0.1.17.6, selectable technical result fields are exposed only
+product URLs are ignored. In stable v0.1.18, selectable technical result fields are exposed only
 for **Track** articles; other article types can apply the common result groups but not their
 technical attributes.
 
@@ -216,4 +216,4 @@ unreferenced stored blobs. Deletion has no undo, so validate a current backup fi
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.17.6** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.18** and was last reviewed on 2026-08-16.

@@ -3,7 +3,7 @@ title: Fahrzeugbestand und Grunddaten
 description: Fahrzeuge suchen, filtern, anlegen, pflegen, ausgeben und sicher löschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.17.6
+reviewedVersion: 0.1.18
 lastReviewed: 2026-08-16
 ---
 
@@ -11,10 +11,10 @@ lastReviewed: 2026-08-16
 
 Der **Fahrzeugbestand** ist der zentrale Arbeitsbereich für Modellbahnfahrzeuge. Er verbindet
 Bestandsstatus, Suche, Filter, Tabellen- und Kartenansicht, Fahrzeuggrunddaten, QR-Etiketten und
-druckbare Reports. Dieses Kapitel beschreibt die stabile RailKeeper-Version v0.1.17.6.
+druckbare Reports. Dieses Kapitel beschreibt die stabile RailKeeper-Version v0.1.18.
 
 Admin, Editor, Viewer und Planner können den Bestand einsehen. Fahrzeuge anlegen, ändern und
-löschen dürfen nur Admin und Editor. In v0.1.17.6 können Schreibfunktionen für Viewer und Planner
+löschen dürfen nur Admin und Editor. In v0.1.18 können Schreibfunktionen für Viewer und Planner
 trotzdem sichtbar sein. Der Server lehnt ihre Schreibversuche ab und RailKeeper zeigt den
 Fehler an.
 
@@ -41,15 +41,20 @@ ausgeblendeten Tab zurückkehrt.
 ## Bestand durchsuchen
 
 Gib Text in **Bestand durchsuchen** ein. Jede Änderung lädt die Fahrzeugliste neu vom Server. Die
-Suche findet Teilzeichenfolgen in genau vier Feldern:
+Suche ignoriert Leerzeichen am Anfang und Ende und findet Teilzeichenfolgen in diesen Feldern:
 
 - Inventarnummer
 - Hersteller
 - Artikelnummer
 - Bezeichnung
+- Baureihe
+- Fahrzeugnummer
+- Decoder-Typ
+- Heimat-Bw / Einsatzstelle
+- Höchstgeschwindigkeit
 
 Beschreibungen, Bahngesellschaften, Epochen, Kategorien, Decodernummern, EANs und andere
-Detailfelder durchsucht v0.1.17.6 nicht. Die nachfolgenden Filter wirken im Browser auf die vom
+Detailfelder durchsucht v0.1.18 nicht. Die nachfolgenden Filter wirken im Browser auf die vom
 Server gelieferten Suchergebnisse. Suche und Filter werden daher kombiniert.
 
 Schlägt das Laden fehl, erscheint der Fehler über der Liste. Bereits geladene Zeilen können sichtbar
@@ -59,15 +64,16 @@ bleiben. Behebe den Fehler oder aktualisiere die Liste, bevor du sie als aktuell
 
 Filtergruppen sind UND-verknüpft. Ein Fahrzeug muss jede aktive Gruppe erfüllen.
 
-| Gruppe | Stabile Auswahl in v0.1.17.6 |
+| Gruppe | Stabile Auswahl in v0.1.18 |
 | --- | --- |
 | Bestandsstatus | **Alle**, **Digital**, **Analog**, **Mit Bild**, **Ohne Bild** |
 | Wartung | **Alle**, **Wartung fällig**, **Ohne Wartung** |
-| Stammdaten | Hersteller, Kategorie, Gattung |
+| Stammdaten | Hersteller, Kategorie, Gattung, Bahngesellschaft, Epoche |
+| Digitaltechnik | Adapter / Schnittstelle |
 | Betriebsmerkmal | **Messe tauglich** |
 | Datenlücke aus der Übersicht | **Ohne Artikel-Nr.**, **Ohne EAN** oder **Digital ohne Decoder-Nr.**, wenn der Bestand aus der **Übersicht** geöffnet wurde |
 
-Die Bezeichnung **Ohne Wartung** ist in v0.1.17.6 ungenau. Der Filter zeigt Fahrzeuge ohne fälligen
+Die Bezeichnung **Ohne Wartung** ist in v0.1.18 ungenau. Der Filter zeigt Fahrzeuge ohne fälligen
 Wartungseintrag. Dazu können Fahrzeuge mit erledigten oder noch nicht fälligen Wartungen gehören.
 
 Eine ausgewählte Kategorie beschränkt die Gattungen auf die unterschiedlichen Werte der aktuell vom
@@ -75,22 +81,32 @@ Server geladenen Suchergebnisse in dieser Kategorie und entfernt die aktuelle Ga
 **Filter entfernen** setzt alle Gruppen zurück und entfernt einen `gap`-Parameter der Übersicht aus
 der Browseradresse. Der Ergebniszähler bezieht sich immer auf alle aktiven Filter.
 
-Zusätzliche Filter für Bahngesellschaft, Epoche und Schnittstelle aus späteren Entwicklungsständen
-gehören nicht zur stabilen v0.1.17.6.
-
 ## Ansicht wählen und sortieren
 
 Auf dem Desktop wechselst du über die Ansichtssymbole zwischen Tabelle und Karten. RailKeeper
 speichert die Auswahl im lokalen Speicher des aktuellen Browsers, nicht im Benutzerkonto. Auf
-schmalen Bildschirmen zeigt die Oberfläche unabhängig davon eine kompakte mobile Liste.
+schmalen Bildschirmen zeigt die Oberfläche unabhängig davon kompakte, aufklappbare Fahrzeugkarten.
 
-Die Tabelle enthält Auswahl, Bild, Inventarnummer, Hersteller, Artikelnummer, Bezeichnung,
-Spurweite, Epoche, Ausstellungsstatus und Aktionen. Sortierbar sind Inventarnummer, Hersteller,
-Artikelnummer, Bezeichnung, Spurweite und Epoche.
+Über **Tabellenspalten auswählen** bestimmst du sichtbare Spalten und deren Reihenfolge. Die
+Standardauswahl umfasst Bild, Inventarnummer, Hersteller, Artikelnummer, Bezeichnung, Spurweite,
+Epoche und Ausstellungsstatus. Weitere kurze Fahrzeugfelder lassen sich nach fachlichen Gruppen
+einblenden. RailKeeper speichert diese Einstellung serverseitig im Benutzerkonto, sodass sie auch
+nach einem Neustart und in einem anderen Browser verfügbar bleibt.
+
+Die Inventarnummer darf ausgeblendet werden. Würde dadurch keine Datenspalte mehr sichtbar bleiben,
+blendet RailKeeper sie automatisch wieder ein. **Auf Standard zurücksetzen** stellt Auswahl und
+Reihenfolge wieder her. Spalten, die eine spätere Version neu einführt, bleiben in vorhandenen
+Benutzerkonfigurationen zunächst ausgeblendet.
+
+Mit Ausnahme von Bild und Ausstellungsstatus sind die angebotenen Spalten sortierbar. Wird die
+aktive Sortierspalte ausgeblendet, wechselt RailKeeper bevorzugt zur Inventarnummer oder zur ersten
+weiterhin sichtbaren sortierbaren Spalte.
 
 Die Anfangssortierung ist Inventarnummer aufsteigend und berücksichtigt Zahlen, sodass `...2` vor
 `...10` steht. Ein weiterer Klick auf die aktive Überschrift kehrt die Richtung um. Karten- und
 Mobilansicht folgen der aktuellen Tabellensortierung, bieten aber keine eigenen Sortierschalter.
+Die mobilen Karten übernehmen die konfigurierte Spaltenauswahl und zeigen zusätzliche Felder nach
+dem Aufklappen in der festgelegten Reihenfolge.
 
 ## Fahrzeuge markieren
 
@@ -188,7 +204,7 @@ Artikeldatensuche.
 
 ## Stabile Auswahllisten
 
-Die folgenden Werte sind in v0.1.17.6 statisch. Sie bleiben in beiden Oberflächensprachen auf
+Die folgenden Werte sind in v0.1.18 statisch. Sie bleiben in beiden Oberflächensprachen auf
 Deutsch gespeichert.
 
 | Feld | Werte |
@@ -196,7 +212,7 @@ Deutsch gespeichert.
 | Radsatz | `2-Leiter DC`, `3-Leiter AC`, `NEM`, `RP25`, `Metall`, `Kunststoff` |
 | Kupplung | `NEM-Schacht`, `Kurzkupplung`, `Bügelkupplung`, `Klauenkupplung`, `Schraubenkupplung` |
 | Stromabnahme | `Schiene`, `Oberleitung`, `Batterie`, `Akku` |
-| Adapter / Schnittstelle | `NEM 651`, `NEM 652`, `PluX16`, `PluX22`, `MTC21`, `Next18`, `8-polig`, `21-polig` |
+| Adapter / Schnittstelle | `NEM 651`, `NEM 652`, `PluX12`, `PluX16`, `PluX22`, `MTC21`, `Next18`, `8-polig`, `21-polig` |
 | Erwerb | `Kauf`, `Tausch`, `Geschenk`, `Erbe`, `Leihgabe`, `Sonstiges` |
 | von/bei | `Händler`, `Privat`, `Messe / Börse`, `Online`, `Auktion`, `Hersteller`, `Verein`, `Sonstiges` |
 | Standort | `Auf Anlage`, `Vitrine`, `Lager`, `Werkstatt`, `Transportbox`, `Ausgeliehen`, `Sonstiges` |
@@ -234,7 +250,7 @@ Decoder-Nr.: <Decodernummer, nur wenn vorhanden>
 RailKeeper verwendet zuerst die primäre digitale Decodernummer, danach die DT-Decodernummer. Der
 QR-Dialog kann PNG oder SVG herunterladen und ein druckbares Etikett öffnen. Schnellmenü und
 Fahrzeugansicht können bei vorhandenen Identitätsdaten immer einen QR-Code erzeugen. Der Schalter
-**QR-Code erstellen** steuert in v0.1.17.6 nur die QR-Schaltfläche im Detailbereich des
+**QR-Code erstellen** steuert in v0.1.18 nur die QR-Schaltfläche im Detailbereich des
 Bearbeitungsformulars.
 
 Ist Inventarnummer oder Bezeichnung leer, schreibt die Nutzlast für dieses Feld `-`. Mindestens eines
@@ -278,7 +294,7 @@ bereits vorhandenen Ausstellungslisteneintrag.
 ## Fahrzeug löschen
 
 Admin und Editor können **Löschen** wählen und das durch Inventarnummer und Bezeichnung
-identifizierte Fahrzeug bestätigen. v0.1.17.6 bietet weder Rückgängig noch eine Eingabebestätigung.
+identifizierte Fahrzeug bestätigen. v0.1.18 bietet weder Rückgängig noch eine Eingabebestätigung.
 
 Das Löschen entfernt das Fahrzeug und seine abhängigen Datenbankeinträge, darunter
 Inventarnummernhistorie, Bilder, Anhangsmetadaten, Wartungen, Funktionen, CV-Daten, externe
@@ -319,5 +335,5 @@ Datei physisch zu entfernen.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.17.6** und wurde zuletzt am
+Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.18** und wurde zuletzt am
 16.08.2026 geprüft.
