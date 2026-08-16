@@ -1,9 +1,10 @@
-import type { ReactNode } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
   Eye,
+  Layers3,
   Pencil,
   Trash2
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
   type VehicleTableColumn
 } from "./vehicleTableColumns";
 import type { SortDirection, SortKey } from "./vehicleViewModel";
+import { groupVehicleInventory } from "./vehicleSetGroups";
 
 type VehicleInventoryTableProps = {
   vehicles: Vehicle[];
@@ -51,6 +53,8 @@ export function VehicleInventoryTable({
   renderQuickMenu
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
+  const [collapsedSetIDs, setCollapsedSetIDs] = useState<Set<string>>(() => new Set());
+  const groupedVehicles = groupVehicleInventory(vehicles);
 
   const header = (column: VehicleTableColumn) => {
     const label = vehicleColumnLabel(column, t);
@@ -109,6 +113,46 @@ export function VehicleInventoryTable({
     return vehicleColumnText(vehicle, column, language, t);
   };
 
+  const vehicleRow = (vehicle: Vehicle, setMember = false) => (
+    <tr
+      key={vehicle.id}
+      className={[
+        selectedVehicleIDs.has(vehicle.id) ? "selected-row" : "",
+        setMember ? "vehicle-set-child-row" : ""
+      ].filter(Boolean).join(" ")}
+    >
+      <td className="select-cell">
+        <label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
+          <input
+            type="checkbox"
+            checked={selectedVehicleIDs.has(vehicle.id)}
+            onChange={() => onToggleSelection(vehicle.id)}
+            aria-label={`${vehicle.inventoryNumber} ${t("vehicles.report.selectVehicle")}`}
+          />
+        </label>
+      </td>
+      {columns.map((column) => <td key={column}>{cell(vehicle, column)}</td>)}
+      <td className="actions-cell">
+        <div className="table-actions">
+          <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
+            <Eye size={16} aria-hidden="true" />
+          </button>
+          {onOpenEdit ? (
+            <button type="button" className="icon-button" onClick={() => onOpenEdit(vehicle)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
+              <Pencil size={16} aria-hidden="true" />
+            </button>
+          ) : null}
+          {onDelete ? (
+            <button type="button" className="icon-button danger" onClick={() => onDelete(vehicle)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
+              <Trash2 size={16} aria-hidden="true" />
+            </button>
+          ) : null}
+          {renderQuickMenu(vehicle)}
+        </div>
+      </td>
+    </tr>
+  );
+
   return (
     <div className="table-wrap">
       <table className="inventory-table vehicle-inventory-table">
@@ -130,38 +174,30 @@ export function VehicleInventoryTable({
           </tr>
         </thead>
         <tbody>
-          {vehicles.map((vehicle) => (
-            <tr key={vehicle.id} className={selectedVehicleIDs.has(vehicle.id) ? "selected-row" : ""}>
-              <td className="select-cell">
-                <label className="table-select-field" title={t("vehicles.report.selectVehicle")}>
-                  <input
-                    type="checkbox"
-                    checked={selectedVehicleIDs.has(vehicle.id)}
-                    onChange={() => onToggleSelection(vehicle.id)}
-                    aria-label={`${vehicle.inventoryNumber} ${t("vehicles.report.selectVehicle")}`}
-                  />
-                </label>
-              </td>
-              {columns.map((column) => <td key={column}>{cell(vehicle, column)}</td>)}
-              <td className="actions-cell">
-                <div className="table-actions">
-                  <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
-                    <Eye size={16} aria-hidden="true" />
+          {groupedVehicles.map((group) => group.kind === "single" ? vehicleRow(group.vehicle) : (
+            <Fragment key={group.id}>
+              <tr className="vehicle-set-group-row">
+                <td colSpan={columns.length + 2}>
+                  <button
+                    type="button"
+                    onClick={() => setCollapsedSetIDs((current) => {
+                      const next = new Set(current);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    })}
+                    aria-expanded={!collapsedSetIDs.has(group.id)}
+                  >
+                    {collapsedSetIDs.has(group.id) ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+                    <Layers3 size={16} />
+                    <strong>{group.name}</strong>
+                    <span>{t("vehicles.set.memberCount", { count: group.members.length })}</span>
+                    <small>{group.members[0]?.manufacturer} {group.members[0]?.articleNumber || ""}</small>
                   </button>
-                  {onOpenEdit ? (
-                    <button type="button" className="icon-button" onClick={() => onOpenEdit(vehicle)} aria-label={t("vehicles.edit")} title={t("vehicles.edit")}>
-                      <Pencil size={16} aria-hidden="true" />
-                    </button>
-                  ) : null}
-                  {onDelete ? (
-                    <button type="button" className="icon-button danger" onClick={() => onDelete(vehicle)} aria-label={t("vehicles.delete")} title={t("vehicles.delete")}>
-                      <Trash2 size={16} aria-hidden="true" />
-                    </button>
-                  ) : null}
-                  {renderQuickMenu(vehicle)}
-                </div>
-              </td>
-            </tr>
+                </td>
+              </tr>
+              {!collapsedSetIDs.has(group.id) && group.members.map((vehicle) => vehicleRow(vehicle, true))}
+            </Fragment>
           ))}
         </tbody>
       </table>

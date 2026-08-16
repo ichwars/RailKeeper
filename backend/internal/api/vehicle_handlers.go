@@ -48,6 +48,41 @@ func (a *App) createVehicle(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, vehicle)
 }
 
+func (a *App) createVehicleSet(w http.ResponseWriter, r *http.Request) {
+	var input application.CreateVehicleSetInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+
+	vehicleSet, err := a.vehicleService.CreateSet(r.Context(), input, actorUserID(r))
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleSetValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_set_validation",
+				"Set name, manufacturer, gauge, category, subtype and between 2 and 100 members are required.")
+		case errors.Is(err, application.ErrVehicleOperationalValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_operational_validation",
+				"Maximum speed must be a whole number between 1 and 1000 km/h, and home depot / operating location must not exceed 200 characters.")
+		case errors.Is(err, application.ErrVehicleValidation), errors.Is(err, application.ErrInventoryNumberValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_validation",
+				"Every member requires a name and a valid inventory number when one is specified.")
+		case errors.Is(err, application.ErrInventoryNumberConflict):
+			respondProblem(w, http.StatusConflict, "inventory_number_conflict", "Inventory number already exists.")
+		case errors.Is(err, application.ErrInventoryNumberNotFound):
+			respondProblem(w, http.StatusBadRequest, "inventory_number_scheme_missing",
+				"No active inventory number scheme is available.")
+		default:
+			a.logger.Error("vehicle set create failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "vehicle_set_create_failed",
+				"Could not create vehicle set.")
+		}
+		return
+	}
+
+	respondJSON(w, http.StatusCreated, vehicleSet)
+}
+
 func (a *App) getVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Get(r.Context(), r.PathValue("id"))
 	if err != nil {

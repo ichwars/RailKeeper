@@ -89,7 +89,9 @@ export function VehicleModelTab({
   onOpenQr,
   canOpenQr,
   onUpdateCouplingFront,
-  onUpdateCouplingSame
+  onUpdateCouplingSame,
+  hideInventoryNumber = false,
+  sharedFieldsReadonly = false
 }: {
   form: CreateVehicleRequest;
   externalMappings: VehicleExternalMapping[];
@@ -111,8 +113,11 @@ export function VehicleModelTab({
   canOpenQr: boolean;
   onUpdateCouplingFront: (couplingFront: string) => void;
   onUpdateCouplingSame: (couplingSame: boolean) => void;
+  hideInventoryNumber?: boolean;
+  sharedFieldsReadonly?: boolean;
 }) {
   const { t } = useI18n();
+  const sharedReadonly = readonly || sharedFieldsReadonly;
   const externalMapping = externalMappings.find((mapping) => compactValue(mapping.externalId)) || externalMappings[0];
   const digitalMapping: DigitalMappingDisplay | null = externalMapping
     ? {
@@ -137,7 +142,7 @@ export function VehicleModelTab({
                 <span>{t("vehicles.articleSearch.subtitle")}</span>
               </div>
               <div className="article-search-actions">
-                <button type="button" className="secondary-button" onClick={onOpenBarcodeSearch} disabled={readonly || articleSearchLoading} title={t("vehicles.articleSearch.barcodeTitle")}>
+                <button type="button" className="secondary-button" onClick={onOpenBarcodeSearch} disabled={sharedReadonly || articleSearchLoading} title={t("vehicles.articleSearch.barcodeTitle")}>
                   <Barcode size={15} aria-hidden="true" />
                   {t("vehicles.articleSearch.barcode")}
                 </button>
@@ -145,7 +150,7 @@ export function VehicleModelTab({
                   type="button"
                   className="secondary-button"
                   onClick={onRunArticleSearch}
-                  disabled={readonly || articleSearchLoading || !canRunArticleSearch}
+                  disabled={sharedReadonly || articleSearchLoading || !canRunArticleSearch}
                   title={!canRunArticleSearch ? t("vehicles.articleSearch.missingInput") : undefined}
                 >
                   <PackageSearch size={15} aria-hidden="true" />
@@ -181,26 +186,28 @@ export function VehicleModelTab({
             )}
 
             <div className="form-row">
-              <label>
-                {t("vehicle.field.inventoryNumber")}
-                <input value={form.inventoryNumber || ""} onChange={(event) => onUpdate({ inventoryNumber: event.target.value })} disabled={readonly} placeholder={t("vehicles.inventoryNumberAuto")} />
-              </label>
+              {!hideInventoryNumber && (
+                <label>
+                  {t("vehicle.field.inventoryNumber")}
+                  <input value={form.inventoryNumber || ""} onChange={(event) => onUpdate({ inventoryNumber: event.target.value })} disabled={readonly} placeholder={t("vehicles.inventoryNumberAuto")} />
+                </label>
+              )}
               <label>
                 {t("vehicle.field.articleNumber")}
-                <input value={form.articleNumber || ""} onChange={(event) => onUpdate({ articleNumber: event.target.value })} disabled={readonly} />
+                <input value={form.articleNumber || ""} onChange={(event) => onUpdate({ articleNumber: event.target.value })} disabled={sharedReadonly} />
               </label>
             </div>
 
             <div className="form-row">
               <label className={ecosFieldClass("manufacturer")}>
                 <RequiredLabel label={t("vehicle.field.manufacturer")} filled={Boolean(compactValue(form.manufacturer))} showError={showRequiredErrors} />
-                <AppSelect value={form.manufacturer} onChange={(event) => onUpdate({ manufacturer: event.target.value })} disabled={readonly} required>
+                <AppSelect value={form.manufacturer} onChange={(event) => onUpdate({ manufacturer: event.target.value })} disabled={sharedReadonly} required>
                   {selectOptions(options.manufacturers, form.manufacturer, t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
               <label className={ecosFieldClass("gauge")}>
                 <RequiredLabel label={t("vehicle.field.gauge")} filled={Boolean(compactValue(form.gauge))} showError={showRequiredErrors} />
-                <AppSelect value={form.gauge} onChange={(event) => onUpdate({ gauge: event.target.value })} disabled={readonly} required>
+                <AppSelect value={form.gauge} onChange={(event) => onUpdate({ gauge: event.target.value })} disabled={sharedReadonly} required>
                   {selectOptions(options.gauges, form.gauge, t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
@@ -214,13 +221,13 @@ export function VehicleModelTab({
             <div className="form-row">
               <label>
                 {t("vehicle.field.railwayCompany")}
-                <AppSelect value={form.railwayCompany || ""} onChange={(event) => onUpdate({ railwayCompany: event.target.value })} disabled={readonly}>
+                <AppSelect value={form.railwayCompany || ""} onChange={(event) => onUpdate({ railwayCompany: event.target.value })} disabled={sharedReadonly}>
                   {selectOptions(options.railwayCompanies, form.railwayCompany || "")}
                 </AppSelect>
               </label>
               <label>
                 {t("vehicle.field.epoch")}
-                <AppSelect value={form.epoch || ""} onChange={(event) => onUpdate({ epoch: event.target.value })} disabled={readonly}>
+                <AppSelect value={form.epoch || ""} onChange={(event) => onUpdate({ epoch: event.target.value })} disabled={sharedReadonly}>
                   {selectOptions(options.epochs, form.epoch || "")}
                 </AppSelect>
               </label>
@@ -229,13 +236,13 @@ export function VehicleModelTab({
             <div className="form-row">
               <label className={ecosFieldClass("category")}>
                 <RequiredLabel label={t("vehicle.field.category")} filled={Boolean(compactValue(form.category))} showError={showRequiredErrors} />
-                <AppSelect value={form.category || ""} onChange={(event) => onUpdateCategory(event.target.value)} disabled={readonly} required>
+                <AppSelect value={form.category || ""} onChange={(event) => onUpdateCategory(event.target.value)} disabled={sharedReadonly} required>
                   {selectOptions(options.categories, form.category || "", t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
               <label className={ecosFieldClass("gattung")}>
                 <RequiredLabel label={t("vehicle.field.gattung")} filled={Boolean(compactValue(form.gattung))} showError={showRequiredErrors} />
-                <AppSelect value={form.gattung || ""} onChange={(event) => onUpdate({ gattung: event.target.value })} disabled={readonly || filteredGattungen.length === 0} required>
+                <AppSelect value={form.gattung || ""} onChange={(event) => onUpdate({ gattung: event.target.value })} disabled={sharedReadonly || filteredGattungen.length === 0} required>
                   {selectOptions(filteredGattungen, form.gattung || "", t("vehicles.select.placeholder"))}
                 </AppSelect>
               </label>
@@ -243,7 +250,7 @@ export function VehicleModelTab({
 
             <label>
               {t("vehicle.field.description")}
-              <textarea value={form.description || ""} onChange={(event) => onUpdate({ description: event.target.value })} disabled={readonly} rows={4} />
+              <textarea value={form.description || ""} onChange={(event) => onUpdate({ description: event.target.value })} disabled={sharedReadonly} rows={4} />
             </label>
 
             <div className="form-row">
@@ -342,15 +349,15 @@ export function VehicleModelTab({
             <div className="form-row three-columns">
               <label>
                 EAN-Nr.
-                <input value={form.ean || ""} onChange={(event) => onUpdate({ ean: event.target.value })} disabled={readonly} />
+                <input value={form.ean || ""} onChange={(event) => onUpdate({ ean: event.target.value })} disabled={sharedReadonly} />
               </label>
               <label>
                 {t("vehicle.field.productionPeriod")}
-                <input value={form.productionPeriod || ""} onChange={(event) => onUpdate({ productionPeriod: event.target.value })} disabled={readonly} placeholder="TT. MM. JJJJ" />
+                <input value={form.productionPeriod || ""} onChange={(event) => onUpdate({ productionPeriod: event.target.value })} disabled={sharedReadonly} placeholder="TT. MM. JJJJ" />
               </label>
               <label>
                 {t("vehicle.field.listPrice")}
-                <input value={form.listPrice || ""} onChange={(event) => onUpdate({ listPrice: event.target.value })} disabled={readonly} inputMode="decimal" />
+                <input value={form.listPrice || ""} onChange={(event) => onUpdate({ listPrice: event.target.value })} disabled={sharedReadonly} inputMode="decimal" />
               </label>
             </div>
           </div>
@@ -387,6 +394,7 @@ export function VehicleModelTab({
             <VehicleOwnershipFields
               form={form}
               readonly={readonly}
+              sharedFieldsReadonly={sharedFieldsReadonly}
               update={onUpdate}
             />
           </div>

@@ -7,6 +7,28 @@ import { VehicleModelTab } from "./VehicleModelTab";
 import { createVehicleInventoryRenderers } from "./vehicleInventoryRenderers";
 
 describe("VehicleModelTab operational fields", () => {
+  it("locks shared set fields while leaving member fields editable", () => {
+    render(
+      <VehicleModelTab
+        {...({
+          form: { ...emptyVehicle, manufacturer: "Roco", articleNumber: "123", name: "Wagen" },
+          externalMappings: [], readonly: false, sharedFieldsReadonly: true,
+          articleSearchLoading: false, canRunArticleSearch: true,
+          options: { manufacturers: [], gauges: [], epochs: [], railwayCompanies: [], categories: [], gattungen: [], symbols: [], categoryRelations: [] },
+          filteredGattungen: [], openSections: { model: true, details: false, vehicle: false },
+          selectOptions: () => <option value="" />, ecosFieldClass: () => "", showRequiredErrors: false,
+          onToggleSection: vi.fn(), onOpenBarcodeSearch: vi.fn(), onRunArticleSearch: vi.fn(),
+          onUpdate: vi.fn(), onUpdateCategory: vi.fn(), onOpenQr: vi.fn(), canOpenQr: false,
+          onUpdateCouplingFront: vi.fn(), onUpdateCouplingSame: vi.fn()
+        })}
+      />
+    );
+
+    expect(screen.getByRole("textbox", { name: "Artikel-Nr." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Hersteller" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Bezeichnung" })).toBeEnabled();
+  });
+
   it("renders speed and home base directly as constrained model inputs", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();

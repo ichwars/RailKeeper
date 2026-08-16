@@ -24,6 +24,12 @@ func (s *VehicleService) Delete(ctx context.Context, id, actorUserID string) err
 			_ = tx.Rollback()
 		}
 	}()
+	var vehicleSetID sql.NullString
+	if err = tx.QueryRowContext(ctx, `
+SELECT vehicle_set_id FROM vehicle_set_members WHERE vehicle_id=?
+`, id).Scan(&vehicleSetID); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("read vehicle set membership: %w", err)
+	}
 
 	result, err := tx.ExecContext(ctx, `DELETE FROM vehicles WHERE id=?`, id)
 	if err != nil {
@@ -37,6 +43,14 @@ func (s *VehicleService) Delete(ctx context.Context, id, actorUserID string) err
 	if affected == 0 {
 		_ = tx.Rollback()
 		return ErrVehicleNotFound
+	}
+	if vehicleSetID.Valid {
+		if _, err = tx.ExecContext(ctx, `
+DELETE FROM vehicle_sets
+WHERE id=? AND NOT EXISTS (SELECT 1 FROM vehicle_set_members WHERE vehicle_set_id=?)
+`, vehicleSetID.String, vehicleSetID.String); err != nil {
+			return fmt.Errorf("delete empty vehicle set: %w", err)
+		}
 	}
 
 	if _, err = tx.ExecContext(ctx, `
@@ -82,9 +96,13 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
        COALESCE(traction_tire_count, ''), COALESCE(wheelset, ''),
        coupling_same, COALESCE(coupling_front, ''), COALESCE(coupling_rear, ''), COALESCE(power_pickup, ''), COALESCE(adapter, ''),
        drive_enabled, COALESCE(drive_description, ''), headlights_enabled, COALESCE(headlights_description, ''),
-       lighting_enabled, COALESCE(lighting_description, ''), sound_generator_enabled, COALESCE(sound_generator_description, ''),
-       smoke_generator_enabled, COALESCE(smoke_generator_description, ''), COALESCE(additional_info, ''), qr_code_enabled,
-       created_at, updated_at
+	       lighting_enabled, COALESCE(lighting_description, ''), sound_generator_enabled, COALESCE(sound_generator_description, ''),
+	       smoke_generator_enabled, COALESCE(smoke_generator_description, ''), COALESCE(additional_info, ''), qr_code_enabled,
+	       COALESCE((SELECT m.vehicle_set_id FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT s.name FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
+	       COALESCE((SELECT m.position FROM vehicle_set_members m WHERE m.vehicle_id=vehicles.id), 0),
+	       COALESCE((SELECT COUNT(*) FROM vehicle_set_members m WHERE m.vehicle_set_id=(SELECT own.vehicle_set_id FROM vehicle_set_members own WHERE own.vehicle_id=vehicles.id)), 0),
+	       created_at, updated_at
 FROM vehicles
 WHERE id=?
 `, id).Scan(
@@ -151,6 +169,10 @@ WHERE id=?
 		&vehicle.SmokeGeneratorDescription,
 		&vehicle.AdditionalInfo,
 		&qrCodeEnabled,
+		&vehicle.VehicleSetID,
+		&vehicle.VehicleSetName,
+		&vehicle.VehicleSetPosition,
+		&vehicle.VehicleSetSize,
 		&vehicle.CreatedAt,
 		&vehicle.UpdatedAt,
 	); err != nil {

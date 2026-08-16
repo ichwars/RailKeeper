@@ -77,6 +77,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/vehicles", routeAccessViewer, (*App).listVehicles, nil},
 		{http.MethodGet, "/api/v1/overview/valuation", routeAccessViewer, (*App).overviewValuation, nil},
 		{http.MethodPost, "/api/v1/vehicles", routeAccessEditor, (*App).createVehicle, nil},
+		{http.MethodPost, "/api/v1/vehicle-sets", routeAccessEditor, (*App).createVehicleSet, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}", routeAccessViewer, (*App).getVehicle, nil},
 		{http.MethodPut, "/api/v1/vehicles/{id}", routeAccessEditor, (*App).updateVehicle, nil},
 		{http.MethodDelete, "/api/v1/vehicles/{id}", routeAccessEditor, (*App).deleteVehicle, nil},

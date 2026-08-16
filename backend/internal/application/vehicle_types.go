@@ -10,6 +10,7 @@ var (
 	ErrVehicleValidation            = errors.New("vehicle validation failed")
 	ErrVehicleOperationalValidation = errors.New("vehicle operational validation failed")
 	ErrVehicleNotFound              = errors.New("vehicle not found")
+	ErrVehicleSetValidation         = errors.New("vehicle set validation failed")
 	ErrVehicleImageInUse            = errors.New("vehicle image in use")
 )
 
@@ -61,6 +62,10 @@ type VehicleImageLocalizer func(ctx context.Context, vehicleID string, images []
 
 type Vehicle struct {
 	ID                        string               `json:"id"`
+	VehicleSetID              string               `json:"vehicleSetId,omitempty"`
+	VehicleSetName            string               `json:"vehicleSetName,omitempty"`
+	VehicleSetPosition        int                  `json:"vehicleSetPosition,omitempty"`
+	VehicleSetSize            int                  `json:"vehicleSetSize,omitempty"`
 	InventoryNumber           string               `json:"inventoryNumber"`
 	Manufacturer              string               `json:"manufacturer"`
 	ArticleNumber             string               `json:"articleNumber,omitempty"`
@@ -133,6 +138,65 @@ type Vehicle struct {
 	ExternalMappings          []VehicleExternalMap `json:"externalMappings,omitempty"`
 	CreatedAt                 string               `json:"createdAt"`
 	UpdatedAt                 string               `json:"updatedAt"`
+}
+
+type VehicleSetInput struct {
+	Name             string `json:"name"`
+	Manufacturer     string `json:"manufacturer"`
+	ArticleNumber    string `json:"articleNumber"`
+	ArticleSourceURL string `json:"articleSourceUrl"`
+	Gauge            string `json:"gauge"`
+	Epoch            string `json:"epoch"`
+	RailwayCompany   string `json:"railwayCompany"`
+	Category         string `json:"category"`
+	Gattung          string `json:"gattung"`
+	Description      string `json:"description"`
+	EAN              string `json:"ean"`
+	ProductionPeriod string `json:"productionPeriod"`
+	ListPrice        string `json:"listPrice"`
+	AcquisitionType  string `json:"acquisitionType"`
+	AcquiredFrom     string `json:"acquiredFrom"`
+	PurchasePrice    string `json:"purchasePrice"`
+	PurchaseDate     string `json:"purchaseDate"`
+	StorageLocation  string `json:"storageLocation"`
+	StorageDetails   string `json:"storageDetails"`
+	Condition        string `json:"condition"`
+	ConditionDetails string `json:"conditionDetails"`
+	Packaging        string `json:"packaging"`
+}
+
+type CreateVehicleSetInput struct {
+	Set     VehicleSetInput      `json:"set"`
+	Members []CreateVehicleInput `json:"members"`
+}
+
+type VehicleSet struct {
+	ID               string    `json:"id"`
+	Name             string    `json:"name"`
+	Manufacturer     string    `json:"manufacturer"`
+	ArticleNumber    string    `json:"articleNumber,omitempty"`
+	ArticleSourceURL string    `json:"articleSourceUrl,omitempty"`
+	Gauge            string    `json:"gauge"`
+	Epoch            string    `json:"epoch,omitempty"`
+	RailwayCompany   string    `json:"railwayCompany,omitempty"`
+	Category         string    `json:"category"`
+	Gattung          string    `json:"gattung"`
+	Description      string    `json:"description,omitempty"`
+	EAN              string    `json:"ean,omitempty"`
+	ProductionPeriod string    `json:"productionPeriod,omitempty"`
+	ListPrice        string    `json:"listPrice,omitempty"`
+	AcquisitionType  string    `json:"acquisitionType,omitempty"`
+	AcquiredFrom     string    `json:"acquiredFrom,omitempty"`
+	PurchasePrice    string    `json:"purchasePrice,omitempty"`
+	PurchaseDate     string    `json:"purchaseDate,omitempty"`
+	StorageLocation  string    `json:"storageLocation,omitempty"`
+	StorageDetails   string    `json:"storageDetails,omitempty"`
+	Condition        string    `json:"condition,omitempty"`
+	ConditionDetails string    `json:"conditionDetails,omitempty"`
+	Packaging        string    `json:"packaging,omitempty"`
+	Members          []Vehicle `json:"members"`
+	CreatedAt        string    `json:"createdAt"`
+	UpdatedAt        string    `json:"updatedAt"`
 }
 
 type VehicleExternalMap struct {

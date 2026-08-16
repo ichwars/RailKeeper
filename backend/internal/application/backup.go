@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 16
+	backupVersion = 17
 )
 
 var (
@@ -83,7 +83,9 @@ var backupTableOrder = []string{
 	"inventory_number_schemes",
 	"file_blobs",
 	"storage_locations",
+	"vehicle_sets",
 	"vehicles",
+	"vehicle_set_members",
 	"inventory_number_history",
 	"vehicle_external_mappings",
 	"vehicle_images",
@@ -136,6 +138,8 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"file_blobs":                               {introduced: 1, required: 3},
 	"storage_locations":                        {introduced: 2, required: 2},
 	"vehicles":                                 {introduced: 1, required: 1},
+	"vehicle_sets":                             {introduced: 17, required: 17},
+	"vehicle_set_members":                      {introduced: 17, required: 17},
 	"inventory_number_history":                 {introduced: 1, required: 1},
 	"vehicle_external_mappings":                {introduced: 1, required: 3},
 	"vehicle_images":                           {introduced: 1, required: 1},

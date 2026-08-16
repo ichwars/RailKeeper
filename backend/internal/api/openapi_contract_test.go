@@ -289,6 +289,32 @@ func TestOpenAPIDocumentsCompleteAccessoryArticleHTTPContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsVehicleSetMemberRequestAndRemainingSet(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	request := openAPIIndentedBlock(t, contract, "CreateVehicleSetRequest", 4)
+	if !strings.Contains(request, `$ref: "#/components/schemas/CreateVehicleSetMemberRequest"`) {
+		t.Errorf("set members do not use their dedicated request schema: %s", request)
+	}
+	member := openAPIIndentedBlock(t, contract, "CreateVehicleSetMemberRequest", 4)
+	if strings.Contains(member, "required: [manufacturer") {
+		t.Errorf("member schema incorrectly requires shared set data: %s", member)
+	}
+	for _, field := range []string{"inventoryNumber:", "name:", "vehicleNumber:", "images:"} {
+		if !strings.Contains(member, field) {
+			t.Errorf("member schema is missing %s: %s", field, member)
+		}
+	}
+	vehicle := openAPIIndentedBlock(t, contract, "Vehicle", 4)
+	setSizeStart := strings.Index(vehicle, "vehicleSetSize:")
+	if setSizeStart < 0 || !strings.Contains(vehicle[setSizeStart:], "minimum: 1") {
+		t.Errorf("vehicleSetSize does not allow a one-member remainder: %s", vehicle)
+	}
+}
+
 func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

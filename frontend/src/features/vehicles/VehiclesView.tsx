@@ -15,6 +15,11 @@ import {
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import {
+  vehicleSetInputFromForm,
+  vehicleSetMembersFromForm,
+  type VehicleSetMemberDraft
+} from "./VehicleCreateWizard";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
@@ -593,7 +598,7 @@ export function VehiclesView({ username }: { username: string }) {
   useEffect(() => {
     if (!quickMenuVehicleID) return;
     const closeOnPointerDown = (event: PointerEvent) => {
-      if (event.target instanceof Element && event.target.closest(".quick-menu-wrap")) {
+      if (event.target instanceof Element && event.target.closest(".quick-menu-wrap, .quick-menu")) {
         return;
       }
       setQuickMenuVehicleID("");
@@ -672,6 +677,30 @@ export function VehiclesView({ username }: { username: string }) {
     onMessage: setMessage,
     t
   });
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[]) => {
+    setSaving(true);
+    setMessage("");
+    try {
+      const created = await api.createVehicleSet({
+        set: vehicleSetInputFromForm(form),
+        members: vehicleSetMembersFromForm(form, members, pendingArticleImages)
+      });
+      const firstMember = created.members[0];
+      if (firstMember) {
+        setSelectedDetail(firstMember);
+        setMode("edit");
+        setActiveTab("model");
+      } else {
+        closeModal();
+      }
+      await load();
+      setMessage(t("vehicles.wizard.created", { count: created.members.length }));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
+    } finally {
+      setSaving(false);
+    }
+  };
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -777,6 +806,7 @@ export function VehiclesView({ username }: { username: string }) {
           saving={saving}
           message={message}
           onSubmit={submit}
+          onSubmitSet={submitVehicleSet}
           onClose={closeModal}
           onTabChange={setActiveTab}
           onEdit={() => {
@@ -787,11 +817,13 @@ export function VehiclesView({ username }: { username: string }) {
           }}
           onQr={generateQr}
           onPreviewImage={setPreviewImage}
+          setCreationDisabled={Boolean(ecosDraft)}
           tabs={{
             model: {
               form,
               externalMappings: selected?.externalMappings || [],
               readonly,
+              sharedFieldsReadonly: Boolean(selected?.vehicleSetId),
               articleSearchLoading,
               canRunArticleSearch,
               showRequiredErrors,

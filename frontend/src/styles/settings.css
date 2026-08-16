@@ -1833,6 +1833,7 @@
 
 .master-data-panel {
   display: grid;
+  min-width: 0;
   gap: 16px;
   padding: 18px;
   border: 1px solid var(--line);
@@ -1879,6 +1880,8 @@
 .master-data-create {
   display: grid;
   grid-template-columns: minmax(140px, 1fr) minmax(220px, 1.2fr) minmax(180px, 0.8fr) auto auto;
+  min-width: 0;
+  overflow-x: auto;
   gap: 8px;
   align-items: center;
   min-height: 56px;
@@ -2009,12 +2012,14 @@
 }
 
 .master-data-table {
+  min-width: 0;
+  width: 100%;
   border: 1px solid var(--line);
   border-radius: 8px;
 }
 
 .master-data-table table {
-  overflow: hidden;
+  overflow: visible;
   min-width: 760px;
 }
 
@@ -2067,7 +2072,21 @@
 }
 
 .master-data-table .master-data-col-actions {
+  position: sticky;
+  right: 0;
+  z-index: 1;
   width: 148px;
+  background: var(--panel);
+  box-shadow: -1px 0 0 var(--line);
+}
+
+:root .master-data-table th.master-data-col-actions {
+  z-index: 2;
+  background: var(--panel-subtle);
+}
+
+:root .master-data-table tbody tr:hover .master-data-col-actions {
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel));
 }
 
 .master-data-table .muted-row,
