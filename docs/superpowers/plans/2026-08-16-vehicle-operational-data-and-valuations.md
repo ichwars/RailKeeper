@@ -520,7 +520,7 @@ git commit -m "feat: show accessory list price"
 - Create: `backend/internal/application/overview_valuation.go`
 - Create: `backend/internal/application/overview_valuation_test.go`
 
-- [ ] **Step 1: Add failing table-driven money tests**
+- [x] **Step 1: Add failing table-driven money tests**
 
 Cover these exact cases:
 
@@ -556,7 +556,7 @@ go test ./internal/application -run Money
 
 Expected: FAIL because the parser does not exist.
 
-- [ ] **Step 2: Implement the integer-cent parser**
+- [x] **Step 2: Implement the integer-cent parser**
 
 Implement `parseMoneyCents(value string) (int64, bool)` by trimming, rejecting signs other than an
 optional leading plus, identifying the decimal separator from the last `.` or `,`, validating
@@ -573,7 +573,7 @@ func formatMoneyCents(cents int64) string {
 
 Do not use `float64`, `strconv.ParseFloat`, or SQL casts for money.
 
-- [ ] **Step 3: Add failing valuation service tests**
+- [x] **Step 3: Add failing valuation service tests**
 
 Create fixture data that proves all rules in one test:
 
@@ -599,7 +599,7 @@ go test ./internal/application -run OverviewValuation
 
 Expected: FAIL because the service does not exist.
 
-- [ ] **Step 4: Implement the typed service and bulk reads**
+- [x] **Step 4: Implement the typed service and bulk reads**
 
 Use this public response:
 
@@ -633,13 +633,13 @@ For every query, close rows and check `rows.Err()`. Wrap errors contextually, fo
 `fmt.Errorf("calculate accessory list value: %w", err)`. Use checked integer addition and
 multiplication so corrupted or extreme values return an error rather than overflow.
 
-- [ ] **Step 5: Reuse the money parser in accessory validation**
+- [x] **Step 5: Reuse the money parser in accessory validation**
 
 Replace any temporary parser from Task 3. Accessory list-price validation must call the same exact
 parser and additionally reject formats whose normalized fraction exceeds two digits. Vehicle and
 maintenance legacy values remain read-compatible; do not rewrite them.
 
-- [ ] **Step 6: Format and rerun tests**
+- [x] **Step 6: Format and rerun tests**
 
 ```powershell
 gofmt -w internal/application/money.go internal/application/money_test.go `
@@ -650,7 +650,7 @@ go test ./internal/application -run "Money|OverviewValuation|Accessory.*ListPric
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit Task 5**
+- [x] **Step 7: Commit Task 5**
 
 ```powershell
 git add backend/internal/application/money.go `
