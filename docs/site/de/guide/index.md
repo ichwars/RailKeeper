@@ -53,6 +53,10 @@ pflegst, Sperren verwendest, DCC- und SX-Adresskonflikte löst und den Veranstal
 und JSON, die drei Bestandsausgaben, deren Rundlaufgrenzen sowie den getrennten Admin-ECoS-
 Lokabgleich.
 
+[Einstellungen](/de/guide/settings/) erklärt persönliche Vorgaben, deren Speicherung im Browser und
+Profil, die Anordnung der Seitenleiste, aktuelle Grenzen der Datums- und Druckerauswahl sowie die
+getrennten hellen und dunklen Darstellungsvarianten.
+
 ## Windows Standalone aktualisieren
 
 Unter **Einstellungen > Allgemein > Updates** nach einer neuen Version suchen. Erkennt RailKeeper

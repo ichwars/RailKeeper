@@ -51,6 +51,10 @@ entries, use locks, resolve DCC and SX address conflicts, and print the event re
 the three inventory outputs, their round-trip limits, and the separate Admin-only ECoS locomotive
 workflow.
 
+[Settings](/guide/settings/) explains personal preferences, their browser and profile persistence,
+sidebar arrangement, the current limits of date and printer choices, and the independent light and
+dark appearance variants.
+
 ## Updating Windows Standalone
 
 Open **Settings > General > Updates** and check for a newer version. When RailKeeper recognizes the

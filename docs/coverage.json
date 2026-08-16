@@ -74,7 +74,7 @@
     {
       "id": "settings-general",
       "audience": "user",
-      "status": "planned",
+      "status": "documented",
       "englishPath": "guide/settings/index.md",
       "germanPath": "de/guide/settings/index.md"
     },
