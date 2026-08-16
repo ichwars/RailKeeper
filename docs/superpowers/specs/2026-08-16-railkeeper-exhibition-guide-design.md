@@ -29,7 +29,8 @@ The section owns these stable user workflows:
 - creating, editing, locking, unlocking, and deleting exhibition lists;
 - creating, editing, and deleting exhibition entries;
 - entry owner, locomotive identity, technical, address, day, image, function, and notes fields;
-- optional inventory master-data choices available through combined roles;
+- optional inventory master-data choices available to Admin or through a Messe account combined
+  with an inventory-capable role;
 - DCC and SX address-conflict detection within the selected list;
 - day scopes for all days or selected days one through four;
 - image upload, image links, preview, replacement, and removal;
@@ -125,8 +126,8 @@ The list page documents:
 - server rejection of stale, missing, invalid, unauthorized, or locked resources;
 - refresh and retry guidance after a failed operation.
 
-The text states that an Admin role without Messe does not by itself expose the exhibition route in
-the stable UI. Administrative operation therefore requires a suitable combined role assignment.
+The text states that Admin receives direct access to the exhibition route and all list-management
+controls. Messe receives the isolated operating workspace without Admin-only list management.
 
 ## Page 3: Entries and printing
 
@@ -172,7 +173,7 @@ The page also explains:
 
 The section uses one explicit role matrix:
 
-| Capability | Messe | Messe + Admin |
+| Capability | Messe | Admin |
 | --- | --- | --- |
 | Open the exhibition workspace | Yes | Yes |
 | Read lists and entries | Yes | Yes |
@@ -183,9 +184,9 @@ The section uses one explicit role matrix:
 | Delete entries from an open list | No | Yes |
 | Delete lists | No | Yes |
 
-An account with Admin but without Messe is not described as having normal UI access to the
-workspace. Other combined roles may make general inventory master-data options available inside
-the entry dialog, but they do not replace Messe as the exhibition-workspace role.
+Admin has normal UI and server access to the workspace without an additional Messe role. A Messe
+account combined with Viewer, Editor, or Planner may receive general inventory master-data options
+inside the entry dialog, but those roles do not grant Admin-only list management.
 
 The stable UI and server route checks are both audited. Where visible controls and server authority
 differ, the guide treats the server rule as authoritative and names the stable UI limitation.
@@ -293,5 +294,5 @@ Verification includes:
 Exhibition operators can prepare and use a list without entering the general inventory workspace.
 They know which list they are changing, whether it is open, which operating details belong to each
 locomotive, how address conflicts are prevented, and how to produce a useful printed report.
-Administrators understand that list management requires a Messe-capable account plus Admin and can
-lock or remove lists without obscuring the effect on entry maintenance.
+Administrators understand their direct access and can manage, lock, or remove lists without
+obscuring the effect on entry maintenance.

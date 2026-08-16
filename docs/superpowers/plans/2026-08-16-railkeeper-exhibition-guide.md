@@ -44,7 +44,7 @@ checks for every English and German page.
 ## Plan basis and readiness
 
 **Aegis Visibility:** Planning is useful because six new pages must remain semantically paired
-while describing combined roles, list locks, duplicate addresses, entry persistence, and print
+while describing Messe and Admin roles, list locks, duplicate addresses, entry persistence, and print
 behavior without leaking planned administration or later-development behavior.
 
 **BaselineUsageDraft:**
@@ -125,7 +125,7 @@ behavior without leaking planned administration or later-development behavior.
 - Intent Lock: document every stable user-facing exhibition workflow in English and German
 - Scope Fence: documentation and navigation only, no product or API changes
 - Baseline Lock: behavior claims must resolve to tag `v0.1.17.6`
-- Approved Behavior: three-page task-oriented structure and combined-role model from the design
+- Approved Behavior: three-page task-oriented structure and role model from the corrected design
 - Owner/Contract Constraints: promote only `exhibition`; preserve all other coverage owners
 - Compatibility Boundary: do not publish planned administration, layouts, or later `main`
 - Retirement Boundary: no old path, adapter, fallback, or compatibility layer
@@ -146,7 +146,7 @@ behavior without leaking planned administration or later-development behavior.
 - Keep English and German pages in the same semantic section order.
 - Use exact UI labels from the matching stable locale.
 - State whether each operation changes dialog state, writes immediately, or only reads data.
-- Treat Messe as the workspace role and Messe plus Admin as the list-management combination.
+- Treat Messe as the isolated operating role and Admin as the direct list-management role.
 - State confirmations, lock effects, failed-refresh behavior, and recovery precisely.
 - Do not document role assignment, master-data administration, backup operation, deployment, or
   the layout workspace as published in this chapter.
@@ -280,7 +280,7 @@ lastReviewed: 2026-08-16
 ## Documented RailKeeper version
 ```
 
-Include the confirmed role combination, two-panel relationship, sort defaults, action visibility,
+Include the confirmed Messe/Admin role split, two-panel relationship, sort defaults, action visibility,
 lock boundary, empty states, immediate-write boundary, and transitions to the two subpages. Keep
 field-level and list-admin detail on their focused pages.
 
@@ -333,7 +333,7 @@ git commit -m "docs: add exhibition workspace guide"
 - Create: `docs/site/guide/exhibition/lists-and-locking.md`
 - Create: `docs/site/de/guide/exhibition/lists-and-locking.md`
 
-**Why:** Combined Messe and Admin accounts need a precise preparation workflow whose lock and
+**Why:** Admin accounts need a precise preparation workflow whose lock and
 deletion effects remain predictable for operators.
 
 **Change Necessity:** The overview is intentionally a hub. This focused pair prevents Admin-only
@@ -383,7 +383,7 @@ lastReviewed: 2026-08-16
 
 # Lists and locking
 
-## Required role combination
+## Roles for operation and administration
 
 ## Create a list
 
@@ -669,7 +669,7 @@ git commit -m "docs: publish exhibition user guide"
 - Review: all task-owned files
 - Modify only when a verified finding requires correction
 
-**Why:** A polished guide is unsafe if it misstates combined roles, lock effects, required fields,
+**Why:** A polished guide is unsafe if it misstates roles, lock effects, required fields,
 address conflicts, persistence, deletion, or print behavior.
 
 **Change Necessity:** Review edits are allowed only for evidence-backed documentation defects and
@@ -760,7 +760,7 @@ Use `aegis:requesting-code-review` for a read-only review of `origin/main...HEAD
 
 1. Does every behavior claim match `v0.1.17.6` rather than later `main`?
 2. Are English and German semantically equivalent and UI labels exact?
-3. Is Messe versus Messe plus Admin authority exact in UI and server routes?
+3. Is Messe versus Admin authority exact in UI and server routes?
 4. Are list locks applied to create, update, and delete entry operations correctly?
 5. Are required fields, day normalization, and duplicate address comparisons exact?
 6. Are image and function edits correctly described as form state until entry save?
@@ -826,7 +826,7 @@ Preserve the completed worktree for traceability unless the user later requests 
 | Risk | Mitigation |
 | --- | --- |
 | Later `main` behavior leaks into stable docs | Resolve every claim against `v0.1.17.6`. |
-| Admin alone is described as workspace-capable | State the stable Messe route requirement and combined role. |
+| Admin is incorrectly described as needing Messe | State Admin's stable direct UI and server access. |
 | Locked lists appear partially writable | Audit all entry mutations in UI and application service. |
 | Pure Messe appears to access general inventory | Explain the isolated master-data boundary exactly. |
 | Duplicate warnings are described as advisory | Verify and state their save-blocking behavior. |
