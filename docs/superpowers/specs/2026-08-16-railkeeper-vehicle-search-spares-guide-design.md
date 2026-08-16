@@ -233,7 +233,8 @@ and retry only missing URLs.
 
 Every stored attachment has **Extract spare parts**. The action first saves that attachment's
 currently edited description, category, and maintenance link. It then asks the server to analyze
-the selected attachment, switches to **Spare parts**, and reloads the vehicle.
+the selected attachment and creates the accepted suggestions. Only after the complete sequence
+succeeds does it reload the vehicle and switch to **Spare parts**.
 
 Extraction requires a saved vehicle article number. The server reads at most 12 MiB from the chosen
 attachment and returns at most 80 unique suggestions. Likely spare-parts PDFs, manuals, service
@@ -245,7 +246,8 @@ The stable extraction action has no confirmation or row preview. It cleans descr
 empty or document-title-like rows, removes duplicates already stored on the vehicle, and creates
 every remaining candidate sequentially. Attachment metadata and earlier spare parts remain stored
 if a later request fails. A source URL that points back to RailKeeper's own attachment download is
-not stored as the spare part's external link.
+not stored as the spare part's external link. The normal reload and tab switch do not occur after a
+failure.
 
 ## Maintain spare parts manually
 

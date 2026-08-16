@@ -30,7 +30,8 @@ therefore use different settings.
 
 The default sources are manufacturer sites, Modellbahn-Fokus catalogs, dealer sites, and general
 web search. Modellbau Wiki is an optional fifth source. Normal article and document searches
-require:
+require the values below. RailKeeper migrates recognized legacy default-source combinations to the
+current defaults when it reads the browser preference.
 
 - manufacturer;
 - gauge;
@@ -148,7 +149,8 @@ compare the attachment list, and retry only missing URLs.
 
 Every stored attachment offers **Extract spare parts**. The action first saves that selected
 attachment's current description, category, and maintenance link. It then analyzes only this
-attachment, switches to **Spare parts**, and reloads the vehicle.
+attachment and creates the accepted suggestions. Only after the complete sequence succeeds does
+RailKeeper reload the vehicle and switch to **Spare parts**.
 
 Extraction requires a saved vehicle article number. The server reads at most 12 MiB from the
 attachment and returns at most 80 unique suggestions. Likely spare-parts PDFs, manuals, service
@@ -161,8 +163,9 @@ document-title-like rows, removes duplicates already stored on the vehicle, and 
 remaining candidate sequentially. A source URL pointing back to RailKeeper's own attachment
 download is not stored as an external spare-part link.
 
-Attachment metadata and earlier spare parts remain stored if a later create request fails. Reload
-the vehicle and compare its attachment and spare-part data before retrying.
+Attachment metadata and earlier spare parts remain stored if a later request fails. The normal
+reload and tab switch then do not occur. Reload the vehicle manually and compare its attachment and
+spare-part data before retrying.
 
 ## Maintain spare parts manually
 

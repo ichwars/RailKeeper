@@ -8,10 +8,14 @@
 - Isolated worktree created from current `origin/main` on branch
   `dev/docs-user-guide-search-spares`.
 - Baseline documentation check is green.
+- Bilingual chapter, coverage, sidebars, landing transitions, and published cross-links are
+  implemented and committed.
+- Stable-source audit and independent read-only review are complete with no remaining finding.
 
 ## Active slice
 
-Obtain the execution-method selection for the committed implementation plan.
+Commit the review corrections, run fresh exact-head verification, then publish through a guarded
+pull request.
 
 ## Todo map
 
@@ -20,8 +24,8 @@ Obtain the execution-method selection for the committed implementation plan.
 - [x] Present alternatives and obtain design approval.
 - [x] Commit and obtain user review of the written specification.
 - [x] Write and commit the detailed implementation plan.
-- [ ] Implement coverage, paired pages, navigation, and cross-links.
-- [ ] Verify, independently review, correct, and re-review.
+- [x] Implement coverage, paired pages, navigation, and cross-links.
+- [x] Verify, independently review, correct, and re-review.
 - [ ] Push, open PR, await exact-head checks, merge, and verify publication.
 
 ## Evidence refs
@@ -34,7 +38,7 @@ Obtain the execution-method selection for the committed implementation plan.
 
 ## Blocked on
 
-User selection between subagent-driven and inline execution.
+Nothing. Publication can continue after the correction commit and fresh local check.
 
 ## Resume state hint
 
@@ -49,5 +53,8 @@ and current worktree status. Do not resume from the dirty local `main` checkout.
 - New runtime owner or adapter introduced: no.
 - Plan covers every approved workflow, persistence boundary, recovery case, role, coverage change,
   navigation change, source audit, review gate, and exact-head publication gate: yes.
-- Evidence sufficient for execution selection: yes.
-- Decision: await execution selection.
+- Independent review disposition: three Minor findings corrected, focused re-review found no
+  remaining issue.
+- Evidence sufficient for publication: yes, after committing corrections and fresh exact-head
+  verification.
+- Decision: continue to publication gate.

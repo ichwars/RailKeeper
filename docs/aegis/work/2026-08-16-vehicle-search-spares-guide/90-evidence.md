@@ -29,3 +29,12 @@
 Design discussion, written-spec self-review, and written-spec user review completed. The detailed
 implementation plan passed a spec-coverage, placeholder, type/name, line-hygiene, and scope review.
 `npm.cmd run check` passed again with 19 tests, coverage validation, and the VitePress build.
+
+Implementation commits added the paired chapter and coverage, then navigation and cross-links.
+Stable-source audit confirmed search, camera, remote import, extraction, spare-part, role, and
+backup behavior against `v0.1.17.6`.
+
+Independent read-only review found no Critical or Important issue. Three Minor findings were
+corrected: legacy source-default migration, extraction success/failure refresh and tab timing, and
+clear German wording for trimmed whitespace. Focused re-review reported no remaining finding and
+declared the branch ready after commit and fresh verification.

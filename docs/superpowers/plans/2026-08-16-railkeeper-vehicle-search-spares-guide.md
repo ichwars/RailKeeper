@@ -180,7 +180,8 @@ Web documents
 
 Attachment extraction
 - Extract spare parts first saves the selected attachment metadata, then analyzes only that
-  attachment, switches tabs, and reloads the vehicle.
+  attachment and creates accepted suggestions. Only full success reloads the vehicle and switches
+  tabs. A failure skips both final actions.
 - A saved vehicle article number is required.
 - Analysis reads at most 12 MiB and returns at most 80 unique suggestions.
 - PDFs use direct text first; optional OCR may help scanned PDFs.

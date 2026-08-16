@@ -32,7 +32,8 @@ verwenden.
 
 Die Standardquellen sind Herstellerseiten, Modellbahn-Fokus-Kataloge, Händlerseiten und die
 allgemeine Websuche. Modellbau Wiki ist eine optionale fünfte Quelle. Normale Artikel- und
-Dokumentsuchen benötigen:
+Dokumentsuchen benötigen die folgenden Werte. RailKeeper migriert erkannte ältere
+Standardkombinationen beim Lesen der Browsereinstellung auf die aktuellen Vorgaben.
 
 - Hersteller;
 - Spurweite;
@@ -159,7 +160,8 @@ nur fehlende URLs.
 
 Jede gespeicherte Beilage bietet **Ersatzteile extrahieren**. Die Aktion speichert zuerst die
 aktuelle Beschreibung, Kategorie und Wartungsverknüpfung dieser ausgewählten Beilage. Danach wird
-nur diese Beilage analysiert, zu **Ersatzteile** gewechselt und das Fahrzeug neu geladen.
+nur diese Beilage analysiert und die akzeptierten Vorschläge werden erstellt. Erst nach Erfolg der
+gesamten Folge lädt RailKeeper das Fahrzeug neu und wechselt zu **Ersatzteile**.
 
 Die Extraktion benötigt eine gespeicherte Fahrzeug-Artikelnummer. Der Server liest höchstens
 12 MiB aus der Beilage und liefert höchstens 80 eindeutige Vorschläge. Wahrscheinliche
@@ -174,8 +176,8 @@ und erstellt alle verbleibenden Kandidaten nacheinander. Eine Quell-URL zur inte
 RailKeeper-Beilagenadresse wird nicht als externer Ersatzteillink gespeichert.
 
 Beilagenmetadaten und früher erstellte Ersatzteile bleiben gespeichert, wenn eine spätere Anfrage
-fehlschlägt. Lade das Fahrzeug neu und vergleiche Beilage und Ersatzteile vor einem erneuten
-Versuch.
+fehlschlägt. Das normale Neuladen und der Tabwechsel bleiben dann aus. Lade das Fahrzeug manuell
+neu und vergleiche Beilage und Ersatzteile vor einem erneuten Versuch.
 
 ## Ersatzteile manuell pflegen
 
@@ -183,9 +185,9 @@ Der Tab **Ersatzteile** kann beschrieben werden, sobald das Fahrzeug existiert. 
 Artikelnummer, Beschreibung, Preis als freien Text und externen Link. Mindestens Artikelnummer,
 Beschreibung oder Link ist erforderlich. Ein Preis allein ist ungültig.
 
-Neue und geänderte Werte werden außen bereinigt. Anfangs ist die Tabelle aufsteigend nach
-Artikelnummer sortiert. Wähle eine Spaltenüberschrift, um Artikelnummer, Beschreibung, Preis oder
-Link auf- oder absteigend zu sortieren.
+Bei neuen und geänderten Werten werden führende und nachgestellte Leerzeichen entfernt. Anfangs ist
+die Tabelle aufsteigend nach Artikelnummer sortiert. Wähle eine Spaltenüberschrift, um
+Artikelnummer, Beschreibung, Preis oder Link auf- oder absteigend zu sortieren.
 
 Das Erstellen eines Ersatzteils mit vorhandener Identität aktualisiert die passende Zeile, statt
 eine weitere anzulegen. Die Identität verwendet zuerst die normalisierte Artikelnummer, sonst die
