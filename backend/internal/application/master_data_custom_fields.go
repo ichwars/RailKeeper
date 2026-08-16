@@ -73,48 +73,6 @@ WHERE type=? AND key=?
 	return s.Get(ctx, accessoryCustomField, key)
 }
 
-func (s *MasterDataService) deleteAccessoryCustomField(ctx context.Context, key string) error {
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin custom field delete: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
-		return err
-	}
-	var referenced bool
-	if err := tx.QueryRowContext(ctx, `
-SELECT EXISTS(
-    SELECT 1
-    FROM accessory_product_attributes attributes
-    JOIN accessory_products products ON products.id=attributes.product_id
-    WHERE attributes.attribute_key=? AND products.article_type=?
-)
-`, key, domain.AccessoryArticleOther).Scan(&referenced); err != nil {
-		return fmt.Errorf("check custom field references: %w", err)
-	}
-	if referenced {
-		return fmt.Errorf("%w: referenced custom field %q cannot be deleted", ErrMasterDataValidation, key)
-	}
-	result, err := tx.ExecContext(ctx, `DELETE FROM master_data_entries WHERE type=? AND key=?`,
-		accessoryCustomField, key)
-	if err != nil {
-		return fmt.Errorf("delete master data: %w", err)
-	}
-	affected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("read master data delete result: %w", err)
-	}
-	if affected == 0 {
-		return ErrMasterDataNotFound
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit custom field delete: %w", err)
-	}
-	s.invalidateCache()
-	return nil
-}
-
 func validateImportedAccessoryCustomFieldReferences(
 	ctx context.Context,
 	tx *sql.Tx,
