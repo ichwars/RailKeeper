@@ -1,7 +1,8 @@
 # RailKeeper Vehicle Search and Spare Parts Guide Design
 
-Date: 2026-08-16  
-Status: Approved in conversation  
+Date: 2026-08-16
+
+Status: Approved in conversation
 Documented release: `v0.1.17.6`
 
 ## Objective
