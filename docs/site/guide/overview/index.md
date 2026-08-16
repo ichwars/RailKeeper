@@ -150,8 +150,10 @@ Creating, importing, or changing vehicles requires the Admin or Editor role.
 5. Return to **Overview** and use refresh to recalculate the dashboard.
 
 For an article-number, EAN, or decoder gap, clearing the active quality-filter pill removes the gap
-parameter from the browser address. **Clear filters** also removes it for every gap. Other manual
-filter changes leave the original gap active and retain the parameter.
+parameter from the browser address. Changes in other filter groups leave that quality gap active and
+retain the parameter. For **Without main image**, selecting another inventory filter replaces the
+active image gap but leaves the now-stale `gap=no-main-image` parameter in the address. **Clear
+filters** removes the parameter for every gap.
 
 ## Arrange the dashboard
 
