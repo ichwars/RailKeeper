@@ -112,8 +112,9 @@ wird aus der Auswahl entfernt.
 
 Öffne die Quelle und vergleiche die Artikelidentität, bevor du etwas auswählst. Prüfe Konflikte und
 Plausibilität über alle Feldgruppen. **Ausgewählte Felder übernehmen** überträgt anschließend nur
-markierte, gültige Felder dieses Ergebnisses. Wahrheitswerte werden in die stabile RailKeeper-
-Darstellung umgewandelt. Ausgewählte Bilder werden als vorgemerkte externe Bilder geführt. Ist
+markierte, gültige Felder dieses Ergebnisses. Wahrheitswerte werden in die stabile
+RailKeeper-Darstellung umgewandelt. Ausgewählte Bilder werden als vorgemerkte externe Bilder
+geführt. Ist
 noch kein Bild vorgemerkt, wird das erste ausgewählte Bild zum Kandidaten für das Hauptbild.
 
 Die Übernahme schließt den Ergebnisdialog, schreibt aber nichts auf den Server. Prüfe das gesamte
