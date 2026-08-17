@@ -6,6 +6,25 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.19.1] - 2026-08-17
+
+### Geändert
+
+- Der dreistufige Dialog zur Fahrzeuganlage folgt jetzt dem abgestimmten kompakten Desktop- und
+  Mobil-Layout. Dazu gehören eine klarere Schrittnavigation, dezente Aktionen, responsive
+  Suchtreffer und eine fokussierte Prüfung übernommener Artikeldaten.
+- Sets erhalten eine dauerhaft gespeicherte, automatisch vergebene `RK-SET`-Inventarnummer und
+  erscheinen in Tabellen-, Karten- und Mobilansicht als übergeordnete Zeile mit sortierten Wagen.
+
+### Behoben
+
+- Die Setanlage bewahrt geprüfte Artikelfelder und Bilder, validiert jeden Wagen, trennt Entwürfe
+  anhand des exakten Benutzernamens und beachtet die konfigurierten Quellen der Artikelsuche.
+- Gruppierung, Sortierung, optionale Spalten, gefilterter Mitgliederzugriff, Duplizieren, Bearbeiten,
+  Löschen, Wiederherstellung und Bestandsbewertung bleiben auch bei Teil- und Altdaten konsistent.
+- Kompakte Aktionen, Vorschaubild-Platzhalter, Spaltenausrichtung, Suchfeldbreite, Hierarchielinien
+  und schmale Ansichten entsprechen jetzt dem abgestimmten Bestandslayout.
+
 ## [0.1.19] - 2026-08-16
 
 ### Hinzugefügt
@@ -255,6 +274,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1
 [0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6
