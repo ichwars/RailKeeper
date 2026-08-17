@@ -4,6 +4,7 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
+  ImageOff,
   Pencil,
   Trash2
 } from "lucide-react";
@@ -85,15 +86,31 @@ export function VehicleInventoryTable({
   };
 
 	const cell = (vehicle: Vehicle, column: VehicleTableColumn, setMember = false) => {
-		if (column === "type") return <span className="vehicle-type-badge">{t("vehicles.set.vehicleType")}</span>;
-		if (column === "inventoryNumber" && setMember) {
-			return <span className="vehicle-member-inventory"><strong>{vehicle.inventoryNumber}</strong>{vehicle.vehicleNumber && <small>{vehicle.vehicleNumber}</small>}</span>;
+		if (column === "type") {
+			const image = primaryImage(vehicle.images);
+			return (
+				<div className="vehicle-member-type-cell">
+					{image
+						? <img className="inventory-thumb" src={previewImageUrl(image)} alt="" />
+						: <div className="image-placeholder inventory-image-placeholder"
+							aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
+							<ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />
+						</div>}
+				</div>
+			);
 		}
+		if (column === "inventoryNumber" && setMember) {
+			return <span className="vehicle-member-inventory"><strong>{vehicle.inventoryNumber}</strong></span>;
+		}
+		if (column === "articleNumber" && setMember) return vehicle.vehicleNumber || "–";
     if (column === "image") {
       const image = primaryImage(vehicle.images);
       return image
         ? <img className="inventory-thumb" src={previewImageUrl(image)} alt="" />
-        : <div className="image-placeholder">{t("exhibition.noPreview")}</div>;
+        : <div className="image-placeholder inventory-image-placeholder"
+          aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
+          <ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />
+        </div>;
     }
     if (column === "name") {
       return (
@@ -125,12 +142,13 @@ export function VehicleInventoryTable({
     return vehicleColumnText(vehicle, column, language, t);
   };
 
-  const vehicleRow = (vehicle: Vehicle, setMember = false) => (
+  const vehicleRow = (vehicle: Vehicle, setMember = false, lastSetMember = false) => (
     <tr
       key={vehicle.id}
       className={[
         selectedVehicleIDs.has(vehicle.id) ? "selected-row" : "",
-        setMember ? "vehicle-set-child-row" : ""
+        setMember ? "vehicle-set-child-row" : "",
+				lastSetMember ? "vehicle-set-child-row-last" : ""
       ].filter(Boolean).join(" ")}
     >
       <td className="select-cell">
@@ -143,7 +161,9 @@ export function VehicleInventoryTable({
           />
         </label>
       </td>
-			{columns.map((column) => <td key={column}>{cell(vehicle, column, setMember)}</td>)}
+			{columns.map((column) => (
+				<td key={column} className={`vehicle-column-${column}`}>{cell(vehicle, column, setMember)}</td>
+			))}
       <td className="actions-cell">
         <div className="table-actions">
           <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
@@ -181,7 +201,9 @@ export function VehicleInventoryTable({
                 />
               </label>
             </th>
-            {columns.map((column) => <th key={column}>{header(column)}</th>)}
+            {columns.map((column) => (
+              <th key={column} className={`vehicle-column-${column}`}>{header(column)}</th>
+            ))}
             <th className="actions-cell">{t("vehicles.actions")}</th>
           </tr>
         </thead>
@@ -204,7 +226,9 @@ export function VehicleInventoryTable({
 								onEdit={onEditSet}
 								onDuplicate={onDuplicateSet}
 							/>
-              {!collapsedSetIDs.has(group.id) && group.members.map((vehicle) => vehicleRow(vehicle, true))}
+              {!collapsedSetIDs.has(group.id) && group.members.map((vehicle, index) => (
+								vehicleRow(vehicle, true, index === group.members.length - 1)
+							))}
             </Fragment>
           ))}
         </tbody>

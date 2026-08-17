@@ -16,7 +16,6 @@ describe("vehicle table columns", () => {
   it("keeps the current desktop columns as defaults", () => {
     expect(defaultVehicleTableColumns).toEqual([
 	  "type",
-      "image",
       "inventoryNumber",
       "manufacturer",
       "articleNumber",

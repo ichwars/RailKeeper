@@ -152,7 +152,6 @@ export const vehicleTableColumns: VehicleColumnDefinition[] = vehicleTableColumn
 
 export const defaultVehicleTableColumns: VehicleTableColumn[] = [
 	"type",
-  "image",
   "inventoryNumber",
   "manufacturer",
   "articleNumber",

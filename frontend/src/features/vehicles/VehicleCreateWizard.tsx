@@ -5,6 +5,7 @@ import { api, type CreateVehicleRequest, type InventoryNumberScheme } from "../.
 import { useI18n } from "../../shared/i18n";
 import { VehicleCreateStepBasics } from "./VehicleCreateStepBasics";
 import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
+import { selectedArticleReviewCount } from "./VehicleCreateArticleReview";
 import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
@@ -110,7 +111,8 @@ export function VehicleCreateWizard({
       : saving ? t("vehicles.saving")
         : kind === "set" ? t("vehicles.wizard.createSet") : t("vehicles.createAndContinue");
   const summaries = {
-    basics: [kind === "set" ? t("vehicles.wizard.set") : t("vehicles.wizard.single"), form.manufacturer]
+    basics: [kind === "set" ? t("vehicles.wizard.set") : t("vehicles.wizard.single"),
+      form.manufacturer, form.articleNumber]
       .filter(Boolean).join(" · "),
     article: wizard.articleStage === "input" ? t("vehicles.wizard.articleInputSummary")
       : t(wizard.articleStage === "results"
@@ -118,17 +120,49 @@ export function VehicleCreateWizard({
     details: kind === "set" ? t("vehicles.set.memberCount", { count: members.length })
       : t("vehicles.wizard.singleDetailsSummary")
   };
-  const footer = (
+  const selectedReviewIndex = wizard.selectedResultIndex ?? 0;
+  const selectedReviewResult = articleSearchController.state.response?.results[selectedReviewIndex];
+  const selectedReviewCount = selectedReviewResult ? selectedArticleReviewCount(
+    selectedReviewResult,
+    selectedReviewIndex,
+    articleSearchController.state.selectedFields,
+    articleSearchController.state.selectedImages
+  ) : 0;
+  const footer = step === "article" && wizard.articleStage === "review" && selectedReviewResult ? (
+    <>
+      <button type="button" className="secondary-button vehicle-review-back-results" onClick={() => {
+        dispatch({ type: "set-article-stage", stage: "results" });
+      }}>
+        <ChevronLeft size={16} />
+        <span className="vehicle-review-label-desktop">{t("vehicles.wizard.backResults")}</span>
+        <span className="vehicle-review-label-mobile">{t("vehicles.wizard.back")}</span>
+      </button>
+      <button type="button" className="secondary-button vehicle-review-skip" onClick={() => {
+        dispatch({ type: "go-to-step", step: "details" });
+      }}>{t("vehicles.wizard.continueWithoutImport")}</button>
+      <button type="button" className="primary-button" onClick={() => {
+        articleSearchController.commands.applyResult(selectedReviewResult);
+        dispatch({ type: "go-to-step", step: "details" });
+      }}>
+        <span className="vehicle-review-label-desktop">
+          {t("vehicles.wizard.applyReviewCount", { count: selectedReviewCount })}
+        </span>
+        <span className="vehicle-review-label-mobile">
+          {t("vehicles.wizard.applyReviewCountCompact", { count: selectedReviewCount })}
+        </span>
+      </button>
+    </>
+  ) : (
     <>
       {message && <p className="form-message">{message}</p>}
       {draftMessage && <p className="form-message">{draftMessage}</p>}
-      <button type="button" className="secondary-button" onClick={() => {
+      <button type="button" className="secondary-button vehicle-wizard-back-action" onClick={back}>
+        {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
+      </button>
+      <button type="button" className="secondary-button vehicle-draft-action" onClick={() => {
         const result = saveVehicleCreateDraft(wizard);
         setDraftMessage(result.kind === "saved" ? t("vehicles.wizard.draftSaved") : t("vehicles.wizard.draftFailed"));
       }}>{t("vehicles.wizard.saveDraft")}</button>
-      <button type="button" className="secondary-button" onClick={back}>
-        {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
-      </button>
       <button type="submit" className="primary-button"
         disabled={saving || (step === "basics" && !canContinueFromBasics) ||
           (step === "details" && !canSubmitDetails)}>

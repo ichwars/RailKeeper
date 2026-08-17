@@ -21,10 +21,7 @@ export function VehicleCreateStepArticle({ state, dispatch, controller, onUpdate
 
   if (state.articleStage === "review" && selectedResult) {
     return <div className="vehicle-wizard-page"><VehicleCreateArticleReview result={selectedResult}
-      resultIndex={selectedIndex} current={state.shared} controller={controller}
-      onBack={() => dispatch({ type: "set-article-stage", stage: "results" })}
-      onContinue={continueToDetails}
-      onApply={() => { controller.commands.applyResult(selectedResult); continueToDetails(); }} /></div>;
+      resultIndex={selectedIndex} current={state.shared} controller={controller} /></div>;
   }
   if (state.articleStage === "results" && response) {
     return <div className="vehicle-wizard-page"><VehicleCreateArticleResults response={response}

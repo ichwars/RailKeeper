@@ -1,9 +1,10 @@
 import { useEffect, useRef } from "react";
-import { ChevronDown, ChevronUp, Copy, Eye, Layers3, Pencil } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, Eye, ImageOff, Pencil } from "lucide-react";
 
 import { useI18n } from "../../shared/i18n";
 import type { VehicleInventorySetGroup } from "./vehicleSetGroups";
 import type { VehicleTableColumn } from "./vehicleTableColumns";
+import { previewImageUrl, primaryImage } from "./vehicleTransforms";
 
 type VehicleSetInventoryRowProps = {
 	group: VehicleInventorySetGroup;
@@ -32,6 +33,7 @@ export function VehicleSetInventoryRow({
 	const checkboxRef = useRef<HTMLInputElement | null>(null);
 	const memberIDs = group.members.map((member) => member.id);
 	const selectedCount = memberIDs.filter((id) => selectedVehicleIDs.has(id)).length;
+	const setPreviewImage = group.members.map((member) => primaryImage(member.images)).find(Boolean);
 
 	useEffect(() => {
 		if (checkboxRef.current) {
@@ -47,8 +49,12 @@ export function VehicleSetInventoryRow({
 						aria-expanded={!collapsed} aria-label={collapsed ? t("vehicles.set.expand") : t("vehicles.set.collapse")}>
 						{collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
 					</button>
-					<span className="vehicle-type-badge set"><Layers3 size={14} />{t("vehicles.set.type")}</span>
-					{group.set.acquisitionType && <small>{group.set.acquisitionType}</small>}
+					{setPreviewImage
+						? <img className="inventory-thumb" src={previewImageUrl(setPreviewImage)} alt="" />
+						: <div className="image-placeholder inventory-image-placeholder"
+							aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
+							<ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />
+						</div>}
 				</div>
 			);
 		}
@@ -86,7 +92,9 @@ export function VehicleSetInventoryRow({
 						aria-label={`${group.set.inventoryNumber} ${t("vehicles.report.selectVehicle")}`} />
 				</label>
 			</td>
-			{columns.map((column) => <td key={column}>{cell(column)}</td>)}
+			{columns.map((column) => (
+				<td key={column} className={`vehicle-column-${column}`}>{cell(column)}</td>
+			))}
 			<td className="actions-cell">
 				<div className="table-actions">
 					<button type="button" className="icon-button" onClick={() => onOpen(group.id)} aria-label={t("exhibition.view")}><Eye size={16} /></button>

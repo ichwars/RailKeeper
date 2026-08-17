@@ -110,8 +110,15 @@
 }
 
 .vehicle-inventory-table {
+  width: 100%;
+  min-width: 850px;
+  table-layout: fixed;
+}
+
+.vehicle-inventory-table:has(thead th:nth-child(11)) {
   width: max-content;
   min-width: 100%;
+  table-layout: auto;
 }
 
 .vehicle-inventory-table th,
@@ -135,6 +142,88 @@
 
 .vehicle-inventory-table td.actions-cell {
   overflow: visible;
+}
+
+.vehicle-inventory-table .select-cell {
+  width: 42px;
+}
+
+.vehicle-inventory-table th.select-cell,
+.vehicle-inventory-table td.select-cell {
+  padding-left: 10px;
+}
+
+.vehicle-inventory-table td.select-cell {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.vehicle-inventory-table .table-select-field input {
+  margin: 0;
+}
+
+.vehicle-inventory-table .actions-cell {
+  width: 122px;
+}
+
+.vehicle-inventory-table .vehicle-column-type {
+  width: 118px;
+}
+
+.vehicle-inventory-table .vehicle-column-inventoryNumber {
+  width: 146px;
+}
+
+.vehicle-inventory-table .vehicle-column-manufacturer {
+  width: 110px;
+}
+
+.vehicle-inventory-table .vehicle-column-articleNumber {
+  width: 112px;
+}
+
+.vehicle-inventory-table .vehicle-column-name {
+  width: 146px;
+}
+
+.vehicle-inventory-table .vehicle-column-gauge {
+  width: 104px;
+}
+
+.vehicle-inventory-table .vehicle-column-epoch {
+  width: 84px;
+}
+
+.vehicle-inventory-table .vehicle-column-exhibition {
+  width: 104px;
+}
+
+.vehicle-inventory-table .vehicle-column-type,
+.vehicle-inventory-table .vehicle-column-inventoryNumber,
+.vehicle-inventory-table .vehicle-column-manufacturer,
+.vehicle-inventory-table .vehicle-column-articleNumber,
+.vehicle-inventory-table .vehicle-column-gauge,
+.vehicle-inventory-table .vehicle-column-epoch,
+.vehicle-inventory-table .vehicle-column-exhibition {
+  text-align: center;
+}
+
+.vehicle-inventory-table th.vehicle-column-inventoryNumber .sort-button,
+.vehicle-inventory-table th.vehicle-column-manufacturer .sort-button,
+.vehicle-inventory-table th.vehicle-column-articleNumber .sort-button,
+.vehicle-inventory-table th.vehicle-column-gauge .sort-button,
+.vehicle-inventory-table th.vehicle-column-epoch .sort-button {
+  justify-content: center;
+  width: 100%;
+}
+
+.vehicle-inventory-table .table-actions {
+  gap: 2px;
+}
+
+.vehicle-inventory-table .table-actions .icon-button {
+  width: 28px;
+  height: 28px;
 }
 
 .vehicle-inventory-table .vehicle-set-inventory-row td {
@@ -180,6 +269,23 @@
   color: var(--accent);
 }
 
+.vehicle-member-type-cell {
+  display: grid;
+  justify-items: center;
+}
+
+.vehicle-inventory-table .vehicle-set-type-cell {
+  justify-content: center;
+}
+
+.inventory-image-placeholder svg {
+  color: color-mix(in srgb, var(--muted) 82%, var(--line-strong));
+}
+
+.vehicle-inventory-table .vehicle-set-child-row td {
+  height: 78px;
+}
+
 .vehicle-member-inventory {
   display: flex;
   align-items: flex-start;
@@ -192,23 +298,44 @@
   font-size: var(--font-size-xs);
 }
 
-.vehicle-inventory-table .vehicle-set-child-row td:first-child {
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 55%, transparent);
-}
-
-.vehicle-inventory-table .vehicle-set-child-row td:nth-child(2) {
+.vehicle-inventory-table .vehicle-set-child-row .select-cell {
   position: relative;
+  overflow: visible;
 }
 
-.vehicle-inventory-table .vehicle-set-child-row td:nth-child(2)::before {
+.vehicle-inventory-table .vehicle-set-child-row .select-cell::before {
   position: absolute;
   top: 0;
-  bottom: 50%;
-  left: 0;
-  width: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  right: auto;
+  bottom: 0;
+  left: 50%;
   border-left: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
   content: "";
+}
+
+.vehicle-inventory-table .vehicle-set-child-row-last .select-cell::before {
+  bottom: 50%;
+}
+
+.vehicle-inventory-table .vehicle-set-child-row .select-cell::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 38px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  content: "";
+}
+
+.vehicle-inventory-table .vehicle-set-child-row .select-cell .table-select-field {
+  position: relative;
+  z-index: 1;
+  transform: translateX(38px);
+}
+
+.vehicle-inventory-table .vehicle-set-child-row .vehicle-column-type {
+  overflow: visible;
+  padding-right: 4px;
+  padding-left: 40px;
 }
 
 .vehicle-inventory-table .vehicle-set-child-row .inventory-name-link {

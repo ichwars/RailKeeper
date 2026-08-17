@@ -21,9 +21,10 @@ export function VehicleCreateArticleResults({
         {response.results.map((result, index) => {
           const image = result.images?.[0];
           return (
-            <article className="vehicle-create-result-card" key={`${result.url}-${index}`}>
+            <article className={`vehicle-create-result-card ${image ? "has-image" : "without-image"}`}
+              key={`${result.url}-${index}`}>
               {image && <img src={image.url} alt="" />}
-              <div>
+              <div className="vehicle-create-result-copy">
                 <h4>{result.title}</h4>
                 <span>{result.source} · {Object.keys(result.fields).length} {t("vehicles.wizard.fields")} · {result.score}</span>
                 {result.snippet && <p>{result.snippet}</p>}

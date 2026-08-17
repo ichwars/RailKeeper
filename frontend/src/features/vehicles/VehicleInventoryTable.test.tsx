@@ -13,10 +13,16 @@ describe("VehicleInventoryTable", () => {
 		render(
 			<VehicleInventoryTable
 				vehicles={[
-					vehicleFixture({ id: "member-1", vehicleSet: set }),
-					vehicleFixture({ id: "member-2", vehicleSet: { ...set, position: 2 } })
+					vehicleFixture({
+						id: "member-1", articleNumber: "45923", vehicleNumber: "50 80 11-35 001-2",
+						images: [], vehicleSet: set
+					}),
+					vehicleFixture({
+						id: "member-2", articleNumber: "45923", vehicleNumber: "50 80 11-35 002-0",
+						images: [], vehicleSet: { ...set, position: 2 }
+					})
 				]}
-				columns={["type", "inventoryNumber", "manufacturer", "name"]}
+				columns={["type", "inventoryNumber", "manufacturer", "articleNumber", "name"]}
 				allVisibleSelected={false}
 				selectedVehicleIDs={new Set()}
 				sort={{ key: "inventoryNumber", direction: "asc" }}
@@ -34,6 +40,21 @@ describe("VehicleInventoryTable", () => {
 		expect(screen.getByText("RK-SET-000001")).toBeInTheDocument();
 		expect(document.querySelector(".vehicle-set-inventory-row td[colspan]")).toBeNull();
 		expect(document.querySelectorAll(".vehicle-set-child-row")).toHaveLength(2);
+		expect(document.querySelectorAll(".vehicle-set-child-row-last")).toHaveLength(1);
+		expect(document.querySelectorAll(
+			".vehicle-member-type-cell .inventory-thumb, .vehicle-member-type-cell .image-placeholder"
+		)).toHaveLength(2);
+		expect(screen.getAllByLabelText("Keine Vorschau")).toHaveLength(3);
+		expect(screen.queryByText("Keine Vorschau")).not.toBeInTheDocument();
+		expect(screen.queryByText("Fahrzeug")).not.toBeInTheDocument();
+		const memberRows = document.querySelectorAll(".vehicle-set-child-row");
+		expect(within(memberRows[0].querySelector(".vehicle-column-articleNumber") as HTMLElement)
+			.getByText("50 80 11-35 001-2")).toBeVisible();
+		expect(within(memberRows[1].querySelector(".vehicle-column-articleNumber") as HTMLElement)
+			.getByText("50 80 11-35 002-0")).toBeVisible();
+		expect(within(memberRows[0].querySelector(".vehicle-column-inventoryNumber") as HTMLElement)
+			.queryByText("50 80 11-35 001-2")).not.toBeInTheDocument();
+		expect(within(memberRows[0] as HTMLElement).queryByText("45923")).not.toBeInTheDocument();
 	});
 
   it("renders selected columns in order with localized values", () => {

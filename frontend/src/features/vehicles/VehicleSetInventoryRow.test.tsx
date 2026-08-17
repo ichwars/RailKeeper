@@ -16,8 +16,8 @@ const groupFixture = (): VehicleInventorySetGroup => {
 	return {
 		kind: "set", id: set.id, set, visibleMemberCount: 2, totalMemberCount: 2,
 		members: [
-			vehicleFixture({ id: "member-1", vehicleSet: set }),
-			vehicleFixture({ id: "member-2", vehicleSet: { ...set, position: 2 } })
+			vehicleFixture({ id: "member-1", images: [], vehicleSet: set }),
+			vehicleFixture({ id: "member-2", images: [], vehicleSet: { ...set, position: 2 } })
 		]
 	};
 };
@@ -46,5 +46,11 @@ describe("VehicleSetInventoryRow", () => {
 		expect(onToggleSelection).toHaveBeenCalledWith(["member-1", "member-2"]);
 		expect(container.querySelector(".vehicle-set-inventory-row td[colspan]")).toBeNull();
 		expect(screen.getByText("RK-SET-000001")).toBeInTheDocument();
+		expect(container.querySelector(
+			".vehicle-set-type-cell .inventory-thumb, .vehicle-set-type-cell .image-placeholder"
+		)).toBeInTheDocument();
+		expect(screen.getByLabelText("Keine Vorschau")).toBeVisible();
+		expect(screen.queryByText("Keine Vorschau")).not.toBeInTheDocument();
+		expect(screen.queryByText("Set")).not.toBeInTheDocument();
 	});
 });

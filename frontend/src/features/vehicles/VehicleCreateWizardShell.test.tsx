@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
@@ -20,6 +20,8 @@ describe("VehicleCreateWizardShell", () => {
     expect(screen.getAllByRole("dialog")).toHaveLength(1);
     const steps = screen.getAllByRole("listitem");
     expect(steps).toHaveLength(3);
+    expect(steps[0]).toHaveClass("done");
+    expect(within(steps[0]).getByTitle("Erledigt")).toBeInTheDocument();
     expect(steps[1]).toHaveAttribute("aria-current", "step");
     expect(screen.getByRole("button", { name: "Weiter zu Fahrzeugdetails" })).toBeVisible();
   });

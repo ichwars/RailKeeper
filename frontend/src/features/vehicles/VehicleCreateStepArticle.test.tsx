@@ -48,10 +48,16 @@ describe("VehicleCreateStepArticle", () => {
 
     await user.click(screen.getByRole("button", { name: /Artikeldaten suchen/ }));
     expect(screen.getByRole("heading", { name: /Suchergebnisse/ })).toBeVisible();
+    expect(document.querySelector(".vehicle-create-result-card.without-image .vehicle-create-result-copy"))
+      .toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Roco 6280002 auswählen/ }));
     expect(screen.getByRole("heading", { name: /Datenübernahme prüfen/ })).toBeVisible();
+    expect(screen.getByText("Gefundener Wert")).toBeVisible();
+    expect(screen.getByText("Übernehmen")).toBeVisible();
+    expect(screen.getByText(/Felder gefunden/)).toBeVisible();
+    expect(screen.getByText(/ausgewählt/)).toBeVisible();
+    expect(screen.queryByText("Aktuell")).toBeNull();
     expect(screen.queryByRole("dialog", { name: /Artikeldaten-Websuche/ })).toBeNull();
-    await user.click(screen.getByRole("button", { name: /Ausgewählte Felder übernehmen/ }));
-    expect(controller.commands.applyResult).toHaveBeenCalledWith(result);
+    expect(screen.queryByRole("button", { name: /Ausgewählte Felder übernehmen/ })).toBeNull();
   });
 });

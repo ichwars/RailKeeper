@@ -583,7 +583,9 @@
 }
 
 .inventory-search {
-  width: min(360px, 100%);
+  flex: 1 1 auto;
+  width: auto;
+  max-width: none;
 }
 
 .inventory-panel {
@@ -597,7 +599,7 @@
 
 .inventory-list-head {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) minmax(0, 760px);
+  grid-template-columns: 160px minmax(0, 1fr);
   align-items: end;
   gap: 12px 18px;
   min-height: 0;

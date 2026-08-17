@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { useLayoutEffect, type FormEventHandler, type ReactNode } from "react";
 
 import { useI18n } from "../../shared/i18n";
@@ -58,10 +58,17 @@ export function VehicleCreateWizardShell({
             {steps.map((item, index) => (
               <li key={item.value} className={index === currentIndex ? "active" : index < currentIndex ? "done" : ""}
                 aria-current={index === currentIndex ? "step" : undefined}>
-                <span>{index + 1}</span>
+                <span aria-label={index < currentIndex
+                  ? `${t(item.labelKey)}: ${t("vehicles.wizard.completed")}` : undefined}>
+                  {index < currentIndex ? <Check size={15} aria-hidden="true" /> : index + 1}
+                </span>
                 <span className="vehicle-wizard-step-copy">
                   <strong>{t(item.labelKey)}</strong>
-                  <small>{summaries[item.value]}</small>
+                  <small>{summaries[item.value]}{index < currentIndex && (
+                    <span className="vehicle-wizard-complete" title={t("vehicles.wizard.completed")}>
+                      <Check size={12} aria-hidden="true" />
+                    </span>
+                  )}</small>
                 </span>
               </li>
             ))}
