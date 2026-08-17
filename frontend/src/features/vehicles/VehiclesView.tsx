@@ -22,7 +22,7 @@ import {
   vehicleSetInputFromForm,
   vehicleSetMembersFromForm
 } from "./VehicleCreateWizard";
-import type { VehicleSetMemberDraft } from "./vehicleCreateWizardState";
+import { clearVehicleCreateDraft, type VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
@@ -693,6 +693,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
         set: vehicleSetInputFromForm(form),
         members: vehicleSetMembersFromForm(form, members, pendingArticleImages)
       });
+      clearVehicleCreateDraft();
       const firstMember = created.members[0];
       if (firstMember) {
         setSelectedDetail(firstMember);

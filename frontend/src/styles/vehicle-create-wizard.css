@@ -360,6 +360,21 @@
   font-size: var(--font-size-xs);
 }
 
+.vehicle-draft-notice {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 11px;
+  background: var(--panel);
+}
+
+.vehicle-draft-notice p {
+  margin: 0 auto 0 0;
+}
+
 .vehicle-wizard-page {
   display: grid;
   gap: 16px;

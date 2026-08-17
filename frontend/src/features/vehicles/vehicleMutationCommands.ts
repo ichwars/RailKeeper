@@ -7,6 +7,7 @@ import {
   type VehicleSparePartInput
 } from "../../shared/api";
 import { cvValueKey } from "./cvImport";
+import { clearVehicleCreateDraft } from "./vehicleCreateWizardState";
 import type { FunctionEditState, PendingArticleImage } from "./vehicleTransforms";
 import type { ECoSVehicleDraftPayload, ModalMode, ModalTab } from "./vehicleViewModel";
 
@@ -102,6 +103,7 @@ export function createVehicleMutationCommands({
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
+      if (editor.mode === "create") clearVehicleCreateDraft();
 
       for (const [imageIndex, image] of remoteImages.entries()) {
         await api.importVehicleImageFromUrl(vehicle.id, {

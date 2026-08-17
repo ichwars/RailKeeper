@@ -9,7 +9,10 @@ import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
 import {
+  clearVehicleCreateDraft,
   createVehicleCreateWizardState,
+  loadVehicleCreateDraft,
+  saveVehicleCreateDraft,
   vehicleCreateWizardReducer,
   type VehicleSetMemberDraft
 } from "./vehicleCreateWizardState";
@@ -42,6 +45,8 @@ export function VehicleCreateWizard({
   const [setScheme, setSetScheme] = useState<InventoryNumberScheme | null>(null);
   const [setSchemeLoading, setSetSchemeLoading] = useState(true);
   const [setSchemeError, setSetSchemeError] = useState("");
+  const [draftResult, setDraftResult] = useState(() => loadVehicleCreateDraft());
+  const [draftMessage, setDraftMessage] = useState("");
   const { kind, members, step, shared: form } = wizard;
   const { options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
 
@@ -115,6 +120,11 @@ export function VehicleCreateWizard({
   const footer = (
     <>
       {message && <p className="form-message">{message}</p>}
+      {draftMessage && <p className="form-message">{draftMessage}</p>}
+      <button type="button" className="secondary-button" onClick={() => {
+        const result = saveVehicleCreateDraft(wizard);
+        setDraftMessage(result.kind === "saved" ? t("vehicles.wizard.draftSaved") : t("vehicles.wizard.draftFailed"));
+      }}>{t("vehicles.wizard.saveDraft")}</button>
       <button type="button" className="secondary-button" onClick={back}>
         {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
       </button>
@@ -127,6 +137,24 @@ export function VehicleCreateWizard({
 
   return (
     <VehicleCreateWizardShell step={step} summaries={summaries} onClose={onClose} onSubmit={submit} footer={footer}>
+      {draftResult.kind === "loaded" && (
+        <div className="vehicle-draft-notice" role="status">
+          <p>{t("vehicles.wizard.draftFound")}</p>
+          <button type="button" className="secondary-button" onClick={() => {
+            dispatch({ type: "replace-state", state: draftResult.state });
+            setDraftResult({ kind: "empty" });
+          }}>{t("vehicles.wizard.resumeDraft")}</button>
+          <button type="button" className="secondary-button" onClick={() => {
+            clearVehicleCreateDraft(); setDraftResult({ kind: "empty" });
+          }}>{t("vehicles.wizard.discardDraft")}</button>
+        </div>
+      )}
+      {(draftResult.kind === "invalid" || draftResult.kind === "error") && (
+        <div className="vehicle-draft-notice" role="status"><p>{t("vehicles.wizard.draftInvalid")}</p>
+          <button type="button" className="secondary-button" onClick={() => {
+            clearVehicleCreateDraft(); setDraftResult({ kind: "empty" });
+          }}>{t("vehicles.wizard.cleanStart")}</button></div>
+      )}
       {step === "basics" && (
         <VehicleCreateStepBasics state={wizard} dispatch={dispatch} options={options}
           filteredGattungen={filteredGattungen} selectOptions={selectOptions}

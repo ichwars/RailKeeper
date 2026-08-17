@@ -23,6 +23,7 @@ export type VehicleCreateWizardState = {
 };
 
 export type VehicleCreateWizardAction =
+  | { type: "replace-state"; state: VehicleCreateWizardState }
   | { type: "set-kind"; kind: VehicleCreationKind }
   | { type: "go-to-step"; step: VehicleCreateStep }
   | { type: "set-article-stage"; stage: VehicleCreateArticleStage }
@@ -159,6 +160,8 @@ export function vehicleCreateWizardReducer(
   action: VehicleCreateWizardAction
 ): VehicleCreateWizardState {
   switch (action.type) {
+    case "replace-state":
+      return action.state;
     case "set-kind":
       return { ...state, kind: action.kind, activeDetailsTab: action.kind === "set" ? "set" : "member:0" };
     case "go-to-step":
