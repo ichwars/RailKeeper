@@ -1359,6 +1359,7 @@ export const enTranslations: Record<string, string> = {
 		"vehicles.wizard.saveDraft": "Save draft",
 		"vehicles.wizard.draftSaved": "Draft saved locally.",
 		"vehicles.wizard.draftFailed": "The draft could not be saved locally.",
+		"vehicles.wizard.invalidMember": "Please review the details for vehicle {count}.",
 		"vehicles.wizard.draftFound": "A locally saved vehicle draft is available.",
 		"vehicles.wizard.resumeDraft": "Resume draft",
 		"vehicles.wizard.discardDraft": "Discard draft",

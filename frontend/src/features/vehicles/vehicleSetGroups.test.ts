@@ -27,6 +27,24 @@ const vehicle = (id: string, patch: Partial<Vehicle> = {}): Vehicle => ({
 });
 
 describe("groupVehicleInventory", () => {
+	it("keeps legacy set membership when a partial update omits the canonical summary", () => {
+		const grouped = groupVehicleInventory([
+			vehicle("member-2", {
+				vehicleSetId: "set-1",
+				vehicleSetName: "TEE Roland",
+				vehicleSetPosition: 2,
+				vehicleSetSize: 4
+			})
+		]);
+
+		expect(grouped[0]).toMatchObject({
+			kind: "set",
+			id: "set-1",
+			set: { name: "TEE Roland", memberCount: 4, position: 2 },
+			members: [{ id: "member-2" }]
+		});
+	});
+
 	it("shows a canonical set once when only one member matches a filter", () => {
 		const grouped = groupVehicleInventory([vehicle("member-3", { vehicleSet: {
 			id: "set-1", inventoryNumber: "RK-SET-000001", name: "TEE Roland", manufacturer: "Märklin",

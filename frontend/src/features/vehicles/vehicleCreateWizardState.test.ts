@@ -45,6 +45,24 @@ describe("vehicleCreateWizardState", () => {
     expect(confirmed.members[1].form.name).toBe("Speisewagen");
   });
 
+  it("reassigns article images when their member is removed", () => {
+    const initial = {
+      ...createVehicleCreateWizardState(emptyVehicle),
+      kind: "set" as const,
+      members: [
+        emptyVehicleSetMemberDraft(),
+        emptyVehicleSetMemberDraft(),
+        { form: { ...emptyVehicle, name: "Packwagen" }, touched: true }
+      ],
+      articleImageOwners: { "https://example.test/packwagen.jpg": 2 }
+    };
+
+    const requested = vehicleCreateWizardReducer(initial, { type: "set-member-count", count: 2 });
+    const confirmed = vehicleCreateWizardReducer(requested, { type: "confirm-member-reduction" });
+
+    expect(confirmed.articleImageOwners).toEqual({ "https://example.test/packwagen.jpg": 1 });
+  });
+
   it("clamps set members to the backend limit", () => {
     const initial = { ...createVehicleCreateWizardState(emptyVehicle), kind: "set" as const };
     const resized = vehicleCreateWizardReducer(initial, { type: "set-member-count", count: 101 });

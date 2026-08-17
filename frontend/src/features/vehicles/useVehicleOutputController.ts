@@ -184,7 +184,8 @@ export function useVehicleOutputController({
       const nextVehicle = {
         ...updated,
         images: updated.images ?? vehicle.images,
-        attachments: updated.attachments ?? vehicle.attachments
+        attachments: updated.attachments ?? vehicle.attachments,
+        vehicleSet: updated.vehicleSet ?? vehicle.vehicleSet
       };
       setVehicles((current) => current.map((item) => (item.id === nextVehicle.id ? nextVehicle : item)));
       if (selected?.id === nextVehicle.id) setSelectedDetail(nextVehicle);

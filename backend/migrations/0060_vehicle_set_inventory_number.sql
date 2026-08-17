@@ -6,7 +6,9 @@ INSERT INTO inventory_number_schemes(
 VALUES(
   lower(hex(randomblob(16))), 'Set', 'RK-SET', 1, 6, 1, datetime('now'), datetime('now')
 )
-ON CONFLICT(category) DO NOTHING;
+ON CONFLICT(category) DO UPDATE SET
+  active = 1,
+  updated_at = datetime('now');
 
 WITH ranked AS (
   SELECT id, ROW_NUMBER() OVER (ORDER BY created_at, id) - 1 AS number_offset

@@ -105,6 +105,38 @@ describe("VehicleCreateWizard set safeguards", () => {
     expect(api.inventoryNumberSchemes).toHaveBeenCalledTimes(1);
   });
 
+  it("opens the first invalid member instead of submitting the set", async () => {
+    const user = userEvent.setup();
+    const onSubmitSet = vi.fn();
+    const draft = {
+      ...createVehicleCreateWizardState(model.form),
+      kind: "set" as const,
+      step: "details" as const,
+      activeDetailsTab: "set" as const,
+      members: [
+        {
+          ...emptyVehicleSetMemberDraft(),
+          form: { ...emptyVehicle, maximumSpeedKmh: 0 },
+          touched: true,
+          overriddenFields: ["maximumSpeedKmh" as const]
+        },
+        emptyVehicleSetMemberDraft()
+      ]
+    };
+    saveVehicleCreateDraft(draft, "tester");
+
+    render(<VehicleCreateWizard model={model} saving={false} message=""
+      draftOwner="tester" articleSearchController={articleSearchController}
+      onSubmitSingle={vi.fn()} onSubmitSet={onSubmitSet} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Entwurf fortsetzen/ }));
+    await user.click(screen.getByRole("button", { name: /Set anlegen/ }));
+
+    expect(screen.getByRole("tab", { name: /Wagen 1/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Bitte prüfe die Angaben für Wagen 1.")).toBeInTheDocument();
+    expect(onSubmitSet).not.toHaveBeenCalled();
+  });
+
   it("preserves imported technical fields unless a member explicitly overrides them", () => {
     const shared = {
       ...model.form,

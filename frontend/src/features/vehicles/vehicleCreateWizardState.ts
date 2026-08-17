@@ -64,6 +64,13 @@ const steps = new Set<VehicleCreateStep>(["basics", "article", "details"]);
 const articleStages = new Set<VehicleCreateArticleStage>(["input", "results", "review"]);
 const kinds = new Set<VehicleCreationKind>(["single", "set"]);
 export const maximumVehicleSetMembers = 100;
+
+function resizeArticleImageOwners(owners: Record<string, number> | undefined, memberCount: number) {
+  return Object.fromEntries(Object.entries(owners || {}).map(([url, index]) => [
+    url,
+    Math.min(memberCount - 1, Math.max(0, index))
+  ]));
+}
 const stringFormFields: Array<keyof CreateVehicleRequest> = [
   "inventoryNumber", "manufacturer", "articleNumber", "articleSourceUrl", "name", "gauge", "epoch",
   "railwayCompany", "category", "gattung", "description", "series", "vehicleNumber", "homeBase",
@@ -253,6 +260,7 @@ export function vehicleCreateWizardReducer(
       return {
         ...state,
         members: resizeMembers(state.members, requestedCount),
+        articleImageOwners: resizeArticleImageOwners(state.articleImageOwners, requestedCount),
         activeDetailsTab: activeTabAfterResize(state.activeDetailsTab, requestedCount),
         pendingMemberReduction: null
       };
@@ -261,6 +269,10 @@ export function vehicleCreateWizardReducer(
       return state.pendingMemberReduction ? {
         ...state,
         members: resizeMembers(state.members, state.pendingMemberReduction.requestedCount),
+        articleImageOwners: resizeArticleImageOwners(
+          state.articleImageOwners,
+          state.pendingMemberReduction.requestedCount
+        ),
         activeDetailsTab: activeTabAfterResize(state.activeDetailsTab, state.pendingMemberReduction.requestedCount),
         pendingMemberReduction: null
       } : state;

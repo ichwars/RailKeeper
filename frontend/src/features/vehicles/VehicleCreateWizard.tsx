@@ -88,6 +88,7 @@ export function VehicleCreateWizard({
     kind === "single" || (!setSchemeLoading && Boolean(setScheme))
   );
   const canSubmitDetails = kind === "single" || Boolean(form.gattung?.trim());
+  const invalidMemberIndex = invalidVehicleSetMemberIndex(members);
 
   const submit: FormEventHandler<HTMLFormElement> = (event) => {
     if (step !== "details") {
@@ -98,6 +99,11 @@ export function VehicleCreateWizard({
     }
     if (kind === "set") {
       event.preventDefault();
+      if (invalidMemberIndex >= 0) {
+        dispatch({ type: "set-active-details-tab", tab: `member:${invalidMemberIndex}` });
+        setDraftMessage(t("vehicles.wizard.invalidMember", { count: invalidMemberIndex + 1 }));
+        return;
+      }
       void onSubmitSet(members, wizard.articleImageOwners || {});
       return;
     }
@@ -240,6 +246,14 @@ export function vehicleSetInputFromForm(form: CreateVehicleRequest) {
     storageDetails: form.storageDetails, condition: form.condition, conditionDetails: form.conditionDetails,
     packaging: form.packaging
   };
+}
+
+export function invalidVehicleSetMemberIndex(members: VehicleSetMemberDraft[]) {
+  return members.findIndex(({ form }) => form.maximumSpeedKmh !== undefined && (
+    !Number.isInteger(form.maximumSpeedKmh)
+    || form.maximumSpeedKmh < 1
+    || form.maximumSpeedKmh > 1000
+  ));
 }
 
 export function vehicleSetMembersFromForm(

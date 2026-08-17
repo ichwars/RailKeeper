@@ -29,7 +29,7 @@ func TestVehicleSetInventoryNumberMigrationUsesExistingScheme(t *testing.T) {
 	if _, err := db.Exec(`
 INSERT INTO inventory_number_schemes(
   id, category, prefix, next_number, padding, active, created_at, updated_at
-) VALUES('set-scheme', 'Set', 'CLUB-SET', 7, 3, 1, '2026-08-01', '2026-08-01')`); err != nil {
+) VALUES('set-scheme', 'Set', 'CLUB-SET', 7, 3, 0, '2026-08-01', '2026-08-01')`); err != nil {
 		t.Fatal(err)
 	}
 	seedVehicleSetBeforeInventoryNumberMigration(t, db, "set-custom", "2026-08-01T00:00:00Z")
@@ -38,6 +38,7 @@ INSERT INTO inventory_number_schemes(
 
 	assertText(t, db, `SELECT inventory_number FROM vehicle_sets WHERE id='set-custom'`, "CLUB-SET-007")
 	assertText(t, db, `SELECT CAST(next_number AS TEXT) FROM inventory_number_schemes WHERE category='Set'`, "8")
+	assertText(t, db, `SELECT CAST(active AS TEXT) FROM inventory_number_schemes WHERE category='Set'`, "1")
 }
 
 func migratedVehicleSetInventoryNumberTestDB(t *testing.T) *sql.DB {

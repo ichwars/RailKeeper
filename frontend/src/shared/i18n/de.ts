@@ -1359,6 +1359,7 @@ export const deTranslations: Record<string, string> = {
 		"vehicles.wizard.saveDraft": "Entwurf speichern",
 		"vehicles.wizard.draftSaved": "Entwurf lokal gespeichert.",
 		"vehicles.wizard.draftFailed": "Der Entwurf konnte nicht lokal gespeichert werden.",
+		"vehicles.wizard.invalidMember": "Bitte prüfe die Angaben für Wagen {count}.",
 		"vehicles.wizard.draftFound": "Ein lokal gespeicherter Fahrzeugentwurf ist vorhanden.",
 		"vehicles.wizard.resumeDraft": "Entwurf fortsetzen",
 		"vehicles.wizard.discardDraft": "Entwurf verwerfen",
