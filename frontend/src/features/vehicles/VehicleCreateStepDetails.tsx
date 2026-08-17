@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
+import { RequiredLabel } from "./VehicleFormFields";
 import { VehicleModelTab } from "./VehicleModelTab";
 import { VehicleSetDetailsTabs } from "./VehicleSetDetailsTabs";
 import type { VehicleCreateWizardAction, VehicleCreateWizardState } from "./vehicleCreateWizardState";
@@ -28,6 +30,15 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
         <strong>{state.shared.name}</strong>
         <span>{[state.shared.manufacturer, state.shared.articleNumber, state.shared.gauge].filter(Boolean).join(" · ")}</span>
         <small>{t("vehicles.inventoryNumberAuto")}</small>
+      </div>
+      <div className="form-row">
+        <label>
+          <RequiredLabel label={t("vehicle.field.gattung")} filled={Boolean(state.shared.gattung?.trim())} />
+          <AppSelect value={state.shared.gattung || ""}
+            onChange={(event) => updateShared({ gattung: event.target.value })} required>
+            {model.selectOptions(model.filteredGattungen, state.shared.gattung || "", t("vehicles.select.placeholder"))}
+          </AppSelect>
+        </label>
       </div>
       <details open><summary>{t("vehicles.wizard.acquisitionAndStock")}</summary>
         <div className="form-row">

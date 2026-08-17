@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import type { FormEventHandler, ReactNode } from "react";
+import { useLayoutEffect, type FormEventHandler, type ReactNode } from "react";
 
 import { useI18n } from "../../shared/i18n";
 import type { VehicleCreateStep } from "./vehicleCreateWizardState";
@@ -29,6 +29,16 @@ export function VehicleCreateWizardShell({
 }: VehicleCreateWizardShellProps) {
   const { t } = useI18n();
   const currentIndex = steps.findIndex((item) => item.value === step);
+
+  useLayoutEffect(() => {
+    const resetHorizontalScroll = () => {
+      document.documentElement.scrollLeft = 0;
+      document.body.scrollLeft = 0;
+    };
+    resetHorizontalScroll();
+    const frame = window.requestAnimationFrame(resetHorizontalScroll);
+    return () => window.cancelAnimationFrame(frame);
+  }, [step]);
 
   return (
     <form className="vehicle-modal vehicle-create-wizard" onSubmit={onSubmit}

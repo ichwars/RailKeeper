@@ -84,6 +84,7 @@ export function VehicleCreateWizard({
   const canContinueFromBasics = basicsComplete && (
     kind === "single" || (!setSchemeLoading && Boolean(setScheme))
   );
+  const canSubmitDetails = kind === "single" || Boolean(form.gattung?.trim());
 
   const submit: FormEventHandler<HTMLFormElement> = (event) => {
     if (step !== "details") {
@@ -129,7 +130,8 @@ export function VehicleCreateWizard({
         {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
       </button>
       <button type="submit" className="primary-button"
-        disabled={saving || (step === "basics" && !canContinueFromBasics)}>
+        disabled={saving || (step === "basics" && !canContinueFromBasics) ||
+          (step === "details" && !canSubmitDetails)}>
         {destination}{step !== "details" && <ChevronRight size={16} />}
       </button>
     </>
