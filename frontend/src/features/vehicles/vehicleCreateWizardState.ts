@@ -49,7 +49,7 @@ export type VehicleCreateWizardAction =
   | { type: "set-active-details-tab"; tab: VehicleCreateWizardState["activeDetailsTab"] };
 
 export const vehicleCreateDraftKey = (owner: string) => (
-  `railkeeper.vehicleCreateDraft.v2:${owner.trim().toLocaleLowerCase() || "local"}`
+	`railkeeper.vehicleCreateDraft.v2:${owner.trim() || "local"}`
 );
 
 type VehicleCreateDraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;

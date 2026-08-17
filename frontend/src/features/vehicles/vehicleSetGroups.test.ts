@@ -99,6 +99,23 @@ describe("groupVehicleInventory", () => {
 		}
 	});
 
+	it("sorts groups by the displayed set inventory number", () => {
+		const grouped = groupVehicleInventory([
+			vehicle("RK-WAG-000001", { vehicleSet: {
+				id: "set-2", inventoryNumber: "RK-SET-000002", name: "Set 2", manufacturer: "Roco",
+				gauge: "H0", memberCount: 1, position: 1
+			} }),
+			vehicle("RK-LOK-000003"),
+			vehicle("RK-WAG-000002", { vehicleSet: {
+				id: "set-1", inventoryNumber: "RK-SET-000001", name: "Set 1", manufacturer: "Roco",
+				gauge: "H0", memberCount: 1, position: 1
+			} })
+		], { key: "inventoryNumber", direction: "asc" });
+
+		expect(grouped.map((group) => group.kind === "set" ? group.set.inventoryNumber : group.vehicle.inventoryNumber))
+			.toEqual(["RK-LOK-000003", "RK-SET-000001", "RK-SET-000002"]);
+	});
+
   it("keeps singles in order and collects ordered set members", () => {
 		const set = {
 			id: "set-1", inventoryNumber: "RK-SET-000001", name: "TEE", manufacturer: "Roco",

@@ -13,6 +13,11 @@ export type VehicleInventoryGroup =
 
 export type VehicleInventorySetGroup = Extract<VehicleInventoryGroup, { kind: "set" }>;
 
+type VehicleInventoryGroupSort = {
+	key: string;
+	direction: "asc" | "desc";
+};
+
 function setSummaryForVehicle(vehicle: Vehicle): VehicleSetSummary | null {
 	if (vehicle.vehicleSet) return vehicle.vehicleSet;
 	if (!vehicle.vehicleSetId) return null;
@@ -29,7 +34,10 @@ function setSummaryForVehicle(vehicle: Vehicle): VehicleSetSummary | null {
 	};
 }
 
-export function groupVehicleInventory(vehicles: Vehicle[]): VehicleInventoryGroup[] {
+export function groupVehicleInventory(
+	vehicles: Vehicle[],
+	sort?: VehicleInventoryGroupSort
+): VehicleInventoryGroup[] {
   const groups: VehicleInventoryGroup[] = [];
   const setIndexes = new Map<string, number>();
 
@@ -71,5 +79,13 @@ export function groupVehicleInventory(vehicles: Vehicle[]): VehicleInventoryGrou
       ));
     }
   }
+	if (sort?.key === "inventoryNumber") {
+		groups.sort((left, right) => {
+			const leftValue = left.kind === "set" ? left.set.inventoryNumber : left.vehicle.inventoryNumber;
+			const rightValue = right.kind === "set" ? right.set.inventoryNumber : right.vehicle.inventoryNumber;
+			const result = leftValue.localeCompare(rightValue, "de-DE", { numeric: true, sensitivity: "base" });
+			return sort.direction === "asc" ? result : -result;
+		});
+	}
   return groups;
 }

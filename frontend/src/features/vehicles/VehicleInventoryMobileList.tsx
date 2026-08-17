@@ -6,10 +6,12 @@ import { VehicleInventoryMobileCard } from "./VehicleInventoryMobileCard";
 import { VehicleSetInventoryMobileCard } from "./VehicleSetInventoryMobileCard";
 import type { VehicleTableColumn } from "./vehicleTableColumns";
 import { groupVehicleInventory } from "./vehicleSetGroups";
+import type { SortDirection, SortKey } from "./vehicleViewModel";
 
 type VehicleInventoryMobileListProps = {
   vehicles: Vehicle[];
   columns: readonly VehicleTableColumn[];
+  sort: { key: SortKey; direction: SortDirection };
   onOpenDetail: (vehicle: Vehicle) => void;
   onOpenEdit: (vehicle: Vehicle) => void;
   onOpenSet?: (setID: string) => void;
@@ -21,6 +23,7 @@ type VehicleInventoryMobileListProps = {
 export function VehicleInventoryMobileList({
   vehicles,
   columns,
+  sort,
   onOpenDetail,
   onOpenEdit,
   onOpenSet = () => undefined,
@@ -31,7 +34,7 @@ export function VehicleInventoryMobileList({
   const { t } = useI18n();
   const [expandedVehicleIDs, setExpandedVehicleIDs] = useState<Set<string>>(() => new Set());
   const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
-  const groupedVehicles = groupVehicleInventory(vehicles);
+  const groupedVehicles = groupVehicleInventory(vehicles, sort);
 
   useEffect(() => {
     const visibleIDs = new Set(vehicles.map((vehicle) => vehicle.id));

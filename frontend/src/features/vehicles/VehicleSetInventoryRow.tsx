@@ -18,6 +18,12 @@ type VehicleSetInventoryRowProps = {
 	onDuplicate?: (setId: string) => void;
 };
 
+const sharedSetColumns = new Set<VehicleTableColumn>([
+	"manufacturer", "articleNumber", "name", "gauge", "epoch", "railwayCompany", "category", "gattung",
+	"ean", "productionPeriod", "listPrice", "acquisitionType", "acquiredFrom", "purchasePrice", "purchaseDate",
+	"storageLocation", "condition", "packaging"
+]);
+
 export function VehicleSetInventoryRow({
 	group,
 	columns,
@@ -42,7 +48,7 @@ export function VehicleSetInventoryRow({
 	}, [memberIDs.length, selectedCount]);
 
 	const cell = (column: VehicleTableColumn) => {
-		if (column === "type") {
+		if (column === "type" || column === "image") {
 			return (
 				<div className="vehicle-set-type-cell">
 					{setPreviewImage
@@ -55,14 +61,6 @@ export function VehicleSetInventoryRow({
 			);
 		}
 		if (column === "inventoryNumber") return <strong>{group.set.inventoryNumber}</strong>;
-		if (column === "manufacturer") return group.set.manufacturer;
-		if (column === "articleNumber") return group.set.articleNumber || "–";
-		if (column === "gauge") return group.set.gauge;
-		if (column === "epoch") return group.set.epoch || "–";
-		if (column === "acquisitionType") return group.set.acquisitionType || "–";
-		if (column === "purchaseDate") return group.set.purchaseDate || "–";
-		if (column === "purchasePrice") return group.set.purchasePrice || "–";
-		if (column === "condition") return group.set.condition || "–";
 		if (column === "name") {
 			return (
 				<div className="vehicle-set-name-cell">
@@ -75,6 +73,12 @@ export function VehicleSetInventoryRow({
 					)}
 				</div>
 			);
+		}
+		if (sharedSetColumns.has(column)) {
+			const setValue = (group.set as unknown as Record<string, unknown>)[column];
+			const memberValue = (group.members[0] as unknown as Record<string, unknown> | undefined)?.[column];
+			const value = setValue ?? memberValue;
+			return typeof value === "string" || typeof value === "number" ? String(value) || "–" : "–";
 		}
 		return null;
 	};

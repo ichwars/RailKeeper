@@ -15,14 +15,14 @@ describe("VehicleInventoryTable", () => {
 				vehicles={[
 					vehicleFixture({
 						id: "member-1", articleNumber: "45923", vehicleNumber: "50 80 11-35 001-2",
-						images: [], vehicleSet: set
+						railwayCompany: "DB", category: "Wagen", gattung: "Reisezugwagen", images: [], vehicleSet: set
 					}),
 					vehicleFixture({
 						id: "member-2", articleNumber: "45923", vehicleNumber: "50 80 11-35 002-0",
 						images: [], vehicleSet: { ...set, position: 2 }
 					})
 				]}
-				columns={["type", "inventoryNumber", "manufacturer", "articleNumber", "name"]}
+				columns={["type", "inventoryNumber", "manufacturer", "articleNumber", "name", "railwayCompany", "category"]}
 				allVisibleSelected={false}
 				selectedVehicleIDs={new Set()}
 				sort={{ key: "inventoryNumber", direction: "asc" }}
@@ -54,6 +54,9 @@ describe("VehicleInventoryTable", () => {
 			.getByText("45923")).toBeVisible();
 		expect(within(memberRows[0].querySelector(".vehicle-column-inventoryNumber") as HTMLElement)
 			.getByText("50 80 11-35 001-2")).toBeVisible();
+		const setRow = document.querySelector(".vehicle-set-inventory-row") as HTMLElement;
+		expect(within(setRow.querySelector(".vehicle-column-railwayCompany") as HTMLElement).getByText("DB")).toBeVisible();
+		expect(within(setRow.querySelector(".vehicle-column-category") as HTMLElement).getByText("Wagen")).toBeVisible();
 	});
 
   it("renders selected columns in order with localized values", () => {

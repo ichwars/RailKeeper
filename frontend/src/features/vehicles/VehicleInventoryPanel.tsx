@@ -445,6 +445,7 @@ export function VehicleInventoryPanel({
           <VehicleInventoryMobileList
             vehicles={sortedVehicles}
             columns={columns}
+            sort={sort}
             onOpenDetail={onOpenDetail}
             onOpenEdit={onOpenEdit}
             onOpenSet={onOpenSet}
@@ -464,7 +465,7 @@ export function VehicleInventoryPanel({
           <div className="inventory-desktop-content">
             {inventoryView === "cards" ? (
               <div className="inventory-card-grid">
-                {groupVehicleInventory(sortedVehicles).map((group) => {
+                {groupVehicleInventory(sortedVehicles, sort).map((group) => {
                   if (group.kind === "set") {
                     return (
                       <article key={group.id} className="inventory-card inventory-set-card">

@@ -30,6 +30,7 @@ function renderList(overrides: Partial<ComponentProps<typeof VehicleInventoryMob
   });
   const props: ComponentProps<typeof VehicleInventoryMobileList> = {
     vehicles: [first, second],
+    sort: { key: "inventoryNumber", direction: "asc" },
     columns: [
       "image",
       "inventoryNumber",

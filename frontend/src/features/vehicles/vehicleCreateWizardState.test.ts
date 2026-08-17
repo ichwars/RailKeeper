@@ -178,6 +178,20 @@ describe("vehicleCreateWizardState", () => {
     expect(loadVehicleCreateDraft("alice")).toEqual(expect.objectContaining({ kind: "loaded" }));
   });
 
+  it("keeps case-sensitive usernames in separate draft scopes", () => {
+    const upper = createVehicleCreateWizardState({ ...emptyVehicle, name: "Entwurf von Alice" });
+    const lower = createVehicleCreateWizardState({ ...emptyVehicle, name: "Entwurf von alice" });
+
+    expect(saveVehicleCreateDraft(upper, "Alice")).toEqual({ kind: "saved" });
+    expect(saveVehicleCreateDraft(lower, "alice")).toEqual({ kind: "saved" });
+    expect(loadVehicleCreateDraft("Alice")).toEqual(expect.objectContaining({
+      state: expect.objectContaining({ shared: expect.objectContaining({ name: "Entwurf von Alice" }) })
+    }));
+    expect(loadVehicleCreateDraft("alice")).toEqual(expect.objectContaining({
+      state: expect.objectContaining({ shared: expect.objectContaining({ name: "Entwurf von alice" }) })
+    }));
+  });
+
   it("rejects malformed state and keeps storage failures non-blocking", () => {
     localStorage.setItem(vehicleCreateDraftKey("local"), JSON.stringify({
       version: 1,

@@ -63,7 +63,7 @@ export function VehicleInventoryTable({
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
   const [collapsedSetIDs, setCollapsedSetIDs] = useState<Set<string>>(() => new Set());
-  const groupedVehicles = groupVehicleInventory(vehicles);
+  const groupedVehicles = groupVehicleInventory(vehicles, sort);
 
   const header = (column: VehicleTableColumn) => {
     const label = vehicleColumnLabel(column, t);
