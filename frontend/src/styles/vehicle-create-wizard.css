@@ -130,6 +130,163 @@
   margin: 0;
 }
 
+.vehicle-create-article-results,
+.vehicle-create-article-review {
+  display: grid;
+  gap: 14px;
+}
+
+.vehicle-create-result-list,
+.vehicle-create-review-groups {
+  display: grid;
+  gap: 9px;
+}
+
+.vehicle-create-result-card {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 11px;
+  background: var(--panel);
+}
+
+.vehicle-create-result-card > img {
+  width: 76px;
+  height: 58px;
+  object-fit: contain;
+  border-radius: 5px;
+  background: #fff;
+}
+
+.vehicle-create-result-card h4,
+.vehicle-create-result-card p {
+  margin: 0;
+}
+
+.vehicle-create-result-card > div:nth-child(2) {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vehicle-create-result-card span,
+.vehicle-create-result-card small,
+.vehicle-create-review-source span,
+.vehicle-create-review-source small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.vehicle-create-result-actions,
+.vehicle-create-review-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.vehicle-create-review-source {
+  display: grid;
+  gap: 3px;
+  border-left: 3px solid var(--accent);
+  padding: 9px 12px;
+  background: color-mix(in srgb, var(--accent) 6%, var(--panel));
+}
+
+.vehicle-create-barcode-input {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px;
+  background: var(--panel-subtle);
+}
+
+.vehicle-create-review-group {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+
+.vehicle-create-review-group summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 9px;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  cursor: pointer;
+  font-weight: var(--font-weight-extra-bold);
+}
+
+.vehicle-create-review-group summary small {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+.vehicle-create-review-group summary em {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  color: var(--warning);
+  font-style: normal;
+}
+
+.vehicle-create-review-table {
+  border-top: 1px solid var(--line);
+}
+
+.vehicle-create-review-row {
+  display: grid;
+  grid-template-columns: 28px minmax(130px, 0.8fr) repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.vehicle-create-review-row:last-child {
+  border-bottom: 0;
+}
+
+.vehicle-create-review-row span {
+  display: grid;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.vehicle-create-review-row small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.vehicle-create-review-images {
+  display: flex;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 10px;
+  overflow-x: auto;
+}
+
+.vehicle-create-review-images label {
+  display: grid;
+  grid-template-columns: auto 74px;
+  align-items: start;
+}
+
+.vehicle-create-review-images img {
+  width: 74px;
+  height: 58px;
+  object-fit: contain;
+  background: #fff;
+}
+
 .vehicle-wizard-page {
   display: grid;
   gap: 16px;
@@ -386,5 +543,34 @@
   .vehicle-set-number-preview,
   .vehicle-member-reduction {
     grid-template-columns: 1fr;
+  }
+
+  .vehicle-create-result-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .vehicle-create-barcode-input {
+    grid-template-columns: 1fr;
+  }
+
+  .vehicle-create-result-card > img {
+    width: 58px;
+    height: 48px;
+  }
+
+  .vehicle-create-result-actions {
+    grid-column: 1 / -1;
+  }
+
+  .vehicle-create-review-row {
+    grid-template-columns: 28px minmax(0, 1fr);
+  }
+
+  .vehicle-create-review-row span {
+    grid-column: 2;
+  }
+
+  .vehicle-create-review-actions {
+    display: grid;
   }
 }

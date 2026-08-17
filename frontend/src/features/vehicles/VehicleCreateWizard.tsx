@@ -1,9 +1,10 @@
-import { Barcode, ChevronLeft, ChevronRight, PackageSearch, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
 import { useEffect, useReducer, useState, type ComponentProps, type FormEventHandler } from "react";
 
 import { api, type CreateVehicleRequest, type InventoryNumberScheme } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleCreateStepBasics } from "./VehicleCreateStepBasics";
+import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
 import {
@@ -13,6 +14,7 @@ import {
 } from "./vehicleCreateWizardState";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import type { PendingArticleImage } from "./vehicleTransforms";
+import type { ArticleSearchController } from "./useArticleSearchController";
 
 type VehicleCreateWizardProps = {
   model: ComponentProps<typeof VehicleModelTab>;
@@ -23,11 +25,12 @@ type VehicleCreateWizardProps = {
   onClose: () => void;
   setCreationDisabled?: boolean;
   prefill?: VehicleCreatePrefill | null;
+  articleSearchController: ArticleSearchController;
 };
 
 export function VehicleCreateWizard({
   model, saving, message, onSubmitSingle, onSubmitSet, onClose,
-  setCreationDisabled = false, prefill
+  setCreationDisabled = false, prefill, articleSearchController
 }: VehicleCreateWizardProps) {
   const { t } = useI18n();
   const [wizard, dispatch] = useReducer(
@@ -131,37 +134,8 @@ export function VehicleCreateWizard({
       )}
 
       {step === "article" && (
-        <div className="vehicle-wizard-page">
-          <section className="vehicle-wizard-section vehicle-form">
-            <div className="vehicle-wizard-section-head">
-              <div><span>02</span><h3>{t("vehicles.wizard.articleData")}</h3></div>
-              <small>{t("vehicles.wizard.optional")}</small>
-            </div>
-            <p className="vehicle-wizard-intro">{t("vehicles.wizard.articleIntro")}</p>
-            <div className="vehicle-lookup-actions">
-              <button type="button" className="vehicle-lookup-card" onClick={model.onOpenBarcodeSearch}
-                disabled={model.articleSearchLoading}>
-                <Barcode size={22} />
-                <span><strong>{t("vehicles.articleSearch.barcode")}</strong><small>{t("vehicles.wizard.barcodeHint")}</small></span>
-              </button>
-              <button type="button" className="vehicle-lookup-card" onClick={model.onRunArticleSearch}
-                disabled={model.articleSearchLoading || !model.canRunArticleSearch}>
-                <PackageSearch size={22} />
-                <span><strong>{t("vehicles.articleSearch.search")}</strong><small>{t("vehicles.wizard.webHint")}</small></span>
-              </button>
-            </div>
-            <div className="form-row three-columns">
-              <label>{t("vehicle.field.articleNumber")}<input value={form.articleNumber || ""}
-                onChange={(event) => updateShared({ articleNumber: event.target.value })} /></label>
-              <label>EAN<input value={form.ean || ""} onChange={(event) => updateShared({ ean: event.target.value })} /></label>
-              <label>{t("vehicle.field.productionPeriod")}<input value={form.productionPeriod || ""}
-                onChange={(event) => updateShared({ productionPeriod: event.target.value })} /></label>
-            </div>
-            <label>{t("vehicle.field.articleSourceUrl")}<input type="url" value={form.articleSourceUrl || ""}
-              onChange={(event) => updateShared({ articleSourceUrl: event.target.value })} /></label>
-            <div className="vehicle-manual-note"><Search size={17} /><span>{t("vehicles.wizard.manualHint")}</span></div>
-          </section>
-        </div>
+        <VehicleCreateStepArticle state={wizard} dispatch={dispatch} controller={articleSearchController}
+          onUpdateShared={updateShared} />
       )}
 
       {step === "details" && (

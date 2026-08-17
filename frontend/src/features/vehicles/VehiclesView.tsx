@@ -859,7 +859,22 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           onQr={generateQr}
           onPreviewImage={setPreviewImage}
           setCreationDisabled={Boolean(ecosDraft)}
-					createPrefill={createPrefill}
+          createPrefill={createPrefill}
+          articleSearchController={{
+            state: {
+              open: articleSearchOpen, loading: articleSearchLoading, response: articleSearchResponse,
+              error: articleSearchError, barcodeOpen: barcodeSearchOpen, barcodeValue: barcodeSearchValue,
+              selectedFields: selectedArticleFields, selectedImages: selectedArticleImages
+            },
+            setters: {
+              setOpen: setArticleSearchOpen, setBarcodeOpen: setBarcodeSearchOpen,
+              setBarcodeValue: setBarcodeSearchValue
+            },
+            commands: {
+              run: runArticleSearch, openBarcode: openBarcodeSearch, submitBarcode: submitBarcodeSearch,
+              toggleField: toggleArticleField, toggleImage: toggleArticleImage, applyResult: applyArticleResult
+            }
+          }}
           tabs={{
             model: {
               form,
@@ -1052,7 +1067,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 				onUpdated={handleVehicleSetUpdated}
 			/>
 		)}
-      {articleSearchOpen && (
+      {articleSearchOpen && mode !== "create" && (
         <ArticleSearchDialog
           fieldGroups={vehicleArticleSearchGroups(t)}
           currentValue={(key) => currentArticleValue(form, key as ArticleFieldKey)}
@@ -1067,7 +1082,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           onToggleImage={toggleArticleImage}
         />
       )}
-      {barcodeSearchOpen && (
+      {barcodeSearchOpen && mode !== "create" && (
         <BarcodeSearchDialog
           value={barcodeSearchValue}
           onValueChange={setBarcodeSearchValue}

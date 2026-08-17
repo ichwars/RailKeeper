@@ -5,6 +5,15 @@ import { describe, expect, it, vi } from "vitest";
 import { emptyVehicle } from "./vehicleViewModel";
 import { VehicleCreateWizard, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
 import { emptyVehicleSetMemberDraft } from "./vehicleCreateWizardState";
+import type { ArticleSearchController } from "./useArticleSearchController";
+
+const articleSearchController = {
+  state: { open: false, loading: false, response: null, error: "", barcodeOpen: false,
+    barcodeValue: "", selectedFields: {}, selectedImages: {} },
+  setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+  commands: { run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+    toggleImage: vi.fn(), applyResult: vi.fn() }
+} as unknown as ArticleSearchController;
 
 const model = {
   form: { ...emptyVehicle, name: "TEE", manufacturer: "Roco", gauge: "H0", category: "Triebzug", gattung: "ET" },
@@ -32,6 +41,7 @@ const model = {
 describe("VehicleCreateWizard set safeguards", () => {
   it("disables set creation for an ECoS draft", () => {
     render(<VehicleCreateWizard model={model} saving={false} message="" setCreationDisabled
+      articleSearchController={articleSearchController}
       onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
 
     expect(screen.getByRole("radio", { name: /Set/ })).toBeDisabled();

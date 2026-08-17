@@ -188,3 +188,5 @@ export function useArticleSearchController({
     }
   };
 }
+
+export type ArticleSearchController = ReturnType<typeof useArticleSearchController>;
