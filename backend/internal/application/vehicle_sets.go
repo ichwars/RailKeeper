@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -52,7 +53,11 @@ func (s *VehicleService) CreateSet(
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	setID := randomID()
-	if err = insertVehicleSetTx(ctx, tx, setID, setInput, now); err != nil {
+	setInventoryNumber, err := s.nextVehicleSetInventoryNumber(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
+	if err = insertVehicleSetTx(ctx, tx, setID, setInventoryNumber, setInput, now); err != nil {
 		return nil, err
 	}
 
@@ -72,6 +77,7 @@ VALUES(?, ?, ?, ?)
 		member.VehicleSetName = setInput.Name
 		member.VehicleSetPosition = index + 1
 		member.VehicleSetSize = len(preparedMembers)
+		member.VehicleSet = vehicleSetSummary(setID, setInventoryNumber, setInput, len(preparedMembers), index+1)
 		members = append(members, *member)
 	}
 
@@ -93,7 +99,172 @@ VALUES(?, ?, 'VehicleSetCreated', 'vehicle_set', ?, ?, '{}')
 		members[index].Images = images
 	}
 
-	return vehicleSetFromInput(setID, setInput, members, now), nil
+	return vehicleSetFromInput(setID, setInventoryNumber, setInput, members, now), nil
+}
+
+func (s *VehicleService) GetSet(ctx context.Context, id string) (*VehicleSet, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, ErrVehicleSetNotFound
+	}
+
+	var set VehicleSet
+	err := s.db.QueryRowContext(ctx, `
+SELECT id, inventory_number, name, manufacturer, COALESCE(article_number, ''),
+       COALESCE(article_source_url, ''), gauge, COALESCE(epoch, ''), COALESCE(railway_company, ''),
+       category, gattung, COALESCE(description, ''), COALESCE(ean, ''),
+       COALESCE(production_period, ''), COALESCE(list_price, ''), COALESCE(acquisition_type, ''),
+       COALESCE(acquired_from, ''), COALESCE(purchase_price, ''), COALESCE(purchase_date, ''),
+       COALESCE(storage_location, ''), COALESCE(storage_details, ''), COALESCE(condition, ''),
+       COALESCE(condition_details, ''), COALESCE(packaging, ''), created_at, updated_at
+FROM vehicle_sets
+WHERE id=?
+`, id).Scan(
+		&set.ID, &set.InventoryNumber, &set.Name, &set.Manufacturer, &set.ArticleNumber,
+		&set.ArticleSourceURL, &set.Gauge, &set.Epoch, &set.RailwayCompany, &set.Category, &set.Gattung,
+		&set.Description, &set.EAN, &set.ProductionPeriod, &set.ListPrice, &set.AcquisitionType,
+		&set.AcquiredFrom, &set.PurchasePrice, &set.PurchaseDate, &set.StorageLocation, &set.StorageDetails,
+		&set.Condition, &set.ConditionDetails, &set.Packaging, &set.CreatedAt, &set.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrVehicleSetNotFound
+		}
+		return nil, fmt.Errorf("get vehicle set: %w", err)
+	}
+
+	rows, err := s.db.QueryContext(ctx, `
+SELECT vehicle_id
+FROM vehicle_set_members
+WHERE vehicle_set_id=?
+ORDER BY position ASC
+`, id)
+	if err != nil {
+		return nil, fmt.Errorf("list vehicle set members: %w", err)
+	}
+	memberIDs := []string{}
+	for rows.Next() {
+		var memberID string
+		if err := rows.Scan(&memberID); err != nil {
+			_ = rows.Close()
+			return nil, fmt.Errorf("scan vehicle set member: %w", err)
+		}
+		memberIDs = append(memberIDs, memberID)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, fmt.Errorf("close vehicle set members: %w", err)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate vehicle set members: %w", err)
+	}
+	loadedMembers, err := s.list(ctx, "", id)
+	if err != nil {
+		return nil, fmt.Errorf("load vehicle set members: %w", err)
+	}
+	membersByID := make(map[string]Vehicle, len(loadedMembers))
+	for _, member := range loadedMembers {
+		membersByID[member.ID] = member
+	}
+	set.Members = make([]Vehicle, 0, len(memberIDs))
+	for _, memberID := range memberIDs {
+		member, found := membersByID[memberID]
+		if !found {
+			return nil, fmt.Errorf("get vehicle set member %s: %w", memberID, ErrVehicleNotFound)
+		}
+		set.Members = append(set.Members, member)
+	}
+	return &set, nil
+}
+
+func (s *VehicleService) UpdateSet(
+	ctx context.Context,
+	id string,
+	input VehicleSetInput,
+	actorUserID string,
+) (*VehicleSet, error) {
+	id = strings.TrimSpace(id)
+	input = cleanVehicleSetInput(input)
+	if id == "" {
+		return nil, ErrVehicleSetNotFound
+	}
+	if !isValidVehicleSetInput(input) {
+		return nil, ErrVehicleSetValidation
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin update vehicle set: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err := tx.ExecContext(ctx, `
+UPDATE vehicle_sets
+SET name=?, manufacturer=?, article_number=?, article_source_url=?, gauge=?, epoch=?, railway_company=?,
+    category=?, gattung=?, description=?, ean=?, production_period=?, list_price=?, acquisition_type=?,
+    acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?,
+    condition_details=?, packaging=?, updated_at=?
+WHERE id=?
+`, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge, input.Epoch,
+		input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN, input.ProductionPeriod,
+		input.ListPrice, input.AcquisitionType, input.AcquiredFrom, input.PurchasePrice, input.PurchaseDate,
+		input.StorageLocation, input.StorageDetails, input.Condition, input.ConditionDetails, input.Packaging, now, id)
+	if err != nil {
+		return nil, fmt.Errorf("update vehicle set: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return nil, fmt.Errorf("read vehicle set update result: %w", err)
+	}
+	if affected == 0 {
+		return nil, ErrVehicleSetNotFound
+	}
+
+	if _, err = tx.ExecContext(ctx, `
+UPDATE vehicles
+SET manufacturer=?, article_number=?, article_source_url=?, gauge=?, epoch=?, railway_company=?, category=?,
+    gattung=?, description=?, ean=?, production_period=?, list_price=?, acquisition_type=?, acquired_from=?,
+    purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?, condition_details=?,
+    packaging=?, updated_at=?
+WHERE id IN (SELECT vehicle_id FROM vehicle_set_members WHERE vehicle_set_id=?)
+`, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge, input.Epoch,
+		input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN, input.ProductionPeriod,
+		input.ListPrice, input.AcquisitionType, input.AcquiredFrom, input.PurchasePrice, input.PurchaseDate,
+		input.StorageLocation, input.StorageDetails, input.Condition, input.ConditionDetails, input.Packaging, now, id); err != nil {
+		return nil, fmt.Errorf("update vehicle set member snapshots: %w", err)
+	}
+	if _, err = tx.ExecContext(ctx, `
+INSERT INTO audit_logs(id, actor_user_id, action, target_type, target_id, created_at, details_json)
+VALUES(?, ?, 'VehicleSetUpdated', 'vehicle_set', ?, ?, '{}')
+`, randomID(), actorUserID, id, now); err != nil {
+		return nil, fmt.Errorf("write vehicle set update audit log: %w", err)
+	}
+	if err = tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit update vehicle set: %w", err)
+	}
+	return s.GetSet(ctx, id)
+}
+
+func (s *VehicleService) nextVehicleSetInventoryNumber(ctx context.Context, tx *sql.Tx) (string, error) {
+	return ReserveInventoryNumber(ctx, tx, "Set", "", func(candidate string) error {
+		return s.ensureVehicleSetInventoryNumberAvailable(ctx, tx, candidate)
+	})
+}
+
+func (s *VehicleService) ensureVehicleSetInventoryNumberAvailable(
+	ctx context.Context,
+	tx *sql.Tx,
+	inventoryNumber string,
+) error {
+	var count int
+	if err := tx.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM vehicle_sets WHERE inventory_number=?
+`, strings.TrimSpace(inventoryNumber)).Scan(&count); err != nil {
+		return fmt.Errorf("check vehicle set inventory number availability: %w", err)
+	}
+	if count > 0 {
+		return ErrInventoryNumberConflict
+	}
+	return nil
 }
 
 func cleanVehicleSetInput(input VehicleSetInput) VehicleSetInput {
@@ -187,18 +358,19 @@ func insertVehicleSetTx(
 	ctx context.Context,
 	tx *sql.Tx,
 	setID string,
+	inventoryNumber string,
 	input VehicleSetInput,
 	now string,
 ) error {
 	if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_sets(
-  id, name, manufacturer, article_number, article_source_url, gauge, epoch, railway_company,
+  id, inventory_number, name, manufacturer, article_number, article_source_url, gauge, epoch, railway_company,
   category, gattung, description, ean, production_period, list_price, acquisition_type,
   acquired_from, purchase_price, purchase_date, storage_location, storage_details, condition,
   condition_details, packaging, created_at, updated_at
 )
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, setID, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge,
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`, setID, inventoryNumber, input.Name, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge,
 		input.Epoch, input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN,
 		input.ProductionPeriod, input.ListPrice, input.AcquisitionType, input.AcquiredFrom,
 		input.PurchasePrice, input.PurchaseDate, input.StorageLocation, input.StorageDetails,
@@ -208,9 +380,16 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 	return nil
 }
 
-func vehicleSetFromInput(setID string, input VehicleSetInput, members []Vehicle, now string) *VehicleSet {
+func vehicleSetFromInput(
+	setID string,
+	inventoryNumber string,
+	input VehicleSetInput,
+	members []Vehicle,
+	now string,
+) *VehicleSet {
 	return &VehicleSet{
-		ID: setID, Name: input.Name, Manufacturer: input.Manufacturer, ArticleNumber: input.ArticleNumber,
+		ID: setID, InventoryNumber: inventoryNumber, Name: input.Name, Manufacturer: input.Manufacturer,
+		ArticleNumber:    input.ArticleNumber,
 		ArticleSourceURL: input.ArticleSourceURL, Gauge: input.Gauge, Epoch: input.Epoch,
 		RailwayCompany: input.RailwayCompany, Category: input.Category, Gattung: input.Gattung,
 		Description: input.Description, EAN: input.EAN, ProductionPeriod: input.ProductionPeriod,
@@ -219,5 +398,21 @@ func vehicleSetFromInput(setID string, input VehicleSetInput, members []Vehicle,
 		StorageLocation: input.StorageLocation, StorageDetails: input.StorageDetails,
 		Condition: input.Condition, ConditionDetails: input.ConditionDetails, Packaging: input.Packaging,
 		Members: members, CreatedAt: now, UpdatedAt: now,
+	}
+}
+
+func vehicleSetSummary(
+	setID string,
+	inventoryNumber string,
+	input VehicleSetInput,
+	memberCount int,
+	position int,
+) *VehicleSetSummary {
+	return &VehicleSetSummary{
+		ID: setID, InventoryNumber: inventoryNumber, Name: input.Name, Manufacturer: input.Manufacturer,
+		ArticleNumber: input.ArticleNumber, Gauge: input.Gauge, Epoch: input.Epoch,
+		AcquisitionType: input.AcquisitionType, PurchaseDate: input.PurchaseDate,
+		PurchasePrice: input.PurchasePrice, Condition: input.Condition,
+		MemberCount: memberCount, Position: position,
 	}
 }

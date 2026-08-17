@@ -11,6 +11,7 @@ var (
 	ErrVehicleOperationalValidation = errors.New("vehicle operational validation failed")
 	ErrVehicleNotFound              = errors.New("vehicle not found")
 	ErrVehicleSetValidation         = errors.New("vehicle set validation failed")
+	ErrVehicleSetNotFound           = errors.New("vehicle set not found")
 	ErrVehicleImageInUse            = errors.New("vehicle image in use")
 )
 
@@ -66,6 +67,7 @@ type Vehicle struct {
 	VehicleSetName            string               `json:"vehicleSetName,omitempty"`
 	VehicleSetPosition        int                  `json:"vehicleSetPosition,omitempty"`
 	VehicleSetSize            int                  `json:"vehicleSetSize,omitempty"`
+	VehicleSet                *VehicleSetSummary   `json:"vehicleSet,omitempty"`
 	InventoryNumber           string               `json:"inventoryNumber"`
 	Manufacturer              string               `json:"manufacturer"`
 	ArticleNumber             string               `json:"articleNumber,omitempty"`
@@ -140,6 +142,22 @@ type Vehicle struct {
 	UpdatedAt                 string               `json:"updatedAt"`
 }
 
+type VehicleSetSummary struct {
+	ID              string `json:"id"`
+	InventoryNumber string `json:"inventoryNumber"`
+	Name            string `json:"name"`
+	Manufacturer    string `json:"manufacturer"`
+	ArticleNumber   string `json:"articleNumber,omitempty"`
+	Gauge           string `json:"gauge"`
+	Epoch           string `json:"epoch,omitempty"`
+	AcquisitionType string `json:"acquisitionType,omitempty"`
+	PurchaseDate    string `json:"purchaseDate,omitempty"`
+	PurchasePrice   string `json:"purchasePrice,omitempty"`
+	Condition       string `json:"condition,omitempty"`
+	MemberCount     int    `json:"memberCount"`
+	Position        int    `json:"position"`
+}
+
 type VehicleSetInput struct {
 	Name             string `json:"name"`
 	Manufacturer     string `json:"manufacturer"`
@@ -172,6 +190,7 @@ type CreateVehicleSetInput struct {
 
 type VehicleSet struct {
 	ID               string    `json:"id"`
+	InventoryNumber  string    `json:"inventoryNumber"`
 	Name             string    `json:"name"`
 	Manufacturer     string    `json:"manufacturer"`
 	ArticleNumber    string    `json:"articleNumber,omitempty"`

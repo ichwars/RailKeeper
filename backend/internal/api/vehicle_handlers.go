@@ -83,6 +83,44 @@ func (a *App) createVehicleSet(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, vehicleSet)
 }
 
+func (a *App) getVehicleSet(w http.ResponseWriter, r *http.Request) {
+	vehicleSet, err := a.vehicleService.GetSet(r.Context(), r.PathValue("id"))
+	if err != nil {
+		if errors.Is(err, application.ErrVehicleSetNotFound) {
+			respondProblem(w, http.StatusNotFound, "vehicle_set_not_found", "Vehicle set not found.")
+			return
+		}
+		a.logger.Error("vehicle set get failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "vehicle_set_get_failed", "Could not read vehicle set.")
+		return
+	}
+	respondJSON(w, http.StatusOK, vehicleSet)
+}
+
+func (a *App) updateVehicleSet(w http.ResponseWriter, r *http.Request) {
+	var input application.VehicleSetInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	vehicleSet, err := a.vehicleService.UpdateSet(r.Context(), r.PathValue("id"), input, actorUserID(r))
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrVehicleSetValidation):
+			respondProblem(w, http.StatusBadRequest, "vehicle_set_validation",
+				"Set name, manufacturer, gauge, category and subtype are required.")
+		case errors.Is(err, application.ErrVehicleSetNotFound):
+			respondProblem(w, http.StatusNotFound, "vehicle_set_not_found", "Vehicle set not found.")
+		default:
+			a.logger.Error("vehicle set update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "vehicle_set_update_failed",
+				"Could not update vehicle set.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, vehicleSet)
+}
+
 func (a *App) getVehicle(w http.ResponseWriter, r *http.Request) {
 	vehicle, err := a.vehicleService.Get(r.Context(), r.PathValue("id"))
 	if err != nil {

@@ -15,11 +15,14 @@ import {
 import { DeleteAttachmentDialog, DeleteVehicleDialog, ExhibitionAssignmentDialog, ImagePreviewDialog, QrDialog, ReportDialog } from "./VehicleDialogs";
 import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
+import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
+import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
+import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import {
   vehicleSetInputFromForm,
-  vehicleSetMembersFromForm,
-  type VehicleSetMemberDraft
+  vehicleSetMembersFromForm
 } from "./VehicleCreateWizard";
+import { clearVehicleCreateDraft, type VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
@@ -53,7 +56,7 @@ import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 import { createVehicleFilterDefinitions, createVehicleInventoryRenderers } from "./vehicleInventoryRenderers";
 import type { MasterDataOptions } from "./vehicleViewModel";
 
-export function VehiclesView({ username }: { username: string }) {
+export function VehiclesView({ username, roles = ["Editor"] }: { username: string; roles?: string[] }) {
   const { language, t } = useI18n();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [options, setOptions] = useState<MasterDataOptions>(emptyOptions);
@@ -62,6 +65,10 @@ export function VehiclesView({ username }: { username: string }) {
   const [loading, setLoading] = useState(false);
   const [deleteCandidate, setDeleteCandidate] = useState<Vehicle | null>(null);
   const [quickMenuVehicleID, setQuickMenuVehicleID] = useState("");
+	const [selectedVehicleSetID, setSelectedVehicleSetID] = useState("");
+	const [vehicleSetMode, setVehicleSetMode] = useState<"view" | "edit" | null>(null);
+	const [createPrefill, setCreatePrefill] = useState<VehicleCreatePrefill | null>(null);
+	const canEditVehicleSets = roles.includes("Admin") || roles.includes("Editor");
 
   const {
     state: {
@@ -383,7 +390,8 @@ export function VehiclesView({ username }: { username: string }) {
       submitBarcode: submitBarcodeSearch,
       toggleField: toggleArticleField,
       toggleImage: toggleArticleImage,
-      applyResult: applyArticleResult
+      applyResult: applyArticleResult,
+      restoreDraft: restoreArticleDraft
     }
   } = useArticleSearchController({
     form,
@@ -435,7 +443,8 @@ export function VehiclesView({ username }: { username: string }) {
     sortedVehicles,
     toggleAllVisibleSelection,
     toggleSort,
-    toggleVehicleSelection
+		toggleVehicleSelection,
+		toggleVehicleSetSelection
   } = useVehicleInventoryController(vehicles, columnPreferences.columns);
   const load = useCallback(() => {
     setLoading(true);
@@ -558,6 +567,7 @@ export function VehiclesView({ username }: { username: string }) {
     }
   } = useVehicleECoSDraftController({
     onOpenCreate: (prepared) => {
+			setCreatePrefill(null);
       setSelected(null);
       setMode("create");
       setForm(prepared.form);
@@ -638,6 +648,7 @@ export function VehiclesView({ username }: { username: string }) {
       .catch((error: Error) => setMessage(error.message));
   };
   const { submit, confirmDelete } = createVehicleMutationCommands({
+    draftOwner: username,
     editor: {
       form,
       selected,
@@ -677,14 +688,15 @@ export function VehiclesView({ username }: { username: string }) {
     onMessage: setMessage,
     t
   });
-  const submitVehicleSet = async (members: VehicleSetMemberDraft[]) => {
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => {
     setSaving(true);
     setMessage("");
     try {
       const created = await api.createVehicleSet({
         set: vehicleSetInputFromForm(form),
-        members: vehicleSetMembersFromForm(form, members, pendingArticleImages)
+        members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
+      clearVehicleCreateDraft(username);
       const firstMember = created.members[0];
       if (firstMember) {
         setSelectedDetail(firstMember);
@@ -694,6 +706,7 @@ export function VehiclesView({ username }: { username: string }) {
         closeModal();
       }
       await load();
+			setCreatePrefill(null);
       setMessage(t("vehicles.wizard.created", { count: created.members.length }));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : t("vehicles.wizard.createFailed"));
@@ -701,6 +714,35 @@ export function VehiclesView({ username }: { username: string }) {
       setSaving(false);
     }
   };
+	const closeVehicleSetDialog = () => {
+		setSelectedVehicleSetID("");
+		setVehicleSetMode(null);
+	};
+	const openVehicleSet = (setID: string, nextMode: "view" | "edit") => {
+		setSelectedVehicleSetID(setID);
+		setVehicleSetMode(nextMode);
+	};
+	const duplicateVehicleSet = (prefill: VehicleCreatePrefill) => {
+		closeVehicleSetDialog();
+		setCreatePrefill(prefill);
+		openCreate(prefill.shared);
+	};
+	const closeVehicleCreateDialog = () => {
+		setCreatePrefill(null);
+		closeModal();
+	};
+	const duplicateVehicleSetByID = async (setID: string) => {
+		try {
+			const vehicleSet = await api.vehicleSet(setID);
+			duplicateVehicleSet(vehicleSetDuplicatePrefill(vehicleSet));
+		} catch (error) {
+			setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
+		}
+	};
+	const handleVehicleSetUpdated = async () => {
+		await load();
+		setVehicleSetMode("view");
+	};
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -751,7 +793,10 @@ export function VehiclesView({ username }: { username: string }) {
         hasActiveInventoryFilters={hasActiveInventoryFilters}
         allVisibleSelected={allVisibleSelected}
         selectedVehicleIDs={selectedVehicleIDs}
-        onCreate={openCreate}
+		onCreate={() => {
+			setCreatePrefill(null);
+			openCreate();
+		}}
         onReload={load}
         onOpenReport={() => setReportDialogOpen(true)}
         onQueryChange={setQuery}
@@ -775,8 +820,12 @@ export function VehiclesView({ username }: { username: string }) {
         onOpenEdit={openEdit}
         onDelete={setDeleteCandidate}
         onToggleSelection={toggleVehicleSelection}
+		onToggleSetSelection={toggleVehicleSetSelection}
         onToggleAllVisibleSelection={toggleAllVisibleSelection}
         onToggleExhibition={toggleVehicleExhibition}
+		onOpenSet={(setID) => openVehicleSet(setID, "view")}
+		onEditSet={canEditVehicleSets ? (setID) => openVehicleSet(setID, "edit") : undefined}
+		onDuplicateSet={canEditVehicleSets ? duplicateVehicleSetByID : undefined}
         renderQuickMenu={vehicleQuickMenu}
       />
       {reportDialogOpen && (
@@ -800,6 +849,7 @@ export function VehiclesView({ username }: { username: string }) {
       )}
       {modalOpen && (
         <VehicleEditorDialog
+          draftOwner={username}
           mode={mode}
           selected={selected}
           activeTab={activeTab}
@@ -807,7 +857,7 @@ export function VehiclesView({ username }: { username: string }) {
           message={message}
           onSubmit={submit}
           onSubmitSet={submitVehicleSet}
-          onClose={closeModal}
+          onClose={closeVehicleCreateDialog}
           onTabChange={setActiveTab}
           onEdit={() => {
             if (selected) openEdit(selected);
@@ -818,6 +868,23 @@ export function VehiclesView({ username }: { username: string }) {
           onQr={generateQr}
           onPreviewImage={setPreviewImage}
           setCreationDisabled={Boolean(ecosDraft)}
+          createPrefill={createPrefill}
+          articleSearchController={{
+            state: {
+              open: articleSearchOpen, loading: articleSearchLoading, response: articleSearchResponse,
+              error: articleSearchError, barcodeOpen: barcodeSearchOpen, barcodeValue: barcodeSearchValue,
+              selectedFields: selectedArticleFields, selectedImages: selectedArticleImages
+            },
+            setters: {
+              setOpen: setArticleSearchOpen, setBarcodeOpen: setBarcodeSearchOpen,
+              setBarcodeValue: setBarcodeSearchValue
+            },
+            commands: {
+              run: runArticleSearch, openBarcode: openBarcodeSearch, submitBarcode: submitBarcodeSearch,
+              toggleField: toggleArticleField, toggleImage: toggleArticleImage, applyResult: applyArticleResult,
+              restoreDraft: restoreArticleDraft
+            }
+          }}
           tabs={{
             model: {
               form,
@@ -986,7 +1053,33 @@ export function VehiclesView({ username }: { username: string }) {
           }}
         />
       )}
-      {articleSearchOpen && (
+		{vehicleSetMode === "view" && selectedVehicleSetID && (
+			<VehicleSetSummaryDialog
+				setId={selectedVehicleSetID}
+				canEdit={canEditVehicleSets}
+				onClose={closeVehicleSetDialog}
+				onUpdated={() => undefined}
+				onEdit={(setID) => openVehicleSet(setID, "edit")}
+				onDuplicate={duplicateVehicleSet}
+				onOpenVehicle={async (vehicleID) => {
+					try {
+						const vehicle = vehicles.find((entry) => entry.id === vehicleID) || await api.vehicle(vehicleID);
+						closeVehicleSetDialog();
+						openDetail(vehicle);
+					} catch (error) {
+						setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
+					}
+				}}
+			/>
+		)}
+		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (
+			<VehicleSetEditorDialog
+				setId={selectedVehicleSetID}
+				onClose={closeVehicleSetDialog}
+				onUpdated={handleVehicleSetUpdated}
+			/>
+		)}
+      {articleSearchOpen && mode !== "create" && (
         <ArticleSearchDialog
           fieldGroups={vehicleArticleSearchGroups(t)}
           currentValue={(key) => currentArticleValue(form, key as ArticleFieldKey)}
@@ -1001,7 +1094,7 @@ export function VehiclesView({ username }: { username: string }) {
           onToggleImage={toggleArticleImage}
         />
       )}
-      {barcodeSearchOpen && (
+      {barcodeSearchOpen && mode !== "create" && (
         <BarcodeSearchDialog
           value={barcodeSearchValue}
           onValueChange={setBarcodeSearchValue}

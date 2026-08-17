@@ -21,6 +21,12 @@ describe("vehicle inventory column layout", () => {
     expect(css).toMatch(/@media\s*\(max-width:\s*420px\)[\s\S]*\.vehicle-mobile-fields\s*\{[^}]*grid-template-columns:\s*1fr/s);
   });
 
+	it("uses a one-column set hierarchy with accessible action targets", () => {
+		expect(css).toMatch(/\.vehicle-mobile-set-card\s*\{[^}]*grid-template-columns:\s*1fr/s);
+		expect(css).toMatch(/\.vehicle-mobile-set-actions button\s*\{[^}]*min-height:\s*44px/s);
+		expect(css).toMatch(/\.vehicle-mobile-set-actions button\s*\{[^}]*min-width:\s*44px/s);
+	});
+
   it("keeps mobile quick menus inside the viewport", () => {
     expect(css).toMatch(/\.quick-menu\.quick-menu-floating\s*\{[^}]*position:\s*fixed/s);
     expect(css).toMatch(/\.quick-menu\.quick-menu-floating\s*\{[^}]*max-width:\s*calc\(100vw\s*-\s*16px\)/s);

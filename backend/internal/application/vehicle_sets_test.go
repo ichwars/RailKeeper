@@ -59,6 +59,9 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	if len(created.Members) != 2 {
 		t.Fatalf("expected two set members, got %d", len(created.Members))
 	}
+	if created.InventoryNumber != "RK-SET-000001" {
+		t.Fatalf("unexpected set inventory number %q", created.InventoryNumber)
+	}
 	for index, member := range created.Members {
 		if member.VehicleSetID != created.ID || member.VehicleSetName != "TEE Roland" {
 			t.Fatalf("member %d has incomplete set metadata: %#v", index, member)
@@ -77,6 +80,157 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	}
 	if len(listed) != 2 || listed[0].VehicleSetID != created.ID || listed[1].VehicleSetID != created.ID {
 		t.Fatalf("set search/list metadata mismatch: %#v", listed)
+	}
+	for index, vehicle := range listed {
+		if vehicle.VehicleSet == nil {
+			t.Fatalf("listed member %d has no canonical set projection", index)
+		}
+		if vehicle.VehicleSet.ID != created.ID || vehicle.VehicleSet.InventoryNumber != created.InventoryNumber {
+			t.Fatalf("listed member %d has the wrong set projection: %#v", index, vehicle.VehicleSet)
+		}
+		if vehicle.VehicleSet.MemberCount != 2 || vehicle.VehicleSet.Position < 1 || vehicle.VehicleSet.Position > 2 {
+			t.Fatalf("listed member %d has incomplete set position metadata: %#v", index, vehicle.VehicleSet)
+		}
+	}
+
+	listedByInventoryNumber, err := service.List(ctx, created.InventoryNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listedByInventoryNumber) != 2 {
+		t.Fatalf("set inventory number search returned %d members", len(listedByInventoryNumber))
+	}
+}
+
+func TestGetVehicleSetReturnsCanonicalDataAndOrderedMembers(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Rheingold", Manufacturer: "Roco", ArticleNumber: "45923", Gauge: "H0",
+			Category: "Wagen", Gattung: "Reisezugwagen", Epoch: "III",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Speisewagen"}, {Name: "Abteilwagen"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	loaded, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.InventoryNumber != created.InventoryNumber || loaded.Name != "Rheingold" || loaded.Epoch != "III" {
+		t.Fatalf("canonical set data mismatch: %#v", loaded)
+	}
+	if len(loaded.Members) != 2 || loaded.Members[0].Name != "Speisewagen" || loaded.Members[1].Name != "Abteilwagen" {
+		t.Fatalf("set members are not ordered: %#v", loaded.Members)
+	}
+
+	_, err = service.GetSet(ctx, "missing-set")
+	if !errors.Is(err, application.ErrVehicleSetNotFound) {
+		t.Fatalf("expected vehicle set not found, got %v", err)
+	}
+}
+
+func TestUpdateVehicleSetUpdatesCanonicalDataAndMemberSnapshots(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "TEE Roland", Manufacturer: "Märklin", ArticleNumber: "37605", Gauge: "H0",
+			Category: "Triebzug", Gattung: "Dieseltriebzug", PurchasePrice: "299.90",
+		},
+		Members: []application.CreateVehicleInput{
+			{Name: "Motorwagen", VehicleNumber: "VT 11.5"},
+			{Name: "Steuerwagen", VehicleNumber: "VS 11.5"},
+		},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := service.UpdateSet(ctx, created.ID, application.VehicleSetInput{
+		Name: "TEE Roland neu", Manufacturer: "Roco", ArticleNumber: "63100", Gauge: "H0",
+		Category: "Triebzug", Gattung: "Dieseltriebzug", Epoch: "IV", PurchasePrice: "349.90",
+	}, "actor-2")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.InventoryNumber != created.InventoryNumber || updated.Name != "TEE Roland neu" ||
+		updated.Manufacturer != "Roco" || updated.ArticleNumber != "63100" {
+		t.Fatalf("set was not updated: %#v", updated)
+	}
+	if len(updated.Members) != 2 {
+		t.Fatalf("expected two members, got %d", len(updated.Members))
+	}
+	for index, member := range updated.Members {
+		if member.Manufacturer != "Roco" || member.ArticleNumber != "63100" || member.PurchasePrice != "349.90" {
+			t.Fatalf("member %d snapshot was not updated: %#v", index, member)
+		}
+	}
+	if updated.Members[0].Name != "Motorwagen" || updated.Members[0].VehicleNumber != "VT 11.5" ||
+		updated.Members[1].Name != "Steuerwagen" || updated.Members[1].VehicleNumber != "VS 11.5" {
+		t.Fatalf("member-specific data changed: %#v", updated.Members)
+	}
+
+	_, err = service.UpdateSet(ctx, "missing-set", application.VehicleSetInput{
+		Name: "Fehlt", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen",
+	}, "actor-2")
+	if !errors.Is(err, application.ErrVehicleSetNotFound) {
+		t.Fatalf("expected vehicle set not found, got %v", err)
+	}
+}
+
+func TestUpdateVehicleSetRollsBackCanonicalAndMemberData(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Rollbackset", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+			Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`
+CREATE TRIGGER fail_vehicle_set_snapshot_update
+BEFORE UPDATE OF manufacturer ON vehicles
+WHEN NEW.manufacturer = 'ROLLBACK'
+BEGIN
+  SELECT RAISE(ABORT, 'forced snapshot failure');
+END
+`); err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = service.UpdateSet(ctx, created.ID, application.VehicleSetInput{
+		Name: "Geändert", Manufacturer: "ROLLBACK", Gauge: "H0", Category: "Wagen",
+		Gattung: "Reisezugwagen",
+	}, "actor-2")
+	if err == nil {
+		t.Fatal("expected forced snapshot update failure")
+	}
+
+	loaded, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Name != "Rollbackset" || loaded.Manufacturer != "Roco" {
+		t.Fatalf("canonical set update was not rolled back: %#v", loaded)
+	}
+	for index, member := range loaded.Members {
+		if member.Manufacturer != "Roco" {
+			t.Fatalf("member %d update was not rolled back: %#v", index, member)
+		}
 	}
 }
 
@@ -114,6 +268,19 @@ func TestCreateVehicleSetRollsBackAllMembersOnConflict(t *testing.T) {
 	}
 	if vehicleCount != 1 || setCount != 0 {
 		t.Fatalf("set creation was not atomic: vehicles=%d sets=%d", vehicleCount, setCount)
+	}
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Folgeset", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if created.InventoryNumber != "RK-SET-000001" {
+		t.Fatalf("rolled-back set consumed an inventory number: %q", created.InventoryNumber)
 	}
 }
 

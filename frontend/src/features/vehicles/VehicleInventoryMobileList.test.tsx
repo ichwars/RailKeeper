@@ -30,6 +30,7 @@ function renderList(overrides: Partial<ComponentProps<typeof VehicleInventoryMob
   });
   const props: ComponentProps<typeof VehicleInventoryMobileList> = {
     vehicles: [first, second],
+    sort: { key: "inventoryNumber", direction: "asc" },
     columns: [
       "image",
       "inventoryNumber",
@@ -52,6 +53,25 @@ function renderList(overrides: Partial<ComponentProps<typeof VehicleInventoryMob
 }
 
 describe("VehicleInventoryMobileList", () => {
+	it("keeps set members hidden until the set is expanded", () => {
+		const set = {
+			id: "set-1", inventoryNumber: "RK-SET-000001", name: "Rheingold", manufacturer: "Roco",
+			articleNumber: "45923", gauge: "H0", memberCount: 2, position: 1
+		};
+		renderList({
+			vehicles: [
+				vehicleFixture({ id: "member-1", inventoryNumber: "RK-WAG-000001", vehicleSet: set }),
+				vehicleFixture({ id: "member-2", inventoryNumber: "RK-WAG-000002", vehicleSet: { ...set, position: 2 } })
+			],
+			onOpenSet: vi.fn()
+		});
+
+		expect(screen.getByText("RK-SET-000001")).toBeVisible();
+		expect(screen.queryByText("RK-WAG-000001")).toBeNull();
+		fireEvent.click(screen.getByRole("button", { name: /Set aufklappen/ }));
+		expect(screen.getByText("RK-WAG-000001")).toBeVisible();
+	});
+
   it("shows compact summaries and independently expands ordered remaining fields", () => {
     renderList();
 

@@ -313,6 +313,17 @@ func TestOpenAPIDocumentsVehicleSetMemberRequestAndRemainingSet(t *testing.T) {
 	if setSizeStart < 0 || !strings.Contains(vehicle[setSizeStart:], "minimum: 1") {
 		t.Errorf("vehicleSetSize does not allow a one-member remainder: %s", vehicle)
 	}
+	for _, field := range []string{"vehicleSet:", "inventoryNumber:", "memberCount:", "position:"} {
+		if !strings.Contains(contract, field) {
+			t.Errorf("vehicle set contract is missing %s", field)
+		}
+	}
+	setPath := openAPIIndentedBlock(t, contract, "/vehicle-sets/{id}", 2)
+	for _, operation := range []string{"get:", "patch:"} {
+		if !strings.Contains(setPath, operation) {
+			t.Errorf("vehicle set path is missing %s: %s", operation, setPath)
+		}
+	}
 }
 
 func TestOpenAPIUsesIndividualItemTerminologyForAllocations(t *testing.T) {

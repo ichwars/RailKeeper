@@ -4,14 +4,14 @@ description: Search, filter, create, maintain, report, and safely delete RailKee
 audience: user
 status: stable
 reviewedVersion: 0.1.19
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-17
 ---
 
 # Vehicle inventory and core records
 
 **Vehicle inventory** is the central workspace for model railway vehicles. It combines inventory
 status, search, filters, table and card views, core vehicle data, QR labels, and printable reports.
-This chapter describes stable RailKeeper v0.1.19.
+This chapter describes the vehicle workflow prepared for RailKeeper v0.1.20.
 
 Admin, Editor, Viewer, and Planner users can inspect the inventory. Creating, changing, and deleting
 vehicle records requires Admin or Editor. In v0.1.19, write controls can still be visible to Viewer
@@ -136,15 +136,15 @@ dedicated chapters. Selecting **Edit** still requires Admin or Editor permission
 Admin and Editor users create individual vehicles and related product sets through the same guided
 dialog:
 
-1. Select **New vehicle**. Under **Type & basics**, choose **Individual vehicle** or **Set** and
-   complete **Designation / Set designation**, **Manufacturer**, **Gauge**, **Category**, and
-   **Subtype**. Epoch is optional.
-2. Under **Article data**, use **Barcode**, **Search article data**, or manual entry for article
-   number, EAN, production period, and source URL. This step is optional. External suggestions still
-   require review before they are applied.
-3. Under **Vehicle data**, complete the remaining model, purchase, storage, condition, control, and
-   QR fields. For a set, also define at least two members. Each member can have its own designation,
-   inventory number, and vehicle number; additional members can be added as needed.
+1. Under **Type & basics**, choose **Individual vehicle** or **Set** and enter manufacturer,
+   designation, article number where known, gauge, and category. A set needs at least two members.
+   Its next `RK-SET-*` number is a provisional preview; the server reserves the final number.
+2. Under **Article data**, use the embedded barcode or web search, or continue manually. Ranked
+   results and grouped field/image review stay inside the creation dialog. External values remain
+   user-reviewed suggestions and are imported only when selected.
+3. Under **Vehicle details**, enter acquisition data once for the set. Desktop tabs and the mobile
+   selector separate **Set & acquisition** from every ordered member. Shared identity appears as
+   read-only inherited context; member-specific technical data and vehicle numbers remain isolated.
 4. Select **Create** or **Create set**.
 
 For an individual vehicle, leaving **Inventory number** empty uses the active inventory-number
@@ -158,11 +158,15 @@ to every member during creation. A blank member designation becomes the set desi
 its position, for example `TEE Roland (1)`. Blank member inventory numbers are assigned
 automatically. After creation, the first member opens for further editing.
 
-The inventory displays a set as an expandable group on desktop and mobile. Its physical vehicles
-remain independent records and can be opened or edited individually.
+Every set receives a persistent, unique `RK-SET-*` inventory number. The inventory displays its
+canonical row once, even if filters expose only some members, and reports visible versus total
+counts. Desktop uses a tree-aligned table; mobile uses a collapsed set card with indented member
+cards. Set actions open the summary, edit shared data, or duplicate into a new creation draft.
 
-This stage does not yet support editing shared set data after creation, assigning existing vehicles
-to a set, detaching members, or deleting a complete set.
+**Save draft** stores the versioned creation state in the current browser. A later dialog offers
+resume or discard, and successful creation clears it. Assigning existing vehicles, detaching
+members, and deleting a complete set are not available. Article-search data never becomes
+authoritative without user selection.
 
 ## Core field reference
 
@@ -335,4 +339,4 @@ important records; the application does not promise physical cleanup of every re
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19** and was last reviewed on 2026-08-16.
+This page documents the vehicle workflow prepared for RailKeeper **v0.1.20** and was last reviewed on 2026-08-17.

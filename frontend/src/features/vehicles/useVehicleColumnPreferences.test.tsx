@@ -36,6 +36,7 @@ describe("useVehicleColumnPreferences", () => {
 
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(result.current.columns).toEqual(defaultVehicleTableColumns);
+		expect(result.current.columns[0]).toBe("type");
   });
 
   it("saves normalized changes as a partial profile update", async () => {

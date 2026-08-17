@@ -87,10 +87,10 @@ export function useVehicleEditorController({
     });
   };
 
-  const openCreate = () => {
+	const openCreate = (initialForm: CreateVehicleRequest = emptyVehicle) => {
     setSelected(null);
     setMode("create");
-    setForm(emptyVehicle);
+		setForm(initialForm);
     setSaveAttempted(false);
     setActiveTab("model");
     setOpenSections(initialOpenSections);

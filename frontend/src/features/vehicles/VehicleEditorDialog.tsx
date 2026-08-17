@@ -4,7 +4,8 @@ import { X } from "lucide-react";
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleCVTab } from "./VehicleCVTab";
-import { VehicleCreateWizard, type VehicleSetMemberDraft } from "./VehicleCreateWizard";
+import { VehicleCreateWizard } from "./VehicleCreateWizard";
+import type { VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { VehicleFunctionsTab } from "./VehicleFunctionsTab";
 import { VehicleMaintenanceTab } from "./VehicleMaintenanceTab";
 import { VehicleModelTab } from "./VehicleModelTab";
@@ -13,6 +14,8 @@ import { VehicleSparePartsTab } from "./VehicleSparePartsTab";
 import { VehicleSpeedCurveTab } from "./VehicleSpeedCurveTab";
 import { VehicleUploadsTab } from "./VehicleUploadsTab";
 import type { ModalMode, ModalTab } from "./vehicleViewModel";
+import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
+import type { ArticleSearchController } from "./useArticleSearchController";
 
 type EditorTabs = {
   model: ComponentProps<typeof VehicleModelTab>;
@@ -25,6 +28,7 @@ type EditorTabs = {
 };
 
 type VehicleEditorDialogProps = {
+  draftOwner: string;
   mode: ModalMode;
   selected: Vehicle | null;
   activeTab: ModalTab;
@@ -32,7 +36,7 @@ type VehicleEditorDialogProps = {
   message: string;
   tabs: EditorTabs;
   onSubmit: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
   onClose: () => void;
   onTabChange: (tab: ModalTab) => void;
   onEdit: () => void;
@@ -40,6 +44,8 @@ type VehicleEditorDialogProps = {
   onQr: () => void;
   onPreviewImage: ComponentProps<typeof VehicleReadOnlyView>["onPreviewImage"];
   setCreationDisabled?: boolean;
+	createPrefill?: VehicleCreatePrefill | null;
+  articleSearchController: ArticleSearchController;
 };
 
 const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = [
@@ -53,6 +59,7 @@ const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = 
 ];
 
 export function VehicleEditorDialog({
+  draftOwner,
   mode,
   selected,
   activeTab,
@@ -67,14 +74,19 @@ export function VehicleEditorDialog({
   onPrint,
   onQr,
   onPreviewImage,
-  setCreationDisabled = false
+	setCreationDisabled = false,
+	createPrefill,
+  articleSearchController
 }: VehicleEditorDialogProps) {
   const { t } = useI18n();
 
   return (
-    <div className="modal-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.modal.aria")}>
+    <div className="modal-layer" role={mode === "create" ? undefined : "dialog"}
+      aria-modal={mode === "create" ? undefined : "true"}
+      aria-label={mode === "create" ? undefined : t("vehicles.modal.aria")}>
       {mode === "create" ? (
         <VehicleCreateWizard
+          draftOwner={draftOwner}
           model={tabs.model}
           saving={saving}
           message={message}
@@ -82,6 +94,8 @@ export function VehicleEditorDialog({
           onSubmitSet={onSubmitSet}
           onClose={onClose}
           setCreationDisabled={setCreationDisabled}
+					prefill={createPrefill}
+          articleSearchController={articleSearchController}
         />
       ) : (
         <form

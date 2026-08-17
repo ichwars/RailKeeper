@@ -1,31 +1,40 @@
-import { Fragment, useEffect, useState, type ReactNode } from "react";
-import { ChevronDown, ChevronUp, Layers3 } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleInventoryMobileCard } from "./VehicleInventoryMobileCard";
+import { VehicleSetInventoryMobileCard } from "./VehicleSetInventoryMobileCard";
 import type { VehicleTableColumn } from "./vehicleTableColumns";
 import { groupVehicleInventory } from "./vehicleSetGroups";
+import type { SortDirection, SortKey } from "./vehicleViewModel";
 
 type VehicleInventoryMobileListProps = {
   vehicles: Vehicle[];
   columns: readonly VehicleTableColumn[];
+  sort: { key: SortKey; direction: SortDirection };
   onOpenDetail: (vehicle: Vehicle) => void;
   onOpenEdit: (vehicle: Vehicle) => void;
+  onOpenSet?: (setID: string) => void;
+  onEditSet?: (setID: string) => void;
+  onDuplicateSet?: (setID: string) => void;
   renderQuickMenu: (vehicle: Vehicle) => ReactNode;
 };
 
 export function VehicleInventoryMobileList({
   vehicles,
   columns,
+  sort,
   onOpenDetail,
   onOpenEdit,
+  onOpenSet = () => undefined,
+  onEditSet,
+  onDuplicateSet,
   renderQuickMenu
 }: VehicleInventoryMobileListProps) {
   const { t } = useI18n();
   const [expandedVehicleIDs, setExpandedVehicleIDs] = useState<Set<string>>(() => new Set());
-  const [collapsedSetIDs, setCollapsedSetIDs] = useState<Set<string>>(() => new Set());
-  const groupedVehicles = groupVehicleInventory(vehicles);
+  const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
+  const groupedVehicles = groupVehicleInventory(vehicles, sort);
 
   useEffect(() => {
     const visibleIDs = new Set(vehicles.map((vehicle) => vehicle.id));
@@ -58,41 +67,37 @@ export function VehicleInventoryMobileList({
           renderQuickMenu={renderQuickMenu}
         />
       ) : (
-        <Fragment key={group.id}>
-          <section className="vehicle-mobile-set">
-            <button
-              type="button"
-              className="vehicle-mobile-set-head"
-              onClick={() => setCollapsedSetIDs((current) => {
-                const next = new Set(current);
-                if (next.has(group.id)) next.delete(group.id);
-                else next.add(group.id);
-                return next;
-              })}
-              aria-expanded={!collapsedSetIDs.has(group.id)}
-            >
-              <Layers3 size={18} />
-              <span><strong>{group.name}</strong><small>{t("vehicles.set.memberCount", { count: group.members.length })}</small></span>
-              {collapsedSetIDs.has(group.id) ? <ChevronDown size={18} /> : <ChevronUp size={18} />}
-            </button>
-            {!collapsedSetIDs.has(group.id) && (
-              <div className="vehicle-mobile-set-members">
-                {group.members.map((vehicle) => (
-                  <VehicleInventoryMobileCard
-                    key={vehicle.id}
-                    vehicle={vehicle}
-                    columns={columns}
-                    expanded={expandedVehicleIDs.has(vehicle.id)}
-                    onToggleExpanded={() => toggleExpanded(vehicle.id)}
-                    onOpenDetail={onOpenDetail}
-                    onOpenEdit={onOpenEdit}
-                    renderQuickMenu={renderQuickMenu}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
-        </Fragment>
+        <section className="vehicle-mobile-set-tree" key={group.id}>
+          <VehicleSetInventoryMobileCard
+            group={group}
+            expanded={expandedSetIDs.has(group.id)}
+            onToggleExpanded={() => setExpandedSetIDs((current) => {
+              const next = new Set(current);
+              if (next.has(group.id)) next.delete(group.id);
+              else next.add(group.id);
+              return next;
+            })}
+            onOpen={onOpenSet}
+            onEdit={onEditSet}
+            onDuplicate={onDuplicateSet}
+          />
+          {expandedSetIDs.has(group.id) && (
+            <div className="vehicle-mobile-set-members">
+              {group.members.map((vehicle) => (
+                <VehicleInventoryMobileCard
+                  key={vehicle.id}
+                  vehicle={vehicle}
+                  columns={columns}
+                  expanded={expandedVehicleIDs.has(vehicle.id)}
+                  onToggleExpanded={() => toggleExpanded(vehicle.id)}
+                  onOpenDetail={onOpenDetail}
+                  onOpenEdit={onOpenEdit}
+                  renderQuickMenu={renderQuickMenu}
+                />
+              ))}
+            </div>
+          )}
+        </section>
       ))}
     </div>
   );

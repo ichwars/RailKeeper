@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected backup version 17, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected backup version 18, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -136,6 +136,170 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	}
 }
 
+func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	vehicles := application.NewVehicleService(db)
+	created, err := vehicles.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Rheingold", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+			Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	backup, err := application.NewBackupService(db, dataDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if backup.Version != 18 {
+		t.Fatalf("expected backup version 18, got %d", backup.Version)
+	}
+	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
+		t.Fatalf("set inventory number missing from backup: %v", got)
+	}
+}
+
+func TestLegacyVersionSeventeenVehicleSetNumbersAreNormalizedDeterministically(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 17
+	legacyRows := []map[string]any{
+		{
+			"id": "set-b", "name": "Später", "manufacturer": "Roco", "gauge": "H0",
+			"category": "Wagen", "gattung": "Reisezugwagen",
+			"created_at": "2026-08-02T00:00:00Z", "updated_at": "2026-08-02T00:00:00Z",
+		},
+		{
+			"id": "set-a", "name": "Früher", "manufacturer": "Roco", "gauge": "H0",
+			"category": "Wagen", "gattung": "Reisezugwagen",
+			"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+		},
+	}
+	doc.Tables["vehicle_sets"] = legacyRows
+	doc.Tables["vehicle_set_members"] = []map[string]any{}
+	setSchemes := make([]map[string]any, 0, len(doc.Tables["inventory_number_schemes"]))
+	for _, row := range doc.Tables["inventory_number_schemes"] {
+		if row["category"] != "Set" {
+			setSchemes = append(setSchemes, row)
+		}
+	}
+	doc.Tables["inventory_number_schemes"] = setSchemes
+
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		id   string
+		want string
+	}{{"set-a", "RK-SET-000001"}, {"set-b", "RK-SET-000002"}} {
+		var got string
+		if err := db.QueryRow(`SELECT inventory_number FROM vehicle_sets WHERE id=?`, test.id).Scan(&got); err != nil {
+			t.Fatal(err)
+		}
+		if got != test.want {
+			t.Fatalf("set %s inventory number=%q, want %q", test.id, got, test.want)
+		}
+	}
+	var nextNumber int
+	if err := db.QueryRow(`SELECT next_number FROM inventory_number_schemes WHERE category='Set'`).Scan(&nextNumber); err != nil {
+		t.Fatal(err)
+	}
+	if nextNumber != 3 {
+		t.Fatalf("set scheme next number=%d, want 3", nextNumber)
+	}
+	for index, row := range legacyRows {
+		if _, mutated := row["inventory_number"]; mutated {
+			t.Fatalf("legacy input row %d was mutated: %#v", index, row)
+		}
+	}
+}
+
+func TestLegacyVersionSeventeenVehicleSetNumbersActivateExistingInactiveScheme(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 17
+	doc.Tables["vehicle_sets"] = []map[string]any{{
+		"id": "set-a", "name": "Altset", "manufacturer": "Roco", "gauge": "H0",
+		"category": "Wagen", "gattung": "Reisezugwagen",
+		"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+	}}
+	doc.Tables["vehicle_set_members"] = []map[string]any{}
+	for _, row := range doc.Tables["inventory_number_schemes"] {
+		if row["category"] == "Set" {
+			row["active"] = float64(0)
+			row["prefix"] = "CLUB-SET"
+			row["next_number"] = float64(7)
+		}
+	}
+
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var inventoryNumber string
+	var active int
+	if err := db.QueryRow(`SELECT inventory_number FROM vehicle_sets WHERE id='set-a'`).Scan(&inventoryNumber); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`SELECT active FROM inventory_number_schemes WHERE category='Set'`).Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if inventoryNumber != "CLUB-SET-000007" || active != 1 {
+		t.Fatalf("restored inventory number=%q active=%d", inventoryNumber, active)
+	}
+}
+
+func TestLegacyVersionSeventeenWithoutVehicleSetsRestoresSetNumberScheme(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 17
+	doc.Tables["vehicle_sets"] = []map[string]any{}
+	doc.Tables["vehicle_set_members"] = []map[string]any{}
+	setSchemes := make([]map[string]any, 0, len(doc.Tables["inventory_number_schemes"]))
+	for _, row := range doc.Tables["inventory_number_schemes"] {
+		if row["category"] != "Set" {
+			setSchemes = append(setSchemes, row)
+		}
+	}
+	doc.Tables["inventory_number_schemes"] = setSchemes
+
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var prefix string
+	var active int
+	if err := db.QueryRow(`
+SELECT prefix, active FROM inventory_number_schemes WHERE category='Set'
+`).Scan(&prefix, &active); err != nil {
+		t.Fatal(err)
+	}
+	if prefix != "RK-SET" || active != 1 {
+		t.Fatalf("restored Set scheme prefix=%q active=%d", prefix, active)
+	}
+}
+
 func TestBackupRestorePreservesInactiveBundledAndCustomOrigins(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -156,7 +320,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 17 {
+	if doc.Version != 18 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	if _, err := service.Import(t.Context(), doc); err != nil {
@@ -256,8 +420,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 17 {
-		t.Fatalf("expected backup version 17 for operational fields and accessory list price, got %d",
+	if document.Version != 18 {
+		t.Fatalf("expected backup version 18 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -334,8 +498,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -417,8 +581,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -495,8 +659,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -608,8 +772,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 17 module-port export, got version=%d rows=%d",
+	if backup.Version != 18 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 18 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -664,8 +828,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -727,8 +891,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -1011,8 +1175,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 17 {
-		t.Fatalf("expected version 17 export, got %d", backup.Version)
+	if backup.Version != 18 {
+		t.Fatalf("expected version 18 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -1658,7 +1822,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 18
+		doc.Version = 19
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}

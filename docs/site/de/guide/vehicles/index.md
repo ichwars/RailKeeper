@@ -4,14 +4,14 @@ description: Fahrzeuge suchen, filtern, anlegen, pflegen, ausgeben und sicher l�
 audience: user
 status: stable
 reviewedVersion: 0.1.19
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-17
 ---
 
 # Fahrzeugbestand und Grunddaten
 
 Der **Fahrzeugbestand** ist der zentrale Arbeitsbereich für Modellbahnfahrzeuge. Er verbindet
 Bestandsstatus, Suche, Filter, Tabellen- und Kartenansicht, Fahrzeuggrunddaten, QR-Etiketten und
-druckbare Reports. Dieses Kapitel beschreibt die stabile RailKeeper-Version v0.1.19.
+druckbare Reports. Dieses Kapitel beschreibt den für RailKeeper v0.1.20 vorbereiteten Fahrzeugablauf.
 
 Admin, Editor, Viewer und Planner können den Bestand einsehen. Fahrzeuge anlegen, ändern und
 löschen dürfen nur Admin und Editor. In v0.1.19 können Schreibfunktionen für Viewer und Planner
@@ -140,16 +140,16 @@ Editor-Rechte.
 Admin und Editor legen Einzelfahrzeuge und zusammengehörige Produktsets über denselben geführten
 Dialog an:
 
-1. Klicke auf **Neues Fahrzeug**. Wähle unter **Typ & Grunddaten** zwischen **Einzelfahrzeug** und
-   **Set** und fülle **Bezeichnung / Bezeichnung des Sets**, **Hersteller**, **Spurweite**,
-   **Kategorie** und **Gattung** aus. Die Epoche ist optional.
-2. Nutze unter **Artikeldaten** den **Barcode**, **Artikeldaten suchen** oder die manuelle Eingabe für
-   Artikelnummer, EAN, Produktionszeit und Quellen-URL. Dieser Schritt ist optional. Vorschläge aus
-   externen Quellen müssen weiterhin vor der Übernahme geprüft werden.
-3. Ergänze unter **Fahrzeugdaten** die übrigen Modell-, Kauf-, Lager-, Zustands-, Steuerungs- und
-   QR-Daten. Für ein Set werden außerdem mindestens zwei Mitglieder definiert. Jedes Mitglied kann
-   eine eigene Bezeichnung, Inventarnummer und Fahrzeugnummer erhalten; weitere Mitglieder lassen
-   sich hinzufügen.
+1. Wähle unter **Typ & Grunddaten** zwischen **Einzelfahrzeug** und **Set** und erfasse Hersteller,
+   Bezeichnung, soweit bekannt die Artikelnummer, Spurweite und Kategorie. Ein Set benötigt
+   mindestens zwei Fahrzeuge. Die nächste `RK-SET-*`-Nummer ist eine vorläufige Vorschau; die
+   endgültige Nummer reserviert der Server.
+2. Nutze unter **Artikeldaten** die eingebettete Barcode- oder Websuche oder fahre manuell fort.
+   Treffer und die gruppierte Feld- und Bildprüfung bleiben im Anlegedialog. Externe Werte bleiben
+   zu prüfende Vorschläge und werden nur nach Auswahl übernommen.
+3. Ergänze unter **Fahrzeugdetails** Anschaffungsdaten einmal für das Set. Desktop-Reiter und die
+   mobile Auswahl trennen **Set & Anschaffung** von jedem geordneten Fahrzeug. Gemeinsame Identität
+   erscheint nur als geerbter Kontext; fahrzeugspezifische Technik und Nummern bleiben getrennt.
 4. Klicke auf **Anlegen** oder **Set anlegen**.
 
 Bei einem Einzelfahrzeug verwendet eine leere **Inventarnummer** das aktive Inventarnummernschema
@@ -165,12 +165,16 @@ aus Setbezeichnung und Position gebildet, beispielsweise `TEE Roland (1)`. Leere
 werden automatisch vergeben. Nach dem Anlegen wird das erste Mitglied zur weiteren Bearbeitung
 geöffnet.
 
-Der Bestand zeigt ein Set auf Desktop und Mobilgeräten als aufklappbare Gruppe. Die enthaltenen
-physischen Fahrzeuge bleiben eigenständige Datensätze und können einzeln geöffnet oder bearbeitet
-werden.
+Jedes Set erhält dauerhaft eine eindeutige `RK-SET-*`-Inventarnummer. Der Bestand zeigt seine
+kanonische Zeile genau einmal, auch wenn Filter nur einzelne Mitglieder treffen, und nennt sichtbare
+sowie gesamte Mitglieder. Desktop nutzt eine Baumtabelle, mobil eine eingeklappte Setkarte mit
+eingerückten Fahrzeugkarten. Setaktionen öffnen die Ansicht, bearbeiten gemeinsame Daten oder
+duplizieren in einen neuen Anlegeentwurf.
 
-Noch nicht Bestandteil dieser Stufe sind das nachträgliche Bearbeiten gemeinsamer Setdaten, das
-Zuordnen bestehender Fahrzeuge, das Herauslösen von Mitgliedern und das Löschen eines gesamten Sets.
+**Entwurf speichern** legt den versionierten Stand im aktuellen Browser ab. Ein späterer Dialog
+bietet Fortsetzen oder Verwerfen an, eine erfolgreiche Anlage entfernt den Entwurf. Das Zuordnen
+bestehender Fahrzeuge, das Herauslösen von Mitgliedern und das Löschen eines gesamten Sets sind
+nicht verfügbar. Artikelsuchdaten werden ohne Benutzerauswahl nie verbindlich übernommen.
 
 ## Referenz der Grunddaten
 
@@ -347,5 +351,5 @@ Datei physisch zu entfernen.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19** und wurde zuletzt am
-16.08.2026 geprüft.
+Diese Seite dokumentiert den für RailKeeper **v0.1.20** vorbereiteten Fahrzeugablauf und wurde zuletzt am
+17.08.2026 geprüft.

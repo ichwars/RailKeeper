@@ -280,6 +280,18 @@ export function useVehicleInventoryController(
     });
   };
 
+	const toggleVehicleSetSelection = (vehicleIDs: string[]) => {
+		setSelectedVehicleIDs((current) => {
+			const next = new Set(current);
+			const allSelected = vehicleIDs.length > 0 && vehicleIDs.every((vehicleID) => next.has(vehicleID));
+			for (const vehicleID of vehicleIDs) {
+				if (allSelected) next.delete(vehicleID);
+				else next.add(vehicleID);
+			}
+			return next;
+		});
+	};
+
   const toggleAllVisibleSelection = () => {
     setSelectedVehicleIDs((current) => {
       const next = new Set(current);
@@ -353,6 +365,7 @@ export function useVehicleInventoryController(
     sortedVehicles,
     toggleAllVisibleSelection,
     toggleSort,
-    toggleVehicleSelection
+		toggleVehicleSelection,
+		toggleVehicleSetSelection
   };
 }

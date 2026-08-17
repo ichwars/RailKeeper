@@ -53,6 +53,7 @@ describe("useArticleSearchController", () => {
 
     act(() => controller.current.commands.run());
     await waitFor(() => expect(controller.current.state.loading).toBe(false));
+    expect(controller.current.state.response?.results).toHaveLength(1);
 
     expect(controller.current.state.selectedFields[articleSelectionKey(result, "articleNumber", 0)]).toBe(true);
     act(() => controller.current.commands.toggleImage(result, 0, result.images![0], true));

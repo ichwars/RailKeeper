@@ -9,6 +9,7 @@ import { createVehicleMutationCommands } from "./vehicleMutationCommands";
 function commandOptions() {
   const selected: Vehicle | null = null;
   return {
+    draftOwner: "tester",
     editor: {
       form: { ...emptyVehicle, manufacturer: "Piko", name: "BR 106" },
       selected: selected as Vehicle | null,
