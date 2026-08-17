@@ -76,7 +76,9 @@ export function VehicleEditorDialog({
   const { t } = useI18n();
 
   return (
-    <div className="modal-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.modal.aria")}>
+    <div className="modal-layer" role={mode === "create" ? undefined : "dialog"}
+      aria-modal={mode === "create" ? undefined : "true"}
+      aria-label={mode === "create" ? undefined : t("vehicles.modal.aria")}>
       {mode === "create" ? (
         <VehicleCreateWizard
           model={tabs.model}
