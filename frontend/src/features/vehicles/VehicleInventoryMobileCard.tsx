@@ -40,12 +40,12 @@ export function VehicleInventoryMobileCard({
 }: VehicleInventoryMobileCardProps) {
   const { language, t } = useI18n();
   const image = primaryImage(vehicle.images);
-  const showsImage = columns.includes("image");
+  const showsImage = columns.includes("image") || columns.includes("type");
   const shows = (column: VehicleTableColumn) => columns.includes(column);
   const text = (column: VehicleTableColumn) =>
     vehicleColumnText(vehicle, column, language, t);
   const detailColumns = columns.filter((column) => (
-    column !== "image" && !mobileSummaryColumns.has(column)
+    column !== "image" && column !== "type" && !mobileSummaryColumns.has(column)
   ));
   const makerLine = [
     shows("manufacturer") ? text("manufacturer") : "",

@@ -1,5 +1,6 @@
 import type { CreateVehicleRequest, Vehicle, VehicleImageInput, VehicleSet } from "../../shared/api";
 import { vehicleToForm } from "./vehicleTransforms";
+import { emptyVehicle } from "./vehicleViewModel";
 
 export type VehicleCreatePrefill = {
 	kind: "set";
@@ -21,14 +22,8 @@ function reusableRemoteImages(vehicle: Vehicle): VehicleImageInput[] {
 }
 
 export function vehicleSetDuplicatePrefill(set: VehicleSet): VehicleCreatePrefill {
-	const firstMember = set.members[0];
-	const sharedBase = firstMember ? vehicleToForm(firstMember) : {
-		manufacturer: set.manufacturer,
-		name: set.name,
-		gauge: set.gauge
-	};
 	const shared: CreateVehicleRequest = {
-		...sharedBase,
+		...emptyVehicle,
 		inventoryNumber: "",
 		name: set.name,
 		manufacturer: set.manufacturer,

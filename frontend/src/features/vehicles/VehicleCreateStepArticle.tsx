@@ -6,6 +6,7 @@ import { VehicleCreateArticleResults } from "./VehicleCreateArticleResults";
 import { VehicleCreateArticleReview } from "./VehicleCreateArticleReview";
 import type { VehicleCreateWizardAction, VehicleCreateWizardState } from "./vehicleCreateWizardState";
 import type { ArticleSearchController } from "./useArticleSearchController";
+import { articleSearchSources } from "./vehicleViewModel";
 
 export function VehicleCreateStepArticle({ state, dispatch, controller, onUpdateShared }: {
   state: VehicleCreateWizardState;
@@ -65,7 +66,10 @@ export function VehicleCreateStepArticle({ state, dispatch, controller, onUpdate
               onUpdateShared({ ean });
               controller.setters.setBarcodeOpen(false);
               dispatch({ type: "set-article-stage", stage: "results" });
-              controller.commands.run({ ...state.shared, ean }, { fields: { ean } });
+              controller.commands.run({ ...state.shared, ean }, {
+                fields: { ean },
+                searchSources: articleSearchSources()
+              });
             }}>{t("vehicles.articleSearch.barcode")}</button>
           </div>
         )}

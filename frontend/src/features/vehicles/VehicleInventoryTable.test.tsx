@@ -49,12 +49,11 @@ describe("VehicleInventoryTable", () => {
 		expect(screen.queryByText("Fahrzeug")).not.toBeInTheDocument();
 		const memberRows = document.querySelectorAll(".vehicle-set-child-row");
 		expect(within(memberRows[0].querySelector(".vehicle-column-articleNumber") as HTMLElement)
-			.getByText("50 80 11-35 001-2")).toBeVisible();
+			.getByText("45923")).toBeVisible();
 		expect(within(memberRows[1].querySelector(".vehicle-column-articleNumber") as HTMLElement)
-			.getByText("50 80 11-35 002-0")).toBeVisible();
+			.getByText("45923")).toBeVisible();
 		expect(within(memberRows[0].querySelector(".vehicle-column-inventoryNumber") as HTMLElement)
-			.queryByText("50 80 11-35 001-2")).not.toBeInTheDocument();
-		expect(within(memberRows[0] as HTMLElement).queryByText("45923")).not.toBeInTheDocument();
+			.getByText("50 80 11-35 001-2")).toBeVisible();
 	});
 
   it("renders selected columns in order with localized values", () => {

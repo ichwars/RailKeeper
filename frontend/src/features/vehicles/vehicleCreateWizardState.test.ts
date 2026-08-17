@@ -178,4 +178,20 @@ describe("vehicleCreateWizardState", () => {
       .toEqual({ kind: "error" });
     expect(clearVehicleCreateDraft("local", storage)).toEqual({ kind: "error" });
   });
+
+  it("keeps draft operations non-blocking when browser storage access itself is denied", () => {
+    const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get: () => { throw new DOMException("denied", "SecurityError"); }
+    });
+    try {
+      expect(loadVehicleCreateDraft()).toEqual({ kind: "error" });
+      expect(saveVehicleCreateDraft(createVehicleCreateWizardState(emptyVehicle))).toEqual({ kind: "error" });
+      expect(clearVehicleCreateDraft()).toEqual({ kind: "error" });
+    } finally {
+      if (descriptor) Object.defineProperty(globalThis, "localStorage", descriptor);
+      else delete (globalThis as { localStorage?: Storage }).localStorage;
+    }
+  });
 });

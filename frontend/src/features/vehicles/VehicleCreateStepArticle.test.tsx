@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { ArticleSearchResult } from "../../shared/api";
+import { articleSearchSourcesSettingKey } from "../../shared/articleSearch/articleSearchPreferences";
 import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
 import {
   createVehicleCreateWizardState,
@@ -37,6 +38,33 @@ const resultWithExtendedFields: ArticleSearchResult = {
 };
 
 describe("VehicleCreateStepArticle", () => {
+	it("uses the configured sources for an embedded barcode search", async () => {
+		const user = userEvent.setup();
+		localStorage.setItem(articleSearchSourcesSettingKey, JSON.stringify(["manufacturer", "catalogs"]));
+		const state: VehicleCreateWizardState = {
+			...createVehicleCreateWizardState({ manufacturer: "Roco", name: "Set", gauge: "H0" }),
+			step: "article"
+		};
+		const run = vi.fn();
+		const controller = {
+			state: { open: false, loading: false, response: null, error: "", barcodeOpen: true,
+				barcodeValue: "4001883123456", selectedFields: {}, selectedImages: {} },
+			setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+			commands: { run, openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+				toggleImage: vi.fn(), applyResult: vi.fn() }
+		} as unknown as ArticleSearchController;
+
+		render(<VehicleCreateStepArticle state={state} dispatch={vi.fn()} controller={controller}
+			onUpdateShared={vi.fn()} />);
+		await user.click(screen.getAllByRole("button", { name: "Barcode suchen" }).at(-1)!);
+
+		expect(run).toHaveBeenCalledWith(expect.objectContaining({ ean: "4001883123456" }), {
+			fields: { ean: "4001883123456" },
+			searchSources: ["manufacturer", "catalogs"]
+		});
+		localStorage.removeItem(articleSearchSourcesSettingKey);
+	});
+
   it("keeps results and grouped review embedded in the creation dialog", async () => {
     const user = userEvent.setup();
     let state: VehicleCreateWizardState = {

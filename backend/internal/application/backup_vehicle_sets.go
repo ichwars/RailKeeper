@@ -14,7 +14,7 @@ func prepareBackupVehicleSetInventoryNumbers(
 	tx *sql.Tx,
 	doc *BackupDocument,
 ) error {
-	if doc.Version >= 18 || len(doc.Tables["vehicle_sets"]) == 0 {
+	if doc.Version >= 18 {
 		return nil
 	}
 
@@ -42,6 +42,9 @@ UPDATE inventory_number_schemes SET active=1, updated_at=? WHERE category='Set'
 			return fmt.Errorf("activate legacy vehicle set inventory scheme: %w", err)
 		}
 		scheme.Active = true
+	}
+	if len(doc.Tables["vehicle_sets"]) == 0 {
+		return nil
 	}
 
 	originalRows := doc.Tables["vehicle_sets"]

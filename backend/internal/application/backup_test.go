@@ -265,6 +265,41 @@ func TestLegacyVersionSeventeenVehicleSetNumbersActivateExistingInactiveScheme(t
 	}
 }
 
+func TestLegacyVersionSeventeenWithoutVehicleSetsRestoresSetNumberScheme(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 17
+	doc.Tables["vehicle_sets"] = []map[string]any{}
+	doc.Tables["vehicle_set_members"] = []map[string]any{}
+	setSchemes := make([]map[string]any, 0, len(doc.Tables["inventory_number_schemes"]))
+	for _, row := range doc.Tables["inventory_number_schemes"] {
+		if row["category"] != "Set" {
+			setSchemes = append(setSchemes, row)
+		}
+	}
+	doc.Tables["inventory_number_schemes"] = setSchemes
+
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var prefix string
+	var active int
+	if err := db.QueryRow(`
+SELECT prefix, active FROM inventory_number_schemes WHERE category='Set'
+`).Scan(&prefix, &active); err != nil {
+		t.Fatal(err)
+	}
+	if prefix != "RK-SET" || active != 1 {
+		t.Fatalf("restored Set scheme prefix=%q active=%d", prefix, active)
+	}
+}
+
 func TestBackupRestorePreservesInactiveBundledAndCustomOrigins(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)

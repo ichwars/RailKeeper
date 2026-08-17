@@ -100,9 +100,11 @@ export function VehicleInventoryTable({
 			);
 		}
 		if (column === "inventoryNumber" && setMember) {
-			return <span className="vehicle-member-inventory"><strong>{vehicle.inventoryNumber}</strong></span>;
+			return <span className="vehicle-member-inventory">
+				<strong>{vehicle.inventoryNumber}</strong>
+				{vehicle.vehicleNumber && <small>{vehicle.vehicleNumber}</small>}
+			</span>;
 		}
-		if (column === "articleNumber" && setMember) return vehicle.vehicleNumber || "–";
     if (column === "image") {
       const image = primaryImage(vehicle.images);
       return image

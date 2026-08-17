@@ -567,6 +567,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     }
   } = useVehicleECoSDraftController({
     onOpenCreate: (prepared) => {
+			setCreatePrefill(null);
       setSelected(null);
       setMode("create");
       setForm(prepared.form);
@@ -726,6 +727,10 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		setCreatePrefill(prefill);
 		openCreate(prefill.shared);
 	};
+	const closeVehicleCreateDialog = () => {
+		setCreatePrefill(null);
+		closeModal();
+	};
 	const duplicateVehicleSetByID = async (setID: string) => {
 		try {
 			const vehicleSet = await api.vehicleSet(setID);
@@ -852,7 +857,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
           message={message}
           onSubmit={submit}
           onSubmitSet={submitVehicleSet}
-          onClose={closeModal}
+          onClose={closeVehicleCreateDialog}
           onTabChange={setActiveTab}
           onEdit={() => {
             if (selected) openEdit(selected);

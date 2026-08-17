@@ -314,10 +314,11 @@ function defaultStorage(): VehicleCreateDraftStorage {
 
 export function loadVehicleCreateDraft(
   owner = "local",
-  storage: VehicleCreateDraftStorage = defaultStorage()
+  storage?: VehicleCreateDraftStorage
 ): VehicleCreateDraftLoadResult {
   try {
-    const raw = storage.getItem(vehicleCreateDraftKey(owner));
+    const targetStorage = storage ?? defaultStorage();
+    const raw = targetStorage.getItem(vehicleCreateDraftKey(owner));
     if (!raw) return { kind: "empty" };
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || (parsed.version !== 1 && parsed.version !== 2)
@@ -348,10 +349,11 @@ export function saveVehicleCreateDraft(
   state: VehicleCreateWizardState,
   owner = "local",
   articleSearch: VehicleCreateArticleDraft | null = null,
-  storage: VehicleCreateDraftStorage = defaultStorage()
+  storage?: VehicleCreateDraftStorage
 ): VehicleCreateDraftOperationResult {
   try {
-    storage.setItem(vehicleCreateDraftKey(owner), JSON.stringify({
+    const targetStorage = storage ?? defaultStorage();
+    targetStorage.setItem(vehicleCreateDraftKey(owner), JSON.stringify({
       version: 2,
       savedAt: new Date().toISOString(),
       state,
@@ -365,10 +367,11 @@ export function saveVehicleCreateDraft(
 
 export function clearVehicleCreateDraft(
   owner = "local",
-  storage: VehicleCreateDraftStorage = defaultStorage()
+  storage?: VehicleCreateDraftStorage
 ): VehicleCreateDraftOperationResult {
   try {
-    storage.removeItem(vehicleCreateDraftKey(owner));
+    const targetStorage = storage ?? defaultStorage();
+    targetStorage.removeItem(vehicleCreateDraftKey(owner));
     return { kind: "cleared" };
   } catch {
     return { kind: "error" };
