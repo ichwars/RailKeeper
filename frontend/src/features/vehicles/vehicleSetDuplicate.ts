@@ -9,11 +9,12 @@ export type VehicleCreatePrefill = {
 
 function reusableRemoteImages(vehicle: Vehicle): VehicleImageInput[] {
 	return (vehicle.images || [])
-		.filter((image) => /^https?:\/\//i.test(image.url))
-		.map((image, index) => ({
-			url: image.url,
+		.map((image) => ({ image, reusableURL: /^https?:\/\//i.test(image.url) ? image.url : image.sourceUrl || "" }))
+		.filter(({ reusableURL }) => /^https?:\/\//i.test(reusableURL))
+		.map(({ image, reusableURL }, index) => ({
+			url: reusableURL,
 			title: image.title || "",
-			sourceUrl: image.sourceUrl || image.url,
+			sourceUrl: image.sourceUrl || reusableURL,
 			isPrimary: Boolean(image.isPrimary),
 			sortOrder: index
 		}));

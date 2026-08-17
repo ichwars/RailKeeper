@@ -45,6 +45,26 @@ describe("vehicleCreateWizardState", () => {
     expect(confirmed.members[1].form.name).toBe("Speisewagen");
   });
 
+  it("clamps set members to the backend limit", () => {
+    const initial = { ...createVehicleCreateWizardState(emptyVehicle), kind: "set" as const };
+    const resized = vehicleCreateWizardReducer(initial, { type: "set-member-count", count: 101 });
+    expect(resized.members).toHaveLength(100);
+
+    const full = vehicleCreateWizardReducer(resized, { type: "add-member" });
+    expect(full.members).toHaveLength(100);
+  });
+
+  it("tracks exactly which member fields override imported shared data", () => {
+    const initial = { ...createVehicleCreateWizardState(emptyVehicle), kind: "set" as const };
+    const updated = vehicleCreateWizardReducer(initial, {
+      type: "update-member",
+      index: 0,
+      patch: { digital: false, lengthMm: "240" }
+    });
+
+    expect(updated.members[0].overriddenFields).toEqual(expect.arrayContaining(["digital", "lengthMm"]));
+  });
+
   it("restores a valid version-1 draft and rejects an incompatible version", () => {
     const state = createVehicleCreateWizardState({ ...emptyVehicle, name: "TEE Roland" });
     expect(saveVehicleCreateDraft(state)).toEqual({ kind: "saved" });

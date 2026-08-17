@@ -21,6 +21,10 @@ const result: ArticleSearchResult = {
   },
   conflicts: ["name"]
 };
+const resultWithImage: ArticleSearchResult = {
+  ...result,
+  images: [{ url: "https://roco.cc/set.jpg", title: "Set", source: "manufacturer" }]
+};
 
 describe("VehicleCreateStepArticle", () => {
   it("keeps results and grouped review embedded in the creation dialog", async () => {
@@ -59,5 +63,35 @@ describe("VehicleCreateStepArticle", () => {
     expect(screen.queryByText("Aktuell")).toBeNull();
     expect(screen.queryByRole("dialog", { name: /Artikeldaten-Websuche/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /Ausgewählte Felder übernehmen/ })).toBeNull();
+  });
+
+  it("lets set images be assigned to a specific member", async () => {
+    const user = userEvent.setup();
+    let state: VehicleCreateWizardState = {
+      ...createVehicleCreateWizardState({ manufacturer: "Roco", articleNumber: "6280002", name: "Set", gauge: "H0" }),
+      kind: "set",
+      step: "article",
+      articleStage: "review",
+      selectedResultIndex: 0
+    };
+    const controller = {
+      state: { open: false, loading: false, response: { query: "Roco 6280002", results: [resultWithImage] }, error: "",
+        barcodeOpen: false, barcodeValue: "", selectedFields: {}, selectedImages: {} },
+      setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+      commands: { run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+        toggleImage: vi.fn(), applyResult: vi.fn() }
+    } as unknown as ArticleSearchController;
+    const dispatch = vi.fn((action) => { state = vehicleCreateWizardReducer(state, action); });
+
+    render(<VehicleCreateStepArticle state={state} dispatch={dispatch} controller={controller}
+      onUpdateShared={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Set-Bild zuordnen/ }));
+    await user.click(screen.getByRole("option", { name: /Wagen 2/ }));
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "assign-article-image",
+      imageURL: "https://roco.cc/set.jpg",
+      memberIndex: 1
+    });
   });
 });

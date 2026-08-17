@@ -24,6 +24,7 @@ import {
 import type { ArticleSearchResult, CreateVehicleRequest } from "../../shared/api";
 import { articleFieldStatus, articleSelectionKey, imageSelectionKey } from "../../shared/articleSearch/articleSearchModel";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { articleFieldLabels, currentArticleValue, isArticleFieldKey } from "./articleSearch";
 import type { ArticleSearchController } from "./useArticleSearchController";
 
@@ -85,12 +86,18 @@ export function VehicleCreateArticleReview({
   result,
   resultIndex,
   current,
-  controller
+  controller,
+  memberCount = 0,
+  imageOwners = {},
+  onAssignImage = () => undefined
 }: {
   result: ArticleSearchResult;
   resultIndex: number;
   current: CreateVehicleRequest;
   controller: ArticleSearchController;
+  memberCount?: number;
+  imageOwners?: Record<string, number>;
+  onAssignImage?: (imageURL: string, memberIndex: number) => void;
 }) {
   const { t } = useI18n();
   const fieldRows = Object.entries(result.fields).filter(([key]) => isArticleFieldKey(key));
@@ -146,12 +153,34 @@ export function VehicleCreateArticleReview({
                 <ChevronDown className="vehicle-create-review-chevron" size={14} /></summary>
               {group.key === "media" ? (
                 <div className="vehicle-create-review-images">
-                  {result.images?.map((image) => (
-                    <label key={image.url}><input type="checkbox"
-                      checked={Boolean(controller.state.selectedImages[imageSelectionKey(result, image, resultIndex)])}
-                      onChange={(event) => controller.commands.toggleImage(result, resultIndex, image, event.target.checked)} />
-                      <img src={image.url} alt="" /></label>
-                  ))}
+                  {result.images?.map((image, imageIndex) => {
+                    const selectionKey = imageSelectionKey(result, image, resultIndex);
+                    const defaultMemberIndex = memberCount > 0 ? imageIndex % memberCount : 0;
+                    return (
+                      <div className="vehicle-create-review-image" key={image.url}>
+                        <label><input type="checkbox"
+                          checked={Boolean(controller.state.selectedImages[selectionKey])}
+                          onChange={(event) => {
+                            controller.commands.toggleImage(result, resultIndex, image, event.target.checked);
+                            if (event.target.checked && imageOwners[image.url] === undefined && memberCount > 0) {
+                              onAssignImage(image.url, defaultMemberIndex);
+                            }
+                          }} />
+                          <img src={image.url} alt="" /></label>
+                        {memberCount > 0 && (
+                          <AppSelect aria-label={t("vehicles.wizard.assignSetImage")}
+                            value={String(imageOwners[image.url] ?? defaultMemberIndex)}
+                            onChange={(event) => onAssignImage(image.url, Number(event.target.value))}>
+                            {Array.from({ length: memberCount }, (_, memberIndex) => (
+                              <option key={memberIndex} value={memberIndex}>
+                                {t("vehicles.wizard.memberLabel", { count: memberIndex + 1 })}
+                              </option>
+                            ))}
+                          </AppSelect>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="vehicle-create-review-table">

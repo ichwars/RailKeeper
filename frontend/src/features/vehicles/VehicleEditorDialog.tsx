@@ -35,7 +35,7 @@ type VehicleEditorDialogProps = {
   message: string;
   tabs: EditorTabs;
   onSubmit: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
   onClose: () => void;
   onTabChange: (tab: ModalTab) => void;
   onEdit: () => void;

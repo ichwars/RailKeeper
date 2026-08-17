@@ -1374,6 +1374,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.wizard.manualHint": "Ohne Treffer kannst du direkt weitergehen und alle Angaben manuell erfassen.",
     "vehicles.wizard.members": "Fahrzeuge im Set",
     "vehicles.wizard.addMember": "Fahrzeug hinzufügen",
+    "vehicles.wizard.assignSetImage": "Set-Bild zuordnen",
     "vehicles.wizard.removeMember": "Fahrzeug entfernen",
     "vehicles.wizard.remainingData": "Weitere Angaben",
     "vehicles.wizard.reviewHint": "Angaben prüfen und bei Bedarf ergänzen",

@@ -35,7 +35,7 @@ const setFixture: VehicleSet = {
 			inventoryNumber: "RK-WAG-000001",
 			name: "Speisewagen",
 			images: [
-				{ id: "local", vehicleId: "member-1", url: "/api/v1/local", isPrimary: true, sortOrder: 0, createdAt: "now" },
+				{ id: "local", vehicleId: "member-1", url: "/api/v1/local", sourceUrl: "https://example.test/localized.jpg", isPrimary: true, sortOrder: 0, createdAt: "now" },
 				{ id: "remote", vehicleId: "member-1", url: "https://example.test/wagen.jpg", isPrimary: false, sortOrder: 1, createdAt: "now" }
 			]
 		}),
@@ -55,6 +55,7 @@ describe("vehicleSetDuplicatePrefill", () => {
 		expect(prefill.members.every((member) => member.inventoryNumber === "")).toBe(true);
 		expect(prefill.members.map((member) => member.name)).toEqual(["Speisewagen", "Abteilwagen"]);
 		expect(prefill.members[0].images).toEqual([
+			expect.objectContaining({ url: "https://example.test/localized.jpg" }),
 			expect.objectContaining({ url: "https://example.test/wagen.jpg" })
 		]);
 	});

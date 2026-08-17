@@ -32,4 +32,22 @@ describe("VehicleSetDetailsTabs", () => {
 		await user.keyboard("{ArrowLeft}");
 		expect(dispatch).toHaveBeenCalledWith({ type: "set-active-details-tab", tab: "member:0" });
   });
+
+  it("disables adding another member at the backend limit", () => {
+    const state = {
+      ...createVehicleCreateWizardState(),
+      kind: "set" as const,
+      activeDetailsTab: "set" as const,
+      members: Array.from({ length: 100 }, (_, index) => ({
+        form: { manufacturer: "Roco", name: `Wagen ${index + 1}`, gauge: "H0" },
+        touched: false,
+        overriddenFields: []
+      }))
+    };
+
+    render(<VehicleSetDetailsTabs state={state} dispatch={vi.fn()}
+      setPanel={<p>Set</p>} memberPanel={() => null} />);
+
+    expect(screen.getByRole("button", { name: /Fahrzeug hinzufügen/ })).toBeDisabled();
+  });
 });

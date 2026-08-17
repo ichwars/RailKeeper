@@ -6,7 +6,11 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { RequiredLabel } from "./VehicleFormFields";
 import type { MasterDataOptions } from "./vehicleViewModel";
-import type { VehicleCreateWizardAction, VehicleCreateWizardState } from "./vehicleCreateWizardState";
+import {
+  maximumVehicleSetMembers,
+  type VehicleCreateWizardAction,
+  type VehicleCreateWizardState
+} from "./vehicleCreateWizardState";
 
 type VehicleCreateStepBasicsProps = {
   state: VehicleCreateWizardState;
@@ -106,7 +110,7 @@ export function VehicleCreateStepBasics({
           </label>
           {kind === "set" && (
             <label>{t("vehicles.wizard.memberCount")}
-              <input type="number" min={2} value={state.members.length}
+              <input type="number" min={2} max={maximumVehicleSetMembers} value={state.members.length}
                 onChange={(event) => dispatch({ type: "set-member-count", count: Number(event.target.value) })} />
             </label>
           )}

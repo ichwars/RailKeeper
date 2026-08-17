@@ -1374,6 +1374,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.wizard.manualHint": "If there are no results, continue and enter all details manually.",
     "vehicles.wizard.members": "Vehicles in the set",
     "vehicles.wizard.addMember": "Add vehicle",
+    "vehicles.wizard.assignSetImage": "Assign set image",
     "vehicles.wizard.removeMember": "Remove vehicle",
     "vehicles.wizard.remainingData": "Additional details",
     "vehicles.wizard.reviewHint": "Review and complete details as needed",

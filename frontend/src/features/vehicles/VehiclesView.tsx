@@ -685,13 +685,13 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     onMessage: setMessage,
     t
   });
-  const submitVehicleSet = async (members: VehicleSetMemberDraft[]) => {
+  const submitVehicleSet = async (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => {
     setSaving(true);
     setMessage("");
     try {
       const created = await api.createVehicleSet({
         set: vehicleSetInputFromForm(form),
-        members: vehicleSetMembersFromForm(form, members, pendingArticleImages)
+        members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
       clearVehicleCreateDraft();
       const firstMember = created.members[0];
@@ -1052,11 +1052,13 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 				onUpdated={() => undefined}
 				onEdit={(setID) => openVehicleSet(setID, "edit")}
 				onDuplicate={duplicateVehicleSet}
-				onOpenVehicle={(vehicleID) => {
-					const vehicle = vehicles.find((entry) => entry.id === vehicleID);
-					if (vehicle) {
+				onOpenVehicle={async (vehicleID) => {
+					try {
+						const vehicle = vehicles.find((entry) => entry.id === vehicleID) || await api.vehicle(vehicleID);
 						closeVehicleSetDialog();
 						openDetail(vehicle);
+					} catch (error) {
+						setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
 					}
 				}}
 			/>

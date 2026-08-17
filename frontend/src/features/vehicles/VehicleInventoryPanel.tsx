@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import {
   AlertTriangle,
   BadgeCheck,
+  Copy,
   Eye,
   Gauge,
   Grid2X2,
   Image,
+  Layers3,
   PackageSearch,
   Pencil,
   Printer,
@@ -25,6 +27,7 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { VehicleColumnPicker } from "./VehicleColumnPicker";
 import { VehicleInventoryMobileList } from "./VehicleInventoryMobileList";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
+import { groupVehicleInventory } from "./vehicleSetGroups";
 import type {
   InventoryQualityFilter,
   SortDirection,
@@ -461,7 +464,44 @@ export function VehicleInventoryPanel({
           <div className="inventory-desktop-content">
             {inventoryView === "cards" ? (
               <div className="inventory-card-grid">
-                {sortedVehicles.map((vehicle) => {
+                {groupVehicleInventory(sortedVehicles).map((group) => {
+                  if (group.kind === "set") {
+                    return (
+                      <article key={group.id} className="inventory-card inventory-set-card">
+                        <div className="inventory-set-card-head">
+                          <span className="vehicle-type-badge set"><Layers3 size={15} />{t("vehicles.set.type")}</span>
+                          <span className="inventory-card-gauge">{group.set.gauge || "-"}</span>
+                        </div>
+                        <div className="inventory-card-body">
+                          <div className="inventory-card-title">
+                            <div>
+                              <strong>{group.set.inventoryNumber}</strong>
+                              <span>{group.set.manufacturer || "-"}</span>
+                            </div>
+                          </div>
+                          <h3>{group.set.name}</h3>
+                          <dl>
+                            <div><dt>{t("importExport.review.article")}</dt>
+                              <dd>{group.set.articleNumber || "-"}</dd></div>
+                            <div><dt>{t("vehicles.set.members")}</dt>
+                              <dd>{t("vehicles.set.visibleOfTotal", {
+                                visible: group.visibleMemberCount,
+                                total: group.totalMemberCount
+                              })}</dd></div>
+                          </dl>
+                          <div className="inventory-card-actions">
+                            <button type="button" className="icon-button" onClick={() => onOpenSet(group.id)}
+                              aria-label={t("vehicles.set.viewTitle")}><Eye size={16} /></button>
+                            {onEditSet && <button type="button" className="icon-button" onClick={() => onEditSet(group.id)}
+                              aria-label={`${t("vehicles.set.type")} ${t("common.edit")}`}><Pencil size={16} /></button>}
+                            {onDuplicateSet && <button type="button" className="icon-button" onClick={() => onDuplicateSet(group.id)}
+                              aria-label={`${t("vehicles.set.type")} ${t("common.duplicate")}`}><Copy size={16} /></button>}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  }
+                  const vehicle = group.vehicle;
                   const image = primaryImage(vehicle.images);
                   return (
                     <article key={vehicle.id} className="inventory-card">

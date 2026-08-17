@@ -1,10 +1,16 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { api } from "../../shared/api";
 import { emptyVehicle } from "./vehicleViewModel";
 import { VehicleCreateWizard, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
-import { emptyVehicleSetMemberDraft } from "./vehicleCreateWizardState";
+import {
+  createVehicleCreateWizardState,
+  emptyVehicleSetMemberDraft,
+  saveVehicleCreateDraft
+} from "./vehicleCreateWizardState";
+import type { VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import type { ArticleSearchController } from "./useArticleSearchController";
 
 const articleSearchController = {
@@ -39,6 +45,12 @@ const model = {
 };
 
 describe("VehicleCreateWizard set safeguards", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    vi.spyOn(api, "inventoryNumberSchemes").mockResolvedValue([]);
+  });
+
   it("disables set creation for an ECoS draft", () => {
     render(<VehicleCreateWizard model={model} saving={false} message="" setCreationDisabled
       articleSearchController={articleSearchController}
@@ -47,15 +59,70 @@ describe("VehicleCreateWizard set safeguards", () => {
     expect(screen.getByRole("radio", { name: /Set/ })).toBeDisabled();
   });
 
-  it("keeps selected article images on the first set member", () => {
+  it("synchronizes a resumed draft with the parent form", async () => {
+    const user = userEvent.setup();
+    const draft = {
+      ...createVehicleCreateWizardState({
+        ...emptyVehicle,
+        name: "Draft TEE",
+        manufacturer: "Roco",
+        gauge: "H0",
+        category: "Triebzug"
+      }),
+      kind: "set" as const
+    };
+    saveVehicleCreateDraft(draft);
+
+    render(<VehicleCreateWizard model={model} saving={false} message=""
+      articleSearchController={articleSearchController}
+      onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: /Entwurf fortsetzen/ }));
+    expect(model.onUpdate).toHaveBeenCalledWith(expect.objectContaining({ name: "Draft TEE" }));
+  });
+
+  it("loads the set inventory scheme only once per language", async () => {
+    render(<VehicleCreateWizard model={model} saving={false} message=""
+      articleSearchController={articleSearchController}
+      onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
+
+    await waitFor(() => expect(api.inventoryNumberSchemes).toHaveBeenCalledTimes(1));
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(api.inventoryNumberSchemes).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves imported technical fields unless a member explicitly overrides them", () => {
+    const shared = {
+      ...model.form,
+      series: "BR 601",
+      lengthMm: "235",
+      digital: true,
+      decoderType: "DCC"
+    };
+    const first = emptyVehicleSetMemberDraft();
+    const second: VehicleSetMemberDraft = {
+      ...emptyVehicleSetMemberDraft(),
+      form: { ...emptyVehicle, name: "B", lengthMm: "240" },
+      overriddenFields: ["name", "lengthMm"]
+    };
+
+    const members = vehicleSetMembersFromForm(shared, [first, second], [], {});
+
+    expect(members[0]).toMatchObject({ series: "BR 601", lengthMm: "235", digital: true, decoderType: "DCC" });
+    expect(members[1]).toMatchObject({ series: "BR 601", lengthMm: "240", digital: true, decoderType: "DCC" });
+  });
+
+  it("assigns selected article images to their chosen set members", () => {
     const members = vehicleSetMembersFromForm(model.form, [
       { ...emptyVehicleSetMemberDraft(), form: { ...emptyVehicle, inventoryNumber: "1", name: "A", vehicleNumber: "A-1" } },
       { ...emptyVehicleSetMemberDraft(), form: { ...emptyVehicle, inventoryNumber: "2", name: "B", vehicleNumber: "B-1" } }
-    ], [{ id: "image-1", url: "https://example.test/image.jpg", title: "Front", source: "catalog", isPrimary: true }]);
+    ], [{ id: "image-1", url: "https://example.test/image.jpg", title: "Front", source: "catalog", isPrimary: true }], {
+      "https://example.test/image.jpg": 1
+    });
 
-    expect(members[0].images).toEqual([expect.objectContaining({
+    expect(members[0].images).toEqual([]);
+    expect(members[1].images).toEqual([expect.objectContaining({
       url: "https://example.test/image.jpg", title: "Front", sourceUrl: "catalog", isPrimary: true, sortOrder: 0
     })]);
-    expect(members[1].images).toEqual([]);
   });
 });

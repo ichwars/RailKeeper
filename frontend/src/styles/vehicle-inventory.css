@@ -154,8 +154,19 @@
 }
 
 .vehicle-inventory-table td.select-cell {
+  position: relative;
   overflow: visible;
   text-overflow: clip;
+}
+
+.vehicle-set-hierarchy-toggle {
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  z-index: 2;
+  width: 24px;
+  height: 24px;
+  transform: translateY(-50%);
 }
 
 .vehicle-inventory-table .table-select-field input {
@@ -249,6 +260,18 @@
 .vehicle-set-type-cell small {
   color: var(--muted);
   font-size: var(--font-size-xs);
+}
+
+.inventory-set-card {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+
+.inventory-set-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px 0;
 }
 
 .vehicle-type-badge {

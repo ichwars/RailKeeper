@@ -53,4 +53,21 @@ describe("VehicleSetInventoryRow", () => {
 		expect(screen.queryByText("Keine Vorschau")).not.toBeInTheDocument();
 		expect(screen.queryByText("Set")).not.toBeInTheDocument();
 	});
+
+	it("keeps the hierarchy toggle when the type column is hidden", async () => {
+		const user = userEvent.setup();
+		const onToggleCollapsed = vi.fn();
+		render(<table><tbody><VehicleSetInventoryRow
+			group={groupFixture()}
+			columns={["inventoryNumber", "manufacturer", "name"]}
+			collapsed={false}
+			selectedVehicleIDs={new Set()}
+			onToggleCollapsed={onToggleCollapsed}
+			onToggleSelection={vi.fn()}
+			onOpen={vi.fn()}
+		/></tbody></table>);
+
+		await user.click(screen.getByRole("button", { name: /Set zuklappen/ }));
+		expect(onToggleCollapsed).toHaveBeenCalledOnce();
+	});
 });

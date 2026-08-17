@@ -9,6 +9,7 @@ import { selectedArticleReviewCount } from "./VehicleCreateArticleReview";
 import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
+import { emptyVehicle } from "./vehicleViewModel";
 import {
   clearVehicleCreateDraft,
   createVehicleCreateWizardState,
@@ -26,7 +27,7 @@ type VehicleCreateWizardProps = {
   saving: boolean;
   message: string;
   onSubmitSingle: FormEventHandler<HTMLFormElement>;
-  onSubmitSet: (members: VehicleSetMemberDraft[]) => Promise<void>;
+  onSubmitSet: (members: VehicleSetMemberDraft[], imageOwners: Record<string, number>) => Promise<void>;
   onClose: () => void;
   setCreationDisabled?: boolean;
   prefill?: VehicleCreatePrefill | null;
@@ -37,7 +38,7 @@ export function VehicleCreateWizard({
   model, saving, message, onSubmitSingle, onSubmitSet, onClose,
   setCreationDisabled = false, prefill, articleSearchController
 }: VehicleCreateWizardProps) {
-  const { t } = useI18n();
+  const { language, t } = useI18n();
   const [wizard, dispatch] = useReducer(
     vehicleCreateWizardReducer,
     undefined,
@@ -69,7 +70,7 @@ export function VehicleCreateWizard({
         if (active) setSetSchemeLoading(false);
       });
     return () => { active = false; };
-  }, [t]);
+  }, [language]);
 
   const updateShared = (patch: Partial<CreateVehicleRequest>) => {
     dispatch({ type: "update-shared", patch });
@@ -96,7 +97,7 @@ export function VehicleCreateWizard({
     }
     if (kind === "set") {
       event.preventDefault();
-      void onSubmitSet(members);
+      void onSubmitSet(members, wizard.articleImageOwners || {});
       return;
     }
     onSubmitSingle(event);
@@ -178,6 +179,7 @@ export function VehicleCreateWizard({
           <p>{t("vehicles.wizard.draftFound")}</p>
           <button type="button" className="secondary-button" onClick={() => {
             dispatch({ type: "replace-state", state: draftResult.state });
+            onUpdate(draftResult.state.shared);
             setDraftResult({ kind: "empty" });
           }}>{t("vehicles.wizard.resumeDraft")}</button>
           <button type="button" className="secondary-button" onClick={() => {
@@ -228,20 +230,32 @@ export function vehicleSetInputFromForm(form: CreateVehicleRequest) {
 export function vehicleSetMembersFromForm(
   form: CreateVehicleRequest,
   members: VehicleSetMemberDraft[],
-  images: PendingArticleImage[]
+  images: PendingArticleImage[],
+  imageOwners: Record<string, number> = {}
 ): CreateVehicleRequest[] {
-  const firstMemberImages = images.map((image, index) => ({
-    id: image.persisted ? image.id : undefined,
-    url: image.url,
-    title: image.title,
-    sourceUrl: image.source,
-    maintenanceId: image.maintenanceId || "",
-    isPrimary: Boolean(image.isPrimary),
-    sortOrder: index
-  }));
-  return members.map((member, index) => ({
+  const memberImages = members.map(() => [] as CreateVehicleRequest["images"] extends infer T ? NonNullable<T> : never);
+  images.forEach((image, index) => {
+    const defaultOwner = members.length > 0 ? index % members.length : 0;
+    const owner = Math.min(members.length - 1, Math.max(0, imageOwners[image.url] ?? defaultOwner));
+    memberImages[owner]?.push({
+      id: image.persisted ? image.id : undefined,
+      url: image.url,
+      title: image.title,
+      sourceUrl: image.source,
+      maintenanceId: image.maintenanceId || "",
+      isPrimary: Boolean(image.isPrimary),
+      sortOrder: memberImages[owner]?.length || 0
+    });
+  });
+  return members.map((member, index) => {
+    const overrideFields = member.overriddenFields || (Object.keys(member.form) as Array<keyof CreateVehicleRequest>)
+      .filter((field) => member.form[field] !== emptyVehicle[field]);
+    const memberOverrides = Object.fromEntries(
+      overrideFields.map((field) => [field, member.form[field]])
+    ) as Partial<CreateVehicleRequest>;
+    return ({
     ...form,
-    ...member.form,
+    ...memberOverrides,
     inventoryNumber: "",
     manufacturer: form.manufacturer,
     articleNumber: form.articleNumber,
@@ -253,6 +267,7 @@ export function vehicleSetMembersFromForm(
     gattung: form.gattung,
     name: member.form.name.trim() || `${form.name} (${index + 1})`,
     vehicleNumber: member.form.vehicleNumber,
-    images: [...(member.form.images || []), ...(index === 0 ? firstMemberImages : [])]
-  }));
+    images: [...(member.form.images || []), ...(memberImages[index] || [])]
+  });
+  });
 }

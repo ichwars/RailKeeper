@@ -45,10 +45,6 @@ export function VehicleSetInventoryRow({
 		if (column === "type") {
 			return (
 				<div className="vehicle-set-type-cell">
-					<button type="button" className="icon-button" onClick={onToggleCollapsed}
-						aria-expanded={!collapsed} aria-label={collapsed ? t("vehicles.set.expand") : t("vehicles.set.collapse")}>
-						{collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
-					</button>
 					{setPreviewImage
 						? <img className="inventory-thumb" src={previewImageUrl(setPreviewImage)} alt="" />
 						: <div className="image-placeholder inventory-image-placeholder"
@@ -91,6 +87,10 @@ export function VehicleSetInventoryRow({
 						onChange={() => onToggleSelection(memberIDs)}
 						aria-label={`${group.set.inventoryNumber} ${t("vehicles.report.selectVehicle")}`} />
 				</label>
+				<button type="button" className="icon-button vehicle-set-hierarchy-toggle" onClick={onToggleCollapsed}
+					aria-expanded={!collapsed} aria-label={collapsed ? t("vehicles.set.expand") : t("vehicles.set.collapse")}>
+					{collapsed ? <ChevronDown size={15} /> : <ChevronUp size={15} />}
+				</button>
 			</td>
 			{columns.map((column) => (
 				<td key={column} className={`vehicle-column-${column}`}>{cell(column)}</td>

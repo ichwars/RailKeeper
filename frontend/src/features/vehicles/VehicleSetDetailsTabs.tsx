@@ -3,7 +3,11 @@ import { useRef, type KeyboardEvent, type ReactNode } from "react";
 
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
-import type { VehicleCreateWizardAction, VehicleCreateWizardState } from "./vehicleCreateWizardState";
+import {
+  maximumVehicleSetMembers,
+  type VehicleCreateWizardAction,
+  type VehicleCreateWizardState
+} from "./vehicleCreateWizardState";
 
 const tabId = (value: VehicleCreateWizardState["activeDetailsTab"]) => `vehicle-create-tab-${value}`;
 const panelId = (value: VehicleCreateWizardState["activeDetailsTab"]) => `vehicle-create-panel-${value}`;
@@ -45,7 +49,9 @@ export function VehicleSetDetailsTabs({ state, dispatch, setPanel, memberPanel }
             tabIndex={state.activeDetailsTab === tab ? 0 : -1} onClick={() => select(tab)}
             onKeyDown={(event) => onKeyDown(event, index)}>{label(tab)}</button>
         ))}
-        <button type="button" className="vehicle-add-member" onClick={() => dispatch({ type: "add-member" })}>
+        <button type="button" className="vehicle-add-member"
+          disabled={state.members.length >= maximumVehicleSetMembers}
+          onClick={() => dispatch({ type: "add-member" })}>
           <Plus size={15} />{t("vehicles.wizard.addMember")}
         </button>
       </div>

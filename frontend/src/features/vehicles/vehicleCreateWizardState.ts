@@ -9,6 +9,7 @@ export type VehicleCreateArticleStage = "input" | "results" | "review";
 export type VehicleSetMemberDraft = {
   form: CreateVehicleRequest;
   touched: boolean;
+  overriddenFields?: Array<keyof CreateVehicleRequest>;
 };
 
 export type VehicleCreateWizardState = {
@@ -20,6 +21,7 @@ export type VehicleCreateWizardState = {
   selectedResultIndex: number | null;
   activeDetailsTab: "set" | `member:${number}`;
   pendingMemberReduction: null | { requestedCount: number; populatedIndexes: number[] };
+  articleImageOwners?: Record<string, number>;
 };
 
 export type VehicleCreateWizardAction =
@@ -33,6 +35,7 @@ export type VehicleCreateWizardAction =
   | { type: "confirm-member-reduction" }
   | { type: "cancel-member-reduction" }
   | { type: "update-member"; index: number; patch: Partial<CreateVehicleRequest> }
+  | { type: "assign-article-image"; imageURL: string; memberIndex: number }
   | { type: "add-member" }
   | { type: "remove-member"; index: number }
   | { type: "set-active-details-tab"; tab: VehicleCreateWizardState["activeDetailsTab"] };
@@ -50,6 +53,7 @@ export type VehicleCreateDraftLoadResult =
 const steps = new Set<VehicleCreateStep>(["basics", "article", "details"]);
 const articleStages = new Set<VehicleCreateArticleStage>(["input", "results", "review"]);
 const kinds = new Set<VehicleCreationKind>(["single", "set"]);
+export const maximumVehicleSetMembers = 100;
 const stringFormFields: Array<keyof CreateVehicleRequest> = [
   "inventoryNumber", "manufacturer", "articleNumber", "articleSourceUrl", "name", "gauge", "epoch",
   "railwayCompany", "category", "gattung", "description", "series", "vehicleNumber", "homeBase",
@@ -82,14 +86,18 @@ function isVehicleForm(value: unknown): value is CreateVehicleRequest {
 }
 
 function isMemberDraft(value: unknown): value is VehicleSetMemberDraft {
-  return isRecord(value) && typeof value.touched === "boolean" && isVehicleForm(value.form);
+  return isRecord(value) && typeof value.touched === "boolean" && isVehicleForm(value.form)
+    && (value.overriddenFields === undefined || (
+      Array.isArray(value.overriddenFields) && value.overriddenFields.every((field) => typeof field === "string")
+    ));
 }
 
 function isWizardState(value: unknown): value is VehicleCreateWizardState {
   if (!isRecord(value)) return false;
   if (!kinds.has(value.kind as VehicleCreationKind) || !steps.has(value.step as VehicleCreateStep)) return false;
   if (!articleStages.has(value.articleStage as VehicleCreateArticleStage) || !isVehicleForm(value.shared)) return false;
-  if (!Array.isArray(value.members) || value.members.length < 2 || !value.members.every(isMemberDraft)) return false;
+  if (!Array.isArray(value.members) || value.members.length < 2
+    || value.members.length > maximumVehicleSetMembers || !value.members.every(isMemberDraft)) return false;
   if (value.selectedResultIndex !== null && (
     !Number.isInteger(value.selectedResultIndex) || Number(value.selectedResultIndex) < 0
   )) return false;
@@ -97,7 +105,8 @@ function isWizardState(value: unknown): value is VehicleCreateWizardState {
   if (value.pendingMemberReduction !== null) {
     if (!isRecord(value.pendingMemberReduction)) return false;
     if (!Number.isInteger(value.pendingMemberReduction.requestedCount)
-      || Number(value.pendingMemberReduction.requestedCount) < 2) return false;
+      || Number(value.pendingMemberReduction.requestedCount) < 2
+      || Number(value.pendingMemberReduction.requestedCount) > maximumVehicleSetMembers) return false;
     if (!Array.isArray(value.pendingMemberReduction.populatedIndexes)
       || !value.pendingMemberReduction.populatedIndexes.every((index) => Number.isInteger(index) && index >= 0)) {
       return false;
@@ -114,7 +123,7 @@ function cloneForm(form: CreateVehicleRequest): CreateVehicleRequest {
 }
 
 export function emptyVehicleSetMemberDraft(): VehicleSetMemberDraft {
-  return { form: cloneForm(emptyVehicle), touched: false };
+  return { form: cloneForm(emptyVehicle), touched: false, overriddenFields: [] };
 }
 
 export function createVehicleCreateWizardState(
@@ -122,7 +131,11 @@ export function createVehicleCreateWizardState(
   prefill?: VehicleCreatePrefill | null
 ): VehicleCreateWizardState {
   const members = prefill?.members.length
-    ? prefill.members.map((form) => ({ form: cloneForm(form), touched: true }))
+    ? prefill.members.map((form) => ({
+      form: cloneForm(form),
+      touched: true,
+      overriddenFields: Object.keys(form) as Array<keyof CreateVehicleRequest>
+    }))
     : [emptyVehicleSetMemberDraft(), emptyVehicleSetMemberDraft()];
   return {
     kind: prefill?.kind || "single",
@@ -132,7 +145,8 @@ export function createVehicleCreateWizardState(
     members,
     selectedResultIndex: null,
     activeDetailsTab: prefill?.kind === "set" ? "set" : "member:0",
-    pendingMemberReduction: null
+    pendingMemberReduction: null,
+    articleImageOwners: {}
   };
 }
 
@@ -173,7 +187,7 @@ export function vehicleCreateWizardReducer(
     case "update-shared":
       return { ...state, shared: { ...state.shared, ...action.patch } };
     case "set-member-count": { // Confirmation deliberately protects every populated member draft.
-      const requestedCount = Math.max(2, Math.floor(action.count));
+      const requestedCount = Math.min(maximumVehicleSetMembers, Math.max(2, Math.floor(action.count)));
       if (requestedCount >= state.members.length) {
         return { ...state, members: resizeMembers(state.members, requestedCount), pendingMemberReduction: null };
       }
@@ -195,11 +209,28 @@ export function vehicleCreateWizardReducer(
       return {
         ...state,
         members: state.members.map((member, index) => index === action.index
-          ? { form: { ...member.form, ...action.patch }, touched: true }
+          ? {
+            form: { ...member.form, ...action.patch },
+            touched: true,
+            overriddenFields: [...new Set([
+              ...(member.overriddenFields || []),
+              ...Object.keys(action.patch) as Array<keyof CreateVehicleRequest>
+            ])]
+          }
           : member)
       };
+    case "assign-article-image":
+      return {
+        ...state,
+        articleImageOwners: {
+          ...(state.articleImageOwners || {}),
+          [action.imageURL]: Math.min(state.members.length - 1, Math.max(0, action.memberIndex))
+        }
+      };
     case "add-member":
-      return { ...state, members: [...state.members, emptyVehicleSetMemberDraft()] };
+      return state.members.length < maximumVehicleSetMembers
+        ? { ...state, members: [...state.members, emptyVehicleSetMemberDraft()] }
+        : state;
     case "remove-member":
       return state.members.length > 2
         ? { ...state, members: state.members.filter((_, index) => index !== action.index) }

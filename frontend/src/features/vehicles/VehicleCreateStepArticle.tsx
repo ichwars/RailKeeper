@@ -21,7 +21,12 @@ export function VehicleCreateStepArticle({ state, dispatch, controller, onUpdate
 
   if (state.articleStage === "review" && selectedResult) {
     return <div className="vehicle-wizard-page"><VehicleCreateArticleReview result={selectedResult}
-      resultIndex={selectedIndex} current={state.shared} controller={controller} /></div>;
+      resultIndex={selectedIndex} current={state.shared} controller={controller}
+      memberCount={state.kind === "set" ? state.members.length : 0}
+      imageOwners={state.articleImageOwners || {}}
+      onAssignImage={(imageURL, memberIndex) => dispatch({
+        type: "assign-article-image", imageURL, memberIndex
+      })} /></div>;
   }
   if (state.articleStage === "results" && response) {
     return <div className="vehicle-wizard-page"><VehicleCreateArticleResults response={response}
