@@ -3,7 +3,7 @@ title: Benutzerhandbuch
 description: Alle stabilen Arbeitsabläufe in RailKeeper kennenlernen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19
+reviewedVersion: 0.1.19.1
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ Dieses Handbuch erklärt den vollständigen veröffentlichten RailKeeper-Arbeits
 Vereine und kleine Werkstätten. Es umfasst Ersteinrichtung, Navigation, Fahrzeuge, Zubehör,
 Decoderdaten, Wartung, Dokumente, Berichte, Ausstellungen sowie kontrollierten Import und Export.
 
-Die Inhalte dieses Bereichs beschreiben RailKeeper v0.1.19. Der Anlagen-Arbeitsbereich befindet
+Die Inhalte dieses Bereichs beschreiben RailKeeper v0.1.19.1. Der Anlagen-Arbeitsbereich befindet
 sich noch in Entwicklung und wird deshalb nicht als stabile Benutzerfunktion dargestellt.
 
 ## Hier beginnen

@@ -3,7 +3,7 @@ title: Decoder, Funktionen und CV-Daten
 description: Digitalfunktionen zuordnen, Fahrkurven prüfen, CV-Werte pflegen und Decoder-Dateien speichern.
 audience: user
 status: stable
-reviewedVersion: 0.1.19
+reviewedVersion: 0.1.19.1
 lastReviewed: 2026-08-16
 ---
 
@@ -322,5 +322,5 @@ nacheinander ausgeführten Aktion rückgängig.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19** und wurde zuletzt am
+Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19.1** und wurde zuletzt am
 16.08.2026 geprüft.

@@ -6,6 +6,25 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.19.1] - 2026-08-17
+
+### Changed
+
+- The three-step vehicle creation dialog now follows the agreed compact desktop and mobile layout,
+  including clearer step navigation, restrained actions, responsive article results, and a focused
+  review of imported data.
+- Sets use a durable, automatically assigned `RK-SET` inventory number and appear as canonical rows
+  with ordered member vehicles across table, card, and mobile inventory views.
+
+### Fixed
+
+- Set creation preserves reviewed article fields and images, validates every member, keeps drafts
+  isolated per exact username, and respects configured article-search sources.
+- Set grouping, sorting, optional columns, filtered member access, duplication, editing, deletion,
+  backup restore, and inventory valuation remain consistent across partial and legacy data paths.
+- Compact action placement, preview placeholders, column alignment, search sizing, hierarchy guides,
+  and narrow-screen behavior now match the approved inventory layout.
+
 ## [0.1.19] - 2026-08-16
 
 ### Added
@@ -241,6 +260,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1
 [0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
 [0.1.17.6]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.5...v0.1.17.6

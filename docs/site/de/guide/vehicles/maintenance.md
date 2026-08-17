@@ -3,7 +3,7 @@ title: Fahrzeugwartung und Zustand
 description: Fahrzeugwartungen erfassen, planen, abschließen, prüfen und sicher entfernen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19
+reviewedVersion: 0.1.19.1
 lastReviewed: 2026-08-16
 ---
 
@@ -105,7 +105,7 @@ getrennte Zähler für Bilder und Beilagen. Bildverknüpfungen werden im Tab **U
 Auswahl **Keine Wartung** an einem Bild bleibt eine ausstehende Metadatenänderung, bis du
 **Änderungen speichern** am Fahrzeug verwendest.
 
-RailKeeper v0.1.19 kann Beilagen anzeigen, die bereits eine Wartungsreferenz enthalten. Die
+RailKeeper v0.1.19.1 kann Beilagen anzeigen, die bereits eine Wartungsreferenz enthalten. Die
 normale Beilagenzeile bietet jedoch keine Funktion zum Zuweisen oder Ändern dieser Referenz. Nutze
 keinen erfundenen Zuordnungsablauf, den die Oberfläche nicht bereitstellt.
 
@@ -122,7 +122,7 @@ Vor dem Löschen eines Eintrags:
 3. Wähle im Tab **Uploads** für jedes verknüpfte Bild **Keine Wartung** und nutze
    **Änderungen speichern**.
 4. Muss eine verknüpfte Beilage ihre Zuordnung behalten, behalte auch den Wartungseintrag.
-   RailKeeper v0.1.19 besitzt keinen Editor für Beilagenverknüpfungen. Entferne eine Beilage erst
+   RailKeeper v0.1.19.1 besitzt keinen Editor für Beilagenverknüpfungen. Entferne eine Beilage erst
    nach Sicherungs- und Inhaltsprüfung, wenn die Datei tatsächlich nicht mehr benötigt wird.
 5. Kehre zu **Wartung** zurück, prüfe, dass **Verknüpfte Medien** nicht mehr erscheint, und lösche
    erst danach den Eintrag.
@@ -176,5 +176,5 @@ Medienaktion nicht rückgängig.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19** und wurde zuletzt am
+Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19.1** und wurde zuletzt am
 16.08.2026 geprüft.

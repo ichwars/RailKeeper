@@ -3,7 +3,7 @@ title: Listen und Sperren
 description: Messelisten anlegen, sperren, entsperren und sicher löschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19
+reviewedVersion: 0.1.19.1
 lastReviewed: 2026-08-16
 ---
 
@@ -42,7 +42,7 @@ den Dialog und lädt die Listentabelle neu. Das Anlegen ist ein sofortiger Serve
 bis zum Erfolg sind die Dialogwerte nur lokaler Formularzustand.
 
 Ist eines der Pflichtfelder leer, verhindert der Browser die normale Übermittlung. Der Server weist
-auch Werte zurück, die nach dem Entfernen äußerer Leerzeichen leer sind. In v0.1.19 prüft der
+auch Werte zurück, die nach dem Entfernen äußerer Leerzeichen leer sind. In v0.1.19.1 prüft der
 Server beim Datum, dass der Wert nicht leer ist; das Datumsfeld liefert den normalen Kalenderwert.
 
 ## Listen auswählen, sortieren und prüfen
@@ -132,5 +132,5 @@ nicht erklärt.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite beschreibt RailKeeper v0.1.19. Der Entwicklungsstand auf `main` kann abweichen und
+Diese Seite beschreibt RailKeeper v0.1.19.1. Der Entwicklungsstand auf `main` kann abweichen und
 gehört nicht zu diesem Benutzerablauf.
