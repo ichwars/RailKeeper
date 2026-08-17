@@ -62,6 +62,9 @@ describe("VehicleCreateStepArticle", () => {
 
     await user.click(screen.getByRole("button", { name: /Artikeldaten suchen/ }));
     expect(screen.getByRole("heading", { name: /Suchergebnisse/ })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /Suche ändern/ }));
+    expect(screen.getByRole("heading", { name: /Artikeldaten finden/ })).toBeVisible();
+    await user.click(screen.getByRole("button", { name: /Artikeldaten suchen/ }));
     expect(document.querySelector(".vehicle-create-result-card.without-image .vehicle-create-result-copy"))
       .toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Roco 6280002 auswählen/ }));

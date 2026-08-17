@@ -157,13 +157,21 @@ ORDER BY position ASC
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate vehicle set members: %w", err)
 	}
+	loadedMembers, err := s.list(ctx, "", id)
+	if err != nil {
+		return nil, fmt.Errorf("load vehicle set members: %w", err)
+	}
+	membersByID := make(map[string]Vehicle, len(loadedMembers))
+	for _, member := range loadedMembers {
+		membersByID[member.ID] = member
+	}
 	set.Members = make([]Vehicle, 0, len(memberIDs))
 	for _, memberID := range memberIDs {
-		member, getErr := s.Get(ctx, memberID)
-		if getErr != nil {
-			return nil, fmt.Errorf("get vehicle set member: %w", getErr)
+		member, found := membersByID[memberID]
+		if !found {
+			return nil, fmt.Errorf("get vehicle set member %s: %w", memberID, ErrVehicleNotFound)
 		}
-		set.Members = append(set.Members, *member)
+		set.Members = append(set.Members, member)
 	}
 	return &set, nil
 }

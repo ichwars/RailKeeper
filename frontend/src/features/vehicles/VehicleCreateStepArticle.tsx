@@ -30,6 +30,7 @@ export function VehicleCreateStepArticle({ state, dispatch, controller, onUpdate
   }
   if (state.articleStage === "results" && response) {
     return <div className="vehicle-wizard-page"><VehicleCreateArticleResults response={response}
+      onRevise={() => dispatch({ type: "set-article-stage", stage: "input" })}
       onSelect={(index) => dispatch({ type: "select-article-result", index })} /></div>;
   }
 

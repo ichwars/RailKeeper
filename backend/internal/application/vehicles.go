@@ -17,6 +17,10 @@ func (s *VehicleService) SetImageLocalizer(localizer VehicleImageLocalizer) {
 }
 
 func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, error) {
+	return s.list(ctx, query, "")
+}
+
+func (s *VehicleService) list(ctx context.Context, query string, vehicleSetID string) ([]Vehicle, error) {
 	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
 		return nil, err
 	}
@@ -51,7 +55,12 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	       COALESCE((SELECT s.condition FROM vehicle_set_members m JOIN vehicle_sets s ON s.id=m.vehicle_set_id WHERE m.vehicle_id=vehicles.id), ''),
 	       created_at, updated_at
 	FROM vehicles
-	WHERE ? = '%%'
+	WHERE (? = '' OR EXISTS (
+	  SELECT 1 FROM vehicle_set_members scope
+	  WHERE scope.vehicle_id=vehicles.id AND scope.vehicle_set_id=?
+	))
+	AND (
+	   ? = '%%'
 	   OR inventory_number LIKE ? COLLATE NOCASE
 	   OR manufacturer LIKE ? COLLATE NOCASE
 	   OR article_number LIKE ? COLLATE NOCASE
@@ -70,8 +79,9 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	         OR s.name LIKE ? COLLATE NOCASE
 	         OR s.article_number LIKE ? COLLATE NOCASE)
 	   )
+	)
 	ORDER BY updated_at DESC, inventory_number ASC
-	`, like, like, like, like, like, like, like, like, like, like, like, like, like)
+	`, vehicleSetID, vehicleSetID, like, like, like, like, like, like, like, like, like, like, like, like, like)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicles: %w", err)
 	}

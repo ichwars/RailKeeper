@@ -48,7 +48,9 @@ export type VehicleCreateWizardAction =
   | { type: "remove-member"; index: number }
   | { type: "set-active-details-tab"; tab: VehicleCreateWizardState["activeDetailsTab"] };
 
-export const vehicleCreateDraftKey = "railkeeper.vehicleCreateDraft.v1";
+export const vehicleCreateDraftKey = (owner: string) => (
+  `railkeeper.vehicleCreateDraft.v2:${owner.trim().toLocaleLowerCase() || "local"}`
+);
 
 type VehicleCreateDraftStorage = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 type VehicleCreateDraftOperationResult = { kind: "saved" | "cleared" | "error" };
@@ -163,13 +165,19 @@ export function createVehicleCreateWizardState(
   initialForm: CreateVehicleRequest = emptyVehicle,
   prefill?: VehicleCreatePrefill | null
 ): VehicleCreateWizardState {
-  const members = prefill?.members.length
+  const prefilledMembers = prefill?.members.length
     ? prefill.members.map((form) => ({
       form: cloneForm(form),
       touched: true,
       overriddenFields: Object.keys(form) as Array<keyof CreateVehicleRequest>
     }))
     : [emptyVehicleSetMemberDraft(), emptyVehicleSetMemberDraft()];
+  const members = prefilledMembers.length >= 2
+    ? prefilledMembers
+    : [...prefilledMembers, ...Array.from(
+      { length: 2 - prefilledMembers.length },
+      () => emptyVehicleSetMemberDraft()
+    )];
   return {
     kind: prefill?.kind || "single",
     step: "basics",
@@ -305,10 +313,11 @@ function defaultStorage(): VehicleCreateDraftStorage {
 }
 
 export function loadVehicleCreateDraft(
+  owner = "local",
   storage: VehicleCreateDraftStorage = defaultStorage()
 ): VehicleCreateDraftLoadResult {
   try {
-    const raw = storage.getItem(vehicleCreateDraftKey);
+    const raw = storage.getItem(vehicleCreateDraftKey(owner));
     if (!raw) return { kind: "empty" };
     const parsed: unknown = JSON.parse(raw);
     if (!isRecord(parsed) || (parsed.version !== 1 && parsed.version !== 2)
@@ -337,16 +346,12 @@ export function loadVehicleCreateDraft(
 
 export function saveVehicleCreateDraft(
   state: VehicleCreateWizardState,
-  articleSearchOrStorage?: VehicleCreateArticleDraft | VehicleCreateDraftStorage
+  owner = "local",
+  articleSearch: VehicleCreateArticleDraft | null = null,
+  storage: VehicleCreateDraftStorage = defaultStorage()
 ): VehicleCreateDraftOperationResult {
   try {
-    const storage = articleSearchOrStorage && "setItem" in articleSearchOrStorage
-      ? articleSearchOrStorage
-      : defaultStorage();
-    const articleSearch = articleSearchOrStorage && !("setItem" in articleSearchOrStorage)
-      ? articleSearchOrStorage
-      : null;
-    storage.setItem(vehicleCreateDraftKey, JSON.stringify({
+    storage.setItem(vehicleCreateDraftKey(owner), JSON.stringify({
       version: 2,
       savedAt: new Date().toISOString(),
       state,
@@ -359,10 +364,11 @@ export function saveVehicleCreateDraft(
 }
 
 export function clearVehicleCreateDraft(
+  owner = "local",
   storage: VehicleCreateDraftStorage = defaultStorage()
 ): VehicleCreateDraftOperationResult {
   try {
-    storage.removeItem(vehicleCreateDraftKey);
+    storage.removeItem(vehicleCreateDraftKey(owner));
     return { kind: "cleared" };
   } catch {
     return { kind: "error" };

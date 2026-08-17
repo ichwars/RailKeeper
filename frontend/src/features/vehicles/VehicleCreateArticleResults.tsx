@@ -5,17 +5,24 @@ import { useI18n } from "../../shared/i18n";
 
 export function VehicleCreateArticleResults({
   response,
-  onSelect
+  onSelect,
+  onRevise
 }: {
   response: ArticleSearchResponse;
   onSelect: (index: number) => void;
+  onRevise: () => void;
 }) {
   const { t } = useI18n();
   return (
     <section className="vehicle-create-article-results">
       <div className="vehicle-wizard-section-head">
         <div><span>02</span><h3>{t("vehicles.wizard.searchResults")}</h3></div>
-        <small>{response.query}</small>
+        <div className="vehicle-create-results-heading-actions">
+          <small>{response.query}</small>
+          <button type="button" className="secondary-button" onClick={onRevise}>
+            {t("vehicles.wizard.reviseSearch")}
+          </button>
+        </div>
       </div>
       <div className="vehicle-create-result-list">
         {response.results.map((result, index) => {

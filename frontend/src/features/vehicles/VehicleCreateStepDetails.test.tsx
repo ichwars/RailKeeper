@@ -1,9 +1,11 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import type { ComponentProps } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { emptyVehicle } from "./vehicleViewModel";
 import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
+import { VehicleModelTab } from "./VehicleModelTab";
 import { createVehicleCreateWizardState } from "./vehicleCreateWizardState";
 
 describe("VehicleCreateStepDetails", () => {
@@ -23,7 +25,17 @@ describe("VehicleCreateStepDetails", () => {
       activeDetailsTab: "set" as const
     };
 
-    render(<VehicleCreateStepDetails state={state} dispatch={vi.fn()} model={{
+    const selectOptions: ComponentProps<typeof VehicleModelTab>["selectOptions"] = (
+      entries,
+      currentValue,
+      emptyLabel
+    ) => <>
+      <option value="">{emptyLabel}</option>
+      {entries.map((entry) => <option key={entry.id} value={entry.key}>{entry.label}</option>)}
+      {currentValue && !entries.some((entry) => entry.key === currentValue) &&
+        <option value={currentValue}>{currentValue}</option>}
+    </>;
+    const model = {
       form: state.shared,
       externalMappings: [],
       readonly: false,
@@ -38,12 +50,7 @@ describe("VehicleCreateStepDetails", () => {
       filteredGattungen: [{ id: "gattung-1", type: "vehicle_gattung", key: "reisezugwagen",
         label: "Reisezugwagen", active: true, sortOrder: 1, metadata: {}, createdAt: "", updatedAt: "" }],
       openSections: { model: true, details: false, vehicle: false },
-      selectOptions: (entries, currentValue, emptyLabel) => <>
-        <option value="">{emptyLabel}</option>
-        {entries.map((entry) => <option key={entry.id} value={entry.key}>{entry.label}</option>)}
-        {currentValue && !entries.some((entry) => entry.key === currentValue) &&
-          <option value={currentValue}>{currentValue}</option>}
-      </>,
+      selectOptions,
       ecosFieldClass: () => "",
       showRequiredErrors: false,
       onToggleSection: vi.fn(),
@@ -55,10 +62,20 @@ describe("VehicleCreateStepDetails", () => {
       canOpenQr: false,
       onUpdateCouplingFront: vi.fn(),
       onUpdateCouplingSame: vi.fn()
-    }} />);
+    };
+    const { rerender } = render(<VehicleCreateStepDetails state={state} dispatch={vi.fn()} model={model} />);
 
     expect(screen.getByText("Gattung")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Gattung" }));
     expect(screen.getByRole("option", { name: "Reisezugwagen" })).toBeInTheDocument();
+
+    rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
+      dispatch={vi.fn()} model={model} />);
+    expect(screen.getByText("Höchstgeschwindigkeit")).toBeInTheDocument();
+    expect(screen.getByLabelText("Digital")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Details" }));
+    rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
+      dispatch={vi.fn()} model={{ ...model, openSections: { ...model.openSections, details: true } }} />);
+    expect(screen.getByText("Radsatz")).toBeInTheDocument();
   });
 });

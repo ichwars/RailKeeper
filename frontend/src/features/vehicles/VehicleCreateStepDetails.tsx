@@ -66,6 +66,16 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
     const member = state.members[index];
     if (!member) return null;
     const updateMember = (patch: Partial<typeof member.form>) => dispatch({ type: "update-member", index, patch });
+    const memberOverrides = Object.fromEntries(
+      (member.overriddenFields || []).map((field) => [field, member.form[field]])
+    ) as Partial<typeof member.form>;
+    const memberForm = {
+      ...state.shared,
+      ...memberOverrides,
+      inventoryNumber: "",
+      name: member.form.name,
+      vehicleNumber: member.form.vehicleNumber
+    };
     return (
       <div className="vehicle-create-detail-groups vehicle-form">
         <div className="vehicle-inherited-summary">
@@ -76,26 +86,24 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
           ].filter(Boolean).join(" · ")}</span>
           <small>{t("vehicles.inventoryNumberAuto")}</small>
         </div>
-        <details open><summary>{t("vehicles.wizard.identification")}</summary>
-          <div className="form-row">
-            <label>{t("vehicle.field.name")}<input value={member.form.name}
-              onChange={(event) => updateMember({ name: event.target.value })} /></label>
-            <label>{t("vehicle.field.vehicleNumber")}<input value={member.form.vehicleNumber || ""}
-              onChange={(event) => updateMember({ vehicleNumber: event.target.value })} /></label>
-          </div>
-        </details>
-        <details><summary>{t("vehicles.wizard.technicalAndDecoder")}</summary>
-          <div className="form-row">
-            <label>{t("vehicle.field.lengthMm")}<input value={member.form.lengthMm || ""}
-              onChange={(event) => updateMember({ lengthMm: event.target.value })} /></label>
-            <label>{t("vehicle.field.decoderType")}<input value={member.form.decoderType || ""}
-              onChange={(event) => updateMember({ decoderType: event.target.value })} /></label>
-          </div>
-        </details>
-        <details><summary>{t("vehicles.wizard.notesAndQr")}</summary>
-          <label>{t("vehicle.field.additionalInfo")}<textarea value={member.form.additionalInfo || ""}
-            onChange={(event) => updateMember({ additionalInfo: event.target.value })} /></label>
-        </details>
+        <VehicleModelTab {...model}
+          form={memberForm}
+          onUpdate={updateMember}
+          onUpdateCategory={() => undefined}
+          onUpdateCouplingFront={(couplingFront) => updateMember({
+            couplingFront,
+            ...(memberForm.couplingSame ? { couplingRear: couplingFront } : {})
+          })}
+          onUpdateCouplingSame={(couplingSame) => updateMember({
+            couplingSame,
+            ...(couplingSame ? { couplingRear: memberForm.couplingFront || "" } : {})
+          })}
+          onOpenQr={() => undefined}
+          canOpenQr={false}
+          hideInventoryNumber
+          hideArticleSearch
+          sharedFieldsReadonly
+        />
       </div>
     );
   };

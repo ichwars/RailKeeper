@@ -1326,6 +1326,7 @@ export const enTranslations: Record<string, string> = {
 		"vehicles.wizard.articleReviewSummary": "Review imported data",
 		"vehicles.wizard.singleDetailsSummary": "Technical, ownership and other data",
 		"vehicles.wizard.searchResults": "Search results",
+		"vehicles.wizard.reviseSearch": "Revise search",
 		"vehicles.wizard.fields": "fields",
 		"vehicles.wizard.select": "Select",
 		"vehicles.wizard.selectResult": "Select {title}",

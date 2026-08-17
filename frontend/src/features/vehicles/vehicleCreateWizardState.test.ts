@@ -54,6 +54,18 @@ describe("vehicleCreateWizardState", () => {
     expect(full.members).toHaveLength(100);
   });
 
+  it("pads a one-member set duplicate to the backend minimum", () => {
+    const state = createVehicleCreateWizardState(emptyVehicle, {
+      kind: "set",
+      shared: { ...emptyVehicle, name: "Restset" },
+      members: [{ ...emptyVehicle, name: "Letzter Wagen" }]
+    });
+
+    expect(state.members).toHaveLength(2);
+    expect(state.members[0].form.name).toBe("Letzter Wagen");
+    expect(state.members[1].touched).toBe(false);
+  });
+
   it("moves the active tab back to the set when its member is removed", () => {
     const initial = {
       ...createVehicleCreateWizardState(emptyVehicle),
@@ -87,7 +99,7 @@ describe("vehicleCreateWizardState", () => {
       state: expect.objectContaining({ shared: expect.objectContaining({ name: "TEE Roland" }) })
     }));
 
-    localStorage.setItem(vehicleCreateDraftKey, JSON.stringify({ version: 99, savedAt: "now", state: {} }));
+    localStorage.setItem(vehicleCreateDraftKey("local"), JSON.stringify({ version: 99, savedAt: "now", state: {} }));
     expect(loadVehicleCreateDraft()).toEqual({ kind: "invalid" });
   });
 
@@ -98,7 +110,7 @@ describe("vehicleCreateWizardState", () => {
       articleStage: "review" as const,
       selectedResultIndex: 0
     };
-    localStorage.setItem(vehicleCreateDraftKey, JSON.stringify({
+    localStorage.setItem(vehicleCreateDraftKey("local"), JSON.stringify({
       version: 1,
       savedAt: new Date().toISOString(),
       state
@@ -132,7 +144,7 @@ describe("vehicleCreateWizardState", () => {
       selectedImages: { "image-key": true }
     };
 
-    expect(saveVehicleCreateDraft(state, articleSearch)).toEqual({ kind: "saved" });
+    expect(saveVehicleCreateDraft(state, "local", articleSearch)).toEqual({ kind: "saved" });
     expect(loadVehicleCreateDraft()).toEqual(expect.objectContaining({
       kind: "loaded",
       state: expect.objectContaining({ articleImportApplied: true }),
@@ -140,8 +152,16 @@ describe("vehicleCreateWizardState", () => {
     }));
   });
 
+  it("scopes drafts to the signed-in user", () => {
+    const state = createVehicleCreateWizardState({ ...emptyVehicle, name: "Privater Entwurf" });
+
+    expect(saveVehicleCreateDraft(state, "alice")).toEqual({ kind: "saved" });
+    expect(loadVehicleCreateDraft("bob")).toEqual({ kind: "empty" });
+    expect(loadVehicleCreateDraft("alice")).toEqual(expect.objectContaining({ kind: "loaded" }));
+  });
+
   it("rejects malformed state and keeps storage failures non-blocking", () => {
-    localStorage.setItem(vehicleCreateDraftKey, JSON.stringify({
+    localStorage.setItem(vehicleCreateDraftKey("local"), JSON.stringify({
       version: 1,
       savedAt: new Date().toISOString(),
       state: { kind: "set", step: "basics", members: "invalid" }
@@ -153,8 +173,9 @@ describe("vehicleCreateWizardState", () => {
       setItem: vi.fn(() => { throw new Error("unavailable"); }),
       removeItem: vi.fn(() => { throw new Error("unavailable"); })
     };
-    expect(loadVehicleCreateDraft(storage)).toEqual({ kind: "error" });
-    expect(saveVehicleCreateDraft(createVehicleCreateWizardState(emptyVehicle), storage)).toEqual({ kind: "error" });
-    expect(clearVehicleCreateDraft(storage)).toEqual({ kind: "error" });
+    expect(loadVehicleCreateDraft("local", storage)).toEqual({ kind: "error" });
+    expect(saveVehicleCreateDraft(createVehicleCreateWizardState(emptyVehicle), "local", null, storage))
+      .toEqual({ kind: "error" });
+    expect(clearVehicleCreateDraft("local", storage)).toEqual({ kind: "error" });
   });
 });

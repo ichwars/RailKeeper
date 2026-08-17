@@ -23,6 +23,7 @@ import type { PendingArticleImage } from "./vehicleTransforms";
 import type { ArticleSearchController } from "./useArticleSearchController";
 
 type VehicleCreateWizardProps = {
+  draftOwner: string;
   model: ComponentProps<typeof VehicleModelTab>;
   saving: boolean;
   message: string;
@@ -35,7 +36,7 @@ type VehicleCreateWizardProps = {
 };
 
 export function VehicleCreateWizard({
-  model, saving, message, onSubmitSingle, onSubmitSet, onClose,
+  draftOwner, model, saving, message, onSubmitSingle, onSubmitSet, onClose,
   setCreationDisabled = false, prefill, articleSearchController
 }: VehicleCreateWizardProps) {
   const { language, t } = useI18n();
@@ -47,7 +48,7 @@ export function VehicleCreateWizard({
   const [setScheme, setSetScheme] = useState<InventoryNumberScheme | null>(null);
   const [setSchemeLoading, setSetSchemeLoading] = useState(true);
   const [setSchemeError, setSetSchemeError] = useState("");
-  const [draftResult, setDraftResult] = useState(() => loadVehicleCreateDraft());
+  const [draftResult, setDraftResult] = useState(() => loadVehicleCreateDraft(draftOwner));
   const [draftMessage, setDraftMessage] = useState("");
   const { kind, members, step, shared: form } = wizard;
   const { options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
@@ -162,7 +163,7 @@ export function VehicleCreateWizard({
         {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
       </button>
       <button type="button" className="secondary-button vehicle-draft-action" onClick={() => {
-        const result = saveVehicleCreateDraft(wizard, {
+        const result = saveVehicleCreateDraft(wizard, draftOwner, {
           response: articleSearchController.state.response,
           selectedFields: articleSearchController.state.selectedFields,
           selectedImages: articleSearchController.state.selectedImages
@@ -182,7 +183,11 @@ export function VehicleCreateWizard({
       {draftResult.kind === "loaded" && (
         <div className="vehicle-draft-notice" role="status">
           <p>{t("vehicles.wizard.draftFound")}</p>
-          <button type="button" className="secondary-button" onClick={() => {
+          <button type="button" className="secondary-button"
+            disabled={setCreationDisabled && draftResult.state.kind === "set"}
+            title={setCreationDisabled && draftResult.state.kind === "set"
+              ? t("vehicles.wizard.setDisabledEcos") : undefined}
+            onClick={() => {
             dispatch({ type: "replace-state", state: draftResult.state });
             onUpdate(draftResult.state.shared);
             articleSearchController.commands.restoreDraft(
@@ -193,14 +198,14 @@ export function VehicleCreateWizard({
             setDraftResult({ kind: "empty" });
           }}>{t("vehicles.wizard.resumeDraft")}</button>
           <button type="button" className="secondary-button" onClick={() => {
-            clearVehicleCreateDraft(); setDraftResult({ kind: "empty" });
+            clearVehicleCreateDraft(draftOwner); setDraftResult({ kind: "empty" });
           }}>{t("vehicles.wizard.discardDraft")}</button>
         </div>
       )}
       {(draftResult.kind === "invalid" || draftResult.kind === "error") && (
         <div className="vehicle-draft-notice" role="status"><p>{t("vehicles.wizard.draftInvalid")}</p>
           <button type="button" className="secondary-button" onClick={() => {
-            clearVehicleCreateDraft(); setDraftResult({ kind: "empty" });
+            clearVehicleCreateDraft(draftOwner); setDraftResult({ kind: "empty" });
           }}>{t("vehicles.wizard.cleanStart")}</button></div>
       )}
       {step === "basics" && (

@@ -91,6 +91,7 @@ export function VehicleModelTab({
   onUpdateCouplingFront,
   onUpdateCouplingSame,
   hideInventoryNumber = false,
+  hideArticleSearch = false,
   sharedFieldsReadonly = false
 }: {
   form: CreateVehicleRequest;
@@ -114,6 +115,7 @@ export function VehicleModelTab({
   onUpdateCouplingFront: (couplingFront: string) => void;
   onUpdateCouplingSame: (couplingSame: boolean) => void;
   hideInventoryNumber?: boolean;
+  hideArticleSearch?: boolean;
   sharedFieldsReadonly?: boolean;
 }) {
   const { t } = useI18n();
@@ -136,7 +138,7 @@ export function VehicleModelTab({
         </button>
         {openSections.model && (
           <div className="accordion-content vehicle-form">
-            <div className="article-search-box">
+            {!hideArticleSearch && <div className="article-search-box">
               <div>
                 <strong>{t("vehicles.articleSearch.title")}</strong>
                 <span>{t("vehicles.articleSearch.subtitle")}</span>
@@ -157,7 +159,7 @@ export function VehicleModelTab({
                   {articleSearchLoading ? t("vehicles.articleSearch.searching") : t("vehicles.articleSearch.search")}
                 </button>
               </div>
-            </div>
+            </div>}
 
             {(form.articleSourceUrl || digitalMapping) && (
               <div className="vehicle-source-strip">

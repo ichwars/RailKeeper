@@ -53,6 +53,7 @@ describe("VehicleCreateWizard set safeguards", () => {
 
   it("disables set creation for an ECoS draft", () => {
     render(<VehicleCreateWizard model={model} saving={false} message="" setCreationDisabled
+      draftOwner="tester"
       articleSearchController={articleSearchController}
       onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
 
@@ -71,9 +72,10 @@ describe("VehicleCreateWizard set safeguards", () => {
       }),
       kind: "set" as const
     };
-    saveVehicleCreateDraft(draft);
+    saveVehicleCreateDraft(draft, "tester");
 
     render(<VehicleCreateWizard model={model} saving={false} message=""
+      draftOwner="tester"
       articleSearchController={articleSearchController}
       onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
 
@@ -81,8 +83,20 @@ describe("VehicleCreateWizard set safeguards", () => {
     expect(model.onUpdate).toHaveBeenCalledWith(expect.objectContaining({ name: "Draft TEE" }));
   });
 
+  it("does not resume a set draft during an ECoS single-vehicle workflow", () => {
+    const draft = { ...createVehicleCreateWizardState(model.form), kind: "set" as const };
+    saveVehicleCreateDraft(draft, "tester");
+
+    render(<VehicleCreateWizard model={model} saving={false} message="" setCreationDisabled
+      draftOwner="tester" articleSearchController={articleSearchController}
+      onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /Entwurf fortsetzen/ })).toBeDisabled();
+  });
+
   it("loads the set inventory scheme only once per language", async () => {
     render(<VehicleCreateWizard model={model} saving={false} message=""
+      draftOwner="tester"
       articleSearchController={articleSearchController}
       onSubmitSingle={vi.fn()} onSubmitSet={vi.fn()} onClose={vi.fn()} />);
 

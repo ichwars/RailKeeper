@@ -28,6 +28,7 @@ type EditorTabs = {
 };
 
 type VehicleEditorDialogProps = {
+  draftOwner: string;
   mode: ModalMode;
   selected: Vehicle | null;
   activeTab: ModalTab;
@@ -58,6 +59,7 @@ const editorTabs: Array<{ key: ModalTab; labelKey?: string; label?: string }> = 
 ];
 
 export function VehicleEditorDialog({
+  draftOwner,
   mode,
   selected,
   activeTab,
@@ -84,6 +86,7 @@ export function VehicleEditorDialog({
       aria-label={mode === "create" ? undefined : t("vehicles.modal.aria")}>
       {mode === "create" ? (
         <VehicleCreateWizard
+          draftOwner={draftOwner}
           model={tabs.model}
           saving={saving}
           message={message}

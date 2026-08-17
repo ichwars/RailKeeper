@@ -225,6 +225,46 @@ func TestLegacyVersionSeventeenVehicleSetNumbersAreNormalizedDeterministically(t
 	}
 }
 
+func TestLegacyVersionSeventeenVehicleSetNumbersActivateExistingInactiveScheme(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	ctx := context.Background()
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Version = 17
+	doc.Tables["vehicle_sets"] = []map[string]any{{
+		"id": "set-a", "name": "Altset", "manufacturer": "Roco", "gauge": "H0",
+		"category": "Wagen", "gattung": "Reisezugwagen",
+		"created_at": "2026-08-01T00:00:00Z", "updated_at": "2026-08-01T00:00:00Z",
+	}}
+	doc.Tables["vehicle_set_members"] = []map[string]any{}
+	for _, row := range doc.Tables["inventory_number_schemes"] {
+		if row["category"] == "Set" {
+			row["active"] = float64(0)
+			row["prefix"] = "CLUB-SET"
+			row["next_number"] = float64(7)
+		}
+	}
+
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var inventoryNumber string
+	var active int
+	if err := db.QueryRow(`SELECT inventory_number FROM vehicle_sets WHERE id='set-a'`).Scan(&inventoryNumber); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.QueryRow(`SELECT active FROM inventory_number_schemes WHERE category='Set'`).Scan(&active); err != nil {
+		t.Fatal(err)
+	}
+	if inventoryNumber != "CLUB-SET-000007" || active != 1 {
+		t.Fatalf("restored inventory number=%q active=%d", inventoryNumber, active)
+	}
+}
+
 func TestBackupRestorePreservesInactiveBundledAndCustomOrigins(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)

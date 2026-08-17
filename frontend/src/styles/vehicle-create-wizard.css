@@ -649,6 +649,19 @@
   align-items: center;
 }
 
+.vehicle-wizard-section-head .vehicle-create-results-heading-actions {
+  min-width: 0;
+  justify-content: flex-end;
+}
+
+.vehicle-create-results-heading-actions small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .vehicle-wizard-section-head > div > span {
   color: var(--accent);
   font-size: var(--font-size-xs);
@@ -858,6 +871,10 @@
   }
 
   .vehicle-wizard-section-head > small {
+    display: none;
+  }
+
+  .vehicle-wizard-section-head .vehicle-create-results-heading-actions small {
     display: none;
   }
 

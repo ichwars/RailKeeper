@@ -1326,6 +1326,7 @@ export const deTranslations: Record<string, string> = {
 		"vehicles.wizard.articleReviewSummary": "Datenübernahme prüfen",
 		"vehicles.wizard.singleDetailsSummary": "Technik, Eigentum und weitere Angaben",
 		"vehicles.wizard.searchResults": "Suchergebnisse",
+		"vehicles.wizard.reviseSearch": "Suche ändern",
 		"vehicles.wizard.fields": "Felder",
 		"vehicles.wizard.select": "Auswählen",
 		"vehicles.wizard.selectResult": "{title} auswählen",

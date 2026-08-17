@@ -647,6 +647,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       .catch((error: Error) => setMessage(error.message));
   };
   const { submit, confirmDelete } = createVehicleMutationCommands({
+    draftOwner: username,
     editor: {
       form,
       selected,
@@ -694,7 +695,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
         set: vehicleSetInputFromForm(form),
         members: vehicleSetMembersFromForm(form, members, pendingArticleImages, imageOwners)
       });
-      clearVehicleCreateDraft();
+      clearVehicleCreateDraft(username);
       const firstMember = created.members[0];
       if (firstMember) {
         setSelectedDetail(firstMember);
@@ -843,6 +844,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       )}
       {modalOpen && (
         <VehicleEditorDialog
+          draftOwner={username}
           mode={mode}
           selected={selected}
           activeTab={activeTab}

@@ -14,6 +14,7 @@ import type { ECoSVehicleDraftPayload, ModalMode, ModalTab } from "./vehicleView
 type Translator = (key: string, values?: Record<string, string | number>) => string;
 
 type VehicleMutationCommandsOptions = {
+  draftOwner: string;
   editor: {
     form: CreateVehicleRequest;
     selected: Vehicle | null;
@@ -57,6 +58,7 @@ type VehicleMutationCommandsOptions = {
 };
 
 export function createVehicleMutationCommands({
+  draftOwner,
   editor,
   validation,
   media,
@@ -103,7 +105,7 @@ export function createVehicleMutationCommands({
       let vehicle = editor.mode === "edit" && editor.selected
         ? await api.updateVehicle(editor.selected.id, payload)
         : await api.createVehicle(payload);
-      if (editor.mode === "create") clearVehicleCreateDraft();
+      if (editor.mode === "create") clearVehicleCreateDraft(draftOwner);
 
       for (const [imageIndex, image] of remoteImages.entries()) {
         await api.importVehicleImageFromUrl(vehicle.id, {
