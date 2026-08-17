@@ -92,6 +92,14 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 			t.Fatalf("listed member %d has incomplete set position metadata: %#v", index, vehicle.VehicleSet)
 		}
 	}
+
+	listedByInventoryNumber, err := service.List(ctx, created.InventoryNumber)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(listedByInventoryNumber) != 2 {
+		t.Fatalf("set inventory number search returned %d members", len(listedByInventoryNumber))
+	}
 }
 
 func TestGetVehicleSetReturnsCanonicalDataAndOrderedMembers(t *testing.T) {

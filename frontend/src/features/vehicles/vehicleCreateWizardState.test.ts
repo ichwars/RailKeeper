@@ -54,6 +54,20 @@ describe("vehicleCreateWizardState", () => {
     expect(full.members).toHaveLength(100);
   });
 
+  it("moves the active tab back to the set when its member is removed", () => {
+    const initial = {
+      ...createVehicleCreateWizardState(emptyVehicle),
+      kind: "set" as const,
+      members: [emptyVehicleSetMemberDraft(), emptyVehicleSetMemberDraft(), emptyVehicleSetMemberDraft()],
+      activeDetailsTab: "member:2" as const
+    };
+
+    const resized = vehicleCreateWizardReducer(initial, { type: "set-member-count", count: 2 });
+
+    expect(resized.members).toHaveLength(2);
+    expect(resized.activeDetailsTab).toBe("set");
+  });
+
   it("tracks exactly which member fields override imported shared data", () => {
     const initial = { ...createVehicleCreateWizardState(emptyVehicle), kind: "set" as const };
     const updated = vehicleCreateWizardReducer(initial, {
@@ -65,7 +79,7 @@ describe("vehicleCreateWizardState", () => {
     expect(updated.members[0].overriddenFields).toEqual(expect.arrayContaining(["digital", "lengthMm"]));
   });
 
-  it("restores a valid version-1 draft and rejects an incompatible version", () => {
+  it("restores a valid draft and rejects an incompatible version", () => {
     const state = createVehicleCreateWizardState({ ...emptyVehicle, name: "TEE Roland" });
     expect(saveVehicleCreateDraft(state)).toEqual({ kind: "saved" });
     expect(loadVehicleCreateDraft()).toEqual(expect.objectContaining({
@@ -75,6 +89,55 @@ describe("vehicleCreateWizardState", () => {
 
     localStorage.setItem(vehicleCreateDraftKey, JSON.stringify({ version: 99, savedAt: "now", state: {} }));
     expect(loadVehicleCreateDraft()).toEqual({ kind: "invalid" });
+  });
+
+  it("normalizes legacy drafts that cannot restore article search state", () => {
+    const state = {
+      ...createVehicleCreateWizardState({ ...emptyVehicle, name: "Legacy" }),
+      step: "article" as const,
+      articleStage: "review" as const,
+      selectedResultIndex: 0
+    };
+    localStorage.setItem(vehicleCreateDraftKey, JSON.stringify({
+      version: 1,
+      savedAt: new Date().toISOString(),
+      state
+    }));
+
+    expect(loadVehicleCreateDraft()).toEqual(expect.objectContaining({
+      kind: "loaded",
+      state: expect.objectContaining({ articleStage: "input", selectedResultIndex: null }),
+      articleSearch: null
+    }));
+  });
+
+  it("persists article search selections so reviewed images can be restored", () => {
+    const state = {
+      ...createVehicleCreateWizardState({ ...emptyVehicle, name: "TEE Roland" }),
+      step: "details" as const,
+      articleStage: "review" as const,
+      selectedResultIndex: 0,
+      articleImportApplied: true
+    };
+    const articleSearch = {
+      response: {
+        query: "Roco 6280002",
+        results: [{
+          source: "manufacturer", title: "Roco 6280002", url: "https://roco.cc/6280002",
+          snippet: "Set", score: 10, fields: {},
+          images: [{ url: "https://roco.cc/set.jpg", title: "Set", source: "manufacturer" }]
+        }]
+      },
+      selectedFields: {},
+      selectedImages: { "image-key": true }
+    };
+
+    expect(saveVehicleCreateDraft(state, articleSearch)).toEqual({ kind: "saved" });
+    expect(loadVehicleCreateDraft()).toEqual(expect.objectContaining({
+      kind: "loaded",
+      state: expect.objectContaining({ articleImportApplied: true }),
+      articleSearch
+    }));
   });
 
   it("rejects malformed state and keeps storage failures non-blocking", () => {

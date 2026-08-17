@@ -66,10 +66,12 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	     FROM vehicle_set_members m
 	     JOIN vehicle_sets s ON s.id=m.vehicle_set_id
 	     WHERE m.vehicle_id=vehicles.id
-	       AND (s.name LIKE ? COLLATE NOCASE OR s.article_number LIKE ? COLLATE NOCASE)
+	       AND (s.inventory_number LIKE ? COLLATE NOCASE
+	         OR s.name LIKE ? COLLATE NOCASE
+	         OR s.article_number LIKE ? COLLATE NOCASE)
 	   )
 	ORDER BY updated_at DESC, inventory_number ASC
-	`, like, like, like, like, like, like, like, like, like, like, like, like)
+	`, like, like, like, like, like, like, like, like, like, like, like, like, like)
 	if err != nil {
 		return nil, fmt.Errorf("list vehicles: %w", err)
 	}

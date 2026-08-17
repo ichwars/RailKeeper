@@ -1,4 +1,4 @@
-import type { CreateVehicleRequest } from "../../shared/api";
+import type { ArticleSearchResponse, CreateVehicleRequest } from "../../shared/api";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import { emptyVehicle } from "./vehicleViewModel";
 
@@ -22,6 +22,13 @@ export type VehicleCreateWizardState = {
   activeDetailsTab: "set" | `member:${number}`;
   pendingMemberReduction: null | { requestedCount: number; populatedIndexes: number[] };
   articleImageOwners?: Record<string, number>;
+  articleImportApplied?: boolean;
+};
+
+export type VehicleCreateArticleDraft = {
+  response: ArticleSearchResponse | null;
+  selectedFields: Record<string, boolean>;
+  selectedImages: Record<string, boolean>;
 };
 
 export type VehicleCreateWizardAction =
@@ -30,6 +37,7 @@ export type VehicleCreateWizardAction =
   | { type: "go-to-step"; step: VehicleCreateStep }
   | { type: "set-article-stage"; stage: VehicleCreateArticleStage }
   | { type: "select-article-result"; index: number }
+  | { type: "mark-article-import-applied" }
   | { type: "update-shared"; patch: Partial<CreateVehicleRequest> }
   | { type: "set-member-count"; count: number }
   | { type: "confirm-member-reduction" }
@@ -46,7 +54,7 @@ type VehicleCreateDraftStorage = Pick<Storage, "getItem" | "setItem" | "removeIt
 type VehicleCreateDraftOperationResult = { kind: "saved" | "cleared" | "error" };
 export type VehicleCreateDraftLoadResult =
   | { kind: "empty" }
-  | { kind: "loaded"; savedAt: string; state: VehicleCreateWizardState }
+  | { kind: "loaded"; savedAt: string; state: VehicleCreateWizardState; articleSearch: VehicleCreateArticleDraft | null }
   | { kind: "invalid" }
   | { kind: "error" };
 
@@ -102,6 +110,7 @@ function isWizardState(value: unknown): value is VehicleCreateWizardState {
     !Number.isInteger(value.selectedResultIndex) || Number(value.selectedResultIndex) < 0
   )) return false;
   if (value.activeDetailsTab !== "set" && !/^member:\d+$/.test(String(value.activeDetailsTab))) return false;
+  if (value.articleImportApplied !== undefined && typeof value.articleImportApplied !== "boolean") return false;
   if (value.pendingMemberReduction !== null) {
     if (!isRecord(value.pendingMemberReduction)) return false;
     if (!Number.isInteger(value.pendingMemberReduction.requestedCount)
@@ -113,6 +122,30 @@ function isWizardState(value: unknown): value is VehicleCreateWizardState {
     }
   }
   return true;
+}
+
+function isArticleSearchResponse(value: unknown): value is ArticleSearchResponse {
+  if (!isRecord(value) || typeof value.query !== "string" || !Array.isArray(value.results)) return false;
+  return value.results.every((result) => {
+    if (!isRecord(result) || typeof result.source !== "string" || typeof result.title !== "string"
+      || typeof result.url !== "string" || typeof result.snippet !== "string" || typeof result.score !== "number"
+      || !isRecord(result.fields)) return false;
+    const validFields = Object.values(result.fields).every((field) => isRecord(field)
+      && typeof field.label === "string" && typeof field.value === "string" && typeof field.confidence === "number");
+    const validImages = result.images === undefined || (Array.isArray(result.images) && result.images.every((image) => (
+      isRecord(image) && typeof image.url === "string" && typeof image.title === "string" && typeof image.source === "string"
+    )));
+    return validFields && validImages;
+  });
+}
+
+function isBooleanRecord(value: unknown): value is Record<string, boolean> {
+  return isRecord(value) && Object.values(value).every((entry) => typeof entry === "boolean");
+}
+
+function isArticleSearchDraft(value: unknown): value is VehicleCreateArticleDraft {
+  return isRecord(value) && (value.response === null || isArticleSearchResponse(value.response))
+    && isBooleanRecord(value.selectedFields) && isBooleanRecord(value.selectedImages);
 }
 
 function cloneForm(form: CreateVehicleRequest): CreateVehicleRequest {
@@ -146,7 +179,8 @@ export function createVehicleCreateWizardState(
     selectedResultIndex: null,
     activeDetailsTab: prefill?.kind === "set" ? "set" : "member:0",
     pendingMemberReduction: null,
-    articleImageOwners: {}
+    articleImageOwners: {},
+    articleImportApplied: false
   };
 }
 
@@ -169,6 +203,12 @@ function resizeMembers(members: VehicleSetMemberDraft[], requestedCount: number)
   )];
 }
 
+function activeTabAfterResize(tab: VehicleCreateWizardState["activeDetailsTab"], memberCount: number) {
+  if (tab === "set") return tab;
+  const index = Number(tab.slice("member:".length));
+  return index < memberCount ? tab : "set";
+}
+
 export function vehicleCreateWizardReducer(
   state: VehicleCreateWizardState,
   action: VehicleCreateWizardAction
@@ -183,24 +223,37 @@ export function vehicleCreateWizardReducer(
     case "set-article-stage":
       return { ...state, articleStage: action.stage };
     case "select-article-result":
-      return { ...state, selectedResultIndex: action.index, articleStage: "review" };
+      return { ...state, selectedResultIndex: action.index, articleStage: "review", articleImportApplied: false };
+    case "mark-article-import-applied":
+      return { ...state, articleImportApplied: true };
     case "update-shared":
       return { ...state, shared: { ...state.shared, ...action.patch } };
     case "set-member-count": { // Confirmation deliberately protects every populated member draft.
       const requestedCount = Math.min(maximumVehicleSetMembers, Math.max(2, Math.floor(action.count)));
       if (requestedCount >= state.members.length) {
-        return { ...state, members: resizeMembers(state.members, requestedCount), pendingMemberReduction: null };
+        return {
+          ...state,
+          members: resizeMembers(state.members, requestedCount),
+          activeDetailsTab: activeTabAfterResize(state.activeDetailsTab, requestedCount),
+          pendingMemberReduction: null
+        };
       }
       const populatedIndexes = state.members.flatMap((member, index) => memberHasData(member) ? [index] : []);
       if (populatedIndexes.length > 0) {
         return { ...state, pendingMemberReduction: { requestedCount, populatedIndexes } };
       }
-      return { ...state, members: resizeMembers(state.members, requestedCount), pendingMemberReduction: null };
+      return {
+        ...state,
+        members: resizeMembers(state.members, requestedCount),
+        activeDetailsTab: activeTabAfterResize(state.activeDetailsTab, requestedCount),
+        pendingMemberReduction: null
+      };
     }
     case "confirm-member-reduction":
       return state.pendingMemberReduction ? {
         ...state,
         members: resizeMembers(state.members, state.pendingMemberReduction.requestedCount),
+        activeDetailsTab: activeTabAfterResize(state.activeDetailsTab, state.pendingMemberReduction.requestedCount),
         pendingMemberReduction: null
       } : state;
     case "cancel-member-reduction":
@@ -232,9 +285,16 @@ export function vehicleCreateWizardReducer(
         ? { ...state, members: [...state.members, emptyVehicleSetMemberDraft()] }
         : state;
     case "remove-member":
-      return state.members.length > 2
-        ? { ...state, members: state.members.filter((_, index) => index !== action.index) }
-        : state;
+      if (state.members.length <= 2) return state;
+      return {
+        ...state,
+        members: state.members.filter((_, index) => index !== action.index),
+        activeDetailsTab: state.activeDetailsTab === "set" ? "set" : (() => {
+          const activeIndex = Number(state.activeDetailsTab.slice("member:".length));
+          if (activeIndex === action.index) return "set";
+          return activeIndex > action.index ? `member:${activeIndex - 1}` : state.activeDetailsTab;
+        })()
+      };
     case "set-active-details-tab":
       return { ...state, activeDetailsTab: action.tab };
   }
@@ -251,10 +311,25 @@ export function loadVehicleCreateDraft(
     const raw = storage.getItem(vehicleCreateDraftKey);
     if (!raw) return { kind: "empty" };
     const parsed: unknown = JSON.parse(raw);
-    if (!isRecord(parsed) || parsed.version !== 1 || typeof parsed.savedAt !== "string" || !isWizardState(parsed.state)) {
+    if (!isRecord(parsed) || (parsed.version !== 1 && parsed.version !== 2)
+      || typeof parsed.savedAt !== "string" || !isWizardState(parsed.state)) {
       return { kind: "invalid" };
     }
-    return { kind: "loaded", savedAt: parsed.savedAt, state: parsed.state };
+    if (parsed.version === 2 && parsed.articleSearch !== null && !isArticleSearchDraft(parsed.articleSearch)) {
+      return { kind: "invalid" };
+    }
+    const state = parsed.version === 1 ? {
+      ...parsed.state,
+      articleStage: "input" as const,
+      selectedResultIndex: null,
+      articleImportApplied: false
+    } : parsed.state;
+    return {
+      kind: "loaded",
+      savedAt: parsed.savedAt,
+      state,
+      articleSearch: parsed.version === 2 && isArticleSearchDraft(parsed.articleSearch) ? parsed.articleSearch : null
+    };
   } catch {
     return { kind: "error" };
   }
@@ -262,13 +337,20 @@ export function loadVehicleCreateDraft(
 
 export function saveVehicleCreateDraft(
   state: VehicleCreateWizardState,
-  storage: VehicleCreateDraftStorage = defaultStorage()
+  articleSearchOrStorage?: VehicleCreateArticleDraft | VehicleCreateDraftStorage
 ): VehicleCreateDraftOperationResult {
   try {
+    const storage = articleSearchOrStorage && "setItem" in articleSearchOrStorage
+      ? articleSearchOrStorage
+      : defaultStorage();
+    const articleSearch = articleSearchOrStorage && !("setItem" in articleSearchOrStorage)
+      ? articleSearchOrStorage
+      : null;
     storage.setItem(vehicleCreateDraftKey, JSON.stringify({
-      version: 1,
+      version: 2,
       savedAt: new Date().toISOString(),
-      state
+      state,
+      articleSearch
     }));
     return { kind: "saved" };
   } catch {

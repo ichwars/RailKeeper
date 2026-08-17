@@ -143,6 +143,7 @@ export function VehicleCreateWizard({
       }}>{t("vehicles.wizard.continueWithoutImport")}</button>
       <button type="button" className="primary-button" onClick={() => {
         articleSearchController.commands.applyResult(selectedReviewResult);
+        dispatch({ type: "mark-article-import-applied" });
         dispatch({ type: "go-to-step", step: "details" });
       }}>
         <span className="vehicle-review-label-desktop">
@@ -161,7 +162,11 @@ export function VehicleCreateWizard({
         {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
       </button>
       <button type="button" className="secondary-button vehicle-draft-action" onClick={() => {
-        const result = saveVehicleCreateDraft(wizard);
+        const result = saveVehicleCreateDraft(wizard, {
+          response: articleSearchController.state.response,
+          selectedFields: articleSearchController.state.selectedFields,
+          selectedImages: articleSearchController.state.selectedImages
+        });
         setDraftMessage(result.kind === "saved" ? t("vehicles.wizard.draftSaved") : t("vehicles.wizard.draftFailed"));
       }}>{t("vehicles.wizard.saveDraft")}</button>
       <button type="submit" className="primary-button"
@@ -180,6 +185,11 @@ export function VehicleCreateWizard({
           <button type="button" className="secondary-button" onClick={() => {
             dispatch({ type: "replace-state", state: draftResult.state });
             onUpdate(draftResult.state.shared);
+            articleSearchController.commands.restoreDraft(
+              draftResult.articleSearch,
+              draftResult.state.selectedResultIndex,
+              Boolean(draftResult.state.articleImportApplied)
+            );
             setDraftResult({ kind: "empty" });
           }}>{t("vehicles.wizard.resumeDraft")}</button>
           <button type="button" className="secondary-button" onClick={() => {

@@ -18,7 +18,7 @@ const articleSearchController = {
     barcodeValue: "", selectedFields: {}, selectedImages: {} },
   setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
   commands: { run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
-    toggleImage: vi.fn(), applyResult: vi.fn() }
+    toggleImage: vi.fn(), applyResult: vi.fn(), restoreDraft: vi.fn() }
 } as unknown as ArticleSearchController;
 
 const model = {

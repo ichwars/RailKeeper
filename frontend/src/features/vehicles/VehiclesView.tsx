@@ -390,7 +390,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
       submitBarcode: submitBarcodeSearch,
       toggleField: toggleArticleField,
       toggleImage: toggleArticleImage,
-      applyResult: applyArticleResult
+      applyResult: applyArticleResult,
+      restoreDraft: restoreArticleDraft
     }
   } = useArticleSearchController({
     form,
@@ -873,7 +874,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
             },
             commands: {
               run: runArticleSearch, openBarcode: openBarcodeSearch, submitBarcode: submitBarcodeSearch,
-              toggleField: toggleArticleField, toggleImage: toggleArticleImage, applyResult: applyArticleResult
+              toggleField: toggleArticleField, toggleImage: toggleArticleImage, applyResult: applyArticleResult,
+              restoreDraft: restoreArticleDraft
             }
           }}
           tabs={{

@@ -16,6 +16,7 @@ import {
   isArticleFieldKey
 } from "./articleSearch";
 import type { PendingArticleImage } from "./vehicleTransforms";
+import type { VehicleCreateArticleDraft } from "./vehicleCreateWizardState";
 import {
   articleSearchEnabled,
   articleSearchSources,
@@ -162,6 +163,29 @@ export function useArticleSearchController({
     setOpen(false);
   };
 
+  const restoreDraft = (
+    draft: VehicleCreateArticleDraft | null,
+    selectedResultIndex: number | null,
+    imagesApplied: boolean
+  ) => {
+    setResponse(draft?.response || null);
+    setSelectedFields(draft?.selectedFields || {});
+    setSelectedImages(draft?.selectedImages || {});
+    setOpen(false);
+    setError("");
+    if (!imagesApplied || !draft?.response || selectedResultIndex === null) return;
+    const result = draft.response.results[selectedResultIndex];
+    if (!result) return;
+    const images = (result.images || [])
+      .filter((image) => draft.selectedImages[imageSelectionKey(result, image, selectedResultIndex)])
+      .map((image, imageIndex) => ({
+        ...image,
+        id: `${result.url}-${image.url}`,
+        isPrimary: pendingImageCount === 0 && imageIndex === 0
+      }));
+    if (images.length > 0) addImages(images);
+  };
+
   return {
     state: {
       open,
@@ -184,7 +208,8 @@ export function useArticleSearchController({
       submitBarcode,
       toggleField,
       toggleImage,
-      applyResult
+      applyResult,
+      restoreDraft
     }
   };
 }

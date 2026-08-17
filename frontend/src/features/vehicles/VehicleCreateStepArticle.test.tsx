@@ -25,6 +25,16 @@ const resultWithImage: ArticleSearchResult = {
   ...result,
   images: [{ url: "https://roco.cc/set.jpg", title: "Set", source: "manufacturer" }]
 };
+const resultWithExtendedFields: ArticleSearchResult = {
+  ...result,
+  fields: {
+    ...result.fields,
+    driveDescription: { label: "Antrieb Beschreibung", value: "Mittelmotor", confidence: 0.8 },
+    soundGeneratorEnabled: { label: "Soundgenerator", value: "Ja", confidence: 0.8 },
+    wheelset: { label: "Radsatz", value: "AC", confidence: 0.8 },
+    couplingFront: { label: "Kupplung vorne", value: "Kurzkupplung", confidence: 0.8 }
+  }
+};
 
 describe("VehicleCreateStepArticle", () => {
   it("keeps results and grouped review embedded in the creation dialog", async () => {
@@ -93,5 +103,29 @@ describe("VehicleCreateStepArticle", () => {
       imageURL: "https://roco.cc/set.jpg",
       memberIndex: 1
     });
+  });
+
+  it("shows every recognized article field before applying it", () => {
+    const state: VehicleCreateWizardState = {
+      ...createVehicleCreateWizardState({ manufacturer: "Roco", articleNumber: "6280002", name: "Set", gauge: "H0" }),
+      step: "article",
+      articleStage: "review",
+      selectedResultIndex: 0
+    };
+    const controller = {
+      state: { open: false, loading: false, response: { query: "Roco 6280002", results: [resultWithExtendedFields] },
+        error: "", barcodeOpen: false, barcodeValue: "", selectedFields: {}, selectedImages: {} },
+      setters: { setOpen: vi.fn(), setBarcodeOpen: vi.fn(), setBarcodeValue: vi.fn() },
+      commands: { run: vi.fn(), openBarcode: vi.fn(), submitBarcode: vi.fn(), toggleField: vi.fn(),
+        toggleImage: vi.fn(), applyResult: vi.fn() }
+    } as unknown as ArticleSearchController;
+
+    render(<VehicleCreateStepArticle state={state} dispatch={vi.fn()} controller={controller}
+      onUpdateShared={vi.fn()} />);
+
+    expect(screen.getByLabelText("Antrieb Beschreibung: Mittelmotor")).toBeInTheDocument();
+    expect(screen.getByLabelText("Soundgenerator: Ja")).toBeInTheDocument();
+    expect(screen.getByLabelText("Radsatz: AC")).toBeInTheDocument();
+    expect(screen.getByLabelText("Kupplung vorne: Kurzkupplung")).toBeInTheDocument();
   });
 });

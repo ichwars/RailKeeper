@@ -31,8 +31,17 @@ import type { ArticleSearchController } from "./useArticleSearchController";
 const createReviewGroups = [
   { key: "identification", keys: ["manufacturer", "articleNumber", "ean", "name", "gauge", "category", "gattung", "series", "vehicleNumber", "articleSourceUrl"] },
   { key: "railway", keys: ["railwayCompany", "epoch"] },
-  { key: "technical", keys: ["lengthMm", "weightG", "axles", "axleCount", "tractionTireCount", "adapter", "powerPickup", "digital", "decoderType"] },
-  { key: "description", keys: ["description", "additionalInfo", "productionPeriod", "listPrice"] },
+  { key: "technical", keys: [
+    "lengthMm", "weightG", "color", "lettering", "load", "interior", "axles", "axleCount",
+    "tractionTireCount", "wheelset", "couplingFront", "couplingRear", "adapter", "powerPickup",
+    "digital", "digitalDecoderNumber", "dtDecoderNumber", "decoderType", "abcBrakes", "driveEnabled",
+    "headlightsEnabled", "lightingEnabled", "soundGeneratorEnabled", "smokeGeneratorEnabled",
+    "driveDescription", "headlightsDescription", "lightingDescription", "soundGeneratorDescription",
+    "smokeGeneratorDescription"
+  ] },
+  { key: "description", keys: [
+    "description", "additionalInfo", "productionPeriod", "listPrice", "exhibitionReady", "exhibition"
+  ] },
   { key: "media", keys: [] }
 ] as const;
 
