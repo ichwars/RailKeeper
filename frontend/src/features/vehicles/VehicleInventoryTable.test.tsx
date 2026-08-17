@@ -5,6 +5,37 @@ import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
 
 describe("VehicleInventoryTable", () => {
+	it("renders a set as an aligned inventory row followed by child vehicles", () => {
+		const set = {
+			id: "set-1", inventoryNumber: "RK-SET-000001", name: "Rheingold", manufacturer: "Roco",
+			articleNumber: "45923", gauge: "H0", memberCount: 2, position: 1
+		};
+		render(
+			<VehicleInventoryTable
+				vehicles={[
+					vehicleFixture({ id: "member-1", vehicleSet: set }),
+					vehicleFixture({ id: "member-2", vehicleSet: { ...set, position: 2 } })
+				]}
+				columns={["type", "inventoryNumber", "manufacturer", "name"]}
+				allVisibleSelected={false}
+				selectedVehicleIDs={new Set()}
+				sort={{ key: "inventoryNumber", direction: "asc" }}
+				onToggleSort={vi.fn()}
+				onToggleSelection={vi.fn()}
+				onToggleSetSelection={vi.fn()}
+				onToggleAllVisibleSelection={vi.fn()}
+				onOpenDetail={vi.fn()}
+				onOpenSet={vi.fn()}
+				onToggleExhibition={vi.fn()}
+				renderQuickMenu={() => null}
+			/>
+		);
+
+		expect(screen.getByText("RK-SET-000001")).toBeInTheDocument();
+		expect(document.querySelector(".vehicle-set-inventory-row td[colspan]")).toBeNull();
+		expect(document.querySelectorAll(".vehicle-set-child-row")).toHaveLength(2);
+	});
+
   it("renders selected columns in order with localized values", () => {
     const vehicle = vehicleFixture({
       series: "BR 218",

@@ -17,7 +17,7 @@ import { VehicleInventoryPanel } from "./VehicleInventoryPanel";
 import { VehicleEditorDialog } from "./VehicleEditorDialog";
 import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
 import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
-import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
+import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import {
   vehicleSetInputFromForm,
   vehicleSetMembersFromForm,
@@ -442,7 +442,8 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     sortedVehicles,
     toggleAllVisibleSelection,
     toggleSort,
-    toggleVehicleSelection
+		toggleVehicleSelection,
+		toggleVehicleSetSelection
   } = useVehicleInventoryController(vehicles, columnPreferences.columns);
   const load = useCallback(() => {
     setLoading(true);
@@ -722,6 +723,14 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		setCreatePrefill(prefill);
 		openCreate(prefill.shared);
 	};
+	const duplicateVehicleSetByID = async (setID: string) => {
+		try {
+			const vehicleSet = await api.vehicleSet(setID);
+			duplicateVehicleSet(vehicleSetDuplicatePrefill(vehicleSet));
+		} catch (error) {
+			setMessage(error instanceof Error ? error.message : t("vehicles.set.loadFailed"));
+		}
+	};
 	const handleVehicleSetUpdated = async () => {
 		await load();
 		setVehicleSetMode("view");
@@ -803,8 +812,12 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
         onOpenEdit={openEdit}
         onDelete={setDeleteCandidate}
         onToggleSelection={toggleVehicleSelection}
+		onToggleSetSelection={toggleVehicleSetSelection}
         onToggleAllVisibleSelection={toggleAllVisibleSelection}
         onToggleExhibition={toggleVehicleExhibition}
+		onOpenSet={(setID) => openVehicleSet(setID, "view")}
+		onEditSet={canEditVehicleSets ? (setID) => openVehicleSet(setID, "edit") : undefined}
+		onDuplicateSet={canEditVehicleSets ? duplicateVehicleSetByID : undefined}
         renderQuickMenu={vehicleQuickMenu}
       />
       {reportDialogOpen && (

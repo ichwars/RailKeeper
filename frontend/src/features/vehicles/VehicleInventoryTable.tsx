@@ -4,7 +4,6 @@ import {
   ChevronDown,
   ChevronUp,
   Eye,
-  Layers3,
   Pencil,
   Trash2
 } from "lucide-react";
@@ -20,6 +19,7 @@ import {
 } from "./vehicleTableColumns";
 import type { SortDirection, SortKey } from "./vehicleViewModel";
 import { groupVehicleInventory } from "./vehicleSetGroups";
+import { VehicleSetInventoryRow } from "./VehicleSetInventoryRow";
 
 type VehicleInventoryTableProps = {
   vehicles: Vehicle[];
@@ -29,8 +29,12 @@ type VehicleInventoryTableProps = {
   sort: { key: SortKey; direction: SortDirection };
   onToggleSort: (key: SortKey) => void;
   onToggleSelection: (vehicleID: string) => void;
+	onToggleSetSelection?: (vehicleIDs: string[]) => void;
   onToggleAllVisibleSelection: () => void;
   onOpenDetail: (vehicle: Vehicle) => void;
+	onOpenSet?: (setID: string) => void;
+	onEditSet?: (setID: string) => void;
+	onDuplicateSet?: (setID: string) => void;
   onOpenEdit?: (vehicle: Vehicle) => void;
   onDelete?: (vehicle: Vehicle) => void;
   onToggleExhibition: (vehicle: Vehicle, exhibition: boolean) => void;
@@ -45,8 +49,12 @@ export function VehicleInventoryTable({
   sort,
   onToggleSort,
   onToggleSelection,
+	onToggleSetSelection,
   onToggleAllVisibleSelection,
   onOpenDetail,
+	onOpenSet,
+	onEditSet,
+	onDuplicateSet,
   onOpenEdit,
   onDelete,
   onToggleExhibition,
@@ -76,7 +84,11 @@ export function VehicleInventoryTable({
     );
   };
 
-  const cell = (vehicle: Vehicle, column: VehicleTableColumn) => {
+	const cell = (vehicle: Vehicle, column: VehicleTableColumn, setMember = false) => {
+		if (column === "type") return <span className="vehicle-type-badge">{t("vehicles.set.vehicleType")}</span>;
+		if (column === "inventoryNumber" && setMember) {
+			return <span className="vehicle-member-inventory"><strong>{vehicle.inventoryNumber}</strong>{vehicle.vehicleNumber && <small>{vehicle.vehicleNumber}</small>}</span>;
+		}
     if (column === "image") {
       const image = primaryImage(vehicle.images);
       return image
@@ -131,7 +143,7 @@ export function VehicleInventoryTable({
           />
         </label>
       </td>
-      {columns.map((column) => <td key={column}>{cell(vehicle, column)}</td>)}
+			{columns.map((column) => <td key={column}>{cell(vehicle, column, setMember)}</td>)}
       <td className="actions-cell">
         <div className="table-actions">
           <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
@@ -176,26 +188,22 @@ export function VehicleInventoryTable({
         <tbody>
           {groupedVehicles.map((group) => group.kind === "single" ? vehicleRow(group.vehicle) : (
             <Fragment key={group.id}>
-              <tr className="vehicle-set-group-row">
-                <td colSpan={columns.length + 2}>
-                  <button
-                    type="button"
-                    onClick={() => setCollapsedSetIDs((current) => {
-                      const next = new Set(current);
-                      if (next.has(group.id)) next.delete(group.id);
-                      else next.add(group.id);
-                      return next;
-                    })}
-                    aria-expanded={!collapsedSetIDs.has(group.id)}
-                  >
-                    {collapsedSetIDs.has(group.id) ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-                    <Layers3 size={16} />
-										<strong>{group.set.name}</strong>
-                    <span>{t("vehicles.set.memberCount", { count: group.members.length })}</span>
-                    <small>{group.members[0]?.manufacturer} {group.members[0]?.articleNumber || ""}</small>
-                  </button>
-                </td>
-              </tr>
+							<VehicleSetInventoryRow
+								group={group}
+								columns={columns}
+								collapsed={collapsedSetIDs.has(group.id)}
+								selectedVehicleIDs={selectedVehicleIDs}
+								onToggleCollapsed={() => setCollapsedSetIDs((current) => {
+									const next = new Set(current);
+									if (next.has(group.id)) next.delete(group.id);
+									else next.add(group.id);
+									return next;
+								})}
+								onToggleSelection={(ids) => onToggleSetSelection?.(ids)}
+								onOpen={(id) => onOpenSet?.(id)}
+								onEdit={onEditSet}
+								onDuplicate={onDuplicateSet}
+							/>
               {!collapsedSetIDs.has(group.id) && group.members.map((vehicle) => vehicleRow(vehicle, true))}
             </Fragment>
           ))}

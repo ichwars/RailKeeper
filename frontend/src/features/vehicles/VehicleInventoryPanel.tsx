@@ -117,8 +117,12 @@ type InventoryPanelProps = {
   onOpenEdit: (vehicle: Vehicle) => void;
   onDelete: (vehicle: Vehicle) => void;
   onToggleSelection: (vehicleID: string) => void;
+	onToggleSetSelection: (vehicleIDs: string[]) => void;
   onToggleAllVisibleSelection: () => void;
   onToggleExhibition: (vehicle: Vehicle, exhibition: boolean) => void;
+	onOpenSet: (setID: string) => void;
+	onEditSet?: (setID: string) => void;
+	onDuplicateSet?: (setID: string) => void;
   renderQuickMenu: (vehicle: Vehicle) => ReactNode;
 };
 
@@ -175,8 +179,12 @@ export function VehicleInventoryPanel({
   onOpenEdit,
   onDelete,
   onToggleSelection,
+	onToggleSetSelection,
   onToggleAllVisibleSelection,
   onToggleExhibition,
+	onOpenSet,
+	onEditSet,
+	onDuplicateSet,
   renderQuickMenu
 }: InventoryPanelProps) {
   const { t } = useI18n();
@@ -510,8 +518,12 @@ export function VehicleInventoryPanel({
                 sort={sort}
                 onToggleSort={onToggleSort}
                 onToggleSelection={onToggleSelection}
+								onToggleSetSelection={onToggleSetSelection}
                 onToggleAllVisibleSelection={onToggleAllVisibleSelection}
                 onOpenDetail={onOpenDetail}
+								onOpenSet={onOpenSet}
+								onEditSet={onEditSet}
+								onDuplicateSet={onDuplicateSet}
                 onOpenEdit={onOpenEdit}
                 onDelete={onDelete}
                 onToggleExhibition={onToggleExhibition}
