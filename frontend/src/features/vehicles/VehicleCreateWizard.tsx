@@ -10,21 +10,21 @@ import {
   Trash2,
   X
 } from "lucide-react";
-import { useState, type ComponentProps, type FormEventHandler } from "react";
+import { useEffect, useReducer, type ComponentProps, type FormEventHandler } from "react";
 
 import type { CreateVehicleRequest } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { RequiredLabel } from "./VehicleFormFields";
 import { VehicleModelTab } from "./VehicleModelTab";
+import {
+  createVehicleCreateWizardState,
+  vehicleCreateWizardReducer,
+  type VehicleCreateStep,
+  type VehicleSetMemberDraft
+} from "./vehicleCreateWizardState";
 import type { PendingArticleImage } from "./vehicleTransforms";
 import type { VehicleCreatePrefill } from "./vehicleSetDuplicate";
-
-export type VehicleSetMemberDraft = {
-  inventoryNumber: string;
-  name: string;
-  vehicleNumber: string;
-};
 
 type VehicleCreateWizardProps = {
   model: ComponentProps<typeof VehicleModelTab>;
@@ -37,12 +37,7 @@ type VehicleCreateWizardProps = {
 	prefill?: VehicleCreatePrefill | null;
 };
 
-type CreationKind = "single" | "set";
-
-const initialMembers: VehicleSetMemberDraft[] = [
-  { inventoryNumber: "", name: "", vehicleNumber: "" },
-  { inventoryNumber: "", name: "", vehicleNumber: "" }
-];
+const stepOrder: VehicleCreateStep[] = ["basics", "article", "details"];
 
 export function VehicleCreateWizard({
   model,
@@ -55,33 +50,32 @@ export function VehicleCreateWizard({
 	prefill
 }: VehicleCreateWizardProps) {
   const { t } = useI18n();
-  const [step, setStep] = useState(1);
-	const [kind, setKind] = useState<CreationKind>(prefill?.kind || "single");
-	const [members, setMembers] = useState<VehicleSetMemberDraft[]>(() => prefill?.members.map((member) => ({
-		inventoryNumber: member.inventoryNumber || "",
-		name: member.name,
-		vehicleNumber: member.vehicleNumber || ""
-	})) || initialMembers);
-  const { form, options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
+  const [wizard, dispatch] = useReducer(
+    vehicleCreateWizardReducer,
+    undefined,
+    () => createVehicleCreateWizardState(model.form, prefill)
+  );
+  const { kind, members, step, shared: form } = wizard;
+  const stepNumber = stepOrder.indexOf(step) + 1;
+  const { options, filteredGattungen, selectOptions, onUpdate, onUpdateCategory } = model;
+
+  useEffect(() => {
+    dispatch({ type: "update-shared", patch: model.form });
+  }, [model.form]);
+
+  const updateShared = (patch: Partial<CreateVehicleRequest>) => {
+    dispatch({ type: "update-shared", patch });
+    onUpdate(patch);
+  };
   const basicsComplete = Boolean(
     form.name.trim() && form.manufacturer.trim() && form.gauge.trim() && form.category?.trim() && form.gattung?.trim()
   );
 
-  const updateMember = (index: number, patch: Partial<VehicleSetMemberDraft>) => {
-    setMembers((current) => current.map((member, memberIndex) => (
-      memberIndex === index ? { ...member, ...patch } : member
-    )));
-  };
-
-  const removeMember = (index: number) => {
-    setMembers((current) => current.length > 2 ? current.filter((_, memberIndex) => memberIndex !== index) : current);
-  };
-
   const submit: FormEventHandler<HTMLFormElement> = (event) => {
-    if (step < 3) {
+    if (step !== "details") {
       event.preventDefault();
-      if (step === 1 && !basicsComplete) return;
-      setStep((current) => Math.min(3, current + 1));
+      if (step === "basics" && !basicsComplete) return;
+      dispatch({ type: "go-to-step", step: step === "basics" ? "article" : "details" });
       return;
     }
     if (kind === "set") {
@@ -112,7 +106,7 @@ export function VehicleCreateWizard({
 
       <ol className="vehicle-wizard-steps" aria-label={t("vehicles.wizard.progress") }>
         {[1, 2, 3].map((item) => (
-          <li key={item} className={item === step ? "active" : item < step ? "done" : ""}>
+          <li key={item} className={item === stepNumber ? "active" : item < stepNumber ? "done" : ""}>
             <span>{item}</span>
             <strong>{t(`vehicles.wizard.step${item}`)}</strong>
           </li>
@@ -120,13 +114,13 @@ export function VehicleCreateWizard({
       </ol>
 
       <div className="modal-body vehicle-wizard-body">
-        {step === 1 && (
+        {step === "basics" && (
           <div className="vehicle-wizard-page">
             <div className="vehicle-kind-grid" role="radiogroup" aria-label={t("vehicles.wizard.kind") }>
               <button
                 type="button"
                 className={kind === "single" ? "vehicle-kind-card selected" : "vehicle-kind-card"}
-                onClick={() => setKind("single")}
+                onClick={() => dispatch({ type: "set-kind", kind: "single" })}
                 role="radio"
                 aria-checked={kind === "single"}
               >
@@ -139,7 +133,7 @@ export function VehicleCreateWizard({
               <button
                 type="button"
                 className={kind === "set" ? "vehicle-kind-card selected" : "vehicle-kind-card"}
-                onClick={() => setKind("set")}
+                onClick={() => dispatch({ type: "set-kind", kind: "set" })}
                 disabled={setCreationDisabled}
                 title={setCreationDisabled ? t("vehicles.wizard.setDisabledEcos") : undefined}
                 role="radio"
@@ -163,7 +157,7 @@ export function VehicleCreateWizard({
                   />
                   <input
                     value={form.name}
-                    onChange={(event) => onUpdate({ name: event.target.value })}
+                    onChange={(event) => updateShared({ name: event.target.value })}
                     required
                     autoFocus
                   />
@@ -172,7 +166,7 @@ export function VehicleCreateWizard({
                   <RequiredLabel label={t("vehicle.field.manufacturer")} filled={Boolean(form.manufacturer.trim())} />
                   <AppSelect
                     value={form.manufacturer}
-                    onChange={(event) => onUpdate({ manufacturer: event.target.value })}
+                    onChange={(event) => updateShared({ manufacturer: event.target.value })}
                     required
                   >
                     {selectOptions(options.manufacturers, form.manufacturer, t("vehicles.select.placeholder"))}
@@ -182,13 +176,13 @@ export function VehicleCreateWizard({
               <div className="form-row">
                 <label>
                   <RequiredLabel label={t("vehicle.field.gauge")} filled={Boolean(form.gauge.trim())} />
-                  <AppSelect value={form.gauge} onChange={(event) => onUpdate({ gauge: event.target.value })} required>
+                  <AppSelect value={form.gauge} onChange={(event) => updateShared({ gauge: event.target.value })} required>
                     {selectOptions(options.gauges, form.gauge, t("vehicles.select.placeholder"))}
                   </AppSelect>
                 </label>
                 <label>
                   {t("vehicle.field.epoch")}
-                  <AppSelect value={form.epoch || ""} onChange={(event) => onUpdate({ epoch: event.target.value })}>
+                  <AppSelect value={form.epoch || ""} onChange={(event) => updateShared({ epoch: event.target.value })}>
                     {selectOptions(options.epochs, form.epoch || "")}
                   </AppSelect>
                 </label>
@@ -198,7 +192,10 @@ export function VehicleCreateWizard({
                   <RequiredLabel label={t("vehicle.field.category")} filled={Boolean(form.category?.trim())} />
                   <AppSelect
                     value={form.category || ""}
-                    onChange={(event) => onUpdateCategory(event.target.value)}
+                    onChange={(event) => {
+                      dispatch({ type: "update-shared", patch: { category: event.target.value } });
+                      onUpdateCategory(event.target.value);
+                    }}
                     required
                   >
                     {selectOptions(options.categories, form.category || "", t("vehicles.select.placeholder"))}
@@ -208,7 +205,7 @@ export function VehicleCreateWizard({
                   <RequiredLabel label={t("vehicle.field.gattung")} filled={Boolean(form.gattung?.trim())} />
                   <AppSelect
                     value={form.gattung || ""}
-                    onChange={(event) => onUpdate({ gattung: event.target.value })}
+                    onChange={(event) => updateShared({ gattung: event.target.value })}
                     disabled={!filteredGattungen.length}
                     required
                   >
@@ -220,7 +217,7 @@ export function VehicleCreateWizard({
           </div>
         )}
 
-        {step === 2 && (
+        {step === "article" && (
           <div className="vehicle-wizard-page">
             <section className="vehicle-wizard-section vehicle-form">
               <div className="vehicle-wizard-section-head">
@@ -255,11 +252,11 @@ export function VehicleCreateWizard({
                 </button>
               </div>
               <div className="form-row three-columns">
-                <label>{t("vehicle.field.articleNumber")}<input value={form.articleNumber || ""} onChange={(event) => onUpdate({ articleNumber: event.target.value })} /></label>
-                <label>EAN<input value={form.ean || ""} onChange={(event) => onUpdate({ ean: event.target.value })} /></label>
-                <label>{t("vehicle.field.productionPeriod")}<input value={form.productionPeriod || ""} onChange={(event) => onUpdate({ productionPeriod: event.target.value })} /></label>
+                <label>{t("vehicle.field.articleNumber")}<input value={form.articleNumber || ""} onChange={(event) => updateShared({ articleNumber: event.target.value })} /></label>
+                <label>EAN<input value={form.ean || ""} onChange={(event) => updateShared({ ean: event.target.value })} /></label>
+                <label>{t("vehicle.field.productionPeriod")}<input value={form.productionPeriod || ""} onChange={(event) => updateShared({ productionPeriod: event.target.value })} /></label>
               </div>
-              <label>{t("vehicle.field.articleSourceUrl")}<input type="url" value={form.articleSourceUrl || ""} onChange={(event) => onUpdate({ articleSourceUrl: event.target.value })} /></label>
+              <label>{t("vehicle.field.articleSourceUrl")}<input type="url" value={form.articleSourceUrl || ""} onChange={(event) => updateShared({ articleSourceUrl: event.target.value })} /></label>
               <div className="vehicle-manual-note">
                 <Search size={17} />
                 <span>{t("vehicles.wizard.manualHint")}</span>
@@ -268,7 +265,7 @@ export function VehicleCreateWizard({
           </div>
         )}
 
-        {step === 3 && (
+        {step === "details" && (
           <div className="vehicle-wizard-page vehicle-wizard-final">
             {kind === "set" && (
               <section className="vehicle-wizard-section vehicle-form">
@@ -277,10 +274,7 @@ export function VehicleCreateWizard({
                   <button
                     type="button"
                     className="secondary-button"
-                    onClick={() => setMembers((current) => [
-                      ...current,
-                      { inventoryNumber: "", name: "", vehicleNumber: "" }
-                    ])}
+                    onClick={() => dispatch({ type: "add-member" })}
                   >
                     <Plus size={15} />{t("vehicles.wizard.addMember")}
                   </button>
@@ -289,10 +283,10 @@ export function VehicleCreateWizard({
                   {members.map((member, index) => (
                     <div className="vehicle-set-member" key={index}>
                       <span className="vehicle-set-member-index">{index + 1}</span>
-                      <label>{t("vehicle.field.name")}<input value={member.name} onChange={(event) => updateMember(index, { name: event.target.value })} placeholder={`${form.name} (${index + 1})`} /></label>
-                      <label>{t("vehicle.field.inventoryNumber")}<input value={member.inventoryNumber} onChange={(event) => updateMember(index, { inventoryNumber: event.target.value })} placeholder={t("vehicles.inventoryNumberAuto")} /></label>
-                      <label>{t("vehicle.field.vehicleNumber")}<input value={member.vehicleNumber} onChange={(event) => updateMember(index, { vehicleNumber: event.target.value })} /></label>
-                      <button type="button" className="icon-button" onClick={() => removeMember(index)} disabled={members.length <= 2} aria-label={t("vehicles.wizard.removeMember")}><Trash2 size={16} /></button>
+                      <label>{t("vehicle.field.name")}<input value={member.form.name} onChange={(event) => dispatch({ type: "update-member", index, patch: { name: event.target.value } })} placeholder={`${form.name} (${index + 1})`} /></label>
+                      <label>{t("vehicle.field.inventoryNumber")}<input value={member.form.inventoryNumber || ""} onChange={(event) => dispatch({ type: "update-member", index, patch: { inventoryNumber: event.target.value } })} placeholder={t("vehicles.inventoryNumberAuto")} /></label>
+                      <label>{t("vehicle.field.vehicleNumber")}<input value={member.form.vehicleNumber || ""} onChange={(event) => dispatch({ type: "update-member", index, patch: { vehicleNumber: event.target.value } })} /></label>
+                      <button type="button" className="icon-button" onClick={() => dispatch({ type: "remove-member", index })} disabled={members.length <= 2} aria-label={t("vehicles.wizard.removeMember")}><Trash2 size={16} /></button>
                     </div>
                   ))}
                 </div>
@@ -311,11 +305,14 @@ export function VehicleCreateWizard({
 
       <footer className="modal-actions vehicle-wizard-actions">
         {message && <p className="form-message">{message}</p>}
-        <button type="button" className="secondary-button" onClick={step === 1 ? onClose : () => setStep((current) => current - 1)}>
-          {step === 1 ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
+        <button type="button" className="secondary-button" onClick={step === "basics" ? onClose : () => dispatch({
+          type: "go-to-step",
+          step: step === "details" ? "article" : "basics"
+        })}>
+          {step === "basics" ? t("vehicles.cancel") : <><ChevronLeft size={16} />{t("vehicles.wizard.back")}</>}
         </button>
-        <button type="submit" className="primary-button" disabled={saving || (step === 1 && !basicsComplete)}>
-          {step < 3 ? <>{t("vehicles.wizard.next")}<ChevronRight size={16} /></> : saving ? t("vehicles.saving") : kind === "set" ? t("vehicles.wizard.createSet") : t("vehicles.createAndContinue")}
+        <button type="submit" className="primary-button" disabled={saving || (step === "basics" && !basicsComplete)}>
+          {step !== "details" ? <>{t("vehicles.wizard.next")}<ChevronRight size={16} /></> : saving ? t("vehicles.saving") : kind === "set" ? t("vehicles.wizard.createSet") : t("vehicles.createAndContinue")}
         </button>
       </footer>
     </form>
@@ -366,9 +363,9 @@ export function vehicleSetMembersFromForm(
 
   return members.map((member, index) => ({
     ...form,
-    inventoryNumber: member.inventoryNumber,
-    name: member.name.trim() || `${form.name} (${index + 1})`,
-    vehicleNumber: member.vehicleNumber,
+    inventoryNumber: member.form.inventoryNumber,
+    name: member.form.name.trim() || `${form.name} (${index + 1})`,
+    vehicleNumber: member.form.vehicleNumber,
     images: index === 0 ? firstMemberImages : []
   }));
 }

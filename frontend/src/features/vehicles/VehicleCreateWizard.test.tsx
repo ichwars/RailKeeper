@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { emptyVehicle } from "./vehicleViewModel";
 import { VehicleCreateWizard, vehicleSetMembersFromForm } from "./VehicleCreateWizard";
+import { emptyVehicleSetMemberDraft } from "./vehicleCreateWizardState";
 
 const model = {
   form: { ...emptyVehicle, name: "TEE", manufacturer: "Roco", gauge: "H0", category: "Triebzug", gattung: "ET" },
@@ -38,8 +39,8 @@ describe("VehicleCreateWizard set safeguards", () => {
 
   it("keeps selected article images on the first set member", () => {
     const members = vehicleSetMembersFromForm(model.form, [
-      { inventoryNumber: "1", name: "A", vehicleNumber: "A-1" },
-      { inventoryNumber: "2", name: "B", vehicleNumber: "B-1" }
+      { ...emptyVehicleSetMemberDraft(), form: { ...emptyVehicle, inventoryNumber: "1", name: "A", vehicleNumber: "A-1" } },
+      { ...emptyVehicleSetMemberDraft(), form: { ...emptyVehicle, inventoryNumber: "2", name: "B", vehicleNumber: "B-1" } }
     ], [{ id: "image-1", url: "https://example.test/image.jpg", title: "Front", source: "catalog", isPrimary: true }]);
 
     expect(members[0].images).toEqual([expect.objectContaining({

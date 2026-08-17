@@ -20,9 +20,9 @@ import { VehicleSetSummaryDialog } from "./VehicleSetSummaryDialog";
 import { vehicleSetDuplicatePrefill, type VehicleCreatePrefill } from "./vehicleSetDuplicate";
 import {
   vehicleSetInputFromForm,
-  vehicleSetMembersFromForm,
-  type VehicleSetMemberDraft
+  vehicleSetMembersFromForm
 } from "./VehicleCreateWizard";
+import type { VehicleSetMemberDraft } from "./vehicleCreateWizardState";
 import { maintenanceIsDue } from "./vehicleMaintenance";
 import {
   PendingArticleImage,
