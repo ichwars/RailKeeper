@@ -1,10 +1,11 @@
-import { ChevronLeft, ChevronRight, Plus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useReducer, useState, type ComponentProps, type FormEventHandler } from "react";
 
 import { api, type CreateVehicleRequest, type InventoryNumberScheme } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { VehicleCreateStepBasics } from "./VehicleCreateStepBasics";
 import { VehicleCreateStepArticle } from "./VehicleCreateStepArticle";
+import { VehicleCreateStepDetails } from "./VehicleCreateStepDetails";
 import { VehicleCreateWizardShell } from "./VehicleCreateWizardShell";
 import { VehicleModelTab } from "./VehicleModelTab";
 import {
@@ -139,43 +140,9 @@ export function VehicleCreateWizard({
       )}
 
       {step === "details" && (
-        <div className="vehicle-wizard-page vehicle-wizard-final">
-          {kind === "set" && (
-            <section className="vehicle-wizard-section vehicle-form">
-              <div className="vehicle-wizard-section-head">
-                <div><span>03</span><h3>{t("vehicles.wizard.members")}</h3></div>
-                <button type="button" className="secondary-button" onClick={() => dispatch({ type: "add-member" })}>
-                  <Plus size={15} />{t("vehicles.wizard.addMember")}
-                </button>
-              </div>
-              <div className="vehicle-set-members">
-                {members.map((member, index) => (
-                  <div className="vehicle-set-member" key={index}>
-                    <span className="vehicle-set-member-index">{index + 1}</span>
-                    <label>{t("vehicle.field.name")}<input value={member.form.name}
-                      onChange={(event) => dispatch({ type: "update-member", index, patch: { name: event.target.value } })}
-                      placeholder={`${form.name} (${index + 1})`} /></label>
-                    <label>{t("vehicle.field.inventoryNumber")}<input value={member.form.inventoryNumber || ""}
-                      onChange={(event) => dispatch({ type: "update-member", index, patch: { inventoryNumber: event.target.value } })}
-                      placeholder={t("vehicles.inventoryNumberAuto")} /></label>
-                    <label>{t("vehicle.field.vehicleNumber")}<input value={member.form.vehicleNumber || ""}
-                      onChange={(event) => dispatch({ type: "update-member", index, patch: { vehicleNumber: event.target.value } })} /></label>
-                    <button type="button" className="icon-button" onClick={() => dispatch({ type: "remove-member", index })}
-                      disabled={members.length <= 2} aria-label={t("vehicles.wizard.removeMember")}><Trash2 size={16} /></button>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
-          <section className="vehicle-wizard-section">
-            <div className="vehicle-wizard-section-head">
-              <div><span>{kind === "set" ? "04" : "03"}</span><h3>{t("vehicles.wizard.remainingData")}</h3></div>
-              <small>{t("vehicles.wizard.reviewHint")}</small>
-            </div>
-            <VehicleModelTab {...model} form={form} onUpdate={updateShared}
-              onUpdateCategory={updateCategory} hideInventoryNumber={kind === "set"} />
-          </section>
-        </div>
+        <VehicleCreateStepDetails state={wizard} dispatch={dispatch} model={{
+          ...model, form, onUpdate: updateShared, onUpdateCategory: updateCategory
+        }} />
       )}
     </VehicleCreateWizardShell>
   );
@@ -210,9 +177,18 @@ export function vehicleSetMembersFromForm(
   }));
   return members.map((member, index) => ({
     ...form,
-    inventoryNumber: member.form.inventoryNumber,
+    ...member.form,
+    inventoryNumber: "",
+    manufacturer: form.manufacturer,
+    articleNumber: form.articleNumber,
+    articleSourceUrl: form.articleSourceUrl,
+    gauge: form.gauge,
+    epoch: form.epoch,
+    railwayCompany: form.railwayCompany,
+    category: form.category,
+    gattung: form.gattung,
     name: member.form.name.trim() || `${form.name} (${index + 1})`,
     vehicleNumber: member.form.vehicleNumber,
-    images: index === 0 ? firstMemberImages : []
+    images: [...(member.form.images || []), ...(index === 0 ? firstMemberImages : [])]
   }));
 }
