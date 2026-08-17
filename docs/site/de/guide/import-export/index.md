@@ -3,7 +3,7 @@ title: Import und Export
 description: Fahrzeugbestand sicher austauschen und den getrennten ECoS-Ablauf verstehen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19
+reviewedVersion: 0.1.19.1
 lastReviewed: 2026-08-16
 ---
 
@@ -15,7 +15,7 @@ Exporte erstellen eine CSV-Datei, eine RailKeeper-JSON-Datei oder eine Druckansi
 getrennt kontrollierter ECoS-Ablauf kann Lokdaten lesen und jede Lok einzeln an den Fahrzeugeditor
 übergeben.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.19. Es behandelt ausschließlich den
+Dieses Kapitel dokumentiert RailKeeper v0.1.19.1. Es behandelt ausschließlich den
 Fahrzeugdatenaustausch. Stammdaten-Transfer, Digitalzentralen-Konfiguration sowie
 Anwendungssicherung und Wiederherstellung bleiben getrennte Administrationsaufgaben.
 
@@ -85,4 +85,4 @@ Editor- oder Admin-Konto.
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.19** und wurde zuletzt am 16.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.19.1** und wurde zuletzt am 16.08.2026 geprüft.
