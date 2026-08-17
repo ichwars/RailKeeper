@@ -215,20 +215,27 @@
   padding-left: 9px;
 }
 
-.vehicle-mobile-set {
+.vehicle-mobile-set-tree {
+  display: grid;
+  gap: 8px;
+}
+
+.vehicle-mobile-set-card {
+  display: grid;
+  grid-template-columns: 1fr;
   overflow: visible;
   border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line));
   border-radius: 8px;
   background: color-mix(in srgb, var(--accent) 5%, var(--panel));
 }
 
-.vehicle-mobile-set-head {
+.vehicle-mobile-set-toggle {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 20px;
+  grid-template-columns: auto minmax(0, 1fr) 20px;
   gap: 9px;
   align-items: center;
   width: 100%;
-  min-height: 54px;
+  min-height: 64px;
   border: 0;
   padding: 9px 11px;
   background: transparent;
@@ -238,25 +245,76 @@
   text-align: left;
 }
 
-.vehicle-mobile-set-head > span {
+.vehicle-mobile-set-identity {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
-.vehicle-mobile-set-head small {
+.vehicle-mobile-set-identity span,
+.vehicle-mobile-set-identity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-mobile-set-identity small,
+.vehicle-mobile-set-meta small {
   color: var(--muted);
   font-size: var(--font-size-xs);
 }
 
+.vehicle-mobile-set-meta {
+  display: grid;
+  gap: 3px;
+  border-top: 1px solid var(--line);
+  padding: 8px 11px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.vehicle-mobile-set-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  border-top: 1px solid var(--line);
+  padding: 4px 7px;
+}
+
+.vehicle-mobile-set-actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 .vehicle-mobile-set-members {
+  position: relative;
   display: grid;
   gap: 8px;
-  border-top: 1px solid var(--line);
-  padding: 8px;
+  margin-left: 13px;
+  padding-left: 13px;
+}
+
+.vehicle-mobile-set-members::before {
+  position: absolute;
+  top: 0;
+  bottom: 20px;
+  left: 0;
+  border-left: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+  content: "";
 }
 
 .vehicle-mobile-set-members .vehicle-mobile-item {
+  position: relative;
   border-left: 3px solid color-mix(in srgb, var(--accent) 55%, var(--line));
+}
+
+.vehicle-mobile-set-members .vehicle-mobile-item::before {
+  position: absolute;
+  top: 25px;
+  left: -14px;
+  width: 11px;
+  border-top: 1px solid color-mix(in srgb, var(--accent) 50%, var(--line));
+  content: "";
 }
 
 .vehicle-mobile-item {

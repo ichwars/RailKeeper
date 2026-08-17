@@ -1341,6 +1341,7 @@ export const deTranslations: Record<string, string> = {
 		"vehicles.set.expand": "Set aufklappen",
 		"vehicles.set.collapse": "Set zuklappen",
 		"vehicles.set.visibleCount": "{count} sichtbar",
+		"vehicles.set.visibleOfTotal": "{visible} von {total} Fahrzeugen",
     "vehicles.saving": "Wird gespeichert...",
     "vehicles.requiredMissing": "Bitte Pflichtfelder ausfüllen: {fields}.",
     "vehicles.createdContinue": "Fahrzeug angelegt. Die weiteren Reiter können jetzt bearbeitet werden.",

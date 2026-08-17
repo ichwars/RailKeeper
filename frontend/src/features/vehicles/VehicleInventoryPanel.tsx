@@ -444,6 +444,9 @@ export function VehicleInventoryPanel({
             columns={columns}
             onOpenDetail={onOpenDetail}
             onOpenEdit={onOpenEdit}
+            onOpenSet={onOpenSet}
+            onEditSet={onEditSet}
+            onDuplicateSet={onDuplicateSet}
             renderQuickMenu={renderQuickMenu}
           />
         ) : null}
