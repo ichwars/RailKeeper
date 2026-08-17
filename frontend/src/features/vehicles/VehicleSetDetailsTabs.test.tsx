@@ -26,5 +26,10 @@ describe("VehicleSetDetailsTabs", () => {
     rerender(<VehicleSetDetailsTabs state={{ ...state, activeDetailsTab: "member:1" }} dispatch={dispatch}
       setPanel={<p>Anschaffungsdaten</p>} memberPanel={(index) => <p>Fahrzeugnummer {state.members[index].form.vehicleNumber}</p>} />);
     expect(screen.getByRole("tabpanel")).toHaveTextContent("50 50 23-11 011-5");
+
+		const secondTab = screen.getByRole("tab", { name: /Wagen 2/ });
+		secondTab.focus();
+		await user.keyboard("{ArrowLeft}");
+		expect(dispatch).toHaveBeenCalledWith({ type: "set-active-details-tab", tab: "member:0" });
   });
 });

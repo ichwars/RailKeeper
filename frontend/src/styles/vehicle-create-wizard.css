@@ -358,6 +358,15 @@
 .vehicle-inherited-summary small {
   color: var(--muted);
   font-size: var(--font-size-xs);
+  overflow-wrap: anywhere;
+}
+
+.vehicle-create-wizard button:focus-visible,
+.vehicle-create-wizard input:focus-visible,
+.vehicle-create-wizard select:focus-visible,
+.vehicle-create-wizard textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .vehicle-draft-notice {

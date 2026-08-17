@@ -27,6 +27,32 @@ const vehicle = (id: string, patch: Partial<Vehicle> = {}): Vehicle => ({
 });
 
 describe("groupVehicleInventory", () => {
+	it("shows a canonical set once when only one member matches a filter", () => {
+		const grouped = groupVehicleInventory([vehicle("member-3", { vehicleSet: {
+			id: "set-1", inventoryNumber: "RK-SET-000001", name: "TEE Roland", manufacturer: "Märklin",
+			gauge: "H0", memberCount: 4, position: 3
+		} })]);
+		expect(grouped).toHaveLength(1);
+		expect(grouped[0]).toMatchObject({
+			kind: "set", visibleMemberCount: 1, totalMemberCount: 4, members: [{ id: "member-3" }]
+		});
+	});
+
+	it("keeps explicit member positions after sorted input determines group order", () => {
+		const set = (id: string, position: number, memberCount: number) => ({
+			id, inventoryNumber: `RK-SET-${id}`, name: id, manufacturer: "Roco", gauge: "H0", memberCount, position
+		});
+		const grouped = groupVehicleInventory([
+			vehicle("member-2", { vehicleSet: set("set-b", 2, 2) }),
+			vehicle("member-a", { vehicleSet: set("set-a", 1, 1) }),
+			vehicle("member-1", { vehicleSet: set("set-b", 1, 2) })
+		]);
+		expect(grouped.map((group) => group.kind === "set" ? group.id : group.vehicle.id))
+			.toEqual(["set-b", "set-a"]);
+		expect(grouped[0].kind === "set" ? grouped[0].members.map((member) => member.id) : [])
+			.toEqual(["member-1", "member-2"]);
+	});
+
 	it("uses canonical set data and distinguishes visible from total members", () => {
 		const set = {
 			id: "set-1",
