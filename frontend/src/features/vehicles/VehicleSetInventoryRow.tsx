@@ -74,6 +74,11 @@ export function VehicleSetInventoryRow({
 				</div>
 			);
 		}
+		if (column === "category" || column === "gattung") {
+			const values = [...new Set(group.members.map((member) => member[column]).filter(Boolean))];
+			if (values.length > 1) return t("vehicles.set.mixed");
+			return values[0] || "–";
+		}
 		if (sharedSetColumns.has(column)) {
 			const setValue = (group.set as unknown as Record<string, unknown>)[column];
 			const memberValue = (group.members[0] as unknown as Record<string, unknown> | undefined)?.[column];

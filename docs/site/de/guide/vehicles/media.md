@@ -3,7 +3,7 @@ title: Fahrzeugbilder und Beilagen
 description: Fahrzeugbilder und Beilagen hochladen, ordnen, anzeigen, herunterladen und sicher entfernen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -118,7 +118,7 @@ Metadaten entfernt wurden.
 ## Rollen-, Speicher- und Sicherungsgrenzen
 
 Medien sind lokale und private RailKeeper-Daten, keine öffentlichen Website-Inhalte.
-Anwendungssicherungen enthalten gespeicherte Fahrzeugmedien. RailKeeper akzeptiert in v0.1.19.1
+Anwendungssicherungen enthalten gespeicherte Fahrzeugmedien. RailKeeper akzeptiert in v0.1.19.2
 jedoch nur Sicherungsdateien bis 250 MiB für Prüfung und Wiederherstellung. Exportiere vor
 umfangreichen Aufräumarbeiten eine Sicherung und bitte einen Admin, diese Datei im
 Wiederherstellungsbereich auszuwählen. Verlasse dich erst darauf, wenn RailKeeper sie als kompatibel
@@ -158,4 +158,4 @@ das Bearbeiten von Wartungen bleiben Fachgrenzen, die auf dieser Seite nicht erk
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19.1** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert die stabile RailKeeper-Version **v0.1.19.2** und wurde zuletzt am 16.08.2026 geprüft.

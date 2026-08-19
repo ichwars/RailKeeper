@@ -3,7 +3,7 @@ title: Artikelstammdaten und Lagerorte
 description: Bestandseinheiten, Artikelklassifizierung, eigene Felder und hierarchische Lagerorte konfigurieren.
 audience: admin
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -37,7 +37,7 @@ RailKeeper liefert acht geschützte Artikelart-Schlüssel aus:
 - Beleuchtung
 - Sonstiges
 
-Bezeichnungen und Aktivstatus lassen sich verwalten, aber v0.1.19.1 erlaubt weder neue noch gelöschte
+Bezeichnungen und Aktivstatus lassen sich verwalten, aber v0.1.19.2 erlaubt weder neue noch gelöschte
 Artikelart-Schlüssel. Dadurch bleiben die zugehörigen Verträge für Fachangaben geschützt. Eine
 Deaktivierung entfernt die Art aus neuen Artikelauswahlen, ohne vorhandene Artikel umzuschreiben.
 
@@ -80,7 +80,7 @@ Namen müssen innerhalb derselben Ebene ohne Beachtung der Groß- und Kleinschre
 Ein Lagerort kann weder sein eigener übergeordneter Ort sein noch unter einen seiner Nachfolger
 verschoben werden. Die Elternauswahl blendet diese ungültigen Möglichkeiten aus.
 
-In v0.1.19.1 gibt es keine endgültige Löschaktion. Einen nicht mehr verwendeten Ort archivieren und
+In v0.1.19.2 gibt es keine endgültige Löschaktion. Einen nicht mehr verwendeten Ort archivieren und
 bei Bedarf reaktivieren. Bestand und Einzelstücke können einen Ort nur verwenden, wenn dieser Ort
 und alle übergeordneten Orte aktiv sind. Das Archivieren eines Elternorts sperrt daher seinen
 gesamten Zweig für neue Bestandsvorgänge, ohne gespeicherte Ortsverweise zu löschen.
@@ -115,4 +115,4 @@ abgewiesener Vorgang lässt die gespeicherte Konfiguration unverändert.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.19.1** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.19.2** und wurde zuletzt am 16.08.2026 geprüft.

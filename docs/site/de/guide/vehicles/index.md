@@ -3,7 +3,7 @@ title: Fahrzeugbestand und Grunddaten
 description: Fahrzeuge suchen, filtern, anlegen, pflegen, ausgeben und sicher löschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-17
 ---
 
@@ -11,10 +11,10 @@ lastReviewed: 2026-08-17
 
 Der **Fahrzeugbestand** ist der zentrale Arbeitsbereich für Modellbahnfahrzeuge. Er verbindet
 Bestandsstatus, Suche, Filter, Tabellen- und Kartenansicht, Fahrzeuggrunddaten, QR-Etiketten und
-druckbare Reports. Dieses Kapitel beschreibt den mit RailKeeper v0.1.19.1 veröffentlichten Fahrzeugablauf.
+druckbare Reports. Dieses Kapitel beschreibt den mit RailKeeper v0.1.19.2 veröffentlichten Fahrzeugablauf.
 
 Admin, Editor, Viewer und Planner können den Bestand einsehen. Fahrzeuge anlegen, ändern und
-löschen dürfen nur Admin und Editor. In v0.1.19.1 können Schreibfunktionen für Viewer und Planner
+löschen dürfen nur Admin und Editor. In v0.1.19.2 können Schreibfunktionen für Viewer und Planner
 trotzdem sichtbar sein. Der Server lehnt ihre Schreibversuche ab und RailKeeper zeigt den
 Fehler an.
 
@@ -54,7 +54,7 @@ Suche ignoriert Leerzeichen am Anfang und Ende und findet Teilzeichenfolgen in d
 - Höchstgeschwindigkeit
 
 Beschreibungen, Bahngesellschaften, Epochen, Kategorien, Decodernummern, EANs und andere
-Detailfelder durchsucht v0.1.19.1 nicht. Die nachfolgenden Filter wirken im Browser auf die vom
+Detailfelder durchsucht v0.1.19.2 nicht. Die nachfolgenden Filter wirken im Browser auf die vom
 Server gelieferten Suchergebnisse. Suche und Filter werden daher kombiniert.
 
 Schlägt das Laden fehl, erscheint der Fehler über der Liste. Bereits geladene Zeilen können sichtbar
@@ -64,7 +64,7 @@ bleiben. Behebe den Fehler oder aktualisiere die Liste, bevor du sie als aktuell
 
 Filtergruppen sind UND-verknüpft. Ein Fahrzeug muss jede aktive Gruppe erfüllen.
 
-| Gruppe | Stabile Auswahl in v0.1.19.1 |
+| Gruppe | Stabile Auswahl in v0.1.19.2 |
 | --- | --- |
 | Bestandsstatus | **Alle**, **Digital**, **Analog**, **Mit Bild**, **Ohne Bild** |
 | Wartung | **Alle**, **Wartung fällig**, **Ohne Wartung** |
@@ -73,7 +73,7 @@ Filtergruppen sind UND-verknüpft. Ein Fahrzeug muss jede aktive Gruppe erfülle
 | Betriebsmerkmal | **Messe tauglich** |
 | Datenlücke aus der Übersicht | **Ohne Artikel-Nr.**, **Ohne EAN** oder **Digital ohne Decoder-Nr.**, wenn der Bestand aus der **Übersicht** geöffnet wurde |
 
-Die Bezeichnung **Ohne Wartung** ist in v0.1.19.1 ungenau. Der Filter zeigt Fahrzeuge ohne fälligen
+Die Bezeichnung **Ohne Wartung** ist in v0.1.19.2 ungenau. Der Filter zeigt Fahrzeuge ohne fälligen
 Wartungseintrag. Dazu können Fahrzeuge mit erledigten oder noch nicht fälligen Wartungen gehören.
 
 Eine ausgewählte Kategorie beschränkt die Gattungen auf die unterschiedlichen Werte der aktuell vom
@@ -148,8 +148,9 @@ Dialog an:
    Treffer und die gruppierte Feld- und Bildprüfung bleiben im Anlegedialog. Externe Werte bleiben
    zu prüfende Vorschläge und werden nur nach Auswahl übernommen.
 3. Ergänze unter **Fahrzeugdetails** Anschaffungsdaten einmal für das Set. Desktop-Reiter und die
-   mobile Auswahl trennen **Set & Anschaffung** von jedem geordneten Fahrzeug. Gemeinsame Identität
-   erscheint nur als geerbter Kontext; fahrzeugspezifische Technik und Nummern bleiben getrennt.
+   mobile Auswahl trennen **Set & Anschaffung** von jedem geordneten Fahrzeug. Setwerte dienen als
+   Vorgaben, jedes Mitglied kann aber eigene Kategorie-, Gattungs-, Modell-, Technik-, Lager- und
+   Zustandsdaten behalten.
 4. Klicke auf **Anlegen** oder **Set anlegen**.
 
 Bei einem Einzelfahrzeug verwendet eine leere **Inventarnummer** das aktive Inventarnummernschema
@@ -160,16 +161,17 @@ Uploads, Wartungen und Ersatzteile bearbeitet werden können.
 
 Ein Set wird transaktional angelegt: Entweder werden das Set und alle Mitglieder gespeichert oder
 keines davon. Gemeinsame Artikel-, Kauf-, Lager-, Zustands- und Verpackungsdaten werden am Set
-gespeichert und beim Anlegen auf alle Mitglieder angewendet. Eine leere Mitgliedsbezeichnung wird
-aus Setbezeichnung und Position gebildet, beispielsweise `TEE Roland (1)`. Leere Inventarnummern
-werden automatisch vergeben. Nach dem Anlegen wird das erste Mitglied zur weiteren Bearbeitung
-geöffnet.
+gespeichert und beim Anlegen nur für leere Mitgliedsfelder als Vorgabe verwendet. Ausdrücklich
+gesetzte Mitgliedswerte bleiben erhalten und lassen sich später bearbeiten, ohne das kanonische Set
+zu verändern. Eine leere Mitgliedsbezeichnung wird aus Setbezeichnung und Position gebildet,
+beispielsweise `TEE Roland (1)`. Leere Inventarnummern werden automatisch vergeben. Nach dem
+Anlegen wird das erste Mitglied zur weiteren Bearbeitung geöffnet.
 
 Jedes Set erhält dauerhaft eine eindeutige `RK-SET-*`-Inventarnummer. Der Bestand zeigt seine
 kanonische Zeile genau einmal, auch wenn Filter nur einzelne Mitglieder treffen, und nennt sichtbare
-sowie gesamte Mitglieder. Desktop nutzt eine Baumtabelle, mobil eine eingeklappte Setkarte mit
-eingerückten Fahrzeugkarten. Setaktionen öffnen die Ansicht, bearbeiten gemeinsame Daten oder
-duplizieren in einen neuen Anlegeentwurf.
+sowie gesamte Mitglieder. Desktop und Mobilansicht halten Sets zunächst eingeklappt und zeigen ihre
+eingerückten Mitglieder erst auf Anforderung. Setaktionen öffnen die Ansicht, bearbeiten gemeinsame
+Daten oder duplizieren in einen neuen Anlegeentwurf.
 
 **Entwurf speichern** legt den versionierten Stand im aktuellen Browser ab. Ein späterer Dialog
 bietet Fortsetzen oder Verwerfen an, eine erfolgreiche Anlage entfernt den Entwurf. Das Zuordnen
@@ -220,7 +222,7 @@ nicht verfügbar. Artikelsuchdaten werden ohne Benutzerauswahl nie verbindlich �
 
 ## Stabile Auswahllisten
 
-Die folgenden Werte sind in v0.1.19.1 statisch. Sie bleiben in beiden Oberflächensprachen auf
+Die folgenden Werte sind in v0.1.19.2 statisch. Sie bleiben in beiden Oberflächensprachen auf
 Deutsch gespeichert.
 
 | Feld | Werte |
@@ -266,7 +268,7 @@ Decoder-Nr.: <Decodernummer, nur wenn vorhanden>
 RailKeeper verwendet zuerst die primäre digitale Decodernummer, danach die DT-Decodernummer. Der
 QR-Dialog kann PNG oder SVG herunterladen und ein druckbares Etikett öffnen. Schnellmenü und
 Fahrzeugansicht können bei vorhandenen Identitätsdaten immer einen QR-Code erzeugen. Der Schalter
-**QR-Code erstellen** steuert in v0.1.19.1 nur die QR-Schaltfläche im Detailbereich des
+**QR-Code erstellen** steuert in v0.1.19.2 nur die QR-Schaltfläche im Detailbereich des
 Bearbeitungsformulars.
 
 Ist Inventarnummer oder Bezeichnung leer, schreibt die Nutzlast für dieses Feld `-`. Mindestens eines
@@ -310,7 +312,7 @@ bereits vorhandenen Ausstellungslisteneintrag.
 ## Fahrzeug löschen
 
 Admin und Editor können **Löschen** wählen und das durch Inventarnummer und Bezeichnung
-identifizierte Fahrzeug bestätigen. v0.1.19.1 bietet weder Rückgängig noch eine Eingabebestätigung.
+identifizierte Fahrzeug bestätigen. v0.1.19.2 bietet weder Rückgängig noch eine Eingabebestätigung.
 
 Das Löschen entfernt das Fahrzeug und seine abhängigen Datenbankeinträge, darunter
 Inventarnummernhistorie, Bilder, Anhangsmetadaten, Wartungen, Funktionen, CV-Daten, externe
@@ -351,5 +353,5 @@ Datei physisch zu entfernen.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert den mit RailKeeper **v0.1.19.1** veröffentlichten Fahrzeugablauf und wurde zuletzt am
+Diese Seite dokumentiert den mit RailKeeper **v0.1.19.2** veröffentlichten Fahrzeugablauf und wurde zuletzt am
 17.08.2026 geprüft.

@@ -143,19 +143,24 @@ describe("VehicleCreateWizard set safeguards", () => {
       series: "BR 601",
       lengthMm: "235",
       digital: true,
-      decoderType: "DCC"
+      decoderType: "DCC",
+      category: "Triebzug",
+      gattung: "Dieseltriebzug"
     };
     const first = emptyVehicleSetMemberDraft();
     const second: VehicleSetMemberDraft = {
       ...emptyVehicleSetMemberDraft(),
-      form: { ...emptyVehicle, name: "B", lengthMm: "240" },
-      overriddenFields: ["name", "lengthMm"]
+      form: { ...emptyVehicle, name: "B", lengthMm: "240", category: "Wagen", gattung: "Steuerwagen" },
+      overriddenFields: ["name", "lengthMm", "category", "gattung"]
     };
 
     const members = vehicleSetMembersFromForm(shared, [first, second], [], {});
 
     expect(members[0]).toMatchObject({ series: "BR 601", lengthMm: "235", digital: true, decoderType: "DCC" });
-    expect(members[1]).toMatchObject({ series: "BR 601", lengthMm: "240", digital: true, decoderType: "DCC" });
+    expect(members[1]).toMatchObject({
+      series: "BR 601", lengthMm: "240", digital: true, decoderType: "DCC",
+      category: "Wagen", gattung: "Steuerwagen"
+    });
   });
 
   it("assigns selected article images to their chosen set members", () => {

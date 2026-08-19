@@ -1398,6 +1398,7 @@ export const enTranslations: Record<string, string> = {
 		"vehicles.set.collapse": "Collapse set",
 		"vehicles.set.visibleCount": "{count} visible",
 		"vehicles.set.visibleOfTotal": "{visible} of {total} vehicles",
+		"vehicles.set.mixed": "Mixed",
     "vehicles.saving": "Saving...",
     "vehicles.requiredMissing": "Please fill required fields: {fields}.",
     "vehicles.createdContinue": "Vehicle created. The other tabs can now be edited.",

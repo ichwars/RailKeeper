@@ -3,7 +3,7 @@ title: Vehicle maintenance and condition
 description: Record, schedule, complete, review, and safely remove vehicle maintenance entries.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -100,7 +100,7 @@ When at least one link exists, the maintenance card shows image and attachment c
 **Linked media**. Manage image links in **Uploads**. Selecting **No maintenance** for an image is
 pending metadata until you use the vehicle's **Save changes** action.
 
-Stable v0.1.19.1 can display attachments that already contain a maintenance reference, but the
+Stable v0.1.19.2 can display attachments that already contain a maintenance reference, but the
 normal attachment row cannot assign or change that reference. Do not invent a reassignment flow
 that the interface does not provide.
 
@@ -116,7 +116,7 @@ Before deleting an entry:
 2. Check its linked image and attachment counts.
 3. In **Uploads**, select **No maintenance** for every linked image and use **Save changes**.
 4. If a linked attachment must retain the association, keep the maintenance entry. Stable
-   v0.1.19.1 has no attachment-link editor. Remove an attachment only after backup and content
+   v0.1.19.2 has no attachment-link editor. Remove an attachment only after backup and content
    review when the file is genuinely no longer needed.
 5. Return to **Maintenance**, confirm that **Linked media** no longer appears, then delete the entry.
 
@@ -163,4 +163,4 @@ A failed action does not undo an earlier successful independent maintenance or m
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.1** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.

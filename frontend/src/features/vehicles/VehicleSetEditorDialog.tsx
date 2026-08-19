@@ -1,65 +1,63 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { X } from "lucide-react";
 
-import { api, type VehicleSet, type VehicleSetInput } from "../../shared/api";
+import { api, type CreateVehicleRequest, type MasterDataEntry, type VehicleSet } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
+import { VehicleOwnershipFields } from "./VehicleFormFields";
+import { vehicleSetInputFromForm } from "./VehicleCreateWizard";
+import { emptyOptions, emptyVehicle, gattungenForCategory, type MasterDataOptions } from "./vehicleViewModel";
 
 type VehicleSetEditorDialogProps = {
 	setId: string;
+	options?: MasterDataOptions;
 	onClose: () => void;
 	onUpdated: (set: VehicleSet) => void;
 };
 
-const blankInput: VehicleSetInput = {
-	name: "", manufacturer: "", articleNumber: "", articleSourceUrl: "", gauge: "", epoch: "",
-	railwayCompany: "", category: "", gattung: "", description: "", ean: "", productionPeriod: "",
-	listPrice: "", acquisitionType: "", acquiredFrom: "", purchasePrice: "", purchaseDate: "",
-	storageLocation: "", storageDetails: "", condition: "", conditionDetails: "", packaging: ""
-};
-
-function inputFromSet(set: VehicleSet): VehicleSetInput {
-	return Object.fromEntries(Object.keys(blankInput).map((key) => [
-		key,
-		set[key as keyof VehicleSet] || ""
-	])) as VehicleSetInput;
+function formFromSet(set: VehicleSet): CreateVehicleRequest {
+	return {
+		...emptyVehicle,
+		...set,
+		inventoryNumber: ""
+	};
 }
 
-const fields: Array<{ key: keyof VehicleSetInput; label: string; required?: boolean }> = [
-	{ key: "name", label: "vehicle.field.name", required: true },
-	{ key: "manufacturer", label: "vehicle.field.manufacturer", required: true },
-	{ key: "articleNumber", label: "vehicle.field.articleNumber" },
-	{ key: "articleSourceUrl", label: "vehicle.field.articleSourceUrl" },
-	{ key: "gauge", label: "vehicle.field.gauge", required: true },
-	{ key: "epoch", label: "vehicle.field.epoch" },
-	{ key: "railwayCompany", label: "vehicle.field.railwayCompany" },
-	{ key: "category", label: "vehicle.field.category", required: true },
-	{ key: "gattung", label: "vehicle.field.gattung", required: true },
-	{ key: "ean", label: "vehicle.field.ean" },
-	{ key: "productionPeriod", label: "vehicle.field.productionPeriod" },
-	{ key: "listPrice", label: "vehicle.field.listPrice" },
-	{ key: "acquisitionType", label: "vehicle.field.acquisitionType" },
-	{ key: "acquiredFrom", label: "vehicle.field.acquiredFrom" },
-	{ key: "purchasePrice", label: "vehicle.field.purchasePrice" },
-	{ key: "purchaseDate", label: "vehicle.field.purchaseDate" },
-	{ key: "storageLocation", label: "vehicle.field.storageLocation" },
-	{ key: "storageDetails", label: "vehicle.field.storageDetails" },
-	{ key: "condition", label: "vehicle.field.condition" },
-	{ key: "conditionDetails", label: "vehicle.field.conditionDetails" },
-	{ key: "packaging", label: "vehicle.field.packaging" },
-	{ key: "description", label: "vehicle.field.description" }
-];
+function selectOptions(entries: MasterDataEntry[], currentValue: string, emptyLabel: string): ReactNode {
+	const hasCurrentValue = entries.some((entry) => entry.label === currentValue);
+	return (
+		<>
+			<option value="">{emptyLabel}</option>
+			{currentValue && !hasCurrentValue && <option value={currentValue}>{currentValue}</option>}
+			{entries.map((entry) => (
+				<option key={entry.id} value={entry.label} disabled={!entry.active}>
+					{entry.label}
+				</option>
+			))}
+		</>
+	);
+}
 
-export function VehicleSetEditorDialog({ setId, onClose, onUpdated }: VehicleSetEditorDialogProps) {
+export function VehicleSetEditorDialog({
+	setId,
+	options = emptyOptions,
+	onClose,
+	onUpdated
+}: VehicleSetEditorDialogProps) {
 	const { t } = useI18n();
-	const [form, setForm] = useState<VehicleSetInput>(blankInput);
+	const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
+	const filteredGattungen = gattungenForCategory(options, form.category);
+	const update = (patch: Partial<CreateVehicleRequest>) => {
+		setForm((current) => ({ ...current, ...patch }));
+	};
 
 	useEffect(() => {
 		let active = true;
 		api.vehicleSet(setId)
-			.then((set) => { if (active) setForm(inputFromSet(set)); })
+			.then((set) => { if (active) setForm(formFromSet(set)); })
 			.catch((reason: Error) => { if (active) setError(reason.message); })
 			.finally(() => { if (active) setLoading(false); });
 		return () => { active = false; };
@@ -70,7 +68,7 @@ export function VehicleSetEditorDialog({ setId, onClose, onUpdated }: VehicleSet
 		setSaving(true);
 		setError("");
 		try {
-			const updated = await api.updateVehicleSet(setId, form);
+			const updated = await api.updateVehicleSet(setId, vehicleSetInputFromForm(form));
 			onUpdated(updated);
 		} catch (reason) {
 			setError(reason instanceof Error ? reason.message : t("vehicles.set.updateFailed"));
@@ -84,30 +82,76 @@ export function VehicleSetEditorDialog({ setId, onClose, onUpdated }: VehicleSet
 			<form className="vehicle-modal vehicle-set-editor-dialog" onSubmit={submit}>
 				<header className="modal-head">
 					<h2>{t("vehicles.set.editTitle")}</h2>
-					<button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")}><X size={18} /></button>
+					<button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")}>
+						<X size={18} />
+					</button>
 				</header>
-				<div className="modal-body vehicle-form">
+				<div className="modal-body vehicle-set-dialog-body">
 					{loading && <p>{t("vehicles.set.loading")}</p>}
 					{error && <p className="error-text" role="alert">{error}</p>}
 					{!loading && (
-						<div className="form-grid">
-							{fields.map((field) => (
-								<label key={field.key}>
-									{t(field.label)}
-									<input
-										value={form[field.key] || ""}
-										required={field.required}
-										type={field.key === "purchaseDate" ? "date" : "text"}
-										onChange={(event) => setForm((current) => ({ ...current, [field.key]: event.target.value }))}
-									/>
-								</label>
-							))}
+						<div className="vehicle-create-detail-groups vehicle-form">
+							<details open>
+								<summary>{t("vehicles.wizard.basicData")}</summary>
+								<div className="form-row">
+									<label>{t("vehicle.field.name")}<input value={form.name}
+										onChange={(event) => update({ name: event.target.value })} required /></label>
+									<label>{t("vehicle.field.manufacturer")}<AppSelect value={form.manufacturer}
+										onChange={(event) => update({ manufacturer: event.target.value })} required>
+										{selectOptions(options.manufacturers, form.manufacturer, t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+								</div>
+								<div className="form-row">
+									<label>{t("vehicle.field.articleNumber")}<input value={form.articleNumber || ""}
+										onChange={(event) => update({ articleNumber: event.target.value })} /></label>
+									<label>{t("vehicle.field.articleSourceUrl")}<input value={form.articleSourceUrl || ""}
+										onChange={(event) => update({ articleSourceUrl: event.target.value })} /></label>
+								</div>
+								<div className="form-row three-columns">
+									<label>{t("vehicle.field.gauge")}<AppSelect value={form.gauge}
+										onChange={(event) => update({ gauge: event.target.value })} required>
+										{selectOptions(options.gauges, form.gauge, t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+									<label>{t("vehicle.field.epoch")}<AppSelect value={form.epoch || ""}
+										onChange={(event) => update({ epoch: event.target.value })}>
+										{selectOptions(options.epochs, form.epoch || "", t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+									<label>{t("vehicle.field.railwayCompany")}<AppSelect value={form.railwayCompany || ""}
+										onChange={(event) => update({ railwayCompany: event.target.value })}>
+										{selectOptions(options.railwayCompanies, form.railwayCompany || "", t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+								</div>
+								<div className="form-row">
+									<label>{t("vehicle.field.category")}<AppSelect value={form.category || ""}
+										onChange={(event) => update({ category: event.target.value, gattung: "" })} required>
+										{selectOptions(options.categories, form.category || "", t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+									<label>{t("vehicle.field.gattung")}<AppSelect value={form.gattung || ""}
+										onChange={(event) => update({ gattung: event.target.value })} required>
+										{selectOptions(filteredGattungen, form.gattung || "", t("vehicles.select.placeholder"))}
+									</AppSelect></label>
+								</div>
+								<div className="form-row three-columns">
+									<label>{t("vehicle.field.ean")}<input value={form.ean || ""}
+										onChange={(event) => update({ ean: event.target.value })} /></label>
+									<label>{t("vehicle.field.productionPeriod")}<input value={form.productionPeriod || ""}
+										onChange={(event) => update({ productionPeriod: event.target.value })} /></label>
+									<label>{t("vehicle.field.listPrice")}<input value={form.listPrice || ""}
+										onChange={(event) => update({ listPrice: event.target.value })} /></label>
+								</div>
+								<label>{t("vehicle.field.description")}<textarea value={form.description || ""}
+									onChange={(event) => update({ description: event.target.value })} rows={3} /></label>
+							</details>
+							<details open>
+								<summary>{t("vehicles.wizard.acquisitionAndStock")}</summary>
+								<VehicleOwnershipFields form={form} readonly={false} hideAdditionalInfo update={update} />
+							</details>
 						</div>
 					)}
 				</div>
 				<footer className="modal-actions">
-					<button type="button" onClick={onClose}>{t("common.cancel")}</button>
-					<button type="submit" className="primary" disabled={loading || saving}>{t("common.save")}</button>
+					<button type="button" className="secondary-button" onClick={onClose}>{t("common.cancel")}</button>
+					<button type="submit" className="primary-button" disabled={loading || saving}>{t("common.save")}</button>
 				</footer>
 			</form>
 		</div>

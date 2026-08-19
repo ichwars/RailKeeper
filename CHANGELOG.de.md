@@ -6,6 +6,26 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.19.2] - 2026-08-19
+
+### Geändert
+
+- Fahrzeugsets sind im Bestand standardmäßig eingeklappt. Unterschiedliche Kategorien und
+  Gattungen der Mitglieder werden ausdrücklich als verschieden zusammengefasst. Hierarchie,
+  Auswahlfelder und Setdialoge folgen dem kompakten, ausgerichteten Layout.
+- Die Artikelsuche priorisiert Treffer mit den meisten gefundenen Feldern, verwendet den Score als
+  stabilen Gleichstandsentscheid und zeigt auf dem Desktop dezentere Trefferaktionen.
+
+### Behoben
+
+- Setdaten lassen sich im vollständigen Seteditor mit denselben validierten Auswahllisten wie bei
+  Einzelfahrzeugen bearbeiten und speichern.
+- Setwerte dienen nur noch als Vorgaben beim Anlegen und überschreiben keine Mitgliedsdaten.
+  Einzelne Fahrzeuge eines Sets können eigene Kategorie-, Gattungs-, Modell-, Technik-, Lager- und
+  Zustandswerte behalten und bearbeiten, ohne das kanonische Set zu verändern.
+- Setansicht und Seteditor, Mitgliedsausrichtung, Kontrollkästchen, Hierarchielinien und responsive
+  Layouts werden auf Desktop und Mobilgeräten konsistent dargestellt.
+
 ## [0.1.19.1] - 2026-08-17
 
 ### Geändert

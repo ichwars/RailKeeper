@@ -3,7 +3,7 @@ title: Einträge und Drucken
 description: Messeloks erfassen, Adresskonflikte lösen und die Betriebsliste drucken.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -40,7 +40,7 @@ Wähle eine offene Liste und verwende das Bedienelement zum Anlegen im Eintragsb
 | Lok Bezeichnung | Pflichtfeld. Der Server entfernt führende und nachgestellte Leerzeichen. |
 
 Mit **Bearbeiten** in einer vorhandenen Zeile öffnet sich **Eintrag bearbeiten** mit den aktuellen
-Werten. v0.1.19.1 bietet in diesem Dialog keine Fahrzeugauswahl und kein sichtbares Feld für eine
+Werten. v0.1.19.2 bietet in diesem Dialog keine Fahrzeugauswahl und kein sichtbares Feld für eine
 Fahrzeugverknüpfung. Der Eintrag bleibt ein Messedatensatz, auch wenn seine Beschreibung einem
 Fahrzeug im allgemeinen Bestand ähnelt.
 
@@ -85,7 +85,7 @@ zuerst mit Admin oder einem Messekonto mit bestandsberechtigter Zusatzrolle.
 Tabelle und Report verbinden DCC und SX unter **Adresse**, zeigen Analog als Ja oder Nein und führen
 Decoder-Typ und Schnittstelle getrennt auf. Leere Werte erscheinen als Strich.
 
-**Baureihe** wird mit dem Eintrag gespeichert, erscheint in v0.1.19.1 jedoch weder in Tabelle und
+**Baureihe** wird mit dem Eintrag gespeichert, erscheint in v0.1.19.2 jedoch weder in Tabelle und
 Listenansicht noch im gedruckten Report. Öffne **Eintrag bearbeiten**, um den Wert zu prüfen.
 
 ### Nr. / Beschriftung / Merkmale
@@ -160,7 +160,7 @@ Bezeichnung liefert. Prüfe den Namen nach der Symbolauswahl. Beim **Speichern**
 belegte Funktionen als strukturierte Daten ab. Tabelle, Detailansicht und Report zeigen nur diese
 Funktionen.
 
-v0.1.19.1 kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
+v0.1.19.2 kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
 getrennt sind und jeweils mit einer Taste wie `F1 Sound` beginnen. Das Öffnen und Speichern eines
 solchen Eintrags schreibt die aktuell konfigurierte strukturierte Darstellung.
 
@@ -233,5 +233,5 @@ Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite beschreibt RailKeeper v0.1.19.1. Der Entwicklungsstand auf `main` kann abweichen und
+Diese Seite beschreibt RailKeeper v0.1.19.2. Der Entwicklungsstand auf `main` kann abweichen und
 gehört nicht zu diesem Benutzerablauf.

@@ -220,19 +220,6 @@ WHERE id=?
 	}
 
 	if _, err = tx.ExecContext(ctx, `
-UPDATE vehicles
-SET manufacturer=?, article_number=?, article_source_url=?, gauge=?, epoch=?, railway_company=?, category=?,
-    gattung=?, description=?, ean=?, production_period=?, list_price=?, acquisition_type=?, acquired_from=?,
-    purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?, condition_details=?,
-    packaging=?, updated_at=?
-WHERE id IN (SELECT vehicle_id FROM vehicle_set_members WHERE vehicle_set_id=?)
-`, input.Manufacturer, input.ArticleNumber, input.ArticleSourceURL, input.Gauge, input.Epoch,
-		input.RailwayCompany, input.Category, input.Gattung, input.Description, input.EAN, input.ProductionPeriod,
-		input.ListPrice, input.AcquisitionType, input.AcquiredFrom, input.PurchasePrice, input.PurchaseDate,
-		input.StorageLocation, input.StorageDetails, input.Condition, input.ConditionDetails, input.Packaging, now, id); err != nil {
-		return nil, fmt.Errorf("update vehicle set member snapshots: %w", err)
-	}
-	if _, err = tx.ExecContext(ctx, `
 INSERT INTO audit_logs(id, actor_user_id, action, target_type, target_id, created_at, details_json)
 VALUES(?, ?, 'VehicleSetUpdated', 'vehicle_set', ?, ?, '{}')
 `, randomID(), actorUserID, id, now); err != nil {
@@ -302,56 +289,39 @@ func mergeVehicleSetMember(setInput VehicleSetInput, member CreateVehicleInput, 
 	if strings.TrimSpace(member.Name) == "" {
 		member.Name = fmt.Sprintf("%s (%d)", setInput.Name, index+1)
 	}
-	return applyVehicleSetFields(setInput, member)
+	return applyVehicleSetDefaults(setInput, member)
 }
 
-func applyVehicleSetFields(setInput VehicleSetInput, member CreateVehicleInput) CreateVehicleInput {
-	member.Manufacturer = setInput.Manufacturer
-	member.ArticleNumber = setInput.ArticleNumber
-	member.ArticleSourceURL = setInput.ArticleSourceURL
-	member.Gauge = setInput.Gauge
-	member.Epoch = setInput.Epoch
-	member.RailwayCompany = setInput.RailwayCompany
-	member.Category = setInput.Category
-	member.Gattung = setInput.Gattung
-	member.Description = setInput.Description
-	member.EAN = setInput.EAN
-	member.ProductionPeriod = setInput.ProductionPeriod
-	member.ListPrice = setInput.ListPrice
-	member.AcquisitionType = setInput.AcquisitionType
-	member.AcquiredFrom = setInput.AcquiredFrom
-	member.PurchasePrice = setInput.PurchasePrice
-	member.PurchaseDate = setInput.PurchaseDate
-	member.StorageLocation = setInput.StorageLocation
-	member.StorageDetails = setInput.StorageDetails
-	member.Condition = setInput.Condition
-	member.ConditionDetails = setInput.ConditionDetails
-	member.Packaging = setInput.Packaging
+func applyVehicleSetDefaults(setInput VehicleSetInput, member CreateVehicleInput) CreateVehicleInput {
+	member.Manufacturer = vehicleSetDefault(member.Manufacturer, setInput.Manufacturer)
+	member.ArticleNumber = vehicleSetDefault(member.ArticleNumber, setInput.ArticleNumber)
+	member.ArticleSourceURL = vehicleSetDefault(member.ArticleSourceURL, setInput.ArticleSourceURL)
+	member.Gauge = vehicleSetDefault(member.Gauge, setInput.Gauge)
+	member.Epoch = vehicleSetDefault(member.Epoch, setInput.Epoch)
+	member.RailwayCompany = vehicleSetDefault(member.RailwayCompany, setInput.RailwayCompany)
+	member.Category = vehicleSetDefault(member.Category, setInput.Category)
+	member.Gattung = vehicleSetDefault(member.Gattung, setInput.Gattung)
+	member.Description = vehicleSetDefault(member.Description, setInput.Description)
+	member.EAN = vehicleSetDefault(member.EAN, setInput.EAN)
+	member.ProductionPeriod = vehicleSetDefault(member.ProductionPeriod, setInput.ProductionPeriod)
+	member.ListPrice = vehicleSetDefault(member.ListPrice, setInput.ListPrice)
+	member.AcquisitionType = vehicleSetDefault(member.AcquisitionType, setInput.AcquisitionType)
+	member.AcquiredFrom = vehicleSetDefault(member.AcquiredFrom, setInput.AcquiredFrom)
+	member.PurchasePrice = vehicleSetDefault(member.PurchasePrice, setInput.PurchasePrice)
+	member.PurchaseDate = vehicleSetDefault(member.PurchaseDate, setInput.PurchaseDate)
+	member.StorageLocation = vehicleSetDefault(member.StorageLocation, setInput.StorageLocation)
+	member.StorageDetails = vehicleSetDefault(member.StorageDetails, setInput.StorageDetails)
+	member.Condition = vehicleSetDefault(member.Condition, setInput.Condition)
+	member.ConditionDetails = vehicleSetDefault(member.ConditionDetails, setInput.ConditionDetails)
+	member.Packaging = vehicleSetDefault(member.Packaging, setInput.Packaging)
 	return member
 }
 
-func (s *VehicleService) vehicleSetInput(ctx context.Context, setID string) (VehicleSetInput, error) {
-	var input VehicleSetInput
-	err := s.db.QueryRowContext(ctx, `
-SELECT name, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), gauge,
-       COALESCE(epoch, ''), COALESCE(railway_company, ''), category, gattung, COALESCE(description, ''),
-       COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
-       COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''),
-       COALESCE(purchase_date, ''), COALESCE(storage_location, ''), COALESCE(storage_details, ''),
-       COALESCE(condition, ''), COALESCE(condition_details, ''), COALESCE(packaging, '')
-FROM vehicle_sets
-WHERE id=?
-`, setID).Scan(
-		&input.Name, &input.Manufacturer, &input.ArticleNumber, &input.ArticleSourceURL, &input.Gauge,
-		&input.Epoch, &input.RailwayCompany, &input.Category, &input.Gattung, &input.Description,
-		&input.EAN, &input.ProductionPeriod, &input.ListPrice, &input.AcquisitionType, &input.AcquiredFrom,
-		&input.PurchasePrice, &input.PurchaseDate, &input.StorageLocation, &input.StorageDetails,
-		&input.Condition, &input.ConditionDetails, &input.Packaging,
-	)
-	if err != nil {
-		return VehicleSetInput{}, fmt.Errorf("load vehicle set data: %w", err)
+func vehicleSetDefault(value, fallback string) string {
+	if strings.TrimSpace(value) == "" {
+		return fallback
 	}
-	return input, nil
+	return value
 }
 
 func insertVehicleSetTx(

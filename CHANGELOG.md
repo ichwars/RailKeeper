@@ -6,6 +6,26 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.19.2] - 2026-08-19
+
+### Changed
+
+- Vehicle sets are collapsed by default in the inventory. Mixed member categories and types are
+  summarized explicitly, while the hierarchy, selection controls, and set dialogs use the compact
+  aligned layout.
+- Article-search results prioritize candidates with the most extracted fields, use score as a
+  stable tie-breaker, and present more restrained result actions on desktop.
+
+### Fixed
+
+- Set data can be edited and saved through the full set editor with the same validated dropdowns
+  used by individual vehicles.
+- Set values now act as creation defaults instead of overwriting member records. Individual set
+  vehicles can keep and edit their own category, type, model, technical, storage, and condition
+  data without changing the canonical set.
+- Set summary and editor dialogs, member alignment, checkboxes, hierarchy guides, and responsive
+  layouts render consistently on desktop and mobile.
+
 ## [0.1.19.1] - 2026-08-17
 
 ### Changed
