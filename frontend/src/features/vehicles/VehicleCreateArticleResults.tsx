@@ -13,6 +13,13 @@ export function VehicleCreateArticleResults({
   onRevise: () => void;
 }) {
   const { t } = useI18n();
+  const orderedResults = response.results
+    .map((result, originalIndex) => ({ result, originalIndex }))
+    .sort((left, right) => (
+      Object.keys(right.result.fields).length - Object.keys(left.result.fields).length ||
+      right.result.score - left.result.score ||
+      left.originalIndex - right.originalIndex
+    ));
   return (
     <section className="vehicle-create-article-results">
       <div className="vehicle-wizard-section-head">
@@ -25,11 +32,11 @@ export function VehicleCreateArticleResults({
         </div>
       </div>
       <div className="vehicle-create-result-list">
-        {response.results.map((result, index) => {
+        {orderedResults.map(({ result, originalIndex }) => {
           const image = result.images?.[0];
           return (
             <article className={`vehicle-create-result-card ${image ? "has-image" : "without-image"}`}
-              key={`${result.url}-${index}`}>
+              key={`${result.url}-${originalIndex}`}>
               {image && <img src={image.url} alt="" />}
               <div className="vehicle-create-result-copy">
                 <h4>{result.title}</h4>
@@ -42,7 +49,7 @@ export function VehicleCreateArticleResults({
               <div className="vehicle-create-result-actions">
                 <a className="icon-button" href={result.url} target="_blank" rel="noreferrer"
                   aria-label={t("vehicles.articleSearch.sourceOpen")}><ExternalLink size={16} /></a>
-                <button type="button" className="primary-button" onClick={() => onSelect(index)}
+                <button type="button" className="primary-button" onClick={() => onSelect(originalIndex)}
                   aria-label={t("vehicles.wizard.selectResult", { title: result.title })}>
                   {t("vehicles.wizard.select")}
                 </button>
