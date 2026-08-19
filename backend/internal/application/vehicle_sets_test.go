@@ -50,7 +50,8 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 		},
 		Members: []application.CreateVehicleInput{
 			{InventoryNumber: "RK-SET-000001", Name: "Motorwagen", VehicleNumber: "VT 11.5"},
-			{InventoryNumber: "RK-SET-000002", Name: "Steuerwagen", VehicleNumber: "VS 11.5"},
+			{InventoryNumber: "RK-SET-000002", Name: "Steuerwagen", VehicleNumber: "VS 11.5",
+				Category: "Wagen", Gattung: "Steuerwagen", Condition: "Gebraucht"},
 		},
 	}, "actor-1")
 	if err != nil {
@@ -72,6 +73,13 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 		if member.Manufacturer != "Märklin" || member.ArticleNumber != "37605" {
 			t.Fatalf("member %d did not inherit shared article data: %#v", index, member)
 		}
+	}
+	if created.Members[0].Category != "Triebzug" || created.Members[0].Gattung != "Dieseltriebzug" {
+		t.Fatalf("first member did not inherit set defaults: %#v", created.Members[0])
+	}
+	if created.Members[1].Category != "Wagen" || created.Members[1].Gattung != "Steuerwagen" ||
+		created.Members[1].Condition != "Gebraucht" {
+		t.Fatalf("mixed member data was overwritten by set defaults: %#v", created.Members[1])
 	}
 
 	listed, err := service.List(ctx, "Roland")
@@ -135,7 +143,7 @@ func TestGetVehicleSetReturnsCanonicalDataAndOrderedMembers(t *testing.T) {
 	}
 }
 
-func TestUpdateVehicleSetUpdatesCanonicalDataAndMemberSnapshots(t *testing.T) {
+func TestUpdateVehicleSetKeepsCanonicalAndMemberDataSeparate(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
 	ctx := context.Background()
@@ -169,8 +177,8 @@ func TestUpdateVehicleSetUpdatesCanonicalDataAndMemberSnapshots(t *testing.T) {
 		t.Fatalf("expected two members, got %d", len(updated.Members))
 	}
 	for index, member := range updated.Members {
-		if member.Manufacturer != "Roco" || member.ArticleNumber != "63100" || member.PurchasePrice != "349.90" {
-			t.Fatalf("member %d snapshot was not updated: %#v", index, member)
+		if member.Manufacturer != "Märklin" || member.ArticleNumber != "37605" || member.PurchasePrice != "299.90" {
+			t.Fatalf("member %d was overwritten by the canonical set update: %#v", index, member)
 		}
 	}
 	if updated.Members[0].Name != "Motorwagen" || updated.Members[0].VehicleNumber != "VT 11.5" ||
@@ -202,8 +210,8 @@ func TestUpdateVehicleSetRollsBackCanonicalAndMemberData(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := db.Exec(`
-CREATE TRIGGER fail_vehicle_set_snapshot_update
-BEFORE UPDATE OF manufacturer ON vehicles
+CREATE TRIGGER fail_vehicle_set_update
+BEFORE UPDATE OF manufacturer ON vehicle_sets
 WHEN NEW.manufacturer = 'ROLLBACK'
 BEGIN
   SELECT RAISE(ABORT, 'forced snapshot failure');
@@ -314,7 +322,7 @@ func TestDeleteFinalVehicleSetMemberRemovesEmptySet(t *testing.T) {
 	}
 }
 
-func TestUpdateVehicleSetMemberPreservesSharedSetData(t *testing.T) {
+func TestUpdateVehicleSetMemberPreservesIndividualData(t *testing.T) {
 	db := testDB(t)
 	service := application.NewVehicleService(db)
 	ctx := context.Background()
@@ -348,9 +356,17 @@ func TestUpdateVehicleSetMemberPreservesSharedSetData(t *testing.T) {
 	if updated.Name != "Motorwagen neu" {
 		t.Fatalf("member-specific name was not updated: %q", updated.Name)
 	}
-	if updated.Manufacturer != "Märklin" || updated.ArticleNumber != "37605" || updated.Gauge != "H0" ||
-		updated.Category != "Triebzug" || updated.Gattung != "Dieseltriebzug" || updated.PurchasePrice != "299.90" {
-		t.Fatalf("shared set data changed through member update: %#v", updated)
+	if updated.Manufacturer != "Roco" || updated.ArticleNumber != "changed" || updated.Gauge != "N" ||
+		updated.Category != "Lokomotive" || updated.Gattung != "Diesellok" || updated.PurchasePrice != "1.00" {
+		t.Fatalf("individual member data was not saved: %#v", updated)
+	}
+	loadedSet, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loadedSet.Manufacturer != "Märklin" || loadedSet.ArticleNumber != "37605" ||
+		loadedSet.Category != "Triebzug" || loadedSet.Gattung != "Dieseltriebzug" {
+		t.Fatalf("member update changed canonical set data: %#v", loadedSet)
 	}
 }
 

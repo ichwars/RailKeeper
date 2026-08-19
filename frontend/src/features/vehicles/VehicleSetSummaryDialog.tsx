@@ -42,18 +42,19 @@ export function VehicleSetSummaryDialog({
 	}, [setId]);
 
 	return (
-		<div className="confirm-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.set.viewTitle")}>
-			<section className="confirm-dialog vehicle-set-summary-dialog">
+		<div className="modal-layer" role="dialog" aria-modal="true" aria-label={t("vehicles.set.viewTitle")}>
+			<section className="vehicle-modal vehicle-set-summary-dialog">
 				<header className="modal-head">
 					<div><h2>{t("vehicles.set.viewTitle")}</h2></div>
 					<button type="button" className="icon-button" onClick={onClose} aria-label={t("vehicles.close")}>
 						<X size={18} />
 					</button>
 				</header>
-				{!vehicleSet && !error && <p>{t("vehicles.set.loading")}</p>}
-				{error && <p className="error-text" role="alert">{error}</p>}
-				{vehicleSet && (
-					<>
+				<div className="modal-body vehicle-set-dialog-body">
+					{!vehicleSet && !error && <p>{t("vehicles.set.loading")}</p>}
+					{error && <p className="error-text" role="alert">{error}</p>}
+					{vehicleSet && (
+						<>
 						<dl className="detail-grid">
 							<div><dt>{t("vehicle.field.inventoryNumber")}</dt><dd>{vehicleSet.inventoryNumber}</dd></div>
 							<div><dt>{t("vehicle.field.name")}</dt><dd>{vehicleSet.name}</dd></div>
@@ -68,24 +69,29 @@ export function VehicleSetSummaryDialog({
 						<ul className="vehicle-set-member-list">
 							{vehicleSet.members.map((member) => (
 								<li key={member.id}>
-									<button type="button" className="text-button" onClick={() => onOpenVehicle?.(member.id)}>
-										{member.name} <small>{member.inventoryNumber}</small>
+									<button type="button" className="text-button vehicle-set-member-button" onClick={() => onOpenVehicle?.(member.id)}>
+										<span>{member.name}</span>
+										<small>{member.inventoryNumber}</small>
 									</button>
+									<span>{[member.category, member.gattung].filter(Boolean).join(" · ") || "–"}</span>
 								</li>
 							))}
 						</ul>
-						<footer className="confirm-actions">
+						</>
+					)}
+				</div>
+				{vehicleSet && (
+					<footer className="modal-actions">
 							{canEdit && onEdit && (
-								<button type="button" onClick={() => onEdit(vehicleSet.id)}><Pencil size={16} />{t("common.edit")}</button>
+								<button type="button" className="secondary-button" onClick={() => onEdit(vehicleSet.id)}><Pencil size={16} />{t("common.edit")}</button>
 							)}
 							{canEdit && (
-								<button type="button" onClick={() => onDuplicate(vehicleSetDuplicatePrefill(vehicleSet))}>
+								<button type="button" className="secondary-button" onClick={() => onDuplicate(vehicleSetDuplicatePrefill(vehicleSet))}>
 									<Copy size={16} />{t("common.duplicate")}
 								</button>
 							)}
-							<button type="button" onClick={onClose}>{t("common.close")}</button>
-						</footer>
-					</>
+							<button type="button" className="primary-button" onClick={onClose}>{t("common.close")}</button>
+					</footer>
 				)}
 			</section>
 		</div>

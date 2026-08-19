@@ -3,14 +3,14 @@ title: General master data
 description: Maintain vehicle classifications, manufacturers, CV8 identities, and function symbols.
 audience: admin
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
 # General master data
 
 Open **Settings > Data > General** to maintain the shared selections used by vehicles, accessories,
-decoder data, and exhibitions. Stable v0.1.19.1 provides eight data types.
+decoder data, and exhibitions. Stable v0.1.19.2 provides eight data types.
 
 ## Data-type reference
 
@@ -107,4 +107,4 @@ authority instead of retrying the visible control.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.1** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.

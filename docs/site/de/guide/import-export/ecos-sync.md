@@ -3,7 +3,7 @@ title: ECoS-Lokabgleich
 description: Ausgewählte ESU-ECoS-Lokdaten lesen, prüfen, importieren und ausdrücklich schreiben.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -19,7 +19,7 @@ Port sind im Import-Arbeitsbereich schreibgeschützt.
 
 ## Unterstützte und nicht unterstützte Digitalzentralen
 
-| Aktiver Anbieter | Verhalten unter Import/Export in v0.1.19.1 |
+| Aktiver Anbieter | Verhalten unter Import/Export in v0.1.19.2 |
 | --- | --- |
 | ESU ECoS | Leseablauf, Fahrzeugübergabe, CV- und statische Funktionsvorschläge sowie geprüfter Schreib-Sync sind verfügbar. |
 | Z21, Intellibox 3 oder Märklin CS3 | RailKeeper zeigt, dass der Importpfad vorbereitet, aber noch nicht umgesetzt ist. |
@@ -124,7 +124,7 @@ werden nicht in die Digitalzentrale geschrieben.
 | Symptom | Prüfen |
 | --- | --- |
 | ECoS-Arbeitsbereich fehlt oder ist deaktiviert | Prüfen, ob ein Admin ECoS aktiviert und unter Digitalzentralen einen nicht leeren Host gespeichert hat. |
-| Ein anderer Anbieter ist aktiv | v0.1.19.1 setzt diesen Importpfad nur für ECoS um. |
+| Ein anderer Anbieter ist aktiv | v0.1.19.2 setzt diesen Importpfad nur für ECoS um. |
 | Datenabruf scheitert | Netzwerkerreichbarkeit, gespeicherten Host und Port, ECoS-Verfügbarkeit und Admin-Rolle prüfen. |
 | Ein falsches Fahrzeug wird vorgeschlagen | Nicht aktualisieren oder synchronisieren. Zuerst externe Zuordnung oder Decoder-/Namensdaten im Fahrzeugablauf korrigieren. |
 | Eine CV oder Funktion fehlt | Das ECoS-Lokobjekt hat sie nicht bereitgestellt oder RailKeeper hat sie nicht als statischen unterstützten Wert erkannt. Fehlende CVs blockieren das Speichern nicht. |
@@ -133,4 +133,4 @@ werden nicht in die Digitalzentrale geschrieben.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.19.1** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.19.2** und wurde zuletzt am 16.08.2026 geprüft.

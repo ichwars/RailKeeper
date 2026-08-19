@@ -890,7 +890,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
               form,
               externalMappings: selected?.externalMappings || [],
               readonly,
-              sharedFieldsReadonly: Boolean(selected?.vehicleSetId),
+              hideAcquisitionDetails: Boolean(selected?.vehicleSetId),
               articleSearchLoading,
               canRunArticleSearch,
               showRequiredErrors,
@@ -1075,6 +1075,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		{vehicleSetMode === "edit" && selectedVehicleSetID && canEditVehicleSets && (
 			<VehicleSetEditorDialog
 				setId={selectedVehicleSetID}
+				options={options}
 				onClose={closeVehicleSetDialog}
 				onUpdated={handleVehicleSetUpdated}
 			/>

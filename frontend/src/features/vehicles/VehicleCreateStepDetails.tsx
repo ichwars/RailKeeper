@@ -2,10 +2,11 @@ import type { ComponentProps } from "react";
 
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
-import { RequiredLabel } from "./VehicleFormFields";
+import { RequiredLabel, VehicleOwnershipFields } from "./VehicleFormFields";
 import { VehicleModelTab } from "./VehicleModelTab";
 import { VehicleSetDetailsTabs } from "./VehicleSetDetailsTabs";
 import type { VehicleCreateWizardAction, VehicleCreateWizardState } from "./vehicleCreateWizardState";
+import { gattungenForCategory } from "./vehicleViewModel";
 
 export function VehicleCreateStepDetails({ state, dispatch, model }: {
   state: VehicleCreateWizardState;
@@ -41,24 +42,12 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
         </label>
       </div>
       <details open><summary>{t("vehicles.wizard.acquisitionAndStock")}</summary>
-        <div className="form-row">
-          <label>{t("vehicle.field.acquisitionType")}<input value={state.shared.acquisitionType || ""}
-            onChange={(event) => updateShared({ acquisitionType: event.target.value })} /></label>
-          <label>{t("vehicle.field.acquiredFrom")}<input value={state.shared.acquiredFrom || ""}
-            onChange={(event) => updateShared({ acquiredFrom: event.target.value })} /></label>
-        </div>
-        <div className="form-row">
-          <label>{t("vehicle.field.purchasePrice")}<input value={state.shared.purchasePrice || ""}
-            onChange={(event) => updateShared({ purchasePrice: event.target.value })} /></label>
-          <label>{t("vehicle.field.purchaseDate")}<input type="date" value={state.shared.purchaseDate || ""}
-            onChange={(event) => updateShared({ purchaseDate: event.target.value })} /></label>
-        </div>
-        <div className="form-row">
-          <label>{t("vehicle.field.storageLocation")}<input value={state.shared.storageLocation || ""}
-            onChange={(event) => updateShared({ storageLocation: event.target.value })} /></label>
-          <label>{t("vehicle.field.condition")}<input value={state.shared.condition || ""}
-            onChange={(event) => updateShared({ condition: event.target.value })} /></label>
-        </div>
+        <VehicleOwnershipFields
+          form={state.shared}
+          readonly={false}
+          hideAdditionalInfo
+          update={updateShared}
+        />
       </details>
     </div>
   );
@@ -89,7 +78,8 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
         <VehicleModelTab {...model}
           form={memberForm}
           onUpdate={updateMember}
-          onUpdateCategory={() => undefined}
+          onUpdateCategory={(category) => updateMember({ category, gattung: "" })}
+          filteredGattungen={gattungenForCategory(model.options, memberForm.category)}
           onUpdateCouplingFront={(couplingFront) => updateMember({
             couplingFront,
             ...(memberForm.couplingSame ? { couplingRear: couplingFront } : {})
@@ -102,7 +92,7 @@ export function VehicleCreateStepDetails({ state, dispatch, model }: {
           canOpenQr={false}
           hideInventoryNumber
           hideArticleSearch
-          sharedFieldsReadonly
+          hideAcquisitionDetails
         />
       </div>
     );

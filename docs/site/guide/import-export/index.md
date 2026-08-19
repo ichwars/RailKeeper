@@ -3,7 +3,7 @@ title: Import and export
 description: Exchange vehicle inventory safely and understand the separate ECoS workflow.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -14,7 +14,7 @@ validation and permissions. File imports first become a review table. Exports cr
 RailKeeper JSON file, or a browser print view. An independently controlled ECoS workflow can read
 locomotive data and hand one locomotive at a time to the vehicle editor.
 
-This chapter documents stable RailKeeper v0.1.19.1. It covers vehicle exchange only. Master-data
+This chapter documents stable RailKeeper v0.1.19.2. It covers vehicle exchange only. Master-data
 transfer, command-station configuration, and application backup and restore remain separate
 administrative tasks.
 
@@ -81,4 +81,4 @@ API nevertheless rejects their write. Use an Editor or Admin account for an actu
 
 ## Documented RailKeeper version
 
-This chapter documents stable RailKeeper **v0.1.19.1** and was last reviewed on 2026-08-16.
+This chapter documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.

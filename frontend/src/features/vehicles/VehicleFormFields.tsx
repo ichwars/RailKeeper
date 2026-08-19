@@ -15,10 +15,11 @@ import {
   wheelsetOptions
 } from "./vehicleOptions";
 
-function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen") {
+function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen", currentValue = "") {
   return (
     <>
       <option value="">{emptyLabel}</option>
+      {currentValue && !items.includes(currentValue) && <option value={currentValue}>{currentValue}</option>}
       {items.map((item) => (
         <option key={item} value={item}>
           {item}
@@ -105,13 +106,13 @@ export function VehicleDetailsFields({
         <label>
           {t("vehicle.field.wheelset")}
           <AppSelect value={form.wheelset || ""} onChange={(event) => update({ wheelset: event.target.value })} disabled={readonly}>
-            {renderStaticOptions(wheelsetOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(wheelsetOptions, t("vehicles.select.placeholder"), form.wheelset || "")}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.powerPickup")}
           <AppSelect value={form.powerPickup || ""} onChange={(event) => update({ powerPickup: event.target.value })} disabled={readonly}>
-            {renderStaticOptions(powerPickupOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(powerPickupOptions, t("vehicles.select.placeholder"), form.powerPickup || "")}
           </AppSelect>
         </label>
       </div>
@@ -120,7 +121,7 @@ export function VehicleDetailsFields({
         <label>
           {t("vehicle.field.adapter")}
           <AppSelect value={form.adapter || ""} onChange={(event) => update({ adapter: event.target.value })} disabled={readonly}>
-            {renderStaticOptions(adapterOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(adapterOptions, t("vehicles.select.placeholder"), form.adapter || "")}
           </AppSelect>
         </label>
         <label className="coupling-same-field">
@@ -133,13 +134,13 @@ export function VehicleDetailsFields({
         <label>
           {t("vehicle.field.couplingFront")}
           <AppSelect value={form.couplingFront || ""} onChange={(event) => updateCouplingFront(event.target.value)} disabled={readonly}>
-            {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"), form.couplingFront || "")}
           </AppSelect>
         </label>
         <label>
           {t("vehicle.field.couplingRear")}
           <AppSelect value={form.couplingSame ? form.couplingFront || "" : form.couplingRear || ""} onChange={(event) => update({ couplingRear: event.target.value })} disabled={readonly || Boolean(form.couplingSame)}>
-            {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(couplingOptions, t("vehicles.select.placeholder"), form.couplingRear || "")}
           </AppSelect>
         </label>
       </div>
@@ -222,45 +223,51 @@ export function VehicleOwnershipFields({
   form,
   readonly,
   sharedFieldsReadonly = false,
+  hideAcquisitionDetails = false,
+  hideAdditionalInfo = false,
   update
 }: {
   form: CreateVehicleRequest;
   readonly: boolean;
   sharedFieldsReadonly?: boolean;
+  hideAcquisitionDetails?: boolean;
+  hideAdditionalInfo?: boolean;
   update: (patch: Partial<CreateVehicleRequest>) => void;
 }) {
   const { t } = useI18n();
   const sharedReadonly = readonly || sharedFieldsReadonly;
   return (
     <>
-      <div className="form-row four-columns">
-        <label>
-          {t("vehicle.field.acquisitionType")}
-          <AppSelect value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={sharedReadonly}>
-            {renderStaticOptions(acquisitionOptions, t("vehicles.select.placeholder"))}
-          </AppSelect>
-        </label>
-        <label>
-          {t("vehicle.field.acquiredFrom")}
-          <AppSelect value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={sharedReadonly}>
-            {renderStaticOptions(acquiredFromOptions, t("vehicles.select.placeholder"))}
-          </AppSelect>
-        </label>
-        <label>
-          {t("vehicle.field.purchasePrice")}
-          <input value={form.purchasePrice || ""} onChange={(event) => update({ purchasePrice: event.target.value })} disabled={sharedReadonly} inputMode="decimal" />
-        </label>
-        <label>
-          {t("vehicle.field.purchaseDate")}
-          <AppDateInput value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={sharedReadonly} />
-        </label>
-      </div>
+      {!hideAcquisitionDetails && (
+        <div className="form-row four-columns">
+          <label>
+            {t("vehicle.field.acquisitionType")}
+            <AppSelect value={form.acquisitionType || ""} onChange={(event) => update({ acquisitionType: event.target.value })} disabled={sharedReadonly}>
+              {renderStaticOptions(acquisitionOptions, t("vehicles.select.placeholder"), form.acquisitionType || "")}
+            </AppSelect>
+          </label>
+          <label>
+            {t("vehicle.field.acquiredFrom")}
+            <AppSelect value={form.acquiredFrom || ""} onChange={(event) => update({ acquiredFrom: event.target.value })} disabled={sharedReadonly}>
+              {renderStaticOptions(acquiredFromOptions, t("vehicles.select.placeholder"), form.acquiredFrom || "")}
+            </AppSelect>
+          </label>
+          <label>
+            {t("vehicle.field.purchasePrice")}
+            <input value={form.purchasePrice || ""} onChange={(event) => update({ purchasePrice: event.target.value })} disabled={sharedReadonly} inputMode="decimal" />
+          </label>
+          <label>
+            {t("vehicle.field.purchaseDate")}
+            <AppDateInput value={form.purchaseDate || ""} onChange={(event) => update({ purchaseDate: event.target.value })} disabled={sharedReadonly} />
+          </label>
+        </div>
+      )}
 
       <div className="form-row">
         <label>
           {t("vehicle.field.storageLocation")}
           <AppSelect value={form.storageLocation || ""} onChange={(event) => update({ storageLocation: event.target.value })} disabled={sharedReadonly}>
-            {renderStaticOptions(storageLocationOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(storageLocationOptions, t("vehicles.select.placeholder"), form.storageLocation || "")}
           </AppSelect>
         </label>
         <label>
@@ -273,7 +280,7 @@ export function VehicleOwnershipFields({
         <label>
           {t("vehicle.field.condition")}
           <AppSelect value={form.condition || ""} onChange={(event) => update({ condition: event.target.value })} disabled={sharedReadonly}>
-            {renderStaticOptions(vehicleConditionOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(vehicleConditionOptions, t("vehicles.select.placeholder"), form.condition || "")}
           </AppSelect>
         </label>
         <label>
@@ -283,15 +290,17 @@ export function VehicleOwnershipFields({
         <label>
           {t("vehicle.field.packaging")}
           <AppSelect value={form.packaging || ""} onChange={(event) => update({ packaging: event.target.value })} disabled={sharedReadonly}>
-            {renderStaticOptions(packagingOptions, t("vehicles.select.placeholder"))}
+            {renderStaticOptions(packagingOptions, t("vehicles.select.placeholder"), form.packaging || "")}
           </AppSelect>
         </label>
       </div>
 
-      <label>
-        {t("vehicle.field.additionalInfo")}
-        <textarea value={form.additionalInfo || ""} onChange={(event) => update({ additionalInfo: event.target.value })} disabled={readonly} rows={5} />
-      </label>
+      {!hideAdditionalInfo && (
+        <label>
+          {t("vehicle.field.additionalInfo")}
+          <textarea value={form.additionalInfo || ""} onChange={(event) => update({ additionalInfo: event.target.value })} disabled={readonly} rows={5} />
+        </label>
+      )}
     </>
   );
 }

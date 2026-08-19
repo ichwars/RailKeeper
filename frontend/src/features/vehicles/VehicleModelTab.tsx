@@ -92,7 +92,8 @@ export function VehicleModelTab({
   onUpdateCouplingSame,
   hideInventoryNumber = false,
   hideArticleSearch = false,
-  sharedFieldsReadonly = false
+  sharedFieldsReadonly = false,
+  hideAcquisitionDetails = false
 }: {
   form: CreateVehicleRequest;
   externalMappings: VehicleExternalMapping[];
@@ -117,6 +118,7 @@ export function VehicleModelTab({
   hideInventoryNumber?: boolean;
   hideArticleSearch?: boolean;
   sharedFieldsReadonly?: boolean;
+  hideAcquisitionDetails?: boolean;
 }) {
   const { t } = useI18n();
   const sharedReadonly = readonly || sharedFieldsReadonly;
@@ -397,6 +399,7 @@ export function VehicleModelTab({
               form={form}
               readonly={readonly}
               sharedFieldsReadonly={sharedFieldsReadonly}
+              hideAcquisitionDetails={hideAcquisitionDetails}
               update={onUpdate}
             />
           </div>

@@ -62,7 +62,7 @@ export function VehicleInventoryTable({
   renderQuickMenu
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
-  const [collapsedSetIDs, setCollapsedSetIDs] = useState<Set<string>>(() => new Set());
+  const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
   const groupedVehicles = groupVehicleInventory(vehicles, sort);
 
   const header = (column: VehicleTableColumn) => {
@@ -215,9 +215,9 @@ export function VehicleInventoryTable({
 							<VehicleSetInventoryRow
 								group={group}
 								columns={columns}
-								collapsed={collapsedSetIDs.has(group.id)}
+								collapsed={!expandedSetIDs.has(group.id)}
 								selectedVehicleIDs={selectedVehicleIDs}
-								onToggleCollapsed={() => setCollapsedSetIDs((current) => {
+								onToggleCollapsed={() => setExpandedSetIDs((current) => {
 									const next = new Set(current);
 									if (next.has(group.id)) next.delete(group.id);
 									else next.add(group.id);
@@ -228,7 +228,7 @@ export function VehicleInventoryTable({
 								onEdit={onEditSet}
 								onDuplicate={onDuplicateSet}
 							/>
-              {!collapsedSetIDs.has(group.id) && group.members.map((vehicle, index) => (
+              {expandedSetIDs.has(group.id) && group.members.map((vehicle, index) => (
 								vehicleRow(vehicle, true, index === group.members.length - 1)
 							))}
             </Fragment>

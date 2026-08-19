@@ -1,11 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
 
 describe("VehicleInventoryTable", () => {
-	it("renders a set as an aligned inventory row followed by child vehicles", () => {
+	it("renders sets collapsed by default and aligns children after expansion", async () => {
+		const user = userEvent.setup();
 		const set = {
 			id: "set-1", inventoryNumber: "RK-SET-000001", name: "Rheingold", manufacturer: "Roco",
 			articleNumber: "45923", gauge: "H0", memberCount: 2, position: 1
@@ -39,6 +41,8 @@ describe("VehicleInventoryTable", () => {
 
 		expect(screen.getByText("RK-SET-000001")).toBeInTheDocument();
 		expect(document.querySelector(".vehicle-set-inventory-row td[colspan]")).toBeNull();
+		expect(document.querySelectorAll(".vehicle-set-child-row")).toHaveLength(0);
+		await user.click(screen.getByRole("button", { name: /Set aufklappen/ }));
 		expect(document.querySelectorAll(".vehicle-set-child-row")).toHaveLength(2);
 		expect(document.querySelectorAll(".vehicle-set-child-row-last")).toHaveLength(1);
 		expect(document.querySelectorAll(
@@ -56,7 +60,8 @@ describe("VehicleInventoryTable", () => {
 			.getByText("50 80 11-35 001-2")).toBeVisible();
 		const setRow = document.querySelector(".vehicle-set-inventory-row") as HTMLElement;
 		expect(within(setRow.querySelector(".vehicle-column-railwayCompany") as HTMLElement).getByText("DB")).toBeVisible();
-		expect(within(setRow.querySelector(".vehicle-column-category") as HTMLElement).getByText("Wagen")).toBeVisible();
+		expect(within(setRow.querySelector(".vehicle-column-category") as HTMLElement)
+			.getByText("Verschieden")).toBeVisible();
 	});
 
   it("renders selected columns in order with localized values", () => {

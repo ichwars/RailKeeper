@@ -3,7 +3,7 @@ title: Einstellungen
 description: Persönliche Einstellungen, Darstellung und die Abgrenzung zur Administration verstehen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.1
+reviewedVersion: 0.1.19.2
 lastReviewed: 2026-08-16
 ---
 
@@ -15,7 +15,7 @@ Darstellung eines einzelnen Benutzers. Stammdaten, Digitalzentralen, Anwendungss
 Updates, Benutzer, Sitzungen und Authentifizierung sind eigene Themen, obwohl RailKeeper sie im
 selben Arbeitsbereich anzeigt.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.19.1.
+Dieses Kapitel dokumentiert RailKeeper v0.1.19.2.
 
 ## Zugriffsrechte
 
@@ -62,7 +62,7 @@ Vorgaben.
 
 Dabei gelten wichtige Ausnahmen und Grenzen:
 
-- Die Oberflächensprache ist in v0.1.19.1 nur im Browser gespeichert und wird nicht in das
+- Die Oberflächensprache ist in v0.1.19.2 nur im Browser gespeichert und wird nicht in das
   Serverprofil geschrieben.
 - Der ein- oder ausgeklappte Zustand der Hauptseitenleiste ist browserlokal. Reihenfolge und
   ausgeblendete Einträge sind Profileinstellungen.
@@ -80,8 +80,8 @@ Dabei gelten wichtige Ausnahmen und Grenzen:
 4. Helle und dunkle Variante bei Bedarf getrennt anpassen.
 5. RailKeeper einmal neu laden, um die Wiederherstellung einer Vorgabe zu prüfen.
 6. Bei einem anderen Browser mit demselben Benutzer anmelden. Die Oberflächensprache erneut setzen,
-   weil sie in v0.1.19.1 nicht über das Profil synchronisiert wird.
+   weil sie in v0.1.19.2 nicht über das Profil synchronisiert wird.
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.19.1** und wurde zuletzt am 16.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.19.2** und wurde zuletzt am 16.08.2026 geprüft.

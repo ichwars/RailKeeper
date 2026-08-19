@@ -68,14 +68,21 @@ describe("VehicleCreateStepDetails", () => {
     expect(screen.getByText("Gattung")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Gattung" }));
     expect(screen.getByRole("option", { name: "Reisezugwagen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Erwerb" })).toBeEnabled();
 
     rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
       dispatch={vi.fn()} model={model} />);
     expect(screen.getByText("Höchstgeschwindigkeit")).toBeInTheDocument();
     expect(screen.getByLabelText("Digital")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Kategorie" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Details" }));
     rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
       dispatch={vi.fn()} model={{ ...model, openSections: { ...model.openSections, details: true } }} />);
     expect(screen.getByText("Radsatz")).toBeInTheDocument();
+
+    rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
+      dispatch={vi.fn()} model={{ ...model, openSections: { ...model.openSections, vehicle: true } }} />);
+    expect(screen.queryByText("Erwerb")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Zustand" })).toBeEnabled();
   });
 });
