@@ -133,3 +133,22 @@ and dashboard loss after a detail error.
 The same focused command passed 3 test files and 19 tests. `npm.cmd run build` also passed the strict
 TypeScript project build and Vite production build. Per coordination guidance, the full suite was
 not rerun in this follow-up.
+
+## Identical-selection Follow-up
+
+Selecting the currently selected job is now a true no-op. It preserves already loaded details and,
+when a detail request is still pending, leaves that request valid so it can settle `detailLoading`
+and populate the result.
+
+RED command:
+
+```powershell
+cd frontend
+npm.cmd run test:run -- src/features/importExport/useDataTransferWorkspace.test.tsx
+```
+
+The two new regressions failed as expected: loaded details became undefined, and the pending request
+could no longer populate details after identical reselection.
+
+GREEN: the same command passed 1 test file and 13 tests. `npm.cmd run build` passed the strict
+TypeScript and Vite production build. The full suite was not rerun.

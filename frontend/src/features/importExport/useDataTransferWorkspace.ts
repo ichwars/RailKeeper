@@ -166,6 +166,8 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   }, []);
 
   const selectJob = useCallback((id: string | null) => {
+    if (selectedJobIdRef.current === id) return;
+
     detailRequestRef.current += 1;
     selectedJobIdRef.current = id;
     setSelectedJobId(id);

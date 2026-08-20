@@ -197,6 +197,36 @@ describe("useDataTransferWorkspace", () => {
     expect(result.current.selectedJobDetails?.job.id).toBe(completedJob.id);
   });
 
+  it("keeps loaded details when the selected job is selected again", async () => {
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([reviewJob]);
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe(reviewJob.id));
+    const detailCalls = vi.mocked(api.dataTransferJob).mock.calls.length;
+
+    act(() => result.current.selectJob(reviewJob.id));
+
+    expect(result.current.selectedJobDetails?.job.id).toBe(reviewJob.id);
+    expect(result.current.detailLoading).toBe(false);
+    expect(api.dataTransferJob).toHaveBeenCalledTimes(detailCalls);
+  });
+
+  it("lets a pending detail request finish when the selected job is selected again", async () => {
+    const pendingDetails = deferred<DataTransferJobDetails>();
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([reviewJob]);
+    vi.mocked(api.dataTransferJob).mockReturnValue(pendingDetails.promise);
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(result.current.detailLoading).toBe(true));
+
+    act(() => result.current.selectJob(reviewJob.id));
+    await act(async () => pendingDetails.resolve(detailsFixture(reviewJob)));
+
+    expect(result.current.selectedJobDetails?.job.id).toBe(reviewJob.id);
+    expect(result.current.detailLoading).toBe(false);
+    expect(api.dataTransferJob).toHaveBeenCalledOnce();
+  });
+
   it("does not repopulate job details after selection is cleared", async () => {
     const oldDetails = deferred<DataTransferJobDetails>();
     vi.mocked(api.dataTransferJobs).mockResolvedValue([reviewJob]);
