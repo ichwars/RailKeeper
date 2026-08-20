@@ -1,12 +1,15 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
+
+	"railkeeper/backend/internal/application"
 )
 
 func TestOpenAPIDocumentsRegisteredAPIRoutes(t *testing.T) {
@@ -36,6 +39,63 @@ func TestOpenAPIDocumentsRegisteredAPIRoutes(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestOpenAPIDataTransferPreviewEnumsMatchRuntimeValues(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	actionSchema := openAPIIndentedBlock(t, contract, "TransferProposedAction", 4)
+	proposalSchema := openAPIIndentedBlock(t, contract, "TransferProposedResolution", 4)
+	selectionSchema := openAPIIndentedBlock(t, contract, "TransferIssueResolution", 4)
+
+	for _, action := range []string{"create", "replace", "use_existing", "copy"} {
+		payload, err := json.Marshal(application.DataTransferPreviewRecord{ProposedAction: action})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(string(payload), `"proposedAction":"`+action+`"`) ||
+			!openAPIEnumContains(actionSchema, action) {
+			t.Errorf("runtime proposed action %q is missing from OpenAPI: %s", action, actionSchema)
+		}
+	}
+	issuePayload, err := json.Marshal(application.DataTransferIssue{ProposedResolution: "replace_or_copy"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(issuePayload), `"proposedResolution":"replace_or_copy"`) ||
+		!openAPIEnumContains(proposalSchema, "replace_or_copy") {
+		t.Errorf("runtime proposal replace_or_copy is missing from OpenAPI: %s", proposalSchema)
+	}
+	if openAPIEnumContains(selectionSchema, "replace_or_copy") {
+		t.Errorf("non-selectable suggestion leaked into resolution input: %s", selectionSchema)
+	}
+	for _, resolution := range []string{"replace", "copy", "skip", "use_existing", "create", "link"} {
+		if !openAPIEnumContains(selectionSchema, resolution) {
+			t.Errorf("selectable resolution %q is missing: %s", resolution, selectionSchema)
+		}
+	}
+}
+
+func openAPIEnumContains(schema, value string) bool {
+	marker := "enum: ["
+	start := strings.Index(schema, marker)
+	if start < 0 {
+		return false
+	}
+	start += len(marker)
+	end := strings.Index(schema[start:], "]")
+	if end < 0 {
+		return false
+	}
+	for _, candidate := range strings.Split(schema[start:start+end], ",") {
+		if strings.TrimSpace(candidate) == value {
+			return true
+		}
+	}
+	return false
 }
 
 func TestFrontendAPIAdapterUsesDocumentedRoutes(t *testing.T) {

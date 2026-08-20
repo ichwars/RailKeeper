@@ -150,3 +150,36 @@ Focused review-fix verification and the subsequent full backend run both passed.
   before creating a new attempt.
 - Existing unrelated dirty frontend and `facebook-*` files were preserved and excluded from the
   task commit.
+
+## Preview Enum Contract Follow-up
+
+An independent contract review found that `DataTransferPreviewRecord.proposedAction` can emit
+`create`, `replace`, `use_existing`, and `copy`, while OpenAPI documented only `create`. It also
+found that issue suggestions can emit `replace_or_copy`, which is not itself a selectable
+resolution.
+
+The contract now separates these concepts:
+
+- `TransferProposedAction` documents all four emitted preview actions.
+- `TransferProposedResolution` documents suggestions, including `replace_or_copy`.
+- `TransferIssueResolution` remains the exact selectable request enum and excludes
+  `replace_or_copy`.
+
+RED evidence:
+
+```text
+TestOpenAPIDataTransferPreviewEnumsMatchRuntimeValues:
+OpenAPI block TransferProposedAction is missing
+```
+
+GREEN verification:
+
+```powershell
+go test ./internal/api -run TestOpenAPIDataTransferPreviewEnumsMatchRuntimeValues
+go test ./internal/application -run DataTransfer
+go test ./...
+```
+
+The semantic regression test marshals representative runtime preview records and issues, then
+checks their emitted values against the dedicated OpenAPI enums. It also asserts that
+`replace_or_copy` cannot enter the selectable resolution schema.

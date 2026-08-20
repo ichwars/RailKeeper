@@ -61,6 +61,12 @@ components:
     TransferIssueResolution:
       type: string
       enum: [replace, copy, skip, use_existing, create, link]
+    TransferProposedAction:
+      type: string
+      enum: [create, replace, use_existing, copy]
+    TransferProposedResolution:
+      type: string
+      enum: [replace, copy, skip, use_existing, create, link, replace_or_copy]
     DataTransferProfile:
       type: object
       required: [id, name, direction, format, areas, options, enabled, createdByUserId, createdAt, updatedAt]
@@ -264,7 +270,7 @@ components:
           type: string
         proposedResolution:
           oneOf:
-            - $ref: "#/components/schemas/TransferIssueResolution"
+            - $ref: "#/components/schemas/TransferProposedResolution"
             - type: string
               maxLength: 0
         selectedResolution:
@@ -290,8 +296,7 @@ components:
           type: string
           enum: [ready, warning, error]
         proposedAction:
-          type: string
-          enum: [create]
+          $ref: "#/components/schemas/TransferProposedAction"
         targetId:
           type: string
         targetUpdatedAt:
