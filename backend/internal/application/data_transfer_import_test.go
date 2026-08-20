@@ -41,6 +41,9 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	if loaded.State != TransferJobReviewRequired || loaded.SourceSHA256 == "" || loaded.Preview["records"] == nil {
 		t.Fatalf("preview job was not persisted: %#v", loaded)
 	}
+	if repository.mutationCount != 1 {
+		t.Fatalf("preview used %d atomic import mutations, want 1", repository.mutationCount)
+	}
 }
 
 func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.T) {
@@ -130,6 +133,31 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 	}
 }
 
+func TestPreviewImportDoesNotTrustForeignExhibitionListIDWithoutMatchingIdentity(t *testing.T) {
+	repository, service := newDataTransferImportFixture(t)
+	repository.snapshot = DataTransferSnapshot{ExhibitionLists: []TransferExhibitionList{{
+		ID: "list-collision", Designation: "Local show", Date: "2026-08-20", Locked: true,
+	}}}
+	job := fixtureCreateImportJob(t, service, TransferExhibitionLists, TransferJSON)
+	payload, err := json.Marshal(DataTransferPackage{
+		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion,
+		Areas: DataTransferPackageAreas{ExhibitionLists: []TransferExhibitionList{{
+			ID: "list-collision", Designation: "Foreign show", Date: "2027-01-10",
+		}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.UploadAndPreview(t.Context(), job.ID, "transfer.json", payload, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(preview.Issues) != 0 || preview.ReadyRecords != 1 || preview.Records[0].TargetID != "" ||
+		preview.Records[0].ProposedAction != "create" {
+		t.Fatalf("foreign ID collision was trusted as local identity: %#v", preview)
+	}
+}
+
 func TestTransferImportRejectsMalformedOversizedAndMismatchedUploads(t *testing.T) {
 	_, service := newDataTransferImportFixture(t)
 
@@ -179,6 +207,9 @@ func TestTransferImportEnforcesAreaScopeAndSupportsIssueResolutionAndCancel(t *t
 	if cancelled.State != TransferJobCancelled {
 		t.Fatalf("cancelled job state = %q", cancelled.State)
 	}
+	if repository := service.repository.(*dataTransferImportRepositoryStub); repository.mutationCount != 3 {
+		t.Fatalf("upload, resolve, and cancel used %d atomic mutations, want 3", repository.mutationCount)
+	}
 }
 
 func newDataTransferImportFixture(t *testing.T) (*dataTransferImportRepositoryStub, *DataTransferService) {
@@ -222,11 +253,12 @@ func assertTransferIssueCode(t *testing.T, issues []DataTransferIssue, code stri
 
 type dataTransferImportRepositoryStub struct {
 	DataTransferRepository
-	profiles map[string]DataTransferProfile
-	jobs     map[string]DataTransferJob
-	issues   map[string][]DataTransferIssue
-	snapshot DataTransferSnapshot
-	nextID   int
+	profiles      map[string]DataTransferProfile
+	jobs          map[string]DataTransferJob
+	issues        map[string][]DataTransferIssue
+	snapshot      DataTransferSnapshot
+	nextID        int
+	mutationCount int
 }
 
 func (repository *dataTransferImportRepositoryStub) GetProfile(
@@ -246,8 +278,31 @@ func (repository *dataTransferImportRepositoryStub) CreateJob(
 ) (DataTransferJob, error) {
 	repository.nextID++
 	job.ID = "job-" + string(rune('0'+repository.nextID))
+	job.Revision = 1
 	repository.jobs[job.ID] = job
 	return job, nil
+}
+
+func (repository *dataTransferImportRepositoryStub) CompareAndUpdateImportJob(
+	_ context.Context,
+	mutation DataTransferImportMutation,
+) (DataTransferJob, error) {
+	current, found := repository.jobs[mutation.Job.ID]
+	if !found {
+		return DataTransferJob{}, ErrDataTransferNotFound
+	}
+	if current.State != mutation.ExpectedState || current.Revision != mutation.ExpectedRevision {
+		return DataTransferJob{}, ErrDataTransferConflict
+	}
+	repository.mutationCount++
+	mutation.Job.Revision = current.Revision + 1
+	repository.jobs[mutation.Job.ID] = mutation.Job
+	if mutation.ReplaceIssues {
+		if err := repository.ReplaceIssues(context.Background(), mutation.Job.ID, mutation.Issues); err != nil {
+			return DataTransferJob{}, err
+		}
+	}
+	return mutation.Job, nil
 }
 
 func (repository *dataTransferImportRepositoryStub) GetJob(

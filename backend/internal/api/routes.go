@@ -278,6 +278,19 @@ func authorizeDataTransferRead(a *App, next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
+func dataTransferWriteMesseScope(roles []string) bool {
+	messe := false
+	for _, role := range roles {
+		switch role {
+		case "Admin", "Editor":
+			return false
+		case "Messe":
+			messe = true
+		}
+	}
+	return messe
+}
+
 func authorizeDataTransferWrite(a *App, next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, err := a.authService.RequireAnyRole(r.Context(), cookieValue(r, "rk_session"), "Editor", "Messe")
@@ -290,7 +303,9 @@ func authorizeDataTransferWrite(a *App, next http.HandlerFunc) http.HandlerFunc 
 			authorizationError(a, w, err)
 			return
 		}
-		next.ServeHTTP(w, withDataTransferScope(withActorUserID(r, userID), dataTransferMesseScope(session.Roles)))
+		next.ServeHTTP(w, withDataTransferScope(
+			withActorUserID(r, userID), dataTransferWriteMesseScope(session.Roles),
+		))
 	}
 }
 

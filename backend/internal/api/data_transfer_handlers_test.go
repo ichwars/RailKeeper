@@ -171,6 +171,101 @@ func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {
 	assertStatus(t, allowed, http.StatusCreated)
 }
 
+func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	users := []application.CreateUserInput{
+		{Username: "messe-viewer", Password: "user-password", Roles: []string{"Messe", "Viewer"}},
+		{Username: "messe-planner", Password: "user-password", Roles: []string{"Messe", "Planner"}},
+		{Username: "messe-editor", Password: "user-password", Roles: []string{"Messe", "Editor"}},
+		{Username: "messe-admin", Password: "user-password", Roles: []string{"Messe", "Admin"}},
+	}
+	for _, user := range users {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	service := application.NewDataTransferService(repository, t.TempDir())
+	vehicleProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicles", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	exhibitionProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Exhibition", Direction: application.TransferImport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferExhibitionLists},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+
+	for _, username := range []string{"messe-viewer", "messe-planner"} {
+		t.Run(username, func(t *testing.T) {
+			session := loginRouteTestUser(t, auth, username, "user-password")
+			forbiddenCreate := layoutRequest(t, router, session, http.MethodPost,
+				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": vehicleProfile.ID}, true)
+			assertProblem(t, forbiddenCreate, http.StatusForbidden, "data_transfer_forbidden")
+			allowedCreate := layoutRequest(t, router, session, http.MethodPost,
+				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": exhibitionProfile.ID}, true)
+			assertStatus(t, allowedCreate, http.StatusCreated)
+
+			uploadJob, err := service.CreateImportJob(t.Context(), vehicleProfile.ID, "editor-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			forbiddenUpload := dataTransferMultipartRequest(t, router, session,
+				"/api/v1/data-transfer/jobs/"+uploadJob.ID+"/upload", "vehicles.csv",
+				[]byte("Inventarnummer;Hersteller;Bezeichnung\nRK-1;Roco;BR 01\n"))
+			assertProblem(t, forbiddenUpload, http.StatusForbidden, "data_transfer_forbidden")
+
+			resolveJob, err := service.CreateImportJob(t.Context(), vehicleProfile.ID, "editor-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			resolveJob.State = application.TransferJobReviewRequired
+			if resolveJob, err = repository.UpdateJob(t.Context(), resolveJob); err != nil {
+				t.Fatal(err)
+			}
+			if err := repository.ReplaceIssues(t.Context(), resolveJob.ID, []application.DataTransferIssue{{
+				JobID: resolveJob.ID, Area: application.TransferVehicles, RecordKey: "RK-1",
+				Severity: application.TransferIssueError, Code: "missing_manufacturer",
+				ProposedResolution: "skip",
+			}}); err != nil {
+				t.Fatal(err)
+			}
+			issues, err := repository.ListIssues(t.Context(), resolveJob.ID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			forbiddenResolve := layoutRequest(t, router, session, http.MethodPut,
+				"/api/v1/data-transfer/jobs/"+resolveJob.ID+"/issues/"+issues[0].ID,
+				map[string]any{"resolution": "skip"}, true)
+			assertProblem(t, forbiddenResolve, http.StatusForbidden, "data_transfer_forbidden")
+
+			cancelJob, err := service.CreateImportJob(t.Context(), vehicleProfile.ID, "editor-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			forbiddenCancel := layoutRequest(t, router, session, http.MethodPost,
+				"/api/v1/data-transfer/jobs/"+cancelJob.ID+"/cancel", nil, true)
+			assertProblem(t, forbiddenCancel, http.StatusForbidden, "data_transfer_forbidden")
+		})
+	}
+
+	for _, username := range []string{"messe-editor", "messe-admin"} {
+		t.Run(username, func(t *testing.T) {
+			session := loginRouteTestUser(t, auth, username, "user-password")
+			created := layoutRequest(t, router, session, http.MethodPost,
+				"/api/v1/data-transfer/jobs/import", map[string]any{"profileId": vehicleProfile.ID}, true)
+			assertStatus(t, created, http.StatusCreated)
+		})
+	}
+}
+
 func dataTransferMultipartRequest(
 	t *testing.T,
 	router http.Handler,

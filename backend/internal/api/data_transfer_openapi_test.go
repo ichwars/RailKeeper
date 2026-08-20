@@ -43,3 +43,34 @@ func TestOpenAPIDataTransferProfileItemWriteSecurity(t *testing.T) {
 		}
 	}
 }
+
+func TestOpenAPIDataTransferImportDocumentsRuntimeErrorsAndRevision(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	paths := []struct {
+		path      string
+		method    string
+		responses []string
+	}{
+		{"/data-transfer/jobs/import", "post", []string{"403", "404"}},
+		{"/data-transfer/jobs/{id}/upload", "post", []string{"403", "404", "409"}},
+		{"/data-transfer/jobs/{id}/issues/{issueID}", "put", []string{"403", "404", "409"}},
+		{"/data-transfer/jobs/{id}/cancel", "post", []string{"403", "404", "409"}},
+	}
+	for _, path := range paths {
+		operation := openAPIIndentedBlock(t,
+			openAPIIndentedBlock(t, contract, path.path, 2), path.method, 4)
+		for _, response := range path.responses {
+			if !strings.Contains(operation, "        \""+response+"\":") {
+				t.Fatalf("%s %s is missing response %s: %s", path.method, path.path, response, operation)
+			}
+		}
+	}
+	job := openAPIIndentedBlock(t, contract, "DataTransferJob", 4)
+	if !strings.Contains(job, "revision:") || !strings.Contains(job, "packageVersion, revision,") {
+		t.Fatalf("data transfer job does not expose required revision: %s", job)
+	}
+}

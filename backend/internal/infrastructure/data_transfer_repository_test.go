@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"path/filepath"
+	"sync"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -40,6 +41,158 @@ func TestDataTransferRepositoryPersistsJobSnapshot(t *testing.T) {
 	}
 	if job.ProfileName != profile.Name || len(job.Areas) != 3 {
 		t.Fatalf("unexpected snapshot: %#v", job)
+	}
+}
+
+func TestDataTransferImportMutationRollsBackJobAndIssuesTogether(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobDraft,
+		Stage: "created", Preview: map[string]any{"marker": "old"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{{
+		JobID: job.ID, Area: application.TransferVehicles, RecordKey: "old",
+		Severity: application.TransferIssueWarning, Code: "old", Message: "old",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	updated := job
+	updated.State = application.TransferJobReady
+	updated.Stage = "preview"
+	updated.Preview = map[string]any{"marker": "new"}
+	_, err = repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+		ExpectedState: job.State, ExpectedRevision: job.Revision, Job: updated, ReplaceIssues: true,
+		Issues: []application.DataTransferIssue{{
+			JobID: job.ID, Area: application.TransferVehicles, RecordKey: "new",
+			Severity: application.TransferIssueSeverity("invalid"), Code: "new", Message: "new",
+		}},
+	})
+	if err == nil {
+		t.Fatal("expected issue constraint failure")
+	}
+	loaded, err := repo.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issues, err := repo.ListIssues(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.State != application.TransferJobDraft || loaded.Revision != job.Revision ||
+		loaded.Preview["marker"] != "old" || len(issues) != 1 || issues[0].RecordKey != "old" {
+		t.Fatalf("failed mutation left mixed state: job=%#v issues=%#v", loaded, issues)
+	}
+}
+
+func TestDataTransferImportMutationConcurrentPreviewsCommitOneConsistentResult(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobDraft,
+		Stage: "created", Preview: map[string]any{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	start := make(chan struct{})
+	errorsByMarker := make(chan struct {
+		marker string
+		err    error
+	}, 2)
+	var wait sync.WaitGroup
+	for _, marker := range []string{"first", "second"} {
+		marker := marker
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			updated := job
+			updated.State = application.TransferJobReviewRequired
+			updated.Stage = "preview"
+			updated.Preview = map[string]any{"marker": marker}
+			_, mutationErr := repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+				ExpectedState: job.State, ExpectedRevision: job.Revision, Job: updated, ReplaceIssues: true,
+				Issues: []application.DataTransferIssue{{
+					JobID: job.ID, Area: application.TransferVehicles, RecordKey: marker,
+					Severity: application.TransferIssueWarning, Code: "duplicate", Message: marker,
+				}},
+			})
+			errorsByMarker <- struct {
+				marker string
+				err    error
+			}{marker: marker, err: mutationErr}
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(errorsByMarker)
+	successes := 0
+	conflicts := 0
+	for result := range errorsByMarker {
+		switch {
+		case result.err == nil:
+			successes++
+		case errors.Is(result.err, application.ErrDataTransferConflict):
+			conflicts++
+		default:
+			t.Fatalf("%s mutation failed unexpectedly: %v", result.marker, result.err)
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("concurrent mutations: successes=%d conflicts=%d", successes, conflicts)
+	}
+	loaded, err := repo.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	issues, err := repo.ListIssues(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	marker, _ := loaded.Preview["marker"].(string)
+	if marker == "" || len(issues) != 1 || issues[0].RecordKey != marker || loaded.Revision != job.Revision+1 {
+		t.Fatalf("preview and issues do not belong to one mutation: job=%#v issues=%#v", loaded, issues)
+	}
+}
+
+func TestDataTransferImportMutationRejectsStalePreviewAfterCancel(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobDraft,
+		Stage: "created", Preview: map[string]any{},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	cancelled := job
+	cancelled.State = application.TransferJobCancelled
+	cancelled.Stage = "cancelled"
+	if _, err := repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+		ExpectedState: job.State, ExpectedRevision: job.Revision, Job: cancelled,
+	}); err != nil {
+		t.Fatal(err)
+	}
+	stalePreview := job
+	stalePreview.State = application.TransferJobReady
+	stalePreview.Stage = "preview"
+	stalePreview.Preview = map[string]any{"marker": "stale"}
+	_, err = repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+		ExpectedState: job.State, ExpectedRevision: job.Revision, Job: stalePreview, ReplaceIssues: true,
+	})
+	if !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("stale preview error = %v, want conflict", err)
+	}
+	loaded, err := repo.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.State != application.TransferJobCancelled || loaded.Preview["marker"] != nil {
+		t.Fatalf("cancelled job was resurrected: %#v", loaded)
 	}
 }
 

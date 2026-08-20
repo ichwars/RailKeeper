@@ -134,12 +134,12 @@ func (repository *DataTransferRepository) CreateJob(
 	if _, err := repository.db.ExecContext(ctx, `
 INSERT INTO data_transfer_jobs(
   id, profile_id, profile_name, direction, format, areas_json, options_json, state, stage, source_name,
-  source_sha256, package_version, total_records, ready_records, warning_records, error_records, preview_json,
+  source_sha256, package_version, revision, total_records, ready_records, warning_records, error_records, preview_json,
   created_by_user_id, confirmed_by_user_id, confirmed_at, completed_at, result_message, created_at, updated_at
-) VALUES(?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''),
+) VALUES(?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''),
   NULLIF(?, ''), NULLIF(?, ''), ?, ?, ?)`, job.ID, job.ProfileID, job.ProfileName, job.Direction, job.Format,
 		areas, options, job.State, job.Stage, job.SourceName, job.SourceSHA256, job.PackageVersion,
-		job.TotalRecords, job.ReadyRecords, job.WarningRecords, job.ErrorRecords, preview, job.CreatedByUserID,
+		1, job.TotalRecords, job.ReadyRecords, job.WarningRecords, job.ErrorRecords, preview, job.CreatedByUserID,
 		job.ConfirmedByUserID, job.ConfirmedAt, job.CompletedAt, job.ResultMessage, now, now); err != nil {
 		return application.DataTransferJob{}, fmt.Errorf("create transfer job: %w", err)
 	}
@@ -167,7 +167,7 @@ UPDATE data_transfer_jobs
 SET profile_id=NULLIF(?, ''), profile_name=?, direction=?, format=?, areas_json=?, options_json=?, state=?,
     stage=?, source_name=?, source_sha256=?, package_version=?, total_records=?, ready_records=?,
     warning_records=?, error_records=?, preview_json=?, confirmed_by_user_id=NULLIF(?, ''),
-    confirmed_at=NULLIF(?, ''), completed_at=NULLIF(?, ''), result_message=?, updated_at=?
+    confirmed_at=NULLIF(?, ''), completed_at=NULLIF(?, ''), result_message=?, revision=revision+1, updated_at=?
 WHERE id=?`, job.ProfileID, job.ProfileName, job.Direction, job.Format, areas, options, job.State, job.Stage,
 		job.SourceName, job.SourceSHA256, job.PackageVersion, job.TotalRecords, job.ReadyRecords,
 		job.WarningRecords, job.ErrorRecords, preview, job.ConfirmedByUserID, job.ConfirmedAt, job.CompletedAt,
@@ -249,40 +249,111 @@ func (repository *DataTransferRepository) ReplaceIssues(
 ) error {
 	now := timestamp()
 	err := repository.withTx(ctx, func(tx *sql.Tx) error {
-		if _, err := tx.ExecContext(ctx, `DELETE FROM data_transfer_job_issues WHERE job_id=?`, jobID); err != nil {
-			return fmt.Errorf("delete transfer issues: %w", err)
+		return replaceDataTransferIssues(ctx, tx, jobID, issues, now)
+	})
+	if err != nil {
+		return fmt.Errorf("replace transfer issues: %w", err)
+	}
+	return nil
+}
+
+func (repository *DataTransferRepository) CompareAndUpdateImportJob(
+	ctx context.Context,
+	mutation application.DataTransferImportMutation,
+) (application.DataTransferJob, error) {
+	job := mutation.Job
+	areas, err := encodeTransferAreas(job.Areas)
+	if err != nil {
+		return application.DataTransferJob{}, err
+	}
+	options, err := encodeTransferOptions(job.Options)
+	if err != nil {
+		return application.DataTransferJob{}, err
+	}
+	preview, err := encodeTransferOptions(job.Preview)
+	if err != nil {
+		return application.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
+	}
+	now := timestamp()
+	err = repository.withTx(ctx, func(tx *sql.Tx) error {
+		result, err := tx.ExecContext(ctx, `
+UPDATE data_transfer_jobs
+SET profile_id=NULLIF(?, ''), profile_name=?, format=?, areas_json=?, options_json=?, state=?, stage=?,
+    source_name=?, source_sha256=?, package_version=?, total_records=?, ready_records=?, warning_records=?,
+    error_records=?, preview_json=?, confirmed_by_user_id=NULLIF(?, ''), confirmed_at=NULLIF(?, ''),
+    completed_at=NULLIF(?, ''), result_message=?, revision=revision+1, updated_at=?
+WHERE id=? AND direction=? AND state=? AND revision=?`, job.ProfileID, job.ProfileName, job.Format, areas, options,
+			job.State, job.Stage, job.SourceName, job.SourceSHA256, job.PackageVersion, job.TotalRecords,
+			job.ReadyRecords, job.WarningRecords, job.ErrorRecords, preview, job.ConfirmedByUserID, job.ConfirmedAt,
+			job.CompletedAt, job.ResultMessage, now, job.ID, application.TransferImport, mutation.ExpectedState,
+			mutation.ExpectedRevision)
+		if err != nil {
+			return fmt.Errorf("compare and update transfer import job: %w", err)
 		}
-		for _, issue := range issues {
-			issueID := issue.ID
-			if issueID == "" {
-				issueID = randomID()
+		updated, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("read transfer import update result: %w", err)
+		}
+		if updated == 0 {
+			var exists int
+			if err := tx.QueryRowContext(ctx,
+				`SELECT EXISTS(SELECT 1 FROM data_transfer_jobs WHERE id=?)`, job.ID).Scan(&exists); err != nil {
+				return fmt.Errorf("check transfer import job: %w", err)
 			}
-			createdAt := issue.CreatedAt
-			if createdAt == "" {
-				createdAt = now
+			if exists == 0 {
+				return fmt.Errorf("compare and update transfer import job: %w", sql.ErrNoRows)
 			}
-			updatedAt := issue.UpdatedAt
-			if updatedAt == "" {
-				updatedAt = now
-			}
-			var rowNumber any
-			if issue.RowNumber != nil {
-				rowNumber = *issue.RowNumber
-			}
-			if _, err := tx.ExecContext(ctx, `
-INSERT INTO data_transfer_job_issues(
-  id, job_id, area, record_key, row_number, field, severity, code, message, proposed_resolution,
-  selected_resolution, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, issueID, jobID, issue.Area, issue.RecordKey, rowNumber,
-				issue.Field, issue.Severity, issue.Code, issue.Message, issue.ProposedResolution,
-				issue.SelectedResolution, createdAt, updatedAt); err != nil {
-				return fmt.Errorf("insert transfer issue: %w", err)
+			return application.ErrDataTransferConflict
+		}
+		if mutation.ReplaceIssues {
+			if err := replaceDataTransferIssues(ctx, tx, job.ID, mutation.Issues, now); err != nil {
+				return err
 			}
 		}
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("replace transfer issues: %w", err)
+		return application.DataTransferJob{}, err
+	}
+	return repository.GetJob(ctx, job.ID)
+}
+
+func replaceDataTransferIssues(
+	ctx context.Context,
+	tx *sql.Tx,
+	jobID string,
+	issues []application.DataTransferIssue,
+	now string,
+) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM data_transfer_job_issues WHERE job_id=?`, jobID); err != nil {
+		return fmt.Errorf("delete transfer issues: %w", err)
+	}
+	for _, issue := range issues {
+		issueID := issue.ID
+		if issueID == "" {
+			issueID = randomID()
+		}
+		createdAt := issue.CreatedAt
+		if createdAt == "" {
+			createdAt = now
+		}
+		updatedAt := issue.UpdatedAt
+		if updatedAt == "" {
+			updatedAt = now
+		}
+		var rowNumber any
+		if issue.RowNumber != nil {
+			rowNumber = *issue.RowNumber
+		}
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO data_transfer_job_issues(
+  id, job_id, area, record_key, row_number, field, severity, code, message, proposed_resolution,
+  selected_resolution, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, issueID, jobID, issue.Area, issue.RecordKey, rowNumber,
+			issue.Field, issue.Severity, issue.Code, issue.Message, issue.ProposedResolution,
+			issue.SelectedResolution, createdAt, updatedAt); err != nil {
+			return fmt.Errorf("insert transfer issue: %w", err)
+		}
 	}
 	return nil
 }
@@ -346,7 +417,7 @@ func (repository *DataTransferRepository) ClaimExportJob(
 ) (application.DataTransferJob, error) {
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE data_transfer_jobs
-SET state=?, stage='snapshot', updated_at=?
+SET state=?, stage='snapshot', revision=revision+1, updated_at=?
 WHERE id=? AND direction=? AND state=?`, application.TransferJobRunning, timestamp(), id,
 		application.TransferExport, application.TransferJobDraft)
 	if err != nil {
@@ -393,7 +464,7 @@ FROM data_transfer_profiles`
 
 const dataTransferJobSelect = `
 SELECT id, COALESCE(profile_id, ''), profile_name, direction, format, areas_json, options_json, state, stage,
-       source_name, source_sha256, package_version, total_records, ready_records, warning_records, error_records,
+       source_name, source_sha256, package_version, revision, total_records, ready_records, warning_records, error_records,
        preview_json, COALESCE(created_by_user_id, ''), COALESCE(confirmed_by_user_id, ''),
        COALESCE(confirmed_at, ''), COALESCE(completed_at, ''), result_message, created_at, updated_at
 FROM data_transfer_jobs`
@@ -433,7 +504,7 @@ func scanDataTransferJob(scanner dataTransferRowScanner) (application.DataTransf
 	job := application.DataTransferJob{}
 	var areas, options, preview string
 	if err := scanner.Scan(&job.ID, &job.ProfileID, &job.ProfileName, &job.Direction, &job.Format, &areas, &options,
-		&job.State, &job.Stage, &job.SourceName, &job.SourceSHA256, &job.PackageVersion, &job.TotalRecords,
+		&job.State, &job.Stage, &job.SourceName, &job.SourceSHA256, &job.PackageVersion, &job.Revision, &job.TotalRecords,
 		&job.ReadyRecords, &job.WarningRecords, &job.ErrorRecords, &preview, &job.CreatedByUserID,
 		&job.ConfirmedByUserID, &job.ConfirmedAt, &job.CompletedAt, &job.ResultMessage, &job.CreatedAt,
 		&job.UpdatedAt); err != nil {

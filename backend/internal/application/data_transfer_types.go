@@ -59,6 +59,7 @@ type DataTransferJob struct {
 	SourceName        string            `json:"sourceName"`
 	SourceSHA256      string            `json:"sourceSha256"`
 	PackageVersion    int               `json:"packageVersion"`
+	Revision          int               `json:"revision"`
 	TotalRecords      int               `json:"totalRecords"`
 	ReadyRecords      int               `json:"readyRecords"`
 	WarningRecords    int               `json:"warningRecords"`
@@ -106,6 +107,14 @@ type DataTransferArtifact struct {
 	SHA256       string `json:"sha256"`
 	DeletedAt    string `json:"deletedAt"`
 	CreatedAt    string `json:"createdAt"`
+}
+
+type DataTransferImportMutation struct {
+	ExpectedState    TransferJobState
+	ExpectedRevision int
+	Job              DataTransferJob
+	Issues           []DataTransferIssue
+	ReplaceIssues    bool
 }
 
 type DataTransferRepository interface {

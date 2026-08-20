@@ -123,7 +123,7 @@ components:
           minLength: 1
     DataTransferJob:
       type: object
-      required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion,
+      required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion, revision,
         totalRecords, readyRecords, warningRecords, errorRecords, preview, createdByUserId, createdAt, updatedAt]
       properties:
         id:
@@ -156,6 +156,9 @@ components:
           type: string
         packageVersion:
           type: integer
+        revision:
+          type: integer
+          minimum: 1
         totalRecords:
           type: integer
         readyRecords:
@@ -5291,6 +5294,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /data-transfer/jobs/{id}/upload:
     post:
       tags: [DataTransfer]
@@ -5330,6 +5339,18 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Import job changed or is not uploadable
           content:
             application/json:
               schema:
@@ -5377,6 +5398,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job or issue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Import job is not in a reviewable state
           content:
@@ -5403,6 +5436,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/DataTransferJob"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "409":
           description: Import job can no longer be cancelled
           content:

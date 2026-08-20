@@ -362,6 +362,10 @@ func classifyDataTransferImport(
 				"designation", TransferIssueError, "missing_name", "Designation is required.", "skip"))
 		}
 		target, matched := currentListsByID[list.ID]
+		if matched && transferExhibitionIdentity(target.Designation, target.Date) !=
+			transferExhibitionIdentity(list.Designation, list.Date) {
+			matched = false
+		}
 		if !matched {
 			target, matched = currentListsByIdentity[transferExhibitionIdentity(list.Designation, list.Date)]
 		}

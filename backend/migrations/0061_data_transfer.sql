@@ -25,6 +25,7 @@ CREATE TABLE data_transfer_jobs (
   source_name TEXT NOT NULL DEFAULT '',
   source_sha256 TEXT NOT NULL DEFAULT '',
   package_version INTEGER NOT NULL DEFAULT 0,
+  revision INTEGER NOT NULL DEFAULT 1 CHECK(revision > 0),
   total_records INTEGER NOT NULL DEFAULT 0,
   ready_records INTEGER NOT NULL DEFAULT 0,
   warning_records INTEGER NOT NULL DEFAULT 0,

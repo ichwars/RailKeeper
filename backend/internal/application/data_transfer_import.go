@@ -49,6 +49,7 @@ type DataTransferPreviewRecord struct {
 type dataTransferImportRepository interface {
 	DataTransferRepository
 	Snapshot(context.Context, []TransferArea) (DataTransferSnapshot, error)
+	CompareAndUpdateImportJob(context.Context, DataTransferImportMutation) (DataTransferJob, error)
 }
 
 func (s *DataTransferService) CreateImportJob(
@@ -124,6 +125,8 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferPreview{}, ErrDataTransferForbidden
 	}
+	expectedState := job.State
+	expectedRevision := job.Revision
 
 	cleanName, err := validateDataTransferUploadName(job.Format, sourceName)
 	if err != nil {
@@ -174,11 +177,11 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	job, err = repository.UpdateJob(ctx, job)
+	job, err = compareAndUpdateDataTransferImport(ctx, repository, DataTransferImportMutation{
+		ExpectedState: expectedState, ExpectedRevision: expectedRevision, Job: job,
+		Issues: issues, ReplaceIssues: true,
+	})
 	if err != nil {
-		return DataTransferPreview{}, err
-	}
-	if err := repository.ReplaceIssues(ctx, job.ID, issues); err != nil {
 		return DataTransferPreview{}, err
 	}
 	issues, err = repository.ListIssues(ctx, job.ID)
@@ -227,15 +230,15 @@ func (s *DataTransferService) ResolveIssue(
 			return DataTransferJob{}, fmt.Errorf("%w: invalid issue resolution", ErrDataTransferValidation)
 		}
 		issues[index].SelectedResolution = resolution
+		issues[index].UpdatedAt = ""
 		found = true
 		break
 	}
 	if !found {
 		return DataTransferJob{}, ErrDataTransferNotFound
 	}
-	if err := repository.ReplaceIssues(ctx, job.ID, issues); err != nil {
-		return DataTransferJob{}, err
-	}
+	expectedState := job.State
+	expectedRevision := job.Revision
 	job.State = TransferJobReady
 	for _, issue := range issues {
 		if issue.SelectedResolution == "" {
@@ -244,7 +247,10 @@ func (s *DataTransferService) ResolveIssue(
 		}
 	}
 	job.Stage = "review"
-	return repository.UpdateJob(ctx, job)
+	return compareAndUpdateDataTransferImport(ctx, repository, DataTransferImportMutation{
+		ExpectedState: expectedState, ExpectedRevision: expectedRevision, Job: job,
+		Issues: issues, ReplaceIssues: true,
+	})
 }
 
 func (s *DataTransferService) CancelJob(
@@ -270,10 +276,26 @@ func (s *DataTransferService) CancelJob(
 	if job.State != TransferJobDraft && job.State != TransferJobReviewRequired && job.State != TransferJobReady {
 		return DataTransferJob{}, fmt.Errorf("%w: import job cannot be cancelled in state %s", ErrDataTransferConflict, job.State)
 	}
+	expectedState := job.State
+	expectedRevision := job.Revision
 	job.State = TransferJobCancelled
 	job.Stage = "cancelled"
 	job.ResultMessage = "Import cancelled."
-	return repository.UpdateJob(ctx, job)
+	return compareAndUpdateDataTransferImport(ctx, repository, DataTransferImportMutation{
+		ExpectedState: expectedState, ExpectedRevision: expectedRevision, Job: job,
+	})
+}
+
+func compareAndUpdateDataTransferImport(
+	ctx context.Context,
+	repository dataTransferImportRepository,
+	mutation DataTransferImportMutation,
+) (DataTransferJob, error) {
+	job, err := repository.CompareAndUpdateImportJob(ctx, mutation)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DataTransferJob{}, ErrDataTransferNotFound
+	}
+	return job, err
 }
 
 func (s *DataTransferService) importRepository() (dataTransferImportRepository, error) {
