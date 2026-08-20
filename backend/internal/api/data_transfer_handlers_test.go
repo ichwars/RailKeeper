@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -58,6 +59,11 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 	editorCreate := layoutRequest(t, router, sessions["editor"], http.MethodPost,
 		"/api/v1/data-transfer/profiles", validDataTransferProfileRequest("Editor"), true)
 	assertStatus(t, editorCreate, http.StatusCreated)
+	var created map[string]json.RawMessage
+	decodeResponse(t, editorCreate, &created)
+	if _, found := created["lastUsedAt"]; found {
+		t.Fatalf("new profile response unexpectedly contains lastUsedAt: %s", editorCreate.Body.String())
+	}
 
 	messeProfiles := layoutRequest(t, router, sessions["messe"], http.MethodGet,
 		"/api/v1/data-transfer/profiles", nil, true)

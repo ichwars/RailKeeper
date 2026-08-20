@@ -4938,6 +4938,8 @@ paths:
     get:
       tags: [DataTransfer]
       summary: List saved data transfer profiles
+      security:
+        - sessionCookie: []
       responses:
         "200":
           description: Transfer profiles visible in the current role scope
@@ -4962,6 +4964,9 @@ paths:
     post:
       tags: [DataTransfer]
       summary: Create a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       requestBody:
         required: true
         content:
@@ -4991,6 +4996,9 @@ paths:
     put:
       tags: [DataTransfer]
       summary: Update a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path
@@ -5031,6 +5039,9 @@ paths:
     delete:
       tags: [DataTransfer]
       summary: Disable a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
       parameters:
         - name: id
           in: path

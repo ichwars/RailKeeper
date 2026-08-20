@@ -41,7 +41,7 @@ type DataTransferProfile struct {
 	Options         map[string]any    `json:"options"`
 	Enabled         bool              `json:"enabled"`
 	CreatedByUserID string            `json:"createdByUserId"`
-	LastUsedAt      string            `json:"lastUsedAt"`
+	LastUsedAt      string            `json:"lastUsedAt,omitempty"`
 	CreatedAt       string            `json:"createdAt"`
 	UpdatedAt       string            `json:"updatedAt"`
 }
