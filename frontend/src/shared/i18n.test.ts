@@ -43,6 +43,11 @@ describe("i18n", () => {
     expect(Object.keys(deTranslations).sort()).toEqual(Object.keys(enTranslations).sort());
   });
 
+  it("translates persisted export continuation in German and English", () => {
+    expect(translate("de", "importExport.dashboard.details.continueExport")).toBe("Export fortsetzen");
+    expect(translate("en", "importExport.dashboard.details.continueExport")).toBe("Continue export");
+  });
+
   it("uses individual item terminology throughout accessory translations", async () => {
     const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
     const accessoryValues = (translations: Record<string, string>) => Object.entries(translations)

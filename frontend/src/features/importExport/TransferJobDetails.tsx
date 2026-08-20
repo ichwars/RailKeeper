@@ -169,7 +169,7 @@ function JobAction({
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
         onClick={() => onContinue(job)}>
         <Play size={16} fill="currentColor" aria-hidden="true" />
-        {job.profileName ? "Export fortsetzen" : t("importExport.dashboard.details.continue")}
+        {t("importExport.dashboard.details.continueExport")}
       </button>
     );
   }

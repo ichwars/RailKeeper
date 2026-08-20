@@ -21,6 +21,14 @@ const importProfile = profileFixture({
   areas: ["vehicles"]
 });
 
+const jsonImportProfile = profileFixture({
+  id: "profile-import-json",
+  name: "RailKeeper-Import",
+  direction: "import",
+  format: "railkeeper-json",
+  areas: ["vehicles"]
+});
+
 const exhibitionProfile = profileFixture({
   id: "profile-exhibition",
   name: "Messeliste Köln",
@@ -100,7 +108,9 @@ const summaryFixture: DataTransferSummary = {
 describe("data transfer operational dialogs", () => {
   beforeEach(() => {
     vi.spyOn(api, "dataTransferSummary").mockResolvedValue(summaryFixture);
-    vi.spyOn(api, "dataTransferProfiles").mockResolvedValue([importProfile, exhibitionProfile, exportProfile]);
+    vi.spyOn(api, "dataTransferProfiles").mockResolvedValue([
+      importProfile, jsonImportProfile, exhibitionProfile, exportProfile
+    ]);
     vi.spyOn(api, "dataTransferJobs").mockResolvedValue([]);
     vi.spyOn(api, "createDataTransferProfile").mockImplementation(async (input) => profileFixture(input));
     vi.spyOn(api, "updateDataTransferProfile").mockImplementation(async (id, input) => profileFixture({ id, ...input }));
@@ -177,6 +187,9 @@ describe("data transfer operational dialogs", () => {
     }));
 
     expect(await within(dialog).findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+    expect(within(dialog).getByText(
+      "Serverseitig normalisierte Zielfelder (automatische Alias-Erkennung)"
+    )).toBeInTheDocument();
     expect(within(dialog).getByText(/Quelldatei bearbeiten und erneut hochladen/)).toBeInTheDocument();
     expect(within(dialog).getByText("inventoryNumber")).toBeInTheDocument();
     expect(within(dialog).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
@@ -184,6 +197,25 @@ describe("data transfer operational dialogs", () => {
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
     expect(api.uploadDataTransferImport).toHaveBeenCalledWith("job-import", expect.any(File));
+  });
+
+  it("sends RailKeeper JSON previews directly to review", async () => {
+    const user = userEvent.setup();
+    const jsonJob = jobFixture({ ...draftImportJob, profileId: jsonImportProfile.id,
+      profileName: jsonImportProfile.name, format: "railkeeper-json" });
+    vi.mocked(api.createDataTransferImportJob).mockResolvedValueOnce(jsonJob);
+    vi.mocked(api.uploadDataTransferImport).mockResolvedValueOnce({
+      ...previewFixture,
+      job: { ...previewFixture.job, profileId: jsonImportProfile.id, profileName: jsonImportProfile.name,
+        format: "railkeeper-json" }
+    });
+    render(<ImportExportView roles={["Editor"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
+    const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
+    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), jsonImportProfile.id);
+    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
+    expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
+    expect(within(dialog).queryByRole("heading", { name: /Zuordnung/ })).not.toBeInTheDocument();
   });
 
   it("hydrates a persisted preview when job details finish loading after the dialog opens", async () => {
@@ -349,6 +381,30 @@ describe("data transfer operational dialogs", () => {
     await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Auftrag wurde zwischenzeitlich geändert");
     expect(within(dialog).getByRole("button", { name: "Export ausführen" })).toBeEnabled();
+    await user.click(within(dialog).getAllByRole("button", { name: "Schließen" }).at(-1)!);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("requires a fresh upload after a confirm conflict", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.mocked(api.confirmDataTransferImport).mockRejectedValueOnce(new ApiError("revision", "conflict", 409));
+    const refreshedReady = { ...previewFixture.job, state: "ready" as const, readyRecords: 1,
+      errorRecords: 0, preview: { records: previewFixture.records } };
+    vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: refreshedReady,
+      issues: [{ ...importIssue, selectedResolution: "replace" }], artifacts: [] });
+    render(<ImportExportView roles={["Editor"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
+    const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
+    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
+    await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
+    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
+    expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
+    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b;c"], "fahrzeuge-neu.csv"));
+    expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeEnabled();
   });
 
   it("lists import and disabled profiles in profile management", async () => {

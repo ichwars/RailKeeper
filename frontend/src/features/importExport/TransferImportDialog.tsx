@@ -53,7 +53,10 @@ export function TransferImportDialog({
   const [job, setJob] = useState<DataTransferJob | null>(initialJob || null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<DataTransferPreview | null>(() => previewFromDetails(initialJob, initialDetails));
-  const [mappingAccepted, setMappingAccepted] = useState(false);
+  const [mappingAccepted, setMappingAccepted] = useState(
+    Boolean(previewFromDetails(initialJob, initialDetails) && initialJob?.format !== "csv")
+  );
+  const [requiresReupload, setRequiresReupload] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -71,7 +74,7 @@ export function TransferImportDialog({
       .map((issue) => `${issue.area}:${issue.recordKey}`));
     return preview.records.filter((record) => !skipped.has(`${record.area}:${record.recordKey}`)).length;
   }, [preview, unresolvedIssues.length]);
-  const step = currentStep(profileId, file, preview, job, mappingAccepted);
+  const step = currentStep(profileId, file, preview, job, mappingAccepted, requiresReupload);
 
   useEffect(() => {
     if (!initialJob) return;
@@ -83,6 +86,7 @@ export function TransferImportDialog({
     if (persistedPreview) {
       setPreview((current) => current?.job.id === persistedPreview.job.id &&
         current.job.revision > persistedPreview.job.revision ? current : persistedPreview);
+      setMappingAccepted(initialJob.format !== "csv");
     }
   }, [initialDetails, initialJob]);
 
@@ -98,6 +102,7 @@ export function TransferImportDialog({
       setFile(null);
       setPreview(null);
       setMappingAccepted(false);
+      setRequiresReupload(false);
     } catch (reason) {
       setError(errorMessage(reason, copy.changeError));
     } finally {
@@ -121,7 +126,8 @@ export function TransferImportDialog({
       const nextPreview = await onUpload(activeJob.id, nextFile);
       setJob(nextPreview.job);
       setPreview(clonePreview(nextPreview));
-      setMappingAccepted(false);
+      setMappingAccepted(nextPreview.job.format !== "csv");
+      setRequiresReupload(false);
     } catch (reason) {
       await recoverConflict(reason, activeJobId, copy.uploadError);
     } finally {
@@ -158,13 +164,14 @@ export function TransferImportDialog({
       await onConfirm(job.id);
       onClose();
     } catch (reason) {
-      await recoverConflict(reason, job.id, copy.confirmError);
+      await recoverConflict(reason, job.id, copy.confirmError, true);
     } finally {
       setBusy(false);
     }
   }
 
-  async function recoverConflict(reason: unknown, jobId: string | undefined, fallback: string) {
+  async function recoverConflict(reason: unknown, jobId: string | undefined, fallback: string,
+    reuploadRequired = false) {
     if (!(reason instanceof ApiError) || reason.status !== 409 || !jobId) {
       setError(errorMessage(reason, fallback));
       return;
@@ -173,8 +180,9 @@ export function TransferImportDialog({
       const details = await onRefreshJob(jobId);
       setJob(details.job);
       setPreview(previewFromDetails(details.job, details));
-      setMappingAccepted(false);
-      setError(copy.conflictRecovery);
+      setMappingAccepted(details.job.format !== "csv" && !reuploadRequired);
+      setRequiresReupload(reuploadRequired);
+      setError(reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
     } catch (refreshError) {
       setError(errorMessage(refreshError, copy.conflictRecovery));
     }
@@ -240,23 +248,23 @@ export function TransferImportDialog({
             </label>
           ) : null}
 
-          {preview && !mappingAccepted ? (
+          {preview && preview.job.format === "csv" && !mappingAccepted ? (
             <section className="transfer-mapping-section">
               <header><div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.mappingTitle}</h3></div></header>
               <p>{copy.mappingExplanation}</p>
-              <h4>{copy.recognizedFields}</h4>
+              <h4>{copy.normalizedFields}</h4>
               <ul>{previewFields(preview).map((field) => <li key={field}><code>{field}</code></li>)}</ul>
               <p>{mappingIssueSummary(preview.issues, language)}</p>
               <div className="transfer-mapping-actions">
                 <button type="button" className="secondary-button" disabled={busy}
                   onClick={() => fileRef.current?.click()}>{copy.reupload}</button>
-                <button type="button" className="primary-button" disabled={busy}
+                <button type="button" className="primary-button" disabled={busy || requiresReupload}
                   onClick={() => setMappingAccepted(true)}>{copy.continueReview}</button>
               </div>
             </section>
           ) : null}
 
-          {preview && mappingAccepted ? (
+          {preview && mappingAccepted && !requiresReupload ? (
             <section className="transfer-preview-section">
               <header>
                 <div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.preview}</h3></div>
@@ -302,7 +310,8 @@ export function TransferImportDialog({
 }
 
 function currentStep(profileId: string, file: File | null, preview: DataTransferPreview | null, job: DataTransferJob | null,
-  mappingAccepted: boolean) {
+  mappingAccepted: boolean, requiresReupload: boolean) {
+  if (requiresReupload) return "file";
   if (preview) return mappingAccepted
     ? (preview.issues.some((issue) => !issue.selectedResolution) ? "review" : "confirm")
     : "mapping";
@@ -396,8 +405,9 @@ function importCopy(language: Language) {
     confirmError: "Der Import konnte nicht bestätigt werden.", cancelJobError: "Der Auftrag konnte nicht abgebrochen werden.",
     changeError: "Der Import konnte nicht auf ein anderes Profil umgestellt werden."
     ,mappingTitle: "Erkannte CSV-Zuordnung", mappingExplanation: "Die Zuordnung wurde serverseitig aus Spalten und Aliasen erkannt. Änderungen erfordern: Quelldatei bearbeiten und erneut hochladen.",
-    recognizedFields: "Erkannte Spalten und Aliase", reupload: "Datei erneut auswählen", continueReview: "Weiter zur Prüfung",
-    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert. Die persistente Vorschau wurde neu gelesen. Bitte Zuordnung und Konflikte erneut prüfen."
+    normalizedFields: "Serverseitig normalisierte Zielfelder (automatische Alias-Erkennung)", reupload: "Datei erneut auswählen", continueReview: "Weiter zur Prüfung",
+    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert. Die persistente Vorschau wurde neu gelesen. Bitte Zuordnung und Konflikte erneut prüfen.",
+    confirmConflictRecovery: "Der Auftrag wurde beim Bestätigen geändert. Bitte die Quelldatei erneut hochladen und die neue Vorschau vollständig prüfen."
   } : {
     title: "Review import", eyebrow: "SAFE IMPORT", close: "Close", progress: "Import steps",
     steps: { profile: "Profile", file: "File", mapping: "Mapping", review: "Review", confirm: "Confirmation" },
@@ -413,8 +423,9 @@ function importCopy(language: Language) {
     confirmError: "The import could not be confirmed.", cancelJobError: "The job could not be cancelled.",
     changeError: "The import could not be changed to another profile."
     ,mappingTitle: "Detected CSV mapping", mappingExplanation: "The mapping was detected by the server from columns and aliases. To change it, edit the source file and upload it again.",
-    recognizedFields: "Detected columns and aliases", reupload: "Choose file again", continueReview: "Continue to review",
-    conflictRecovery: "The job changed in the meantime. The persistent preview was re-read. Review the mapping and conflicts again."
+    normalizedFields: "Server-normalized target fields (automatic alias detection)", reupload: "Choose file again", continueReview: "Continue to review",
+    conflictRecovery: "The job changed in the meantime. The persistent preview was re-read. Review the mapping and conflicts again.",
+    confirmConflictRecovery: "The job changed during confirmation. Upload the source file again and fully review the new preview."
   };
 }
 

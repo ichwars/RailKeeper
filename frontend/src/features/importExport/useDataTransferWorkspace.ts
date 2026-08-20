@@ -232,6 +232,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     const details = await api.dataTransferJob(jobId);
     if (!visibleJob(details.job)) throw new Error("Der Auftrag ist für diese Rolle nicht verfügbar.");
     if (mountedRef.current) {
+      setError("");
       setSelectedJobDetails(details);
       setJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));
       setAllJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));

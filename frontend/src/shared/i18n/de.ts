@@ -1106,6 +1106,7 @@ export const deTranslations: Record<string, string> = {
     "importExport.dashboard.details.retry": "Erneut versuchen",
     "importExport.dashboard.details.confirm": "Import bestätigen",
     "importExport.dashboard.details.continue": "Prüfung fortsetzen",
+    "importExport.dashboard.details.continueExport": "Export fortsetzen",
     "importExport.dashboard.storage.title": "Lokale Ablage",
     "importExport.dashboard.storage.files": "{count} Dateien",
     "importExport.dashboard.storage.openFolder": "Ordner öffnen",

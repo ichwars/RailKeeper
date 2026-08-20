@@ -1106,6 +1106,7 @@ export const enTranslations: Record<string, string> = {
     "importExport.dashboard.details.retry": "Retry",
     "importExport.dashboard.details.confirm": "Confirm import",
     "importExport.dashboard.details.continue": "Continue review",
+    "importExport.dashboard.details.continueExport": "Continue export",
     "importExport.dashboard.storage.title": "Local storage",
     "importExport.dashboard.storage.files": "{count} files",
     "importExport.dashboard.storage.openFolder": "Open folder",
