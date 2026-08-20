@@ -96,6 +96,20 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 		t.Fatal(err)
 	}
 	assertTransferIssueCode(t, vehiclePreview.Issues, "duplicate_inventory_number")
+	if vehiclePreview.Records[0].TargetFingerprint == "" {
+		t.Fatal("vehicle duplicate preview has no aggregate target fingerprint")
+	}
+	persistedVehicleJob, err := repository.GetJob(t.Context(), vehicleJob.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	persistedPreview, err := json.Marshal(persistedVehicleJob.Preview)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(persistedPreview), `"targetFingerprint"`) {
+		t.Fatalf("persisted preview omitted target fingerprint: %s", persistedPreview)
+	}
 
 	accessoryJob := fixtureCreateImportJob(t, service, TransferAccessories, TransferCSV)
 	accessoryPreview, err := service.UploadAndPreview(t.Context(), accessoryJob.ID, "accessories.csv", []byte(
@@ -104,6 +118,9 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 		t.Fatal(err)
 	}
 	assertTransferIssueCode(t, accessoryPreview.Issues, "matching_manufacturer_article_number")
+	if accessoryPreview.Records[0].TargetFingerprint == "" {
+		t.Fatal("accessory duplicate preview has no aggregate target fingerprint")
+	}
 
 	exhibitionJob := fixtureCreateImportJob(t, service, TransferExhibitionLists, TransferJSON)
 	payload, err := json.Marshal(DataTransferPackage{
@@ -128,6 +145,9 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 	assertTransferIssueCode(t, exhibitionPreview.Issues, "locked_exhibition_list")
 	assertTransferIssueCode(t, exhibitionPreview.Issues, "missing_vehicle_reference")
 	assertTransferIssueCode(t, exhibitionPreview.Issues, "exhibition_vehicle_reference")
+	if exhibitionPreview.Records[0].TargetFingerprint == "" {
+		t.Fatal("exhibition duplicate preview has no aggregate target fingerprint")
+	}
 	if exhibitionPreview.ErrorRecords != 1 {
 		t.Fatalf("locked replacement was not classified as an error: %#v", exhibitionPreview)
 	}
@@ -155,6 +175,44 @@ func TestPreviewImportDoesNotTrustForeignExhibitionListIDWithoutMatchingIdentity
 	if len(preview.Issues) != 0 || preview.ReadyRecords != 1 || preview.Records[0].TargetID != "" ||
 		preview.Records[0].ProposedAction != "create" {
 		t.Fatalf("foreign ID collision was trusted as local identity: %#v", preview)
+	}
+}
+
+func TestDataTransferPreviewIssuesHaveDeterministicRecordAndEntryIdentity(t *testing.T) {
+	incoming := DataTransferSnapshot{
+		Vehicles: []TransferVehicle{
+			{InventoryNumber: "RK-DUP", Manufacturer: "Roco", Name: "First"},
+			{InventoryNumber: "RK-DUP", Manufacturer: "Roco", Name: "Second"},
+		},
+		ExhibitionLists: []TransferExhibitionList{{
+			Designation: "Identity", Date: "2026-08-20", Entries: []TransferExhibitionEntry{
+				{VehicleID: "foreign-a", VehicleInventoryNumber: "RK-A"},
+				{VehicleID: "foreign-b", VehicleInventoryNumber: "RK-B"},
+			},
+		}},
+	}
+	records, issues := classifyDataTransferImport("job-identity", incoming, DataTransferSnapshot{}, nil)
+	_, repeated := classifyDataTransferImport("job-identity", incoming, DataTransferSnapshot{}, nil)
+	if records[0].RowNumber == nil || *records[0].RowNumber != 1 ||
+		records[1].RowNumber == nil || *records[1].RowNumber != 2 {
+		t.Fatalf("JSON record rows are not deterministic: %#v", records[:2])
+	}
+	if len(issues) != len(repeated) {
+		t.Fatalf("issue count changed: %d != %d", len(issues), len(repeated))
+	}
+	seenIDs := map[string]bool{}
+	entryFields := map[string]bool{}
+	for index, issue := range issues {
+		if issue.ID == "" || issue.ID != repeated[index].ID || seenIDs[issue.ID] {
+			t.Fatalf("issue identity is not deterministic and unique: %#v / %#v", issues, repeated)
+		}
+		seenIDs[issue.ID] = true
+		if issue.Code == "missing_vehicle_reference" {
+			entryFields[issue.Field] = true
+		}
+	}
+	if !entryFields["entries[0].vehicleReference"] || !entryFields["entries[1].vehicleReference"] {
+		t.Fatalf("entry issues are not independently keyed: %#v", issues)
 	}
 }
 

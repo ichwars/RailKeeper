@@ -120,13 +120,18 @@ FROM data_transfer_jobs WHERE id=?`, job.ID).Scan(
 			return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("import has unresolved conflicts")
 		}
 	}
+	targetFingerprints, err := currentTransferTargetFingerprints(ctx, tx, preview.Records)
+	if err != nil {
+		return dataTransferPersistedPreview{}, nil, err
+	}
 	for _, record := range preview.Records {
 		if !slices.Contains(job.Areas, record.Area) {
 			return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("preview contains an unselected area")
 		}
 		if record.TargetID != "" {
-			if err := revalidateTransferTarget(ctx, tx, record); err != nil {
-				return dataTransferPersistedPreview{}, nil, err
+			if record.TargetFingerprint == "" ||
+				targetFingerprints[record.Area][record.TargetID] != record.TargetFingerprint {
+				return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("preview target changed")
 			}
 		}
 	}
@@ -174,35 +179,49 @@ func validTransferApplyResolution(code, resolution string) bool {
 	return allowed[code][resolution]
 }
 
-func revalidateTransferTarget(
+func currentTransferTargetFingerprints(
 	ctx context.Context,
-	db dataTransferApplyDB,
-	record application.DataTransferPreviewRecord,
-) error {
-	table := map[application.TransferArea]string{
-		application.TransferVehicles:        "vehicles",
-		application.TransferAccessories:     "accessory_products",
-		application.TransferExhibitionLists: "exhibition_lists",
-	}[record.Area]
-	if table == "" || record.TargetUpdatedAt == "" {
-		return dataTransferApplyConflict("preview target is invalid")
-	}
-	query := map[string]string{
-		"vehicles":           `SELECT updated_at FROM vehicles WHERE id=?`,
-		"accessory_products": `SELECT updated_at FROM accessory_products WHERE id=?`,
-		"exhibition_lists":   `SELECT updated_at FROM exhibition_lists WHERE id=?`,
-	}[table]
-	var updatedAt string
-	if err := db.QueryRowContext(ctx, query, record.TargetID).Scan(&updatedAt); err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return dataTransferApplyConflict("preview target no longer exists")
+	tx *sql.Tx,
+	records []application.DataTransferPreviewRecord,
+) (map[application.TransferArea]map[string]string, error) {
+	wanted := map[application.TransferArea]bool{}
+	for _, record := range records {
+		if record.TargetID != "" {
+			wanted[record.Area] = true
 		}
-		return fmt.Errorf("revalidate data transfer target: %w", err)
 	}
-	if updatedAt != record.TargetUpdatedAt {
-		return dataTransferApplyConflict("preview target changed")
+	fingerprints := map[application.TransferArea]map[string]string{}
+	if wanted[application.TransferVehicles] {
+		vehicles, err := transferVehicleSnapshot(ctx, tx)
+		if err != nil {
+			return nil, err
+		}
+		fingerprints[application.TransferVehicles] = map[string]string{}
+		for _, vehicle := range vehicles {
+			fingerprints[application.TransferVehicles][vehicle.ID] = application.DataTransferTargetFingerprint(vehicle)
+		}
 	}
-	return nil
+	if wanted[application.TransferAccessories] {
+		accessories, err := transferAccessorySnapshot(ctx, tx)
+		if err != nil {
+			return nil, err
+		}
+		fingerprints[application.TransferAccessories] = map[string]string{}
+		for _, accessory := range accessories {
+			fingerprints[application.TransferAccessories][accessory.ID] = application.DataTransferTargetFingerprint(accessory)
+		}
+	}
+	if wanted[application.TransferExhibitionLists] {
+		lists, err := transferExhibitionSnapshot(ctx, tx)
+		if err != nil {
+			return nil, err
+		}
+		fingerprints[application.TransferExhibitionLists] = map[string]string{}
+		for _, list := range lists {
+			fingerprints[application.TransferExhibitionLists][list.ID] = application.DataTransferTargetFingerprint(list)
+		}
+	}
+	return fingerprints, nil
 }
 
 func applyTransferRecords(
@@ -248,11 +267,19 @@ func transferRecordIssues(
 ) []application.DataTransferIssue {
 	matched := []application.DataTransferIssue{}
 	for _, issue := range issues {
-		if issue.Area == record.Area && issue.RecordKey == record.RecordKey {
+		if issue.Area == record.Area && issue.RecordKey == record.RecordKey &&
+			transferRowNumbersEqual(issue.RowNumber, record.RowNumber) {
 			matched = append(matched, issue)
 		}
 	}
 	return matched
+}
+
+func transferRowNumbersEqual(left, right *int) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
 }
 
 func transferRecordAction(
@@ -405,12 +432,6 @@ UPDATE accessory_products SET inventory_number=?, manufacturer=?, article_number
 		if err := requireApplyUpdate(result, "replace accessory"); err != nil {
 			return err
 		}
-		if _, err := db.ExecContext(ctx, `DELETE FROM accessory_stock WHERE product_id=?`, productID); err != nil {
-			return err
-		}
-		if _, err := db.ExecContext(ctx, `DELETE FROM accessory_assets WHERE product_id=?`, productID); err != nil {
-			return err
-		}
 	}
 	for _, stock := range accessory.Stock {
 		locationID, err := transferStorageLocation(ctx, db, stock.LocationID, stock.LocationName, now)
@@ -418,7 +439,8 @@ UPDATE accessory_products SET inventory_number=?, manufacturer=?, article_number
 			return err
 		}
 		if _, err := db.ExecContext(ctx, `
-INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at) VALUES(?, ?, ?, ?)`,
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at) VALUES(?, ?, ?, ?)
+ON CONFLICT(product_id, location_id) DO UPDATE SET quantity=excluded.quantity, updated_at=excluded.updated_at`,
 			productID, locationID, stock.Quantity, now); err != nil {
 			return err
 		}
@@ -441,6 +463,21 @@ INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at) VALUE
 				return err
 			}
 		}
+		if action == "replace" {
+			matchedID, err := matchingTransferAccessoryAsset(ctx, db, productID, asset)
+			if err != nil {
+				return err
+			}
+			if matchedID != "" {
+				if err := updateTransferAccessoryAsset(ctx, db, matchedID, asset, locationID, now); err != nil {
+					return err
+				}
+				continue
+			}
+		}
+		if asset.Lifecycle == "reserved" || asset.Lifecycle == "installed" {
+			return dataTransferApplyConflict("imported accessory asset has no matching local relationship")
+		}
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO accessory_assets(
   id, product_id, inventory_number, serial_number, condition_state, lifecycle_state, storage_location_id,
@@ -452,6 +489,74 @@ INSERT INTO accessory_assets(
 		}
 	}
 	return nil
+}
+
+func matchingTransferAccessoryAsset(
+	ctx context.Context,
+	db dataTransferApplyDB,
+	productID string,
+	asset application.TransferAccessoryAsset,
+) (string, error) {
+	var id string
+	if asset.ID != "" {
+		err := db.QueryRowContext(ctx, `SELECT id FROM accessory_assets WHERE id=? AND product_id=?`,
+			asset.ID, productID).Scan(&id)
+		if err == nil {
+			return id, nil
+		}
+		if !errors.Is(err, sql.ErrNoRows) {
+			return "", fmt.Errorf("match imported accessory asset by id: %w", err)
+		}
+	}
+	if asset.InventoryNumber == "" {
+		return "", nil
+	}
+	err := db.QueryRowContext(ctx, `
+SELECT id FROM accessory_assets WHERE product_id=? AND inventory_number=? COLLATE NOCASE`,
+		productID, asset.InventoryNumber).Scan(&id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", nil
+	}
+	if err != nil {
+		return "", fmt.Errorf("match imported accessory asset by inventory number: %w", err)
+	}
+	return id, nil
+}
+
+func updateTransferAccessoryAsset(
+	ctx context.Context,
+	db dataTransferApplyDB,
+	assetID string,
+	asset application.TransferAccessoryAsset,
+	locationID string,
+	now string,
+) error {
+	var activeReservations, activeInstallations int
+	var reservationLocation string
+	if err := db.QueryRowContext(ctx, `
+SELECT
+  (SELECT COUNT(*) FROM accessory_reservations WHERE asset_id=? AND status='active'),
+	  (SELECT COUNT(*) FROM accessory_installations WHERE asset_id=? AND removed_at IS NULL),
+  COALESCE((SELECT MAX(location_id) FROM accessory_reservations WHERE asset_id=? AND status='active'), '')`,
+		assetID, assetID, assetID).Scan(&activeReservations, &activeInstallations, &reservationLocation); err != nil {
+		return fmt.Errorf("check imported accessory asset relationships: %w", err)
+	}
+	if activeReservations > 0 && (asset.Lifecycle != "reserved" || locationID != reservationLocation) ||
+		activeInstallations > 0 && (asset.Lifecycle != "installed" || locationID != "") ||
+		asset.Lifecycle == "reserved" && activeReservations == 0 ||
+		asset.Lifecycle == "installed" && activeInstallations == 0 {
+		return dataTransferApplyConflict("imported accessory asset conflicts with a local relationship")
+	}
+	result, err := db.ExecContext(ctx, `
+UPDATE accessory_assets
+SET inventory_number=NULLIF(?, ''), serial_number=?, condition_state=?, lifecycle_state=?,
+    storage_location_id=NULLIF(?, ''), purchase_date=?, purchase_price=?, warranty_until=?, notes=?, updated_at=?
+WHERE id=?`, asset.InventoryNumber, asset.SerialNumber, asset.Condition, asset.Lifecycle, locationID,
+		asset.PurchaseDate, asset.PurchasePrice, asset.WarrantyUntil, asset.Notes, now, assetID)
+	if err != nil {
+		return err
+	}
+	return requireApplyUpdate(result, "update imported accessory asset")
 }
 
 func transferStorageLocation(
@@ -531,12 +636,8 @@ VALUES(?, ?, ?, ?, ?, ?)`, listID, list.Designation, list.Date, list.Locked, now
 	} else {
 		return dataTransferApplyConflict("unsupported exhibition-list resolution")
 	}
-	referenceIssues := slices.DeleteFunc(slices.Clone(issues), func(issue application.DataTransferIssue) bool {
-		return issue.Code != "exhibition_vehicle_reference" && issue.Code != "missing_vehicle_reference"
-	})
-	referenceIssueIndex := 0
-	for _, entry := range list.Entries {
-		vehicleID, err := resolveTransferExhibitionVehicle(ctx, db, entry, referenceIssues, &referenceIssueIndex)
+	for entryIndex, entry := range list.Entries {
+		vehicleID, err := resolveTransferExhibitionVehicle(ctx, db, entry, issues, entryIndex)
 		if err != nil {
 			return err
 		}
@@ -561,7 +662,7 @@ func resolveTransferExhibitionVehicle(
 	db dataTransferApplyDB,
 	entry application.TransferExhibitionEntry,
 	issues []application.DataTransferIssue,
-	issueIndex *int,
+	entryIndex int,
 ) (string, error) {
 	if entry.VehicleID == "" && entry.VehicleInventoryNumber == "" {
 		return "", nil
@@ -578,11 +679,18 @@ func resolveTransferExhibitionVehicle(
 			return "", err
 		}
 	}
-	if *issueIndex >= len(issues) {
+	var issue *application.DataTransferIssue
+	field := fmt.Sprintf("entries[%d].vehicleReference", entryIndex)
+	for index := range issues {
+		if issues[index].Field == field && (issues[index].Code == "exhibition_vehicle_reference" ||
+			issues[index].Code == "missing_vehicle_reference") {
+			issue = &issues[index]
+			break
+		}
+	}
+	if issue == nil {
 		return "", dataTransferApplyConflict("exhibition vehicle resolution is missing")
 	}
-	issue := issues[*issueIndex]
-	*issueIndex++
 	if issue.SelectedResolution == "skip" {
 		return "", nil
 	}

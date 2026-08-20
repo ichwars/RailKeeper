@@ -36,14 +36,24 @@ type DataTransferPreview struct {
 }
 
 type DataTransferPreviewRecord struct {
-	Area            TransferArea    `json:"area"`
-	RecordKey       string          `json:"recordKey"`
-	RowNumber       *int            `json:"rowNumber,omitempty"`
-	Classification  string          `json:"classification"`
-	ProposedAction  string          `json:"proposedAction"`
-	TargetID        string          `json:"targetId,omitempty"`
-	TargetUpdatedAt string          `json:"targetUpdatedAt,omitempty"`
-	Data            json.RawMessage `json:"data"`
+	Area              TransferArea    `json:"area"`
+	RecordKey         string          `json:"recordKey"`
+	RowNumber         *int            `json:"rowNumber,omitempty"`
+	Classification    string          `json:"classification"`
+	ProposedAction    string          `json:"proposedAction"`
+	TargetID          string          `json:"targetId,omitempty"`
+	TargetUpdatedAt   string          `json:"targetUpdatedAt,omitempty"`
+	TargetFingerprint string          `json:"targetFingerprint,omitempty"`
+	Data              json.RawMessage `json:"data"`
+}
+
+func DataTransferTargetFingerprint(value any) string {
+	payload, err := json.Marshal(value)
+	if err != nil {
+		return ""
+	}
+	digest := sha256.Sum256(payload)
+	return hex.EncodeToString(digest[:])
 }
 
 type dataTransferImportRepository interface {

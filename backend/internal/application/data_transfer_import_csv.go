@@ -2,7 +2,9 @@ package application
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -286,6 +288,7 @@ func classifyDataTransferImport(
 		} else if target, found := currentVehiclesByInventory[identity]; identity != "" && found {
 			record.TargetID = target.ID
 			record.TargetUpdatedAt = target.UpdatedAt
+			record.TargetFingerprint = DataTransferTargetFingerprint(target)
 			record.ProposedAction = "replace"
 			issues = append(issues, newTransferIssue(jobID, TransferVehicles, recordKey, rowNumber, "inventoryNumber",
 				TransferIssueWarning, "duplicate_inventory_number", "Inventory number already exists.", "replace_or_copy"))
@@ -323,12 +326,14 @@ func classifyDataTransferImport(
 		} else if target, found := currentAccessoriesByInventory[identity]; identity != "" && found {
 			record.TargetID = target.ID
 			record.TargetUpdatedAt = target.UpdatedAt
+			record.TargetFingerprint = DataTransferTargetFingerprint(target)
 			record.ProposedAction = "replace"
 			issues = append(issues, newTransferIssue(jobID, TransferAccessories, recordKey, rowNumber, "inventoryNumber",
 				TransferIssueWarning, "duplicate_inventory_number", "Inventory number already exists.", "replace_or_copy"))
 		} else if target, found := currentAccessoriesByArticle[transferArticleIdentity(accessory.Manufacturer, accessory.ArticleNumber)]; found {
 			record.TargetID = target.ID
 			record.TargetUpdatedAt = target.UpdatedAt
+			record.TargetFingerprint = DataTransferTargetFingerprint(target)
 			record.ProposedAction = "use_existing"
 			issues = append(issues, newTransferIssue(jobID, TransferAccessories, recordKey, rowNumber, "articleNumber",
 				TransferIssueWarning, "matching_manufacturer_article_number",
@@ -372,6 +377,7 @@ func classifyDataTransferImport(
 		if matched {
 			record.TargetID = target.ID
 			record.TargetUpdatedAt = target.UpdatedAt
+			record.TargetFingerprint = DataTransferTargetFingerprint(target)
 			if target.Locked {
 				record.ProposedAction = "copy"
 				issues = append(issues, newTransferIssue(jobID, TransferExhibitionLists, recordKey, rowNumber, "id",
@@ -383,7 +389,7 @@ func classifyDataTransferImport(
 					"Exhibition list already exists; choose replace or copy.", "replace_or_copy"))
 			}
 		}
-		for _, entry := range list.Entries {
+		for entryIndex, entry := range list.Entries {
 			if entry.VehicleID == "" && entry.VehicleInventoryNumber == "" {
 				continue
 			}
@@ -394,11 +400,11 @@ func classifyDataTransferImport(
 			}
 			if _, found := currentVehiclesByInventory[transferIdentity(entry.VehicleInventoryNumber)]; found {
 				issues = append(issues, newTransferIssue(jobID, TransferExhibitionLists, recordKey, rowNumber,
-					"vehicleInventoryNumber", TransferIssueWarning, "exhibition_vehicle_reference",
+					transferExhibitionEntryIssueField(entryIndex), TransferIssueWarning, "exhibition_vehicle_reference",
 					"Vehicle reference can be linked by inventory number after confirmation.", "link"))
 			} else {
 				issues = append(issues, newTransferIssue(jobID, TransferExhibitionLists, recordKey, rowNumber,
-					"vehicleInventoryNumber", TransferIssueError, "missing_vehicle_reference",
+					transferExhibitionEntryIssueField(entryIndex), TransferIssueError, "missing_vehicle_reference",
 					"Referenced vehicle does not exist in this installation.", "skip"))
 			}
 		}
@@ -444,8 +450,15 @@ func newTransferIssue(
 	message string,
 	proposedResolution string,
 ) DataTransferIssue {
+	row := 0
+	if rowNumber != nil {
+		row = *rowNumber
+	}
+	identity := fmt.Sprintf("%s\x00%s\x00%s\x00%d\x00%s\x00%s", jobID, area, recordKey, row, field, code)
+	digest := sha256.Sum256([]byte(identity))
 	return DataTransferIssue{
-		JobID: jobID, Area: area, RecordKey: recordKey, RowNumber: rowNumber, Field: field,
+		ID: hex.EncodeToString(digest[:]), JobID: jobID, Area: area, RecordKey: recordKey,
+		RowNumber: rowNumber, Field: field,
 		Severity: severity, Code: code, Message: message, ProposedResolution: proposedResolution,
 	}
 }
@@ -509,10 +522,15 @@ func transferExhibitionIdentity(designation, date string) string {
 
 func transferRowNumber(rows []int, index int) *int {
 	if index < 0 || index >= len(rows) {
-		return nil
+		value := index + 1
+		return &value
 	}
 	value := rows[index]
 	return &value
+}
+
+func transferExhibitionEntryIssueField(index int) string {
+	return fmt.Sprintf("entries[%d].vehicleReference", index)
 }
 
 func transferRowValue(rowNumber *int, fallback int) int {

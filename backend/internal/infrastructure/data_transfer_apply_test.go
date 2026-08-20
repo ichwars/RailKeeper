@@ -1,7 +1,9 @@
 package infrastructure_test
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -168,9 +170,14 @@ func TestDataTransferApplyRejectsStaleTargetChangedSourceAndUnresolvedIssues(t *
 					t.Fatal(err)
 				}
 				record := applyVehicleRecord(t, "RK-OLD", "Piko")
+				snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+				if err != nil {
+					t.Fatal(err)
+				}
 				record.ProposedAction = "replace"
 				record.TargetID = "vehicle-existing"
 				record.TargetUpdatedAt = "2026-01-01T00:00:00Z"
+				record.TargetFingerprint = applyTargetFingerprint(t, snapshot.Vehicles[0])
 				job := createApplyJob(t, repository, "sha-stale", []application.DataTransferPreviewRecord{record})
 				if err := repository.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{{
 					JobID: job.ID, Area: application.TransferVehicles, RecordKey: "RK-OLD",
@@ -229,6 +236,118 @@ func TestDataTransferApplyRejectsStaleTargetChangedSourceAndUnresolvedIssues(t *
 	}
 }
 
+func TestDataTransferApplyRejectsSameSecondVehicleMutation(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, created_at, updated_at)
+		VALUES('vehicle-fingerprint', 'RK-FP', 'Roco', 'Original', 'H0', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := applyVehicleRecord(t, "RK-FP", "Piko")
+	record.TargetID = "vehicle-fingerprint"
+	record.TargetUpdatedAt = timestamp
+	record.TargetFingerprint = applyTargetFingerprint(t, snapshot.Vehicles[0])
+	record.ProposedAction = "replace"
+	record.Classification = "warning"
+	job := createApplyJob(t, repository, "sha-vehicle-fingerprint", []application.DataTransferPreviewRecord{record})
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_inventory_number", "replace")
+	if _, err := db.Exec(`UPDATE vehicles SET name='Changed in same second', updated_at=? WHERE id=?`,
+		timestamp, record.TargetID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want same-second fingerprint conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+}
+
+func TestDataTransferApplyRejectsSameSecondAccessoryChildMutation(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
+		VALUES('location-fingerprint', 'Shelf', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	insertApplyAccessoryProduct(t, db, "product-fingerprint", "RK-ART-FP", timestamp)
+	if _, err := db.Exec(`INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+		VALUES('product-fingerprint', 'location-fingerprint', 2, ?)`, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := snapshot.Accessories[0]
+	data, err := json.Marshal(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: target.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: target.ID, TargetUpdatedAt: timestamp,
+		TargetFingerprint: applyTargetFingerprint(t, target), Data: data,
+	}
+	job := createApplyJob(t, repository, "sha-accessory-fingerprint", []application.DataTransferPreviewRecord{record})
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_inventory_number", "replace")
+	if _, err := db.Exec(`UPDATE accessory_stock SET quantity=9, updated_at=? WHERE product_id=?`,
+		timestamp, target.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want accessory aggregate conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+}
+
+func TestDataTransferApplyRejectsSameSecondExhibitionEntryMutation(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO exhibition_lists(id, designation, list_date, created_at, updated_at)
+		VALUES('list-fingerprint', 'Show', '2026-08-20', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO exhibition_entries(
+		id, list_id, vehicle_id, owner, locomotive_name, day_scope, notes, created_at, updated_at
+	) VALUES('entry-fingerprint', 'list-fingerprint', '', 'Club', 'BR 01', 'all', 'Original', ?, ?)`,
+		timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferExhibitionLists})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := snapshot.ExhibitionLists[0]
+	data, err := json.Marshal(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferExhibitionLists, RecordKey: target.ID, Classification: "warning",
+		ProposedAction: "replace", TargetID: target.ID, TargetUpdatedAt: timestamp,
+		TargetFingerprint: applyTargetFingerprint(t, target), Data: data,
+	}
+	job := createApplyJob(t, repository, "sha-list-fingerprint", []application.DataTransferPreviewRecord{record})
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_exhibition_list", "replace")
+	if _, err := db.Exec(`UPDATE exhibition_entries SET notes='Changed in same second', updated_at=? WHERE id=?`,
+		timestamp, "entry-fingerprint"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want exhibition aggregate conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+}
+
 func TestDataTransferApplyNeverReplacesLockedExhibitionList(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)
@@ -273,8 +392,13 @@ func TestDataTransferApplyUsesApprovedVehicleReplace(t *testing.T) {
 		t.Fatal(err)
 	}
 	record := applyVehicleRecord(t, "RK-REPLACE", "Piko")
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
 	record.TargetID = "vehicle-replace"
 	record.TargetUpdatedAt = "2026-01-01T00:00:00Z"
+	record.TargetFingerprint = applyTargetFingerprint(t, snapshot.Vehicles[0])
 	record.ProposedAction = "replace"
 	record.Classification = "warning"
 	job := createApplyJob(t, repository, "sha-replace", []application.DataTransferPreviewRecord{record})
@@ -324,10 +448,15 @@ func TestDataTransferApplyCopiesAccessoryAssetInventoryNumbersSafely(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
 	record := application.DataTransferPreviewRecord{
 		Area: application.TransferAccessories, RecordKey: "RK-ART-COPY", Classification: "warning",
 		ProposedAction: "replace", TargetID: "product-existing", TargetUpdatedAt: "2026-01-01T00:00:00Z", Data: data,
 	}
+	record.TargetFingerprint = applyTargetFingerprint(t, snapshot.Accessories[0])
 	job := createApplyJob(t, repository, "sha-accessory-copy", []application.DataTransferPreviewRecord{record})
 	if err := repository.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{{
 		JobID: job.ID, Area: record.Area, RecordKey: record.RecordKey, Severity: application.TransferIssueWarning,
@@ -347,6 +476,189 @@ func TestDataTransferApplyCopiesAccessoryAssetInventoryNumbersSafely(t *testing.
 	}
 	if products != 2 || assets != 2 {
 		t.Fatalf("copied accessory products=%d assets=%d", products, assets)
+	}
+}
+
+func TestDataTransferApplyAccessoryReplacePreservesPurchaseAndRelationships(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
+		VALUES('location-merge', 'Merge shelf', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, created_at, updated_at)
+		VALUES('vehicle-merge', 'RK-MERGE-VEHICLE', 'Roco', 'BR 01', 'H0', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_products(
+		id, inventory_number, manufacturer, name, category, tracking_mode, manufacturer_status, article_type,
+		package_quantity, stock_unit, minimum_stock, inventory_strategy, created_at, updated_at
+	) VALUES('product-merge', 'RK-ART-MERGE', 'Viessmann', 'Signal', 'Signal', 'individual', 'unknown',
+		'other', 1, 'piece', 0, 'individual', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_purchases(
+		id, product_id, destination_location_id, quantity, purchased_at, created_at, updated_at
+	) VALUES('purchase-merge', 'product-merge', 'location-merge', 2, '2025-12-01', ?, ?)`,
+		timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	for _, asset := range []struct {
+		id, inventoryNumber, lifecycle, location string
+	}{
+		{"asset-reserved", "RK-ASSET-RES", "reserved", "location-merge"},
+		{"asset-installed", "RK-ASSET-INST", "installed", ""},
+		{"asset-local", "RK-ASSET-LOCAL", "stored", "location-merge"},
+	} {
+		if _, err := db.Exec(`INSERT INTO accessory_assets(
+			id, product_id, purchase_id, inventory_number, condition_state, lifecycle_state, storage_location_id,
+			created_at, updated_at
+		) VALUES(?, 'product-merge', 'purchase-merge', ?, 'ready', ?, NULLIF(?, ''), ?, ?)`,
+			asset.id, asset.inventoryNumber, asset.lifecycle, asset.location, timestamp, timestamp); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_reservations(
+		id, product_id, asset_id, location_id, quantity, vehicle_id, status, created_by, created_at, updated_at
+	) VALUES('reservation-merge', 'product-merge', 'asset-reserved', 'location-merge', 1, 'vehicle-merge',
+		'active', 'editor-1', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_installations(
+		id, product_id, asset_id, source_location_id, quantity, vehicle_id, condition_state, installed_by,
+		installed_at
+	) VALUES('installation-merge', 'product-merge', 'asset-installed', 'location-merge', 1,
+		'vehicle-merge', 'ready', 'editor-1', ?)`, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := snapshot.Accessories[0]
+	incoming := target
+	incoming.Name = "Imported signal"
+	incoming.Assets = []application.TransferAccessoryAsset{}
+	for _, asset := range target.Assets {
+		if asset.ID != "asset-local" {
+			incoming.Assets = append(incoming.Assets, asset)
+		}
+	}
+	for index := range incoming.Assets {
+		incoming.Assets[index].Notes = "updated by import"
+	}
+	data, err := json.Marshal(incoming)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: target.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: target.ID, TargetUpdatedAt: target.UpdatedAt,
+		TargetFingerprint: applyTargetFingerprint(t, target), Data: data,
+	}
+	job := createApplyJob(t, repository, "sha-accessory-merge", []application.DataTransferPreviewRecord{record})
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_inventory_number", "replace")
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, assetID := range []string{"asset-reserved", "asset-installed"} {
+		var purchaseID, notes string
+		if err := db.QueryRow(`SELECT COALESCE(purchase_id, ''), notes FROM accessory_assets WHERE id=?`,
+			assetID).Scan(&purchaseID, &notes); err != nil {
+			t.Fatal(err)
+		}
+		if purchaseID != "purchase-merge" || notes != "updated by import" {
+			t.Fatalf("asset %s provenance changed: purchase=%q notes=%q", assetID, purchaseID, notes)
+		}
+	}
+	for table, id := range map[string]string{
+		"accessory_assets":        "asset-local",
+		"accessory_reservations":  "reservation-merge",
+		"accessory_installations": "installation-merge",
+	} {
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM "+table+" WHERE id=?", id).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("%s relationship %s was not preserved", table, id)
+		}
+	}
+	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
+		VALUES('location-other', 'Other shelf', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	refreshed, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
+	refreshedFingerprint := applyTargetFingerprint(t, refreshed.Accessories[0])
+	conflicting := refreshed.Accessories[0]
+	conflicting.Assets = append([]application.TransferAccessoryAsset(nil), conflicting.Assets...)
+	for index := range conflicting.Assets {
+		if conflicting.Assets[index].ID == "asset-reserved" {
+			conflicting.Assets[index].StorageLocationID = "location-other"
+			conflicting.Assets[index].StorageLocationName = "Other shelf"
+		}
+	}
+	conflictingData, err := json.Marshal(conflicting)
+	if err != nil {
+		t.Fatal(err)
+	}
+	conflictingRecord := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: conflicting.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: conflicting.ID, TargetUpdatedAt: conflicting.UpdatedAt,
+		TargetFingerprint: refreshedFingerprint, Data: conflictingData,
+	}
+	conflictingJob := createApplyJob(t, repository, "sha-accessory-invariant", []application.DataTransferPreviewRecord{
+		conflictingRecord,
+	})
+	resolveApplyIssue(t, repository, conflictingJob.ID, conflictingRecord, "duplicate_inventory_number", "replace")
+	if err := repository.ApplyImport(t.Context(), conflictingJob, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() invariant error = %v, want conflict", err)
+	}
+	var reservedLocation string
+	if err := db.QueryRow(`SELECT COALESCE(storage_location_id, '') FROM accessory_assets WHERE id='asset-reserved'`).
+		Scan(&reservedLocation); err != nil {
+		t.Fatal(err)
+	}
+	if reservedLocation != "location-merge" {
+		t.Fatalf("failed invariant import changed reserved asset location to %q", reservedLocation)
+	}
+	latest, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphaned := latest.Accessories[0]
+	orphaned.Assets = append(append([]application.TransferAccessoryAsset(nil), orphaned.Assets...),
+		application.TransferAccessoryAsset{
+			InventoryNumber: "RK-ASSET-ORPHAN", Condition: "ready", Lifecycle: "installed",
+		})
+	orphanedData, err := json.Marshal(orphaned)
+	if err != nil {
+		t.Fatal(err)
+	}
+	orphanedRecord := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: orphaned.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: orphaned.ID, TargetUpdatedAt: orphaned.UpdatedAt,
+		TargetFingerprint: applyTargetFingerprint(t, latest.Accessories[0]), Data: orphanedData,
+	}
+	orphanedJob := createApplyJob(t, repository, "sha-accessory-orphan", []application.DataTransferPreviewRecord{
+		orphanedRecord,
+	})
+	resolveApplyIssue(t, repository, orphanedJob.ID, orphanedRecord, "duplicate_inventory_number", "replace")
+	if err := repository.ApplyImport(t.Context(), orphanedJob, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() orphan lifecycle error = %v, want conflict", err)
+	}
+	var orphanCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM accessory_assets WHERE inventory_number='RK-ASSET-ORPHAN'`).
+		Scan(&orphanCount); err != nil {
+		t.Fatal(err)
+	}
+	if orphanCount != 0 {
+		t.Fatalf("failed invariant import created %d orphan installed assets", orphanCount)
 	}
 }
 
@@ -371,14 +683,16 @@ func TestDataTransferApplyUsesEachExhibitionReferenceResolutionOnce(t *testing.T
 	}
 	record := application.DataTransferPreviewRecord{
 		Area: application.TransferExhibitionLists, RecordKey: "References|2026-08-20",
-		Classification: "warning", ProposedAction: "create", Data: listData,
+		RowNumber: intPointer(1), Classification: "warning", ProposedAction: "create", Data: listData,
 	}
 	job := createApplyJob(t, repository, "sha-references", []application.DataTransferPreviewRecord{record})
 	if err := repository.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{
-		{ID: "issue-1", JobID: job.ID, Area: record.Area, RecordKey: record.RecordKey,
-			Severity: application.TransferIssueWarning, Code: "exhibition_vehicle_reference", SelectedResolution: "link"},
-		{ID: "issue-2", JobID: job.ID, Area: record.Area, RecordKey: record.RecordKey,
-			Severity: application.TransferIssueWarning, Code: "exhibition_vehicle_reference", SelectedResolution: "skip"},
+		{ID: "issue-z", JobID: job.ID, Area: record.Area, RecordKey: record.RecordKey,
+			RowNumber: record.RowNumber, Field: "entries[0].vehicleReference", Severity: application.TransferIssueWarning,
+			Code: "exhibition_vehicle_reference", SelectedResolution: "link"},
+		{ID: "issue-a", JobID: job.ID, Area: record.Area, RecordKey: record.RecordKey,
+			RowNumber: record.RowNumber, Field: "entries[1].vehicleReference", Severity: application.TransferIssueWarning,
+			Code: "exhibition_vehicle_reference", SelectedResolution: "skip"},
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -400,6 +714,49 @@ func TestDataTransferApplyUsesEachExhibitionReferenceResolutionOnce(t *testing.T
 	}
 	if len(vehicleIDs) != 2 || vehicleIDs[0] != "vehicle-a" || vehicleIDs[1] != "" {
 		t.Fatalf("resolved exhibition vehicle IDs = %#v, want [vehicle-a empty]", vehicleIDs)
+	}
+}
+
+func TestDataTransferApplyBindsDuplicateRecordResolutionsToRowNumber(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, created_at, updated_at)
+		VALUES('vehicle-duplicate-row', 'RK-DUP-ROW', 'Roco', 'Original', 'H0', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := applyVehicleRecord(t, "RK-DUP-ROW", "Piko")
+	first.RowNumber = intPointer(1)
+	first.Classification = "warning"
+	first.ProposedAction = "replace"
+	first.TargetID = "vehicle-duplicate-row"
+	first.TargetUpdatedAt = timestamp
+	first.TargetFingerprint = applyTargetFingerprint(t, snapshot.Vehicles[0])
+	second := first
+	second.RowNumber = intPointer(2)
+	job := createApplyJob(t, repository, "sha-duplicate-row", []application.DataTransferPreviewRecord{first, second})
+	if err := repository.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{
+		{ID: "row-one", JobID: job.ID, Area: first.Area, RecordKey: first.RecordKey, RowNumber: first.RowNumber,
+			Severity: application.TransferIssueWarning, Code: "duplicate_inventory_number", SelectedResolution: "skip"},
+		{ID: "row-two", JobID: job.ID, Area: second.Area, RecordKey: second.RecordKey, RowNumber: second.RowNumber,
+			Severity: application.TransferIssueWarning, Code: "duplicate_inventory_number", SelectedResolution: "copy"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM vehicles WHERE inventory_number LIKE 'RK-DUP-ROW%'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Fatalf("row-scoped resolutions created %d vehicles, want original plus one copy", count)
 	}
 }
 
@@ -461,4 +818,46 @@ func assertApplyJobStillReady(
 	if job.State != application.TransferJobReady || job.ConfirmedAt != "" || job.CompletedAt != "" {
 		t.Fatalf("job changed after failed apply: %#v", job)
 	}
+}
+
+func applyTargetFingerprint(t *testing.T, value any) string {
+	t.Helper()
+	payload, err := json.Marshal(value)
+	if err != nil {
+		t.Fatal(err)
+	}
+	digest := sha256.Sum256(payload)
+	return hex.EncodeToString(digest[:])
+}
+
+func resolveApplyIssue(
+	t *testing.T,
+	repository *infrastructure.DataTransferRepository,
+	jobID string,
+	record application.DataTransferPreviewRecord,
+	code string,
+	resolution string,
+) {
+	t.Helper()
+	if err := repository.ReplaceIssues(t.Context(), jobID, []application.DataTransferIssue{{
+		JobID: jobID, Area: record.Area, RecordKey: record.RecordKey, RowNumber: record.RowNumber,
+		Severity: application.TransferIssueWarning, Code: code, SelectedResolution: resolution,
+	}}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func insertApplyAccessoryProduct(t *testing.T, db *sql.DB, id, inventoryNumber, timestamp string) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO accessory_products(
+		id, inventory_number, manufacturer, name, category, tracking_mode, manufacturer_status, article_type,
+		package_quantity, stock_unit, minimum_stock, inventory_strategy, created_at, updated_at
+	) VALUES(?, ?, 'Viessmann', 'Signal', 'Signal', 'quantity', 'unknown', 'other', 1, 'piece', 0,
+		'quantity', ?, ?)`, id, inventoryNumber, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func intPointer(value int) *int {
+	return &value
 }

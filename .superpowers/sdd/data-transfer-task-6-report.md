@@ -153,3 +153,86 @@ contract. The contract schema and route were added, then the complete suite pass
   whole import and leaves the job ready for review.
 - This task implements backend apply and contract behavior only. The unrelated dirty frontend and
   `facebook-*` files were preserved and are not part of the commit.
+
+## Required Data-Safety Follow-up
+
+Reviewer findings were addressed in a follow-up fix commit.
+
+### Aggregate stale protection
+
+Each previewed replacement now persists a deterministic SHA-256 fingerprint of the complete
+transferable target aggregate. Vehicles include the full transferable vehicle row. Accessories
+include the product, ordered stock with location identity and quantities, and ordered assets with
+their transferable fields and IDs. Exhibition lists include the list and all ordered entries.
+
+Apply recomputes these fingerprints from one transaction-local snapshot before any write. Parent
+timestamps remain informational but are no longer the safety boundary. Same-second mutations to a
+vehicle parent, accessory stock child, or exhibition entry all return the normal data-transfer
+conflict and leave the job ready.
+
+RED evidence:
+
+```text
+TestDataTransferApplyRejectsSameSecondVehicleMutation: ApplyImport() error = <nil>, want conflict
+TestDataTransferApplyRejectsSameSecondAccessoryChildMutation: ApplyImport() error = <nil>, want conflict
+TestDataTransferApplyRejectsSameSecondExhibitionEntryMutation: ApplyImport() error = <nil>, want conflict
+```
+
+### Provenance-safe accessory merge
+
+Accessory replacement now upserts imported stock without deleting unmatched local stock. Imported
+assets match only a local asset on the same product, first by local ID and then by inventory number.
+Matched assets retain their local ID and `purchase_id`; only transferable fields change. Unmatched
+imports receive new local IDs, while unmatched local assets remain untouched. Active reservation
+and installation invariants are checked before changing lifecycle or storage state.
+
+RED evidence:
+
+```text
+TestDataTransferApplyAccessoryReplacePreservesPurchaseAndRelationships:
+apply accessories record "RK-ART-MERGE": FOREIGN KEY constraint failed
+```
+
+The extended invariant test also proved that moving a reserved asset to a different location was
+previously accepted and is now rejected with full rollback. A second RED case proved that an
+unmatched imported asset could previously enter the local database as Installed without a local
+installation. Reserved and Installed lifecycle states now require a matching local relationship.
+
+### Exact deterministic resolution identity
+
+JSON preview records receive stable one-based ordinal row numbers. Issue IDs are deterministic
+SHA-256 values over job, area, record key, row number, exact field/entry key, and issue code. Apply
+matches record issues by `(area, recordKey, rowNumber)`. Exhibition references use the explicit
+`entries[n].vehicleReference` key, never query order or random issue IDs.
+
+RED evidence:
+
+```text
+TestDataTransferPreviewIssuesHaveDeterministicRecordAndEntryIdentity:
+JSON record rows are not deterministic
+
+TestDataTransferApplyUsesEachExhibitionReferenceResolutionOnce:
+resolved exhibition vehicle IDs = ["", "vehicle-b"], want ["vehicle-a", ""]
+
+TestDataTransferApplyBindsDuplicateRecordResolutionsToRowNumber:
+row-scoped resolutions created 1 vehicles, want original plus one copy
+```
+
+### Follow-up GREEN verification
+
+```powershell
+go test ./internal/application ./internal/infrastructure ./internal/api -run DataTransfer -count=1
+go test ./internal/infrastructure -run 'DataTransferApply(CAS|RejectsSameSecond|AccessoryReplace|UsesEach|BindsDuplicate)' -count=10
+go test ./... -count=1
+```
+
+All commands passed. OpenAPI now documents `targetFingerprint` on persisted preview records. No new
+database column was necessary because preview records already persist atomically in `preview_json`.
+
+### Follow-up concerns
+
+- Replacement intentionally preserves unmatched local accessory stock and assets because they may
+  carry local provenance or relationships absent from a transfer package. It is a conservative
+  merge, not destructive reconciliation.
+- Imports that conflict with active reservation or installation lifecycle/location truth are
+  rejected. Operators must resolve the local relationship or choose a non-replacement resolution.

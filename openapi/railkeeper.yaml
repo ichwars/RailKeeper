@@ -280,6 +280,9 @@ components:
           type: string
         targetUpdatedAt:
           type: string
+        targetFingerprint:
+          type: string
+          description: SHA-256 fingerprint of the complete transferable target aggregate at preview time.
         data:
           type: object
           additionalProperties: true
