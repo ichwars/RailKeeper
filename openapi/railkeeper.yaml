@@ -5427,7 +5427,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "403":
-          description: Job data area is unavailable to the current role
+          description: Retry requires Editor/Admin, or Messe for an exhibition-list-only job
           content:
             application/json:
               schema:

@@ -80,9 +80,11 @@ export function TransferExportDialog({
           const artifact = details.artifacts.find((item) => !item.deletedAt);
           if (artifact && ["completed", "completed_with_warnings"].includes(details.job.state)) {
             setResult({ job: details.job, artifact, openFolderAvailable: false });
+            setError("");
+          } else {
+            setError(details.job.state === "draft" ? copy.conflictRecovery :
+              details.job.state === "running" ? copy.runningRecovery : copy.terminalRecovery);
           }
-          setError(details.job.state === "draft" ? copy.conflictRecovery :
-            details.job.state === "running" ? copy.runningRecovery : copy.terminalRecovery);
         } catch (refreshError) {
           setError(errorMessage(refreshError, copy.conflictRecovery));
         }

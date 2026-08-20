@@ -529,6 +529,8 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	for _, user := range []application.CreateUserInput{
 		{Username: "viewer-query", Password: "viewer-password", Roles: []string{"Viewer"}},
 		{Username: "messe-query", Password: "messe-password", Roles: []string{"Messe"}},
+		{Username: "editor-query", Password: "editor-password", Roles: []string{"Editor"}},
+		{Username: "admin-query", Password: "admin-password", Roles: []string{"Admin"}},
 	} {
 		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
 			t.Fatal(err)
@@ -567,6 +569,8 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
 	viewer := loginRouteTestUser(t, auth, "viewer-query", "viewer-password")
 	messe := loginRouteTestUser(t, auth, "messe-query", "messe-password")
+	editor := loginRouteTestUser(t, auth, "editor-query", "editor-password")
+	admin := loginRouteTestUser(t, auth, "admin-query", "admin-password")
 
 	summaryResponse := layoutRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/summary", nil, true)
@@ -600,12 +604,18 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 
 	retryResponse := layoutRequest(t, router, viewer, http.MethodPost,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
+	assertProblem(t, retryResponse, http.StatusForbidden, "forbidden")
+	retryResponse = layoutRequest(t, router, editor, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
 	assertStatus(t, retryResponse, http.StatusCreated)
 	var retry application.DataTransferJob
 	decodeResponse(t, retryResponse, &retry)
 	if retry.ID == vehicleJob.ID || retry.State != application.TransferJobDraft || retry.ConfirmedAt != "" {
 		t.Fatalf("retry = %#v", retry)
 	}
+	adminRetry := layoutRequest(t, router, admin, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
+	assertStatus(t, adminRetry, http.StatusCreated)
 
 	messeJobsResponse := layoutRequest(t, router, messe, http.MethodGet,
 		"/api/v1/data-transfer/jobs", nil, true)
@@ -617,6 +627,12 @@ func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing
 	forbiddenDetail := layoutRequest(t, router, messe, http.MethodGet,
 		"/api/v1/data-transfer/jobs/"+vehicleJob.ID, nil, true)
 	assertProblem(t, forbiddenDetail, http.StatusForbidden, "data_transfer_forbidden")
+	messeForbiddenRetry := layoutRequest(t, router, messe, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
+	assertProblem(t, messeForbiddenRetry, http.StatusForbidden, "data_transfer_forbidden")
+	messeRetry := layoutRequest(t, router, messe, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+exhibitionJob.ID+"/retry", nil, true)
+	assertStatus(t, messeRetry, http.StatusCreated)
 }
 
 func validDataTransferProfileRequest(name string) map[string]any {

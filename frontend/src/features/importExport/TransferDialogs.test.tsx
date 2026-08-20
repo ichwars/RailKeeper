@@ -403,8 +403,13 @@ describe("data transfer operational dialogs", () => {
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b;c"], "fahrzeuge-neu.csv"));
-    expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeEnabled();
+    await user.click(within(dialog).getAllByRole("button", { name: "Schließen" }).at(-1)!);
+    fireEvent.click(await screen.findByRole("button", { name: "Import bestätigen" }));
+    const reopened = screen.getByRole("dialog", { name: "Import prüfen" });
+    expect(await within(reopened).findByRole("alert")).toHaveTextContent("erneut hochladen");
+    expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
+    await user.upload(within(reopened).getByLabelText("Importdatei"), new File(["a;b;c"], "fahrzeuge-neu.csv"));
+    expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeEnabled();
   });
 
   it("keeps RailKeeper JSON blocked until a fresh upload after a confirm conflict", async () => {
@@ -433,8 +438,14 @@ describe("data transfer operational dialogs", () => {
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(dialog).queryByRole("button", { name: "1 Datensatz importieren" })).not.toBeInTheDocument();
     expect(within(dialog).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
-    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{\"fresh\":true}"], "backup-neu.json"));
-    expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
+    await user.click(within(dialog).getAllByRole("button", { name: "Schließen" }).at(-1)!);
+    fireEvent.click(await screen.findByRole("button", { name: "Import bestätigen" }));
+    const reopened = screen.getByRole("dialog", { name: "Import prüfen" });
+    expect(await within(reopened).findByRole("alert")).toHaveTextContent("erneut hochladen");
+    expect(within(reopened).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
+    await user.upload(within(reopened).getByLabelText("Importdatei"),
+      new File(["{\"fresh\":true}"], "backup-neu.json"));
+    expect(await within(reopened).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
   });
 
   it("shows a running export recovery without execute or retry actions", async () => {
@@ -504,6 +515,7 @@ describe("data transfer operational dialogs", () => {
     expect(await within(dialog).findByText("4 Datensätze exportiert")).toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: "Datei herunterladen" })).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Export ausführen" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("lists import and disabled profiles in profile management", async () => {

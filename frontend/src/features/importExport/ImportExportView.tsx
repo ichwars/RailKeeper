@@ -134,6 +134,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           initialDetails={dialogJob?.id === workspace.selectedJobDetails?.job.id ? workspace.selectedJobDetails : null}
           initialJob={dialogJob}
           initialProfileId={workspace.dialog.profileId}
+          initialRequiresReupload={workspace.importRequiresReupload(dialogJob?.id)}
           language={language}
           onCancelJob={workspace.cancelImport}
           onClose={workspace.closeDialog}

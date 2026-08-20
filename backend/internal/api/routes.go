@@ -127,7 +127,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/data-transfer/summary", routeAccessViewer, (*App).dataTransferSummary, authorizeDataTransferRead},
 		{http.MethodGet, "/api/v1/data-transfer/jobs", routeAccessViewer, (*App).listDataTransferJobs, authorizeDataTransferRead},
 		{http.MethodGet, "/api/v1/data-transfer/jobs/{id}", routeAccessViewer, (*App).getDataTransferJob, authorizeDataTransferRead},
-		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/retry", routeAccessViewer, (*App).retryDataTransferJob, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/retry", routeAccessViewer, (*App).retryDataTransferJob, authorizeDataTransferWrite},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/export", routeAccessViewer, (*App).createDataTransferExportJob, authorizeDataTransferRead},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/execute", routeAccessViewer, (*App).executeDataTransferExport, authorizeDataTransferRead},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/import", routeAccessEditor, (*App).createDataTransferImportJob, authorizeDataTransferWrite},

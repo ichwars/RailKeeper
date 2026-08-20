@@ -1,6 +1,6 @@
 import { type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api } from "../../shared/api";
+import { api, ApiError } from "../../shared/api";
 import {
   type DataTransferArea,
   type DataTransferExportResult,
@@ -70,6 +70,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
   const [detailError, setDetailError] = useState("");
+  const [reuploadRequiredJobIds, setReuploadRequiredJobIds] = useState<Set<string>>(() => new Set());
 
   useEffect(() => {
     mountedRef.current = true;
@@ -214,12 +215,28 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     runMutation(() => api.disableDataTransferProfile(id)), [runMutation]);
   const createImportJob = useCallback((profileId: string) =>
     runMutation(() => api.createDataTransferImportJob({ profileId }), (job) => job), [runMutation]);
-  const uploadImportFile = useCallback((jobId: string, file: File): Promise<DataTransferPreview> =>
-    runMutation(() => api.uploadDataTransferImport(jobId, file), (preview) => preview.job), [runMutation]);
+  const uploadImportFile = useCallback(async (jobId: string, file: File): Promise<DataTransferPreview> => {
+    const preview = await runMutation(() => api.uploadDataTransferImport(jobId, file), (result) => result.job);
+    setReuploadRequiredJobIds((current) => {
+      if (!current.has(jobId)) return current;
+      const next = new Set(current);
+      next.delete(jobId);
+      return next;
+    });
+    return preview;
+  }, [runMutation]);
   const resolveIssue = useCallback((jobId: string, issueId: string, resolution: DataTransferIssueResolution) =>
     runMutation(() => api.resolveDataTransferIssue(jobId, issueId, resolution), (job) => job), [runMutation]);
-  const confirmImport = useCallback((jobId: string) =>
-    runMutation(() => api.confirmDataTransferImport(jobId), (job) => job), [runMutation]);
+  const confirmImport = useCallback(async (jobId: string) => {
+    try {
+      return await runMutation(() => api.confirmDataTransferImport(jobId), (job) => job);
+    } catch (confirmError) {
+      if (confirmError instanceof ApiError && confirmError.status === 409) {
+        setReuploadRequiredJobIds((current) => new Set(current).add(jobId));
+      }
+      throw confirmError;
+    }
+  }, [runMutation]);
   const cancelImport = useCallback((jobId: string) =>
     runMutation(() => api.cancelDataTransferImport(jobId), (job) => job), [runMutation]);
   const createExportJob = useCallback((profileId: string) =>
@@ -292,6 +309,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     uploadImportFile,
     resolveIssue,
     confirmImport,
+    importRequiresReupload: (jobId?: string) => Boolean(jobId && reuploadRequiredJobIds.has(jobId)),
     cancelImport,
     createExportJob,
     executeExportJob,

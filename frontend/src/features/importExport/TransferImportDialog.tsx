@@ -22,6 +22,7 @@ type TransferImportDialogProps = {
   initialDetails?: DataTransferJobDetails | null;
   initialJob?: DataTransferJob;
   initialProfileId?: string;
+  initialRequiresReupload: boolean;
   language: Language;
   onCancelJob: (jobId: string) => Promise<unknown>;
   onClose: () => void;
@@ -37,6 +38,7 @@ export function TransferImportDialog({
   initialDetails,
   initialJob,
   initialProfileId,
+  initialRequiresReupload,
   language,
   onCancelJob,
   onClose,
@@ -56,10 +58,10 @@ export function TransferImportDialog({
   const [mappingAccepted, setMappingAccepted] = useState(
     Boolean(previewFromDetails(initialJob, initialDetails) && initialJob?.format !== "csv")
   );
-  const [requiresReupload, setRequiresReupload] = useState(false);
-  const requiresReuploadRef = useRef(false);
+  const [requiresReupload, setRequiresReupload] = useState(initialRequiresReupload);
+  const requiresReuploadRef = useRef(initialRequiresReupload);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialRequiresReupload ? copy.confirmConflictRecovery : "");
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(() => {
@@ -90,6 +92,15 @@ export function TransferImportDialog({
       if (!requiresReuploadRef.current) setMappingAccepted(initialJob.format !== "csv");
     }
   }, [initialDetails, initialJob]);
+
+  useEffect(() => {
+    requiresReuploadRef.current = initialRequiresReupload;
+    setRequiresReupload(initialRequiresReupload);
+    if (initialRequiresReupload) {
+      setMappingAccepted(false);
+      setError(copy.confirmConflictRecovery);
+    }
+  }, [initialJob?.id, initialRequiresReupload, language]);
 
   async function changeProfile(nextProfileId: string) {
     if (nextProfileId === profileId) return;
