@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api } from "../../shared/api";
 import {
@@ -32,7 +32,9 @@ export type DataTransferDialog =
 export type DataTransferCapabilities = {
   canImport: boolean;
   canExport: boolean;
-  canManageProfiles: boolean;
+  canCreateProfiles: boolean;
+  canUpdateProfiles: boolean;
+  canDisableProfiles: boolean;
   canDeleteArtifacts: boolean;
   canOpenFolder: boolean;
 };
@@ -53,13 +55,27 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   const [jobs, setJobs] = useState<DataTransferJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const selectedJobIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  const dashboardRequestRef = useRef(0);
+  const detailRequestRef = useRef(0);
   const [selectedJobDetails, setSelectedJobDetails] = useState<DataTransferJobDetails | null>(null);
-  const [filters, setFilters] = useState<DataTransferJobFilter>({ states: [], limit: 100 });
+  const [filters, setFiltersState] = useState<DataTransferJobFilter>({ states: [], limit: 100 });
+  const [detailRevision, setDetailRevision] = useState(0);
   const [dialog, setDialog] = useState<DataTransferDialog | null>(null);
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
   const [mutating, setMutating] = useState(false);
   const [error, setError] = useState("");
+  const [detailError, setDetailError] = useState("");
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      dashboardRequestRef.current += 1;
+      detailRequestRef.current += 1;
+    };
+  }, []);
 
   const visibleProfile = useCallback(
     (profile: DataTransferProfile) => !messeOnly || profile.areas.every((area) => area === "exhibitionLists"),
@@ -71,13 +87,17 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   );
 
   const loadWorkspace = useCallback(async (preferredJob?: DataTransferJob) => {
+    const requestId = ++dashboardRequestRef.current;
     setError("");
+    setLoading(true);
     try {
       const [nextSummary, nextProfiles, loadedJobs] = await Promise.all([
         api.dataTransferSummary(),
         api.dataTransferProfiles(),
         api.dataTransferJobs(filters)
       ]);
+      if (!mountedRef.current || requestId !== dashboardRequestRef.current) return;
+
       const visibleJobs = loadedJobs.filter(visibleJob);
       const nextJobs = preferredJob && visibleJob(preferredJob) && !visibleJobs.some((job) => job.id === preferredJob.id)
         ? [preferredJob, ...visibleJobs]
@@ -88,41 +108,71 @@ export function useDataTransferWorkspace(roles: string[] = []) {
         : null;
       const firstOpenJob = nextJobs.find((job) => openJobStates.has(job.state));
       const nextSelectedId = preferredId || retainedId || firstOpenJob?.id || nextJobs[0]?.id || null;
-      const details = nextSelectedId ? await api.dataTransferJob(nextSelectedId) : null;
 
       setSummary(nextSummary);
       setProfiles(nextProfiles.filter(visibleProfile));
       setJobs(nextJobs);
       selectedJobIdRef.current = nextSelectedId;
       setSelectedJobId(nextSelectedId);
-      setSelectedJobDetails(details && visibleJob(details.job) ? details : null);
+      setDetailRevision((revision) => revision + 1);
     } catch (loadError) {
-      setError(errorMessage(loadError));
+      if (mountedRef.current && requestId === dashboardRequestRef.current) {
+        setError(errorMessage(loadError));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current && requestId === dashboardRequestRef.current) {
+        setLoading(false);
+      }
     }
   }, [filters, visibleJob, visibleProfile]);
 
   useEffect(() => {
-    setLoading(true);
     void loadWorkspace();
   }, [loadWorkspace]);
 
+  useEffect(() => {
+    const requestId = ++detailRequestRef.current;
+    const id = selectedJobId;
+    setSelectedJobDetails(null);
+    setDetailError("");
+    if (!id) {
+      setDetailLoading(false);
+      return;
+    }
+
+    setDetailLoading(true);
+    void api.dataTransferJob(id)
+      .then((details) => {
+        if (mountedRef.current && requestId === detailRequestRef.current &&
+          selectedJobIdRef.current === id && visibleJob(details.job)) {
+          setSelectedJobDetails(details);
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (mountedRef.current && requestId === detailRequestRef.current && selectedJobIdRef.current === id) {
+          setDetailError(errorMessage(loadError));
+        }
+      })
+      .finally(() => {
+        if (mountedRef.current && requestId === detailRequestRef.current) {
+          setDetailLoading(false);
+        }
+      });
+  }, [detailRevision, selectedJobId, visibleJob]);
+
+  const setFilters = useCallback((next: SetStateAction<DataTransferJobFilter>) => {
+    dashboardRequestRef.current += 1;
+    setFiltersState(next);
+  }, []);
+
   const selectJob = useCallback((id: string | null) => {
+    detailRequestRef.current += 1;
     selectedJobIdRef.current = id;
     setSelectedJobId(id);
     setSelectedJobDetails(null);
-    if (!id) return;
-
-    setDetailLoading(true);
-    setError("");
-    void api.dataTransferJob(id)
-      .then((details) => {
-        if (visibleJob(details.job)) setSelectedJobDetails(details);
-      })
-      .catch((detailError: unknown) => setError(errorMessage(detailError)))
-      .finally(() => setDetailLoading(false));
-  }, [visibleJob]);
+    setDetailError("");
+    if (!id) setDetailLoading(false);
+  }, []);
 
   const runMutation = useCallback(async <T,>(mutation: () => Promise<T>, jobFromResult?: (result: T) => DataTransferJob) => {
     setMutating(true);
@@ -132,10 +182,10 @@ export function useDataTransferWorkspace(roles: string[] = []) {
       await loadWorkspace(jobFromResult?.(result));
       return result;
     } catch (mutationError) {
-      setError(errorMessage(mutationError));
+      if (mountedRef.current) setError(errorMessage(mutationError));
       throw mutationError;
     } finally {
-      setMutating(false);
+      if (mountedRef.current) setMutating(false);
     }
   }, [loadWorkspace]);
 
@@ -173,7 +223,9 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   const capabilities = useMemo<DataTransferCapabilities>(() => ({
     canImport: isAdmin || isEditor || isMesse,
     canExport: canRead,
-    canManageProfiles: isAdmin || isEditor,
+    canCreateProfiles: isAdmin || isEditor,
+    canUpdateProfiles: isAdmin || isEditor,
+    canDisableProfiles: isAdmin,
     canDeleteArtifacts: isAdmin,
     canOpenFolder: isAdmin && summary.openFolderAvailable
   }), [canRead, isAdmin, isEditor, isMesse, summary.openFolderAvailable]);
@@ -197,6 +249,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     detailLoading,
     mutating,
     error,
+    detailError,
     availableAreas,
     capabilities,
     refresh: () => loadWorkspace(),

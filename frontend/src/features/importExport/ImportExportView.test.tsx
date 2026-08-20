@@ -6,8 +6,17 @@ import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { ImportExportView } from "./ImportExportView";
 import { defaultColumnMappings, parseDelimited, vehicleImportFields } from "./importExportHelpers";
 
+const { useDataTransferWorkspaceMock } = vi.hoisted(() => ({
+  useDataTransferWorkspaceMock: vi.fn()
+}));
+
+vi.mock("./useDataTransferWorkspace", () => ({
+  useDataTransferWorkspace: useDataTransferWorkspaceMock
+}));
+
 describe("ImportExportView", () => {
   beforeEach(() => {
+    useDataTransferWorkspaceMock.mockClear();
     window.localStorage.clear();
     window.sessionStorage.clear();
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
@@ -23,12 +32,19 @@ describe("ImportExportView", () => {
   });
 
   it("does not expose master data in the main transfer workspace", async () => {
-    render(<ImportExportView />);
+    render(<ImportExportView roles={["Admin"]} />);
 
     expect(await screen.findByRole("heading", { name: "Import/Export" })).toBeInTheDocument();
     expect(screen.queryByText("Stammdaten", { selector: "button, label, td" })).not.toBeInTheDocument();
     expect(api.masterDataAll).not.toHaveBeenCalled();
     expect(api.masterDataExportUrl).not.toHaveBeenCalled();
+  });
+
+  it("passes its role scope into the data transfer workspace hook", async () => {
+    render(<ImportExportView roles={["Messe", "Viewer"]} />);
+
+    expect(await screen.findByRole("heading", { name: "Import/Export" })).toBeInTheDocument();
+    expect(useDataTransferWorkspaceMock).toHaveBeenCalledWith(["Messe", "Viewer"]);
   });
 
   it("previews a mapped CSV and saves the selected vehicle", async () => {
@@ -40,7 +56,7 @@ describe("ImportExportView", () => {
     ], "bestand.csv", { type: "text/csv" });
     Object.defineProperty(file, "text", { value: () => Promise.resolve(fileContent()) });
 
-    const { container } = render(<ImportExportView />);
+    const { container } = render(<ImportExportView roles={["Admin"]} />);
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();
     fireEvent.change(input!, { target: { files: [file] } });
@@ -71,7 +87,7 @@ describe("ImportExportView", () => {
     const file = new File([content], "railkeeper-bestand.json", { type: "application/json" });
     Object.defineProperty(file, "text", { value: () => Promise.resolve(content) });
 
-    const { container } = render(<ImportExportView />);
+    const { container } = render(<ImportExportView roles={["Admin"]} />);
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
     expect(input).not.toBeNull();
     fireEvent.change(input!, { target: { files: [file] } });
@@ -97,7 +113,7 @@ describe("ImportExportView", () => {
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
 
-    render(<ImportExportView />);
+    render(<ImportExportView roles={["Admin"]} />);
     const exportButton = await screen.findByRole("button", { name: "Export erstellen" });
     await waitFor(() => expect(exportButton).toBeEnabled());
     fireEvent.click(exportButton);

@@ -40,10 +40,10 @@ describe("useDataTransferWorkspace", () => {
     const { result } = renderHook(() => useDataTransferWorkspace(["Editor"]));
 
     await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe("job-review"));
 
     expect(result.current.summary.openJobs).toBe(3);
     expect(result.current.selectedJob?.state).toBe("review_required");
-    expect(result.current.selectedJobDetails?.job.id).toBe("job-review");
     expect(api.dataTransferSummary).toHaveBeenCalledOnce();
     expect(api.dataTransferProfiles).toHaveBeenCalledOnce();
     expect(api.dataTransferJobs).toHaveBeenCalledWith({ limit: 100, states: [] });
@@ -64,9 +64,33 @@ describe("useDataTransferWorkspace", () => {
     expect(result.current.capabilities).toMatchObject({
       canImport: true,
       canExport: true,
-      canManageProfiles: false,
+      canCreateProfiles: false,
+      canUpdateProfiles: false,
+      canDisableProfiles: false,
       canDeleteArtifacts: false,
       canOpenFolder: false
+    });
+  });
+
+  it("separates Editor profile editing from Admin-only profile disabling", async () => {
+    const { result, rerender } = renderHook(
+      ({ roles }: { roles: string[] }) => useDataTransferWorkspace(roles),
+      { initialProps: { roles: ["Editor"] } }
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.capabilities).toMatchObject({
+      canCreateProfiles: true,
+      canUpdateProfiles: true,
+      canDisableProfiles: false
+    });
+
+    rerender({ roles: ["Admin"] });
+    await waitFor(() => expect(result.current.capabilities.canDisableProfiles).toBe(true));
+    expect(result.current.capabilities).toMatchObject({
+      canCreateProfiles: true,
+      canUpdateProfiles: true,
+      canDisableProfiles: true
     });
   });
 
@@ -120,6 +144,108 @@ describe("useDataTransferWorkspace", () => {
     expect(result.current.artifactDownloadUrl("artifact-1")).toBe(
       "/api/v1/data-transfer/artifacts/artifact-1/download"
     );
+  });
+
+  it("keeps the newest filtered dashboard response when an older request finishes last", async () => {
+    const oldSummary = deferred<DataTransferSummary>();
+    const oldProfiles = deferred<DataTransferProfile[]>();
+    const oldJobs = deferred<DataTransferJob[]>();
+    const filteredJob = jobFixture({ id: "job-filtered", direction: "export", state: "failed" });
+    const filteredSummary = { ...summary, openJobs: 0 };
+    vi.mocked(api.dataTransferSummary)
+      .mockReturnValueOnce(oldSummary.promise)
+      .mockResolvedValue(filteredSummary);
+    vi.mocked(api.dataTransferProfiles)
+      .mockReturnValueOnce(oldProfiles.promise)
+      .mockResolvedValue([exhibitionProfile]);
+    vi.mocked(api.dataTransferJobs)
+      .mockReturnValueOnce(oldJobs.promise)
+      .mockResolvedValue([filteredJob]);
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    act(() => result.current.setFilters({ direction: "export", states: ["failed"], limit: 25 }));
+    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.selectedJob?.id).toBe(filteredJob.id));
+
+    await act(async () => {
+      oldSummary.resolve(summary);
+      oldProfiles.resolve([vehicleProfile]);
+      oldJobs.resolve([reviewJob]);
+      await oldJobs.promise;
+    });
+
+    expect(result.current.summary.openJobs).toBe(0);
+    expect(result.current.jobs).toEqual([filteredJob]);
+    expect(result.current.selectedJob?.id).toBe(filteredJob.id);
+  });
+
+  it("ignores stale job details after a newer selection", async () => {
+    const oldDetails = deferred<DataTransferJobDetails>();
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([reviewJob, completedJob]);
+    vi.mocked(api.dataTransferJob).mockImplementation((id) =>
+      id === reviewJob.id ? oldDetails.promise : Promise.resolve(detailsFixture(completedJob))
+    );
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(api.dataTransferJob).toHaveBeenCalledWith(reviewJob.id));
+    act(() => result.current.selectJob(completedJob.id));
+    await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe(completedJob.id));
+
+    await act(async () => oldDetails.resolve(detailsFixture(reviewJob)));
+
+    expect(result.current.selectedJobId).toBe(completedJob.id);
+    expect(result.current.selectedJobDetails?.job.id).toBe(completedJob.id);
+  });
+
+  it("does not repopulate job details after selection is cleared", async () => {
+    const oldDetails = deferred<DataTransferJobDetails>();
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([reviewJob]);
+    vi.mocked(api.dataTransferJob).mockReturnValue(oldDetails.promise);
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(api.dataTransferJob).toHaveBeenCalledWith(reviewJob.id));
+    act(() => result.current.selectJob(null));
+    await act(async () => oldDetails.resolve(detailsFixture(reviewJob)));
+
+    expect(result.current.selectedJobId).toBeNull();
+    expect(result.current.selectedJobDetails).toBeNull();
+  });
+
+  it("does not continue a pending dashboard load after unmount", async () => {
+    const pendingSummary = deferred<DataTransferSummary>();
+    const pendingProfiles = deferred<DataTransferProfile[]>();
+    const pendingJobs = deferred<DataTransferJob[]>();
+    vi.mocked(api.dataTransferSummary).mockReturnValue(pendingSummary.promise);
+    vi.mocked(api.dataTransferProfiles).mockReturnValue(pendingProfiles.promise);
+    vi.mocked(api.dataTransferJobs).mockReturnValue(pendingJobs.promise);
+
+    const { unmount } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledOnce());
+    unmount();
+    await act(async () => {
+      pendingSummary.resolve(summary);
+      pendingProfiles.resolve([vehicleProfile]);
+      pendingJobs.resolve([reviewJob]);
+      await pendingJobs.promise;
+    });
+
+    expect(api.dataTransferJob).not.toHaveBeenCalled();
+  });
+
+  it("keeps dashboard data visible when the selected job detail disappears", async () => {
+    vi.mocked(api.dataTransferJob).mockRejectedValue(new Error("Transfer job not found"));
+
+    const { result } = renderHook(() => useDataTransferWorkspace(["Editor"]));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    await waitFor(() => expect(result.current.detailLoading).toBe(false));
+
+    expect(result.current.summary).toEqual(summary);
+    expect(result.current.profiles).toEqual([vehicleProfile, exhibitionProfile]);
+    expect(result.current.jobs).toEqual([completedJob, reviewJob]);
+    expect(result.current.selectedJob?.id).toBe(reviewJob.id);
+    expect(result.current.selectedJobDetails).toBeNull();
+    expect(result.current.error).toBe("");
+    expect(result.current.detailError).toBe("Transfer job not found");
   });
 });
 
@@ -245,4 +371,14 @@ function jobFixture(overrides: Partial<DataTransferJob> = {}): DataTransferJob {
 
 function detailsFixture(job: DataTransferJob): DataTransferJobDetails {
   return { job, issues: [], artifacts: [] };
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }

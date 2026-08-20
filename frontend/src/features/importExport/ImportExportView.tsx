@@ -47,6 +47,7 @@ import {
   vehicleImportFields,
   vehiclesToCSV
 } from "./importExportHelpers";
+import { useDataTransferWorkspace } from "./useDataTransferWorkspace";
 
 type DataArea = "vehicles" | "accessories" | "exhibitionLists";
 type ExportFormat = "csv" | "json" | "print";
@@ -111,7 +112,8 @@ function fileBaseName(format: ExportFormat, areas: DataArea[]) {
   return `railkeeper-${scope}.${extension}`;
 }
 
-export function ImportExportView() {
+export function ImportExportView({ roles }: { roles: string[] }) {
+  useDataTransferWorkspace(roles);
   const { language, t } = useI18n();
   const reviewRef = useRef<HTMLElement>(null);
   const historyRef = useRef<HTMLElement>(null);

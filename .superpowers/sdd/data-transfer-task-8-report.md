@@ -10,8 +10,8 @@ folder action.
 The workspace loads dashboard data, selects the first open job, owns filters, selection, dialogs,
 mutation state and refreshes, and exposes named actions. A pure Messe role scope is defensively
 restricted to exhibition-list profiles, jobs, and composition areas. Admin or Editor roles retain
-the complete vehicles, accessories, and exhibition-lists scope. Session roles are passed from App
-to the lazy import/export view contract for the Task 9 dashboard integration.
+the complete vehicles, accessories, and exhibition-lists scope. Session roles flow from App through
+ImportExportView into the workspace hook.
 
 ## TDD Evidence
 
@@ -72,6 +72,8 @@ import/export regression commands cover 26 passing tests in total.
 - `frontend/src/features/importExport/dataTransferModel.ts`
 - `frontend/src/features/importExport/useDataTransferWorkspace.ts`
 - `frontend/src/features/importExport/useDataTransferWorkspace.test.tsx`
+- `frontend/src/features/importExport/ImportExportView.tsx`
+- `frontend/src/features/importExport/ImportExportView.test.tsx`
 - `frontend/src/shared/api.ts`
 - `frontend/src/app/App.tsx` (Task 8 hunks only)
 - `frontend/src/app/App.test.tsx`
@@ -92,10 +94,42 @@ import/export regression commands cover 26 passing tests in total.
 - `frontend/src/shared/api.ts` imports transfer contract types from the feature model. This is the
   narrow dependency implied by the task file split, but a later shared contract module would remove
   the shared-to-feature type dependency if more consumers emerge.
-- App types the existing prototype view through the Task 9 `{ roles: string[] }` contract. Task 9
-  must accept that prop and pass it into `useDataTransferWorkspace` when replacing the view.
 - The default parallel full-suite invocation did not produce a completion summary and was stopped.
   No unrelated persistent Node process was terminated. Focused Task 8 and import/export verification
   plus the complete production build are the completion evidence for this task.
 - Vite emits its existing native config-loader warning and the existing large-chunk warning during
   tests/build; neither causes a failure.
+
+## Reviewer Follow-up
+
+The Task 8 review identified four required state and integration fixes. App no longer asserts the
+lazy view's prop type. `ImportExportView` now owns the real `{ roles: string[] }` prop contract and
+passes it to `useDataTransferWorkspace` while retaining the prototype layout that Task 9 replaces.
+
+Dashboard and detail requests now use independent monotonic request sequences plus an unmount guard.
+An older filter response cannot replace a newer dashboard, and an older detail response cannot
+replace a newer selection or repopulate a cleared selection. Detail errors have independent loading
+and error state, so summary, profiles, jobs, and the selected job remain usable if a detail vanished.
+
+Profile capabilities are now explicit: Editor and Admin can create or update profiles, only Admin
+can disable profiles, and pure Messe scope can compose only exhibition-list transfers.
+
+### Follow-up RED
+
+Command:
+
+```powershell
+cd frontend
+npm.cmd run test:run -- src/features/importExport/useDataTransferWorkspace.test.tsx `
+  src/features/importExport/ImportExportView.test.tsx src/app/App.test.tsx
+```
+
+Result: 7 expected failures reproduced missing View-to-hook role propagation, combined profile
+capabilities, stale dashboard overwrite, stale detail overwrite, detail repopulation after clear,
+and dashboard loss after a detail error.
+
+### Follow-up GREEN
+
+The same focused command passed 3 test files and 19 tests. `npm.cmd run build` also passed the strict
+TypeScript project build and Vite production build. Per coordination guidance, the full suite was
+not rerun in this follow-up.
