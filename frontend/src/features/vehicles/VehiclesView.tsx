@@ -130,6 +130,27 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
     }
   });
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") === "1" && canEditVehicleSets) {
+      params.delete("create");
+      window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}`);
+      openCreate();
+      return;
+    }
+
+    const vehicleID = params.get("id");
+    if (!vehicleID) return;
+    const vehicle = vehicles.find((candidate) => candidate.id === vehicleID);
+    if (!vehicle) return;
+    const requestedTab = params.get("tab");
+    params.delete("id");
+    params.delete("tab");
+    window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}`);
+    openDetail(vehicle);
+    if (requestedTab === "maintenance") setActiveTab("maintenance");
+  }, [canEditVehicleSets, openCreate, openDetail, setActiveTab, vehicles]);
+
   const {
     state: {
       showConfiguredOnly: showConfiguredFunctionsOnly,

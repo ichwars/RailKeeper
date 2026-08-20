@@ -80,6 +80,14 @@ export function AccessoriesView({
   const { t } = useI18n();
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("create") !== "1" || !canEdit) return;
+    params.delete("create");
+    window.history.replaceState(null, "", `${window.location.pathname}${params.size ? `?${params}` : ""}`);
+    editor.openCreate();
+  }, [canEdit, editor]);
+
+  useEffect(() => {
     if (!canRead) return;
     let active = true;
     void api.masterData("accessory_subtype").then((entries) => {
