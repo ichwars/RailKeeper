@@ -99,7 +99,7 @@ describe("useDataTransferWorkspace", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     act(() => result.current.setFilters({ direction: "export", states: ["failed"], limit: 25 }));
-    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenLastCalledWith({
+    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledWith({
       direction: "export",
       states: ["failed"],
       limit: 25
@@ -107,6 +107,21 @@ describe("useDataTransferWorkspace", () => {
 
     act(() => result.current.selectJob(completedJob.id));
     await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe(completedJob.id));
+  });
+
+  it("keeps an unfiltered job collection when the visible list is filtered", async () => {
+    const failedJob = jobFixture({ id: "job-failed", state: "failed" });
+    vi.mocked(api.dataTransferJobs).mockImplementation(async (filters) =>
+      filters?.states?.length ? [failedJob] : [completedJob, reviewJob, failedJob]
+    );
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    act(() => result.current.setFilters({ states: ["failed"], limit: 100 }));
+    await waitFor(() => expect(result.current.jobs).toEqual([failedJob]));
+
+    expect(result.current.allJobs).toEqual([completedJob, reviewJob, failedJob]);
+    expect(api.dataTransferJobs).toHaveBeenCalledWith({ states: [], limit: 100 });
   });
 
   it("runs named mutations through the transfer API and refreshes workspace state", async () => {
@@ -164,7 +179,7 @@ describe("useDataTransferWorkspace", () => {
 
     const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
     act(() => result.current.setFilters({ direction: "export", states: ["failed"], limit: 25 }));
-    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledTimes(3));
     await waitFor(() => expect(result.current.selectedJob?.id).toBe(filteredJob.id));
 
     await act(async () => {

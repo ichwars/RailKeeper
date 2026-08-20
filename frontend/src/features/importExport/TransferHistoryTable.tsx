@@ -5,6 +5,12 @@ import { formatDateTime, type Language } from "../../shared/i18n";
 import type { DataTransferArea, DataTransferJob, DataTransferJobState } from "./dataTransferModel";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
+type TerminalJobState = Extract<
+  DataTransferJobState,
+  "completed" | "completed_with_warnings" | "failed" | "cancelled"
+>;
+
+const terminalStates: TerminalJobState[] = ["completed", "completed_with_warnings", "failed", "cancelled"];
 
 type TransferHistoryTableProps = {
   jobs: DataTransferJob[];
@@ -15,6 +21,10 @@ type TransferHistoryTableProps = {
 };
 
 export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, t }: TransferHistoryTableProps) {
+  const terminalJobs = jobs.filter((job): job is DataTransferJob & { state: TerminalJobState } =>
+    terminalStates.includes(job.state as TerminalJobState)
+  );
+
   return (
     <section className="panel data-transfer-panel transfer-history-panel">
       <header className="data-transfer-panel-head">
@@ -34,9 +44,9 @@ export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, 
             </tr>
           </thead>
           <tbody>
-            {jobs.length === 0 ? (
+            {terminalJobs.length === 0 ? (
               <tr><td className="data-transfer-empty" colSpan={7}>{t("importExport.dashboard.history.empty")}</td></tr>
-            ) : jobs.map((job) => (
+            ) : terminalJobs.map((job) => (
               <tr
                 className="transfer-history-row"
                 aria-selected={job.id === selectedJobId}
@@ -74,12 +84,12 @@ export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, 
   );
 }
 
-function HistoryResult({ state, t }: { state: DataTransferJobState; t: Translate }) {
-  const tone = stateTone(state);
+function HistoryResult({ state, t }: { state: TerminalJobState; t: Translate }) {
+  const { label, tone } = terminalStatePresentation[state];
   const Icon = tone === "success" ? CheckCircle2 : tone === "warning" ? CircleAlert : XCircle;
   return (
     <span className={`transfer-history-result ${tone}`}>
-      <Icon size={14} aria-hidden="true" />{stateLabel(state, t)}
+      <Icon size={14} aria-hidden="true" />{t(`importExport.dashboard.state.${label}`)}
     </span>
   );
 }
@@ -94,16 +104,12 @@ function areaLabels(areas: DataTransferArea[], t: Translate) {
   return areas.map((area) => t(`importExport.dashboard.area.${area}`)).join(", ");
 }
 
-function stateLabel(state: DataTransferJobState, t: Translate) {
-  if (state === "completed") return t("importExport.dashboard.state.completed");
-  if (state === "completed_with_warnings") return t("importExport.dashboard.state.completedWarnings");
-  if (state === "failed") return t("importExport.dashboard.state.failed");
-  if (state === "cancelled") return t("importExport.dashboard.state.cancelled");
-  return t("importExport.dashboard.state.running");
-}
-
-function stateTone(state: DataTransferJobState) {
-  if (state === "completed") return "success";
-  if (state === "completed_with_warnings" || state === "review_required") return "warning";
-  return state === "failed" || state === "cancelled" ? "danger" : "success";
-}
+const terminalStatePresentation: Record<TerminalJobState, {
+  label: "completed" | "completedWarnings" | "failed" | "cancelled";
+  tone: "success" | "warning" | "danger";
+}> = {
+  completed: { label: "completed", tone: "success" },
+  completed_with_warnings: { label: "completedWarnings", tone: "warning" },
+  failed: { label: "failed", tone: "danger" },
+  cancelled: { label: "cancelled", tone: "danger" }
+};

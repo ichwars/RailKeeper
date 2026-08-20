@@ -28,6 +28,7 @@ export function TransferArtifactPanel({
   t
 }: TransferArtifactPanelProps) {
   const [error, setError] = useState("");
+  const activeArtifacts = artifacts.filter((artifact) => !artifact.deletedAt);
 
   function openFolder() {
     setError("");
@@ -57,9 +58,9 @@ export function TransferArtifactPanel({
           </button>
         )}
       </div>
-      {artifacts.length > 0 && (
+      {activeArtifacts.length > 0 && (
         <div className="transfer-artifact-links">
-          {artifacts.map((artifact) => (
+          {activeArtifacts.map((artifact) => (
             <a
               href={downloadUrl(artifact.id)}
               key={artifact.id}

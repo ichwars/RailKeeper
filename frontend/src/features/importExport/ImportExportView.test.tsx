@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../shared/api";
@@ -40,6 +40,25 @@ const exhibitionExportJob = jobFixture({
   createdAt: "2026-08-20T12:31:00Z"
 });
 
+const failedExportJob = jobFixture({
+  id: "job-failed",
+  profileId: "profile-export",
+  profileName: "Fehlgeschlagener Export",
+  direction: "export",
+  state: "failed",
+  stage: "failed",
+  sourceName: "fehlerhafter-export.json",
+  completedAt: "2026-08-20T13:02:00Z",
+  createdAt: "2026-08-20T13:01:00Z"
+});
+
+const readyImportJob = jobFixture({
+  ...reviewJob,
+  id: "job-ready",
+  state: "ready",
+  stage: "review"
+});
+
 const summaryFixture: DataTransferSummary = {
   openJobs: 3,
   selectedRecords: 429,
@@ -60,6 +79,13 @@ const artifactFixture: DataTransferArtifact = {
   sha256: "abc",
   deletedAt: "",
   createdAt: "2026-08-20T12:31:00Z"
+};
+
+const deletedArtifactFixture: DataTransferArtifact = {
+  ...artifactFixture,
+  id: "artifact-deleted",
+  displayName: "geloeschter-export.csv",
+  deletedAt: "2026-08-20T13:03:00Z"
 };
 
 describe("ImportExportView", () => {
@@ -127,10 +153,61 @@ describe("ImportExportView", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Erledigt" }));
     expect(screen.getByRole("button", { name: "Erledigt" })).toHaveAttribute("aria-pressed", "true");
-    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenLastCalledWith({
+    await waitFor(() => expect(api.dataTransferJobs).toHaveBeenCalledWith({
       states: ["completed", "completed_with_warnings", "failed", "cancelled"],
       limit: 100
     }));
+  });
+
+  it("keeps job counts stable and limits history to terminal transfers", async () => {
+    vi.mocked(api.dataTransferJobs).mockImplementation(async (filters) =>
+      filters?.states?.length ? [exhibitionExportJob, failedExportJob] : [reviewJob, exhibitionExportJob, failedExportJob]
+    );
+    render(<ImportExportView roles={["Admin"]} />);
+
+    const filterGroup = await screen.findByRole("group", { name: "Aufträge filtern" });
+    const allFilter = within(filterGroup).getByRole("button", { name: "Alle" });
+    const openFilter = within(filterGroup).getByRole("button", { name: "Offen" });
+    const completedFilter = within(filterGroup).getByRole("button", { name: "Erledigt" });
+    expect(within(allFilter).getByText("3")).toBeInTheDocument();
+    expect(within(openFilter).getByText("1")).toBeInTheDocument();
+    expect(within(completedFilter).getByText("2")).toBeInTheDocument();
+
+    const historyTable = within(
+      screen.getByRole("heading", { name: "Transferverlauf" }).closest("section") as HTMLElement
+    ).getByRole("table");
+    expect(within(historyTable).queryByText("fahrzeuge_august.csv")).not.toBeInTheDocument();
+    expect(within(historyTable).getByText("messeliste-koeln.json")).toBeInTheDocument();
+    expect(within(historyTable).getByText("fehlerhafter-export.json")).toBeInTheDocument();
+
+    fireEvent.click(completedFilter);
+    await waitFor(() => expect(completedFilter).toHaveAttribute("aria-pressed", "true"));
+    expect(within(allFilter).getByText("3")).toBeInTheDocument();
+    expect(within(openFilter).getByText("1")).toBeInTheDocument();
+    expect(within(completedFilter).getByText("2")).toBeInTheDocument();
+  });
+
+  it.each([
+    { job: reviewJob, actionLabel: "Prüfung fortsetzen" },
+    { job: readyImportJob, actionLabel: "Import bestätigen" }
+  ])("hides $actionLabel from Viewer roles", async ({ job, actionLabel }) => {
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([job]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(job));
+
+    render(<ImportExportView roles={["Viewer"]} />);
+
+    expect(await screen.findByRole("heading", { name: job.profileName })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: actionLabel })).not.toBeInTheDocument();
+  });
+
+  it("renders summary labels above values only for last export and storage", async () => {
+    render(<ImportExportView roles={["Admin"]} />);
+    await screen.findByText("DATENTRANSFER");
+
+    expect(metricContent("offene Aufträge")).toEqual(["3", "offene Aufträge"]);
+    expect(metricContent("Datensätze")).toEqual(["429", "Datensätze"]);
+    expect(metricContent("Letzter Export")[0]).toBe("Letzter Export");
+    expect(metricContent("Speicherort")).toEqual(["Speicherort", "Lokal"]);
   });
 
   it("opens the local artifact folder when the capability is available", async () => {
@@ -152,7 +229,24 @@ describe("ImportExportView", () => {
       "/api/v1/data-transfer/artifacts/artifact-review/download"
     );
   });
+
+  it("does not render download links for deleted artifacts", async () => {
+    vi.mocked(api.dataTransferJob).mockResolvedValue({
+      ...detailsFixture(reviewJob),
+      artifacts: [artifactFixture, deletedArtifactFixture]
+    });
+    render(<ImportExportView roles={["Admin"]} />);
+
+    expect(await screen.findByRole("link", { name: "fahrzeuge_august.csv herunterladen" })).toBeInTheDocument();
+    expect(screen.queryByText("geloeschter-export.csv")).not.toBeInTheDocument();
+  });
 });
+
+function metricContent(label: string) {
+  const summary = screen.getByRole("region", { name: "Zusammenfassung" });
+  const metric = within(summary).getByText(label).closest(".transfer-summary-metric");
+  return Array.from(metric?.querySelector("span")?.children ?? []).map((element) => element.textContent);
+}
 
 function profileFixture(overrides: Partial<DataTransferProfile> = {}): DataTransferProfile {
   return {

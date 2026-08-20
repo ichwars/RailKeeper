@@ -54,13 +54,13 @@ export function ImportExportView({ roles }: { roles: string[] }) {
 
       <div className="data-transfer-dashboard">
         <TransferJobList
+          allJobs={workspace.allJobs}
           filters={workspace.filters}
           jobs={workspace.jobs}
           language={language}
           loading={workspace.loading}
           onFilter={(filter) => workspace.setFilters(filter)}
           onSelect={workspace.selectJob}
-          openJobs={workspace.summary.openJobs}
           selectedJobId={workspace.selectedJobId}
           t={t}
         />
@@ -78,7 +78,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
             t={t}
           />
           <TransferHistoryTable
-            jobs={workspace.jobs}
+            jobs={workspace.allJobs}
             language={language}
             onSelect={workspace.selectJob}
             selectedJobId={workspace.selectedJobId}
@@ -88,6 +88,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
 
         <div className="data-transfer-details">
           <TransferJobDetails
+            canImport={workspace.capabilities.canImport}
             detailLoading={workspace.detailLoading}
             job={detailJob}
             language={language}

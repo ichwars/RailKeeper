@@ -15,6 +15,7 @@ import type { DataTransferArea, DataTransferJob, DataTransferJobState } from "./
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type TransferJobDetailsProps = {
+  canImport: boolean;
   detailLoading: boolean;
   job: DataTransferJob | null;
   language: Language;
@@ -26,6 +27,7 @@ type TransferJobDetailsProps = {
 };
 
 export function TransferJobDetails({
+  canImport,
   detailLoading,
   job,
   language,
@@ -44,13 +46,14 @@ export function TransferJobDetails({
         <p className="data-transfer-empty">
           {detailLoading ? t("importExport.dashboard.loading") : t("importExport.dashboard.details.empty")}
         </p>
-      ) : <SelectedJobDetails job={job} language={language} mutating={mutating} onConfirm={onConfirm}
+      ) : <SelectedJobDetails canImport={canImport} job={job} language={language} mutating={mutating} onConfirm={onConfirm}
         onContinue={onContinue} onRetry={onRetry} t={t} />}
     </section>
   );
 }
 
 function SelectedJobDetails({
+  canImport,
   job,
   language,
   mutating,
@@ -113,7 +116,8 @@ function SelectedJobDetails({
         </ol>
       </div>
 
-      <JobAction job={job} mutating={mutating} onConfirm={onConfirm} onContinue={onContinue} onRetry={onRetry} t={t} />
+      <JobAction canImport={canImport} job={job} mutating={mutating} onConfirm={onConfirm}
+        onContinue={onContinue} onRetry={onRetry} t={t} />
     </div>
   );
 }
@@ -138,13 +142,14 @@ function Metric({
 }
 
 function JobAction({
+  canImport,
   job,
   mutating,
   onConfirm,
   onContinue,
   onRetry,
   t
-}: Pick<TransferJobDetailsProps, "mutating" | "onConfirm" | "onContinue" | "onRetry" | "t"> & {
+}: Pick<TransferJobDetailsProps, "canImport" | "mutating" | "onConfirm" | "onContinue" | "onRetry" | "t"> & {
   job: DataTransferJob;
 }) {
   if (job.state === "failed") {
@@ -155,7 +160,7 @@ function JobAction({
       </button>
     );
   }
-  if (job.direction === "import" && job.state === "ready") {
+  if (canImport && job.direction === "import" && job.state === "ready") {
     return (
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
         onClick={() => void onConfirm(job.id).catch(() => undefined)}>
@@ -163,7 +168,7 @@ function JobAction({
       </button>
     );
   }
-  if (job.direction === "import" && ["draft", "reading", "review_required"].includes(job.state)) {
+  if (canImport && job.direction === "import" && ["draft", "reading", "review_required"].includes(job.state)) {
     return (
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
         onClick={() => onContinue(job.profileId)}>

@@ -53,6 +53,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   const [summary, setSummary] = useState<DataTransferSummary>(emptyDataTransferSummary);
   const [profiles, setProfiles] = useState<DataTransferProfile[]>([]);
   const [jobs, setJobs] = useState<DataTransferJob[]>([]);
+  const [allJobs, setAllJobs] = useState<DataTransferJob[]>([]);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const selectedJobIdRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
@@ -91,17 +92,28 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     setError("");
     setLoading(true);
     try {
-      const [nextSummary, nextProfiles, loadedJobs] = await Promise.all([
+      const unfiltered = isUnfilteredJobFilter(filters);
+      const loadedJobsRequest = api.dataTransferJobs(filters);
+      const allJobsRequest = unfiltered
+        ? loadedJobsRequest
+        : api.dataTransferJobs({ states: [], limit: 100 });
+      const [nextSummary, nextProfiles, loadedJobs, loadedAllJobs] = await Promise.all([
         api.dataTransferSummary(),
         api.dataTransferProfiles(),
-        api.dataTransferJobs(filters)
+        loadedJobsRequest,
+        allJobsRequest
       ]);
       if (!mountedRef.current || requestId !== dashboardRequestRef.current) return;
 
       const visibleJobs = loadedJobs.filter(visibleJob);
+      const visibleAllJobs = loadedAllJobs.filter(visibleJob);
       const nextJobs = preferredJob && visibleJob(preferredJob) && !visibleJobs.some((job) => job.id === preferredJob.id)
         ? [preferredJob, ...visibleJobs]
         : visibleJobs;
+      const nextAllJobs = preferredJob && visibleJob(preferredJob) &&
+        !visibleAllJobs.some((job) => job.id === preferredJob.id)
+        ? [preferredJob, ...visibleAllJobs]
+        : visibleAllJobs;
       const preferredId = preferredJob?.id;
       const retainedId = selectedJobIdRef.current && nextJobs.some((job) => job.id === selectedJobIdRef.current)
         ? selectedJobIdRef.current
@@ -112,6 +124,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
       setSummary(nextSummary);
       setProfiles(nextProfiles.filter(visibleProfile));
       setJobs(nextJobs);
+      setAllJobs(nextAllJobs);
       selectedJobIdRef.current = nextSelectedId;
       setSelectedJobId(nextSelectedId);
       setDetailRevision((revision) => revision + 1);
@@ -238,6 +251,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     summary,
     profiles,
     jobs,
+    allJobs,
     filters,
     setFilters,
     selectedJobId,
@@ -270,6 +284,10 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     deleteArtifact,
     openArtifactFolder
   };
+}
+
+function isUnfilteredJobFilter(filters: DataTransferJobFilter) {
+  return !filters.profileId && !filters.direction && !filters.states?.length && (filters.limit ?? 100) === 100;
 }
 
 function errorMessage(error: unknown) {

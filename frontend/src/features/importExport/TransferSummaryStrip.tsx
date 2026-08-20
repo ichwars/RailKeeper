@@ -16,33 +16,37 @@ export function TransferSummaryStrip({ language, summary, t }: TransferSummarySt
     {
       icon: RefreshCw,
       value: formatNumber(summary.openJobs, language),
-      label: t("importExport.dashboard.summary.openJobs")
+      label: t("importExport.dashboard.summary.openJobs"),
+      labelFirst: false
     },
     {
       icon: Database,
       value: formatNumber(summary.selectedRecords, language),
-      label: t("importExport.dashboard.summary.records")
+      label: t("importExport.dashboard.summary.records"),
+      labelFirst: false
     },
     {
       icon: History,
       value: summary.lastExportAt ? formatTransferDate(summary.lastExportAt, language, t) : "–",
-      label: t("importExport.dashboard.summary.lastExport")
+      label: t("importExport.dashboard.summary.lastExport"),
+      labelFirst: true
     },
     {
       icon: Folder,
       value: t("importExport.dashboard.summary.local"),
-      label: t("importExport.dashboard.summary.storage")
+      label: t("importExport.dashboard.summary.storage"),
+      labelFirst: true
     }
   ];
 
   return (
     <section className="transfer-summary-strip" aria-label={t("importExport.dashboard.summary.label")}>
-      {metrics.map(({ icon: Icon, value, label }) => (
+      {metrics.map(({ icon: Icon, value, label, labelFirst }) => (
         <div className="transfer-summary-metric" key={label}>
           <Icon size={23} strokeWidth={1.8} aria-hidden="true" />
           <span>
-            <strong>{value}</strong>
-            <small>{label}</small>
+            {labelFirst ? <><small>{label}</small><strong>{value}</strong></> :
+              <><strong>{value}</strong><small>{label}</small></>}
           </span>
         </div>
       ))}

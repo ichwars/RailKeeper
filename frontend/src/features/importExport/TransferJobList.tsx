@@ -6,13 +6,13 @@ import type { DataTransferJob, DataTransferJobFilter, DataTransferJobState } fro
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
 type TransferJobListProps = {
+  allJobs: DataTransferJob[];
   filters: DataTransferJobFilter;
   jobs: DataTransferJob[];
   language: Language;
   loading: boolean;
   onFilter: (filter: DataTransferJobFilter) => void;
   onSelect: (id: string) => void;
-  openJobs: number;
   selectedJobId: string | null;
   t: Translate;
 };
@@ -21,24 +21,29 @@ const openStates: DataTransferJobState[] = ["draft", "reading", "review_required
 const completedStates: DataTransferJobState[] = ["completed", "completed_with_warnings", "failed", "cancelled"];
 
 export function TransferJobList({
+  allJobs,
   filters,
   jobs,
   language,
   loading,
   onFilter,
   onSelect,
-  openJobs,
   selectedJobId,
   t
 }: TransferJobListProps) {
   const selectedFilter = filterKind(filters.states);
   const filterItems = [
-    { id: "all", label: t("importExport.dashboard.jobs.all"), count: jobs.length, states: [] },
-    { id: "open", label: t("importExport.dashboard.jobs.open"), count: openJobs, states: openStates },
+    { id: "all", label: t("importExport.dashboard.jobs.all"), count: allJobs.length, states: [] },
+    {
+      id: "open",
+      label: t("importExport.dashboard.jobs.open"),
+      count: allJobs.filter((job) => openStates.includes(job.state)).length,
+      states: openStates
+    },
     {
       id: "completed",
       label: t("importExport.dashboard.jobs.completed"),
-      count: jobs.filter((job) => completedStates.includes(job.state)).length,
+      count: allJobs.filter((job) => completedStates.includes(job.state)).length,
       states: completedStates
     }
   ];
@@ -48,7 +53,7 @@ export function TransferJobList({
       <header className="data-transfer-panel-head">
         <h2><ListChecks size={20} aria-hidden="true" />{t("importExport.dashboard.jobs.title")}</h2>
       </header>
-      <div className="transfer-job-filters" aria-label={t("importExport.dashboard.jobs.filters")}>
+      <div className="transfer-job-filters" role="group" aria-label={t("importExport.dashboard.jobs.filters")}>
         {filterItems.map((filter) => (
           <button
             type="button"
