@@ -1,6 +1,11 @@
 package api
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+
+	"railkeeper/backend/internal/application"
+)
 
 type routeAccess string
 
@@ -115,6 +120,10 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-files/{cvFileID}", routeAccessEditor, (*App).deleteVehicleCVFile, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/cv-files/{cvFileID}/download", routeAccessViewer, (*App).downloadVehicleCVFile, nil},
 		{http.MethodPost, "/api/v1/article-search", routeAccessViewer, (*App).searchArticleData, nil},
+		{http.MethodGet, "/api/v1/data-transfer/profiles", routeAccessViewer, (*App).listDataTransferProfiles, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/profiles", routeAccessEditor, (*App).createDataTransferProfile, nil},
+		{http.MethodPut, "/api/v1/data-transfer/profiles/{id}", routeAccessEditor, (*App).updateDataTransferProfile, nil},
+		{http.MethodDelete, "/api/v1/data-transfer/profiles/{id}", routeAccessAdmin, (*App).disableDataTransferProfile, nil},
 		{http.MethodGet, "/api/v1/accessory-products", routeAccessViewer, (*App).listAccessoryProducts, nil},
 		{http.MethodPost, "/api/v1/accessory-products", routeAccessEditor, (*App).createAccessoryProduct, nil},
 		{http.MethodPost, "/api/v1/accessory-products/duplicate-check", routeAccessEditor, (*App).checkAccessoryProductDuplicates, nil},
@@ -242,6 +251,38 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 
 func authorizeMasterDataRead(a *App, next http.HandlerFunc) http.HandlerFunc {
 	return a.requireMasterDataRead(next)
+}
+
+func authorizeDataTransferRead(a *App, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := a.authService.RequireAnyRole(r.Context(), cookieValue(r, "rk_session"), "Viewer", "Messe")
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		session, err := a.authService.CurrentSession(r.Context(), cookieValue(r, "rk_session"))
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		next.ServeHTTP(w, withDataTransferScope(withActorUserID(r, userID), dataTransferMesseScope(session.Roles)))
+	}
+}
+
+func authorizeDataTransferWrite(a *App, next http.HandlerFunc) http.HandlerFunc {
+	return a.requireAny([]string{"Editor", "Messe"}, next)
+}
+
+func authorizationError(a *App, w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, application.ErrUnauthorized):
+		respondProblem(w, http.StatusUnauthorized, "unauthorized", "Not logged in.")
+	case errors.Is(err, application.ErrForbidden):
+		respondProblem(w, http.StatusForbidden, "forbidden", "Insufficient role.")
+	default:
+		a.logger.Error("role check failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "role_check_failed", "Could not verify permissions.")
+	}
 }
 
 func (a *App) health(w http.ResponseWriter, _ *http.Request) {

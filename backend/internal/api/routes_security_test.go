@@ -79,6 +79,9 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 		})
 
 		t.Run(route.Method+" "+route.Path+" insufficient role", func(t *testing.T) {
+			if route.Method == http.MethodGet && route.Path == "/api/v1/data-transfer/profiles" {
+				return // The dedicated profile-route test covers its Viewer-or-Messe policy.
+			}
 			response := httptest.NewRecorder()
 			request := httptest.NewRequest(route.Method, path, nil)
 			request.AddCookie(&http.Cookie{Name: "rk_session", Value: insufficient[route.Access].SessionToken})

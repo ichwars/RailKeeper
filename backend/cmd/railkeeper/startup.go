@@ -256,6 +256,7 @@ func buildApplicationHandler(
 			accessoryRepository, fileBlobService,
 		),
 		ECoSService:               application.NewECoSService(),
+		DataTransferService:       application.NewDataTransferService(infrastructure.NewDataTransferRepository(database), paths.DataDir),
 		RateLimitService:          application.NewRateLimitService(database),
 		SettingsService:           application.NewSettingsService(database),
 		PasswordResetMailer:       options.PasswordResetMailer,

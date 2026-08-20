@@ -19,6 +19,7 @@ tags:
   - name: Exhibition
   - name: Accessories
   - name: Layouts
+  - name: DataTransfer
 components:
   securitySchemes:
     sessionCookie:
@@ -39,6 +40,66 @@ components:
           type: string
         message:
           type: string
+    DataTransferProfile:
+      type: object
+      required: [id, name, direction, format, areas, options, enabled, createdByUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        direction:
+          type: string
+          enum: [import, export]
+        format:
+          type: string
+          enum: [csv, railkeeper-json]
+        areas:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [vehicles, accessories, exhibitionLists]
+        options:
+          type: object
+          additionalProperties: true
+        enabled:
+          type: boolean
+        createdByUserId:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DataTransferProfileInput:
+      type: object
+      required: [name, direction, format, areas]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        direction:
+          type: string
+          enum: [import, export]
+        format:
+          type: string
+          enum: [csv, railkeeper-json]
+        areas:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            type: string
+            enum: [vehicles, accessories, exhibitionLists]
+        options:
+          type: object
+          additionalProperties: true
     OverviewValuation:
       type: object
       required:
@@ -4869,6 +4930,124 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/profiles:
+    get:
+      tags: [DataTransfer]
+      summary: List saved data transfer profiles
+      responses:
+        "200":
+          description: Transfer profiles visible in the current role scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataTransferProfile"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [DataTransfer]
+      summary: Create a saved data transfer profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferProfileInput"
+      responses:
+        "201":
+          description: Created transfer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferProfile"
+        "400":
+          description: Invalid transfer profile selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/profiles/{id}:
+    put:
+      tags: [DataTransfer]
+      summary: Update a saved data transfer profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferProfileInput"
+      responses:
+        "200":
+          description: Updated transfer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferProfile"
+        "400":
+          description: Invalid transfer profile selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [DataTransfer]
+      summary: Disable a saved data transfer profile
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Transfer profile disabled
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer profile not found
           content:
             application/json:
               schema:
