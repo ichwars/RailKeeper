@@ -30,12 +30,24 @@ type UpdateDataTransferProfileInput struct {
 }
 
 type DataTransferService struct {
-	repository DataTransferRepository
-	dataDir    string
+	repository          DataTransferRepository
+	dataDir             string
+	openFolderAvailable bool
+	openFolder          DataTransferFolderOpener
 }
 
-func NewDataTransferService(repository DataTransferRepository, dataDir string) *DataTransferService {
-	return &DataTransferService{repository: repository, dataDir: strings.TrimSpace(dataDir)}
+func NewDataTransferService(
+	repository DataTransferRepository,
+	dataDir string,
+	options ...DataTransferServiceOption,
+) *DataTransferService {
+	service := &DataTransferService{repository: repository, dataDir: strings.TrimSpace(dataDir)}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service
 }
 
 func (s *DataTransferService) CreateProfile(

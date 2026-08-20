@@ -100,6 +100,109 @@ components:
         options:
           type: object
           additionalProperties: true
+    DataTransferExportJobInput:
+      type: object
+      required: [profileId]
+      properties:
+        profileId:
+          type: string
+          minLength: 1
+    DataTransferJob:
+      type: object
+      required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion,
+        totalRecords, readyRecords, warningRecords, errorRecords, preview, createdByUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        profileName:
+          type: string
+        direction:
+          type: string
+          enum: [import, export]
+        format:
+          type: string
+          enum: [csv, railkeeper-json]
+        areas:
+          type: array
+          items:
+            type: string
+            enum: [vehicles, accessories, exhibitionLists]
+        options:
+          type: object
+          additionalProperties: true
+        state:
+          type: string
+        stage:
+          type: string
+        sourceName:
+          type: string
+        sourceSha256:
+          type: string
+        packageVersion:
+          type: integer
+        totalRecords:
+          type: integer
+        readyRecords:
+          type: integer
+        warningRecords:
+          type: integer
+        errorRecords:
+          type: integer
+        preview:
+          type: object
+          additionalProperties: true
+        createdByUserId:
+          type: string
+        confirmedByUserId:
+          type: string
+        confirmedAt:
+          type: string
+        completedAt:
+          type: string
+        resultMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DataTransferArtifact:
+      type: object
+      required: [id, jobId, relativePath, displayName, mimeType, sizeBytes, sha256, createdAt]
+      properties:
+        id:
+          type: string
+        jobId:
+          type: string
+        relativePath:
+          type: string
+        displayName:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+        deletedAt:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DataTransferExportResult:
+      type: object
+      required: [job, artifact, openFolderAvailable]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        artifact:
+          $ref: "#/components/schemas/DataTransferArtifact"
+        openFolderAvailable:
+          type: boolean
     OverviewValuation:
       type: object
       required:
@@ -5059,6 +5162,174 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Transfer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/export:
+    post:
+      tags: [DataTransfer]
+      summary: Create an export job from a saved profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferExportJobInput"
+      responses:
+        "201":
+          description: Export job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid or disabled export profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/execute:
+    post:
+      tags: [DataTransfer]
+      summary: Execute a prepared export job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export completed and artifact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferExportResult"
+        "400":
+          description: Export job cannot be executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/{id}/download:
+    get:
+      tags: [DataTransfer]
+      summary: Download an export artifact
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export artifact file
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export artifact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "410":
+          description: Export artifact was deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/{id}:
+    delete:
+      tags: [DataTransfer]
+      summary: Delete an export artifact
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Export artifact deleted
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export artifact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/open-folder:
+    post:
+      tags: [DataTransfer]
+      summary: Open the local export artifact folder
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Export folder opened
+        "400":
+          description: The action received an unexpected path or request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Opening folders is unavailable in this runtime
           content:
             application/json:
               schema:

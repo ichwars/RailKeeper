@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"regexp"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -79,8 +80,8 @@ func TestProtectedRoutesRejectUnauthorizedAndInsufficientRoles(t *testing.T) {
 		})
 
 		t.Run(route.Method+" "+route.Path+" insufficient role", func(t *testing.T) {
-			if route.Method == http.MethodGet && route.Path == "/api/v1/data-transfer/profiles" {
-				return // The dedicated profile-route test covers its Viewer-or-Messe policy.
+			if route.Authorize != nil && strings.HasPrefix(route.Path, "/api/v1/data-transfer/") {
+				return // Dedicated data-transfer tests cover the intentional Viewer-or-Messe policy.
 			}
 			response := httptest.NewRecorder()
 			request := httptest.NewRequest(route.Method, path, nil)

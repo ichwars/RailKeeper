@@ -1,8 +1,10 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"path/filepath"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -77,6 +79,136 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 		map[string]any{"name": "Master data", "direction": "export", "format": "railkeeper-json",
 			"areas": []string{"masterData"}}, true)
 	assertProblem(t, invalid, http.StatusBadRequest, "data_transfer_validation")
+}
+
+func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	for _, user := range []application.CreateUserInput{
+		{Username: "admin-export", Password: "admin-password", Roles: []string{"Admin"}},
+		{Username: "viewer-export", Password: "viewer-password", Roles: []string{"Viewer"}},
+	} {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	dataDir := t.TempDir()
+	service := application.NewDataTransferService(infrastructure.NewDataTransferRepository(db), dataDir)
+	profile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicles", Direction: application.TransferExport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	viewer := loginRouteTestUser(t, auth, "viewer-export", "viewer-password")
+	admin := loginRouteTestUser(t, auth, "admin-export", "admin-password")
+
+	createdResponse := layoutRequest(t, router, viewer, http.MethodPost,
+		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": profile.ID}, true)
+	assertStatus(t, createdResponse, http.StatusCreated)
+	var job application.DataTransferJob
+	decodeResponse(t, createdResponse, &job)
+
+	executedResponse := layoutRequest(t, router, viewer, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/execute", nil, true)
+	assertStatus(t, executedResponse, http.StatusOK)
+	var result application.DataTransferExportResult
+	decodeResponse(t, executedResponse, &result)
+	if result.Job.State != application.TransferJobCompleted || result.OpenFolderAvailable {
+		t.Fatalf("unexpected export response: %#v", result)
+	}
+
+	download := layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil, true)
+	assertStatus(t, download, http.StatusOK)
+	if download.Header().Get("Content-Disposition") == "" || download.Body.Len() == 0 {
+		t.Fatalf("download lacks headers or content: headers=%v body=%q", download.Header(), download.Body.String())
+	}
+
+	deleted := layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID, nil, true)
+	assertStatus(t, deleted, http.StatusNoContent)
+	matches, err := filepath.Glob(filepath.Join(dataDir, "exports", "*.csv"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(matches) != 0 {
+		t.Fatalf("deleted artifact still exists: %v", matches)
+	}
+	download = layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil, true)
+	assertProblem(t, download, http.StatusGone, "data_transfer_artifact_deleted")
+}
+
+func TestDataTransferExportRoutesEnforceMesseAreaScopeBeforeCreatingJob(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "messe-export", Password: "messe-password", Roles: []string{"Messe"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewDataTransferService(infrastructure.NewDataTransferRepository(db), t.TempDir())
+	vehicleProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicles", Direction: application.TransferExport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	exhibitionProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Exhibition", Direction: application.TransferExport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferExhibitionLists},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	messe := loginRouteTestUser(t, auth, "messe-export", "messe-password")
+
+	forbidden := layoutRequest(t, router, messe, http.MethodPost,
+		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": vehicleProfile.ID}, true)
+	assertProblem(t, forbidden, http.StatusForbidden, "data_transfer_forbidden")
+	allowed := layoutRequest(t, router, messe, http.MethodPost,
+		"/api/v1/data-transfer/jobs/export", map[string]any{"profileId": exhibitionProfile.ID}, true)
+	assertStatus(t, allowed, http.StatusCreated)
+
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM data_transfer_jobs`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("forbidden request persisted a job, count = %d", count)
+	}
+}
+
+func TestDataTransferExportOpenFolderUsesConfinedExportDirectory(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "admin-folder", Password: "admin-password", Roles: []string{"Admin"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	dataDir := t.TempDir()
+	openedPath := ""
+	service := application.NewDataTransferService(
+		infrastructure.NewDataTransferRepository(db), dataDir,
+		application.WithDataTransferFolderOpener(true, func(_ context.Context, path string) error {
+			openedPath = path
+			return nil
+		}),
+	)
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	admin := loginRouteTestUser(t, auth, "admin-folder", "admin-password")
+	response := layoutRequest(t, router, admin, http.MethodPost,
+		"/api/v1/data-transfer/artifacts/open-folder", nil, true)
+	assertStatus(t, response, http.StatusNoContent)
+	if openedPath != filepath.Join(dataDir, "exports") {
+		t.Fatalf("opened path = %q, want confined exports directory", openedPath)
+	}
 }
 
 func TestDataTransferProfileRoutesUpdateAndDisableProfiles(t *testing.T) {
