@@ -287,3 +287,34 @@ records; only the existing `targetFingerprint` digest remains exposed.
   import are preserved, including their local relationships and provenance.
 - A concurrent allocation mutation makes the preview stale. The operator must preview again rather
   than applying a decision made against older reservation or installation state.
+
+## Pure Quantity Asset Safety Follow-up
+
+Imports now reject any non-empty individual asset collection when the resulting inventory strategy
+is pure `quantity`. This validation runs immediately after strategy/tracking-mode validation and
+before resolving locations or writing accessory product, stock, or asset rows. Hybrid
+`quantity_later_individual` imports retain their intended support for both inventory forms.
+
+RED evidence before implementation:
+
+```text
+TestDataTransferApplyRejectsIndividualAssetWhenCreatingQuantityAccessory:
+ApplyImport() error = <nil>, want quantity asset conflict
+
+TestDataTransferApplyRejectsUnmatchedIndividualAssetOnQuantityReplacement:
+ApplyImport() error = <nil>, want quantity asset conflict
+```
+
+Both regression tests verify full rollback. Create leaves product, asset, and would-be storage
+location tables untouched. Quantity-to-quantity replacement preserves the original product and
+does not insert the unmatched imported asset.
+
+GREEN verification:
+
+```powershell
+go test ./internal/application ./internal/infrastructure ./internal/api -run DataTransfer -count=1
+go test ./internal/infrastructure -run 'TestDataTransferApply(CASAllowsOneConcurrentConfirmation|RejectsSameSecond|RejectsReservationAddedAfterPreview|RejectsImportedQuantityBelowActiveReservation|RejectsIncompatibleAccessoryStrategyTransitions|RejectsIndividualAssetWhenCreatingQuantityAccessory|RejectsUnmatchedIndividualAssetOnQuantityReplacement|AccessoryReplacePreservesPurchaseAndRelationships)' -count=10
+go test ./... -count=1
+```
+
+All commands passed. No API, persistence schema, or OpenAPI contract change was required.

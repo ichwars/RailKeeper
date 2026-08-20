@@ -465,6 +465,78 @@ func TestDataTransferApplyRejectsIncompatibleAccessoryStrategyTransitions(t *tes
 	}
 }
 
+func TestDataTransferApplyRejectsIndividualAssetWhenCreatingQuantityAccessory(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	data, err := json.Marshal(application.TransferAccessory{
+		InventoryNumber: "RK-ART-QUANTITY-CREATE", Manufacturer: "Viessmann", Name: "Quantity signal",
+		Category: "Signal", TrackingMode: "quantity", ManufacturerStatus: "unknown", ArticleType: "other",
+		PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: "quantity",
+		Assets: []application.TransferAccessoryAsset{{
+			InventoryNumber: "RK-ASSET-INVALID-CREATE", Condition: "ready", Lifecycle: "stored",
+			StorageLocationName: "Import-only shelf",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: "RK-ART-QUANTITY-CREATE", Classification: "ready",
+		ProposedAction: "create", Data: data,
+	}
+	job := createApplyJob(t, repository, "sha-quantity-asset-create", []application.DataTransferPreviewRecord{record})
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want quantity asset conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+	for _, table := range []string{"accessory_products", "accessory_assets", "storage_locations"} {
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatalf("failed quantity create wrote %d row(s) to %s", count, table)
+		}
+	}
+}
+
+func TestDataTransferApplyRejectsUnmatchedIndividualAssetOnQuantityReplacement(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	insertApplyAccessoryProductWithStrategy(
+		t, db, "product-quantity-replace", "RK-ART-QUANTITY-REPLACE", "quantity", timestamp,
+	)
+	target := applyAccessorySnapshot(t, repository)
+	incoming := target
+	incoming.Name = "Imported name must roll back"
+	incoming.Assets = []application.TransferAccessoryAsset{{
+		InventoryNumber: "RK-ASSET-INVALID-REPLACE", Condition: "ready", Lifecycle: "stored",
+	}}
+	job, _ := createAccessoryReplaceJob(t, repository, "sha-quantity-asset-replace", target, incoming)
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want quantity asset conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+	var name string
+	if err := db.QueryRow(`SELECT name FROM accessory_products WHERE id='product-quantity-replace'`).Scan(&name); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Signal" {
+		t.Fatalf("failed quantity replacement changed product name to %q", name)
+	}
+	var assets int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM accessory_assets WHERE product_id='product-quantity-replace'`).
+		Scan(&assets); err != nil {
+		t.Fatal(err)
+	}
+	if assets != 0 {
+		t.Fatalf("failed quantity replacement wrote %d asset(s)", assets)
+	}
+}
+
 func TestDataTransferApplyRejectsSameSecondExhibitionEntryMutation(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)

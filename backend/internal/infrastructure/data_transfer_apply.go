@@ -401,6 +401,9 @@ func applyTransferAccessory(
 	if !targetStrategy.Valid() || domain.AccessoryTrackingMode(accessory.TrackingMode) != targetStrategy.TrackingMode() {
 		return dataTransferApplyConflict("imported accessory inventory strategy is invalid")
 	}
+	if targetStrategy == domain.AccessoryInventoryQuantity && len(accessory.Assets) > 0 {
+		return dataTransferApplyConflict("quantity accessory import cannot contain individual assets")
+	}
 	if action == "replace" {
 		currentStrategy, err := accessoryInventoryStrategy(ctx, db, productID)
 		if err != nil {
