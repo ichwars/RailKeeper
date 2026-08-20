@@ -81,7 +81,7 @@ export const localSettingKeys = {
 export const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
 export const legacySidebarOrderKey = "railkeeper.settings.sidebarOrder";
 export const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
-export const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "accessories", "layouts", "exhibition", "importExport", "settings"];
+export const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "accessories", "layouts", "exhibition", "importExport", "digitalCenters", "settings"];
 export type SidebarPrefs = {
   order: AppView[];
   hidden: AppView[];

@@ -1,18 +1,10 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api, type DigitalCenterSettings } from "../../shared/api";
+import { api } from "../../shared/api";
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { ImportExportView } from "./ImportExportView";
 import { defaultColumnMappings, parseDelimited, vehicleImportFields } from "./importExportHelpers";
-
-const disabledDigitalSettings: DigitalCenterSettings = {
-  provider: "ecos",
-  ecos: { enabled: false, host: "", port: "15471" },
-  z21: { enabled: false, host: "", port: "21105" },
-  intellibox3: { enabled: false, host: "", port: "21105" },
-  cs3: { enabled: false, host: "", port: "80" }
-};
 
 describe("ImportExportView", () => {
   beforeEach(() => {
@@ -20,15 +12,21 @@ describe("ImportExportView", () => {
     window.sessionStorage.clear();
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
     vi.spyOn(api, "masterDataAll").mockResolvedValue({});
-    vi.spyOn(api, "digitalSettings").mockResolvedValue(disabledDigitalSettings);
-    vi.spyOn(api, "getECoSLiveStatus").mockResolvedValue({
-      provider: "ecos",
-      connected: false,
-      blocksReceived: 0,
-      repliesReceived: 0,
-      eventsReceived: 0,
-      message: "Nicht verbunden"
+    vi.spyOn(api, "accessoryArticles").mockResolvedValue({
+      items: [],
+      metrics: { articleCount: 0, articleTypeCount: 0, available: 0, locationCount: 0, reserved: 0, installed: 0, careHintCount: 0 },
+      filters: { manufacturers: [], articleTypes: [], gauges: [], storageLocations: [] }
     });
+    vi.spyOn(api, "exhibitionLists").mockResolvedValue([]);
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+  });
+
+  it("does not expose master data in the main transfer workspace", async () => {
+    render(<ImportExportView />);
+
+    expect(await screen.findByRole("heading", { name: "Import/Export" })).toBeInTheDocument();
+    expect(screen.queryByText("Stammdaten", { selector: "button, label, td" })).not.toBeInTheDocument();
+    expect(api.masterDataAll).not.toHaveBeenCalled();
   });
 
   it("previews a mapped CSV and saves the selected vehicle", async () => {
@@ -98,7 +96,7 @@ describe("ImportExportView", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
 
     render(<ImportExportView />);
-    const exportButton = await screen.findByRole("button", { name: "CSV exportieren" });
+    const exportButton = await screen.findByRole("button", { name: "Export erstellen" });
     await waitFor(() => expect(exportButton).toBeEnabled());
     fireEvent.click(exportButton);
 
