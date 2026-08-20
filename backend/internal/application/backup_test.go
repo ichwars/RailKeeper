@@ -1333,6 +1333,152 @@ func TestBackupExcludesAuthenticationTables(t *testing.T) {
 	}
 }
 
+func TestBackupRoundTripRestoresDataTransferProfilesWithoutOperationalHistory(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	if _, err := sourceDB.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_by_user_id, created_at, updated_at
+) VALUES('profile-1', 'Vehicles', 'export', 'csv', '["vehicles"]', '{"delimiter":";"}', 1,
+  'missing-user', '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z');
+INSERT INTO data_transfer_jobs(
+  id, profile_id, profile_name, direction, format, areas_json, state, stage, created_at, updated_at
+) VALUES('job-1', 'profile-1', 'Vehicles', 'export', 'csv', '["vehicles"]', 'completed', 'completed',
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z');
+INSERT INTO data_transfer_artifacts(
+  id, job_id, relative_path, display_name, mime_type, size_bytes, sha256, created_at
+) VALUES('artifact-1', 'job-1', 'exports/private.csv', 'private.csv', 'text/csv', 77, 'hash',
+  '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Profiles) != 1 || doc.Profiles[0]["id"] != "profile-1" {
+		t.Fatalf("exported profiles = %#v", doc.Profiles)
+	}
+	if doc.Profiles[0]["created_by_user_id"] != nil {
+		t.Fatalf("exported missing local creator = %#v, want nil", doc.Profiles[0]["created_by_user_id"])
+	}
+	for _, excluded := range []string{"data_transfer_jobs", "data_transfer_job_issues", "data_transfer_artifacts"} {
+		if _, found := doc.Tables[excluded]; found {
+			t.Fatalf("backup exported operational table %q", excluded)
+		}
+	}
+
+	targetDB := testDB(t)
+	if _, err := application.NewBackupService(targetDB, t.TempDir()).Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var creator sql.NullString
+	if err := targetDB.QueryRowContext(ctx,
+		`SELECT created_by_user_id FROM data_transfer_profiles WHERE id='profile-1'`).Scan(&creator); err != nil {
+		t.Fatal(err)
+	}
+	if creator.Valid {
+		t.Fatalf("restored missing local creator = %q, want NULL", creator.String)
+	}
+	var jobs int
+	if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM data_transfer_jobs`).Scan(&jobs); err != nil {
+		t.Fatal(err)
+	}
+	if jobs != 0 {
+		t.Fatalf("restored operational jobs = %d, want 0", jobs)
+	}
+}
+
+func TestBackupRestoreWithoutProfilesSectionPreservesLocalProfiles(t *testing.T) {
+	ctx := t.Context()
+	db := testDB(t)
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_at, updated_at
+) VALUES('local-profile', 'Local', 'export', 'csv', '["vehicles"]', '{}', 1,
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := application.NewBackupService(db, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Profiles = nil
+	if _, err := application.NewBackupService(db, t.TempDir()).Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM data_transfer_profiles WHERE id='local-profile'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("legacy restore removed local profiles, count = %d", count)
+	}
+}
+
+func TestBackupCurrentEmptyProfilesSectionClearsLocalProfiles(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := application.DecodeBackup(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Profiles == nil {
+		t.Fatal("current backup omitted its empty profiles section")
+	}
+
+	targetDB := testDB(t)
+	if _, err := targetDB.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_at, updated_at
+) VALUES('local-profile', 'Local', 'export', 'csv', '["vehicles"]', '{}', 1,
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(targetDB, t.TempDir()).Import(ctx, decoded); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM data_transfer_profiles`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("current empty profile restore retained %d local profiles", count)
+	}
+}
+
+func TestBackupValidationRejectsMalformedDataTransferProfiles(t *testing.T) {
+	ctx := t.Context()
+	db := testDB(t)
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Profiles = []map[string]any{{
+		"id": "profile-1", "name": "Invalid", "direction": "export", "format": "csv",
+		"areas_json": "[\"masterData\"]", "options_json": "{}", "enabled": 1,
+		"created_by_user_id": nil, "last_used_at": nil,
+		"created_at": "2026-08-20T10:00:00Z", "updated_at": "2026-08-20T10:00:00Z",
+	}}
+	validation, err := service.Validate(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if validation.Compatible {
+		t.Fatalf("malformed transfer profile validated as compatible: %#v", validation)
+	}
+}
+
 func TestBackupExcludesLocalSettingsAndCredentials(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -1407,20 +1553,20 @@ ORDER BY name
 	defer func() { _ = rows.Close() }()
 
 	excluded := map[string]bool{
-		"app_settings":            true,
-		"audit_logs":              true,
-		"data_transfer_artifacts": true,
+		"app_settings":             true,
+		"audit_logs":               true,
+		"data_transfer_artifacts":  true,
 		"data_transfer_job_issues": true,
-		"data_transfer_jobs":      true,
-		"data_transfer_profiles":  true,
-		"password_reset_requests": true,
-		"rate_limit_attempts":     true,
-		"roles":                   true,
-		"schema_migrations":       true,
-		"sessions":                true,
-		"user_roles":              true,
-		"user_settings":           true,
-		"users":                   true,
+		"data_transfer_jobs":       true,
+		"data_transfer_profiles":   true,
+		"password_reset_requests":  true,
+		"rate_limit_attempts":      true,
+		"roles":                    true,
+		"schema_migrations":        true,
+		"sessions":                 true,
+		"user_roles":               true,
+		"user_settings":            true,
+		"users":                    true,
 	}
 	for rows.Next() {
 		var table string

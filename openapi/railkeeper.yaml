@@ -40,6 +40,27 @@ components:
           type: string
         message:
           type: string
+    TransferDirection:
+      type: string
+      enum: [import, export]
+    TransferFormat:
+      type: string
+      enum: [csv, railkeeper-json]
+    TransferArea:
+      type: string
+      enum: [vehicles, accessories, exhibitionLists]
+    TransferJobState:
+      type: string
+      enum: [draft, reading, review_required, ready, running, completed, completed_with_warnings, failed, cancelled]
+    TransferJobStage:
+      type: string
+      enum: [created, snapshot, preview, review, completed, failed, cancelled]
+    TransferIssueSeverity:
+      type: string
+      enum: [warning, error]
+    TransferIssueResolution:
+      type: string
+      enum: [replace, copy, skip, use_existing, create, link]
     DataTransferProfile:
       type: object
       required: [id, name, direction, format, areas, options, enabled, createdByUserId, createdAt, updatedAt]
@@ -49,18 +70,15 @@ components:
         name:
           type: string
         direction:
-          type: string
-          enum: [import, export]
+          $ref: "#/components/schemas/TransferDirection"
         format:
-          type: string
-          enum: [csv, railkeeper-json]
+          $ref: "#/components/schemas/TransferFormat"
         areas:
           type: array
           minItems: 1
           uniqueItems: true
           items:
-            type: string
-            enum: [vehicles, accessories, exhibitionLists]
+            $ref: "#/components/schemas/TransferArea"
         options:
           type: object
           additionalProperties: true
@@ -85,18 +103,15 @@ components:
           type: string
           minLength: 1
         direction:
-          type: string
-          enum: [import, export]
+          $ref: "#/components/schemas/TransferDirection"
         format:
-          type: string
-          enum: [csv, railkeeper-json]
+          $ref: "#/components/schemas/TransferFormat"
         areas:
           type: array
           minItems: 1
           uniqueItems: true
           items:
-            type: string
-            enum: [vehicles, accessories, exhibitionLists]
+            $ref: "#/components/schemas/TransferArea"
         options:
           type: object
           additionalProperties: true
@@ -119,7 +134,7 @@ components:
       required: [resolution]
       properties:
         resolution:
-          type: string
+          $ref: "#/components/schemas/TransferIssueResolution"
           minLength: 1
     DataTransferImportConfirmationInput:
       type: object
@@ -130,7 +145,8 @@ components:
     DataTransferJob:
       type: object
       required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion, revision,
-        totalRecords, readyRecords, warningRecords, errorRecords, preview, createdByUserId, createdAt, updatedAt]
+        sourceName, sourceSha256, totalRecords, readyRecords, warningRecords, errorRecords, preview, createdByUserId,
+        confirmedByUserId, confirmedAt, completedAt, resultMessage, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -139,23 +155,20 @@ components:
         profileName:
           type: string
         direction:
-          type: string
-          enum: [import, export]
+          $ref: "#/components/schemas/TransferDirection"
         format:
-          type: string
-          enum: [csv, railkeeper-json]
+          $ref: "#/components/schemas/TransferFormat"
         areas:
           type: array
           items:
-            type: string
-            enum: [vehicles, accessories, exhibitionLists]
+            $ref: "#/components/schemas/TransferArea"
         options:
           type: object
           additionalProperties: true
         state:
-          type: string
+          $ref: "#/components/schemas/TransferJobState"
         stage:
-          type: string
+          $ref: "#/components/schemas/TransferJobStage"
         sourceName:
           type: string
         sourceSha256:
@@ -194,7 +207,7 @@ components:
           format: date-time
     DataTransferArtifact:
       type: object
-      required: [id, jobId, relativePath, displayName, mimeType, sizeBytes, sha256, createdAt]
+      required: [id, jobId, relativePath, displayName, mimeType, sizeBytes, sha256, deletedAt, createdAt]
       properties:
         id:
           type: string
@@ -228,7 +241,7 @@ components:
           type: boolean
     DataTransferIssue:
       type: object
-      required: [id, jobId, area, recordKey, field, severity, code, message, proposedResolution,
+      required: [id, jobId, area, recordKey, rowNumber, field, severity, code, message, proposedResolution,
         selectedResolution, createdAt, updatedAt]
       properties:
         id:
@@ -236,26 +249,29 @@ components:
         jobId:
           type: string
         area:
-          type: string
-          enum: [vehicles, accessories, exhibitionLists]
+          $ref: "#/components/schemas/TransferArea"
         recordKey:
           type: string
         rowNumber:
-          type: integer
-          nullable: true
+          type: [integer, "null"]
         field:
           type: string
         severity:
-          type: string
-          enum: [warning, error]
+          $ref: "#/components/schemas/TransferIssueSeverity"
         code:
           type: string
         message:
           type: string
         proposedResolution:
-          type: string
+          oneOf:
+            - $ref: "#/components/schemas/TransferIssueResolution"
+            - type: string
+              maxLength: 0
         selectedResolution:
-          type: string
+          oneOf:
+            - $ref: "#/components/schemas/TransferIssueResolution"
+            - type: string
+              maxLength: 0
         createdAt:
           type: string
         updatedAt:
@@ -265,8 +281,7 @@ components:
       required: [area, recordKey, classification, proposedAction, data]
       properties:
         area:
-          type: string
-          enum: [vehicles, accessories, exhibitionLists]
+          $ref: "#/components/schemas/TransferArea"
         recordKey:
           type: string
         rowNumber:
@@ -276,6 +291,7 @@ components:
           enum: [ready, warning, error]
         proposedAction:
           type: string
+          enum: [create]
         targetId:
           type: string
         targetUpdatedAt:
@@ -308,6 +324,44 @@ components:
           type: integer
         errorRecords:
           type: integer
+    DataTransferSummary:
+      type: object
+      required: [openJobs, selectedRecords, lastExportAt, artifactCount, artifactBytes,
+        openFolderAvailable, artifactDirectory]
+      properties:
+        openJobs:
+          type: integer
+          minimum: 0
+        selectedRecords:
+          type: integer
+          minimum: 0
+        lastExportAt:
+          type: string
+        artifactCount:
+          type: integer
+          minimum: 0
+        artifactBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        openFolderAvailable:
+          type: boolean
+        artifactDirectory:
+          type: string
+    DataTransferJobDetails:
+      type: object
+      required: [job, issues, artifacts]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferIssue"
+        artifacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferArtifact"
     OverviewValuation:
       type: object
       required:
@@ -1596,9 +1650,83 @@ components:
           type: integer
         restoredFiles:
           type: integer
+    BackupDataTransferProfile:
+      type: object
+      required: [id, name, direction, format, areas_json, options_json, enabled, created_by_user_id,
+        last_used_at, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+        format:
+          $ref: "#/components/schemas/TransferFormat"
+        areas_json:
+          type: string
+          description: JSON array containing only TransferArea values.
+        options_json:
+          type: string
+          description: JSON object with profile options.
+        enabled:
+          type: integer
+          enum: [0, 1]
+        created_by_user_id:
+          type: [string, "null"]
+          description: Restored as null when the referenced local user does not exist.
+        last_used_at:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BackupDocument:
+      type: object
+      required: [format, version, createdAt, tables, files]
+      properties:
+        format:
+          type: string
+          enum: [railkeeper-backup]
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        tables:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+        profiles:
+          type: array
+          description: Optional saved transfer profiles. Jobs, issues, and artifact content are excluded.
+          items:
+            $ref: "#/components/schemas/BackupDataTransferProfile"
+        files:
+          type: array
+          items:
+            type: object
+            required: [path, sizeBytes, sha256, contentBase64]
+            properties:
+              path:
+                type: string
+              sizeBytes:
+                type: integer
+                format: int64
+              sha256:
+                type: string
+              contentBase64:
+                type: string
+                format: byte
     BackupValidationTable:
       type: object
-      required: [name, rows, missing, extraColumns]
+      required: [name, rows, missing]
       properties:
         name:
           type: string
@@ -1606,18 +1734,23 @@ components:
           type: integer
         missing:
           type: boolean
-        extraColumns:
+        unknownColumns:
           type: array
           items:
             type: string
     BackupValidationResult:
       type: object
-      required: [compatible, errors, warnings, tables, fileCount, fileBytes, tableCount, rowCount]
+      required: [compatible, version, errors, warnings, tables, fileCount, fileBytes, tableCount, rowCount]
       properties:
         compatible:
           type: boolean
         version:
+          type: integer
+        format:
           type: string
+        createdAt:
+          type: string
+          format: date-time
         errors:
           type: array
           items:
@@ -5142,6 +5275,170 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /data-transfer/summary:
+    get:
+      tags: [DataTransfer]
+      summary: Summarize visible data transfer activity and retained artifacts
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Transfer dashboard summary in the current role scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferSummary"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs:
+    get:
+      tags: [DataTransfer]
+      summary: List filtered data transfer history
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: profileId
+          in: query
+          schema:
+            type: string
+        - name: direction
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransferDirection"
+        - name: states
+          in: query
+          description: Repeat the parameter or use comma-separated values to select multiple states.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/TransferJobState"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: Transfer jobs in newest-first order and the current role scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid direction, state, or limit filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}:
+    get:
+      tags: [DataTransfer]
+      summary: Get a data transfer job with issues and artifact history
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transfer job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJobDetails"
+        "400":
+          description: Invalid transfer job identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Job data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/retry:
+    post:
+      tags: [DataTransfer]
+      summary: Create an unapproved draft retry from a terminal transfer job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Fresh retry job without preview, issues, confirmation, result, or artifact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid transfer job identifier or actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Job data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Transfer job is still open and cannot be retried
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /data-transfer/profiles:
     get:
       tags: [DataTransfer]
@@ -5545,6 +5842,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /data-transfer/jobs/{id}/execute:
     post:
       tags: [DataTransfer]
@@ -5613,6 +5916,16 @@ paths:
               schema:
                 type: string
                 format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Export artifact path is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
           description: Selected data area is unavailable to the current role
           content:
@@ -5647,6 +5960,12 @@ paths:
       responses:
         "204":
           description: Export artifact deleted
+        "400":
+          description: Export artifact path is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
           content:
@@ -9729,7 +10048,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/BackupDocument"
         "403":
           description: Admin role required
           content:

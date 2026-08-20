@@ -523,6 +523,102 @@ func TestDataTransferProfileRoutesUpdateAndDisableProfiles(t *testing.T) {
 	}
 }
 
+func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	for _, user := range []application.CreateUserInput{
+		{Username: "viewer-query", Password: "viewer-password", Roles: []string{"Viewer"}},
+		{Username: "messe-query", Password: "messe-password", Roles: []string{"Messe"}},
+	} {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	service := application.NewDataTransferService(repository, t.TempDir())
+	vehicleJob, err := repository.CreateJob(t.Context(), application.DataTransferJob{
+		ProfileName: "Vehicles", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobCompleted,
+		Stage: "completed", TotalRecords: 2, CompletedAt: "2026-08-20T10:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	exhibitionJob, err := repository.CreateJob(t.Context(), application.DataTransferJob{
+		ProfileName: "Exhibition", Direction: application.TransferExport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferExhibitionLists}, State: application.TransferJobCompleted,
+		Stage: "completed", TotalRecords: 3, CompletedAt: "2026-08-20T11:00:00Z",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repository.ReplaceIssues(t.Context(), vehicleJob.ID, []application.DataTransferIssue{{
+		JobID: vehicleJob.ID, Area: application.TransferVehicles, Severity: application.TransferIssueWarning,
+		Code: "warning", Message: "reviewed",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.CreateArtifact(t.Context(), application.DataTransferArtifact{
+		JobID: exhibitionJob.ID, RelativePath: "exports/exhibition.json", DisplayName: "exhibition.json",
+		MIMEType: "application/json", SizeBytes: 13, SHA256: "hash",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	viewer := loginRouteTestUser(t, auth, "viewer-query", "viewer-password")
+	messe := loginRouteTestUser(t, auth, "messe-query", "messe-password")
+
+	summaryResponse := layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/summary", nil, true)
+	assertStatus(t, summaryResponse, http.StatusOK)
+	var summary application.DataTransferSummary
+	decodeResponse(t, summaryResponse, &summary)
+	if summary.LastExportAt != exhibitionJob.CompletedAt || summary.ArtifactCount != 1 || summary.ArtifactBytes != 13 {
+		t.Fatalf("unexpected query summary: %#v", summary)
+	}
+
+	listedResponse := layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/jobs?direction=import&states=completed&limit=1", nil, true)
+	assertStatus(t, listedResponse, http.StatusOK)
+	var jobs []application.DataTransferJob
+	decodeResponse(t, listedResponse, &jobs)
+	if len(jobs) != 1 || jobs[0].ID != vehicleJob.ID {
+		t.Fatalf("filtered jobs = %#v", jobs)
+	}
+	invalidLimit := layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/jobs?limit=0", nil, true)
+	assertProblem(t, invalidLimit, http.StatusBadRequest, "data_transfer_validation")
+
+	detailResponse := layoutRequest(t, router, viewer, http.MethodGet,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID, nil, true)
+	assertStatus(t, detailResponse, http.StatusOK)
+	var details application.DataTransferJobDetails
+	decodeResponse(t, detailResponse, &details)
+	if details.Job.ID != vehicleJob.ID || len(details.Issues) != 1 {
+		t.Fatalf("job details = %#v", details)
+	}
+
+	retryResponse := layoutRequest(t, router, viewer, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID+"/retry", nil, true)
+	assertStatus(t, retryResponse, http.StatusCreated)
+	var retry application.DataTransferJob
+	decodeResponse(t, retryResponse, &retry)
+	if retry.ID == vehicleJob.ID || retry.State != application.TransferJobDraft || retry.ConfirmedAt != "" {
+		t.Fatalf("retry = %#v", retry)
+	}
+
+	messeJobsResponse := layoutRequest(t, router, messe, http.MethodGet,
+		"/api/v1/data-transfer/jobs", nil, true)
+	assertStatus(t, messeJobsResponse, http.StatusOK)
+	decodeResponse(t, messeJobsResponse, &jobs)
+	if len(jobs) != 1 || jobs[0].ID != exhibitionJob.ID {
+		t.Fatalf("messe jobs = %#v", jobs)
+	}
+	forbiddenDetail := layoutRequest(t, router, messe, http.MethodGet,
+		"/api/v1/data-transfer/jobs/"+vehicleJob.ID, nil, true)
+	assertProblem(t, forbiddenDetail, http.StatusForbidden, "data_transfer_forbidden")
+}
+
 func validDataTransferProfileRequest(name string) map[string]any {
 	return map[string]any{
 		"name": name, "direction": "export", "format": "csv", "areas": []string{"vehicles"},

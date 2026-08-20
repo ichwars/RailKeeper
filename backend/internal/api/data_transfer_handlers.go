@@ -5,6 +5,7 @@ import (
 	"errors"
 	"mime"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"railkeeper/backend/internal/application"
@@ -26,6 +27,91 @@ type resolveDataTransferIssueRequest struct {
 
 type confirmDataTransferImportRequest struct {
 	Confirm *bool `json:"confirm"`
+}
+
+func (a *App) dataTransferSummary(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	summary, err := a.dataTransferService.Summary(r.Context(), allowedDataTransferAreas(r)...)
+	if err != nil {
+		a.dataTransferError(w, err, "summarize data transfers")
+		return
+	}
+	respondJSON(w, http.StatusOK, summary)
+}
+
+func (a *App) listDataTransferJobs(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	filter, err := dataTransferJobFilter(r)
+	if err != nil {
+		a.dataTransferError(w, err, "validate data transfer job filters")
+		return
+	}
+	jobs, err := a.dataTransferService.ListJobs(r.Context(), filter, allowedDataTransferAreas(r)...)
+	if err != nil {
+		a.dataTransferError(w, err, "list data transfer jobs")
+		return
+	}
+	respondJSON(w, http.StatusOK, jobs)
+}
+
+func (a *App) getDataTransferJob(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	details, err := a.dataTransferService.GetJobDetails(
+		r.Context(), r.PathValue("id"), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "get data transfer job")
+		return
+	}
+	respondJSON(w, http.StatusOK, details)
+}
+
+func (a *App) retryDataTransferJob(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	job, err := a.dataTransferService.RetryJob(
+		r.Context(), r.PathValue("id"), actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "retry data transfer job")
+		return
+	}
+	respondJSON(w, http.StatusCreated, job)
+}
+
+func dataTransferJobFilter(r *http.Request) (application.DataTransferJobFilter, error) {
+	query := r.URL.Query()
+	filter := application.DataTransferJobFilter{
+		ProfileID: strings.TrimSpace(query.Get("profileId")),
+		Direction: application.TransferDirection(strings.TrimSpace(query.Get("direction"))),
+		Limit:     100,
+	}
+	if value := strings.TrimSpace(query.Get("limit")); value != "" {
+		limit, err := strconv.Atoi(value)
+		if err != nil || limit < 1 || limit > 200 {
+			return application.DataTransferJobFilter{}, application.ErrDataTransferValidation
+		}
+		filter.Limit = limit
+	}
+	stateValues := append([]string{}, query["states"]...)
+	stateValues = append(stateValues, query["state"]...)
+	for _, value := range stateValues {
+		for _, state := range strings.Split(value, ",") {
+			state = strings.TrimSpace(state)
+			if state == "" {
+				return application.DataTransferJobFilter{}, application.ErrDataTransferValidation
+			}
+			filter.States = append(filter.States, application.TransferJobState(state))
+		}
+	}
+	return filter, nil
 }
 
 func (a *App) createDataTransferImportJob(w http.ResponseWriter, r *http.Request) {

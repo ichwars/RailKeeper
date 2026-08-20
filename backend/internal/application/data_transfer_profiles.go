@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -27,6 +28,22 @@ type UpdateDataTransferProfileInput struct {
 	Format    TransferFormat    `json:"format"`
 	Areas     []TransferArea    `json:"areas"`
 	Options   map[string]any    `json:"options"`
+}
+
+type DataTransferSummary struct {
+	OpenJobs            int    `json:"openJobs"`
+	SelectedRecords     int    `json:"selectedRecords"`
+	LastExportAt        string `json:"lastExportAt"`
+	ArtifactCount       int    `json:"artifactCount"`
+	ArtifactBytes       int64  `json:"artifactBytes"`
+	OpenFolderAvailable bool   `json:"openFolderAvailable"`
+	ArtifactDirectory   string `json:"artifactDirectory"`
+}
+
+type DataTransferJobDetails struct {
+	Job       DataTransferJob        `json:"job"`
+	Issues    []DataTransferIssue    `json:"issues"`
+	Artifacts []DataTransferArtifact `json:"artifacts"`
 }
 
 type DataTransferService struct {
@@ -72,6 +89,186 @@ func (s *DataTransferService) CreateProfile(
 
 func (s *DataTransferService) ListProfiles(ctx context.Context) ([]DataTransferProfile, error) {
 	return s.repository.ListProfiles(ctx)
+}
+
+func (s *DataTransferService) Summary(
+	ctx context.Context,
+	allowedAreas ...TransferArea,
+) (DataTransferSummary, error) {
+	jobs, err := s.ListJobs(ctx, DataTransferJobFilter{}, allowedAreas...)
+	if err != nil {
+		return DataTransferSummary{}, err
+	}
+	artifacts, err := s.repository.ListArtifacts(ctx)
+	if err != nil {
+		return DataTransferSummary{}, err
+	}
+	directory, err := resolveDataTransferArtifactPath(s.dataDir, "exports")
+	if err != nil {
+		return DataTransferSummary{}, err
+	}
+	summary := DataTransferSummary{
+		OpenFolderAvailable: s.OpenFolderAvailable(),
+		ArtifactDirectory:   directory,
+	}
+	visibleJobs := make(map[string]DataTransferJob, len(jobs))
+	for _, job := range jobs {
+		visibleJobs[job.ID] = job
+		if dataTransferJobOpen(job.State) {
+			summary.OpenJobs++
+			summary.SelectedRecords += job.TotalRecords
+		}
+		if job.Direction == TransferExport && job.CompletedAt > summary.LastExportAt {
+			summary.LastExportAt = job.CompletedAt
+		}
+	}
+	for _, artifact := range artifacts {
+		if _, visible := visibleJobs[artifact.JobID]; !visible || artifact.DeletedAt != "" {
+			continue
+		}
+		summary.ArtifactCount++
+		summary.ArtifactBytes += artifact.SizeBytes
+	}
+	return summary, nil
+}
+
+func (s *DataTransferService) ListJobs(
+	ctx context.Context,
+	filter DataTransferJobFilter,
+	allowedAreas ...TransferArea,
+) ([]DataTransferJob, error) {
+	if err := validateDataTransferJobFilter(filter); err != nil {
+		return nil, err
+	}
+	repositoryFilter := filter
+	if len(allowedAreas) > 0 {
+		repositoryFilter.Limit = 0
+	}
+	jobs, err := s.repository.ListJobs(ctx, repositoryFilter)
+	if err != nil {
+		return nil, err
+	}
+	filtered := make([]DataTransferJob, 0, len(jobs))
+	for _, job := range jobs {
+		if dataTransferAreasAllowed(job.Areas, allowedAreas) {
+			filtered = append(filtered, job)
+			if filter.Limit > 0 && len(filtered) == filter.Limit {
+				break
+			}
+		}
+	}
+	return filtered, nil
+}
+
+func (s *DataTransferService) GetJobDetails(
+	ctx context.Context,
+	id string,
+	allowedAreas ...TransferArea,
+) (DataTransferJobDetails, error) {
+	job, err := s.getJob(ctx, id, allowedAreas)
+	if err != nil {
+		return DataTransferJobDetails{}, err
+	}
+	issues, err := s.repository.ListIssues(ctx, job.ID)
+	if err != nil {
+		return DataTransferJobDetails{}, err
+	}
+	artifacts, err := s.repository.ListArtifacts(ctx)
+	if err != nil {
+		return DataTransferJobDetails{}, err
+	}
+	jobArtifacts := make([]DataTransferArtifact, 0, 1)
+	for _, artifact := range artifacts {
+		if artifact.JobID == job.ID {
+			jobArtifacts = append(jobArtifacts, artifact)
+		}
+	}
+	return DataTransferJobDetails{Job: job, Issues: issues, Artifacts: jobArtifacts}, nil
+}
+
+func (s *DataTransferService) RetryJob(
+	ctx context.Context,
+	id string,
+	actorUserID string,
+	allowedAreas ...TransferArea,
+) (DataTransferJob, error) {
+	actorUserID = strings.TrimSpace(actorUserID)
+	if actorUserID == "" {
+		return DataTransferJob{}, ErrDataTransferValidation
+	}
+	job, err := s.getJob(ctx, id, allowedAreas)
+	if err != nil {
+		return DataTransferJob{}, err
+	}
+	if !dataTransferJobRetryable(job.State) {
+		return DataTransferJob{}, fmt.Errorf("%w: job is %s", ErrDataTransferConflict, job.State)
+	}
+	return s.repository.CreateJob(ctx, DataTransferJob{
+		ProfileName:     job.ProfileName,
+		Direction:       job.Direction,
+		Format:          job.Format,
+		Areas:           slices.Clone(job.Areas),
+		Options:         cloneTransferOptions(job.Options),
+		State:           TransferJobDraft,
+		Stage:           "created",
+		PackageVersion:  DataTransferPackageVersion,
+		Preview:         map[string]any{},
+		CreatedByUserID: actorUserID,
+	})
+}
+
+func (s *DataTransferService) getJob(
+	ctx context.Context,
+	id string,
+	allowedAreas []TransferArea,
+) (DataTransferJob, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return DataTransferJob{}, ErrDataTransferValidation
+	}
+	job, err := s.repository.GetJob(ctx, id)
+	if errors.Is(err, sql.ErrNoRows) {
+		return DataTransferJob{}, ErrDataTransferNotFound
+	}
+	if err != nil {
+		return DataTransferJob{}, err
+	}
+	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+		return DataTransferJob{}, ErrDataTransferForbidden
+	}
+	return job, nil
+}
+
+func validateDataTransferJobFilter(filter DataTransferJobFilter) error {
+	if filter.Limit < 0 || filter.Limit > 200 {
+		return ErrDataTransferValidation
+	}
+	if filter.Direction != "" && !validTransferDirection(filter.Direction) {
+		return ErrDataTransferValidation
+	}
+	for _, state := range filter.States {
+		if !validDataTransferJobState(state) {
+			return ErrDataTransferValidation
+		}
+	}
+	return nil
+}
+
+func validDataTransferJobState(state TransferJobState) bool {
+	return slices.Contains([]TransferJobState{
+		TransferJobDraft, TransferJobReading, TransferJobReviewRequired, TransferJobReady, TransferJobRunning,
+		TransferJobCompleted, TransferJobCompletedWithWarnings, TransferJobFailed, TransferJobCancelled,
+	}, state)
+}
+
+func dataTransferJobOpen(state TransferJobState) bool {
+	return state == TransferJobDraft || state == TransferJobReading || state == TransferJobReviewRequired ||
+		state == TransferJobReady || state == TransferJobRunning
+}
+
+func dataTransferJobRetryable(state TransferJobState) bool {
+	return state == TransferJobCompleted || state == TransferJobCompletedWithWarnings ||
+		state == TransferJobFailed || state == TransferJobCancelled
 }
 
 func (s *DataTransferService) UpdateProfile(

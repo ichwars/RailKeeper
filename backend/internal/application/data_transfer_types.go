@@ -20,6 +20,7 @@ const (
 	TransferExhibitionLists TransferArea = "exhibitionLists"
 
 	TransferJobDraft                 TransferJobState = "draft"
+	TransferJobReading               TransferJobState = "reading"
 	TransferJobReviewRequired        TransferJobState = "review_required"
 	TransferJobReady                 TransferJobState = "ready"
 	TransferJobRunning               TransferJobState = "running"
@@ -129,5 +130,6 @@ type DataTransferRepository interface {
 	ReplaceIssues(context.Context, string, []DataTransferIssue) error
 	ListIssues(context.Context, string) ([]DataTransferIssue, error)
 	CreateArtifact(context.Context, DataTransferArtifact) (DataTransferArtifact, error)
+	ListArtifacts(context.Context) ([]DataTransferArtifact, error)
 	MarkArtifactDeleted(context.Context, string, string) error
 }

@@ -411,6 +411,35 @@ WHERE NOT EXISTS(
 	return artifact, nil
 }
 
+func (repository *DataTransferRepository) ListArtifacts(
+	ctx context.Context,
+) ([]application.DataTransferArtifact, error) {
+	rows, err := repository.db.QueryContext(ctx, `
+SELECT id, job_id, relative_path, display_name, mime_type, size_bytes, sha256,
+       COALESCE(deleted_at, ''), created_at
+FROM data_transfer_artifacts
+ORDER BY created_at DESC, id DESC`)
+	if err != nil {
+		return nil, fmt.Errorf("list transfer artifacts: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	artifacts := []application.DataTransferArtifact{}
+	for rows.Next() {
+		artifact := application.DataTransferArtifact{}
+		if err := rows.Scan(
+			&artifact.ID, &artifact.JobID, &artifact.RelativePath, &artifact.DisplayName, &artifact.MIMEType,
+			&artifact.SizeBytes, &artifact.SHA256, &artifact.DeletedAt, &artifact.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan transfer artifact: %w", err)
+		}
+		artifacts = append(artifacts, artifact)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate transfer artifacts: %w", err)
+	}
+	return artifacts, nil
+}
+
 func (repository *DataTransferRepository) ClaimExportJob(
 	ctx context.Context,
 	id string,
