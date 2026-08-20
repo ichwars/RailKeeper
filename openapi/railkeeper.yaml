@@ -5236,6 +5236,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "409":
+          description: Export job is already running or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /data-transfer/artifacts/{id}/download:
     get:
       tags: [DataTransfer]

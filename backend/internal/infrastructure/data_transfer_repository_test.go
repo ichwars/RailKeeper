@@ -2,6 +2,7 @@ package infrastructure_test
 
 import (
 	"database/sql"
+	"errors"
 	"path/filepath"
 	"testing"
 
@@ -177,6 +178,40 @@ func TestDataTransferRepositoryReplacesIssuesAndMarksArtifactsDeleted(t *testing
 	}
 	if deletedAt != "2026-08-20T12:00:00Z" {
 		t.Fatalf("artifact deletion timestamp = %q", deletedAt)
+	}
+}
+
+func TestDataTransferRepositoryAllowsOnlyOneActiveArtifactPerJob(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		Direction: application.TransferExport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobRunning,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := repo.CreateArtifact(t.Context(), application.DataTransferArtifact{
+		JobID: job.ID, RelativePath: "exports/first.csv", DisplayName: "first.csv",
+		MIMEType: "text/csv", SHA256: "first",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = repo.CreateArtifact(t.Context(), application.DataTransferArtifact{
+		JobID: job.ID, RelativePath: "exports/second.csv", DisplayName: "second.csv",
+		MIMEType: "text/csv", SHA256: "second",
+	})
+	if !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("second active artifact error = %v, want conflict", err)
+	}
+	if err := repo.MarkArtifactDeleted(t.Context(), first.ID, "2026-08-20T14:00:00Z"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateArtifact(t.Context(), application.DataTransferArtifact{
+		JobID: job.ID, RelativePath: "exports/retry.csv", DisplayName: "retry.csv",
+		MIMEType: "text/csv", SHA256: "retry",
+	}); err != nil {
+		t.Fatalf("artifact after deletion: %v", err)
 	}
 }
 

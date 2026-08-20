@@ -172,6 +172,8 @@ func (a *App) dataTransferError(w http.ResponseWriter, err error, action string)
 		respondProblem(w, http.StatusForbidden, "data_transfer_forbidden", "The selected data area is not available to this role.")
 	case errors.Is(err, application.ErrDataTransferArtifactDeleted):
 		respondProblem(w, http.StatusGone, "data_transfer_artifact_deleted", "The export artifact was deleted.")
+	case errors.Is(err, application.ErrDataTransferConflict):
+		respondProblem(w, http.StatusConflict, "data_transfer_conflict", "The data transfer state changed. Refresh and retry.")
 	case errors.Is(err, application.ErrDataTransferOpenUnavailable):
 		respondProblem(w, http.StatusConflict, "data_transfer_folder_open_unavailable",
 			"Opening the export folder is unavailable in this runtime.")

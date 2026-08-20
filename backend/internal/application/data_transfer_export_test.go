@@ -215,6 +215,18 @@ func (stub *dataTransferExportRepositoryStub) UpdateJob(_ context.Context, job D
 	return job, nil
 }
 
+func (stub *dataTransferExportRepositoryStub) ClaimExportJob(_ context.Context, id string) (DataTransferJob, error) {
+	if id != stub.job.ID {
+		return DataTransferJob{}, ErrDataTransferNotFound
+	}
+	if stub.job.State != TransferJobDraft {
+		return DataTransferJob{}, ErrDataTransferConflict
+	}
+	stub.job.State = TransferJobRunning
+	stub.job.Stage = "snapshot"
+	return stub.job, nil
+}
+
 func (stub *dataTransferExportRepositoryStub) Snapshot(
 	_ context.Context,
 	_ []TransferArea,

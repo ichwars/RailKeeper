@@ -22,6 +22,7 @@ var (
 	ErrDataTransferArtifactPath      = errors.New("data transfer artifact path is not confined")
 	ErrDataTransferForbidden         = errors.New("data transfer area is forbidden")
 	ErrDataTransferArtifactDeleted   = errors.New("data transfer artifact was deleted")
+	ErrDataTransferConflict          = errors.New("data transfer state conflict")
 	ErrDataTransferOpenUnavailable   = errors.New("opening the data transfer export folder is unavailable")
 	ErrDataTransferExportUnavailable = errors.New("data transfer export repository is unavailable")
 )
@@ -47,6 +48,7 @@ type dataTransferExportRepository interface {
 	DataTransferRepository
 	Snapshot(context.Context, []TransferArea) (DataTransferSnapshot, error)
 	GetArtifact(context.Context, string) (DataTransferArtifact, error)
+	ClaimExportJob(context.Context, string) (DataTransferJob, error)
 }
 
 func (s *DataTransferService) CreateExportJob(
@@ -87,22 +89,27 @@ func (s *DataTransferService) ExecuteExport(
 	if err != nil {
 		return DataTransferExportResult{}, err
 	}
-	job, err := repository.GetJob(ctx, strings.TrimSpace(jobID))
+	jobID = strings.TrimSpace(jobID)
+	if jobID == "" {
+		return DataTransferExportResult{}, ErrDataTransferValidation
+	}
+	job, err := repository.GetJob(ctx, jobID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return DataTransferExportResult{}, ErrDataTransferNotFound
 	}
 	if err != nil {
 		return DataTransferExportResult{}, err
 	}
-	if job.Direction != TransferExport || job.State != TransferJobDraft || !validTransferFormat(job.Format) {
+	if job.Direction != TransferExport || !validTransferFormat(job.Format) {
 		return DataTransferExportResult{}, fmt.Errorf("%w: export job cannot be executed", ErrDataTransferValidation)
+	}
+	if job.State != TransferJobDraft {
+		return DataTransferExportResult{}, fmt.Errorf("%w: export job is %s", ErrDataTransferConflict, job.State)
 	}
 	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferExportResult{}, ErrDataTransferForbidden
 	}
-	job.State = TransferJobRunning
-	job.Stage = "snapshot"
-	job, err = repository.UpdateJob(ctx, job)
+	job, err = repository.ClaimExportJob(ctx, job.ID)
 	if err != nil {
 		return DataTransferExportResult{}, err
 	}
@@ -293,7 +300,7 @@ func (s *DataTransferService) writeExportArtifact(
 	if err := temporary.Close(); err != nil {
 		return DataTransferArtifact{}, fmt.Errorf("close transfer artifact: %w", err)
 	}
-	fileName := safeDataTransferArtifactName(jobID, filepath.Ext(displayName))
+	fileName := safeDataTransferArtifactName(jobID+"-"+randomID(), filepath.Ext(displayName))
 	relativePath := filepath.ToSlash(filepath.Join("exports", fileName))
 	finalPath, err := resolveDataTransferArtifactPath(s.dataDir, relativePath)
 	if err != nil {

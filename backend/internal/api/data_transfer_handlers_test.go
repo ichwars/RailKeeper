@@ -119,6 +119,9 @@ func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testi
 	if result.Job.State != application.TransferJobCompleted || result.OpenFolderAvailable {
 		t.Fatalf("unexpected export response: %#v", result)
 	}
+	conflict := layoutRequest(t, router, viewer, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/execute", nil, true)
+	assertProblem(t, conflict, http.StatusConflict, "data_transfer_conflict")
 
 	download := layoutRequest(t, router, viewer, http.MethodGet,
 		"/api/v1/data-transfer/artifacts/"+result.Artifact.ID+"/download", nil, true)

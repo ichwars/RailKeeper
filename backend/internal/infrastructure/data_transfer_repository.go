@@ -318,15 +318,56 @@ func (repository *DataTransferRepository) CreateArtifact(
 ) (application.DataTransferArtifact, error) {
 	artifact.ID = randomID()
 	artifact.CreatedAt = timestamp()
-	if _, err := repository.db.ExecContext(ctx, `
+	result, err := repository.db.ExecContext(ctx, `
 INSERT INTO data_transfer_artifacts(
   id, job_id, relative_path, display_name, mime_type, size_bytes, sha256, deleted_at, created_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?)`, artifact.ID, artifact.JobID, artifact.RelativePath,
+) SELECT ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?
+WHERE NOT EXISTS(
+  SELECT 1 FROM data_transfer_artifacts WHERE job_id=? AND deleted_at IS NULL
+)`, artifact.ID, artifact.JobID, artifact.RelativePath,
 		artifact.DisplayName, artifact.MIMEType, artifact.SizeBytes, artifact.SHA256, artifact.DeletedAt,
-		artifact.CreatedAt); err != nil {
+		artifact.CreatedAt, artifact.JobID)
+	if err != nil {
 		return application.DataTransferArtifact{}, fmt.Errorf("create transfer artifact: %w", err)
 	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return application.DataTransferArtifact{}, fmt.Errorf("read transfer artifact creation result: %w", err)
+	}
+	if affected != 1 {
+		return application.DataTransferArtifact{}, application.ErrDataTransferConflict
+	}
 	return artifact, nil
+}
+
+func (repository *DataTransferRepository) ClaimExportJob(
+	ctx context.Context,
+	id string,
+) (application.DataTransferJob, error) {
+	result, err := repository.db.ExecContext(ctx, `
+UPDATE data_transfer_jobs
+SET state=?, stage='snapshot', updated_at=?
+WHERE id=? AND direction=? AND state=?`, application.TransferJobRunning, timestamp(), id,
+		application.TransferExport, application.TransferJobDraft)
+	if err != nil {
+		return application.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return application.DataTransferJob{}, fmt.Errorf("read transfer export claim result: %w", err)
+	}
+	if affected == 0 {
+		var exists int
+		if err := repository.db.QueryRowContext(ctx,
+			`SELECT EXISTS(SELECT 1 FROM data_transfer_jobs WHERE id=?)`, id).Scan(&exists); err != nil {
+			return application.DataTransferJob{}, fmt.Errorf("check transfer export job: %w", err)
+		}
+		if exists == 0 {
+			return application.DataTransferJob{}, fmt.Errorf("claim transfer export job: %w", sql.ErrNoRows)
+		}
+		return application.DataTransferJob{}, application.ErrDataTransferConflict
+	}
+	return repository.GetJob(ctx, id)
 }
 
 func (repository *DataTransferRepository) MarkArtifactDeleted(

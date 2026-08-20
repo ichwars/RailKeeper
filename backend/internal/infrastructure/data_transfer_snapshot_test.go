@@ -1,11 +1,83 @@
 package infrastructure_test
 
 import (
+	"errors"
+	"path/filepath"
+	"sync"
 	"testing"
 
 	"railkeeper/backend/internal/application"
 	"railkeeper/backend/internal/infrastructure"
 )
+
+func TestDataTransferConcurrentExportClaimsJobOnce(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	dataDir := t.TempDir()
+	service := application.NewDataTransferService(repository, dataDir)
+	profile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicles", Direction: application.TransferExport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "viewer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := service.CreateExportJob(t.Context(), profile.ID, "viewer-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	type execution struct {
+		result application.DataTransferExportResult
+		err    error
+	}
+	start := make(chan struct{})
+	results := make(chan execution, 2)
+	var wait sync.WaitGroup
+	for range 2 {
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			result, err := service.ExecuteExport(t.Context(), job.ID)
+			results <- execution{result: result, err: err}
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(results)
+
+	successes := 0
+	conflicts := 0
+	for execution := range results {
+		switch {
+		case execution.err == nil:
+			successes++
+		case errors.Is(execution.err, application.ErrDataTransferConflict):
+			conflicts++
+		default:
+			t.Fatalf("concurrent export returned unexpected error: %v", execution.err)
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("concurrent executions: successes=%d conflicts=%d", successes, conflicts)
+	}
+	var artifactCount int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM data_transfer_artifacts WHERE job_id=?`, job.ID).
+		Scan(&artifactCount); err != nil {
+		t.Fatal(err)
+	}
+	if artifactCount != 1 {
+		t.Fatalf("artifact rows = %d, want 1", artifactCount)
+	}
+	artifacts, err := filepath.Glob(filepath.Join(dataDir, "exports", "*"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(artifacts) != 1 {
+		t.Fatalf("published artifacts = %v, want exactly one", artifacts)
+	}
+}
 
 func TestDataTransferSnapshotReadsSelectedAreasInStableOrder(t *testing.T) {
 	db := testDB(t)
