@@ -50,6 +50,7 @@ type dataTransferImportRepository interface {
 	DataTransferRepository
 	Snapshot(context.Context, []TransferArea) (DataTransferSnapshot, error)
 	CompareAndUpdateImportJob(context.Context, DataTransferImportMutation) (DataTransferJob, error)
+	ApplyImport(context.Context, DataTransferJob, string) error
 }
 
 func (s *DataTransferService) CreateImportJob(
@@ -173,7 +174,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	} else {
 		job.State = TransferJobReviewRequired
 	}
-	job.Preview, err = dataTransferPreviewMap(records)
+	job.Preview, err = dataTransferPreviewMap(digest, records)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -284,6 +285,52 @@ func (s *DataTransferService) CancelJob(
 	return compareAndUpdateDataTransferImport(ctx, repository, DataTransferImportMutation{
 		ExpectedState: expectedState, ExpectedRevision: expectedRevision, Job: job,
 	})
+}
+
+func (s *DataTransferService) ConfirmImport(
+	ctx context.Context,
+	jobID string,
+	confirm bool,
+	actorUserID string,
+	allowedAreas ...TransferArea,
+) (DataTransferJob, error) {
+	repository, err := s.importRepository()
+	if err != nil {
+		return DataTransferJob{}, err
+	}
+	actorUserID = strings.TrimSpace(actorUserID)
+	if !confirm || actorUserID == "" {
+		return DataTransferJob{}, fmt.Errorf("%w: explicit import confirmation is required", ErrDataTransferValidation)
+	}
+	job, err := importJob(ctx, repository, strings.TrimSpace(jobID))
+	if err != nil {
+		return DataTransferJob{}, err
+	}
+	if job.Direction != TransferImport {
+		return DataTransferJob{}, fmt.Errorf("%w: job is not an import", ErrDataTransferValidation)
+	}
+	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
+		return DataTransferJob{}, ErrDataTransferForbidden
+	}
+	if job.State != TransferJobReady {
+		return DataTransferJob{}, fmt.Errorf("%w: import job is not ready", ErrDataTransferConflict)
+	}
+	if strings.TrimSpace(job.SourceSHA256) == "" || len(job.Preview) == 0 {
+		return DataTransferJob{}, fmt.Errorf("%w: import preview is incomplete", ErrDataTransferConflict)
+	}
+	issues, err := repository.ListIssues(ctx, job.ID)
+	if err != nil {
+		return DataTransferJob{}, err
+	}
+	for _, issue := range issues {
+		if strings.TrimSpace(issue.SelectedResolution) == "" {
+			return DataTransferJob{}, fmt.Errorf("%w: import has unresolved conflicts", ErrDataTransferConflict)
+		}
+	}
+	if err := repository.ApplyImport(ctx, job, actorUserID); err != nil {
+		return DataTransferJob{}, err
+	}
+	return importJob(ctx, repository, job.ID)
 }
 
 func compareAndUpdateDataTransferImport(
@@ -493,10 +540,11 @@ func validateDataTransferPackageSelection(areas DataTransferPackageAreas, select
 	return nil
 }
 
-func dataTransferPreviewMap(records []DataTransferPreviewRecord) (map[string]any, error) {
+func dataTransferPreviewMap(sourceSHA256 string, records []DataTransferPreviewRecord) (map[string]any, error) {
 	payload, err := json.Marshal(struct {
-		Records []DataTransferPreviewRecord `json:"records"`
-	}{Records: records})
+		SourceSHA256 string                      `json:"sourceSha256"`
+		Records      []DataTransferPreviewRecord `json:"records"`
+	}{SourceSHA256: sourceSHA256, Records: records})
 	if err != nil {
 		return nil, fmt.Errorf("encode transfer preview: %w", err)
 	}

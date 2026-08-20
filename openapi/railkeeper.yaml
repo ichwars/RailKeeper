@@ -121,6 +121,12 @@ components:
         resolution:
           type: string
           minLength: 1
+    DataTransferImportConfirmationInput:
+      type: object
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
     DataTransferJob:
       type: object
       required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion, revision,
@@ -5450,6 +5456,56 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "409":
           description: Import job can no longer be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/confirm:
+    post:
+      tags: [DataTransfer]
+      summary: Apply a reviewed import atomically
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferImportConfirmationInput"
+      responses:
+        "200":
+          description: Completed import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Explicit confirmation is missing or false
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Preview is stale, changed, or has unresolved conflicts
           content:
             application/json:
               schema:

@@ -129,6 +129,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/data-transfer/jobs/import", routeAccessEditor, (*App).createDataTransferImportJob, authorizeDataTransferWrite},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/upload", routeAccessEditor, (*App).uploadDataTransferImport, authorizeDataTransferWrite},
 		{http.MethodPut, "/api/v1/data-transfer/jobs/{id}/issues/{issueID}", routeAccessEditor, (*App).resolveDataTransferIssue, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/confirm", routeAccessEditor, (*App).confirmDataTransferImport, authorizeDataTransferWrite},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/cancel", routeAccessEditor, (*App).cancelDataTransferJob, authorizeDataTransferWrite},
 		{http.MethodGet, "/api/v1/data-transfer/artifacts/{id}/download", routeAccessViewer, (*App).downloadDataTransferArtifact, authorizeDataTransferRead},
 		{http.MethodDelete, "/api/v1/data-transfer/artifacts/{id}", routeAccessAdmin, (*App).deleteDataTransferArtifact, nil},

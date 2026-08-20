@@ -24,6 +24,10 @@ type resolveDataTransferIssueRequest struct {
 	Resolution string `json:"resolution"`
 }
 
+type confirmDataTransferImportRequest struct {
+	Confirm *bool `json:"confirm"`
+}
+
 func (a *App) createDataTransferImportJob(w http.ResponseWriter, r *http.Request) {
 	if !a.dataTransferAvailable(w) {
 		return
@@ -98,6 +102,28 @@ func (a *App) cancelDataTransferJob(w http.ResponseWriter, r *http.Request) {
 	)
 	if err != nil {
 		a.dataTransferError(w, err, "cancel data transfer job")
+		return
+	}
+	respondJSON(w, http.StatusOK, job)
+}
+
+func (a *App) confirmDataTransferImport(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	var input confirmDataTransferImportRequest
+	if !decodeBoundedJSON(w, r, &input) {
+		return
+	}
+	if input.Confirm == nil {
+		respondProblem(w, http.StatusBadRequest, "data_transfer_validation", "Import confirmation is required.")
+		return
+	}
+	job, err := a.dataTransferService.ConfirmImport(
+		r.Context(), r.PathValue("id"), *input.Confirm, actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "confirm data transfer import")
 		return
 	}
 	respondJSON(w, http.StatusOK, job)

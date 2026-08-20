@@ -137,6 +137,53 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 	}
 }
 
+func TestDataTransferConfirmRouteRequiresTrueAndAppliesReadyPreview(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "editor-confirm", Password: "editor-password", Roles: []string{"Editor"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewDataTransferService(infrastructure.NewDataTransferRepository(db), t.TempDir())
+	profile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicle import", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	editor := loginRouteTestUser(t, auth, "editor-confirm", "editor-password")
+	job, err := service.CreateImportJob(t.Context(), profile.ID, "editor-confirm")
+	if err != nil {
+		t.Fatal(err)
+	}
+	uploaded := dataTransferMultipartRequest(t, router, editor,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/upload", "vehicles.csv",
+		[]byte("Inventarnummer;Hersteller;Bezeichnung;Spurweite\nRK-CONFIRM;Roco;BR 218;H0\n"))
+	assertStatus(t, uploaded, http.StatusOK)
+
+	rejected := layoutRequest(t, router, editor, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm", map[string]any{"confirm": false}, true)
+	assertProblem(t, rejected, http.StatusBadRequest, "data_transfer_validation")
+
+	confirmed := layoutRequest(t, router, editor, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/confirm", map[string]any{"confirm": true}, true)
+	assertStatus(t, confirmed, http.StatusOK)
+	decodeResponse(t, confirmed, &job)
+	if job.State != application.TransferJobCompleted {
+		t.Fatalf("confirmed job state = %q", job.State)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM vehicles WHERE inventory_number='RK-CONFIRM'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("confirmed vehicle count = %d, want 1", count)
+	}
+}
+
 func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {
 	db := testRouterDB(t)
 	auth := application.NewAuthService(db)
@@ -253,6 +300,19 @@ func TestDataTransferImportWriteScopeKeepsMesseViewerAndPlannerExhibitionOnly(t 
 			forbiddenCancel := layoutRequest(t, router, session, http.MethodPost,
 				"/api/v1/data-transfer/jobs/"+cancelJob.ID+"/cancel", nil, true)
 			assertProblem(t, forbiddenCancel, http.StatusForbidden, "data_transfer_forbidden")
+
+			confirmJob, err := service.CreateImportJob(t.Context(), vehicleProfile.ID, "editor-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := service.UploadAndPreview(t.Context(), confirmJob.ID, "vehicles.csv", []byte(
+				"Inventarnummer;Hersteller;Bezeichnung;Spurweite\nRK-CONFIRM-"+username+";Roco;BR 01;H0\n",
+			), "editor-1"); err != nil {
+				t.Fatal(err)
+			}
+			forbiddenConfirm := layoutRequest(t, router, session, http.MethodPost,
+				"/api/v1/data-transfer/jobs/"+confirmJob.ID+"/confirm", map[string]any{"confirm": true}, true)
+			assertProblem(t, forbiddenConfirm, http.StatusForbidden, "data_transfer_forbidden")
 		})
 	}
 

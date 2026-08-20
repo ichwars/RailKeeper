@@ -212,6 +212,46 @@ func TestTransferImportEnforcesAreaScopeAndSupportsIssueResolutionAndCancel(t *t
 	}
 }
 
+func TestDataTransferConfirmImportRequiresExplicitConfirmationAndReadyResolvedPreview(t *testing.T) {
+	repository, service := newDataTransferImportFixture(t)
+	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	job.State = TransferJobReady
+	job.SourceSHA256 = "source-sha"
+	job.Preview = map[string]any{"sourceSha256": "source-sha", "records": []any{}}
+	repository.jobs[job.ID] = job
+
+	if _, err := service.ConfirmImport(t.Context(), job.ID, false, "editor-1"); !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("ConfirmImport(false) error = %v, want validation", err)
+	}
+	if repository.applyCount != 0 {
+		t.Fatalf("false confirmation applied %d imports", repository.applyCount)
+	}
+
+	repository.issues[job.ID] = []DataTransferIssue{{
+		ID: "issue-1", JobID: job.ID, Area: TransferVehicles, RecordKey: "RK-1",
+		Severity: TransferIssueWarning, Code: "duplicate_inventory_number",
+	}}
+	if _, err := service.ConfirmImport(t.Context(), job.ID, true, "editor-1"); !errors.Is(err, ErrDataTransferConflict) {
+		t.Fatalf("ConfirmImport(unresolved) error = %v, want conflict", err)
+	}
+	repository.issues[job.ID][0].SelectedResolution = "skip"
+
+	if _, err := service.ConfirmImport(
+		t.Context(), job.ID, true, "messe-1", TransferExhibitionLists,
+	); !errors.Is(err, ErrDataTransferForbidden) {
+		t.Fatalf("ConfirmImport(Messe vehicles) error = %v, want forbidden", err)
+	}
+
+	completed, err := service.ConfirmImport(t.Context(), job.ID, true, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repository.applyCount != 1 || completed.State != TransferJobCompleted ||
+		completed.ConfirmedByUserID != "editor-1" {
+		t.Fatalf("unexpected confirmed import: count=%d job=%#v", repository.applyCount, completed)
+	}
+}
+
 func newDataTransferImportFixture(t *testing.T) (*dataTransferImportRepositoryStub, *DataTransferService) {
 	t.Helper()
 	repository := &dataTransferImportRepositoryStub{
@@ -259,6 +299,7 @@ type dataTransferImportRepositoryStub struct {
 	snapshot      DataTransferSnapshot
 	nextID        int
 	mutationCount int
+	applyCount    int
 }
 
 func (repository *dataTransferImportRepositoryStub) GetProfile(
@@ -356,4 +397,22 @@ func (repository *dataTransferImportRepositoryStub) Snapshot(
 	_ []TransferArea,
 ) (DataTransferSnapshot, error) {
 	return repository.snapshot, nil
+}
+
+func (repository *dataTransferImportRepositoryStub) ApplyImport(
+	_ context.Context,
+	job DataTransferJob,
+	actor string,
+) error {
+	current, found := repository.jobs[job.ID]
+	if !found || current.State != TransferJobReady || current.Revision != job.Revision {
+		return ErrDataTransferConflict
+	}
+	repository.applyCount++
+	current.State = TransferJobCompleted
+	current.Stage = "completed"
+	current.ConfirmedByUserID = actor
+	current.Revision++
+	repository.jobs[job.ID] = current
+	return nil
 }
