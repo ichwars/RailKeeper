@@ -1,4 +1,4 @@
-import { CheckCircle2, Download, FileJson, FileSpreadsheet, Play, X } from "lucide-react";
+import { CheckCircle2, Download, FileJson, FileSpreadsheet, Play, RotateCcw, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -17,14 +17,17 @@ type TransferExportDialogProps = {
   initialJob?: DataTransferJob;
   initialProfileId?: string;
   language: Language;
+  canRetry: boolean;
   onClose: () => void;
   onCreateJob: (profileId: string) => Promise<DataTransferJob>;
   onExecute: (jobId: string) => Promise<DataTransferExportResult>;
   onRefreshJob: (jobId: string) => Promise<DataTransferJobDetails>;
+  onRetry: (jobId: string) => Promise<DataTransferJob>;
   profiles: DataTransferProfile[];
 };
 
 export function TransferExportDialog({
+  canRetry,
   downloadUrl,
   initialJob,
   initialProfileId,
@@ -33,6 +36,7 @@ export function TransferExportDialog({
   onCreateJob,
   onExecute,
   onRefreshJob,
+  onRetry,
   profiles
 }: TransferExportDialogProps) {
   const copy = exportCopy(language);
@@ -49,6 +53,8 @@ export function TransferExportDialog({
   const profile = exportProfiles.find((item) => item.id === profileId);
   const snapshot = job || profile;
   const FormatIcon = snapshot?.format === "csv" ? FileSpreadsheet : FileJson;
+  const terminalWithoutArtifact = Boolean(job && isTerminal(job) && !result);
+  const canExecute = !result && (!job || job.state === "draft");
 
   async function execute() {
     if (!job && !profileId) return;
@@ -70,17 +76,35 @@ export function TransferExportDialog({
         try {
           const details = await onRefreshJob(activeJobId);
           setJob(details.job);
-          const artifact = details.artifacts[0];
+          setResult(null);
+          const artifact = details.artifacts.find((item) => !item.deletedAt);
           if (artifact && ["completed", "completed_with_warnings"].includes(details.job.state)) {
             setResult({ job: details.job, artifact, openFolderAvailable: false });
           }
-          setError(copy.conflictRecovery);
+          setError(details.job.state === "draft" ? copy.conflictRecovery :
+            details.job.state === "running" ? copy.runningRecovery : copy.terminalRecovery);
         } catch (refreshError) {
           setError(errorMessage(refreshError, copy.conflictRecovery));
         }
       } else {
         setError(errorMessage(reason, copy.exportError));
       }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function retry() {
+    if (!job || !terminalWithoutArtifact || !canRetry) return;
+    setBusy(true);
+    setError("");
+    try {
+      const draft = await onRetry(job.id);
+      setJob(draft);
+      setResult(null);
+      setError(copy.retryReady);
+    } catch (reason) {
+      setError(errorMessage(reason, copy.retryError));
     } finally {
       setBusy(false);
     }
@@ -150,6 +174,16 @@ export function TransferExportDialog({
             </section>
           ) : null}
 
+          {job && job.state !== "draft" && !result ? (
+            <section className="transfer-export-result" aria-live="polite">
+              <div>
+                <h3>{copy.currentStatus}</h3>
+                <strong>{exportStateLabel(job.state, copy)}</strong>
+                <span>{job.state === "running" ? copy.runningHelp : copy.terminalHelp}</span>
+              </div>
+            </section>
+          ) : null}
+
           {error ? <p className="form-message error" role="alert">{error}</p> : null}
         </div>
 
@@ -157,7 +191,12 @@ export function TransferExportDialog({
           <span />
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
-            {!result ? (
+            {terminalWithoutArtifact && canRetry ? (
+              <button type="button" className="primary-button" disabled={busy} onClick={() => void retry()}>
+                <RotateCcw size={16} aria-hidden="true" />{copy.retry}
+              </button>
+            ) : null}
+            {canExecute ? (
               <button type="button" className="primary-button" disabled={busy || (!job && !profileId)}
                 onClick={() => void execute()}>
                 <Play size={16} fill="currentColor" aria-hidden="true" />{copy.execute}
@@ -170,6 +209,25 @@ export function TransferExportDialog({
   );
 
   return <><span ref={anchorRef} hidden aria-hidden="true" />{createPortal(dialog, document.body)}</>;
+}
+
+function isTerminal(job: DataTransferJob) {
+  return ["failed", "cancelled", "completed", "completed_with_warnings"].includes(job.state);
+}
+
+function exportStateLabel(state: DataTransferJob["state"], copy: ReturnType<typeof exportCopy>) {
+  const labels = {
+    draft: copy.stateDraft,
+    reading: copy.stateRunning,
+    review_required: copy.stateRunning,
+    ready: copy.stateRunning,
+    running: copy.stateRunning,
+    completed: copy.stateCompleted,
+    completed_with_warnings: copy.stateCompletedWarnings,
+    failed: copy.stateFailed,
+    cancelled: copy.stateCancelled
+  };
+  return labels[state];
 }
 
 function snapshotName(snapshot: DataTransferJob | DataTransferProfile) {
@@ -201,13 +259,27 @@ function exportCopy(language: Language) {
     chooseProfile: "Profil wählen", configuration: "Exportkonfiguration", areas: "Bereiche", format: "Format",
     options: "Optionen", noOptions: "Keine zusätzlichen Optionen.", execute: "Export ausführen",
     completed: "Export abgeschlossen", download: "Datei herunterladen", exportError: "Der Export konnte nicht erstellt werden.",
-    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert und neu gelesen. Bitte Status prüfen und den Export erneut ausführen."
+    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert und neu gelesen. Bitte Status prüfen und den Export erneut ausführen.",
+    runningRecovery: "Der Auftrag wurde zwischenzeitlich geändert und neu gelesen. Der Export läuft bereits.",
+    terminalRecovery: "Der Auftrag wurde zwischenzeitlich geändert und neu gelesen. Für diesen Endstatus ist vor einem neuen Export ein Wiederholungsauftrag erforderlich.",
+    currentStatus: "Aktueller Status", runningHelp: "Der Server verarbeitet diesen Export. Eine erneute Ausführung ist gesperrt.",
+    terminalHelp: "Dieser Auftrag kann nicht direkt erneut ausgeführt werden.", retry: "Erneut versuchen",
+    retryReady: "Ein neuer Entwurf wurde angelegt und kann ausgeführt werden.", retryError: "Der Export konnte nicht erneut angelegt werden.",
+    stateDraft: "Entwurf", stateRunning: "Export läuft", stateCompleted: "Abgeschlossen",
+    stateCompletedWarnings: "Abgeschlossen mit Hinweisen", stateFailed: "Fehlgeschlagen", stateCancelled: "Abgebrochen"
   } : {
     title: "Create export", eyebrow: "LOCAL EXPORT", close: "Close", profile: "Export profile",
     chooseProfile: "Choose profile", configuration: "Export configuration", areas: "Areas", format: "Format",
     options: "Options", noOptions: "No additional options.", execute: "Run export", completed: "Export completed",
     download: "Download file", exportError: "The export could not be created.",
-    conflictRecovery: "The job changed in the meantime and was re-read. Review its status and run the export again."
+    conflictRecovery: "The job changed in the meantime and was re-read. Review its status and run the export again.",
+    runningRecovery: "The job changed in the meantime and was re-read. The export is already running.",
+    terminalRecovery: "The job changed in the meantime and was re-read. This terminal state requires a retry job before exporting again.",
+    currentStatus: "Current status", runningHelp: "The server is processing this export. Running it again is disabled.",
+    terminalHelp: "This job cannot be run again directly.", retry: "Retry",
+    retryReady: "A new draft was created and can be run.", retryError: "The export retry could not be created.",
+    stateDraft: "Draft", stateRunning: "Export running", stateCompleted: "Completed",
+    stateCompletedWarnings: "Completed with warnings", stateFailed: "Failed", stateCancelled: "Cancelled"
   };
 }
 

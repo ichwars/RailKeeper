@@ -147,6 +147,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
       ) : null}
       {workspace.dialog?.kind === "export" ? (
         <TransferExportDialog
+          canRetry={workspace.capabilities.canRetryExport}
           downloadUrl={workspace.artifactDownloadUrl}
           initialJob={dialogJob}
           initialProfileId={workspace.dialog.profileId}
@@ -155,6 +156,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           onCreateJob={workspace.createExportJob}
           onExecute={workspace.executeExportJob}
           onRefreshJob={workspace.refreshJobDetails}
+          onRetry={workspace.retryJob}
           profiles={workspace.profiles}
         />
       ) : null}

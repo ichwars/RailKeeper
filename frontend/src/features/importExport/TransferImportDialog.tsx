@@ -57,6 +57,7 @@ export function TransferImportDialog({
     Boolean(previewFromDetails(initialJob, initialDetails) && initialJob?.format !== "csv")
   );
   const [requiresReupload, setRequiresReupload] = useState(false);
+  const requiresReuploadRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -86,7 +87,7 @@ export function TransferImportDialog({
     if (persistedPreview) {
       setPreview((current) => current?.job.id === persistedPreview.job.id &&
         current.job.revision > persistedPreview.job.revision ? current : persistedPreview);
-      setMappingAccepted(initialJob.format !== "csv");
+      if (!requiresReuploadRef.current) setMappingAccepted(initialJob.format !== "csv");
     }
   }, [initialDetails, initialJob]);
 
@@ -103,6 +104,7 @@ export function TransferImportDialog({
       setPreview(null);
       setMappingAccepted(false);
       setRequiresReupload(false);
+      requiresReuploadRef.current = false;
     } catch (reason) {
       setError(errorMessage(reason, copy.changeError));
     } finally {
@@ -128,6 +130,7 @@ export function TransferImportDialog({
       setPreview(clonePreview(nextPreview));
       setMappingAccepted(nextPreview.job.format !== "csv");
       setRequiresReupload(false);
+      requiresReuploadRef.current = false;
     } catch (reason) {
       await recoverConflict(reason, activeJobId, copy.uploadError);
     } finally {
@@ -175,6 +178,11 @@ export function TransferImportDialog({
     if (!(reason instanceof ApiError) || reason.status !== 409 || !jobId) {
       setError(errorMessage(reason, fallback));
       return;
+    }
+    if (reuploadRequired) {
+      requiresReuploadRef.current = true;
+      setRequiresReupload(true);
+      setMappingAccepted(false);
     }
     try {
       const details = await onRefreshJob(jobId);
@@ -294,7 +302,7 @@ export function TransferImportDialog({
             onClick={() => void cancelJob()}>{copy.cancelJob}</button> : <span />}
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
-            {preview && mappingAccepted ? (
+            {preview && mappingAccepted && !requiresReupload ? (
               <button type="button" className="primary-button" disabled={busy || unresolvedIssues.length > 0 ||
                 approvedRecords === 0 || job?.state !== "ready"} onClick={() => void confirmImport()}>
                 <CheckCircle2 size={16} aria-hidden="true" />{importButtonLabel(approvedRecords, language)}
