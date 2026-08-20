@@ -126,6 +126,10 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodDelete, "/api/v1/data-transfer/profiles/{id}", routeAccessAdmin, (*App).disableDataTransferProfile, nil},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/export", routeAccessViewer, (*App).createDataTransferExportJob, authorizeDataTransferRead},
 		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/execute", routeAccessViewer, (*App).executeDataTransferExport, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/import", routeAccessEditor, (*App).createDataTransferImportJob, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/upload", routeAccessEditor, (*App).uploadDataTransferImport, authorizeDataTransferWrite},
+		{http.MethodPut, "/api/v1/data-transfer/jobs/{id}/issues/{issueID}", routeAccessEditor, (*App).resolveDataTransferIssue, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/cancel", routeAccessEditor, (*App).cancelDataTransferJob, authorizeDataTransferWrite},
 		{http.MethodGet, "/api/v1/data-transfer/artifacts/{id}/download", routeAccessViewer, (*App).downloadDataTransferArtifact, authorizeDataTransferRead},
 		{http.MethodDelete, "/api/v1/data-transfer/artifacts/{id}", routeAccessAdmin, (*App).deleteDataTransferArtifact, nil},
 		{http.MethodPost, "/api/v1/data-transfer/artifacts/open-folder", routeAccessAdmin, (*App).openDataTransferArtifactFolder, nil},
@@ -275,7 +279,19 @@ func authorizeDataTransferRead(a *App, next http.HandlerFunc) http.HandlerFunc {
 }
 
 func authorizeDataTransferWrite(a *App, next http.HandlerFunc) http.HandlerFunc {
-	return a.requireAny([]string{"Editor", "Messe"}, next)
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := a.authService.RequireAnyRole(r.Context(), cookieValue(r, "rk_session"), "Editor", "Messe")
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		session, err := a.authService.CurrentSession(r.Context(), cookieValue(r, "rk_session"))
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		next.ServeHTTP(w, withDataTransferScope(withActorUserID(r, userID), dataTransferMesseScope(session.Roles)))
+	}
 }
 
 func authorizationError(a *App, w http.ResponseWriter, err error) {

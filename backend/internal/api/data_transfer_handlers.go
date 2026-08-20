@@ -5,6 +5,7 @@ import (
 	"errors"
 	"mime"
 	"net/http"
+	"strings"
 
 	"railkeeper/backend/internal/application"
 )
@@ -13,6 +14,93 @@ type dataTransferScopeKey struct{}
 
 type createDataTransferExportJobRequest struct {
 	ProfileID string `json:"profileId"`
+}
+
+type createDataTransferImportJobRequest struct {
+	ProfileID string `json:"profileId"`
+}
+
+type resolveDataTransferIssueRequest struct {
+	Resolution string `json:"resolution"`
+}
+
+func (a *App) createDataTransferImportJob(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	var input createDataTransferImportJobRequest
+	if !decodeBoundedJSON(w, r, &input) {
+		return
+	}
+	job, err := a.dataTransferService.CreateImportJob(
+		r.Context(), input.ProfileID, actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "create data transfer import job")
+		return
+	}
+	respondJSON(w, http.StatusCreated, job)
+}
+
+func (a *App) uploadDataTransferImport(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, application.DataTransferMaxUploadBytes+1024*1024)
+	reader, err := r.MultipartReader()
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "data_transfer_upload_invalid",
+			"Import upload must be valid multipart data.")
+		return
+	}
+	part, err := reader.NextPart()
+	if err != nil || part.FormName() != "file" || strings.TrimSpace(part.FileName()) == "" {
+		respondProblem(w, http.StatusBadRequest, "data_transfer_upload_missing", "Import file is required.")
+		return
+	}
+	defer func() { _ = part.Close() }()
+	preview, err := a.dataTransferService.UploadAndPreviewReader(
+		r.Context(), r.PathValue("id"), part.FileName(), part.Header.Get("Content-Type"), part,
+		actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "preview data transfer import")
+		return
+	}
+	respondJSON(w, http.StatusOK, preview)
+}
+
+func (a *App) resolveDataTransferIssue(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	var input resolveDataTransferIssueRequest
+	if !decodeBoundedJSON(w, r, &input) {
+		return
+	}
+	job, err := a.dataTransferService.ResolveIssue(
+		r.Context(), r.PathValue("id"), r.PathValue("issueID"), input.Resolution,
+		actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "resolve data transfer issue")
+		return
+	}
+	respondJSON(w, http.StatusOK, job)
+}
+
+func (a *App) cancelDataTransferJob(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	job, err := a.dataTransferService.CancelJob(
+		r.Context(), r.PathValue("id"), actorUserID(r), allowedDataTransferAreas(r)...,
+	)
+	if err != nil {
+		a.dataTransferError(w, err, "cancel data transfer job")
+		return
+	}
+	respondJSON(w, http.StatusOK, job)
 }
 
 func (a *App) createDataTransferExportJob(w http.ResponseWriter, r *http.Request) {
@@ -166,6 +254,9 @@ func (a *App) dataTransferAvailable(w http.ResponseWriter) bool {
 
 func (a *App) dataTransferError(w http.ResponseWriter, err error, action string) {
 	switch {
+	case errors.Is(err, application.ErrDataTransferUploadTooLarge):
+		respondProblem(w, http.StatusRequestEntityTooLarge, "data_transfer_upload_too_large",
+			"Import file exceeds the upload limit.")
 	case errors.Is(err, application.ErrDataTransferValidation):
 		respondProblem(w, http.StatusBadRequest, "data_transfer_validation", err.Error())
 	case errors.Is(err, application.ErrDataTransferForbidden):

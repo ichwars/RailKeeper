@@ -1,9 +1,12 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"mime/multipart"
 	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"testing"
 
@@ -79,6 +82,123 @@ func TestDataTransferProfileRoutesEnforceRolesAndMesseScope(t *testing.T) {
 		map[string]any{"name": "Master data", "direction": "export", "format": "railkeeper-json",
 			"areas": []string{"masterData"}}, true)
 	assertProblem(t, invalid, http.StatusBadRequest, "data_transfer_validation")
+}
+
+func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "editor-import", Password: "editor-password", Roles: []string{"Editor"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewDataTransferService(infrastructure.NewDataTransferRepository(db), t.TempDir())
+	profile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicle import", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	editor := loginRouteTestUser(t, auth, "editor-import", "editor-password")
+
+	created := layoutRequest(t, router, editor, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+		map[string]any{"profileId": profile.ID}, true)
+	assertStatus(t, created, http.StatusCreated)
+	var job application.DataTransferJob
+	decodeResponse(t, created, &job)
+
+	uploaded := dataTransferMultipartRequest(t, router, editor,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/upload", "vehicles.csv",
+		[]byte("Inventarnummer;Hersteller;Bezeichnung\nRK-001;;BR 218\n"))
+	assertStatus(t, uploaded, http.StatusOK)
+	var preview application.DataTransferPreview
+	decodeResponse(t, uploaded, &preview)
+	if preview.ErrorRecords != 1 || len(preview.Issues) != 1 {
+		t.Fatalf("unexpected import preview: %#v", preview)
+	}
+
+	resolved := layoutRequest(t, router, editor, http.MethodPut,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/issues/"+preview.Issues[0].ID,
+		map[string]any{"resolution": "skip"}, true)
+	assertStatus(t, resolved, http.StatusOK)
+	decodeResponse(t, resolved, &job)
+	if job.State != application.TransferJobReady {
+		t.Fatalf("resolved job state = %q", job.State)
+	}
+
+	cancelled := layoutRequest(t, router, editor, http.MethodPost,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/cancel", nil, true)
+	assertStatus(t, cancelled, http.StatusOK)
+	decodeResponse(t, cancelled, &job)
+	if job.State != application.TransferJobCancelled {
+		t.Fatalf("cancelled job state = %q", job.State)
+	}
+}
+
+func TestDataTransferImportRoutesEnforceMesseAreaScope(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "messe-import", Password: "messe-password", Roles: []string{"Messe"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	service := application.NewDataTransferService(infrastructure.NewDataTransferRepository(db), t.TempDir())
+	vehicleProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Vehicles", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	exhibitionProfile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Exhibition", Direction: application.TransferImport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferExhibitionLists},
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	messe := loginRouteTestUser(t, auth, "messe-import", "messe-password")
+
+	forbidden := layoutRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+		map[string]any{"profileId": vehicleProfile.ID}, true)
+	assertProblem(t, forbidden, http.StatusForbidden, "data_transfer_forbidden")
+	allowed := layoutRequest(t, router, messe, http.MethodPost, "/api/v1/data-transfer/jobs/import",
+		map[string]any{"profileId": exhibitionProfile.ID}, true)
+	assertStatus(t, allowed, http.StatusCreated)
+}
+
+func dataTransferMultipartRequest(
+	t *testing.T,
+	router http.Handler,
+	session *application.LoginResult,
+	path string,
+	filename string,
+	payload []byte,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, path, body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("X-CSRF-Token", session.CSRFToken)
+	request.AddCookie(&http.Cookie{Name: "rk_session", Value: session.SessionToken})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	return response
 }
 
 func TestDataTransferExportRoutesCreateExecuteDownloadAndDeleteArtifact(t *testing.T) {

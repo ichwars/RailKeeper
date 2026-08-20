@@ -107,6 +107,20 @@ components:
         profileId:
           type: string
           minLength: 1
+    DataTransferImportJobInput:
+      type: object
+      required: [profileId]
+      properties:
+        profileId:
+          type: string
+          minLength: 1
+    DataTransferIssueResolutionInput:
+      type: object
+      required: [resolution]
+      properties:
+        resolution:
+          type: string
+          minLength: 1
     DataTransferJob:
       type: object
       required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion,
@@ -203,6 +217,85 @@ components:
           $ref: "#/components/schemas/DataTransferArtifact"
         openFolderAvailable:
           type: boolean
+    DataTransferIssue:
+      type: object
+      required: [id, jobId, area, recordKey, field, severity, code, message, proposedResolution,
+        selectedResolution, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        jobId:
+          type: string
+        area:
+          type: string
+          enum: [vehicles, accessories, exhibitionLists]
+        recordKey:
+          type: string
+        rowNumber:
+          type: integer
+          nullable: true
+        field:
+          type: string
+        severity:
+          type: string
+          enum: [warning, error]
+        code:
+          type: string
+        message:
+          type: string
+        proposedResolution:
+          type: string
+        selectedResolution:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    DataTransferPreviewRecord:
+      type: object
+      required: [area, recordKey, classification, proposedAction, data]
+      properties:
+        area:
+          type: string
+          enum: [vehicles, accessories, exhibitionLists]
+        recordKey:
+          type: string
+        rowNumber:
+          type: integer
+        classification:
+          type: string
+          enum: [ready, warning, error]
+        proposedAction:
+          type: string
+        targetId:
+          type: string
+        targetUpdatedAt:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    DataTransferPreview:
+      type: object
+      required: [job, records, issues, totalRecords, readyRecords, warningRecords, errorRecords]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferPreviewRecord"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferIssue"
+        totalRecords:
+          type: integer
+        readyRecords:
+          type: integer
+        warningRecords:
+          type: integer
+        errorRecords:
+          type: integer
     OverviewValuation:
       type: object
       required:
@@ -5162,6 +5255,156 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "404":
           description: Transfer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/import:
+    post:
+      tags: [DataTransfer]
+      summary: Create an import job from a saved profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferImportJobInput"
+      responses:
+        "201":
+          description: Import job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid or disabled import profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/upload:
+    post:
+      tags: [DataTransfer]
+      summary: Upload an import file and persist its preview
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Persistent import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferPreview"
+        "400":
+          description: Invalid package, CSV, extension, MIME type, or selected areas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: Import file exceeds the upload limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/issues/{issueID}:
+    put:
+      tags: [DataTransfer]
+      summary: Resolve one import preview issue
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: issueID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferIssueResolutionInput"
+      responses:
+        "200":
+          description: Updated import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid resolution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Import job is not in a reviewable state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/cancel:
+    post:
+      tags: [DataTransfer]
+      summary: Cancel a draft or reviewed import job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "409":
+          description: Import job can no longer be cancelled
           content:
             application/json:
               schema:
