@@ -1409,6 +1409,10 @@ ORDER BY name
 	excluded := map[string]bool{
 		"app_settings":            true,
 		"audit_logs":              true,
+		"data_transfer_artifacts": true,
+		"data_transfer_job_issues": true,
+		"data_transfer_jobs":      true,
+		"data_transfer_profiles":  true,
 		"password_reset_requests": true,
 		"rate_limit_attempts":     true,
 		"roles":                   true,
