@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"railkeeper/backend/internal/application"
+	"railkeeper/backend/internal/domain"
 )
 
 type dataTransferPersistedPreview struct {
@@ -226,7 +227,7 @@ func currentTransferTargetFingerprints(
 
 func applyTransferRecords(
 	ctx context.Context,
-	db dataTransferApplyDB,
+	db *sql.Tx,
 	job application.DataTransferJob,
 	records []application.DataTransferPreviewRecord,
 	issues []application.DataTransferIssue,
@@ -369,7 +370,7 @@ func transferVehicleArguments(vehicle application.TransferVehicle, now string) [
 
 func applyTransferAccessory(
 	ctx context.Context,
-	db dataTransferApplyDB,
+	db *sql.Tx,
 	record application.DataTransferPreviewRecord,
 	action string,
 ) error {
@@ -395,6 +396,27 @@ func applyTransferAccessory(
 		productID = randomID()
 	} else if action != "replace" || productID == "" {
 		return dataTransferApplyConflict("unsupported accessory resolution")
+	}
+	targetStrategy := domain.AccessoryInventoryStrategy(accessory.InventoryStrategy)
+	if !targetStrategy.Valid() || domain.AccessoryTrackingMode(accessory.TrackingMode) != targetStrategy.TrackingMode() {
+		return dataTransferApplyConflict("imported accessory inventory strategy is invalid")
+	}
+	if action == "replace" {
+		currentStrategy, err := accessoryInventoryStrategy(ctx, db, productID)
+		if err != nil {
+			return err
+		}
+		if err := validateAccessoryInventoryStrategyTransition(
+			ctx, db, productID, currentStrategy, targetStrategy,
+		); errors.Is(err, application.ErrAccessoryConflict) {
+			return dataTransferApplyConflict("imported accessory inventory strategy conflicts with local allocations")
+		} else if err != nil {
+			return err
+		}
+	}
+	stock, err := prepareTransferAccessoryStock(ctx, db, productID, targetStrategy, accessory.Stock, now, action == "replace")
+	if err != nil {
+		return err
 	}
 	gauges, _ := json.Marshal(nonNilStrings(accessory.Gauges))
 	alternatives, _ := json.Marshal(nonNilStrings(accessory.AlternativeNumbers))
@@ -433,15 +455,11 @@ UPDATE accessory_products SET inventory_number=?, manufacturer=?, article_number
 			return err
 		}
 	}
-	for _, stock := range accessory.Stock {
-		locationID, err := transferStorageLocation(ctx, db, stock.LocationID, stock.LocationName, now)
-		if err != nil {
-			return err
-		}
+	for _, level := range stock {
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at) VALUES(?, ?, ?, ?)
 ON CONFLICT(product_id, location_id) DO UPDATE SET quantity=excluded.quantity, updated_at=excluded.updated_at`,
-			productID, locationID, stock.Quantity, now); err != nil {
+			productID, level.LocationID, level.Quantity, now); err != nil {
 			return err
 		}
 	}
@@ -489,6 +507,52 @@ INSERT INTO accessory_assets(
 		}
 	}
 	return nil
+}
+
+type preparedTransferAccessoryStock struct {
+	LocationID string
+	Quantity   int
+}
+
+func prepareTransferAccessoryStock(
+	ctx context.Context,
+	db *sql.Tx,
+	productID string,
+	strategy domain.AccessoryInventoryStrategy,
+	stock []application.TransferAccessoryStock,
+	now string,
+	validateReservations bool,
+) ([]preparedTransferAccessoryStock, error) {
+	prepared := make([]preparedTransferAccessoryStock, 0, len(stock))
+	seenLocations := make(map[string]bool, len(stock))
+	for _, level := range stock {
+		if level.Quantity < 0 || strategy == domain.AccessoryInventoryIndividual && level.Quantity != 0 {
+			return nil, dataTransferApplyConflict("imported accessory stock is incompatible with its inventory strategy")
+		}
+		locationID, err := transferStorageLocation(ctx, db, level.LocationID, level.LocationName, now)
+		if err != nil {
+			return nil, err
+		}
+		if seenLocations[locationID] {
+			return nil, dataTransferApplyConflict("imported accessory stock contains a duplicate location")
+		}
+		seenLocations[locationID] = true
+		if validateReservations {
+			var reserved int
+			if err := db.QueryRowContext(ctx, `
+SELECT COALESCE(SUM(quantity), 0)
+FROM accessory_reservations
+WHERE product_id=? AND location_id=? AND asset_id IS NULL AND status='active'`,
+				productID, locationID).Scan(&reserved); err != nil {
+				return nil, fmt.Errorf("read reserved accessory stock before import: %w", err)
+			}
+			if level.Quantity < reserved {
+				return nil, dataTransferApplyConflict("imported accessory stock is below its active reserved quantity")
+			}
+		}
+		prepared = append(prepared, preparedTransferAccessoryStock{LocationID: locationID, Quantity: level.Quantity})
+	}
+	return prepared, nil
 }
 
 func matchingTransferAccessoryAsset(

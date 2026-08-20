@@ -176,6 +176,12 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 		if err != nil {
 			return nil, err
 		}
+		accessories[index].FingerprintState, err = transferAccessoryFingerprintState(
+			ctx, tx, accessories[index].ID,
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return accessories, nil
 }
@@ -242,6 +248,94 @@ ORDER BY asset.inventory_number COLLATE NOCASE, asset.id`, productID)
 		return nil, fmt.Errorf("iterate transfer accessory assets: %w", err)
 	}
 	return assets, nil
+}
+
+func transferAccessoryFingerprintState(
+	ctx context.Context,
+	tx *sql.Tx,
+	productID string,
+) (application.TransferAccessoryFingerprintState, error) {
+	state := application.TransferAccessoryFingerprintState{
+		Reservations:     []application.TransferAccessoryReservationFingerprint{},
+		Installations:    []application.TransferAccessoryInstallationFingerprint{},
+		ConditionHistory: []application.TransferAccessoryConditionHistoryFingerprint{},
+	}
+	rows, err := tx.QueryContext(ctx, `
+SELECT id, COALESCE(asset_id, ''), location_id, quantity, status, updated_at
+FROM accessory_reservations
+WHERE product_id=?
+ORDER BY id`, productID)
+	if err != nil {
+		return state, fmt.Errorf("query transfer accessory reservation fingerprints: %w", err)
+	}
+	for rows.Next() {
+		reservation := application.TransferAccessoryReservationFingerprint{}
+		if err := rows.Scan(
+			&reservation.ID, &reservation.AssetID, &reservation.LocationID, &reservation.Quantity,
+			&reservation.Status, &reservation.UpdatedAt,
+		); err != nil {
+			_ = rows.Close()
+			return state, fmt.Errorf("scan transfer accessory reservation fingerprint: %w", err)
+		}
+		state.Reservations = append(state.Reservations, reservation)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return state, fmt.Errorf("iterate transfer accessory reservation fingerprints: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return state, fmt.Errorf("close transfer accessory reservation fingerprints: %w", err)
+	}
+
+	rows, err = tx.QueryContext(ctx, `
+SELECT id, COALESCE(asset_id, ''), source_location_id, quantity, condition_state, installed_at,
+       COALESCE(removed_at, '')
+FROM accessory_installations
+WHERE product_id=?
+ORDER BY id`, productID)
+	if err != nil {
+		return state, fmt.Errorf("query transfer accessory installation fingerprints: %w", err)
+	}
+	for rows.Next() {
+		installation := application.TransferAccessoryInstallationFingerprint{}
+		if err := rows.Scan(
+			&installation.ID, &installation.AssetID, &installation.SourceLocationID, &installation.Quantity,
+			&installation.Condition, &installation.InstalledAt, &installation.RemovedAt,
+		); err != nil {
+			_ = rows.Close()
+			return state, fmt.Errorf("scan transfer accessory installation fingerprint: %w", err)
+		}
+		state.Installations = append(state.Installations, installation)
+	}
+	if err := rows.Err(); err != nil {
+		_ = rows.Close()
+		return state, fmt.Errorf("iterate transfer accessory installation fingerprints: %w", err)
+	}
+	if err := rows.Close(); err != nil {
+		return state, fmt.Errorf("close transfer accessory installation fingerprints: %w", err)
+	}
+
+	rows, err = tx.QueryContext(ctx, `
+SELECT history.id, history.installation_id, history.condition_state, history.changed_at
+FROM accessory_installation_condition_history history
+JOIN accessory_installations installation ON installation.id=history.installation_id
+WHERE installation.product_id=?
+ORDER BY history.id`, productID)
+	if err != nil {
+		return state, fmt.Errorf("query transfer accessory condition history fingerprints: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		history := application.TransferAccessoryConditionHistoryFingerprint{}
+		if err := rows.Scan(&history.ID, &history.InstallationID, &history.Condition, &history.ChangedAt); err != nil {
+			return state, fmt.Errorf("scan transfer accessory condition history fingerprint: %w", err)
+		}
+		state.ConditionHistory = append(state.ConditionHistory, history)
+	}
+	if err := rows.Err(); err != nil {
+		return state, fmt.Errorf("iterate transfer accessory condition history fingerprints: %w", err)
+	}
+	return state, nil
 }
 
 func transferExhibitionSnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferExhibitionList, error) {

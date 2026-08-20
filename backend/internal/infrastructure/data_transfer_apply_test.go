@@ -1,9 +1,7 @@
 package infrastructure_test
 
 import (
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"sync"
@@ -305,6 +303,166 @@ func TestDataTransferApplyRejectsSameSecondAccessoryChildMutation(t *testing.T) 
 		t.Fatalf("ApplyImport() error = %v, want accessory aggregate conflict", err)
 	}
 	assertApplyJobStillReady(t, repository, job.ID)
+}
+
+func TestDataTransferApplyRejectsReservationAddedAfterPreview(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	insertApplyAccessoryAllocationTargets(t, db, timestamp)
+	insertApplyAccessoryProductWithStrategy(t, db, "product-reservation-stale", "RK-ART-RES-STALE", "quantity", timestamp)
+	if _, err := db.Exec(`INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+		VALUES('product-reservation-stale', 'location-apply', 10, ?)`, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	target := applyAccessorySnapshot(t, repository)
+	job, record := createAccessoryReplaceJob(t, repository, "sha-reservation-stale", target, target)
+	if _, err := db.Exec(`INSERT INTO accessory_reservations(
+		id, product_id, location_id, quantity, vehicle_id, status, created_by, created_at, updated_at
+	) VALUES('reservation-after-preview', 'product-reservation-stale', 'location-apply', 2, 'vehicle-apply',
+		'active', 'editor-1', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want reservation fingerprint conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+	var stock int
+	if err := db.QueryRow(`SELECT quantity FROM accessory_stock
+		WHERE product_id=? AND location_id='location-apply'`, record.TargetID).Scan(&stock); err != nil {
+		t.Fatal(err)
+	}
+	if stock != 10 {
+		t.Fatalf("failed stale import changed stock to %d", stock)
+	}
+}
+
+func TestDataTransferApplyRejectsImportedQuantityBelowActiveReservation(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	insertApplyAccessoryAllocationTargets(t, db, timestamp)
+	insertApplyAccessoryProductWithStrategy(t, db, "product-reserved-stock", "RK-ART-RESERVED", "quantity", timestamp)
+	if _, err := db.Exec(`INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+		VALUES('product-reserved-stock', 'location-apply', 10, ?)`, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_reservations(
+		id, product_id, location_id, quantity, vehicle_id, status, created_by, created_at, updated_at
+	) VALUES('reservation-existing', 'product-reserved-stock', 'location-apply', 3, 'vehicle-apply',
+		'active', 'editor-1', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	target := applyAccessorySnapshot(t, repository)
+	incoming := target
+	incoming.Stock = append([]application.TransferAccessoryStock(nil), target.Stock...)
+	incoming.Stock[0].Quantity = 2
+	job, _ := createAccessoryReplaceJob(t, repository, "sha-reserved-stock", target, incoming)
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("ApplyImport() error = %v, want reserved stock conflict", err)
+	}
+	assertApplyJobStillReady(t, repository, job.ID)
+	var stock int
+	if err := db.QueryRow(`SELECT quantity FROM accessory_stock
+		WHERE product_id='product-reserved-stock' AND location_id='location-apply'`).Scan(&stock); err != nil {
+		t.Fatal(err)
+	}
+	if stock != 10 {
+		t.Fatalf("failed reserved-stock import changed stock to %d", stock)
+	}
+}
+
+func TestDataTransferApplyRejectsIncompatibleAccessoryStrategyTransitions(t *testing.T) {
+	tests := []struct {
+		name             string
+		currentStrategy  string
+		targetStrategy   string
+		insertDependency func(*testing.T, *sql.DB, string)
+	}{
+		{
+			name: "quantity stock to individual", currentStrategy: "quantity", targetStrategy: "individual",
+			insertDependency: func(t *testing.T, db *sql.DB, timestamp string) {
+				if _, err := db.Exec(`INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+					VALUES('product-strategy', 'location-apply', 2, ?)`, timestamp); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "quantity reservation to individual", currentStrategy: "quantity", targetStrategy: "individual",
+			insertDependency: func(t *testing.T, db *sql.DB, timestamp string) {
+				if _, err := db.Exec(`INSERT INTO accessory_reservations(
+					id, product_id, location_id, quantity, vehicle_id, status, created_by, created_at, updated_at
+				) VALUES('reservation-strategy', 'product-strategy', 'location-apply', 1, 'vehicle-apply',
+					'active', 'editor-1', ?, ?)`, timestamp, timestamp); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "quantity installation to individual", currentStrategy: "quantity", targetStrategy: "individual",
+			insertDependency: func(t *testing.T, db *sql.DB, timestamp string) {
+				if _, err := db.Exec(`INSERT INTO accessory_installations(
+					id, product_id, source_location_id, quantity, vehicle_id, condition_state, installed_by, installed_at
+				) VALUES('installation-strategy', 'product-strategy', 'location-apply', 1, 'vehicle-apply',
+					'ready', 'editor-1', ?)`, timestamp); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "hybrid stock to individual", currentStrategy: "quantity_later_individual", targetStrategy: "individual",
+			insertDependency: func(t *testing.T, db *sql.DB, timestamp string) {
+				if _, err := db.Exec(`INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+					VALUES('product-strategy', 'location-apply', 1, ?)`, timestamp); err != nil {
+					t.Fatal(err)
+				}
+			},
+		},
+		{
+			name: "individual asset to quantity", currentStrategy: "individual", targetStrategy: "quantity",
+			insertDependency: insertApplyStrategyAsset,
+		},
+		{
+			name: "hybrid asset to quantity", currentStrategy: "quantity_later_individual", targetStrategy: "quantity",
+			insertDependency: insertApplyStrategyAsset,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			db := testDB(t)
+			repository := infrastructure.NewDataTransferRepository(db)
+			const timestamp = "2026-01-01T00:00:00Z"
+			insertApplyAccessoryAllocationTargets(t, db, timestamp)
+			insertApplyAccessoryProductWithStrategy(
+				t, db, "product-strategy", "RK-ART-STRATEGY", test.currentStrategy, timestamp,
+			)
+			test.insertDependency(t, db, timestamp)
+			target := applyAccessorySnapshot(t, repository)
+			incoming := target
+			incoming.InventoryStrategy = test.targetStrategy
+			incoming.TrackingMode = test.targetStrategy
+			if test.targetStrategy == "quantity_later_individual" {
+				incoming.TrackingMode = "quantity"
+			}
+			job, _ := createAccessoryReplaceJob(t, repository, "sha-strategy-"+test.name, target, incoming)
+
+			if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+				t.Fatalf("ApplyImport() error = %v, want strategy conflict", err)
+			}
+			assertApplyJobStillReady(t, repository, job.ID)
+			var strategy string
+			if err := db.QueryRow(`SELECT inventory_strategy FROM accessory_products WHERE id='product-strategy'`).
+				Scan(&strategy); err != nil {
+				t.Fatal(err)
+			}
+			if strategy != test.currentStrategy {
+				t.Fatalf("failed strategy import changed strategy to %q", strategy)
+			}
+		})
+	}
 }
 
 func TestDataTransferApplyRejectsSameSecondExhibitionEntryMutation(t *testing.T) {
@@ -822,12 +980,7 @@ func assertApplyJobStillReady(
 
 func applyTargetFingerprint(t *testing.T, value any) string {
 	t.Helper()
-	payload, err := json.Marshal(value)
-	if err != nil {
-		t.Fatal(err)
-	}
-	digest := sha256.Sum256(payload)
-	return hex.EncodeToString(digest[:])
+	return application.DataTransferTargetFingerprint(value)
 }
 
 func resolveApplyIssue(
@@ -856,6 +1009,87 @@ func insertApplyAccessoryProduct(t *testing.T, db *sql.DB, id, inventoryNumber, 
 		'quantity', ?, ?)`, id, inventoryNumber, timestamp, timestamp); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func insertApplyAccessoryAllocationTargets(t *testing.T, db *sql.DB, timestamp string) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO storage_locations(id, name, created_at, updated_at)
+		VALUES('location-apply', 'Apply shelf', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, created_at, updated_at)
+		VALUES('vehicle-apply', 'RK-APPLY-VEHICLE', 'Roco', 'BR 01', 'H0', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func insertApplyAccessoryProductWithStrategy(
+	t *testing.T,
+	db *sql.DB,
+	id string,
+	inventoryNumber string,
+	strategy string,
+	timestamp string,
+) {
+	t.Helper()
+	trackingMode := strategy
+	if strategy == "quantity_later_individual" {
+		trackingMode = "quantity"
+	}
+	if _, err := db.Exec(`INSERT INTO accessory_products(
+		id, inventory_number, manufacturer, name, category, tracking_mode, manufacturer_status, article_type,
+		package_quantity, stock_unit, minimum_stock, inventory_strategy, created_at, updated_at
+	) VALUES(?, ?, 'Viessmann', 'Signal', 'Signal', ?, 'unknown', 'other', 1, 'piece', 0, ?, ?, ?)`,
+		id, inventoryNumber, trackingMode, strategy, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func insertApplyStrategyAsset(t *testing.T, db *sql.DB, timestamp string) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO accessory_assets(
+		id, product_id, inventory_number, condition_state, lifecycle_state, storage_location_id, created_at, updated_at
+	) VALUES('asset-strategy', 'product-strategy', 'RK-ASSET-STRATEGY', 'ready', 'stored',
+		'location-apply', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func applyAccessorySnapshot(
+	t *testing.T,
+	repository *infrastructure.DataTransferRepository,
+) application.TransferAccessory {
+	t.Helper()
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferAccessories})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Accessories) != 1 {
+		t.Fatalf("accessory snapshot count = %d, want 1", len(snapshot.Accessories))
+	}
+	return snapshot.Accessories[0]
+}
+
+func createAccessoryReplaceJob(
+	t *testing.T,
+	repository *infrastructure.DataTransferRepository,
+	sourceSHA string,
+	target application.TransferAccessory,
+	incoming application.TransferAccessory,
+) (application.DataTransferJob, application.DataTransferPreviewRecord) {
+	t.Helper()
+	data, err := json.Marshal(incoming)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferAccessories, RecordKey: target.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: target.ID, TargetUpdatedAt: target.UpdatedAt,
+		TargetFingerprint: applyTargetFingerprint(t, target), Data: data,
+	}
+	job := createApplyJob(t, repository, sourceSHA, []application.DataTransferPreviewRecord{record})
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_inventory_number", "replace")
+	return job, record
 }
 
 func intPointer(value int) *int {

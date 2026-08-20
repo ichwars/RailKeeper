@@ -236,3 +236,54 @@ database column was necessary because preview records already persist atomically
   merge, not destructive reconciliation.
 - Imports that conflict with active reservation or installation lifecycle/location truth are
   rejected. Operators must resolve the local relationship or choose a non-replacement resolution.
+
+## Reservation and Strategy Safety Follow-up
+
+The accessory aggregate fingerprint now also covers deterministic local allocation state:
+reservations, installations, and installation-condition history. This state is marked `json:"-"`
+on transfer accessories, so it contributes to target stale detection without entering export or
+import payloads. A reservation added after preview therefore invalidates apply even when product,
+stock, and timestamp values did not change.
+
+Accessory replacement now performs these checks in the apply transaction before updating the
+product or stock rows:
+
+- The imported strategy and tracking mode must be consistent.
+- The existing repository strategy-transition invariant rejects dropping quantity tracking while
+  stock, active quantity reservations, or active quantity installations remain.
+- The same invariant rejects dropping individual tracking while local assets or their allocation
+  relationships remain.
+- Every imported stock level must remain at or above the active quantity reserved at that local
+  storage location, matching normal stock-adjustment behavior.
+
+RED evidence before implementation:
+
+```text
+TestDataTransferApplyRejectsReservationAddedAfterPreview:
+ApplyImport() error = <nil>, want reservation fingerprint conflict
+
+TestDataTransferApplyRejectsImportedQuantityBelowActiveReservation:
+ApplyImport() error = <nil>, want reserved stock conflict
+
+TestDataTransferApplyRejectsIncompatibleAccessoryStrategyTransitions:
+all six quantity, individual, and hybrid transition cases returned <nil>
+```
+
+GREEN verification:
+
+```powershell
+go test ./internal/application ./internal/infrastructure ./internal/api -run DataTransfer -count=1
+go test ./internal/infrastructure -run 'TestDataTransferApply(CASAllowsOneConcurrentConfirmation|RejectsSameSecond|RejectsReservationAddedAfterPreview|RejectsImportedQuantityBelowActiveReservation|RejectsIncompatibleAccessoryStrategyTransitions|AccessoryReplacePreservesPurchaseAndRelationships)' -count=10
+go test ./... -count=1
+```
+
+All commands passed. The complete backend test run covered every package. No OpenAPI change is
+needed because the allocation fingerprint state is deliberately absent from serialized transfer
+records; only the existing `targetFingerprint` digest remains exposed.
+
+### Reservation and strategy concerns
+
+- Accessory replacement remains a conservative merge. Stock locations or assets absent from the
+  import are preserved, including their local relationships and provenance.
+- A concurrent allocation mutation makes the preview stale. The operator must preview again rather
+  than applying a decision made against older reservation or installation state.

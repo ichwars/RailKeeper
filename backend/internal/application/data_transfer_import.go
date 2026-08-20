@@ -48,7 +48,22 @@ type DataTransferPreviewRecord struct {
 }
 
 func DataTransferTargetFingerprint(value any) string {
-	payload, err := json.Marshal(value)
+	fingerprintValue := value
+	switch accessory := value.(type) {
+	case TransferAccessory:
+		fingerprintValue = struct {
+			TransferAccessory
+			FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
+		}{TransferAccessory: accessory, FingerprintState: accessory.FingerprintState}
+	case *TransferAccessory:
+		if accessory != nil {
+			fingerprintValue = struct {
+				TransferAccessory
+				FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
+			}{TransferAccessory: *accessory, FingerprintState: accessory.FingerprintState}
+		}
+	}
+	payload, err := json.Marshal(fingerprintValue)
 	if err != nil {
 		return ""
 	}
