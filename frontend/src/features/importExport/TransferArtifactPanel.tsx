@@ -1,4 +1,4 @@
-import { Download, Folder, FolderOpen } from "lucide-react";
+import { Download, Folder, FolderOpen, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import type { Language } from "../../shared/i18n";
@@ -8,31 +8,50 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 
 type TransferArtifactPanelProps = {
   artifacts: DataTransferArtifact[];
+  canDelete: boolean;
   canOpenFolder: boolean;
   downloadUrl: (artifactId: string) => string;
   language: Language;
   mutating: boolean;
   onOpenFolder: () => Promise<unknown>;
+  onDelete: (artifactId: string) => Promise<unknown>;
   summary: DataTransferSummary;
   t: Translate;
 };
 
 export function TransferArtifactPanel({
   artifacts,
+  canDelete,
   canOpenFolder,
   downloadUrl,
   language,
   mutating,
   onOpenFolder,
+  onDelete,
   summary,
   t
 }: TransferArtifactPanelProps) {
   const [error, setError] = useState("");
+  const [deletingId, setDeletingId] = useState("");
   const activeArtifacts = artifacts.filter((artifact) => !artifact.deletedAt);
 
   function openFolder() {
     setError("");
     void onOpenFolder().catch(() => setError(t("importExport.dashboard.storage.openError")));
+  }
+
+  function deleteArtifact(artifact: DataTransferArtifact) {
+    const message = language === "de"
+      ? `Exportdatei „${artifact.displayName}“ dauerhaft löschen?`
+      : `Permanently delete export file “${artifact.displayName}”?`;
+    if (!window.confirm(message)) return;
+    setDeletingId(artifact.id);
+    setError("");
+    void onDelete(artifact.id)
+      .catch(() => setError(language === "de"
+        ? "Die Exportdatei konnte nicht gelöscht werden."
+        : "The export file could not be deleted."))
+      .finally(() => setDeletingId(""));
   }
 
   return (
@@ -61,16 +80,24 @@ export function TransferArtifactPanel({
       {activeArtifacts.length > 0 && (
         <div className="transfer-artifact-links">
           {activeArtifacts.map((artifact) => (
-            <a
-              href={downloadUrl(artifact.id)}
-              key={artifact.id}
-              aria-label={`${artifact.displayName} ${t("importExport.dashboard.storage.download")}`}
-              title={artifact.displayName}
-            >
-              <Download size={14} aria-hidden="true" />
-              <span>{artifact.displayName}</span>
-              <small>{formatBytes(artifact.sizeBytes, language)}</small>
-            </a>
+            <span className="transfer-artifact-row" key={artifact.id}>
+              <a
+                href={downloadUrl(artifact.id)}
+                aria-label={`${artifact.displayName} ${t("importExport.dashboard.storage.download")}`}
+                title={artifact.displayName}
+              >
+                <Download size={14} aria-hidden="true" />
+                <span>{artifact.displayName}</span>
+                <small>{formatBytes(artifact.sizeBytes, language)}</small>
+              </a>
+              {canDelete ? (
+                <button type="button" className="icon-button transfer-artifact-delete"
+                  aria-label={`${artifact.displayName} ${language === "de" ? "löschen" : "delete"}`}
+                  disabled={mutating || deletingId === artifact.id} onClick={() => deleteArtifact(artifact)}>
+                  <Trash2 size={14} aria-hidden="true" />
+                </button>
+              ) : null}
+            </span>
           ))}
         </div>
       )}

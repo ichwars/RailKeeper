@@ -20,8 +20,7 @@ type TransferJobDetailsProps = {
   job: DataTransferJob | null;
   language: Language;
   mutating: boolean;
-  onConfirm: (jobId: string) => Promise<unknown>;
-  onContinue: (profileId: string) => void;
+  onContinue: (job: DataTransferJob) => void;
   onRetry: (jobId: string) => Promise<unknown>;
   t: Translate;
 };
@@ -32,7 +31,6 @@ export function TransferJobDetails({
   job,
   language,
   mutating,
-  onConfirm,
   onContinue,
   onRetry,
   t
@@ -46,7 +44,7 @@ export function TransferJobDetails({
         <p className="data-transfer-empty">
           {detailLoading ? t("importExport.dashboard.loading") : t("importExport.dashboard.details.empty")}
         </p>
-      ) : <SelectedJobDetails canImport={canImport} job={job} language={language} mutating={mutating} onConfirm={onConfirm}
+      ) : <SelectedJobDetails canImport={canImport} job={job} language={language} mutating={mutating}
         onContinue={onContinue} onRetry={onRetry} t={t} />}
     </section>
   );
@@ -57,7 +55,6 @@ function SelectedJobDetails({
   job,
   language,
   mutating,
-  onConfirm,
   onContinue,
   onRetry,
   t
@@ -116,7 +113,7 @@ function SelectedJobDetails({
         </ol>
       </div>
 
-      <JobAction canImport={canImport} job={job} mutating={mutating} onConfirm={onConfirm}
+      <JobAction canImport={canImport} job={job} mutating={mutating}
         onContinue={onContinue} onRetry={onRetry} t={t} />
     </div>
   );
@@ -145,11 +142,10 @@ function JobAction({
   canImport,
   job,
   mutating,
-  onConfirm,
   onContinue,
   onRetry,
   t
-}: Pick<TransferJobDetailsProps, "canImport" | "mutating" | "onConfirm" | "onContinue" | "onRetry" | "t"> & {
+}: Pick<TransferJobDetailsProps, "canImport" | "mutating" | "onContinue" | "onRetry" | "t"> & {
   job: DataTransferJob;
 }) {
   if (job.state === "failed") {
@@ -163,7 +159,7 @@ function JobAction({
   if (canImport && job.direction === "import" && job.state === "ready") {
     return (
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
-        onClick={() => void onConfirm(job.id).catch(() => undefined)}>
+        onClick={() => onContinue(job)}>
         <CheckCircle2 size={16} aria-hidden="true" />{t("importExport.dashboard.details.confirm")}
       </button>
     );
@@ -171,7 +167,7 @@ function JobAction({
   if (canImport && job.direction === "import" && ["draft", "reading", "review_required"].includes(job.state)) {
     return (
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
-        onClick={() => onContinue(job.profileId)}>
+        onClick={() => onContinue(job)}>
         <Play size={16} fill="currentColor" aria-hidden="true" />{t("importExport.dashboard.details.continue")}
       </button>
     );

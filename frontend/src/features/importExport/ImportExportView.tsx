@@ -2,9 +2,12 @@ import { Plus } from "lucide-react";
 
 import { useI18n } from "../../shared/i18n";
 import { TransferArtifactPanel } from "./TransferArtifactPanel";
+import { TransferExportDialog } from "./TransferExportDialog";
 import { TransferHistoryTable } from "./TransferHistoryTable";
+import { TransferImportDialog } from "./TransferImportDialog";
 import { TransferJobDetails } from "./TransferJobDetails";
 import { TransferJobList } from "./TransferJobList";
+import { TransferProfileDialog } from "./TransferProfileDialog";
 import { TransferProfilesTable } from "./TransferProfilesTable";
 import { TransferSummaryStrip } from "./TransferSummaryStrip";
 import { useDataTransferWorkspace } from "./useDataTransferWorkspace";
@@ -13,6 +16,16 @@ export function ImportExportView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
   const workspace = useDataTransferWorkspace(roles);
   const detailJob = workspace.selectedJobDetails?.job ?? workspace.selectedJob;
+  const dialogJobId = workspace.dialog?.kind !== "profile" ? workspace.dialog?.jobId : undefined;
+  const dialogJob = dialogJobId
+    ? [workspace.selectedJobDetails?.job, workspace.selectedJob, ...workspace.allJobs]
+      .find((job) => job?.id === dialogJobId) || undefined
+    : undefined;
+
+  async function retryJob(jobId: string) {
+    const retry = await workspace.retryJob(jobId);
+    workspace.openDialog(retry.direction, retry.profileId || undefined, retry.id);
+  }
 
   return (
     <div className="data-transfer-workspace">
@@ -93,23 +106,64 @@ export function ImportExportView({ roles }: { roles: string[] }) {
             job={detailJob}
             language={language}
             mutating={workspace.mutating}
-            onConfirm={workspace.confirmImport}
-            onContinue={(profileId) => workspace.openDialog("import", profileId)}
-            onRetry={workspace.retryJob}
+            onContinue={(job) => workspace.openDialog("import", job.profileId || undefined, job.id)}
+            onRetry={retryJob}
             t={t}
           />
           <TransferArtifactPanel
             artifacts={workspace.selectedJobDetails?.artifacts ?? []}
+            canDelete={workspace.capabilities.canDeleteArtifacts}
             canOpenFolder={workspace.capabilities.canOpenFolder}
             downloadUrl={workspace.artifactDownloadUrl}
             language={language}
             mutating={workspace.mutating}
+            onDelete={workspace.deleteArtifact}
             onOpenFolder={workspace.openArtifactFolder}
             summary={workspace.summary}
             t={t}
           />
         </div>
       </div>
+
+      {workspace.dialog?.kind === "import" ? (
+        <TransferImportDialog
+          initialDetails={dialogJob?.id === workspace.selectedJobDetails?.job.id ? workspace.selectedJobDetails : null}
+          initialJob={dialogJob}
+          initialProfileId={workspace.dialog.profileId}
+          language={language}
+          onCancelJob={workspace.cancelImport}
+          onClose={workspace.closeDialog}
+          onConfirm={workspace.confirmImport}
+          onCreateJob={workspace.createImportJob}
+          onResolve={workspace.resolveIssue}
+          onUpload={workspace.uploadImportFile}
+          profiles={workspace.profiles}
+        />
+      ) : null}
+      {workspace.dialog?.kind === "export" ? (
+        <TransferExportDialog
+          downloadUrl={workspace.artifactDownloadUrl}
+          initialJob={dialogJob}
+          initialProfileId={workspace.dialog.profileId}
+          language={language}
+          onClose={workspace.closeDialog}
+          onCreateJob={workspace.createExportJob}
+          onExecute={workspace.executeExportJob}
+          profiles={workspace.profiles}
+        />
+      ) : null}
+      {workspace.dialog?.kind === "profile" ? (
+        <TransferProfileDialog
+          availableAreas={workspace.availableAreas}
+          canDisable={workspace.capabilities.canDisableProfiles}
+          language={language}
+          onClose={workspace.closeDialog}
+          onCreate={workspace.createProfile}
+          onDisable={workspace.disableProfile}
+          onUpdate={workspace.updateProfile}
+          profile={workspace.profiles.find((profile) => profile.id === workspace.dialog?.profileId)}
+        />
+      ) : null}
     </div>
   );
 }

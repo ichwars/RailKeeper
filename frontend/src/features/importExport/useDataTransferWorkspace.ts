@@ -25,8 +25,8 @@ const openJobStates = new Set<DataTransferJob["state"]>([
 ]);
 
 export type DataTransferDialog =
-  | { kind: "import"; profileId?: string }
-  | { kind: "export"; profileId?: string }
+  | { kind: "import"; profileId?: string; jobId?: string }
+  | { kind: "export"; profileId?: string; jobId?: string }
   | { kind: "profile"; profileId?: string };
 
 export type DataTransferCapabilities = {
@@ -259,7 +259,8 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     selectedJobDetails,
     selectJob,
     dialog,
-    openDialog: (kind: DataTransferDialog["kind"], profileId?: string) => setDialog({ kind, profileId }),
+    openDialog: (kind: DataTransferDialog["kind"], profileId?: string, jobId?: string) =>
+      setDialog({ kind, profileId, ...(kind === "profile" ? {} : { jobId }) }),
     closeDialog: () => setDialog(null),
     loading,
     detailLoading,
