@@ -32,6 +32,8 @@ export type DataTransferDialog =
 export type DataTransferCapabilities = {
   canImport: boolean;
   canExport: boolean;
+  canRetryImport: boolean;
+  canRetryExport: boolean;
   canCreateProfiles: boolean;
   canUpdateProfiles: boolean;
   canDisableProfiles: boolean;
@@ -226,6 +228,16 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     runMutation(() => api.executeDataTransferExportJob(jobId), (result) => result.job), [runMutation]);
   const retryJob = useCallback((jobId: string) =>
     runMutation(() => api.retryDataTransferJob(jobId), (job) => job), [runMutation]);
+  const refreshJobDetails = useCallback(async (jobId: string) => {
+    const details = await api.dataTransferJob(jobId);
+    if (!visibleJob(details.job)) throw new Error("Der Auftrag ist für diese Rolle nicht verfügbar.");
+    if (mountedRef.current) {
+      setSelectedJobDetails(details);
+      setJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));
+      setAllJobs((current) => current.map((job) => job.id === details.job.id ? details.job : job));
+    }
+    return details;
+  }, [visibleJob]);
   const deleteArtifact = useCallback((artifactId: string) =>
     runMutation(() => api.deleteDataTransferArtifact(artifactId)), [runMutation]);
   const openArtifactFolder = useCallback(() => {
@@ -238,6 +250,8 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   const capabilities = useMemo<DataTransferCapabilities>(() => ({
     canImport: isAdmin || isEditor || isMesse,
     canExport: canRead,
+    canRetryImport: isAdmin || isEditor || isMesse,
+    canRetryExport: isAdmin || isEditor || isMesse,
     canCreateProfiles: isAdmin || isEditor,
     canUpdateProfiles: isAdmin || isEditor,
     canDisableProfiles: isAdmin,
@@ -281,6 +295,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     createExportJob,
     executeExportJob,
     retryJob,
+    refreshJobDetails,
     artifactDownloadUrl: api.dataTransferArtifactDownloadUrl,
     deleteArtifact,
     openArtifactFolder

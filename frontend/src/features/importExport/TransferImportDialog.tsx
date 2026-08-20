@@ -2,6 +2,7 @@ import { CheckCircle2, FileUp, ShieldCheck, Upload, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { createPortal } from "react-dom";
 
+import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
@@ -27,6 +28,7 @@ type TransferImportDialogProps = {
   onConfirm: (jobId: string) => Promise<unknown>;
   onCreateJob: (profileId: string) => Promise<DataTransferJob>;
   onResolve: (jobId: string, issueId: string, resolution: DataTransferIssueResolution) => Promise<DataTransferJob>;
+  onRefreshJob: (jobId: string) => Promise<DataTransferJobDetails>;
   onUpload: (jobId: string, file: File) => Promise<DataTransferPreview>;
   profiles: DataTransferProfile[];
 };
@@ -41,6 +43,7 @@ export function TransferImportDialog({
   onConfirm,
   onCreateJob,
   onResolve,
+  onRefreshJob,
   onUpload,
   profiles
 }: TransferImportDialogProps) {
@@ -50,6 +53,7 @@ export function TransferImportDialog({
   const [job, setJob] = useState<DataTransferJob | null>(initialJob || null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<DataTransferPreview | null>(() => previewFromDetails(initialJob, initialDetails));
+  const [mappingAccepted, setMappingAccepted] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const closeRef = useRef<HTMLButtonElement | null>(null);
@@ -67,7 +71,7 @@ export function TransferImportDialog({
       .map((issue) => `${issue.area}:${issue.recordKey}`));
     return preview.records.filter((record) => !skipped.has(`${record.area}:${record.recordKey}`)).length;
   }, [preview, unresolvedIssues.length]);
-  const step = currentStep(profileId, file, preview, job);
+  const step = currentStep(profileId, file, preview, job, mappingAccepted);
 
   useEffect(() => {
     if (!initialJob) return;
@@ -93,6 +97,7 @@ export function TransferImportDialog({
       setJob(null);
       setFile(null);
       setPreview(null);
+      setMappingAccepted(false);
     } catch (reason) {
       setError(errorMessage(reason, copy.changeError));
     } finally {
@@ -108,14 +113,17 @@ export function TransferImportDialog({
     setFile(nextFile);
     setBusy(true);
     setError("");
+    let activeJobId = job?.id;
     try {
       const activeJob = job || await onCreateJob(profileId);
+      activeJobId = activeJob.id;
       setJob(activeJob);
       const nextPreview = await onUpload(activeJob.id, nextFile);
       setJob(nextPreview.job);
       setPreview(clonePreview(nextPreview));
+      setMappingAccepted(false);
     } catch (reason) {
-      setError(errorMessage(reason, copy.uploadError));
+      await recoverConflict(reason, activeJobId, copy.uploadError);
     } finally {
       setBusy(false);
     }
@@ -136,7 +144,7 @@ export function TransferImportDialog({
           : item)
       } : current);
     } catch (reason) {
-      setError(errorMessage(reason, copy.resolveError));
+      await recoverConflict(reason, job.id, copy.resolveError);
     } finally {
       setBusy(false);
     }
@@ -150,9 +158,25 @@ export function TransferImportDialog({
       await onConfirm(job.id);
       onClose();
     } catch (reason) {
-      setError(errorMessage(reason, copy.confirmError));
+      await recoverConflict(reason, job.id, copy.confirmError);
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function recoverConflict(reason: unknown, jobId: string | undefined, fallback: string) {
+    if (!(reason instanceof ApiError) || reason.status !== 409 || !jobId) {
+      setError(errorMessage(reason, fallback));
+      return;
+    }
+    try {
+      const details = await onRefreshJob(jobId);
+      setJob(details.job);
+      setPreview(previewFromDetails(details.job, details));
+      setMappingAccepted(false);
+      setError(copy.conflictRecovery);
+    } catch (refreshError) {
+      setError(errorMessage(refreshError, copy.conflictRecovery));
     }
   }
 
@@ -216,7 +240,23 @@ export function TransferImportDialog({
             </label>
           ) : null}
 
-          {preview ? (
+          {preview && !mappingAccepted ? (
+            <section className="transfer-mapping-section">
+              <header><div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.mappingTitle}</h3></div></header>
+              <p>{copy.mappingExplanation}</p>
+              <h4>{copy.recognizedFields}</h4>
+              <ul>{previewFields(preview).map((field) => <li key={field}><code>{field}</code></li>)}</ul>
+              <p>{mappingIssueSummary(preview.issues, language)}</p>
+              <div className="transfer-mapping-actions">
+                <button type="button" className="secondary-button" disabled={busy}
+                  onClick={() => fileRef.current?.click()}>{copy.reupload}</button>
+                <button type="button" className="primary-button" disabled={busy}
+                  onClick={() => setMappingAccepted(true)}>{copy.continueReview}</button>
+              </div>
+            </section>
+          ) : null}
+
+          {preview && mappingAccepted ? (
             <section className="transfer-preview-section">
               <header>
                 <div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.preview}</h3></div>
@@ -246,7 +286,7 @@ export function TransferImportDialog({
             onClick={() => void cancelJob()}>{copy.cancelJob}</button> : <span />}
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
-            {preview ? (
+            {preview && mappingAccepted ? (
               <button type="button" className="primary-button" disabled={busy || unresolvedIssues.length > 0 ||
                 approvedRecords === 0 || job?.state !== "ready"} onClick={() => void confirmImport()}>
                 <CheckCircle2 size={16} aria-hidden="true" />{importButtonLabel(approvedRecords, language)}
@@ -261,10 +301,24 @@ export function TransferImportDialog({
   return <><span ref={anchorRef} hidden aria-hidden="true" />{createPortal(dialog, document.body)}</>;
 }
 
-function currentStep(profileId: string, file: File | null, preview: DataTransferPreview | null, job: DataTransferJob | null) {
-  if (preview) return preview.issues.some((issue) => !issue.selectedResolution) ? "review" : "confirm";
+function currentStep(profileId: string, file: File | null, preview: DataTransferPreview | null, job: DataTransferJob | null,
+  mappingAccepted: boolean) {
+  if (preview) return mappingAccepted
+    ? (preview.issues.some((issue) => !issue.selectedResolution) ? "review" : "confirm")
+    : "mapping";
   if (file || job?.sourceName) return "mapping";
   return profileId || job ? "file" : "profile";
+}
+
+function previewFields(preview: DataTransferPreview) {
+  return [...new Set(preview.records.flatMap((record) => Object.keys(record.data)))].sort();
+}
+
+function mappingIssueSummary(issues: DataTransferIssue[], language: Language) {
+  const count = issues.filter((issue) => issue.code.includes("missing") || issue.code.includes("unmapped")).length;
+  return language === "de"
+    ? `${count} nicht zugeordnete oder fehlende Felder in der Servervorschau.`
+    : `${count} unmapped or missing fields in the server preview.`;
 }
 
 function snapshotName(snapshot: DataTransferJob | DataTransferProfile) {
@@ -341,6 +395,9 @@ function importCopy(language: Language) {
     uploadError: "Die Datei konnte nicht geprüft werden.", resolveError: "Der Konflikt konnte nicht aufgelöst werden.",
     confirmError: "Der Import konnte nicht bestätigt werden.", cancelJobError: "Der Auftrag konnte nicht abgebrochen werden.",
     changeError: "Der Import konnte nicht auf ein anderes Profil umgestellt werden."
+    ,mappingTitle: "Erkannte CSV-Zuordnung", mappingExplanation: "Die Zuordnung wurde serverseitig aus Spalten und Aliasen erkannt. Änderungen erfordern: Quelldatei bearbeiten und erneut hochladen.",
+    recognizedFields: "Erkannte Spalten und Aliase", reupload: "Datei erneut auswählen", continueReview: "Weiter zur Prüfung",
+    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert. Die persistente Vorschau wurde neu gelesen. Bitte Zuordnung und Konflikte erneut prüfen."
   } : {
     title: "Review import", eyebrow: "SAFE IMPORT", close: "Close", progress: "Import steps",
     steps: { profile: "Profile", file: "File", mapping: "Mapping", review: "Review", confirm: "Confirmation" },
@@ -355,6 +412,9 @@ function importCopy(language: Language) {
     uploadError: "The file could not be reviewed.", resolveError: "The conflict could not be resolved.",
     confirmError: "The import could not be confirmed.", cancelJobError: "The job could not be cancelled.",
     changeError: "The import could not be changed to another profile."
+    ,mappingTitle: "Detected CSV mapping", mappingExplanation: "The mapping was detected by the server from columns and aliases. To change it, edit the source file and upload it again.",
+    recognizedFields: "Detected columns and aliases", reupload: "Choose file again", continueReview: "Continue to review",
+    conflictRecovery: "The job changed in the meantime. The persistent preview was re-read. Review the mapping and conflicts again."
   };
 }
 

@@ -1,0 +1,525 @@
+/* Persistent data-transfer dialogs. Dashboard topology and colors remain owned by data-transfer-dashboard.css. */
+.data-transfer-dialog-layer {
+  padding: 16px;
+  overflow: auto;
+}
+
+.data-transfer-dialog {
+  display: grid;
+  width: min(920px, calc(100vw - 32px));
+  max-height: min(90vh, 900px);
+  overflow: hidden;
+}
+
+.transfer-profile-dialog,
+.transfer-export-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+
+.data-transfer-dialog-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 15px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.data-transfer-dialog-head > div {
+  display: grid;
+  gap: 3px;
+}
+
+.data-transfer-dialog-head h2,
+.data-transfer-dialog-head p,
+.transfer-preview-section h3,
+.transfer-preview-section p,
+.transfer-options-panel h3,
+.transfer-options-panel p,
+.transfer-export-result h3 {
+  margin: 0;
+}
+
+.data-transfer-dialog-body {
+  display: grid;
+  gap: 15px;
+  min-height: 0;
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.data-transfer-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
+}
+
+.data-transfer-field input,
+.data-transfer-field select,
+.data-transfer-field textarea,
+.transfer-review-resolution select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 10px;
+  background: var(--input-bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.data-transfer-field textarea {
+  min-height: 92px;
+  padding: 9px 10px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: var(--font-size-sm);
+}
+
+.data-transfer-field small {
+  color: var(--muted);
+  font-weight: var(--font-weight-semibold);
+}
+
+.data-transfer-choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px 16px;
+  margin: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.data-transfer-choice-group legend {
+  padding: 0 5px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
+}
+
+.data-transfer-choice-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--text);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+}
+
+.data-transfer-choice-reason {
+  width: 100%;
+  margin: 0;
+  color: var(--warm);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.data-transfer-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-subtle);
+}
+
+.data-transfer-dialog-actions > span {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.data-transfer-dialog-actions button,
+.transfer-export-result a,
+.data-transfer-file-drop .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+
+.data-transfer-wizard-steps {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin: 0;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--line);
+  list-style: none;
+}
+
+.data-transfer-wizard-steps li {
+  padding: 9px 6px;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
+  text-align: center;
+}
+
+.data-transfer-wizard-steps li.completed {
+  color: var(--accent-strong);
+}
+
+.data-transfer-wizard-steps li.current {
+  border-bottom-color: var(--accent);
+  color: var(--text);
+}
+
+.data-transfer-snapshot,
+.transfer-export-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+}
+
+.data-transfer-snapshot strong {
+  margin-right: auto;
+}
+
+.data-transfer-snapshot span {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.data-transfer-file-drop {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 88px;
+  padding: 14px;
+  border: 1px dashed color-mix(in srgb, var(--accent) 44%, var(--line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel-subtle));
+  color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.data-transfer-file-drop.busy {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.data-transfer-file-drop > span:not(.secondary-button) {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.data-transfer-file-drop strong,
+.data-transfer-file-drop small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.data-transfer-file-drop small {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.data-transfer-file-drop input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.transfer-preview-section {
+  display: grid;
+  gap: 12px;
+}
+
+.transfer-preview-section > header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.transfer-preview-revision {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-black);
+}
+
+.transfer-preview-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.transfer-preview-summary span {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 9px 5px;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.transfer-preview-summary span + span {
+  border-left: 1px solid var(--line);
+}
+
+.transfer-preview-summary strong {
+  color: var(--text);
+  font-size: var(--font-size-lg);
+}
+
+.transfer-preview-summary .success strong,
+.transfer-ready-message {
+  color: var(--accent-strong);
+}
+
+.transfer-preview-summary .warning strong {
+  color: var(--warm);
+}
+
+.transfer-preview-summary .danger strong,
+.transfer-review-status.error {
+  color: var(--danger);
+}
+
+.transfer-review-wrap {
+  max-height: 350px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.transfer-review-table {
+  min-width: 760px;
+}
+
+.transfer-review-table td:nth-child(2) {
+  display: grid;
+  gap: 2px;
+}
+
+.transfer-review-table td:nth-child(2) small {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.transfer-review-error td {
+  background: color-mix(in srgb, var(--danger) 5%, var(--panel));
+}
+
+.transfer-review-warning td {
+  background: color-mix(in srgb, var(--warm) 6%, var(--panel));
+}
+
+.transfer-review-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-weight: var(--font-weight-bold);
+}
+
+.transfer-review-status.ready {
+  color: var(--accent-strong);
+}
+
+.transfer-review-status.warning {
+  color: var(--warm);
+}
+
+.transfer-review-resolution {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.transfer-review-resolution + .transfer-review-resolution {
+  margin-top: 8px;
+}
+
+.transfer-ready-message {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
+}
+
+.transfer-export-summary {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
+.transfer-export-format-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.transfer-export-summary > div {
+  display: grid;
+  gap: 7px;
+}
+
+.transfer-export-summary dl,
+.transfer-export-summary dl div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 0;
+}
+
+.transfer-export-summary dt {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+}
+
+.transfer-export-summary dd {
+  margin: 0;
+  color: var(--text);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
+}
+
+.transfer-options-panel {
+  display: grid;
+  gap: 8px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.transfer-options-panel h3 {
+  font-size: var(--font-size-base);
+}
+
+.transfer-options-panel p,
+.transfer-options-panel ul {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.transfer-options-panel ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding-left: 19px;
+}
+
+.transfer-options-panel code {
+  color: var(--text);
+}
+
+.transfer-export-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--accent) 44%, var(--line));
+  border-radius: 7px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.transfer-export-result > div {
+  display: grid;
+  gap: 2px;
+}
+
+.transfer-export-result h3 {
+  color: var(--text);
+  font-size: var(--font-size-base);
+}
+
+.transfer-export-result span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.transfer-artifact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 5px;
+}
+
+.transfer-artifact-row > a {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+}
+
+.transfer-artifact-delete {
+  width: 27px;
+  height: 27px;
+  color: var(--muted);
+}
+
+.transfer-artifact-delete:hover,
+.transfer-artifact-delete:focus-visible {
+  color: var(--danger);
+}
+
+@media (max-width: 680px) {
+  .data-transfer-dialog-layer {
+    padding: 8px;
+  }
+
+  .data-transfer-dialog,
+  .transfer-profile-dialog,
+  .transfer-export-dialog {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+  }
+
+  .data-transfer-wizard-steps {
+    padding-inline: 8px;
+  }
+
+  .data-transfer-wizard-steps li {
+    padding-inline: 2px;
+    font-size: 0.65rem;
+  }
+
+  .data-transfer-file-drop,
+  .transfer-export-result {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .data-transfer-file-drop .secondary-button,
+  .transfer-export-result .secondary-button {
+    grid-column: 1 / -1;
+  }
+
+  .data-transfer-dialog-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .data-transfer-dialog-actions > span,
+  .data-transfer-dialog-actions button {
+    width: 100%;
+  }
+}

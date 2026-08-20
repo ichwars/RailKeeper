@@ -2,11 +2,13 @@ import { CheckCircle2, Download, FileJson, FileSpreadsheet, Play, X } from "luci
 import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
+import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
   DataTransferExportResult,
   DataTransferJob,
+  DataTransferJobDetails,
   DataTransferProfile
 } from "./dataTransferModel";
 
@@ -18,6 +20,7 @@ type TransferExportDialogProps = {
   onClose: () => void;
   onCreateJob: (profileId: string) => Promise<DataTransferJob>;
   onExecute: (jobId: string) => Promise<DataTransferExportResult>;
+  onRefreshJob: (jobId: string) => Promise<DataTransferJobDetails>;
   profiles: DataTransferProfile[];
 };
 
@@ -29,6 +32,7 @@ export function TransferExportDialog({
   onClose,
   onCreateJob,
   onExecute,
+  onRefreshJob,
   profiles
 }: TransferExportDialogProps) {
   const copy = exportCopy(language);
@@ -50,8 +54,10 @@ export function TransferExportDialog({
     if (!job && !profileId) return;
     setBusy(true);
     setError("");
+    let activeJobId = job?.id || initialJob?.id || "";
     try {
       const activeJob = job || await onCreateJob(profileId);
+      activeJobId = activeJob.id;
       setJob(activeJob);
       const nextResult = await onExecute(activeJob.id);
       setResult({
@@ -60,7 +66,21 @@ export function TransferExportDialog({
         artifact: { ...nextResult.artifact }
       });
     } catch (reason) {
-      setError(errorMessage(reason, copy.exportError));
+      if (reason instanceof ApiError && reason.status === 409) {
+        try {
+          const details = await onRefreshJob(activeJobId);
+          setJob(details.job);
+          const artifact = details.artifacts[0];
+          if (artifact && ["completed", "completed_with_warnings"].includes(details.job.state)) {
+            setResult({ job: details.job, artifact, openFolderAvailable: false });
+          }
+          setError(copy.conflictRecovery);
+        } catch (refreshError) {
+          setError(errorMessage(refreshError, copy.conflictRecovery));
+        }
+      } else {
+        setError(errorMessage(reason, copy.exportError));
+      }
     } finally {
       setBusy(false);
     }
@@ -180,12 +200,14 @@ function exportCopy(language: Language) {
     title: "Export erstellen", eyebrow: "LOKALER EXPORT", close: "Schließen", profile: "Exportprofil",
     chooseProfile: "Profil wählen", configuration: "Exportkonfiguration", areas: "Bereiche", format: "Format",
     options: "Optionen", noOptions: "Keine zusätzlichen Optionen.", execute: "Export ausführen",
-    completed: "Export abgeschlossen", download: "Datei herunterladen", exportError: "Der Export konnte nicht erstellt werden."
+    completed: "Export abgeschlossen", download: "Datei herunterladen", exportError: "Der Export konnte nicht erstellt werden.",
+    conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert und neu gelesen. Bitte Status prüfen und den Export erneut ausführen."
   } : {
     title: "Create export", eyebrow: "LOCAL EXPORT", close: "Close", profile: "Export profile",
     chooseProfile: "Choose profile", configuration: "Export configuration", areas: "Areas", format: "Format",
     options: "Options", noOptions: "No additional options.", execute: "Run export", completed: "Export completed",
-    download: "Download file", exportError: "The export could not be created."
+    download: "Download file", exportError: "The export could not be created.",
+    conflictRecovery: "The job changed in the meantime and was re-read. Review its status and run the export again."
   };
 }
 

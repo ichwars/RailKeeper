@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api } from "../../shared/api";
+import { api, ApiError } from "../../shared/api";
 import type {
   DataTransferArtifact,
   DataTransferIssue,
@@ -165,7 +165,7 @@ describe("data transfer operational dialogs", () => {
     expect(within(dialog).getByText("Ausstellungslisten sind nur als JSON verfügbar.")).toBeInTheDocument();
   });
 
-  it("keeps the uploaded file and server preview visible for review", async () => {
+  it("shows the server-derived CSV mapping before review", async () => {
     const user = userEvent.setup();
     render(<ImportExportView roles={["Editor"]} />);
 
@@ -176,9 +176,13 @@ describe("data transfer operational dialogs", () => {
       type: "text/csv"
     }));
 
-    expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
+    expect(await within(dialog).findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+    expect(within(dialog).getByText(/Quelldatei bearbeiten und erneut hochladen/)).toBeInTheDocument();
+    expect(within(dialog).getByText("inventoryNumber")).toBeInTheDocument();
+    expect(within(dialog).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
     expect(within(dialog).getByText("fahrzeuge.csv")).toBeInTheDocument();
-    expect(within(dialog).getByText("RK-1001")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
+    expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
     expect(api.uploadDataTransferImport).toHaveBeenCalledWith("job-import", expect.any(File));
   });
 
@@ -204,6 +208,8 @@ describe("data transfer operational dialogs", () => {
 
     resolveDetails?.({ job: persistedJob, issues: [], artifacts: [] });
 
+    expect(await within(dialog).findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
     expect(within(dialog).getByText("RK-1001")).toBeInTheDocument();
   });
@@ -218,6 +224,7 @@ describe("data transfer operational dialogs", () => {
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv", {
       type: "text/csv"
     }));
+    await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
 
     const blockedConfirm = await within(dialog).findByRole("button", { name: "0 Datensätze importieren" });
     expect(blockedConfirm).toBeDisabled();
@@ -278,6 +285,82 @@ describe("data transfer operational dialogs", () => {
     expect(await within(dialog).findByText("37 Datensätze exportiert")).toBeInTheDocument();
     expect(api.createDataTransferExportJob).toHaveBeenCalledWith({ profileId: exportProfile.id });
     expect(api.executeDataTransferExportJob).toHaveBeenCalledWith("job-export");
+  });
+
+  it("resumes a persisted draft export from job details", async () => {
+    const draft = jobFixture({ id: "job-export-draft", profileId: exportProfile.id, profileName: exportProfile.name });
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([draft]);
+    vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: draft, issues: [], artifacts: [] });
+
+    render(<ImportExportView roles={["Viewer"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Export fortsetzen" }));
+    const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
+    await waitFor(() => expect(api.executeDataTransferExportJob).toHaveBeenCalledWith(draft.id));
+  });
+
+  it.each(["completed", "completed_with_warnings", "failed", "cancelled"] as const)(
+    "allows editors to retry terminal state %s",
+    async (state) => {
+      const terminal = jobFixture({ id: `job-${state}`, state, stage: state === "cancelled" ? "cancelled" :
+        state === "failed" ? "failed" : "completed" });
+      vi.mocked(api.dataTransferJobs).mockResolvedValue([terminal]);
+      vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: terminal, issues: [], artifacts: [] });
+      vi.spyOn(api, "retryDataTransferJob").mockResolvedValue(jobFixture({ id: "job-retry-export" }));
+      render(<ImportExportView roles={["Editor"]} />);
+      fireEvent.click(await screen.findByRole("button", { name: "Erneut versuchen" }));
+      expect(await screen.findByRole("dialog", { name: "Export erstellen" })).toBeInTheDocument();
+    }
+  );
+
+  it("never offers retry to viewers", async () => {
+    const terminal = jobFixture({ state: "failed", stage: "failed" });
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([terminal]);
+    vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: terminal, issues: [], artifacts: [] });
+    render(<ImportExportView roles={["Viewer"]} />);
+    expect((await screen.findAllByText(terminal.profileName)).length).toBeGreaterThan(0);
+    expect(screen.queryByRole("button", { name: "Erneut versuchen" })).not.toBeInTheDocument();
+  });
+
+  it("re-reads the persistent preview after a resolve conflict", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.resolveDataTransferIssue).mockRejectedValueOnce(new ApiError("revision", "conflict", 409));
+    vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: { ...previewFixture.job, preview: {
+      records: previewFixture.records } }, issues: [importIssue], artifacts: [] });
+    render(<ImportExportView roles={["Editor"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
+    const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
+    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
+    await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
+    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("persistente Vorschau wurde neu gelesen");
+    expect(within(dialog).getByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+  });
+
+  it("re-reads a draft export after an execution conflict", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.executeDataTransferExportJob).mockRejectedValueOnce(new ApiError("revision", "conflict", 409));
+    vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: jobFixture({ id: "job-export" }), issues: [], artifacts: [] });
+    render(<ImportExportView roles={["Editor"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
+    const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
+    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent("Auftrag wurde zwischenzeitlich geändert");
+    expect(within(dialog).getByRole("button", { name: "Export ausführen" })).toBeEnabled();
+  });
+
+  it("lists import and disabled profiles in profile management", async () => {
+    const disabledImport = profileFixture({ id: "disabled-import", name: "Altimport", direction: "import",
+      enabled: false });
+    vi.mocked(api.dataTransferProfiles).mockResolvedValue([importProfile, disabledImport, exportProfile]);
+    render(<ImportExportView roles={["Admin"]} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Profil anlegen" }));
+    const dialog = screen.getByRole("dialog", { name: "Transferprofil anlegen" });
+    const manager = within(dialog).getByLabelText("Profil verwalten");
+    expect(within(manager).getByRole("option", { name: /Import: Fahrzeugimport \(aktiv\)/ })).toBeInTheDocument();
+    expect(within(manager).getByRole("option", { name: /Import: Altimport \(deaktiviert\)/ })).toBeInTheDocument();
   });
 
   it("updates a profile without rewriting the historical job snapshot", async () => {

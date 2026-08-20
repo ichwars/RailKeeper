@@ -1,5 +1,5 @@
 import { Save, Trash2, X } from "lucide-react";
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
 import type { Language } from "../../shared/i18n";
@@ -20,7 +20,8 @@ type TransferProfileDialogProps = {
   onCreate: (input: DataTransferProfileInput) => Promise<unknown>;
   onDisable: (profileId: string) => Promise<unknown>;
   onUpdate: (profileId: string, input: DataTransferProfileInput) => Promise<unknown>;
-  profile?: DataTransferProfile;
+  initialProfileId?: string;
+  profiles: DataTransferProfile[];
 };
 
 export function TransferProfileDialog({
@@ -31,9 +32,12 @@ export function TransferProfileDialog({
   onCreate,
   onDisable,
   onUpdate,
-  profile
+  initialProfileId,
+  profiles
 }: TransferProfileDialogProps) {
   const copy = profileCopy(language);
+  const [selectedId, setSelectedId] = useState(initialProfileId || "");
+  const profile = profiles.find((item) => item.id === selectedId);
   const [name, setName] = useState(profile?.name || "");
   const [direction, setDirection] = useState<DataTransferDirection>(profile?.direction || "export");
   const [format, setFormat] = useState<DataTransferFormat>(profile?.format || "railkeeper-json");
@@ -49,6 +53,15 @@ export function TransferProfileDialog({
   }, closeRef);
   const csvUnavailable = areas.length !== 1 || areas[0] === "exhibitionLists";
   const exhibitionCSV = areas.includes("exhibitionLists");
+
+  useEffect(() => {
+    setName(profile?.name || "");
+    setDirection(profile?.direction || "export");
+    setFormat(profile?.format || "railkeeper-json");
+    setAreas(profile ? [...profile.areas] : availableAreas.slice(0, 1));
+    setOptionsText(JSON.stringify(profile?.options || {}, null, 2));
+    setError("");
+  }, [availableAreas, profile]);
 
   function toggleArea(area: DataTransferArea) {
     setAreas((current) => current.includes(area)
@@ -123,6 +136,18 @@ export function TransferProfileDialog({
         </header>
         <form className="data-transfer-dialog-body" onSubmit={submit}>
           <label className="data-transfer-field">
+            <span>{copy.manage}</span>
+            <select aria-label={copy.manage} value={selectedId} disabled={busy}
+              onChange={(event) => setSelectedId(event.target.value)}>
+              <option value="">{copy.newProfile}</option>
+              {profiles.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {`${item.direction === "import" ? copy.import : copy.export}: ${item.name} (${item.enabled ? copy.enabled : copy.disabled})`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="data-transfer-field">
             <span>{copy.name}</span>
             <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
           </label>
@@ -195,6 +220,7 @@ function profileCopy(language: Language) {
   return language === "de" ? {
     eyebrow: "TRANSFERPROFIL", createTitle: "Transferprofil anlegen", editTitle: "Transferprofil bearbeiten",
     close: "Dialog schließen", name: "Profilname", direction: "Richtung", export: "Export", import: "Import",
+    manage: "Profil verwalten", newProfile: "Neues Profil", enabled: "aktiv", disabled: "deaktiviert",
     areas: "Bereiche", format: "Format", options: "Optionen (JSON)",
     optionsHelp: "Optionen werden unverändert im Profil und in neuen Auftragssnapshots gespeichert.",
     exhibitionCSV: "Ausstellungslisten sind nur als JSON verfügbar.",
@@ -205,6 +231,7 @@ function profileCopy(language: Language) {
   } : {
     eyebrow: "TRANSFER PROFILE", createTitle: "Create transfer profile", editTitle: "Edit transfer profile",
     close: "Close dialog", name: "Profile name", direction: "Direction", export: "Export", import: "Import",
+    manage: "Manage profile", newProfile: "New profile", enabled: "enabled", disabled: "disabled",
     areas: "Areas", format: "Format", options: "Options (JSON)",
     optionsHelp: "Options are stored unchanged in the profile and in new job snapshots.",
     exhibitionCSV: "Exhibition lists are only available as JSON.",

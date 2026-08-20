@@ -16,6 +16,8 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 
 type TransferJobDetailsProps = {
   canImport: boolean;
+  canExport: boolean;
+  canRetry: (job: DataTransferJob) => boolean;
   detailLoading: boolean;
   job: DataTransferJob | null;
   language: Language;
@@ -27,6 +29,8 @@ type TransferJobDetailsProps = {
 
 export function TransferJobDetails({
   canImport,
+  canExport,
+  canRetry,
   detailLoading,
   job,
   language,
@@ -44,14 +48,16 @@ export function TransferJobDetails({
         <p className="data-transfer-empty">
           {detailLoading ? t("importExport.dashboard.loading") : t("importExport.dashboard.details.empty")}
         </p>
-      ) : <SelectedJobDetails canImport={canImport} job={job} language={language} mutating={mutating}
+      ) : <SelectedJobDetails canExport={canExport} canImport={canImport} canRetry={canRetry} job={job} language={language} mutating={mutating}
         onContinue={onContinue} onRetry={onRetry} t={t} />}
     </section>
   );
 }
 
 function SelectedJobDetails({
+  canExport,
   canImport,
+  canRetry,
   job,
   language,
   mutating,
@@ -113,7 +119,7 @@ function SelectedJobDetails({
         </ol>
       </div>
 
-      <JobAction canImport={canImport} job={job} mutating={mutating}
+      <JobAction canExport={canExport} canImport={canImport} canRetry={canRetry} job={job} mutating={mutating}
         onContinue={onContinue} onRetry={onRetry} t={t} />
     </div>
   );
@@ -139,20 +145,31 @@ function Metric({
 }
 
 function JobAction({
+  canExport,
   canImport,
+  canRetry,
   job,
   mutating,
   onContinue,
   onRetry,
   t
-}: Pick<TransferJobDetailsProps, "canImport" | "mutating" | "onContinue" | "onRetry" | "t"> & {
+}: Pick<TransferJobDetailsProps, "canExport" | "canImport" | "canRetry" | "mutating" | "onContinue" | "onRetry" | "t"> & {
   job: DataTransferJob;
 }) {
-  if (job.state === "failed") {
+  if (["completed", "completed_with_warnings", "failed", "cancelled"].includes(job.state) && canRetry(job)) {
     return (
       <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
         onClick={() => void onRetry(job.id).catch(() => undefined)}>
         <RotateCcw size={16} aria-hidden="true" />{t("importExport.dashboard.details.retry")}
+      </button>
+    );
+  }
+  if (canExport && job.direction === "export" && job.state === "draft") {
+    return (
+      <button type="button" className="primary-button transfer-detail-action" disabled={mutating}
+        onClick={() => onContinue(job)}>
+        <Play size={16} fill="currentColor" aria-hidden="true" />
+        {job.profileName ? "Export fortsetzen" : t("importExport.dashboard.details.continue")}
       </button>
     );
   }

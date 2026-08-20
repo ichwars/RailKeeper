@@ -101,12 +101,16 @@ export function ImportExportView({ roles }: { roles: string[] }) {
 
         <div className="data-transfer-details">
           <TransferJobDetails
+            canExport={workspace.capabilities.canExport}
             canImport={workspace.capabilities.canImport}
+            canRetry={(job) => job.direction === "import"
+              ? workspace.capabilities.canRetryImport
+              : workspace.capabilities.canRetryExport}
             detailLoading={workspace.detailLoading}
             job={detailJob}
             language={language}
             mutating={workspace.mutating}
-            onContinue={(job) => workspace.openDialog("import", job.profileId || undefined, job.id)}
+            onContinue={(job) => workspace.openDialog(job.direction, job.profileId || undefined, job.id)}
             onRetry={retryJob}
             t={t}
           />
@@ -136,6 +140,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           onConfirm={workspace.confirmImport}
           onCreateJob={workspace.createImportJob}
           onResolve={workspace.resolveIssue}
+          onRefreshJob={workspace.refreshJobDetails}
           onUpload={workspace.uploadImportFile}
           profiles={workspace.profiles}
         />
@@ -149,6 +154,7 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           onClose={workspace.closeDialog}
           onCreateJob={workspace.createExportJob}
           onExecute={workspace.executeExportJob}
+          onRefreshJob={workspace.refreshJobDetails}
           profiles={workspace.profiles}
         />
       ) : null}
@@ -161,7 +167,8 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           onCreate={workspace.createProfile}
           onDisable={workspace.disableProfile}
           onUpdate={workspace.updateProfile}
-          profile={workspace.profiles.find((profile) => profile.id === workspace.dialog?.profileId)}
+          initialProfileId={workspace.dialog.profileId}
+          profiles={workspace.profiles}
         />
       ) : null}
     </div>
