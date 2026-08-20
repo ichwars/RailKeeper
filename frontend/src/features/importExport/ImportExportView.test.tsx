@@ -12,6 +12,7 @@ describe("ImportExportView", () => {
     window.sessionStorage.clear();
     vi.spyOn(api, "vehicles").mockResolvedValue([]);
     vi.spyOn(api, "masterDataAll").mockResolvedValue({});
+    vi.spyOn(api, "masterDataExportUrl");
     vi.spyOn(api, "accessoryArticles").mockResolvedValue({
       items: [],
       metrics: { articleCount: 0, articleTypeCount: 0, available: 0, locationCount: 0, reserved: 0, installed: 0, careHintCount: 0 },
@@ -27,6 +28,7 @@ describe("ImportExportView", () => {
     expect(await screen.findByRole("heading", { name: "Import/Export" })).toBeInTheDocument();
     expect(screen.queryByText("Stammdaten", { selector: "button, label, td" })).not.toBeInTheDocument();
     expect(api.masterDataAll).not.toHaveBeenCalled();
+    expect(api.masterDataExportUrl).not.toHaveBeenCalled();
   });
 
   it("previews a mapped CSV and saves the selected vehicle", async () => {

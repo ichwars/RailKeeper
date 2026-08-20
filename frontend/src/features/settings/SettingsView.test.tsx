@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../shared/api";
 import { SettingsView } from "./SettingsView";
 import { readSettingsLocation } from "./settingsDataModel";
-import { masterDataTypes, settingsTabs } from "./settingsModel";
+import { defaultSidebarOrder, masterDataTypes, settingsTabs } from "./settingsModel";
 
 describe("SettingsView data navigation", () => {
   beforeEach(() => {
@@ -32,6 +32,10 @@ describe("SettingsView data navigation", () => {
   it("keeps master-data transfer in Settings", () => {
     expect(settingsTabs.map((tab) => tab.id)).toContain("importExport");
     expect(readSettingsLocation("?tab=importExport").tab).toBe("importExport");
+  });
+
+  it("does not add command stations to the Settings sidebar order", () => {
+    expect(defaultSidebarOrder).not.toContain("digitalCenters");
   });
 
   it("restores manufacturers as the first general master-data type", async () => {
