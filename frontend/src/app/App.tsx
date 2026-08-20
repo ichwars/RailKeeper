@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { type ComponentType, lazy, Suspense, useEffect, useState } from "react";
 import { Shell } from "./Shell";
 import { LoginView } from "../features/auth/LoginView";
 import { SetupView } from "../features/setup/SetupView";
@@ -15,7 +15,9 @@ const VehiclesView = lazy(() => import("../features/vehicles/VehiclesView").then
 const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesView").then((module) => ({ default: module.AccessoriesView })));
 const LayoutsView = lazy(() => import("../features/layouts/LayoutsView").then((module) => ({ default: module.LayoutsView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
-const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
+const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({
+  default: module.ImportExportView as ComponentType<{ roles: string[] }>
+})));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 export function configuredStartView(): AppView {
@@ -189,7 +191,7 @@ export function App() {
         {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}
         {effectiveView === "layouts" && <LayoutsView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
-        {effectiveView === "importExport" && <ImportExportView />}
+        {effectiveView === "importExport" && <ImportExportView roles={session.roles} />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
       </Suspense>
     </Shell>

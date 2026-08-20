@@ -1,9 +1,20 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { render, screen } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { configuredStartView, currentView } from "./App";
+import { api } from "../shared/api";
+import { App, configuredStartView, currentView } from "./App";
+
+vi.mock("../features/importExport/ImportExportView", () => ({
+  ImportExportView: ({ roles }: { roles: string[] }) => <div>transfer roles: {roles.join(",")}</div>
+}));
+
+vi.mock("./Shell", () => ({
+  Shell: ({ children }: { children: React.ReactNode }) => <div>{children}</div>
+}));
 
 describe("App navigation availability", () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     window.history.replaceState(null, "", "/");
   });
 
@@ -17,5 +28,20 @@ describe("App navigation availability", () => {
   it("keeps the direct layout route available", () => {
     window.history.replaceState(null, "", "/layouts");
     expect(currentView()).toBe("layouts");
+  });
+
+  it("passes session roles into the data transfer workspace", async () => {
+    window.history.replaceState(null, "", "/import-export");
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false });
+    vi.spyOn(api, "session").mockResolvedValue({
+      username: "operator",
+      roles: ["Messe", "Viewer"],
+      csrfToken: "csrf",
+      twoFactorEnabled: false
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText("transfer roles: Messe,Viewer")).toBeInTheDocument();
   });
 });
