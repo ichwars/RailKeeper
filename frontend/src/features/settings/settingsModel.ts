@@ -1,5 +1,6 @@
 import type { AppView } from "../../app/App";
 import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
+import { functionSymbolImageData } from "../../shared/functionSymbolImages";
 export {
   articleSearchSettingKey,
   articleSearchSourcesSettingKey,
@@ -355,7 +356,7 @@ export function normalizeCV8Hex(value: string, decimalValue: string) {
 }
 
 export function masterDataImage(entry: MasterDataEntry) {
-  return metadataString(entry, "imageData") || metadataString(entry, "activeImageData") || metadataString(entry, "svgData");
+  return functionSymbolImageData(entry.metadata, "active");
 }
 
 export function parseList(text: string) {

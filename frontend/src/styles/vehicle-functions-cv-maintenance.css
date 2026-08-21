@@ -151,8 +151,27 @@
 .function-symbol-tile svg {
   width: 19px;
   height: 19px;
-  color: #111;
-  stroke-width: 2.1;
+}
+
+.function-symbol-tile .function-symbol-primary,
+.function-symbol-tile .function-symbol-accent {
+  fill: none;
+  stroke-width: 2.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.function-symbol-tile .function-symbol-primary {
+  stroke: var(--function-symbol-primary);
+}
+
+.function-symbol-tile .function-symbol-accent {
+  stroke: var(--function-symbol-accent);
+}
+
+.function-symbol-menu button:disabled .function-symbol-primary,
+.function-symbol-menu button:disabled .function-symbol-accent {
+  stroke: var(--function-symbol-muted);
 }
 
 .function-symbol-image {

@@ -2,8 +2,8 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { api, ExhibitionList, ExhibitionWorkspace } from "../../shared/api";
-import { ExhibitionView } from "./ExhibitionView";
+import { api, ExhibitionList, ExhibitionWorkspace, MasterDataEntry } from "../../shared/api";
+import { ExhibitionView, printFunctionChips } from "./ExhibitionView";
 
 const list: ExhibitionList = {
   id: "messe-koeln",
@@ -48,6 +48,18 @@ const workspace: ExhibitionWorkspace = {
   ]
 };
 
+const lightSymbol: MasterDataEntry = {
+  id: "symbols:light",
+  type: "symbols",
+  key: "light",
+  label: "Licht",
+  active: true,
+  sortOrder: 10,
+  metadata: { imageData: "print-data", activeImageData: "active-data" },
+  createdAt: list.createdAt,
+  updatedAt: list.updatedAt,
+};
+
 describe("Exhibition reference workspace", () => {
   afterEach(() => vi.restoreAllMocks());
 
@@ -82,6 +94,16 @@ describe("Exhibition reference workspace", () => {
     await user.click(screen.getByRole("button", { name: /^Bereit 1$/i }));
     expect(screen.getByText("BR 103 113-7")).toBeInTheDocument();
     expect(screen.queryByText("V 200 033")).not.toBeInTheDocument();
+  });
+
+  it("uses the print palette for function symbols in generated print markup", () => {
+    const html = printFunctionChips(
+      JSON.stringify([{ key: "F0", name: "Fahrlicht", type: "licht", symbolKey: "light" }]),
+      [lightSymbol],
+    );
+
+    expect(html).toContain('src="print-data"');
+    expect(html).not.toContain('src="active-data"');
   });
 
   it("persists lifecycle transitions from the event menu", async () => {
