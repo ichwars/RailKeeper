@@ -29,7 +29,7 @@ func TestOpenAPIDocumentsDigitalCenterWorkspaceOperationsAndSecurity(t *testing.
 		{path: "/digital-centers/read-sessions/{id}/items/{itemID}", method: "get",
 			responses: []string{"403", "404"}},
 		{path: "/digital-centers/{provider}/live/status", method: "get",
-			responses: []string{"400", "403", "404"}},
+			responses: []string{"400", "403"}},
 		{path: "/digital-centers/{provider}/live/start", method: "post", write: true,
 			responses: []string{"400", "403", "404", "409", "502"}},
 		{path: "/digital-centers/{provider}/live/stop", method: "post", write: true,
@@ -53,6 +53,21 @@ func TestOpenAPIDocumentsDigitalCenterWorkspaceOperationsAndSecurity(t *testing.
 				t.Errorf("%s %s missing %s response: %s", operation.method, operation.path, response, block)
 			}
 		}
+	}
+}
+
+func TestOpenAPIDigitalCenterLiveStatusIsConfigurationIndependent(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := openAPIIndentedBlock(t, openAPIIndentedBlock(t, string(data),
+		"/digital-centers/{provider}/live/status", 2), "get", 4)
+	if strings.Contains(block, "        \"404\":") {
+		t.Fatalf("passive live status must not depend on provider configuration: %s", block)
+	}
+	if !strings.Contains(block, "Provider does not support passive live monitoring") {
+		t.Fatalf("passive live status must document capability-unavailable behavior: %s", block)
 	}
 }
 

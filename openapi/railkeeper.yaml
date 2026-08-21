@@ -11028,12 +11028,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-        "404":
-          description: Provider is not configured
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Problem"
   /digital-centers/{provider}/live/start:
     post:
       tags: [DigitalCenters]

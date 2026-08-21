@@ -198,6 +198,128 @@ describe("useDigitalCentersWorkspace", () => {
       fields: ["name"]
     });
   });
+
+  it("ignores a late item detail from the previous read session", async () => {
+    const lateDetail = deferred<DigitalCenterWorkItem>();
+    vi.mocked(api.digitalCenterWorkItem).mockReturnValueOnce(lateDetail.promise);
+    vi.mocked(api.startDigitalCenterReadSession)
+      .mockResolvedValueOnce(readySession)
+      .mockResolvedValueOnce(readSessionFixture("session-2"));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+
+    act(() => result.current.selectItem(item.id));
+    await waitFor(() => expect(api.digitalCenterWorkItem).toHaveBeenCalledWith(readySession.id, item.id));
+    await act(async () => result.current.readData());
+    lateDetail.resolve(item);
+    await act(async () => Promise.resolve());
+
+    expect(result.current.readSession?.id).toBe("session-2");
+    expect(result.current.selectedItemId).toBeNull();
+    expect(result.current.selectedItem).toBeNull();
+  });
+
+  it("invalidates a late write preview as soon as a replacement read starts", async () => {
+    const latePreview = deferred<DigitalCenterWritePreview>();
+    const replacementRead = deferred<DigitalCenterReadSession>();
+    vi.mocked(api.previewDigitalCenterWrite).mockReturnValueOnce(latePreview.promise);
+    vi.mocked(api.startDigitalCenterReadSession)
+      .mockResolvedValueOnce(readySession)
+      .mockReturnValueOnce(replacementRead.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+
+    let previewRequest!: Promise<DigitalCenterWritePreview>;
+    act(() => {
+      previewRequest = result.current.previewWrite(["name"]);
+    });
+    await waitFor(() => expect(api.previewDigitalCenterWrite).toHaveBeenCalledOnce());
+    let replacementRequest!: Promise<DigitalCenterReadSession>;
+    act(() => {
+      replacementRequest = result.current.readData();
+    });
+
+    expect(result.current.selectedItemId).toBeNull();
+    expect(result.current.writePreview).toBeNull();
+    latePreview.resolve(writePreviewFixture({ itemId: item.id }));
+    await act(async () => previewRequest);
+    expect(result.current.writePreview).toBeNull();
+
+    replacementRead.resolve(readSessionFixture("session-2"));
+    await act(async () => replacementRequest);
+    expect(result.current.readSession?.id).toBe("session-2");
+    expect(result.current.writePreview).toBeNull();
+  });
+
+  it("ignores a late write confirmation from the previous read session", async () => {
+    const lateConfirmation = deferred<DigitalCenterWriteConfirmation>();
+    const replacementRead = deferred<DigitalCenterReadSession>();
+    vi.mocked(api.startDigitalCenterReadSession)
+      .mockResolvedValueOnce(readySession)
+      .mockReturnValueOnce(replacementRead.promise);
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockReturnValueOnce(lateConfirmation.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    let confirmationRequest!: Promise<DigitalCenterWriteConfirmation>;
+    act(() => {
+      confirmationRequest = result.current.confirmWrite();
+    });
+    await waitFor(() => expect(api.confirmDigitalCenterWrite).toHaveBeenCalledOnce());
+    let replacementRequest!: Promise<DigitalCenterReadSession>;
+    act(() => {
+      replacementRequest = result.current.readData();
+    });
+
+    lateConfirmation.resolve(writeConfirmationFixture({ itemId: item.id }));
+    await act(async () => confirmationRequest);
+    expect(result.current.writeConfirmation).toBeNull();
+
+    replacementRead.resolve(readSessionFixture("session-2"));
+    await act(async () => replacementRequest);
+    expect(result.current.readSession?.id).toBe("session-2");
+    expect(result.current.writeConfirmation).toBeNull();
+  });
+
+  it("clears every center-specific error when selecting another center", async () => {
+    vi.mocked(api.digitalCenterLiveStatus).mockRejectedValueOnce(new Error("Live fehlgeschlagen"));
+    vi.mocked(api.digitalCenterWorkItems).mockRejectedValueOnce(new Error("Liste fehlgeschlagen"));
+    vi.mocked(api.digitalCenterSessionMessages).mockRejectedValueOnce(new Error("Meldungen fehlgeschlagen"));
+    vi.mocked(api.digitalCenterWorkItem).mockRejectedValueOnce(new Error("Detail fehlgeschlagen"));
+    vi.mocked(api.previewDigitalCenterWrite).mockRejectedValueOnce(new Error("Vorschau fehlgeschlagen"));
+    vi.mocked(api.startDigitalCenterReadSession)
+      .mockResolvedValueOnce(readySession)
+      .mockRejectedValueOnce(new Error("Lesen fehlgeschlagen"));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.errors.live).toBe("Live fehlgeschlagen"));
+    await act(async () => result.current.readData());
+    await waitFor(() => expect(result.current.errors.messages).toBe("Meldungen fehlgeschlagen"));
+    act(() => result.current.selectItem(item.id));
+    await waitFor(() => expect(result.current.errors.detail).toBe("Detail fehlgeschlagen"));
+    await act(async () => {
+      await expect(result.current.previewWrite(["name"])).rejects.toThrow("Vorschau fehlgeschlagen");
+      await expect(result.current.readData()).rejects.toThrow("Lesen fehlgeschlagen");
+    });
+
+    act(() => result.current.selectCenter("z21"));
+
+    expect(result.current.errors).toEqual({
+      workspace: "",
+      live: "",
+      read: "",
+      worklist: "",
+      detail: "",
+      messages: "",
+      write: ""
+    });
+  });
 });
 
 function capabilitiesFixture(overrides: Partial<DigitalCenterSummary["capabilities"]> = {}) {
@@ -276,7 +398,11 @@ function worklistFixture(items: DigitalCenterWorkItem[]): DigitalCenterWorkItemP
   return { items, page: 1, pageSize: 10, total: items.length, totalPages: items.length ? 1 : 0 };
 }
 
-function writePreviewFixture(): DigitalCenterWritePreview {
+function readSessionFixture(id: string): DigitalCenterReadSession {
+  return { ...readySession, id };
+}
+
+function writePreviewFixture(overrides: Partial<DigitalCenterWritePreview> = {}): DigitalCenterWritePreview {
   return {
     sessionId: "session-1",
     itemId: "item-new",
@@ -286,11 +412,14 @@ function writePreviewFixture(): DigitalCenterWritePreview {
     fields: ["name"],
     changes: [{ field: "name", current: "Alte Lok", desired: "ICE 3" }],
     token: "public-grant",
-    expiresAt: "2026-08-21T10:10:00Z"
+    expiresAt: "2026-08-21T10:10:00Z",
+    ...overrides
   };
 }
 
-function writeConfirmationFixture(): DigitalCenterWriteConfirmation {
+function writeConfirmationFixture(
+  overrides: Partial<DigitalCenterWriteConfirmation> = {}
+): DigitalCenterWriteConfirmation {
   return {
     sessionId: "session-1",
     itemId: "item-new",
@@ -301,7 +430,8 @@ function writeConfirmationFixture(): DigitalCenterWriteConfirmation {
     applied: true,
     verified: true,
     result: "verified",
-    message: "Verifiziert"
+    message: "Verifiziert",
+    ...overrides
   };
 }
 

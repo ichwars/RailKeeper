@@ -46,6 +46,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const pollIntervalMs = options.pollIntervalMs ?? 1000;
   const mountedRef = useRef(true);
   const selectedProviderRef = useRef<DigitalCenterProvider | null>(null);
+  const readSessionIDRef = useRef<string | null>(null);
   const selectedItemIDRef = useRef<string | null>(null);
   const requestsRef = useRef({ workspace: 0, live: 0, read: 0, worklist: 0, detail: 0, messages: 0, write: 0 });
 
@@ -97,6 +98,21 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   }, []);
   const setLoadingArea = useCallback((area: keyof LoadingState, value: boolean) => {
     setLoading((current) => ({ ...current, [area]: value }));
+  }, []);
+  const clearSessionDependents = useCallback(() => {
+    requestsRef.current.worklist += 1;
+    requestsRef.current.detail += 1;
+    requestsRef.current.messages += 1;
+    requestsRef.current.write += 1;
+    selectedItemIDRef.current = null;
+    setWorkItems(emptyDigitalCenterWorkItemPage);
+    setMessages([]);
+    setSelectedItemID(null);
+    setSelectedItem(null);
+    setDialog(null);
+    setWritePreview(null);
+    setWriteConfirmation(null);
+    setLoading((current) => ({ ...current, worklist: false, detail: false, write: false }));
   }, []);
 
   const loadWorkspace = useCallback(async () => {
@@ -155,6 +171,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     void loadWorkspace();
     return () => {
       mountedRef.current = false;
+      readSessionIDRef.current = null;
       requestsRef.current.workspace += 1;
       requestsRef.current.live += 1;
       requestsRef.current.read += 1;
@@ -199,17 +216,20 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLoadingArea("worklist", true);
     void api.digitalCenterWorkItems(sessionID, filter)
       .then((result) => {
-        if (mountedRef.current && requestID === requestsRef.current.worklist && readSession?.id === sessionID) {
+        if (mountedRef.current && requestID === requestsRef.current.worklist &&
+          readSessionIDRef.current === sessionID) {
           setWorkItems(result);
         }
       })
       .catch((loadError: unknown) => {
-        if (mountedRef.current && requestID === requestsRef.current.worklist) {
+        if (mountedRef.current && requestID === requestsRef.current.worklist &&
+          readSessionIDRef.current === sessionID) {
           setError("worklist", errorMessage(loadError));
         }
       })
       .finally(() => {
-        if (mountedRef.current && requestID === requestsRef.current.worklist) {
+        if (mountedRef.current && requestID === requestsRef.current.worklist &&
+          readSessionIDRef.current === sessionID) {
           setLoadingArea("worklist", false);
         }
       });
@@ -222,12 +242,14 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setError("messages", "");
     void api.digitalCenterSessionMessages(sessionID)
       .then((result) => {
-        if (mountedRef.current && requestID === requestsRef.current.messages && readSession?.id === sessionID) {
+        if (mountedRef.current && requestID === requestsRef.current.messages &&
+          readSessionIDRef.current === sessionID) {
           setMessages(result.messages);
         }
       })
       .catch((loadError: unknown) => {
-        if (mountedRef.current && requestID === requestsRef.current.messages) {
+        if (mountedRef.current && requestID === requestsRef.current.messages &&
+          readSessionIDRef.current === sessionID) {
           setError("messages", errorMessage(loadError));
         }
       });
@@ -243,17 +265,20 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     void api.digitalCenterWorkItem(sessionID, itemID)
       .then((result) => {
         if (mountedRef.current && requestID === requestsRef.current.detail &&
+          readSessionIDRef.current === sessionID &&
           selectedItemIDRef.current === itemID) {
           setSelectedItem(result);
         }
       })
       .catch((loadError: unknown) => {
-        if (mountedRef.current && requestID === requestsRef.current.detail) {
+        if (mountedRef.current && requestID === requestsRef.current.detail &&
+          readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
           setError("detail", errorMessage(loadError));
         }
       })
       .finally(() => {
-        if (mountedRef.current && requestID === requestsRef.current.detail) {
+        if (mountedRef.current && requestID === requestsRef.current.detail &&
+          readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
           setLoadingArea("detail", false);
         }
       });
@@ -268,6 +293,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     requestsRef.current.detail += 1;
     requestsRef.current.messages += 1;
     requestsRef.current.write += 1;
+    readSessionIDRef.current = null;
     selectedItemIDRef.current = null;
     setSelectedProvider(provider);
     setLiveStatus(null);
@@ -279,6 +305,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setDialog(null);
     setWritePreview(null);
     setWriteConfirmation(null);
+    setErrors((current) => ({ ...emptyErrors, workspace: current.workspace }));
   }, []);
 
   const readData = useCallback(async () => {
@@ -289,15 +316,18 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       throw error;
     }
     const requestID = ++requestsRef.current.read;
+    readSessionIDRef.current = null;
+    setReadSession(null);
+    clearSessionDependents();
     setError("read", "");
     setLoadingArea("read", true);
     try {
       const session = await api.startDigitalCenterReadSession(provider);
       if (mountedRef.current && requestID === requestsRef.current.read &&
         selectedProviderRef.current === provider) {
+        clearSessionDependents();
+        readSessionIDRef.current = session.id;
         setReadSession(session);
-        setWorkItems(emptyDigitalCenterWorkItemPage);
-        setMessages([]);
       }
       return session;
     } catch (readError) {
@@ -310,7 +340,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("read", false);
       }
     }
-  }, [actions.canRead, setError, setLoadingArea]);
+  }, [actions.canRead, clearSessionDependents, setError, setLoadingArea]);
 
   const runLiveMutation = useCallback(async (operation: "start" | "stop") => {
     const provider = selectedProviderRef.current;
@@ -375,18 +405,21 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     try {
       const preview = await api.previewDigitalCenterWrite(sessionID, itemID, { fields });
       if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWritePreview(preview);
         setWriteConfirmation(null);
       }
       return preview;
     } catch (writeError) {
-      if (mountedRef.current && requestID === requestsRef.current.write) {
+      if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
         setError("write", errorMessage(writeError));
       }
       throw writeError;
     } finally {
-      if (mountedRef.current && requestID === requestsRef.current.write) {
+      if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
         setLoadingArea("write", false);
       }
     }
@@ -411,17 +444,20 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         fields: preview.fields
       });
       if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWriteConfirmation(confirmation);
       }
       return confirmation;
     } catch (writeError) {
-      if (mountedRef.current && requestID === requestsRef.current.write) {
+      if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
         setError("write", errorMessage(writeError));
       }
       throw writeError;
     } finally {
-      if (mountedRef.current && requestID === requestsRef.current.write) {
+      if (mountedRef.current && requestID === requestsRef.current.write &&
+        readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
         setLoadingArea("write", false);
       }
     }
