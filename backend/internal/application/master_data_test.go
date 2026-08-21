@@ -878,26 +878,45 @@ func TestMasterDataImportRejectsInvalidDocument(t *testing.T) {
 	}
 }
 
-func TestESUFunctionSymbolsSeededWithImages(t *testing.T) {
+func TestRailKeeperFunctionSymbolsSeededWithImages(t *testing.T) {
 	service := application.NewMasterDataService(testDB(t))
 	entries, err := service.List(context.Background(), "symbols", true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	esuCount := 0
+	libraryCount := 0
+	ecosCount := 0
 	var fahrgeraeusch *application.MasterDataEntry
 	for i := range entries {
-		if entries[i].Metadata["category"] == "ESU ECoS" {
-			esuCount++
-		}
 		if entries[i].Key == "esu-f006-fahrgeraeusch" {
 			fahrgeraeusch = &entries[i]
 		}
+		if entries[i].Metadata["library"] != "railkeeper-workshop-line" {
+			continue
+		}
+		libraryCount++
+		if entries[i].Metadata["libraryVersion"] != float64(1) {
+			t.Fatalf("symbol %q has unexpected library version: %#v", entries[i].Key,
+				entries[i].Metadata["libraryVersion"])
+		}
+		if _, ok := entries[i].Metadata["ecosCode"].(float64); ok {
+			ecosCount++
+		}
+		for _, key := range []string{"imageData", "activeImageData", "inactiveImageData"} {
+			value, ok := entries[i].Metadata[key].(string)
+			if !ok || len(value) < 100 || !strings.HasPrefix(value, "data:image/svg+xml;base64,") {
+				t.Fatalf("symbol %q has invalid %s SVG data URL: %#v", entries[i].Key,
+					key, entries[i].Metadata[key])
+			}
+		}
 	}
 
-	if esuCount != 86 {
-		t.Fatalf("expected 86 ESU function symbols, got %d", esuCount)
+	if libraryCount != 94 {
+		t.Fatalf("expected 94 RailKeeper function symbols, got %d", libraryCount)
+	}
+	if ecosCount != 86 {
+		t.Fatalf("expected 86 ECoS compatibility codes, got %d", ecosCount)
 	}
 	if fahrgeraeusch == nil {
 		t.Fatal("expected Fahrgeraeusch symbol")
@@ -907,11 +926,5 @@ func TestESUFunctionSymbolsSeededWithImages(t *testing.T) {
 	}
 	if fahrgeraeusch.Metadata["description"] == "" {
 		t.Fatalf("expected symbol description metadata: %#v", fahrgeraeusch.Metadata)
-	}
-	for _, key := range []string{"imageData", "activeImageData", "inactiveImageData"} {
-		value, ok := fahrgeraeusch.Metadata[key].(string)
-		if !ok || len(value) < 100 || value[:26] != "data:image/svg+xml;base64," {
-			t.Fatalf("expected %s SVG data URL, got %#v", key, fahrgeraeusch.Metadata[key])
-		}
 	}
 }
