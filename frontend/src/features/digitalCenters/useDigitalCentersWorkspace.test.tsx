@@ -288,6 +288,97 @@ describe("useDigitalCentersWorkspace", () => {
     expect(result.current.writeConfirmation).toBeNull();
   });
 
+  it("invalidates an in-flight preview when detail closes and leaves the next item enabled", async () => {
+    const latePreview = deferred<DigitalCenterWritePreview>();
+    vi.mocked(api.previewDigitalCenterWrite).mockReturnValueOnce(latePreview.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+
+    let previewRequest!: Promise<DigitalCenterWritePreview>;
+    act(() => {
+      previewRequest = result.current.previewWrite(["name"]);
+    });
+    await waitFor(() => expect(result.current.loading.write).toBe(true));
+
+    act(() => {
+      result.current.closeDetail();
+      result.current.selectItem("item-2");
+    });
+
+    expect(result.current.loading.write).toBe(false);
+    expect(result.current.selectedItemId).toBe("item-2");
+    expect(result.current.writePreview).toBeNull();
+
+    latePreview.resolve(writePreviewFixture({ itemId: item.id }));
+    await act(async () => previewRequest);
+
+    expect(result.current.loading.write).toBe(false);
+    expect(result.current.selectedItemId).toBe("item-2");
+    expect(result.current.writePreview).toBeNull();
+  });
+
+  it("invalidates an in-flight confirmation when detail closes and leaves the next item enabled", async () => {
+    const lateConfirmation = deferred<DigitalCenterWriteConfirmation>();
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockReturnValueOnce(lateConfirmation.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    let confirmationRequest!: Promise<DigitalCenterWriteConfirmation>;
+    act(() => {
+      confirmationRequest = result.current.confirmWrite();
+    });
+    await waitFor(() => expect(result.current.loading.write).toBe(true));
+
+    act(() => {
+      result.current.closeDetail();
+      result.current.selectItem("item-2");
+    });
+
+    expect(result.current.loading.write).toBe(false);
+    expect(result.current.selectedItemId).toBe("item-2");
+    expect(result.current.writePreview).toBeNull();
+    expect(result.current.writeConfirmation).toBeNull();
+
+    lateConfirmation.resolve(writeConfirmationFixture({ itemId: item.id }));
+    await act(async () => confirmationRequest);
+
+    expect(result.current.loading.write).toBe(false);
+    expect(result.current.selectedItemId).toBe("item-2");
+    expect(result.current.writeConfirmation).toBeNull();
+  });
+
+  it("clears write errors when selecting or closing an item", async () => {
+    vi.mocked(api.previewDigitalCenterWrite)
+      .mockRejectedValueOnce(new Error("Vorschau für Item 1 fehlgeschlagen"))
+      .mockRejectedValueOnce(new Error("Vorschau für Item 2 fehlgeschlagen"));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+
+    await act(async () => {
+      await expect(result.current.previewWrite(["name"])).rejects.toThrow("Vorschau für Item 1 fehlgeschlagen");
+    });
+    expect(result.current.errors.write).toBe("Vorschau für Item 1 fehlgeschlagen");
+
+    act(() => result.current.selectItem("item-2"));
+    expect(result.current.errors.write).toBe("");
+
+    await act(async () => {
+      await expect(result.current.previewWrite(["name"])).rejects.toThrow("Vorschau für Item 2 fehlgeschlagen");
+    });
+    expect(result.current.errors.write).toBe("Vorschau für Item 2 fehlgeschlagen");
+
+    act(() => result.current.closeDetail());
+    expect(result.current.errors.write).toBe("");
+  });
+
   it("clears every center-specific error when selecting another center", async () => {
     vi.mocked(api.digitalCenterLiveStatus).mockRejectedValueOnce(new Error("Live fehlgeschlagen"));
     vi.mocked(api.digitalCenterWorkItems).mockRejectedValueOnce(new Error("Liste fehlgeschlagen"));

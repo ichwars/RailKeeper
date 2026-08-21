@@ -99,6 +99,13 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const setLoadingArea = useCallback((area: keyof LoadingState, value: boolean) => {
     setLoading((current) => ({ ...current, [area]: value }));
   }, []);
+  const resetWriteDialogState = useCallback(() => {
+    requestsRef.current.write += 1;
+    setWritePreview(null);
+    setWriteConfirmation(null);
+    setLoading((current) => ({ ...current, write: false }));
+    setErrors((current) => ({ ...current, write: "" }));
+  }, []);
   const clearSessionDependents = useCallback(() => {
     requestsRef.current.worklist += 1;
     requestsRef.current.detail += 1;
@@ -401,9 +408,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     selectedItemIDRef.current = itemID;
     setSelectedItemID(itemID);
     setSelectedItem(null);
-    setWritePreview(null);
-    setWriteConfirmation(null);
-  }, []);
+    resetWriteDialogState();
+  }, [resetWriteDialogState]);
 
   const closeDetail = useCallback(() => {
     requestsRef.current.detail += 1;
@@ -411,7 +417,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setSelectedItemID(null);
     setSelectedItem(null);
     setDialog(null);
-  }, []);
+    resetWriteDialogState();
+  }, [resetWriteDialogState]);
 
   const previewWrite = useCallback(async (fields: DigitalCenterWriteField[]) => {
     const sessionID = readSession?.id;
