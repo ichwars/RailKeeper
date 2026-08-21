@@ -320,6 +320,82 @@ describe("useDigitalCentersWorkspace", () => {
       write: ""
     });
   });
+
+  it("clears read loading when the center changes during an in-flight read", async () => {
+    const pendingRead = deferred<DigitalCenterReadSession>();
+    vi.mocked(api.startDigitalCenterReadSession).mockReturnValueOnce(pendingRead.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+
+    let readRequest!: Promise<DigitalCenterReadSession>;
+    act(() => {
+      readRequest = result.current.readData();
+    });
+    await waitFor(() => expect(result.current.loading.read).toBe(true));
+    act(() => result.current.selectCenter("z21"));
+
+    expect(result.current.loading.read).toBe(false);
+    pendingRead.resolve(readySession);
+    await act(async () => readRequest);
+    expect(result.current.loading.read).toBe(false);
+  });
+
+  it("clears live, work-list, detail, and write loading on a center switch", async () => {
+    const liveRequest = deferred<ECoSLiveStatus>();
+    const worklistRequest = deferred<DigitalCenterWorkItemPage>();
+    const detailRequest = deferred<DigitalCenterWorkItem>();
+    const previewRequest = deferred<DigitalCenterWritePreview>();
+    vi.mocked(api.digitalCenterWorkspace).mockResolvedValue({
+      centers: [centers[0], centerFixture({
+        provider: "z21",
+        name: "Z21",
+        selected: false,
+        capabilities: capabilitiesFixture({ liveMonitor: false, writeLocomotives: false })
+      })]
+    });
+    vi.mocked(api.digitalCenterLiveStatus).mockReturnValueOnce(liveRequest.promise);
+    vi.mocked(api.digitalCenterWorkItems).mockReturnValueOnce(worklistRequest.promise);
+    vi.mocked(api.digitalCenterWorkItem).mockReturnValueOnce(detailRequest.promise);
+    vi.mocked(api.previewDigitalCenterWrite).mockReturnValueOnce(previewRequest.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    let pendingPreview!: Promise<DigitalCenterWritePreview>;
+    act(() => {
+      pendingPreview = result.current.previewWrite(["name"]);
+    });
+    await waitFor(() => expect(result.current.loading).toMatchObject({
+      live: true,
+      worklist: true,
+      detail: true,
+      write: true
+    }));
+
+    act(() => result.current.selectCenter("z21"));
+
+    expect(result.current.loading).toEqual({
+      workspace: false,
+      live: false,
+      read: false,
+      worklist: false,
+      detail: false,
+      write: false
+    });
+    liveRequest.resolve(stoppedLive);
+    worklistRequest.resolve(worklist);
+    detailRequest.resolve(item);
+    previewRequest.resolve(writePreviewFixture({ itemId: item.id }));
+    await act(async () => pendingPreview);
+    expect(result.current.loading).toEqual({
+      workspace: false,
+      live: false,
+      read: false,
+      worklist: false,
+      detail: false,
+      write: false
+    });
+  });
 });
 
 function capabilitiesFixture(overrides: Partial<DigitalCenterSummary["capabilities"]> = {}) {

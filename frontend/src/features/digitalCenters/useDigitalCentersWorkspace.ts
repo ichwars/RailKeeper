@@ -305,6 +305,14 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setDialog(null);
     setWritePreview(null);
     setWriteConfirmation(null);
+    setLoading((current) => ({
+      workspace: current.workspace,
+      live: false,
+      read: false,
+      worklist: false,
+      detail: false,
+      write: false
+    }));
     setErrors((current) => ({ ...emptyErrors, workspace: current.workspace }));
   }, []);
 
