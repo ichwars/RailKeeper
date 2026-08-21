@@ -48,6 +48,11 @@ describe("i18n", () => {
     expect(translate("en", "importExport.dashboard.details.continueExport")).toBe("Continue export");
   });
 
+  it("translates the Digital Centers navigation in German and English", () => {
+    expect(translate("de", "nav.digitalCenters")).toBe("Digitalzentralen");
+    expect(translate("en", "nav.digitalCenters")).toBe("Command stations");
+  });
+
   it("uses individual item terminology throughout accessory translations", async () => {
     const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
     const accessoryValues = (translations: Record<string, string>) => Object.entries(translations)

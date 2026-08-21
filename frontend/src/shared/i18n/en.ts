@@ -6,6 +6,7 @@ export const enTranslations: Record<string, string> = {
     "nav.layouts.disabled": "Layout is temporarily unavailable.",
     "nav.exhibition": "Exhibition",
     "nav.importExport": "Import/Export",
+    "nav.digitalCenters": "Command stations",
     "nav.settings": "Settings",
     "nav.system": "System",
     "nav.repository": "Repository",

@@ -6,6 +6,7 @@ export const deTranslations: Record<string, string> = {
     "nav.layouts.disabled": "Anlage ist vorübergehend nicht verfügbar.",
     "nav.exhibition": "Ausstellung",
     "nav.importExport": "Import/Export",
+    "nav.digitalCenters": "Digitalzentralen",
     "nav.settings": "Einstellungen",
     "nav.system": "System",
     "nav.repository": "Repository",
