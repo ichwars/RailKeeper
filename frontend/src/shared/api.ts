@@ -11,9 +11,25 @@ import type {
   DataTransferProfileInput,
   DataTransferSummary
 } from "../features/importExport/dataTransferModel";
+import type {
+  DigitalCenterMessagesResponse,
+  DigitalCenterProvider,
+  DigitalCenterReadSession,
+  DigitalCenterWorkItem,
+  DigitalCenterWorkItemFilter,
+  DigitalCenterWorkItemPage,
+  DigitalCenterWorkspaceSummary,
+  DigitalCenterWriteConfirmInput,
+  DigitalCenterWriteConfirmation,
+  DigitalCenterWriteField,
+  DigitalCenterWritePreview,
+  DigitalCenterWritePreviewInput,
+  ECoSLiveStatus
+} from "../features/digitalCenters/digitalCenterModel";
 
 export * from "./apiLayoutsAccessories";
 export type * from "../features/importExport/dataTransferModel";
+export type * from "../features/digitalCenters/digitalCenterModel";
 
 export type SetupStatus = {
   setupRequired: boolean;
@@ -757,7 +773,7 @@ export type DigitalCenterConnectionInput = {
 };
 
 export type DigitalCenterConnectionResult = {
-  provider: "z21" | "cs3" | string;
+  provider: DigitalCenterProvider;
   connected: boolean;
   host: string;
   port: number;
@@ -779,7 +795,7 @@ export type DigitalCenterProbeCommandResult = {
 };
 
 export type DigitalCenterProbeResult = {
-  provider: "z21" | "intellibox3" | string;
+  provider: DigitalCenterProvider;
   connected: boolean;
   host: string;
   port: number;
@@ -849,22 +865,6 @@ export type ECoSLocomotiveSummary = {
   message: string;
 };
 
-export type ECoSLiveStatus = {
-  provider: string;
-  connected: boolean;
-  host?: string;
-  port?: number;
-  startedAt?: string;
-  lastSeenAt?: string;
-  lastMessage?: string;
-  blocksReceived: number;
-  repliesReceived: number;
-  eventsReceived: number;
-  subscriptionCommands?: string[];
-  error?: string;
-  message: string;
-};
-
 export type ECoSLocomotiveSyncInput = ECoSConnectionInput & {
   vehicleId: string;
   objectId?: number;
@@ -873,7 +873,7 @@ export type ECoSLocomotiveSyncInput = ECoSConnectionInput & {
 };
 
 export type ECoSLocomotiveSyncChange = {
-  field: "name" | "address" | "protocol" | string;
+  field: DigitalCenterWriteField;
   current: string;
   desired: string;
 };
@@ -1159,6 +1159,11 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
   }
 
   throw new Error("Die Anfrage konnte nicht verarbeitet werden.");
+}
+
+function digitalCenterSessionSuffix(sessionID?: string) {
+  const normalized = sessionID?.trim();
+  return normalized ? `?sessionId=${encodeURIComponent(normalized)}` : "";
 }
 
 export const api = {
@@ -1623,7 +1628,69 @@ export const api = {
       },
       { timeoutMs: 10000 }
     ),
-  getECoSLiveStatus: () => request<ECoSLiveStatus>("/digital-centers/ecos/live/status"),
+  getECoSLiveStatus: () =>
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent("ecos")}/live/status`),
+  digitalCenterWorkspace: () =>
+    request<DigitalCenterWorkspaceSummary>("/digital-centers/workspace"),
+  startDigitalCenterReadSession: (provider: DigitalCenterProvider) =>
+    request<DigitalCenterReadSession>(
+      `/digital-centers/${encodeURIComponent(provider)}/read-sessions`,
+      { method: "POST", body: JSON.stringify({}) },
+      { timeoutMs: 120000 }
+    ),
+  digitalCenterReadSession: (sessionID: string) =>
+    request<DigitalCenterReadSession>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}`
+    ),
+  digitalCenterWorkItems: (sessionID: string, filter: DigitalCenterWorkItemFilter) => {
+    const query = new URLSearchParams();
+    const search = filter.query.trim();
+    if (search) query.set("q", search);
+    if (filter.compareStatus !== "all") query.set("compareStatus", filter.compareStatus);
+    query.set("page", String(filter.page));
+    query.set("pageSize", String(filter.pageSize));
+    return request<DigitalCenterWorkItemPage>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items?${query.toString()}`
+    );
+  },
+  digitalCenterWorkItem: (sessionID: string, itemID: string) =>
+    request<DigitalCenterWorkItem>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}`
+    ),
+  digitalCenterSessionMessages: (sessionID: string) =>
+    request<DigitalCenterMessagesResponse>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/messages`
+    ),
+  digitalCenterLiveStatus: (provider: DigitalCenterProvider) =>
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent(provider)}/live/status`),
+  startDigitalCenterLive: (provider: DigitalCenterProvider, sessionID?: string) =>
+    request<ECoSLiveStatus>(
+      `/digital-centers/${encodeURIComponent(provider)}/live/start` + digitalCenterSessionSuffix(sessionID),
+      { method: "POST", body: JSON.stringify({}) }
+    ),
+  stopDigitalCenterLive: (provider: DigitalCenterProvider, sessionID?: string) =>
+    request<ECoSLiveStatus>(
+      `/digital-centers/${encodeURIComponent(provider)}/live/stop` + digitalCenterSessionSuffix(sessionID),
+      { method: "POST", body: JSON.stringify({}) }
+    ),
+  previewDigitalCenterWrite: (
+    sessionID: string,
+    itemID: string,
+    input: DigitalCenterWritePreviewInput
+  ) => request<DigitalCenterWritePreview>(
+    `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/write-preview`,
+    { method: "POST", body: JSON.stringify(input) },
+    { timeoutMs: 30000 }
+  ),
+  confirmDigitalCenterWrite: (
+    sessionID: string,
+    itemID: string,
+    input: DigitalCenterWriteConfirmInput
+  ) => request<DigitalCenterWriteConfirmation>(
+    `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/write-confirm`,
+    { method: "POST", body: JSON.stringify(input) },
+    { timeoutMs: 30000 }
+  ),
   syncECoSLocomotive: (input: ECoSLocomotiveSyncInput) =>
     request<ECoSLocomotiveSyncResult>(
       "/digital-centers/ecos/locomotives/sync",
@@ -1635,7 +1702,7 @@ export const api = {
     ),
   startECoSLive: (input: ECoSConnectionInput) =>
     request<ECoSLiveStatus>(
-      "/digital-centers/ecos/live/start",
+      `/digital-centers/${encodeURIComponent("ecos")}/live/start`,
       {
         method: "POST",
         body: JSON.stringify(input)
@@ -1643,7 +1710,7 @@ export const api = {
       { timeoutMs: 10000 }
     ),
   stopECoSLive: () =>
-    request<ECoSLiveStatus>("/digital-centers/ecos/live/stop", {
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent("ecos")}/live/stop`, {
       method: "POST"
     }),
   testZ21Connection: (input: DigitalCenterConnectionInput) =>

@@ -16,9 +16,13 @@ const settings = (ecosEnabled = false): DigitalCenterSettings => ({
 const liveStatus: ECoSLiveStatus = {
   provider: "ecos",
   connected: false,
+  state: "stopped",
   blocksReceived: 0,
   repliesReceived: 0,
   eventsReceived: 0,
+  pulseSamples: [],
+  recentEvents: [],
+  diagnosis: { connectionState: "stopped", passive: true },
   message: "ECoS-Live-Verbindung inaktiv."
 };
 

@@ -1,0 +1,84 @@
+package api
+
+import (
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+)
+
+func TestOpenAPIDocumentsDigitalCenterWorkspaceOperationsAndSecurity(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	operations := []struct {
+		path      string
+		method    string
+		write     bool
+		responses []string
+	}{
+		{path: "/digital-centers/workspace", method: "get", responses: []string{"403"}},
+		{path: "/digital-centers/{provider}/read-sessions", method: "post", write: true,
+			responses: []string{"400", "403", "404", "409"}},
+		{path: "/digital-centers/read-sessions/{id}", method: "get", responses: []string{"403", "404"}},
+		{path: "/digital-centers/read-sessions/{id}/messages", method: "get", responses: []string{"403", "404"}},
+		{path: "/digital-centers/read-sessions/{id}/items", method: "get",
+			responses: []string{"400", "403", "404"}},
+		{path: "/digital-centers/read-sessions/{id}/items/{itemID}", method: "get",
+			responses: []string{"403", "404"}},
+		{path: "/digital-centers/{provider}/live/status", method: "get",
+			responses: []string{"400", "403", "404"}},
+		{path: "/digital-centers/{provider}/live/start", method: "post", write: true,
+			responses: []string{"400", "403", "404", "409", "502"}},
+		{path: "/digital-centers/{provider}/live/stop", method: "post", write: true,
+			responses: []string{"400", "403", "404"}},
+		{path: "/digital-centers/read-sessions/{id}/items/{itemID}/write-preview", method: "post", write: true,
+			responses: []string{"400", "403", "404", "409"}},
+		{path: "/digital-centers/read-sessions/{id}/items/{itemID}/write-confirm", method: "post", write: true,
+			responses: []string{"400", "403", "404", "409", "502"}},
+	}
+	for _, operation := range operations {
+		block := openAPIIndentedBlock(t, openAPIIndentedBlock(t, contract, operation.path, 2), operation.method, 4)
+		security := "security:\n        - sessionCookie: []"
+		if operation.write {
+			security += "\n          csrfHeader: []"
+		}
+		if !strings.Contains(block, security) {
+			t.Errorf("%s %s security mismatch: %s", operation.method, operation.path, block)
+		}
+		for _, response := range operation.responses {
+			if !strings.Contains(block, "        \""+response+"\":") {
+				t.Errorf("%s %s missing %s response: %s", operation.method, operation.path, response, block)
+			}
+		}
+	}
+}
+
+func TestOpenAPIDigitalCenterSchemasExposeExactRuntimeEnumsAndTelemetry(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	expectations := map[string][]string{
+		"DigitalCenterSummary":           {"capabilities:", "selected:", "active:"},
+		"DigitalCenterReadSession":       {"enum: [reading, ready, interrupted, failed]", "readCompletedAt:"},
+		"DigitalCenterWorkItem":          {"enum: [ok, deviation, missing, new, conflict]", "center:", "railkeeper:", "conflicts:"},
+		"DigitalCenterSessionMessage":    {"enum: [info, warning, error]", "nextAction:"},
+		"ECoSLiveStatus":                 {"enum: [stopped, running, interrupted]", "pulseSamples:", "recentEvents:", "diagnosis:"},
+		"ECoSLivePulseSample":            {"repliesPerSecond:", "at:"},
+		"ECoSLiveEvent":                  {"kind:", "protocol:", "message:"},
+		"DigitalCenterWritePreview":      {"enum: [railkeeper_to_center]", "changes:", "token:", "expiresAt:"},
+		"DigitalCenterWriteConfirmation": {"enum: [verified, verification_failed, failed]", "verified:", "applied:"},
+	}
+	for schema, fragments := range expectations {
+		block := openAPIIndentedBlock(t, contract, schema, 4)
+		for _, fragment := range fragments {
+			if !strings.Contains(block, fragment) {
+				t.Errorf("%s missing %q: %s", schema, fragment, block)
+			}
+		}
+	}
+}

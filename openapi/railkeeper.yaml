@@ -20,6 +20,7 @@ tags:
   - name: Accessories
   - name: Layouts
   - name: DataTransfer
+  - name: DigitalCenters
 components:
   securitySchemes:
     sessionCookie:
@@ -670,6 +671,397 @@ components:
           $ref: "#/components/schemas/DigitalProviderSettings"
         cs3:
           $ref: "#/components/schemas/DigitalProviderSettings"
+    DigitalCenterProvider:
+      type: string
+      enum: [ecos, z21, intellibox3, cs3]
+    DigitalCenterCapabilities:
+      type: object
+      required: [testConnection, readLocomotives, liveMonitor, writeLocomotives, writeCVs, diagnose]
+      properties:
+        testConnection:
+          type: boolean
+        readLocomotives:
+          type: boolean
+        liveMonitor:
+          type: boolean
+        writeLocomotives:
+          type: boolean
+        writeCVs:
+          type: boolean
+        diagnose:
+          type: boolean
+    DigitalCenterSummary:
+      type: object
+      required: [provider, name, active, selected, host, port, capabilities]
+      properties:
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        name:
+          type: string
+        active:
+          type: boolean
+        selected:
+          type: boolean
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        capabilities:
+          $ref: "#/components/schemas/DigitalCenterCapabilities"
+    DigitalCenterWorkspaceSummary:
+      type: object
+      required: [centers]
+      properties:
+        centers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterSummary"
+    DigitalCenterReadSession:
+      type: object
+      required:
+        [id, provider, state, host, port, capabilities, readStartedAt, readCompletedAt,
+        createdByUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        state:
+          type: string
+          enum: [reading, ready, interrupted, failed]
+        host:
+          type: string
+        port:
+          type: integer
+        capabilities:
+          $ref: "#/components/schemas/DigitalCenterCapabilities"
+        readStartedAt:
+          type: string
+        readCompletedAt:
+          type: string
+        createdByUserId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DigitalCenterStationSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        objectId:
+          type: integer
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+    DigitalCenterVehicleSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        vehicleId:
+          type: string
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+    DigitalCenterProposedMatch:
+      type: object
+      additionalProperties: false
+      properties:
+        vehicleId:
+          type: string
+        match:
+          type: string
+          enum: [address_protocol, address]
+    DigitalCenterWorkItem:
+      type: object
+      required:
+        [id, sessionId, centerObjectId, vehicleId, name, decoderAddress, protocol, compareStatus,
+        stationStatus, center, railkeeper, proposed, conflicts, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        centerObjectId:
+          type: string
+        vehicleId:
+          type: string
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+        compareStatus:
+          type: string
+          enum: [ok, deviation, missing, new, conflict]
+        stationStatus:
+          type: string
+          enum: [read, incomplete, missing]
+        center:
+          $ref: "#/components/schemas/DigitalCenterStationSnapshot"
+        railkeeper:
+          $ref: "#/components/schemas/DigitalCenterVehicleSnapshot"
+        proposed:
+          $ref: "#/components/schemas/DigitalCenterProposedMatch"
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterVehicleSnapshot"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DigitalCenterWorkItemPage:
+      type: object
+      required: [items, page, pageSize, total, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWorkItem"
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    DigitalCenterSessionMessage:
+      type: object
+      required: [id, sessionId, severity, code, message, nextAction, createdAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error]
+        code:
+          type: string
+          enum:
+            [connection.succeeded, connection.failed, connection.interrupted, read.started,
+            read.completed, read.failed, parse.failed, capability.unavailable, live.started,
+            live.stopped, live.interrupted, write.preview_failed, write.failed, write.verified,
+            write.verification_failed]
+        message:
+          type: string
+        nextAction:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DigitalCenterMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterSessionMessage"
+    ECoSLivePulseSample:
+      type: object
+      required: [at, repliesPerSecond]
+      properties:
+        at:
+          type: string
+          format: date-time
+        repliesPerSecond:
+          type: integer
+          minimum: 0
+    ECoSLiveEvent:
+      type: object
+      required: [at, kind, message, protocol]
+      properties:
+        at:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          enum: [event]
+        message:
+          type: string
+        protocol:
+          type: string
+    ECoSLiveDiagnosis:
+      type: object
+      required: [connectionState, passive]
+      properties:
+        connectionState:
+          type: string
+          enum: [stopped, running, interrupted]
+        lastSuccessfulCommunication:
+          type: string
+          format: date-time
+        lastError:
+          type: string
+        passive:
+          type: boolean
+    ECoSLiveStatus:
+      type: object
+      required:
+        [provider, connected, state, blocksReceived, repliesReceived, eventsReceived, pulseSamples,
+        recentEvents, diagnosis, message]
+      properties:
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        connected:
+          type: boolean
+        state:
+          type: string
+          enum: [stopped, running, interrupted]
+        host:
+          type: string
+        port:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        lastMessage:
+          type: string
+        blocksReceived:
+          type: integer
+          minimum: 0
+        repliesReceived:
+          type: integer
+          minimum: 0
+        eventsReceived:
+          type: integer
+          minimum: 0
+        subscriptionCommands:
+          type: array
+          items:
+            type: string
+        pulseSamples:
+          type: array
+          items:
+            $ref: "#/components/schemas/ECoSLivePulseSample"
+        recentEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ECoSLiveEvent"
+        diagnosis:
+          $ref: "#/components/schemas/ECoSLiveDiagnosis"
+        error:
+          type: string
+        message:
+          type: string
+    DigitalCenterWriteField:
+      type: string
+      enum: [address, name, protocol]
+    DigitalCenterWriteChange:
+      type: object
+      required: [field, current, desired]
+      properties:
+        field:
+          $ref: "#/components/schemas/DigitalCenterWriteField"
+        current:
+          type: string
+        desired:
+          type: string
+    DigitalCenterWritePreviewInput:
+      type: object
+      additionalProperties: false
+      properties:
+        fields:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+    DigitalCenterWriteConfirmInput:
+      type: object
+      additionalProperties: false
+      required: [token, confirm]
+      properties:
+        token:
+          type: string
+          minLength: 1
+        confirm:
+          type: boolean
+          const: true
+        fields:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+    DigitalCenterWritePreview:
+      type: object
+      required: [sessionId, itemId, provider, objectId, direction, fields, changes, token, expiresAt]
+      properties:
+        sessionId:
+          type: string
+        itemId:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        objectId:
+          type: string
+        direction:
+          type: string
+          enum: [railkeeper_to_center]
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteChange"
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    DigitalCenterWriteConfirmation:
+      type: object
+      required: [sessionId, itemId, provider, objectId, direction, fields, applied, verified, result, message]
+      properties:
+        sessionId:
+          type: string
+        itemId:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        objectId:
+          type: string
+        direction:
+          type: string
+          enum: [railkeeper_to_center]
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+        applied:
+          type: boolean
+        verified:
+          type: boolean
+        result:
+          type: string
+          enum: [verified, verification_failed, failed]
+        message:
+          type: string
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]
@@ -10193,6 +10585,340 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digital-centers/workspace:
+    get:
+      tags: [DigitalCenters]
+      summary: List configured digital centers and their capabilities
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Configured digital centers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkspaceSummary"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/{provider}/read-sessions:
+    post:
+      tags: [DigitalCenters]
+      summary: Read a configured digital center into a persisted comparison session
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+      responses:
+        "201":
+          description: Completed or failed read session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterReadSession"
+        "400":
+          description: Provider does not support locomotive reads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Provider is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Provider is inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}:
+    get:
+      tags: [DigitalCenters]
+      summary: Read one persisted digital-center session
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Read session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterReadSession"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/messages:
+    get:
+      tags: [DigitalCenters]
+      summary: List bounded actionable messages for a read session
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterMessagesResponse"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items:
+    get:
+      tags: [DigitalCenters]
+      summary: List and filter the persisted locomotive comparison work list
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: compareStatus
+          in: query
+          schema:
+            type: string
+            enum: [ok, deviation, missing, new, conflict]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Paged comparison work list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkItemPage"
+        "400":
+          description: Invalid filter or pagination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}:
+    get:
+      tags: [DigitalCenters]
+      summary: Read one locomotive comparison item
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Comparison item with station, RailKeeper, proposal, and conflict data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkItem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session or work item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/write-preview:
+    post:
+      tags: [DigitalCenters]
+      summary: Create a dry-run preview and single-use write grant
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterWritePreviewInput"
+      responses:
+        "200":
+          description: Normalized write preview and actor-bound grant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWritePreview"
+        "400":
+          description: Unsupported capability or write field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Session, work item, or provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Read is stale, conflict unresolved, or no changes remain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/write-confirm:
+    post:
+      tags: [DigitalCenters]
+      summary: Consume a write grant, write the previewed fields, and verify the device
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterWriteConfirmInput"
+      responses:
+        "200":
+          description: Verified write result or visible verification mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWriteConfirmation"
+        "400":
+          description: Confirmation missing or field unsupported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Session, work item, or provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Grant is stale, expired, consumed, or mismatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS write or verification failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /digital-centers/ecos/locomotives/sync:
     post:
       tags: [DigitalCenters]
@@ -10271,41 +10997,135 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/status:
+  /digital-centers/{provider}/live/status:
     get:
       tags: [DigitalCenters]
-      summary: Read the ECoS base-station connection monitor status
+      summary: Read passive live-monitor status for the selected digital center
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
       responses:
         "200":
-          description: ECoS live connection status
+          description: Passive live status, telemetry, events, and diagnosis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/start:
+        "404":
+          description: Provider is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/{provider}/live/start:
     post:
       tags: [DigitalCenters]
-      summary: Start ECoS base-station monitoring without locomotive or layout-state subscriptions
+      summary: Start passive monitoring using the server-configured endpoint
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+        - name: sessionId
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: ECoS live connection status
-        "403":
-          description: Admin role required
+          description: Started passive live status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/stop:
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Provider or optional read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Provider is inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Passive monitor could not connect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/{provider}/live/stop:
     post:
       tags: [DigitalCenters]
       summary: Stop the active ECoS live connection
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+        - name: sessionId
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: ECoS live connection status
+          description: Stopped passive live status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Optional read session not found
           content:
             application/json:
               schema:
