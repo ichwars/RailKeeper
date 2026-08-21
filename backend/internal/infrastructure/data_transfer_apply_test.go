@@ -89,6 +89,52 @@ func TestDataTransferApplyCommitsAllSelectedAreasInOneTransaction(t *testing.T) 
 	}
 }
 
+func TestDataTransferApplyPersistsExhibitionWorkspaceFields(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	listData, err := json.Marshal(application.TransferExhibitionList{
+		Designation: "Modellbahntage Köln",
+		Date:        "2026-08-22", EndDate: "2026-08-24", Location: "Köln",
+		Description: "Publikumsmesse", OrganizationNotes: "Aufbau Freitag",
+		Status: application.ExhibitionStatusOpen,
+		Entries: []application.TransferExhibitionEntry{{
+			Owner: "Club", LocomotiveName: "BR 103", DayScope: "day1,day2",
+			InterfaceName: "ECoS", Availability: "unavailable",
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferExhibitionLists, RecordKey: "Modellbahntage Köln|2026-08-22",
+		Classification: "ready", ProposedAction: "create", Data: listData,
+	}
+	job := createApplyJob(t, repository, "sha-exhibition-workspace", []application.DataTransferPreviewRecord{record})
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var endDate, location, description, notes, status string
+	if err := db.QueryRow(`
+SELECT end_date, location, description, organization_notes, status
+FROM exhibition_lists WHERE designation='Modellbahntage Köln'`).
+		Scan(&endDate, &location, &description, &notes, &status); err != nil {
+		t.Fatal(err)
+	}
+	if endDate != "2026-08-24" || location != "Köln" || description != "Publikumsmesse" ||
+		notes != "Aufbau Freitag" || status != string(application.ExhibitionStatusOpen) {
+		t.Fatalf("workspace list fields = %q %q %q %q %q", endDate, location, description, notes, status)
+	}
+	var interfaceName, availability string
+	if err := db.QueryRow(`SELECT interface_name, availability FROM exhibition_entries LIMIT 1`).
+		Scan(&interfaceName, &availability); err != nil {
+		t.Fatal(err)
+	}
+	if interfaceName != "ECoS" || availability != "unavailable" {
+		t.Fatalf("workspace entry fields = %q %q", interfaceName, availability)
+	}
+}
+
 func TestDataTransferApplyRollsBackWhenSecondRowFails(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)

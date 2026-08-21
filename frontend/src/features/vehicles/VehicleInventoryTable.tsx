@@ -1,4 +1,4 @@
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useState, type CSSProperties, type ReactNode } from "react";
 import {
   ArrowUpDown,
   ChevronDown,
@@ -189,7 +189,10 @@ export function VehicleInventoryTable({
 
   return (
     <div className="table-wrap">
-      <table className="inventory-table vehicle-inventory-table">
+      <table
+        className="inventory-table vehicle-inventory-table"
+        style={{ "--vehicle-data-column-count": Math.max(columns.length, 1) } as CSSProperties}
+      >
         <thead>
           <tr>
             <th className="select-cell">

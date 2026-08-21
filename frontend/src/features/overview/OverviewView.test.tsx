@@ -229,15 +229,39 @@ describe("OverviewView", () => {
     expect(overviewMetricLimitForWidth(1800)).toBe(6);
   });
 
-  it("defines the fixed footer and reference grid ratios with responsive fallbacks", () => {
+  it("uses the full workspace width and keeps the GitHub report action available", () => {
     const css = readFileSync(resolve(process.cwd(), "src/styles/overview-dashboard.css"), "utf8");
 
-    expect(css).toContain("grid-template-columns: repeat(2, minmax(0, 1fr))");
+    expect(css).toMatch(/\.overview-page\s*\{[^}]*max-width:\s*none/s);
+    expect(css).not.toMatch(/\.layout:has\(\.overview-page\) \.feedback-button\s*\{[^}]*display:\s*none/s);
+    expect(css).toMatch(/\.layout:has\(\.overview-page\) \.feedback-button\s*\{[^}]*bottom:\s*104px/s);
     expect(css).toContain("grid-template-columns: minmax(0, 3fr) minmax(360px, 2fr)");
+    expect(css).toContain("grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr)");
     expect(css).toContain("conic-gradient(var(--accent-strong)");
     expect(css).toContain("position: fixed");
-    expect(css).toContain("left: 248px");
+    expect(css).toContain("left: 216px");
     expect(css).toContain(".sidebar-collapsed .overview-action-footer");
+    expect(css).toContain("@container overview (max-width: 1120px)");
+    expect(css).toContain("@container overview (max-width: 860px)");
     expect(css).toContain("@media (max-width: 760px)");
+  });
+
+  it("defines readable hierarchy and separate semantic status colors", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/styles/overview-dashboard.css"), "utf8");
+    const baseCss = readFileSync(resolve(process.cwd(), "src/styles/base.css"), "utf8");
+
+    expect(baseCss).toMatch(/--font-size-3xs:\s*11px/);
+    expect(baseCss).toMatch(/--font-size-2xs:\s*12px/);
+    expect(baseCss).toMatch(/--font-size-xs:\s*12px/);
+    expect(baseCss).toMatch(/--font-size-sm:\s*13px/);
+    expect(baseCss).toMatch(/--font-size-base:\s*15px/);
+    expect(css).toContain("--overview-interactive:");
+    expect(css).toContain("--overview-info:");
+    expect(css).toContain("--overview-warning:");
+    expect(css).toContain("--overview-danger:");
+    expect(css).toMatch(/\.overview-card-head h2,[\s\S]*font-size:\s*var\(--font-size-md\)/);
+    expect(css).toMatch(/\.overview-priority-card\s*\{[^}]*border-color:/s);
+    expect(css).toMatch(/\.overview-maintenance-card:has\(\.overdue\)\s*\{[^}]*border-color:/s);
+    expect(css).toMatch(/\.overview-analysis-primary \.overview-card,[\s\S]*background:/s);
   });
 });

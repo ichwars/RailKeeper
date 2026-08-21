@@ -111,20 +111,23 @@
 
 .vehicle-inventory-table {
   width: 100%;
-  min-width: 850px;
-  table-layout: fixed;
-}
-
-.vehicle-inventory-table:has(thead th:nth-child(11)) {
-  width: max-content;
   min-width: 100%;
-  table-layout: auto;
+  table-layout: fixed;
 }
 
 .vehicle-inventory-table th,
 .vehicle-inventory-table td {
-  max-width: 280px;
   white-space: nowrap;
+}
+
+.vehicle-inventory-table th:not(.select-cell):not(.actions-cell),
+.vehicle-inventory-table td:not(.select-cell):not(.actions-cell) {
+  min-width: 112px;
+  width: calc((100% - 186px) / var(--vehicle-data-column-count, 8));
+}
+
+.vehicle-inventory-table [class*="vehicle-column-"] {
+  max-width: 280px;
 }
 
 .vehicle-inventory-table td:not(.actions-cell) {
@@ -175,38 +178,6 @@
 
 .vehicle-inventory-table .actions-cell {
   width: 122px;
-}
-
-.vehicle-inventory-table .vehicle-column-type {
-  width: 118px;
-}
-
-.vehicle-inventory-table .vehicle-column-inventoryNumber {
-  width: 146px;
-}
-
-.vehicle-inventory-table .vehicle-column-manufacturer {
-  width: 110px;
-}
-
-.vehicle-inventory-table .vehicle-column-articleNumber {
-  width: 112px;
-}
-
-.vehicle-inventory-table .vehicle-column-name {
-  width: 146px;
-}
-
-.vehicle-inventory-table .vehicle-column-gauge {
-  width: 104px;
-}
-
-.vehicle-inventory-table .vehicle-column-epoch {
-  width: 84px;
-}
-
-.vehicle-inventory-table .vehicle-column-exhibition {
-  width: 104px;
 }
 
 .vehicle-inventory-table .vehicle-column-type,

@@ -177,13 +177,22 @@ type TransferAccessoryAsset struct {
 }
 
 type TransferExhibitionList struct {
-	ID          string                    `json:"id,omitempty"`
-	Designation string                    `json:"designation"`
-	Date        string                    `json:"date"`
-	Locked      bool                      `json:"locked"`
-	Entries     []TransferExhibitionEntry `json:"entries"`
-	CreatedAt   string                    `json:"createdAt,omitempty"`
-	UpdatedAt   string                    `json:"updatedAt,omitempty"`
+	ID                string                    `json:"id,omitempty"`
+	Designation       string                    `json:"designation"`
+	Date              string                    `json:"date"`
+	EndDate           string                    `json:"endDate,omitempty"`
+	Location          string                    `json:"location,omitempty"`
+	Description       string                    `json:"description,omitempty"`
+	OrganizationNotes string                    `json:"organizationNotes,omitempty"`
+	Status            ExhibitionStatus          `json:"status,omitempty"`
+	Locked            bool                      `json:"locked"`
+	LockReason        string                    `json:"lockReason,omitempty"`
+	LockedAt          string                    `json:"lockedAt,omitempty"`
+	CompletedAt       string                    `json:"completedAt,omitempty"`
+	ArchivedAt        string                    `json:"archivedAt,omitempty"`
+	Entries           []TransferExhibitionEntry `json:"entries"`
+	CreatedAt         string                    `json:"createdAt,omitempty"`
+	UpdatedAt         string                    `json:"updatedAt,omitempty"`
 }
 
 type TransferExhibitionEntry struct {
@@ -203,8 +212,10 @@ type TransferExhibitionEntry struct {
 	DecoderNumber          string `json:"decoderNumber,omitempty"`
 	DecoderType            string `json:"decoderType,omitempty"`
 	Adapter                string `json:"adapter,omitempty"`
+	InterfaceName          string `json:"interfaceName,omitempty"`
 	SXAddress              string `json:"sxAddress,omitempty"`
 	Analog                 bool   `json:"analog"`
+	Availability           string `json:"availability,omitempty"`
 	FunctionKeys           string `json:"functionKeys,omitempty"`
 	Notes                  string `json:"notes,omitempty"`
 	SortOrder              int    `json:"sortOrder"`

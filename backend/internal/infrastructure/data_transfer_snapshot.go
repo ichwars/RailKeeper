@@ -340,7 +340,8 @@ ORDER BY history.id`, productID)
 
 func transferExhibitionSnapshot(ctx context.Context, tx *sql.Tx) ([]application.TransferExhibitionList, error) {
 	rows, err := tx.QueryContext(ctx, `
-SELECT id, designation, list_date, locked, created_at, updated_at
+SELECT id, designation, list_date, end_date, location, description, organization_notes,
+       status, locked, lock_reason, locked_at, completed_at, archived_at, created_at, updated_at
 FROM exhibition_lists
 ORDER BY list_date, designation COLLATE NOCASE, id`)
 	if err != nil {
@@ -350,7 +351,11 @@ ORDER BY list_date, designation COLLATE NOCASE, id`)
 	for rows.Next() {
 		list := application.TransferExhibitionList{}
 		var locked int
-		if err := rows.Scan(&list.ID, &list.Designation, &list.Date, &locked, &list.CreatedAt, &list.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&list.ID, &list.Designation, &list.Date, &list.EndDate, &list.Location, &list.Description,
+			&list.OrganizationNotes, &list.Status, &locked, &list.LockReason, &list.LockedAt,
+			&list.CompletedAt, &list.ArchivedAt, &list.CreatedAt, &list.UpdatedAt,
+		); err != nil {
 			_ = rows.Close()
 			return nil, fmt.Errorf("scan transfer exhibition list: %w", err)
 		}
@@ -382,7 +387,8 @@ func transferExhibitionEntries(
 SELECT entry.id, entry.vehicle_id, COALESCE(vehicle.inventory_number, ''), entry.owner,
        COALESCE(entry.image_url, ''), entry.locomotive_name, entry.gattung, entry.series, entry.manufacturer,
        entry.epoch, entry.railway_company, entry.day_scope, entry.dt_decoder,
-       COALESCE(entry.decoder_number, ''), entry.decoder_type, entry.adapter, entry.sx_address, entry.analog,
+       COALESCE(entry.decoder_number, ''), entry.decoder_type, entry.adapter, entry.interface_name,
+       entry.sx_address, entry.analog, entry.availability,
        COALESCE(entry.function_keys, ''), COALESCE(entry.notes, ''), entry.sort_order,
        entry.created_at, entry.updated_at
 FROM exhibition_entries entry
@@ -401,7 +407,8 @@ ORDER BY entry.sort_order, entry.locomotive_name COLLATE NOCASE, entry.id`, list
 			&entry.ID, &entry.VehicleID, &entry.VehicleInventoryNumber, &entry.Owner, &entry.ImageURL,
 			&entry.LocomotiveName, &entry.Gattung, &entry.Series, &entry.Manufacturer, &entry.Epoch,
 			&entry.RailwayCompany, &entry.DayScope, &dtDecoder, &entry.DecoderNumber, &entry.DecoderType,
-			&entry.Adapter, &entry.SXAddress, &analog, &entry.FunctionKeys, &entry.Notes, &entry.SortOrder,
+			&entry.Adapter, &entry.InterfaceName, &entry.SXAddress, &analog, &entry.Availability,
+			&entry.FunctionKeys, &entry.Notes, &entry.SortOrder,
 			&entry.CreatedAt, &entry.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan transfer exhibition entry: %w", err)

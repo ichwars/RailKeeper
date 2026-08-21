@@ -4901,9 +4901,15 @@ components:
           type: boolean
         applicable:
           type: boolean
+    ExhibitionStatus:
+      type: string
+      enum: [draft, open, locked, running, completed, archived]
+    ExhibitionEntryStatus:
+      type: string
+      enum: [ready, addressConflict, missing, check, unavailable]
     ExhibitionList:
       type: object
-      required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
+      required: [id, designation, date, endDate, status, revision, locked, entryCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4912,8 +4918,30 @@ components:
         date:
           type: string
           format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        description:
+          type: string
+        organizationNotes:
+          type: string
+        status:
+          $ref: "#/components/schemas/ExhibitionStatus"
+        revision:
+          type: integer
+          minimum: 1
         locked:
           type: boolean
+        lockReason:
+          type: string
+        lockedAt:
+          type: string
+        completedAt:
+          type: string
+        archivedAt:
+          type: string
         entryCount:
           type: integer
         entries:
@@ -4935,6 +4963,20 @@ components:
         date:
           type: string
           format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        description:
+          type: string
+        organizationNotes:
+          type: string
+        status:
+          $ref: "#/components/schemas/ExhibitionStatus"
+        expectedRevision:
+          type: integer
+          minimum: 1
     ExhibitionLockInput:
       type: object
       required: [locked]
@@ -4943,7 +4985,7 @@ components:
           type: boolean
     ExhibitionEntry:
       type: object
-      required: [id, listId, owner, locomotiveName, dtDecoder, sortOrder, createdAt, updatedAt]
+      required: [id, listId, owner, locomotiveName, dtDecoder, sortOrder, availability, revision, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4959,6 +5001,14 @@ components:
           type: boolean
         decoderNumber:
           type: string
+        interfaceName:
+          type: string
+        availability:
+          type: string
+          enum: [available, unavailable]
+        revision:
+          type: integer
+          minimum: 1
         functionKeys:
           type: string
         notes:
@@ -4973,7 +5023,7 @@ components:
           format: date-time
     ExhibitionEntryInput:
       type: object
-      required: [owner, locomotiveName, dtDecoder]
+      required: [locomotiveName, dtDecoder]
       properties:
         owner:
           type: string
@@ -4985,12 +5035,99 @@ components:
           type: boolean
         decoderNumber:
           type: string
+        interfaceName:
+          type: string
+        availability:
+          type: string
+          enum: [available, unavailable]
+        expectedRevision:
+          type: integer
+          minimum: 1
         functionKeys:
           type: string
         notes:
           type: string
         sortOrder:
           type: integer
+    ExhibitionSummary:
+      type: object
+      required: [entryCount, ownerCount, conflictCount, readyCount]
+      properties:
+        entryCount: { type: integer }
+        ownerCount: { type: integer }
+        conflictCount: { type: integer }
+        readyCount: { type: integer }
+    ExhibitionReadiness:
+      type: object
+      required: [total, addressesChecked, functionsDocumented, imagesPresent, problems]
+      properties:
+        total: { type: integer }
+        addressesChecked: { type: integer }
+        functionsDocumented: { type: integer }
+        imagesPresent: { type: integer }
+        problems: { type: integer }
+    ExhibitionConflict:
+      type: object
+      required: [id, kind, entryIds, excepted]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [address, missing, duplicateVehicle]
+        entryIds:
+          type: array
+          items: { type: string }
+        fields:
+          type: array
+          items: { type: string }
+        interfaceName: { type: string }
+        address: { type: string }
+        dayScopes:
+          type: array
+          items: { type: string }
+        excepted: { type: boolean }
+        exceptionReason: { type: string }
+    ExhibitionWorkspaceEntry:
+      allOf:
+        - $ref: "#/components/schemas/ExhibitionEntry"
+        - type: object
+          required: [status, conflictIds]
+          properties:
+            status:
+              $ref: "#/components/schemas/ExhibitionEntryStatus"
+            conflictIds:
+              type: array
+              items: { type: string }
+    ExhibitionWorkspace:
+      type: object
+      required: [list, summary, readiness, entries, conflicts, dayScopes]
+      properties:
+        list: { $ref: "#/components/schemas/ExhibitionList" }
+        summary: { $ref: "#/components/schemas/ExhibitionSummary" }
+        readiness: { $ref: "#/components/schemas/ExhibitionReadiness" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/ExhibitionWorkspaceEntry" }
+        conflicts:
+          type: array
+          items: { $ref: "#/components/schemas/ExhibitionConflict" }
+        dayScopes:
+          type: array
+          items: { type: string }
+    ExhibitionStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: "#/components/schemas/ExhibitionStatus" }
+        expectedRevision: { type: integer, minimum: 1 }
+        confirmConflicts: { type: boolean }
+        reason: { type: string }
+    ExhibitionConflictExceptionInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+        expectedRevision: { type: integer, minimum: 1 }
 paths:
   /setup/status:
     get:
@@ -10149,7 +10286,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -10210,7 +10347,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -10267,7 +10404,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExhibitionList"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -10278,6 +10415,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}/workspace:
+    get:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Persistent exhibition operations workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionWorkspace"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/conflicts/check:
+    post:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Recalculated conflict and readiness state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionWorkspace" }
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/status:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExhibitionStatusInput" }
+      responses:
+        "200":
+          description: Exhibition lifecycle state updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionList" }
+        "400":
+          description: Invalid lifecycle input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "403":
+          description: Editor role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Stale revision or conflicts require explicit confirmation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/conflicts/{conflictID}/exception:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: conflictID
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExhibitionConflictExceptionInput" }
+      responses:
+        "200":
+          description: Conflict exception persisted and kept visible
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionWorkspace" }
+        "400":
+          description: A reason is required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition conflict not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Stale revision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /exhibition-lists/{id}/entries:
     get:
       tags: [Exhibition]

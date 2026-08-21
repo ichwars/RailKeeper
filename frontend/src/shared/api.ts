@@ -1010,7 +1010,17 @@ export type ExhibitionList = {
   id: string;
   designation: string;
   date: string;
+  endDate: string;
+  location?: string;
+  description?: string;
+  organizationNotes?: string;
+  status: ExhibitionStatus;
+  revision: number;
   locked: boolean;
+  lockReason?: string;
+  lockedAt?: string;
+  completedAt?: string;
+  archivedAt?: string;
   entryCount: number;
   entries?: ExhibitionEntry[];
   createdAt: string;
@@ -1020,7 +1030,16 @@ export type ExhibitionList = {
 export type ExhibitionListInput = {
   designation: string;
   date: string;
+  endDate?: string;
+  location?: string;
+  description?: string;
+  organizationNotes?: string;
+  status?: ExhibitionStatus;
+  expectedRevision?: number;
 };
+
+export type ExhibitionStatus = "draft" | "open" | "locked" | "running" | "completed" | "archived";
+export type ExhibitionEntryStatus = "ready" | "addressConflict" | "missing" | "check" | "unavailable";
 
 export type ExhibitionEntry = {
   id: string;
@@ -1039,8 +1058,11 @@ export type ExhibitionEntry = {
   decoderNumber?: string;
   decoderType?: string;
   adapter?: string;
+  interfaceName?: string;
   sxAddress?: string;
   analog: boolean;
+  availability: "available" | "unavailable";
+  revision: number;
   functionKeys?: string;
   notes?: string;
   sortOrder: number;
@@ -1063,11 +1085,62 @@ export type ExhibitionEntryInput = {
   decoderNumber?: string;
   decoderType?: string;
   adapter?: string;
+  interfaceName?: string;
   sxAddress?: string;
   analog?: boolean;
+  availability?: "available" | "unavailable";
+  expectedRevision?: number;
   functionKeys?: string;
   notes?: string;
   sortOrder?: number;
+};
+
+export type ExhibitionSummary = {
+  entryCount: number;
+  ownerCount: number;
+  conflictCount: number;
+  readyCount: number;
+};
+
+export type ExhibitionReadiness = {
+  total: number;
+  addressesChecked: number;
+  functionsDocumented: number;
+  imagesPresent: number;
+  problems: number;
+};
+
+export type ExhibitionConflict = {
+  id: string;
+  kind: "address" | "missing" | "duplicateVehicle";
+  entryIds: string[];
+  fields?: string[];
+  interfaceName?: string;
+  address?: string;
+  dayScopes?: string[];
+  excepted: boolean;
+  exceptionReason?: string;
+};
+
+export type ExhibitionWorkspaceEntry = ExhibitionEntry & {
+  status: ExhibitionEntryStatus;
+  conflictIds: string[];
+};
+
+export type ExhibitionWorkspace = {
+  list: ExhibitionList;
+  summary: ExhibitionSummary;
+  readiness: ExhibitionReadiness;
+  entries: ExhibitionWorkspaceEntry[];
+  conflicts: ExhibitionConflict[];
+  dayScopes: string[];
+};
+
+export type ExhibitionStatusInput = {
+  status: ExhibitionStatus;
+  expectedRevision?: number;
+  confirmConflicts?: boolean;
+  reason?: string;
 };
 
 let csrfToken = "";
@@ -1348,6 +1421,10 @@ export const api = {
     }),
   exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
   exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
+  exhibitionWorkspace: (id: string) =>
+    request<ExhibitionWorkspace>(`/exhibition-lists/${encodeURIComponent(id)}/workspace`),
+  checkExhibitionConflicts: (id: string) =>
+    request<ExhibitionWorkspace>(`/exhibition-lists/${encodeURIComponent(id)}/conflicts/check`, { method: "POST" }),
   createExhibitionList: (input: ExhibitionListInput) =>
     request<ExhibitionList>("/exhibition-lists", {
       method: "POST",
@@ -1367,6 +1444,16 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ locked })
     }),
+  setExhibitionStatus: (id: string, input: ExhibitionStatusInput) =>
+    request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}/status`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  setExhibitionConflictException: (listId: string, conflictId: string, reason: string, expectedRevision: number) =>
+    request<ExhibitionWorkspace>(
+      `/exhibition-lists/${encodeURIComponent(listId)}/conflicts/${encodeURIComponent(conflictId)}/exception`,
+      { method: "PUT", body: JSON.stringify({ reason, expectedRevision }) }
+    ),
   exhibitionEntries: (listId: string) => request<ExhibitionEntry[]>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`),
   createExhibitionEntry: (listId: string, input: ExhibitionEntryInput) =>
     request<ExhibitionEntry>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`, {

@@ -13,6 +13,19 @@ var (
 	ErrExhibitionValidation = errors.New("exhibition validation failed")
 	ErrExhibitionNotFound   = errors.New("exhibition not found")
 	ErrExhibitionLocked     = errors.New("exhibition list locked")
+	ErrExhibitionStale      = errors.New("exhibition revision is stale")
+	ErrExhibitionConflicts  = errors.New("exhibition has unresolved conflicts")
+)
+
+type ExhibitionStatus string
+
+const (
+	ExhibitionStatusDraft     ExhibitionStatus = "draft"
+	ExhibitionStatusOpen      ExhibitionStatus = "open"
+	ExhibitionStatusLocked    ExhibitionStatus = "locked"
+	ExhibitionStatusRunning   ExhibitionStatus = "running"
+	ExhibitionStatusCompleted ExhibitionStatus = "completed"
+	ExhibitionStatusArchived  ExhibitionStatus = "archived"
 )
 
 type ExhibitionService struct {
@@ -20,19 +33,35 @@ type ExhibitionService struct {
 }
 
 type ExhibitionList struct {
-	ID          string            `json:"id"`
-	Designation string            `json:"designation"`
-	Date        string            `json:"date"`
-	Locked      bool              `json:"locked"`
-	EntryCount  int               `json:"entryCount"`
-	Entries     []ExhibitionEntry `json:"entries,omitempty"`
-	CreatedAt   string            `json:"createdAt"`
-	UpdatedAt   string            `json:"updatedAt"`
+	ID                string            `json:"id"`
+	Designation       string            `json:"designation"`
+	Date              string            `json:"date"`
+	EndDate           string            `json:"endDate"`
+	Location          string            `json:"location,omitempty"`
+	Description       string            `json:"description,omitempty"`
+	OrganizationNotes string            `json:"organizationNotes,omitempty"`
+	Status            ExhibitionStatus  `json:"status"`
+	Revision          int               `json:"revision"`
+	Locked            bool              `json:"locked"`
+	LockReason        string            `json:"lockReason,omitempty"`
+	LockedAt          string            `json:"lockedAt,omitempty"`
+	CompletedAt       string            `json:"completedAt,omitempty"`
+	ArchivedAt        string            `json:"archivedAt,omitempty"`
+	EntryCount        int               `json:"entryCount"`
+	Entries           []ExhibitionEntry `json:"entries,omitempty"`
+	CreatedAt         string            `json:"createdAt"`
+	UpdatedAt         string            `json:"updatedAt"`
 }
 
 type ExhibitionListInput struct {
-	Designation string `json:"designation"`
-	Date        string `json:"date"`
+	Designation       string           `json:"designation"`
+	Date              string           `json:"date"`
+	EndDate           string           `json:"endDate"`
+	Location          string           `json:"location"`
+	Description       string           `json:"description"`
+	OrganizationNotes string           `json:"organizationNotes"`
+	Status            ExhibitionStatus `json:"status"`
+	ExpectedRevision  int              `json:"expectedRevision,omitempty"`
 }
 
 type ExhibitionEntry struct {
@@ -52,8 +81,12 @@ type ExhibitionEntry struct {
 	DecoderNumber  string `json:"decoderNumber,omitempty"`
 	DecoderType    string `json:"decoderType,omitempty"`
 	Adapter        string `json:"adapter,omitempty"`
+	InterfaceName  string `json:"interfaceName,omitempty"`
 	SXAddress      string `json:"sxAddress,omitempty"`
 	Analog         bool   `json:"analog"`
+	Availability   string `json:"availability"`
+	Status         string `json:"status,omitempty"`
+	Revision       int    `json:"revision"`
 	FunctionKeys   string `json:"functionKeys,omitempty"`
 	Notes          string `json:"notes,omitempty"`
 	SortOrder      int    `json:"sortOrder"`
@@ -62,25 +95,28 @@ type ExhibitionEntry struct {
 }
 
 type ExhibitionEntryInput struct {
-	VehicleID      string `json:"vehicleId"`
-	Owner          string `json:"owner"`
-	ImageURL       string `json:"imageUrl"`
-	LocomotiveName string `json:"locomotiveName"`
-	Gattung        string `json:"gattung"`
-	Series         string `json:"series"`
-	Manufacturer   string `json:"manufacturer"`
-	Epoch          string `json:"epoch"`
-	RailwayCompany string `json:"railwayCompany"`
-	DayScope       string `json:"dayScope"`
-	DTDecoder      bool   `json:"dtDecoder"`
-	DecoderNumber  string `json:"decoderNumber"`
-	DecoderType    string `json:"decoderType"`
-	Adapter        string `json:"adapter"`
-	SXAddress      string `json:"sxAddress"`
-	Analog         bool   `json:"analog"`
-	FunctionKeys   string `json:"functionKeys"`
-	Notes          string `json:"notes"`
-	SortOrder      int    `json:"sortOrder"`
+	VehicleID        string `json:"vehicleId"`
+	Owner            string `json:"owner"`
+	ImageURL         string `json:"imageUrl"`
+	LocomotiveName   string `json:"locomotiveName"`
+	Gattung          string `json:"gattung"`
+	Series           string `json:"series"`
+	Manufacturer     string `json:"manufacturer"`
+	Epoch            string `json:"epoch"`
+	RailwayCompany   string `json:"railwayCompany"`
+	DayScope         string `json:"dayScope"`
+	DTDecoder        bool   `json:"dtDecoder"`
+	DecoderNumber    string `json:"decoderNumber"`
+	DecoderType      string `json:"decoderType"`
+	Adapter          string `json:"adapter"`
+	InterfaceName    string `json:"interfaceName"`
+	SXAddress        string `json:"sxAddress"`
+	Analog           bool   `json:"analog"`
+	Availability     string `json:"availability"`
+	ExpectedRevision int    `json:"expectedRevision,omitempty"`
+	FunctionKeys     string `json:"functionKeys"`
+	Notes            string `json:"notes"`
+	SortOrder        int    `json:"sortOrder"`
 }
 
 func NewExhibitionService(db *sql.DB) *ExhibitionService {
@@ -89,7 +125,9 @@ func NewExhibitionService(db *sql.DB) *ExhibitionService {
 
 func (s *ExhibitionService) List(ctx context.Context) ([]ExhibitionList, error) {
 	rows, err := s.db.QueryContext(ctx, `
-SELECT l.id, l.designation, l.list_date, l.locked, COUNT(e.id), l.created_at, l.updated_at
+SELECT l.id, l.designation, l.list_date, l.end_date, l.location, l.description,
+       l.organization_notes, l.status, l.revision, l.locked, l.lock_reason,
+       l.locked_at, l.completed_at, l.archived_at, COUNT(e.id), l.created_at, l.updated_at
 FROM exhibition_lists l
 LEFT JOIN exhibition_entries e ON e.list_id = l.id
 GROUP BY l.id
@@ -104,7 +142,12 @@ ORDER BY l.list_date DESC, l.designation COLLATE NOCASE
 	for rows.Next() {
 		var list ExhibitionList
 		var locked int
-		if err := rows.Scan(&list.ID, &list.Designation, &list.Date, &locked, &list.EntryCount, &list.CreatedAt, &list.UpdatedAt); err != nil {
+		if err := rows.Scan(
+			&list.ID, &list.Designation, &list.Date, &list.EndDate, &list.Location, &list.Description,
+			&list.OrganizationNotes, &list.Status, &list.Revision, &locked, &list.LockReason,
+			&list.LockedAt, &list.CompletedAt, &list.ArchivedAt, &list.EntryCount,
+			&list.CreatedAt, &list.UpdatedAt,
+		); err != nil {
 			return nil, fmt.Errorf("scan exhibition list: %w", err)
 		}
 		list.Locked = locked == 1
@@ -128,53 +171,69 @@ func (s *ExhibitionService) Get(ctx context.Context, id string) (ExhibitionList,
 }
 
 func (s *ExhibitionService) Create(ctx context.Context, input ExhibitionListInput) (ExhibitionList, error) {
-	designation := strings.TrimSpace(input.Designation)
-	date := strings.TrimSpace(input.Date)
-	if designation == "" || date == "" {
+	input, err := normalizeExhibitionListInput(input)
+	if err != nil {
+		return ExhibitionList{}, ErrExhibitionValidation
+	}
+	if input.Status != ExhibitionStatusDraft && input.Status != ExhibitionStatusOpen {
 		return ExhibitionList{}, ErrExhibitionValidation
 	}
 
 	id := randomID()
 	now := time.Now().UTC().Format(time.RFC3339)
 	if _, err := s.db.ExecContext(ctx, `
-INSERT INTO exhibition_lists(id, designation, list_date, locked, created_at, updated_at)
-VALUES(?, ?, ?, 0, ?, ?)
-`, id, designation, date, now, now); err != nil {
+INSERT INTO exhibition_lists(
+  id, designation, list_date, end_date, location, description, organization_notes,
+  status, revision, locked, created_at, updated_at
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, ?)
+`, id, input.Designation, input.Date, input.EndDate, input.Location, input.Description,
+		input.OrganizationNotes, input.Status, now, now); err != nil {
 		return ExhibitionList{}, fmt.Errorf("create exhibition list: %w", err)
 	}
 	return s.Get(ctx, id)
 }
 
 func (s *ExhibitionService) Update(ctx context.Context, id string, input ExhibitionListInput) (ExhibitionList, error) {
-	designation := strings.TrimSpace(input.Designation)
-	date := strings.TrimSpace(input.Date)
-	if designation == "" || date == "" {
+	input, err := normalizeExhibitionListInput(input)
+	if err != nil {
 		return ExhibitionList{}, ErrExhibitionValidation
 	}
-	if _, err := s.getList(ctx, id); err != nil {
+	current, err := s.getList(ctx, id)
+	if err != nil {
 		return ExhibitionList{}, err
 	}
+	if !exhibitionAllowsPlanningChanges(current) {
+		return ExhibitionList{}, ErrExhibitionLocked
+	}
+	if input.ExpectedRevision > 0 && input.ExpectedRevision != current.Revision {
+		return ExhibitionList{}, ErrExhibitionStale
+	}
+	input.Status = current.Status
 
 	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(ctx, `
-UPDATE exhibition_lists SET designation=?, list_date=?, updated_at=? WHERE id=?
-`, designation, date, now, id); err != nil {
+	result, err := s.db.ExecContext(ctx, `
+UPDATE exhibition_lists
+SET designation=?, list_date=?, end_date=?, location=?, description=?, organization_notes=?,
+    status=?, revision=revision+1, updated_at=?
+WHERE id=? AND (?=0 OR revision=?)
+`, input.Designation, input.Date, input.EndDate, input.Location, input.Description,
+		input.OrganizationNotes, input.Status, now, id, input.ExpectedRevision, input.ExpectedRevision)
+	if err != nil {
 		return ExhibitionList{}, fmt.Errorf("update exhibition list: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ExhibitionList{}, ErrExhibitionStale
 	}
 	return s.Get(ctx, id)
 }
 
 func (s *ExhibitionService) SetLocked(ctx context.Context, id string, locked bool) (ExhibitionList, error) {
-	if _, err := s.getList(ctx, id); err != nil {
-		return ExhibitionList{}, err
+	status := ExhibitionStatusOpen
+	if locked {
+		status = ExhibitionStatusLocked
 	}
-	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(ctx, `
-UPDATE exhibition_lists SET locked=?, updated_at=? WHERE id=?
-`, boolToInt(locked), now, id); err != nil {
-		return ExhibitionList{}, fmt.Errorf("lock exhibition list: %w", err)
-	}
-	return s.Get(ctx, id)
+	return s.SetStatus(ctx, id, ExhibitionStatusInput{Status: status, ConfirmConflicts: true, Reason: "Legacy lock action"})
 }
 
 func (s *ExhibitionService) Delete(ctx context.Context, id string) error {
@@ -198,8 +257,9 @@ SELECT id, list_id, owner, image_url, locomotive_name,
        COALESCE(vehicle_id, ''),
        COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
        COALESCE(day_scope, 'all'),
-       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
-       function_keys, notes, sort_order, created_at, updated_at
+       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''),
+       COALESCE(interface_name, ''), COALESCE(sx_address, ''), analog,
+       function_keys, notes, sort_order, availability, revision, created_at, updated_at
 FROM exhibition_entries
 WHERE list_id=?
 ORDER BY sort_order, locomotive_name COLLATE NOCASE, owner COLLATE NOCASE
@@ -225,11 +285,11 @@ func (s *ExhibitionService) CreateEntry(ctx context.Context, listID string, inpu
 	if err != nil {
 		return ExhibitionEntry{}, err
 	}
-	if list.Locked {
+	if !exhibitionAllowsPlanningChanges(list) {
 		return ExhibitionEntry{}, ErrExhibitionLocked
 	}
 	input = normalizeExhibitionEntryInput(input)
-	if input.Owner == "" || input.LocomotiveName == "" {
+	if input.LocomotiveName == "" {
 		return ExhibitionEntry{}, ErrExhibitionValidation
 	}
 	if input.SortOrder == 0 {
@@ -238,16 +298,37 @@ func (s *ExhibitionService) CreateEntry(ctx context.Context, listID string, inpu
 
 	id := randomID()
 	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(ctx, `
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("begin exhibition entry create: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if _, err := tx.ExecContext(ctx, `
 INSERT INTO exhibition_entries(
   id, list_id, owner, image_url, locomotive_name, vehicle_id,
   gattung, series, manufacturer, epoch, railway_company, day_scope,
-  dt_decoder, decoder_number, decoder_type, adapter, sx_address, analog,
-  function_keys, notes, sort_order, created_at, updated_at
+  dt_decoder, decoder_number, decoder_type, adapter, interface_name, sx_address, analog,
+  function_keys, notes, sort_order, availability, revision, created_at, updated_at
 )
-VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, now); err != nil {
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+`, id, listID, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung,
+		input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope,
+		boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter,
+		input.InterfaceName, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys,
+		input.Notes, input.SortOrder, input.Availability, now, now); err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("create exhibition entry: %w", err)
+	}
+	result, err := tx.ExecContext(ctx, `
+UPDATE exhibition_lists SET revision=revision+1, updated_at=? WHERE id=? AND locked=0
+`, now, listID)
+	if err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("touch exhibition list: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ExhibitionEntry{}, ErrExhibitionLocked
+	}
+	if err := tx.Commit(); err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("commit exhibition entry create: %w", err)
 	}
 	return s.getEntry(ctx, listID, id)
 }
@@ -257,26 +338,58 @@ func (s *ExhibitionService) UpdateEntry(ctx context.Context, listID, entryID str
 	if err != nil {
 		return ExhibitionEntry{}, err
 	}
-	if list.Locked {
+	if !exhibitionAllowsPlanningChanges(list) {
 		return ExhibitionEntry{}, ErrExhibitionLocked
 	}
 	if _, err := s.getEntry(ctx, listID, entryID); err != nil {
 		return ExhibitionEntry{}, err
 	}
 	input = normalizeExhibitionEntryInput(input)
-	if input.Owner == "" || input.LocomotiveName == "" {
+	if input.LocomotiveName == "" {
 		return ExhibitionEntry{}, ErrExhibitionValidation
 	}
+	current, err := s.getEntry(ctx, listID, entryID)
+	if err != nil {
+		return ExhibitionEntry{}, err
+	}
+	if input.ExpectedRevision > 0 && input.ExpectedRevision != current.Revision {
+		return ExhibitionEntry{}, ErrExhibitionStale
+	}
 	now := time.Now().UTC().Format(time.RFC3339)
-	if _, err := s.db.ExecContext(ctx, `
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("begin exhibition entry update: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `
 UPDATE exhibition_entries
 SET owner=?, image_url=?, locomotive_name=?,
     vehicle_id=?, gattung=?, series=?, manufacturer=?, epoch=?, railway_company=?, day_scope=?,
-    dt_decoder=?, decoder_number=?, decoder_type=?, adapter=?, sx_address=?, analog=?,
-    function_keys=?, notes=?, sort_order=?, updated_at=?
-WHERE id=? AND list_id=?
-`, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung, input.Series, input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder), input.DecoderNumber, input.DecoderType, input.Adapter, input.SXAddress, boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, now, entryID, listID); err != nil {
+    dt_decoder=?, decoder_number=?, decoder_type=?, adapter=?, interface_name=?, sx_address=?, analog=?,
+    function_keys=?, notes=?, sort_order=?, availability=?, revision=revision+1, updated_at=?
+WHERE id=? AND list_id=? AND (?=0 OR revision=?)
+`, input.Owner, input.ImageURL, input.LocomotiveName, input.VehicleID, input.Gattung, input.Series,
+		input.Manufacturer, input.Epoch, input.RailwayCompany, input.DayScope, boolToInt(input.DTDecoder),
+		input.DecoderNumber, input.DecoderType, input.Adapter, input.InterfaceName, input.SXAddress,
+		boolToInt(input.Analog), input.FunctionKeys, input.Notes, input.SortOrder, input.Availability,
+		now, entryID, listID, input.ExpectedRevision, input.ExpectedRevision)
+	if err != nil {
 		return ExhibitionEntry{}, fmt.Errorf("update exhibition entry: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ExhibitionEntry{}, ErrExhibitionStale
+	}
+	result, err = tx.ExecContext(ctx, `
+UPDATE exhibition_lists SET revision=revision+1, updated_at=? WHERE id=? AND locked=0
+`, now, listID)
+	if err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("touch exhibition list: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ExhibitionEntry{}, ErrExhibitionLocked
+	}
+	if err := tx.Commit(); err != nil {
+		return ExhibitionEntry{}, fmt.Errorf("commit exhibition entry update: %w", err)
 	}
 	return s.getEntry(ctx, listID, entryID)
 }
@@ -286,16 +399,34 @@ func (s *ExhibitionService) DeleteEntry(ctx context.Context, listID, entryID str
 	if err != nil {
 		return err
 	}
-	if list.Locked {
+	if !exhibitionAllowsPlanningChanges(list) {
 		return ErrExhibitionLocked
 	}
-	result, err := s.db.ExecContext(ctx, `DELETE FROM exhibition_entries WHERE id=? AND list_id=?`, entryID, listID)
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin exhibition entry delete: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	result, err := tx.ExecContext(ctx, `DELETE FROM exhibition_entries WHERE id=? AND list_id=?`, entryID, listID)
 	if err != nil {
 		return fmt.Errorf("delete exhibition entry: %w", err)
 	}
 	affected, _ := result.RowsAffected()
 	if affected == 0 {
 		return ErrExhibitionNotFound
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	result, err = tx.ExecContext(ctx, `
+UPDATE exhibition_lists SET revision=revision+1, updated_at=? WHERE id=? AND locked=0
+`, now, listID)
+	if err != nil {
+		return fmt.Errorf("touch exhibition list: %w", err)
+	}
+	if affected, _ := result.RowsAffected(); affected == 0 {
+		return ErrExhibitionLocked
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit exhibition entry delete: %w", err)
 	}
 	return nil
 }
@@ -304,9 +435,16 @@ func (s *ExhibitionService) getList(ctx context.Context, id string) (ExhibitionL
 	var list ExhibitionList
 	var locked int
 	if err := s.db.QueryRowContext(ctx, `
-SELECT id, designation, list_date, locked, created_at, updated_at
+SELECT id, designation, list_date, end_date, location, description, organization_notes,
+       status, revision, locked, lock_reason, locked_at, completed_at, archived_at,
+       created_at, updated_at
 FROM exhibition_lists WHERE id=?
-`, id).Scan(&list.ID, &list.Designation, &list.Date, &locked, &list.CreatedAt, &list.UpdatedAt); err != nil {
+`, id).Scan(
+		&list.ID, &list.Designation, &list.Date, &list.EndDate, &list.Location,
+		&list.Description, &list.OrganizationNotes, &list.Status, &list.Revision, &locked,
+		&list.LockReason, &list.LockedAt, &list.CompletedAt, &list.ArchivedAt,
+		&list.CreatedAt, &list.UpdatedAt,
+	); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ExhibitionList{}, ErrExhibitionNotFound
 		}
@@ -322,8 +460,9 @@ SELECT id, list_id, owner, image_url, locomotive_name,
        COALESCE(vehicle_id, ''),
        COALESCE(gattung, ''), COALESCE(series, ''), COALESCE(manufacturer, ''), COALESCE(epoch, ''), COALESCE(railway_company, ''),
        COALESCE(day_scope, 'all'),
-       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''), COALESCE(sx_address, ''), analog,
-       function_keys, notes, sort_order, created_at, updated_at
+       dt_decoder, decoder_number, COALESCE(decoder_type, ''), COALESCE(adapter, ''),
+       COALESCE(interface_name, ''), COALESCE(sx_address, ''), analog,
+       function_keys, notes, sort_order, availability, revision, created_at, updated_at
 FROM exhibition_entries
 WHERE id=? AND list_id=?
 `, entryID, listID)
@@ -372,11 +511,14 @@ func scanExhibitionEntry(row exhibitionEntryScanner) (ExhibitionEntry, error) {
 		&decoderNumber,
 		&entry.DecoderType,
 		&entry.Adapter,
+		&entry.InterfaceName,
 		&entry.SXAddress,
 		&analog,
 		&functionKeys,
 		&notes,
 		&entry.SortOrder,
+		&entry.Availability,
+		&entry.Revision,
 		&entry.CreatedAt,
 		&entry.UpdatedAt,
 	); err != nil {
@@ -405,19 +547,24 @@ func normalizeExhibitionEntryInput(input ExhibitionEntryInput) ExhibitionEntryIn
 	input.DecoderNumber = strings.TrimSpace(input.DecoderNumber)
 	input.DecoderType = strings.TrimSpace(input.DecoderType)
 	input.Adapter = strings.TrimSpace(input.Adapter)
+	input.InterfaceName = strings.TrimSpace(input.InterfaceName)
+	if input.InterfaceName == "" {
+		input.InterfaceName = input.Adapter
+	}
 	input.SXAddress = strings.TrimSpace(input.SXAddress)
+	input.Availability = strings.TrimSpace(input.Availability)
+	if input.Availability == "" {
+		input.Availability = "available"
+	}
+	if input.Availability != "available" && input.Availability != "unavailable" {
+		input.Availability = "available"
+	}
 	input.FunctionKeys = strings.TrimSpace(input.FunctionKeys)
 	input.Notes = strings.TrimSpace(input.Notes)
 	return input
 }
 
 func normalizeExhibitionDayScope(value string) string {
-	allowed := map[string]bool{
-		"day1": true,
-		"day2": true,
-		"day3": true,
-		"day4": true,
-	}
 	raw := strings.Split(strings.TrimSpace(value), ",")
 	seen := map[string]bool{}
 	for _, part := range raw {
@@ -425,19 +572,71 @@ func normalizeExhibitionDayScope(value string) string {
 		if scope == "all" {
 			return "all"
 		}
-		if allowed[scope] {
+		if isExhibitionDayScope(scope) {
 			seen[scope] = true
 		}
 	}
-	if len(seen) == 0 || len(seen) == len(allowed) {
+	if len(seen) == 0 {
 		return "all"
 	}
-	ordered := []string{"day1", "day2", "day3", "day4"}
 	selected := make([]string, 0, len(seen))
-	for _, scope := range ordered {
+	for day := 1; day <= 31; day++ {
+		scope := fmt.Sprintf("day%d", day)
 		if seen[scope] {
 			selected = append(selected, scope)
 		}
 	}
 	return strings.Join(selected, ",")
+}
+
+func isExhibitionDayScope(scope string) bool {
+	if !strings.HasPrefix(scope, "day") {
+		return false
+	}
+	var day int
+	if _, err := fmt.Sscanf(scope, "day%d", &day); err != nil {
+		return false
+	}
+	return day >= 1 && day <= 31 && scope == fmt.Sprintf("day%d", day)
+}
+
+func normalizeExhibitionListInput(input ExhibitionListInput) (ExhibitionListInput, error) {
+	input.Designation = strings.TrimSpace(input.Designation)
+	input.Date = strings.TrimSpace(input.Date)
+	input.EndDate = strings.TrimSpace(input.EndDate)
+	input.Location = strings.TrimSpace(input.Location)
+	input.Description = strings.TrimSpace(input.Description)
+	input.OrganizationNotes = strings.TrimSpace(input.OrganizationNotes)
+	if input.EndDate == "" {
+		input.EndDate = input.Date
+	}
+	if input.Status == "" {
+		input.Status = ExhibitionStatusOpen
+	}
+	if input.Designation == "" || !validExhibitionStatus(input.Status) {
+		return ExhibitionListInput{}, ErrExhibitionValidation
+	}
+	start, err := time.Parse("2006-01-02", input.Date)
+	if err != nil {
+		return ExhibitionListInput{}, ErrExhibitionValidation
+	}
+	end, err := time.Parse("2006-01-02", input.EndDate)
+	if err != nil || end.Before(start) || end.Sub(start) > 30*24*time.Hour {
+		return ExhibitionListInput{}, ErrExhibitionValidation
+	}
+	return input, nil
+}
+
+func validExhibitionStatus(status ExhibitionStatus) bool {
+	switch status {
+	case ExhibitionStatusDraft, ExhibitionStatusOpen, ExhibitionStatusLocked,
+		ExhibitionStatusRunning, ExhibitionStatusCompleted, ExhibitionStatusArchived:
+		return true
+	default:
+		return false
+	}
+}
+
+func exhibitionAllowsPlanningChanges(list ExhibitionList) bool {
+	return !list.Locked && (list.Status == ExhibitionStatusDraft || list.Status == ExhibitionStatusOpen)
 }

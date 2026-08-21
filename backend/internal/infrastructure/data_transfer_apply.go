@@ -720,6 +720,7 @@ func applyTransferExhibitionList(
 		return dataTransferApplyConflict("exhibition preview data is invalid")
 	}
 	now := timestamp()
+	normalizeTransferExhibitionList(&list)
 	listID := record.TargetID
 	if action == "replace" {
 		var locked int
@@ -727,8 +728,12 @@ func applyTransferExhibitionList(
 			return dataTransferApplyConflict("locked exhibition list cannot be replaced")
 		}
 		result, err := db.ExecContext(ctx, `
-UPDATE exhibition_lists SET designation=?, list_date=?, locked=?, updated_at=? WHERE id=? AND locked=0`,
-			list.Designation, list.Date, list.Locked, now, listID)
+UPDATE exhibition_lists SET
+  designation=?, list_date=?, end_date=?, location=?, description=?, organization_notes=?,
+  status=?, locked=?, lock_reason=?, locked_at=?, completed_at=?, archived_at=?, revision=revision+1, updated_at=?
+WHERE id=? AND locked=0`,
+			list.Designation, list.Date, list.EndDate, list.Location, list.Description, list.OrganizationNotes,
+			list.Status, list.Locked, list.LockReason, list.LockedAt, list.CompletedAt, list.ArchivedAt, now, listID)
 		if err != nil {
 			return err
 		}
@@ -747,14 +752,20 @@ UPDATE exhibition_lists SET designation=?, list_date=?, locked=?, updated_at=? W
 	} else if action == "create" || action == "copy" {
 		listID = randomID()
 		if _, err := db.ExecContext(ctx, `
-INSERT INTO exhibition_lists(id, designation, list_date, locked, created_at, updated_at)
-VALUES(?, ?, ?, ?, ?, ?)`, listID, list.Designation, list.Date, list.Locked, now, now); err != nil {
+INSERT INTO exhibition_lists(
+  id, designation, list_date, end_date, location, description, organization_notes,
+  status, revision, locked, lock_reason, locked_at, completed_at, archived_at, created_at, updated_at
+)
+VALUES(?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`, listID, list.Designation, list.Date,
+			list.EndDate, list.Location, list.Description, list.OrganizationNotes, list.Status, list.Locked,
+			list.LockReason, list.LockedAt, list.CompletedAt, list.ArchivedAt, now, now); err != nil {
 			return err
 		}
 	} else {
 		return dataTransferApplyConflict("unsupported exhibition-list resolution")
 	}
 	for entryIndex, entry := range list.Entries {
+		normalizeTransferExhibitionEntry(&entry)
 		vehicleID, err := resolveTransferExhibitionVehicle(ctx, db, entry, issues, entryIndex)
 		if err != nil {
 			return err
@@ -771,13 +782,14 @@ VALUES(?, ?, ?, ?, ?, ?)`, listID, list.Designation, list.Date, list.Locked, now
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO exhibition_entries(
   id, list_id, vehicle_id, owner, image_url, locomotive_name, gattung, series, manufacturer, epoch,
-  railway_company, day_scope, dt_decoder, decoder_number, decoder_type, adapter, sx_address, analog,
-  function_keys, notes, sort_order, created_at, updated_at
-) VALUES(?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, NULLIF(?, ''),
-         NULLIF(?, ''), ?, ?, ?)`, randomID(), listID, vehicleID, entry.Owner, entry.ImageURL,
+  railway_company, day_scope, dt_decoder, decoder_number, decoder_type, adapter, interface_name,
+  sx_address, analog, availability, function_keys, notes, sort_order, revision, created_at, updated_at
+) VALUES(?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?, ?,
+		 NULLIF(?, ''), NULLIF(?, ''), ?, 1, ?, ?)`, randomID(), listID, vehicleID, entry.Owner, entry.ImageURL,
 			entry.LocomotiveName, entry.Gattung, entry.Series, entry.Manufacturer, entry.Epoch, entry.RailwayCompany,
-			entry.DayScope, entry.DTDecoder, entry.DecoderNumber, entry.DecoderType, entry.Adapter, entry.SXAddress,
-			entry.Analog, entry.FunctionKeys, entry.Notes, entry.SortOrder, now, now); err != nil {
+			entry.DayScope, entry.DTDecoder, entry.DecoderNumber, entry.DecoderType, entry.Adapter,
+			entry.InterfaceName, entry.SXAddress, entry.Analog, entry.Availability, entry.FunctionKeys,
+			entry.Notes, entry.SortOrder, now, now); err != nil {
 			return err
 		}
 	}
@@ -813,12 +825,12 @@ SELECT owner, locomotive_name FROM exhibition_entries WHERE id=? AND list_id=?`,
 UPDATE exhibition_entries SET
   vehicle_id=?, owner=?, image_url=NULLIF(?, ''), locomotive_name=?, gattung=?, series=?,
   manufacturer=?, epoch=?, railway_company=?, day_scope=?, dt_decoder=?, decoder_number=NULLIF(?, ''),
-  decoder_type=?, adapter=?, sx_address=?, analog=?, function_keys=NULLIF(?, ''), notes=NULLIF(?, ''),
-  sort_order=?, updated_at=?
+  decoder_type=?, adapter=?, interface_name=?, sx_address=?, analog=?, availability=?,
+  function_keys=NULLIF(?, ''), notes=NULLIF(?, ''), sort_order=?, revision=revision+1, updated_at=?
 WHERE id=? AND list_id=?`, vehicleID, entry.Owner, entry.ImageURL, entry.LocomotiveName, entry.Gattung,
 		entry.Series, entry.Manufacturer, entry.Epoch, entry.RailwayCompany, entry.DayScope, entry.DTDecoder,
-		entry.DecoderNumber, entry.DecoderType, entry.Adapter, entry.SXAddress, entry.Analog, entry.FunctionKeys,
-		entry.Notes, entry.SortOrder, now, entry.ID, listID)
+		entry.DecoderNumber, entry.DecoderType, entry.Adapter, entry.InterfaceName, entry.SXAddress, entry.Analog,
+		entry.Availability, entry.FunctionKeys, entry.Notes, entry.SortOrder, now, entry.ID, listID)
 	if err != nil {
 		return false, err
 	}
@@ -826,6 +838,29 @@ WHERE id=? AND list_id=?`, vehicleID, entry.Owner, entry.ImageURL, entry.Locomot
 		return false, err
 	}
 	return true, nil
+}
+
+func normalizeTransferExhibitionList(list *application.TransferExhibitionList) {
+	if strings.TrimSpace(list.EndDate) == "" {
+		list.EndDate = list.Date
+	}
+	if list.Status == "" {
+		list.Status = application.ExhibitionStatusOpen
+		if list.Locked {
+			list.Status = application.ExhibitionStatusLocked
+		}
+	}
+	list.Locked = list.Status == application.ExhibitionStatusLocked ||
+		list.Status == application.ExhibitionStatusRunning
+}
+
+func normalizeTransferExhibitionEntry(entry *application.TransferExhibitionEntry) {
+	if strings.TrimSpace(entry.InterfaceName) == "" {
+		entry.InterfaceName = entry.Adapter
+	}
+	if strings.TrimSpace(entry.Availability) == "" {
+		entry.Availability = "available"
+	}
 }
 
 func resolveTransferExhibitionVehicle(

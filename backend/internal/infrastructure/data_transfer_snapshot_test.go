@@ -88,8 +88,21 @@ func TestDataTransferSnapshotReadsSelectedAreasInStableOrder(t *testing.T) {
          VALUES('v-1', 'RK-002', 'Märklin', 'Erste', 'H0', '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`,
 		`INSERT INTO exhibition_lists(id, designation, list_date, locked, created_at, updated_at)
          VALUES('list-2', 'Zweite', '2026-08-21', 0, '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`,
-		`INSERT INTO exhibition_lists(id, designation, list_date, locked, created_at, updated_at)
-         VALUES('list-1', 'Erste', '2026-08-20', 0, '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`,
+		`INSERT INTO exhibition_lists(
+			id, designation, list_date, end_date, location, description, organization_notes,
+			status, locked, lock_reason, locked_at, created_at, updated_at
+		 ) VALUES(
+			'list-1', 'Erste', '2026-08-20', '2026-08-22', 'Köln', 'Clubmesse', 'Aufbau Freitag',
+			'locked', 1, 'Freigegeben', '2026-08-19T10:00:00Z',
+			'2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z'
+		 )`,
+		`INSERT INTO exhibition_entries(
+			id, list_id, owner, locomotive_name, day_scope, interface_name, availability,
+			created_at, updated_at
+		 ) VALUES(
+			'entry-1', 'list-1', 'Club', 'BR 103', 'day1,day2', 'ECoS', 'unavailable',
+			'2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z'
+		 )`,
 	} {
 		if _, err := db.Exec(statement); err != nil {
 			t.Fatal(err)
@@ -110,6 +123,16 @@ func TestDataTransferSnapshotReadsSelectedAreasInStableOrder(t *testing.T) {
 	}
 	if len(snapshot.ExhibitionLists) != 2 || snapshot.ExhibitionLists[0].ID != "list-1" {
 		t.Fatalf("exhibition lists are not stable: %#v", snapshot.ExhibitionLists)
+	}
+	list := snapshot.ExhibitionLists[0]
+	if list.EndDate != "2026-08-22" || list.Location != "Köln" || list.Description != "Clubmesse" ||
+		list.OrganizationNotes != "Aufbau Freitag" || list.Status != application.ExhibitionStatusLocked ||
+		list.LockReason != "Freigegeben" || list.LockedAt != "2026-08-19T10:00:00Z" {
+		t.Fatalf("exhibition metadata was not preserved: %#v", list)
+	}
+	if len(list.Entries) != 1 || list.Entries[0].InterfaceName != "ECoS" ||
+		list.Entries[0].Availability != "unavailable" {
+		t.Fatalf("exhibition entry workspace data was not preserved: %#v", list.Entries)
 	}
 }
 

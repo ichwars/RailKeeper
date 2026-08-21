@@ -22,7 +22,7 @@ import (
 
 const (
 	backupFormat  = "railkeeper-backup"
-	backupVersion = 18
+	backupVersion = 19
 )
 
 var (
@@ -125,6 +125,7 @@ var backupTableOrder = []string{
 	"accessory_installation_condition_history",
 	"exhibition_lists",
 	"exhibition_entries",
+	"exhibition_conflict_exceptions",
 }
 
 var backupOperationalTableExclusions = map[string]struct{}{
@@ -186,6 +187,7 @@ var backupTableVersions = map[string]backupTableVersionPolicy{
 	"accessory_installation_condition_history": {introduced: 3, required: 3},
 	"exhibition_lists":                         {introduced: 1, required: 3},
 	"exhibition_entries":                       {introduced: 1, required: 3},
+	"exhibition_conflict_exceptions":           {introduced: 19, required: 19},
 }
 
 func NewBackupService(db *sql.DB, dataDir string) *BackupService {

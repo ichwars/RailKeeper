@@ -16,6 +16,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppDateInput } from "../../shared/ui/AppDateInput";
 import { adapterOptions } from "../vehicles/vehicleOptions";
+import { ExhibitionWorkspacePage } from "./ExhibitionWorkspacePage";
 
 type ListSortKey = "designation" | "date" | "entryCount" | "locked";
 type EntrySortKey = "owner" | "locomotiveName" | "dtDecoder" | "decoderNumber" | "functionKeys";
@@ -379,6 +380,10 @@ function printList(
 }
 
 export function ExhibitionView({ roles }: { roles: string[] }) {
+  return <ExhibitionWorkspacePage roles={roles} />;
+}
+
+function LegacyExhibitionView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
   const canManageLists = hasAdmin(roles);
   const canReadInventoryMasterData = roles.some((role) =>
