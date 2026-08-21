@@ -225,6 +225,19 @@ func buildApplicationHandler(
 	layoutService := application.NewLayoutService(infrastructure.NewLayoutRepository(database))
 	trackPlannerRepository := infrastructure.NewTrackPlannerRepository(database)
 	accessoryRepository := infrastructure.NewAccessoryRepository(database)
+	authService := application.NewAuthService(database)
+	vehicleService := application.NewVehicleService(database)
+	ecosService := application.NewECoSService()
+	digitalCenterService := application.NewDigitalCenterService()
+	settingsService := application.NewSettingsService(database)
+	digitalCenterWorkspace := application.NewDigitalCenterWorkspaceService(
+		infrastructure.NewDigitalCenterWorkspaceRepository(database),
+		settingsService,
+		ecosService,
+		digitalCenterService,
+		vehicleService,
+		authService,
+	)
 
 	return api.NewRouter(api.Config{
 		Version:                     options.Version,
@@ -237,8 +250,8 @@ func buildApplicationHandler(
 		TrustedProxyCIDRs:           options.TrustedProxyCIDRs,
 		Logger:                      options.Logger,
 		SetupService:                application.NewSetupService(database),
-		AuthService:                 application.NewAuthService(database),
-		VehicleService:              application.NewVehicleService(database),
+		AuthService:                 authService,
+		VehicleService:              vehicleService,
 		OverviewValuationService:    application.NewOverviewValuationService(database),
 		MasterDataService:           masterDataService,
 		ArticleSearch:               application.NewArticleSearchService(masterDataService),
@@ -255,14 +268,16 @@ func buildApplicationHandler(
 		AccessoryDocumentService: application.NewAccessoryDocumentService(
 			accessoryRepository, fileBlobService,
 		),
-		ECoSService: application.NewECoSService(),
+		ECoSService:            ecosService,
+		DigitalCenterService:   digitalCenterService,
+		DigitalCenterWorkspace: digitalCenterWorkspace,
 		DataTransferService: application.NewDataTransferService(
 			infrastructure.NewDataTransferRepository(database),
 			paths.DataDir,
 			application.WithDataTransferFolderOpener(state.Runtime.OpenDataFolderSupported, openStorageFolder),
 		),
 		RateLimitService:          application.NewRateLimitService(database),
-		SettingsService:           application.NewSettingsService(database),
+		SettingsService:           settingsService,
 		PasswordResetMailer:       options.PasswordResetMailer,
 		SMTPSettingsService:       application.NewSMTPSettingsService(database, options.SMTPConfig, options.PublicURL),
 		PublicURL:                 options.PublicURL,

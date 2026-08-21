@@ -39,6 +39,7 @@ type Config struct {
 	AccessoryDocumentService    *application.AccessoryDocumentService
 	ECoSService                 *application.ECoSService
 	DigitalCenterService        *application.DigitalCenterService
+	DigitalCenterWorkspace      *application.DigitalCenterWorkspaceService
 	DataTransferService         *application.DataTransferService
 	SettingsService             *application.SettingsService
 	RateLimitService            *application.RateLimitService
@@ -78,6 +79,7 @@ type App struct {
 	accessoryDocumentService    *application.AccessoryDocumentService
 	ecosService                 *application.ECoSService
 	digitalCenterService        *application.DigitalCenterService
+	digitalCenterWorkspace      *application.DigitalCenterWorkspaceService
 	dataTransferService         *application.DataTransferService
 	settingsService             *application.SettingsService
 	passwordResetMailer         application.PasswordResetMailer
@@ -132,6 +134,7 @@ func NewRouter(config Config) http.Handler {
 		accessoryDocumentService:    config.AccessoryDocumentService,
 		ecosService:                 config.ECoSService,
 		digitalCenterService:        config.DigitalCenterService,
+		digitalCenterWorkspace:      config.DigitalCenterWorkspace,
 		dataTransferService:         config.DataTransferService,
 		settingsService:             config.SettingsService,
 		passwordResetMailer:         config.PasswordResetMailer,
