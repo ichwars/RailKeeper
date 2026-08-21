@@ -12,6 +12,14 @@ type digitalCenterSettingsReader interface {
 	DigitalSettings(context.Context) (*DigitalCenterSettings, error)
 }
 
+type digitalCenterECoSReader interface {
+	ProbeLocomotiveRaw(context.Context, ECoSConnectionInput) (*ECoSRawProbe, error)
+}
+
+type digitalCenterVehicleReader interface {
+	List(context.Context, string) ([]Vehicle, error)
+}
+
 type DigitalCenterSummary struct {
 	Provider     string                    `json:"provider"`
 	Name         string                    `json:"name"`
@@ -25,18 +33,18 @@ type DigitalCenterSummary struct {
 type DigitalCenterWorkspaceService struct {
 	repository     DigitalCenterWorkspaceRepository
 	settings       digitalCenterSettingsReader
-	ecos           *ECoSService
+	ecos           digitalCenterECoSReader
 	digitalCenters *DigitalCenterService
-	vehicles       *VehicleService
+	vehicles       digitalCenterVehicleReader
 	auth           *AuthService
 }
 
 func NewDigitalCenterWorkspaceService(
 	repository DigitalCenterWorkspaceRepository,
 	settings digitalCenterSettingsReader,
-	ecos *ECoSService,
+	ecos digitalCenterECoSReader,
 	digitalCenters *DigitalCenterService,
-	vehicles *VehicleService,
+	vehicles digitalCenterVehicleReader,
 	auth *AuthService,
 ) *DigitalCenterWorkspaceService {
 	return &DigitalCenterWorkspaceService{
