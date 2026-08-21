@@ -4,6 +4,7 @@ import {
 } from "lucide-react";
 
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import type {
   DigitalCenterCompareFilter,
   DigitalCenterCompareStatus,
@@ -120,12 +121,12 @@ export function LocomotiveWorklist({
         </table>
       </div>
       <footer className="digital-worklist-pagination">
-        <label>{t("digitalCenters.worklist.pageSize")}
-          <select aria-label={t("digitalCenters.worklist.pageSize")} value={page.pageSize}
+        <div className="digital-worklist-page-size"><span>{t("digitalCenters.worklist.pageSize")}</span>
+          <AppSelect aria-label={t("digitalCenters.worklist.pageSize")} value={String(page.pageSize)}
             onChange={(event) => onPageSize(Number(event.target.value))}>
             <option value={10}>10</option><option value={25}>25</option><option value={50}>50</option>
-          </select>
-        </label>
+          </AppSelect>
+        </div>
         <span>{t("digitalCenters.worklist.range", {
           range: page.total === 0 ? "0" :
             `${(page.page - 1) * page.pageSize + 1}–${Math.min(page.page * page.pageSize, page.total)}`,

@@ -104,8 +104,11 @@
   color: var(--muted);
 }
 
-.digital-center-select-wrap select {
+.digital-center-select-wrap .app-select {
   width: 100%;
+}
+
+.digital-center-select-wrap .app-select-trigger {
   height: 38px;
   border: 0;
   outline: 0;
@@ -521,14 +524,13 @@
   font-size: var(--font-size-sm);
 }
 
-.digital-worklist-pagination label {
+.digital-worklist-page-size {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-right: auto;
 }
 
-.digital-worklist-pagination select,
 .digital-worklist-pagination button,
 .digital-worklist-pagination strong {
   height: 32px;
@@ -537,6 +539,16 @@
   border-radius: 5px;
   background: transparent;
   color: var(--text);
+}
+
+.digital-worklist-page-size .app-select {
+  width: 72px;
+}
+
+.digital-worklist-page-size .app-select-trigger {
+  min-height: 32px;
+  height: 32px;
+  border-radius: 5px;
 }
 
 .digital-worklist-pagination button { cursor: pointer; }
@@ -797,7 +809,7 @@
   font-size: var(--font-size-sm);
 }
 
-.digital-write-confirmation input {
+.digital-write-confirmation .app-checkbox-control {
   margin-top: 2px;
 }
 

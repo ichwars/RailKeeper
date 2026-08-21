@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, TriangleAlert, X } from "lucide-react";
 
 import { useI18n, type Language } from "../../shared/i18n";
+import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
   DigitalCenterWorkItem,
@@ -62,11 +63,9 @@ export function LocomotiveComparisonDialog({
               <small>{confirmation.message}</small></span>
           </p>}
 
-          {preview && !confirmation && <label className="digital-write-confirmation">
-            <input type="checkbox" checked={confirmed}
-              onChange={(event) => setConfirmed(event.target.checked)} />
-            <span>{t("digitalCenters.write.consent")}</span>
-          </label>}
+          {preview && !confirmation && <AppCheckbox className="digital-write-confirmation"
+            label={t("digitalCenters.write.consent")} checked={confirmed}
+            onChange={(event) => setConfirmed(event.target.checked)} />}
 
           <footer>
             {!preview && <button type="button" className="digital-center-button"

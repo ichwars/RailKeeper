@@ -27,6 +27,13 @@ describe("Digital Centers operational journeys", () => {
     vi.useRealTimers();
   });
 
+  it("uses application-owned selection controls", async () => {
+    const { container } = render(<DigitalCentersView roles={["Admin"]} />);
+
+    await screen.findByRole("heading", { name: "Digitalzentralen" });
+    expect(container.ownerDocument.querySelector("select")).not.toBeInTheDocument();
+  });
+
   it("creates a read session without changing Settings or calling a write API", async () => {
     const user = userEvent.setup();
     render(<DigitalCentersView roles={["Admin"]} />);
@@ -53,7 +60,8 @@ describe("Digital Centers operational journeys", () => {
     await user.click(screen.getByRole("button", { name: "Abweichung filtern" }));
     await user.click(screen.getByRole("button", { name: "Weitere Filter" }));
     await user.click(screen.getByRole("button", { name: "Konflikt filtern" }));
-    await user.selectOptions(screen.getByRole("combobox", { name: "Zeilen pro Seite" }), "25");
+    await user.click(screen.getByRole("button", { name: "Zeilen pro Seite" }));
+    await user.click(screen.getByRole("option", { name: "25" }));
     await user.click(screen.getByRole("button", { name: "Nächste Seite" }));
     await user.click(screen.getByRole("button", { name: "BR 218 vergleichen" }));
     await screen.findByRole("dialog", { name: "Lok-Vergleich BR 218" });
@@ -61,7 +69,7 @@ describe("Digital Centers operational journeys", () => {
 
     expect(screen.getByRole("searchbox", { name: "Lok suchen" })).toHaveValue("BR");
     expect(screen.getByRole("button", { name: "Konflikt filtern" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByRole("combobox", { name: "Zeilen pro Seite" })).toHaveValue("25");
+    expect(screen.getByRole("button", { name: "Zeilen pro Seite" })).toHaveTextContent("25");
     expect(screen.getByText("26–50 von 60")).toBeInTheDocument();
   });
 
@@ -143,11 +151,13 @@ describe("Digital Centers operational journeys", () => {
     const previewRegion = screen.getByRole("region", { name: "Schreibvorschau" });
     expect(within(previewRegion).getByRole("cell", { name: "Alte Lok" })).toBeInTheDocument();
     expect(within(previewRegion).getByRole("cell", { name: "BR 218" })).toBeInTheDocument();
+    const consent = screen.getByRole("checkbox", {
+      name: "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden."
+    });
+    expect(consent.closest("label")).toHaveClass("app-checkbox", "digital-write-confirmation");
     const confirm = screen.getByRole("button", { name: "In die Digitalzentrale schreiben" });
     expect(confirm).toBeDisabled();
-    await user.click(screen.getByRole("checkbox", {
-      name: "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden."
-    }));
+    await user.click(consent);
     expect(confirm).toBeEnabled();
     await user.click(confirm);
 

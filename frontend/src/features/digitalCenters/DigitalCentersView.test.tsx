@@ -36,7 +36,7 @@ describe("DigitalCentersView", () => {
 
     expect(screen.getByText("DIGITALBETRIEB")).toHaveClass("eyebrow");
     expect(screen.getByRole("heading", { level: 1, name: "Digitalzentralen" })).toBeInTheDocument();
-    expect(screen.getByRole("combobox", { name: "Digitalzentrale wählen" })).toHaveValue("ecos");
+    expect(screen.getByRole("button", { name: "Digitalzentrale wählen" })).toHaveTextContent("ESU ECoS");
     expect(screen.getByRole("button", { name: "Daten lesen" })).toBeEnabled();
     expect(screen.getByRole("heading", { name: "Zentralen" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lok-Arbeitsliste" })).toBeInTheDocument();
@@ -63,14 +63,14 @@ describe("DigitalCentersView", () => {
     expect(window.location.pathname + window.location.search).toBe("/settings?tab=digital");
   });
 
-  it("wires toolbar, worklist, and tabs to the real workspace contract", () => {
+  it("wires toolbar, worklist, and tabs to the real workspace contract", async () => {
+    const user = userEvent.setup();
     const workspace = workspaceFixture();
     workspaceHook.mockReturnValue(workspace);
     render(<DigitalCentersView roles={["Admin"]} />);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Digitalzentrale wählen" }), {
-      target: { value: "z21" }
-    });
+    await user.click(screen.getByRole("button", { name: "Digitalzentrale wählen" }));
+    await user.click(screen.getByRole("option", { name: "Z21" }));
     fireEvent.click(screen.getByRole("button", { name: "Daten lesen" }));
     fireEvent.click(screen.getByRole("button", { name: "BR 218 402-6 vergleichen" }));
     fireEvent.click(screen.getByRole("tab", { name: "Diagnose" }));

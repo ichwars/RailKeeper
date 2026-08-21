@@ -1,6 +1,7 @@
 import { Circle, Download, LoaderCircle, Monitor, MoreHorizontal, Play, Server, Square } from "lucide-react";
 
 import { useI18n } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import type {
   DigitalCenterProvider,
   DigitalCenterReadSession,
@@ -39,10 +40,10 @@ export function DigitalCenterToolbar({
 
   return (
     <section className="digital-center-toolbar" aria-label={t("digitalCenters.toolbar.regionLabel")}>
-      <label className="digital-center-select-wrap">
+      <div className="digital-center-select-wrap">
         <Server size={18} aria-hidden="true" />
         <span className="sr-only">{t("digitalCenters.toolbar.select")}</span>
-        <select aria-label={t("digitalCenters.toolbar.select")} value={selectedProvider ?? ""}
+        <AppSelect aria-label={t("digitalCenters.toolbar.select")} value={selectedProvider ?? ""}
           disabled={loading.workspace || centers.length === 0}
           onChange={(event) => {
             const center = centers.find((candidate) => candidate.provider === event.target.value);
@@ -50,8 +51,8 @@ export function DigitalCenterToolbar({
           }}>
           {centers.length === 0 && <option value="">{t("digitalCenters.toolbar.noStation")}</option>}
           {centers.map((center) => <option key={center.provider} value={center.provider}>{center.name}</option>)}
-        </select>
-      </label>
+        </AppSelect>
+      </div>
       <span className={`digital-center-connection${connected ? " connected" : ""}`}>
         {loading.workspace ? <LoaderCircle size={15} aria-hidden="true" /> :
           <Circle size={13} fill="currentColor" aria-hidden="true" />}
