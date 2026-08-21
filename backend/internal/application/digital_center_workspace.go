@@ -17,7 +17,7 @@ type digitalCenterECoSReader interface {
 }
 
 type digitalCenterVehicleReader interface {
-	List(context.Context, string) ([]Vehicle, error)
+	ListReadOnly(context.Context, string) ([]Vehicle, error)
 }
 
 type DigitalCenterSummary struct {

@@ -203,6 +203,6 @@ func (reader *apiWorkspaceECoSReader) ProbeLocomotiveRaw(
 
 type apiWorkspaceVehicleReader struct{}
 
-func (*apiWorkspaceVehicleReader) List(context.Context, string) ([]application.Vehicle, error) {
+func (*apiWorkspaceVehicleReader) ListReadOnly(context.Context, string) ([]application.Vehicle, error) {
 	return []application.Vehicle{}, nil
 }

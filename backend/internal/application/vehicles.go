@@ -17,14 +17,17 @@ func (s *VehicleService) SetImageLocalizer(localizer VehicleImageLocalizer) {
 }
 
 func (s *VehicleService) List(ctx context.Context, query string) ([]Vehicle, error) {
+	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
+		return nil, err
+	}
+	return s.list(ctx, query, "")
+}
+
+func (s *VehicleService) ListReadOnly(ctx context.Context, query string) ([]Vehicle, error) {
 	return s.list(ctx, query, "")
 }
 
 func (s *VehicleService) list(ctx context.Context, query string, vehicleSetID string) ([]Vehicle, error) {
-	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
-		return nil, err
-	}
-
 	like := "%" + strings.TrimSpace(query) + "%"
 	rows, err := s.db.QueryContext(ctx, `
 SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESCE(article_source_url, ''), name, gauge,

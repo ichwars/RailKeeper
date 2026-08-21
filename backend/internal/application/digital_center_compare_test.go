@@ -263,7 +263,7 @@ type workspaceVehicleReaderStub struct {
 	listCalls int
 }
 
-func (stub *workspaceVehicleReaderStub) List(context.Context, string) ([]Vehicle, error) {
+func (stub *workspaceVehicleReaderStub) ListReadOnly(context.Context, string) ([]Vehicle, error) {
 	stub.listCalls++
 	return append([]Vehicle(nil), stub.vehicles...), stub.err
 }
@@ -358,5 +358,22 @@ func TestNormalizeDigitalCenterProtocolAliases(t *testing.T) {
 		if err != nil || got != want {
 			t.Fatalf("normalize protocol %q = %q, %v; want %q", input, got, err, want)
 		}
+	}
+}
+
+func TestNormalizeDigitalCenterNameStripsInvisibleAndPrivateUnicode(t *testing.T) {
+	got, err := normalizeDigitalCenterName("BR\u202e\u200b\ue000 218")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "BR 218" {
+		t.Fatalf("normalized name = %q, want %q", got, "BR 218")
+	}
+}
+
+func TestNormalizeDigitalCenterNameRejectsInvalidSurrogateEncoding(t *testing.T) {
+	invalidUTF8 := string([]byte{0xed, 0xa0, 0x80})
+	if _, err := normalizeDigitalCenterName(invalidUTF8); !errors.Is(err, ErrDigitalCenterDeviceOutput) {
+		t.Fatalf("error = %v, want invalid device output", err)
 	}
 }

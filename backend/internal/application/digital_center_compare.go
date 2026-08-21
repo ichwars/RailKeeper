@@ -85,7 +85,7 @@ func (service *DigitalCenterWorkspaceService) StartReadSession(
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, err)
 	}
-	vehicles, err := service.vehicles.List(ctx, "")
+	vehicles, err := service.vehicles.ListReadOnly(ctx, "")
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, fmt.Errorf("list RailKeeper vehicles: %w", err))
 	}
@@ -491,8 +491,11 @@ func normalizeDigitalCenterLocomotives(probe *ECoSRawProbe) ([]ECoSRawLocomotive
 }
 
 func normalizeDigitalCenterName(value string) (string, error) {
+	if !utf8.ValidString(value) {
+		return "", fmt.Errorf("%w: locomotive name is not valid UTF-8", ErrDigitalCenterDeviceOutput)
+	}
 	value = strings.Map(func(character rune) rune {
-		if unicode.IsControl(character) {
+		if unicode.IsControl(character) || unicode.In(character, unicode.Cf, unicode.Co, unicode.Cs) {
 			return ' '
 		}
 		return character
