@@ -7,13 +7,20 @@ import xml.etree.ElementTree as ET
 
 from tools.build_function_symbols import (
     ACTIVE_PALETTE,
+    EXPECTED_ECOS_SYMBOL_COUNT,
+    EXPECTED_SYMBOL_COUNT,
     PRINT_PALETTE,
     build_sql,
     encode_svg,
     load_library,
     render_svg,
+    validate_library_contract,
     validate_svg,
 )
+
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+SYMBOL_LIBRARY_ROOT = REPOSITORY_ROOT / "assets" / "function-symbols" / "workshop-line"
 
 
 def geometry_signature(svg_text: str) -> str:
@@ -26,6 +33,18 @@ def geometry_signature(svg_text: str) -> str:
 
 
 class FunctionSymbolGeneratorTest(unittest.TestCase):
+    def test_repository_library_is_complete_and_valid(self) -> None:
+        library = load_library(SYMBOL_LIBRARY_ROOT)
+        validate_library_contract(library)
+
+        self.assertEqual(len(library.symbols), EXPECTED_SYMBOL_COUNT)
+        self.assertEqual(
+            sum(symbol.ecos_code is not None for symbol in library.symbols),
+            EXPECTED_ECOS_SYMBOL_COUNT,
+        )
+        self.assertEqual(len({symbol.key for symbol in library.symbols}), EXPECTED_SYMBOL_COUNT)
+        self.assertEqual(len({symbol.file_name for symbol in library.symbols}), EXPECTED_SYMBOL_COUNT)
+
     def test_rejects_unsafe_svg_content(self) -> None:
         unsafe = (
             '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">'

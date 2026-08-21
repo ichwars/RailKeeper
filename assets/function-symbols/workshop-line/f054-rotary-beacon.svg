@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <g data-rk-role="primary" fill="none" stroke="#111111" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 46h30M21 46V27a11 11 0 0 1 22 0v19"/></g>
+  <g data-rk-role="accent" fill="none" stroke="#419310" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M32 12V4M16 17l-6-6M48 17l6-6M13 30H5M51 30h8"/></g>
+</svg>
