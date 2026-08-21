@@ -200,6 +200,11 @@ describe("Digital Centers operational journeys", () => {
 
     expect(screen.getByRole("button", { name: "ESU ECoS42 LoksAktiv" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "ESU ECoS4 LoksAktiv" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Daten lesen" }));
+    await waitFor(() => expect(api.startDigitalCenterReadSession).toHaveBeenCalledTimes(2));
+    expect(screen.getByRole("button", { name: "ESU ECoS42 LoksAktiv" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ESU ECoS4 LoksAktiv" })).not.toBeInTheDocument();
   });
 
   it("invalidates a conflicting grant and requires a fresh read and preview", async () => {

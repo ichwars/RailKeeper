@@ -43,6 +43,13 @@ const emptyErrors: DigitalCenterWorkspaceErrors = {
   write: ""
 };
 
+const unfilteredSessionTotal: DigitalCenterWorkItemFilter = {
+  query: "",
+  compareStatus: "all",
+  page: 1,
+  pageSize: 1
+};
+
 export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOptions = {}) {
   const { language } = useI18n();
   const languageRef = useRef(language);
@@ -248,12 +255,15 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     const requestID = ++requestsRef.current.worklist;
     setError("worklist", "");
     setLoadingArea("worklist", true);
-    void api.digitalCenterWorkItems(sessionID, filter)
-      .then((result) => {
+    const aggregateRequest = filter.query.trim() || filter.compareStatus !== "all"
+      ? api.digitalCenterWorkItems(sessionID, unfilteredSessionTotal)
+      : Promise.resolve(null);
+    void Promise.all([api.digitalCenterWorkItems(sessionID, filter), aggregateRequest])
+      .then(([result, aggregate]) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
           setWorkItems(result);
-          setSessionTotal((current) => Math.max(current, result.total));
+          setSessionTotal(aggregate?.total ?? result.total);
         }
       })
       .catch((loadError: unknown) => {
