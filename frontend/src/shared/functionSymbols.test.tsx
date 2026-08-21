@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { MasterDataEntry } from "./api";
-import { FunctionSymbolPicker, functionSymbolMetadata } from "./functionSymbols";
+import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "./functionSymbols";
 
 function symbol(key: string, label: string, active: boolean): MasterDataEntry {
   return {
@@ -20,6 +20,17 @@ function symbol(key: string, label: string, active: boolean): MasterDataEntry {
 }
 
 describe("FunctionSymbolPicker", () => {
+  it.each(["light", "sound", "horn", "coupling", "smoke", "drive", "warning", "standard"])(
+    "renders the RailKeeper %s fallback without a Lucide icon",
+    (key) => {
+      const { container } = render(<>{functionSymbolIcon(key)}</>);
+      const icon = container.querySelector("[data-rk-function-symbol]");
+
+      expect(icon).toHaveAttribute("data-rk-function-symbol", key);
+      expect(container.querySelector('[class*="lucide"]')).not.toBeInTheDocument();
+    },
+  );
+
   it("keeps only the current inactive symbol and does not resurrect fallback symbols", async () => {
     const user = userEvent.setup();
     const symbols = [

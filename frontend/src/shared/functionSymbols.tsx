@@ -1,6 +1,7 @@
-import { AlertTriangle, Circle, Cloud, Gauge, Lightbulb, Link, Megaphone, Volume2 } from "lucide-react";
 import { useRef, type ReactNode } from "react";
 import type { MasterDataEntry } from "./api";
+import { RailKeeperFunctionSymbolFallback } from "./functionSymbolFallbackIcons";
+import { functionSymbolImageData } from "./functionSymbolImages";
 import { useI18n } from "./i18n";
 import { masterDataOptions } from "./masterDataOptions";
 
@@ -14,11 +15,6 @@ const fallbackFunctionSymbols = [
   { key: "warning", label: "Warnung" }
 ];
 
-function symbolImageFromMetadata(metadata?: Record<string, unknown>) {
-  const value = metadata?.imageData || metadata?.activeImageData || metadata?.svgData;
-  return typeof value === "string" ? value : "";
-}
-
 function functionSymbolTile(content: ReactNode) {
   return (
     <span className="function-symbol-tile" aria-hidden="true">
@@ -28,34 +24,13 @@ function functionSymbolTile(content: ReactNode) {
 }
 
 export function functionSymbolIcon(symbolKey?: string, functionType?: string, metadata?: Record<string, unknown>) {
-  const imageData = symbolImageFromMetadata(metadata);
+  const imageData = functionSymbolImageData(metadata, "active");
   if (imageData) {
     return functionSymbolTile(<img className="function-symbol-image" src={imageData} alt="" />);
   }
-
-  const key = symbolKey || functionType || "standard";
-  const props = { size: 18, "aria-hidden": true };
-  switch (key) {
-    case "light":
-    case "licht":
-      return functionSymbolTile(<Lightbulb {...props} />);
-    case "sound":
-      return functionSymbolTile(<Volume2 {...props} />);
-    case "horn":
-      return functionSymbolTile(<Megaphone {...props} />);
-    case "coupling":
-    case "kupplung":
-      return functionSymbolTile(<Link {...props} />);
-    case "smoke":
-    case "rauch":
-      return functionSymbolTile(<Cloud {...props} />);
-    case "drive":
-      return functionSymbolTile(<Gauge {...props} />);
-    case "warning":
-      return functionSymbolTile(<AlertTriangle {...props} />);
-    default:
-      return functionSymbolTile(<Circle {...props} />);
-  }
+  return functionSymbolTile(
+    <RailKeeperFunctionSymbolFallback symbolKey={symbolKey} functionType={functionType} />,
+  );
 }
 
 export function functionSymbolMetadata(symbols: MasterDataEntry[], key?: string) {
@@ -119,7 +94,7 @@ export function FunctionSymbolPicker({
       </summary>
       <div className="function-symbol-menu">
         <button type="button" className={!value ? "active" : ""} onClick={() => selectSymbol("")} disabled={disabled}>
-          {functionSymbolTile(<Circle size={18} aria-hidden="true" />)}
+          {functionSymbolTile(<RailKeeperFunctionSymbolFallback symbolKey="standard" />)}
           <span>Kein Symbol</span>
         </button>
         {options.map((symbol) => (
