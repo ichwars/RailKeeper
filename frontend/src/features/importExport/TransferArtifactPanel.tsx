@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import type { Language } from "../../shared/i18n";
 import type { DataTransferArtifact, DataTransferSummary } from "./dataTransferModel";
+import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 
 type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -33,6 +34,7 @@ export function TransferArtifactPanel({
 }: TransferArtifactPanelProps) {
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState("");
+  const [pendingArtifact, setPendingArtifact] = useState<DataTransferArtifact | null>(null);
   const activeArtifacts = artifacts.filter((artifact) => !artifact.deletedAt);
 
   function openFolder() {
@@ -40,19 +42,28 @@ export function TransferArtifactPanel({
     void onOpenFolder().catch(() => setError(t("importExport.dashboard.storage.openError")));
   }
 
-  function deleteArtifact(artifact: DataTransferArtifact) {
-    const message = language === "de"
-      ? `Exportdatei „${artifact.displayName}“ dauerhaft löschen?`
-      : `Permanently delete export file “${artifact.displayName}”?`;
-    if (!window.confirm(message)) return;
+  async function deleteArtifact(artifact: DataTransferArtifact) {
     setDeletingId(artifact.id);
     setError("");
-    void onDelete(artifact.id)
-      .catch(() => setError(language === "de"
-        ? "Die Exportdatei konnte nicht gelöscht werden."
-        : "The export file could not be deleted."))
-      .finally(() => setDeletingId(""));
+    try {
+      await onDelete(artifact.id);
+    } finally {
+      setDeletingId("");
+    }
   }
+
+  const deleteAction: TransferPendingAction | null = pendingArtifact ? {
+    title: language === "de" ? "Exportdatei löschen?" : "Delete export file?",
+    body: language === "de"
+      ? `Exportdatei „${pendingArtifact.displayName}“ dauerhaft löschen?`
+      : `Permanently delete export file “${pendingArtifact.displayName}”?`,
+    confirmLabel: language === "de" ? "Datei löschen" : "Delete file",
+    dangerous: true,
+    errorMessage: language === "de"
+      ? "Die Exportdatei konnte nicht gelöscht werden."
+      : "The export file could not be deleted.",
+    run: () => deleteArtifact(pendingArtifact)
+  } : null;
 
   return (
     <section className="panel data-transfer-panel transfer-storage-panel">
@@ -93,7 +104,7 @@ export function TransferArtifactPanel({
               {canDelete ? (
                 <button type="button" className="icon-button transfer-artifact-delete"
                   aria-label={`${artifact.displayName} ${language === "de" ? "löschen" : "delete"}`}
-                  disabled={mutating || deletingId === artifact.id} onClick={() => deleteArtifact(artifact)}>
+                  disabled={mutating || deletingId === artifact.id} onClick={() => setPendingArtifact(artifact)}>
                   <Trash2 size={14} aria-hidden="true" />
                 </button>
               ) : null}
@@ -102,6 +113,8 @@ export function TransferArtifactPanel({
         </div>
       )}
       {error && <p className="form-message error transfer-storage-error" role="alert">{error}</p>}
+      <TransferConfirmDialog action={deleteAction} cancelLabel={language === "de" ? "Abbrechen" : "Cancel"}
+        onClose={() => setPendingArtifact(null)} />
     </section>
   );
 }

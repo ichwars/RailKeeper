@@ -163,6 +163,22 @@ describe("data transfer operational dialogs", () => {
     vi.spyOn(api, "deleteDataTransferArtifact").mockResolvedValue(undefined);
   });
 
+  it("uses application-owned selection controls in every transfer dialog", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<ImportExportView roles={["Admin"]} />);
+
+    await user.click(await screen.findByRole("button", { name: "Profil anlegen" }));
+    expect(container.ownerDocument.querySelector("select")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Dialog schließen" }));
+
+    await user.click(screen.getByRole("button", { name: "Neuer Import" }));
+    expect(container.ownerDocument.querySelector("select")).not.toBeInTheDocument();
+    await user.click(screen.getAllByRole("button", { name: "Schließen" }).at(-1)!);
+
+    await user.click(screen.getByRole("button", { name: "Neuer Export" }));
+    expect(container.ownerDocument.querySelector("select")).not.toBeInTheDocument();
+  });
+
   it("disables CSV for exhibition lists and explains why", async () => {
     render(<ImportExportView roles={["Admin"]} />);
 
@@ -181,7 +197,7 @@ describe("data transfer operational dialogs", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv", {
       type: "text/csv"
     }));
@@ -212,7 +228,7 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), jsonImportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
     expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
     expect(within(dialog).queryByRole("heading", { name: /Zuordnung/ })).not.toBeInTheDocument();
@@ -252,7 +268,7 @@ describe("data transfer operational dialogs", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv", {
       type: "text/csv"
     }));
@@ -262,7 +278,8 @@ describe("data transfer operational dialogs", () => {
     expect(blockedConfirm).toBeDisabled();
     expect(api.confirmDataTransferImport).not.toHaveBeenCalled();
 
-    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
+      "Vorhandenen Datensatz ersetzen");
     const enabledConfirm = await within(dialog).findByRole("button", { name: "1 Datensatz importieren" });
     expect(enabledConfirm).toBeEnabled();
     await user.click(enabledConfirm);
@@ -307,7 +324,7 @@ describe("data transfer operational dialogs", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
     const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
 
     expect(within(dialog).getByText("Fahrzeuge, Zubehör")).toBeInTheDocument();
     expect(within(dialog).getByText("JSON")).toBeInTheDocument();
@@ -362,10 +379,11 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
-    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
+      "Vorhandenen Datensatz ersetzen");
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("persistente Vorschau wurde neu gelesen");
     expect(within(dialog).getByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
   });
@@ -377,7 +395,7 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
     const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
     await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("Auftrag wurde zwischenzeitlich geändert");
     expect(within(dialog).getByRole("button", { name: "Export ausführen" })).toBeEnabled();
@@ -387,7 +405,6 @@ describe("data transfer operational dialogs", () => {
 
   it("requires a fresh upload after a confirm conflict", async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     vi.mocked(api.confirmDataTransferImport).mockRejectedValueOnce(new ApiError("revision", "conflict", 409));
     const refreshedReady = { ...previewFixture.job, state: "ready" as const, readyRecords: 1,
       errorRecords: 0, preview: { records: previewFixture.records } };
@@ -396,10 +413,11 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), importProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), importProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
-    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
+      "Vorhandenen Datensatz ersetzen");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
@@ -409,12 +427,12 @@ describe("data transfer operational dialogs", () => {
     expect(await within(reopened).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
     await user.upload(within(reopened).getByLabelText("Importdatei"), new File(["a;b;c"], "fahrzeuge-neu.csv"));
+    await user.click(screen.getByRole("button", { name: "Änderung übernehmen" }));
     expect(within(reopened).getByRole("button", { name: "Weiter zur Prüfung" })).toBeEnabled();
   });
 
   it("keeps RailKeeper JSON blocked until a fresh upload after a confirm conflict", async () => {
     const user = userEvent.setup();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     const jsonPreview = { ...previewFixture, job: { ...previewFixture.job, profileId: jsonImportProfile.id,
       profileName: jsonImportProfile.name, format: "railkeeper-json" as const } };
     const jsonReady = { ...jsonPreview.job, state: "ready" as const, readyRecords: 1, errorRecords: 0,
@@ -430,9 +448,10 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
     const dialog = screen.getByRole("dialog", { name: "Import prüfen" });
-    await user.selectOptions(within(dialog).getByLabelText("Importprofil"), jsonImportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
-    await user.selectOptions(within(dialog).getByLabelText("Auflösung für RK-1001"), "replace");
+    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
+      "Vorhandenen Datensatz ersetzen");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
@@ -445,6 +464,7 @@ describe("data transfer operational dialogs", () => {
     expect(within(reopened).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
     await user.upload(within(reopened).getByLabelText("Importdatei"),
       new File(["{\"fresh\":true}"], "backup-neu.json"));
+    await user.click(screen.getByRole("button", { name: "Änderung übernehmen" }));
     expect(await within(reopened).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
   });
 
@@ -457,7 +477,7 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
     const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
     await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
     expect(await within(dialog).findByText("Export läuft")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Export ausführen" })).not.toBeInTheDocument();
@@ -476,7 +496,7 @@ describe("data transfer operational dialogs", () => {
       render(<ImportExportView roles={["Editor"]} />);
       fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
       const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-      await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+      await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
       await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
       expect(await within(dialog).findByRole("button", { name: "Erneut versuchen" })).toBeInTheDocument();
       expect(within(dialog).queryByRole("button", { name: "Export ausführen" })).not.toBeInTheDocument();
@@ -494,7 +514,7 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Viewer"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
     const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
     await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
     expect(await within(dialog).findByText("Fehlgeschlagen")).toBeInTheDocument();
     expect(within(dialog).queryByRole("button", { name: "Erneut versuchen" })).not.toBeInTheDocument();
@@ -510,7 +530,7 @@ describe("data transfer operational dialogs", () => {
     render(<ImportExportView roles={["Editor"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Export" }));
     const dialog = screen.getByRole("dialog", { name: "Export erstellen" });
-    await user.selectOptions(within(dialog).getByLabelText("Exportprofil"), exportProfile.id);
+    await selectAppOption(user, within(dialog).getByLabelText("Exportprofil"), exportProfile.name);
     await user.click(within(dialog).getByRole("button", { name: "Export ausführen" }));
     expect(await within(dialog).findByText("4 Datensätze exportiert")).toBeInTheDocument();
     expect(within(dialog).getByRole("link", { name: "Datei herunterladen" })).toBeInTheDocument();
@@ -519,6 +539,7 @@ describe("data transfer operational dialogs", () => {
   });
 
   it("lists import and disabled profiles in profile management", async () => {
+    const user = userEvent.setup();
     const disabledImport = profileFixture({ id: "disabled-import", name: "Altimport", direction: "import",
       enabled: false });
     vi.mocked(api.dataTransferProfiles).mockResolvedValue([importProfile, disabledImport, exportProfile]);
@@ -526,8 +547,9 @@ describe("data transfer operational dialogs", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Profil anlegen" }));
     const dialog = screen.getByRole("dialog", { name: "Transferprofil anlegen" });
     const manager = within(dialog).getByLabelText("Profil verwalten");
-    expect(within(manager).getByRole("option", { name: /Import: Fahrzeugimport \(aktiv\)/ })).toBeInTheDocument();
-    expect(within(manager).getByRole("option", { name: /Import: Altimport \(deaktiviert\)/ })).toBeInTheDocument();
+    await user.click(manager);
+    expect(screen.getByRole("option", { name: /Import: Fahrzeugimport \(aktiv\)/ })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: /Import: Altimport \(deaktiviert\)/ })).toBeInTheDocument();
   });
 
   it("updates a profile without rewriting the historical job snapshot", async () => {
@@ -573,15 +595,24 @@ describe("data transfer operational dialogs", () => {
       issues: [],
       artifacts: [artifactFixture({ jobId: completedJob.id })]
     });
-    const confirm = vi.spyOn(window, "confirm").mockReturnValue(true);
-
     render(<ImportExportView roles={["Admin"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "railkeeper-transfer.json löschen" }));
 
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("railkeeper-transfer.json"));
+    const dialog = screen.getByRole("dialog", { name: "Exportdatei löschen?" });
+    expect(within(dialog).getByText(/railkeeper-transfer\.json/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Datei löschen" }));
     await waitFor(() => expect(api.deleteDataTransferArtifact).toHaveBeenCalledWith("artifact-1"));
   });
 });
+
+async function selectAppOption(
+  user: ReturnType<typeof userEvent.setup>,
+  trigger: HTMLElement,
+  optionName: string
+) {
+  await user.click(trigger);
+  await user.click(screen.getByRole("option", { name: optionName }));
+}
 
 function profileFixture(overrides: Partial<DataTransferProfile> = {}): DataTransferProfile {
   return {

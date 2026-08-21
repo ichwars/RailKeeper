@@ -57,9 +57,7 @@
 }
 
 .data-transfer-field input,
-.data-transfer-field select,
-.data-transfer-field textarea,
-.transfer-review-resolution select {
+.data-transfer-field textarea {
   width: 100%;
   min-height: 38px;
   border: 1px solid var(--line);
@@ -68,6 +66,38 @@
   background: var(--input-bg);
   color: var(--text);
   font: inherit;
+}
+
+.data-transfer-confirm-layer {
+  z-index: 140;
+  padding: 16px;
+}
+
+.data-transfer-confirm-dialog {
+  display: grid;
+  gap: 13px;
+  width: min(440px, calc(100vw - 32px));
+  padding: 18px;
+}
+
+.data-transfer-confirm-dialog h2,
+.data-transfer-confirm-dialog p {
+  margin: 0;
+}
+
+.data-transfer-confirm-dialog > p {
+  color: var(--muted);
+}
+
+.data-transfer-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.data-transfer-field .app-select,
+.transfer-review-resolution .app-select {
+  width: 100%;
 }
 
 .data-transfer-field textarea {
@@ -107,6 +137,34 @@
   color: var(--text);
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
+}
+
+.data-transfer-radio-group > div {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.data-transfer-radio-group button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0 13px;
+  background: var(--panel-subtle);
+  color: var(--muted);
+  font: inherit;
+  font-weight: var(--font-weight-bold);
+}
+
+.data-transfer-radio-group button:hover:not(:disabled),
+.data-transfer-radio-group button.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.data-transfer-radio-group button:disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
 
 .data-transfer-choice-reason {

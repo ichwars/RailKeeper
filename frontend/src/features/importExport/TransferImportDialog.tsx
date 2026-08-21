@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
   DataTransferIssue,
@@ -14,9 +15,15 @@ import type {
   DataTransferPreviewRecord,
   DataTransferProfile
 } from "./dataTransferModel";
+import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 import { TransferReviewTable } from "./TransferReviewTable";
 
 export type ImportDialogStep = "profile" | "file" | "mapping" | "review" | "confirm";
+
+type PendingImportChange =
+  | { kind: "profile"; profileId: string }
+  | { file: File; kind: "file" }
+  | { kind: "cancel" };
 
 type TransferImportDialogProps = {
   initialDetails?: DataTransferJobDetails | null;
@@ -62,6 +69,7 @@ export function TransferImportDialog({
   const requiresReuploadRef = useRef(initialRequiresReupload);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(initialRequiresReupload ? copy.confirmConflictRecovery : "");
+  const [pendingChange, setPendingChange] = useState<PendingImportChange | null>(null);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(() => {
@@ -102,9 +110,16 @@ export function TransferImportDialog({
     }
   }, [initialJob?.id, initialRequiresReupload, language]);
 
-  async function changeProfile(nextProfileId: string) {
+  function requestProfileChange(nextProfileId: string) {
     if (nextProfileId === profileId) return;
-    if (preview && !window.confirm(copy.changeWarning)) return;
+    if (preview) {
+      setPendingChange({ kind: "profile", profileId: nextProfileId });
+      return;
+    }
+    void changeProfile(nextProfileId);
+  }
+
+  async function changeProfile(nextProfileId: string) {
     setBusy(true);
     setError("");
     try {
@@ -123,11 +138,18 @@ export function TransferImportDialog({
     }
   }
 
-  async function chooseFile(event: ChangeEvent<HTMLInputElement>) {
+  function chooseFile(event: ChangeEvent<HTMLInputElement>) {
     const nextFile = event.target.files?.[0];
     event.target.value = "";
     if (!nextFile || (!profileId && !job)) return;
-    if (preview && !window.confirm(copy.changeWarning)) return;
+    if (preview) {
+      setPendingChange({ kind: "file", file: nextFile });
+      return;
+    }
+    void uploadFile(nextFile);
+  }
+
+  async function uploadFile(nextFile: File) {
     setFile(nextFile);
     setBusy(true);
     setError("");
@@ -208,7 +230,7 @@ export function TransferImportDialog({
   }
 
   async function cancelJob() {
-    if (!job || !window.confirm(copy.cancelJobConfirm)) return;
+    if (!job) return;
     setBusy(true);
     setError("");
     try {
@@ -220,6 +242,17 @@ export function TransferImportDialog({
       setBusy(false);
     }
   }
+
+  const pendingAction: TransferPendingAction | null = pendingChange ? {
+    title: pendingChange.kind === "cancel" ? copy.cancelJobTitle : copy.changeTitle,
+    body: pendingChange.kind === "cancel" ? copy.cancelJobConfirm : copy.changeWarning,
+    confirmLabel: pendingChange.kind === "cancel" ? copy.cancelJob : copy.applyChange,
+    dangerous: pendingChange.kind === "cancel",
+    errorMessage: pendingChange.kind === "cancel" ? copy.cancelJobError : copy.changeError,
+    run: () => pendingChange.kind === "profile"
+      ? changeProfile(pendingChange.profileId)
+      : pendingChange.kind === "file" ? uploadFile(pendingChange.file) : cancelJob()
+  } : null;
 
   const dialog = (
     <div ref={layerRef} className="confirm-layer data-transfer-dialog-layer" role="dialog" aria-modal="true"
@@ -241,10 +274,11 @@ export function TransferImportDialog({
           {!initialJob && (
             <label className="data-transfer-field">
               <span>{copy.profile}</span>
-              <select value={profileId} disabled={busy} onChange={(event) => void changeProfile(event.target.value)}>
+              <AppSelect aria-label={copy.profile} value={profileId} disabled={busy}
+                onChange={(event) => requestProfileChange(event.target.value)}>
                 <option value="">{copy.chooseProfile}</option>
                 {importProfiles.map((profile) => <option key={profile.id} value={profile.id}>{profile.name}</option>)}
-              </select>
+              </AppSelect>
             </label>
           )}
 
@@ -262,7 +296,7 @@ export function TransferImportDialog({
               <span><strong>{file?.name || job?.sourceName || copy.chooseFile}</strong><small>{copy.fileHelp}</small></span>
               <input ref={fileRef} type="file" aria-label={copy.fileLabel} disabled={busy}
                 accept={snapshot?.format === "csv" ? ".csv,text/csv" : ".json,application/json"}
-                onChange={(event) => void chooseFile(event)} />
+                onChange={chooseFile} />
               <span className="secondary-button"><Upload size={15} aria-hidden="true" />{copy.browse}</span>
             </label>
           ) : null}
@@ -310,7 +344,7 @@ export function TransferImportDialog({
 
         <footer className="data-transfer-dialog-actions">
           {job ? <button type="button" className="secondary-button" disabled={busy}
-            onClick={() => void cancelJob()}>{copy.cancelJob}</button> : <span />}
+            onClick={() => setPendingChange({ kind: "cancel" })}>{copy.cancelJob}</button> : <span />}
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
             {preview && mappingAccepted && !requiresReupload ? (
@@ -321,6 +355,8 @@ export function TransferImportDialog({
             ) : null}
           </span>
         </footer>
+        <TransferConfirmDialog action={pendingAction} cancelLabel={copy.cancel}
+          onClose={() => setPendingChange(null)} />
       </section>
     </div>
   );
@@ -410,7 +446,8 @@ function areaLabels(areas: DataTransferJob["areas"], language: Language) {
 
 function importCopy(language: Language) {
   return language === "de" ? {
-    title: "Import prüfen", eyebrow: "SICHERER IMPORT", close: "Schließen", progress: "Importschritte",
+    title: "Import prüfen", eyebrow: "SICHERER IMPORT", close: "Schließen", cancel: "Abbrechen",
+    progress: "Importschritte",
     steps: { profile: "Profil", file: "Datei", mapping: "Zuordnung", review: "Prüfung", confirm: "Bestätigung" },
     profile: "Importprofil", chooseProfile: "Profil wählen", snapshot: "Auftragssnapshot", chooseFile: "Datei auswählen",
     fileLabel: "Importdatei", fileHelp: "Die Datei wird erst geprüft. Es werden noch keine Daten geschrieben.",
@@ -418,7 +455,9 @@ function importCopy(language: Language) {
     records: "Datensätze", ready: "bereit", warnings: "Hinweise", errors: "Fehler",
     unresolved: "{count} Konflikt(e) müssen vor dem Import aufgelöst werden.",
     readyToConfirm: "Alle Konflikte sind aufgelöst. Der geprüfte Stand kann importiert werden.",
-    cancelJob: "Auftrag abbrechen", cancelJobConfirm: "Diesen Importauftrag abbrechen? Die Vorschau bleibt im Verlauf erhalten.",
+    cancelJob: "Auftrag abbrechen", cancelJobTitle: "Importauftrag abbrechen?",
+    cancelJobConfirm: "Diesen Importauftrag abbrechen? Die Vorschau bleibt im Verlauf erhalten.",
+    changeTitle: "Auswahl ändern?", applyChange: "Änderung übernehmen",
     changeWarning: "Die aktuelle Vorschau wird verworfen und als neue Revision erneut geprüft. Fortfahren?",
     uploadError: "Die Datei konnte nicht geprüft werden.", resolveError: "Der Konflikt konnte nicht aufgelöst werden.",
     confirmError: "Der Import konnte nicht bestätigt werden.", cancelJobError: "Der Auftrag konnte nicht abgebrochen werden.",
@@ -428,7 +467,7 @@ function importCopy(language: Language) {
     conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert. Die persistente Vorschau wurde neu gelesen. Bitte Zuordnung und Konflikte erneut prüfen.",
     confirmConflictRecovery: "Der Auftrag wurde beim Bestätigen geändert. Bitte die Quelldatei erneut hochladen und die neue Vorschau vollständig prüfen."
   } : {
-    title: "Review import", eyebrow: "SAFE IMPORT", close: "Close", progress: "Import steps",
+    title: "Review import", eyebrow: "SAFE IMPORT", close: "Close", cancel: "Cancel", progress: "Import steps",
     steps: { profile: "Profile", file: "File", mapping: "Mapping", review: "Review", confirm: "Confirmation" },
     profile: "Import profile", chooseProfile: "Choose profile", snapshot: "Job snapshot", chooseFile: "Choose file",
     fileLabel: "Import file", fileHelp: "The file is reviewed first. No data is written yet.", browse: "Browse",
@@ -436,6 +475,7 @@ function importCopy(language: Language) {
     ready: "ready", warnings: "warnings", errors: "errors",
     unresolved: "{count} conflict(s) must be resolved before import.",
     readyToConfirm: "All conflicts are resolved. The reviewed revision can be imported.", cancelJob: "Cancel job",
+    cancelJobTitle: "Cancel import job?", changeTitle: "Change selection?", applyChange: "Apply change",
     cancelJobConfirm: "Cancel this import job? The preview remains in history.",
     changeWarning: "The current preview will be discarded and reviewed as a new revision. Continue?",
     uploadError: "The file could not be reviewed.", resolveError: "The conflict could not be resolved.",

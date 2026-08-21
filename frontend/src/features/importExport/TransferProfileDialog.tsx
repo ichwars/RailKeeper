@@ -3,6 +3,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
 
 import type { Language } from "../../shared/i18n";
+import { AppCheckbox } from "../../shared/ui/AppCheckbox";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
   DataTransferArea,
@@ -11,6 +13,7 @@ import type {
   DataTransferProfile,
   DataTransferProfileInput
 } from "./dataTransferModel";
+import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 
 type TransferProfileDialogProps = {
   availableAreas: DataTransferArea[];
@@ -47,6 +50,7 @@ export function TransferProfileDialog({
   const [optionsText, setOptionsText] = useState(JSON.stringify(profile?.options || {}, null, 2));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [disableConfirmationOpen, setDisableConfirmationOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(() => {
     if (!busy) onClose();
@@ -103,7 +107,7 @@ export function TransferProfileDialog({
   }
 
   async function disable() {
-    if (!profile || !window.confirm(copy.disableConfirm.replace("{name}", profile.name))) return;
+    if (!profile) return;
     setBusy(true);
     setError("");
     try {
@@ -117,6 +121,14 @@ export function TransferProfileDialog({
   }
 
   const title = profile ? copy.editTitle : copy.createTitle;
+  const disableAction: TransferPendingAction | null = profile && disableConfirmationOpen ? {
+    title: copy.disableTitle,
+    body: copy.disableConfirm.replace("{name}", profile.name),
+    confirmLabel: copy.disable,
+    dangerous: true,
+    errorMessage: copy.disableError,
+    run: disable
+  } : null;
   const dialog = (
     <div
       ref={layerRef}
@@ -137,7 +149,7 @@ export function TransferProfileDialog({
         <form className="data-transfer-dialog-body" onSubmit={submit}>
           <label className="data-transfer-field">
             <span>{copy.manage}</span>
-            <select aria-label={copy.manage} value={selectedId} disabled={busy}
+            <AppSelect aria-label={copy.manage} value={selectedId} disabled={busy}
               onChange={(event) => setSelectedId(event.target.value)}>
               <option value="">{copy.newProfile}</option>
               {profiles.map((item) => (
@@ -145,41 +157,44 @@ export function TransferProfileDialog({
                   {`${item.direction === "import" ? copy.import : copy.export}: ${item.name} (${item.enabled ? copy.enabled : copy.disabled})`}
                 </option>
               ))}
-            </select>
+            </AppSelect>
           </label>
           <label className="data-transfer-field">
             <span>{copy.name}</span>
             <input value={name} onChange={(event) => setName(event.target.value)} autoComplete="off" />
           </label>
 
-          <fieldset className="data-transfer-choice-group">
+          <fieldset className="data-transfer-choice-group data-transfer-radio-group">
             <legend>{copy.direction}</legend>
-            <label><input type="radio" name="transfer-direction" value="export" checked={direction === "export"}
-              onChange={() => setDirection("export")} />{copy.export}</label>
-            <label><input type="radio" name="transfer-direction" value="import" checked={direction === "import"}
-              onChange={() => setDirection("import")} />{copy.import}</label>
+            <div role="radiogroup" aria-label={copy.direction}>
+              <button type="button" role="radio" aria-checked={direction === "export"}
+                className={direction === "export" ? "selected" : ""} onClick={() => setDirection("export")}>
+                {copy.export}
+              </button>
+              <button type="button" role="radio" aria-checked={direction === "import"}
+                className={direction === "import" ? "selected" : ""} onClick={() => setDirection("import")}>
+                {copy.import}
+              </button>
+            </div>
           </fieldset>
 
           <fieldset className="data-transfer-choice-group transfer-area-choices">
             <legend>{copy.areas}</legend>
             {availableAreas.map((area) => (
-              <label key={area}>
-                <input type="checkbox" checked={areas.includes(area)} onChange={() => toggleArea(area)} />
-                {areaLabel(area, language)}
-              </label>
+              <AppCheckbox key={area} label={areaLabel(area, language)} checked={areas.includes(area)}
+                onChange={() => toggleArea(area)} />
             ))}
           </fieldset>
 
-          <fieldset className="data-transfer-choice-group">
+          <fieldset className="data-transfer-choice-group data-transfer-radio-group">
             <legend>{copy.format}</legend>
-            <label>
-              <input type="radio" name="transfer-format" value="railkeeper-json"
-                checked={format === "railkeeper-json"} onChange={() => setFormat("railkeeper-json")} />JSON
-            </label>
-            <label>
-              <input type="radio" name="transfer-format" value="csv" disabled={csvUnavailable}
-                checked={format === "csv"} onChange={() => setFormat("csv")} />CSV
-            </label>
+            <div role="radiogroup" aria-label={copy.format}>
+              <button type="button" role="radio" aria-checked={format === "railkeeper-json"}
+                className={format === "railkeeper-json" ? "selected" : ""}
+                onClick={() => setFormat("railkeeper-json")}>JSON</button>
+              <button type="button" role="radio" aria-checked={format === "csv"} disabled={csvUnavailable}
+                className={format === "csv" ? "selected" : ""} onClick={() => setFormat("csv")}>CSV</button>
+            </div>
             {exhibitionCSV ? <p className="data-transfer-choice-reason">{copy.exhibitionCSV}</p> : null}
             {!exhibitionCSV && areas.length > 1
               ? <p className="data-transfer-choice-reason">{copy.multiAreaCSV}</p>
@@ -196,7 +211,8 @@ export function TransferProfileDialog({
           {error ? <p className="form-message error" role="alert">{error}</p> : null}
           <footer className="data-transfer-dialog-actions">
             {profile && canDisable ? (
-              <button type="button" className="danger-button" disabled={busy} onClick={() => void disable()}>
+              <button type="button" className="danger-button" disabled={busy}
+                onClick={() => setDisableConfirmationOpen(true)}>
                 <Trash2 size={16} aria-hidden="true" />{copy.disable}
               </button>
             ) : <span />}
@@ -209,6 +225,8 @@ export function TransferProfileDialog({
             </span>
           </footer>
         </form>
+        <TransferConfirmDialog action={disableAction} cancelLabel={copy.cancel}
+          onClose={() => setDisableConfirmationOpen(false)} />
       </section>
     </div>
   );
@@ -226,6 +244,7 @@ function profileCopy(language: Language) {
     exhibitionCSV: "Ausstellungslisten sind nur als JSON verfügbar.",
     multiAreaCSV: "CSV unterstützt genau einen Bereich.", invalidOptions: "Die Optionen müssen ein gültiges JSON-Objekt sein.",
     cancel: "Abbrechen", create: "Profil anlegen", save: "Änderungen speichern", disable: "Profil deaktivieren",
+    disableTitle: "Profil deaktivieren?",
     disableConfirm: "Profil „{name}“ deaktivieren? Bestehende Auftragssnapshots bleiben erhalten.",
     saveError: "Das Profil konnte nicht gespeichert werden.", disableError: "Das Profil konnte nicht deaktiviert werden."
   } : {
@@ -237,6 +256,7 @@ function profileCopy(language: Language) {
     exhibitionCSV: "Exhibition lists are only available as JSON.",
     multiAreaCSV: "CSV supports exactly one area.", invalidOptions: "Options must be a valid JSON object.",
     cancel: "Cancel", create: "Create profile", save: "Save changes", disable: "Disable profile",
+    disableTitle: "Disable profile?",
     disableConfirm: "Disable profile “{name}”? Existing job snapshots remain unchanged.",
     saveError: "The profile could not be saved.", disableError: "The profile could not be disabled."
   };

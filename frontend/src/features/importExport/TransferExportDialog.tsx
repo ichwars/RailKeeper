@@ -4,6 +4,7 @@ import { createPortal } from "react-dom";
 
 import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
   DataTransferExportResult,
@@ -126,15 +127,16 @@ export function TransferExportDialog({
           {!initialJob ? (
             <label className="data-transfer-field">
               <span>{copy.profile}</span>
-              <select value={profileId} disabled={busy || Boolean(result)} onChange={(event) => {
-                setProfileId(event.target.value);
-                setJob(null);
-                setResult(null);
-                setError("");
-              }}>
+              <AppSelect aria-label={copy.profile} value={profileId} disabled={busy || Boolean(result)}
+                onChange={(event) => {
+                  setProfileId(event.target.value);
+                  setJob(null);
+                  setResult(null);
+                  setError("");
+                }}>
                 <option value="">{copy.chooseProfile}</option>
                 {exportProfiles.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-              </select>
+              </AppSelect>
             </label>
           ) : null}
 

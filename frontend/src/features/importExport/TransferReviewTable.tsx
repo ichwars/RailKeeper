@@ -1,6 +1,7 @@
 import { AlertTriangle, CheckCircle2, CircleAlert } from "lucide-react";
 
 import type { Language } from "../../shared/i18n";
+import { AppSelect } from "../../shared/ui/AppSelect";
 import type {
   DataTransferIssue,
   DataTransferIssueResolution,
@@ -81,7 +82,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
                   {recordIssues.length === 0 ? "–" : recordIssues.map((issue) => (
                     <label className="transfer-review-resolution" key={issue.id}>
                       <span>{issue.message}</span>
-                      <select
+                      <AppSelect
                         aria-label={`${language === "de" ? "Auflösung für" : "Resolution for"} ${issue.recordKey}`}
                         disabled={busy}
                         value={issue.selectedResolution}
@@ -94,7 +95,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
                         {resolutionsFor(issue).map((resolution) => (
                           <option key={resolution} value={resolution}>{resolutionLabels[language][resolution]}</option>
                         ))}
-                      </select>
+                      </AppSelect>
                     </label>
                   ))}
                 </td>
