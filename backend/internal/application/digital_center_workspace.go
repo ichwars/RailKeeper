@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 )
+
+var ErrDigitalCenterLiveStartFailed = errors.New("digital center live start failed")
 
 type digitalCenterSettingsReader interface {
 	DigitalSettings(context.Context) (*DigitalCenterSettings, error)
@@ -20,6 +23,10 @@ type digitalCenterECoSLiveMonitor interface {
 	StartLive(context.Context, ECoSConnectionInput) (*ECoSLiveStatus, error)
 	StopLive() ECoSLiveStatus
 	LiveStatus() ECoSLiveStatus
+}
+
+type digitalCenterECoSLiveInterruptionMonitor interface {
+	StartLiveWithInterruption(context.Context, ECoSConnectionInput, func()) (*ECoSLiveStatus, error)
 }
 
 type digitalCenterVehicleReader interface {
@@ -169,7 +176,24 @@ func (service *DigitalCenterWorkspaceService) StartLiveMonitor(
 	if !ok {
 		return nil, ErrDigitalCenterWorkspaceUnavailable
 	}
-	status, err := monitor.StartLive(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
+	start := monitor.StartLive
+	if interruptionMonitor, supported := service.ecos.(digitalCenterECoSLiveInterruptionMonitor); supported {
+		persistContext := context.WithoutCancel(ctx)
+		var interruptionOnce sync.Once
+		start = func(ctx context.Context, input ECoSConnectionInput) (*ECoSLiveStatus, error) {
+			return interruptionMonitor.StartLiveWithInterruption(ctx, input, func() {
+				interruptionOnce.Do(func() {
+					_ = service.addSessionMessage(persistContext, sessionID, DigitalCenterSessionMessage{
+						Severity:   DigitalCenterMessageWarning,
+						Code:       DigitalCenterMessageLiveInterrupted,
+						Message:    "Das passive Live-Monitoring wurde unerwartet unterbrochen.",
+						NextAction: "Verbindung prüfen und das Monitoring erneut starten.",
+					})
+				})
+			})
+		}
+	}
+	status, err := start(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
 	if err != nil {
 		if messageErr := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
 			Severity:   DigitalCenterMessageError,
@@ -179,7 +203,7 @@ func (service *DigitalCenterWorkspaceService) StartLiveMonitor(
 		}); messageErr != nil {
 			return nil, messageErr
 		}
-		return nil, fmt.Errorf("start digital center live monitor: %w", err)
+		return nil, fmt.Errorf("%w: %v", ErrDigitalCenterLiveStartFailed, err)
 	}
 	if err := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
 		Severity:   DigitalCenterMessageInfo,
@@ -204,16 +228,9 @@ func (service *DigitalCenterWorkspaceService) StopLiveMonitor(
 	if err := service.requireSession(ctx, sessionID); err != nil {
 		return nil, err
 	}
-	center, err := service.configuredCenter(ctx, provider)
+	monitor, err := service.liveMonitorForProvider(provider)
 	if err != nil {
 		return nil, err
-	}
-	if !center.Capabilities.LiveMonitor {
-		return nil, ErrDigitalCenterCapabilityUnavailable
-	}
-	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
-	if !ok {
-		return nil, ErrDigitalCenterWorkspaceUnavailable
 	}
 	status := monitor.StopLive()
 	if err := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
@@ -234,18 +251,24 @@ func (service *DigitalCenterWorkspaceService) LiveMonitorStatus(
 	if service == nil || service.ecos == nil {
 		return ECoSLiveStatus{}, ErrDigitalCenterWorkspaceUnavailable
 	}
-	center, err := service.configuredCenter(ctx, provider)
+	monitor, err := service.liveMonitorForProvider(provider)
 	if err != nil {
 		return ECoSLiveStatus{}, err
 	}
-	if !center.Capabilities.LiveMonitor {
-		return ECoSLiveStatus{}, ErrDigitalCenterCapabilityUnavailable
+	return monitor.LiveStatus(), nil
+}
+
+func (service *DigitalCenterWorkspaceService) liveMonitorForProvider(
+	provider string,
+) (digitalCenterECoSLiveMonitor, error) {
+	if strings.ToLower(strings.TrimSpace(provider)) != "ecos" {
+		return nil, ErrDigitalCenterCapabilityUnavailable
 	}
 	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
 	if !ok {
-		return ECoSLiveStatus{}, ErrDigitalCenterWorkspaceUnavailable
+		return nil, ErrDigitalCenterWorkspaceUnavailable
 	}
-	return monitor.LiveStatus(), nil
+	return monitor, nil
 }
 
 func (service *DigitalCenterWorkspaceService) ListSessionMessages(

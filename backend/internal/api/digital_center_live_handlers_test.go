@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"testing"
 
@@ -102,10 +103,41 @@ func TestDigitalCenterLiveRoutesRequireAdminAndCSRF(t *testing.T) {
 	assertProblem(t, csrf, http.StatusForbidden, "csrf_required")
 }
 
+func TestDigitalCenterLiveStartPreservesSanitizedBadGatewayResponse(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	if _, err := auth.CreateUser(t.Context(), "", application.CreateUserInput{
+		Username: "live-error-admin", Password: "admin-password", Roles: []string{"Admin"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	settings := application.NewSettingsService(db)
+	if _, err := settings.UpdateDigitalSettings(t.Context(), application.DigitalCenterSettings{
+		Provider: "ecos",
+		ECoS: application.DigitalProviderSettings{
+			Enabled: true, Host: "configured-center.local", Port: "15471",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	ecos := &apiWorkspaceLiveECoS{startErr: errors.New("dial 192.168.2.151 password=secret\x00")}
+	workspace := application.NewDigitalCenterWorkspaceService(
+		infrastructure.NewDigitalCenterWorkspaceRepository(db), settings, ecos, nil,
+		&apiWorkspaceVehicleReader{}, auth,
+	)
+	router := NewRouter(Config{AuthService: auth, DigitalCenterWorkspace: workspace})
+	admin := loginRouteTestUser(t, auth, "live-error-admin", "admin-password")
+
+	response := layoutRequest(t, router, admin, http.MethodPost,
+		"/api/v1/digital-centers/ecos/live/start", nil, true)
+	assertProblem(t, response, http.StatusBadGateway, "ecos_live_start_failed")
+}
+
 type apiWorkspaceLiveECoS struct {
 	probe      application.ECoSRawProbe
 	status     application.ECoSLiveStatus
 	startInput application.ECoSConnectionInput
+	startErr   error
 }
 
 func (ecos *apiWorkspaceLiveECoS) ProbeLocomotiveRaw(
@@ -122,7 +154,7 @@ func (ecos *apiWorkspaceLiveECoS) StartLive(
 ) (*application.ECoSLiveStatus, error) {
 	ecos.startInput = input
 	status := ecos.status
-	return &status, nil
+	return &status, ecos.startErr
 }
 
 func (ecos *apiWorkspaceLiveECoS) StopLive() application.ECoSLiveStatus {

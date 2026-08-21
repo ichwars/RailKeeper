@@ -168,6 +168,9 @@ func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err erro
 	case errors.Is(err, application.ErrDigitalCenterCapabilityUnavailable):
 		respondProblem(w, http.StatusBadRequest, "digital_center_capability_unavailable",
 			"The selected digital center does not support this operation.")
+	case errors.Is(err, application.ErrDigitalCenterLiveStartFailed):
+		respondProblem(w, http.StatusBadGateway, "ecos_live_start_failed",
+			"ECoS live monitoring could not be started.")
 	case errors.Is(err, application.ErrDigitalCenterFilterValidation):
 		respondProblem(w, http.StatusBadRequest, "digital_center_filter_invalid",
 			"Digital center work-list filter is invalid.")

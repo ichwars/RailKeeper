@@ -83,11 +83,69 @@ func TestDigitalCenterWorkspaceLiveMonitorRejectsUnsupportedProviderExplicitly(t
 	}
 }
 
+func TestDigitalCenterWorkspaceStopAndStatusSurviveRemovedConfiguration(t *testing.T) {
+	repository := &workspaceRepositoryMemory{session: DigitalCenterReadSession{ID: "session-1"}}
+	settings := &workspaceSettingsReaderStub{value: configuredECoSSettings()}
+	ecos := &workspaceECoSLiveStub{status: ECoSLiveStatus{
+		Provider: "ecos", Connected: true, State: ECoSLiveRunning,
+	}}
+	service := NewDigitalCenterWorkspaceService(
+		repository, settings, ecos, nil, &workspaceVehicleReaderStub{}, nil,
+	)
+	if _, err := service.StartLiveMonitor(t.Context(), "ecos", "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	settings.value = DigitalCenterSettings{}
+
+	status, err := service.LiveMonitorStatus(t.Context(), "ecos")
+	if err != nil || status.State != ECoSLiveRunning {
+		t.Fatalf("status after config removal = %#v, %v", status, err)
+	}
+	stopped, err := service.StopLiveMonitor(t.Context(), "ecos", "session-1")
+	if err != nil || stopped.State != ECoSLiveStopped {
+		t.Fatalf("stop after config removal = %#v, %v", stopped, err)
+	}
+}
+
+func TestDigitalCenterWorkspacePersistsOneLiveInterruptionMessage(t *testing.T) {
+	repository := &workspaceRepositoryMemory{session: DigitalCenterReadSession{ID: "session-1"}}
+	ecos := &workspaceECoSLiveStub{status: ECoSLiveStatus{
+		Provider: "ecos", Connected: true, State: ECoSLiveRunning,
+	}}
+	service := NewDigitalCenterWorkspaceService(
+		repository, &workspaceSettingsReaderStub{value: configuredECoSSettings()}, ecos, nil,
+		&workspaceVehicleReaderStub{}, nil,
+	)
+	if _, err := service.StartLiveMonitor(t.Context(), "ecos", "session-1"); err != nil {
+		t.Fatal(err)
+	}
+	if ecos.onInterrupted == nil {
+		t.Fatal("workspace did not attach an interruption message handler")
+	}
+	ecos.onInterrupted()
+	ecos.onInterrupted()
+
+	if len(repository.messages) != 2 || repository.messages[1].Code != DigitalCenterMessageLiveInterrupted ||
+		repository.messages[1].Message == "" || repository.messages[1].NextAction == "" {
+		t.Fatalf("messages = %#v, want exactly one actionable live.interrupted message", repository.messages)
+	}
+}
+
 type workspaceECoSLiveStub struct {
 	workspaceECoSReaderStub
-	status     ECoSLiveStatus
-	startInput ECoSConnectionInput
-	startErr   error
+	status        ECoSLiveStatus
+	startInput    ECoSConnectionInput
+	startErr      error
+	onInterrupted func()
+}
+
+func (stub *workspaceECoSLiveStub) StartLiveWithInterruption(
+	_ context.Context,
+	input ECoSConnectionInput,
+	onInterrupted func(),
+) (*ECoSLiveStatus, error) {
+	stub.onInterrupted = onInterrupted
+	return stub.StartLive(context.Background(), input)
 }
 
 func (stub *workspaceECoSLiveStub) StartLive(_ context.Context, input ECoSConnectionInput) (*ECoSLiveStatus, error) {
