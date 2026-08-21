@@ -1,497 +1,638 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowRight, ArrowUp, Box, EyeOff, FileInput, Gauge, RefreshCw, RotateCcw, Wrench } from "lucide-react";
-import { api, type OverviewValuation, Vehicle, VehicleMaintenance } from "../../shared/api";
+import {
+  AlertTriangle,
+  ArrowRight,
+  Box,
+  CircleDollarSign,
+  Clock3,
+  Cpu,
+  Database,
+  ExternalLink,
+  FileInput,
+  Flag,
+  Gauge,
+  ImageOff,
+  LayoutGrid,
+  PackagePlus,
+  RefreshCw,
+  Server,
+  TrainFront,
+  Upload,
+  Wrench
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+
+import {
+  api,
+  type AccessoryArticleListResult,
+  type DigitalCenterSettings,
+  type ECoSLiveStatus,
+  type OverviewValuation,
+  type Vehicle
+} from "../../shared/api";
 import { translate, useI18n } from "../../shared/i18n";
-import { OverviewValuationCard } from "./OverviewValuationCard";
+import { AppSelect } from "../../shared/ui/AppSelect";
+import { InventoryTrendChart, ValueDistributionChart } from "./OverviewCharts";
+import { OverviewMetricDialog } from "./OverviewMetricDialog";
+import { formatOverviewMoney } from "./OverviewValuationCard";
+import {
+  accessoryCount,
+  buildOverviewStats,
+  buildOverviewTrend,
+  defaultOverviewMetrics,
+  overviewMetricIDs,
+  overviewMetricLimitForWidth,
+  overviewMetricProfileKey,
+  parseMetricPreference,
+  percentage,
+  persistMetricPreference,
+  primaryVehicleImage,
+  readMetricPreference,
+  safeNumber,
+  type OverviewMetricID,
+  type OverviewMetricPreference
+} from "./overviewModel";
 
-type OverviewWidgetID = "mix" | "quality" | "actions" | "manufacturers" | "quickActions" | "maintenance" | "recommendation";
+type OverviewViewProps = {
+  username?: string;
+  roles?: string[];
+};
 
-const overviewHiddenWidgetsKey = "railkeeper.overview.hiddenWidgets";
-const overviewWidgetOrderKey = "railkeeper.overview.widgetOrder";
-const defaultWidgetOrder: OverviewWidgetID[] = ["mix", "quality", "actions", "manufacturers", "quickActions", "maintenance", "recommendation"];
+type MetricCard = {
+  icon: LucideIcon;
+  value: string;
+  detail: React.ReactNode;
+  attention?: boolean;
+  href?: string;
+};
 
-function readHiddenWidgets(): OverviewWidgetID[] {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(overviewHiddenWidgetsKey) || "[]") as OverviewWidgetID[];
-    return Array.isArray(stored) ? stored : [];
-  } catch {
-    return [];
-  }
+const providerLabels: Record<string, string> = {
+  ecos: "ESU ECoS",
+  z21: "Roco Z21",
+  intellibox3: "Uhlenbrock Intellibox 3",
+  cs3: "Märklin CS3"
+};
+
+const providerImages: Record<DigitalCenterSettings["provider"], string> = {
+  ecos: "/assets/overview-ecos-50220.png",
+  z21: "/assets/overview-z21-10820.png",
+  intellibox3: "/assets/overview-intellibox-3-65300.jpg",
+  cs3: "/assets/overview-cs3-60226.jpg"
+};
+
+function sameDay(left: Date, right: Date) {
+  return left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() &&
+    left.getDate() === right.getDate();
 }
 
-function readWidgetOrder(): OverviewWidgetID[] {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(overviewWidgetOrderKey) || "[]") as OverviewWidgetID[];
-    const ordered = stored.filter((item): item is OverviewWidgetID => defaultWidgetOrder.includes(item));
-    const missing = defaultWidgetOrder.filter((item) => !ordered.includes(item));
-    return [...ordered, ...missing];
-  } catch {
-    return defaultWidgetOrder;
-  }
+function formatRecentTime(value: string, language: string) {
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const time = new Intl.DateTimeFormat(language === "en" ? "en-GB" : "de-DE", {
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+  if (sameDay(date, today)) return `${language === "en" ? "Today" : "Heute"}, ${time}`;
+  if (sameDay(date, yesterday)) return `${language === "en" ? "Yesterday" : "Gestern"}, ${time}`;
+  return new Intl.DateTimeFormat(language === "en" ? "en-GB" : "de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit"
+  }).format(date);
 }
 
-function numberValue(value?: string) {
-  if (!value) {
-    return 0;
-  }
-  const cleaned = value.replace(/[^\d,.-]/g, "");
-  const normalized = normalizeNumberText(cleaned);
-  const parsed = Number.parseFloat(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function normalizeNumberText(value: string) {
-  const cleaned = value.trim();
-  const separators = [...cleaned.matchAll(/[,.]/g)].map((match) => ({ value: match[0], index: match.index ?? -1 }));
-
-  if (separators.length === 0) {
-    return cleaned;
-  }
-
-  const lastSeparator = separators[separators.length - 1];
-  const decimalSeparator = inferDecimalSeparator(cleaned, separators);
-  const chars = [...cleaned];
-
-  return chars
-    .filter((char, index) => {
-      if (char !== "." && char !== ",") {
-        return true;
-      }
-      return decimalSeparator && char === decimalSeparator && index === lastSeparator.index;
-    })
-    .map((char) => (char === decimalSeparator ? "." : char))
-    .join("");
-}
-
-function inferDecimalSeparator(value: string, separators: { value: string; index: number }[]) {
-  const kinds = new Set(separators.map((separator) => separator.value));
-  const last = separators[separators.length - 1];
-  const fractionLength = value.length - last.index - 1;
-
-  if (kinds.size > 1) {
-    return last.value;
-  }
-
-  if (separators.length > 1) {
-    return fractionLength > 0 && fractionLength <= 2 ? last.value : "";
-  }
-
-  if (fractionLength > 0 && fractionLength <= 2) {
-    return last.value;
-  }
-
-  return "";
-}
-
-function currency(value: number, language: string) {
-  return new Intl.NumberFormat(language === "en" ? "en-US" : "de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(value);
-}
-
-function formatDate(value: string | undefined, language: string) {
-  if (!value) {
-    return "-";
-  }
-  return new Intl.DateTimeFormat(language === "en" ? "en-US" : "de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(`${value}T00:00:00`));
-}
-
-function dateDistance(entry: VehicleMaintenance) {
-  if (!entry.dueDate || entry.status === "erledigt") {
-    return null;
-  }
-  const now = new Date();
-  const due = new Date(`${entry.dueDate}T00:00:00`);
-  return Math.ceil((due.getTime() - now.getTime()) / 86400000);
-}
-
-function topEntries(values: string[]) {
-  const counts = new Map<string, number>();
-  for (const value of values.filter(Boolean)) {
-    counts.set(value, (counts.get(value) || 0) + 1);
-  }
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
-}
-
-function maintenanceDistanceText(days: number, t: (key: string, values?: Record<string, string | number>) => string) {
-  if (days < 0) {
-    return t("overview.daysOverdue", { days: Math.abs(days) });
-  }
-  if (days === 0) {
-    return t("overview.dueToday");
-  }
-  if (days === 1) {
-    return t("overview.dueTomorrow");
-  }
+function maintenanceDistanceText(
+  days: number,
+  t: (key: string, values?: Record<string, string | number>) => string
+) {
+  if (days < 0) return t("overview.daysOverdue", { days: Math.abs(days) });
+  if (days === 0) return t("overview.dueToday");
+  if (days === 1) return t("overview.dueTomorrow");
   return t("overview.dueInDays", { days });
 }
 
-export function OverviewView() {
+function moveMetric(order: OverviewMetricID[], metric: OverviewMetricID, target: OverviewMetricID) {
+  const sourceIndex = order.indexOf(metric);
+  const targetIndex = order.indexOf(target);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return order;
+  const next = [...order];
+  next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, metric);
+  return next;
+}
+
+function providerEnabled(settings: DigitalCenterSettings | null) {
+  if (!settings) return false;
+  return Boolean(settings[settings.provider]?.enabled && settings[settings.provider]?.host.trim());
+}
+
+export function OverviewView({ username = "local", roles = ["Editor"] }: OverviewViewProps) {
   const { language, t } = useI18n();
+  const canEdit = roles.includes("Admin") || roles.includes("Editor");
+  const canManageDigital = roles.includes("Admin");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const [accessories, setAccessories] = useState<AccessoryArticleListResult | null>(null);
   const [valuation, setValuation] = useState<OverviewValuation | null>(null);
+  const [digitalSettings, setDigitalSettings] = useState<DigitalCenterSettings | null>(null);
+  const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
+  const [vehicleLoading, setVehicleLoading] = useState(true);
+  const [accessoryLoading, setAccessoryLoading] = useState(true);
   const [valuationLoading, setValuationLoading] = useState(true);
+  const [digitalLoading, setDigitalLoading] = useState(canManageDigital);
+  const [vehicleError, setVehicleError] = useState("");
+  const [accessoryError, setAccessoryError] = useState("");
   const [valuationError, setValuationError] = useState("");
-  const valuationRequestId = useRef(0);
-  const [hiddenWidgets, setHiddenWidgets] = useState<OverviewWidgetID[]>(readHiddenWidgets);
-  const [widgetOrder, setWidgetOrder] = useState<OverviewWidgetID[]>(readWidgetOrder);
+  const [digitalError, setDigitalError] = useState("");
+  const [period, setPeriod] = useState(12);
+  const [valueMode, setValueMode] = useState<"list" | "purchase">("list");
+  const [metricDialogOpen, setMetricDialogOpen] = useState(false);
+  const [metricPreference, setMetricPreference] = useState<OverviewMetricPreference>(() =>
+    readMetricPreference(username));
+  const [draftMetrics, setDraftMetrics] = useState<OverviewMetricPreference>(metricPreference);
+  const [metricLimit, setMetricLimit] = useState(4);
+  const [preferenceError, setPreferenceError] = useState("");
+  const valuationRequestID = useRef(0);
+  const metricsRef = useRef<HTMLElement>(null);
 
   const loadVehicles = useCallback(() => {
-    setLoading(true);
-    setMessage("");
-    api
-      .vehicles()
-      .then(setVehicles)
-      .catch((error: Error) => setMessage(error.message))
-      .finally(() => setLoading(false));
+    setVehicleLoading(true);
+    setVehicleError("");
+    return api.vehicles().then(setVehicles).catch((error: Error) => setVehicleError(error.message))
+      .finally(() => setVehicleLoading(false));
+  }, []);
+
+  const loadAccessories = useCallback(() => {
+    setAccessoryLoading(true);
+    setAccessoryError("");
+    return api.accessoryArticles().then(setAccessories)
+      .catch((error: Error) => setAccessoryError(error.message))
+      .finally(() => setAccessoryLoading(false));
   }, []);
 
   const loadValuation = useCallback(() => {
     setValuationLoading(true);
     setValuationError("");
-    const requestId = valuationRequestId.current + 1;
-    valuationRequestId.current = requestId;
-    api
-      .overviewValuation()
-      .then((nextValuation) => {
-        if (requestId === valuationRequestId.current) setValuation(nextValuation);
-      })
-      .catch(() => {
-        if (requestId === valuationRequestId.current) {
-          setValuationError(translate(language, "overview.valuation.error"));
-        }
-      })
-      .finally(() => {
-        if (requestId === valuationRequestId.current) setValuationLoading(false);
-      });
+    const requestID = valuationRequestID.current + 1;
+    valuationRequestID.current = requestID;
+    return api.overviewValuation().then((nextValuation) => {
+      if (requestID === valuationRequestID.current) setValuation(nextValuation);
+    }).catch(() => {
+      if (requestID === valuationRequestID.current) {
+        setValuationError(translate(language, "overview.valuation.error"));
+      }
+    }).finally(() => {
+      if (requestID === valuationRequestID.current) setValuationLoading(false);
+    });
   }, [language]);
 
-  useEffect(() => {
-    loadVehicles();
-  }, [loadVehicles]);
+  const loadDigital = useCallback(() => {
+    if (!canManageDigital) return Promise.resolve();
+    setDigitalLoading(true);
+    setDigitalError("");
+    return api.digitalSettings().then(async (settings) => {
+      setDigitalSettings(settings);
+      if (settings.provider === "ecos" && settings.ecos.enabled && settings.ecos.host.trim()) {
+        try {
+          setLiveStatus(await api.getECoSLiveStatus());
+        } catch {
+          setLiveStatus(null);
+        }
+      } else {
+        setLiveStatus(null);
+      }
+    }).catch((error: Error) => setDigitalError(error.message))
+      .finally(() => setDigitalLoading(false));
+  }, [canManageDigital]);
 
   useEffect(() => {
-    loadValuation();
+    void loadVehicles();
+    void loadAccessories();
+  }, [loadAccessories, loadVehicles]);
+
+  useEffect(() => {
+    void loadValuation();
   }, [loadValuation]);
 
-  const refreshOverview = () => {
-    loadVehicles();
-    loadValuation();
-  };
+  useEffect(() => {
+    void loadDigital();
+  }, [loadDigital]);
 
-  const hideWidget = (widget: OverviewWidgetID) => {
-    setHiddenWidgets((current) => {
-      const next = [...new Set([...current, widget])];
-      window.localStorage.setItem(overviewHiddenWidgetsKey, JSON.stringify(next));
-      return next;
-    });
-  };
+  useEffect(() => {
+    let active = true;
+    api.profileSettings().then(({ settings }) => {
+      if (!active) return;
+      const stored = parseMetricPreference(settings[overviewMetricProfileKey] || null);
+      if (!stored) return;
+      setMetricPreference(stored);
+      setDraftMetrics(stored);
+      persistMetricPreference(username, stored);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [username]);
 
-  const resetWidgets = () => {
-    window.localStorage.removeItem(overviewHiddenWidgetsKey);
-    window.localStorage.removeItem(overviewWidgetOrderKey);
-    setHiddenWidgets([]);
-    setWidgetOrder(defaultWidgetOrder);
-  };
-
-  const widgetVisible = (widget: OverviewWidgetID) => !hiddenWidgets.includes(widget);
-
-  const widgetOrderIndex = (widget: OverviewWidgetID) => widgetOrder.indexOf(widget);
-
-  const moveWidget = (widget: OverviewWidgetID, direction: -1 | 1) => {
-    setWidgetOrder((current) => {
-      const index = current.indexOf(widget);
-      const nextIndex = index + direction;
-      if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
-      const next = [...current];
-      [next[index], next[nextIndex]] = [next[nextIndex], next[index]];
-      window.localStorage.setItem(overviewWidgetOrderKey, JSON.stringify(next));
-      return next;
-    });
-  };
-
-  const widgetControls = (widget: OverviewWidgetID, label: string) => (
-    <span className="widget-head-actions">
-      <button type="button" className="widget-hide-button" onClick={() => moveWidget(widget, -1)} disabled={widgetOrderIndex(widget) <= 0} aria-label={t("overview.widget.forward", { label })} title={t("overview.moveForward")}>
-        <ArrowUp size={15} aria-hidden="true" />
-      </button>
-      <button type="button" className="widget-hide-button" onClick={() => moveWidget(widget, 1)} disabled={widgetOrderIndex(widget) >= defaultWidgetOrder.length - 1} aria-label={t("overview.widget.backward", { label })} title={t("overview.moveBackward")}>
-        <ArrowDown size={15} aria-hidden="true" />
-      </button>
-      <button type="button" className="widget-hide-button" onClick={() => hideWidget(widget)} aria-label={t("overview.widget.hide", { label })} title={t("overview.hide")}>
-        <EyeOff size={15} aria-hidden="true" />
-      </button>
-    </span>
-  );
-
-  const stats = useMemo(() => {
-    const digital = vehicles.filter((vehicle) => vehicle.digital).length;
-    const analog = vehicles.length - digital;
-    const withImages = vehicles.filter((vehicle) => (vehicle.images || []).length > 0).length;
-    const allMaintenance = vehicles.flatMap((vehicle) => (vehicle.maintenance || []).map((entry) => ({ vehicle, entry, days: dateDistance(entry) })));
-    const scheduledMaintenance = allMaintenance.filter((item): item is { vehicle: Vehicle; entry: VehicleMaintenance; days: number } => item.days !== null && item.entry.status !== "erledigt");
-    const due = scheduledMaintenance.filter((item) => item.days <= 0).length;
-    const upcoming = scheduledMaintenance.filter((item) => item.days > 0 && item.days <= 30).length;
-    const openMaintenance = allMaintenance.filter((item) => item.entry.status !== "erledigt").length;
-    const completedMaintenance = allMaintenance.filter((item) => item.entry.status === "erledigt").length;
-    const maintenanceCost = allMaintenance.reduce((sum, item) => sum + numberValue(item.entry.cost), 0);
-    const nextMaintenance = [...scheduledMaintenance].sort((a, b) => a.days - b.days).slice(0, 4);
-    const conditions = topEntries(allMaintenance.map((item) => item.entry.conditionRating || "").filter(Boolean));
-    const categories = topEntries(vehicles.map((vehicle) => vehicle.category || t("overview.noCategory")));
-    const gauges = topEntries(vehicles.map((vehicle) => vehicle.gauge || t("overview.noGauge")));
-    const manufacturers = topEntries(vehicles.map((vehicle) => vehicle.manufacturer || t("overview.noManufacturer")));
-    const withArticleNumbers = vehicles.filter((vehicle) => vehicle.articleNumber?.trim()).length;
-    const withEAN = vehicles.filter((vehicle) => vehicle.ean?.trim()).length;
-    const withDecoderNumbers = vehicles.filter((vehicle) => vehicle.digitalDecoderNumber?.trim() || vehicle.dtDecoderNumber?.trim()).length;
-    const digitalWithoutDecoder = vehicles.filter((vehicle) => vehicle.digital && !vehicle.digitalDecoderNumber?.trim() && !vehicle.dtDecoderNumber?.trim()).length;
-    const documentedVehicles = vehicles.filter((vehicle) => vehicle.articleNumber?.trim() && vehicle.ean?.trim() && (vehicle.images || []).length > 0).length;
-    const dataGaps = [
-      { id: "no-main-image", label: t("overview.gap.noMainImage"), count: vehicles.length - withImages, detail: t("overview.gap.noMainImageDetail") },
-      { id: "no-article-number", label: t("overview.gap.noArticleNumber"), count: vehicles.length - withArticleNumbers, detail: t("overview.gap.noArticleNumberDetail") },
-      { id: "no-ean", label: t("overview.gap.noEan"), count: vehicles.length - withEAN, detail: t("overview.gap.noEanDetail") },
-      { id: "digital-no-decoder", label: t("overview.gap.digitalNoDecoder"), count: digitalWithoutDecoder, detail: t("overview.gap.digitalNoDecoderDetail") }
-    ].filter((gap) => gap.count > 0);
-    return {
-      digital,
-      analog,
-      withImages,
-      withArticleNumbers,
-      withEAN,
-      withDecoderNumbers,
-      documentedVehicles,
-      dataGaps,
-      due,
-      upcoming,
-      openMaintenance,
-      completedMaintenance,
-      maintenanceCost,
-      nextMaintenance,
-      conditions,
-      categories,
-      gauges,
-      manufacturers
+  useEffect(() => {
+    const metricsElement = metricsRef.current;
+    if (!metricsElement) return;
+    const updateLimit = () => setMetricLimit(overviewMetricLimitForWidth(
+      metricsElement.getBoundingClientRect().width));
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updateLimit);
+    observer?.observe(metricsElement);
+    if (!observer) window.addEventListener("resize", updateLimit);
+    updateLimit();
+    return () => {
+      observer?.disconnect();
+      if (!observer) window.removeEventListener("resize", updateLimit);
     };
-  }, [t, vehicles]);
+  }, []);
 
-  const digitalShare = vehicles.length ? Math.round((stats.digital / vehicles.length) * 100) : 0;
-  const imageShare = vehicles.length ? Math.round((stats.withImages / vehicles.length) * 100) : 0;
-  const decoderShare = vehicles.length ? Math.round((stats.withDecoderNumbers / vehicles.length) * 100) : 0;
-  const articleShare = vehicles.length ? Math.round((stats.withArticleNumbers / vehicles.length) * 100) : 0;
-  const eanShare = vehicles.length ? Math.round((stats.withEAN / vehicles.length) * 100) : 0;
-  const documentedShare = vehicles.length ? Math.round((stats.documentedVehicles / vehicles.length) * 100) : 0;
+  const stats = useMemo(() => buildOverviewStats(vehicles), [vehicles]);
+  const accessoryTotal = accessoryCount(accessories);
+  const imageShare = percentage(stats.withImages, vehicles.length);
+  const articleShare = percentage(stats.withArticleNumbers, vehicles.length);
+  const decoderShare = percentage(stats.withDecoderAddresses, vehicles.length);
+  const documentedShare = percentage(stats.documented, vehicles.length);
+  const dataQuality = Math.round((imageShare + articleShare + decoderShare + documentedShare) / 4);
+  const trend = useMemo(() => buildOverviewTrend(vehicles, accessories, period, language),
+    [accessories, language, period, vehicles]);
+  const valueVehicle = safeNumber(valueMode === "list" ? valuation?.vehicleListValue :
+    valuation?.vehiclePurchaseValue);
+  const valueAccessory = safeNumber(valueMode === "list" ? valuation?.accessoryListValue :
+    valuation?.accessoryPurchaseCost);
+  const provider = digitalSettings?.provider || "ecos";
+  const lastSynchronization = liveStatus?.lastSeenAt || liveStatus?.startedAt;
+  const managedLocomotives = vehicles.filter((vehicle) => vehicle.externalMappings
+    ?.some((mapping) => mapping.provider.toLowerCase() === provider)).length;
+
+  const money = (value: number) => formatOverviewMoney(value.toFixed(2), language);
+  const metricCards: Record<OverviewMetricID, MetricCard> = {
+    vehicles: {
+      icon: TrainFront,
+      value: vehicleLoading ? "…" : String(vehicles.length),
+      detail: t("overview.metric.vehiclesDetail", { digital: stats.digital, analog: stats.analog }),
+      href: "/vehicles"
+    },
+    accessories: {
+      icon: Box,
+      value: accessoryLoading ? "…" : String(accessoryTotal),
+      detail: t("overview.metric.accessoriesDetail", { reserved: accessories?.metrics.reserved || 0 }),
+      href: "/accessories"
+    },
+    inventoryValue: {
+      icon: Database,
+      value: valuationLoading ? "…" : valuation ? money(valueVehicle + valueAccessory) : "–",
+      detail: valuationError || t("overview.metric.inventoryValueDetail")
+    },
+    maintenance: {
+      icon: Wrench,
+      value: vehicleLoading ? "…" : String(stats.due + stats.upcoming),
+      detail: <><strong>{t("overview.metric.overdue", { count: stats.due })}</strong>
+        {` · ${t("overview.metric.planned", { count: stats.upcoming })}`}</>,
+      attention: stats.due > 0,
+      href: "/vehicles?maintenance=due"
+    },
+    digitalized: {
+      icon: Cpu,
+      value: vehicleLoading ? "…" : String(stats.digital),
+      detail: t("overview.metric.digitalizedDetail", { share: percentage(stats.digital, vehicles.length) }),
+      href: "/vehicles?digital=true"
+    },
+    dataQuality: {
+      icon: Gauge,
+      value: vehicleLoading ? "…" : `${dataQuality}%`,
+      detail: t("overview.metric.dataQualityDetail")
+    },
+    vehicleListValue: {
+      icon: CircleDollarSign,
+      value: valuationLoading ? "…" : valuation ? formatOverviewMoney(valuation.vehicleListValue, language) : "–",
+      detail: t("overview.metric.vehicleListValueDetail")
+    },
+    vehiclePurchaseValue: {
+      icon: CircleDollarSign,
+      value: valuationLoading ? "…" : valuation ? formatOverviewMoney(valuation.vehiclePurchaseValue, language) : "–",
+      detail: t("overview.metric.vehiclePurchaseValueDetail")
+    },
+    accessoryListValue: {
+      icon: CircleDollarSign,
+      value: valuationLoading ? "…" : valuation ? formatOverviewMoney(valuation.accessoryListValue, language) : "–",
+      detail: t("overview.metric.accessoryListValueDetail")
+    },
+    accessoryPurchaseValue: {
+      icon: CircleDollarSign,
+      value: valuationLoading ? "…" : valuation ? formatOverviewMoney(valuation.accessoryPurchaseCost, language) : "–",
+      detail: t("overview.metric.accessoryPurchaseValueDetail")
+    }
+  };
+
+  const displayedMetricPreference = metricDialogOpen ? draftMetrics : metricPreference;
+  const visibleMetrics = displayedMetricPreference.order.filter((metric) =>
+    displayedMetricPreference.active.includes(metric));
+  const refreshOverview = () => {
+    void loadVehicles();
+    void loadAccessories();
+    void loadValuation();
+    void loadDigital();
+  };
+  const openMetricDialog = () => {
+    setDraftMetrics(metricPreference);
+    setPreferenceError("");
+    setMetricDialogOpen(true);
+  };
+  const closeMetricDialog = () => {
+    setDraftMetrics(metricPreference);
+    setMetricDialogOpen(false);
+  };
+  const saveMetricPreference = () => {
+    setMetricPreference(draftMetrics);
+    persistMetricPreference(username, draftMetrics);
+    setMetricDialogOpen(false);
+    const settingsUpdate = {
+      [overviewMetricProfileKey]: JSON.stringify(draftMetrics)
+    };
+    void api.updateProfileSettings(settingsUpdate)
+      .catch(() => api.updateProfileSettings(settingsUpdate))
+      .catch(() => setPreferenceError(t("overview.metrics.saveError")));
+  };
+
+  const vehicleDependentState = vehicleError || (vehicleLoading ? t("overview.state.loading") : "");
 
   return (
-    <>
-      <section className="page-head overview-head">
+    <div className="overview-page">
+      <section className="overview-page-head">
         <div>
           <p className="eyebrow">{t("overview.eyebrow")}</p>
           <h1>{t("overview.title")}</h1>
           <p>{t("overview.subtitle")}</p>
         </div>
-        <div className="overview-actions" aria-label={t("overview.tools")}>
+        <div className="overview-head-tools" aria-label={t("overview.tools")}>
+          <div className="overview-period">
+            <AppSelect value={String(period)} onChange={(event) => setPeriod(Number(event.target.value))}
+              aria-label={t("overview.period")}>
+              <option value={6}>{t("overview.periodMonths", { count: 6 })}</option>
+              <option value={12}>{t("overview.periodMonths", { count: 12 })}</option>
+              <option value={24}>{t("overview.periodMonths", { count: 24 })}</option>
+            </AppSelect>
+          </div>
           <button type="button" className="icon-button" onClick={refreshOverview}
-            disabled={loading || valuationLoading} aria-label={t("overview.refresh")} title={t("overview.refresh")}>
-            <RefreshCw size={15} aria-hidden="true" />
+            disabled={vehicleLoading || accessoryLoading || valuationLoading || digitalLoading}
+            aria-label={t("overview.refresh")} title={t("overview.refresh")}>
+            <RefreshCw size={17} aria-hidden="true" />
           </button>
-          {hiddenWidgets.length > 0 && (
-            <button type="button" className="icon-button" onClick={resetWidgets} aria-label={t("overview.resetLayout")} title={t("overview.resetLayout")}>
-              <RotateCcw size={15} aria-hidden="true" />
-            </button>
-          )}
-          <a className="icon-button" href="/import-export" aria-label="Import/Export" title="Import/Export">
-            <FileInput size={15} aria-hidden="true" />
-          </a>
+          <button type="button" className={`icon-button overview-metric-trigger${metricDialogOpen ? " active" : ""}`}
+            onClick={metricDialogOpen ? closeMetricDialog : openMetricDialog} aria-expanded={metricDialogOpen}
+            aria-controls="overview-metric-dialog-title" aria-label={t("overview.metrics.dialogTitle")}
+            title={t("overview.metrics.dialogTitle")}>
+            <LayoutGrid size={18} aria-hidden="true" />
+          </button>
         </div>
       </section>
 
-      {message && <p className="form-message">{message}</p>}
+      {preferenceError ? <p className="overview-preference-error" role="alert">{preferenceError}</p> : null}
 
-      <section className="overview-hero panel">
-        <div>
-          <p className="overview-hero-title"><span className="overview-icon"><Box size={20} aria-hidden="true" /></span>{t("overview.totalInventory")}</p>
-          <strong>{loading ? "..." : vehicles.length}</strong>
-          <small>{t("overview.categoriesGauges", { categories: stats.categories.length, gauges: stats.gauges.length })}</small>
-        </div>
-        <div>
-          <p className="overview-hero-title"><span className="overview-icon"><Gauge size={20} aria-hidden="true" /></span>{t("overview.digitalization")}</p>
-          <strong>{digitalShare}%</strong>
-          <small>{t("overview.digitalAnalog", { digital: stats.digital, analog: stats.analog })}</small>
-        </div>
-        <OverviewValuationCard valuation={valuation} loading={valuationLoading} error={valuationError} />
-        <div className={stats.due > 0 ? "attention" : ""}>
-          <p className="overview-hero-title"><span className="overview-icon">{stats.due > 0 ? <AlertTriangle size={20} aria-hidden="true" /> : <Wrench size={20} aria-hidden="true" />}</span>{t("overview.maintenance")}</p>
-          <strong>{stats.due}</strong>
-          <small>{t("overview.maintenanceSummary", { upcoming: stats.upcoming, open: stats.openMaintenance })}</small>
-        </div>
+      <section className="overview-metrics" aria-label={t("overview.metrics.label")} ref={metricsRef}
+        style={{ "--overview-metric-columns": Math.min(visibleMetrics.length, metricLimit) } as React.CSSProperties}>
+        {visibleMetrics.map((metric) => {
+          const card = metricCards[metric];
+          const Icon = card.icon;
+          const content = <>
+            <div className="overview-metric-title"><Icon size={20} aria-hidden="true" />
+              <span>{t(`overview.metric.${metric}`)}</span></div>
+            <strong>{card.value}</strong>
+            <small>{card.detail}</small>
+          </>;
+          return card.href ? (
+            <a className={`overview-metric-card${card.attention ? " attention" : ""}`}
+              href={card.href} key={metric}>{content}</a>
+          ) : (
+            <article className={`overview-metric-card${card.attention ? " attention" : ""}`}
+              key={metric}>{content}</article>
+          );
+        })}
       </section>
 
-      <section className="overview-grid">
-        <article className="panel insight-card overview-widget" hidden={!widgetVisible("mix")} style={{ order: widgetOrderIndex("mix") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.mix.title")}</h2>
-              <p>{t("overview.mix.subtitle")}</p>
+      <section className="overview-operational" aria-label={t("overview.operational.label")}>
+        <article className="overview-card overview-priority-card">
+          <header className="overview-card-head"><Flag size={19} aria-hidden="true" />
+            <h2>{t("overview.priority.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> : (
+            <div className="overview-priority-list">
+              <a href="/vehicles?maintenance=due">
+                <AlertTriangle className="warning" size={19} aria-hidden="true" />
+                <span>{t("overview.priority.overdue", { count: stats.due })}</span>
+                <small>{t("overview.priority.vehicles", { count: stats.due })}</small>
+                <ArrowRight size={17} aria-hidden="true" />
+              </a>
+              <a href="/vehicles?gap=no-main-image">
+                <ImageOff className="info" size={19} aria-hidden="true" />
+                <span>{t("overview.priority.noImage", { count: vehicles.length - stats.withImages })}</span>
+                <small>{t("overview.priority.vehicles", { count: vehicles.length - stats.withImages })}</small>
+                <ArrowRight size={17} aria-hidden="true" />
+              </a>
+              <a href="/vehicles?gap=digital-no-decoder">
+                <Cpu className="decoder" size={19} aria-hidden="true" />
+                <span>{t("overview.priority.noAddress", { count: stats.digitalWithoutAddress })}</span>
+                <small>{t("overview.priority.decoders", { count: stats.digitalWithoutAddress })}</small>
+                <ArrowRight size={17} aria-hidden="true" />
+              </a>
             </div>
-            {widgetControls("mix", t("overview.mix.title"))}
-          </div>
-          <div className="bar-list">
-            {stats.categories.map(([label, count]) => (
-              <div key={label}>
-                <span>{label}</span>
-                <strong>{count}</strong>
-                <i style={{ width: `${vehicles.length ? Math.max(8, (count / vehicles.length) * 100) : 0}%` }} />
+          )}
+        </article>
+
+        <article className="overview-card overview-digital-card">
+          <header className="overview-card-head"><Server size={19} aria-hidden="true" />
+            <h2>{t("overview.digitalCenters.title")}</h2></header>
+          {!canManageDigital ? (
+            <p className="overview-module-state">{t("overview.digitalCenters.noAccess")}</p>
+          ) : digitalLoading ? (
+            <p className="overview-module-state" role="status">{t("overview.state.loading")}</p>
+          ) : digitalError ? (
+            <p className="overview-module-state error" role="alert">{digitalError}</p>
+          ) : (
+            <div className="overview-digital-body">
+              <div className="overview-device-art" aria-hidden="true">
+                <img src={providerImages[provider]} alt="" />
               </div>
-            ))}
-          </div>
-        </article>
-
-        <article className="panel insight-card overview-widget" hidden={!widgetVisible("quality")} style={{ order: widgetOrderIndex("quality") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.quality.title")}</h2>
-              <p>{t("overview.quality.subtitle")}</p>
-            </div>
-            {widgetControls("quality", t("overview.quality.title"))}
-          </div>
-          <div className="quality-list">
-            <div><span>{t("overview.quality.images")}</span><strong>{imageShare}%</strong><i style={{ width: `${imageShare}%` }} /></div>
-            <div><span>{t("overview.quality.decoderNumbers")}</span><strong>{decoderShare}%</strong><i style={{ width: `${decoderShare}%` }} /></div>
-            <div><span>{t("overview.quality.articleNumbers")}</span><strong>{articleShare}%</strong><i style={{ width: `${articleShare}%` }} /></div>
-            <div><span>{t("overview.quality.ean")}</span><strong>{eanShare}%</strong><i style={{ width: `${eanShare}%` }} /></div>
-            <div><span>{t("overview.quality.documented")}</span><strong>{documentedShare}%</strong><i style={{ width: `${documentedShare}%` }} /></div>
-          </div>
-        </article>
-
-        <article className="panel insight-card action-card overview-widget" hidden={!widgetVisible("actions")} style={{ order: widgetOrderIndex("actions") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.actions.title")}</h2>
-              <p>{t("overview.actions.subtitle")}</p>
-            </div>
-            {widgetControls("actions", t("overview.actions.title"))}
-          </div>
-          {stats.dataGaps.length === 0 ? (
-            <p className="empty-mini">{t("overview.actions.empty")}</p>
-          ) : (
-            <div className="action-gap-list">
-              {stats.dataGaps.map((gap) => (
-                <a key={gap.label} href={`/vehicles?gap=${gap.id}`} className="action-gap">
-                  <span>
-                    <strong>{gap.label}</strong>
-                    <small>{gap.detail}</small>
-                  </span>
-                  <em>{gap.count}</em>
-                  <ArrowRight size={15} aria-hidden="true" />
-                </a>
-              ))}
+              <div className="overview-digital-main">
+                <div><strong>{providerLabels[provider] || provider}</strong>
+                  <span className={liveStatus?.connected ? "status connected" : "status"}>
+                    {liveStatus?.connected ? t("overview.digitalCenters.connected") :
+                      providerEnabled(digitalSettings) ? t("overview.digitalCenters.configured") :
+                        t("overview.digitalCenters.notConfigured")}
+                  </span></div>
+                <dl>
+                  <div><dt>{t("overview.digitalCenters.managed")}</dt><dd>{managedLocomotives}</dd></div>
+                  <div><dt>{t("overview.digitalCenters.liveMonitor")}</dt><dd>{liveStatus?.connected ?
+                    t("overview.digitalCenters.active") : t("overview.digitalCenters.inactive")}</dd></div>
+                </dl>
+                <p className="overview-digital-sync"><span>{t("overview.digitalCenters.lastSync")}</span>
+                  {lastSynchronization ? <time dateTime={lastSynchronization}>
+                    {formatRecentTime(lastSynchronization, language)}</time> :
+                    <strong>{t("overview.digitalCenters.neverSynced")}</strong>}</p>
+              </div>
+              <a href="/settings" className="overview-open-action"><ExternalLink size={15} aria-hidden="true" />
+                {t("overview.digitalCenters.open")}</a>
             </div>
           )}
         </article>
 
-        <article className="panel insight-card overview-widget" hidden={!widgetVisible("manufacturers")} style={{ order: widgetOrderIndex("manufacturers") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.manufacturers.title")}</h2>
-              <p>{t("overview.manufacturers.subtitle")}</p>
-            </div>
-            {widgetControls("manufacturers", t("overview.manufacturers.title"))}
-          </div>
-          <div className="rank-list">
-            {stats.manufacturers.map(([label, count], index) => (
-              <div key={label}><span>{index + 1}</span><strong>{label}</strong><em>{count}</em></div>
-            ))}
-          </div>
-        </article>
-
-        <article className="panel insight-card quick-actions-card overview-widget" hidden={!widgetVisible("quickActions")} style={{ order: widgetOrderIndex("quickActions") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.quick.title")}</h2>
-              <p>{t("overview.quick.subtitle")}</p>
-            </div>
-            {widgetControls("quickActions", t("overview.quick.title"))}
-          </div>
-          <div className="quick-action-list">
-            <a href="/vehicles">
-              <span>{t("overview.quick.inventory")}</span>
-              <small>{t("overview.quick.inventoryHelp")}</small>
-              <ArrowRight size={16} aria-hidden="true" />
-            </a>
-            <a href="/import-export">
-              <span>{t("overview.quick.import")}</span>
-              <small>{t("overview.quick.importHelp")}</small>
-              <ArrowRight size={16} aria-hidden="true" />
-            </a>
-            <a href="/settings">
-              <span>{t("overview.quick.masterData")}</span>
-              <small>{t("overview.quick.masterDataHelp")}</small>
-              <ArrowRight size={16} aria-hidden="true" />
-            </a>
-          </div>
-        </article>
-
-        <article className="panel insight-card maintenance-insight-card overview-widget" hidden={!widgetVisible("maintenance")} style={{ order: widgetOrderIndex("maintenance") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.maintenanceRadar.title")}</h2>
-              <p>{t("overview.maintenanceRadar.subtitle")}</p>
-            </div>
-            {widgetControls("maintenance", t("overview.maintenanceRadar.title"))}
-          </div>
-          {stats.nextMaintenance.length === 0 ? (
-            <p className="empty-mini">{t("overview.maintenanceRadar.empty")}</p>
-          ) : (
-            <div className="maintenance-overview-list">
-              {stats.nextMaintenance.map(({ vehicle, entry, days }) => (
-                <div key={`${vehicle.id}-${entry.id}`} className={days <= 0 ? "due" : ""}>
-                  <span>
-                    <strong>{vehicle.inventoryNumber}</strong>
-                    <small>{vehicle.name || entry.kind}</small>
+        <article className="overview-card overview-recent-card">
+          <header className="overview-card-head"><Clock3 size={19} aria-hidden="true" />
+            <h2>{t("overview.recent.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> : stats.recentVehicles.length === 0 ?
+            <p className="overview-module-state">{t("overview.recent.empty")}</p> : (
+              <div className="overview-vehicle-list">
+                {stats.recentVehicles.map((vehicle) => <a href={`/vehicles?id=${encodeURIComponent(vehicle.id)}`}
+                  key={vehicle.id}>
+                  <span className="overview-vehicle-thumb">
+                    {primaryVehicleImage(vehicle) ? <img src={primaryVehicleImage(vehicle)} alt="" /> :
+                      <TrainFront size={24} aria-hidden="true" />}
                   </span>
-                  <em>{entry.kind}</em>
+                  <strong>{vehicle.name || vehicle.inventoryNumber}</strong>
+                  <span className="overview-vehicle-type">{vehicle.gattung || vehicle.category || "–"}</span>
+                  <time dateTime={vehicle.updatedAt}>{formatRecentTime(vehicle.updatedAt, language)}</time>
+                  <ArrowRight size={17} aria-hidden="true" />
+                </a>)}
+              </div>
+            )}
+        </article>
+
+        <article className="overview-card overview-maintenance-card">
+          <header className="overview-card-head"><Wrench size={19} aria-hidden="true" />
+            <h2>{t("overview.nextMaintenance.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> : stats.nextMaintenance.length === 0 ?
+            <p className="overview-module-state">{t("overview.nextMaintenance.empty")}</p> : (
+              <div className="overview-maintenance-list">
+                {stats.nextMaintenance.map(({ vehicle, entry, days }) => <a
+                  href={`/vehicles?id=${encodeURIComponent(vehicle.id)}&tab=maintenance`} key={entry.id}
+                  className={days <= 0 ? "overdue" : ""}>
+                  <span className="overview-vehicle-thumb">
+                    {primaryVehicleImage(vehicle) ? <img src={primaryVehicleImage(vehicle)} alt="" /> :
+                      <TrainFront size={24} aria-hidden="true" />}
+                  </span>
+                  <span><strong>{vehicle.name || vehicle.inventoryNumber}</strong>
+                    <small>{vehicle.gattung || vehicle.category || entry.kind}</small></span>
                   <b>{maintenanceDistanceText(days, t)}</b>
-                  <small>{formatDate(entry.dueDate, language)}</small>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="maintenance-kpi-row">
-            <span><small>{t("overview.maintenance.completed")}</small><strong>{stats.completedMaintenance}</strong></span>
-            <span><small>{t("overview.maintenance.cost")}</small><strong>{currency(stats.maintenanceCost, language)}</strong></span>
-            <span><small>{t("overview.maintenance.conditions")}</small><strong>{stats.conditions.length}</strong></span>
-          </div>
+                </a>)}
+              </div>
+            )}
         </article>
-
-        <article className="panel insight-card overview-widget" hidden={!widgetVisible("recommendation")} style={{ order: widgetOrderIndex("recommendation") }}>
-          <div className="panel-head">
-            <div>
-              <h2>{t("overview.recommendation.title")}</h2>
-              <p>{t("overview.recommendation.subtitle")}</p>
-            </div>
-            {widgetControls("recommendation", t("overview.recommendation.title"))}
-          </div>
-          <p className="recommendation">
-            {vehicles.length === 0
-              ? t("overview.recommendation.empty")
-              : imageShare < 70
-                ? t("overview.recommendation.images")
-                : stats.due > 0
-                  ? t("overview.recommendation.maintenance")
-            : t("overview.recommendation.stable")}
-          </p>
-        </article>
-
-        {hiddenWidgets.length === 7 && (
-          <article className="panel insight-card overview-reset-card">
-            <h2>{t("overview.dashboardEmpty.title")}</h2>
-            <p>{t("overview.dashboardEmpty.subtitle")}</p>
-            <button type="button" className="secondary-button" onClick={resetWidgets}>
-              <RotateCcw size={15} aria-hidden="true" />
-              {t("overview.resetLayout")}
-            </button>
-          </article>
-        )}
       </section>
-    </>
+
+      <section className="overview-analysis-primary" aria-label={t("overview.analysis.label")}>
+        <article className="overview-card overview-trend-card">
+          <header className="overview-analysis-head"><h2>{t("overview.trend.title")}</h2>
+            <div className="overview-chart-legend"><span className="vehicle">{t("overview.metric.vehicles")}</span>
+              <span className="accessory">{t("overview.metric.accessories")}</span></div></header>
+          {vehicleError || accessoryError ? <p className="overview-module-state error" role="alert">
+            {vehicleError || accessoryError}</p> : vehicleLoading || accessoryLoading ?
+            <p className="overview-module-state" role="status">{t("overview.state.loading")}</p> :
+            <InventoryTrendChart points={trend} />}
+        </article>
+
+        <article className="overview-card overview-value-card">
+          <header className="overview-analysis-head"><h2>{t("overview.valueDistribution.title")}</h2>
+            <div className="overview-segmented" aria-label={t("overview.valueDistribution.mode")}>
+              <button type="button" className={valueMode === "list" ? "active" : ""}
+                onClick={() => setValueMode("list")}>{t("overview.valueDistribution.list")}</button>
+              <button type="button" className={valueMode === "purchase" ? "active" : ""}
+                onClick={() => setValueMode("purchase")}>{t("overview.valueDistribution.purchase")}</button>
+            </div></header>
+          {valuationError ? <p className="overview-module-state error" role="alert">{valuationError}</p> :
+            valuationLoading ? <p className="overview-module-state" role="status">{t("overview.state.loading")}</p> :
+              <div className="overview-value-body">
+                <ValueDistributionChart vehicleValue={valueVehicle} accessoryValue={valueAccessory} />
+                <dl>
+                  <div><dt><i className="vehicle" />{t("overview.metric.vehicles")}</dt>
+                    <dd>{money(valueVehicle)}</dd></div>
+                  <div><dt><i className="accessory" />{t("overview.metric.accessories")}</dt>
+                    <dd>{money(valueAccessory)}</dd></div>
+                </dl>
+              </div>}
+        </article>
+      </section>
+
+      <section className="overview-analysis-secondary">
+        <article className="overview-card overview-ranking-card">
+          <header className="overview-analysis-head"><h2>{t("overview.structure.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> : stats.categories.length === 0 ?
+            <p className="overview-module-state">{t("overview.state.empty")}</p> :
+            <div className="overview-progress-list">{stats.categories.map(([label, count]) => <div key={label}>
+              <span>{label}</span><progress value={count} max={Math.max(...stats.categories.map((entry) => entry[1]))} />
+              <strong>{count}</strong></div>)}</div>}
+        </article>
+        <article className="overview-card overview-ranking-card">
+          <header className="overview-analysis-head"><h2>{t("overview.manufacturers.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> : stats.manufacturers.length === 0 ?
+            <p className="overview-module-state">{t("overview.state.empty")}</p> :
+            <div className="overview-progress-list">{stats.manufacturers.map(([label, count]) => <div key={label}>
+              <span>{label}</span><progress value={count} max={Math.max(...stats.manufacturers.map((entry) => entry[1]))} />
+              <strong>{count}</strong></div>)}</div>}
+        </article>
+        <article className="overview-card overview-quality-card">
+          <header className="overview-analysis-head"><h2>{t("overview.quality.title")}</h2></header>
+          {vehicleDependentState ? <p className={vehicleError ? "overview-module-state error" : "overview-module-state"}
+            role={vehicleError ? "alert" : "status"}>{vehicleDependentState}</p> :
+            <div className="overview-quality-list">
+              {[
+                [t("overview.quality.images"), imageShare],
+                [t("overview.quality.articleNumbers"), articleShare],
+                [t("overview.quality.decoderAddresses"), decoderShare],
+                [t("overview.quality.documented"), documentedShare]
+              ].map(([label, value]) => <div key={String(label)}><b
+                style={{ "--quality-value": Number(value) } as React.CSSProperties}><span>{value}%</span></b><span>{label}</span>
+                <progress value={Number(value)} max={100} /></div>)}
+            </div>}
+        </article>
+      </section>
+
+      <OverviewMetricDialog
+        open={metricDialogOpen}
+        order={draftMetrics.order}
+        active={draftMetrics.active}
+        maxActive={metricLimit}
+        t={t}
+        onToggle={(metric) => setDraftMetrics((current) => ({
+          ...current,
+          active: current.active.includes(metric) ? current.active.filter((item) => item !== metric) :
+            current.active.length < metricLimit ? [...current.active, metric] : current.active
+        }))}
+        onMove={(metric, target) => setDraftMetrics((current) => ({
+          ...current,
+          order: moveMetric(current.order, metric, target)
+        }))}
+        onMoveBy={(metric, direction) => setDraftMetrics((current) => {
+          const index = current.order.indexOf(metric);
+          const target = current.order[index + direction];
+          return target ? { ...current, order: moveMetric(current.order, metric, target) } : current;
+        })}
+        onReset={() => setDraftMetrics({ active: defaultOverviewMetrics, order: [...overviewMetricIDs] })}
+        onDone={saveMetricPreference}
+        onClose={closeMetricDialog}
+      />
+
+      <footer className="overview-action-footer">
+        {canEdit ? <a href="/vehicles?create=1"><TrainFront size={23} aria-hidden="true" /><span>
+          <strong>{t("overview.footer.createVehicle")}</strong><small>{t("overview.footer.createVehicleHelp")}</small>
+        </span></a> : <span className="overview-footer-action disabled" aria-disabled="true"><TrainFront size={23}
+          aria-hidden="true" /><span><strong>{t("overview.footer.createVehicle")}</strong>
+            <small>{t("overview.footer.noPermission")}</small></span></span>}
+        {canEdit ? <a href="/accessories?create=1"><PackagePlus size={23} aria-hidden="true" /><span>
+          <strong>{t("overview.footer.createAccessory")}</strong><small>{t("overview.footer.createAccessoryHelp")}</small>
+        </span></a> : <span className="overview-footer-action disabled" aria-disabled="true"><PackagePlus size={23}
+          aria-hidden="true" /><span><strong>{t("overview.footer.createAccessory")}</strong>
+            <small>{t("overview.footer.noPermission")}</small></span></span>}
+        {canEdit ? <a href="/import-export"><Upload size={23} aria-hidden="true" /><span>
+          <strong>{t("overview.footer.import")}</strong><small>{t("overview.footer.importHelp")}</small>
+        </span></a> : <span className="overview-footer-action disabled" aria-disabled="true"><FileInput size={23}
+          aria-hidden="true" /><span><strong>{t("overview.footer.import")}</strong>
+            <small>{t("overview.footer.noPermission")}</small></span></span>}
+      </footer>
+    </div>
   );
 }

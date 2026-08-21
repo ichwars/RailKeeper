@@ -184,8 +184,8 @@ export function App() {
       }}
     >
       <Suspense fallback={<ViewLoading />}>
-        {effectiveView === "overview" && <OverviewView />}
-				{effectiveView === "vehicles" && <VehiclesView username={session.username} roles={session.roles} />}
+        {effectiveView === "overview" && <OverviewView username={session.username} roles={session.roles} />}
+        {effectiveView === "vehicles" && <VehiclesView username={session.username} roles={session.roles} />}
         {effectiveView === "accessories" && <AccessoriesView roles={session.roles} />}
         {effectiveView === "layouts" && <LayoutsView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
