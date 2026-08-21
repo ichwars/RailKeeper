@@ -1389,6 +1389,112 @@ INSERT INTO data_transfer_artifacts(
 	}
 }
 
+func TestBackupExcludesAndNeverRestoresDigitalCenterWorkspaceOperations(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	insertDigitalCenterWorkspaceBackupFixture(t, sourceDB, "source")
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operationalTables := []string{
+		"digital_center_read_sessions",
+		"digital_center_work_items",
+		"digital_center_session_messages",
+		"digital_center_write_grants",
+	}
+	for _, table := range operationalTables {
+		if _, found := doc.Tables[table]; found {
+			t.Fatalf("backup exported operational table %q", table)
+		}
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, privateValue := range []string{"source-session", "source-token-hash", "source-message"} {
+		if strings.Contains(string(encoded), privateValue) {
+			t.Fatalf("backup contains workspace value %q", privateValue)
+		}
+	}
+
+	for _, table := range operationalTables {
+		doc.Tables[table] = []map[string]any{{"id": "injected-row"}}
+	}
+	targetDB := testDB(t)
+	insertDigitalCenterWorkspaceBackupFixture(t, targetDB, "local")
+	service := application.NewBackupService(targetDB, t.TempDir())
+	validation, err := service.Validate(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !validation.Compatible {
+		t.Fatalf("operational table payload made backup incompatible: %#v", validation)
+	}
+	for _, table := range operationalTables {
+		if !containsWarning(validation.Warnings, "Operative Tabelle "+table+" wird beim Restore ignoriert") {
+			t.Fatalf("missing operational exclusion warning for %s: %#v", table, validation.Warnings)
+		}
+	}
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range operationalTables {
+		var count int
+		if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("local operational table %s changed during restore, rows=%d", table, count)
+		}
+	}
+	var sessionID, tokenHash string
+	if err := targetDB.QueryRowContext(ctx, `SELECT id FROM digital_center_read_sessions`).Scan(&sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := targetDB.QueryRowContext(ctx, `SELECT token_hash FROM digital_center_write_grants`).Scan(&tokenHash); err != nil {
+		t.Fatal(err)
+	}
+	if sessionID != "local-session" || tokenHash != "local-token-hash" {
+		t.Fatalf("restore replaced local workspace data: session=%q tokenHash=%q", sessionID, tokenHash)
+	}
+}
+
+func insertDigitalCenterWorkspaceBackupFixture(t *testing.T, db *sql.DB, prefix string) {
+	t.Helper()
+	ctx := t.Context()
+	sessionID := prefix + "-session"
+	itemID := prefix + "-item"
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_read_sessions(
+  id, provider, state, host, port, capability_json, created_at, updated_at
+) VALUES(?, 'ecos', 'ready', '127.0.0.1', 15471, '{}', '2026-08-21T10:00:00Z', '2026-08-21T10:00:00Z')`,
+		sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_work_items(
+  id, session_id, center_object_id, compare_status, created_at, updated_at
+) VALUES(?, ?, '3', 'ok', '2026-08-21T10:00:00Z', '2026-08-21T10:00:00Z')`,
+		itemID, sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_session_messages(
+  id, session_id, severity, code, message, created_at
+) VALUES(?, ?, 'info', 'read.completed', ?, '2026-08-21T10:00:00Z')`,
+		prefix+"-message-row", sessionID, prefix+"-message"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_write_grants(
+  id, token_hash, session_id, work_item_id, preview_hash, actor_user_id, expires_at, created_at
+) VALUES(?, ?, ?, ?, 'preview-hash', 'admin-1', '2026-08-21T10:10:00Z', '2026-08-21T10:00:00Z')`,
+		prefix+"-grant", prefix+"-token-hash", sessionID, itemID); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestBackupRestoreWithoutProfilesSectionPreservesLocalProfiles(t *testing.T) {
 	ctx := t.Context()
 	db := testDB(t)
@@ -1553,20 +1659,24 @@ ORDER BY name
 	defer func() { _ = rows.Close() }()
 
 	excluded := map[string]bool{
-		"app_settings":             true,
-		"audit_logs":               true,
-		"data_transfer_artifacts":  true,
-		"data_transfer_job_issues": true,
-		"data_transfer_jobs":       true,
-		"data_transfer_profiles":   true,
-		"password_reset_requests":  true,
-		"rate_limit_attempts":      true,
-		"roles":                    true,
-		"schema_migrations":        true,
-		"sessions":                 true,
-		"user_roles":               true,
-		"user_settings":            true,
-		"users":                    true,
+		"app_settings":                    true,
+		"audit_logs":                      true,
+		"data_transfer_artifacts":         true,
+		"data_transfer_job_issues":        true,
+		"data_transfer_jobs":              true,
+		"data_transfer_profiles":          true,
+		"digital_center_read_sessions":    true,
+		"digital_center_session_messages": true,
+		"digital_center_work_items":       true,
+		"digital_center_write_grants":     true,
+		"password_reset_requests":         true,
+		"rate_limit_attempts":             true,
+		"roles":                           true,
+		"schema_migrations":               true,
+		"sessions":                        true,
+		"user_roles":                      true,
+		"user_settings":                   true,
+		"users":                           true,
 	}
 	for rows.Next() {
 		var table string

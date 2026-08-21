@@ -127,6 +127,13 @@ var backupTableOrder = []string{
 	"exhibition_entries",
 }
 
+var backupOperationalTableExclusions = map[string]struct{}{
+	"digital_center_read_sessions":    {},
+	"digital_center_work_items":       {},
+	"digital_center_session_messages": {},
+	"digital_center_write_grants":     {},
+}
+
 type backupTableVersionPolicy struct {
 	introduced int
 	required   int
@@ -651,7 +658,13 @@ func (s *BackupService) Validate(ctx context.Context, doc *BackupDocument) (*Bac
 	}
 	for table := range doc.Tables {
 		if _, ok := knownTables[table]; !ok {
-			result.Warnings = append(result.Warnings, fmt.Sprintf("Unbekannte Tabelle %s wird beim Restore ignoriert.", table))
+			if _, operational := backupOperationalTableExclusions[table]; operational {
+				result.Warnings = append(result.Warnings,
+					fmt.Sprintf("Operative Tabelle %s wird beim Restore ignoriert.", table))
+				continue
+			}
+			result.Warnings = append(result.Warnings,
+				fmt.Sprintf("Unbekannte Tabelle %s wird beim Restore ignoriert.", table))
 		}
 	}
 	if doc.Profiles != nil {

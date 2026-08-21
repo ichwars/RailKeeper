@@ -172,6 +172,15 @@ func TestDigitalCenterWorkspaceRepositoryEnforcesForeignKeysUniquenessAndCascade
 	}
 }
 
+func TestDigitalCenterWorkspaceRepositoryRejectsEmptyReplacementForMissingSession(t *testing.T) {
+	repo := infrastructure.NewDigitalCenterWorkspaceRepository(testDB(t))
+	err := repo.ReplaceWorkItems(t.Context(), "missing-session", nil)
+	if err == nil || !strings.Contains(err.Error(), "replace digital center work items") ||
+		!errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("empty replacement for missing session error = %v", err)
+	}
+}
+
 func TestDigitalCenterWorkspaceRepositoryRejectsMalformedJSON(t *testing.T) {
 	db := testDB(t)
 	repo := infrastructure.NewDigitalCenterWorkspaceRepository(db)
@@ -225,16 +234,42 @@ func TestDigitalCenterWorkspaceRepositoryRejectsPrivateProtocolMessages(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = repo.AddMessage(t.Context(), application.DigitalCenterSessionMessage{
-		SessionID: session.ID, Severity: application.DigitalCenterMessageError,
-		Code: "protocol", Message: "<REPLY get(10, name)> password=secret",
-	})
-	if err == nil || !strings.Contains(err.Error(), "raw or private protocol content") {
-		t.Fatalf("private protocol message error = %v", err)
+	unsafeMessages := []application.DigitalCenterSessionMessage{
+		{Code: "queryObjects(10,name)", Message: "Lesen fehlgeschlagen"},
+		{Code: "protocol", Message: "queryObjects(10, name)"},
+		{Code: "protocol", Message: "queryObj\x00ects(10, name)"},
+		{Code: "protocol", Message: "<REPLY get(10, name)>"},
+		{Code: "protocol", Message: "Authorization: Bearer abc.def.ghi"},
+		{Code: "protocol", Message: `{"PassWord" : "secret"}`},
+		{Code: "protocol", Message: "pass\x00word = secret"},
+		{Code: "protocol", Message: "Verbindung fehlgeschlagen", NextAction: "URL mit ?passwd=s3cr3t öffnen"},
+		{Code: "protocol", Message: "Verbindung fehlgeschlagen", NextAction: "token = opaque"},
+	}
+	for index, message := range unsafeMessages {
+		message.SessionID = session.ID
+		message.Severity = application.DigitalCenterMessageError
+		err = repo.AddMessage(t.Context(), message)
+		if err == nil || !strings.Contains(err.Error(), "raw or private protocol content") {
+			t.Fatalf("unsafe message %d error = %v", index, err)
+		}
 	}
 	messages, listErr := repo.ListMessages(t.Context(), session.ID)
 	if listErr != nil || len(messages) != 0 {
 		t.Fatalf("private message persisted: messages=%#v err=%v", messages, listErr)
+	}
+	if err := repo.AddMessage(t.Context(), application.DigitalCenterSessionMessage{
+		SessionID: session.ID, Severity: application.DigitalCenterMessageWarning,
+		Code: "connection.read_failed", Message: "  Verbindung\x00\r\n unterbrochen  ",
+		NextAction: "  Erneut\tlesen. ",
+	}); err != nil {
+		t.Fatalf("safe structured message: %v", err)
+	}
+	messages, err = repo.ListMessages(t.Context(), session.ID)
+	if err != nil || len(messages) != 1 {
+		t.Fatalf("safe messages=%#v err=%v", messages, err)
+	}
+	if messages[0].Message != "Verbindung unterbrochen" || messages[0].NextAction != "Erneut lesen." {
+		t.Fatalf("message controls were not normalized: %#v", messages[0])
 	}
 }
 

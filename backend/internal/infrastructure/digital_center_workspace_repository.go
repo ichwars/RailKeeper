@@ -8,13 +8,25 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 
 	"railkeeper/backend/internal/application"
 )
 
 const digitalCenterSessionMessageLimit = 100
+
+var (
+	digitalCenterMessageCodePattern = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$`)
+	digitalCenterProtocolPattern    = regexp.MustCompile(
+		`(?i)<\s*(?:reply|event|request|end|error)\b|\b(?:queryobjects|get|set|create|delete|request|subscribe|unsubscribe)\s*\(`,
+	)
+	digitalCenterCredentialPattern = regexp.MustCompile(
+		`(?i)["']?(?:password|passwort|passwd|pwd|secret|token|api[-_]?key|authorization)["']?\s*(?:=|:)\s*["']?[^\s"'&,;}]+|\bauthorization\s*:\s*(?:bearer|basic)\s+\S+|\bbearer\s+[a-z0-9._~+/=-]{8,}`,
+	)
+)
 
 type DigitalCenterWorkspaceRepository struct {
 	db *sql.DB
@@ -94,6 +106,15 @@ func (repository *DigitalCenterWorkspaceRepository) ReplaceWorkItems(
 	rollback := func(operationErr error) error {
 		_ = tx.Rollback()
 		return fmt.Errorf("replace digital center work items: %w", operationErr)
+	}
+	var sessionExists int
+	if err := tx.QueryRowContext(ctx,
+		`SELECT EXISTS(SELECT 1 FROM digital_center_read_sessions WHERE id=?)`, sessionID).
+		Scan(&sessionExists); err != nil {
+		return rollback(fmt.Errorf("check read session: %w", err))
+	}
+	if sessionExists == 0 {
+		return rollback(sql.ErrNoRows)
 	}
 	if _, err := tx.ExecContext(ctx, `DELETE FROM digital_center_work_items WHERE session_id=?`, sessionID); err != nil {
 		return rollback(fmt.Errorf("delete existing work items: %w", err))
@@ -181,7 +202,13 @@ func (repository *DigitalCenterWorkspaceRepository) AddMessage(
 	ctx context.Context,
 	message application.DigitalCenterSessionMessage,
 ) error {
-	if containsPrivateDigitalCenterMessage(message.Message) || containsPrivateDigitalCenterMessage(message.NextAction) {
+	message.Code = strings.TrimSpace(message.Code)
+	message.Message = normalizeDigitalCenterMessageText(message.Message)
+	message.NextAction = normalizeDigitalCenterMessageText(message.NextAction)
+	if !digitalCenterMessageCodePattern.MatchString(message.Code) ||
+		containsPrivateDigitalCenterMessage(message.Code) ||
+		containsPrivateDigitalCenterMessage(message.Message) ||
+		containsPrivateDigitalCenterMessage(message.NextAction) {
 		return errors.New("add digital center session message: raw or private protocol content is not allowed")
 	}
 	if message.ID == "" {
@@ -449,13 +476,24 @@ func decodeDigitalCenterJSON(payload string, target any) error {
 }
 
 func containsPrivateDigitalCenterMessage(value string) bool {
-	lower := strings.ToLower(value)
-	for _, marker := range []string{"<reply", "<event", "<request", "password=", "passwd=", "token="} {
-		if strings.Contains(lower, marker) {
-			return true
+	compact := strings.Map(func(character rune) rune {
+		if unicode.IsSpace(character) || unicode.IsControl(character) {
+			return -1
 		}
-	}
-	return false
+		return character
+	}, value)
+	return digitalCenterProtocolPattern.MatchString(value) || digitalCenterCredentialPattern.MatchString(value) ||
+		digitalCenterProtocolPattern.MatchString(compact) || digitalCenterCredentialPattern.MatchString(compact)
+}
+
+func normalizeDigitalCenterMessageText(value string) string {
+	withoutControls := strings.Map(func(character rune) rune {
+		if unicode.IsControl(character) {
+			return ' '
+		}
+		return character
+	}, value)
+	return strings.Join(strings.Fields(withoutControls), " ")
 }
 
 func requireDigitalCenterUpdate(result sql.Result, operation string) error {
