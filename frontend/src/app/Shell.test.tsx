@@ -42,6 +42,17 @@ describe("Shell article navigation", () => {
     expect(screen.getByRole("link", { name: "Ausstellung" })).toBeInTheDocument();
   });
 
+  it("exposes Import/Export to pure Messe users", () => {
+    render(
+      <Shell username="messe" roles={["Messe"]} activeView="importExport" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    expect(screen.getByRole("link", { name: "Import/Export" }))
+      .toHaveAttribute("href", "/import-export");
+  });
+
   it("uses the English accessories navigation label", async () => {
     window.localStorage.setItem("railkeeper.settings.language", "en");
     render(

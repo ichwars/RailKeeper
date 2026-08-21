@@ -55,6 +55,7 @@ function allowedNavItems(roles: string[]) {
   const canUseExhibition = roles.includes("Messe");
   return navItems.filter((item) => {
     if (item.view === "exhibition") return canUseExhibition;
+    if (item.view === "importExport") return canUseInventory || canUseExhibition;
     return canUseInventory;
   });
 }

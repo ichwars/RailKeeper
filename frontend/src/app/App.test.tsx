@@ -44,4 +44,20 @@ describe("App navigation availability", () => {
 
     expect(await screen.findByText("transfer roles: Messe,Viewer")).toBeInTheDocument();
   });
+
+  it("keeps the data transfer workspace available to pure Messe users", async () => {
+    window.history.replaceState(null, "", "/import-export");
+    vi.spyOn(api, "setupStatus").mockResolvedValue({ setupRequired: false });
+    vi.spyOn(api, "session").mockResolvedValue({
+      username: "messe",
+      roles: ["Messe"],
+      csrfToken: "csrf",
+      twoFactorEnabled: false
+    });
+
+    render(<App />);
+
+    expect(await screen.findByText("transfer roles: Messe")).toBeInTheDocument();
+    expect(window.location.pathname).toBe("/import-export");
+  });
 });

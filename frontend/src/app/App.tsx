@@ -63,6 +63,7 @@ function canAccessView(view: AppView, roles: string[]) {
   const canUseInventory = roles.includes("Editor") || roles.includes("Viewer") || roles.includes("Planner");
   const canUseExhibition = roles.includes("Messe");
   if (view === "exhibition") return canUseExhibition;
+  if (view === "importExport") return canUseInventory || canUseExhibition;
   return canUseInventory;
 }
 
