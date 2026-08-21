@@ -35,6 +35,14 @@ against the project sources in both English and German.
 
 ## Highlights
 
+- Responsive operations dashboard with inventory, value, maintenance, data-quality and command-station status in one view
+- Profile-based import and export for vehicles, accessories and exhibition lists, including previews,
+  conflict resolution, persistent jobs, transfer history and local artifacts. Master data remains
+  exclusively under Settings.
+- Dedicated command-station workspace with configured stations, locomotive comparison, live status,
+  diagnostics and preview-before-write synchronization
+- Persistent exhibition operations with events, participants, multi-day vehicle assignments,
+  readiness checks, conflict handling, images, function keys, printing and list locking
 - Local-first inventory with SQLite, uploads and JSON backups
 - Vehicle records with model data, technical fields, ownership details, images, attachments, QR codes and clean read-only detail views
 - Article inventory with generated inventory numbers, sortable selection-first overview, quantity or individual tracking, storage-location stock, reservations, installations, documents and usage history
@@ -44,14 +52,13 @@ against the project sources in both English and German.
   typed track details, and explicit field-by-field review
 - PDF report dialog for inventory overview and detail lists with selectable vehicles, QR codes and images
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
-- Reviewed ECoS locomotive exchange reads master data, CV values, and static function keys, then
+- Reviewed ECoS locomotive exchange reads locomotive data, CV values, and static function keys, then
   writes name, address, and protocol only after preview and confirmation. It does not monitor speed,
   direction, active function states, or ECoS layout object managers. Z21 UDP and CS3 HTTP remain
   connection-test adapters.
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles, NMRA CV8 manufacturer master data and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle
-- Exhibition lists with lock state, dedicated Messe role and print-ready list views
 - Local authentication with first-run setup including email, roles, sessions, password change, token-based password reset and audit log
 - User-specific sidebar order and visibility for tailoring the main navigation per login
 - Master data management for manufacturers, gauges, epochs, categories, subtypes, railway companies and symbols
@@ -60,24 +67,28 @@ against the project sources in both English and German.
 
 ## Screens
 
-RailKeeper is built around operational views instead of marketing pages:
+RailKeeper is built around responsive operational workspaces instead of marketing pages. The
+screens below show the current English interface and focus on the newest workflows:
 
-| Overview | Inventory |
+| Responsive overview | Profile-based import/export |
 | --- | --- |
-| ![RailKeeper overview dashboard](docs/screenshots/overview.png) | ![RailKeeper inventory grid](docs/screenshots/inventory.png) |
-| Import/Export | Authentication Settings |
-| ![RailKeeper import and export workspace](docs/screenshots/import-export.png) | ![RailKeeper authentication settings](docs/screenshots/settings-auth.png) |
+| ![RailKeeper responsive overview dashboard in English](docs/screenshots/overview-en.png) | ![RailKeeper profile-based import and export workspace in English](docs/screenshots/import-export-en.png) |
+| Command stations | Exhibition operations |
+| ![RailKeeper command-station workspace in English](docs/screenshots/digital-centers-en.png) | ![RailKeeper exhibition workspace in English](docs/screenshots/exhibition-en.png) |
+
+Additional detailed workflows:
 
 | Article Web Search | Spare Parts Search | Decoder Speed Curve |
 | --- | --- | --- |
 | ![RailKeeper article web search with product details](docs/screenshots/search_product_details.png) | ![RailKeeper spare parts search and vehicle parts list](docs/screenshots/spare_parts_search.png) | ![RailKeeper decoder speed performance curve](docs/screenshots/speed-performance_curve.png) |
 
-- **Overview** for inventory, value, maintenance and data quality
+- **Overview** for inventory, value, maintenance, data quality and command-station status
 - **Inventory** for vehicle search, filtering, read views, reports, editing, uploads, CVs and function keys
 - **Accessories** for article-data and barcode search, sortable inventory data, stock, reservations,
   installations, documents and history
-- **Exhibition List** for fair/show operations
-- **Import/Export** for CSV, TSV, XML and JSON imports, controlled updates and ECoS readout
+- **Exhibition** for persistent events, participants, operating days, readiness and conflicts
+- **Import/Export** for reusable profiles and controlled vehicle, accessory and exhibition-list transfers
+- **Command stations** for read, comparison, diagnostics, live monitoring and confirmed writes
 - **Settings** for master data, appearance, backups, updates and authentication
 
 ## Quick Start
@@ -251,7 +262,7 @@ backend/
   seeds/                   master data seed JSON
 frontend/
   src/app/                 shell, routing and global styles
-  src/features/            setup, auth, vehicles, exhibition, import/export, settings
+  src/features/            setup, auth, vehicles, exhibition, import/export, digital centers, settings
   src/shared/              API adapter, i18n and shared frontend types
 openapi/
   railkeeper.yaml          API contract
