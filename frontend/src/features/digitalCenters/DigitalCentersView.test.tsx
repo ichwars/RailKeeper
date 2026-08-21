@@ -218,17 +218,23 @@ describe("Digital Centers responsive CSS contract", () => {
   });
 
   it("uses the toolbar selector and local table scrolling at 900px", () => {
-    const narrowBreakpoint = digitalCentersCSS.split("@media (max-width: 900px)")[1] ?? "";
+    const [desktopCSS, narrowBreakpoint = ""] = digitalCentersCSS.split("@media (max-width: 900px)");
 
     expect(narrowBreakpoint).toMatch(/\.digital-center-list\s*\{[^}]*display:\s*none;/s);
     expect(narrowBreakpoint).toMatch(/\.digital-status-tabs\s*\{[^}]*width:\s*100%;/s);
     expect(digitalCentersCSS).toMatch(
       /\.digital-centers-workspace\s*\{[^}]*overflow-x:\s*(?:hidden|clip);/s
     );
-    expect(digitalCentersCSS).toMatch(
+    expect(desktopCSS).not.toMatch(
       /\.digital-worklist-table\s*\{[^}]*min-width:\s*720px;/s
     );
-    expect(digitalCentersCSS).toMatch(
+    expect(narrowBreakpoint).toMatch(
+      /\.digital-worklist-table\s*\{[^}]*min-width:\s*720px;/s
+    );
+    expect(desktopCSS).not.toMatch(
+      /\.digital-worklist-table-wrap\s*\{[^}]*overflow-x:\s*auto;/s
+    );
+    expect(narrowBreakpoint).toMatch(
       /\.digital-worklist-table-wrap\s*\{[^}]*overflow-x:\s*auto;/s
     );
   });

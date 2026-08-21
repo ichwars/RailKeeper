@@ -431,13 +431,11 @@
 
 .digital-worklist-table-wrap {
   min-height: 0;
-  overflow-x: auto;
   overflow-y: auto;
 }
 
 .digital-worklist-table {
   width: 100%;
-  min-width: 720px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: var(--font-size-sm);
@@ -859,4 +857,6 @@
   .digital-status-tabs { width: 100%; }
   .digital-worklist-controls { align-items: stretch; flex-direction: column; }
   .digital-worklist-filters { overflow-x: auto; }
+  .digital-worklist-table-wrap { overflow-x: auto; }
+  .digital-worklist-table { min-width: 720px; }
 }
