@@ -148,6 +148,16 @@ describe("SettingsView data navigation", () => {
     view.unmount();
   });
 
+  it("keeps the Digital Centers configuration workflow inside the full Settings navigation", async () => {
+    window.history.replaceState(null, "", "/settings?tab=digital");
+
+    render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("heading", { level: 3, name: "Adapter wählen" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Einstellungen" })).toBeInTheDocument();
+  });
+
   it("keeps the version out of the active page heading", async () => {
     vi.mocked(api.version).mockResolvedValue({
       version: "9.9.9",

@@ -65,6 +65,22 @@ describe("OverviewView", () => {
     expect(screen.getByText("Fahrzeug anlegen")).toBeInTheDocument();
   });
 
+  it("opens the dedicated Digital Centers workspace from the overview card", async () => {
+    const disabledProvider = { enabled: false, host: "", port: "" };
+    vi.spyOn(api, "digitalSettings").mockResolvedValue({
+      provider: "ecos",
+      ecos: disabledProvider,
+      z21: disabledProvider,
+      intellibox3: disabledProvider,
+      cs3: disabledProvider
+    });
+
+    render(<OverviewView roles={["Admin"]} />);
+
+    expect(await screen.findByRole("link", { name: "Öffnen" }))
+      .toHaveAttribute("href", "/digital-centers");
+  });
+
   it.each([
     ["z21", "Roco Z21", "/assets/overview-z21-10820.png"],
     ["intellibox3", "Uhlenbrock Intellibox 3", "/assets/overview-intellibox-3-65300.jpg"],

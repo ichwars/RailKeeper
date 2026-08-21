@@ -7,7 +7,7 @@ import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference } from "../shared/theme";
 import { availableStartView } from "./navigationAvailability";
 
-export type AppView = "overview" | "vehicles" | "accessories" | "layouts" | "exhibition" | "importExport" | "settings";
+export type AppView = "overview" | "vehicles" | "accessories" | "layouts" | "exhibition" | "importExport" | "digitalCenters" | "settings";
 
 const defaultViewSettingKey = "railkeeper.settings.defaultView";
 const OverviewView = lazy(() => import("../features/overview/OverviewView").then((module) => ({ default: module.OverviewView })));
@@ -16,19 +16,21 @@ const AccessoriesView = lazy(() => import("../features/accessories/AccessoriesVi
 const LayoutsView = lazy(() => import("../features/layouts/LayoutsView").then((module) => ({ default: module.LayoutsView })));
 const ExhibitionView = lazy(() => import("../features/exhibition/ExhibitionView").then((module) => ({ default: module.ExhibitionView })));
 const ImportExportView = lazy(() => import("../features/importExport/ImportExportView").then((module) => ({ default: module.ImportExportView })));
+const DigitalCentersView = lazy(() => import("../features/digitalCenters/DigitalCentersView").then((module) => ({ default: module.DigitalCentersView })));
 const SettingsView = lazy(() => import("../features/settings/SettingsView").then((module) => ({ default: module.SettingsView })));
 
 export function configuredStartView(): AppView {
   return availableStartView(window.localStorage.getItem(defaultViewSettingKey) || "");
 }
 
-function pathForView(nextView: AppView) {
+export function pathForView(nextView: AppView) {
   if (nextView === "overview") return "/overview";
   if (nextView === "vehicles") return "/vehicles";
   if (nextView === "accessories") return "/accessories";
   if (nextView === "layouts") return "/layouts";
   if (nextView === "exhibition") return "/exhibition";
   if (nextView === "importExport") return "/import-export";
+  if (nextView === "digitalCenters") return "/digital-centers";
   if (nextView === "settings") return "/settings";
   return "/";
 }
@@ -51,6 +53,9 @@ export function currentView(): AppView {
   }
   if (window.location.pathname.startsWith("/import-export")) {
     return "importExport";
+  }
+  if (window.location.pathname.startsWith("/digital-centers")) {
+    return "digitalCenters";
   }
   if (window.location.pathname.startsWith("/settings")) {
     return "settings";
@@ -191,6 +196,7 @@ export function App() {
         {effectiveView === "layouts" && <LayoutsView roles={session.roles} />}
         {effectiveView === "exhibition" && <ExhibitionView roles={session.roles} />}
         {effectiveView === "importExport" && <ImportExportView roles={session.roles} />}
+        {effectiveView === "digitalCenters" && <DigitalCentersView roles={session.roles} />}
         {effectiveView === "settings" && <SettingsView username={session.username} />}
       </Suspense>
     </Shell>

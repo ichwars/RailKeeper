@@ -13,6 +13,7 @@ describe("navigation availability", () => {
     ["inventory", "vehicles"],
     ["accessories", "accessories"],
     ["importExport", "importExport"],
+    ["digitalCenters", "digitalCenters"],
     ["settings", "settings"],
     ["invalid", "overview"]
   ])("maps configured start view %s to %s", (stored, expected) => {

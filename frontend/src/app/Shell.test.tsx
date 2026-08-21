@@ -88,4 +88,16 @@ describe("Shell article navigation", () => {
     expect(screen.queryByRole("link", { name: "Layout" })).not.toBeInTheDocument();
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
   });
+
+  it("links the Digital Centers navigation directly to its workspace", async () => {
+    render(
+      <Shell username="admin" roles={["Admin"]} activeView="digitalCenters" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    expect(screen.getByRole("link", { name: "Digitalzentralen" }))
+      .toHaveAttribute("href", "/digital-centers");
+    await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
+  });
 });
