@@ -18,6 +18,7 @@ type TransferReviewTableProps = {
 const resolutionLabels = {
   de: {
     replace: "Vorhandenen Datensatz ersetzen",
+    merge: "Einträge zusammenführen",
     copy: "Als Kopie anlegen",
     skip: "Überspringen",
     use_existing: "Vorhandenen Datensatz verwenden",
@@ -26,6 +27,7 @@ const resolutionLabels = {
   },
   en: {
     replace: "Replace existing record",
+    merge: "Merge entries",
     copy: "Create a copy",
     skip: "Skip",
     use_existing: "Use existing record",
@@ -110,9 +112,14 @@ function resolutionsFor(issue: DataTransferIssue): DataTransferIssueResolution[]
     missing_inventory_number: ["skip"],
     missing_manufacturer: ["skip"],
     missing_name: ["skip"],
+    missing_gauge: ["skip"],
+    missing_category: ["skip"],
+    missing_gattung: ["skip"],
+    invalid_vehicle: ["skip"],
+    invalid_accessory: ["skip"],
     duplicate_inventory_number: ["replace", "copy", "skip"],
     matching_manufacturer_article_number: ["use_existing", "create", "skip"],
-    duplicate_exhibition_list: ["replace", "copy", "skip"],
+    duplicate_exhibition_list: ["replace", "merge", "copy", "skip"],
     locked_exhibition_list: ["copy", "skip"],
     exhibition_vehicle_reference: ["link", "skip"],
     missing_vehicle_reference: ["skip"],

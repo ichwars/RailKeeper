@@ -227,9 +227,9 @@ export function useDataTransferWorkspace(roles: string[] = []) {
   }, [runMutation]);
   const resolveIssue = useCallback((jobId: string, issueId: string, resolution: DataTransferIssueResolution) =>
     runMutation(() => api.resolveDataTransferIssue(jobId, issueId, resolution), (job) => job), [runMutation]);
-  const confirmImport = useCallback(async (jobId: string) => {
+  const confirmImport = useCallback(async (jobId: string, expectedRevision: number) => {
     try {
-      return await runMutation(() => api.confirmDataTransferImport(jobId), (job) => job);
+      return await runMutation(() => api.confirmDataTransferImport(jobId, expectedRevision), (job) => job);
     } catch (confirmError) {
       if (confirmError instanceof ApiError && confirmError.status === 409) {
         setReuploadRequiredJobIds((current) => new Set(current).add(jobId));

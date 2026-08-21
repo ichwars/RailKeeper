@@ -46,6 +46,26 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	}
 }
 
+func TestPreviewImportRejectsRecordsRejectedByRegularAggregateValidation(t *testing.T) {
+	incoming := DataTransferSnapshot{
+		Vehicles: []TransferVehicle{{
+			InventoryNumber: "RK-INVALID-VEHICLE", Manufacturer: "Roco", Name: "BR 01",
+		}},
+		Accessories: []TransferAccessory{{
+			InventoryNumber: "RK-INVALID-ACCESSORY", Manufacturer: "Viessmann", Name: "Signal",
+			Category: "Signal", TrackingMode: "quantity", ArticleType: "invalid", Subtype: "invalid:signal",
+			ListPrice: "not-money", PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: "quantity",
+		}},
+	}
+	records, issues := classifyDataTransferImport("job-invalid", incoming, DataTransferSnapshot{}, nil)
+	for _, code := range []string{"missing_gauge", "missing_category", "missing_gattung", "invalid_accessory"} {
+		assertTransferIssueCode(t, issues, code)
+	}
+	if records[0].Classification != "error" || records[1].Classification != "error" {
+		t.Fatalf("aggregate-invalid records were not blocked: %#v", records)
+	}
+}
+
 func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.T) {
 	for _, testCase := range []struct {
 		name    string
@@ -91,7 +111,8 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 
 	vehicleJob := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
 	vehiclePreview, err := service.UploadAndPreview(t.Context(), vehicleJob.ID, "vehicles.csv", []byte(
-		"Inventarnummer;Hersteller;Bezeichnung\nRK-001;Roco;BR 01\n"), "editor-1")
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
+			"RK-001;Roco;BR 01;H0;Lokomotive;Dampflokomotive\n"), "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +134,9 @@ func TestPreviewImportClassifiesDuplicatesAndLockedExhibitionReplacement(t *test
 
 	accessoryJob := fixtureCreateImportJob(t, service, TransferAccessories, TransferCSV)
 	accessoryPreview, err := service.UploadAndPreview(t.Context(), accessoryJob.ID, "accessories.csv", []byte(
-		"Inventarnummer;Hersteller;Artikelnummer;Bezeichnung\nRK-A-NEW;Viessmann;4011;Signal\n"), "editor-1")
+		"Inventarnummer;Hersteller;Artikelnummer;Bezeichnung;Kategorie;Erfassungsart;Artikelart;Unterart;"+
+			"Packungsmenge;Bestandseinheit;Inventarstrategie\n"+
+			"RK-A-NEW;Viessmann;4011;Signal;Signal;quantity;other;other:other;1;piece;quantity\n"), "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,12 +265,15 @@ func TestTransferImportEnforcesAreaScopeAndSupportsIssueResolutionAndCancel(t *t
 	_, service := newDataTransferImportFixture(t)
 	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
 	if _, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", []byte(
-		"Inventarnummer;Hersteller;Bezeichnung\nRK-001;;BR 01\n"), "messe-1", TransferExhibitionLists); !errors.Is(err, ErrDataTransferForbidden) {
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
+			"RK-001;;BR 01;H0;Lokomotive;Dampflokomotive\n"),
+		"messe-1", TransferExhibitionLists); !errors.Is(err, ErrDataTransferForbidden) {
 		t.Fatalf("expected Messe area rejection, got %v", err)
 	}
 
 	preview, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", []byte(
-		"Inventarnummer;Hersteller;Bezeichnung\nRK-001;;BR 01\n"), "editor-1")
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
+			"RK-001;;BR 01;H0;Lokomotive;Dampflokomotive\n"), "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -278,7 +304,7 @@ func TestDataTransferConfirmImportRequiresExplicitConfirmationAndReadyResolvedPr
 	job.Preview = map[string]any{"sourceSha256": "source-sha", "records": []any{}}
 	repository.jobs[job.ID] = job
 
-	if _, err := service.ConfirmImport(t.Context(), job.ID, false, "editor-1"); !errors.Is(err, ErrDataTransferValidation) {
+	if _, err := service.ConfirmImport(t.Context(), job.ID, job.Revision, false, "editor-1"); !errors.Is(err, ErrDataTransferValidation) {
 		t.Fatalf("ConfirmImport(false) error = %v, want validation", err)
 	}
 	if repository.applyCount != 0 {
@@ -289,18 +315,18 @@ func TestDataTransferConfirmImportRequiresExplicitConfirmationAndReadyResolvedPr
 		ID: "issue-1", JobID: job.ID, Area: TransferVehicles, RecordKey: "RK-1",
 		Severity: TransferIssueWarning, Code: "duplicate_inventory_number",
 	}}
-	if _, err := service.ConfirmImport(t.Context(), job.ID, true, "editor-1"); !errors.Is(err, ErrDataTransferConflict) {
+	if _, err := service.ConfirmImport(t.Context(), job.ID, job.Revision, true, "editor-1"); !errors.Is(err, ErrDataTransferConflict) {
 		t.Fatalf("ConfirmImport(unresolved) error = %v, want conflict", err)
 	}
 	repository.issues[job.ID][0].SelectedResolution = "skip"
 
 	if _, err := service.ConfirmImport(
-		t.Context(), job.ID, true, "messe-1", TransferExhibitionLists,
+		t.Context(), job.ID, job.Revision, true, "messe-1", TransferExhibitionLists,
 	); !errors.Is(err, ErrDataTransferForbidden) {
 		t.Fatalf("ConfirmImport(Messe vehicles) error = %v, want forbidden", err)
 	}
 
-	completed, err := service.ConfirmImport(t.Context(), job.ID, true, "editor-1")
+	completed, err := service.ConfirmImport(t.Context(), job.ID, job.Revision, true, "editor-1")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -472,5 +498,22 @@ func (repository *dataTransferImportRepositoryStub) ApplyImport(
 	current.ConfirmedByUserID = actor
 	current.Revision++
 	repository.jobs[job.ID] = current
+	return nil
+}
+
+func (repository *dataTransferImportRepositoryStub) ApplyImportWithPolicy(
+	ctx context.Context,
+	job DataTransferJob,
+	actor string,
+	_ DataTransferImportPolicy,
+) error {
+	return repository.ApplyImport(ctx, job, actor)
+}
+
+func (repository *dataTransferImportRepositoryStub) ValidateTransferAccessoryReferences(
+	_ context.Context,
+	_ TransferAccessory,
+	_ string,
+) error {
 	return nil
 }

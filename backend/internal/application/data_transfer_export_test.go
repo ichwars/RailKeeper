@@ -54,6 +54,29 @@ func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 	}
 }
 
+func TestDataTransferExportCSVNeutralizesSpreadsheetFormulas(t *testing.T) {
+	snapshot := DataTransferSnapshot{Vehicles: []TransferVehicle{{
+		InventoryNumber: "=HYPERLINK(\"https://example.invalid\")", Manufacturer: "+cmd|' /C calc'!A0",
+		ArticleNumber: "-2+3", Name: "@SUM(1+1)", Gauge: "H0", Category: "Lokomotive",
+		Gattung: "Dampflokomotive", Description: "ordinary text",
+	}}}
+	payload, err := marshalDataTransferCSV(TransferVehicles, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(payload)
+	for _, protected := range []string{
+		"'=HYPERLINK", "'+cmd", "'-2+3", "'@SUM",
+	} {
+		if !strings.Contains(text, protected) {
+			t.Fatalf("CSV did not neutralize %q: %s", protected, text)
+		}
+	}
+	if !strings.Contains(text, "ordinary text") {
+		t.Fatalf("CSV changed ordinary text: %s", text)
+	}
+}
+
 func TestDataTransferExportAccessoryCSVIncludesCurrentStockAndAssets(t *testing.T) {
 	snapshot := DataTransferSnapshot{Accessories: []TransferAccessory{{
 		InventoryNumber: "RK-ART-1", Manufacturer: "Viessmann", ArticleNumber: "4011", Name: "Signal",

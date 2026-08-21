@@ -118,6 +118,10 @@ type DataTransferImportMutation struct {
 	ReplaceIssues    bool
 }
 
+type DataTransferImportPolicy struct {
+	CanManageExhibitionLists bool
+}
+
 type DataTransferRepository interface {
 	CreateProfile(context.Context, DataTransferProfile) (DataTransferProfile, error)
 	UpdateProfile(context.Context, DataTransferProfile) (DataTransferProfile, error)

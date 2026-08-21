@@ -61,13 +61,13 @@ components:
       enum: [warning, error]
     TransferIssueResolution:
       type: string
-      enum: [replace, copy, skip, use_existing, create, link]
+      enum: [replace, merge, copy, skip, use_existing, create, link]
     TransferProposedAction:
       type: string
       enum: [create, replace, use_existing, copy]
     TransferProposedResolution:
       type: string
-      enum: [replace, copy, skip, use_existing, create, link, replace_or_copy]
+      enum: [replace, merge, copy, skip, use_existing, create, link, replace_or_copy]
     DataTransferProfile:
       type: object
       required: [id, name, direction, format, areas, options, enabled, createdByUserId, createdAt, updatedAt]
@@ -145,10 +145,13 @@ components:
           minLength: 1
     DataTransferImportConfirmationInput:
       type: object
-      required: [confirm]
+      required: [confirm, expectedRevision]
       properties:
         confirm:
           type: boolean
+        expectedRevision:
+          type: integer
+          minimum: 1
     DataTransferJob:
       type: object
       required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion, revision,

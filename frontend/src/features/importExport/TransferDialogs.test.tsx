@@ -267,7 +267,7 @@ describe("data transfer operational dialogs", () => {
     expect(enabledConfirm).toBeEnabled();
     await user.click(enabledConfirm);
 
-    await waitFor(() => expect(api.confirmDataTransferImport).toHaveBeenCalledWith("job-import"));
+    await waitFor(() => expect(api.confirmDataTransferImport).toHaveBeenCalledWith("job-import", 3));
   });
 
   it("retries into a fresh draft flow without confirming the historical import", async () => {

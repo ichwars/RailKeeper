@@ -26,7 +26,8 @@ type resolveDataTransferIssueRequest struct {
 }
 
 type confirmDataTransferImportRequest struct {
-	Confirm *bool `json:"confirm"`
+	Confirm          *bool `json:"confirm"`
+	ExpectedRevision *int  `json:"expectedRevision"`
 }
 
 func (a *App) dataTransferSummary(w http.ResponseWriter, r *http.Request) {
@@ -83,6 +84,7 @@ func (a *App) retryDataTransferJob(w http.ResponseWriter, r *http.Request) {
 		a.dataTransferError(w, err, "retry data transfer job")
 		return
 	}
+	a.recordAudit(r, "DataTransferJobRetried", "data_transfer_job", job.ID)
 	respondJSON(w, http.StatusCreated, job)
 }
 
@@ -129,6 +131,7 @@ func (a *App) createDataTransferImportJob(w http.ResponseWriter, r *http.Request
 		a.dataTransferError(w, err, "create data transfer import job")
 		return
 	}
+	a.recordAudit(r, "DataTransferImportJobCreated", "data_transfer_job", job.ID)
 	respondJSON(w, http.StatusCreated, job)
 }
 
@@ -157,6 +160,7 @@ func (a *App) uploadDataTransferImport(w http.ResponseWriter, r *http.Request) {
 		a.dataTransferError(w, err, "preview data transfer import")
 		return
 	}
+	a.recordAudit(r, "DataTransferImportUploaded", "data_transfer_job", preview.Job.ID)
 	respondJSON(w, http.StatusOK, preview)
 }
 
@@ -176,6 +180,7 @@ func (a *App) resolveDataTransferIssue(w http.ResponseWriter, r *http.Request) {
 		a.dataTransferError(w, err, "resolve data transfer issue")
 		return
 	}
+	a.recordAudit(r, "DataTransferIssueResolved", "data_transfer_issue", r.PathValue("issueID"))
 	respondJSON(w, http.StatusOK, job)
 }
 
@@ -190,6 +195,7 @@ func (a *App) cancelDataTransferJob(w http.ResponseWriter, r *http.Request) {
 		a.dataTransferError(w, err, "cancel data transfer job")
 		return
 	}
+	a.recordAudit(r, "DataTransferJobCancelled", "data_transfer_job", job.ID)
 	respondJSON(w, http.StatusOK, job)
 }
 
@@ -201,12 +207,15 @@ func (a *App) confirmDataTransferImport(w http.ResponseWriter, r *http.Request) 
 	if !decodeBoundedJSON(w, r, &input) {
 		return
 	}
-	if input.Confirm == nil {
-		respondProblem(w, http.StatusBadRequest, "data_transfer_validation", "Import confirmation is required.")
+	if input.Confirm == nil || input.ExpectedRevision == nil || *input.ExpectedRevision < 1 {
+		respondProblem(w, http.StatusBadRequest, "data_transfer_validation",
+			"Import confirmation and the reviewed revision are required.")
 		return
 	}
-	job, err := a.dataTransferService.ConfirmImport(
-		r.Context(), r.PathValue("id"), *input.Confirm, actorUserID(r), allowedDataTransferAreas(r)...,
+	job, err := a.dataTransferService.ConfirmImportWithPolicy(
+		r.Context(), r.PathValue("id"), *input.ExpectedRevision, *input.Confirm, actorUserID(r),
+		application.DataTransferImportPolicy{CanManageExhibitionLists: !dataTransferMesseOnly(r)},
+		allowedDataTransferAreas(r)...,
 	)
 	if err != nil {
 		a.dataTransferError(w, err, "confirm data transfer import")
@@ -230,6 +239,7 @@ func (a *App) createDataTransferExportJob(w http.ResponseWriter, r *http.Request
 		a.dataTransferError(w, err, "create data transfer export job")
 		return
 	}
+	a.recordAudit(r, "DataTransferExportJobCreated", "data_transfer_job", job.ID)
 	respondJSON(w, http.StatusCreated, job)
 }
 
@@ -244,6 +254,7 @@ func (a *App) executeDataTransferExport(w http.ResponseWriter, r *http.Request) 
 		a.dataTransferError(w, err, "execute data transfer export")
 		return
 	}
+	a.recordAudit(r, "DataTransferExportExecuted", "data_transfer_job", result.Job.ID)
 	respondJSON(w, http.StatusOK, result)
 }
 
@@ -279,6 +290,7 @@ func (a *App) deleteDataTransferArtifact(w http.ResponseWriter, r *http.Request)
 		a.dataTransferError(w, err, "delete data transfer artifact")
 		return
 	}
+	a.recordAudit(r, "DataTransferArtifactDeleted", "data_transfer_artifact", r.PathValue("id"))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -326,6 +338,7 @@ func (a *App) createDataTransferProfile(w http.ResponseWriter, r *http.Request) 
 		a.dataTransferError(w, err, "create data transfer profile")
 		return
 	}
+	a.recordAudit(r, "DataTransferProfileCreated", "data_transfer_profile", profile.ID)
 	respondJSON(w, http.StatusCreated, profile)
 }
 
@@ -342,6 +355,7 @@ func (a *App) updateDataTransferProfile(w http.ResponseWriter, r *http.Request) 
 		a.dataTransferError(w, err, "update data transfer profile")
 		return
 	}
+	a.recordAudit(r, "DataTransferProfileUpdated", "data_transfer_profile", profile.ID)
 	respondJSON(w, http.StatusOK, profile)
 }
 
@@ -353,6 +367,7 @@ func (a *App) disableDataTransferProfile(w http.ResponseWriter, r *http.Request)
 		a.dataTransferError(w, err, "disable data transfer profile")
 		return
 	}
+	a.recordAudit(r, "DataTransferProfileDisabled", "data_transfer_profile", r.PathValue("id"))
 	w.WriteHeader(http.StatusNoContent)
 }
 

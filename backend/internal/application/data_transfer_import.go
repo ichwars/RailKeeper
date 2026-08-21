@@ -76,6 +76,8 @@ type dataTransferImportRepository interface {
 	Snapshot(context.Context, []TransferArea) (DataTransferSnapshot, error)
 	CompareAndUpdateImportJob(context.Context, DataTransferImportMutation) (DataTransferJob, error)
 	ApplyImport(context.Context, DataTransferJob, string) error
+	ApplyImportWithPolicy(context.Context, DataTransferJob, string, DataTransferImportPolicy) error
+	ValidateTransferAccessoryReferences(context.Context, TransferAccessory, string) error
 }
 
 func (s *DataTransferService) CreateImportJob(
@@ -185,6 +187,10 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, fmt.Errorf("load current transfer rows: %w", err)
 	}
 	records, issues := classifyDataTransferImport(job.ID, incoming, current, rowNumbers)
+	records, issues, err = validateTransferAccessoryPreviewReferences(ctx, repository, job.ID, records, issues)
+	if err != nil {
+		return DataTransferPreview{}, err
+	}
 	ready, warnings, failures := countDataTransferPreviewRecords(records)
 	job.SourceName = cleanName
 	job.SourceSHA256 = digest
@@ -215,6 +221,70 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, err
 	}
 	return newDataTransferPreview(job, records, issues), nil
+}
+
+func validateTransferAccessoryPreviewReferences(
+	ctx context.Context,
+	repository dataTransferImportRepository,
+	jobID string,
+	records []DataTransferPreviewRecord,
+	issues []DataTransferIssue,
+) ([]DataTransferPreviewRecord, []DataTransferIssue, error) {
+	for index := range records {
+		record := &records[index]
+		if record.Area != TransferAccessories || transferRecordHasIssue(issues, *record, "invalid_accessory") {
+			continue
+		}
+		accessory := TransferAccessory{}
+		if err := json.Unmarshal(record.Data, &accessory); err != nil {
+			return nil, nil, fmt.Errorf("%w: invalid accessory preview data", ErrDataTransferValidation)
+		}
+		if err := repository.ValidateTransferAccessoryReferences(ctx, accessory, record.TargetID); err != nil {
+			if !errors.Is(err, ErrAccessoryValidation) {
+				return nil, nil, err
+			}
+			issues = append(issues, newTransferIssue(jobID, TransferAccessories, record.RecordKey, record.RowNumber,
+				"record", TransferIssueError, "invalid_accessory",
+				"Accessory article type or subtype is not active.", "skip"))
+			finalizeDataTransferRecord(record, transferIssuesForPreviewRecord(issues, *record))
+		}
+	}
+	return records, issues, nil
+}
+
+func transferRecordHasIssue(
+	issues []DataTransferIssue,
+	record DataTransferPreviewRecord,
+	code string,
+) bool {
+	for _, issue := range issues {
+		if issue.Area == record.Area && issue.RecordKey == record.RecordKey && issue.Code == code &&
+			transferPreviewRowsEqual(issue.RowNumber, record.RowNumber) {
+			return true
+		}
+	}
+	return false
+}
+
+func transferIssuesForPreviewRecord(
+	issues []DataTransferIssue,
+	record DataTransferPreviewRecord,
+) []DataTransferIssue {
+	matched := make([]DataTransferIssue, 0)
+	for _, issue := range issues {
+		if issue.Area == record.Area && issue.RecordKey == record.RecordKey &&
+			transferPreviewRowsEqual(issue.RowNumber, record.RowNumber) {
+			matched = append(matched, issue)
+		}
+	}
+	return matched
+}
+
+func transferPreviewRowsEqual(left, right *int) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
 }
 
 func (s *DataTransferService) ResolveIssue(
@@ -315,8 +385,22 @@ func (s *DataTransferService) CancelJob(
 func (s *DataTransferService) ConfirmImport(
 	ctx context.Context,
 	jobID string,
+	expectedRevision int,
 	confirm bool,
 	actorUserID string,
+	allowedAreas ...TransferArea,
+) (DataTransferJob, error) {
+	return s.ConfirmImportWithPolicy(ctx, jobID, expectedRevision, confirm, actorUserID,
+		DataTransferImportPolicy{CanManageExhibitionLists: true}, allowedAreas...)
+}
+
+func (s *DataTransferService) ConfirmImportWithPolicy(
+	ctx context.Context,
+	jobID string,
+	expectedRevision int,
+	confirm bool,
+	actorUserID string,
+	policy DataTransferImportPolicy,
 	allowedAreas ...TransferArea,
 ) (DataTransferJob, error) {
 	repository, err := s.importRepository()
@@ -324,7 +408,7 @@ func (s *DataTransferService) ConfirmImport(
 		return DataTransferJob{}, err
 	}
 	actorUserID = strings.TrimSpace(actorUserID)
-	if !confirm || actorUserID == "" {
+	if expectedRevision < 1 || !confirm || actorUserID == "" {
 		return DataTransferJob{}, fmt.Errorf("%w: explicit import confirmation is required", ErrDataTransferValidation)
 	}
 	job, err := importJob(ctx, repository, strings.TrimSpace(jobID))
@@ -336,6 +420,9 @@ func (s *DataTransferService) ConfirmImport(
 	}
 	if !dataTransferAreasAllowed(job.Areas, allowedAreas) {
 		return DataTransferJob{}, ErrDataTransferForbidden
+	}
+	if job.Revision != expectedRevision {
+		return DataTransferJob{}, fmt.Errorf("%w: reviewed import revision changed", ErrDataTransferConflict)
 	}
 	if job.State != TransferJobReady {
 		return DataTransferJob{}, fmt.Errorf("%w: import job is not ready", ErrDataTransferConflict)
@@ -352,7 +439,7 @@ func (s *DataTransferService) ConfirmImport(
 			return DataTransferJob{}, fmt.Errorf("%w: import has unresolved conflicts", ErrDataTransferConflict)
 		}
 	}
-	if err := repository.ApplyImport(ctx, job, actorUserID); err != nil {
+	if err := repository.ApplyImportWithPolicy(ctx, job, actorUserID, policy); err != nil {
 		return DataTransferJob{}, err
 	}
 	return importJob(ctx, repository, job.ID)
@@ -596,9 +683,14 @@ func validDataTransferResolution(issue DataTransferIssue, resolution string) boo
 		"missing_inventory_number":             {"skip": true},
 		"missing_manufacturer":                 {"skip": true},
 		"missing_name":                         {"skip": true},
+		"missing_gauge":                        {"skip": true},
+		"missing_category":                     {"skip": true},
+		"missing_gattung":                      {"skip": true},
+		"invalid_vehicle":                      {"skip": true},
+		"invalid_accessory":                    {"skip": true},
 		"duplicate_inventory_number":           {"replace": true, "copy": true, "skip": true},
 		"matching_manufacturer_article_number": {"use_existing": true, "create": true, "skip": true},
-		"duplicate_exhibition_list":            {"replace": true, "copy": true, "skip": true},
+		"duplicate_exhibition_list":            {"replace": true, "merge": true, "copy": true, "skip": true},
 		"locked_exhibition_list":               {"copy": true, "skip": true},
 		"exhibition_vehicle_reference":         {"link": true, "skip": true},
 		"missing_vehicle_reference":            {"skip": true},

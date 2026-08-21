@@ -103,13 +103,9 @@ func (s *DataTransferService) Summary(
 	if err != nil {
 		return DataTransferSummary{}, err
 	}
-	directory, err := resolveDataTransferArtifactPath(s.dataDir, "exports")
-	if err != nil {
-		return DataTransferSummary{}, err
-	}
 	summary := DataTransferSummary{
 		OpenFolderAvailable: s.OpenFolderAvailable(),
-		ArtifactDirectory:   directory,
+		ArtifactDirectory:   "RailKeeper/Exporte",
 	}
 	visibleJobs := make(map[string]DataTransferJob, len(jobs))
 	for _, job := range jobs {

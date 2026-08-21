@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strings"
 	"time"
+	"unicode"
 )
 
 var (
@@ -387,9 +388,9 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 			return nil, err
 		}
 		for _, vehicle := range snapshot.Vehicles {
-			if err := writer.Write([]string{vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber,
+			if err := writer.Write(safeDataTransferCSVRow([]string{vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber,
 				vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category,
-				vehicle.Gattung, vehicle.Description}); err != nil {
+				vehicle.Gattung, vehicle.Description})); err != nil {
 				return nil, err
 			}
 		}
@@ -410,13 +411,13 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 			if err != nil {
 				return nil, err
 			}
-			if err := writer.Write([]string{
+			if err := writer.Write(safeDataTransferCSVRow([]string{
 				accessory.InventoryNumber, accessory.Manufacturer, accessory.ArticleNumber, accessory.Name,
 				accessory.Category, accessory.TrackingMode, accessory.Description, accessory.EAN,
 				accessory.ArticleType, accessory.Subtype, strings.Join(accessory.Gauges, ","), accessory.Scale,
 				accessory.ListPrice, fmt.Sprintf("%d", accessory.PackageQuantity), accessory.StockUnit,
 				fmt.Sprintf("%d", accessory.MinimumStock), accessory.InventoryStrategy, string(stock), string(assets),
-			}); err != nil {
+			})); err != nil {
 				return nil, err
 			}
 		}
@@ -428,6 +429,18 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 		return nil, fmt.Errorf("encode transfer CSV: %w", err)
 	}
 	return []byte(builder.String()), nil
+}
+
+func safeDataTransferCSVRow(values []string) []string {
+	protected := make([]string, len(values))
+	for index, value := range values {
+		candidate := strings.TrimLeftFunc(value, unicode.IsSpace)
+		if candidate != "" && strings.ContainsRune("=+-@", rune(candidate[0])) {
+			value = "'" + value
+		}
+		protected[index] = value
+	}
+	return protected
 }
 
 func sortDataTransferSnapshot(snapshot *DataTransferSnapshot) {

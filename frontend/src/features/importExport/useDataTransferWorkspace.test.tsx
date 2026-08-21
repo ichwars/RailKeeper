@@ -333,7 +333,7 @@ describe("data transfer API", () => {
     await api.createDataTransferImportJob({ profileId: "profile/1" });
     await api.uploadDataTransferImport("job/1", file);
     await api.resolveDataTransferIssue("job/1", "issue/1", "use_existing");
-    await api.confirmDataTransferImport("job/1");
+    await api.confirmDataTransferImport("job/1", 7);
     await api.cancelDataTransferImport("job/1");
     await api.deleteDataTransferArtifact("artifact/1");
     await api.openDataTransferArtifactFolder();

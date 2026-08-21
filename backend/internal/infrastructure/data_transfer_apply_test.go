@@ -111,6 +111,109 @@ func TestDataTransferApplyRollsBackWhenSecondRowFails(t *testing.T) {
 	assertApplyJobStillReady(t, repository, job.ID)
 }
 
+func TestDataTransferApplyRejectsAggregateInvalidPreviewData(t *testing.T) {
+	t.Run("vehicle", func(t *testing.T) {
+		db := testDB(t)
+		repository := infrastructure.NewDataTransferRepository(db)
+		data, err := json.Marshal(application.TransferVehicle{
+			InventoryNumber: "RK-INVALID-VEHICLE", Manufacturer: "Roco", Name: "BR 01", Gauge: "H0",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		job := createApplyJob(t, repository, "sha-invalid-vehicle", []application.DataTransferPreviewRecord{{
+			Area: application.TransferVehicles, RecordKey: "RK-INVALID-VEHICLE", Classification: "ready",
+			ProposedAction: "create", Data: data,
+		}})
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+			t.Fatalf("ApplyImport(invalid vehicle) error = %v, want conflict", err)
+		}
+		assertApplyJobStillReady(t, repository, job.ID)
+	})
+
+	t.Run("accessory", func(t *testing.T) {
+		db := testDB(t)
+		repository := infrastructure.NewDataTransferRepository(db)
+		data, err := json.Marshal(application.TransferAccessory{
+			InventoryNumber: "RK-INVALID-ACCESSORY", Manufacturer: "Viessmann", Name: "Signal",
+			Category: "Signal", TrackingMode: "quantity", ArticleType: "invalid", Subtype: "invalid:signal",
+			ListPrice: "not-money", PackageQuantity: 1, StockUnit: "piece", InventoryStrategy: "quantity",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		job := createApplyJob(t, repository, "sha-invalid-accessory", []application.DataTransferPreviewRecord{{
+			Area: application.TransferAccessories, RecordKey: "RK-INVALID-ACCESSORY", Classification: "ready",
+			ProposedAction: "create", Data: data,
+		}})
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+			t.Fatalf("ApplyImport(invalid accessory) error = %v, want conflict", err)
+		}
+		assertApplyJobStillReady(t, repository, job.ID)
+	})
+
+	t.Run("inactive accessory reference data", func(t *testing.T) {
+		db := testDB(t)
+		repository := infrastructure.NewDataTransferRepository(db)
+		insertTransferMasterData(t, db, "article_type", "track", true)
+		data, err := json.Marshal(application.TransferAccessory{
+			InventoryNumber: "RK-INACTIVE-SUBTYPE", Manufacturer: "Märklin", Name: "Track",
+			Category: "Track", TrackingMode: "quantity", ManufacturerStatus: "available",
+			ArticleType: "track", Subtype: "track:not_configured", PackageQuantity: 1,
+			StockUnit: "piece", InventoryStrategy: "quantity",
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		job := createApplyJob(t, repository, "sha-inactive-subtype", []application.DataTransferPreviewRecord{{
+			Area: application.TransferAccessories, RecordKey: "RK-INACTIVE-SUBTYPE", Classification: "ready",
+			ProposedAction: "create", Data: data,
+		}})
+		if err := repository.ApplyImport(t.Context(), job, "editor-1"); !errors.Is(err, application.ErrDataTransferConflict) {
+			t.Fatalf("ApplyImport(inactive subtype) error = %v, want conflict", err)
+		}
+		assertApplyJobStillReady(t, repository, job.ID)
+	})
+}
+
+func TestDataTransferPreviewRejectsInactiveAccessoryReferenceData(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	insertTransferMasterData(t, db, "article_type", "track", true)
+	insertTransferMasterData(t, db, "accessory_subtype", "track:straight", true)
+	service := application.NewDataTransferService(repository, t.TempDir())
+	profile, err := service.CreateProfile(t.Context(), application.CreateDataTransferProfileInput{
+		Name: "Accessory import", Direction: application.TransferImport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferAccessories},
+	}, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := service.CreateImportJob(t.Context(), profile.ID, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(application.DataTransferPackage{
+		Format: application.DataTransferPackageFormat, Version: application.DataTransferPackageVersion,
+		Areas: application.DataTransferPackageAreas{Accessories: []application.TransferAccessory{{
+			InventoryNumber: "RK-INACTIVE-SUBTYPE", Manufacturer: "Märklin", Name: "Track",
+			Category: "Track", TrackingMode: "quantity", ManufacturerStatus: "available",
+			ArticleType: "track", Subtype: "track:not_configured", PackageQuantity: 1,
+			StockUnit: "piece", InventoryStrategy: "quantity",
+		}}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	preview, err := service.UploadAndPreview(t.Context(), job.ID, "accessories.json", payload, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.ErrorRecords != 1 || !hasTransferIssueCode(preview.Issues, "invalid_accessory") {
+		t.Fatalf("inactive subtype preview was not blocked: %#v", preview)
+	}
+}
+
 func TestDataTransferApplyCASAllowsOneConcurrentConfirmation(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)
@@ -1025,6 +1128,7 @@ func applyVehicleRecord(t *testing.T, inventoryNumber, manufacturer string) appl
 	t.Helper()
 	data, err := json.Marshal(application.TransferVehicle{
 		InventoryNumber: inventoryNumber, Manufacturer: manufacturer, Name: inventoryNumber, Gauge: "H0",
+		Category: "Lokomotive", Gattung: "Lokomotive",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -1048,6 +1152,26 @@ func assertApplyJobStillReady(
 	if job.State != application.TransferJobReady || job.ConfirmedAt != "" || job.CompletedAt != "" {
 		t.Fatalf("job changed after failed apply: %#v", job)
 	}
+}
+
+func insertTransferMasterData(t *testing.T, db *sql.DB, entryType, key string, active bool) {
+	t.Helper()
+	if _, err := db.Exec(`INSERT INTO master_data_entries(
+		id, type, key, label, active, sort_order, metadata_json, created_at, updated_at
+	) VALUES(?, ?, ?, ?, ?, 0, '{}', '2026-01-01T00:00:00Z', '2026-01-01T00:00:00Z')
+	ON CONFLICT(type, key) DO UPDATE SET active=excluded.active`,
+		"transfer-"+entryType+"-"+key, entryType, key, key, active); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func hasTransferIssueCode(issues []application.DataTransferIssue, code string) bool {
+	for _, issue := range issues {
+		if issue.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func applyTargetFingerprint(t *testing.T, value any) string {

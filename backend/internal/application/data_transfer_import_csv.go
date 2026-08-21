@@ -281,6 +281,25 @@ func classifyDataTransferImport(
 		start := len(issues)
 		issues = appendRequiredTransferIssues(issues, jobID, TransferVehicles, recordKey, rowNumber,
 			vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.Name)
+		for _, required := range []struct {
+			field, value, code, message string
+		}{
+			{"gauge", vehicle.Gauge, "missing_gauge", "Gauge is required."},
+			{"category", vehicle.Category, "missing_category", "Category is required."},
+			{"gattung", vehicle.Gattung, "missing_gattung", "Gattung is required."},
+		} {
+			if strings.TrimSpace(required.value) == "" {
+				issues = append(issues, newTransferIssue(jobID, TransferVehicles, recordKey, rowNumber,
+					required.field, TransferIssueError, required.code, required.message, "skip"))
+			}
+		}
+		if err := ValidateTransferVehicle(vehicle); err != nil &&
+			strings.TrimSpace(vehicle.Manufacturer) != "" && strings.TrimSpace(vehicle.Name) != "" &&
+			strings.TrimSpace(vehicle.Gauge) != "" && strings.TrimSpace(vehicle.Category) != "" &&
+			strings.TrimSpace(vehicle.Gattung) != "" {
+			issues = append(issues, newTransferIssue(jobID, TransferVehicles, recordKey, rowNumber, "record",
+				TransferIssueError, "invalid_vehicle", "Vehicle data violates aggregate validation.", "skip"))
+		}
 		identity := transferIdentity(vehicle.InventoryNumber)
 		if identity != "" && seenVehicleInventory[identity] {
 			issues = append(issues, newTransferIssue(jobID, TransferVehicles, recordKey, rowNumber, "inventoryNumber",
@@ -319,6 +338,10 @@ func classifyDataTransferImport(
 		start := len(issues)
 		issues = appendRequiredTransferIssues(issues, jobID, TransferAccessories, recordKey, rowNumber,
 			accessory.InventoryNumber, accessory.Manufacturer, accessory.Name)
+		if err := ValidateTransferAccessory(accessory); err != nil {
+			issues = append(issues, newTransferIssue(jobID, TransferAccessories, recordKey, rowNumber, "record",
+				TransferIssueError, "invalid_accessory", "Accessory data violates aggregate validation.", "skip"))
+		}
 		identity := transferIdentity(accessory.InventoryNumber)
 		if identity != "" && seenAccessoryInventory[identity] {
 			issues = append(issues, newTransferIssue(jobID, TransferAccessories, recordKey, rowNumber, "inventoryNumber",

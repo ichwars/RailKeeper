@@ -20,7 +20,7 @@ export type DataTransferJobStage =
   | "failed"
   | "cancelled";
 export type DataTransferIssueSeverity = "warning" | "error";
-export type DataTransferIssueResolution = "replace" | "copy" | "skip" | "use_existing" | "create" | "link";
+export type DataTransferIssueResolution = "replace" | "merge" | "copy" | "skip" | "use_existing" | "create" | "link";
 export type DataTransferProposedAction = "create" | "replace" | "use_existing" | "copy";
 export type DataTransferProposedResolution = DataTransferIssueResolution | "replace_or_copy";
 export type DataTransferOptions = Record<string, unknown>;

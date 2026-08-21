@@ -74,3 +74,14 @@ func TestOpenAPIDataTransferImportDocumentsRuntimeErrorsAndRevision(t *testing.T
 		t.Fatalf("data transfer job does not expose required revision: %s", job)
 	}
 }
+
+func TestOpenAPIDataTransferIssueResolutionIncludesMesseMerge(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolution := openAPIIndentedBlock(t, string(data), "TransferIssueResolution", 4)
+	if !strings.Contains(resolution, "merge") {
+		t.Fatalf("data transfer issue resolution omits Messe merge: %s", resolution)
+	}
+}

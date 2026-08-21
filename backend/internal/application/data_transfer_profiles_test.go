@@ -78,8 +78,8 @@ func TestDataTransferSummaryCountsOpenScopedJobsAndActiveArtifacts(t *testing.T)
 		summary.ArtifactCount != 1 || summary.ArtifactBytes != 7 || summary.OpenFolderAvailable {
 		t.Fatalf("unexpected scoped summary: %#v", summary)
 	}
-	if summary.ArtifactDirectory == "" {
-		t.Fatal("summary omitted artifact directory")
+	if summary.ArtifactDirectory != "RailKeeper/Exporte" {
+		t.Fatalf("summary exposed or changed the display directory: %q", summary.ArtifactDirectory)
 	}
 }
 

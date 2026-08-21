@@ -1222,10 +1222,10 @@ export const api = {
       `/data-transfer/jobs/${encodeURIComponent(jobId)}/issues/${encodeURIComponent(issueId)}`,
       { method: "PUT", body: JSON.stringify({ resolution }) }
     ),
-  confirmDataTransferImport: (id: string) =>
+  confirmDataTransferImport: (id: string, expectedRevision: number) =>
     request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/confirm`, {
       method: "POST",
-      body: JSON.stringify({ confirm: true })
+      body: JSON.stringify({ confirm: true, expectedRevision })
     }),
   cancelDataTransferImport: (id: string) =>
     request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),

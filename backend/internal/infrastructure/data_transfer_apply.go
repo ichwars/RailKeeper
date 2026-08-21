@@ -34,6 +34,17 @@ func (repository *DataTransferRepository) ApplyImport(
 	job application.DataTransferJob,
 	actor string,
 ) error {
+	return repository.ApplyImportWithPolicy(ctx, job, actor, application.DataTransferImportPolicy{
+		CanManageExhibitionLists: true,
+	})
+}
+
+func (repository *DataTransferRepository) ApplyImportWithPolicy(
+	ctx context.Context,
+	job application.DataTransferJob,
+	actor string,
+	policy application.DataTransferImportPolicy,
+) error {
 	tx, err := repository.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin data transfer import: %w", err)
@@ -44,7 +55,7 @@ func (repository *DataTransferRepository) ApplyImport(
 	if err != nil {
 		return err
 	}
-	result, err := applyTransferRecords(ctx, tx, job, preview.Records, issues)
+	result, err := applyTransferRecords(ctx, tx, job, preview.Records, issues, policy)
 	if err != nil {
 		return err
 	}
@@ -169,9 +180,14 @@ func validTransferApplyResolution(code, resolution string) bool {
 		"missing_inventory_number":             {"skip": true},
 		"missing_manufacturer":                 {"skip": true},
 		"missing_name":                         {"skip": true},
+		"missing_gauge":                        {"skip": true},
+		"missing_category":                     {"skip": true},
+		"missing_gattung":                      {"skip": true},
+		"invalid_vehicle":                      {"skip": true},
+		"invalid_accessory":                    {"skip": true},
 		"duplicate_inventory_number":           {"replace": true, "copy": true, "skip": true},
 		"matching_manufacturer_article_number": {"use_existing": true, "create": true, "skip": true},
-		"duplicate_exhibition_list":            {"replace": true, "copy": true, "skip": true},
+		"duplicate_exhibition_list":            {"replace": true, "merge": true, "copy": true, "skip": true},
 		"locked_exhibition_list":               {"copy": true, "skip": true},
 		"exhibition_vehicle_reference":         {"link": true, "skip": true},
 		"missing_vehicle_reference":            {"skip": true},
@@ -231,6 +247,7 @@ func applyTransferRecords(
 	job application.DataTransferJob,
 	records []application.DataTransferPreviewRecord,
 	issues []application.DataTransferIssue,
+	policy application.DataTransferImportPolicy,
 ) (dataTransferApplyResult, error) {
 	result := dataTransferApplyResult{}
 	for _, record := range records {
@@ -239,6 +256,10 @@ func applyTransferRecords(
 		if skip {
 			result.Skipped++
 			continue
+		}
+		if record.Area == application.TransferExhibitionLists && !policy.CanManageExhibitionLists &&
+			action != "merge" {
+			return dataTransferApplyResult{}, application.ErrDataTransferForbidden
 		}
 		var err error
 		switch record.Area {
@@ -290,7 +311,9 @@ func transferRecordAction(
 	action := record.ProposedAction
 	for _, issue := range issues {
 		switch issue.Code {
-		case "missing_inventory_number", "missing_manufacturer", "missing_name", "duplicate_input_inventory_number":
+		case "missing_inventory_number", "missing_manufacturer", "missing_name", "missing_gauge",
+			"missing_category", "missing_gattung", "invalid_vehicle", "invalid_accessory",
+			"duplicate_input_inventory_number":
 			return action, true
 		case "duplicate_inventory_number", "matching_manufacturer_article_number", "duplicate_exhibition_list",
 			"locked_exhibition_list":
@@ -312,6 +335,9 @@ func applyTransferVehicle(
 	vehicle := application.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
 		return dataTransferApplyConflict("vehicle preview data is invalid")
+	}
+	if err := application.ValidateTransferVehicle(vehicle); err != nil {
+		return dataTransferApplyConflict("vehicle preview data violates aggregate validation")
 	}
 	now := timestamp()
 	if action == "copy" {
@@ -377,6 +403,25 @@ func applyTransferAccessory(
 	accessory := application.TransferAccessory{}
 	if err := json.Unmarshal(record.Data, &accessory); err != nil {
 		return dataTransferApplyConflict("accessory preview data is invalid")
+	}
+	if err := application.ValidateTransferAccessory(accessory); err != nil {
+		return dataTransferApplyConflict("accessory preview data violates aggregate validation")
+	}
+	if accessory.ManufacturerStatus == "" {
+		accessory.ManufacturerStatus = "unknown"
+	}
+	if accessory.Subtype == "" && accessory.ArticleType == string(domain.AccessoryArticleOther) {
+		accessory.Subtype = "other:other"
+	}
+	referenceTargetID := record.TargetID
+	if action == "copy" {
+		referenceTargetID = ""
+	}
+	if err := validateTransferAccessoryReferenceData(ctx, db, accessory, referenceTargetID); err != nil {
+		if errors.Is(err, application.ErrAccessoryValidation) {
+			return dataTransferApplyConflict("accessory article type or subtype is not active")
+		}
+		return err
 	}
 	if action == "use_existing" {
 		return nil
@@ -693,6 +738,12 @@ UPDATE exhibition_lists SET designation=?, list_date=?, locked=?, updated_at=? W
 		if _, err := db.ExecContext(ctx, `DELETE FROM exhibition_entries WHERE list_id=?`, listID); err != nil {
 			return err
 		}
+	} else if action == "merge" {
+		var locked int
+		if listID == "" || db.QueryRowContext(ctx,
+			`SELECT locked FROM exhibition_lists WHERE id=?`, listID).Scan(&locked) != nil || locked != 0 {
+			return dataTransferApplyConflict("exhibition list cannot be merged")
+		}
 	} else if action == "create" || action == "copy" {
 		listID = randomID()
 		if _, err := db.ExecContext(ctx, `
@@ -708,6 +759,15 @@ VALUES(?, ?, ?, ?, ?, ?)`, listID, list.Designation, list.Date, list.Locked, now
 		if err != nil {
 			return err
 		}
+		if action == "merge" {
+			updated, err := mergeTransferExhibitionEntry(ctx, db, listID, entry, vehicleID, now)
+			if err != nil {
+				return err
+			}
+			if updated {
+				continue
+			}
+		}
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO exhibition_entries(
   id, list_id, vehicle_id, owner, image_url, locomotive_name, gattung, series, manufacturer, epoch,
@@ -722,6 +782,50 @@ INSERT INTO exhibition_entries(
 		}
 	}
 	return nil
+}
+
+func mergeTransferExhibitionEntry(
+	ctx context.Context,
+	db dataTransferApplyDB,
+	listID string,
+	entry application.TransferExhibitionEntry,
+	vehicleID string,
+	now string,
+) (bool, error) {
+	if strings.TrimSpace(entry.ID) == "" {
+		return false, nil
+	}
+	var owner, locomotiveName string
+	err := db.QueryRowContext(ctx, `
+SELECT owner, locomotive_name FROM exhibition_entries WHERE id=? AND list_id=?`, entry.ID, listID).
+		Scan(&owner, &locomotiveName)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	if !strings.EqualFold(strings.TrimSpace(owner), strings.TrimSpace(entry.Owner)) ||
+		!strings.EqualFold(strings.TrimSpace(locomotiveName), strings.TrimSpace(entry.LocomotiveName)) {
+		return false, nil
+	}
+	result, err := db.ExecContext(ctx, `
+UPDATE exhibition_entries SET
+  vehicle_id=?, owner=?, image_url=NULLIF(?, ''), locomotive_name=?, gattung=?, series=?,
+  manufacturer=?, epoch=?, railway_company=?, day_scope=?, dt_decoder=?, decoder_number=NULLIF(?, ''),
+  decoder_type=?, adapter=?, sx_address=?, analog=?, function_keys=NULLIF(?, ''), notes=NULLIF(?, ''),
+  sort_order=?, updated_at=?
+WHERE id=? AND list_id=?`, vehicleID, entry.Owner, entry.ImageURL, entry.LocomotiveName, entry.Gattung,
+		entry.Series, entry.Manufacturer, entry.Epoch, entry.RailwayCompany, entry.DayScope, entry.DTDecoder,
+		entry.DecoderNumber, entry.DecoderType, entry.Adapter, entry.SXAddress, entry.Analog, entry.FunctionKeys,
+		entry.Notes, entry.SortOrder, now, entry.ID, listID)
+	if err != nil {
+		return false, err
+	}
+	if err := requireApplyUpdate(result, "merge exhibition entry"); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func resolveTransferExhibitionVehicle(

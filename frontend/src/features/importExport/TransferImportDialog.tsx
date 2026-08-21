@@ -26,7 +26,7 @@ type TransferImportDialogProps = {
   language: Language;
   onCancelJob: (jobId: string) => Promise<unknown>;
   onClose: () => void;
-  onConfirm: (jobId: string) => Promise<unknown>;
+  onConfirm: (jobId: string, expectedRevision: number) => Promise<unknown>;
   onCreateJob: (profileId: string) => Promise<DataTransferJob>;
   onResolve: (jobId: string, issueId: string, resolution: DataTransferIssueResolution) => Promise<DataTransferJob>;
   onRefreshJob: (jobId: string) => Promise<DataTransferJobDetails>;
@@ -175,7 +175,7 @@ export function TransferImportDialog({
     setBusy(true);
     setError("");
     try {
-      await onConfirm(job.id);
+      await onConfirm(job.id, job.revision);
       onClose();
     } catch (reason) {
       await recoverConflict(reason, job.id, copy.confirmError, true);
