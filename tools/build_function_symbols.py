@@ -298,7 +298,7 @@ def icon_data_url(symbol: Symbol, palette: Palette) -> str:
 def contact_sheet(library: Library) -> str:
     columns = 6
     cell_width = 210
-    cell_height = 126
+    cell_height = 142
     rows = (len(library.symbols) + columns - 1) // columns
     width = columns * cell_width + 40
     height = rows * cell_height + 100
@@ -308,17 +308,23 @@ def contact_sheet(library: Library) -> str:
         row = index // columns
         x = 20 + column * cell_width
         y = 70 + row * cell_height
-        image_data = icon_data_url(symbol, ACTIVE_PALETTE)
+        active_data = icon_data_url(symbol, ACTIVE_PALETTE)
+        print_data = icon_data_url(symbol, PRINT_PALETTE)
         items.append(
             f'<g transform="translate({x} {y})">'
-            '<rect width="198" height="114" rx="8" fill="#111719" stroke="#2c393f"/>'
-            f'<image href="{image_data}" x="10" y="10" width="52" height="52"/>'
-            f'<image href="{image_data}" x="76" y="14" width="32" height="32"/>'
-            f'<image href="{image_data}" x="120" y="18" width="24" height="24"/>'
-            f'<image href="{image_data}" x="158" y="21" width="19" height="19"/>'
-            f'<text x="10" y="82" fill="#f2f5f6" font-family="Segoe UI,sans-serif" '
+            '<rect width="198" height="130" rx="8" fill="#111719" stroke="#2c393f"/>'
+            '<text x="10" y="26" fill="#879398" font-family="Consolas,monospace" font-size="9">A</text>'
+            f'<image href="{active_data}" x="27" y="7" width="32" height="32"/>'
+            f'<image href="{active_data}" x="76" y="11" width="24" height="24"/>'
+            f'<image href="{active_data}" x="116" y="13" width="19" height="19"/>'
+            '<rect x="10" y="45" width="178" height="44" rx="5" fill="#ffffff"/>'
+            '<text x="16" y="72" fill="#687579" font-family="Consolas,monospace" font-size="9">P</text>'
+            f'<image href="{print_data}" x="34" y="51" width="32" height="32"/>'
+            f'<image href="{print_data}" x="84" y="55" width="24" height="24"/>'
+            f'<image href="{print_data}" x="126" y="57" width="19" height="19"/>'
+            f'<text x="10" y="108" fill="#f2f5f6" font-family="Segoe UI,sans-serif" '
             f'font-size="12">{escape(symbol.label)}</text>'
-            f'<text x="10" y="101" fill="#879398" font-family="Consolas,monospace" '
+            f'<text x="10" y="124" fill="#879398" font-family="Consolas,monospace" '
             f'font-size="9">{escape(symbol.key)}</text>'
             "</g>"
         )

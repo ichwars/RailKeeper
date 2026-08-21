@@ -11,7 +11,9 @@ from tools.build_function_symbols import (
     EXPECTED_SYMBOL_COUNT,
     PRINT_PALETTE,
     build_sql,
+    contact_sheet,
     encode_svg,
+    icon_data_url,
     load_library,
     render_svg,
     validate_library_contract,
@@ -86,6 +88,15 @@ class FunctionSymbolGeneratorTest(unittest.TestCase):
         value = encode_svg(svg)
         self.assertTrue(value.startswith("data:image/svg+xml;base64,"))
         self.assertEqual(base64.b64decode(value.split(",", 1)[1]).decode("utf-8"), svg)
+
+    def test_contact_sheet_compares_active_and_print_palettes(self) -> None:
+        library = load_library(SYMBOL_LIBRARY_ROOT)
+        sheet = contact_sheet(library)
+
+        self.assertIn(icon_data_url(library.symbols[0], ACTIVE_PALETTE), sheet)
+        self.assertIn(icon_data_url(library.symbols[0], PRINT_PALETTE), sheet)
+        self.assertEqual(sheet.count(">A</text>"), EXPECTED_SYMBOL_COUNT)
+        self.assertEqual(sheet.count(">P</text>"), EXPECTED_SYMBOL_COUNT)
 
     def test_loads_library_and_builds_deterministic_sql(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
