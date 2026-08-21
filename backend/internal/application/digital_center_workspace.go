@@ -16,6 +16,12 @@ type digitalCenterECoSReader interface {
 	ProbeLocomotiveRaw(context.Context, ECoSConnectionInput) (*ECoSRawProbe, error)
 }
 
+type digitalCenterECoSLiveMonitor interface {
+	StartLive(context.Context, ECoSConnectionInput) (*ECoSLiveStatus, error)
+	StopLive() ECoSLiveStatus
+	LiveStatus() ECoSLiveStatus
+}
+
 type digitalCenterVehicleReader interface {
 	ListReadOnly(context.Context, string) ([]Vehicle, error)
 }
@@ -128,4 +134,162 @@ func capabilitiesForProvider(provider string) DigitalCenterCapabilities {
 	default:
 		return DigitalCenterCapabilities{}
 	}
+}
+
+func (service *DigitalCenterWorkspaceService) StartLiveMonitor(
+	ctx context.Context,
+	provider string,
+	sessionID string,
+) (*ECoSLiveStatus, error) {
+	if service == nil || service.ecos == nil {
+		return nil, ErrDigitalCenterWorkspaceUnavailable
+	}
+	if err := service.requireSession(ctx, sessionID); err != nil {
+		return nil, err
+	}
+	center, err := service.configuredCenter(ctx, provider)
+	if err != nil {
+		return nil, err
+	}
+	if !center.Active {
+		return nil, ErrDigitalCenterInactive
+	}
+	if !center.Capabilities.LiveMonitor {
+		if err := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
+			Severity:   DigitalCenterMessageWarning,
+			Code:       DigitalCenterMessageCapabilityUnavailable,
+			Message:    "Diese Digitalzentrale unterstützt kein Live-Monitoring.",
+			NextAction: "Eine Digitalzentrale mit Live-Monitoring auswählen.",
+		}); err != nil {
+			return nil, err
+		}
+		return nil, ErrDigitalCenterCapabilityUnavailable
+	}
+	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
+	if !ok {
+		return nil, ErrDigitalCenterWorkspaceUnavailable
+	}
+	status, err := monitor.StartLive(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
+	if err != nil {
+		if messageErr := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
+			Severity:   DigitalCenterMessageError,
+			Code:       DigitalCenterMessageConnectionFailed,
+			Message:    "Die Live-Verbindung zur Digitalzentrale konnte nicht gestartet werden.",
+			NextAction: "Verbindung und Gerätekonfiguration prüfen und erneut starten.",
+		}); messageErr != nil {
+			return nil, messageErr
+		}
+		return nil, fmt.Errorf("start digital center live monitor: %w", err)
+	}
+	if err := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
+		Severity:   DigitalCenterMessageInfo,
+		Code:       DigitalCenterMessageLiveStarted,
+		Message:    "Das passive Live-Monitoring wurde gestartet.",
+		NextAction: "Live-Status und Ereignisse beobachten.",
+	}); err != nil {
+		monitor.StopLive()
+		return nil, err
+	}
+	return status, nil
+}
+
+func (service *DigitalCenterWorkspaceService) StopLiveMonitor(
+	ctx context.Context,
+	provider string,
+	sessionID string,
+) (*ECoSLiveStatus, error) {
+	if service == nil || service.ecos == nil {
+		return nil, ErrDigitalCenterWorkspaceUnavailable
+	}
+	if err := service.requireSession(ctx, sessionID); err != nil {
+		return nil, err
+	}
+	center, err := service.configuredCenter(ctx, provider)
+	if err != nil {
+		return nil, err
+	}
+	if !center.Capabilities.LiveMonitor {
+		return nil, ErrDigitalCenterCapabilityUnavailable
+	}
+	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
+	if !ok {
+		return nil, ErrDigitalCenterWorkspaceUnavailable
+	}
+	status := monitor.StopLive()
+	if err := service.addSessionMessage(ctx, sessionID, DigitalCenterSessionMessage{
+		Severity:   DigitalCenterMessageInfo,
+		Code:       DigitalCenterMessageLiveStopped,
+		Message:    "Das passive Live-Monitoring wurde beendet.",
+		NextAction: "Das Monitoring kann bei Bedarf erneut gestartet werden.",
+	}); err != nil {
+		return nil, err
+	}
+	return &status, nil
+}
+
+func (service *DigitalCenterWorkspaceService) LiveMonitorStatus(
+	ctx context.Context,
+	provider string,
+) (ECoSLiveStatus, error) {
+	if service == nil || service.ecos == nil {
+		return ECoSLiveStatus{}, ErrDigitalCenterWorkspaceUnavailable
+	}
+	center, err := service.configuredCenter(ctx, provider)
+	if err != nil {
+		return ECoSLiveStatus{}, err
+	}
+	if !center.Capabilities.LiveMonitor {
+		return ECoSLiveStatus{}, ErrDigitalCenterCapabilityUnavailable
+	}
+	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
+	if !ok {
+		return ECoSLiveStatus{}, ErrDigitalCenterWorkspaceUnavailable
+	}
+	return monitor.LiveStatus(), nil
+}
+
+func (service *DigitalCenterWorkspaceService) ListSessionMessages(
+	ctx context.Context,
+	sessionID string,
+) ([]DigitalCenterSessionMessage, error) {
+	if service == nil || service.repository == nil {
+		return nil, ErrDigitalCenterWorkspaceUnavailable
+	}
+	sessionID = strings.TrimSpace(sessionID)
+	if _, err := service.repository.GetSession(ctx, sessionID); err != nil {
+		return nil, err
+	}
+	messages, err := service.repository.ListMessages(ctx, sessionID)
+	if err != nil {
+		return nil, fmt.Errorf("list digital center session messages: %w", err)
+	}
+	return messages, nil
+}
+
+func (service *DigitalCenterWorkspaceService) requireSession(ctx context.Context, sessionID string) error {
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return nil
+	}
+	if service.repository == nil {
+		return ErrDigitalCenterWorkspaceUnavailable
+	}
+	_, err := service.repository.GetSession(ctx, sessionID)
+	return err
+}
+
+func (service *DigitalCenterWorkspaceService) addSessionMessage(
+	ctx context.Context,
+	sessionID string,
+	message DigitalCenterSessionMessage,
+) error {
+	sessionID = strings.TrimSpace(sessionID)
+	if sessionID == "" {
+		return nil
+	}
+	message.SessionID = sessionID
+	if err := service.repository.AddMessage(ctx, message); err != nil {
+		return fmt.Errorf("record digital center live message: %w", err)
+	}
+	return nil
 }

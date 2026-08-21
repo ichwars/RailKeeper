@@ -93,6 +93,58 @@ func (a *App) getDigitalCenterWorkItem(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, item)
 }
 
+func (a *App) digitalCenterLiveStatus(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	status, err := a.digitalCenterWorkspace.LiveMonitorStatus(r.Context(), r.PathValue("provider"))
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, status)
+}
+
+func (a *App) startDigitalCenterLiveMonitor(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	status, err := a.digitalCenterWorkspace.StartLiveMonitor(
+		r.Context(), r.PathValue("provider"), r.URL.Query().Get("sessionId"),
+	)
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, status)
+}
+
+func (a *App) stopDigitalCenterLiveMonitor(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	status, err := a.digitalCenterWorkspace.StopLiveMonitor(
+		r.Context(), r.PathValue("provider"), r.URL.Query().Get("sessionId"),
+	)
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, status)
+}
+
+func (a *App) listDigitalCenterSessionMessages(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	messages, err := a.digitalCenterWorkspace.ListSessionMessages(r.Context(), r.PathValue("id"))
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, map[string]any{"messages": messages})
+}
+
 func (a *App) requireDigitalCenterWorkspace(w http.ResponseWriter) bool {
 	if a.digitalCenterWorkspace != nil {
 		return true
@@ -115,7 +167,7 @@ func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err erro
 			"Digital center is inactive in Settings.")
 	case errors.Is(err, application.ErrDigitalCenterCapabilityUnavailable):
 		respondProblem(w, http.StatusBadRequest, "digital_center_capability_unavailable",
-			"The selected digital center does not support locomotive reads.")
+			"The selected digital center does not support this operation.")
 	case errors.Is(err, application.ErrDigitalCenterFilterValidation):
 		respondProblem(w, http.StatusBadRequest, "digital_center_filter_invalid",
 			"Digital center work-list filter is invalid.")

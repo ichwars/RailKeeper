@@ -28,6 +28,8 @@ type ECoSService struct {
 	liveMu     sync.Mutex
 	liveCancel context.CancelFunc
 	liveStatus ECoSLiveStatus
+	livePulse  time.Time
+	liveCount  int
 }
 
 type ECoSConnectionInput struct {
@@ -134,20 +136,51 @@ type ECoSCVValue struct {
 	Value  int `json:"value"`
 }
 
+type ECoSLiveMonitorState string
+
+const (
+	ECoSLiveStopped     ECoSLiveMonitorState = "stopped"
+	ECoSLiveRunning     ECoSLiveMonitorState = "running"
+	ECoSLiveInterrupted ECoSLiveMonitorState = "interrupted"
+)
+
+type ECoSLivePulseSample struct {
+	At               string `json:"at"`
+	RepliesPerSecond int    `json:"repliesPerSecond"`
+}
+
+type ECoSLiveEvent struct {
+	At       string `json:"at"`
+	Kind     string `json:"kind"`
+	Message  string `json:"message"`
+	Protocol string `json:"protocol"`
+}
+
+type ECoSLiveDiagnosis struct {
+	ConnectionState             ECoSLiveMonitorState `json:"connectionState"`
+	LastSuccessfulCommunication string               `json:"lastSuccessfulCommunication,omitempty"`
+	LastError                   string               `json:"lastError,omitempty"`
+	Passive                     bool                 `json:"passive"`
+}
+
 type ECoSLiveStatus struct {
-	Provider             string   `json:"provider"`
-	Connected            bool     `json:"connected"`
-	Host                 string   `json:"host,omitempty"`
-	Port                 int      `json:"port,omitempty"`
-	StartedAt            string   `json:"startedAt,omitempty"`
-	LastSeenAt           string   `json:"lastSeenAt,omitempty"`
-	LastMessage          string   `json:"lastMessage,omitempty"`
-	BlocksReceived       int      `json:"blocksReceived"`
-	RepliesReceived      int      `json:"repliesReceived"`
-	EventsReceived       int      `json:"eventsReceived"`
-	SubscriptionCommands []string `json:"subscriptionCommands,omitempty"`
-	Error                string   `json:"error,omitempty"`
-	Message              string   `json:"message"`
+	Provider             string                `json:"provider"`
+	Connected            bool                  `json:"connected"`
+	State                ECoSLiveMonitorState  `json:"state"`
+	Host                 string                `json:"host,omitempty"`
+	Port                 int                   `json:"port,omitempty"`
+	StartedAt            string                `json:"startedAt,omitempty"`
+	LastSeenAt           string                `json:"lastSeenAt,omitempty"`
+	LastMessage          string                `json:"lastMessage,omitempty"`
+	BlocksReceived       int                   `json:"blocksReceived"`
+	RepliesReceived      int                   `json:"repliesReceived"`
+	EventsReceived       int                   `json:"eventsReceived"`
+	SubscriptionCommands []string              `json:"subscriptionCommands,omitempty"`
+	PulseSamples         []ECoSLivePulseSample `json:"pulseSamples"`
+	RecentEvents         []ECoSLiveEvent       `json:"recentEvents"`
+	Diagnosis            ECoSLiveDiagnosis     `json:"diagnosis"`
+	Error                string                `json:"error,omitempty"`
+	Message              string                `json:"message"`
 }
 
 type ECoSLocomotiveSyncInput struct {
@@ -197,8 +230,10 @@ func NewECoSService() *ECoSService {
 		timeout: timeout,
 		client:  ecospkg.NewClient(timeout),
 		liveStatus: ECoSLiveStatus{
-			Provider: "ecos",
-			Message:  "Keine ECoS-Live-Verbindung aktiv.",
+			Provider:  "ecos",
+			State:     ECoSLiveStopped,
+			Diagnosis: ECoSLiveDiagnosis{ConnectionState: ECoSLiveStopped, Passive: true},
+			Message:   "Keine ECoS-Live-Verbindung aktiv.",
 		},
 	}
 }
@@ -224,14 +259,20 @@ func (s *ECoSService) StartLive(ctx context.Context, input ECoSConnectionInput) 
 	s.liveStatus = ECoSLiveStatus{
 		Provider:             "ecos",
 		Connected:            true,
+		State:                ECoSLiveRunning,
 		Host:                 target.Host,
 		Port:                 target.Port,
 		StartedAt:            now,
 		LastSeenAt:           now,
 		LastMessage:          "ECoS-Live-Verbindung gestartet.",
 		SubscriptionCommands: commands,
-		Message:              "ECoS-Live-Verbindung aktiv.",
+		Diagnosis: ECoSLiveDiagnosis{
+			ConnectionState: ECoSLiveRunning, LastSuccessfulCommunication: now, Passive: true,
+		},
+		Message: "ECoS-Live-Verbindung aktiv.",
 	}
+	s.livePulse = time.Time{}
+	s.liveCount = 0
 	status := s.liveStatus
 	s.liveMu.Unlock()
 
@@ -244,17 +285,19 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 	defer s.liveMu.Unlock()
 	s.stopLiveLocked()
 	s.liveStatus.Connected = false
+	s.liveStatus.State = ECoSLiveStopped
+	s.liveStatus.Diagnosis.ConnectionState = ECoSLiveStopped
+	s.liveStatus.Diagnosis.LastError = ""
 	s.liveStatus.Message = "ECoS-Live-Verbindung beendet."
 	s.liveStatus.LastMessage = "Verbindung beendet."
-	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
-	return s.liveStatus
+	return cloneECoSLiveStatus(s.liveStatus)
 }
 
 func (s *ECoSService) LiveStatus() ECoSLiveStatus {
 	s.liveMu.Lock()
 	defer s.liveMu.Unlock()
 	s.stopIdleLiveLocked(time.Now().UTC())
-	return s.liveStatus
+	return cloneECoSLiveStatus(s.liveStatus)
 }
 
 func (s *ECoSService) stopLiveLocked() {
@@ -270,8 +313,12 @@ func (s *ECoSService) runECoSLiveSession(ctx context.Context, conn net.Conn, rea
 		s.liveMu.Lock()
 		if s.liveStatus.Connected {
 			s.liveStatus.Connected = false
+			s.liveStatus.State = ECoSLiveInterrupted
+			s.liveStatus.Diagnosis.ConnectionState = ECoSLiveInterrupted
 			if s.liveStatus.Error == "" {
 				s.liveStatus.Message = "ECoS-Live-Verbindung wurde getrennt."
+				s.liveStatus.LastMessage = "ECoS-Live-Verbindung wurde getrennt."
+				s.liveStatus.Diagnosis.LastError = "Die Verbindung wurde unerwartet getrennt."
 			}
 		}
 		s.liveMu.Unlock()
@@ -339,6 +386,8 @@ func (s *ECoSService) stopIdleLiveLocked(now time.Time) bool {
 	}
 	s.stopLiveLocked()
 	s.liveStatus.Connected = false
+	s.liveStatus.State = ECoSLiveStopped
+	s.liveStatus.Diagnosis.ConnectionState = ECoSLiveStopped
 	s.liveStatus.Error = ""
 	s.liveStatus.Message = "ECoS-Live-Monitoring nach 20 Minuten ohne Aktivität automatisch beendet."
 	s.liveStatus.LastMessage = s.liveStatus.Message
@@ -346,37 +395,97 @@ func (s *ECoSService) stopIdleLiveLocked(now time.Time) bool {
 }
 
 func (s *ECoSService) updateLiveLine(line string) {
+	_ = line
 	s.liveMu.Lock()
 	defer s.liveMu.Unlock()
-	s.liveStatus.LastMessage = line
-	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+	now := time.Now().UTC().Format(time.RFC3339)
+	s.liveStatus.LastMessage = "ECoS-Protokolldaten empfangen."
+	s.liveStatus.LastSeenAt = now
+	s.liveStatus.Diagnosis.LastSuccessfulCommunication = now
 }
 
 func (s *ECoSService) updateLiveBlocks(blocks []ecospkg.Block, lastLine string) {
+	s.updateLiveBlocksAt(time.Now().UTC(), blocks, lastLine)
+}
+
+func (s *ECoSService) updateLiveBlocksAt(now time.Time, blocks []ecospkg.Block, lastLine string) {
+	_ = lastLine
 	s.liveMu.Lock()
 	defer s.liveMu.Unlock()
 	s.liveStatus.BlocksReceived += len(blocks)
+	replies := 0
+	events := 0
 	for _, block := range blocks {
 		switch block.Kind {
 		case ecospkg.BlockEvent:
 			s.liveStatus.EventsReceived++
+			events++
+			message := "ECoS-Ereignis empfangen."
+			if block.ObjectID > 0 {
+				message = fmt.Sprintf("ECoS-Ereignis für Objekt %d empfangen.", block.ObjectID)
+			}
+			s.liveStatus.RecentEvents = appendBoundedECoSLiveEvent(s.liveStatus.RecentEvents, ECoSLiveEvent{
+				At: now.Format(time.RFC3339), Kind: "event", Message: message, Protocol: "ECoS",
+			})
 		case ecospkg.BlockReply:
 			s.liveStatus.RepliesReceived++
+			replies++
 		}
 	}
-	s.liveStatus.LastMessage = lastLine
-	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+	s.recordLivePulseLocked(now, replies)
+	if events > 0 {
+		s.liveStatus.LastMessage = "ECoS-Ereignis empfangen."
+	} else {
+		s.liveStatus.LastMessage = "ECoS-Antwort empfangen."
+	}
+	s.liveStatus.LastSeenAt = now.Format(time.RFC3339)
+	s.liveStatus.Diagnosis.LastSuccessfulCommunication = s.liveStatus.LastSeenAt
 	s.liveStatus.Message = "ECoS-Live-Verbindung aktiv."
 }
 
-func (s *ECoSService) updateLiveError(err error) {
+func (s *ECoSService) updateLiveError(_ error) {
 	s.liveMu.Lock()
 	defer s.liveMu.Unlock()
 	s.liveStatus.Connected = false
-	s.liveStatus.Error = err.Error()
+	s.liveStatus.State = ECoSLiveInterrupted
+	s.liveStatus.Diagnosis.ConnectionState = ECoSLiveInterrupted
+	s.liveStatus.Error = "ECoS-Live-Verbindung unterbrochen."
 	s.liveStatus.Message = "ECoS-Live-Verbindung ist unterbrochen."
-	s.liveStatus.LastMessage = err.Error()
-	s.liveStatus.LastSeenAt = time.Now().UTC().Format(time.RFC3339)
+	s.liveStatus.LastMessage = "Die Verbindung wurde unerwartet unterbrochen."
+	s.liveStatus.Diagnosis.LastError = "Die Verbindung wurde unerwartet unterbrochen."
+}
+
+func (s *ECoSService) recordLivePulseLocked(now time.Time, replies int) {
+	second := now.UTC().Truncate(time.Second)
+	if s.livePulse.IsZero() {
+		s.livePulse = second
+	}
+	if second.After(s.livePulse) {
+		s.liveStatus.PulseSamples = append(s.liveStatus.PulseSamples, ECoSLivePulseSample{
+			At: s.livePulse.Format(time.RFC3339), RepliesPerSecond: s.liveCount,
+		})
+		if len(s.liveStatus.PulseSamples) > 60 {
+			s.liveStatus.PulseSamples = append([]ECoSLivePulseSample(nil), s.liveStatus.PulseSamples[len(s.liveStatus.PulseSamples)-60:]...)
+		}
+		s.livePulse = second
+		s.liveCount = 0
+	}
+	s.liveCount += replies
+}
+
+func appendBoundedECoSLiveEvent(events []ECoSLiveEvent, event ECoSLiveEvent) []ECoSLiveEvent {
+	events = append(events, event)
+	if len(events) > 100 {
+		events = append([]ECoSLiveEvent(nil), events[len(events)-100:]...)
+	}
+	return events
+}
+
+func cloneECoSLiveStatus(status ECoSLiveStatus) ECoSLiveStatus {
+	status.SubscriptionCommands = append([]string(nil), status.SubscriptionCommands...)
+	status.PulseSamples = append([]ECoSLivePulseSample(nil), status.PulseSamples...)
+	status.RecentEvents = append([]ECoSLiveEvent(nil), status.RecentEvents...)
+	return status
 }
 
 func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionInput) (*ECoSConnectionResult, error) {
