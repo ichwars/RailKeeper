@@ -72,6 +72,11 @@ func (a *App) syncECoSLocomotive(w http.ResponseWriter, r *http.Request) {
 		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
 		return
 	}
+	if request.Confirm {
+		respondProblem(w, http.StatusConflict, "digital_center_write_grant_required",
+			"Create a fresh workspace preview and confirm it with its write grant.")
+		return
+	}
 	vehicle, err := a.vehicleService.Get(r.Context(), request.VehicleID)
 	if err != nil {
 		if errors.Is(err, application.ErrVehicleNotFound) {

@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var ErrDigitalCenterLiveStartFailed = errors.New("digital center live start failed")
@@ -49,7 +50,8 @@ type DigitalCenterWorkspaceService struct {
 	ecos           digitalCenterECoSReader
 	digitalCenters *DigitalCenterService
 	vehicles       digitalCenterVehicleReader
-	auth           *AuthService
+	auth           digitalCenterAuditRecorder
+	now            func() time.Time
 }
 
 func NewDigitalCenterWorkspaceService(
@@ -58,7 +60,7 @@ func NewDigitalCenterWorkspaceService(
 	ecos digitalCenterECoSReader,
 	digitalCenters *DigitalCenterService,
 	vehicles digitalCenterVehicleReader,
-	auth *AuthService,
+	auth digitalCenterAuditRecorder,
 ) *DigitalCenterWorkspaceService {
 	return &DigitalCenterWorkspaceService{
 		repository:     repository,
@@ -67,6 +69,7 @@ func NewDigitalCenterWorkspaceService(
 		digitalCenters: digitalCenters,
 		vehicles:       vehicles,
 		auth:           auth,
+		now:            time.Now,
 	}
 }
 

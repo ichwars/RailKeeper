@@ -85,6 +85,8 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/messages", routeAccessAdmin, (*App).listDigitalCenterSessionMessages, nil},
 		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/items", routeAccessAdmin, (*App).listDigitalCenterWorkItems, nil},
 		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}", routeAccessAdmin, (*App).getDigitalCenterWorkItem, nil},
+		{http.MethodPost, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}/write-preview", routeAccessAdmin, (*App).previewDigitalCenterWrite, nil},
+		{http.MethodPost, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}/write-confirm", routeAccessAdmin, (*App).confirmDigitalCenterWrite, nil},
 		{http.MethodGet, "/api/v1/vehicles", routeAccessViewer, (*App).listVehicles, nil},
 		{http.MethodGet, "/api/v1/overview/valuation", routeAccessViewer, (*App).overviewValuation, nil},
 		{http.MethodPost, "/api/v1/vehicles", routeAccessEditor, (*App).createVehicle, nil},

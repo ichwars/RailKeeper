@@ -1,0 +1,559 @@
+package application
+
+import (
+	"context"
+	"crypto/sha256"
+	"database/sql"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"reflect"
+	"strings"
+	"sync"
+	"testing"
+	"time"
+)
+
+func TestDigitalCenterWritePreviewCreatesActorBoundHashedGrantFromDryRun(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"protocol", "name", "address"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Token == "" || preview.ExpiresAt != "2026-08-21T10:10:00Z" ||
+		preview.Direction != DigitalCenterWriteRailKeeperToCenter ||
+		!reflect.DeepEqual(preview.Fields, []string{"address", "name"}) || len(preview.Changes) != 2 {
+		t.Fatalf("preview = %#v", preview)
+	}
+	tokenBytes, err := base64.RawURLEncoding.DecodeString(preview.Token)
+	if err != nil || len(tokenBytes) != 32 {
+		t.Fatalf("public token decodes to %d bytes, err=%v", len(tokenBytes), err)
+	}
+	tokenDigest := sha256.Sum256([]byte(preview.Token))
+	if fixture.repository.grant.TokenHash != hex.EncodeToString(tokenDigest[:]) ||
+		fixture.repository.grant.TokenHash == preview.Token ||
+		fixture.repository.grant.ActorUserID != "admin-1" ||
+		fixture.repository.grant.SessionID != fixture.session.ID ||
+		fixture.repository.grant.WorkItemID != fixture.item.ID ||
+		fixture.repository.grant.PreviewHash == "" {
+		t.Fatalf("persisted grant = %#v", fixture.repository.grant)
+	}
+	if len(fixture.ecos.syncCalls) != 1 || !fixture.ecos.syncCalls[0].DryRun || fixture.ecos.syncCalls[0].Confirm ||
+		fixture.ecos.syncCalls[0].Host != "trusted-center.local" || fixture.ecos.syncCalls[0].Port != 15471 {
+		t.Fatalf("preview sync calls = %#v", fixture.ecos.syncCalls)
+	}
+}
+
+func TestDigitalCenterWritePreviewRejectsUntrustedDryRunChanges(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.tamperedDesired = "Nicht der RailKeeper-Wert"
+
+	_, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if !errors.Is(err, ErrDigitalCenterDeviceOutput) {
+		t.Fatalf("error = %v, want invalid dry-run output", err)
+	}
+	if fixture.repository.grant.TokenHash != "" {
+		t.Fatalf("unsafe dry-run created grant: %#v", fixture.repository.grant)
+	}
+}
+
+func TestDigitalCenterWritePreviewRejectsUnsafeWorkspaceStateBeforeDeviceRead(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*digitalCenterWriteFixture)
+		input  DigitalCenterWritePreviewInput
+		want   error
+	}{
+		{name: "stale read", mutate: func(f *digitalCenterWriteFixture) {
+			f.session.ReadCompletedAt = "2026-08-21T09:49:59Z"
+			f.repository.session = f.session
+		}, want: ErrDigitalCenterReadNotFresh},
+		{name: "missing completed read", mutate: func(f *digitalCenterWriteFixture) {
+			f.session.State = DigitalCenterSessionInterrupted
+			f.session.ReadCompletedAt = ""
+			f.repository.session = f.session
+		}, want: ErrDigitalCenterReadNotFresh},
+		{name: "unresolved conflict", mutate: func(f *digitalCenterWriteFixture) {
+			f.item.CompareStatus = DigitalCompareConflict
+			f.item.Conflicts = []map[string]any{{"vehicleId": "vehicle-2"}}
+			f.repository.item = f.item
+		}, want: ErrDigitalCenterConflictUnresolved},
+		{name: "unsupported capability", mutate: func(f *digitalCenterWriteFixture) {
+			f.session.Capabilities.WriteLocomotives = false
+			f.repository.session = f.session
+		}, want: ErrDigitalCenterCapabilityUnavailable},
+		{name: "unsupported field", input: DigitalCenterWritePreviewInput{Fields: []string{"cv29"}},
+			want: ErrDigitalCenterWriteFieldUnsupported},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newDigitalCenterWriteFixture(t)
+			if test.mutate != nil {
+				test.mutate(fixture)
+			}
+			_, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+				test.input, "admin-1")
+			if !errors.Is(err, test.want) {
+				t.Fatalf("error = %v, want %v", err, test.want)
+			}
+			if len(fixture.ecos.syncCalls) != 0 || fixture.repository.grant.TokenHash != "" {
+				t.Fatalf("unsafe preview touched device/grant: calls=%#v grant=%#v",
+					fixture.ecos.syncCalls, fixture.repository.grant)
+			}
+		})
+	}
+}
+
+func TestDigitalCenterWriteConfirmConsumesBeforeMutationVerifiesMapsAndAudits(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.ecos.beforeConfirmedWrite = func() {
+		if !fixture.repository.consumed {
+			t.Fatal("device mutation happened before atomic grant consumption")
+		}
+	}
+
+	result, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Applied || !result.Verified || result.Result != DigitalCenterWriteVerified {
+		t.Fatalf("result = %#v", result)
+	}
+	if len(fixture.ecos.syncCalls) != 3 || !fixture.ecos.syncCalls[1].DryRun ||
+		!fixture.ecos.syncCalls[2].Confirm || fixture.ecos.syncCalls[2].DryRun {
+		t.Fatalf("sync calls = %#v", fixture.ecos.syncCalls)
+	}
+	confirmedDesired := fixture.ecos.syncCalls[2].Desired
+	if confirmedDesired.Name != "Neue Lok" || confirmedDesired.Address != 0 || confirmedDesired.Protocol != "" {
+		t.Fatalf("confirmed unsupported/unpreviewed fields: %#v", confirmedDesired)
+	}
+	if fixture.vehicles.mapping == nil || fixture.vehicles.mapping.ExternalID != "3" ||
+		fixture.vehicles.mapping.ExternalName != "Neue Lok" ||
+		fixture.vehicles.mapping.ExternalAddress != "18" ||
+		fixture.vehicles.mapping.ExternalProtocol != "DCC" ||
+		fixture.vehicles.mapping.SyncStatus != "synced" {
+		t.Fatalf("verified mapping = %#v", fixture.vehicles.mapping)
+	}
+	if len(fixture.audit.entries) != 1 {
+		t.Fatalf("audit entries = %#v", fixture.audit.entries)
+	}
+	entry := fixture.audit.entries[0]
+	if entry.actor != "admin-1" || entry.action != "DigitalCenterSynchronization" ||
+		entry.targetType != "digital_center_work_item" || entry.targetID != fixture.item.ID {
+		t.Fatalf("audit entry = %#v", entry)
+	}
+	if strings.Contains(entry.details, "Alte Lok") || strings.Contains(entry.details, "Neue Lok") ||
+		strings.Contains(entry.details, "<REPLY") {
+		t.Fatalf("audit leaked raw values: %s", entry.details)
+	}
+	var details struct {
+		Station  string   `json:"station"`
+		ObjectID string   `json:"objectId"`
+		Fields   []string `json:"fields"`
+		Result   string   `json:"result"`
+	}
+	if err := json.Unmarshal([]byte(entry.details), &details); err != nil {
+		t.Fatal(err)
+	}
+	if details.Station != "ecos" || details.ObjectID != "3" ||
+		!reflect.DeepEqual(details.Fields, []string{"name"}) || details.Result != "verified" {
+		t.Fatalf("audit details = %#v", details)
+	}
+}
+
+func TestDigitalCenterWriteConfirmRejectsFalseActorExpiredMismatchedAndConsumedGrants(t *testing.T) {
+	tests := []struct {
+		name       string
+		confirm    bool
+		actor      string
+		consumeErr error
+		mutate     func(*digitalCenterWriteFixture)
+		want       error
+	}{
+		{name: "confirmation missing", confirm: false, actor: "admin-1", want: ErrDigitalCenterConfirmationRequired},
+		{name: "actor mismatch", confirm: true, actor: "admin-2",
+			consumeErr: ErrDigitalCenterGrantActorMismatch, want: ErrDigitalCenterGrantActorMismatch},
+		{name: "expired", confirm: true, actor: "admin-1",
+			consumeErr: ErrDigitalCenterGrantExpired, want: ErrDigitalCenterGrantExpired},
+		{name: "consumed", confirm: true, actor: "admin-1",
+			consumeErr: ErrDigitalCenterGrantConsumed, want: ErrDigitalCenterGrantConsumed},
+		{name: "unknown token", confirm: true, actor: "admin-1",
+			consumeErr: sql.ErrNoRows, want: ErrDigitalCenterGrantMismatch},
+		{name: "endpoint mismatch", confirm: true, actor: "admin-1", mutate: func(f *digitalCenterWriteFixture) {
+			f.repository.grant.WorkItemID = "other-item"
+		}, want: ErrDigitalCenterGrantMismatch},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newDigitalCenterWriteFixture(t)
+			preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+				DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			fixture.repository.consumeErr = test.consumeErr
+			if test.mutate != nil {
+				test.mutate(fixture)
+			}
+			_, err = fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+				DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: test.confirm, Fields: preview.Fields},
+				test.actor)
+			if !errors.Is(err, test.want) {
+				t.Fatalf("error = %v, want %v", err, test.want)
+			}
+			for _, call := range fixture.ecos.syncCalls[1:] {
+				if call.Confirm {
+					t.Fatalf("rejected grant sent confirmed device call: %#v", call)
+				}
+			}
+			if fixture.vehicles.mapping != nil || len(fixture.audit.entries) != 0 {
+				t.Fatalf("rejected grant mutated local state: mapping=%#v audit=%#v",
+					fixture.vehicles.mapping, fixture.audit.entries)
+			}
+		})
+	}
+}
+
+func TestDigitalCenterWriteConfirmRejectsStalePreviewAndConsumesGrant(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.ecos.currentName = "Zwischenzeitlich geändert"
+
+	_, err = fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}, "admin-1")
+	if !errors.Is(err, ErrDigitalCenterPreviewStale) || !fixture.repository.consumed {
+		t.Fatalf("stale error=%v consumed=%v", err, fixture.repository.consumed)
+	}
+	if fixture.ecos.confirmCalls != 0 || fixture.vehicles.mapping != nil {
+		t.Fatalf("stale preview wrote device/local mapping: confirms=%d mapping=%#v",
+			fixture.ecos.confirmCalls, fixture.vehicles.mapping)
+	}
+}
+
+func TestDigitalCenterWriteConfirmTreatsAlreadyAppliedPreviewAsStale(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.ecos.currentName = "Neue Lok"
+
+	_, err = fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}, "admin-1")
+	if !errors.Is(err, ErrDigitalCenterPreviewStale) || !fixture.repository.consumed {
+		t.Fatalf("already-applied error=%v consumed=%v", err, fixture.repository.consumed)
+	}
+	if fixture.ecos.confirmCalls != 0 || fixture.vehicles.mapping != nil {
+		t.Fatalf("already-applied preview wrote device/local mapping: confirms=%d mapping=%#v",
+			fixture.ecos.confirmCalls, fixture.vehicles.mapping)
+	}
+}
+
+func TestDigitalCenterWriteVerificationMismatchIsVisibleAndDoesNotMap(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fixture.ecos.verificationName = "Nicht übernommen"
+
+	result, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Applied || result.Verified || result.Result != DigitalCenterWriteVerificationFailed ||
+		fixture.vehicles.mapping != nil {
+		t.Fatalf("result=%#v mapping=%#v", result, fixture.vehicles.mapping)
+	}
+	if len(fixture.audit.entries) != 1 || !strings.Contains(fixture.audit.entries[0].details,
+		`"result":"verification_failed"`) {
+		t.Fatalf("verification audit = %#v", fixture.audit.entries)
+	}
+}
+
+func TestDigitalCenterWriteGrantCannotBeReused(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}
+	if _, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID, input, "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID, input, "admin-1"); !errors.Is(err, ErrDigitalCenterGrantConsumed) {
+		t.Fatalf("second confirm error = %v", err)
+	}
+	if fixture.ecos.confirmCalls != 1 {
+		t.Fatalf("confirmed writes = %d, want one", fixture.ecos.confirmCalls)
+	}
+}
+
+func TestDigitalCenterWriteGrantAllowsOnlyOneConcurrentConfirmation(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"name"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	input := DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}
+	errorsSeen := make(chan error, 2)
+	start := make(chan struct{})
+	for range 2 {
+		go func() {
+			<-start
+			_, confirmErr := fixture.service.ConfirmWrite(
+				t.Context(), fixture.session.ID, fixture.item.ID, input, "admin-1",
+			)
+			errorsSeen <- confirmErr
+		}()
+	}
+	close(start)
+
+	succeeded := 0
+	consumed := 0
+	for range 2 {
+		switch confirmErr := <-errorsSeen; {
+		case confirmErr == nil:
+			succeeded++
+		case errors.Is(confirmErr, ErrDigitalCenterGrantConsumed):
+			consumed++
+		default:
+			t.Fatalf("concurrent confirmation error = %v", confirmErr)
+		}
+	}
+	if succeeded != 1 || consumed != 1 || fixture.ecos.confirmCalls != 1 {
+		t.Fatalf("succeeded=%d consumed=%d device writes=%d", succeeded, consumed, fixture.ecos.confirmCalls)
+	}
+}
+
+type digitalCenterWriteFixture struct {
+	service    *DigitalCenterWorkspaceService
+	repository *digitalCenterWriteRepositoryStub
+	ecos       *digitalCenterWriteECoSStub
+	vehicles   *digitalCenterWriteVehicleStub
+	audit      *digitalCenterWriteAuditStub
+	session    DigitalCenterReadSession
+	item       DigitalCenterWorkItem
+}
+
+func newDigitalCenterWriteFixture(t *testing.T) *digitalCenterWriteFixture {
+	t.Helper()
+	now := time.Date(2026, 8, 21, 10, 0, 0, 0, time.UTC)
+	session := DigitalCenterReadSession{
+		ID: "session-1", Provider: "ecos", State: DigitalCenterSessionReady,
+		Host: "trusted-center.local", Port: 15471,
+		Capabilities:  DigitalCenterCapabilities{ReadLocomotives: true, WriteLocomotives: true},
+		ReadStartedAt: now.Add(-time.Second).Format(time.RFC3339), ReadCompletedAt: now.Format(time.RFC3339),
+	}
+	item := DigitalCenterWorkItem{
+		ID: "item-1", SessionID: session.ID, CenterObjectID: "3", VehicleID: "vehicle-1",
+		Name: "Alte Lok", Address: 3, Protocol: "DCC", CompareStatus: DigitalCompareDeviation,
+		StationStatus: "read",
+		Center:        map[string]any{"objectId": 3, "name": "Alte Lok", "decoderAddress": 3, "protocol": "DCC"},
+		RailKeeper:    map[string]any{"vehicleId": "vehicle-1", "name": "Neue Lok", "decoderAddress": 18, "protocol": "DCC"},
+		Proposed:      map[string]any{},
+		Conflicts:     []map[string]any{},
+	}
+	repository := &digitalCenterWriteRepositoryStub{session: session, item: item}
+	ecos := &digitalCenterWriteECoSStub{currentName: "Alte Lok", verificationName: "Neue Lok"}
+	vehicles := &digitalCenterWriteVehicleStub{}
+	audit := &digitalCenterWriteAuditStub{}
+	service := NewDigitalCenterWorkspaceService(
+		repository,
+		&workspaceSettingsReaderStub{value: DigitalCenterSettings{
+			Provider: "ecos",
+			ECoS:     DigitalProviderSettings{Enabled: true, Host: "trusted-center.local", Port: "15471"},
+		}},
+		ecos,
+		nil,
+		vehicles,
+		audit,
+	)
+	service.now = func() time.Time { return now }
+	return &digitalCenterWriteFixture{
+		service: service, repository: repository, ecos: ecos, vehicles: vehicles, audit: audit,
+		session: session, item: item,
+	}
+}
+
+type digitalCenterWriteRepositoryStub struct {
+	mu         sync.Mutex
+	session    DigitalCenterReadSession
+	item       DigitalCenterWorkItem
+	grant      DigitalCenterWriteGrant
+	consumed   bool
+	consumeErr error
+}
+
+func (stub *digitalCenterWriteRepositoryStub) CreateSession(
+	context.Context, DigitalCenterReadSession,
+) (DigitalCenterReadSession, error) {
+	return DigitalCenterReadSession{}, errors.New("not used")
+}
+
+func (*digitalCenterWriteRepositoryStub) UpdateSession(context.Context, DigitalCenterReadSession) error {
+	return errors.New("not used")
+}
+
+func (stub *digitalCenterWriteRepositoryStub) GetSession(context.Context, string) (DigitalCenterReadSession, error) {
+	return stub.session, nil
+}
+
+func (*digitalCenterWriteRepositoryStub) ReplaceWorkItems(context.Context, string, []DigitalCenterWorkItem) error {
+	return errors.New("not used")
+}
+
+func (stub *digitalCenterWriteRepositoryStub) ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error) {
+	return []DigitalCenterWorkItem{stub.item}, nil
+}
+
+func (stub *digitalCenterWriteRepositoryStub) GetWorkItem(
+	context.Context, string, string,
+) (DigitalCenterWorkItem, error) {
+	return stub.item, nil
+}
+
+func (*digitalCenterWriteRepositoryStub) AddMessage(context.Context, DigitalCenterSessionMessage) error {
+	return nil
+}
+
+func (*digitalCenterWriteRepositoryStub) ListMessages(
+	context.Context, string,
+) ([]DigitalCenterSessionMessage, error) {
+	return []DigitalCenterSessionMessage{}, nil
+}
+
+func (stub *digitalCenterWriteRepositoryStub) CreateWriteGrant(_ context.Context, grant DigitalCenterWriteGrant) error {
+	stub.mu.Lock()
+	defer stub.mu.Unlock()
+	stub.grant = grant
+	return nil
+}
+
+func (stub *digitalCenterWriteRepositoryStub) ConsumeWriteGrant(
+	_ context.Context, tokenHash string, actor string,
+) (DigitalCenterWriteGrant, error) {
+	stub.mu.Lock()
+	defer stub.mu.Unlock()
+	if stub.consumeErr != nil {
+		return DigitalCenterWriteGrant{}, stub.consumeErr
+	}
+	if tokenHash != stub.grant.TokenHash {
+		return DigitalCenterWriteGrant{}, ErrDigitalCenterGrantMismatch
+	}
+	if actor != stub.grant.ActorUserID {
+		return DigitalCenterWriteGrant{}, ErrDigitalCenterGrantActorMismatch
+	}
+	if stub.consumed {
+		return DigitalCenterWriteGrant{}, ErrDigitalCenterGrantConsumed
+	}
+	stub.consumed = true
+	grant := stub.grant
+	grant.ConsumedAt = "2026-08-21T10:00:00Z"
+	return grant, nil
+}
+
+type digitalCenterWriteECoSStub struct {
+	currentName          string
+	verificationName     string
+	tamperedDesired      string
+	syncCalls            []ECoSLocomotiveSyncInput
+	confirmCalls         int
+	probeCalls           int
+	beforeConfirmedWrite func()
+}
+
+func (stub *digitalCenterWriteECoSStub) ProbeLocomotiveRaw(
+	context.Context, ECoSConnectionInput,
+) (*ECoSRawProbe, error) {
+	stub.probeCalls++
+	return &ECoSRawProbe{Locomotives: []ECoSRawLocomotive{{
+		ObjectID: 3, Name: stub.verificationName, Address: 18, Protocol: "DCC128",
+	}}}, nil
+}
+
+func (stub *digitalCenterWriteECoSStub) SyncLocomotive(
+	_ context.Context, input ECoSLocomotiveSyncInput,
+) (*ECoSLocomotiveSyncResult, error) {
+	stub.syncCalls = append(stub.syncCalls, input)
+	changes := []ECoSLocomotiveSyncChange{}
+	if input.Desired.Name != "" && input.Desired.Name != stub.currentName {
+		changes = append(changes, ECoSLocomotiveSyncChange{
+			Field: "name", Current: stub.currentName, Desired: input.Desired.Name,
+		})
+	}
+	if input.Desired.Address > 0 && input.Desired.Address != 3 {
+		changes = append(changes, ECoSLocomotiveSyncChange{Field: "address", Current: "3", Desired: "18"})
+	}
+	if input.Desired.Protocol != "" && input.Desired.Protocol != "DCC128" {
+		changes = append(changes, ECoSLocomotiveSyncChange{
+			Field: "protocol", Current: "DCC128", Desired: input.Desired.Protocol,
+		})
+	}
+	if stub.tamperedDesired != "" && len(changes) > 0 {
+		changes[0].Desired = stub.tamperedDesired
+	}
+	if input.Confirm {
+		if stub.beforeConfirmedWrite != nil {
+			stub.beforeConfirmedWrite()
+		}
+		stub.confirmCalls++
+		stub.currentName = input.Desired.Name
+	}
+	return &ECoSLocomotiveSyncResult{
+		ObjectID: input.ObjectID, DryRun: input.DryRun || !input.Confirm,
+		Applied: input.Confirm && len(changes) > 0, Desired: input.Desired, Changes: changes,
+	}, nil
+}
+
+type digitalCenterWriteVehicleStub struct {
+	mapping *VehicleExternalMapInput
+}
+
+func (*digitalCenterWriteVehicleStub) ListReadOnly(context.Context, string) ([]Vehicle, error) {
+	return []Vehicle{}, nil
+}
+
+func (stub *digitalCenterWriteVehicleStub) UpsertExternalMapping(
+	_ context.Context, _ string, input VehicleExternalMapInput, _ string,
+) (*VehicleExternalMap, error) {
+	copy := input
+	stub.mapping = &copy
+	return &VehicleExternalMap{Provider: input.Provider, ExternalID: input.ExternalID}, nil
+}
+
+type digitalCenterWriteAuditEntry struct {
+	actor, action, targetType, targetID, details string
+}
+
+type digitalCenterWriteAuditStub struct {
+	entries []digitalCenterWriteAuditEntry
+}
+
+func (stub *digitalCenterWriteAuditStub) RecordAudit(
+	_ context.Context, actor, action, targetType, targetID, details string,
+) error {
+	stub.entries = append(stub.entries, digitalCenterWriteAuditEntry{
+		actor: actor, action: action, targetType: targetType, targetID: targetID, details: details,
+	})
+	return nil
+}

@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -93,6 +94,44 @@ func (a *App) getDigitalCenterWorkItem(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, item)
 }
 
+func (a *App) previewDigitalCenterWrite(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	var input application.DigitalCenterWritePreviewInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	preview, err := a.digitalCenterWorkspace.PreviewWrite(
+		r.Context(), r.PathValue("id"), r.PathValue("itemID"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, preview)
+}
+
+func (a *App) confirmDigitalCenterWrite(w http.ResponseWriter, r *http.Request) {
+	if !a.requireDigitalCenterWorkspace(w) {
+		return
+	}
+	var input application.DigitalCenterWriteConfirmInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	result, err := a.digitalCenterWorkspace.ConfirmWrite(
+		r.Context(), r.PathValue("id"), r.PathValue("itemID"), input, actorUserID(r),
+	)
+	if err != nil {
+		a.respondDigitalCenterWorkspaceError(w, err)
+		return
+	}
+	respondJSON(w, http.StatusOK, result)
+}
+
 func (a *App) digitalCenterLiveStatus(w http.ResponseWriter, r *http.Request) {
 	if !a.requireDigitalCenterWorkspace(w) {
 		return
@@ -174,6 +213,33 @@ func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err erro
 	case errors.Is(err, application.ErrDigitalCenterFilterValidation):
 		respondProblem(w, http.StatusBadRequest, "digital_center_filter_invalid",
 			"Digital center work-list filter is invalid.")
+	case errors.Is(err, application.ErrDigitalCenterReadNotFresh):
+		respondProblem(w, http.StatusConflict, "digital_center_read_not_fresh",
+			"Create a fresh digital center read before writing.")
+	case errors.Is(err, application.ErrDigitalCenterConflictUnresolved):
+		respondProblem(w, http.StatusConflict, "digital_center_conflict_unresolved",
+			"Resolve the work-item conflict before writing.")
+	case errors.Is(err, application.ErrDigitalCenterPreviewStale):
+		respondProblem(w, http.StatusConflict, "digital_center_write_preview_stale",
+			"The write preview is stale. Create a fresh preview.")
+	case errors.Is(err, application.ErrDigitalCenterGrantExpired),
+		errors.Is(err, application.ErrDigitalCenterGrantConsumed),
+		errors.Is(err, application.ErrDigitalCenterGrantActorMismatch),
+		errors.Is(err, application.ErrDigitalCenterGrantMismatch):
+		respondProblem(w, http.StatusConflict, "digital_center_write_grant_conflict",
+			"The write grant is expired, consumed, or does not match this request.")
+	case errors.Is(err, application.ErrDigitalCenterWriteFieldUnsupported):
+		respondProblem(w, http.StatusBadRequest, "digital_center_write_field_unsupported",
+			"The requested field cannot be written for this work item.")
+	case errors.Is(err, application.ErrDigitalCenterConfirmationRequired):
+		respondProblem(w, http.StatusBadRequest, "digital_center_confirmation_required",
+			"Explicit confirmation is required.")
+	case errors.Is(err, application.ErrDigitalCenterWriteNoChanges):
+		respondProblem(w, http.StatusConflict, "digital_center_write_no_changes",
+			"The digital center already has the previewed values.")
+	case errors.Is(err, application.ErrDigitalCenterDeviceWrite):
+		respondProblem(w, http.StatusBadGateway, "ecos_sync_failed",
+			"The ECoS write or verification failed.")
 	case errors.Is(err, sql.ErrNoRows):
 		respondProblem(w, http.StatusNotFound, "digital_center_workspace_not_found",
 			"Digital center workspace resource was not found.")
