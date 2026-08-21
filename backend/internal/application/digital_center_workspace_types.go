@@ -8,6 +8,7 @@ import (
 type DigitalCenterCompareStatus string
 type DigitalCenterSessionState string
 type DigitalCenterMessageSeverity string
+type DigitalCenterMessageCode string
 
 const (
 	DigitalCompareOK        DigitalCenterCompareStatus = "ok"
@@ -24,6 +25,22 @@ const (
 	DigitalCenterMessageInfo    DigitalCenterMessageSeverity = "info"
 	DigitalCenterMessageWarning DigitalCenterMessageSeverity = "warning"
 	DigitalCenterMessageError   DigitalCenterMessageSeverity = "error"
+
+	DigitalCenterMessageConnectionSucceeded   DigitalCenterMessageCode = "connection.succeeded"
+	DigitalCenterMessageConnectionFailed      DigitalCenterMessageCode = "connection.failed"
+	DigitalCenterMessageConnectionInterrupted DigitalCenterMessageCode = "connection.interrupted"
+	DigitalCenterMessageReadStarted           DigitalCenterMessageCode = "read.started"
+	DigitalCenterMessageReadCompleted         DigitalCenterMessageCode = "read.completed"
+	DigitalCenterMessageReadFailed            DigitalCenterMessageCode = "read.failed"
+	DigitalCenterMessageParseFailed           DigitalCenterMessageCode = "parse.failed"
+	DigitalCenterMessageCapabilityUnavailable DigitalCenterMessageCode = "capability.unavailable"
+	DigitalCenterMessageLiveStarted           DigitalCenterMessageCode = "live.started"
+	DigitalCenterMessageLiveStopped           DigitalCenterMessageCode = "live.stopped"
+	DigitalCenterMessageLiveInterrupted       DigitalCenterMessageCode = "live.interrupted"
+	DigitalCenterMessageWritePreviewFailed    DigitalCenterMessageCode = "write.preview_failed"
+	DigitalCenterMessageWriteFailed           DigitalCenterMessageCode = "write.failed"
+	DigitalCenterMessageWriteVerified         DigitalCenterMessageCode = "write.verified"
+	DigitalCenterMessageWriteVerifyFailed     DigitalCenterMessageCode = "write.verification_failed"
 )
 
 var (
@@ -77,7 +94,7 @@ type DigitalCenterSessionMessage struct {
 	ID         string                       `json:"id"`
 	SessionID  string                       `json:"sessionId"`
 	Severity   DigitalCenterMessageSeverity `json:"severity"`
-	Code       string                       `json:"code"`
+	Code       DigitalCenterMessageCode     `json:"code"`
 	Message    string                       `json:"message"`
 	NextAction string                       `json:"nextAction"`
 	CreatedAt  string                       `json:"createdAt"`

@@ -146,7 +146,8 @@ func TestDigitalCenterWorkspaceRepositoryEnforcesForeignKeysUniquenessAndCascade
 		t.Fatalf("items=%#v err=%v", items, err)
 	}
 	if err := repo.AddMessage(t.Context(), application.DigitalCenterSessionMessage{
-		SessionID: session.ID, Severity: application.DigitalCenterMessageInfo, Code: "read", Message: "Read",
+		SessionID: session.ID, Severity: application.DigitalCenterMessageInfo,
+		Code: "read.completed", Message: "Lesen abgeschlossen.",
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +213,7 @@ func TestDigitalCenterWorkspaceRepositoryBoundsMessages(t *testing.T) {
 	for index := 0; index < 105; index++ {
 		if err := repo.AddMessage(t.Context(), application.DigitalCenterSessionMessage{
 			SessionID: session.ID, Severity: application.DigitalCenterMessageInfo,
-			Code: "message", Message: "bounded",
+			Code: "read.completed", Message: "Lesen abgeschlossen.",
 		}); err != nil {
 			t.Fatal(err)
 		}
@@ -244,6 +245,12 @@ func TestDigitalCenterWorkspaceRepositoryRejectsPrivateProtocolMessages(t *testi
 		{Code: "protocol", Message: "pass\x00word = secret"},
 		{Code: "protocol", Message: "Verbindung fehlgeschlagen", NextAction: "URL mit ?passwd=s3cr3t öffnen"},
 		{Code: "protocol", Message: "Verbindung fehlgeschlagen", NextAction: "token = opaque"},
+		{Code: "read.failed", Message: "release(1001, view)"},
+		{Code: "read.failed", Message: "password hunter2"},
+		{Code: "read.failed", Message: "BeA\u200bReR abc.def.ghi"},
+		{Code: "read.failed", Message: "To\u200bKeN opaque"},
+		{Code: "read.failed", Message: "API\u200b-\x00KEY hunter2"},
+		{Code: "read.failed", Message: "Pass\u200bWoRd hunter2"},
 	}
 	for index, message := range unsafeMessages {
 		message.SessionID = session.ID
@@ -257,19 +264,32 @@ func TestDigitalCenterWorkspaceRepositoryRejectsPrivateProtocolMessages(t *testi
 	if listErr != nil || len(messages) != 0 {
 		t.Fatalf("private message persisted: messages=%#v err=%v", messages, listErr)
 	}
-	if err := repo.AddMessage(t.Context(), application.DigitalCenterSessionMessage{
-		SessionID: session.ID, Severity: application.DigitalCenterMessageWarning,
-		Code: "connection.read_failed", Message: "  Verbindung\x00\r\n unterbrochen  ",
-		NextAction: "  Erneut\tlesen. ",
-	}); err != nil {
-		t.Fatalf("safe structured message: %v", err)
+	safeMessages := []application.DigitalCenterSessionMessage{
+		{Code: "connection.failed", Message: "  Verbindung\x00\r\n fehlgeschlagen.  ", NextAction: "Netzwerk prüfen."},
+		{Code: "read.completed", Message: "42 Lokomotiven wurden gelesen."},
+		{Code: "parse.failed", Message: "Die gelesenen Daten konnten nicht verarbeitet werden."},
+		{Code: "capability.unavailable", Message: "Diese Zentrale unterstützt das Lesen nicht."},
+	}
+	for _, message := range safeMessages {
+		message.SessionID = session.ID
+		message.Severity = application.DigitalCenterMessageWarning
+		if err := repo.AddMessage(t.Context(), message); err != nil {
+			t.Fatalf("safe structured message %#v: %v", message, err)
+		}
 	}
 	messages, err = repo.ListMessages(t.Context(), session.ID)
-	if err != nil || len(messages) != 1 {
+	if err != nil || len(messages) != len(safeMessages) {
 		t.Fatalf("safe messages=%#v err=%v", messages, err)
 	}
-	if messages[0].Message != "Verbindung unterbrochen" || messages[0].NextAction != "Erneut lesen." {
-		t.Fatalf("message controls were not normalized: %#v", messages[0])
+	foundNormalized := false
+	for _, message := range messages {
+		if message.Code == "connection.failed" {
+			foundNormalized = message.Message == "Verbindung fehlgeschlagen." &&
+				message.NextAction == "Netzwerk prüfen."
+		}
+	}
+	if !foundNormalized {
+		t.Fatalf("safe control characters were not normalized: %#v", messages)
 	}
 }
 

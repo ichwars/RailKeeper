@@ -8,25 +8,33 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"regexp"
 	"strings"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"railkeeper/backend/internal/application"
 )
 
 const digitalCenterSessionMessageLimit = 100
 
-var (
-	digitalCenterMessageCodePattern = regexp.MustCompile(`^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)*$`)
-	digitalCenterProtocolPattern    = regexp.MustCompile(
-		`(?i)<\s*(?:reply|event|request|end|error)\b|\b(?:queryobjects|get|set|create|delete|request|subscribe|unsubscribe)\s*\(`,
-	)
-	digitalCenterCredentialPattern = regexp.MustCompile(
-		`(?i)["']?(?:password|passwort|passwd|pwd|secret|token|api[-_]?key|authorization)["']?\s*(?:=|:)\s*["']?[^\s"'&,;}]+|\bauthorization\s*:\s*(?:bearer|basic)\s+\S+|\bbearer\s+[a-z0-9._~+/=-]{8,}`,
-	)
-)
+var digitalCenterPersistedMessageCodes = map[application.DigitalCenterMessageCode]struct{}{
+	application.DigitalCenterMessageConnectionSucceeded:   {},
+	application.DigitalCenterMessageConnectionFailed:      {},
+	application.DigitalCenterMessageConnectionInterrupted: {},
+	application.DigitalCenterMessageReadStarted:           {},
+	application.DigitalCenterMessageReadCompleted:         {},
+	application.DigitalCenterMessageReadFailed:            {},
+	application.DigitalCenterMessageParseFailed:           {},
+	application.DigitalCenterMessageCapabilityUnavailable: {},
+	application.DigitalCenterMessageLiveStarted:           {},
+	application.DigitalCenterMessageLiveStopped:           {},
+	application.DigitalCenterMessageLiveInterrupted:       {},
+	application.DigitalCenterMessageWritePreviewFailed:    {},
+	application.DigitalCenterMessageWriteFailed:           {},
+	application.DigitalCenterMessageWriteVerified:         {},
+	application.DigitalCenterMessageWriteVerifyFailed:     {},
+}
 
 type DigitalCenterWorkspaceRepository struct {
 	db *sql.DB
@@ -202,13 +210,12 @@ func (repository *DigitalCenterWorkspaceRepository) AddMessage(
 	ctx context.Context,
 	message application.DigitalCenterSessionMessage,
 ) error {
-	message.Code = strings.TrimSpace(message.Code)
+	message.Code = application.DigitalCenterMessageCode(strings.TrimSpace(string(message.Code)))
 	message.Message = normalizeDigitalCenterMessageText(message.Message)
 	message.NextAction = normalizeDigitalCenterMessageText(message.NextAction)
-	if !digitalCenterMessageCodePattern.MatchString(message.Code) ||
-		containsPrivateDigitalCenterMessage(message.Code) ||
-		containsPrivateDigitalCenterMessage(message.Message) ||
-		containsPrivateDigitalCenterMessage(message.NextAction) {
+	if _, allowed := digitalCenterPersistedMessageCodes[message.Code]; !allowed ||
+		!isSafeDigitalCenterMessageText(message.Message, false, 512) ||
+		!isSafeDigitalCenterMessageText(message.NextAction, true, 256) {
 		return errors.New("add digital center session message: raw or private protocol content is not allowed")
 	}
 	if message.ID == "" {
@@ -475,20 +482,41 @@ func decodeDigitalCenterJSON(payload string, target any) error {
 	return nil
 }
 
-func containsPrivateDigitalCenterMessage(value string) bool {
-	compact := strings.Map(func(character rune) rune {
-		if unicode.IsSpace(character) || unicode.IsControl(character) {
-			return -1
+func isSafeDigitalCenterMessageText(value string, allowEmpty bool, maximumRunes int) bool {
+	if value == "" {
+		return allowEmpty
+	}
+	if utf8.RuneCountInString(value) > maximumRunes {
+		return false
+	}
+	for _, character := range value {
+		if unicode.IsLetter(character) || unicode.IsDigit(character) || unicode.IsSpace(character) {
+			continue
 		}
-		return character
+		if !strings.ContainsRune(".,:;!?-/+%'", character) {
+			return false
+		}
+	}
+	compact := strings.Map(func(character rune) rune {
+		if unicode.IsLetter(character) || unicode.IsDigit(character) {
+			return unicode.ToLower(character)
+		}
+		return -1
 	}, value)
-	return digitalCenterProtocolPattern.MatchString(value) || digitalCenterCredentialPattern.MatchString(value) ||
-		digitalCenterProtocolPattern.MatchString(compact) || digitalCenterCredentialPattern.MatchString(compact)
+	for _, restricted := range []string{
+		"password", "passwort", "passwd", "pwd", "secret", "token", "apikey",
+		"authorization", "bearer", "basic", "queryobjects", "release", "subscribe", "unsubscribe",
+	} {
+		if strings.Contains(compact, restricted) {
+			return false
+		}
+	}
+	return true
 }
 
 func normalizeDigitalCenterMessageText(value string) string {
 	withoutControls := strings.Map(func(character rune) rune {
-		if unicode.IsControl(character) {
+		if unicode.IsControl(character) || unicode.In(character, unicode.Cf, unicode.Co, unicode.Cs) {
 			return ' '
 		}
 		return character
