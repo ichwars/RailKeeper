@@ -2,6 +2,7 @@
 .digital-centers-workspace {
   display: grid;
   min-width: 0;
+  overflow-x: hidden;
   gap: 12px;
 }
 
@@ -66,6 +67,7 @@
   margin: 0;
   color: var(--muted);
   font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .digital-workspace-operation-error {
@@ -76,6 +78,7 @@
   background: color-mix(in srgb, var(--danger) 8%, var(--panel));
   color: var(--danger);
   font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
 }
 
 .digital-center-select-wrap,
@@ -428,11 +431,13 @@
 
 .digital-worklist-table-wrap {
   min-height: 0;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
 .digital-worklist-table {
   width: 100%;
+  min-width: 720px;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: var(--font-size-sm);
@@ -850,7 +855,8 @@
   .digital-center-button { white-space: normal; }
   .digital-centers-layout { grid-template-columns: 1fr; }
   .digital-centers-status { grid-column: auto; }
-  .digital-center-list { min-height: 300px; }
+  .digital-center-list { display: none; }
+  .digital-status-tabs { width: 100%; }
   .digital-worklist-controls { align-items: stretch; flex-direction: column; }
   .digital-worklist-filters { overflow-x: auto; }
 }

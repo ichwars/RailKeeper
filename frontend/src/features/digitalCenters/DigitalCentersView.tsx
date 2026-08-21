@@ -1,4 +1,5 @@
 import { DigitalCenterList } from "./DigitalCenterList";
+import { useI18n } from "../../shared/i18n";
 import { DigitalCenterToolbar } from "./DigitalCenterToolbar";
 import { DigitalStatusPanel } from "./DigitalStatusPanel";
 import { LocomotiveComparisonDialog } from "./LocomotiveComparisonDialog";
@@ -11,14 +12,15 @@ function openDigitalSettings() {
 }
 
 export function DigitalCentersView({ roles }: { roles: string[] }) {
+  const { t } = useI18n();
   const workspace = useDigitalCentersWorkspace();
 
   return (
     <section className="digital-centers-workspace" data-can-administer={roles.includes("Admin")}>
       <header className="digital-centers-page-head">
-        <p className="eyebrow">DIGITALBETRIEB</p>
-        <h1>Digitalzentralen</h1>
-        <p>Zentralen, Live-Daten und Synchronisation in einer Arbeitsansicht.</p>
+        <p className="eyebrow">{t("digitalCenters.eyebrow")}</p>
+        <h1>{t("digitalCenters.title")}</h1>
+        <p>{t("digitalCenters.subtitle")}</p>
       </header>
 
       <DigitalCenterToolbar
@@ -37,7 +39,8 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       />
 
       {workspace.errors.write && <p className="digital-workspace-operation-error" role="alert"
-        aria-label={workspace.errors.write.includes("Daten erneut lesen") ? "Schreibkonflikt" : "Schreibfehler"}>
+        aria-label={workspace.errors.write.includes(t("digitalCenters.error.readAgainMarker"))
+          ? t("digitalCenters.error.writeConflict") : t("digitalCenters.error.write")}>
         {workspace.errors.write}
       </p>}
 

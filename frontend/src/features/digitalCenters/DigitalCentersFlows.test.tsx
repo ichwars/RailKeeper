@@ -143,7 +143,7 @@ describe("Digital Centers operational journeys", () => {
     const previewRegion = screen.getByRole("region", { name: "Schreibvorschau" });
     expect(within(previewRegion).getByRole("cell", { name: "Alte Lok" })).toBeInTheDocument();
     expect(within(previewRegion).getByRole("cell", { name: "BR 218" })).toBeInTheDocument();
-    const confirm = screen.getByRole("button", { name: "Änderungen schreiben" });
+    const confirm = screen.getByRole("button", { name: "In die Digitalzentrale schreiben" });
     expect(confirm).toBeDisabled();
     await user.click(screen.getByRole("checkbox", {
       name: "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden."
@@ -174,7 +174,7 @@ describe("Digital Centers operational journeys", () => {
       name: "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden."
     });
     await user.click(screen.getByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Änderungen schreiben" }));
+    await user.click(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }));
 
     expect(await screen.findByRole("alert", { name: "Schreibkonflikt" }))
       .toHaveTextContent("Daten erneut lesen und eine neue Schreibvorschau erstellen");
@@ -195,8 +195,8 @@ describe("Digital Centers operational journeys", () => {
     await user.click(screen.getByRole("button", { name: "Schreibvorschau erstellen" }));
     await user.click(await screen.findByRole("checkbox"));
 
-    expect(screen.getByRole("button", { name: "Änderungen schreiben" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Änderungen schreiben" }))
+    expect(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }))
       .toHaveAttribute("title", "Die Schreibfreigabe ist nicht mehr gültig.");
     expect(api.confirmDigitalCenterWrite).not.toHaveBeenCalled();
   });
@@ -213,7 +213,7 @@ describe("Digital Centers operational journeys", () => {
     await openComparison(user);
     await user.click(screen.getByRole("button", { name: "Schreibvorschau erstellen" }));
     await user.click(await screen.findByRole("checkbox"));
-    await user.click(screen.getByRole("button", { name: "Änderungen schreiben" }));
+    await user.click(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }));
 
     expect(await screen.findByText("Schreibprüfung fehlgeschlagen")).toBeInTheDocument();
     expect(screen.getByText("Die Zentrale meldet weiterhin den alten Namen.")).toBeInTheDocument();

@@ -187,6 +187,92 @@ func TestMasterDataRouteSecurityContractRemainsIndependentFromDataTransfer(t *te
 	}
 }
 
+func TestDigitalCenterOperationalAndSettingsRoutesRemainAdminOnly(t *testing.T) {
+	wantSettings := map[string]bool{
+		http.MethodGet + " /api/v1/system/digital-settings": false,
+		http.MethodPut + " /api/v1/system/digital-settings": false,
+	}
+	operationalRoutes := 0
+	for _, route := range apiRouteSpecs() {
+		isOperational := strings.HasPrefix(route.Path, "/api/v1/digital-centers/") ||
+			strings.HasPrefix(route.Path, "/api/v1/ecos/")
+		if isOperational {
+			operationalRoutes++
+			if route.Access != routeAccessAdmin {
+				t.Fatalf("digital center route %s %s access = %q, want Admin",
+					route.Method, route.Path, route.Access)
+			}
+		}
+
+		settingsKey := route.Method + " " + route.Path
+		if _, found := wantSettings[settingsKey]; found {
+			if route.Access != routeAccessAdmin {
+				t.Fatalf("digital settings route %s access = %q, want Admin", settingsKey, route.Access)
+			}
+			wantSettings[settingsKey] = true
+		}
+	}
+	if operationalRoutes != 20 {
+		t.Fatalf("digital center operational routes = %d, want 20", operationalRoutes)
+	}
+	for route, found := range wantSettings {
+		if !found {
+			t.Fatalf("missing unchanged digital settings route %s", route)
+		}
+	}
+}
+
+func TestDigitalCenterMutationsRequireAdminSessionAndCSRF(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	for _, user := range []application.CreateUserInput{
+		{Username: "digital-admin", Password: "admin-password", Roles: []string{"Admin"}},
+		{Username: "digital-viewer", Password: "viewer-password", Roles: []string{"Viewer"}},
+		{Username: "digital-messe", Password: "messe-password", Roles: []string{"Messe"}},
+	} {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	router := NewRouter(Config{AuthService: auth})
+	admin := loginRouteTestUser(t, auth, "digital-admin", "admin-password")
+	deniedRoles := []struct {
+		name    string
+		session *application.LoginResult
+	}{
+		{name: "Viewer", session: loginRouteTestUser(t, auth, "digital-viewer", "viewer-password")},
+		{name: "Messe", session: loginRouteTestUser(t, auth, "digital-messe", "messe-password")},
+	}
+
+	mutations := []string{
+		"/api/v1/digital-centers/ecos/live/start",
+		"/api/v1/digital-centers/ecos/live/stop",
+		"/api/v1/digital-centers/ecos/read-sessions",
+		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/write-preview",
+		"/api/v1/digital-centers/read-sessions/session-1/items/item-1/write-confirm",
+		"/api/v1/digital-centers/ecos/locomotives/sync",
+	}
+	for _, path := range mutations {
+		t.Run(path+" anonymous", func(t *testing.T) {
+			request := httptest.NewRequest(http.MethodPost, path, strings.NewReader(`{}`))
+			request.Header.Set("Content-Type", "application/json")
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			assertProblem(t, response, http.StatusForbidden, "csrf_required")
+		})
+		t.Run(path+" csrf", func(t *testing.T) {
+			response := layoutRequest(t, router, admin, http.MethodPost, path, map[string]any{}, false)
+			assertProblem(t, response, http.StatusForbidden, "csrf_required")
+		})
+		for _, denied := range deniedRoles {
+			t.Run(path+" "+denied.name, func(t *testing.T) {
+				response := layoutRequest(t, router, denied.session, http.MethodPost, path, map[string]any{}, true)
+				assertProblem(t, response, http.StatusForbidden, "forbidden")
+			})
+		}
+	}
+}
+
 func createRouteSecurityProfile(
 	t *testing.T,
 	service *application.DataTransferService,

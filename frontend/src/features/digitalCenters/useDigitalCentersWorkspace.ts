@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { api, ApiError } from "../../shared/api";
+import { translate, useI18n } from "../../shared/i18n";
 import {
   type DigitalCenterCompareFilter,
   type DigitalCenterProvider,
@@ -43,6 +44,15 @@ const emptyErrors: DigitalCenterWorkspaceErrors = {
 };
 
 export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOptions = {}) {
+  const { language } = useI18n();
+  const workspaceText = useCallback(
+    (key: string, values?: Record<string, string | number>) => translate(language, key, values),
+    [language]
+  );
+  const localizedError = useCallback(
+    (error: unknown) => errorMessage(error, workspaceText("digitalCenters.error.requestFailed")),
+    [workspaceText]
+  );
   const pollIntervalMs = options.pollIntervalMs ?? 1000;
   const mountedRef = useRef(true);
   const selectedProviderRef = useRef<DigitalCenterProvider | null>(null);
@@ -140,14 +150,14 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       setSelectedProvider(next);
     } catch (loadError) {
       if (mountedRef.current && requestID === requestsRef.current.workspace) {
-        setError("workspace", errorMessage(loadError));
+        setError("workspace", localizedError(loadError));
       }
     } finally {
       if (mountedRef.current && requestID === requestsRef.current.workspace) {
         setLoadingArea("workspace", false);
       }
     }
-  }, [setError, setLoadingArea]);
+  }, [localizedError, setError, setLoadingArea]);
 
   const loadLiveStatus = useCallback(async (provider: DigitalCenterProvider) => {
     const requestID = ++requestsRef.current.live;
@@ -163,7 +173,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     } catch (loadError) {
       if (mountedRef.current && requestID === requestsRef.current.live &&
         selectedProviderRef.current === provider) {
-        const message = errorMessage(loadError);
+        const message = localizedError(loadError);
         setLiveStatus((current) => current?.provider === provider && current.state === "running"
           ? {
             ...current,
@@ -173,7 +183,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
             recentEvents: [],
             diagnosis: { ...current.diagnosis, connectionState: "interrupted", lastError: message },
             error: message,
-            message: "Live-Verbindung unterbrochen"
+            message: workspaceText("digitalCenters.error.liveInterrupted")
           }
           : current);
         setError("live", message);
@@ -184,7 +194,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("live", false);
       }
     }
-  }, [setError, setLoadingArea]);
+  }, [localizedError, setError, setLoadingArea, workspaceText]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -244,7 +254,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       .catch((loadError: unknown) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
-          setError("worklist", errorMessage(loadError));
+          setError("worklist", localizedError(loadError));
         }
       })
       .finally(() => {
@@ -253,7 +263,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("worklist", false);
         }
       });
-  }, [filter, readSession?.id, setError, setLoadingArea]);
+  }, [filter, localizedError, readSession?.id, setError, setLoadingArea]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -270,10 +280,10 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       .catch((loadError: unknown) => {
         if (mountedRef.current && requestID === requestsRef.current.messages &&
           readSessionIDRef.current === sessionID) {
-          setError("messages", errorMessage(loadError));
+          setError("messages", localizedError(loadError));
         }
       });
-  }, [readSession?.id, setError]);
+  }, [localizedError, readSession?.id, setError]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -293,7 +303,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       .catch((loadError: unknown) => {
         if (mountedRef.current && requestID === requestsRef.current.detail &&
           readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-          setError("detail", errorMessage(loadError));
+          setError("detail", localizedError(loadError));
         }
       })
       .finally(() => {
@@ -302,7 +312,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("detail", false);
         }
       });
-  }, [readSession?.id, selectedItemId, setError, setLoadingArea]);
+  }, [localizedError, readSession?.id, selectedItemId, setError, setLoadingArea]);
 
   const selectCenter = useCallback((provider: DigitalCenterProvider) => {
     if (selectedProviderRef.current === provider) return;
@@ -339,7 +349,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const readData = useCallback(async () => {
     const provider = selectedProviderRef.current;
     if (!provider || !actions.canRead) {
-      const error = new Error("Diese Digitalzentrale unterstützt keinen Lesevorgang.");
+      const error = new Error(workspaceText("digitalCenters.error.readUnsupported"));
       setError("read", error.message);
       throw error;
     }
@@ -361,7 +371,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       return session;
     } catch (readError) {
       if (mountedRef.current && requestID === requestsRef.current.read) {
-        setError("read", errorMessage(readError));
+        setError("read", localizedError(readError));
       }
       throw readError;
     } finally {
@@ -369,12 +379,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("read", false);
       }
     }
-  }, [actions.canRead, clearSessionDependents, setError, setLoadingArea]);
+  }, [actions.canRead, clearSessionDependents, localizedError, setError, setLoadingArea, workspaceText]);
 
   const runLiveMutation = useCallback(async (operation: "start" | "stop") => {
     const provider = selectedProviderRef.current;
     if (!provider || !actions.canMonitor) {
-      const error = new Error("Diese Digitalzentrale unterstützt kein Live-Monitoring.");
+      const error = new Error(workspaceText("digitalCenters.error.monitorUnsupported"));
       setError("live", error.message);
       throw error;
     }
@@ -393,7 +403,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       return status;
     } catch (liveError) {
       if (mountedRef.current && requestID === requestsRef.current.live) {
-        setError("live", errorMessage(liveError));
+        setError("live", localizedError(liveError));
       }
       throw liveError;
     } finally {
@@ -401,7 +411,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("live", false);
       }
     }
-  }, [actions.canMonitor, readSession?.id, setError, setLoadingArea]);
+  }, [actions.canMonitor, localizedError, readSession?.id, setError, setLoadingArea, workspaceText]);
 
   const selectItem = useCallback((itemID: string) => {
     requestsRef.current.detail += 1;
@@ -424,7 +434,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     const sessionID = readSession?.id;
     const itemID = selectedItemIDRef.current;
     if (!actions.canWrite || !sessionID || !itemID) {
-      const error = new Error("Für diese Auswahl ist keine Schreibvorschau verfügbar.");
+      const error = new Error(workspaceText("digitalCenters.error.previewUnavailable"));
       setError("write", error.message);
       throw error;
     }
@@ -443,7 +453,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     } catch (writeError) {
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-        setError("write", errorMessage(writeError));
+        setError("write", localizedError(writeError));
       }
       throw writeError;
     } finally {
@@ -452,19 +462,19 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("write", false);
       }
     }
-  }, [actions.canWrite, readSession?.id, setError, setLoadingArea]);
+  }, [actions.canWrite, localizedError, readSession?.id, setError, setLoadingArea, workspaceText]);
 
   const confirmWrite = useCallback(async () => {
     const sessionID = readSession?.id;
     const itemID = selectedItemIDRef.current;
     const preview = writePreview;
     if (!actions.canWrite || !sessionID || !itemID || !preview || preview.itemId !== itemID) {
-      const error = new Error("Eine aktuelle Schreibvorschau ist erforderlich.");
+      const error = new Error(workspaceText("digitalCenters.error.previewRequired"));
       setError("write", error.message);
       throw error;
     }
     if (!validWriteGrant(preview)) {
-      const error = new Error("Die Schreibfreigabe ist nicht mehr gültig. Neue Schreibvorschau erstellen.");
+      const error = new Error(workspaceText("digitalCenters.error.grantExpired"));
       setWritePreview(null);
       setWriteConfirmation(null);
       setError("write", error.message);
@@ -492,9 +502,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           readSessionIDRef.current = null;
           setReadSession(null);
           clearSessionDependents();
-          setError("write", "Schreibfreigabe ungültig. Daten erneut lesen und eine neue Schreibvorschau erstellen.");
+          setError("write", workspaceText("digitalCenters.error.grantConflict"));
         } else {
-          setError("write", errorMessage(writeError));
+          setError("write", localizedError(writeError));
         }
       }
       throw writeError;
@@ -504,7 +514,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("write", false);
       }
     }
-  }, [actions.canWrite, clearSessionDependents, readSession?.id, setError, setLoadingArea, writePreview]);
+  }, [actions.canWrite, clearSessionDependents, localizedError, readSession?.id, setError, setLoadingArea,
+    workspaceText, writePreview]);
 
   const setSearch = useCallback((value: string) => {
     requestsRef.current.worklist += 1;
@@ -566,8 +577,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   };
 }
 
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Die Digitalzentralen-Anfrage ist fehlgeschlagen.";
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 function validWriteGrant(preview: DigitalCenterWritePreview) {

@@ -5,6 +5,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { setLanguage } from "../../shared/i18n";
 import type {
   DigitalCenterReadSession,
   DigitalCenterSummary,
@@ -24,6 +25,7 @@ type Workspace = ReturnType<typeof useDigitalCentersWorkspace>;
 
 describe("DigitalCentersView", () => {
   beforeEach(() => {
+    setLanguage("de");
     workspaceHook.mockReturnValue(workspaceFixture());
     window.history.replaceState(null, "", "/digital-centers");
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
@@ -184,6 +186,20 @@ describe("DigitalCentersView", () => {
     expect(screen.getByRole("button", { name: "Vorherige Seite" }).textContent).toBe("");
     expect(screen.getByRole("button", { name: "Nächste Seite" }).textContent).toBe("");
   });
+
+  it("renders the complete operational hierarchy in English", () => {
+    setLanguage("en");
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.getByRole("heading", { level: 1, name: "Command stations" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Read data" })).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "Stations" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Locomotive worklist" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Live status" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Diagnostics" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Messages" })).toBeInTheDocument();
+    expect(screen.getByText("Writing locked")).toBeInTheDocument();
+  });
 });
 
 describe("Digital Centers responsive CSS contract", () => {
@@ -199,6 +215,31 @@ describe("Digital Centers responsive CSS contract", () => {
 
     const narrowBreakpoint = digitalCentersCSS.split("@media (max-width: 900px)")[1] ?? "";
     expect(narrowBreakpoint).toMatch(/\.digital-centers-layout\s*\{\s*grid-template-columns:\s*1fr;/);
+  });
+
+  it("uses the toolbar selector and local table scrolling at 900px", () => {
+    const narrowBreakpoint = digitalCentersCSS.split("@media (max-width: 900px)")[1] ?? "";
+
+    expect(narrowBreakpoint).toMatch(/\.digital-center-list\s*\{[^}]*display:\s*none;/s);
+    expect(narrowBreakpoint).toMatch(/\.digital-status-tabs\s*\{[^}]*width:\s*100%;/s);
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-centers-workspace\s*\{[^}]*overflow-x:\s*(?:hidden|clip);/s
+    );
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-worklist-table\s*\{[^}]*min-width:\s*720px;/s
+    );
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-worklist-table-wrap\s*\{[^}]*overflow-x:\s*auto;/s
+    );
+  });
+
+  it("wraps long operational and capability messages inside the workspace", () => {
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-center-capability-note\s*\{[^}]*overflow-wrap:\s*anywhere;/s
+    );
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-workspace-operation-error\s*\{[^}]*overflow-wrap:\s*anywhere;/s
+    );
   });
 });
 

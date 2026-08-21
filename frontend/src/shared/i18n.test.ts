@@ -53,6 +53,24 @@ describe("i18n", () => {
     expect(translate("en", "nav.digitalCenters")).toBe("Command stations");
   });
 
+  it.each([
+    ["digitalCenters.title", "Digitalzentralen", "Command stations"],
+    ["digitalCenters.subtitle", "Zentralen, Live-Daten und Synchronisation in einer Arbeitsansicht.",
+      "Command stations, live data and synchronization in one workspace."],
+    ["digitalCenters.toolbar.read", "Daten lesen", "Read data"],
+    ["digitalCenters.list.title", "Zentralen", "Stations"],
+    ["digitalCenters.worklist.title", "Lok-Arbeitsliste", "Locomotive worklist"],
+    ["digitalCenters.status.live", "Live-Status", "Live status"],
+    ["digitalCenters.status.diagnosis", "Diagnose", "Diagnostics"],
+    ["digitalCenters.status.messages", "Meldungen", "Messages"],
+    ["digitalCenters.write.locked", "Schreiben gesperrt", "Writing locked"],
+    ["digitalCenters.write.confirm", "In die Digitalzentrale schreiben", "Write to command station"],
+    ["digitalCenters.error.retry", "Erneut laden", "Try again"]
+  ])("translates Digital Centers key %s", (key, german, english) => {
+    expect(translate("de", key)).toBe(german);
+    expect(translate("en", key)).toBe(english);
+  });
+
   it("uses individual item terminology throughout accessory translations", async () => {
     const [{ deTranslations }, { enTranslations }] = await Promise.all([import("./i18n/de"), import("./i18n/en")]);
     const accessoryValues = (translations: Record<string, string>) => Object.entries(translations)

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 
+import { useI18n } from "../../shared/i18n";
 import type { ECoSLivePulseSample } from "./digitalCenterModel";
 
 export function drawPulseChart(
@@ -25,6 +26,7 @@ export function drawPulseChart(
 }
 
 export function LivePulseChart({ samples }: { samples: ECoSLivePulseSample[] }) {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -64,8 +66,8 @@ export function LivePulseChart({ samples }: { samples: ECoSLivePulseSample[] }) 
 
   return (
     <div className="digital-live-chart">
-      <strong>Live-Puls (Antworten / s)</strong>
-      <canvas ref={canvasRef} role="img" aria-label="Live-Puls der Digitalzentrale"
+      <strong>{t("digitalCenters.chart.title")}</strong>
+      <canvas ref={canvasRef} role="img" aria-label={t("digitalCenters.chart.label")}
         data-sample-count={samples.length} />
     </div>
   );
