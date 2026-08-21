@@ -87,6 +87,30 @@ describe("import/export helpers", () => {
     expect(suggestions[0].notes).toBe("Aus ECoS funcdesc 3.");
   });
 
+  it("maps ECoS codes through neutral compatibility metadata", () => {
+    const symbols = [{
+      id: "symbols:headlight",
+      type: "symbols",
+      key: "stable-headlight",
+      label: "Stirnbeleuchtung",
+      active: true,
+      sortOrder: 103,
+      metadata: { ecosCode: 3, library: "railkeeper-workshop-line" },
+      createdAt: "2026-08-21T00:00:00Z",
+      updatedAt: "2026-08-21T00:00:00Z",
+    }];
+    const suggestions = ecosFunctionSuggestions({
+      objectId: 1001,
+      functions: [{ index: 0, description: 3 }],
+    }, symbols);
+
+    expect(suggestions[0]).toMatchObject({
+      functionKey: "F0",
+      symbolKey: "stable-headlight",
+      name: "Stirnbeleuchtung",
+    });
+  });
+
   it("keeps runtime and image attributes out of raw ECoS review", () => {
     const locomotive = {
       objectId: 1001,

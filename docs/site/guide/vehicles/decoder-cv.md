@@ -50,6 +50,11 @@ Selecting a symbol replaces the current function name with that symbol's label a
 stored function type. Choose the symbol before entering a custom name, or restore the intended name
 after changing the symbol. The type is not a separate control in this stable view.
 
+The bundled choices use RailKeeper's independently authored **Werkstatt-Linie**. ECoS imports map
+numeric function-description codes to these stable RailKeeper keys; the code is interoperability
+metadata and does not identify the graphic source. Administrators can add custom symbol keys and
+images in master-data settings.
+
 | Stored type | English meaning |
 | --- | --- |
 | `standard` | Standard |

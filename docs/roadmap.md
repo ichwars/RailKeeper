@@ -33,7 +33,8 @@
 - maintenance radar and dashboard summaries
 - digital function mapping
 - digital function icon picker
-- ESU/ECoS function symbol master data with stored SVG graphics and upload/edit support
+- RailKeeper Werkstatt-Linie function symbols with stored SVG graphics, custom uploads, and neutral
+  ECoS compatibility-code metadata
 - digital function JSON import/export
 - structured CV values and CV files
 - CV import comparison preview
@@ -69,7 +70,7 @@
 - inventory PDF report dialog for overview and detailed vehicle reports
 - read-only vehicle detail view with clickable source links and image preview
 - camera-assisted EAN scanning where supported by the browser
-- updated ESU function symbol set with dark-mode symbol tiles
+- active, inactive, and print palettes for the RailKeeper Werkstatt-Linie with stable dark tiles
 - accessory catalogue with quantity stock and individually tracked assets
 - hierarchical storage locations and stock adjustments
 - reservations and installations for vehicles, layouts and layout units

@@ -75,9 +75,13 @@ appendix above the list. Use that source before adding or correcting an identity
 
 ## Maintain function symbols
 
-A symbol consists of a name, optional description, and optional image. The upload accepts SVG,
-PNG, JPEG, or WebP and rejects files larger than 1 MiB. The image is stored inside the entry's
-metadata, so it is included in master-data export and application backup.
+RailKeeper supplies 94 independently authored **Werkstatt-Linie** symbols. Eight are general
+fallbacks and 86 retain numeric ECoS function-description codes solely as compatibility metadata.
+The graphics themselves are part of RailKeeper and are not copied from the command station.
+
+A symbol consists of a name, optional description, and optional image. Administrators can still
+create their own symbol keys and upload SVG, PNG, JPEG, or WebP images up to 1 MiB. The image is
+stored inside the entry's metadata, so it is included in master-data export and application backup.
 
 Removing the preview from the form removes the image only when the entry is saved. Existing vehicle
 functions keep the symbol key. Deactivating a symbol prevents new normal selections while existing

@@ -53,6 +53,11 @@ leitet den gespeicherten Funktionstyp ab. Wähle das Symbol vor einem eigenen Na
 gewünschten Namen nach einem Symbolwechsel wieder her. Der Typ ist in dieser stabilen Ansicht kein
 eigenes Bedienelement.
 
+Die mitgelieferte Auswahl verwendet die eigenständig gezeichnete RailKeeper **Werkstatt-Linie**.
+ECoS-Importe ordnen numerische Funktionsbeschreibungscodes stabilen RailKeeper-Schlüsseln zu. Der
+Code dient nur der Interoperabilität und bezeichnet keine Grafikquelle. Administratoren können in
+den Stammdateneinstellungen eigene Symbolschlüssel und Bilder ergänzen.
+
 | Gespeicherter Typ | Deutsche Bedeutung |
 | --- | --- |
 | `standard` | Standard |
