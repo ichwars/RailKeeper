@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type {
@@ -9,6 +13,8 @@ import type {
 } from "./digitalCenterModel";
 import { DigitalCentersView } from "./DigitalCentersView";
 import type { useDigitalCentersWorkspace } from "./useDigitalCentersWorkspace";
+
+const digitalCentersCSS = readFileSync(resolve(process.cwd(), "src/styles/digital-centers.css"), "utf8");
 
 const { workspaceHook } = vi.hoisted(() => ({ workspaceHook: vi.fn() }));
 
@@ -104,20 +110,95 @@ describe("DigitalCentersView", () => {
     }
   });
 
-  it("renders the focused locomotive comparison dialog", () => {
+  it("shows workspace and read failures distinctly without claiming configuration is empty", () => {
+    const retry = vi.fn(async () => undefined);
+    workspaceHook.mockReturnValue(workspaceFixture({
+      centers: [],
+      selectedProvider: null,
+      selectedCenter: null,
+      liveStatus: null,
+      errors: {
+        workspace: "Arbeitsbereich nicht erreichbar",
+        live: "",
+        read: "Lesen fehlgeschlagen",
+        worklist: "",
+        detail: "",
+        messages: "",
+        write: ""
+      },
+      refresh: retry
+    }));
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.getByRole("alert", { name: "Arbeitsbereich konnte nicht geladen werden" }))
+      .toHaveTextContent("Arbeitsbereich nicht erreichbar");
+    expect(screen.queryByText("Keine Digitalzentrale konfiguriert")).not.toBeInTheDocument();
+    expect(screen.getByRole("alert", { name: "Lesefehler" })).toHaveTextContent("Lesen fehlgeschlagen");
+    fireEvent.click(screen.getByRole("button", { name: "Digitalzentralen erneut laden" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
+
+  it("traps focus in the comparison dialog, closes on Escape, and restores focus", async () => {
+    const user = userEvent.setup();
+    const invoker = document.createElement("button");
+    invoker.textContent = "Vergleich öffnen";
+    document.body.append(invoker);
+    invoker.focus();
     const workspace = workspaceFixture({
       selectedItem: workItem,
       selectedItemId: workItem.id,
       dialog: { kind: "comparison", itemId: workItem.id }
     });
     workspaceHook.mockReturnValue(workspace);
-    render(<DigitalCentersView roles={["Admin"]} />);
+    const { unmount } = render(<DigitalCentersView roles={["Admin"]} />);
 
     expect(screen.getByRole("dialog", { name: "Lok-Vergleich BR 218 402-6" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Digitalzentrale" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "RailKeeper" })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Vergleich schließen" }));
+    const first = screen.getByRole("button", { name: "Vergleich schließen" });
+    const last = screen.getByRole("button", { name: "Schließen" });
+    expect(first).toHaveFocus();
+    last.focus();
+    await user.tab();
+    expect(first).toHaveFocus();
+    await user.keyboard("{Escape}");
     expect(workspace.closeDialog).toHaveBeenCalledOnce();
+    unmount();
+    expect(invoker).toHaveFocus();
+    invoker.remove();
+  });
+
+  it("renders factual pagination without current-page quick-filter counts or text glyph controls", () => {
+    workspaceHook.mockReturnValue(workspaceFixture({
+      workItems: { items: [workItem], page: 2, pageSize: 25, total: 60, totalPages: 3 },
+      page: 2,
+      pageSize: 25
+    }));
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.getByText("26–50 von 60")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Abweichung filtern" })).toHaveTextContent("Prüfen");
+    expect(screen.getByRole("button", { name: "Neu filtern" })).toHaveTextContent("Neu");
+    expect(screen.getByRole("button", { name: "Abweichung filtern" })).not.toHaveTextContent(/\d/);
+    expect(screen.getByRole("button", { name: "Neu filtern" })).not.toHaveTextContent(/\d/);
+    expect(screen.getByRole("button", { name: "Vorherige Seite" }).textContent).toBe("");
+    expect(screen.getByRole("button", { name: "Nächste Seite" }).textContent).toBe("");
+  });
+});
+
+describe("Digital Centers responsive CSS contract", () => {
+  it("switches the workspace to two columns before the 1500px shell can overflow", () => {
+    const breakpoint = digitalCentersCSS
+      .split("@media (max-width: 1500px)")[1]
+      ?.split("@media (max-width: 1180px)")[0] ?? "";
+
+    expect(breakpoint).toMatch(
+      /\.digital-centers-layout\s*\{[\s\S]*grid-template-columns:\s*minmax\([^;]+\)\s+minmax\([^;]+\);/
+    );
+    expect(breakpoint).toMatch(/\.digital-centers-status\s*\{[\s\S]*grid-column:\s*1\s*\/\s*-1;/);
+
+    const narrowBreakpoint = digitalCentersCSS.split("@media (max-width: 900px)")[1] ?? "";
+    expect(narrowBreakpoint).toMatch(/\.digital-centers-layout\s*\{\s*grid-template-columns:\s*1fr;/);
   });
 });
 

@@ -28,6 +28,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
         liveStatus={workspace.liveStatus}
         actions={workspace.actions}
         loading={workspace.loading}
+        readError={workspace.errors.read}
         onSelectCenter={workspace.selectCenter}
         onRead={workspace.readData}
         onStartLive={workspace.startLive}
@@ -41,8 +42,10 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
           selectedProvider={workspace.selectedProvider}
           total={workspace.workItems.total}
           loading={workspace.loading.workspace}
+          error={workspace.errors.workspace}
           onSelect={workspace.selectCenter}
           onConfigure={openDigitalSettings}
+          onRetry={workspace.refresh}
         />
         <LocomotiveWorklist
           page={workspace.workItems}

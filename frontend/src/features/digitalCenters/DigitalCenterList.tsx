@@ -2,13 +2,17 @@ import { Circle, Plus, Server } from "lucide-react";
 
 import type { DigitalCenterProvider, DigitalCenterSummary } from "./digitalCenterModel";
 
-export function DigitalCenterList({ centers, selectedProvider, total, loading, onSelect, onConfigure }: {
+export function DigitalCenterList({
+  centers, selectedProvider, total, loading, error, onSelect, onConfigure, onRetry
+}: {
   centers: DigitalCenterSummary[];
   selectedProvider: DigitalCenterProvider | null;
   total: number;
   loading: boolean;
+  error: string;
   onSelect: (provider: DigitalCenterProvider) => void;
   onConfigure: () => void;
+  onRetry: () => Promise<void>;
 }) {
   return (
     <aside className="digital-centers-panel digital-center-list" aria-labelledby="digital-center-list-title">
@@ -21,7 +25,14 @@ export function DigitalCenterList({ centers, selectedProvider, total, loading, o
       </header>
       <div className="digital-center-list-body">
         {loading && <p className="digital-centers-state">Digitalzentralen werden geladen</p>}
-        {!loading && centers.length === 0 &&
+        {!loading && error && <div className="digital-centers-state error" role="alert"
+          aria-label="Arbeitsbereich konnte nicht geladen werden">
+          <p>{error}</p>
+          <button type="button" className="digital-center-button"
+            aria-label="Digitalzentralen erneut laden"
+            onClick={() => void onRetry().catch(() => undefined)}>Erneut laden</button>
+        </div>}
+        {!loading && !error && centers.length === 0 &&
           <p className="digital-centers-state">Keine Digitalzentrale konfiguriert</p>}
         {centers.map((center) => {
           const selected = center.provider === selectedProvider;

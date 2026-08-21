@@ -9,7 +9,7 @@ import type {
 
 export function DigitalCenterToolbar({
   centers, selectedProvider, selectedCenter, liveStatus, actions, loading,
-  onSelectCenter, onRead, onStartLive, onStopLive, onConfigure
+  readError, onSelectCenter, onRead, onStartLive, onStopLive, onConfigure
 }: {
   centers: DigitalCenterSummary[];
   selectedProvider: DigitalCenterProvider | null;
@@ -17,6 +17,7 @@ export function DigitalCenterToolbar({
   liveStatus: ECoSLiveStatus | null;
   actions: { canRead: boolean; canMonitor: boolean };
   loading: { workspace: boolean; live: boolean; read: boolean };
+  readError: string;
   onSelectCenter: (provider: DigitalCenterProvider) => void;
   onRead: () => Promise<DigitalCenterReadSession>;
   onStartLive: () => Promise<ECoSLiveStatus>;
@@ -68,6 +69,9 @@ export function DigitalCenterToolbar({
           <MoreHorizontal size={20} aria-hidden="true" />
         </button>
       </div>
+      {readError && <p className="digital-center-toolbar-error" role="alert" aria-label="Lesefehler">
+        <strong>Daten konnten nicht gelesen werden.</strong> {readError} Erneut über „Daten lesen“ versuchen.
+      </p>}
     </section>
   );
 }

@@ -1,10 +1,11 @@
-import { Circle, Filter, MoreHorizontal, RefreshCw, Search, Settings2 } from "lucide-react";
+import {
+  ChevronLeft, ChevronRight, Circle, Filter, MoreHorizontal, RefreshCw, Search, Settings2
+} from "lucide-react";
 
 import type {
   DigitalCenterCompareFilter,
   DigitalCenterCompareStatus,
   DigitalCenterReadSession,
-  DigitalCenterWorkItem,
   DigitalCenterWorkItemPage
 } from "./digitalCenterModel";
 
@@ -30,7 +31,6 @@ export function LocomotiveWorklist({
   onRefresh: () => Promise<DigitalCenterReadSession>;
   onCompare: (itemID: string) => void;
 }) {
-  const counts = countStatuses(page.items);
   return (
     <section className="digital-centers-panel digital-centers-worklist" aria-labelledby="worklist-title">
       <header className="digital-centers-panel-head">
@@ -51,8 +51,9 @@ export function LocomotiveWorklist({
         <div className="digital-worklist-filters" aria-label="Abgleich filtern">
           {filterLabels.map((filter) => (
             <button key={filter.value} type="button" className={compareStatus === filter.value ? "active" : ""}
+              aria-label={filter.value === "deviation" ? "Abweichung filtern" : `${filter.label} filtern`}
               aria-pressed={compareStatus === filter.value} onClick={() => onCompareStatus(filter.value)}>
-              {filter.label} <span>{filter.value === "all" ? page.total : counts[filter.value]}</span>
+              {filter.label} {filter.value === "all" && <span>{page.total}</span>}
             </button>
           ))}
           <button type="button" className="digital-center-icon-button" aria-label="Weitere Filter" title="Weitere Filter">
@@ -94,10 +95,11 @@ export function LocomotiveWorklist({
           </select>
         </label>
         <span>{page.total === 0 ? "0" : `${(page.page - 1) * page.pageSize + 1}–${Math.min(page.page * page.pageSize, page.total)}`} von {page.total}</span>
-        <button type="button" aria-label="Vorherige Seite" disabled={page.page <= 1} onClick={() => onPage(page.page - 1)}>‹</button>
+        <button type="button" aria-label="Vorherige Seite" disabled={page.page <= 1}
+          onClick={() => onPage(page.page - 1)}><ChevronLeft size={16} aria-hidden="true" /></button>
         <strong>{page.page}</strong>
         <button type="button" aria-label="Nächste Seite" disabled={page.page >= page.totalPages}
-          onClick={() => onPage(page.page + 1)}>›</button>
+          onClick={() => onPage(page.page + 1)}><ChevronRight size={16} aria-hidden="true" /></button>
       </footer>
     </section>
   );
@@ -105,12 +107,6 @@ export function LocomotiveWorklist({
 
 function StateRow({ text, tone = "muted" }: { text: string; tone?: "muted" | "error" }) {
   return <tr><td colSpan={6} className={`digital-worklist-state ${tone}`}>{text}</td></tr>;
-}
-
-function countStatuses(items: DigitalCenterWorkItem[]) {
-  const counts: Record<DigitalCenterCompareStatus, number> = { ok: 0, deviation: 0, missing: 0, new: 0, conflict: 0 };
-  items.forEach((item) => { counts[item.compareStatus] += 1; });
-  return counts;
 }
 
 function compareLabel(status: DigitalCenterCompareStatus) {
