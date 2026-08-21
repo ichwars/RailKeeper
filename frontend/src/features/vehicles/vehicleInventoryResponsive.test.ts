@@ -38,4 +38,10 @@ describe("vehicle inventory column layout", () => {
     expect(css).toMatch(/\.vehicle-inventory-table td\.actions-cell\s*\{[^}]*overflow:\s*visible/s);
     expect(css).toMatch(/\.vehicle-inventory-table tbody tr:has\(\.quick-menu\)\s*\{[^}]*z-index:\s*5/s);
   });
+
+  it("uses the available desktop width without assigning all spare space to one data column", () => {
+    expect(css).toMatch(/\.vehicle-inventory-table\s*\{[^}]*width:\s*100%[^}]*min-width:\s*100%[^}]*table-layout:\s*fixed/s);
+    expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\),[\s\S]*width:\s*calc\(\(100%\s*-\s*186px\)\s*\/\s*var\(--vehicle-data-column-count,\s*8\)\)/s);
+    expect(css).toMatch(/\.vehicle-inventory-table \[class\*="vehicle-column-"\]\s*\{[^}]*max-width:\s*280px/s);
+  });
 });

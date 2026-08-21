@@ -471,7 +471,7 @@ export function OverviewView({ username = "local", roles = ["Editor"] }: Overvie
                     {formatRecentTime(lastSynchronization, language)}</time> :
                     <strong>{t("overview.digitalCenters.neverSynced")}</strong>}</p>
               </div>
-              <a href="/settings" className="overview-open-action"><ExternalLink size={15} aria-hidden="true" />
+              <a href="/digital-centers" className="overview-open-action"><ExternalLink size={15} aria-hidden="true" />
                 {t("overview.digitalCenters.open")}</a>
             </div>
           )}

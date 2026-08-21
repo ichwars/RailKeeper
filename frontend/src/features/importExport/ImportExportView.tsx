@@ -1,1054 +1,179 @@
-import { ChangeEvent, Fragment, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Check, ClipboardCheck, Database, Download, FileInput, Printer, Save, SkipForward, Upload } from "lucide-react";
-import { api, CreateVehicleRequest, DigitalCenterSettings, ECoSConnectionResult, ECoSLiveStatus, ECoSLocomotiveSyncResult, ECoSRawLocomotive, ECoSRawProbe, MasterDataEntry, Vehicle, VehicleCVValueInput } from "../../shared/api";
+import { Plus } from "lucide-react";
+
 import { useI18n } from "../../shared/i18n";
-import { AppSelect } from "../../shared/ui/AppSelect";
-import { localSettingKeys } from "../settings/settingsModel";
-import {
-  buildECoSVehicleDraftRow,
-  ColumnMapping,
-  cv8ManufacturersFromMasterData,
-  defaultColumnMappings,
-  detectDelimiter,
-  displayImportValue,
-  downloadText,
-  ECoSBusyPhase,
-  ECoSImportSession,
-  ecosImportSessionStorageKey,
-  ECoSVehicleDraftPayload,
-  ecosExternalMapping,
-  ecosRequiredFields,
-  ecosVehicleDraftStorageKey,
-  ECoSSyncHandler,
-  FunctionImportSuggestion,
-  getImportChanges,
-  ImportRow,
-  ImportTablePreview,
-  importRowsFromTable,
-  mergeExternalMapping,
-  mergeImportedVehicle,
-  normalizeECoSProtocolForCV,
-  optionValue,
-  parseDelimited,
-  parseXMLImport,
-  printInventory,
-  renderECoSRawProbe,
-  VehicleImportField,
-  vehicleImportFields,
-  vehiclesToCSV
-} from "./importExportHelpers";
+import { TransferArtifactPanel } from "./TransferArtifactPanel";
+import { TransferExportDialog } from "./TransferExportDialog";
+import { TransferHistoryTable } from "./TransferHistoryTable";
+import { TransferImportDialog } from "./TransferImportDialog";
+import { TransferJobDetails } from "./TransferJobDetails";
+import { TransferJobList } from "./TransferJobList";
+import { TransferProfileDialog } from "./TransferProfileDialog";
+import { TransferProfilesTable } from "./TransferProfilesTable";
+import { TransferSummaryStrip } from "./TransferSummaryStrip";
+import { useDataTransferWorkspace } from "./useDataTransferWorkspace";
 
-const csvFieldLabelKeys: Partial<Record<VehicleImportField, string>> = {
-  decoderType: "importExport.csvField.decoderType",
-  acquisitionType: "importExport.csvField.acquisitionType",
-  acquiredFrom: "importExport.csvField.acquiredFrom",
-  purchasePrice: "importExport.csvField.purchasePrice",
-  purchaseDate: "importExport.csvField.purchaseDate",
-  storageLocation: "importExport.csvField.storageLocation",
-  storageDetails: "importExport.csvField.storageDetails",
-  condition: "importExport.csvField.condition",
-  conditionDetails: "importExport.csvField.conditionDetails",
-  packaging: "importExport.csvField.packaging"
-};
-
-export function ImportExportView() {
+export function ImportExportView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [symbols, setSymbols] = useState<MasterDataEntry[]>([]);
-  const [masterOptions, setMasterOptions] = useState<Record<string, MasterDataEntry[]>>({});
-  const [rows, setRows] = useState<ImportRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
-  const [importTable, setImportTable] = useState<ImportTablePreview | null>(null);
-  const [ecosHost, setEcosHost] = useState(window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "");
-  const [ecosPort, setEcosPort] = useState(window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471");
-  const [ecosEnabled, setEcosEnabled] = useState(() => {
-    const stored = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
-    if (stored !== null) return stored === "true";
-    return Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim());
-  });
-  const [digitalSettings, setDigitalSettings] = useState<DigitalCenterSettings>(() => ({
-    provider: "ecos",
-    ecos: {
-      enabled: ecosEnabled,
-      host: window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "",
-      port: window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471"
-    },
-    z21: {
-      enabled: window.localStorage.getItem(localSettingKeys.digitalZ21Enabled) === "true",
-      host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
-      port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
-    },
-    intellibox3: {
-      enabled: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Enabled) === "true",
-      host: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Host) || "",
-      port: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Port) || "21105"
-    },
-    cs3: {
-      enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",
-      host: window.localStorage.getItem(localSettingKeys.digitalCS3Host) || "",
-      port: window.localStorage.getItem(localSettingKeys.digitalCS3Port) || "80"
-    }
-  }));
-  const [ecosLiveStatus, setEcosLiveStatus] = useState<ECoSLiveStatus | null>(null);
-  const [ecosBusy, setEcosBusy] = useState<ECoSBusyPhase>("idle");
-  const [ecosResult, setEcosResult] = useState<ECoSConnectionResult | null>(null);
-  const [ecosRawProbe, setEcosRawProbe] = useState<ECoSRawProbe | null>(null);
-  const [ecosSession, setEcosSession] = useState<ECoSImportSession | null>(null);
-  const [ecosSyncPlans, setEcosSyncPlans] = useState<Record<string, ECoSLocomotiveSyncResult>>({});
-  const [ecosSyncBusyObjectId, setEcosSyncBusyObjectId] = useState<number | null>(null);
-  const [ecosMessage, setEcosMessage] = useState("");
-  const [ecosAutoFetchedFromLive, setEcosAutoFetchedFromLive] = useState(false);
-  const fieldLabel = (key: VehicleImportField) => t(`vehicle.field.${key}`);
-  const csvFieldLabel = (key: VehicleImportField) => {
-    const translationKey = csvFieldLabelKeys[key];
-    return translationKey ? t(translationKey) : fieldLabel(key);
-  };
-  const issueLabels = {
-    missingManufacturer: t("importExport.issue.missingManufacturer"),
-    missingName: t("importExport.issue.missingName"),
-    missingGauge: t("importExport.issue.missingGauge"),
-    missingCategory: t("importExport.issue.missingCategory"),
-    missingGattung: t("importExport.issue.missingGattung"),
-    invalidMaximumSpeed: t("importExport.issue.invalidMaximumSpeed"),
-    invalidHomeBase: t("importExport.issue.invalidHomeBase"),
-    duplicate: t("importExport.issue.duplicate"),
-    ecosMatched: t("importExport.ecos.matched")
-  };
-  const cv8Manufacturers = useMemo(
-    () => cv8ManufacturersFromMasterData(masterOptions.cv8_manufacturer || []),
-    [masterOptions]
-  );
-  const ecosSessionStats = useMemo(() => {
-    const locomotives = ecosRawProbe?.locomotives || [];
-    const statuses = ecosSession?.statuses || {};
-    const stats: Record<ECoSImportSession["statuses"][string]["status"], number> & { total: number } = {
-      open: 0,
-      editing: 0,
-      saved: 0,
-      skipped: 0,
-      error: 0,
-      total: locomotives.length
-    };
-    locomotives.forEach((locomotive) => {
-      const status = statuses[String(locomotive.objectId)]?.status || "open";
-      stats[status] += 1;
-    });
-    return stats;
-  }, [ecosRawProbe, ecosSession]);
-  const nextOpenECoSLocomotive = useMemo(() => {
-    const locomotives = ecosRawProbe?.locomotives || [];
-    const statuses = ecosSession?.statuses || {};
-    return locomotives.find((locomotive) => (statuses[String(locomotive.objectId)]?.status || "open") === "open")
-      || locomotives.find((locomotive) => ["editing", "error"].includes(statuses[String(locomotive.objectId)]?.status || ""));
-  }, [ecosRawProbe, ecosSession]);
+  const workspace = useDataTransferWorkspace(roles);
+  const detailJob = workspace.selectedJobDetails?.job ?? workspace.selectedJob;
+  const dialogJobId = workspace.dialog?.kind !== "profile" ? workspace.dialog?.jobId : undefined;
+  const dialogJob = dialogJobId
+    ? [workspace.selectedJobDetails?.job, workspace.selectedJob, ...workspace.allJobs]
+      .find((job) => job?.id === dialogJobId) || undefined
+    : undefined;
 
-  const activeDigitalProviders = useMemo(() => [
-    digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim() ? "ecos" : "",
-    digitalSettings.z21?.enabled && digitalSettings.z21.host.trim() ? "z21" : "",
-    digitalSettings.intellibox3?.enabled && digitalSettings.intellibox3.host.trim() ? "intellibox3" : "",
-    digitalSettings.cs3?.enabled && digitalSettings.cs3.host.trim() ? "cs3" : ""
-  ].filter(Boolean), [digitalSettings]);
-  const hasActiveDigitalCenter = activeDigitalProviders.length > 0;
-  const ecosActive = Boolean(digitalSettings.ecos?.enabled && digitalSettings.ecos.host.trim());
-  const ecosConnectionReady = Boolean(ecosResult?.connected || ecosLiveStatus?.connected);
-  const activeUnsupportedProviders = (["z21", "intellibox3", "cs3"] as const).filter((providerId) =>
-    digitalSettings[providerId]?.enabled && digitalSettings[providerId].host.trim()
-  );
-
-  const applyDigitalSettings = (settings: DigitalCenterSettings) => {
-    const nextSettings: DigitalCenterSettings = {
-      provider: settings.provider || "ecos",
-      ecos: {
-        enabled: Boolean(settings.ecos?.enabled),
-        host: settings.ecos?.host || "",
-        port: settings.ecos?.port || "15471"
-      },
-      z21: {
-        enabled: Boolean(settings.z21?.enabled),
-        host: settings.z21?.host || "",
-        port: settings.z21?.port || "21105"
-      },
-      intellibox3: {
-        enabled: Boolean(settings.intellibox3?.enabled),
-        host: settings.intellibox3?.host || "",
-        port: settings.intellibox3?.port || "21105"
-      },
-      cs3: {
-        enabled: Boolean(settings.cs3?.enabled),
-        host: settings.cs3?.host || "",
-        port: settings.cs3?.port || "80"
-      }
-    };
-    setDigitalSettings(nextSettings);
-    setEcosEnabled(nextSettings.ecos.enabled);
-    setEcosHost(nextSettings.ecos.host);
-    setEcosPort(nextSettings.ecos.port);
-  };
-
-  const rememberECoSImportSession = (session: ECoSImportSession) => {
-    const next = { ...session, updatedAt: new Date().toISOString() };
-    window.sessionStorage.setItem(ecosImportSessionStorageKey, JSON.stringify(next));
-    setEcosSession(next);
-    return next;
-  };
-
-  const createECoSImportSession = (probe: ECoSRawProbe): ECoSImportSession => rememberECoSImportSession({
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    rawProbe: probe,
-    statuses: Object.fromEntries(probe.locomotives.map((locomotive) => [
-      String(locomotive.objectId),
-      { status: "open", updatedAt: new Date().toISOString() }
-    ]))
-  });
-
-  const updateECoSImportSessionStatus = (objectId: number, status: ECoSImportSession["statuses"][string]["status"]) => {
-    const base = ecosSession || (ecosRawProbe ? createECoSImportSession(ecosRawProbe) : null);
-    if (!base) return null;
-    return rememberECoSImportSession({
-      ...base,
-      statuses: {
-        ...base.statuses,
-        [String(objectId)]: {
-          ...base.statuses[String(objectId)],
-          status,
-          updatedAt: new Date().toISOString()
-        }
-      }
-    });
-  };
-
-  useEffect(() => {
-    const rawSession = window.sessionStorage.getItem(ecosImportSessionStorageKey);
-    if (!rawSession) return;
-    try {
-      const session = JSON.parse(rawSession) as ECoSImportSession;
-      if (!session?.rawProbe?.locomotives) return;
-      setEcosSession(session);
-      setEcosRawProbe(session.rawProbe);
-      setEcosHost(session.rawProbe.host || "");
-      setEcosPort(String(session.rawProbe.port || 15471));
-      setEcosResult({
-        connected: true,
-        host: session.rawProbe.host,
-        port: session.rawProbe.port,
-        message: t("importExport.ecos.sessionRestored")
-      });
-      const saved = Object.values(session.statuses || {}).filter((item) => item.status === "saved").length;
-      setEcosMessage(t("importExport.ecos.sessionProgress", { saved, total: session.rawProbe.locomotives.length }));
-    } catch {
-      window.sessionStorage.removeItem(ecosImportSessionStorageKey);
-    }
-  }, [t]);
-
-  useEffect(() => {
-    api.vehicles().then(setVehicles).catch((error: Error) => setMessage(error.message)).finally(() => setLoading(false));
-    api.masterDataAll(true)
-      .then((entriesByType) => {
-        setMasterOptions(entriesByType);
-        setSymbols(entriesByType.symbols || []);
-      })
-      .catch(() => {
-        setMasterOptions({});
-        setSymbols([]);
-      });
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const syncDigitalSettings = async () => {
-      try {
-        const settings = await api.digitalSettings();
-        if (!cancelled) {
-          applyDigitalSettings(settings);
-        }
-      } catch {
-        if (cancelled) return;
-        const storedEnabled = window.localStorage.getItem(localSettingKeys.digitalEcosEnabled);
-        applyDigitalSettings({
-          provider: "ecos",
-          ecos: {
-            enabled: storedEnabled !== null ? storedEnabled === "true" : Boolean((window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "").trim()),
-            host: window.localStorage.getItem(localSettingKeys.digitalEcosHost) || "",
-            port: window.localStorage.getItem(localSettingKeys.digitalEcosPort) || "15471"
-          },
-          z21: {
-            enabled: window.localStorage.getItem(localSettingKeys.digitalZ21Enabled) === "true",
-            host: window.localStorage.getItem(localSettingKeys.digitalZ21Host) || "",
-            port: window.localStorage.getItem(localSettingKeys.digitalZ21Port) || "21105"
-          },
-          intellibox3: {
-            enabled: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Enabled) === "true",
-            host: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Host) || "",
-            port: window.localStorage.getItem(localSettingKeys.digitalIntellibox3Port) || "21105"
-          },
-          cs3: {
-            enabled: window.localStorage.getItem(localSettingKeys.digitalCS3Enabled) === "true",
-            host: window.localStorage.getItem(localSettingKeys.digitalCS3Host) || "",
-            port: window.localStorage.getItem(localSettingKeys.digitalCS3Port) || "80"
-          }
-        });
-      }
-    };
-    void syncDigitalSettings();
-    window.addEventListener("storage", syncDigitalSettings);
-    window.addEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
-    return () => {
-      cancelled = true;
-      window.removeEventListener("storage", syncDigitalSettings);
-      window.removeEventListener("railkeeper-digital-settings-changed", syncDigitalSettings);
-    };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const refreshLiveStatus = async () => {
-      try {
-        const status = await api.getECoSLiveStatus();
-        if (cancelled) return;
-        setEcosLiveStatus(status);
-        if (status.connected) {
-          setEcosResult({
-            connected: true,
-            host: status.host || ecosHost,
-            port: status.port || Number(ecosPort) || 15471,
-            message: status.message
-          });
-        }
-      } catch {
-        if (!cancelled) {
-          setEcosLiveStatus(null);
-        }
-      }
-    };
-    void refreshLiveStatus();
-    const timer = window.setInterval(refreshLiveStatus, 15000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [ecosHost, ecosPort]);
-
-  const importSummary = useMemo(() => ({
-    total: rows.length,
-    selected: rows.filter((row) => row.selected && row.status !== "saved").length,
-    errors: rows.filter((row) => row.status === "error").length,
-    updates: rows.filter((row) => row.mode === "update" && row.status !== "saved").length,
-    saved: rows.filter((row) => row.status === "saved").length
-  }), [rows]);
-
-  const mappingSummary = useMemo(() => {
-    if (!importTable) {
-      return { mapped: 0, unmapped: 0 };
-    }
-    const visibleMappings = importTable.mappings.filter((mapping) => mapping.header.trim());
-    return {
-      mapped: visibleMappings.filter((mapping) => mapping.key).length,
-      unmapped: visibleMappings.filter((mapping) => !mapping.key).length
-    };
-  }, [importTable]);
-
-  const loadImportTable = (table: string[][], fileName: string) => {
-    if (table.length === 0) {
-      setImportTable(null);
-      setRows([]);
-      setMessage(t("importExport.error.emptyFile"));
-      return;
-    }
-    const mappings = defaultColumnMappings(table);
-    const importedRows = importRowsFromTable(table, vehicles, mappings, issueLabels);
-    const unmapped = mappings.filter((mapping) => !mapping.key && mapping.header.trim()).length;
-    setImportTable({ fileName, table, mappings });
-    setRows(importedRows);
-    setMessage(unmapped > 0 ? t("importExport.message.unmapped", { count: unmapped }) : "");
-  };
-
-  const setColumnMapping = (columnIndex: number, key: VehicleImportField | "") => {
-    if (!importTable) {
-      return;
-    }
-    const mappings: ColumnMapping[] = importTable.mappings.map((mapping) => {
-      if (mapping.index === columnIndex) {
-        return { ...mapping, key };
-      }
-      return key && mapping.key === key ? { ...mapping, key: "" } : mapping;
-    });
-    setImportTable({ ...importTable, mappings });
-    setRows(importRowsFromTable(importTable.table, vehicles, mappings, issueLabels));
-  };
-
-  const updateRow = (rowID: string, patch: Partial<ImportRow["vehicle"]>) => {
-    setRows((current) => current.map((row) => {
-      if (row.id !== rowID) {
-        return row;
-      }
-      const vehicle = { ...row.vehicle, ...patch };
-      const issues: string[] = [];
-      const duplicate = vehicle.inventoryNumber ? vehicles.find((existing) => existing.inventoryNumber.toLowerCase() === vehicle.inventoryNumber?.toLowerCase()) : undefined;
-      const importedKeys = Array.from(new Set([...row.importedKeys, ...Object.keys(patch) as (keyof CreateVehicleRequest)[]]));
-      if (duplicate) {
-        issues.push(t("importExport.issue.duplicate"));
-        return {
-          ...row,
-          vehicle,
-          importedKeys,
-          duplicateVehicleId: duplicate.id,
-          mode: "update",
-          issues,
-          status: "warning",
-          selected: row.selected
-        };
-      }
-      if (!vehicle.manufacturer) issues.push(t("importExport.issue.missingManufacturer"));
-      if (!vehicle.name) issues.push(t("importExport.issue.missingName"));
-      if (!vehicle.gauge) issues.push(t("importExport.issue.missingGauge"));
-      if (!vehicle.category) issues.push(t("importExport.issue.missingCategory"));
-      if (!vehicle.gattung) issues.push(t("importExport.issue.missingGattung"));
-      return {
-        ...row,
-        vehicle,
-        importedKeys,
-        duplicateVehicleId: undefined,
-        mode: "create",
-        issues,
-        status: issues.length ? "error" : "ok",
-        selected: issues.length ? false : row.selected
-      };
-    }));
-  };
-
-  const setRowSelected = (rowID: string, selected: boolean) => {
-    setRows((current) => current.map((item) => item.id === rowID ? { ...item, selected } : item));
-  };
-
-  const setRowMode = (rowID: string, mode: ImportRow["mode"]) => {
-    setRows((current) => current.map((row) => {
-      if (row.id !== rowID) return row;
-      if (mode === "create" && row.duplicateVehicleId) {
-        return { ...row, mode, selected: false, status: "error", issues: [t("importExport.issue.inventoryExists")] };
-      }
-      if (mode === "update" && row.duplicateVehicleId) {
-        return { ...row, mode, status: "warning", issues: [t("importExport.issue.duplicate")] };
-      }
-      return { ...row, mode };
-    }));
-  };
-
-  const handleFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    setMessage("");
-    const extension = file.name.split(".").pop()?.toLowerCase() || "";
-    const text = await file.text();
-    if (extension === "json") {
-      const parsed = JSON.parse(text) as Vehicle[] | { vehicles?: Vehicle[] };
-      const source = Array.isArray(parsed) ? parsed : parsed.vehicles || [];
-      const table = [
-        [
-          fieldLabel("inventoryNumber"),
-          fieldLabel("manufacturer"),
-          fieldLabel("articleNumber"),
-          fieldLabel("name"),
-          fieldLabel("gauge"),
-          fieldLabel("epoch"),
-          fieldLabel("railwayCompany"),
-          fieldLabel("category"),
-          fieldLabel("gattung"),
-          fieldLabel("maximumSpeedKmh"),
-          fieldLabel("homeBase"),
-          fieldLabel("digital"),
-          fieldLabel("digitalDecoderNumber"),
-          fieldLabel("listPrice")
-        ],
-        ...source.map((vehicle) => [
-          vehicle.inventoryNumber,
-          vehicle.manufacturer,
-          vehicle.articleNumber || "",
-          vehicle.name,
-          vehicle.gauge,
-          vehicle.epoch || "",
-          vehicle.railwayCompany || "",
-          vehicle.category || "",
-          vehicle.gattung || "",
-          vehicle.maximumSpeedKmh ? String(vehicle.maximumSpeedKmh) : "",
-          vehicle.homeBase || "",
-          vehicle.digital ? t("common.yes") : t("common.no"),
-          vehicle.digitalDecoderNumber || "",
-          vehicle.listPrice || ""
-        ])
-      ];
-      loadImportTable(table, file.name);
-      return;
-    }
-    if (extension === "xml") {
-      const table = parseXMLImport(text);
-      if (table.length) {
-        loadImportTable(table, file.name);
-      } else {
-        setRows([]);
-        setImportTable(null);
-        setMessage(t("importExport.error.emptyTable"));
-      }
-      return;
-    }
-
-    const delimiter = extension === "tsv" ? "\t" : detectDelimiter(text);
-    loadImportTable(parseDelimited(text, delimiter), file.name);
-  };
-
-  const saveFunctionSuggestions = async (vehicleID: string, suggestions: FunctionImportSuggestion[] = []) => {
-    for (const suggestion of suggestions) {
-      await api.updateVehicleFunction(vehicleID, suggestion.functionKey, {
-        name: suggestion.name || "",
-        symbolKey: suggestion.symbolKey || "",
-        functionType: suggestion.functionType || "standard",
-        mode: suggestion.mode || "dauer",
-        directionDependent: Boolean(suggestion.directionDependent),
-        notes: suggestion.notes || ""
-      });
-    }
-  };
-
-  const saveCVSuggestions = async (vehicleID: string, suggestions: VehicleCVValueInput[] = []) => {
-    if (suggestions.length === 0) {
-      return;
-    }
-    const vehicle = await api.vehicle(vehicleID);
-    for (const suggestion of suggestions) {
-      const existing = (vehicle.cvValues || []).find((value) =>
-        value.cvNumber === suggestion.cvNumber &&
-        (value.decoderProfile || "") === (suggestion.decoderProfile || "")
-      );
-      if (existing) {
-        await api.updateVehicleCVValue(vehicleID, existing.id, suggestion);
-      } else {
-        await api.createVehicleCVValue(vehicleID, suggestion);
-      }
-    }
-  };
-
-  const saveSelected = async () => {
-    setSaving(true);
-    setMessage("");
-    for (const row of rows) {
-      if (!row.selected || row.status === "saved" || row.status === "error") {
-        continue;
-      }
-      try {
-        const existing = row.duplicateVehicleId ? vehicles.find((vehicle) => vehicle.id === row.duplicateVehicleId) : undefined;
-        let saved = row.mode === "update" && existing
-          ? await api.updateVehicle(existing.id, mergeImportedVehicle(existing, row.vehicle, row.importedKeys))
-          : await api.createVehicle(row.vehicle);
-        if (row.externalMapping) {
-          const mapping = await api.upsertVehicleExternalMapping(saved.id, row.externalMapping);
-          saved = mergeExternalMapping(saved, mapping);
-        }
-        await saveFunctionSuggestions(saved.id, row.functionSuggestions);
-        await saveCVSuggestions(saved.id, row.cvSuggestions);
-        setVehicles((current) => {
-          if (row.mode === "update") {
-            return current.map((vehicle) => vehicle.id === saved.id ? saved : vehicle);
-          }
-          return [...current, saved];
-        });
-        setRows((current) => current.map((item) => item.id === row.id ? { ...item, selected: false, status: "saved", issues: [] } : item));
-      } catch (error) {
-        const message = error instanceof Error ? error.message : t("importExport.error.importFailed");
-        setRows((current) => current.map((item) => item.id === row.id ? { ...item, status: "error", issues: [message] } : item));
-      }
-    }
-    setSaving(false);
-  };
-
-  const ecosInput = () => ({
-    host: ecosHost.trim(),
-    port: Number(ecosPort) || 15471
-  });
-
-  const rememberECoSSettings = () => {
-    window.localStorage.setItem(localSettingKeys.digitalEcosEnabled, String(ecosEnabled));
-    window.localStorage.setItem(localSettingKeys.digitalEcosHost, ecosHost.trim());
-    window.localStorage.setItem(localSettingKeys.digitalEcosPort, ecosPort.trim() || "15471");
-    window.dispatchEvent(new Event("railkeeper-digital-settings-changed"));
-  };
-
-  const testECoSConnection = async () => {
-    setEcosBusy("connecting");
-    setEcosMessage("");
-    setEcosResult(null);
-    setEcosRawProbe(null);
-    setEcosSession(null);
-    setEcosSyncPlans({});
-    window.sessionStorage.removeItem(ecosImportSessionStorageKey);
-    try {
-      rememberECoSSettings();
-      const result = await api.testECoSConnection(ecosInput());
-      setEcosResult(result);
-      setEcosMessage(result.message);
-    } catch (error) {
-      setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
-    } finally {
-      setEcosBusy("idle");
-    }
-  };
-
-  const probeECoSRawData = async () => {
-    if (!ecosActive) {
-      setEcosMessage(t("importExport.ecos.connectFirst"));
-      return;
-    }
-    setEcosBusy("fetching");
-    setEcosMessage("");
-    setEcosRawProbe(null);
-    setEcosSyncPlans({});
-    try {
-      const probe = await api.probeECoSLocomotiveRaw(ecosInput());
-      setEcosRawProbe(probe);
-      createECoSImportSession(probe);
-      setEcosResult({
-        connected: true,
-        host: probe.host,
-        port: probe.port,
-        message: probe.message
-      });
-      setEcosMessage(probe.message);
-    } catch (error) {
-      setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
-    } finally {
-      setEcosBusy("idle");
-    }
-  };
-
-  const openECoSVehicleDraft = (locomotive: ECoSRawLocomotive) => {
-    const row = buildECoSVehicleDraftRow(locomotive, vehicles, symbols, {
-      matched: issueLabels.ecosMatched,
-      missingManufacturer: issueLabels.missingManufacturer,
-      missingName: issueLabels.missingName,
-      missingGauge: issueLabels.missingGauge,
-      missingCategory: issueLabels.missingCategory,
-      missingGattung: issueLabels.missingGattung
-    }, cv8Manufacturers);
-    const unclearFields = ecosRequiredFields.filter((field) => !String(row.vehicle[field] ?? "").trim());
-    const updatedSession = updateECoSImportSessionStatus(locomotive.objectId, "editing");
-    const payload: ECoSVehicleDraftPayload = {
-      source: "ecos",
-      mode: row.mode,
-      targetVehicleId: row.duplicateVehicleId,
-      sourceSummary: {
-        objectId: locomotive.objectId,
-        name: locomotive.name || `ECoS ${locomotive.objectId}`,
-        address: typeof locomotive.address === "number" ? String(locomotive.address) : "",
-        protocol: normalizeECoSProtocolForCV(locomotive.protocol),
-        profile: locomotive.profile || ""
-      },
-      vehicle: row.vehicle,
-      importedKeys: row.importedKeys,
-      externalMapping: row.externalMapping || ecosExternalMapping(locomotive),
-      cvValues: row.cvSuggestions || [],
-      functionValues: row.functionSuggestions || [],
-      unclearFields,
-      returnToEcos: updatedSession ? { sessionId: updatedSession.id, objectId: locomotive.objectId } : undefined
-    };
-    window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(payload));
-    window.history.pushState(null, "", "/vehicles?source=ecos");
-    window.dispatchEvent(new PopStateEvent("popstate"));
-    setEcosMessage(t("importExport.ecos.handoff"));
-  };
-
-  const openNextECoSVehicleDraft = () => {
-    if (!nextOpenECoSLocomotive) {
-      setEcosMessage(t("importExport.ecos.allDone"));
-      return;
-    }
-    openECoSVehicleDraft(nextOpenECoSLocomotive);
-  };
-
-  const skipECoSLocomotive = (locomotive: ECoSRawLocomotive) => {
-    updateECoSImportSessionStatus(locomotive.objectId, "skipped");
-    setEcosMessage(t("importExport.ecos.skipped", { name: locomotive.name || `ECoS ${locomotive.objectId}` }));
-  };
-
-  const syncECoSLocomotive: ECoSSyncHandler = async (locomotive, vehicle, confirm) => {
-    if (confirm && !window.confirm(t("importExport.ecos.syncConfirm", { name: locomotive.name || `ECoS ${locomotive.objectId}` }))) {
-      return;
-    }
-    setEcosSyncBusyObjectId(locomotive.objectId);
-    setEcosMessage("");
-    try {
-      rememberECoSSettings();
-      const result = await api.syncECoSLocomotive({
-        ...ecosInput(),
-        vehicleId: vehicle.id,
-        objectId: locomotive.objectId,
-        dryRun: !confirm,
-        confirm
-      });
-      setEcosSyncPlans((current) => ({ ...current, [String(locomotive.objectId)]: result }));
-      if (confirm) {
-        const updatedVehicle = await api.vehicle(vehicle.id);
-        setVehicles((current) => current.map((item) => item.id === updatedVehicle.id ? updatedVehicle : item));
-      }
-      if (result.applied) {
-        setEcosMessage(t("importExport.ecos.syncApplied", { count: result.changes.length }));
-      } else if (result.changes.length === 0) {
-        setEcosMessage(t("importExport.ecos.syncNoChanges"));
-      } else {
-        setEcosMessage(t("importExport.ecos.syncReady", { count: result.changes.length }));
-      }
-    } catch (error) {
-      setEcosMessage(error instanceof Error ? error.message : t("importExport.ecos.error"));
-    } finally {
-      setEcosSyncBusyObjectId(null);
-    }
-  };
-
-  useEffect(() => {
-    if (!ecosActive || !ecosLiveStatus?.connected || ecosAutoFetchedFromLive || ecosRawProbe || ecosSession || ecosBusy !== "idle") {
-      return;
-    }
-    setEcosAutoFetchedFromLive(true);
-    void probeECoSRawData();
-  }, [ecosActive, ecosLiveStatus?.connected, ecosAutoFetchedFromLive, ecosRawProbe, ecosSession, ecosBusy]);
-
-  const openDigitalSettings = () => {
-    window.history.pushState(null, "", "/settings?tab=digital");
-    window.dispatchEvent(new PopStateEvent("popstate"));
-  };
+  async function retryJob(jobId: string) {
+    const retry = await workspace.retryJob(jobId);
+    workspace.openDialog(retry.direction, retry.profileId || undefined, retry.id);
+  }
 
   return (
-    <>
-      <section className="page-head">
-        <p className="eyebrow">{t("importExport.eyebrow")}</p>
-        <h1>{t("importExport.title")}</h1>
-        <p>{t("importExport.subtitle")}</p>
-      </section>
-
-      {message && <p className="form-message">{message}</p>}
-
-      <section className="import-export-grid">
-        <article className="panel transfer-panel">
-          <div className="panel-head">
-            <div>
-              <h2 className="panel-title-inline"><FileInput size={20} aria-hidden="true" />{t("importExport.import.title")}</h2>
-              <p>{t("importExport.import.subtitle")}</p>
-            </div>
-          </div>
-          <label className="file-drop compact-drop">
-            <Upload size={18} aria-hidden="true" />
-            {t("importExport.file.choose")}
-            <input type="file" accept=".csv,.tsv,.xml,.json" onChange={handleFile} />
-          </label>
-          <div className="import-summary">
-            <span>{t("importExport.summary.rows", { count: importSummary.total })}</span>
-            <span>{previewLoading ? t("importExport.summary.reading") : t("importExport.summary.ready", { count: importSummary.selected })}</span>
-            <span>{t("importExport.summary.updates", { count: importSummary.updates })}</span>
-            <span className={importSummary.errors ? "danger" : ""}>{t("importExport.summary.notes", { count: importSummary.errors })}</span>
-            <span>{t("importExport.summary.saved", { count: importSummary.saved })}</span>
-            {importTable && <span>{t("importExport.summary.mapped", { count: mappingSummary.mapped })}</span>}
-            {importTable && <span className={mappingSummary.unmapped ? "danger" : ""}>{t("importExport.summary.open", { count: mappingSummary.unmapped })}</span>}
-          </div>
-        </article>
-
-        <article className="panel transfer-panel">
-          <div className="panel-head">
-            <div>
-              <h2 className="panel-title-inline"><Download size={20} aria-hidden="true" />{t("importExport.export.title")}</h2>
-              <p>{t("importExport.export.subtitle")}</p>
-            </div>
-          </div>
-          <div className="export-actions">
-            <button type="button" className="secondary-button" disabled={loading || vehicles.length === 0} onClick={() => downloadText("railkeeper-bestand.csv", `\uFEFF${vehiclesToCSV(vehicles, csvFieldLabel, t("common.yes"), t("common.no"))}`, "text/csv;charset=utf-8")}>
-              <Download size={15} aria-hidden="true" />
-              {t("importExport.export.csv")}
-            </button>
-            <button type="button" className="secondary-button" disabled={loading || vehicles.length === 0} onClick={() => downloadText("railkeeper-bestand.json", JSON.stringify({ format: "railkeeper-vehicles", version: 1, vehicles }, null, 2), "application/json;charset=utf-8")}>
-              <Download size={15} aria-hidden="true" />
-              {t("importExport.export.json")}
-            </button>
-            <button type="button" className="secondary-button" disabled={loading || vehicles.length === 0} onClick={() => printInventory(vehicles, fieldLabel, language, t)}>
-              <Printer size={15} aria-hidden="true" />
-              {t("importExport.export.print")}
-            </button>
-          </div>
-        </article>
-      </section>
-
-      {!hasActiveDigitalCenter ? (
-        <section className="panel transfer-panel ecos-panel ecos-disabled-panel">
-          <div className="panel-head">
-            <div>
-              <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.title")}</h2>
-              <p>{t("importExport.ecos.disabledSubtitle")}</p>
-            </div>
-          </div>
-          <div className="ecos-disabled-content">
-            <div>
-              <strong>{t("importExport.ecos.disabledTitle")}</strong>
-              <span>{t("importExport.ecos.disabledHelp")}</span>
-            </div>
-            <button type="button" className="primary-button" onClick={openDigitalSettings}>
-              <Database size={15} aria-hidden="true" />
-              {t("importExport.ecos.openSettings")}
-            </button>
-          </div>
-        </section>
-      ) : (
-      <>
-      {ecosActive && (
-      <section className="panel transfer-panel ecos-panel">
-        <div className="panel-head">
-          <div>
-            <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.title")}</h2>
-            <p>{t("importExport.ecos.subtitle")}</p>
-            <p className="source-note">{t("importExport.ecos.scopeNote")}</p>
-          </div>
-          <span className="settings-pill active">{t("settings.digital.active")}</span>
+    <div className="data-transfer-workspace">
+      <header className="data-transfer-page-head">
+        <div>
+          <p className="eyebrow">{t("importExport.dashboard.eyebrow")}</p>
+          <h1>{t("importExport.title")}</h1>
+          <p>{t("importExport.dashboard.subtitle")}</p>
         </div>
-        <div className="ecos-connection-grid">
-          <label>
-            {t("importExport.ecos.host")}
-            <input value={ecosHost} readOnly placeholder={t("importExport.ecos.hostPlaceholder")} />
-          </label>
-          <label>
-            {t("importExport.ecos.port")}
-            <input value={ecosPort} readOnly inputMode="numeric" placeholder="15471" />
-          </label>
-          <div className="ecos-actions">
-            <button type="button" className="primary-button" onClick={probeECoSRawData} disabled={ecosBusy !== "idle" || !ecosHost.trim()}>
-              <Download size={15} aria-hidden="true" />
-              {t("importExport.ecos.fetchData")}
-            </button>
-          </div>
-        </div>
-        <div className="ecos-status-strip">
-          <span className={ecosConnectionReady ? "status-ok" : ""}>
-            {ecosConnectionReady ? t("importExport.ecos.liveActive") : t("importExport.ecos.liveInactive")}
-          </span>
-          {ecosResult?.status && <span>{t("importExport.ecos.status", { status: ecosResult.status })}</span>}
-          {ecosResult?.protocolVersion && <span>{t("importExport.ecos.protocol", { version: ecosResult.protocolVersion })}</span>}
-          {ecosResult?.applicationVersion && <span>{t("importExport.ecos.application", { version: ecosResult.applicationVersion })}</span>}
-          {ecosLiveStatus?.lastSeenAt && <span>{t("settings.digital.lastSeen", { value: ecosLiveStatus.lastSeenAt })}</span>}
-        </div>
-        {ecosBusy !== "idle" && (
-          <p className="ecos-busy-indicator">
-            {t("importExport.ecos.fetching")}
-          </p>
-        )}
-        {ecosMessage && <p className="form-message">{ecosMessage}</p>}
-        <div className="ecos-flow-note">
-          <strong>{t("importExport.ecos.flowTitle")}</strong>
-          <span>{t("importExport.ecos.flowNote")}</span>
-        </div>
-        {ecosRawProbe && ecosRawProbe.locomotives.length > 0 && (
-          <div className="ecos-preview-toolbar">
-            <span>{t("importExport.ecos.reviewHint", { count: ecosRawProbe.locomotives.length })}</span>
-            <span>{t("importExport.ecos.sessionOverview", {
-              open: ecosSessionStats.open + ecosSessionStats.editing + ecosSessionStats.error,
-              saved: ecosSessionStats.saved,
-              skipped: ecosSessionStats.skipped,
-              total: ecosSessionStats.total
-            })}</span>
-            <button type="button" className="secondary-button" onClick={openNextECoSVehicleDraft} disabled={saving || !nextOpenECoSLocomotive}>
-              <SkipForward size={15} aria-hidden="true" />
-              {t("importExport.ecos.nextOpen")}
-            </button>
-          </div>
-        )}
-        {renderECoSRawProbe(ecosRawProbe, vehicles, t, cv8Manufacturers, openECoSVehicleDraft, ecosSession?.statuses, skipECoSLocomotive, syncECoSLocomotive, ecosSyncPlans, ecosSyncBusyObjectId)}
-      </section>
-      )}
-      {activeUnsupportedProviders.map((providerId) => (
-        <section key={providerId} className="panel transfer-panel ecos-panel ecos-disabled-panel">
-          <div className="panel-head">
-            <div>
-              <h2 className="panel-title-inline"><Database size={20} aria-hidden="true" />{t("importExport.ecos.activeUnsupportedTitle")} {t(`settings.digital.provider.${providerId}`)}</h2>
-              <p>{t("importExport.ecos.activeUnsupportedSubtitle")}</p>
-            </div>
-            <span className="settings-pill active">{t("settings.digital.active")}</span>
-          </div>
-        </section>
-      ))}
-      </>
-      )}
-
-
-      {importTable && (
-        <section className="panel column-mapping-panel">
-          <div className="panel-head">
-            <div>
-              <h2>{t("importExport.mapping.title")}</h2>
-              <p>{t("importExport.mapping.subtitle", { file: importTable.fileName })}</p>
-            </div>
-            <Database size={20} aria-hidden="true" />
-          </div>
-          <div className="column-mapping-grid">
-            {importTable.mappings.map((mapping) => (
-              <label key={mapping.index} className={mapping.key ? "" : "unmapped"}>
-                <span>
-                  <strong title={mapping.header}>{mapping.header || t("importExport.mapping.column", { number: mapping.index + 1 })}</strong>
-                  <small>{mapping.key ? t("importExport.mapping.mapped") : t("importExport.mapping.unmapped")}</small>
-                </span>
-                <AppSelect value={mapping.key} onChange={(event) => setColumnMapping(mapping.index, event.target.value as VehicleImportField | "")}>
-                  <option value="">{t("importExport.mapping.ignore")}</option>
-                  {vehicleImportFields.map((field) => (
-                    <option key={field.key} value={field.key}>{csvFieldLabel(field.key)}</option>
-                  ))}
-                </AppSelect>
-              </label>
-            ))}
-          </div>
-          <p className="source-note backup-note">{t("importExport.mapping.note")}</p>
-        </section>
-      )}
-
-      {rows.length > 0 && (
-      <section className="panel import-review-panel">
-        <div className="panel-head">
-          <div>
-            <h2 className="panel-title-inline"><ClipboardCheck size={20} aria-hidden="true" />{t("importExport.review.title")}</h2>
-            <p>{t("importExport.review.subtitle")}</p>
-          </div>
-          <button type="button" className="primary-button" disabled={saving || importSummary.selected === 0} onClick={saveSelected}>
-            <Save size={15} aria-hidden="true" />
-            {t("importExport.review.saveSelection")}
+        <div className="data-transfer-page-actions">
+          <button
+            type="button"
+            className="primary-button"
+            disabled={!workspace.capabilities.canImport || workspace.mutating}
+            onClick={() => workspace.openDialog("import")}
+          >
+            <Plus size={17} aria-hidden="true" />
+            {t("importExport.dashboard.newImport")}
+          </button>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={!workspace.capabilities.canExport || workspace.mutating}
+            onClick={() => workspace.openDialog("export")}
+          >
+            <Plus size={17} aria-hidden="true" />
+            {t("importExport.dashboard.newExport")}
           </button>
         </div>
+      </header>
 
-        {rows.length === 0 ? (
-          <p className="empty-state">{t("importExport.review.empty")}</p>
-        ) : (
-          <div className="table-wrap import-table">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("importExport.review.apply")}</th>
-                  <th>{t("importExport.review.action")}</th>
-                  <th>{t("importExport.review.inventory")}</th>
-                  <th>{fieldLabel("manufacturer")}</th>
-                  <th>{t("importExport.review.article")}</th>
-                  <th>{fieldLabel("name")}</th>
-                  <th>{fieldLabel("gauge")}</th>
-                  <th>{fieldLabel("category")}</th>
-                  <th>{fieldLabel("gattung")}</th>
-                  <th>{t("exhibition.status")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => {
-                  const existing = row.duplicateVehicleId ? vehicles.find((vehicle) => vehicle.id === row.duplicateVehicleId) : undefined;
-                  const changes = getImportChanges(row, existing, csvFieldLabel, t("common.yes"), t("common.no"));
-                  return (
-                    <Fragment key={row.id}>
-                      <tr className={row.status === "error" ? "import-row-error" : row.status === "warning" ? "import-row-warning" : row.status === "saved" ? "import-row-saved" : ""}>
-                        <td><input type="checkbox" checked={row.selected} disabled={row.status === "saved" || row.status === "error"} onChange={(event) => setRowSelected(row.id, event.target.checked)} /></td>
-                        <td>
-                          <AppSelect value={row.mode} disabled={row.status === "saved"} onChange={(event) => setRowMode(row.id, event.target.value as ImportRow["mode"])}>
-                            <option value="create">{t("importExport.review.create")}</option>
-                            <option value="update" disabled={!row.duplicateVehicleId}>{t("importExport.review.update")}</option>
-                          </AppSelect>
-                        </td>
-                        <td><input value={row.vehicle.inventoryNumber || ""} onChange={(event) => updateRow(row.id, { inventoryNumber: event.target.value })} /></td>
-                        <td><input value={row.vehicle.manufacturer} onChange={(event) => updateRow(row.id, { manufacturer: event.target.value })} /></td>
-                        <td><input value={row.vehicle.articleNumber || ""} onChange={(event) => updateRow(row.id, { articleNumber: event.target.value })} /></td>
-                        <td><input value={row.vehicle.name} onChange={(event) => updateRow(row.id, { name: event.target.value })} /></td>
-                        <td><input value={row.vehicle.gauge} onChange={(event) => updateRow(row.id, { gauge: event.target.value })} /></td>
-                        <td><input value={row.vehicle.category} onChange={(event) => updateRow(row.id, { category: event.target.value })} /></td>
-                        <td><input value={row.vehicle.gattung} onChange={(event) => updateRow(row.id, { gattung: event.target.value })} /></td>
-                        <td>
-                          <span className={`import-status ${row.status}`}>
-                            {row.status === "saved" ? <Check size={14} /> : row.status === "error" || row.status === "warning" ? <AlertTriangle size={14} /> : <Check size={14} />}
-                            {row.status === "saved" ? t("common.saved") : row.issues[0] || t("common.ready")}
-                          </span>
-                        </td>
-                      </tr>
-                      {((existing && row.mode === "update") || (row.functionSuggestions && row.functionSuggestions.length > 0) || (row.cvSuggestions && row.cvSuggestions.length > 0)) && (
-                        <tr className="import-change-row">
-                          <td colSpan={10}>
-                            <div className="import-change-panel">
-                              {existing && row.mode === "update" && (
-                                <>
-                                  <div>
-                                    <strong>{t("importExport.review.updatePreview")}</strong>
-                                    <span>{t("importExport.review.overwrites", { count: changes.filter((change) => change.status === "overwrite").length })}, {t("importExport.review.fills", { count: changes.filter((change) => change.status === "fill").length })}</span>
-                                  </div>
-                                  {changes.length === 0 ? (
-                                    <p>{t("importExport.review.noValues")}</p>
-                                  ) : (
-                                    <table>
-                                      <thead>
-                                        <tr>
-                                          <th>{t("importExport.review.field")}</th>
-                                          <th>{t("importExport.review.current")}</th>
-                                          <th>{t("importExport.review.import")}</th>
-                                          <th>{t("exhibition.status")}</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {changes.map((change) => (
-                                          <tr key={change.key} className={`change-${change.status}`}>
-                                            <td>{change.label}</td>
-                                            <td>{change.current}</td>
-                                            <td>{change.incoming}</td>
-                                            <td>{t(`importExport.review.status.${change.status}`)}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  )}
-                                </>
-                              )}
-                              {row.functionSuggestions && row.functionSuggestions.length > 0 && (
-                                <div className="import-function-panel">
-                                  <div>
-                                    <strong>{t("importExport.ecos.review.functions")}</strong>
-                                    <span>{t("importExport.ecos.review.valuesApplied", { count: row.functionSuggestions.length })}</span>
-                                  </div>
-                                  <div className="import-function-grid">
-                                    {row.functionSuggestions.map((fn) => (
-                                      <span key={fn.functionKey} title={fn.notes || undefined}>
-                                        <strong>{fn.functionKey}</strong>
-                                        {fn.name || (typeof fn.ecosDescription === "number" ? `ECoS ${fn.ecosDescription}` : "ECoS")}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                              {row.cvSuggestions && row.cvSuggestions.length > 0 && (
-                                <div className="import-function-panel">
-                                  <div>
-                                    <strong>{t("importExport.ecos.review.cvValues")}</strong>
-                                    <span>{t("importExport.ecos.review.valuesApplied", { count: row.cvSuggestions.length })}</span>
-                                  </div>
-                                  <div className="import-function-grid">
-                                    {row.cvSuggestions.slice(0, 16).map((cv) => (
-                                      <span key={`${cv.cvNumber}-${cv.decoderProfile || ""}`} title={cv.description || undefined}>
-                                        <strong>CV {cv.cvNumber}</strong>
-                                        {cv.value}
-                                      </span>
-                                    ))}
-                                    {row.cvSuggestions.length > 16 && <span>{t("importExport.ecos.draft.moreCVs", { count: row.cvSuggestions.length - 16 })}</span>}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+      {(workspace.error || workspace.detailError) && (
+        <p className="form-message error data-transfer-message" role="alert">
+          {workspace.error || workspace.detailError}
+        </p>
       )}
-    </>
+
+      <TransferSummaryStrip language={language} summary={workspace.summary} t={t} />
+
+      <div className="data-transfer-dashboard">
+        <TransferJobList
+          allJobs={workspace.allJobs}
+          filters={workspace.filters}
+          jobs={workspace.jobs}
+          language={language}
+          loading={workspace.loading}
+          onFilter={(filter) => workspace.setFilters(filter)}
+          onSelect={workspace.selectJob}
+          selectedJobId={workspace.selectedJobId}
+          t={t}
+        />
+
+        <div className="data-transfer-center">
+          <TransferProfilesTable
+            canCreate={workspace.capabilities.canCreateProfiles}
+            canEdit={workspace.capabilities.canUpdateProfiles}
+            language={language}
+            mutating={workspace.mutating}
+            onCreate={() => workspace.openDialog("profile")}
+            onEdit={(profileId) => workspace.openDialog("profile", profileId)}
+            onRun={(profileId) => workspace.openDialog("export", profileId)}
+            profiles={workspace.profiles}
+            t={t}
+          />
+          <TransferHistoryTable
+            jobs={workspace.allJobs}
+            language={language}
+            onSelect={workspace.selectJob}
+            selectedJobId={workspace.selectedJobId}
+            t={t}
+          />
+        </div>
+
+        <div className="data-transfer-details">
+          <TransferJobDetails
+            canExport={workspace.capabilities.canExport}
+            canImport={workspace.capabilities.canImport}
+            canRetry={(job) => job.direction === "import"
+              ? workspace.capabilities.canRetryImport
+              : workspace.capabilities.canRetryExport}
+            detailLoading={workspace.detailLoading}
+            job={detailJob}
+            language={language}
+            mutating={workspace.mutating}
+            onContinue={(job) => workspace.openDialog(job.direction, job.profileId || undefined, job.id)}
+            onRetry={retryJob}
+            t={t}
+          />
+          <TransferArtifactPanel
+            artifacts={workspace.selectedJobDetails?.artifacts ?? []}
+            canDelete={workspace.capabilities.canDeleteArtifacts}
+            canOpenFolder={workspace.capabilities.canOpenFolder}
+            downloadUrl={workspace.artifactDownloadUrl}
+            language={language}
+            mutating={workspace.mutating}
+            onDelete={workspace.deleteArtifact}
+            onOpenFolder={workspace.openArtifactFolder}
+            summary={workspace.summary}
+            t={t}
+          />
+        </div>
+      </div>
+
+      {workspace.dialog?.kind === "import" ? (
+        <TransferImportDialog
+          initialDetails={dialogJob?.id === workspace.selectedJobDetails?.job.id ? workspace.selectedJobDetails : null}
+          initialJob={dialogJob}
+          initialProfileId={workspace.dialog.profileId}
+          initialRequiresReupload={workspace.importRequiresReupload(dialogJob?.id)}
+          language={language}
+          onCancelJob={workspace.cancelImport}
+          onClose={workspace.closeDialog}
+          onConfirm={workspace.confirmImport}
+          onCreateJob={workspace.createImportJob}
+          onResolve={workspace.resolveIssue}
+          onRefreshJob={workspace.refreshJobDetails}
+          onUpload={workspace.uploadImportFile}
+          profiles={workspace.profiles}
+        />
+      ) : null}
+      {workspace.dialog?.kind === "export" ? (
+        <TransferExportDialog
+          canRetry={workspace.capabilities.canRetryExport}
+          downloadUrl={workspace.artifactDownloadUrl}
+          initialJob={dialogJob}
+          initialProfileId={workspace.dialog.profileId}
+          language={language}
+          onClose={workspace.closeDialog}
+          onCreateJob={workspace.createExportJob}
+          onExecute={workspace.executeExportJob}
+          onRefreshJob={workspace.refreshJobDetails}
+          onRetry={workspace.retryJob}
+          profiles={workspace.profiles}
+        />
+      ) : null}
+      {workspace.dialog?.kind === "profile" ? (
+        <TransferProfileDialog
+          availableAreas={workspace.availableAreas}
+          canDisable={workspace.capabilities.canDisableProfiles}
+          language={language}
+          onClose={workspace.closeDialog}
+          onCreate={workspace.createProfile}
+          onDisable={workspace.disableProfile}
+          onUpdate={workspace.updateProfile}
+          initialProfileId={workspace.dialog.profileId}
+          profiles={workspace.profiles}
+        />
+      ) : null}
+    </div>
   );
 }

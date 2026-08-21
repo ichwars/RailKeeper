@@ -1,6 +1,11 @@
 package api
 
-import "net/http"
+import (
+	"errors"
+	"net/http"
+
+	"railkeeper/backend/internal/application"
+)
 
 type routeAccess string
 
@@ -71,9 +76,17 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/digital-centers/intellibox3/test", routeAccessAdmin, (*App).testIntellibox3Connection, nil},
 		{http.MethodPost, "/api/v1/digital-centers/intellibox3/probe", routeAccessAdmin, (*App).probeIntellibox3Connection, nil},
 		{http.MethodPost, "/api/v1/digital-centers/cs3/test", routeAccessAdmin, (*App).testCS3Connection, nil},
-		{http.MethodGet, "/api/v1/digital-centers/ecos/live/status", routeAccessAdmin, (*App).eCoSLiveStatus, nil},
-		{http.MethodPost, "/api/v1/digital-centers/ecos/live/start", routeAccessAdmin, (*App).startECoSLive, nil},
-		{http.MethodPost, "/api/v1/digital-centers/ecos/live/stop", routeAccessAdmin, (*App).stopECoSLive, nil},
+		{http.MethodGet, "/api/v1/digital-centers/{provider}/live/status", routeAccessAdmin, (*App).digitalCenterLiveStatus, nil},
+		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/start", routeAccessAdmin, (*App).startDigitalCenterLiveMonitor, nil},
+		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/stop", routeAccessAdmin, (*App).stopDigitalCenterLiveMonitor, nil},
+		{http.MethodGet, "/api/v1/digital-centers/workspace", routeAccessAdmin, (*App).digitalCenterWorkspaceSummary, nil},
+		{http.MethodPost, "/api/v1/digital-centers/{provider}/read-sessions", routeAccessAdmin, (*App).startDigitalCenterReadSession, nil},
+		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}", routeAccessAdmin, (*App).getDigitalCenterReadSession, nil},
+		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/messages", routeAccessAdmin, (*App).listDigitalCenterSessionMessages, nil},
+		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/items", routeAccessAdmin, (*App).listDigitalCenterWorkItems, nil},
+		{http.MethodGet, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}", routeAccessAdmin, (*App).getDigitalCenterWorkItem, nil},
+		{http.MethodPost, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}/write-preview", routeAccessAdmin, (*App).previewDigitalCenterWrite, nil},
+		{http.MethodPost, "/api/v1/digital-centers/read-sessions/{id}/items/{itemID}/write-confirm", routeAccessAdmin, (*App).confirmDigitalCenterWrite, nil},
 		{http.MethodGet, "/api/v1/vehicles", routeAccessViewer, (*App).listVehicles, nil},
 		{http.MethodGet, "/api/v1/overview/valuation", routeAccessViewer, (*App).overviewValuation, nil},
 		{http.MethodPost, "/api/v1/vehicles", routeAccessEditor, (*App).createVehicle, nil},
@@ -115,6 +128,24 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodDelete, "/api/v1/vehicles/{id}/cv-files/{cvFileID}", routeAccessEditor, (*App).deleteVehicleCVFile, nil},
 		{http.MethodGet, "/api/v1/vehicles/{id}/cv-files/{cvFileID}/download", routeAccessViewer, (*App).downloadVehicleCVFile, nil},
 		{http.MethodPost, "/api/v1/article-search", routeAccessViewer, (*App).searchArticleData, nil},
+		{http.MethodGet, "/api/v1/data-transfer/profiles", routeAccessViewer, (*App).listDataTransferProfiles, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/profiles", routeAccessEditor, (*App).createDataTransferProfile, nil},
+		{http.MethodPut, "/api/v1/data-transfer/profiles/{id}", routeAccessEditor, (*App).updateDataTransferProfile, nil},
+		{http.MethodDelete, "/api/v1/data-transfer/profiles/{id}", routeAccessAdmin, (*App).disableDataTransferProfile, nil},
+		{http.MethodGet, "/api/v1/data-transfer/summary", routeAccessViewer, (*App).dataTransferSummary, authorizeDataTransferRead},
+		{http.MethodGet, "/api/v1/data-transfer/jobs", routeAccessViewer, (*App).listDataTransferJobs, authorizeDataTransferRead},
+		{http.MethodGet, "/api/v1/data-transfer/jobs/{id}", routeAccessViewer, (*App).getDataTransferJob, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/retry", routeAccessViewer, (*App).retryDataTransferJob, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/export", routeAccessViewer, (*App).createDataTransferExportJob, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/execute", routeAccessViewer, (*App).executeDataTransferExport, authorizeDataTransferRead},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/import", routeAccessEditor, (*App).createDataTransferImportJob, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/upload", routeAccessEditor, (*App).uploadDataTransferImport, authorizeDataTransferWrite},
+		{http.MethodPut, "/api/v1/data-transfer/jobs/{id}/issues/{issueID}", routeAccessEditor, (*App).resolveDataTransferIssue, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/confirm", routeAccessEditor, (*App).confirmDataTransferImport, authorizeDataTransferWrite},
+		{http.MethodPost, "/api/v1/data-transfer/jobs/{id}/cancel", routeAccessEditor, (*App).cancelDataTransferJob, authorizeDataTransferWrite},
+		{http.MethodGet, "/api/v1/data-transfer/artifacts/{id}/download", routeAccessViewer, (*App).downloadDataTransferArtifact, authorizeDataTransferRead},
+		{http.MethodDelete, "/api/v1/data-transfer/artifacts/{id}", routeAccessAdmin, (*App).deleteDataTransferArtifact, nil},
+		{http.MethodPost, "/api/v1/data-transfer/artifacts/open-folder", routeAccessAdmin, (*App).openDataTransferArtifactFolder, nil},
 		{http.MethodGet, "/api/v1/accessory-products", routeAccessViewer, (*App).listAccessoryProducts, nil},
 		{http.MethodPost, "/api/v1/accessory-products", routeAccessEditor, (*App).createAccessoryProduct, nil},
 		{http.MethodPost, "/api/v1/accessory-products/duplicate-check", routeAccessEditor, (*App).checkAccessoryProductDuplicates, nil},
@@ -211,11 +242,15 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/backup/validate", routeAccessAdmin, (*App).validateBackup, nil},
 		{http.MethodPost, "/api/v1/backup/restore", routeAccessAdmin, (*App).restoreBackup, nil},
 		{http.MethodGet, "/api/v1/exhibition-lists", routeAccessMesse, (*App).listExhibitionLists, nil},
-		{http.MethodPost, "/api/v1/exhibition-lists", routeAccessAdmin, (*App).createExhibitionList, nil},
+		{http.MethodPost, "/api/v1/exhibition-lists", routeAccessEditor, (*App).createExhibitionList, nil},
 		{http.MethodGet, "/api/v1/exhibition-lists/{id}", routeAccessMesse, (*App).getExhibitionList, nil},
-		{http.MethodPut, "/api/v1/exhibition-lists/{id}", routeAccessAdmin, (*App).updateExhibitionList, nil},
+		{http.MethodGet, "/api/v1/exhibition-lists/{id}/workspace", routeAccessMesse, (*App).getExhibitionWorkspace, nil},
+		{http.MethodPost, "/api/v1/exhibition-lists/{id}/conflicts/check", routeAccessMesse, (*App).checkExhibitionConflicts, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}", routeAccessEditor, (*App).updateExhibitionList, nil},
 		{http.MethodDelete, "/api/v1/exhibition-lists/{id}", routeAccessAdmin, (*App).deleteExhibitionList, nil},
-		{http.MethodPut, "/api/v1/exhibition-lists/{id}/lock", routeAccessAdmin, (*App).setExhibitionListLocked, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}/lock", routeAccessEditor, (*App).setExhibitionListLocked, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}/status", routeAccessEditor, (*App).setExhibitionStatus, nil},
+		{http.MethodPut, "/api/v1/exhibition-lists/{id}/conflicts/{conflictID}/exception", routeAccessMesse, (*App).setExhibitionConflictException, nil},
 		{http.MethodGet, "/api/v1/exhibition-lists/{id}/entries", routeAccessMesse, (*App).listExhibitionEntries, nil},
 		{http.MethodPost, "/api/v1/exhibition-lists/{id}/entries", routeAccessMesse, (*App).createExhibitionEntry, nil},
 		{http.MethodPut, "/api/v1/exhibition-lists/{id}/entries/{entryID}", routeAccessMesse, (*App).updateExhibitionEntry, nil},
@@ -242,6 +277,65 @@ func (a *App) registerRoutes(mux *http.ServeMux) {
 
 func authorizeMasterDataRead(a *App, next http.HandlerFunc) http.HandlerFunc {
 	return a.requireMasterDataRead(next)
+}
+
+func authorizeDataTransferRead(a *App, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := a.authService.RequireAnyRole(r.Context(), cookieValue(r, "rk_session"), "Viewer", "Messe")
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		session, err := a.authService.CurrentSession(r.Context(), cookieValue(r, "rk_session"))
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		next.ServeHTTP(w, withDataTransferScope(withActorUserID(r, userID), dataTransferMesseScope(session.Roles)))
+	}
+}
+
+func dataTransferWriteMesseScope(roles []string) bool {
+	messe := false
+	for _, role := range roles {
+		switch role {
+		case "Admin", "Editor":
+			return false
+		case "Messe":
+			messe = true
+		}
+	}
+	return messe
+}
+
+func authorizeDataTransferWrite(a *App, next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		userID, err := a.authService.RequireAnyRole(r.Context(), cookieValue(r, "rk_session"), "Editor", "Messe")
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		session, err := a.authService.CurrentSession(r.Context(), cookieValue(r, "rk_session"))
+		if err != nil {
+			authorizationError(a, w, err)
+			return
+		}
+		next.ServeHTTP(w, withDataTransferScope(
+			withActorUserID(r, userID), dataTransferWriteMesseScope(session.Roles),
+		))
+	}
+}
+
+func authorizationError(a *App, w http.ResponseWriter, err error) {
+	switch {
+	case errors.Is(err, application.ErrUnauthorized):
+		respondProblem(w, http.StatusUnauthorized, "unauthorized", "Not logged in.")
+	case errors.Is(err, application.ErrForbidden):
+		respondProblem(w, http.StatusForbidden, "forbidden", "Insufficient role.")
+	default:
+		a.logger.Error("role check failed", "error", err)
+		respondProblem(w, http.StatusInternalServerError, "role_check_failed", "Could not verify permissions.")
+	}
 }
 
 func (a *App) health(w http.ResponseWriter, _ *http.Request) {

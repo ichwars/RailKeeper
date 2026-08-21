@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
+import { BarChart3, Box, Boxes, Bug, CalendarDays, ChevronLeft, ChevronRight, CircuitBoard, FileInput, LogOut, Menu, Monitor, Moon, Settings, Sun, X } from "lucide-react";
 import type { AppView } from "./App";
 import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
@@ -13,6 +13,7 @@ const navItems = [
   { view: "accessories", href: "/accessories", labelKey: "nav.accessories", icon: Boxes },
   { view: "exhibition", href: "/exhibition", labelKey: "nav.exhibition", icon: CalendarDays },
   { view: "importExport", href: "/import-export", labelKey: "nav.importExport", icon: FileInput },
+  { view: "digitalCenters", href: "/digital-centers", labelKey: "nav.digitalCenters", icon: CircuitBoard },
   { view: "settings", href: "/settings", labelKey: "nav.settings", icon: Settings }
 ] as const;
 
@@ -55,6 +56,7 @@ function allowedNavItems(roles: string[]) {
   const canUseExhibition = roles.includes("Messe");
   return navItems.filter((item) => {
     if (item.view === "exhibition") return canUseExhibition;
+    if (item.view === "importExport") return canUseInventory || canUseExhibition;
     return canUseInventory;
   });
 }

@@ -19,6 +19,8 @@ tags:
   - name: Exhibition
   - name: Accessories
   - name: Layouts
+  - name: DataTransfer
+  - name: DigitalCenters
 components:
   securitySchemes:
     sessionCookie:
@@ -39,6 +41,336 @@ components:
           type: string
         message:
           type: string
+    TransferDirection:
+      type: string
+      enum: [import, export]
+    TransferFormat:
+      type: string
+      enum: [csv, railkeeper-json]
+    TransferArea:
+      type: string
+      enum: [vehicles, accessories, exhibitionLists]
+    TransferJobState:
+      type: string
+      enum: [draft, reading, review_required, ready, running, completed, completed_with_warnings, failed, cancelled]
+    TransferJobStage:
+      type: string
+      enum: [created, snapshot, preview, review, completed, failed, cancelled]
+    TransferIssueSeverity:
+      type: string
+      enum: [warning, error]
+    TransferIssueResolution:
+      type: string
+      enum: [replace, merge, copy, skip, use_existing, create, link]
+    TransferProposedAction:
+      type: string
+      enum: [create, replace, use_existing, copy]
+    TransferProposedResolution:
+      type: string
+      enum: [replace, merge, copy, skip, use_existing, create, link, replace_or_copy]
+    DataTransferProfile:
+      type: object
+      required: [id, name, direction, format, areas, options, enabled, createdByUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+        format:
+          $ref: "#/components/schemas/TransferFormat"
+        areas:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/TransferArea"
+        options:
+          type: object
+          additionalProperties: true
+        enabled:
+          type: boolean
+        createdByUserId:
+          type: string
+        lastUsedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DataTransferProfileInput:
+      type: object
+      required: [name, direction, format, areas]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+        format:
+          $ref: "#/components/schemas/TransferFormat"
+        areas:
+          type: array
+          minItems: 1
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/TransferArea"
+        options:
+          type: object
+          additionalProperties: true
+    DataTransferExportJobInput:
+      type: object
+      required: [profileId]
+      properties:
+        profileId:
+          type: string
+          minLength: 1
+    DataTransferImportJobInput:
+      type: object
+      required: [profileId]
+      properties:
+        profileId:
+          type: string
+          minLength: 1
+    DataTransferIssueResolutionInput:
+      type: object
+      required: [resolution]
+      properties:
+        resolution:
+          $ref: "#/components/schemas/TransferIssueResolution"
+          minLength: 1
+    DataTransferImportConfirmationInput:
+      type: object
+      required: [confirm, expectedRevision]
+      properties:
+        confirm:
+          type: boolean
+        expectedRevision:
+          type: integer
+          minimum: 1
+    DataTransferJob:
+      type: object
+      required: [id, profileId, profileName, direction, format, areas, options, state, stage, packageVersion, revision,
+        sourceName, sourceSha256, totalRecords, readyRecords, warningRecords, errorRecords, preview, createdByUserId,
+        confirmedByUserId, confirmedAt, completedAt, resultMessage, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        profileId:
+          type: string
+        profileName:
+          type: string
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+        format:
+          $ref: "#/components/schemas/TransferFormat"
+        areas:
+          type: array
+          items:
+            $ref: "#/components/schemas/TransferArea"
+        options:
+          type: object
+          additionalProperties: true
+        state:
+          $ref: "#/components/schemas/TransferJobState"
+        stage:
+          $ref: "#/components/schemas/TransferJobStage"
+        sourceName:
+          type: string
+        sourceSha256:
+          type: string
+        packageVersion:
+          type: integer
+        revision:
+          type: integer
+          minimum: 1
+        totalRecords:
+          type: integer
+        readyRecords:
+          type: integer
+        warningRecords:
+          type: integer
+        errorRecords:
+          type: integer
+        preview:
+          type: object
+          additionalProperties: true
+        createdByUserId:
+          type: string
+        confirmedByUserId:
+          type: string
+        confirmedAt:
+          type: string
+        completedAt:
+          type: string
+        resultMessage:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DataTransferArtifact:
+      type: object
+      required: [id, jobId, relativePath, displayName, mimeType, sizeBytes, sha256, deletedAt, createdAt]
+      properties:
+        id:
+          type: string
+        jobId:
+          type: string
+        relativePath:
+          type: string
+        displayName:
+          type: string
+        mimeType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        sha256:
+          type: string
+        deletedAt:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DataTransferExportResult:
+      type: object
+      required: [job, artifact, openFolderAvailable]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        artifact:
+          $ref: "#/components/schemas/DataTransferArtifact"
+        openFolderAvailable:
+          type: boolean
+    DataTransferIssue:
+      type: object
+      required: [id, jobId, area, recordKey, rowNumber, field, severity, code, message, proposedResolution,
+        selectedResolution, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        jobId:
+          type: string
+        area:
+          $ref: "#/components/schemas/TransferArea"
+        recordKey:
+          type: string
+        rowNumber:
+          type: [integer, "null"]
+        field:
+          type: string
+        severity:
+          $ref: "#/components/schemas/TransferIssueSeverity"
+        code:
+          type: string
+        message:
+          type: string
+        proposedResolution:
+          oneOf:
+            - $ref: "#/components/schemas/TransferProposedResolution"
+            - type: string
+              maxLength: 0
+        selectedResolution:
+          oneOf:
+            - $ref: "#/components/schemas/TransferIssueResolution"
+            - type: string
+              maxLength: 0
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    DataTransferPreviewRecord:
+      type: object
+      required: [area, recordKey, classification, proposedAction, data]
+      properties:
+        area:
+          $ref: "#/components/schemas/TransferArea"
+        recordKey:
+          type: string
+        rowNumber:
+          type: integer
+        classification:
+          type: string
+          enum: [ready, warning, error]
+        proposedAction:
+          $ref: "#/components/schemas/TransferProposedAction"
+        targetId:
+          type: string
+        targetUpdatedAt:
+          type: string
+        targetFingerprint:
+          type: string
+          description: SHA-256 fingerprint of the complete transferable target aggregate at preview time.
+        data:
+          type: object
+          additionalProperties: true
+    DataTransferPreview:
+      type: object
+      required: [job, records, issues, totalRecords, readyRecords, warningRecords, errorRecords]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        records:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferPreviewRecord"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferIssue"
+        totalRecords:
+          type: integer
+        readyRecords:
+          type: integer
+        warningRecords:
+          type: integer
+        errorRecords:
+          type: integer
+    DataTransferSummary:
+      type: object
+      required: [openJobs, selectedRecords, lastExportAt, artifactCount, artifactBytes,
+        openFolderAvailable, artifactDirectory]
+      properties:
+        openJobs:
+          type: integer
+          minimum: 0
+        selectedRecords:
+          type: integer
+          minimum: 0
+        lastExportAt:
+          type: string
+        artifactCount:
+          type: integer
+          minimum: 0
+        artifactBytes:
+          type: integer
+          format: int64
+          minimum: 0
+        openFolderAvailable:
+          type: boolean
+        artifactDirectory:
+          type: string
+    DataTransferJobDetails:
+      type: object
+      required: [job, issues, artifacts]
+      properties:
+        job:
+          $ref: "#/components/schemas/DataTransferJob"
+        issues:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferIssue"
+        artifacts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferArtifact"
     OverviewValuation:
       type: object
       required:
@@ -342,6 +674,397 @@ components:
           $ref: "#/components/schemas/DigitalProviderSettings"
         cs3:
           $ref: "#/components/schemas/DigitalProviderSettings"
+    DigitalCenterProvider:
+      type: string
+      enum: [ecos, z21, intellibox3, cs3]
+    DigitalCenterCapabilities:
+      type: object
+      required: [testConnection, readLocomotives, liveMonitor, writeLocomotives, writeCVs, diagnose]
+      properties:
+        testConnection:
+          type: boolean
+        readLocomotives:
+          type: boolean
+        liveMonitor:
+          type: boolean
+        writeLocomotives:
+          type: boolean
+        writeCVs:
+          type: boolean
+        diagnose:
+          type: boolean
+    DigitalCenterSummary:
+      type: object
+      required: [provider, name, active, selected, host, port, capabilities]
+      properties:
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        name:
+          type: string
+        active:
+          type: boolean
+        selected:
+          type: boolean
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        capabilities:
+          $ref: "#/components/schemas/DigitalCenterCapabilities"
+    DigitalCenterWorkspaceSummary:
+      type: object
+      required: [centers]
+      properties:
+        centers:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterSummary"
+    DigitalCenterReadSession:
+      type: object
+      required:
+        [id, provider, state, host, port, capabilities, readStartedAt, readCompletedAt,
+        createdByUserId, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        state:
+          type: string
+          enum: [reading, ready, interrupted, failed]
+        host:
+          type: string
+        port:
+          type: integer
+        capabilities:
+          $ref: "#/components/schemas/DigitalCenterCapabilities"
+        readStartedAt:
+          type: string
+        readCompletedAt:
+          type: string
+        createdByUserId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DigitalCenterStationSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        objectId:
+          type: integer
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+    DigitalCenterVehicleSnapshot:
+      type: object
+      additionalProperties: false
+      properties:
+        vehicleId:
+          type: string
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+    DigitalCenterProposedMatch:
+      type: object
+      additionalProperties: false
+      properties:
+        vehicleId:
+          type: string
+        match:
+          type: string
+          enum: [address_protocol, address]
+    DigitalCenterWorkItem:
+      type: object
+      required:
+        [id, sessionId, centerObjectId, vehicleId, name, decoderAddress, protocol, compareStatus,
+        stationStatus, center, railkeeper, proposed, conflicts, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        centerObjectId:
+          type: string
+        vehicleId:
+          type: string
+        name:
+          type: string
+        decoderAddress:
+          type: integer
+        protocol:
+          type: string
+        compareStatus:
+          type: string
+          enum: [ok, deviation, missing, new, conflict]
+        stationStatus:
+          type: string
+          enum: [read, incomplete, missing]
+        center:
+          $ref: "#/components/schemas/DigitalCenterStationSnapshot"
+        railkeeper:
+          $ref: "#/components/schemas/DigitalCenterVehicleSnapshot"
+        proposed:
+          $ref: "#/components/schemas/DigitalCenterProposedMatch"
+        conflicts:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterVehicleSnapshot"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    DigitalCenterWorkItemPage:
+      type: object
+      required: [items, page, pageSize, total, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWorkItem"
+        page:
+          type: integer
+          minimum: 1
+        pageSize:
+          type: integer
+          minimum: 1
+          maximum: 100
+        total:
+          type: integer
+          minimum: 0
+        totalPages:
+          type: integer
+          minimum: 0
+    DigitalCenterSessionMessage:
+      type: object
+      required: [id, sessionId, severity, code, message, nextAction, createdAt]
+      properties:
+        id:
+          type: string
+        sessionId:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error]
+        code:
+          type: string
+          enum:
+            [connection.succeeded, connection.failed, connection.interrupted, read.started,
+            read.completed, read.failed, parse.failed, capability.unavailable, live.started,
+            live.stopped, live.interrupted, write.preview_failed, write.failed, write.verified,
+            write.verification_failed]
+        message:
+          type: string
+        nextAction:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    DigitalCenterMessagesResponse:
+      type: object
+      required: [messages]
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterSessionMessage"
+    ECoSLivePulseSample:
+      type: object
+      required: [at, repliesPerSecond]
+      properties:
+        at:
+          type: string
+          format: date-time
+        repliesPerSecond:
+          type: integer
+          minimum: 0
+    ECoSLiveEvent:
+      type: object
+      required: [at, kind, message, protocol]
+      properties:
+        at:
+          type: string
+          format: date-time
+        kind:
+          type: string
+          enum: [event]
+        message:
+          type: string
+        protocol:
+          type: string
+    ECoSLiveDiagnosis:
+      type: object
+      required: [connectionState, passive]
+      properties:
+        connectionState:
+          type: string
+          enum: [stopped, running, interrupted]
+        lastSuccessfulCommunication:
+          type: string
+          format: date-time
+        lastError:
+          type: string
+        passive:
+          type: boolean
+    ECoSLiveStatus:
+      type: object
+      required:
+        [provider, connected, state, blocksReceived, repliesReceived, eventsReceived, pulseSamples,
+        recentEvents, diagnosis, message]
+      properties:
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        connected:
+          type: boolean
+        state:
+          type: string
+          enum: [stopped, running, interrupted]
+        host:
+          type: string
+        port:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        lastSeenAt:
+          type: string
+          format: date-time
+        lastMessage:
+          type: string
+        blocksReceived:
+          type: integer
+          minimum: 0
+        repliesReceived:
+          type: integer
+          minimum: 0
+        eventsReceived:
+          type: integer
+          minimum: 0
+        subscriptionCommands:
+          type: array
+          items:
+            type: string
+        pulseSamples:
+          type: array
+          items:
+            $ref: "#/components/schemas/ECoSLivePulseSample"
+        recentEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/ECoSLiveEvent"
+        diagnosis:
+          $ref: "#/components/schemas/ECoSLiveDiagnosis"
+        error:
+          type: string
+        message:
+          type: string
+    DigitalCenterWriteField:
+      type: string
+      enum: [address, name, protocol]
+    DigitalCenterWriteChange:
+      type: object
+      required: [field, current, desired]
+      properties:
+        field:
+          $ref: "#/components/schemas/DigitalCenterWriteField"
+        current:
+          type: string
+        desired:
+          type: string
+    DigitalCenterWritePreviewInput:
+      type: object
+      additionalProperties: false
+      properties:
+        fields:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+    DigitalCenterWriteConfirmInput:
+      type: object
+      additionalProperties: false
+      required: [token, confirm]
+      properties:
+        token:
+          type: string
+          minLength: 1
+        confirm:
+          type: boolean
+          const: true
+        fields:
+          type: array
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+    DigitalCenterWritePreview:
+      type: object
+      required: [sessionId, itemId, provider, objectId, direction, fields, changes, token, expiresAt]
+      properties:
+        sessionId:
+          type: string
+        itemId:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        objectId:
+          type: string
+        direction:
+          type: string
+          enum: [railkeeper_to_center]
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+        changes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteChange"
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+    DigitalCenterWriteConfirmation:
+      type: object
+      required: [sessionId, itemId, provider, objectId, direction, fields, applied, verified, result, message]
+      properties:
+        sessionId:
+          type: string
+        itemId:
+          type: string
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        objectId:
+          type: string
+        direction:
+          type: string
+          enum: [railkeeper_to_center]
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterWriteField"
+        applied:
+          type: boolean
+        verified:
+          type: boolean
+        result:
+          type: string
+          enum: [verified, verification_failed, failed]
+        message:
+          type: string
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]
@@ -1327,9 +2050,83 @@ components:
           type: integer
         restoredFiles:
           type: integer
+    BackupDataTransferProfile:
+      type: object
+      required: [id, name, direction, format, areas_json, options_json, enabled, created_by_user_id,
+        last_used_at, created_at, updated_at]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        direction:
+          $ref: "#/components/schemas/TransferDirection"
+        format:
+          $ref: "#/components/schemas/TransferFormat"
+        areas_json:
+          type: string
+          description: JSON array containing only TransferArea values.
+        options_json:
+          type: string
+          description: JSON object with profile options.
+        enabled:
+          type: integer
+          enum: [0, 1]
+        created_by_user_id:
+          type: [string, "null"]
+          description: Restored as null when the referenced local user does not exist.
+        last_used_at:
+          type: [string, "null"]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    BackupDocument:
+      type: object
+      required: [format, version, createdAt, tables, files]
+      properties:
+        format:
+          type: string
+          enum: [railkeeper-backup]
+        version:
+          type: integer
+          minimum: 1
+        createdAt:
+          type: string
+          format: date-time
+        tables:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              additionalProperties: true
+        profiles:
+          type: array
+          description: Optional saved transfer profiles. Jobs, issues, and artifact content are excluded.
+          items:
+            $ref: "#/components/schemas/BackupDataTransferProfile"
+        files:
+          type: array
+          items:
+            type: object
+            required: [path, sizeBytes, sha256, contentBase64]
+            properties:
+              path:
+                type: string
+              sizeBytes:
+                type: integer
+                format: int64
+              sha256:
+                type: string
+              contentBase64:
+                type: string
+                format: byte
     BackupValidationTable:
       type: object
-      required: [name, rows, missing, extraColumns]
+      required: [name, rows, missing]
       properties:
         name:
           type: string
@@ -1337,18 +2134,23 @@ components:
           type: integer
         missing:
           type: boolean
-        extraColumns:
+        unknownColumns:
           type: array
           items:
             type: string
     BackupValidationResult:
       type: object
-      required: [compatible, errors, warnings, tables, fileCount, fileBytes, tableCount, rowCount]
+      required: [compatible, version, errors, warnings, tables, fileCount, fileBytes, tableCount, rowCount]
       properties:
         compatible:
           type: boolean
         version:
+          type: integer
+        format:
           type: string
+        createdAt:
+          type: string
+          format: date-time
         errors:
           type: array
           items:
@@ -4099,9 +4901,15 @@ components:
           type: boolean
         applicable:
           type: boolean
+    ExhibitionStatus:
+      type: string
+      enum: [draft, open, locked, running, completed, archived]
+    ExhibitionEntryStatus:
+      type: string
+      enum: [ready, addressConflict, missing, check, unavailable]
     ExhibitionList:
       type: object
-      required: [id, designation, date, locked, entryCount, createdAt, updatedAt]
+      required: [id, designation, date, endDate, status, revision, locked, entryCount, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4110,8 +4918,30 @@ components:
         date:
           type: string
           format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        description:
+          type: string
+        organizationNotes:
+          type: string
+        status:
+          $ref: "#/components/schemas/ExhibitionStatus"
+        revision:
+          type: integer
+          minimum: 1
         locked:
           type: boolean
+        lockReason:
+          type: string
+        lockedAt:
+          type: string
+        completedAt:
+          type: string
+        archivedAt:
+          type: string
         entryCount:
           type: integer
         entries:
@@ -4133,6 +4963,20 @@ components:
         date:
           type: string
           format: date
+        endDate:
+          type: string
+          format: date
+        location:
+          type: string
+        description:
+          type: string
+        organizationNotes:
+          type: string
+        status:
+          $ref: "#/components/schemas/ExhibitionStatus"
+        expectedRevision:
+          type: integer
+          minimum: 1
     ExhibitionLockInput:
       type: object
       required: [locked]
@@ -4141,7 +4985,7 @@ components:
           type: boolean
     ExhibitionEntry:
       type: object
-      required: [id, listId, owner, locomotiveName, dtDecoder, sortOrder, createdAt, updatedAt]
+      required: [id, listId, owner, locomotiveName, dtDecoder, sortOrder, availability, revision, createdAt, updatedAt]
       properties:
         id:
           type: string
@@ -4157,6 +5001,14 @@ components:
           type: boolean
         decoderNumber:
           type: string
+        interfaceName:
+          type: string
+        availability:
+          type: string
+          enum: [available, unavailable]
+        revision:
+          type: integer
+          minimum: 1
         functionKeys:
           type: string
         notes:
@@ -4171,7 +5023,7 @@ components:
           format: date-time
     ExhibitionEntryInput:
       type: object
-      required: [owner, locomotiveName, dtDecoder]
+      required: [locomotiveName, dtDecoder]
       properties:
         owner:
           type: string
@@ -4183,12 +5035,99 @@ components:
           type: boolean
         decoderNumber:
           type: string
+        interfaceName:
+          type: string
+        availability:
+          type: string
+          enum: [available, unavailable]
+        expectedRevision:
+          type: integer
+          minimum: 1
         functionKeys:
           type: string
         notes:
           type: string
         sortOrder:
           type: integer
+    ExhibitionSummary:
+      type: object
+      required: [entryCount, ownerCount, conflictCount, readyCount]
+      properties:
+        entryCount: { type: integer }
+        ownerCount: { type: integer }
+        conflictCount: { type: integer }
+        readyCount: { type: integer }
+    ExhibitionReadiness:
+      type: object
+      required: [total, addressesChecked, functionsDocumented, imagesPresent, problems]
+      properties:
+        total: { type: integer }
+        addressesChecked: { type: integer }
+        functionsDocumented: { type: integer }
+        imagesPresent: { type: integer }
+        problems: { type: integer }
+    ExhibitionConflict:
+      type: object
+      required: [id, kind, entryIds, excepted]
+      properties:
+        id: { type: string }
+        kind:
+          type: string
+          enum: [address, missing, duplicateVehicle]
+        entryIds:
+          type: array
+          items: { type: string }
+        fields:
+          type: array
+          items: { type: string }
+        interfaceName: { type: string }
+        address: { type: string }
+        dayScopes:
+          type: array
+          items: { type: string }
+        excepted: { type: boolean }
+        exceptionReason: { type: string }
+    ExhibitionWorkspaceEntry:
+      allOf:
+        - $ref: "#/components/schemas/ExhibitionEntry"
+        - type: object
+          required: [status, conflictIds]
+          properties:
+            status:
+              $ref: "#/components/schemas/ExhibitionEntryStatus"
+            conflictIds:
+              type: array
+              items: { type: string }
+    ExhibitionWorkspace:
+      type: object
+      required: [list, summary, readiness, entries, conflicts, dayScopes]
+      properties:
+        list: { $ref: "#/components/schemas/ExhibitionList" }
+        summary: { $ref: "#/components/schemas/ExhibitionSummary" }
+        readiness: { $ref: "#/components/schemas/ExhibitionReadiness" }
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/ExhibitionWorkspaceEntry" }
+        conflicts:
+          type: array
+          items: { $ref: "#/components/schemas/ExhibitionConflict" }
+        dayScopes:
+          type: array
+          items: { type: string }
+    ExhibitionStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: "#/components/schemas/ExhibitionStatus" }
+        expectedRevision: { type: integer, minimum: 1 }
+        confirmConflicts: { type: boolean }
+        reason: { type: string }
+    ExhibitionConflictExceptionInput:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string }
+        expectedRevision: { type: integer, minimum: 1 }
 paths:
   /setup/status:
     get:
@@ -4869,6 +5808,737 @@ paths:
                 $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/summary:
+    get:
+      tags: [DataTransfer]
+      summary: Summarize visible data transfer activity and retained artifacts
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Transfer dashboard summary in the current role scope
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferSummary"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs:
+    get:
+      tags: [DataTransfer]
+      summary: List filtered data transfer history
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: profileId
+          in: query
+          schema:
+            type: string
+        - name: direction
+          in: query
+          schema:
+            $ref: "#/components/schemas/TransferDirection"
+        - name: states
+          in: query
+          description: Repeat the parameter or use comma-separated values to select multiple states.
+          style: form
+          explode: true
+          schema:
+            type: array
+            items:
+              $ref: "#/components/schemas/TransferJobState"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+      responses:
+        "200":
+          description: Transfer jobs in newest-first order and the current role scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid direction, state, or limit filter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}:
+    get:
+      tags: [DataTransfer]
+      summary: Get a data transfer job with issues and artifact history
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transfer job details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJobDetails"
+        "400":
+          description: Invalid transfer job identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Job data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/retry:
+    post:
+      tags: [DataTransfer]
+      summary: Create an unapproved draft retry from a terminal transfer job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "201":
+          description: Fresh retry job without preview, issues, confirmation, result, or artifact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid transfer job identifier or actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Retry requires Editor/Admin, or Messe for an exhibition-list-only job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Transfer job is still open and cannot be retried
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/profiles:
+    get:
+      tags: [DataTransfer]
+      summary: List saved data transfer profiles
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Transfer profiles visible in the current role scope
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DataTransferProfile"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    post:
+      tags: [DataTransfer]
+      summary: Create a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferProfileInput"
+      responses:
+        "201":
+          description: Created transfer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferProfile"
+        "400":
+          description: Invalid transfer profile selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/profiles/{id}:
+    put:
+      tags: [DataTransfer]
+      summary: Update a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferProfileInput"
+      responses:
+        "200":
+          description: Updated transfer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferProfile"
+        "400":
+          description: Invalid transfer profile selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [DataTransfer]
+      summary: Disable a saved data transfer profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Transfer profile disabled
+        "403":
+          description: Insufficient role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/import:
+    post:
+      tags: [DataTransfer]
+      summary: Create an import job from a saved profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferImportJobInput"
+      responses:
+        "201":
+          description: Import job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid or disabled import profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/upload:
+    post:
+      tags: [DataTransfer]
+      summary: Upload an import file and persist its preview
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Persistent import preview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferPreview"
+        "400":
+          description: Invalid package, CSV, extension, MIME type, or selected areas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Import job changed or is not uploadable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "413":
+          description: Import file exceeds the upload limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/issues/{issueID}:
+    put:
+      tags: [DataTransfer]
+      summary: Resolve one import preview issue
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: issueID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferIssueResolutionInput"
+      responses:
+        "200":
+          description: Updated import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid resolution
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job or issue not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Import job is not in a reviewable state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/cancel:
+    post:
+      tags: [DataTransfer]
+      summary: Cancel a draft or reviewed import job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cancelled import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Import job can no longer be cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/confirm:
+    post:
+      tags: [DataTransfer]
+      summary: Apply a reviewed import atomically
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferImportConfirmationInput"
+      responses:
+        "200":
+          description: Completed import job
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Explicit confirmation is missing or false
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Import job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Preview is stale, changed, or has unresolved conflicts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/export:
+    post:
+      tags: [DataTransfer]
+      summary: Create an export job from a saved profile
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataTransferExportJobInput"
+      responses:
+        "201":
+          description: Export job created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferJob"
+        "400":
+          description: Invalid or disabled export profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export profile not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/jobs/{id}/execute:
+    post:
+      tags: [DataTransfer]
+      summary: Execute a prepared export job
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export completed and artifact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataTransferExportResult"
+        "400":
+          description: Export job cannot be executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Export job is already running or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/{id}/download:
+    get:
+      tags: [DataTransfer]
+      summary: Download an export artifact
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Export artifact file
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Export artifact path is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Selected data area is unavailable to the current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export artifact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "410":
+          description: Export artifact was deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/{id}:
+    delete:
+      tags: [DataTransfer]
+      summary: Delete an export artifact
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Export artifact deleted
+        "400":
+          description: Export artifact path is invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Export artifact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /data-transfer/artifacts/open-folder:
+    post:
+      tags: [DataTransfer]
+      summary: Open the local export artifact folder
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      responses:
+        "204":
+          description: Export folder opened
+        "400":
+          description: The action received an unexpected path or request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Opening folders is unavailable in this runtime
           content:
             application/json:
               schema:
@@ -8616,7 +10286,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -8677,7 +10347,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -8734,7 +10404,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ExhibitionList"
         "403":
-          description: Admin role required
+          description: Editor role required
           content:
             application/json:
               schema:
@@ -8745,6 +10415,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /exhibition-lists/{id}/workspace:
+    get:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Persistent exhibition operations workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExhibitionWorkspace"
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/conflicts/check:
+    post:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Recalculated conflict and readiness state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionWorkspace" }
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition list not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/status:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExhibitionStatusInput" }
+      responses:
+        "200":
+          description: Exhibition lifecycle state updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionList" }
+        "400":
+          description: Invalid lifecycle input
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "403":
+          description: Editor role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Stale revision or conflicts require explicit confirmation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+  /exhibition-lists/{id}/conflicts/{conflictID}/exception:
+    put:
+      tags: [Exhibition]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+        - name: conflictID
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExhibitionConflictExceptionInput" }
+      responses:
+        "200":
+          description: Conflict exception persisted and kept visible
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExhibitionWorkspace" }
+        "400":
+          description: A reason is required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "403":
+          description: Messe role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "404":
+          description: Exhibition conflict not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
+        "409":
+          description: Stale revision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Problem" }
   /exhibition-lists/{id}/entries:
     get:
       tags: [Exhibition]
@@ -8915,7 +10711,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/BackupDocument"
         "403":
           description: Admin role required
           content:
@@ -9055,6 +10851,340 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /digital-centers/workspace:
+    get:
+      tags: [DigitalCenters]
+      summary: List configured digital centers and their capabilities
+      security:
+        - sessionCookie: []
+      responses:
+        "200":
+          description: Configured digital centers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkspaceSummary"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/{provider}/read-sessions:
+    post:
+      tags: [DigitalCenters]
+      summary: Read a configured digital center into a persisted comparison session
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+      responses:
+        "201":
+          description: Completed or failed read session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterReadSession"
+        "400":
+          description: Provider does not support locomotive reads
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Provider is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Provider is inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}:
+    get:
+      tags: [DigitalCenters]
+      summary: Read one persisted digital-center session
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Read session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterReadSession"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/messages:
+    get:
+      tags: [DigitalCenters]
+      summary: List bounded actionable messages for a read session
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session messages
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterMessagesResponse"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items:
+    get:
+      tags: [DigitalCenters]
+      summary: List and filter the persisted locomotive comparison work list
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: compareStatus
+          in: query
+          schema:
+            type: string
+            enum: [ok, deviation, missing, new, conflict]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+        - name: pageSize
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+      responses:
+        "200":
+          description: Paged comparison work list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkItemPage"
+        "400":
+          description: Invalid filter or pagination
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}:
+    get:
+      tags: [DigitalCenters]
+      summary: Read one locomotive comparison item
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Comparison item with station, RailKeeper, proposal, and conflict data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWorkItem"
+        "403":
+          description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Read session or work item not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/write-preview:
+    post:
+      tags: [DigitalCenters]
+      summary: Create a dry-run preview and single-use write grant
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterWritePreviewInput"
+      responses:
+        "200":
+          description: Normalized write preview and actor-bound grant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWritePreview"
+        "400":
+          description: Unsupported capability or write field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Session, work item, or provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Read is stale, conflict unresolved, or no changes remain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/read-sessions/{id}/items/{itemID}/write-confirm:
+    post:
+      tags: [DigitalCenters]
+      summary: Consume a write grant, write the previewed fields, and verify the device
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemID
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterWriteConfirmInput"
+      responses:
+        "200":
+          description: Verified write result or visible verification mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterWriteConfirmation"
+        "400":
+          description: Confirmation missing or field unsupported
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Session, work item, or provider not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Grant is stale, expired, consumed, or mismatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: ECoS write or verification failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /digital-centers/ecos/locomotives/sync:
     post:
       tags: [DigitalCenters]
@@ -9133,41 +11263,129 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/status:
+  /digital-centers/{provider}/live/status:
     get:
       tags: [DigitalCenters]
-      summary: Read the ECoS base-station connection monitor status
+      summary: Read passive live-monitor status for the selected digital center
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
       responses:
         "200":
-          description: ECoS live connection status
+          description: Passive live status, telemetry, events, and diagnosis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
           description: Admin role required
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/start:
+  /digital-centers/{provider}/live/start:
     post:
       tags: [DigitalCenters]
-      summary: Start ECoS base-station monitoring without locomotive or layout-state subscriptions
+      summary: Start passive monitoring using the server-configured endpoint
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+        - name: sessionId
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: ECoS live connection status
-        "403":
-          description: Admin role required
+          description: Started passive live status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
-  /digital-centers/ecos/live/stop:
+        "403":
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Provider or optional read session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Provider is inactive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "502":
+          description: Passive monitor could not connect
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/{provider}/live/stop:
     post:
       tags: [DigitalCenters]
       summary: Stop the active ECoS live connection
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/DigitalCenterProvider"
+        - name: sessionId
+          in: query
+          schema:
+            type: string
       responses:
         "200":
-          description: ECoS live connection status
+          description: Stopped passive live status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSLiveStatus"
+        "400":
+          description: Provider does not support passive live monitoring
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
         "403":
-          description: Admin role required
+          description: Admin role or CSRF token missing
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Optional read session not found
           content:
             application/json:
               schema:

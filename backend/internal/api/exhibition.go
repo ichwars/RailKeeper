@@ -46,6 +46,19 @@ func (a *App) getExhibitionList(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, list)
 }
 
+func (a *App) getExhibitionWorkspace(w http.ResponseWriter, r *http.Request) {
+	workspace, err := a.exhibitionService.Workspace(r.Context(), r.PathValue("id"))
+	if err != nil {
+		handleExhibitionError(a, w, err, "exhibition_workspace_failed", "Could not read exhibition workspace.")
+		return
+	}
+	respondJSON(w, http.StatusOK, workspace)
+}
+
+func (a *App) checkExhibitionConflicts(w http.ResponseWriter, r *http.Request) {
+	a.getExhibitionWorkspace(w, r)
+}
+
 func (a *App) updateExhibitionList(w http.ResponseWriter, r *http.Request) {
 	var input application.ExhibitionListInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -88,6 +101,38 @@ func (a *App) setExhibitionListLocked(w http.ResponseWriter, r *http.Request) {
 		a.recordAudit(r, "ExhibitionListUnlocked", "exhibition_list", list.ID)
 	}
 	respondJSON(w, http.StatusOK, list)
+}
+
+func (a *App) setExhibitionStatus(w http.ResponseWriter, r *http.Request) {
+	var input application.ExhibitionStatusInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	list, err := a.exhibitionService.SetStatus(r.Context(), r.PathValue("id"), input)
+	if err != nil {
+		handleExhibitionError(a, w, err, "exhibition_status_failed", "Could not update exhibition status.")
+		return
+	}
+	a.recordAudit(r, "ExhibitionStatusUpdated", "exhibition_list", list.ID)
+	respondJSON(w, http.StatusOK, list)
+}
+
+func (a *App) setExhibitionConflictException(w http.ResponseWriter, r *http.Request) {
+	var input application.ExhibitionConflictExceptionInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	workspace, err := a.exhibitionService.SetConflictException(
+		r.Context(), r.PathValue("id"), r.PathValue("conflictID"), input,
+	)
+	if err != nil {
+		handleExhibitionError(a, w, err, "exhibition_exception_failed", "Could not save exhibition exception.")
+		return
+	}
+	a.recordAudit(r, "ExhibitionConflictExcepted", "exhibition_list", workspace.List.ID)
+	respondJSON(w, http.StatusOK, workspace)
 }
 
 func (a *App) listExhibitionEntries(w http.ResponseWriter, r *http.Request) {
@@ -156,6 +201,10 @@ func handleExhibitionError(a *App, w http.ResponseWriter, err error, code, messa
 		respondProblem(w, http.StatusNotFound, "exhibition_not_found", "Exhibition list or entry not found.")
 	case errors.Is(err, application.ErrExhibitionLocked):
 		respondProblem(w, http.StatusConflict, "exhibition_locked", "Diese Messeliste ist gesperrt.")
+	case errors.Is(err, application.ErrExhibitionStale):
+		respondProblem(w, http.StatusConflict, "exhibition_stale", "Die Veranstaltung wurde zwischenzeitlich geändert. Bitte neu laden.")
+	case errors.Is(err, application.ErrExhibitionConflicts):
+		respondProblem(w, http.StatusConflict, "exhibition_conflicts", "Die Veranstaltung enthält noch Konflikte. Bestätigung und Begründung sind erforderlich.")
 	default:
 		a.logger.Error(message, "error", err)
 		respondProblem(w, http.StatusInternalServerError, code, message)

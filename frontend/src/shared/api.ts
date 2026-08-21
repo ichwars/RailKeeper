@@ -1,6 +1,35 @@
 import { createLayoutsAccessoriesAPI } from "./apiLayoutsAccessories";
+import type {
+  DataTransferExportResult,
+  DataTransferIssueResolution,
+  DataTransferJob,
+  DataTransferJobDetails,
+  DataTransferJobFilter,
+  DataTransferJobInput,
+  DataTransferPreview,
+  DataTransferProfile,
+  DataTransferProfileInput,
+  DataTransferSummary
+} from "../features/importExport/dataTransferModel";
+import type {
+  DigitalCenterMessagesResponse,
+  DigitalCenterProvider,
+  DigitalCenterReadSession,
+  DigitalCenterWorkItem,
+  DigitalCenterWorkItemFilter,
+  DigitalCenterWorkItemPage,
+  DigitalCenterWorkspaceSummary,
+  DigitalCenterWriteConfirmInput,
+  DigitalCenterWriteConfirmation,
+  DigitalCenterWriteField,
+  DigitalCenterWritePreview,
+  DigitalCenterWritePreviewInput,
+  ECoSLiveStatus
+} from "../features/digitalCenters/digitalCenterModel";
 
 export * from "./apiLayoutsAccessories";
+export type * from "../features/importExport/dataTransferModel";
+export type * from "../features/digitalCenters/digitalCenterModel";
 
 export type SetupStatus = {
   setupRequired: boolean;
@@ -744,7 +773,7 @@ export type DigitalCenterConnectionInput = {
 };
 
 export type DigitalCenterConnectionResult = {
-  provider: "z21" | "cs3" | string;
+  provider: DigitalCenterProvider;
   connected: boolean;
   host: string;
   port: number;
@@ -766,7 +795,7 @@ export type DigitalCenterProbeCommandResult = {
 };
 
 export type DigitalCenterProbeResult = {
-  provider: "z21" | "intellibox3" | string;
+  provider: DigitalCenterProvider;
   connected: boolean;
   host: string;
   port: number;
@@ -836,22 +865,6 @@ export type ECoSLocomotiveSummary = {
   message: string;
 };
 
-export type ECoSLiveStatus = {
-  provider: string;
-  connected: boolean;
-  host?: string;
-  port?: number;
-  startedAt?: string;
-  lastSeenAt?: string;
-  lastMessage?: string;
-  blocksReceived: number;
-  repliesReceived: number;
-  eventsReceived: number;
-  subscriptionCommands?: string[];
-  error?: string;
-  message: string;
-};
-
 export type ECoSLocomotiveSyncInput = ECoSConnectionInput & {
   vehicleId: string;
   objectId?: number;
@@ -860,7 +873,7 @@ export type ECoSLocomotiveSyncInput = ECoSConnectionInput & {
 };
 
 export type ECoSLocomotiveSyncChange = {
-  field: "name" | "address" | "protocol" | string;
+  field: DigitalCenterWriteField;
   current: string;
   desired: string;
 };
@@ -997,7 +1010,17 @@ export type ExhibitionList = {
   id: string;
   designation: string;
   date: string;
+  endDate: string;
+  location?: string;
+  description?: string;
+  organizationNotes?: string;
+  status: ExhibitionStatus;
+  revision: number;
   locked: boolean;
+  lockReason?: string;
+  lockedAt?: string;
+  completedAt?: string;
+  archivedAt?: string;
   entryCount: number;
   entries?: ExhibitionEntry[];
   createdAt: string;
@@ -1007,7 +1030,16 @@ export type ExhibitionList = {
 export type ExhibitionListInput = {
   designation: string;
   date: string;
+  endDate?: string;
+  location?: string;
+  description?: string;
+  organizationNotes?: string;
+  status?: ExhibitionStatus;
+  expectedRevision?: number;
 };
+
+export type ExhibitionStatus = "draft" | "open" | "locked" | "running" | "completed" | "archived";
+export type ExhibitionEntryStatus = "ready" | "addressConflict" | "missing" | "check" | "unavailable";
 
 export type ExhibitionEntry = {
   id: string;
@@ -1026,8 +1058,11 @@ export type ExhibitionEntry = {
   decoderNumber?: string;
   decoderType?: string;
   adapter?: string;
+  interfaceName?: string;
   sxAddress?: string;
   analog: boolean;
+  availability: "available" | "unavailable";
+  revision: number;
   functionKeys?: string;
   notes?: string;
   sortOrder: number;
@@ -1050,11 +1085,62 @@ export type ExhibitionEntryInput = {
   decoderNumber?: string;
   decoderType?: string;
   adapter?: string;
+  interfaceName?: string;
   sxAddress?: string;
   analog?: boolean;
+  availability?: "available" | "unavailable";
+  expectedRevision?: number;
   functionKeys?: string;
   notes?: string;
   sortOrder?: number;
+};
+
+export type ExhibitionSummary = {
+  entryCount: number;
+  ownerCount: number;
+  conflictCount: number;
+  readyCount: number;
+};
+
+export type ExhibitionReadiness = {
+  total: number;
+  addressesChecked: number;
+  functionsDocumented: number;
+  imagesPresent: number;
+  problems: number;
+};
+
+export type ExhibitionConflict = {
+  id: string;
+  kind: "address" | "missing" | "duplicateVehicle";
+  entryIds: string[];
+  fields?: string[];
+  interfaceName?: string;
+  address?: string;
+  dayScopes?: string[];
+  excepted: boolean;
+  exceptionReason?: string;
+};
+
+export type ExhibitionWorkspaceEntry = ExhibitionEntry & {
+  status: ExhibitionEntryStatus;
+  conflictIds: string[];
+};
+
+export type ExhibitionWorkspace = {
+  list: ExhibitionList;
+  summary: ExhibitionSummary;
+  readiness: ExhibitionReadiness;
+  entries: ExhibitionWorkspaceEntry[];
+  conflicts: ExhibitionConflict[];
+  dayScopes: string[];
+};
+
+export type ExhibitionStatusInput = {
+  status: ExhibitionStatus;
+  expectedRevision?: number;
+  confirmConflicts?: boolean;
+  reason?: string;
 };
 
 let csrfToken = "";
@@ -1148,8 +1234,80 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
   throw new Error("Die Anfrage konnte nicht verarbeitet werden.");
 }
 
+function digitalCenterSessionSuffix(sessionID?: string) {
+  const normalized = sessionID?.trim();
+  return normalized ? `?sessionId=${encodeURIComponent(normalized)}` : "";
+}
+
 export const api = {
   ...createLayoutsAccessoriesAPI(request),
+  dataTransferSummary: () => request<DataTransferSummary>("/data-transfer/summary"),
+  dataTransferProfiles: () => request<DataTransferProfile[]>("/data-transfer/profiles"),
+  createDataTransferProfile: (input: DataTransferProfileInput) =>
+    request<DataTransferProfile>("/data-transfer/profiles", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  updateDataTransferProfile: (id: string, input: DataTransferProfileInput) =>
+    request<DataTransferProfile>(`/data-transfer/profiles/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  disableDataTransferProfile: (id: string) =>
+    request<void>(`/data-transfer/profiles/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  dataTransferJobs: (filter: DataTransferJobFilter = {}) => {
+    const query = new URLSearchParams();
+    if (filter.profileId) query.set("profileId", filter.profileId);
+    if (filter.direction) query.set("direction", filter.direction);
+    for (const state of filter.states || []) query.append("states", state);
+    if (filter.limit !== undefined) query.set("limit", String(filter.limit));
+    const suffix = query.size > 0 ? `?${query.toString()}` : "";
+    return request<DataTransferJob[]>(`/data-transfer/jobs${suffix}`);
+  },
+  dataTransferJob: (id: string) =>
+    request<DataTransferJobDetails>(`/data-transfer/jobs/${encodeURIComponent(id)}`),
+  retryDataTransferJob: (id: string) =>
+    request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/retry`, { method: "POST" }),
+  createDataTransferExportJob: (input: DataTransferJobInput) =>
+    request<DataTransferJob>("/data-transfer/jobs/export", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  executeDataTransferExportJob: (id: string) =>
+    request<DataTransferExportResult>(`/data-transfer/jobs/${encodeURIComponent(id)}/execute`, {
+      method: "POST"
+    }),
+  createDataTransferImportJob: (input: DataTransferJobInput) =>
+    request<DataTransferJob>("/data-transfer/jobs/import", {
+      method: "POST",
+      body: JSON.stringify(input)
+    }),
+  uploadDataTransferImport: (id: string, file: File) => {
+    const form = new FormData();
+    form.append("file", file);
+    return request<DataTransferPreview>(`/data-transfer/jobs/${encodeURIComponent(id)}/upload`, {
+      method: "POST",
+      body: form
+    }, { timeoutMs: 120000 });
+  },
+  resolveDataTransferIssue: (jobId: string, issueId: string, resolution: DataTransferIssueResolution) =>
+    request<DataTransferJob>(
+      `/data-transfer/jobs/${encodeURIComponent(jobId)}/issues/${encodeURIComponent(issueId)}`,
+      { method: "PUT", body: JSON.stringify({ resolution }) }
+    ),
+  confirmDataTransferImport: (id: string, expectedRevision: number) =>
+    request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/confirm`, {
+      method: "POST",
+      body: JSON.stringify({ confirm: true, expectedRevision })
+    }),
+  cancelDataTransferImport: (id: string) =>
+    request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+  dataTransferArtifactDownloadUrl: (id: string) =>
+    `/api/v1/data-transfer/artifacts/${encodeURIComponent(id)}/download`,
+  deleteDataTransferArtifact: (id: string) =>
+    request<void>(`/data-transfer/artifacts/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  openDataTransferArtifactFolder: () =>
+    request<void>("/data-transfer/artifacts/open-folder", { method: "POST" }),
   setupStatus: () => request<SetupStatus>("/setup/status"),
   createAdmin: (input: CreateAdminRequest) =>
     request<{ status: string }>("/setup/admin", {
@@ -1263,6 +1421,10 @@ export const api = {
     }),
   exhibitionLists: () => request<ExhibitionList[]>("/exhibition-lists"),
   exhibitionList: (id: string) => request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}`),
+  exhibitionWorkspace: (id: string) =>
+    request<ExhibitionWorkspace>(`/exhibition-lists/${encodeURIComponent(id)}/workspace`),
+  checkExhibitionConflicts: (id: string) =>
+    request<ExhibitionWorkspace>(`/exhibition-lists/${encodeURIComponent(id)}/conflicts/check`, { method: "POST" }),
   createExhibitionList: (input: ExhibitionListInput) =>
     request<ExhibitionList>("/exhibition-lists", {
       method: "POST",
@@ -1282,6 +1444,16 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ locked })
     }),
+  setExhibitionStatus: (id: string, input: ExhibitionStatusInput) =>
+    request<ExhibitionList>(`/exhibition-lists/${encodeURIComponent(id)}/status`, {
+      method: "PUT",
+      body: JSON.stringify(input)
+    }),
+  setExhibitionConflictException: (listId: string, conflictId: string, reason: string, expectedRevision: number) =>
+    request<ExhibitionWorkspace>(
+      `/exhibition-lists/${encodeURIComponent(listId)}/conflicts/${encodeURIComponent(conflictId)}/exception`,
+      { method: "PUT", body: JSON.stringify({ reason, expectedRevision }) }
+    ),
   exhibitionEntries: (listId: string) => request<ExhibitionEntry[]>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`),
   createExhibitionEntry: (listId: string, input: ExhibitionEntryInput) =>
     request<ExhibitionEntry>(`/exhibition-lists/${encodeURIComponent(listId)}/entries`, {
@@ -1543,7 +1715,69 @@ export const api = {
       },
       { timeoutMs: 10000 }
     ),
-  getECoSLiveStatus: () => request<ECoSLiveStatus>("/digital-centers/ecos/live/status"),
+  getECoSLiveStatus: () =>
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent("ecos")}/live/status`),
+  digitalCenterWorkspace: () =>
+    request<DigitalCenterWorkspaceSummary>("/digital-centers/workspace"),
+  startDigitalCenterReadSession: (provider: DigitalCenterProvider) =>
+    request<DigitalCenterReadSession>(
+      `/digital-centers/${encodeURIComponent(provider)}/read-sessions`,
+      { method: "POST", body: JSON.stringify({}) },
+      { timeoutMs: 120000 }
+    ),
+  digitalCenterReadSession: (sessionID: string) =>
+    request<DigitalCenterReadSession>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}`
+    ),
+  digitalCenterWorkItems: (sessionID: string, filter: DigitalCenterWorkItemFilter) => {
+    const query = new URLSearchParams();
+    const search = filter.query.trim();
+    if (search) query.set("q", search);
+    if (filter.compareStatus !== "all") query.set("compareStatus", filter.compareStatus);
+    query.set("page", String(filter.page));
+    query.set("pageSize", String(filter.pageSize));
+    return request<DigitalCenterWorkItemPage>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items?${query.toString()}`
+    );
+  },
+  digitalCenterWorkItem: (sessionID: string, itemID: string) =>
+    request<DigitalCenterWorkItem>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}`
+    ),
+  digitalCenterSessionMessages: (sessionID: string) =>
+    request<DigitalCenterMessagesResponse>(
+      `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/messages`
+    ),
+  digitalCenterLiveStatus: (provider: DigitalCenterProvider) =>
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent(provider)}/live/status`),
+  startDigitalCenterLive: (provider: DigitalCenterProvider, sessionID?: string) =>
+    request<ECoSLiveStatus>(
+      `/digital-centers/${encodeURIComponent(provider)}/live/start` + digitalCenterSessionSuffix(sessionID),
+      { method: "POST", body: JSON.stringify({}) }
+    ),
+  stopDigitalCenterLive: (provider: DigitalCenterProvider, sessionID?: string) =>
+    request<ECoSLiveStatus>(
+      `/digital-centers/${encodeURIComponent(provider)}/live/stop` + digitalCenterSessionSuffix(sessionID),
+      { method: "POST", body: JSON.stringify({}) }
+    ),
+  previewDigitalCenterWrite: (
+    sessionID: string,
+    itemID: string,
+    input: DigitalCenterWritePreviewInput
+  ) => request<DigitalCenterWritePreview>(
+    `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/write-preview`,
+    { method: "POST", body: JSON.stringify(input) },
+    { timeoutMs: 30000 }
+  ),
+  confirmDigitalCenterWrite: (
+    sessionID: string,
+    itemID: string,
+    input: DigitalCenterWriteConfirmInput
+  ) => request<DigitalCenterWriteConfirmation>(
+    `/digital-centers/read-sessions/${encodeURIComponent(sessionID)}/items/${encodeURIComponent(itemID)}/write-confirm`,
+    { method: "POST", body: JSON.stringify(input) },
+    { timeoutMs: 30000 }
+  ),
   syncECoSLocomotive: (input: ECoSLocomotiveSyncInput) =>
     request<ECoSLocomotiveSyncResult>(
       "/digital-centers/ecos/locomotives/sync",
@@ -1555,7 +1789,7 @@ export const api = {
     ),
   startECoSLive: (input: ECoSConnectionInput) =>
     request<ECoSLiveStatus>(
-      "/digital-centers/ecos/live/start",
+      `/digital-centers/${encodeURIComponent("ecos")}/live/start`,
       {
         method: "POST",
         body: JSON.stringify(input)
@@ -1563,7 +1797,7 @@ export const api = {
       { timeoutMs: 10000 }
     ),
   stopECoSLive: () =>
-    request<ECoSLiveStatus>("/digital-centers/ecos/live/stop", {
+    request<ECoSLiveStatus>(`/digital-centers/${encodeURIComponent("ecos")}/live/stop`, {
       method: "POST"
     }),
   testZ21Connection: (input: DigitalCenterConnectionInput) =>

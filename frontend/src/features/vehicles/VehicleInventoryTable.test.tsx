@@ -92,6 +92,7 @@ describe("VehicleInventoryTable", () => {
     expect(screen.getByText("ja")).toBeInTheDocument();
     expect(screen.getByText("15.08.2026")).toBeInTheDocument();
     expect(screen.queryByText(vehicle.inventoryNumber)).not.toBeInTheDocument();
+    expect(screen.getByRole("table")).toHaveStyle("--vehicle-data-column-count: 3");
   });
 
   it("keeps selection and exhibition controls operational", () => {

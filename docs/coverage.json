@@ -157,6 +157,7 @@
       "/layouts": "layouts-unpublished",
       "/exhibition": "exhibition",
       "/import-export": "import-export",
+      "/digital-centers": "digital-centers",
       "/settings": "settings-general"
     },
     "translationPrefixes": {
@@ -164,6 +165,7 @@
       "app": "setup-auth",
       "auth": "setup-auth",
       "common": "shared-navigation",
+      "digitalCenters": "digital-centers",
       "exhibition": "exhibition",
       "importExport": "import-export",
       "layouts": "layouts-unpublished",
@@ -226,6 +228,7 @@
       "/api/v1/sessions": "users-sessions-security",
       "/api/v1/ecos": "digital-centers",
       "/api/v1/digital-centers": "digital-centers",
+      "/api/v1/data-transfer": "import-export",
       "/api/v1/vehicles/{id}/images/import-url": "vehicle-search-spares",
       "/api/v1/vehicles/{id}/images": "vehicle-media",
       "/api/v1/vehicles/{id}/attachments/import-url": "vehicle-search-spares",

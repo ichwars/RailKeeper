@@ -1,20 +1,25 @@
 /* Reference-driven overview dashboard. */
 .main:has(.overview-page) {
-  padding: 20px 26px 94px;
+  padding: 32px 32px 104px;
 }
 
 .layout:has(.overview-page) .feedback-button {
-  display: none;
+  bottom: 104px;
 }
 
 .overview-page {
-  --overview-secondary: #289fea;
+  --overview-interactive: var(--accent-strong);
+  --overview-info: #289fea;
+  --overview-warning: var(--warm);
+  --overview-danger: var(--danger);
+  container-name: overview;
+  container-type: inline-size;
   position: relative;
   display: grid;
-  gap: 12px;
+  gap: 20px;
   width: 100%;
-  max-width: 1680px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
 }
 
 .overview-page .sr-only {
@@ -189,13 +194,13 @@ a.overview-metric-card:focus-visible {
 .overview-card-head h2,
 .overview-analysis-head h2 {
   margin: 0;
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-md);
   line-height: var(--line-height-control-md);
 }
 
 .overview-operational {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.85fr);
   gap: 12px;
 }
 
@@ -237,15 +242,24 @@ a.overview-metric-card:focus-visible {
 }
 
 .overview-priority-list .warning {
-  color: var(--warm);
+  color: var(--overview-warning);
 }
 
 .overview-priority-list .info {
-  color: var(--overview-secondary);
+  color: var(--overview-info);
 }
 
 .overview-priority-list .decoder {
-  color: #a855f7;
+  color: color-mix(in srgb, var(--overview-info) 58%, #a855f7);
+}
+
+.overview-priority-card {
+  border-color: color-mix(in srgb, var(--overview-warning) 42%, var(--line));
+  background: color-mix(in srgb, var(--overview-warning) 3%, var(--panel));
+}
+
+.overview-priority-card .overview-card-head {
+  background: color-mix(in srgb, var(--overview-warning) 5%, transparent);
 }
 
 .overview-priority-list small {
@@ -454,7 +468,12 @@ a.overview-metric-card:focus-visible {
 }
 
 .overview-maintenance-list a.overdue b {
-  color: var(--danger);
+  color: var(--overview-danger);
+}
+
+.overview-maintenance-card:has(.overdue) {
+  border-color: color-mix(in srgb, var(--overview-danger) 38%, var(--line));
+  background: color-mix(in srgb, var(--overview-danger) 3%, var(--panel));
 }
 
 .overview-module-state {
@@ -480,6 +499,11 @@ a.overview-metric-card:focus-visible {
 
 .overview-analysis-primary .overview-card {
   min-height: 164px;
+}
+
+.overview-analysis-primary .overview-card,
+.overview-analysis-secondary .overview-card {
+  background: color-mix(in srgb, var(--panel) 94%, var(--bg));
 }
 
 .overview-analysis-head {
@@ -513,7 +537,7 @@ a.overview-metric-card:focus-visible {
 
 .overview-chart-legend .accessory::before,
 .overview-value-body i.accessory {
-  background: var(--overview-secondary);
+  background: var(--overview-info);
 }
 
 .overview-trend-canvas {
@@ -799,7 +823,7 @@ a.overview-metric-card:focus-visible {
   z-index: 15;
   right: 0;
   bottom: 0;
-  left: 248px;
+  left: 216px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   min-height: 80px;
@@ -861,7 +885,7 @@ a.overview-metric-card:focus-visible {
   opacity: 0.5;
 }
 
-@media (max-width: 1180px) {
+@container overview (max-width: 1120px) {
   .overview-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -888,9 +912,25 @@ a.overview-metric-card:focus-visible {
   }
 }
 
+@container overview (max-width: 860px) {
+  .overview-operational,
+  .overview-analysis-primary,
+  .overview-analysis-secondary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-quality-card {
+    grid-column: auto;
+  }
+}
+
 @media (max-width: 900px) {
   .main:has(.overview-page) {
-    padding-bottom: 92px;
+    padding: 28px 18px 92px;
+  }
+
+  .layout:has(.overview-page) .feedback-button {
+    bottom: 96px;
   }
 
   .overview-action-footer,

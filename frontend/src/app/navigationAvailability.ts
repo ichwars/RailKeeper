@@ -7,6 +7,7 @@ const appViews = [
   "layouts",
   "exhibition",
   "importExport",
+  "digitalCenters",
   "settings"
 ] as const;
 

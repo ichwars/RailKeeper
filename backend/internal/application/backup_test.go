@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected backup version 18, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected backup version 19, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -156,8 +156,8 @@ func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected backup version 18, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected backup version 19, got %d", backup.Version)
 	}
 	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
 		t.Fatalf("set inventory number missing from backup: %v", got)
@@ -320,7 +320,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 18 {
+	if doc.Version != 19 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	if _, err := service.Import(t.Context(), doc); err != nil {
@@ -420,8 +420,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 18 {
-		t.Fatalf("expected backup version 18 for operational fields and accessory list price, got %d",
+	if document.Version != 19 {
+		t.Fatalf("expected backup version 19 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -498,8 +498,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -581,8 +581,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -659,8 +659,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -772,8 +772,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 18 module-port export, got version=%d rows=%d",
+	if backup.Version != 19 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 19 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -828,8 +828,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -891,8 +891,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -1175,8 +1175,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 18 {
-		t.Fatalf("expected version 18 export, got %d", backup.Version)
+	if backup.Version != 19 {
+		t.Fatalf("expected version 19 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -1333,6 +1333,258 @@ func TestBackupExcludesAuthenticationTables(t *testing.T) {
 	}
 }
 
+func TestBackupRoundTripRestoresDataTransferProfilesWithoutOperationalHistory(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	if _, err := sourceDB.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_by_user_id, created_at, updated_at
+) VALUES('profile-1', 'Vehicles', 'export', 'csv', '["vehicles"]', '{"delimiter":";"}', 1,
+  'missing-user', '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z');
+INSERT INTO data_transfer_jobs(
+  id, profile_id, profile_name, direction, format, areas_json, state, stage, created_at, updated_at
+) VALUES('job-1', 'profile-1', 'Vehicles', 'export', 'csv', '["vehicles"]', 'completed', 'completed',
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z');
+INSERT INTO data_transfer_artifacts(
+  id, job_id, relative_path, display_name, mime_type, size_bytes, sha256, created_at
+) VALUES('artifact-1', 'job-1', 'exports/private.csv', 'private.csv', 'text/csv', 77, 'hash',
+  '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(doc.Profiles) != 1 || doc.Profiles[0]["id"] != "profile-1" {
+		t.Fatalf("exported profiles = %#v", doc.Profiles)
+	}
+	if doc.Profiles[0]["created_by_user_id"] != nil {
+		t.Fatalf("exported missing local creator = %#v, want nil", doc.Profiles[0]["created_by_user_id"])
+	}
+	for _, excluded := range []string{"data_transfer_jobs", "data_transfer_job_issues", "data_transfer_artifacts"} {
+		if _, found := doc.Tables[excluded]; found {
+			t.Fatalf("backup exported operational table %q", excluded)
+		}
+	}
+
+	targetDB := testDB(t)
+	if _, err := application.NewBackupService(targetDB, t.TempDir()).Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var creator sql.NullString
+	if err := targetDB.QueryRowContext(ctx,
+		`SELECT created_by_user_id FROM data_transfer_profiles WHERE id='profile-1'`).Scan(&creator); err != nil {
+		t.Fatal(err)
+	}
+	if creator.Valid {
+		t.Fatalf("restored missing local creator = %q, want NULL", creator.String)
+	}
+	var jobs int
+	if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM data_transfer_jobs`).Scan(&jobs); err != nil {
+		t.Fatal(err)
+	}
+	if jobs != 0 {
+		t.Fatalf("restored operational jobs = %d, want 0", jobs)
+	}
+}
+
+func TestBackupExcludesAndNeverRestoresDigitalCenterWorkspaceOperations(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	insertDigitalCenterWorkspaceBackupFixture(t, sourceDB, "source")
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operationalTables := []string{
+		"digital_center_read_sessions",
+		"digital_center_work_items",
+		"digital_center_session_messages",
+		"digital_center_write_grants",
+	}
+	for _, table := range operationalTables {
+		if _, found := doc.Tables[table]; found {
+			t.Fatalf("backup exported operational table %q", table)
+		}
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, privateValue := range []string{"source-session", "source-token-hash", "source-message"} {
+		if strings.Contains(string(encoded), privateValue) {
+			t.Fatalf("backup contains workspace value %q", privateValue)
+		}
+	}
+
+	for _, table := range operationalTables {
+		doc.Tables[table] = []map[string]any{{"id": "injected-row"}}
+	}
+	targetDB := testDB(t)
+	insertDigitalCenterWorkspaceBackupFixture(t, targetDB, "local")
+	service := application.NewBackupService(targetDB, t.TempDir())
+	validation, err := service.Validate(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !validation.Compatible {
+		t.Fatalf("operational table payload made backup incompatible: %#v", validation)
+	}
+	for _, table := range operationalTables {
+		if !containsWarning(validation.Warnings, "Operative Tabelle "+table+" wird beim Restore ignoriert") {
+			t.Fatalf("missing operational exclusion warning for %s: %#v", table, validation.Warnings)
+		}
+	}
+	if _, err := service.Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range operationalTables {
+		var count int
+		if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM `+table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 1 {
+			t.Fatalf("local operational table %s changed during restore, rows=%d", table, count)
+		}
+	}
+	var sessionID, tokenHash string
+	if err := targetDB.QueryRowContext(ctx, `SELECT id FROM digital_center_read_sessions`).Scan(&sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if err := targetDB.QueryRowContext(ctx, `SELECT token_hash FROM digital_center_write_grants`).Scan(&tokenHash); err != nil {
+		t.Fatal(err)
+	}
+	if sessionID != "local-session" || tokenHash != "local-token-hash" {
+		t.Fatalf("restore replaced local workspace data: session=%q tokenHash=%q", sessionID, tokenHash)
+	}
+}
+
+func insertDigitalCenterWorkspaceBackupFixture(t *testing.T, db *sql.DB, prefix string) {
+	t.Helper()
+	ctx := t.Context()
+	sessionID := prefix + "-session"
+	itemID := prefix + "-item"
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_read_sessions(
+  id, provider, state, host, port, capability_json, created_at, updated_at
+) VALUES(?, 'ecos', 'ready', '127.0.0.1', 15471, '{}', '2026-08-21T10:00:00Z', '2026-08-21T10:00:00Z')`,
+		sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_work_items(
+  id, session_id, center_object_id, compare_status, created_at, updated_at
+) VALUES(?, ?, '3', 'ok', '2026-08-21T10:00:00Z', '2026-08-21T10:00:00Z')`,
+		itemID, sessionID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_session_messages(
+  id, session_id, severity, code, message, created_at
+) VALUES(?, ?, 'info', 'read.completed', ?, '2026-08-21T10:00:00Z')`,
+		prefix+"-message-row", sessionID, prefix+"-message"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO digital_center_write_grants(
+  id, token_hash, session_id, work_item_id, preview_hash, actor_user_id, expires_at, created_at
+) VALUES(?, ?, ?, ?, 'preview-hash', 'admin-1', '2026-08-21T10:10:00Z', '2026-08-21T10:00:00Z')`,
+		prefix+"-grant", prefix+"-token-hash", sessionID, itemID); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestBackupRestoreWithoutProfilesSectionPreservesLocalProfiles(t *testing.T) {
+	ctx := t.Context()
+	db := testDB(t)
+	if _, err := db.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_at, updated_at
+) VALUES('local-profile', 'Local', 'export', 'csv', '["vehicles"]', '{}', 1,
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	doc, err := application.NewBackupService(db, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Profiles = nil
+	if _, err := application.NewBackupService(db, t.TempDir()).Import(ctx, doc); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM data_transfer_profiles WHERE id='local-profile'`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("legacy restore removed local profiles, count = %d", count)
+	}
+}
+
+func TestBackupCurrentEmptyProfilesSectionClearsLocalProfiles(t *testing.T) {
+	ctx := t.Context()
+	sourceDB := testDB(t)
+	doc, err := application.NewBackupService(sourceDB, t.TempDir()).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	decoded, err := application.DecodeBackup(encoded)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decoded.Profiles == nil {
+		t.Fatal("current backup omitted its empty profiles section")
+	}
+
+	targetDB := testDB(t)
+	if _, err := targetDB.ExecContext(ctx, `
+INSERT INTO data_transfer_profiles(
+  id, name, direction, format, areas_json, options_json, enabled, created_at, updated_at
+) VALUES('local-profile', 'Local', 'export', 'csv', '["vehicles"]', '{}', 1,
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z')`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(targetDB, t.TempDir()).Import(ctx, decoded); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := targetDB.QueryRowContext(ctx, `SELECT COUNT(*) FROM data_transfer_profiles`).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 0 {
+		t.Fatalf("current empty profile restore retained %d local profiles", count)
+	}
+}
+
+func TestBackupValidationRejectsMalformedDataTransferProfiles(t *testing.T) {
+	ctx := t.Context()
+	db := testDB(t)
+	service := application.NewBackupService(db, t.TempDir())
+	doc, err := service.Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc.Profiles = []map[string]any{{
+		"id": "profile-1", "name": "Invalid", "direction": "export", "format": "csv",
+		"areas_json": "[\"masterData\"]", "options_json": "{}", "enabled": 1,
+		"created_by_user_id": nil, "last_used_at": nil,
+		"created_at": "2026-08-20T10:00:00Z", "updated_at": "2026-08-20T10:00:00Z",
+	}}
+	validation, err := service.Validate(ctx, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if validation.Compatible {
+		t.Fatalf("malformed transfer profile validated as compatible: %#v", validation)
+	}
+}
+
 func TestBackupExcludesLocalSettingsAndCredentials(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)
@@ -1407,16 +1659,24 @@ ORDER BY name
 	defer func() { _ = rows.Close() }()
 
 	excluded := map[string]bool{
-		"app_settings":            true,
-		"audit_logs":              true,
-		"password_reset_requests": true,
-		"rate_limit_attempts":     true,
-		"roles":                   true,
-		"schema_migrations":       true,
-		"sessions":                true,
-		"user_roles":              true,
-		"user_settings":           true,
-		"users":                   true,
+		"app_settings":                    true,
+		"audit_logs":                      true,
+		"data_transfer_artifacts":         true,
+		"data_transfer_job_issues":        true,
+		"data_transfer_jobs":              true,
+		"data_transfer_profiles":          true,
+		"digital_center_read_sessions":    true,
+		"digital_center_session_messages": true,
+		"digital_center_work_items":       true,
+		"digital_center_write_grants":     true,
+		"password_reset_requests":         true,
+		"rate_limit_attempts":             true,
+		"roles":                           true,
+		"schema_migrations":               true,
+		"sessions":                        true,
+		"user_roles":                      true,
+		"user_settings":                   true,
+		"users":                           true,
 	}
 	for rows.Next() {
 		var table string
@@ -1822,7 +2082,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 19
+		doc.Version = 20
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}

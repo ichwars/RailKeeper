@@ -41,6 +41,14 @@ Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquell
 
 ## Funktionsumfang
 
+- Responsive Betriebsübersicht mit Bestand, Werten, Wartung, Datenqualität und Zentralenstatus in einer Ansicht
+- Profilbasierter Import und Export für Fahrzeuge, Zubehör und Ausstellungslisten mit Vorschau,
+  Konfliktlösung, persistenten Aufträgen, Transferverlauf und lokalen Dateien. Stammdaten verbleiben
+  ausschließlich unter Einstellungen.
+- Eigener Digitalzentralen-Arbeitsplatz mit konfigurierten Zentralen, Lokvergleich, Live-Status,
+  Diagnose und Synchronisierung mit Vorschau vor jedem Schreibvorgang
+- Persistenter Ausstellungsbetrieb mit Veranstaltungen, Teilnehmern, mehrtägiger Fahrzeugzuordnung,
+  Bereitschaftsprüfung, Konfliktbehandlung, Bildern, Funktionstasten, Druck und Listensperre
 - Lokaler Bestand mit SQLite, Uploads und JSON-Backups
 - Fahrzeugdatensätze mit Modelldaten, technischen Feldern, Eigentumsangaben, Bildern, Anhängen, QR-Codes und übersichtlichen Leseansichten
 - Artikelbestand mit generierten Inventarnummern, sortierbarer Auswahlspalte, Mengen- oder Einzelverfolgung, Lagerortbeständen, Reservierungen, Einbauten, Dokumenten und Nutzungshistorie
@@ -51,14 +59,13 @@ Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquell
   ZXing-Kamerascanner, typisierten Gleis-Fachangaben und ausdrücklicher feldweiser Prüfung
 - PDF-Berichtsdialog für Bestandsübersicht und Detaillisten mit auswählbaren Fahrzeugen, QR-Codes und Bildern
 - Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
-- Der kontrollierte ECoS-Lokabgleich liest Stammdaten, CV-Werte und statische Funktionstasten und
+- Der kontrollierte ECoS-Lokabgleich liest Lokdaten, CV-Werte und statische Funktionstasten und
   schreibt Name, Adresse und Protokoll erst nach Vorschau und Bestätigung. Geschwindigkeit,
   Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Z21 per
   UDP und CS3 per HTTP bleiben reine Verbindungsadapter.
 - Decoder-Funktionszuordnung von F0 bis F31 mit Symbolbibliothek und gespeicherten SVG-/PNG-Grafiken
 - Strukturierte CV-Werte, CV-Import und -Export, Decoderprofile, NMRA-CV8-Herstellerstammdaten und ESU-/LokProgrammer-Dateimetadaten
 - Wartungen, Zustandshistorie und durchsuchbare Dokumentation je Fahrzeug
-- Ausstellungslisten mit Sperrstatus, eigener Messe-Rolle und druckfertigen Listenansichten
 - Lokale Authentifizierung mit Ersteinrichtung, E-Mail-Adresse, Rollen, Sitzungen, Passwortänderung, tokenbasiertem Passwort-Reset und Audit-Log
 - Benutzerspezifische Reihenfolge und Sichtbarkeit der Sidebar-Einträge
 - Stammdatenverwaltung für Hersteller, Spurweiten, Epochen, Kategorien, Unterarten, Bahngesellschaften und Symbole
@@ -67,24 +74,29 @@ Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquell
 
 ## Ansichten
 
-RailKeeper ist um Arbeitsansichten statt Marketingseiten aufgebaut:
+RailKeeper ist um responsive Arbeitsansichten statt Marketingseiten aufgebaut. Die folgenden
+Aufnahmen zeigen die aktuelle deutsche Oberfläche und konzentrieren sich auf die neuesten Abläufe:
 
-| Übersicht | Fahrzeugbestand |
+| Responsive Übersicht | Profilbasierter Import/Export |
 | --- | --- |
-| ![RailKeeper-Übersicht](docs/screenshots/overview.png) | ![RailKeeper-Fahrzeugbestand](docs/screenshots/inventory.png) |
-| Import/Export | Authentifizierungseinstellungen |
-| ![RailKeeper Import und Export](docs/screenshots/import-export.png) | ![RailKeeper Authentifizierungseinstellungen](docs/screenshots/settings-auth.png) |
+| ![Responsive RailKeeper-Übersicht auf Deutsch](docs/screenshots/overview-de.png) | ![Profilbasierter Import und Export in RailKeeper auf Deutsch](docs/screenshots/import-export-de.png) |
+| Digitalzentralen | Ausstellungsbetrieb |
+| ![RailKeeper-Arbeitsplatz für Digitalzentralen auf Deutsch](docs/screenshots/digital-centers-de.png) | ![RailKeeper-Arbeitsplatz für Ausstellungen auf Deutsch](docs/screenshots/exhibition-de.png) |
+
+Weitere Detailabläufe:
 
 | Artikel-Websuche | Ersatzteilsuche | Decoder-Geschwindigkeitskurve |
 | --- | --- | --- |
 | ![RailKeeper Artikelsuche mit Produktdetails](docs/screenshots/search_product_details.png) | ![RailKeeper Ersatzteilsuche und Fahrzeugteileliste](docs/screenshots/spare_parts_search.png) | ![RailKeeper Decoder-Geschwindigkeitskurve](docs/screenshots/speed-performance_curve.png) |
 
-- **Übersicht** für Bestand, Wert, Wartung und Datenqualität
+- **Übersicht** für Bestand, Wert, Wartung, Datenqualität und Zentralenstatus
 - **Fahrzeugbestand** für Fahrzeugsuche, Filter, Leseansichten, Berichte, Bearbeitung, Uploads, CVs und Funktionstasten
 - **Zubehör** für Artikeldaten- und Barcodesuche, sortierbare Bestandsdaten, Lagerbestände,
   Reservierungen, Einbauten, Dokumente und Historie
-- **Ausstellung** für Messe- und Ausstellungsbetrieb
-- **Import/Export** für CSV-, TSV-, XML- und JSON-Importe, kontrollierte Aktualisierungen und ECoS-Auslesung
+- **Ausstellung** für persistente Veranstaltungen, Teilnehmer, Fahrtage, Bereitschaft und Konflikte
+- **Import/Export** für wiederverwendbare Profile und kontrollierte Übertragungen von Fahrzeugen,
+  Zubehör und Ausstellungslisten
+- **Digitalzentralen** für Auslesen, Vergleich, Diagnose, Live-Monitoring und bestätigte Schreibvorgänge
 - **Einstellungen** für Stammdaten, Darstellung, Backups, Aktualisierungen und Authentifizierung
 
 ## Schnellstart
@@ -261,7 +273,7 @@ backend/
   seeds/                   Stammdaten-Seed als JSON
 frontend/
   src/app/                 Shell, Routing und globale Stile
-  src/features/            Einrichtung, Auth, Fahrzeuge, Ausstellung, Import/Export, Einstellungen
+  src/features/            Einrichtung, Auth, Fahrzeuge, Ausstellung, Import/Export, Digitalzentralen, Einstellungen
   src/shared/              API-Adapter, i18n und gemeinsame Frontend-Typen
 openapi/
   railkeeper.yaml          API-Vertrag

@@ -157,6 +157,9 @@ ORDER BY position ASC
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate vehicle set members: %w", err)
 	}
+	if err := s.resetExpiredExhibitionFlags(ctx); err != nil {
+		return nil, err
+	}
 	loadedMembers, err := s.list(ctx, "", id)
 	if err != nil {
 		return nil, fmt.Errorf("load vehicle set members: %w", err)

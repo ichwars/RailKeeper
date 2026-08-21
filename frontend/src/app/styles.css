@@ -3,6 +3,8 @@
 @import "../styles/overview.css";
 @import "../styles/overview-dashboard.css";
 @import "../styles/import-export.css";
+@import "../styles/data-transfer-dashboard.css";
+@import "../styles/data-transfer-dialogs.css";
 @import "../styles/forms-controls.css";
 @import "../styles/custom-controls.css";
 @import "../styles/vehicle-detail.css";
@@ -17,4 +19,5 @@
 @import "../styles/vehicle-inventory.css";
 @import "../styles/layouts.css";
 @import "../styles/track-libraries.css";
+@import "../styles/digital-centers.css";
 @import "../styles/overrides-responsive.css";
