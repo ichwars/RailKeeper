@@ -428,13 +428,6 @@ func (s *ECoSService) stopIdleLiveLocked(now time.Time) bool {
 	return true
 }
 
-func (s *ECoSService) updateLiveLine(line string) {
-	s.liveMu.Lock()
-	generation := s.liveGeneration
-	s.liveMu.Unlock()
-	s.updateLiveLineForGeneration(generation, line)
-}
-
 func (s *ECoSService) updateLiveLineForGeneration(generation uint64, line string) {
 	_ = line
 	s.liveMu.Lock()
@@ -446,13 +439,6 @@ func (s *ECoSService) updateLiveLineForGeneration(generation uint64, line string
 	s.liveStatus.LastMessage = "ECoS-Protokolldaten empfangen."
 	s.liveStatus.LastSeenAt = now
 	s.liveStatus.Diagnosis.LastSuccessfulCommunication = now
-}
-
-func (s *ECoSService) updateLiveBlocks(blocks []ecospkg.Block, lastLine string) {
-	s.liveMu.Lock()
-	generation := s.liveGeneration
-	s.liveMu.Unlock()
-	s.updateLiveBlocksForGenerationAt(generation, time.Now().UTC(), blocks, lastLine)
 }
 
 func (s *ECoSService) updateLiveBlocksAt(now time.Time, blocks []ecospkg.Block, lastLine string) {

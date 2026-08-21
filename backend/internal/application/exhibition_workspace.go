@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -451,8 +450,4 @@ UPDATE exhibition_lists SET revision=revision+1, updated_at=? WHERE id=? AND (?=
 		return ErrExhibitionStale
 	}
 	return nil
-}
-
-func isExhibitionConflict(err error) bool {
-	return errors.Is(err, ErrExhibitionConflicts)
 }

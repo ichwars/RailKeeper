@@ -348,7 +348,7 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		}
 		result.RestoredTables++
 	}
-	if doc.Profiles != nil && len(doc.Profiles) > 0 {
+	if len(doc.Profiles) > 0 {
 		columns, err := tableColumns(ctx, tx, "data_transfer_profiles")
 		if err != nil {
 			return nil, err

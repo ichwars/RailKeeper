@@ -722,7 +722,8 @@ func applyTransferExhibitionList(
 	now := timestamp()
 	normalizeTransferExhibitionList(&list)
 	listID := record.TargetID
-	if action == "replace" {
+	switch action {
+	case "replace":
 		var locked int
 		if listID == "" || db.QueryRowContext(ctx, `SELECT locked FROM exhibition_lists WHERE id=?`, listID).Scan(&locked) != nil || locked != 0 {
 			return dataTransferApplyConflict("locked exhibition list cannot be replaced")
@@ -743,13 +744,13 @@ WHERE id=? AND locked=0`,
 		if _, err := db.ExecContext(ctx, `DELETE FROM exhibition_entries WHERE list_id=?`, listID); err != nil {
 			return err
 		}
-	} else if action == "merge" {
+	case "merge":
 		var locked int
 		if listID == "" || db.QueryRowContext(ctx,
 			`SELECT locked FROM exhibition_lists WHERE id=?`, listID).Scan(&locked) != nil || locked != 0 {
 			return dataTransferApplyConflict("exhibition list cannot be merged")
 		}
-	} else if action == "create" || action == "copy" {
+	case "create", "copy":
 		listID = randomID()
 		if _, err := db.ExecContext(ctx, `
 INSERT INTO exhibition_lists(
@@ -761,7 +762,7 @@ VALUES(?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)`, listID, list.Designatio
 			list.LockReason, list.LockedAt, list.CompletedAt, list.ArchivedAt, now, now); err != nil {
 			return err
 		}
-	} else {
+	default:
 		return dataTransferApplyConflict("unsupported exhibition-list resolution")
 	}
 	for entryIndex, entry := range list.Entries {

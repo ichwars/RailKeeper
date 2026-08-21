@@ -143,31 +143,6 @@ func (a *App) syncECoSLocomotive(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, result)
 }
 
-func (a *App) eCoSLiveStatus(w http.ResponseWriter, r *http.Request) {
-	respondJSON(w, http.StatusOK, a.ecosService.LiveStatus())
-}
-
-func (a *App) startECoSLive(w http.ResponseWriter, r *http.Request) {
-	var input application.ECoSConnectionInput
-	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
-		return
-	}
-
-	status, err := a.ecosService.StartLive(r.Context(), input)
-	if err != nil {
-		respondProblem(w, http.StatusBadGateway, "ecos_live_start_failed", err.Error())
-		return
-	}
-
-	respondJSON(w, http.StatusOK, status)
-}
-
-func (a *App) stopECoSLive(w http.ResponseWriter, r *http.Request) {
-	status := a.ecosService.StopLive()
-	respondJSON(w, http.StatusOK, status)
-}
-
 func (a *App) testZ21Connection(w http.ResponseWriter, r *http.Request) {
 	var input application.DigitalCenterConnectionInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {

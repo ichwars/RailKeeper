@@ -363,9 +363,7 @@ func marshalDataTransferPackage(snapshot DataTransferSnapshot, createdAt string)
 	sortDataTransferSnapshot(&snapshot)
 	document := DataTransferPackage{
 		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion, CreatedAt: createdAt,
-		Areas: DataTransferPackageAreas{
-			Vehicles: snapshot.Vehicles, Accessories: snapshot.Accessories, ExhibitionLists: snapshot.ExhibitionLists,
-		},
+		Areas: DataTransferPackageAreas(snapshot),
 	}
 	payload, err := json.MarshalIndent(document, "", "  ")
 	if err != nil {
