@@ -330,6 +330,56 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	assertMasterDataOrigin(t, db, "manufacturer", "club", "custom", true)
 }
 
+func TestBackupRestoreKeepsCurrentBundledFunctionSymbols(t *testing.T) {
+	dataDir := t.TempDir()
+	db := backupTestDB(t, dataDir)
+	service := application.NewBackupService(db, dataDir)
+	doc, err := service.Export(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, row := range doc.Tables["master_data_entries"] {
+		if row["type"] == "symbols" && row["key"] == "light" {
+			row["metadata_json"] = `{"sourceDocument":"retired.zip","imageData":"retired"}`
+		}
+	}
+	doc.Tables["master_data_entries"] = append(doc.Tables["master_data_entries"], map[string]any{
+		"id": "symbols:club", "type": "symbols", "key": "club", "label": "Club",
+		"active": 1, "sort_order": 900, "source_url": "",
+		"metadata_json": `{"imageData":"custom"}`, "created_at": "now", "updated_at": "now",
+	})
+
+	if _, err := service.Import(t.Context(), doc); err != nil {
+		t.Fatal(err)
+	}
+	assertSymbolLibrary(t, db, "light", "railkeeper-workshop-line")
+	assertSymbolImage(t, db, "club", "custom")
+}
+
+func assertSymbolLibrary(t *testing.T, db *sql.DB, key, wantLibrary string) {
+	t.Helper()
+	var library string
+	if err := db.QueryRow(`SELECT json_extract(metadata_json, '$.library')
+FROM master_data_entries WHERE type='symbols' AND key=?`, key).Scan(&library); err != nil {
+		t.Fatal(err)
+	}
+	if library != wantLibrary {
+		t.Fatalf("symbol %s library=%q want=%q", key, library, wantLibrary)
+	}
+}
+
+func assertSymbolImage(t *testing.T, db *sql.DB, key, wantImage string) {
+	t.Helper()
+	var image string
+	if err := db.QueryRow(`SELECT json_extract(metadata_json, '$.imageData')
+FROM master_data_entries WHERE type='symbols' AND key=?`, key).Scan(&image); err != nil {
+		t.Fatal(err)
+	}
+	if image != wantImage {
+		t.Fatalf("symbol %s image=%q want=%q", key, image, wantImage)
+	}
+}
+
 func TestBackupRestoreVersion15ReconcilesCurrentBundledKeys(t *testing.T) {
 	dataDir := t.TempDir()
 	db := backupTestDB(t, dataDir)

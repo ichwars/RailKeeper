@@ -57,6 +57,20 @@ type BackupImportResult struct {
 	RestoredFiles  int `json:"restoredFiles"`
 }
 
+type bundledFunctionSymbol struct {
+	id           string
+	typeName     string
+	key          string
+	label        string
+	active       int
+	sortOrder    int
+	sourceURL    sql.NullString
+	metadataJSON string
+	createdAt    string
+	updatedAt    string
+	origin       string
+}
+
 type BackupValidationResult struct {
 	Compatible bool                    `json:"compatible"`
 	Format     string                  `json:"format,omitempty"`
@@ -299,6 +313,10 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 	if err != nil {
 		return nil, err
 	}
+	bundledFunctionSymbols, err := readBundledFunctionSymbols(ctx, tx)
+	if err != nil {
+		return nil, err
+	}
 	articleInventoryScheme, err := readBackupArticleInventoryScheme(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -369,6 +387,9 @@ func (s *BackupService) Import(ctx context.Context, doc *BackupDocument) (*Backu
 		result.RestoredTables++
 	}
 	if err := restoreLegacyArticleMasterData(ctx, tx, articleMasterData); err != nil {
+		return nil, err
+	}
+	if err := restoreBundledFunctionSymbols(ctx, tx, bundledFunctionSymbols); err != nil {
 		return nil, err
 	}
 	if err := reconcileBundledMasterDataIdentities(ctx, tx, bundledMasterData); err != nil {
@@ -442,6 +463,86 @@ SELECT type, key FROM master_data_entries WHERE origin='bundled' ORDER BY type, 
 		return nil, fmt.Errorf("iterate bundled master data identities: %w", err)
 	}
 	return identities, nil
+}
+
+func readBundledFunctionSymbols(
+	ctx context.Context,
+	tx *sql.Tx,
+) ([]bundledFunctionSymbol, error) {
+	rows, err := tx.QueryContext(ctx, `
+SELECT id, type, key, label, active, sort_order, source_url, metadata_json,
+       created_at, updated_at, origin
+FROM master_data_entries
+WHERE type='symbols'
+  AND origin='bundled'
+  AND json_extract(metadata_json, '$.library')='railkeeper-workshop-line'
+ORDER BY key`)
+	if err != nil {
+		return nil, fmt.Errorf("read bundled function symbols: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	symbols := []bundledFunctionSymbol{}
+	for rows.Next() {
+		var symbol bundledFunctionSymbol
+		if err := rows.Scan(
+			&symbol.id,
+			&symbol.typeName,
+			&symbol.key,
+			&symbol.label,
+			&symbol.active,
+			&symbol.sortOrder,
+			&symbol.sourceURL,
+			&symbol.metadataJSON,
+			&symbol.createdAt,
+			&symbol.updatedAt,
+			&symbol.origin,
+		); err != nil {
+			return nil, fmt.Errorf("scan bundled function symbol: %w", err)
+		}
+		symbols = append(symbols, symbol)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate bundled function symbols: %w", err)
+	}
+	return symbols, nil
+}
+
+func restoreBundledFunctionSymbols(
+	ctx context.Context,
+	tx *sql.Tx,
+	symbols []bundledFunctionSymbol,
+) error {
+	for _, symbol := range symbols {
+		if _, err := tx.ExecContext(ctx, `
+INSERT INTO master_data_entries(
+  id, type, key, label, active, sort_order, source_url, metadata_json,
+  created_at, updated_at, origin
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'bundled')
+ON CONFLICT(type, key) DO UPDATE SET
+  id=excluded.id,
+  label=excluded.label,
+  active=excluded.active,
+  sort_order=excluded.sort_order,
+  source_url=excluded.source_url,
+  metadata_json=excluded.metadata_json,
+  created_at=excluded.created_at,
+  updated_at=excluded.updated_at,
+  origin='bundled'`,
+			symbol.id,
+			symbol.typeName,
+			symbol.key,
+			symbol.label,
+			symbol.active,
+			symbol.sortOrder,
+			symbol.sourceURL,
+			symbol.metadataJSON,
+			symbol.createdAt,
+			symbol.updatedAt,
+		); err != nil {
+			return fmt.Errorf("restore bundled function symbol %s: %w", symbol.key, err)
+		}
+	}
+	return nil
 }
 
 func reconcileBundledMasterDataIdentities(
