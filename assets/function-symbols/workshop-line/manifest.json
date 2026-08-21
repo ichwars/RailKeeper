@@ -1,0 +1,844 @@
+{
+  "version": 1,
+  "library": "railkeeper-workshop-line",
+  "symbols": [
+    {
+      "key": "light",
+      "label": "Licht",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Licht.",
+      "sortOrder": 10,
+      "file": "light.svg"
+    },
+    {
+      "key": "sound",
+      "label": "Sound",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Sound.",
+      "sortOrder": 20,
+      "file": "sound.svg"
+    },
+    {
+      "key": "horn",
+      "label": "Horn",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Horn.",
+      "sortOrder": 30,
+      "file": "horn.svg"
+    },
+    {
+      "key": "coupling",
+      "label": "Kupplung",
+      "category": "Kupplung",
+      "description": "RailKeeper Funktionssymbol: Kupplung.",
+      "sortOrder": 40,
+      "file": "coupling.svg"
+    },
+    {
+      "key": "smoke",
+      "label": "Rauch",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Rauch.",
+      "sortOrder": 50,
+      "file": "smoke.svg"
+    },
+    {
+      "key": "drive",
+      "label": "Fahren",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Fahren.",
+      "sortOrder": 60,
+      "file": "drive.svg"
+    },
+    {
+      "key": "warning",
+      "label": "Warnung",
+      "category": "Warnung",
+      "description": "RailKeeper Funktionssymbol: Warnung.",
+      "sortOrder": 70,
+      "file": "warning.svg"
+    },
+    {
+      "key": "standard",
+      "label": "Standard",
+      "category": "Standard",
+      "description": "RailKeeper Funktionssymbol: Standard.",
+      "sortOrder": 999,
+      "file": "standard.svg"
+    },
+    {
+      "key": "esu-f002-allgemeine-funktion",
+      "label": "Allgemeine Funktion",
+      "category": "Standard",
+      "description": "RailKeeper Funktionssymbol: Allgemeine Funktion.",
+      "sortOrder": 1002,
+      "file": "f002-allgemeine-funktion.svg",
+      "ecosCode": 2
+    },
+    {
+      "key": "esu-f003-stirnbeleuchtung",
+      "label": "Stirnbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Stirnbeleuchtung.",
+      "sortOrder": 1003,
+      "file": "f003-stirnbeleuchtung.svg",
+      "ecosCode": 3
+    },
+    {
+      "key": "esu-f004-innenraumbeleuchtung",
+      "label": "Innenraumbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Innenraumbeleuchtung.",
+      "sortOrder": 1004,
+      "file": "f004-innenraumbeleuchtung.svg",
+      "ecosCode": 4
+    },
+    {
+      "key": "esu-f005-allgemeines-licht-1",
+      "label": "Allgemeines Licht 1",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Allgemeines Licht 1.",
+      "sortOrder": 1005,
+      "file": "f005-allgemeines-licht-1.svg",
+      "ecosCode": 5
+    },
+    {
+      "key": "esu-f006-fahrgeraeusch",
+      "label": "Fahrgeräusch",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Fahrgeräusch.",
+      "sortOrder": 1006,
+      "file": "f006-fahrgeraeusch.svg",
+      "ecosCode": 6
+    },
+    {
+      "key": "esu-f007-allgemeines-geraeusch",
+      "label": "Allgemeines Geräusch",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Allgemeines Geräusch.",
+      "sortOrder": 1007,
+      "file": "f007-allgemeines-geraeusch.svg",
+      "ecosCode": 7
+    },
+    {
+      "key": "esu-f008-bahnhofsdurchsage",
+      "label": "Bahnhofsdurchsage",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Bahnhofsdurchsage.",
+      "sortOrder": 1008,
+      "file": "f008-bahnhofsdurchsage.svg",
+      "ecosCode": 8
+    },
+    {
+      "key": "esu-f009-rangiergang",
+      "label": "Rangiergang",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Rangiergang.",
+      "sortOrder": 1009,
+      "file": "f009-rangiergang.svg",
+      "ecosCode": 9
+    },
+    {
+      "key": "esu-f010-abv",
+      "label": "ABV",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: ABV.",
+      "sortOrder": 1010,
+      "file": "f010-abv.svg",
+      "ecosCode": 10
+    },
+    {
+      "key": "esu-f011-automatische-kupplung",
+      "label": "Automatische Kupplung",
+      "category": "Kupplung",
+      "description": "RailKeeper Funktionssymbol: Automatische Kupplung.",
+      "sortOrder": 1011,
+      "file": "f011-automatische-kupplung.svg",
+      "ecosCode": 11
+    },
+    {
+      "key": "esu-f012-rauchgenerator",
+      "label": "Rauchgenerator",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Rauchgenerator.",
+      "sortOrder": 1012,
+      "file": "f012-rauchgenerator.svg",
+      "ecosCode": 12
+    },
+    {
+      "key": "esu-f013-panthograph",
+      "label": "Panthograph",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Panthograph.",
+      "sortOrder": 1013,
+      "file": "f013-panthograph.svg",
+      "ecosCode": 13
+    },
+    {
+      "key": "esu-f014-fernlicht",
+      "label": "Fernlicht",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Fernlicht.",
+      "sortOrder": 1014,
+      "file": "f014-fernlicht.svg",
+      "ecosCode": 14
+    },
+    {
+      "key": "esu-f015-glocke",
+      "label": "Glocke",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Glocke.",
+      "sortOrder": 1015,
+      "file": "f015-glocke.svg",
+      "ecosCode": 15
+    },
+    {
+      "key": "esu-f016-horn",
+      "label": "Horn",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Horn.",
+      "sortOrder": 1016,
+      "file": "f016-horn.svg",
+      "ecosCode": 16
+    },
+    {
+      "key": "esu-f017-pfeife",
+      "label": "Pfeife",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Pfeife.",
+      "sortOrder": 1017,
+      "file": "f017-pfeife.svg",
+      "ecosCode": 17
+    },
+    {
+      "key": "esu-f018-tueren",
+      "label": "Türen",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Türen.",
+      "sortOrder": 1018,
+      "file": "f018-tueren.svg",
+      "ecosCode": 18
+    },
+    {
+      "key": "esu-f019-luefter",
+      "label": "Lüfter",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Lüfter.",
+      "sortOrder": 1019,
+      "file": "f019-luefter.svg",
+      "ecosCode": 19
+    },
+    {
+      "key": "esu-f020-kohle-schaufeln",
+      "label": "Kohle Schaufeln",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Kohle Schaufeln.",
+      "sortOrder": 1020,
+      "file": "f020-kohle-schaufeln.svg",
+      "ecosCode": 20
+    },
+    {
+      "key": "esu-f021-shift",
+      "label": "Shift",
+      "category": "Standard",
+      "description": "RailKeeper Funktionssymbol: Shift.",
+      "sortOrder": 1021,
+      "file": "f021-shift.svg",
+      "ecosCode": 21
+    },
+    {
+      "key": "esu-f022-zugzielanzeige",
+      "label": "Zugzielanzeige",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Zugzielanzeige.",
+      "sortOrder": 1022,
+      "file": "f022-zugzielanzeige.svg",
+      "ecosCode": 22
+    },
+    {
+      "key": "esu-f023-bremsenquietschen",
+      "label": "Bremsenquietschen",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Bremsenquietschen.",
+      "sortOrder": 1023,
+      "file": "f023-bremsenquietschen.svg",
+      "ecosCode": 23
+    },
+    {
+      "key": "esu-f024-kranarm-heben-senken",
+      "label": "Kranarm Heben Senken",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kranarm Heben Senken.",
+      "sortOrder": 1024,
+      "file": "f024-kranarm-heben-senken.svg",
+      "ecosCode": 24
+    },
+    {
+      "key": "esu-f025-kranhaken-heben-senken",
+      "label": "Kranhaken Heben Senken",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kranhaken Heben Senken.",
+      "sortOrder": 1025,
+      "file": "f025-kranhaken-heben-senken.svg",
+      "ecosCode": 25
+    },
+    {
+      "key": "esu-f026-triebwerksbeleuchtung",
+      "label": "Triebwerksbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Triebwerksbeleuchtung.",
+      "sortOrder": 1026,
+      "file": "f026-triebwerksbeleuchtung.svg",
+      "ecosCode": 26
+    },
+    {
+      "key": "esu-f027-kran-drehen",
+      "label": "Kran Drehen",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Drehen.",
+      "sortOrder": 1027,
+      "file": "f027-kran-drehen.svg",
+      "ecosCode": 27
+    },
+    {
+      "key": "esu-f028-dampf-ablassen",
+      "label": "Dampf Ablassen",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Dampf Ablassen.",
+      "sortOrder": 1028,
+      "file": "f028-dampf-ablassen.svg",
+      "ecosCode": 28
+    },
+    {
+      "key": "esu-f029-betriebsfunk",
+      "label": "Betriebsfunk",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Betriebsfunk.",
+      "sortOrder": 1029,
+      "file": "f029-betriebsfunk.svg",
+      "ecosCode": 29
+    },
+    {
+      "key": "esu-f030-kupplungsgeraeusch",
+      "label": "Kupplungsgeräusch",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Kupplungsgeräusch.",
+      "sortOrder": 1030,
+      "file": "f030-kupplungsgeraeusch.svg",
+      "ecosCode": 30
+    },
+    {
+      "key": "esu-f031-schienenstoss",
+      "label": "Schienenstoss",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Schienenstoss.",
+      "sortOrder": 1031,
+      "file": "f031-schienenstoss.svg",
+      "ecosCode": 31
+    },
+    {
+      "key": "esu-f032-diesel-fahrstufe-auf",
+      "label": "Diesel Fahrstufe Auf",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Diesel Fahrstufe Auf.",
+      "sortOrder": 1032,
+      "file": "f032-diesel-fahrstufe-auf.svg",
+      "ecosCode": 32
+    },
+    {
+      "key": "esu-f033-diesel-fahrstufe-ab",
+      "label": "Diesel Fahrstufe Ab",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Diesel Fahrstufe Ab.",
+      "sortOrder": 1033,
+      "file": "f033-diesel-fahrstufe-ab.svg",
+      "ecosCode": 33
+    },
+    {
+      "key": "esu-f034-schaffnerpfiff",
+      "label": "Schaffnerpfiff",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Schaffnerpfiff.",
+      "sortOrder": 1034,
+      "file": "f034-schaffnerpfiff.svg",
+      "ecosCode": 34
+    },
+    {
+      "key": "esu-f035-pufferstoss",
+      "label": "Pufferstoss",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Pufferstoss.",
+      "sortOrder": 1035,
+      "file": "f035-pufferstoss.svg",
+      "ecosCode": 35
+    },
+    {
+      "key": "esu-f036-allgemeines-licht-2",
+      "label": "Allgemeines Licht 2",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Allgemeines Licht 2.",
+      "sortOrder": 1036,
+      "file": "f036-allgemeines-licht-2.svg",
+      "ecosCode": 36
+    },
+    {
+      "key": "esu-f038-kurvengeraeusch",
+      "label": "Kurvengeräusch",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Kurvengeräusch.",
+      "sortOrder": 1038,
+      "file": "f038-kurvengeraeusch.svg",
+      "ecosCode": 38
+    },
+    {
+      "key": "esu-f039-weichengeraeusch",
+      "label": "Weichengeräusch",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Weichengeräusch.",
+      "sortOrder": 1039,
+      "file": "f039-weichengeraeusch.svg",
+      "ecosCode": 39
+    },
+    {
+      "key": "esu-f040-sicherheitsventil",
+      "label": "Sicherheitsventil",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Sicherheitsventil.",
+      "sortOrder": 1040,
+      "file": "f040-sicherheitsventil.svg",
+      "ecosCode": 40
+    },
+    {
+      "key": "esu-f041-oelbrenner",
+      "label": "Ölbrenner",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Ölbrenner.",
+      "sortOrder": 1041,
+      "file": "f041-oelbrenner.svg",
+      "ecosCode": 41
+    },
+    {
+      "key": "esu-f042-stoker",
+      "label": "Stoker",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Stoker.",
+      "sortOrder": 1042,
+      "file": "f042-stoker.svg",
+      "ecosCode": 42
+    },
+    {
+      "key": "esu-f043-dynamische-bremse",
+      "label": "Dynamische Bremse",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Dynamische Bremse.",
+      "sortOrder": 1043,
+      "file": "f043-dynamische-bremse.svg",
+      "ecosCode": 43
+    },
+    {
+      "key": "esu-f044-kompressor",
+      "label": "Kompressor",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Kompressor.",
+      "sortOrder": 1044,
+      "file": "f044-kompressor.svg",
+      "ecosCode": 44
+    },
+    {
+      "key": "esu-f045-pressluft-ablassen",
+      "label": "Pressluft Ablassen",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Pressluft Ablassen.",
+      "sortOrder": 1045,
+      "file": "f045-pressluft-ablassen.svg",
+      "ecosCode": 45
+    },
+    {
+      "key": "esu-f046-handbremse",
+      "label": "Handbremse",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Handbremse.",
+      "sortOrder": 1046,
+      "file": "f046-handbremse.svg",
+      "ecosCode": 46
+    },
+    {
+      "key": "esu-f047-luftpumpe",
+      "label": "Luftpumpe",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Luftpumpe.",
+      "sortOrder": 1047,
+      "file": "f047-luftpumpe.svg",
+      "ecosCode": 47
+    },
+    {
+      "key": "esu-f048-wasserpumpe",
+      "label": "Wasserpumpe",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Wasserpumpe.",
+      "sortOrder": 1048,
+      "file": "f048-wasserpumpe.svg",
+      "ecosCode": 48
+    },
+    {
+      "key": "esu-f050-ditchlight",
+      "label": "Ditchlight",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Ditchlight.",
+      "sortOrder": 1050,
+      "file": "f050-ditchlight.svg",
+      "ecosCode": 50
+    },
+    {
+      "key": "esu-f051-marslight",
+      "label": "Marslight",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Marslight.",
+      "sortOrder": 1051,
+      "file": "f051-marslight.svg",
+      "ecosCode": 51
+    },
+    {
+      "key": "esu-f054-rotary-beacon",
+      "label": "Rotary Beacon",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Rotary Beacon.",
+      "sortOrder": 1054,
+      "file": "f054-rotary-beacon.svg",
+      "ecosCode": 54
+    },
+    {
+      "key": "esu-f055-feuerbuechse",
+      "label": "Feuerbüchse",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Feuerbüchse.",
+      "sortOrder": 1055,
+      "file": "f055-feuerbuechse.svg",
+      "ecosCode": 55
+    },
+    {
+      "key": "esu-f057-sanden",
+      "label": "Sanden",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Sanden.",
+      "sortOrder": 1057,
+      "file": "f057-sanden.svg",
+      "ecosCode": 57
+    },
+    {
+      "key": "esu-f058-abschlammen",
+      "label": "Abschlammen",
+      "category": "Dampf",
+      "description": "RailKeeper Funktionssymbol: Abschlammen.",
+      "sortOrder": 1058,
+      "file": "f058-abschlammen.svg",
+      "ecosCode": 58
+    },
+    {
+      "key": "esu-f059-bremse-setzen",
+      "label": "Bremse Setzen",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Bremse Setzen.",
+      "sortOrder": 1059,
+      "file": "f059-bremse-setzen.svg",
+      "ecosCode": 59
+    },
+    {
+      "key": "esu-f060-rangierbeleuchtung",
+      "label": "Rangierbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Rangierbeleuchtung.",
+      "sortOrder": 1060,
+      "file": "f060-rangierbeleuchtung.svg",
+      "ecosCode": 60
+    },
+    {
+      "key": "esu-f061-fuehrerpultbeleuchtung",
+      "label": "Führerpultbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Führerpultbeleuchtung.",
+      "sortOrder": 1061,
+      "file": "f061-fuehrerpultbeleuchtung.svg",
+      "ecosCode": 61
+    },
+    {
+      "key": "esu-f062-injektor",
+      "label": "Injektor",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Injektor.",
+      "sortOrder": 1062,
+      "file": "f062-injektor.svg",
+      "ecosCode": 62
+    },
+    {
+      "key": "esu-f063-hilfsdiesel",
+      "label": "Hilfsdiesel",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Hilfsdiesel.",
+      "sortOrder": 1063,
+      "file": "f063-hilfsdiesel.svg",
+      "ecosCode": 63
+    },
+    {
+      "key": "esu-f065-dopplereffekt",
+      "label": "Dopplereffekt",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Dopplereffekt.",
+      "sortOrder": 1065,
+      "file": "f065-dopplereffekt.svg",
+      "ecosCode": 65
+    },
+    {
+      "key": "esu-f066-kurzpfiff",
+      "label": "Kurzpfiff",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Kurzpfiff.",
+      "sortOrder": 1066,
+      "file": "f066-kurzpfiff.svg",
+      "ecosCode": 66
+    },
+    {
+      "key": "esu-f068-heizung",
+      "label": "Heizung",
+      "category": "Komfort",
+      "description": "RailKeeper Funktionssymbol: Heizung.",
+      "sortOrder": 1068,
+      "file": "f068-heizung.svg",
+      "ecosCode": 68
+    },
+    {
+      "key": "esu-f069-lichtmaschine",
+      "label": "Lichtmaschine",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Lichtmaschine.",
+      "sortOrder": 1069,
+      "file": "f069-lichtmaschine.svg",
+      "ecosCode": 69
+    },
+    {
+      "key": "esu-f074-sifa-meldung",
+      "label": "Sifa Meldung",
+      "category": "Warnung",
+      "description": "RailKeeper Funktionssymbol: Sifa Meldung.",
+      "sortOrder": 1074,
+      "file": "f074-sifa-meldung.svg",
+      "ecosCode": 74
+    },
+    {
+      "key": "esu-f076-lastbetrieb",
+      "label": "Lastbetrieb",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Lastbetrieb.",
+      "sortOrder": 1076,
+      "file": "f076-lastbetrieb.svg",
+      "ecosCode": 76
+    },
+    {
+      "key": "esu-f077-leerlaufbetrieb",
+      "label": "Leerlaufbetrieb",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Leerlaufbetrieb.",
+      "sortOrder": 1077,
+      "file": "f077-leerlaufbetrieb.svg",
+      "ecosCode": 77
+    },
+    {
+      "key": "esu-f078-licht-hinten",
+      "label": "Licht Hinten",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Licht Hinten.",
+      "sortOrder": 1078,
+      "file": "f078-licht-hinten.svg",
+      "ecosCode": 78
+    },
+    {
+      "key": "esu-f079-licht-vorne",
+      "label": "Licht Vorne",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Licht Vorne.",
+      "sortOrder": 1079,
+      "file": "f079-licht-vorne.svg",
+      "ecosCode": 79
+    },
+    {
+      "key": "esu-f080-fernlicht-hinten",
+      "label": "Fernlicht Hinten",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Fernlicht Hinten.",
+      "sortOrder": 1080,
+      "file": "f080-fernlicht-hinten.svg",
+      "ecosCode": 80
+    },
+    {
+      "key": "esu-f081-fernlicht-vorne",
+      "label": "Fernlicht Vorne",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Fernlicht Vorne.",
+      "sortOrder": 1081,
+      "file": "f081-fernlicht-vorne.svg",
+      "ecosCode": 81
+    },
+    {
+      "key": "esu-f084-tischbeleuchtung-1",
+      "label": "Tischbeleuchtung 1",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Tischbeleuchtung 1.",
+      "sortOrder": 1084,
+      "file": "f084-tischbeleuchtung-1.svg",
+      "ecosCode": 84
+    },
+    {
+      "key": "esu-f086-trittstufenbeleuchtung",
+      "label": "Trittstufenbeleuchtung",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Trittstufenbeleuchtung.",
+      "sortOrder": 1086,
+      "file": "f086-trittstufenbeleuchtung.svg",
+      "ecosCode": 86
+    },
+    {
+      "key": "esu-f087-fuehrerstandsbeleuchtung-hinten",
+      "label": "Führerstandsbeleuchtung Hinten",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Führerstandsbeleuchtung Hinten.",
+      "sortOrder": 1087,
+      "file": "f087-fuehrerstandsbeleuchtung-hinten.svg",
+      "ecosCode": 87
+    },
+    {
+      "key": "esu-f088-fuehrerstandsbeleuchtung-vorne",
+      "label": "Führerstandsbeleuchtung Vorne",
+      "category": "Licht",
+      "description": "RailKeeper Funktionssymbol: Führerstandsbeleuchtung Vorne.",
+      "sortOrder": 1088,
+      "file": "f088-fuehrerstandsbeleuchtung-vorne.svg",
+      "ecosCode": 88
+    },
+    {
+      "key": "esu-f089-panthograph-hinten",
+      "label": "Panthograph Hinten",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Panthograph Hinten.",
+      "sortOrder": 1089,
+      "file": "f089-panthograph-hinten.svg",
+      "ecosCode": 89
+    },
+    {
+      "key": "esu-f090-panthograph-vorne",
+      "label": "Panthograph Vorne",
+      "category": "Mechanik",
+      "description": "RailKeeper Funktionssymbol: Panthograph Vorne.",
+      "sortOrder": 1090,
+      "file": "f090-panthograph-vorne.svg",
+      "ecosCode": 90
+    },
+    {
+      "key": "esu-f093-entkuppler-hinten",
+      "label": "Entkuppler Hinten",
+      "category": "Kupplung",
+      "description": "RailKeeper Funktionssymbol: Entkuppler Hinten.",
+      "sortOrder": 1093,
+      "file": "f093-entkuppler-hinten.svg",
+      "ecosCode": 93
+    },
+    {
+      "key": "esu-f094-entkuppler-vorne",
+      "label": "Entkuppler Vorne",
+      "category": "Kupplung",
+      "description": "RailKeeper Funktionssymbol: Entkuppler Vorne.",
+      "sortOrder": 1094,
+      "file": "f094-entkuppler-vorne.svg",
+      "ecosCode": 94
+    },
+    {
+      "key": "esu-f095-kran-links",
+      "label": "Kran Links",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Links.",
+      "sortOrder": 1095,
+      "file": "f095-kran-links.svg",
+      "ecosCode": 95
+    },
+    {
+      "key": "esu-f096-kran-rechts",
+      "label": "Kran Rechts",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Rechts.",
+      "sortOrder": 1096,
+      "file": "f096-kran-rechts.svg",
+      "ecosCode": 96
+    },
+    {
+      "key": "esu-f097-kran-auf",
+      "label": "Kran Auf",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Auf.",
+      "sortOrder": 1097,
+      "file": "f097-kran-auf.svg",
+      "ecosCode": 97
+    },
+    {
+      "key": "esu-f098-kran-ab",
+      "label": "Kran Ab",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Ab.",
+      "sortOrder": 1098,
+      "file": "f098-kran-ab.svg",
+      "ecosCode": 98
+    },
+    {
+      "key": "esu-f099-kranarm-links-rechts",
+      "label": "Kranarm Links Rechts",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kranarm Links Rechts.",
+      "sortOrder": 1099,
+      "file": "f099-kranarm-links-rechts.svg",
+      "ecosCode": 99
+    },
+    {
+      "key": "esu-f101-soundfader-mute",
+      "label": "Soundfader Mute",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Soundfader Mute.",
+      "sortOrder": 1101,
+      "file": "f101-soundfader-mute.svg",
+      "ecosCode": 101
+    },
+    {
+      "key": "esu-f106-doppelhorn",
+      "label": "Doppelhorn",
+      "category": "Sound",
+      "description": "RailKeeper Funktionssymbol: Doppelhorn.",
+      "sortOrder": 1106,
+      "file": "f106-doppelhorn.svg",
+      "ecosCode": 106
+    },
+    {
+      "key": "esu-f107-party",
+      "label": "Party",
+      "category": "Komfort",
+      "description": "RailKeeper Funktionssymbol: Party.",
+      "sortOrder": 1107,
+      "file": "f107-party.svg",
+      "ecosCode": 107
+    },
+    {
+      "key": "esu-f114-kran-magnet",
+      "label": "Kran Magnet",
+      "category": "Kran",
+      "description": "RailKeeper Funktionssymbol: Kran Magnet.",
+      "sortOrder": 1114,
+      "file": "f114-kran-magnet.svg",
+      "ecosCode": 114
+    },
+    {
+      "key": "esu-f124-tanken-diesel",
+      "label": "Tanken Diesel",
+      "category": "Fahren",
+      "description": "RailKeeper Funktionssymbol: Tanken Diesel.",
+      "sortOrder": 1124,
+      "file": "f124-tanken-diesel.svg",
+      "ecosCode": 124
+    }
+  ]
+}

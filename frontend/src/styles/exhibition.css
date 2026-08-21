@@ -156,6 +156,7 @@
   height: 24px;
   border-radius: 6px;
   padding: 2px;
+  box-shadow: none;
 }
 
 .exhibition-function-icon svg,

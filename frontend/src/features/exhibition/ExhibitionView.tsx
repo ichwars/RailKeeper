@@ -11,6 +11,7 @@ import {
   Upload
 } from "lucide-react";
 import { api, ExhibitionEntry, ExhibitionEntryInput, ExhibitionList, ExhibitionListInput, MasterDataEntry } from "../../shared/api";
+import { functionSymbolImageData } from "../../shared/functionSymbolImages";
 import { FunctionSymbolPicker, functionSymbolIcon, functionSymbolMetadata } from "../../shared/functionSymbols";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -223,17 +224,12 @@ function controlRows(
   ];
 }
 
-function symbolImageDataFromMetadata(metadata?: Record<string, unknown>) {
-  const value = metadata?.imageData || metadata?.activeImageData || metadata?.svgData;
-  return typeof value === "string" ? value : "";
-}
-
-function printFunctionChips(value: string | undefined, symbols: MasterDataEntry[]) {
+export function printFunctionChips(value: string | undefined, symbols: MasterDataEntry[]) {
   const configured = parseFunctions(value).filter(isConfiguredFunction);
   if (configured.length === 0) return "-";
   return configured.map((item) => {
     const metadata = functionSymbolMetadata(symbols, item.symbolKey);
-    const imageData = symbolImageDataFromMetadata(metadata);
+    const imageData = functionSymbolImageData(metadata, "print");
     const label = functionDisplayName(item);
     return `<span class="function-chip">${imageData ? `<img src="${escapeHTML(imageData)}" alt="" />` : ""}<strong>${escapeHTML(item.key)}</strong> ${escapeHTML(label)}</span>`;
   }).join("");

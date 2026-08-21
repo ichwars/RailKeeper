@@ -77,9 +77,15 @@ Anlegen oder Korrigieren verwenden.
 
 ## Funktionssymbole verwalten
 
-Ein Symbol besteht aus Name, optionaler Beschreibung und optionalem Bild. Der Upload akzeptiert
-SVG, PNG, JPEG oder WebP und weist Dateien über 1 MiB ab. Das Bild liegt in den Metadaten des
-Eintrags und ist deshalb im Stammdatenexport und in der Anwendungssicherung enthalten.
+RailKeeper liefert 94 eigenständig gezeichnete Symbole der **Werkstatt-Linie** mit. Acht davon sind
+allgemeine Rückfallsymbole, 86 behalten numerische ECoS-Funktionsbeschreibungscodes ausschließlich
+als Kompatibilitätsmetadaten. Die Grafiken selbst gehören zu RailKeeper und wurden nicht aus der
+Digitalzentrale übernommen.
+
+Ein Symbol besteht aus Name, optionaler Beschreibung und optionalem Bild. Administratoren können
+weiterhin eigene Symbolschlüssel anlegen und SVG-, PNG-, JPEG- oder WebP-Bilder bis 1 MiB hochladen.
+Das Bild liegt in den Metadaten des Eintrags und ist deshalb im Stammdatenexport und in der
+Anwendungssicherung enthalten.
 
 Das Entfernen der Vorschau löscht das Bild erst beim Speichern des Eintrags. Bestehende
 Fahrzeugfunktionen behalten den Symbolschlüssel. Eine Deaktivierung verhindert neue reguläre

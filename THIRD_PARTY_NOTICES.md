@@ -13,10 +13,8 @@ certification, endorsement, or permission by the respective rights holder.
 ECoS is a trademark of ESU electronic solutions ulm GmbH & Co. KG. RailKeeper is an independent
 project and is not affiliated with or endorsed by ESU.
 
-RailKeeper includes locally stored function-symbol graphics and mapping references derived from
-ESU/ECoS function-symbol material. These materials remain subject to any applicable rights of ESU
-and are being presented to ESU for review. RailKeeper does not claim ownership of ESU marks,
-graphics, documentation, or protocol rights.
+RailKeeper's bundled function-symbol graphics are independently authored as part of the RailKeeper
+project. Numeric ECoS function-description codes are retained solely for interoperability.
 
 The ECoS integration exchanges selected locomotive master data, CV values, and static function
 definitions at the user's request. Its precise technical scope is documented in the repository.
