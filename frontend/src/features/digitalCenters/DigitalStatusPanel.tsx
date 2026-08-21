@@ -2,6 +2,7 @@ import { Circle, ExternalLink, LockKeyhole, RadioTower } from "lucide-react";
 
 import type {
   DigitalCenterSessionMessage,
+  DigitalCenterSummary,
   DigitalCenterWorkspaceTab,
   ECoSLiveStatus
 } from "./digitalCenterModel";
@@ -13,12 +14,24 @@ const tabs: Array<{ value: DigitalCenterWorkspaceTab; label: string }> = [
   { value: "messages", label: "Meldungen" }
 ];
 
-export function DigitalStatusPanel({ tab, onTab, liveStatus, messages, actions, loading, errors }: {
+type WorkspaceActions = {
+  canTestConnection: boolean;
+  canRead: boolean;
+  canMonitor: boolean;
+  canWrite: boolean;
+  canWriteCVs: boolean;
+  canDiagnose: boolean;
+};
+
+export function DigitalStatusPanel({
+  tab, onTab, selectedCenter, liveStatus, messages, actions, loading, errors
+}: {
   tab: DigitalCenterWorkspaceTab;
   onTab: (tab: DigitalCenterWorkspaceTab) => void;
+  selectedCenter: DigitalCenterSummary | null;
   liveStatus: ECoSLiveStatus | null;
   messages: DigitalCenterSessionMessage[];
-  actions: { canMonitor: boolean; canDiagnose: boolean };
+  actions: WorkspaceActions;
   loading: boolean;
   errors: { live: string; messages: string };
 }) {
@@ -31,12 +44,16 @@ export function DigitalStatusPanel({ tab, onTab, liveStatus, messages, actions, 
       <div className="digital-status-content">
         {tab === "live" && <LiveStatus status={liveStatus} canMonitor={actions.canMonitor}
           loading={loading} error={errors.live} />}
-        {tab === "diagnosis" && <Diagnosis status={liveStatus} />}
-        {tab === "messages" && <Messages messages={messages} error={errors.messages} />}
+        {tab === "diagnosis" && <Diagnosis status={liveStatus} center={selectedCenter}
+          actions={actions} messages={messages} />}
+        {tab === "messages" && <Messages messages={messages} error={errors.messages}
+          station={selectedCenter?.name ?? "Digitalzentrale"} />}
       </div>
       <div className="digital-write-lock">
         <LockKeyhole size={20} aria-hidden="true" />
-        <span><strong>Schreiben gesperrt</strong><small>In dieser Zentrale sind Schreibbefehle gesperrt.</small></span>
+        <span><strong>Schreiben gesperrt</strong><small>{actions.canWrite
+          ? "In dieser Zentrale sind Schreibbefehle gesperrt."
+          : "Diese Digitalzentrale unterstützt keine Schreibbefehle."}</small></span>
         <button type="button" className="digital-center-button" disabled={!actions.canDiagnose}
           onClick={() => onTab("diagnosis")}>Diagnose öffnen <ExternalLink size={14} aria-hidden="true" /></button>
       </div>
@@ -50,6 +67,9 @@ function LiveStatus({ status, canMonitor, loading, error }: {
   if (!canMonitor) return <p className="digital-centers-state">Live-Monitor nicht verfügbar</p>;
   if (loading && !status) return <p className="digital-centers-state">Live-Status wird geladen</p>;
   if (error && !status) return <p className="digital-centers-state error">{error}</p>;
+  if (status?.state === "interrupted") {
+    return <p className="digital-centers-state error">Verbindung unterbrochen</p>;
+  }
   if (!status?.connected) return <p className="digital-centers-state">Nicht verbunden</p>;
   return <>
     <div className="digital-live-metrics">
@@ -73,23 +93,73 @@ function Metric({ label, value, active = false }: { label: string; value: string
   return <span><small>{label}</small><strong>{value}{active && <Circle size={8} fill="currentColor" aria-hidden="true" />}</strong></span>;
 }
 
-function Diagnosis({ status }: { status: ECoSLiveStatus | null }) {
+function Diagnosis({ status, center, actions, messages }: {
+  status: ECoSLiveStatus | null;
+  center: DigitalCenterSummary | null;
+  actions: WorkspaceActions;
+  messages: DigitalCenterSessionMessage[];
+}) {
+  const endpointHost = status?.host ?? center?.host;
+  const endpointPort = status?.port ?? center?.port;
+  const endpoint = endpointHost && endpointPort ? `${endpointHost}:${endpointPort}` : "Nicht eingerichtet";
+  const protocolErrors = messages.filter((message) =>
+    message.severity === "error" || message.code === "parse.failed"
+  ).length;
+  const capabilities = [
+    ["Testverbindung", actions.canTestConnection],
+    ["Lesen", actions.canRead],
+    ["Live-Monitor", actions.canMonitor],
+    ["Schreiben", actions.canWrite],
+    ["CV-Schreiben", actions.canWriteCVs],
+    ["Diagnose", actions.canDiagnose]
+  ] as const;
   return <div className="digital-diagnosis">
     <RadioTower size={22} aria-hidden="true" />
     <h3>Verbindungsdiagnose</h3>
-    <dl><div><dt>Zustand</dt><dd>{status?.diagnosis.connectionState ?? "stopped"}</dd></div>
-      <div><dt>Letzte Kommunikation</dt><dd>{formatTime(status?.diagnosis.lastSuccessfulCommunication)}</dd></div>
+    <dl><div><dt>Endpunkt</dt><dd>{endpoint}</dd></div>
+      <div><dt>Zustand</dt><dd>{connectionLabel(status?.diagnosis.connectionState)}</dd></div>
+      <div><dt>Latenz</dt><dd>Nicht gemessen</dd></div>
+      <div><dt>Protokollfehler</dt><dd>{protocolErrors}</dd></div>
+      <div><dt>Letzte erfolgreiche Kommunikation</dt>
+        <dd>{formatTime(status?.diagnosis.lastSuccessfulCommunication)}</dd></div>
       <div><dt>Modus</dt><dd>{status?.diagnosis.passive ? "Passiv" : "Inaktiv"}</dd></div></dl>
+    <h4>Unterstützte Funktionen</h4>
+    <ul>{capabilities.map(([label, supported]) => <li key={label}>
+      {label}: {supported ? "unterstützt" : "nicht unterstützt"}
+    </li>)}</ul>
     {status?.diagnosis.lastError && <p className="digital-centers-state error">{status.diagnosis.lastError}</p>}
   </div>;
 }
 
-function Messages({ messages, error }: { messages: DigitalCenterSessionMessage[]; error: string }) {
+function Messages({ messages, error, station }: {
+  messages: DigitalCenterSessionMessage[];
+  error: string;
+  station: string;
+}) {
   if (error) return <p className="digital-centers-state error">{error}</p>;
   if (messages.length === 0) return <p className="digital-centers-state">Keine Meldungen</p>;
-  return <div className="digital-session-messages">{messages.map((message) => <article key={message.id}>
-    <Circle size={9} fill="currentColor" aria-hidden="true" /><span><strong>{message.message}</strong>
-      <small>{message.nextAction}</small></span><time>{formatTime(message.createdAt)}</time></article>)}</div>;
+  return <div className="digital-session-messages">{messages.map((message) => {
+    const severity = severityLabel(message.severity);
+    return <article key={message.id} className={message.severity}
+      aria-label={`${severity} von ${station}`}>
+      <Circle size={9} fill="currentColor" aria-hidden="true" />
+      <span><span className="digital-message-meta"><strong>{severity}</strong>
+        <small>{station}</small></span>
+      <span>{message.message}</span><small>{message.nextAction}</small></span>
+      <time>{formatTime(message.createdAt)}</time></article>;
+  })}</div>;
+}
+
+function severityLabel(severity: DigitalCenterSessionMessage["severity"]) {
+  if (severity === "error") return "Fehler";
+  if (severity === "warning") return "Warnung";
+  return "Information";
+}
+
+function connectionLabel(state?: ECoSLiveStatus["state"]) {
+  if (state === "running") return "Verbunden";
+  if (state === "interrupted") return "Unterbrochen";
+  return "Gestoppt";
 }
 
 function formatTime(value?: string) {

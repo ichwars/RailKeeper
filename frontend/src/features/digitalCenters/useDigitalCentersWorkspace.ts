@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { api } from "../../shared/api";
+import { api, ApiError } from "../../shared/api";
 import {
   type DigitalCenterCompareFilter,
   type DigitalCenterProvider,
@@ -156,7 +156,20 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     } catch (loadError) {
       if (mountedRef.current && requestID === requestsRef.current.live &&
         selectedProviderRef.current === provider) {
-        setError("live", errorMessage(loadError));
+        const message = errorMessage(loadError);
+        setLiveStatus((current) => current?.provider === provider && current.state === "running"
+          ? {
+            ...current,
+            connected: false,
+            state: "interrupted",
+            pulseSamples: [],
+            recentEvents: [],
+            diagnosis: { ...current.diagnosis, connectionState: "interrupted", lastError: message },
+            error: message,
+            message: "Live-Verbindung unterbrochen"
+          }
+          : current);
+        setError("live", message);
       }
       throw loadError;
     } finally {
@@ -328,6 +341,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setReadSession(null);
     clearSessionDependents();
     setError("read", "");
+    setError("write", "");
     setLoadingArea("read", true);
     try {
       const session = await api.startDigitalCenterReadSession(provider);
@@ -442,6 +456,13 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       setError("write", error.message);
       throw error;
     }
+    if (!validWriteGrant(preview)) {
+      const error = new Error("Die Schreibfreigabe ist nicht mehr gültig. Neue Schreibvorschau erstellen.");
+      setWritePreview(null);
+      setWriteConfirmation(null);
+      setError("write", error.message);
+      throw error;
+    }
     const requestID = ++requestsRef.current.write;
     setError("write", "");
     setLoadingArea("write", true);
@@ -460,7 +481,14 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     } catch (writeError) {
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-        setError("write", errorMessage(writeError));
+        if (writeError instanceof ApiError && writeError.status === 409) {
+          readSessionIDRef.current = null;
+          setReadSession(null);
+          clearSessionDependents();
+          setError("write", "Schreibfreigabe ungültig. Daten erneut lesen und eine neue Schreibvorschau erstellen.");
+        } else {
+          setError("write", errorMessage(writeError));
+        }
       }
       throw writeError;
     } finally {
@@ -469,7 +497,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("write", false);
       }
     }
-  }, [actions.canWrite, readSession?.id, setError, setLoadingArea, writePreview]);
+  }, [actions.canWrite, clearSessionDependents, readSession?.id, setError, setLoadingArea, writePreview]);
 
   const setSearch = useCallback((value: string) => {
     requestsRef.current.worklist += 1;
@@ -533,4 +561,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : "Die Digitalzentralen-Anfrage ist fehlgeschlagen.";
+}
+
+function validWriteGrant(preview: DigitalCenterWritePreview) {
+  const expiresAt = Date.parse(preview.expiresAt);
+  return preview.token.trim().length > 0 && Number.isFinite(expiresAt) && expiresAt > Date.now();
 }

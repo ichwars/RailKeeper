@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ChevronLeft, ChevronRight, Circle, Filter, MoreHorizontal, RefreshCw, Search, Settings2
 } from "lucide-react";
@@ -13,6 +14,14 @@ const filterLabels: Array<{ value: DigitalCenterCompareFilter; label: string }> 
   { value: "all", label: "Alle" },
   { value: "deviation", label: "Prüfen" },
   { value: "new", label: "Neu" }
+];
+
+const advancedFilterLabels: Array<{ value: DigitalCenterCompareStatus; label: string }> = [
+  { value: "ok", label: "OK" },
+  { value: "deviation", label: "Abweichung" },
+  { value: "missing", label: "Fehlt in Zentrale" },
+  { value: "new", label: "Neu" },
+  { value: "conflict", label: "Konflikt" }
 ];
 
 export function LocomotiveWorklist({
@@ -31,6 +40,7 @@ export function LocomotiveWorklist({
   onRefresh: () => Promise<DigitalCenterReadSession>;
   onCompare: (itemID: string) => void;
 }) {
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   return (
     <section className="digital-centers-panel digital-centers-worklist" aria-labelledby="worklist-title">
       <header className="digital-centers-panel-head">
@@ -56,9 +66,19 @@ export function LocomotiveWorklist({
               {filter.label} {filter.value === "all" && <span>{page.total}</span>}
             </button>
           ))}
-          <button type="button" className="digital-center-icon-button" aria-label="Weitere Filter" title="Weitere Filter">
-            <Filter size={16} aria-hidden="true" />
-          </button>
+          <span className="digital-worklist-advanced-wrap">
+            <button type="button" className="digital-center-icon-button" aria-label="Weitere Filter"
+              title="Weitere Filter" aria-expanded={advancedFiltersOpen}
+              onClick={() => setAdvancedFiltersOpen((current) => !current)}>
+              <Filter size={16} aria-hidden="true" />
+            </button>
+            {advancedFiltersOpen && <span className="digital-worklist-advanced"
+              aria-label="Erweiterte Abgleichfilter">
+              {advancedFilterLabels.map((filter) => <button key={filter.value} type="button"
+                aria-label={`${filter.label} filtern`} aria-pressed={compareStatus === filter.value}
+                onClick={() => onCompareStatus(filter.value)}>{filter.label}</button>)}
+            </span>}
+          </span>
         </div>
       </div>
       <div className="digital-worklist-table-wrap">

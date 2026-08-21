@@ -488,7 +488,7 @@ function writePreviewFixture(overrides: Partial<DigitalCenterWritePreview> = {})
     fields: ["name"],
     changes: [{ field: "name", current: "Alte Lok", desired: "ICE 3" }],
     token: "public-grant",
-    expiresAt: "2026-08-21T10:10:00Z",
+    expiresAt: "2099-08-21T10:10:00Z",
     ...overrides
   };
 }

@@ -36,6 +36,11 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
         onConfigure={openDigitalSettings}
       />
 
+      {workspace.errors.write && <p className="digital-workspace-operation-error" role="alert"
+        aria-label={workspace.errors.write.includes("Daten erneut lesen") ? "Schreibkonflikt" : "Schreibfehler"}>
+        {workspace.errors.write}
+      </p>}
+
       <div className="digital-centers-layout" data-testid="digital-centers-layout">
         <DigitalCenterList
           centers={workspace.centers}
@@ -66,6 +71,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
         <DigitalStatusPanel
           tab={workspace.tab}
           onTab={workspace.setTab}
+          selectedCenter={workspace.selectedCenter}
           liveStatus={workspace.liveStatus}
           messages={workspace.messages}
           actions={workspace.actions}
@@ -75,7 +81,18 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       </div>
 
       {workspace.dialog?.kind === "comparison" && workspace.selectedItem && (
-        <LocomotiveComparisonDialog item={workspace.selectedItem} onClose={workspace.closeDialog} />
+        <LocomotiveComparisonDialog item={workspace.selectedItem}
+          canWrite={workspace.actions.canWrite}
+          loading={workspace.loading.write}
+          preview={workspace.writePreview}
+          confirmation={workspace.writeConfirmation}
+          error={workspace.errors.write}
+          onPreview={workspace.previewWrite}
+          onConfirm={workspace.confirmWrite}
+          onClose={() => {
+            workspace.closeDialog();
+            workspace.closeDetail();
+          }} />
       )}
     </section>
   );

@@ -29,6 +29,10 @@ export function DigitalCenterToolbar({
   const endpoint = selectedCenter ? `${selectedCenter.host}:${selectedCenter.port}` : "Nicht eingerichtet";
   const monitorLabel = !actions.canMonitor ? "Live-Monitor nicht verfügbar" :
     monitoring ? "Live-Monitor stoppen" : "Live-Monitor starten";
+  const limitations = selectedCenter ? [
+    !actions.canRead ? "Lesen wird von dieser Digitalzentrale nicht unterstützt." : "",
+    !actions.canMonitor ? "Live-Monitoring wird von dieser Digitalzentrale nicht unterstützt." : ""
+  ].filter(Boolean) : [];
 
   return (
     <section className="digital-center-toolbar" aria-label="Aktive Digitalzentrale">
@@ -71,6 +75,9 @@ export function DigitalCenterToolbar({
       </div>
       {readError && <p className="digital-center-toolbar-error" role="alert" aria-label="Lesefehler">
         <strong>Daten konnten nicht gelesen werden.</strong> {readError} Erneut über „Daten lesen“ versuchen.
+      </p>}
+      {limitations.length > 0 && <p className="digital-center-capability-note">
+        {limitations.map((limitation) => <span key={limitation}>{limitation}</span>)}
       </p>}
     </section>
   );
