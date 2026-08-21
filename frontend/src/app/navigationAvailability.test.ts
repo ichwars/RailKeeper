@@ -12,6 +12,8 @@ describe("navigation availability", () => {
     ["layouts", "layouts"],
     ["inventory", "vehicles"],
     ["accessories", "accessories"],
+    ["importExport", "importExport"],
+    ["settings", "settings"],
     ["invalid", "overview"]
   ])("maps configured start view %s to %s", (stored, expected) => {
     expect(availableStartView(stored)).toBe(expected);

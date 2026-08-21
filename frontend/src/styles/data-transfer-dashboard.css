@@ -2,8 +2,11 @@
 .data-transfer-workspace {
   display: grid;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
   gap: 14px;
   margin-top: -17px;
+  overflow-x: hidden;
 }
 
 .data-transfer-page-head {
@@ -353,7 +356,9 @@
 
 .data-transfer-table-wrap {
   min-width: 0;
+  max-width: 100%;
   overflow: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .data-transfer-table {
@@ -767,7 +772,13 @@
   font-size: var(--font-size-xs);
 }
 
-@media (max-width: 1380px) {
+@media (min-width: 1181px) and (max-width: 1380px) {
+  .data-transfer-dashboard {
+    grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.68fr) minmax(280px, 1.05fr);
+  }
+}
+
+@media (max-width: 1180px) {
   .data-transfer-dashboard {
     grid-template-columns: minmax(270px, 0.72fr) minmax(0, 1.68fr);
   }

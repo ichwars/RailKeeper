@@ -13,5 +13,9 @@ describe("data transfer dashboard styles", () => {
     expect(importExportStyles).not.toContain(".data-transfer-workspace");
     expect(dashboardStyles).toContain(".data-transfer-workspace");
     expect(dashboardStyles).toContain("grid-template-columns: minmax(280px, 0.72fr)");
+    expect(dashboardStyles).toMatch(/\.data-transfer-workspace\s*\{[^}]*overflow-x:\s*hidden/s);
+    expect(dashboardStyles).toMatch(/\.data-transfer-table-wrap\s*\{[^}]*overflow:\s*auto/s);
+    expect(dashboardStyles).toContain("@media (max-width: 1180px)");
+    expect(dashboardStyles).toContain("@media (max-width: 900px)");
   });
 });

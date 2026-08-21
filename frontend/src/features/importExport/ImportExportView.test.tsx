@@ -187,6 +187,23 @@ describe("ImportExportView", () => {
     expect(within(completedFilter).getByText("2")).toBeInTheDocument();
   });
 
+  it("does not invent a ready record for completed zero-record exports", async () => {
+    const zeroRecordExport = {
+      ...exhibitionExportJob,
+      totalRecords: 0,
+      readyRecords: 0
+    };
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([zeroRecordExport]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(zeroRecordExport));
+    render(<ImportExportView roles={["Admin"]} />);
+
+    const completedExport = (await screen.findAllByTitle("Messeliste Köln"))
+      .find((element) => element.tagName === "BUTTON");
+    expect(completedExport).toBeDefined();
+    expect(completedExport).toHaveTextContent("0/0 bereit");
+    expect(completedExport).not.toHaveTextContent("1/0 bereit");
+  });
+
   it.each([
     { job: reviewJob, actionLabel: "Prüfung fortsetzen" },
     { job: readyImportJob, actionLabel: "Import bestätigen" }

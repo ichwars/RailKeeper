@@ -102,9 +102,11 @@ function JobCard({
 }) {
   const FileIcon = job.format === "csv" ? FileSpreadsheet : FileJson;
   const maximum = Math.max(job.totalRecords, 1);
-  const value = job.state === "completed" || job.state === "completed_with_warnings"
+  const completed = job.state === "completed" || job.state === "completed_with_warnings";
+  const progressValue = completed
     ? maximum
     : Math.min(job.readyRecords, maximum);
+  const displayedReady = completed ? job.totalRecords : Math.min(job.readyRecords, job.totalRecords);
 
   return (
     <button
@@ -120,9 +122,13 @@ function JobCard({
         <small title={job.sourceName}>{job.sourceName || formatLabel(job.format, t)}</small>
         <span className={`transfer-state-badge ${stateTone(job.state)}`}>{stateLabel(job.state, t)}</span>
         <span className="transfer-job-progress-copy">
-          {formatNumber(value, language)}/{formatNumber(job.totalRecords, language)} {t("importExport.readyShort")}
+          {formatNumber(displayedReady, language)}/{formatNumber(job.totalRecords, language)} {t("importExport.readyShort")}
         </span>
-        <progress max={maximum} value={value} aria-label={`${t("importExport.dashboard.jobs.progress")} ${job.profileName}`} />
+        <progress
+          max={maximum}
+          value={progressValue}
+          aria-label={`${t("importExport.dashboard.jobs.progress")} ${job.profileName}`}
+        />
       </span>
       <ChevronRight size={18} aria-hidden="true" />
     </button>
