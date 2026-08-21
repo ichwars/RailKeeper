@@ -33,6 +33,9 @@ export function LocomotiveComparisonDialog({
   const verified = confirmation?.result === "verified" && confirmation.applied && confirmation.verified;
 
   useEffect(() => setConfirmed(false), [preview?.token]);
+  useEffect(() => {
+    if (confirmation) closeButtonRef.current?.focus();
+  }, [confirmation]);
 
   return (
     <>

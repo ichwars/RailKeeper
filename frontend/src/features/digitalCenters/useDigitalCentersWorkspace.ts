@@ -45,9 +45,11 @@ const emptyErrors: DigitalCenterWorkspaceErrors = {
 
 export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOptions = {}) {
   const { language } = useI18n();
+  const languageRef = useRef(language);
+  languageRef.current = language;
   const workspaceText = useCallback(
-    (key: string, values?: Record<string, string | number>) => translate(language, key, values),
-    [language]
+    (key: string, values?: Record<string, string | number>) => translate(languageRef.current, key, values),
+    []
   );
   const localizedError = useCallback(
     (error: unknown) => errorMessage(error, workspaceText("digitalCenters.error.requestFailed")),
@@ -65,6 +67,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [readSession, setReadSession] = useState<DigitalCenterReadSession | null>(null);
   const [workItems, setWorkItems] = useState(emptyDigitalCenterWorkItemPage);
+  const [sessionTotal, setSessionTotal] = useState(0);
   const [messages, setMessages] = useState<DigitalCenterSessionMessage[]>([]);
   const [selectedItemId, setSelectedItemID] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<DigitalCenterWorkItem | null>(null);
@@ -123,6 +126,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     requestsRef.current.write += 1;
     selectedItemIDRef.current = null;
     setWorkItems(emptyDigitalCenterWorkItemPage);
+    setSessionTotal(0);
     setMessages([]);
     setSelectedItemID(null);
     setSelectedItem(null);
@@ -249,6 +253,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
           setWorkItems(result);
+          setSessionTotal((current) => Math.max(current, result.total));
         }
       })
       .catch((loadError: unknown) => {
@@ -329,6 +334,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLiveStatus(null);
     setReadSession(null);
     setWorkItems(emptyDigitalCenterWorkItemPage);
+    setSessionTotal(0);
     setMessages([]);
     setSelectedItemID(null);
     setSelectedItem(null);
@@ -544,6 +550,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     readSession,
     readData,
     workItems,
+    sessionTotal,
     messages,
     search,
     setSearch,

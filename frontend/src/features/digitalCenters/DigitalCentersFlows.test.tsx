@@ -162,6 +162,46 @@ describe("Digital Centers operational journeys", () => {
     });
   });
 
+  it("keeps focus in the dialog after verified success and restores the trigger on Escape", async () => {
+    const user = userEvent.setup();
+    render(<DigitalCentersView roles={["Admin"]} />);
+    await openComparison(user);
+    const trigger = screen.getByRole("button", { name: "BR 218 vergleichen" });
+    await user.click(screen.getByRole("button", { name: "Schreibvorschau erstellen" }));
+    await user.click(await screen.findByRole("checkbox"));
+    await user.click(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }));
+
+    await screen.findByText("Schreiben verifiziert");
+    expect(screen.getByRole("button", { name: "Vergleich schließen" })).toHaveFocus();
+    await user.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog", { name: /Lok-Vergleich/ })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("keeps the station locomotive count independent from work-list filters", async () => {
+    vi.mocked(api.digitalCenterWorkItems).mockImplementation(async (_sessionID, filter) => ({
+      items: filter.query ? workItems.slice(0, 4) : workItems,
+      page: filter.page,
+      pageSize: filter.pageSize,
+      total: filter.query ? 4 : 42,
+      totalPages: filter.query ? 1 : 5
+    }));
+    const user = userEvent.setup();
+    render(<DigitalCentersView roles={["Admin"]} />);
+    await user.click(await screen.findByRole("button", { name: "Daten lesen" }));
+    expect(await screen.findByRole("button", { name: "ESU ECoS42 LoksAktiv" })).toBeInTheDocument();
+
+    await user.type(screen.getByRole("searchbox", { name: "Lok suchen" }), "V 60 1059");
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenLastCalledWith(
+      readSession.id,
+      expect.objectContaining({ query: "V 60 1059" })
+    ));
+
+    expect(screen.getByRole("button", { name: "ESU ECoS42 LoksAktiv" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "ESU ECoS4 LoksAktiv" })).not.toBeInTheDocument();
+  });
+
   it("invalidates a conflicting grant and requires a fresh read and preview", async () => {
     vi.mocked(api.confirmDigitalCenterWrite).mockRejectedValueOnce(
       new ApiError("Freigabe nicht mehr gültig", "digital_center_write_conflict", 409)

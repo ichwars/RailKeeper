@@ -269,6 +269,7 @@ function workspaceFixture(overrides: Partial<Workspace> = {}): Workspace {
     selectCenter: vi.fn(), liveStatus, connectionState: "running", readSession,
     readData: vi.fn(async () => readSession),
     workItems: { items: [workItem], page: 1, pageSize: 10, total: 42, totalPages: 5 },
+    sessionTotal: 42,
     messages: [], search: "", setSearch: vi.fn(), compareStatus: "all", setCompareStatus: vi.fn(),
     page: 1, setPage: vi.fn(), pageSize: 10, setPageSize: vi.fn(), selectedItemId: null,
     selectedItem: null, selectItem: vi.fn(), closeDetail: vi.fn(), tab: "live", setTab: vi.fn(),

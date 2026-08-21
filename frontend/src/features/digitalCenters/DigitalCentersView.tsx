@@ -48,7 +48,7 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
         <DigitalCenterList
           centers={workspace.centers}
           selectedProvider={workspace.selectedProvider}
-          total={workspace.workItems.total}
+          total={workspace.sessionTotal}
           loading={workspace.loading.workspace}
           error={workspace.errors.workspace}
           onSelect={workspace.selectCenter}

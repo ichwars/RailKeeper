@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../../shared/api";
+import { setLanguage } from "../../shared/i18n";
 import type {
   DigitalCenterReadSession,
   DigitalCenterSummary,
@@ -42,6 +43,7 @@ const stoppedLive = liveStatusFixture({ state: "stopped", connected: false });
 describe("useDigitalCentersWorkspace", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    setLanguage("de");
     vi.spyOn(api, "digitalCenterWorkspace").mockResolvedValue({ centers });
     vi.spyOn(api, "digitalCenterLiveStatus").mockResolvedValue(stoppedLive);
     vi.spyOn(api, "startDigitalCenterReadSession").mockResolvedValue(readySession);
@@ -486,6 +488,83 @@ describe("useDigitalCentersWorkspace", () => {
       detail: false,
       write: false
     });
+  });
+
+  it("keeps an active read session usable when the language changes", async () => {
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+
+    act(() => setLanguage("en"));
+
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(api.digitalCenterWorkspace).toHaveBeenCalledOnce();
+    act(() => result.current.selectItem(item.id));
+    await waitFor(() => expect(result.current.selectedItem?.id).toBe(item.id));
+  });
+
+  it("accepts an in-flight item detail after the language changes", async () => {
+    const pendingDetail = deferred<DigitalCenterWorkItem>();
+    vi.mocked(api.digitalCenterWorkItem).mockReturnValueOnce(pendingDetail.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await waitFor(() => expect(result.current.loading.detail).toBe(true));
+
+    act(() => setLanguage("en"));
+    pendingDetail.resolve(item);
+    await act(async () => pendingDetail.promise);
+
+    expect(result.current.selectedItem?.id).toBe(item.id);
+    expect(result.current.loading.detail).toBe(false);
+  });
+
+  it("accepts an in-flight write preview after the language changes", async () => {
+    const pendingPreview = deferred<DigitalCenterWritePreview>();
+    vi.mocked(api.previewDigitalCenterWrite).mockReturnValueOnce(pendingPreview.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+
+    let request!: Promise<DigitalCenterWritePreview>;
+    act(() => {
+      request = result.current.previewWrite(["name"]);
+    });
+    await waitFor(() => expect(result.current.loading.write).toBe(true));
+
+    act(() => setLanguage("en"));
+    pendingPreview.resolve(writePreviewFixture({ itemId: item.id }));
+    await act(async () => request);
+
+    expect(result.current.writePreview?.itemId).toBe(item.id);
+    expect(result.current.loading.write).toBe(false);
+  });
+
+  it("accepts an in-flight write confirmation after the language changes", async () => {
+    const pendingConfirmation = deferred<DigitalCenterWriteConfirmation>();
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockReturnValueOnce(pendingConfirmation.promise);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    let request!: Promise<DigitalCenterWriteConfirmation>;
+    act(() => {
+      request = result.current.confirmWrite();
+    });
+    await waitFor(() => expect(result.current.loading.write).toBe(true));
+
+    act(() => setLanguage("en"));
+    pendingConfirmation.resolve(writeConfirmationFixture({ itemId: item.id }));
+    await act(async () => request);
+
+    expect(result.current.writeConfirmation?.itemId).toBe(item.id);
+    expect(result.current.loading.write).toBe(false);
   });
 });
 
