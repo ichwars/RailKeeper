@@ -3,7 +3,7 @@ title: Article search, web documents, and spare parts
 description: Verify external article data, import web documents, and maintain vehicle spare parts.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -296,4 +296,4 @@ have been stored.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

@@ -1,49 +1,44 @@
 ---
 title: Import und Export
-description: Fahrzeugbestand sicher austauschen und den getrennten ECoS-Ablauf verstehen.
+description: Fahrzeug-, Zubehör- und Messedaten über geprüfte Transferaufträge austauschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
 # Import und Export
 
-Der Arbeitsbereich **Import/Export** tauscht Fahrzeugbestand aus, ohne die normalen RailKeeper-
-Prüfungen und Berechtigungen zu umgehen. Dateiimporte werden zuerst als Prüftabelle aufbereitet.
-Exporte erstellen eine CSV-Datei, eine RailKeeper-JSON-Datei oder eine Druckansicht im Browser. Ein
-getrennt kontrollierter ECoS-Ablauf kann Lokdaten lesen und jede Lok einzeln an den Fahrzeugeditor
-übergeben.
+Der Arbeitsbereich **Import/Export** tauscht Fahrzeug-, Zubehör- und Messedaten aus, ohne die
+RailKeeper-Prüfungen und Berechtigungen zu umgehen. Dauerhafte Profile bestimmen Richtung,
+Datenbereiche, Format und Optionen. Jede Ausführung erzeugt einen nachvollziehbaren Auftrag mit
+Vorschau, Problemen, Entscheidungen, Ergebnis und bei Exporten einem herunterladbaren Artefakt.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.19.2. Es behandelt ausschließlich den
-Fahrzeugdatenaustausch. Stammdaten-Transfer, Digitalzentralen-Konfiguration sowie
-Anwendungssicherung und Wiederherstellung bleiben getrennte Administrationsaufgaben.
+Importe verwenden CSV für genau einen Datenbereich oder versioniertes RailKeeper-JSON. Sie bleiben
+in Prüfung, bis alle blockierenden Probleme geklärt sind und ein berechtigter Benutzer die
+transaktionale Übernahme ausdrücklich bestätigt. Digitalzentralen-Abgleich, Stammdatentransfer sowie
+Anwendungssicherung und Wiederherstellung bleiben getrennte Abläufe.
 
 ## Zugriffsrechte
 
-Admin, Editor, Viewer und Planner können **Import/Export** öffnen. Ein reines Messe-Konto bleibt im
-isolierten Messearbeitsbereich und kann diese Seite nicht öffnen. Der Server prüft weiterhin jeden
-Lese- und Schreibvorgang einzeln.
+Admin, Editor, Viewer, Planner und Messe können **Import/Export** öffnen. Reine Messe-Konten sehen
+und verwenden ausschließlich Profile und Aufträge für Messelisten. Der Server erzwingt diesen
+Umfang unabhängig von der Oberfläche.
 
-| Aktion | Admin | Editor | Viewer | Planner |
-| --- | --- | --- | --- | --- |
-| Aktuelle Fahrzeugliste laden | Ja | Ja | Ja | Ja |
-| CSV, JSON oder Druckansicht exportieren | Ja | Ja | Ja | Ja |
-| Datei einlesen und lokale Vorschau prüfen | Ja | Ja | Ja | Ja |
-| Fahrzeuge aus der Vorschau anlegen oder aktualisieren | Ja | Ja | Nein | Nein |
-| ECoS konfigurieren, lesen oder beschreiben | Ja | Nein | Nein | Nein |
-
-Die Seite blendet **Auswahl speichern** für Viewer und Planner nicht aus. Die geschützte Fahrzeug-
-API lehnt deren Schreibvorgang dennoch ab. Verwende für einen tatsächlichen Dateiimport ein
-Editor- oder Admin-Konto.
+Admin und Editor können vollständige Transferprofile anlegen oder ändern und Importe übernehmen.
+Viewer und Planner können Aufträge prüfen und Exporte erzeugen, aber keine importierten Daten
+übernehmen. Messe darf Messelistentransfers im isolierten Umfang exportieren, prüfen und übernehmen.
+Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner durch RailKeeper
+öffnen lassen.
 
 ## Den passenden Ablauf wählen
 
 | Ziel | Ablauf |
 | --- | --- |
-| CSV, TSV, XML oder RailKeeper-JSON prüfen und Fahrzeuge anlegen oder aktualisieren | [Fahrzeugdateien importieren](/de/guide/import-export/file-import) |
-| Aktuellen Fahrzeugbestand herunterladen oder kompakten Bestandsbericht drucken | [Bestand exportieren](/de/guide/import-export/exports) |
-| Loks, statische Funktionen und CV-Werte aus einer ESU ECoS lesen | [ECoS-Lokabgleich](/de/guide/import-export/ecos-sync) |
+| Einen Datenbereich als CSV übertragen | Import- oder Exportprofil für Fahrzeuge oder Zubehör anlegen |
+| Einen oder mehrere Bereiche mit Beziehungen übertragen | Versioniertes RailKeeper-JSON-Profil anlegen |
+| Einen Import prüfen | Auftrag öffnen, Probleme und Lösungen prüfen, dann Übernahme bestätigen |
+| Lokdaten lesen, vergleichen oder schreiben | Den getrennt geschützten Arbeitsbereich **Digitalzentralen** verwenden |
 | Hersteller, Spurweiten, Kategorien, Symbole oder andere Stammdaten übertragen | **Einstellungen > Stammdaten** verwenden, nicht diesen Arbeitsbereich |
 | Anwendungsdaten und gespeicherte Uploads erhalten oder wiederherstellen | Admin-Anwendungssicherung verwenden, keinen Fahrzeugexport |
 
@@ -51,38 +46,40 @@ Editor- oder Admin-Konto.
 
 1. Vor einem großen oder unbekannten Import einen Admin um eine aktuelle Anwendungssicherung
    bitten.
-2. CSV als lesbare Vergleichsdatei exportieren, wenn die aktuellen skalaren Fahrzeugfelder in
-   einem Tabellenprogramm geprüft werden sollen.
-3. Quelldatei laden und jedes Pflichtfeld, jede Validierungsmeldung und jedes Duplikat klären.
-4. Nur geprüfte Zeilen auswählen. Besonders auf als Überschreibung gekennzeichnete Felder achten.
-5. Auswahl speichern und anschließend sowohl gespeicherte als auch fehlgeschlagene Zeilen prüfen.
-6. Nach einem großen Import einige repräsentative Fahrzeuge öffnen und deren Grunddaten prüfen.
+2. Ein aktives Profil wählen, dessen Richtung, Bereiche und Format zum geplanten Transfer passen.
+3. Beim Export den Auftrag anlegen, ausführen und das Artefakt nach Prüfung der Zusammenfassung
+   herunterladen.
+4. Beim Import den Auftrag anlegen und die passende CSV- oder RailKeeper-JSON-Datei hochladen.
+5. Dauerhafte Vorschau sowie jede Warnung und jeden Fehler prüfen. Für alle entscheidungspflichtigen
+   Probleme eine Lösung festhalten.
+6. Nur den geprüften Stand bestätigen, dann abgeschlossenen Auftrag und repräsentative Datensätze
+   kontrollieren.
 
 ## Wichtige Grenzen
 
-- Der Dateiaustausch behandelt Fahrzeugfelder. Er stellt keine Bilder, Beilagendateien, Wartung,
-  Ersatzteile, Decoder-Dateien, Funktionszuordnungen, CV-Datensätze oder Benutzerkonten wieder her.
-- Die Dateivorschau wird im Browser berechnet. Eine Zeile wird erst durch **Auswahl speichern** mit
-  einem berechtigten Konto geschrieben.
-- Ausgewählte Zeilen werden nacheinander gespeichert, nicht als Alles-oder-nichts-Transaktion. Ein
-  späterer Fehler macht bereits als **gespeichert** markierte Fahrzeuge nicht rückgängig.
-- CSV ist das breiteste stabile Rundlaufformat für die 62 unterstützten skalaren Felder. Der
-  JSON-Import liest absichtlich weniger Felder, auch wenn der JSON-Export weitere Eigenschaften
-  enthält.
-- ECoS-Daten verwenden eine getrennte Arbeitsliste und Fahrzeugeditor-Übergabe. Sie gelangen nie
-  automatisch in die allgemeine Datei-Importprüfung.
+- Transferdateien sind nicht vertrauenswürdige Eingaben. RailKeeper prüft Paketversion, Hashes,
+  Pfade, Datensatzidentitäten, Verweise, kontrollierte Werte und Rollenumfang vor der Übernahme.
+- CSV ist auf genau einen unterstützten Bereich begrenzt und kann keine Messelisten übertragen.
+  Versioniertes JSON kann mehrere unterstützte Bereiche und ihre Beziehungen enthalten.
+- Importvorschau und Problementscheidungen werden auf dem Server gespeichert. Die Bestätigung
+  übernimmt den geprüften Stand transaktional; ein Fehler hinterlässt keinen Teilimport.
+- Transferpakete enthalten keine Benutzer, Rollen, Sitzungen, Passwort-Hashes oder andere lokale
+  Authentifizierungsdaten. Für vollständige lokale Bestands- und Upload-Wiederherstellung die
+  Anwendungssicherung verwenden.
+- Digitalzentralen-Lese- und Schreibvorgänge gelangen nie automatisch in einen Transferauftrag.
 
 ## Fehlerbehebung
 
 | Symptom | Prüfen |
 | --- | --- |
-| Export-Schaltflächen sind deaktiviert | Warten, bis die Fahrzeugliste geladen wurde. Bei leerem Bestand bleiben alle Export-Schaltflächen deaktiviert. |
-| Eine Spalte wird als offen angezeigt | Unter **Spaltenzuordnung** ein Zielfeld wählen oder bei einer nicht benötigten Spalte **Ignorieren** belassen. |
-| Eine Duplikatzeile ist nicht ausgewählt | Update-Vorschau prüfen und nur dann ausdrücklich auswählen, wenn der erkannte Inventarnummer-Treffer stimmt. |
-| Speichern scheitert trotz gültiger Vorschau | Admin- oder Editor-Rolle prüfen und die zeilenbezogene Servermeldung lesen. Die Servervalidierung bleibt maßgeblich. |
-| Einige Zeilen wurden vor einem Fehler gespeichert | Das ist beim sequenziellen Import zu erwarten. Gespeicherte Zeilen prüfen und nur fehlgeschlagene oder noch offene Zeilen wiederholen. |
-| Druckansicht öffnet sich nicht | Popups für die RailKeeper-Adresse erlauben und erneut versuchen. |
+| Kein passendes Profil ist verfügbar | Editor oder Admin um ein aktives Profil mit benötigter Richtung, Bereichen und Format bitten. |
+| CSV lässt sich nicht wählen | Genau einen Fahrzeug- oder Zubehörbereich verwenden oder auf RailKeeper-JSON wechseln. Messelisten benötigen JSON. |
+| Ein Import bleibt in Prüfung | Auftragsdetails öffnen und jedes blockierende Problem vor der Bestätigung lösen. |
+| Die Bestätigung meldet einen veralteten Stand | Auftrag neu laden. Ein anderer Bediener hat Revision, Zustand oder Problementscheidungen geändert. |
+| Ein reines Messe-Konto sieht ein Profil nicht | Im isolierten Messeumfang sind nur Messelistenprofile sichtbar. |
+| Ein Artefakt lässt sich nicht herunterladen | Auftrag neu laden und prüfen, ob ein Admin das Artefakt nach der Erzeugung gelöscht hat. |
+| Ein fehlgeschlagener Auftrag bietet Wiederholen | Zuerst protokollierten Fehler und Quelle prüfen. Wiederholen erzeugt eine kontrollierte Fortsetzung, kein unbeobachtetes Duplikat. |
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.19.2** und wurde zuletzt am 16.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.20** und wurde zuletzt am 16.08.2026 geprüft.

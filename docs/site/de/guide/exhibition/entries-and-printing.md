@@ -3,7 +3,7 @@ title: Einträge und Drucken
 description: Messeloks erfassen, Adresskonflikte lösen und die Betriebsliste drucken.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -20,7 +20,7 @@ Nur Admin sieht am Eintrag die Aktion **Löschen**. Eine gesperrte Liste weist a
 zurück, auch das Löschen durch Admin.
 
 Der Eintragsdialog ist ein gemeinsamer Entwurf mit den drei Reitern **Allgemein**,
-**Bilder upload** und **Funktionstasten**. Änderungen in jedem Reiter bleiben Formularzustand im
+**Fahrzeugbild** und **Funktionstasten**. Änderungen in jedem Reiter bleiben Formularzustand im
 Browser, bis **Speichern** erfolgreich war. Das Speichern übermittelt den vollständigen Eintrag,
 schließt den Dialog und lädt die Einträge der ausgewählten Liste neu. **Abbrechen** oder die
 Schließen-Schaltfläche verwirft die aktuellen Dialogänderungen ohne eigene Warnung.
@@ -39,14 +39,18 @@ Wähle eine offene Liste und verwende das Bedienelement zum Anlegen im Eintragsb
 | Besitzer | Pflichtfeld. Der Server entfernt führende und nachgestellte Leerzeichen. |
 | Lok Bezeichnung | Pflichtfeld. Der Server entfernt führende und nachgestellte Leerzeichen. |
 
+Benutzer mit Leserecht auf den Bestand können optional ein **Bestandsfahrzeug** wählen. RailKeeper
+übernimmt dessen Modell- und Decoderfelder in den Messeentwurf und speichert die
+Fahrzeugverknüpfung. Veranstaltungsdaten bleiben unabhängig und ändern keine Fahrzeug-Stammdaten.
+Reine Messe-Konten können **Gastfahrzeug / manuelle Eingabe** verwenden, aber nicht im allgemeinen
+Bestand suchen.
+
 Mit **Bearbeiten** in einer vorhandenen Zeile öffnet sich **Eintrag bearbeiten** mit den aktuellen
-Werten. v0.1.19.2 bietet in diesem Dialog keine Fahrzeugauswahl und kein sichtbares Feld für eine
-Fahrzeugverknüpfung. Der Eintrag bleibt ein Messedatensatz, auch wenn seine Beschreibung einem
-Fahrzeug im allgemeinen Bestand ähnelt.
+Werten.
 
 Wähle **Speichern** erst, nachdem du alle drei Reiter geprüft hast. Während des Speicherns oder bei
-einem erkannten DCC- oder SX-Adresskonflikt ist die Schaltfläche deaktiviert. Wurde die Liste nach
-dem Öffnen des Dialogs gesperrt, weist der Server den Vorgang ebenfalls zurück.
+dem laufenden Zugriff ist die Schaltfläche deaktiviert. Wurde die Liste nach dem Öffnen des Dialogs
+gesperrt, weist der Server den Vorgang ebenfalls zurück.
 
 ## Allgemeine und Steuerungsdaten ausfüllen
 
@@ -85,7 +89,7 @@ zuerst mit Admin oder einem Messekonto mit bestandsberechtigter Zusatzrolle.
 Tabelle und Report verbinden DCC und SX unter **Adresse**, zeigen Analog als Ja oder Nein und führen
 Decoder-Typ und Schnittstelle getrennt auf. Leere Werte erscheinen als Strich.
 
-**Baureihe** wird mit dem Eintrag gespeichert, erscheint in v0.1.19.2 jedoch weder in Tabelle und
+**Baureihe** wird mit dem Eintrag gespeichert, erscheint in v0.1.20 jedoch weder in Tabelle und
 Listenansicht noch im gedruckten Report. Öffne **Eintrag bearbeiten**, um den Wert zu prüfen.
 
 ### Nr. / Beschriftung / Merkmale
@@ -107,37 +111,28 @@ Die Tagesauswahl bietet **Alle Tage** und **Tag 1** bis **Tag 4**.
 Der ausgewählte Umfang erscheint unter dem Besitzer in Tabellen und Reports. Der Druck filtert
 nicht nach einem Tag. Er enthält alle Reporteinträge und zeigt deren jeweiligen Tagesumfang.
 
-## DCC- und SX-Adresskonflikte lösen
+## Betriebskonflikte lösen
 
-RailKeeper vergleicht jede nicht leere DCC- und SX-Angabe mit dem entsprechenden Wert der anderen
-aktuell geladenen Einträge der ausgewählten Liste. Führende und nachgestellte Leerzeichen sowie
-Groß- und Kleinschreibung werden beim Vergleich ignoriert. Der gerade bearbeitete Eintrag bleibt
-außen vor.
+Der Server prüft alle Einträge der ausgewählten Liste und meldet fehlende Pflichtangaben, ein
+mehrfach verwendetes Bestandsfahrzeug und überschneidende Digitaladressen. Ein Adresskonflikt
+erfordert dieselbe Schnittstelle und Adresse an überlappenden Messetagen. Analoge oder nicht
+verfügbare Einträge erzeugen keinen Adresskonflikt.
 
-Ein Konflikt erzeugt eine Feldwarnung wie **DCC-Adresse bereits bei BR 218 vergeben.** oder
-**SX-Adresse bereits bei BR 218 vergeben.** Die Hauptaktion **Speichern** ist deaktiviert; der
-Speicherpfad meldet **Diese Adresse ist in der ausgewählten Liste bereits vergeben.** Ändere die
-Adresse oder korrigiere den anderen Eintrag.
-
-Dies ist eine Browserprüfung über die bereits geladenen Einträge. Der stabile Server erzwingt keine
-eindeutigen Adressen. Arbeiten mehrere Personen gleichzeitig, lade die Liste unmittelbar vor einer
-neuen Adressvergabe neu und prüfe anschließend die gedruckte Liste auf Konflikte.
+Nach dem Speichern aktualisiert RailKeeper den Arbeitsbereich und seine Konfliktanzahl. Öffne
+**Konflikte prüfen**, um die betroffenen Datensätze zu sehen. Korrigiere den Eintrag, wenn möglich.
+Ist die Überschneidung beabsichtigt, trage eine Begründung ein und speichere eine dokumentierte
+Ausnahme. Der Konflikt bleibt als Ausnahme sichtbar. Das Sperren einer Liste mit ungelösten
+Konflikten erfordert eine ausdrückliche Bestätigung und eine Begründung für jede Ausnahme.
 
 ## Bild hinzufügen oder entfernen
 
-Der Reiter **Bilder upload** speichert eine Bildquelle pro Eintrag.
+Der Reiter **Fahrzeugbild** speichert ein eingebettetes Bild pro Eintrag.
 
 | Aktion | Stabiles Verhalten |
 | --- | --- |
-| Bildlink eingeben | Der Browser zeigt die angegebene Quelle als Vorschau und speichert sie später mit dem Eintrag. |
-| **Bild hochladen** | Akzeptiert PNG, JPEG oder WebP und liest die Datei als eingebettete Daten in den Entwurf. |
-| Quelle ersetzen | Ein anderer Link oder eine andere Datei ersetzt die Quelle im Entwurf. |
+| **Bild auswählen** | Akzeptiert PNG, JPEG oder WebP bis 10 MB und liest die Datei als eingebettete Daten in den Entwurf. |
+| Bild ersetzen | Eine andere unterstützte Datei ersetzt das Bild im Entwurf. |
 | **Bild entfernen** | Leert die Quelle im Entwurf. Dauerhaft wird dies erst nach erfolgreichem Speichern des Eintrags. |
-
-RailKeeper lädt oder validiert einen externen Link nicht vor dem Speichern. Der Browser ruft die
-externe Ressource ab, wenn er Vorschau, Tabelle, Detailansicht oder Report darstellt. Prüfe Quelle,
-Verfügbarkeit und Datenschutz vor der Verwendung. Ein defekter Link liefert keine nutzbare
-Vorschau. Korrigiere oder entferne ihn und speichere erneut.
 
 Kann der Browser eine ausgewählte lokale Bilddatei nicht lesen, wird die Quelle im Entwurf nicht
 ersetzt. Wähle eine lesbare unterstützte Datei und prüfe die Vorschau vor **Speichern**.
@@ -160,7 +155,7 @@ Bezeichnung liefert. Prüfe den Namen nach der Symbolauswahl. Beim **Speichern**
 belegte Funktionen als strukturierte Daten ab. Tabelle, Detailansicht und Report zeigen nur diese
 Funktionen.
 
-v0.1.19.2 kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
+v0.1.20 kann außerdem frühere Klartextwerte lesen, die durch Kommas, Semikolons oder Zeilen
 getrennt sind und jeweils mit einer Taste wie `F1 Sound` beginnen. Das Öffnen und Speichern eines
 solchen Eintrags schreibt die aktuell konfigurierte strukturierte Darstellung.
 
@@ -216,10 +211,10 @@ Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.
 | Situation | Stabiles Ergebnis und Wiederherstellung |
 | --- | --- |
 | Besitzer oder Lok Bezeichnung fehlt | Browser oder Server weist Speichern ab. Fülle beide Pflichtfelder aus. |
-| Doppelte DCC- oder SX-Adresse | Speichern bleibt deaktiviert. Lade neu, finde den anderen Eintrag und korrigiere eine Adresse. |
+| Konfliktanzahl steigt nach dem Speichern | **Konflikte prüfen** öffnen, Datensätze korrigieren oder eine begründete Ausnahme dokumentieren. |
 | Liste wurde gesperrt | Speichern oder Löschen wird abgewiesen. Lade den Status; Admin muss vor der Korrektur entsperren. |
 | Stammdatenauswahlen zeigen nur **Keine Auswahl** | Das Konto darf allgemeine Bestandsstammdaten nicht lesen. Lösche gespeicherte Auswahlwerte nicht. |
-| Bild hat keine Vorschau | Prüfe den Link oder wähle vor dem Speichern eine lesbare PNG-, JPEG- oder WebP-Datei. |
+| Bild hat keine Vorschau | Vor dem Speichern eine lesbare PNG-, JPEG- oder WebP-Datei bis 10 MB wählen. |
 | Speichern gelingt, aber der Refresh scheitert | Öffne den Arbeitsbereich neu und prüfe den Eintrag vor dem Wiederholen. |
 | Detail oder Report öffnet nicht | Lade Liste und Einträge neu und wiederhole danach die Leseaktion. |
 | Browser-Druckdialog wird ohne Ausgabe geschlossen | Öffne **Report drucken** erneut; RailKeeper-Daten wurden nicht geändert. |
@@ -233,5 +228,5 @@ Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite beschreibt RailKeeper v0.1.19.2. Der Entwicklungsstand auf `main` kann abweichen und
+Diese Seite beschreibt RailKeeper v0.1.20. Der Entwicklungsstand auf `main` kann abweichen und
 gehört nicht zu diesem Benutzerablauf.

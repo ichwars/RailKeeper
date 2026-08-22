@@ -3,7 +3,7 @@ title: ECoS locomotive sync
 description: Read, review, import, and explicitly write selected ESU ECoS locomotive data.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -19,7 +19,7 @@ workspace.
 
 ## Supported and unsupported command stations
 
-| Active provider | Import/Export behavior in v0.1.19.2 |
+| Active provider | Import/Export behavior in v0.1.20 |
 | --- | --- |
 | ESU ECoS | Read workflow, vehicle handoff, CV and static-function suggestions, and reviewed write sync are available. |
 | Z21, Intellibox 3, or Märklin CS3 | RailKeeper shows that the import path is prepared but not implemented. |
@@ -118,7 +118,7 @@ layout objects to the command station.
 | Symptom | Check |
 | --- | --- |
 | The ECoS workspace is absent or disabled | Confirm an Admin enabled ECoS and stored a non-empty host under Digital command stations. |
-| Another provider is active | v0.1.19.2 only implements this import path for ECoS. |
+| Another provider is active | v0.1.20 only implements this import path for ECoS. |
 | Fetching fails | Check network reachability, stored host and port, ECoS availability, and Admin role. |
 | A wrong vehicle is suggested | Do not update or sync it. Correct the external mapping or decoder/name data through the vehicle workflow first. |
 | A CV or function is missing | The ECoS locomotive object did not expose it, or RailKeeper did not recognize it as a static supported value. Missing CVs do not block saving. |
@@ -127,4 +127,4 @@ layout objects to the command station.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

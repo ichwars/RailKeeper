@@ -6,6 +6,43 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.20] - 2026-08-22
+
+### Hinzugefügt
+
+- Die neu gestaltete Übersicht bündelt Bestandskennzahlen, Wartung, Wertentwicklung und
+  Bestandsstruktur in kompakten Karten und Diagrammen. Detaildialoge und direkte Filtersprünge
+  führen von den Kennzahlen zu den betroffenen Fahrzeugen und Zubehörartikeln.
+- Persistente Datentransferprofile und eine nachvollziehbare Auftragshistorie unterstützen
+  versionierte Exporte, Importvorschauen, Konfliktentscheidungen und die transaktionale Übernahme
+  geprüfter Fahrzeug-, Zubehör- und Messedaten.
+- Der Arbeitsbereich **Digitalzentralen** bietet gespeicherte Sitzungen, Lok-Arbeitslisten,
+  Soll-Ist-Vergleiche und passive Live-Telemetrie. Schreibvorgänge erfordern eine ausdrückliche,
+  zeitlich begrenzte Freigabe und eine abschließende Bestätigung.
+- Der Messebetrieb besitzt einen eigenen responsiven Arbeitsbereich für Listen, Einträge,
+  Sperrzustände und bewusst bestätigte Konfliktausnahmen.
+- Die eigenständig gezeichnete **RailKeeper Werkstatt-Linie** ersetzt alle mitgelieferten
+  Funktionsgrafiken. 94 Symbole mit aktiver, inaktiver und druckoptimierter Palette decken die 86
+  bekannten ECoS-Funktionsbeschreibungscodes sowie neutrale Rückfalltypen ab.
+
+### Geändert
+
+- Datentransfer, Digitalzentralen und Messe verwenden kompakte, zweisprachige und responsive
+  Bedienoberflächen mit app-eigenen Steuerelementen und dauerhaft gespeicherten Arbeitsständen.
+- Sicherungen verwenden Formatversion 19, enthalten Datentransferprofile und
+  Messe-Konfliktausnahmen und bewahren eigene Symbolschlüssel. Beim Einspielen älterer Sicherungen
+  bleibt die aktuell installierte mitgelieferte Symbolbibliothek geschützt.
+- ECoS-Codes bleiben ausschließlich als neutrale Kompatibilitätsmetadaten erhalten. RailKeeper
+  übernimmt keine Funktionsgrafiken oder grafischen Quelldateien des Herstellers.
+
+### Sicherheit
+
+- Rollen- und Messegrenzen werden für die neuen Arbeitsbereiche serverseitig durchgesetzt.
+  Importvorschau, Pfadprüfung, atomare Exportreservierung und transaktionale Übernahme behandeln
+  Transferdateien als nicht vertrauenswürdige Eingaben.
+- Digitalzentralen lesen standardmäßig nur passiv. Schreibvorgänge bleiben auf geprüfte
+  Abweichungen, kurzlebige Freigaben und eine explizite Benutzerbestätigung begrenzt.
+
 ## [0.1.19.2] - 2026-08-19
 
 ### Geändert
@@ -294,6 +331,8 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
+[0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2
 [0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1
 [0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18
