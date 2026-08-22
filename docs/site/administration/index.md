@@ -3,7 +3,7 @@ title: Installation and Administration
 description: Install, configure, secure, and operate RailKeeper.
 audience: admin
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ This section covers Windows Standalone and Docker installation, runtime configur
 roles, SMTP, backups and restores, updates, TLS, uploads, OCR, printers, operational checks, and
 conservative troubleshooting.
 
-Administration guidance describes the stable v0.1.19.2 runtime and preserves RailKeeper's
+Administration guidance describes the stable v0.1.20 runtime and preserves RailKeeper's
 local-first, self-hosted security model.
 
 ## Administrative workflows

@@ -3,7 +3,7 @@ title: Inventory-number schemes
 description: Configure automatic vehicle and accessory article inventory numbers without collisions.
 audience: admin
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ Open **Settings > General > Inventory numbers** to control automatic identities 
 vehicle and accessory-article creation. A scheme contains a unique category, prefix, next number,
 padding width, active state, and preview.
 
-Stable v0.1.19.2 normally provides these active schemes:
+Stable v0.1.20 normally provides these active schemes:
 
 | Category | Default prefix | Default example | Used for |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ article numbers are checked in their respective tables, not as one shared global
 3. Check the preview and select **Create**.
 4. For an existing row, edit its values in place and select **Save**.
 
-There is no delete endpoint in v0.1.19.2. Deactivate an unused scheme instead. Editing or
+There is no delete endpoint in v0.1.20. Deactivate an unused scheme instead. Editing or
 deactivating a scheme never renumbers existing records.
 
 Only Admin and Editor may create or save schemes. Viewer and Planner can read the table. The stable
@@ -93,4 +93,4 @@ article creation safely skips those collisions.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

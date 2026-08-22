@@ -1,84 +1,79 @@
 ---
 title: Import and export
-description: Exchange vehicle inventory safely and understand the separate ECoS workflow.
+description: Exchange vehicle, accessory, and exhibition data through reviewed transfer jobs.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
 # Import and export
 
-The **Import/Export** workspace exchanges vehicle inventory without bypassing RailKeeper's normal
-validation and permissions. File imports first become a review table. Exports create a CSV, a
-RailKeeper JSON file, or a browser print view. An independently controlled ECoS workflow can read
-locomotive data and hand one locomotive at a time to the vehicle editor.
+The **Import/Export** workspace exchanges vehicle, accessory, and exhibition data without bypassing
+RailKeeper's validation and permissions. Persistent profiles define direction, data areas, format,
+and options. Each execution creates an auditable job with preview, issues, decisions, result, and,
+for exports, a downloadable artifact.
 
-This chapter documents stable RailKeeper v0.1.19.2. It covers vehicle exchange only. Master-data
-transfer, command-station configuration, and application backup and restore remain separate
-administrative tasks.
+Imports use either one-area CSV or versioned RailKeeper JSON. They remain in review until all
+blocking issues are resolved and an authorized user explicitly confirms the transactional apply.
+Command-station synchronization, master-data transfer, and application backup and restore remain
+separate workflows.
 
 ## Access rights
 
-Admin, Editor, Viewer, and Planner can open **Import/Export**. A pure Messe account remains in the
-isolated exhibition workspace and cannot open this page. The server still checks every read and
-write independently.
+Admin, Editor, Viewer, Planner, and Messe can open **Import/Export**. Pure Messe accounts see and
+run only exhibition-list profiles and jobs. The server applies that scope independently of the UI.
 
-| Action | Admin | Editor | Viewer | Planner |
-| --- | --- | --- | --- | --- |
-| Load the current vehicle list | Yes | Yes | Yes | Yes |
-| Export CSV, JSON, or a print view | Yes | Yes | Yes | Yes |
-| Parse a file and inspect its local preview | Yes | Yes | Yes | Yes |
-| Create or update vehicles from the preview | Yes | Yes | No | No |
-| Configure, read, or write an ECoS | Yes | No | No | No |
-
-The page does not hide the **Save selection** button from Viewer or Planner. The protected vehicle
-API nevertheless rejects their write. Use an Editor or Admin account for an actual file import.
+Admin and Editor can create or update full transfer profiles and apply imports. Viewer and Planner
+can inspect jobs and create exports but cannot apply imported data. Messe can export, review, and
+apply exhibition-list transfers within its isolated scope. Only Admin can disable profiles, delete
+artifacts, or request that RailKeeper open an artifact folder on the server.
 
 ## Choose the correct workflow
 
 | Goal | Workflow |
 | --- | --- |
-| Review CSV, TSV, XML, or RailKeeper JSON and create or update vehicles | [Import vehicle files](/guide/import-export/file-import) |
-| Download the current vehicle list or print a compact inventory report | [Export inventory](/guide/import-export/exports) |
-| Read locomotives, static functions, and CV values from an ESU ECoS | [ECoS locomotive sync](/guide/import-export/ecos-sync) |
+| Transfer one data area as CSV | Create an import or export profile for vehicles or accessories |
+| Transfer one or more data areas with relationships | Create a versioned RailKeeper JSON profile |
+| Review an import | Open its job, inspect issues, choose resolutions, then confirm the apply |
+| Read, compare, or write locomotive data | Use the separately protected **Digital centers** workspace |
 | Transfer manufacturers, gauges, categories, symbols, or other master data | Use **Settings > Master data**, not this workspace |
 | Preserve or restore application data and stored uploads | Use the Admin-only application backup, not a vehicle export |
 
 ## Safe working sequence
 
 1. Ask an Admin to create a current application backup before a large or unfamiliar import.
-2. Export CSV as a readable comparison file when you want to inspect the current scalar vehicle
-   fields in a spreadsheet.
-3. Load the source file and resolve every required field, validation message, and duplicate.
-4. Select only rows you have checked. Pay particular attention to fields marked as overwrites.
-5. Save the selection, then inspect both saved and failed rows before leaving the page.
-6. Open representative vehicles and confirm their core data after a large import.
+2. Select an enabled profile whose direction, areas, and format match the intended transfer.
+3. For an export, create the job, execute it, and download the artifact after checking its summary.
+4. For an import, create the job and upload the matching CSV or RailKeeper JSON file.
+5. Inspect the persisted preview and every warning or error. Record a resolution for each issue that
+   requires a decision.
+6. Confirm only the reviewed snapshot, then inspect the completed job and representative records.
 
 ## Important boundaries
 
-- File exchange covers vehicle fields. It does not restore images, attachment bytes, maintenance,
-  spare parts, decoder files, function mappings, CV records, or application users.
-- The file preview is calculated in the browser. A row is written only when **Save selection** is
-  used by an authorized account.
-- Selected rows are saved one after another, not in one all-or-nothing transaction. A later error
-  does not undo vehicles already marked **saved**.
-- CSV is the broadest stable round-trip format for the 62 supported scalar fields. The JSON import
-  intentionally reads a smaller field subset even when the JSON export contains more properties.
-- ECoS data uses a separate work list and vehicle-editor handoff. It never enters the generic file
-  import table automatically.
+- Transfer files are untrusted input. RailKeeper validates package version, hashes, paths, record
+  identities, references, controlled values, and role scope before apply.
+- CSV is limited to exactly one supported area and cannot carry exhibition lists. Versioned JSON
+  can contain several supported areas and their relationships.
+- Import preview and issue decisions are persisted on the server. Confirmation applies the reviewed
+  snapshot transactionally; a failed apply does not leave a partially imported job.
+- Transfer packages never contain users, roles, sessions, password hashes, or other local
+  authentication state. Use application backup for full local inventory and upload recovery.
+- Digital-center reads and writes never enter a generic transfer job automatically.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
-| Export buttons are disabled | Wait until the vehicle list has loaded. All export buttons remain disabled when the inventory is empty. |
-| A column is shown as open | Assign its target in **Column mapping**, or leave it on **Ignore** when it is not needed. |
-| A duplicate row is not selected | Review its update preview and select it explicitly only when the detected inventory-number match is correct. |
-| Saving fails although the preview looked valid | Confirm the account is Admin or Editor, then read the row-specific server error. Server validation remains authoritative. |
-| Some rows were saved before another failed | This is expected for the sequential import. Recheck saved rows and retry only the failed or still-open rows. |
-| The print view does not open | Allow popups for the RailKeeper address and try again. |
+| No suitable profile is available | Ask an Editor or Admin to create or enable a profile for the required direction, areas, and format. |
+| CSV cannot be selected | Use exactly one vehicle or accessory area, or switch to RailKeeper JSON. Exhibition lists require JSON. |
+| An import remains in review | Open the job details and resolve every blocking issue before confirming. |
+| Confirmation reports stale state | Reload the job. Another operator changed its revision, state, or issue decisions. |
+| A pure Messe account cannot see a profile | Only exhibition-list profiles are visible in the isolated Messe scope. |
+| An artifact cannot be downloaded | Reload its job and check whether an Admin deleted the artifact after creation. |
+| A failed job offers retry | Review the recorded error and source first. Retry creates a controlled continuation, not an untracked duplicate. |
 
 ## Documented RailKeeper version
 
-This chapter documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This chapter documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

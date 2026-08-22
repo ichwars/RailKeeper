@@ -3,7 +3,7 @@ title: Import vehicle files
 description: Map, validate, review, and save vehicle rows from CSV, TSV, XML, or JSON.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -137,4 +137,4 @@ maintenance, spare parts, or decoder files. Add those through their dedicated ve
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

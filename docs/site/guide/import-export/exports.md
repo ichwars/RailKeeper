@@ -3,7 +3,7 @@ title: Export inventory
 description: Create CSV, RailKeeper JSON, and printable vehicle inventory output.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -49,7 +49,7 @@ The `vehicles` array contains the vehicle objects returned to this page. This ma
 inspection and lower-loss data exchange, but it is not an application backup or a complete restore
 format.
 
-The stable v0.1.19.2 JSON importer reads only 14 fields from each object. It does not restore all
+The stable v0.1.20 JSON importer reads only 14 fields from each object. It does not restore all
 properties present in the exported object, nested records, or stored file bytes. See the exact
 [JSON import subset](/guide/import-export/file-import#json-import-subset) before relying on a
 round trip.
@@ -85,4 +85,4 @@ JSON.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.19.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20** and was last reviewed on 2026-08-16.

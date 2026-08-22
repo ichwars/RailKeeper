@@ -6,6 +6,43 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.20] - 2026-08-22
+
+### Added
+
+- The redesigned overview brings together inventory metrics, maintenance, value trends, and stock
+  composition in compact cards and charts. Detail dialogs and direct filter links lead from each
+  metric to the affected vehicles and accessories.
+- Persistent data-transfer profiles and an auditable job history support versioned exports, import
+  previews, conflict decisions, and transactional application of reviewed vehicle, accessory, and
+  exhibition data.
+- The **Digital centers** workspace provides durable sessions, locomotive worklists, desired-versus-
+  actual comparisons, and passive live telemetry. Writes require an explicit, time-limited grant
+  followed by final confirmation.
+- Exhibition operation has a dedicated responsive workspace for lists, entries, lock states, and
+  deliberately approved conflict exceptions.
+- The independently authored **RailKeeper Werkstatt-Linie** replaces all bundled function
+  graphics. Its 94 symbols provide active, inactive, and print palettes for the 86 known ECoS
+  function-description codes plus neutral fallback types.
+
+### Changed
+
+- Data transfer, digital centers, and exhibition use compact, bilingual, responsive interfaces
+  with app-owned controls and persistently stored work state.
+- Backups use format version 19, include data-transfer profiles and exhibition conflict exceptions,
+  and preserve custom symbol keys. Restoring an older backup keeps the currently installed bundled
+  symbol library protected.
+- ECoS codes remain solely as neutral compatibility metadata. RailKeeper includes no manufacturer
+  function graphics or graphic source files.
+
+### Security
+
+- Server-side authorization enforces role and exhibition boundaries for the new workspaces. Import
+  preview, path validation, atomic export claiming, and transactional application treat transfer
+  files as untrusted input.
+- Digital centers remain passive by default. Writes are limited to reviewed differences,
+  short-lived grants, and explicit user confirmation.
+
 ## [0.1.19.2] - 2026-08-19
 
 ### Changed
@@ -280,6 +317,8 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
+[0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2
 [0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1
 [0.1.19]: https://github.com/ichwars/RailKeeper/compare/v0.1.18...v0.1.19
 [0.1.18]: https://github.com/ichwars/RailKeeper/compare/v0.1.17.6...v0.1.18

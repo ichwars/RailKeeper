@@ -3,7 +3,7 @@ title: Entries and printing
 description: Record exhibition locomotives, resolve address conflicts, and print the operating list.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -18,7 +18,7 @@ function keys, and notes.
 Messe and Admin can create and edit entries while the selected list is open. Only Admin sees the
 entry **Delete** action. A locked list rejects all three mutations, including an Admin deletion.
 
-The entry dialog is one draft with three tabs: **General**, **Image upload**, and **Function keys**.
+The entry dialog is one draft with three tabs: **General**, **Vehicle image**, and **Function keys**.
 Changes on any tab remain browser form state until **Save** succeeds. Saving sends the complete
 entry, closes the dialog, and reloads the selected list's entries. **Cancel** or the close button
 discards the current dialog changes without a separate warning.
@@ -36,13 +36,16 @@ Select an open list and use the add-entry control in the entry panel. **Create e
 | Owner | Required. Leading and trailing whitespace is removed on the server. |
 | Locomotive name | Required. Leading and trailing whitespace is removed on the server. |
 
-Use **Edit** on an existing row to open **Edit entry** with its current values. Stable v0.1.19.2
-does not expose a vehicle picker or a visible vehicle-link field in this dialog. The entry remains
-an exhibition record even when its description resembles a vehicle in general inventory.
+Users who can read inventory may select an optional **Inventory vehicle**. RailKeeper copies its
+model and decoder fields into the exhibition draft and stores the vehicle link. The event fields
+remain independent and never modify vehicle master data. Pure Messe accounts can use **Guest
+vehicle / manual entry** but cannot browse general inventory.
+
+Use **Edit** on an existing row to open **Edit entry** with its current values.
 
 Select **Save** only after checking all three tabs. The button is disabled while saving or while a
-duplicate DCC or SX address is detected. A list that became locked after the dialog opened is still
-rejected by the server.
+the request is running. A list that became locked after the dialog opened is still rejected by the
+server.
 
 ## Complete general and control data
 
@@ -101,36 +104,27 @@ The day selector offers **All days** and **Day 1** through **Day 4**.
 The selected scope appears below the owner in tables and reports. Printing does not filter entries
 to one day; it prints every entry in the report and displays each entry's scope.
 
-## Resolve DCC and SX address conflicts
+## Resolve operational conflicts
 
-RailKeeper compares each non-empty DCC and SX value with the corresponding values of other entries
-currently loaded for the selected list. Comparison ignores leading and trailing whitespace and
-letter case. The entry being edited is excluded.
+The server evaluates every entry in the selected list and reports missing required data, the same
+inventory vehicle used more than once, and overlapping digital addresses. An address conflict
+requires the same interface and address on overlapping event days. Analog or unavailable entries
+do not produce an address conflict.
 
-A conflict produces a field warning such as **DCC address already used by BR 218.** or
-**SX address already used by BR 218.** The main **Save** action is disabled, and attempting the save
-path reports **This address is already used in the selected list.** Change the address or correct
-the other entry before saving.
-
-This is a browser check over the entries already loaded by the page; the stable server does not
-enforce address uniqueness. When several operators work at once, reload the list immediately before
-adding another address and review the printed list for conflicts.
+Saving an entry refreshes the workspace and its conflict count. Open **Check conflicts** to inspect
+the affected records. Correct the entry whenever possible. If the overlap is deliberate, enter a
+reason and save a documented exception. The conflict remains visible as an exception. Locking a
+list with unresolved conflicts requires explicit confirmation and a reason for every exception.
 
 ## Add or remove the image
 
-The **Image upload** tab stores one image source per entry.
+The **Vehicle image** tab stores one embedded image per entry.
 
 | Action | Stable behavior |
 | --- | --- |
-| Enter an image link | The browser previews and later stores the entered source string with the entry. |
-| **Upload image** | Accepts PNG, JPEG, or WebP and reads the selected file into the entry draft as inline data. |
-| Replace source | Entering another link or uploading another file replaces the draft source. |
+| **Choose image** | Accepts PNG, JPEG, or WebP up to 10 MB and reads it into the entry draft as inline data. |
+| Replace image | Choosing another supported file replaces the draft image. |
 | **Remove image** | Clears the draft source. It is permanent only after the entry save succeeds. |
-
-RailKeeper does not download or validate an external link before storing it. The browser requests
-that external resource when it renders the preview, table, detail view, or report. Verify the
-source and consider its availability and privacy before using it. A broken link produces no usable
-preview; correct or remove it and save the entry again.
 
 If the browser cannot read a selected local image, the draft source is not replaced. Choose a
 supported readable file and verify the preview before selecting **Save**.
@@ -151,7 +145,7 @@ Selecting a symbol applies the symbol label as the function name when the picker
 Review the name after choosing a symbol. On **Save**, RailKeeper stores only configured functions as
 structured data. The table, detail view, and report show only those functions.
 
-Stable v0.1.19.2 can also read earlier plain-text values separated by commas, semicolons, or lines
+Stable v0.1.20 can also read earlier plain-text values separated by commas, semicolons, or lines
 when each item starts with a key such as `F1 Sound`. Opening and saving such an entry writes the
 currently configured structured representation.
 
@@ -205,10 +199,10 @@ An empty list produces a report row reading **No entries.**
 | Situation | Stable result and recovery |
 | --- | --- |
 | Missing owner or locomotive name | Browser or server rejects the save. Complete both required fields. |
-| Duplicate DCC or SX value | Save stays disabled. Reload, identify the other entry, and correct one address. |
+| Conflict count increases after saving | Open **Check conflicts**, correct the records, or document a justified exception. |
 | List became locked | Save or delete is rejected. Reload the status; Admin must unlock before a correction. |
 | Master-data selectors contain only **No selection** | The account cannot read general inventory master data. Avoid clearing stored choices. |
-| Image has no preview | Verify the link or choose a readable PNG, JPEG, or WebP before saving. |
+| Image has no preview | Choose a readable PNG, JPEG, or WebP up to 10 MB before saving. |
 | Save succeeds but reload fails | Reopen the workspace and inspect the stored entry before retrying. |
 | Detail or report does not open | Reload the list and entries, then retry the read-only action. |
 | Browser print dialog closes without output | Reopen **Print report**; no RailKeeper data was changed. |
@@ -222,5 +216,5 @@ An empty list produces a report row reading **No entries.**
 
 ## Documented RailKeeper version
 
-This page describes stable RailKeeper v0.1.19.2. Development behavior on `main` may differ and is
+This page describes stable RailKeeper v0.1.20. Development behavior on `main` may differ and is
 not part of this user workflow.

@@ -3,7 +3,7 @@ title: Übersicht, Kennzahlen und Datenqualität
 description: RailKeeper-Dashboard auswerten, Datenlücken bearbeiten und Kacheln anordnen.
 audience: user
 status: stable
-reviewedVersion: 0.1.19.2
+reviewedVersion: 0.1.20
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 Die **Übersicht** ist das Arbeits-Dashboard von RailKeeper für Bestandsgröße, erfassten Wert,
 Digitalisierung, Wartung und Datenqualität. Dieses Kapitel erklärt die Bedeutung jeder Kennzahl und
 den Weg von einem Hinweis zu den betroffenen Fahrzeugen. Es beschreibt den stabilen
-RailKeeper-Stand v0.1.19.2.
+RailKeeper-Stand v0.1.20.
 
 Benutzer mit den Rollen Admin, Editor, Viewer oder Planner können die Übersicht öffnen. Ein Konto,
 das ausschließlich die Rolle Messe besitzt, startet unter **Ausstellung** und kann dieses Dashboard
@@ -101,7 +101,7 @@ zu öffnen.
 | **Ohne EAN** | Fahrzeuge ohne EAN |
 | **Digital ohne Decoder-Nr.** | Digitale Fahrzeuge ohne Wert in beiden Decoder-Nummernfeldern |
 
-In v0.1.19.2 prüft **Ohne Hauptbild** technisch, ob irgendein Bild vorhanden ist. Die Prüfung
+In v0.1.20 prüft **Ohne Hauptbild** technisch, ob irgendein Bild vorhanden ist. Die Prüfung
 unterscheidet kein ausdrücklich ausgewähltes Hauptbild. Sind alle vier Werte null, meldet die Kachel,
 dass keine größeren Datenlücken erkannt wurden.
 
@@ -213,5 +213,5 @@ gespeichert.
 
 ## Dokumentierter RailKeeper-Stand
 
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.19.2** und wurde zuletzt am
+Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20** und wurde zuletzt am
 2026-08-16 geprüft.
