@@ -1,8 +1,11 @@
 package api
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"mime"
 	"net/http"
 	"strconv"
@@ -146,15 +149,61 @@ func (a *App) uploadDataTransferImport(w http.ResponseWriter, r *http.Request) {
 			"Import upload must be valid multipart data.")
 		return
 	}
-	part, err := reader.NextPart()
-	if err != nil || part.FormName() != "file" || strings.TrimSpace(part.FileName()) == "" {
+	var mapping *application.DataTransferCSVMappingInput
+	var fileName, fileMIMEType string
+	var filePayload []byte
+	for {
+		part, err := reader.NextPart()
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			respondProblem(w, http.StatusBadRequest, "data_transfer_upload_invalid",
+				"Import upload must be valid multipart data.")
+			return
+		}
+		switch {
+		case part.FormName() == "mapping" && strings.TrimSpace(part.FileName()) == "" && mapping == nil:
+			payload, readErr := io.ReadAll(io.LimitReader(part, 256*1024+1))
+			_ = part.Close()
+			if readErr != nil || len(payload) > 256*1024 {
+				respondProblem(w, http.StatusBadRequest, "data_transfer_mapping_invalid", "CSV mapping is invalid.")
+				return
+			}
+			mapping = &application.DataTransferCSVMappingInput{}
+			decoder := json.NewDecoder(bytes.NewReader(payload))
+			decoder.DisallowUnknownFields()
+			if err := decoder.Decode(mapping); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
+				respondProblem(w, http.StatusBadRequest, "data_transfer_mapping_invalid", "CSV mapping is invalid.")
+				return
+			}
+		case part.FormName() == "file" && strings.TrimSpace(part.FileName()) != "" && fileName == "":
+			fileName = part.FileName()
+			fileMIMEType = part.Header.Get("Content-Type")
+			filePayload, err = io.ReadAll(io.LimitReader(part, application.DataTransferMaxUploadBytes+1))
+			_ = part.Close()
+			if err != nil {
+				a.dataTransferError(w, err, "read data transfer upload")
+				return
+			}
+			if int64(len(filePayload)) > application.DataTransferMaxUploadBytes {
+				a.dataTransferError(w, application.ErrDataTransferUploadTooLarge, "preview data transfer import")
+				return
+			}
+		default:
+			_ = part.Close()
+			respondProblem(w, http.StatusBadRequest, "data_transfer_upload_invalid",
+				"Import upload contains an unexpected or repeated multipart field.")
+			return
+		}
+	}
+	if fileName == "" {
 		respondProblem(w, http.StatusBadRequest, "data_transfer_upload_missing", "Import file is required.")
 		return
 	}
-	defer func() { _ = part.Close() }()
 	preview, err := a.dataTransferService.UploadAndPreviewReader(
-		r.Context(), r.PathValue("id"), part.FileName(), part.Header.Get("Content-Type"), part,
-		actorUserID(r), allowedDataTransferAreas(r)...,
+		r.Context(), r.PathValue("id"), fileName, fileMIMEType, bytes.NewReader(filePayload),
+		actorUserID(r), mapping, allowedDataTransferAreas(r)...,
 	)
 	if err != nil {
 		a.dataTransferError(w, err, "preview data transfer import")

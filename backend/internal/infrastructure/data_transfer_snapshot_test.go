@@ -136,6 +136,37 @@ func TestDataTransferSnapshotReadsSelectedAreasInStableOrder(t *testing.T) {
 	}
 }
 
+func TestDataTransferSnapshotIncludesExtendedVehicleFields(t *testing.T) {
+	db := testDB(t)
+	if _, err := db.Exec(`
+INSERT INTO vehicles(
+  id, inventory_number, manufacturer, name, gauge, category, gattung, length_mm, weight_g,
+  coupling_same, coupling_front, coupling_rear, drive_enabled, drive_description,
+  sound_generator_enabled, sound_generator_description, additional_info, qr_code_enabled,
+  created_at, updated_at
+) VALUES(
+  'vehicle-full', 'RK-FULL', 'Roco', 'BR 218', 'H0', 'Lokomotive', 'Diesellokomotive', '181', '540',
+  1, 'KKK', 'KKK', 1, 'Kardan', 1, 'Diesel', 'Clubbestand', 1,
+  '2026-08-20T10:00:00Z', '2026-08-20T10:00:00Z'
+)`); err != nil {
+		t.Fatal(err)
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Vehicles) != 1 {
+		t.Fatalf("snapshot vehicles = %d, want 1", len(snapshot.Vehicles))
+	}
+	vehicle := snapshot.Vehicles[0]
+	if vehicle.LengthMM != "181" || vehicle.WeightG != "540" || !vehicle.CouplingSame ||
+		vehicle.CouplingRear != "KKK" || !vehicle.DriveEnabled || vehicle.DriveDescription != "Kardan" ||
+		!vehicle.SoundGeneratorEnabled || vehicle.AdditionalInfo != "Clubbestand" || !vehicle.QRCodeEnabled {
+		t.Fatalf("snapshot lost extended vehicle fields: %#v", vehicle)
+	}
+}
+
 func TestDataTransferSnapshotAccessoryIncludesCurrentStateOnly(t *testing.T) {
 	db := testDB(t)
 	for _, statement := range []string{

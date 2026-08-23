@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -79,6 +80,9 @@ func (s *DataTransferService) CreateProfile(
 		return DataTransferProfile{}, ErrDataTransferValidation
 	}
 	if err := validateTransferSelection(input.Format, input.Areas); err != nil {
+		return DataTransferProfile{}, err
+	}
+	if err := s.ensureUniqueActiveProfileName(ctx, "", input.Name, input.Direction); err != nil {
 		return DataTransferProfile{}, err
 	}
 	return s.repository.CreateProfile(ctx, DataTransferProfile{
@@ -284,12 +288,55 @@ func (s *DataTransferService) UpdateProfile(
 	if err != nil {
 		return DataTransferProfile{}, err
 	}
+	if profile.Enabled {
+		if err := s.ensureUniqueActiveProfileName(ctx, profile.ID, input.Name, input.Direction); err != nil {
+			return DataTransferProfile{}, err
+		}
+	}
 	profile.Name = input.Name
 	profile.Direction = input.Direction
 	profile.Format = input.Format
 	profile.Areas = input.Areas
 	profile.Options = input.Options
 	return s.repository.UpdateProfile(ctx, profile)
+}
+
+func (s *DataTransferService) ensureUniqueActiveProfileName(
+	ctx context.Context,
+	excludeID string,
+	name string,
+	direction TransferDirection,
+) error {
+	profiles, err := s.repository.ListProfiles(ctx)
+	if err != nil {
+		return fmt.Errorf("list data transfer profiles: %w", err)
+	}
+	for _, profile := range profiles {
+		if profile.ID == excludeID || !profile.Enabled || profile.Direction != direction {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(profile.Name), strings.TrimSpace(name)) {
+			return fmt.Errorf("%w: active %s profile named %q already exists",
+				ErrDataTransferConflict, direction, strings.TrimSpace(name))
+		}
+	}
+	return nil
+}
+
+// DataTransferProfileNameKey returns the stable Unicode case-fold key used by
+// persistence to enforce active profile name uniqueness.
+func DataTransferProfileNameKey(name string) string {
+	var key strings.Builder
+	for _, current := range strings.TrimSpace(name) {
+		canonical := current
+		for folded := unicode.SimpleFold(current); folded != current; folded = unicode.SimpleFold(folded) {
+			if folded < canonical {
+				canonical = folded
+			}
+		}
+		key.WriteRune(canonical)
+	}
+	return key.String()
 }
 
 func (s *DataTransferService) DisableProfile(ctx context.Context, id string) (DataTransferProfile, error) {

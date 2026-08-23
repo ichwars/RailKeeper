@@ -239,6 +239,139 @@ func TestDataTransferRepositoryPersistsAndUpdatesProfiles(t *testing.T) {
 	}
 }
 
+func TestDataTransferRepositoryRejectsDuplicateActiveProfileNameAtomically(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	first, err := repo.CreateProfile(t.Context(), application.DataTransferProfile{
+		Name: "Import Fahrzeuge", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, Enabled: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = repo.CreateProfile(t.Context(), application.DataTransferProfile{
+		Name: " import fahrzeuge ", Direction: application.TransferImport, Format: application.TransferJSON,
+		Areas: []application.TransferArea{application.TransferVehicles}, Enabled: true,
+	})
+	if !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("duplicate create error = %v, want conflict", err)
+	}
+	disabled, err := repo.CreateProfile(t.Context(), application.DataTransferProfile{
+		Name: first.Name, Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, Enabled: false,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	disabled.Enabled = true
+	if _, err := repo.UpdateProfile(t.Context(), disabled); !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("duplicate enable error = %v, want conflict", err)
+	}
+}
+
+func TestDataTransferRepositorySerializesConcurrentDuplicateProfileCreates(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	start := make(chan struct{})
+	results := make(chan error, 2)
+	var wait sync.WaitGroup
+	for _, name := range []string{"Änderung", "änderung"} {
+		name := name
+		wait.Add(1)
+		go func() {
+			defer wait.Done()
+			<-start
+			_, err := repo.CreateProfile(t.Context(), application.DataTransferProfile{
+				Name: name, Direction: application.TransferImport,
+				Format: application.TransferCSV, Areas: []application.TransferArea{application.TransferVehicles},
+				Enabled: true,
+			})
+			results <- err
+		}()
+	}
+	close(start)
+	wait.Wait()
+	close(results)
+	successes, conflicts := 0, 0
+	for err := range results {
+		switch {
+		case err == nil:
+			successes++
+		case errors.Is(err, application.ErrDataTransferConflict):
+			conflicts++
+		default:
+			t.Fatalf("concurrent profile create failed unexpectedly: %v", err)
+		}
+	}
+	if successes != 1 || conflicts != 1 {
+		t.Fatalf("concurrent creates: successes=%d conflicts=%d", successes, conflicts)
+	}
+}
+
+func TestDataTransferImportMutationRollsBackJobWhenProfileMappingIsStale(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	profile, err := repo.CreateProfile(t.Context(), application.DataTransferProfile{
+		Name: "Import Fahrzeuge", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, Options: map[string]any{"marker": "old"},
+		Enabled: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		ProfileID: profile.ID, ProfileName: profile.Name, Direction: application.TransferImport,
+		Format: application.TransferCSV, Areas: profile.Areas, State: application.TransferJobDraft,
+		Stage: "created", Preview: map[string]any{"marker": "old"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	updated := job
+	updated.State = application.TransferJobReady
+	updated.Stage = "preview"
+	updated.Preview = map[string]any{"marker": "new"}
+	_, err = repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+		ExpectedState: job.State, ExpectedRevision: job.Revision, Job: updated,
+		ProfileOptions: &application.DataTransferProfileOptionsMutation{
+			ProfileID: profile.ID, ExpectedUpdatedAt: "stale", ExpectedOptions: profile.Options,
+			Options: map[string]any{"marker": "new"},
+		},
+	})
+	if !errors.Is(err, application.ErrDataTransferConflict) {
+		t.Fatalf("stale profile mapping error = %v, want conflict", err)
+	}
+	loadedJob, err := repo.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	loadedProfile, err := repo.GetProfile(t.Context(), profile.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loadedJob.State != application.TransferJobDraft || loadedJob.Preview["marker"] != "old" ||
+		loadedProfile.Options["marker"] != "old" {
+		t.Fatalf("stale mapping left partial state: job=%#v profile=%#v", loadedJob, loadedProfile)
+	}
+	updated = loadedJob
+	updated.State = application.TransferJobReady
+	updated.Stage = "preview"
+	updated.Preview = map[string]any{"marker": "new"}
+	if _, err := repo.CompareAndUpdateImportJob(t.Context(), application.DataTransferImportMutation{
+		ExpectedState: loadedJob.State, ExpectedRevision: loadedJob.Revision, Job: updated,
+		ProfileOptions: &application.DataTransferProfileOptionsMutation{
+			ProfileID: loadedProfile.ID, ExpectedUpdatedAt: loadedProfile.UpdatedAt,
+			ExpectedOptions: loadedProfile.Options, Options: map[string]any{"marker": "new"},
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	loadedProfile, err = repo.GetProfile(t.Context(), profile.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loadedProfile.Options["marker"] != "new" {
+		t.Fatalf("profile mapping was not committed with preview: %#v", loadedProfile)
+	}
+}
+
 func TestDataTransferRepositoryFiltersAndUpdatesJobs(t *testing.T) {
 	repo := infrastructure.NewDataTransferRepository(testDB(t))
 	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{

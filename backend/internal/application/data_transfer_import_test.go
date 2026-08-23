@@ -46,6 +46,119 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	}
 }
 
+func TestPreviewImportReturnsAndAppliesVehicleCSVMapping(t *testing.T) {
+	repository, service := newDataTransferImportFixture(t)
+	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	upload := []byte("Eigene Nummer;Marke;Titel;Spur;Typ;Klasse\nRK-900;Roco;BR 218;H0;Lokomotive;Diesellokomotive\n")
+
+	automatic, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", upload, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(automatic.CSVMapping) != 6 || automatic.CSVMapping[0].SourceHeader != "Eigene Nummer" ||
+		automatic.CSVMapping[0].Origin != CSVMappingUnmapped || len(automatic.VehicleFields) != 62 {
+		t.Fatalf("unexpected automatic mapping: %#v, fields=%d", automatic.CSVMapping, len(automatic.VehicleFields))
+	}
+
+	columns := append([]DataTransferCSVColumnMapping(nil), automatic.CSVMapping...)
+	targets := []string{"inventoryNumber", "manufacturer", "name", "gauge", "category", "gattung"}
+	for index := range columns {
+		columns[index].TargetField = targets[index]
+		columns[index].Origin = CSVMappingManual
+	}
+	mapped, err := service.UploadAndPreviewWithMapping(t.Context(), job.ID, "vehicles.csv", upload, "editor-1",
+		&DataTransferCSVMappingInput{Columns: columns, SaveToProfile: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mapped.ReadyRecords != 1 || mapped.ErrorRecords != 0 || len(mapped.Records) != 1 {
+		t.Fatalf("manual mapping did not produce ready preview: %#v", mapped)
+	}
+	var vehicle TransferVehicle
+	if err := json.Unmarshal(mapped.Records[0].Data, &vehicle); err != nil {
+		t.Fatal(err)
+	}
+	if vehicle.InventoryNumber != "RK-900" || vehicle.Manufacturer != "Roco" || vehicle.Name != "BR 218" {
+		t.Fatalf("manual mapping produced wrong vehicle: %#v", vehicle)
+	}
+	if repository.profiles[job.ProfileID].Options["csvMapping"] == nil {
+		t.Fatalf("mapping was not saved to profile options: %#v", repository.profiles[job.ProfileID].Options)
+	}
+	loaded, err := repository.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Options["csvMapping"] == nil || loaded.Preview["csvMapping"] == nil {
+		t.Fatalf("mapping was not persisted in job snapshot and preview: %#v %#v", loaded.Options, loaded.Preview)
+	}
+}
+
+func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
+	maximumSpeed := 140
+	want := TransferVehicle{
+		InventoryNumber: "RK-062", Manufacturer: "Roco", ArticleNumber: "73000",
+		ArticleSourceURL: "https://example.invalid/73000", Name: "BR 218", Gauge: "H0", Epoch: "IV",
+		RailwayCompany: "DB", Category: "Lokomotive", Gattung: "Diesellokomotive", Description: "Test",
+		Series: "218", VehicleNumber: "218 001-6", MaximumSpeedKmh: &maximumSpeed, HomeBase: "Bw Hamburg",
+		Digital: true, DigitalDecoderNumber: "3", DecoderType: "LokSound 5", DTDecoder: true,
+		DTDecoderNumber: "4", ExhibitionReady: true, Exhibition: true, ABCBrakes: true, EAN: "4000000000000",
+		ProductionPeriod: "2025", ListPrice: "299,90", AcquisitionType: "Kauf", AcquiredFrom: "Händler",
+		PurchasePrice: "249,90", PurchaseDate: "2026-01-02", StorageLocation: "Vitrine",
+		StorageDetails: "Fach 2", Condition: "Sehr gut", ConditionDetails: "Eingefahren", Packaging: "OVP",
+		LengthMM: "181", WeightG: "540", Color: "Ozeanblau", Lettering: "DB", Load: "",
+		Interior: "Führerstand", Axles: "Bo'Bo'", AxleCount: "4", TractionTireCount: "2", Wheelset: "AC",
+		CouplingSame: true, CouplingFront: "KKK", CouplingRear: "KKK", PowerPickup: "Schleifer", Adapter: "MTC21",
+		DriveEnabled: true, DriveDescription: "Kardan", HeadlightsEnabled: true,
+		HeadlightsDescription: "Dreilicht", LightingEnabled: true, LightingDescription: "LED",
+		SoundGeneratorEnabled: true, SoundGeneratorDescription: "Diesel", SmokeGeneratorEnabled: true,
+		SmokeGeneratorDescription: "Dynamisch", AdditionalInfo: "-Clubbestand", QRCodeEnabled: true,
+	}
+	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{want}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotSnapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(string(payload)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(gotSnapshot.Vehicles) != 1 {
+		t.Fatalf("round-trip vehicles = %d, want 1", len(gotSnapshot.Vehicles))
+	}
+	got := gotSnapshot.Vehicles[0]
+	if got.LengthMM != want.LengthMM || got.WeightG != want.WeightG || got.CouplingRear != want.CouplingRear ||
+		!got.SoundGeneratorEnabled || got.AdditionalInfo != want.AdditionalInfo || !got.QRCodeEnabled ||
+		got.MaximumSpeedKmh == nil || *got.MaximumSpeedKmh != maximumSpeed {
+		t.Fatalf("vehicle round trip lost extended fields: %#v", got)
+	}
+}
+
+func TestDataTransferCSVProtectionRoundTrip(t *testing.T) {
+	for _, value := range []string{"=x", "  =x", "'=x", "''=x", "+x", "-x", "@x"} {
+		t.Run(value, func(t *testing.T) {
+			encoded := safeDataTransferCSVRow([]string{value})[0]
+			decoded := decodeSafeDataTransferCSVValue(strings.TrimSpace(encoded))
+			if decoded != value {
+				t.Fatalf("CSV protection round trip = %q, want %q (encoded %q)", decoded, value, encoded)
+			}
+		})
+	}
+}
+
+func TestDataTransferVehicleCSVRejectsUnknownBooleanValue(t *testing.T) {
+	payload := strings.Join([]string{
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung;Digital",
+		"RK-BOOL;Roco;BR 218;H0;Lokomotive;Diesellokomotive;treu",
+	}, "\n")
+
+	_, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	if !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("unknown boolean error = %v, want validation error", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "Digital") || !strings.Contains(err.Error(), "row 2") {
+		t.Fatalf("unknown boolean error lacks field or row context: %v", err)
+	}
+}
+
 func TestPreviewImportRejectsRecordsRejectedByRegularAggregateValidation(t *testing.T) {
 	incoming := DataTransferSnapshot{
 		Vehicles: []TransferVehicle{{
@@ -77,7 +190,7 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 		},
 		{
 			name:    "unsupported package version",
-			payload: `{"format":"railkeeper-transfer","version":2,"areas":{"vehicles":[]}}`,
+			payload: `{"format":"railkeeper-transfer","version":3,"areas":{"vehicles":[]}}`,
 		},
 		{
 			name:    "empty areas",
@@ -94,6 +207,30 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 				t.Fatalf("expected validation error, got %v", err)
 			}
 		})
+	}
+}
+
+func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
+	document, err := decodeDataTransferPackage(strings.NewReader(
+		`{"format":"railkeeper-transfer","version":1,"createdAt":"2026-01-01T00:00:00Z",` +
+			`"areas":{"vehicles":[]}}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Version != DataTransferPackageLegacyVersion || document.Areas.Vehicles == nil {
+		t.Fatalf("legacy package decoded incorrectly: %#v", document)
+	}
+}
+
+func TestTransferImportRejectsVersionTwoVehicleFieldsInLegacyPackage(t *testing.T) {
+	_, err := decodeDataTransferPackage(strings.NewReader(
+		`{"format":"railkeeper-transfer","version":1,"areas":{"vehicles":[{` +
+			`"inventoryNumber":"RK-LEGACY","manufacturer":"Roco","name":"BR 218","gauge":"H0",` +
+			`"lengthMm":"181"}]}}`,
+	))
+	if !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("version 2 field in legacy package error = %v, want validation error", err)
 	}
 }
 
@@ -397,6 +534,17 @@ func (repository *dataTransferImportRepositoryStub) GetProfile(
 	return profile, nil
 }
 
+func (repository *dataTransferImportRepositoryStub) UpdateProfile(
+	_ context.Context,
+	profile DataTransferProfile,
+) (DataTransferProfile, error) {
+	if _, found := repository.profiles[profile.ID]; !found {
+		return DataTransferProfile{}, ErrDataTransferNotFound
+	}
+	repository.profiles[profile.ID] = profile
+	return profile, nil
+}
+
 func (repository *dataTransferImportRepositoryStub) CreateJob(
 	_ context.Context,
 	job DataTransferJob,
@@ -420,6 +568,14 @@ func (repository *dataTransferImportRepositoryStub) CompareAndUpdateImportJob(
 		return DataTransferJob{}, ErrDataTransferConflict
 	}
 	repository.mutationCount++
+	if mutation.ProfileOptions != nil {
+		profile, found := repository.profiles[mutation.ProfileOptions.ProfileID]
+		if !found || profile.UpdatedAt != mutation.ProfileOptions.ExpectedUpdatedAt {
+			return DataTransferJob{}, ErrDataTransferConflict
+		}
+		profile.Options = cloneTransferOptions(mutation.ProfileOptions.Options)
+		repository.profiles[profile.ID] = profile
+	}
 	mutation.Job.Revision = current.Revision + 1
 	repository.jobs[mutation.Job.ID] = mutation.Job
 	if mutation.ReplaceIssues {

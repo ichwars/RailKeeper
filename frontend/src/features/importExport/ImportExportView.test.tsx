@@ -129,12 +129,43 @@ describe("ImportExportView", () => {
     expect(screen.getByRole("button", { name: "Neuer Import" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Neuer Export" })).toBeEnabled();
     expect(screen.getByRole("heading", { name: "Aufträge" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Exportprofile" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Transferprofile" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Transferverlauf" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Auftragsdetails" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Lokale Ablage" })).toBeInTheDocument();
     expect(screen.getByText("Messeliste kompakt")).toBeInTheDocument();
     expect(screen.queryByText("Stammdaten")).not.toBeInTheDocument();
+  });
+
+  it("lists import, export, and disabled profiles together", async () => {
+    vi.mocked(api.dataTransferProfiles).mockResolvedValue([
+      profileFixture({ id: "profile-import", name: "Fahrzeugimport", direction: "import", format: "csv" }),
+      profileFixture({ id: "profile-export", name: "Fahrzeugexport", direction: "export", format: "csv" }),
+      profileFixture({ id: "profile-disabled", name: "Alter Import", direction: "import", enabled: false })
+    ]);
+
+    render(<ImportExportView roles={["Admin"]} />);
+
+    const section = (await screen.findByRole("heading", { name: "Transferprofile" })).closest("section") as HTMLElement;
+    expect(within(section).getByText("Fahrzeugimport")).toBeInTheDocument();
+    expect(within(section).getByText("Fahrzeugexport")).toBeInTheDocument();
+    expect(within(section).getByText("Alter Import")).toBeInTheDocument();
+    expect(within(section).getAllByText("Import")).toHaveLength(2);
+    expect(within(section).getByText("Export")).toBeInTheDocument();
+    expect(within(section).getByText("Deaktiviert")).toBeInTheDocument();
+    expect(within(section).queryByRole("button", { name: "Alter Import starten" })).not.toBeInTheDocument();
+  });
+
+  it("opens the matching execution flow from a profile row", async () => {
+    vi.mocked(api.dataTransferProfiles).mockResolvedValue([
+      profileFixture({ id: "profile-import", name: "Fahrzeugimport", direction: "import", format: "csv" }),
+      profileFixture({ id: "profile-export", name: "Fahrzeugexport", direction: "export", format: "csv" })
+    ]);
+
+    render(<ImportExportView roles={["Admin"]} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Fahrzeugimport starten" }));
+    expect(screen.getByRole("dialog", { name: "Import prüfen" })).toBeInTheDocument();
   });
 
   it("updates job details and progress stages after selection and applies job filters", async () => {

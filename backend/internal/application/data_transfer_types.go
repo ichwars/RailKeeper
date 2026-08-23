@@ -116,6 +116,14 @@ type DataTransferImportMutation struct {
 	Job              DataTransferJob
 	Issues           []DataTransferIssue
 	ReplaceIssues    bool
+	ProfileOptions   *DataTransferProfileOptionsMutation
+}
+
+type DataTransferProfileOptionsMutation struct {
+	ProfileID         string
+	ExpectedUpdatedAt string
+	ExpectedOptions   map[string]any
+	Options           map[string]any
 }
 
 type DataTransferImportPolicy struct {

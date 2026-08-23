@@ -40,15 +40,33 @@ artifacts, or request that RailKeeper open an artifact folder on the server.
 | Transfer manufacturers, gauges, categories, symbols, or other master data | Use **Settings > Master data**, not this workspace |
 | Preserve or restore application data and stored uploads | Use the Admin-only application backup, not a vehicle export |
 
+## Understand transfer profiles
+
+A transfer profile stores only the reusable selection for a job:
+
+- **Direction**: import reads a file, export creates a file.
+- **Areas**: vehicles, accessories, or exhibition lists. CSV supports exactly one area, and
+  exhibition lists require RailKeeper JSON.
+- **Format**: CSV for tabular single-area exchange, RailKeeper JSON for complete packages that may
+  span areas.
+- **CSV mapping**: vehicle imports can save source-column assignments to the 62 RailKeeper fields
+  as profile defaults.
+
+The **Transfer profiles** table lists import, export, and disabled profiles together. Only enabled
+profiles have a start action. An enabled profile name may occur only once per direction, while the
+same name may be used once for import and once for export.
+
 ## Safe working sequence
 
 1. Ask an Admin to create a current application backup before a large or unfamiliar import.
 2. Select an enabled profile whose direction, areas, and format match the intended transfer.
 3. For an export, create the job, execute it, and download the artifact after checking its summary.
 4. For an import, create the job and upload the matching CSV or RailKeeper JSON file.
-5. Inspect the persisted preview and every warning or error. Record a resolution for each issue that
+5. For CSV, review every detected source column. Map open columns or explicitly ignore them, and
+   optionally save the mapping to the profile for recurring files.
+6. Inspect the persisted preview and every warning or error. Record a resolution for each issue that
    requires a decision.
-6. Confirm only the reviewed snapshot, then inspect the completed job and representative records.
+7. Confirm only the reviewed snapshot, then inspect the completed job and representative records.
 
 ## Important boundaries
 
@@ -68,6 +86,7 @@ artifacts, or request that RailKeeper open an artifact folder on the server.
 | --- | --- |
 | No suitable profile is available | Ask an Editor or Admin to create or enable a profile for the required direction, areas, and format. |
 | CSV cannot be selected | Use exactly one vehicle or accessory area, or switch to RailKeeper JSON. Exhibition lists require JSON. |
+| A CSV column remains open | Select a RailKeeper field or explicitly ignore the column. The mapping must be complete before validation. |
 | An import remains in review | Open the job details and resolve every blocking issue before confirming. |
 | Confirmation reports stale state | Reload the job. Another operator changed its revision, state, or issue decisions. |
 | A pure Messe account cannot see a profile | Only exhibition-list profiles are visible in the isolated Messe scope. |

@@ -1,7 +1,6 @@
 package application
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -20,19 +19,23 @@ import (
 
 const DataTransferMaxUploadBytes int64 = 25 * 1024 * 1024
 
+const DataTransferTargetFingerprintVersion = 2
+
 var (
 	ErrDataTransferUploadTooLarge = errors.New("data transfer upload exceeds the size limit")
 	ErrDataTransferUploadPath     = errors.New("data transfer upload path is not confined")
 )
 
 type DataTransferPreview struct {
-	Job            DataTransferJob             `json:"job"`
-	Records        []DataTransferPreviewRecord `json:"records"`
-	Issues         []DataTransferIssue         `json:"issues"`
-	TotalRecords   int                         `json:"totalRecords"`
-	ReadyRecords   int                         `json:"readyRecords"`
-	WarningRecords int                         `json:"warningRecords"`
-	ErrorRecords   int                         `json:"errorRecords"`
+	Job            DataTransferJob                `json:"job"`
+	Records        []DataTransferPreviewRecord    `json:"records"`
+	Issues         []DataTransferIssue            `json:"issues"`
+	TotalRecords   int                            `json:"totalRecords"`
+	ReadyRecords   int                            `json:"readyRecords"`
+	WarningRecords int                            `json:"warningRecords"`
+	ErrorRecords   int                            `json:"errorRecords"`
+	CSVMapping     []DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
+	VehicleFields  []VehicleTransferField         `json:"vehicleFields,omitempty"`
 }
 
 type DataTransferPreviewRecord struct {
@@ -48,6 +51,10 @@ type DataTransferPreviewRecord struct {
 }
 
 func DataTransferTargetFingerprint(value any) string {
+	return DataTransferTargetFingerprintForVersion(value, DataTransferTargetFingerprintVersion)
+}
+
+func DataTransferTargetFingerprintForVersion(value any, version int) string {
 	fingerprintValue := value
 	switch accessory := value.(type) {
 	case TransferAccessory:
@@ -61,6 +68,16 @@ func DataTransferTargetFingerprint(value any) string {
 				TransferAccessory
 				FingerprintState TransferAccessoryFingerprintState `json:"fingerprintState"`
 			}{TransferAccessory: *accessory, FingerprintState: accessory.FingerprintState}
+		}
+	}
+	if version < DataTransferTargetFingerprintVersion {
+		switch vehicle := value.(type) {
+		case TransferVehicle:
+			fingerprintValue = legacyTransferVehicle(vehicle)
+		case *TransferVehicle:
+			if vehicle != nil {
+				fingerprintValue = legacyTransferVehicle(*vehicle)
+			}
 		}
 	}
 	payload, err := json.Marshal(fingerprintValue)
@@ -117,8 +134,20 @@ func (s *DataTransferService) UploadAndPreview(
 	actorUserID string,
 	allowedAreas ...TransferArea,
 ) (DataTransferPreview, error) {
+	return s.UploadAndPreviewWithMapping(ctx, jobID, sourceName, payload, actorUserID, nil, allowedAreas...)
+}
+
+func (s *DataTransferService) UploadAndPreviewWithMapping(
+	ctx context.Context,
+	jobID string,
+	sourceName string,
+	payload []byte,
+	actorUserID string,
+	mapping *DataTransferCSVMappingInput,
+	allowedAreas ...TransferArea,
+) (DataTransferPreview, error) {
 	return s.UploadAndPreviewReader(
-		ctx, jobID, sourceName, "", bytes.NewReader(payload), actorUserID, allowedAreas...,
+		ctx, jobID, sourceName, "", bytes.NewReader(payload), actorUserID, mapping, allowedAreas...,
 	)
 }
 
@@ -129,6 +158,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	declaredMIMEType string,
 	source io.Reader,
 	actorUserID string,
+	mapping *DataTransferCSVMappingInput,
 	allowedAreas ...TransferArea,
 ) (DataTransferPreview, error) {
 	repository, err := s.importRepository()
@@ -146,6 +176,10 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	}
 	if job.Direction != TransferImport || !validTransferFormat(job.Format) {
 		return DataTransferPreview{}, fmt.Errorf("%w: job is not an import", ErrDataTransferValidation)
+	}
+	if mapping != nil && (job.Format != TransferCSV || !slices.Contains(job.Areas, TransferVehicles)) {
+		return DataTransferPreview{}, fmt.Errorf("%w: manual CSV mapping is only supported for vehicles",
+			ErrDataTransferValidation)
 	}
 	if job.State != TransferJobDraft && job.State != TransferJobReviewRequired && job.State != TransferJobReady {
 		return DataTransferPreview{}, fmt.Errorf("%w: import job is %s", ErrDataTransferConflict, job.State)
@@ -174,7 +208,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, fmt.Errorf("open transfer upload: %w", err)
 	}
 	defer func() { _ = file.Close() }()
-	incoming, packageVersion, rowNumbers, err := parseDataTransferUpload(job, file)
+	incoming, packageVersion, rowNumbers, csvMapping, err := parseDataTransferUpload(job, file, mapping)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -200,19 +234,38 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	job.WarningRecords = warnings
 	job.ErrorRecords = failures
 	job.Stage = "preview"
+	if len(csvMapping) > 0 {
+		job.Options = dataTransferOptionsWithCSVMapping(job.Options, csvMapping)
+	}
 	if len(issues) == 0 {
 		job.State = TransferJobReady
 	} else {
 		job.State = TransferJobReviewRequired
 	}
-	job.Preview, err = dataTransferPreviewMap(digest, records)
+	vehicleFields := []VehicleTransferField(nil)
+	if job.Format == TransferCSV && slices.Contains(job.Areas, TransferVehicles) {
+		vehicleFields = VehicleTransferFields()
+	}
+	job.Preview, err = dataTransferPreviewMap(digest, records, csvMapping, vehicleFields)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	job, err = compareAndUpdateDataTransferImport(ctx, repository, DataTransferImportMutation{
+	mutation := DataTransferImportMutation{
 		ExpectedState: expectedState, ExpectedRevision: expectedRevision, Job: job,
 		Issues: issues, ReplaceIssues: true,
-	})
+	}
+	if mapping != nil && mapping.SaveToProfile && job.ProfileID != "" {
+		profile, profileErr := s.profile(ctx, job.ProfileID)
+		if profileErr != nil {
+			return DataTransferPreview{}, profileErr
+		}
+		mutation.ProfileOptions = &DataTransferProfileOptionsMutation{
+			ProfileID: profile.ID, ExpectedUpdatedAt: profile.UpdatedAt,
+			ExpectedOptions: cloneTransferOptions(profile.Options),
+			Options:         dataTransferOptionsWithCSVMapping(profile.Options, csvMapping),
+		}
+	}
+	job, err = compareAndUpdateDataTransferImport(ctx, repository, mutation)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -220,7 +273,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	return newDataTransferPreview(job, records, issues), nil
+	return newDataTransferPreview(job, records, issues, csvMapping, vehicleFields), nil
 }
 
 func validateTransferAccessoryPreviewReferences(
@@ -589,45 +642,83 @@ func normalizeTransferMIME(value string) string {
 func parseDataTransferUpload(
 	job DataTransferJob,
 	reader io.Reader,
-) (DataTransferSnapshot, int, map[TransferArea][]int, error) {
+	mapping *DataTransferCSVMappingInput,
+) (DataTransferSnapshot, int, map[TransferArea][]int, []DataTransferCSVColumnMapping, error) {
 	switch job.Format {
 	case TransferJSON:
 		packageDocument, err := decodeDataTransferPackage(reader)
 		if err != nil {
-			return DataTransferSnapshot{}, 0, nil, err
+			return DataTransferSnapshot{}, 0, nil, nil, err
 		}
 		if err := validateDataTransferPackageSelection(packageDocument.Areas, job.Areas); err != nil {
-			return DataTransferSnapshot{}, 0, nil, err
+			return DataTransferSnapshot{}, 0, nil, nil, err
 		}
 		return DataTransferSnapshot{
 			Vehicles: packageDocument.Areas.Vehicles, Accessories: packageDocument.Areas.Accessories,
 			ExhibitionLists: packageDocument.Areas.ExhibitionLists,
-		}, packageDocument.Version, nil, nil
+		}, packageDocument.Version, nil, nil, nil
 	case TransferCSV:
 		if len(job.Areas) != 1 {
-			return DataTransferSnapshot{}, 0, nil, ErrDataTransferValidation
+			return DataTransferSnapshot{}, 0, nil, nil, ErrDataTransferValidation
 		}
-		snapshot, rows, err := parseDataTransferCSV(job.Areas[0], reader)
-		return snapshot, DataTransferPackageVersion, map[TransferArea][]int{job.Areas[0]: rows}, err
+		snapshot, rows, effectiveMapping, err := parseDataTransferCSVWithMapping(
+			job.Areas[0], reader, mapping, dataTransferCSVMappingDefaults(job.Options),
+		)
+		return snapshot, DataTransferPackageVersion, map[TransferArea][]int{job.Areas[0]: rows}, effectiveMapping, err
 	default:
-		return DataTransferSnapshot{}, 0, nil, ErrDataTransferValidation
+		return DataTransferSnapshot{}, 0, nil, nil, ErrDataTransferValidation
 	}
 }
 
 func decodeDataTransferPackage(reader io.Reader) (DataTransferPackage, error) {
-	decoder := json.NewDecoder(bufio.NewReader(reader))
-	decoder.DisallowUnknownFields()
-	document := DataTransferPackage{}
-	if err := decoder.Decode(&document); err != nil {
+	envelope := struct {
+		Format    string          `json:"format"`
+		Version   int             `json:"version"`
+		CreatedAt string          `json:"createdAt"`
+		Areas     json.RawMessage `json:"areas"`
+	}{}
+	if err := decodeStrictTransferJSON(reader, &envelope); err != nil {
 		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
 	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return DataTransferPackage{}, fmt.Errorf("%w: transfer package has trailing data", ErrDataTransferValidation)
-	}
-	if document.Format != DataTransferPackageFormat || document.Version != DataTransferPackageVersion {
+	if envelope.Format != DataTransferPackageFormat ||
+		(envelope.Version != DataTransferPackageLegacyVersion && envelope.Version != DataTransferPackageVersion) {
 		return DataTransferPackage{}, fmt.Errorf("%w: unsupported transfer package format or version", ErrDataTransferValidation)
 	}
+	document := DataTransferPackage{
+		Format: envelope.Format, Version: envelope.Version, CreatedAt: envelope.CreatedAt,
+	}
+	if envelope.Version == DataTransferPackageVersion {
+		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &document.Areas); err != nil {
+			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+		}
+		return document, nil
+	}
+	legacyAreas := dataTransferPackageAreasV1{}
+	if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &legacyAreas); err != nil {
+		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+	}
+	document.Areas = DataTransferPackageAreas{
+		Accessories: legacyAreas.Accessories, ExhibitionLists: legacyAreas.ExhibitionLists,
+	}
+	if legacyAreas.Vehicles != nil {
+		document.Areas.Vehicles = make([]TransferVehicle, len(legacyAreas.Vehicles))
+		for index, vehicle := range legacyAreas.Vehicles {
+			document.Areas.Vehicles[index] = transferVehicleFromV1(vehicle)
+		}
+	}
 	return document, nil
+}
+
+func decodeStrictTransferJSON(reader io.Reader, target any) error {
+	decoder := json.NewDecoder(reader)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("trailing JSON data")
+	}
+	return nil
 }
 
 func validateDataTransferPackageSelection(areas DataTransferPackageAreas, selected []TransferArea) error {
@@ -652,11 +743,20 @@ func validateDataTransferPackageSelection(areas DataTransferPackageAreas, select
 	return nil
 }
 
-func dataTransferPreviewMap(sourceSHA256 string, records []DataTransferPreviewRecord) (map[string]any, error) {
+func dataTransferPreviewMap(
+	sourceSHA256 string,
+	records []DataTransferPreviewRecord,
+	csvMapping []DataTransferCSVColumnMapping,
+	vehicleFields []VehicleTransferField,
+) (map[string]any, error) {
 	payload, err := json.Marshal(struct {
-		SourceSHA256 string                      `json:"sourceSha256"`
-		Records      []DataTransferPreviewRecord `json:"records"`
-	}{SourceSHA256: sourceSHA256, Records: records})
+		SourceSHA256       string                         `json:"sourceSha256"`
+		FingerprintVersion int                            `json:"fingerprintVersion"`
+		Records            []DataTransferPreviewRecord    `json:"records"`
+		CSVMapping         []DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
+		VehicleFields      []VehicleTransferField         `json:"vehicleFields,omitempty"`
+	}{SourceSHA256: sourceSHA256, FingerprintVersion: DataTransferTargetFingerprintVersion,
+		Records: records, CSVMapping: csvMapping, VehicleFields: vehicleFields})
 	if err != nil {
 		return nil, fmt.Errorf("encode transfer preview: %w", err)
 	}
@@ -671,10 +771,13 @@ func newDataTransferPreview(
 	job DataTransferJob,
 	records []DataTransferPreviewRecord,
 	issues []DataTransferIssue,
+	csvMapping []DataTransferCSVColumnMapping,
+	vehicleFields []VehicleTransferField,
 ) DataTransferPreview {
 	return DataTransferPreview{
 		Job: job, Records: records, Issues: issues, TotalRecords: job.TotalRecords,
 		ReadyRecords: job.ReadyRecords, WarningRecords: job.WarningRecords, ErrorRecords: job.ErrorRecords,
+		CSVMapping: csvMapping, VehicleFields: vehicleFields,
 	}
 }
 

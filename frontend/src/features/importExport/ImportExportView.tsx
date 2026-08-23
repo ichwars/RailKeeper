@@ -82,11 +82,13 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           <TransferProfilesTable
             canCreate={workspace.capabilities.canCreateProfiles}
             canEdit={workspace.capabilities.canUpdateProfiles}
+            canExport={workspace.capabilities.canExport}
+            canImport={workspace.capabilities.canImport}
             language={language}
             mutating={workspace.mutating}
             onCreate={() => workspace.openDialog("profile")}
             onEdit={(profileId) => workspace.openDialog("profile", profileId)}
-            onRun={(profileId) => workspace.openDialog("export", profileId)}
+            onRun={(profile) => workspace.openDialog(profile.direction, profile.id)}
             profiles={workspace.profiles}
             t={t}
           />

@@ -92,7 +92,16 @@ const previewFixture: DataTransferPreview = {
   totalRecords: 1,
   readyRecords: 0,
   warningRecords: 0,
-  errorRecords: 1
+  errorRecords: 1,
+  csvMapping: [
+    { index: 0, sourceHeader: "Inventarnummer", normalizedHeader: "inventarnummer",
+      targetField: "inventoryNumber", origin: "alias" }
+  ],
+  vehicleFields: [
+    { key: "inventoryNumber", labelDE: "Inventarnummer", labelEN: "Inventory number", kind: "string" },
+    { key: "manufacturer", labelDE: "Hersteller", labelEN: "Manufacturer", kind: "string" },
+    { key: "name", labelDE: "Bezeichnung", labelEN: "Name", kind: "string" }
+  ]
 };
 
 const summaryFixture: DataTransferSummary = {
@@ -191,8 +200,28 @@ describe("data transfer operational dialogs", () => {
     expect(within(dialog).getByText("Ausstellungslisten sind nur als JSON verfügbar.")).toBeInTheDocument();
   });
 
-  it("shows the server-derived CSV mapping before review", async () => {
+  it("does not expose unimplemented raw JSON options in profile management", async () => {
+    render(<ImportExportView roles={["Admin"]} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Profil anlegen" }));
+    const dialog = screen.getByRole("dialog", { name: "Transferprofil anlegen" });
+
+    expect(within(dialog).queryByText("Optionen (JSON)")).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("textbox", { name: "Optionen (JSON)" })).not.toBeInTheDocument();
+  });
+
+  it("shows source columns and revalidates a manual CSV mapping before review", async () => {
     const user = userEvent.setup();
+    const unmapped = {
+      ...previewFixture,
+      csvMapping: [{ index: 0, sourceHeader: "Eigene Nummer", normalizedHeader: "eigenenummer",
+        targetField: "", origin: "unmapped" as const }]
+    };
+    const mapped = {
+      ...unmapped,
+      csvMapping: [{ ...unmapped.csvMapping[0], targetField: "inventoryNumber", origin: "manual" as const }]
+    };
+    vi.mocked(api.uploadDataTransferImport).mockResolvedValueOnce(unmapped).mockResolvedValueOnce(mapped);
     render(<ImportExportView roles={["Editor"]} />);
 
     fireEvent.click(await screen.findByRole("button", { name: "Neuer Import" }));
@@ -203,16 +232,19 @@ describe("data transfer operational dialogs", () => {
     }));
 
     expect(await within(dialog).findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
-    expect(within(dialog).getByText(
-      "Serverseitig normalisierte Zielfelder (automatische Alias-Erkennung)"
-    )).toBeInTheDocument();
-    expect(within(dialog).getByText(/Quelldatei bearbeiten und erneut hochladen/)).toBeInTheDocument();
-    expect(within(dialog).getByText("inventoryNumber")).toBeInTheDocument();
+    expect(within(dialog).getByText("Eigene Nummer")).toBeInTheDocument();
     expect(within(dialog).queryByRole("heading", { name: "Vorschau" })).not.toBeInTheDocument();
     expect(within(dialog).getByText("fahrzeuge.csv")).toBeInTheDocument();
-    await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
+    expect(within(dialog).getByRole("button", { name: "Zuordnung prüfen" })).toBeDisabled();
+    await selectAppOption(user, within(dialog).getByLabelText("Zielfeld für Eigene Nummer"), "Inventarnummer");
+    await user.click(within(dialog).getByRole("checkbox", { name: "Zuordnung im Profil speichern" }));
+    await user.click(within(dialog).getByRole("button", { name: "Zuordnung prüfen" }));
     expect(await within(dialog).findByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
-    expect(api.uploadDataTransferImport).toHaveBeenCalledWith("job-import", expect.any(File));
+    expect(api.uploadDataTransferImport).toHaveBeenLastCalledWith("job-import", expect.any(File), {
+      columns: [expect.objectContaining({ sourceHeader: "Eigene Nummer", targetField: "inventoryNumber",
+        origin: "manual" })],
+      saveToProfile: true
+    });
   });
 
   it("sends RailKeeper JSON previews directly to review", async () => {
@@ -576,7 +608,7 @@ describe("data transfer operational dialogs", () => {
 
     await waitFor(() => expect(api.updateDataTransferProfile).toHaveBeenCalledWith(
       exportProfile.id,
-      expect.objectContaining({ name: "Werkstattbestand neu" })
+      expect.objectContaining({ name: "Werkstattbestand neu", options: exportProfile.options })
     ));
     expect((await screen.findAllByText("Werkstattbestand (alt)")).length).toBeGreaterThan(0);
   });

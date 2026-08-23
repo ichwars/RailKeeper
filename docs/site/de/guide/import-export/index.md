@@ -42,6 +42,22 @@ Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner 
 | Hersteller, Spurweiten, Kategorien, Symbole oder andere Stammdaten übertragen | **Einstellungen > Stammdaten** verwenden, nicht diesen Arbeitsbereich |
 | Anwendungsdaten und gespeicherte Uploads erhalten oder wiederherstellen | Admin-Anwendungssicherung verwenden, keinen Fahrzeugexport |
 
+## Transferprofile verstehen
+
+Ein Transferprofil speichert nur die wiederverwendbare Auswahl für einen Auftrag:
+
+- **Richtung**: Import liest eine Datei ein, Export erzeugt eine Datei.
+- **Bereiche**: Fahrzeuge, Zubehör oder Ausstellungslisten. CSV unterstützt genau einen Bereich,
+  Ausstellungslisten benötigen RailKeeper-JSON.
+- **Format**: CSV für tabellarische Einzelbereiche, RailKeeper-JSON für vollständige, auch
+  bereichsübergreifende Pakete.
+- **CSV-Zuordnung**: Bei Fahrzeugimporten kann die Zuordnung von Quellspalten zu den 62
+  RailKeeper-Feldern als Profilstandard gespeichert werden.
+
+Die Tabelle **Transferprofile** zeigt Import-, Export- und deaktivierte Profile gemeinsam. Nur
+aktive Profile besitzen eine Startaktion. Ein aktiver Profilname darf je Richtung nur einmal
+vorkommen, derselbe Name darf aber einmal für Import und einmal für Export verwendet werden.
+
 ## Sicherer Arbeitsablauf
 
 1. Vor einem großen oder unbekannten Import einen Admin um eine aktuelle Anwendungssicherung
@@ -50,9 +66,11 @@ Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner 
 3. Beim Export den Auftrag anlegen, ausführen und das Artefakt nach Prüfung der Zusammenfassung
    herunterladen.
 4. Beim Import den Auftrag anlegen und die passende CSV- oder RailKeeper-JSON-Datei hochladen.
-5. Dauerhafte Vorschau sowie jede Warnung und jeden Fehler prüfen. Für alle entscheidungspflichtigen
+5. Bei CSV jede erkannte Quellspalte prüfen. Offene Spalten zuordnen oder ausdrücklich ignorieren,
+   bei wiederkehrenden Dateien die Zuordnung optional im Profil speichern.
+6. Dauerhafte Vorschau sowie jede Warnung und jeden Fehler prüfen. Für alle entscheidungspflichtigen
    Probleme eine Lösung festhalten.
-6. Nur den geprüften Stand bestätigen, dann abgeschlossenen Auftrag und repräsentative Datensätze
+7. Nur den geprüften Stand bestätigen, dann abgeschlossenen Auftrag und repräsentative Datensätze
    kontrollieren.
 
 ## Wichtige Grenzen
@@ -74,6 +92,7 @@ Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner 
 | --- | --- |
 | Kein passendes Profil ist verfügbar | Editor oder Admin um ein aktives Profil mit benötigter Richtung, Bereichen und Format bitten. |
 | CSV lässt sich nicht wählen | Genau einen Fahrzeug- oder Zubehörbereich verwenden oder auf RailKeeper-JSON wechseln. Messelisten benötigen JSON. |
+| Eine CSV-Spalte bleibt offen | Ein RailKeeper-Feld auswählen oder die Spalte ausdrücklich ignorieren. Erst dann lässt sich die Zuordnung prüfen. |
 | Ein Import bleibt in Prüfung | Auftragsdetails öffnen und jedes blockierende Problem vor der Bestätigung lösen. |
 | Die Bestätigung meldet einen veralteten Stand | Auftrag neu laden. Ein anderer Bediener hat Revision, Zustand oder Problementscheidungen geändert. |
 | Ein reines Messe-Konto sieht ein Profil nicht | Im isolierten Messeumfang sind nur Messelistenprofile sichtbar. |

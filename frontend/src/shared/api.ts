@@ -1,5 +1,6 @@
 import { createLayoutsAccessoriesAPI } from "./apiLayoutsAccessories";
 import type {
+  DataTransferCSVMappingInput,
   DataTransferExportResult,
   DataTransferIssueResolution,
   DataTransferJob,
@@ -1311,8 +1312,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify(input)
     }),
-  uploadDataTransferImport: (id: string, file: File) => {
+  uploadDataTransferImport: (id: string, file: File, mapping?: DataTransferCSVMappingInput) => {
     const form = new FormData();
+    if (mapping) form.append("mapping", JSON.stringify(mapping));
     form.append("file", file);
     return request<DataTransferPreview>(`/data-transfer/jobs/${encodeURIComponent(id)}/upload`, {
       method: "POST",

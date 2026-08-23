@@ -129,6 +129,25 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 	if preview.ErrorRecords != 1 || len(preview.Issues) != 1 {
 		t.Fatalf("unexpected import preview: %#v", preview)
 	}
+	if len(preview.CSVMapping) != 6 || len(preview.VehicleFields) != 62 ||
+		preview.CSVMapping[0].SourceHeader != "Inventarnummer" {
+		t.Fatalf("missing CSV mapping contract: %#v, fields=%d", preview.CSVMapping, len(preview.VehicleFields))
+	}
+
+	uploaded = dataTransferMultipartMappingRequest(t, router, editor,
+		"/api/v1/data-transfer/jobs/"+job.ID+"/upload", "vehicles.csv",
+		[]byte("Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung\n"+
+			"RK-001;;BR 218;H0;Lokomotive;Diesellokomotive\n"),
+		application.DataTransferCSVMappingInput{Columns: preview.CSVMapping, SaveToProfile: true})
+	assertStatus(t, uploaded, http.StatusOK)
+	decodeResponse(t, uploaded, &preview)
+	profiles, err := service.ListProfiles(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(profiles) != 1 || profiles[0].Options["csvMapping"] == nil {
+		t.Fatalf("file-first multipart mapping was not saved: %#v", profiles)
+	}
 
 	resolved := layoutRequest(t, router, editor, http.MethodPut,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/issues/"+preview.Issues[0].ID,
@@ -150,6 +169,7 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 		"/api/v1/data-transfer/jobs/"+job.ID+"/retry", nil, true)
 	assertStatus(t, retried, http.StatusCreated)
 	assertDataTransferAuditActions(t, db, "DataTransferImportJobCreated", "DataTransferImportUploaded",
+		"DataTransferImportUploaded",
 		"DataTransferIssueResolved", "DataTransferJobCancelled", "DataTransferJobRetried")
 }
 
@@ -492,6 +512,44 @@ func dataTransferMultipartRequest(
 		t.Fatal(err)
 	}
 	if _, err := part.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	request := httptest.NewRequest(http.MethodPost, path, body)
+	request.Header.Set("Content-Type", writer.FormDataContentType())
+	request.Header.Set("X-CSRF-Token", session.CSRFToken)
+	request.AddCookie(&http.Cookie{Name: "rk_session", Value: session.SessionToken})
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+	return response
+}
+
+func dataTransferMultipartMappingRequest(
+	t *testing.T,
+	router http.Handler,
+	session *application.LoginResult,
+	path string,
+	filename string,
+	payload []byte,
+	mapping application.DataTransferCSVMappingInput,
+) *httptest.ResponseRecorder {
+	t.Helper()
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	mappingPayload, err := json.Marshal(mapping)
+	if err != nil {
+		t.Fatal(err)
+	}
+	part, err := writer.CreateFormFile("file", filename)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := part.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteField("mapping", string(mappingPayload)); err != nil {
 		t.Fatal(err)
 	}
 	if err := writer.Close(); err != nil {

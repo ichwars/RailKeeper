@@ -74,7 +74,16 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
        abc_brakes, COALESCE(ean, ''), COALESCE(production_period, ''), COALESCE(list_price, ''),
        COALESCE(acquisition_type, ''), COALESCE(acquired_from, ''), COALESCE(purchase_price, ''),
        COALESCE(purchase_date, ''), COALESCE(storage_location, ''), COALESCE(storage_details, ''),
-       COALESCE(condition, ''), COALESCE(condition_details, ''), COALESCE(packaging, ''), created_at, updated_at
+       COALESCE(condition, ''), COALESCE(condition_details, ''), COALESCE(packaging, ''),
+       COALESCE(length_mm, ''), COALESCE(weight_g, ''), COALESCE(color, ''), COALESCE(lettering, ''),
+       COALESCE(load, ''), COALESCE(interior, ''), COALESCE(axles, ''), COALESCE(axle_count, ''),
+       COALESCE(traction_tire_count, ''), COALESCE(wheelset, ''), coupling_same,
+       COALESCE(coupling_front, ''), COALESCE(coupling_rear, ''), COALESCE(power_pickup, ''),
+       COALESCE(adapter, ''), drive_enabled, COALESCE(drive_description, ''), headlights_enabled,
+       COALESCE(headlights_description, ''), lighting_enabled, COALESCE(lighting_description, ''),
+       sound_generator_enabled, COALESCE(sound_generator_description, ''), smoke_generator_enabled,
+       COALESCE(smoke_generator_description, ''), COALESCE(additional_info, ''), qr_code_enabled,
+       created_at, updated_at
 FROM vehicles
 ORDER BY inventory_number COLLATE NOCASE, id`)
 	if err != nil {
@@ -86,6 +95,8 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 		vehicle := application.TransferVehicle{}
 		var maximumSpeed sql.NullInt64
 		var digital, dtDecoder, exhibitionReady, exhibition, abcBrakes int
+		var couplingSame, driveEnabled, headlightsEnabled, lightingEnabled int
+		var soundGeneratorEnabled, smokeGeneratorEnabled, qrCodeEnabled int
 		if err := rows.Scan(
 			&vehicle.ID, &vehicle.InventoryNumber, &vehicle.Manufacturer, &vehicle.ArticleNumber,
 			&vehicle.ArticleSourceURL, &vehicle.Name, &vehicle.Gauge, &vehicle.Epoch, &vehicle.RailwayCompany,
@@ -95,6 +106,13 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 			&vehicle.EAN, &vehicle.ProductionPeriod, &vehicle.ListPrice, &vehicle.AcquisitionType,
 			&vehicle.AcquiredFrom, &vehicle.PurchasePrice, &vehicle.PurchaseDate, &vehicle.StorageLocation,
 			&vehicle.StorageDetails, &vehicle.Condition, &vehicle.ConditionDetails, &vehicle.Packaging,
+			&vehicle.LengthMM, &vehicle.WeightG, &vehicle.Color, &vehicle.Lettering, &vehicle.Load,
+			&vehicle.Interior, &vehicle.Axles, &vehicle.AxleCount, &vehicle.TractionTireCount, &vehicle.Wheelset,
+			&couplingSame, &vehicle.CouplingFront, &vehicle.CouplingRear, &vehicle.PowerPickup, &vehicle.Adapter,
+			&driveEnabled, &vehicle.DriveDescription, &headlightsEnabled, &vehicle.HeadlightsDescription,
+			&lightingEnabled, &vehicle.LightingDescription, &soundGeneratorEnabled,
+			&vehicle.SoundGeneratorDescription, &smokeGeneratorEnabled, &vehicle.SmokeGeneratorDescription,
+			&vehicle.AdditionalInfo, &qrCodeEnabled,
 			&vehicle.CreatedAt, &vehicle.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan transfer vehicle: %w", err)
@@ -108,6 +126,13 @@ ORDER BY inventory_number COLLATE NOCASE, id`)
 		vehicle.ExhibitionReady = exhibitionReady != 0
 		vehicle.Exhibition = exhibition != 0
 		vehicle.ABCBrakes = abcBrakes != 0
+		vehicle.CouplingSame = couplingSame != 0
+		vehicle.DriveEnabled = driveEnabled != 0
+		vehicle.HeadlightsEnabled = headlightsEnabled != 0
+		vehicle.LightingEnabled = lightingEnabled != 0
+		vehicle.SoundGeneratorEnabled = soundGeneratorEnabled != 0
+		vehicle.SmokeGeneratorEnabled = smokeGeneratorEnabled != 0
+		vehicle.QRCodeEnabled = qrCodeEnabled != 0
 		vehicles = append(vehicles, vehicle)
 	}
 	if err := rows.Err(); err != nil {

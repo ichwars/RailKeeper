@@ -3,6 +3,7 @@ import { type SetStateAction, useCallback, useEffect, useMemo, useRef, useState 
 import { api, ApiError } from "../../shared/api";
 import {
   type DataTransferArea,
+  type DataTransferCSVMappingInput,
   type DataTransferExportResult,
   type DataTransferIssueResolution,
   type DataTransferJob,
@@ -215,8 +216,17 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     runMutation(() => api.disableDataTransferProfile(id)), [runMutation]);
   const createImportJob = useCallback((profileId: string) =>
     runMutation(() => api.createDataTransferImportJob({ profileId }), (job) => job), [runMutation]);
-  const uploadImportFile = useCallback(async (jobId: string, file: File): Promise<DataTransferPreview> => {
-    const preview = await runMutation(() => api.uploadDataTransferImport(jobId, file), (result) => result.job);
+  const uploadImportFile = useCallback(async (
+    jobId: string,
+    file: File,
+    mapping?: DataTransferCSVMappingInput
+  ): Promise<DataTransferPreview> => {
+    const preview = await runMutation(
+      () => mapping
+        ? api.uploadDataTransferImport(jobId, file, mapping)
+        : api.uploadDataTransferImport(jobId, file),
+      (result) => result.job
+    );
     setReuploadRequiredJobIds((current) => {
       if (!current.has(jobId)) return current;
       const next = new Set(current);

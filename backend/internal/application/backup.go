@@ -250,6 +250,7 @@ func (s *BackupService) exportDataTransferProfiles(ctx context.Context) ([]map[s
 		return nil, err
 	}
 	for _, profile := range profiles {
+		delete(profile, "name_key")
 		creatorID, valid := backupNonEmptyString(profile["created_by_user_id"])
 		if !valid {
 			profile["created_by_user_id"] = nil

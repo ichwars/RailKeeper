@@ -14,8 +14,11 @@ import (
 )
 
 type dataTransferPersistedPreview struct {
-	SourceSHA256 string                                  `json:"sourceSha256"`
-	Records      []application.DataTransferPreviewRecord `json:"records"`
+	SourceSHA256       string                                     `json:"sourceSha256"`
+	FingerprintVersion int                                        `json:"fingerprintVersion,omitempty"`
+	Records            []application.DataTransferPreviewRecord    `json:"records"`
+	CSVMapping         []application.DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
+	VehicleFields      []application.VehicleTransferField         `json:"vehicleFields,omitempty"`
 }
 
 type dataTransferApplyDB interface {
@@ -55,7 +58,7 @@ func (repository *DataTransferRepository) ApplyImportWithPolicy(
 	if err != nil {
 		return err
 	}
-	result, err := applyTransferRecords(ctx, tx, job, preview.Records, issues, policy)
+	result, err := applyTransferRecords(ctx, tx, job, preview.Records, preview.CSVMapping, issues, policy)
 	if err != nil {
 		return err
 	}
@@ -132,7 +135,9 @@ FROM data_transfer_jobs WHERE id=?`, job.ID).Scan(
 			return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("import has unresolved conflicts")
 		}
 	}
-	targetFingerprints, err := currentTransferTargetFingerprints(ctx, tx, preview.Records)
+	targetFingerprints, err := currentTransferTargetFingerprints(
+		ctx, tx, preview.Records, preview.FingerprintVersion,
+	)
 	if err != nil {
 		return dataTransferPersistedPreview{}, nil, err
 	}
@@ -200,6 +205,7 @@ func currentTransferTargetFingerprints(
 	ctx context.Context,
 	tx *sql.Tx,
 	records []application.DataTransferPreviewRecord,
+	fingerprintVersion int,
 ) (map[application.TransferArea]map[string]string, error) {
 	wanted := map[application.TransferArea]bool{}
 	for _, record := range records {
@@ -215,7 +221,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferVehicles] = map[string]string{}
 		for _, vehicle := range vehicles {
-			fingerprints[application.TransferVehicles][vehicle.ID] = application.DataTransferTargetFingerprint(vehicle)
+			fingerprints[application.TransferVehicles][vehicle.ID] =
+				application.DataTransferTargetFingerprintForVersion(vehicle, fingerprintVersion)
 		}
 	}
 	if wanted[application.TransferAccessories] {
@@ -225,7 +232,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferAccessories] = map[string]string{}
 		for _, accessory := range accessories {
-			fingerprints[application.TransferAccessories][accessory.ID] = application.DataTransferTargetFingerprint(accessory)
+			fingerprints[application.TransferAccessories][accessory.ID] =
+				application.DataTransferTargetFingerprintForVersion(accessory, fingerprintVersion)
 		}
 	}
 	if wanted[application.TransferExhibitionLists] {
@@ -235,7 +243,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferExhibitionLists] = map[string]string{}
 		for _, list := range lists {
-			fingerprints[application.TransferExhibitionLists][list.ID] = application.DataTransferTargetFingerprint(list)
+			fingerprints[application.TransferExhibitionLists][list.ID] =
+				application.DataTransferTargetFingerprintForVersion(list, fingerprintVersion)
 		}
 	}
 	return fingerprints, nil
@@ -246,10 +255,13 @@ func applyTransferRecords(
 	db *sql.Tx,
 	job application.DataTransferJob,
 	records []application.DataTransferPreviewRecord,
+	csvMapping []application.DataTransferCSVColumnMapping,
 	issues []application.DataTransferIssue,
 	policy application.DataTransferImportPolicy,
 ) (dataTransferApplyResult, error) {
 	result := dataTransferApplyResult{}
+	var csvVehicleTargets map[string]application.TransferVehicle
+	csvVehicleTargetsLoaded := false
 	for _, record := range records {
 		recordIssues := transferRecordIssues(issues, record)
 		action, skip := transferRecordAction(record, recordIssues)
@@ -264,7 +276,27 @@ func applyTransferRecords(
 		var err error
 		switch record.Area {
 		case application.TransferVehicles:
-			err = applyTransferVehicle(ctx, db, record, action)
+			var existingCSVVehicle *application.TransferVehicle
+			if action == "replace" && len(csvMapping) > 0 &&
+				job.PackageVersion != application.DataTransferPackageLegacyVersion {
+				if !csvVehicleTargetsLoaded {
+					vehicles, snapshotErr := transferVehicleSnapshot(ctx, db)
+					if snapshotErr != nil {
+						return dataTransferApplyResult{}, snapshotErr
+					}
+					csvVehicleTargets = make(map[string]application.TransferVehicle, len(vehicles))
+					for _, vehicle := range vehicles {
+						csvVehicleTargets[vehicle.ID] = vehicle
+					}
+					csvVehicleTargetsLoaded = true
+				}
+				if existing, found := csvVehicleTargets[record.TargetID]; found {
+					existingCSVVehicle = &existing
+				}
+			}
+			err = applyTransferVehicle(
+				ctx, db, record, action, job.PackageVersion, csvMapping, existingCSVVehicle,
+			)
 		case application.TransferAccessories:
 			err = applyTransferAccessory(ctx, db, record, action)
 		case application.TransferExhibitionLists:
@@ -328,9 +360,12 @@ func transferRecordAction(
 
 func applyTransferVehicle(
 	ctx context.Context,
-	db dataTransferApplyDB,
+	db *sql.Tx,
 	record application.DataTransferPreviewRecord,
 	action string,
+	packageVersion int,
+	csvMapping []application.DataTransferCSVColumnMapping,
+	existingCSVVehicle *application.TransferVehicle,
 ) error {
 	vehicle := application.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
@@ -348,30 +383,69 @@ func applyTransferVehicle(
 		vehicle.InventoryNumber = inventoryNumber
 		action = "create"
 	}
-	arguments := transferVehicleArguments(vehicle, now)
 	switch action {
 	case "create":
+		arguments := transferVehicleArguments(vehicle, now)
 		_, err := db.ExecContext(ctx, `
 INSERT INTO vehicles(
   id, inventory_number, manufacturer, article_number, article_source_url, name, gauge, epoch, railway_company,
   category, gattung, description, series, vehicle_number, maximum_speed_kmh, home_base, digital,
   digital_decoder_number, dt_decoder, dt_decoder_number, decoder_type, exhibition_ready, exhibition, abc_brakes,
   ean, production_period, list_price, acquisition_type, acquired_from, purchase_price, purchase_date,
-  storage_location, storage_details, condition, condition_details, packaging, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  storage_location, storage_details, condition, condition_details, packaging,
+  length_mm, weight_g, color, lettering, load, interior, axles, axle_count, traction_tire_count, wheelset,
+  coupling_same, coupling_front, coupling_rear, power_pickup, adapter,
+  drive_enabled, drive_description, headlights_enabled, headlights_description, lighting_enabled,
+  lighting_description, sound_generator_enabled, sound_generator_description, smoke_generator_enabled,
+  smoke_generator_description, additional_info, qr_code_enabled, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			append([]any{randomID()}, arguments...)...)
 		return err
 	case "replace":
 		if record.TargetID == "" {
 			return dataTransferApplyConflict("vehicle replacement target is missing")
 		}
+		if packageVersion == application.DataTransferPackageLegacyVersion {
+			arguments := transferVehicleArguments(vehicle, now)
+			result, err := db.ExecContext(ctx, `
+UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
+  epoch=?, railway_company=?, category=?, gattung=?, description=?, series=?, vehicle_number=?, maximum_speed_kmh=?,
+  home_base=?, digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?, decoder_type=?,
+  exhibition_ready=?, exhibition=?, abc_brakes=?, ean=?, production_period=?, list_price=?, acquisition_type=?,
+  acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?,
+  condition_details=?, packaging=?, updated_at=?
+WHERE id=?`, append(append(arguments[0:35], now), record.TargetID)...)
+			if err != nil {
+				return err
+			}
+			return requireApplyUpdate(result, "replace legacy vehicle")
+		}
+		if len(csvMapping) > 0 {
+			if existingCSVVehicle == nil {
+				return dataTransferApplyConflict("vehicle replacement target is missing")
+			}
+			merged, err := application.PreserveUnmappedTransferVehicleFields(
+				vehicle, *existingCSVVehicle, csvMapping,
+			)
+			if err != nil {
+				return err
+			}
+			vehicle = merged
+		}
+		arguments := transferVehicleArguments(vehicle, now)
 		result, err := db.ExecContext(ctx, `
 UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
   epoch=?, railway_company=?, category=?, gattung=?, description=?, series=?, vehicle_number=?, maximum_speed_kmh=?,
   home_base=?, digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?, decoder_type=?,
   exhibition_ready=?, exhibition=?, abc_brakes=?, ean=?, production_period=?, list_price=?, acquisition_type=?,
   acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?,
-  condition_details=?, packaging=?, updated_at=? WHERE id=?`, append(arguments[0:36], record.TargetID)...)
+  condition_details=?, packaging=?, length_mm=?, weight_g=?, color=?, lettering=?, load=?, interior=?, axles=?,
+  axle_count=?, traction_tire_count=?, wheelset=?, coupling_same=?, coupling_front=?, coupling_rear=?,
+  power_pickup=?, adapter=?, drive_enabled=?, drive_description=?, headlights_enabled=?, headlights_description=?,
+  lighting_enabled=?, lighting_description=?, sound_generator_enabled=?, sound_generator_description=?,
+  smoke_generator_enabled=?, smoke_generator_description=?, additional_info=?, qr_code_enabled=?, updated_at=?
+WHERE id=?`, append(append(arguments[0:62], now), record.TargetID)...)
 		if err != nil {
 			return err
 		}
@@ -390,6 +464,14 @@ func transferVehicleArguments(vehicle application.TransferVehicle, now string) [
 		vehicle.ExhibitionReady, vehicle.Exhibition, vehicle.ABCBrakes, vehicle.EAN, vehicle.ProductionPeriod,
 		vehicle.ListPrice, vehicle.AcquisitionType, vehicle.AcquiredFrom, vehicle.PurchasePrice, vehicle.PurchaseDate,
 		vehicle.StorageLocation, vehicle.StorageDetails, vehicle.Condition, vehicle.ConditionDetails, vehicle.Packaging,
+		vehicle.LengthMM, vehicle.WeightG, vehicle.Color, vehicle.Lettering, vehicle.Load, vehicle.Interior,
+		vehicle.Axles, vehicle.AxleCount, vehicle.TractionTireCount, vehicle.Wheelset, boolToInt(vehicle.CouplingSame),
+		vehicle.CouplingFront, vehicle.CouplingRear, vehicle.PowerPickup, vehicle.Adapter,
+		boolToInt(vehicle.DriveEnabled), vehicle.DriveDescription, boolToInt(vehicle.HeadlightsEnabled),
+		vehicle.HeadlightsDescription, boolToInt(vehicle.LightingEnabled), vehicle.LightingDescription,
+		boolToInt(vehicle.SoundGeneratorEnabled), vehicle.SoundGeneratorDescription,
+		boolToInt(vehicle.SmokeGeneratorEnabled), vehicle.SmokeGeneratorDescription, vehicle.AdditionalInfo,
+		boolToInt(vehicle.QRCodeEnabled),
 		now, now,
 	}
 }

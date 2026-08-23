@@ -8,11 +8,13 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 type TransferProfilesTableProps = {
   canCreate: boolean;
   canEdit: boolean;
+  canExport: boolean;
+  canImport: boolean;
   language: Language;
   mutating: boolean;
   onCreate: () => void;
   onEdit: (profileId: string) => void;
-  onRun: (profileId: string) => void;
+  onRun: (profile: DataTransferProfile) => void;
   profiles: DataTransferProfile[];
   t: Translate;
 };
@@ -20,6 +22,8 @@ type TransferProfilesTableProps = {
 export function TransferProfilesTable({
   canCreate,
   canEdit,
+  canExport,
+  canImport,
   language,
   mutating,
   onCreate,
@@ -28,8 +32,6 @@ export function TransferProfilesTable({
   profiles,
   t
 }: TransferProfilesTableProps) {
-  const exportProfiles = profiles.filter((profile) => profile.direction === "export" && profile.enabled);
-
   return (
     <section className="panel data-transfer-panel transfer-profiles-panel">
       <header className="data-transfer-panel-head">
@@ -45,6 +47,8 @@ export function TransferProfilesTable({
           <thead>
             <tr>
               <th>{t("importExport.dashboard.profiles.profile")}</th>
+              <th>{t("importExport.dashboard.profiles.direction")}</th>
+              <th>{t("importExport.dashboard.profiles.status")}</th>
               <th>{t("importExport.dashboard.profiles.areas")}</th>
               <th>{t("importExport.dashboard.profiles.format")}</th>
               <th>{t("importExport.dashboard.profiles.lastUsed")}</th>
@@ -52,11 +56,17 @@ export function TransferProfilesTable({
             </tr>
           </thead>
           <tbody>
-            {exportProfiles.length === 0 ? (
-              <tr><td className="data-transfer-empty" colSpan={5}>{t("importExport.dashboard.profiles.empty")}</td></tr>
-            ) : exportProfiles.map((profile) => (
+            {profiles.length === 0 ? (
+              <tr><td className="data-transfer-empty" colSpan={7}>{t("importExport.dashboard.profiles.empty")}</td></tr>
+            ) : profiles.map((profile) => (
               <tr key={profile.id}>
                 <td><strong className="data-transfer-truncate" title={profile.name}>{profile.name}</strong></td>
+                <td>{t(`importExport.dashboard.profiles.${profile.direction}`)}</td>
+                <td>
+                  <span className={`transfer-profile-status ${profile.enabled ? "enabled" : "disabled"}`}>
+                    {t(`importExport.dashboard.profiles.${profile.enabled ? "enabled" : "disabled"}`)}
+                  </span>
+                </td>
                 <td className="data-transfer-truncate" title={areaLabels(profile.areas, t)}>
                   {areaLabels(profile.areas, t)}
                 </td>
@@ -64,15 +74,18 @@ export function TransferProfilesTable({
                 <td>{profile.lastUsedAt ? formatDateTime(profile.lastUsedAt, language) : "–"}</td>
                 <td>
                   <span className="transfer-profile-actions">
-                    <button
-                      type="button"
-                      className="transfer-inline-run"
-                      disabled={mutating}
-                      onClick={() => onRun(profile.id)}
-                    >
-                      <Play size={13} fill="currentColor" aria-hidden="true" />
-                      {t("importExport.dashboard.profiles.run")}
-                    </button>
+                    {profile.enabled && (profile.direction === "import" ? canImport : canExport) ? (
+                      <button
+                        type="button"
+                        className="transfer-inline-run"
+                        aria-label={`${profile.name} ${t("importExport.dashboard.profiles.start")}`}
+                        disabled={mutating}
+                        onClick={() => onRun(profile)}
+                      >
+                        <Play size={13} fill="currentColor" aria-hidden="true" />
+                        {t(`importExport.dashboard.profiles.run.${profile.direction}`)}
+                      </button>
+                    ) : null}
                     {canEdit && (
                       <button
                         type="button"
