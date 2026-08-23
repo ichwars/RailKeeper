@@ -71,7 +71,8 @@ export function DigitalCenterToolbar({
         </button>
         <button type="button" className="digital-center-button" disabled={!actions.canRead || loading.read}
           onClick={() => void onRead().catch(() => undefined)}>
-          <Download size={16} aria-hidden="true" />{t("digitalCenters.toolbar.read")}
+          <Download size={16} aria-hidden="true" />
+          {t(loading.read ? "digitalCenters.toolbar.reading" : "digitalCenters.toolbar.read")}
         </button>
         <button type="button" className="digital-center-icon-button"
           aria-label={t("digitalCenters.toolbar.configure")} title={t("digitalCenters.toolbar.configure")}

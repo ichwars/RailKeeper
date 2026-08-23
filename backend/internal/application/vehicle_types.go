@@ -7,14 +7,15 @@ import (
 )
 
 var (
-	ErrVehicleValidation            = errors.New("vehicle validation failed")
-	ErrVehicleOperationalValidation = errors.New("vehicle operational validation failed")
-	ErrVehicleNotFound              = errors.New("vehicle not found")
-	ErrVehicleSetValidation         = errors.New("vehicle set validation failed")
-	ErrVehicleSetNotFound           = errors.New("vehicle set not found")
-	ErrVehicleSetImageValidation    = errors.New("vehicle set image validation failed")
-	ErrVehicleSetImageNotFound      = errors.New("vehicle set image not found")
-	ErrVehicleImageInUse            = errors.New("vehicle image in use")
+	ErrVehicleValidation              = errors.New("vehicle validation failed")
+	ErrVehicleOperationalValidation   = errors.New("vehicle operational validation failed")
+	ErrVehicleNotFound                = errors.New("vehicle not found")
+	ErrVehicleExternalMappingConflict = errors.New("vehicle external mapping conflict")
+	ErrVehicleSetValidation           = errors.New("vehicle set validation failed")
+	ErrVehicleSetNotFound             = errors.New("vehicle set not found")
+	ErrVehicleSetImageValidation      = errors.New("vehicle set image validation failed")
+	ErrVehicleSetImageNotFound        = errors.New("vehicle set image not found")
+	ErrVehicleImageInUse              = errors.New("vehicle image in use")
 )
 
 var allowedMaintenanceKinds = map[string]struct{}{

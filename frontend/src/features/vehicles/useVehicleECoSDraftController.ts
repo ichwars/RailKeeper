@@ -162,8 +162,12 @@ export function useVehicleECoSDraftController({
     }
   };
 
-  const returnToImportSession = () => {
-    window.history.pushState(null, "", "/import-export?source=ecos");
+  const returnToImportSession = (savedDraft: ECoSVehicleDraftPayload) => {
+    const destination = savedDraft.returnToDigitalCenters
+      ? `/digital-centers?sessionId=${encodeURIComponent(savedDraft.returnToDigitalCenters.sessionId)}` +
+        `&objectId=${encodeURIComponent(savedDraft.returnToDigitalCenters.objectId)}`
+      : "/import-export?source=ecos";
+    window.history.pushState(null, "", destination);
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
 

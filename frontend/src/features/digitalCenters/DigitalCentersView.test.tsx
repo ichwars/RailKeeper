@@ -1,11 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setLanguage } from "../../shared/i18n";
+import { ecosVehicleDraftStorageKey, emptyVehicle } from "../vehicles/vehicleViewModel";
 import type {
   DigitalCenterReadSession,
   DigitalCenterSummary,
@@ -17,9 +18,15 @@ import type { useDigitalCentersWorkspace } from "./useDigitalCentersWorkspace";
 
 const digitalCentersCSS = readFileSync(resolve(process.cwd(), "src/styles/digital-centers.css"), "utf8");
 
-const { workspaceHook } = vi.hoisted(() => ({ workspaceHook: vi.fn() }));
+const { adoptionHook, workspaceHook } = vi.hoisted(() => ({
+  adoptionHook: vi.fn(),
+  workspaceHook: vi.fn()
+}));
 
 vi.mock("./useDigitalCentersWorkspace", () => ({ useDigitalCentersWorkspace: workspaceHook }));
+vi.mock("./useDigitalCenterVehicleAdoption", () => ({
+  useDigitalCenterVehicleAdoption: adoptionHook
+}));
 
 type Workspace = ReturnType<typeof useDigitalCentersWorkspace>;
 
@@ -27,7 +34,9 @@ describe("DigitalCentersView", () => {
   beforeEach(() => {
     setLanguage("de");
     workspaceHook.mockReturnValue(workspaceFixture());
+    adoptionHook.mockReturnValue(adoptionFixture());
     window.history.replaceState(null, "", "/digital-centers");
+    window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(() => null);
   });
 
@@ -112,6 +121,15 @@ describe("DigitalCentersView", () => {
     }
   });
 
+  it("shows an explicit read-in-progress state without an empty work list", () => {
+    workspaceHook.mockReturnValue(workspaceFixture({ loading: loadingFixture({ read: true }) }));
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.getByRole("button", { name: "Daten werden gelesen" })).toBeDisabled();
+    expect(screen.getByText("Lokdaten werden geladen")).toBeInTheDocument();
+    expect(screen.queryByText("Noch keine Lokdaten gelesen")).not.toBeInTheDocument();
+  });
+
   it("shows workspace and read failures distinctly without claiming configuration is empty", () => {
     const retry = vi.fn(async () => undefined);
     workspaceHook.mockReturnValue(workspaceFixture({
@@ -168,6 +186,128 @@ describe("DigitalCentersView", () => {
     unmount();
     expect(invoker).toHaveFocus();
     invoker.remove();
+  });
+
+  it("explains why an ECoS-only locomotive cannot be written", () => {
+    const unmatchedItem: DigitalCenterWorkItem = {
+      ...workItem,
+      id: "item-new",
+      vehicleId: "",
+      name: "LokPilot 5 micro",
+      compareStatus: "new",
+      railkeeper: {}
+    };
+    const workspace = workspaceFixture({
+      selectedItemId: unmatchedItem.id,
+      selectedItem: unmatchedItem,
+      dialog: { kind: "comparison", itemId: unmatchedItem.id }
+    });
+    workspaceHook.mockReturnValue(workspace);
+
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.queryByRole("button", { name: "Schreibvorschau erstellen" }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Bestehendem Fahrzeug zuordnen" })).toBeVisible();
+    expect(screen.getByText(
+      "Diese Lok ist noch keinem RailKeeper-Fahrzeug zugeordnet. Erst nach dem Anlegen oder Zuordnen " +
+      "eines Fahrzeugs kann in die Digitalzentrale geschrieben werden."
+    )).toBeInTheDocument();
+    expect(workspace.previewWrite).not.toHaveBeenCalled();
+  });
+
+  it("offers the two explicit adoption paths for an ECoS-only locomotive", async () => {
+    const user = userEvent.setup();
+    const unmatchedItem = unmatchedWorkItem();
+    const workspace = workspaceFixture({
+      selectedItemId: unmatchedItem.id,
+      selectedItem: unmatchedItem,
+      dialog: { kind: "comparison", itemId: unmatchedItem.id }
+    });
+    const adoption = adoptionFixture();
+    workspaceHook.mockReturnValue(workspace);
+    adoptionHook.mockReturnValue(adoption);
+
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    await user.click(screen.getByRole("button", { name: "Bestehendem Fahrzeug zuordnen" }));
+    expect(workspace.openDialog).toHaveBeenCalledWith("assignment", unmatchedItem.id);
+    expect(adoption.commands.load).toHaveBeenCalledWith(unmatchedItem);
+
+    await user.click(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" }));
+    expect(window.location.pathname + window.location.search).toBe("/vehicles?source=ecos");
+    expect(JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "null"))
+      .toMatchObject({
+        source: "ecos",
+        mode: "create",
+        vehicle: { name: "LokPilot 5 micro", digitalDecoderNumber: "1001" },
+        returnToDigitalCenters: { sessionId: "session-1", objectId: "77" }
+      });
+  });
+
+  it("does not expose vehicle adoption actions without the Admin role", () => {
+    const unmatchedItem = unmatchedWorkItem();
+    workspaceHook.mockReturnValue(workspaceFixture({
+      selectedItemId: unmatchedItem.id,
+      selectedItem: unmatchedItem,
+      dialog: { kind: "comparison", itemId: unmatchedItem.id }
+    }));
+
+    render(<DigitalCentersView roles={["Viewer"]} />);
+
+    expect(screen.queryByRole("button", { name: "Neues Fahrzeug anlegen" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Bestehendem Fahrzeug zuordnen" }))
+      .not.toBeInTheDocument();
+  });
+
+  it("renders the explicit vehicle picker and forwards the confirmed assignment", async () => {
+    const user = userEvent.setup();
+    const unmatchedItem = unmatchedWorkItem();
+    const adoption = adoptionFixture({
+      state: {
+        vehicles: [{
+          ...emptyVehicle,
+          id: "vehicle-2",
+          inventoryNumber: "RK-002",
+          manufacturer: "Roco",
+          name: "LokPilot 5 micro",
+          digital: true,
+          digitalDecoderNumber: "1001",
+          createdAt: "2026-08-23T08:00:00Z",
+          updatedAt: "2026-08-23T08:00:00Z"
+        }],
+        selectedVehicleId: "vehicle-2",
+        loading: false,
+        saving: false,
+        error: ""
+      }
+    });
+    workspaceHook.mockReturnValue(workspaceFixture({
+      selectedItemId: unmatchedItem.id,
+      selectedItem: unmatchedItem,
+      dialog: { kind: "assignment", itemId: unmatchedItem.id }
+    }));
+    adoptionHook.mockReturnValue(adoption);
+
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.getByRole("dialog", { name: "Fahrzeugzuordnung für LokPilot 5 micro" }))
+      .toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /RK-002/ })).toBeChecked();
+    await user.click(screen.getByRole("button", { name: "Fahrzeug zuordnen" }));
+    expect(adoption.commands.assign).toHaveBeenCalledWith(unmatchedItem, "vehicle-2");
+  });
+
+  it("reads once after returning from the vehicle editor and removes the return marker", async () => {
+    const workspace = workspaceFixture();
+    workspaceHook.mockReturnValue(workspace);
+    window.history.replaceState(null, "", "/digital-centers?sessionId=session-1&objectId=77");
+
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    await waitFor(() => expect(workspace.readData).toHaveBeenCalledOnce());
+    expect(window.location.pathname + window.location.search).toBe("/digital-centers");
   });
 
   it("renders factual pagination without current-page quick-filter counts or text glyph controls", () => {
@@ -247,6 +387,15 @@ describe("Digital Centers responsive CSS contract", () => {
       /\.digital-workspace-operation-error\s*\{[^}]*overflow-wrap:\s*anywhere;/s
     );
   });
+
+  it("wraps comparison actions instead of clipping them at narrow widths", () => {
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-comparison-dialog\s*>\s*footer\s*\{[^}]*flex-wrap:\s*wrap;/s
+    );
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-comparison-dialog\s*>\s*footer\s+\.digital-center-button\s*\{[^}]*max-width:\s*100%;/s
+    );
+  });
 });
 
 const capabilities = capabilitiesFixture(true);
@@ -267,6 +416,38 @@ const workItem: DigitalCenterWorkItem = {
   railkeeper: { vehicleId: "vehicle-1", name: "BR 218 402-6", decoderAddress: 3, protocol: "DCC" },
   proposed: {}, conflicts: [], createdAt: "2026-08-21T14:35:01Z", updatedAt: "2026-08-21T14:35:01Z"
 };
+
+function unmatchedWorkItem(): DigitalCenterWorkItem {
+  return {
+    ...workItem,
+    id: "item-new",
+    centerObjectId: "77",
+    vehicleId: "",
+    name: "LokPilot 5 micro",
+    decoderAddress: 1001,
+    compareStatus: "new",
+    center: {
+      objectId: 77,
+      name: "LokPilot 5 micro",
+      decoderAddress: 1001,
+      protocol: "DCC"
+    },
+    railkeeper: {}
+  };
+}
+
+function adoptionFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    state: { vehicles: [], selectedVehicleId: "", loading: false, saving: false, error: "" },
+    setters: { setSelectedVehicleId: vi.fn() },
+    commands: {
+      load: vi.fn(async () => undefined),
+      assign: vi.fn(async () => undefined),
+      reset: vi.fn()
+    },
+    ...overrides
+  };
+}
 
 function workspaceFixture(overrides: Partial<Workspace> = {}): Workspace {
   const liveStatus = liveStatusFixture();

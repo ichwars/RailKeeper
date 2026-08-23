@@ -121,6 +121,10 @@ export type ECoSVehicleDraftPayload = {
     sessionId: string;
     objectId: number;
   };
+  returnToDigitalCenters?: {
+    sessionId: string;
+    objectId: string;
+  };
 };
 export const ecosVehicleDraftStorageKey = "railkeeper.ecosVehicleDraft";
 export const ecosImportSessionStorageKey = "railkeeper.ecosImportSession";

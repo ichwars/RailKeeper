@@ -43,6 +43,7 @@ export function LocomotiveWorklist({
         </span>
         <button type="button" className="digital-center-icon-button"
           aria-label={t("digitalCenters.worklist.refresh")} title={t("digitalCenters.worklist.refresh")}
+          disabled={loading}
           onClick={() => void onRefresh().catch(() => undefined)}>
           <RefreshCw size={16} aria-hidden="true" />
         </button>

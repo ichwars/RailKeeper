@@ -211,7 +211,8 @@ export type DigitalCenterWriteConfirmation = {
 
 export type DigitalCenterWorkspaceDialog =
   | { kind: "comparison"; itemId: string }
-  | { kind: "write-preview"; itemId: string };
+  | { kind: "write-preview"; itemId: string }
+  | { kind: "assignment"; itemId: string };
 
 export type DigitalCenterWorkspaceErrors = {
   workspace: string;

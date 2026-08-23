@@ -11606,6 +11606,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+        "409":
+          description: External mapping is already assigned to another vehicle
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /vehicles/{id}/images:
     post:
       tags: [Vehicles]

@@ -609,8 +609,8 @@ func appendBoundedECoSLiveEvent(events []ECoSLiveEvent, event ECoSLiveEvent) []E
 
 func cloneECoSLiveStatus(status ECoSLiveStatus) ECoSLiveStatus {
 	status.SubscriptionCommands = append([]string(nil), status.SubscriptionCommands...)
-	status.PulseSamples = append([]ECoSLivePulseSample(nil), status.PulseSamples...)
-	status.RecentEvents = append([]ECoSLiveEvent(nil), status.RecentEvents...)
+	status.PulseSamples = append([]ECoSLivePulseSample{}, status.PulseSamples...)
+	status.RecentEvents = append([]ECoSLiveEvent{}, status.RecentEvents...)
 	return status
 }
 

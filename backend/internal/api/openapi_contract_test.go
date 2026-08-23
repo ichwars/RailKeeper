@@ -847,3 +847,14 @@ func pathShapeMatches(contractPath, frontendPath string) bool {
 	}
 	return true
 }
+
+func TestOpenAPIDocumentsExternalMappingConflict(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	block := openAPIIndentedBlock(t, string(data), "/vehicles/{id}/external-mappings", 2)
+	if !strings.Contains(block, `"409":`) {
+		t.Fatalf("external mapping conflict response is missing: %s", block)
+	}
+}

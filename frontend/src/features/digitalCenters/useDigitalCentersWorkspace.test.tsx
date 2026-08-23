@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api } from "../../shared/api";
+import { api, ApiError } from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
 import type {
   DigitalCenterReadSession,
@@ -120,6 +120,21 @@ describe("useDigitalCentersWorkspace", () => {
     expect(result.current.liveStatus?.provider).toBe("z21");
   });
 
+  it("normalizes empty live telemetry returned as null", async () => {
+    vi.mocked(api.startDigitalCenterLive).mockResolvedValueOnce({
+      ...liveStatusFixture(),
+      pulseSamples: null,
+      recentEvents: null
+    } as unknown as ECoSLiveStatus);
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+
+    await act(async () => result.current.startLive());
+
+    expect(result.current.liveStatus?.pulseSamples).toEqual([]);
+    expect(result.current.liveStatus?.recentEvents).toEqual([]);
+  });
+
   it("polls only while passive monitoring runs and stops after stop and unmount", async () => {
     vi.mocked(api.digitalCenterLiveStatus).mockResolvedValue(liveStatusFixture({ state: "running" }));
     const { result, unmount } = renderHook(() => useDigitalCentersWorkspace({ pollIntervalMs: 10 }));
@@ -164,6 +179,27 @@ describe("useDigitalCentersWorkspace", () => {
 
     expect(result.current.workItems.items).toEqual([item]);
     expect(result.current.errors.worklist).toBe("");
+  });
+
+  it("keeps the current work list visible while a replacement read is running", async () => {
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    await waitFor(() => expect(result.current.workItems.items).toEqual([item]));
+
+    const replacement = deferred<DigitalCenterReadSession>();
+    vi.mocked(api.startDigitalCenterReadSession).mockReturnValueOnce(replacement.promise);
+    let request!: Promise<DigitalCenterReadSession>;
+    act(() => {
+      request = result.current.readData();
+    });
+    await waitFor(() => expect(result.current.loading.read).toBe(true));
+
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.workItems.items).toEqual([item]);
+
+    replacement.resolve(readSessionFixture("session-2"));
+    await act(async () => request);
   });
 
   it("keeps only the newest work-list response and owns preview-confirm state", async () => {
@@ -379,6 +415,28 @@ describe("useDigitalCentersWorkspace", () => {
 
     act(() => result.current.closeDetail());
     expect(result.current.errors.write).toBe("");
+  });
+
+  it("localizes an unresolved work-item conflict", async () => {
+    vi.mocked(api.previewDigitalCenterWrite).mockRejectedValueOnce(
+      new ApiError(
+        "Resolve the work-item conflict before writing.",
+        "digital_center_conflict_unresolved",
+        409
+      )
+    );
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+
+    await act(async () => {
+      await expect(result.current.previewWrite(["name"])).rejects.toThrow();
+    });
+
+    expect(result.current.errors.write).toBe(
+      "Der Lok-Abgleich ist noch nicht eindeutig. Ordne die Lok zuerst einem RailKeeper-Fahrzeug zu."
+    );
   });
 
   it("clears every center-specific error when selecting another center", async () => {
