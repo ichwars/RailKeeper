@@ -102,6 +102,8 @@ func eCoSLocomotiveCreateProtocol(value string) (string, error) {
 		return "MM28", nil
 	case "SELECTRIX":
 		return "SX32", nil
+	case "MFX":
+		return "M4", nil
 	default:
 		return "", fmt.Errorf("ECoS-Protokoll %q wird beim Anlegen nicht unterstützt", normalized)
 	}

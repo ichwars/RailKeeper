@@ -345,6 +345,11 @@ func TestDigitalCenterWriteVerificationMismatchIsVisibleAndDoesNotMap(t *testing
 		fixture.vehicles.mapping != nil {
 		t.Fatalf("result=%#v mapping=%#v", result, fixture.vehicles.mapping)
 	}
+	if result.WorkItem == nil || result.WorkItem.Name != "Nicht übernommen" ||
+		result.WorkItem.CompareStatus != DigitalCompareDeviation ||
+		fixture.repository.item.Name != "Nicht übernommen" || fixture.repository.item.StationStatus != "read" {
+		t.Fatalf("result item=%#v persisted item=%#v", result.WorkItem, fixture.repository.item)
+	}
 	if len(fixture.audit.entries) != 1 || !strings.Contains(fixture.audit.entries[0].details,
 		`"result":"verification_failed"`) {
 		t.Fatalf("verification audit = %#v", fixture.audit.entries)

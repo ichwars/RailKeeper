@@ -278,9 +278,14 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if !verified {
 		result.Result = DigitalCenterWriteVerificationFailed
 		result.Message = "Die Digitalzentrale meldet nach dem Schreiben abweichende Werte."
+		updatedItem, updateErr := service.updateVerifiedDigitalCenterWorkItem(ctx, target, verifiedLocomotive)
 		if err := service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result); err != nil {
 			return DigitalCenterWriteConfirmation{}, err
 		}
+		if updateErr != nil {
+			return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
+		}
+		result.WorkItem = &updatedItem
 		return result, nil
 	}
 	result.Verified = true
@@ -309,10 +314,10 @@ func (service *DigitalCenterWorkspaceService) digitalCenterLocalPersistenceUnkno
 	result DigitalCenterWriteConfirmation,
 ) DigitalCenterWriteConfirmation {
 	result.Result = DigitalCenterWriteUnknown
-	result.Message = "Die Geräteänderung wurde verifiziert, aber der lokale Abgleich konnte nicht vollständig gespeichert werden."
+	result.Message = "Der bekannte Gerätezustand konnte lokal nicht vollständig gespeichert werden."
 	_ = service.addSessionMessage(ctx, target.session.ID, DigitalCenterSessionMessage{
 		Severity: DigitalCenterMessageWarning, Code: DigitalCenterMessageWriteUnknown,
-		Message:    "Die verifizierte Geräteänderung konnte lokal nicht vollständig gespeichert werden.",
+		Message:    "Der bekannte Gerätezustand konnte lokal nicht vollständig gespeichert werden.",
 		NextAction: "Daten neu auslesen und den lokalen Abgleich prüfen.",
 	})
 	return result

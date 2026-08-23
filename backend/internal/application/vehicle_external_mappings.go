@@ -76,7 +76,37 @@ func (s *VehicleService) RebindExternalMapping(
 		if existing.VehicleID != vehicleID {
 			return nil, ErrVehicleExternalMappingConflict
 		}
-		return existing, nil
+		now := time.Now().UTC().Format(time.RFC3339)
+		tx, txErr := s.db.BeginTx(ctx, nil)
+		if txErr != nil {
+			return nil, fmt.Errorf("consolidate external mappings: begin transaction: %w", txErr)
+		}
+		rollback := func(err error) (*VehicleExternalMap, error) {
+			_ = tx.Rollback()
+			return nil, err
+		}
+		deleted, txErr := tx.ExecContext(ctx, `DELETE FROM vehicle_external_mappings
+WHERE vehicle_id=? AND provider=? AND external_id=?`, vehicleID, input.Provider, previousExternalID)
+		if txErr != nil {
+			return rollback(fmt.Errorf("consolidate external mappings: delete previous mapping: %w", txErr))
+		}
+		updated, txErr := tx.ExecContext(ctx, `UPDATE vehicle_external_mappings
+SET external_name=?, external_address=?, external_protocol=?, sync_status=?, last_seen_at=?, updated_at=?
+WHERE vehicle_id=? AND provider=? AND external_id=?`, nullableString(input.ExternalName),
+			nullableString(input.ExternalAddress), nullableString(input.ExternalProtocol), input.SyncStatus, now, now,
+			vehicleID, input.Provider, input.ExternalID)
+		if txErr != nil {
+			return rollback(fmt.Errorf("consolidate external mappings: update current mapping: %w", txErr))
+		}
+		deletedCount, deleteCountErr := deleted.RowsAffected()
+		updatedCount, updateCountErr := updated.RowsAffected()
+		if deleteCountErr != nil || updateCountErr != nil || deletedCount != 1 || updatedCount != 1 {
+			return rollback(ErrVehicleExternalMappingConflict)
+		}
+		if txErr := tx.Commit(); txErr != nil {
+			return nil, fmt.Errorf("consolidate external mappings: commit: %w", txErr)
+		}
+		return s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
 	} else if !errors.Is(lookupErr, sql.ErrNoRows) {
 		return nil, fmt.Errorf("check replacement external mapping owner: %w", lookupErr)
 	}

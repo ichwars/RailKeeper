@@ -552,6 +552,10 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setWritePreview(null);
           setWriteConfirmation(null);
           setError("write", digitalCenterAddressConflictMessage(writeError, workspaceText));
+        } else if (writeError instanceof ApiError && writeError.code === "ecos_live_pause_failed") {
+          setWritePreview(null);
+          setWriteConfirmation(null);
+          setError("write", localizedError(writeError));
         } else if (writeError instanceof ApiError && writeError.status === 409) {
           readSessionIDRef.current = null;
           setReadSession(null);

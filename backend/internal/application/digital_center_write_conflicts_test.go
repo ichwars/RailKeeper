@@ -57,6 +57,29 @@ func TestDigitalCenterWritePreviewFailsClosedWhenTargetIsMissingFromMasterList(t
 	}
 }
 
+func TestDigitalCenterCreatePreviewRejectsReappearedPreviousObject(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.item.CenterObjectID = "42"
+	fixture.item.Address = 4405
+	fixture.item.CompareStatus = DigitalCompareMissing
+	fixture.item.StationStatus = "missing"
+	fixture.item.Center = map[string]any{}
+	fixture.item.RailKeeper = map[string]any{
+		"vehicleId": "vehicle-1", "name": "BR 18", "decoderAddress": 4405, "protocol": "DCC",
+	}
+	fixture.repository.item = fixture.item
+	fixture.ecos.locomotives = []ECoSLocomotive{
+		{ObjectID: 42, Name: "Reappeared", Address: 99, Protocol: "DCC"},
+	}
+
+	_, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Operation: DigitalCenterWriteCreate,
+			Fields: []string{"name", "address", "protocol"}}, "admin-1")
+	if !errors.Is(err, ErrDigitalCenterPreviewStale) {
+		t.Fatalf("error=%v", err)
+	}
+}
+
 func (stub *digitalCenterWriteECoSStub) ListLocomotives(
 	context.Context,
 	ECoSConnectionInput,

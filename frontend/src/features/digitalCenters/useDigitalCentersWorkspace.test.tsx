@@ -486,6 +486,29 @@ describe("useDigitalCentersWorkspace", () => {
 	expect(result.current.errors.write).toContain("18");
   });
 
+  it("clears the consumed preview when live monitoring cannot be paused", async () => {
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+      "ECoS live monitoring could not be paused safely.",
+      "ecos_live_pause_failed",
+      502
+    ));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => {
+      await expect(result.current.confirmWrite()).rejects.toThrow();
+    });
+
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.selectedItemId).toBe(item.id);
+    expect(result.current.writePreview).toBeNull();
+    expect(result.current.writeConfirmation).toBeNull();
+  });
+
   it("localizes an address conflict raised while creating the preview", async () => {
 	vi.mocked(api.previewDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
 	  "The decoder address is already used by another ECoS locomotive.",

@@ -266,6 +266,19 @@ func TestECoSCreateLocomotiveAppendsCompleteObjectAtomically(t *testing.T) {
 	}
 }
 
+func TestECoSCreateLocomotiveTranslatesMFXToM4(t *testing.T) {
+	command, err := buildECoSLocomotiveCreateCommand(ECoSLocomotiveSyncDesired{
+		Name: "MFX Test", Address: 42, Protocol: "MFX",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `create(10, addr[42], name["MFX Test"], protocol[M4], append)`
+	if command != want {
+		t.Fatalf("command=%q want=%q", command, want)
+	}
+}
+
 func TestECoSSyncMarksMissingWriteReplyAsUnknown(t *testing.T) {
 	listener := startECoSTestServer(t, func(command string) []string {
 		switch {

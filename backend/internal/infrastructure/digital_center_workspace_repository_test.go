@@ -132,6 +132,7 @@ func TestDigitalCenterWorkspaceRepositoryUpdatesWorkItem(t *testing.T) {
 		t.Fatalf("items=%#v err=%v", items, err)
 	}
 	item := items[0]
+	item.CenterObjectID = "1002"
 	item.Name = "Neu"
 	item.Address = 18
 	item.Center = map[string]any{"name": "Neu", "decoderAddress": 18}
@@ -141,7 +142,8 @@ func TestDigitalCenterWorkspaceRepositoryUpdatesWorkItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.Name != "Neu" || updated.Address != 18 || updated.CompareStatus != application.DigitalCompareOK ||
+	if updated.CenterObjectID != "1002" || updated.Name != "Neu" || updated.Address != 18 ||
+		updated.CompareStatus != application.DigitalCompareOK ||
 		updated.Center["decoderAddress"] != float64(18) || len(updated.Conflicts) != 0 ||
 		updated.UpdatedAt == "" {
 		t.Fatalf("updated item=%#v", updated)

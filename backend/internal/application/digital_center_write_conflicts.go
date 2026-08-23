@@ -3,6 +3,8 @@ package application
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 type DigitalCenterAddressConflictError struct {
@@ -41,6 +43,13 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 	if len(locomotives) > maxDigitalCenterLocomotives {
 		return ErrDigitalCenterDeviceOutput
 	}
+	previousObjectID := 0
+	if target.operation == DigitalCenterWriteCreate && strings.TrimSpace(target.previousObjectID) != "" {
+		previousObjectID, err = strconv.Atoi(strings.TrimSpace(target.previousObjectID))
+		if err != nil || previousObjectID < 1 || previousObjectID > maxDigitalCenterObjectID {
+			return ErrDigitalCenterDeviceOutput
+		}
+	}
 	targetFound := false
 	for _, locomotive := range locomotives {
 		if locomotive.ObjectID < 1 || locomotive.ObjectID > maxDigitalCenterObjectID ||
@@ -50,6 +59,9 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 		if target.operation != DigitalCenterWriteCreate && locomotive.ObjectID == target.objectID {
 			targetFound = true
 			continue
+		}
+		if target.operation == DigitalCenterWriteCreate && locomotive.ObjectID == previousObjectID {
+			return ErrDigitalCenterPreviewStale
 		}
 		if locomotive.Address != target.desired.Address {
 			continue

@@ -230,9 +230,9 @@ func (repository *DigitalCenterWorkspaceRepository) UpdateWorkItem(
 	}
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE digital_center_work_items
-SET vehicle_id=NULLIF(?, ''), name=?, decoder_address=?, protocol=?, compare_status=?, station_status=?,
+SET center_object_id=?, vehicle_id=NULLIF(?, ''), name=?, decoder_address=?, protocol=?, compare_status=?, station_status=?,
     center_json=?, railkeeper_json=?, proposed_json=?, conflict_json=?, updated_at=?
-WHERE session_id=? AND id=?`, item.VehicleID, item.Name, item.Address, item.Protocol, item.CompareStatus,
+WHERE session_id=? AND id=?`, item.CenterObjectID, item.VehicleID, item.Name, item.Address, item.Protocol, item.CompareStatus,
 		item.StationStatus, center, railKeeper, proposed, conflicts, timestamp(), item.SessionID, item.ID)
 	if err != nil {
 		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: %w", err)

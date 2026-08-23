@@ -84,3 +84,42 @@ WHERE vehicle_id=? AND provider='ecos' AND external_id='1002'`, vehicle.ID).Scan
 		t.Fatalf("oldCount=%d newCount=%d", oldCount, newCount)
 	}
 }
+
+func TestVehicleExternalMappingRebindConsolidatesExistingMappingForSameVehicle(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	vehicle, err := service.Create(t.Context(), application.CreateVehicleInput{
+		Manufacturer: "Roco", Name: "BR 18", Gauge: "H0",
+		Category: "Lokomotive", Gattung: "Dampflok",
+	}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, externalID := range []string{"1020", "1002"} {
+		if _, err := service.UpsertExternalMapping(t.Context(), vehicle.ID,
+			application.VehicleExternalMapInput{Provider: "ecos", ExternalID: externalID,
+				ExternalName: "Alt", ExternalAddress: "3", ExternalProtocol: "DCC28"}, "admin-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	rebound, err := service.RebindExternalMapping(t.Context(), vehicle.ID, "1020",
+		application.VehicleExternalMapInput{Provider: "ecos", ExternalID: "1002",
+			ExternalName: "BR 18 aktuell", ExternalAddress: "18", ExternalProtocol: "DCC",
+			SyncStatus: "synced"}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rebound.ExternalName != "BR 18 aktuell" || rebound.ExternalAddress != "18" ||
+		rebound.ExternalProtocol != "DCC" || rebound.SyncStatus != "synced" {
+		t.Fatalf("rebound=%#v", rebound)
+	}
+	var count int
+	if err := db.QueryRow(`SELECT COUNT(*) FROM vehicle_external_mappings
+WHERE vehicle_id=? AND provider='ecos'`, vehicle.ID).Scan(&count); err != nil {
+		t.Fatal(err)
+	}
+	if count != 1 {
+		t.Fatalf("mapping count=%d", count)
+	}
+}
