@@ -175,6 +175,9 @@ func (a *App) upsertVehicleExternalMapping(w http.ResponseWriter, r *http.Reques
 	mapping, err := a.vehicleService.UpsertExternalMapping(r.Context(), r.PathValue("id"), input, actorUserID(r))
 	if err != nil {
 		switch {
+		case errors.Is(err, application.ErrVehicleExternalMappingConflict):
+			respondProblem(w, http.StatusConflict, "external_mapping_conflict",
+				"This digital-center locomotive is already assigned to another vehicle.")
 		case errors.Is(err, application.ErrVehicleValidation):
 			respondProblem(w, http.StatusBadRequest, "external_mapping_validation", "Provider and external id are required.")
 		case errors.Is(err, application.ErrVehicleNotFound):

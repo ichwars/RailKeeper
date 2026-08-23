@@ -2,6 +2,8 @@ package application
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -16,13 +18,22 @@ func (s *VehicleService) UpsertExternalMapping(ctx context.Context, vehicleID st
 	if _, err := s.get(ctx, vehicleID); err != nil {
 		return nil, err
 	}
+	existing, err := s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
+	switch {
+	case err == nil && existing.VehicleID != vehicleID:
+		return nil, ErrVehicleExternalMappingConflict
+	case err == nil:
+		// Continue so metadata and the last-seen time can be refreshed idempotently.
+	case !errors.Is(err, sql.ErrNoRows):
+		return nil, fmt.Errorf("check vehicle external mapping owner: %w", err)
+	}
 
 	now := time.Now().UTC().Format(time.RFC3339)
 	lastSeenAt := now
 	if input.SyncStatus == "" {
 		input.SyncStatus = "linked"
 	}
-	_, err := s.db.ExecContext(ctx, `
+	_, err = s.db.ExecContext(ctx, `
 INSERT INTO vehicle_external_mappings(id, vehicle_id, provider, external_id, external_name, external_address, external_protocol, sync_status, last_seen_at, created_at, updated_at)
 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 ON CONFLICT(provider, external_id) DO UPDATE SET
