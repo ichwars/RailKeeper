@@ -1562,7 +1562,7 @@ export const deTranslations: Record<string, string> = {
 		"vehicles.set.mainImage.description": "Mitgliedsbild auswählen oder ein eigenes Bild des vollständigen Sets verwenden.",
 		"vehicles.set.mainImage.current": "Aktuell verwendet",
 		"vehicles.set.mainImage.active": "Aktuelles Hauptbild",
-		"vehicles.set.mainImage.availableCount": "{count} Bilder verfügbar",
+		"vehicles.set.mainImage.availableCount": "Verfügbare Bilder: {count}",
 		"vehicles.set.mainImage.automatic": "Automatische Auswahl verwenden",
 		"vehicles.set.mainImage.upload": "Eigenes Setbild hochladen",
 		"vehicles.set.mainImage.removeDedicated": "Eigenes Setbild entfernen",
