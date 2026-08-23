@@ -700,7 +700,7 @@ func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSy
 	result.RawLines = probe.RawLines
 	if !probe.OK {
 		if probe.Error != "" {
-			return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", probe.Error)
+			return nil, fmt.Errorf("%w: ECoS-Schreibantwort fehlt", ErrECoSWriteStateUnknown)
 		}
 		return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", firstNonEmpty(probe.Status, "unbekannter Status"))
 	}
