@@ -36,6 +36,19 @@ func TestDataTransferCSVMappingRecognizesAliasesAndLeavesUnknownColumnsOpen(t *t
 	}
 }
 
+func TestDataTransferCSVMappingRecognizesLegacyArticleNumberAndRepairsInvalidDefault(t *testing.T) {
+	mapping := defaultDataTransferCSVMapping(
+		[]string{"Artikelnummer", "Hersteller"},
+		map[string]string{"artikelnummer": "removedField", "hersteller": "removedField"},
+	)
+	if mapping[0].TargetField != "articleNumber" || mapping[0].Origin != CSVMappingAlias {
+		t.Fatalf("legacy article number mapping = %#v", mapping[0])
+	}
+	if mapping[1].TargetField != "manufacturer" || mapping[1].Origin != CSVMappingAlias {
+		t.Fatalf("invalid saved default was not repaired: %#v", mapping[1])
+	}
+}
+
 func TestDataTransferCSVMappingRejectsDuplicateTargets(t *testing.T) {
 	header := []string{"Inventarnummer", "Vereinsnummer"}
 	mapping := []DataTransferCSVColumnMapping{

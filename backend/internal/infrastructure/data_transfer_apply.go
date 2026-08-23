@@ -14,10 +14,11 @@ import (
 )
 
 type dataTransferPersistedPreview struct {
-	SourceSHA256  string                                     `json:"sourceSha256"`
-	Records       []application.DataTransferPreviewRecord    `json:"records"`
-	CSVMapping    []application.DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
-	VehicleFields []application.VehicleTransferField         `json:"vehicleFields,omitempty"`
+	SourceSHA256       string                                     `json:"sourceSha256"`
+	FingerprintVersion int                                        `json:"fingerprintVersion,omitempty"`
+	Records            []application.DataTransferPreviewRecord    `json:"records"`
+	CSVMapping         []application.DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
+	VehicleFields      []application.VehicleTransferField         `json:"vehicleFields,omitempty"`
 }
 
 type dataTransferApplyDB interface {
@@ -134,7 +135,9 @@ FROM data_transfer_jobs WHERE id=?`, job.ID).Scan(
 			return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("import has unresolved conflicts")
 		}
 	}
-	targetFingerprints, err := currentTransferTargetFingerprints(ctx, tx, preview.Records)
+	targetFingerprints, err := currentTransferTargetFingerprints(
+		ctx, tx, preview.Records, preview.FingerprintVersion,
+	)
 	if err != nil {
 		return dataTransferPersistedPreview{}, nil, err
 	}
@@ -202,6 +205,7 @@ func currentTransferTargetFingerprints(
 	ctx context.Context,
 	tx *sql.Tx,
 	records []application.DataTransferPreviewRecord,
+	fingerprintVersion int,
 ) (map[application.TransferArea]map[string]string, error) {
 	wanted := map[application.TransferArea]bool{}
 	for _, record := range records {
@@ -217,7 +221,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferVehicles] = map[string]string{}
 		for _, vehicle := range vehicles {
-			fingerprints[application.TransferVehicles][vehicle.ID] = application.DataTransferTargetFingerprint(vehicle)
+			fingerprints[application.TransferVehicles][vehicle.ID] =
+				application.DataTransferTargetFingerprintForVersion(vehicle, fingerprintVersion)
 		}
 	}
 	if wanted[application.TransferAccessories] {
@@ -227,7 +232,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferAccessories] = map[string]string{}
 		for _, accessory := range accessories {
-			fingerprints[application.TransferAccessories][accessory.ID] = application.DataTransferTargetFingerprint(accessory)
+			fingerprints[application.TransferAccessories][accessory.ID] =
+				application.DataTransferTargetFingerprintForVersion(accessory, fingerprintVersion)
 		}
 	}
 	if wanted[application.TransferExhibitionLists] {
@@ -237,7 +243,8 @@ func currentTransferTargetFingerprints(
 		}
 		fingerprints[application.TransferExhibitionLists] = map[string]string{}
 		for _, list := range lists {
-			fingerprints[application.TransferExhibitionLists][list.ID] = application.DataTransferTargetFingerprint(list)
+			fingerprints[application.TransferExhibitionLists][list.ID] =
+				application.DataTransferTargetFingerprintForVersion(list, fingerprintVersion)
 		}
 	}
 	return fingerprints, nil
@@ -266,7 +273,7 @@ func applyTransferRecords(
 		var err error
 		switch record.Area {
 		case application.TransferVehicles:
-			err = applyTransferVehicle(ctx, db, record, action)
+			err = applyTransferVehicle(ctx, db, record, action, job.PackageVersion)
 		case application.TransferAccessories:
 			err = applyTransferAccessory(ctx, db, record, action)
 		case application.TransferExhibitionLists:
@@ -333,6 +340,7 @@ func applyTransferVehicle(
 	db dataTransferApplyDB,
 	record application.DataTransferPreviewRecord,
 	action string,
+	packageVersion int,
 ) error {
 	vehicle := application.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
@@ -372,6 +380,20 @@ INSERT INTO vehicles(
 	case "replace":
 		if record.TargetID == "" {
 			return dataTransferApplyConflict("vehicle replacement target is missing")
+		}
+		if packageVersion == application.DataTransferPackageLegacyVersion {
+			result, err := db.ExecContext(ctx, `
+UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
+  epoch=?, railway_company=?, category=?, gattung=?, description=?, series=?, vehicle_number=?, maximum_speed_kmh=?,
+  home_base=?, digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?, decoder_type=?,
+  exhibition_ready=?, exhibition=?, abc_brakes=?, ean=?, production_period=?, list_price=?, acquisition_type=?,
+  acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?,
+  condition_details=?, packaging=?, updated_at=?
+WHERE id=?`, append(append(arguments[0:35], now), record.TargetID)...)
+			if err != nil {
+				return err
+			}
+			return requireApplyUpdate(result, "replace legacy vehicle")
 		}
 		result, err := db.ExecContext(ctx, `
 UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,

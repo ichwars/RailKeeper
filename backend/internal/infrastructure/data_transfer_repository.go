@@ -32,17 +32,30 @@ func (repository *DataTransferRepository) CreateProfile(
 		return application.DataTransferProfile{}, err
 	}
 	now := timestamp()
+	nameKey := application.DataTransferProfileNameKey(profile.Name)
 	profile.ID = randomID()
 	profile.CreatedAt = now
 	profile.UpdatedAt = now
-	if _, err := repository.db.ExecContext(ctx, `
+	enabled := boolToInt(profile.Enabled)
+	result, err := repository.db.ExecContext(ctx, `
 INSERT INTO data_transfer_profiles(
-  id, name, direction, format, areas_json, options_json, enabled, created_by_user_id, last_used_at,
+  id, name, name_key, direction, format, areas_json, options_json, enabled, created_by_user_id, last_used_at,
   created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?, ?)`, profile.ID, profile.Name,
-		profile.Direction, profile.Format, areas, options, boolToInt(profile.Enabled), profile.CreatedByUserID,
-		profile.LastUsedAt, now, now); err != nil {
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, ''), NULLIF(?, ''), ?, ?)`,
+		profile.ID, profile.Name, nameKey, profile.Direction, profile.Format, areas, options, enabled,
+		profile.CreatedByUserID, profile.LastUsedAt, now, now)
+	if err != nil {
+		if isDataTransferProfileNameConflict(err) {
+			return application.DataTransferProfile{}, application.ErrDataTransferConflict
+		}
 		return application.DataTransferProfile{}, fmt.Errorf("create transfer profile: %w", err)
+	}
+	created, err := result.RowsAffected()
+	if err != nil {
+		return application.DataTransferProfile{}, fmt.Errorf("read create transfer profile result: %w", err)
+	}
+	if created == 0 {
+		return application.DataTransferProfile{}, application.ErrDataTransferConflict
 	}
 	return repository.GetProfile(ctx, profile.ID)
 }
@@ -59,19 +72,41 @@ func (repository *DataTransferRepository) UpdateProfile(
 	if err != nil {
 		return application.DataTransferProfile{}, err
 	}
+	enabled := boolToInt(profile.Enabled)
+	nameKey := application.DataTransferProfileNameKey(profile.Name)
 	result, err := repository.db.ExecContext(ctx, `
 UPDATE data_transfer_profiles
-SET name=?, direction=?, format=?, areas_json=?, options_json=?, enabled=?, last_used_at=NULLIF(?, ''),
+SET name=?, name_key=?, direction=?, format=?, areas_json=?, options_json=?, enabled=?, last_used_at=NULLIF(?, ''),
     updated_at=?
-WHERE id=?`, profile.Name, profile.Direction, profile.Format, areas, options, boolToInt(profile.Enabled),
+WHERE id=?`, profile.Name, nameKey, profile.Direction, profile.Format, areas, options, enabled,
 		profile.LastUsedAt, timestamp(), profile.ID)
 	if err != nil {
+		if isDataTransferProfileNameConflict(err) {
+			return application.DataTransferProfile{}, application.ErrDataTransferConflict
+		}
 		return application.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", err)
 	}
-	if err := requireDataTransferUpdate(result, "update transfer profile"); err != nil {
-		return application.DataTransferProfile{}, err
+	updated, err := result.RowsAffected()
+	if err != nil {
+		return application.DataTransferProfile{}, fmt.Errorf("read update transfer profile result: %w", err)
+	}
+	if updated == 0 {
+		var exists int
+		if err := repository.db.QueryRowContext(ctx,
+			`SELECT EXISTS(SELECT 1 FROM data_transfer_profiles WHERE id=?)`, profile.ID).Scan(&exists); err != nil {
+			return application.DataTransferProfile{}, fmt.Errorf("check transfer profile: %w", err)
+		}
+		if exists == 0 {
+			return application.DataTransferProfile{}, fmt.Errorf("update transfer profile: %w", sql.ErrNoRows)
+		}
+		return application.DataTransferProfile{}, application.ErrDataTransferConflict
 	}
 	return repository.GetProfile(ctx, profile.ID)
+}
+
+func isDataTransferProfileNameConflict(err error) bool {
+	return err != nil && strings.Contains(err.Error(),
+		"UNIQUE constraint failed: data_transfer_profiles.direction, data_transfer_profiles.name_key")
 }
 
 func (repository *DataTransferRepository) ListProfiles(
@@ -274,6 +309,18 @@ func (repository *DataTransferRepository) CompareAndUpdateImportJob(
 	if err != nil {
 		return application.DataTransferJob{}, fmt.Errorf("encode transfer preview: %w", err)
 	}
+	profileOptions := ""
+	expectedProfileOptions := ""
+	if mutation.ProfileOptions != nil {
+		profileOptions, err = encodeTransferOptions(mutation.ProfileOptions.Options)
+		if err != nil {
+			return application.DataTransferJob{}, fmt.Errorf("encode transfer profile options: %w", err)
+		}
+		expectedProfileOptions, err = encodeTransferOptions(mutation.ProfileOptions.ExpectedOptions)
+		if err != nil {
+			return application.DataTransferJob{}, fmt.Errorf("encode expected transfer profile options: %w", err)
+		}
+	}
 	now := timestamp()
 	err = repository.withTx(ctx, func(tx *sql.Tx) error {
 		result, err := tx.ExecContext(ctx, `
@@ -308,6 +355,22 @@ WHERE id=? AND direction=? AND state=? AND revision=?`, job.ProfileID, job.Profi
 		if mutation.ReplaceIssues {
 			if err := replaceDataTransferIssues(ctx, tx, job.ID, mutation.Issues, now); err != nil {
 				return err
+			}
+		}
+		if mutation.ProfileOptions != nil {
+			result, err := tx.ExecContext(ctx, `
+UPDATE data_transfer_profiles SET options_json=?, updated_at=?
+WHERE id=? AND updated_at=? AND options_json=?`, profileOptions, now, mutation.ProfileOptions.ProfileID,
+				mutation.ProfileOptions.ExpectedUpdatedAt, expectedProfileOptions)
+			if err != nil {
+				return fmt.Errorf("update transfer profile mapping: %w", err)
+			}
+			updated, err := result.RowsAffected()
+			if err != nil {
+				return fmt.Errorf("read transfer profile mapping update result: %w", err)
+			}
+			if updated == 0 {
+				return application.ErrDataTransferConflict
 			}
 		}
 		return nil

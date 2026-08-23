@@ -32,7 +32,7 @@ func TestCombinedTransferPackageExcludesMasterData(t *testing.T) {
 		t.Fatalf("feature package leaked master data: %s", payload)
 	}
 	if !bytes.Contains(payload, []byte(`"format":"railkeeper-transfer"`)) ||
-		!bytes.Contains(payload, []byte(`"version":1`)) {
+		!bytes.Contains(payload, []byte(`"version":2`)) {
 		t.Fatalf("missing package identity: %s", payload)
 	}
 }

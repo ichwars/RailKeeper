@@ -163,7 +163,7 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 		},
 		{
 			name:    "unsupported package version",
-			payload: `{"format":"railkeeper-transfer","version":2,"areas":{"vehicles":[]}}`,
+			payload: `{"format":"railkeeper-transfer","version":3,"areas":{"vehicles":[]}}`,
 		},
 		{
 			name:    "empty areas",
@@ -180,6 +180,19 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 				t.Fatalf("expected validation error, got %v", err)
 			}
 		})
+	}
+}
+
+func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
+	document, err := decodeDataTransferPackage(strings.NewReader(
+		`{"format":"railkeeper-transfer","version":1,"createdAt":"2026-01-01T00:00:00Z",` +
+			`"areas":{"vehicles":[]}}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Version != DataTransferPackageLegacyVersion || document.Areas.Vehicles == nil {
+		t.Fatalf("legacy package decoded incorrectly: %#v", document)
 	}
 }
 
@@ -517,6 +530,14 @@ func (repository *dataTransferImportRepositoryStub) CompareAndUpdateImportJob(
 		return DataTransferJob{}, ErrDataTransferConflict
 	}
 	repository.mutationCount++
+	if mutation.ProfileOptions != nil {
+		profile, found := repository.profiles[mutation.ProfileOptions.ProfileID]
+		if !found || profile.UpdatedAt != mutation.ProfileOptions.ExpectedUpdatedAt {
+			return DataTransferJob{}, ErrDataTransferConflict
+		}
+		profile.Options = cloneTransferOptions(mutation.ProfileOptions.Options)
+		repository.profiles[profile.ID] = profile
+	}
 	mutation.Job.Revision = current.Revision + 1
 	repository.jobs[mutation.Job.ID] = mutation.Job
 	if mutation.ReplaceIssues {

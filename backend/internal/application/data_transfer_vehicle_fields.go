@@ -50,7 +50,7 @@ const dataTransferCSVIgnoreTarget = "__ignore__"
 var vehicleTransferFields = []VehicleTransferField{
 	vehicleTransferField("inventoryNumber", "Inventarnummer", "Inventory number", VehicleTransferString),
 	vehicleTransferField("manufacturer", "Hersteller", "Manufacturer", VehicleTransferString),
-	vehicleTransferField("articleNumber", "Artikel-Nr.", "Article number", VehicleTransferString),
+	vehicleTransferField("articleNumber", "Artikel-Nr.", "Article number", VehicleTransferString, "Artikelnummer"),
 	vehicleTransferField("articleSourceUrl", "Quelle / URL", "Source / URL", VehicleTransferString),
 	vehicleTransferField("name", "Bezeichnung", "Name", VehicleTransferString, "designation"),
 	vehicleTransferField("gauge", "Spurweite", "Gauge", VehicleTransferString),
@@ -153,6 +153,12 @@ func defaultDataTransferCSVMapping(
 	for index, sourceHeader := range header {
 		normalized := normalizeTransferCSVHeader(sourceHeader)
 		target, hasProfileDefault := profileDefaults[normalized]
+		if hasProfileDefault && target != dataTransferCSVIgnoreTarget {
+			if _, valid := VehicleTransferFieldByKey(target); !valid {
+				hasProfileDefault = false
+				target = ""
+			}
+		}
 		origin := CSVMappingProfile
 		if !hasProfileDefault {
 			target = aliases[normalized]
