@@ -977,6 +977,9 @@ components:
     DigitalCenterWriteField:
       type: string
       enum: [address, name, protocol]
+    DigitalCenterWriteOperation:
+      type: string
+      enum: [update, create]
     DigitalCenterWriteChange:
       type: object
       required: [field, current, desired]
@@ -991,6 +994,8 @@ components:
       type: object
       additionalProperties: false
       properties:
+        operation:
+          $ref: "#/components/schemas/DigitalCenterWriteOperation"
         fields:
           type: array
           uniqueItems: true
@@ -1001,6 +1006,8 @@ components:
       additionalProperties: false
       required: [token, confirm]
       properties:
+        operation:
+          $ref: "#/components/schemas/DigitalCenterWriteOperation"
         token:
           type: string
           minLength: 1
@@ -1014,7 +1021,7 @@ components:
             $ref: "#/components/schemas/DigitalCenterWriteField"
     DigitalCenterWritePreview:
       type: object
-      required: [sessionId, itemId, provider, objectId, direction, fields, changes, token, expiresAt]
+      required: [sessionId, itemId, provider, objectId, operation, direction, fields, changes, token, expiresAt]
       properties:
         sessionId:
           type: string
@@ -1024,6 +1031,8 @@ components:
           $ref: "#/components/schemas/DigitalCenterProvider"
         objectId:
           type: string
+        operation:
+          $ref: "#/components/schemas/DigitalCenterWriteOperation"
         direction:
           type: string
           enum: [railkeeper_to_center]
@@ -1042,7 +1051,7 @@ components:
           format: date-time
     DigitalCenterWriteConfirmation:
       type: object
-      required: [sessionId, itemId, provider, objectId, direction, fields, applied, verified, result, message, liveMonitor]
+      required: [sessionId, itemId, provider, objectId, operation, direction, fields, applied, verified, result, message, liveMonitor]
       properties:
         sessionId:
           type: string
@@ -1052,6 +1061,8 @@ components:
           $ref: "#/components/schemas/DigitalCenterProvider"
         objectId:
           type: string
+        operation:
+          $ref: "#/components/schemas/DigitalCenterWriteOperation"
         direction:
           type: string
           enum: [railkeeper_to_center]

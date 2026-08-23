@@ -217,6 +217,40 @@ describe("DigitalCentersView", () => {
     expect(workspace.previewWrite).not.toHaveBeenCalled();
   });
 
+  it("offers a dedicated create flow when a RailKeeper vehicle is missing in ECoS", async () => {
+    const user = userEvent.setup();
+    const missingItem: DigitalCenterWorkItem = {
+      ...workItem,
+      id: "item-missing",
+      centerObjectId: "",
+      name: "BR 18 201 Roco S",
+      decoderAddress: 4405,
+      protocol: "DCC",
+      compareStatus: "missing",
+      stationStatus: "missing",
+      center: {},
+      railkeeper: {
+        vehicleId: "vehicle-1", name: "BR 18 201 Roco S", decoderAddress: 4405, protocol: "DCC"
+      }
+    };
+    const workspace = workspaceFixture({
+      selectedItemId: missingItem.id,
+      selectedItem: missingItem,
+      dialog: { kind: "comparison", itemId: missingItem.id }
+    });
+    workspaceHook.mockReturnValue(workspace);
+
+    render(<DigitalCentersView roles={["Admin"]} />);
+
+    expect(screen.queryByRole("button", { name: "Schreibvorschau erstellen" })).not.toBeInTheDocument();
+    expect(screen.getByText(
+      "Dieses RailKeeper-Fahrzeug fehlt in der ECoS. Beim Anlegen werden Name, Decoder-Adresse und " +
+      "Protokoll gemeinsam übertragen."
+    )).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "In ECoS anlegen" }));
+    expect(workspace.previewWrite).toHaveBeenCalledWith(["name", "address", "protocol"], "create");
+  });
+
   it("offers the two explicit adoption paths for an ECoS-only locomotive", async () => {
     const user = userEvent.setup();
     const unmatchedItem = unmatchedWorkItem();
@@ -472,12 +506,14 @@ function workspaceFixture(overrides: Partial<Workspace> = {}): Workspace {
 
 const writePreview: Awaited<ReturnType<Workspace["previewWrite"]>> = {
   sessionId: readSession.id, itemId: workItem.id, provider: "ecos", objectId: "3",
+  operation: "update",
   direction: "railkeeper_to_center", fields: ["name"],
   changes: [{ field: "name", current: "Alt", desired: workItem.name }],
   token: "preview-token", expiresAt: "2026-08-21T14:45:00Z"
 };
 const writeConfirmation: Awaited<ReturnType<Workspace["confirmWrite"]>> = {
   sessionId: readSession.id, itemId: workItem.id, provider: "ecos", objectId: "3",
+  operation: "update",
   direction: "railkeeper_to_center", fields: ["name"], applied: true, verified: true,
 	result: "verified", message: "Verifiziert", liveMonitor: { wasRunning: false, restarted: false }
 };

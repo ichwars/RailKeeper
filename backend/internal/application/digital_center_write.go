@@ -37,6 +37,7 @@ var (
 
 type DigitalCenterWriteDirection string
 type DigitalCenterWriteResultStatus string
+type DigitalCenterWriteOperation string
 
 const (
 	DigitalCenterWriteRailKeeperToCenter DigitalCenterWriteDirection    = "railkeeper_to_center"
@@ -44,16 +45,20 @@ const (
 	DigitalCenterWriteVerificationFailed DigitalCenterWriteResultStatus = "verification_failed"
 	DigitalCenterWriteFailed             DigitalCenterWriteResultStatus = "failed"
 	DigitalCenterWriteUnknown            DigitalCenterWriteResultStatus = "unknown"
+	DigitalCenterWriteUpdate             DigitalCenterWriteOperation    = "update"
+	DigitalCenterWriteCreate             DigitalCenterWriteOperation    = "create"
 )
 
 type DigitalCenterWritePreviewInput struct {
-	Fields []string `json:"fields"`
+	Operation DigitalCenterWriteOperation `json:"operation,omitempty"`
+	Fields    []string                    `json:"fields"`
 }
 
 type DigitalCenterWriteConfirmInput struct {
-	Token   string   `json:"token"`
-	Confirm bool     `json:"confirm"`
-	Fields  []string `json:"fields"`
+	Operation DigitalCenterWriteOperation `json:"operation,omitempty"`
+	Token     string                      `json:"token"`
+	Confirm   bool                        `json:"confirm"`
+	Fields    []string                    `json:"fields"`
 }
 
 type DigitalCenterWritePreview struct {
@@ -61,6 +66,7 @@ type DigitalCenterWritePreview struct {
 	ItemID    string                      `json:"itemId"`
 	Provider  string                      `json:"provider"`
 	ObjectID  string                      `json:"objectId"`
+	Operation DigitalCenterWriteOperation `json:"operation"`
 	Direction DigitalCenterWriteDirection `json:"direction"`
 	Fields    []string                    `json:"fields"`
 	Changes   []ECoSLocomotiveSyncChange  `json:"changes"`
@@ -73,6 +79,7 @@ type DigitalCenterWriteConfirmation struct {
 	ItemID         string                         `json:"itemId"`
 	Provider       string                         `json:"provider"`
 	ObjectID       string                         `json:"objectId"`
+	Operation      DigitalCenterWriteOperation    `json:"operation"`
 	Direction      DigitalCenterWriteDirection    `json:"direction"`
 	Fields         []string                       `json:"fields"`
 	Applied        bool                           `json:"applied"`
@@ -101,21 +108,19 @@ type digitalCenterECoSTargetReader interface {
 	ReadLocomotive(context.Context, ECoSConnectionInput, int) (ECoSLocomotive, error)
 }
 
-type digitalCenterVehicleMappingWriter interface {
-	UpsertExternalMapping(context.Context, string, VehicleExternalMapInput, string) (*VehicleExternalMap, error)
-}
-
 type digitalCenterAuditRecorder interface {
 	RecordAudit(context.Context, string, string, string, string, string) error
 }
 
 type digitalCenterWriteTarget struct {
-	session  DigitalCenterReadSession
-	item     DigitalCenterWorkItem
-	center   DigitalCenterSummary
-	objectID int
-	fields   []string
-	desired  ECoSLocomotiveSyncDesired
+	session          DigitalCenterReadSession
+	item             DigitalCenterWorkItem
+	center           DigitalCenterSummary
+	objectID         int
+	fields           []string
+	desired          ECoSLocomotiveSyncDesired
+	operation        DigitalCenterWriteOperation
+	previousObjectID string
 }
 
 type digitalCenterWriteHashPayload struct {
@@ -123,6 +128,7 @@ type digitalCenterWriteHashPayload struct {
 	ItemID    string                      `json:"itemId"`
 	Provider  string                      `json:"provider"`
 	ObjectID  string                      `json:"objectId"`
+	Operation DigitalCenterWriteOperation `json:"operation"`
 	Direction DigitalCenterWriteDirection `json:"direction"`
 	Fields    []string                    `json:"fields"`
 	Changes   []ECoSLocomotiveSyncChange  `json:"changes"`
@@ -135,7 +141,7 @@ func (service *DigitalCenterWorkspaceService) previewWriteUnlocked(
 	input DigitalCenterWritePreviewInput,
 	actor string,
 ) (DigitalCenterWritePreview, error) {
-	target, err := service.digitalCenterWriteTarget(ctx, sessionID, itemID, input.Fields)
+	target, err := service.digitalCenterWriteTarget(ctx, sessionID, itemID, input.Fields, input.Operation)
 	if err != nil {
 		return DigitalCenterWritePreview{}, err
 	}
@@ -165,8 +171,9 @@ func (service *DigitalCenterWorkspaceService) previewWriteUnlocked(
 	}
 	return DigitalCenterWritePreview{
 		SessionID: target.session.ID, ItemID: target.item.ID, Provider: target.center.Provider,
-		ObjectID: target.item.CenterObjectID, Direction: DigitalCenterWriteRailKeeperToCenter,
-		Fields: fields, Changes: changes, Token: token, ExpiresAt: expiresAt,
+		ObjectID: digitalCenterWriteObjectID(target), Operation: target.operation,
+		Direction: DigitalCenterWriteRailKeeperToCenter,
+		Fields:    fields, Changes: changes, Token: token, ExpiresAt: expiresAt,
 	}, nil
 }
 
@@ -184,7 +191,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if token == "" {
 		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterGrantMismatch
 	}
-	target, err := service.digitalCenterWriteTarget(ctx, sessionID, itemID, input.Fields)
+	target, err := service.digitalCenterWriteTarget(ctx, sessionID, itemID, input.Fields, input.Operation)
 	if err != nil {
 		return DigitalCenterWriteConfirmation{}, err
 	}
@@ -228,14 +235,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	target.fields = fields
 	target.desired = desiredDigitalCenterFields(target.desired, fields)
 	result = service.digitalCenterWriteResult(target, fields)
-	writer, ok := service.ecos.(digitalCenterECoSWriter)
-	if !ok {
-		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterWorkspaceUnavailable
-	}
-	syncResult, err := writer.SyncLocomotive(ctx, ECoSLocomotiveSyncInput{
-		Host: target.center.Host, Port: target.center.Port, ObjectID: target.objectID,
-		Desired: target.desired, Confirm: true,
-	})
+	applied, createdObjectID, err := service.applyDigitalCenterWrite(ctx, target)
 	if err != nil {
 		if errors.Is(err, ErrECoSWriteStateUnknown) {
 			result.Result = DigitalCenterWriteUnknown
@@ -253,7 +253,12 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result)
 		return result, nil
 	}
-	result.Applied = syncResult != nil && syncResult.Applied
+	result.Applied = applied
+	if target.operation == DigitalCenterWriteCreate {
+		target.objectID = createdObjectID
+		target.item.CenterObjectID = strconv.Itoa(createdObjectID)
+		result.ObjectID = target.item.CenterObjectID
+	}
 	verifiedLocomotive, verified, err := service.verifyDigitalCenterWrite(ctx, target)
 	if err != nil {
 		result.Result = DigitalCenterWriteUnknown
@@ -284,16 +289,10 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if err := service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result); err != nil {
 		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
-	mappings, ok := service.vehicles.(digitalCenterVehicleMappingWriter)
-	if !ok {
-		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterWorkspaceUnavailable
-	}
-	_, err = mappings.UpsertExternalMapping(ctx, target.item.VehicleID, VehicleExternalMapInput{
-		Provider: target.center.Provider, ExternalID: target.item.CenterObjectID,
-		ExternalName: verifiedLocomotive.Name, ExternalAddress: strconv.Itoa(verifiedLocomotive.Address),
-		ExternalProtocol: verifiedLocomotive.Protocol, SyncStatus: "synced",
-	}, strings.TrimSpace(actor))
-	if err != nil {
+	if err := service.persistDigitalCenterMapping(ctx, target, verifiedLocomotive, actor); err != nil {
+		if errors.Is(err, ErrDigitalCenterWorkspaceUnavailable) {
+			return DigitalCenterWriteConfirmation{}, err
+		}
 		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
 	updatedItem, err := service.updateVerifiedDigitalCenterWorkItem(ctx, target, verifiedLocomotive)
@@ -324,6 +323,7 @@ func (service *DigitalCenterWorkspaceService) digitalCenterWriteTarget(
 	sessionID string,
 	itemID string,
 	requestedFields []string,
+	requestedOperation DigitalCenterWriteOperation,
 ) (digitalCenterWriteTarget, error) {
 	if service == nil || service.repository == nil || service.ecos == nil || service.vehicles == nil {
 		return digitalCenterWriteTarget{}, ErrDigitalCenterWorkspaceUnavailable
@@ -359,18 +359,35 @@ func (service *DigitalCenterWorkspaceService) digitalCenterWriteTarget(
 	if item.SessionID != session.ID || item.ID != itemID {
 		return digitalCenterWriteTarget{}, ErrDigitalCenterGrantMismatch
 	}
-	if item.CompareStatus == DigitalCompareConflict || item.CompareStatus == DigitalCompareMissing ||
-		item.CompareStatus == DigitalCompareNew || len(item.Conflicts) > 0 ||
-		strings.TrimSpace(item.VehicleID) == "" || item.StationStatus != "read" {
+	operation, err := normalizeDigitalCenterWriteOperation(requestedOperation)
+	if err != nil {
+		return digitalCenterWriteTarget{}, err
+	}
+	if len(item.Conflicts) > 0 || strings.TrimSpace(item.VehicleID) == "" {
 		return digitalCenterWriteTarget{}, ErrDigitalCenterConflictUnresolved
 	}
-	objectID, err := strconv.Atoi(strings.TrimSpace(item.CenterObjectID))
-	if err != nil || objectID < 1 || objectID > maxDigitalCenterObjectID {
-		return digitalCenterWriteTarget{}, ErrDigitalCenterDeviceOutput
+	objectID := 0
+	if operation == DigitalCenterWriteCreate {
+		if item.CompareStatus != DigitalCompareMissing || item.StationStatus != "missing" {
+			return digitalCenterWriteTarget{}, ErrDigitalCenterConflictUnresolved
+		}
+	} else {
+		if item.CompareStatus == DigitalCompareConflict || item.CompareStatus == DigitalCompareMissing ||
+			item.CompareStatus == DigitalCompareNew || item.StationStatus != "read" {
+			return digitalCenterWriteTarget{}, ErrDigitalCenterConflictUnresolved
+		}
+		objectID, err = strconv.Atoi(strings.TrimSpace(item.CenterObjectID))
+		if err != nil || objectID < 1 || objectID > maxDigitalCenterObjectID {
+			return digitalCenterWriteTarget{}, ErrDigitalCenterDeviceOutput
+		}
 	}
 	fields, err := normalizeDigitalCenterWriteFields(requestedFields)
 	if err != nil {
 		return digitalCenterWriteTarget{}, err
+	}
+	if operation == DigitalCenterWriteCreate && !equalDigitalCenterWriteFields(fields,
+		[]string{"address", "name", "protocol"}) {
+		return digitalCenterWriteTarget{}, ErrDigitalCenterWriteFieldUnsupported
 	}
 	desired, err := digitalCenterDesiredFromWorkItem(item, fields)
 	if err != nil {
@@ -378,6 +395,7 @@ func (service *DigitalCenterWorkspaceService) digitalCenterWriteTarget(
 	}
 	return digitalCenterWriteTarget{
 		session: session, item: item, center: center, objectID: objectID, fields: fields, desired: desired,
+		operation: operation, previousObjectID: strings.TrimSpace(item.CenterObjectID),
 	}, nil
 }
 
@@ -481,6 +499,16 @@ func (service *DigitalCenterWorkspaceService) previewDigitalCenterChanges(
 	ctx context.Context,
 	target digitalCenterWriteTarget,
 ) ([]ECoSLocomotiveSyncChange, error) {
+	if target.operation == DigitalCenterWriteCreate {
+		if _, err := buildECoSLocomotiveCreateCommand(target.desired); err != nil {
+			return nil, ErrDigitalCenterWriteFieldUnsupported
+		}
+		return []ECoSLocomotiveSyncChange{
+			{Field: "address", Current: "", Desired: strconv.Itoa(target.desired.Address)},
+			{Field: "name", Current: "", Desired: target.desired.Name},
+			{Field: "protocol", Current: "", Desired: target.desired.Protocol},
+		}, nil
+	}
 	writer, ok := service.ecos.(digitalCenterECoSWriter)
 	if !ok {
 		return nil, ErrDigitalCenterWorkspaceUnavailable
@@ -578,8 +606,9 @@ func hashDigitalCenterWrite(
 	}
 	payload, err := json.Marshal(digitalCenterWriteHashPayload{
 		SessionID: target.session.ID, ItemID: target.item.ID, Provider: target.center.Provider,
-		ObjectID: target.item.CenterObjectID, Direction: DigitalCenterWriteRailKeeperToCenter,
-		Fields: fields, Changes: changes,
+		ObjectID: digitalCenterWriteObjectID(target), Operation: target.operation,
+		Direction: DigitalCenterWriteRailKeeperToCenter,
+		Fields:    fields, Changes: changes,
 	})
 	if err != nil {
 		return "", nil, fmt.Errorf("hash digital center write preview: %w", err)
@@ -705,6 +734,7 @@ func (service *DigitalCenterWorkspaceService) updateVerifiedDigitalCenterWorkIte
 	verified ECoSLocomotive,
 ) (DigitalCenterWorkItem, error) {
 	item := target.item
+	item.CenterObjectID = strconv.Itoa(verified.ObjectID)
 	item.Name = verified.Name
 	item.Address = verified.Address
 	item.Protocol = verified.Protocol
@@ -747,8 +777,9 @@ func (service *DigitalCenterWorkspaceService) digitalCenterWriteResult(
 ) DigitalCenterWriteConfirmation {
 	return DigitalCenterWriteConfirmation{
 		SessionID: target.session.ID, ItemID: target.item.ID, Provider: target.center.Provider,
-		ObjectID: target.item.CenterObjectID, Direction: DigitalCenterWriteRailKeeperToCenter,
-		Fields: append([]string(nil), fields...), Result: DigitalCenterWriteFailed,
+		ObjectID: digitalCenterWriteObjectID(target), Operation: target.operation,
+		Direction: DigitalCenterWriteRailKeeperToCenter,
+		Fields:    append([]string(nil), fields...), Result: DigitalCenterWriteFailed,
 	}
 }
 
@@ -763,11 +794,13 @@ func (service *DigitalCenterWorkspaceService) auditDigitalCenterWrite(
 		return ErrDigitalCenterWorkspaceUnavailable
 	}
 	details, err := json.Marshal(struct {
-		Station  string                         `json:"station"`
-		ObjectID string                         `json:"objectId"`
-		Fields   []string                       `json:"fields"`
-		Result   DigitalCenterWriteResultStatus `json:"result"`
-	}{Station: target.center.Provider, ObjectID: target.item.CenterObjectID, Fields: fields, Result: result})
+		Station   string                         `json:"station"`
+		ObjectID  string                         `json:"objectId"`
+		Operation DigitalCenterWriteOperation    `json:"operation"`
+		Fields    []string                       `json:"fields"`
+		Result    DigitalCenterWriteResultStatus `json:"result"`
+	}{Station: target.center.Provider, ObjectID: digitalCenterWriteObjectID(target),
+		Operation: target.operation, Fields: fields, Result: result})
 	if err != nil {
 		return fmt.Errorf("encode digital center write audit: %w", err)
 	}

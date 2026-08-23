@@ -171,6 +171,69 @@ func TestDigitalCenterWriteConfirmConsumesBeforeMutationVerifiesMapsAndAudits(t 
 	}
 }
 
+func TestDigitalCenterCreatePreviewAndConfirmVerifiesMapsAndAudits(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.item.CenterObjectID = "42"
+	fixture.item.Name = "BR 18 201 Roco S"
+	fixture.item.Address = 4405
+	fixture.item.Protocol = "DCC"
+	fixture.item.CompareStatus = DigitalCompareMissing
+	fixture.item.StationStatus = "missing"
+	fixture.item.Center = map[string]any{}
+	fixture.item.RailKeeper = map[string]any{
+		"vehicleId": "vehicle-1", "name": "BR 18 201 Roco S", "decoderAddress": 4405, "protocol": "DCC",
+	}
+	fixture.repository.item = fixture.item
+	fixture.ecos.verificationName = "BR 18 201 Roco S"
+	fixture.ecos.verificationAddress = 4405
+	fixture.ecos.verificationProtocol = "DCC"
+	fixture.ecos.createObjectID = 1002
+
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Operation: DigitalCenterWriteCreate,
+			Fields: []string{"name", "address", "protocol"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if preview.Operation != DigitalCenterWriteCreate || preview.ObjectID != "" ||
+		!reflect.DeepEqual(preview.Fields, []string{"address", "name", "protocol"}) || len(preview.Changes) != 3 {
+		t.Fatalf("preview = %#v", preview)
+	}
+	if len(fixture.ecos.syncCalls) != 0 || len(fixture.ecos.createCalls) != 0 {
+		t.Fatalf("create preview mutated/read target: sync=%#v create=%#v", fixture.ecos.syncCalls,
+			fixture.ecos.createCalls)
+	}
+
+	fixture.ecos.beforeConfirmedWrite = func() {
+		if !fixture.repository.consumed {
+			t.Fatal("device creation happened before atomic grant consumption")
+		}
+	}
+	result, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Operation: DigitalCenterWriteCreate, Token: preview.Token,
+			Confirm: true, Fields: preview.Fields}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Operation != DigitalCenterWriteCreate || result.ObjectID != "1002" || !result.Applied ||
+		!result.Verified || result.Result != DigitalCenterWriteVerified {
+		t.Fatalf("result = %#v", result)
+	}
+	if len(fixture.ecos.createCalls) != 1 || !fixture.ecos.createCalls[0].Confirm ||
+		fixture.ecos.createCalls[0].Desired.Name != "BR 18 201 Roco S" ||
+		fixture.ecos.createCalls[0].Desired.Address != 4405 || fixture.ecos.createCalls[0].Desired.Protocol != "DCC" {
+		t.Fatalf("create calls = %#v", fixture.ecos.createCalls)
+	}
+	if fixture.vehicles.mapping == nil || fixture.vehicles.mapping.ExternalID != "1002" ||
+		fixture.vehicles.previousExternalID != "42" || fixture.repository.item.CenterObjectID != "1002" ||
+		fixture.repository.item.CompareStatus != DigitalCompareOK {
+		t.Fatalf("mapping=%#v work item=%#v", fixture.vehicles.mapping, fixture.repository.item)
+	}
+	if len(fixture.audit.entries) != 1 || !strings.Contains(fixture.audit.entries[0].details, `"operation":"create"`) {
+		t.Fatalf("audit entries = %#v", fixture.audit.entries)
+	}
+}
+
 func TestDigitalCenterWriteConfirmRejectsFalseActorExpiredMismatchedAndConsumedGrants(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -675,6 +738,8 @@ type digitalCenterWriteECoSStub struct {
 	writeErr             error
 	writeCalls           int
 	readErr              error
+	createCalls          []ECoSLocomotiveCreateInput
+	createObjectID       int
 }
 
 func (stub *digitalCenterWriteECoSStub) ProbeLocomotiveRaw(
@@ -729,6 +794,22 @@ func (stub *digitalCenterWriteECoSStub) SyncLocomotive(
 	}, nil
 }
 
+func (stub *digitalCenterWriteECoSStub) CreateLocomotive(
+	_ context.Context, input ECoSLocomotiveCreateInput,
+) (*ECoSLocomotiveCreateResult, error) {
+	stub.events = append(stub.events, "create")
+	stub.createCalls = append(stub.createCalls, input)
+	if stub.beforeConfirmedWrite != nil {
+		stub.beforeConfirmedWrite()
+	}
+	if stub.writeErr != nil {
+		return nil, stub.writeErr
+	}
+	return &ECoSLocomotiveCreateResult{
+		ObjectID: stub.createObjectID, Desired: input.Desired, Applied: input.Confirm,
+	}, nil
+}
+
 func (stub *digitalCenterWriteECoSStub) LiveStatus() ECoSLiveStatus {
 	return stub.liveStatus
 }
@@ -769,9 +850,9 @@ func (stub *digitalCenterWriteECoSStub) StartLiveWithInterruption(
 }
 
 func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
-	context.Context,
-	ECoSConnectionInput,
-	int,
+	_ context.Context,
+	_ ECoSConnectionInput,
+	objectID int,
 ) (ECoSLocomotive, error) {
 	stub.events = append(stub.events, "read-target")
 	if stub.readErr != nil {
@@ -786,13 +867,14 @@ func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
 		address = 18
 	}
 	return ECoSLocomotive{
-		ObjectID: 3, Name: stub.verificationName, Address: address, Protocol: protocol,
+		ObjectID: objectID, Name: stub.verificationName, Address: address, Protocol: protocol,
 	}, nil
 }
 
 type digitalCenterWriteVehicleStub struct {
-	mapping *VehicleExternalMapInput
-	err     error
+	mapping            *VehicleExternalMapInput
+	previousExternalID string
+	err                error
 }
 
 func (*digitalCenterWriteVehicleStub) ListReadOnly(context.Context, string) ([]Vehicle, error) {
@@ -808,6 +890,13 @@ func (stub *digitalCenterWriteVehicleStub) UpsertExternalMapping(
 	copy := input
 	stub.mapping = &copy
 	return &VehicleExternalMap{Provider: input.Provider, ExternalID: input.ExternalID}, nil
+}
+
+func (stub *digitalCenterWriteVehicleStub) RebindExternalMapping(
+	_ context.Context, _ string, previousExternalID string, input VehicleExternalMapInput, _ string,
+) (*VehicleExternalMap, error) {
+	stub.previousExternalID = previousExternalID
+	return stub.UpsertExternalMapping(context.Background(), "", input, "")
 }
 
 type digitalCenterWriteAuditEntry struct {

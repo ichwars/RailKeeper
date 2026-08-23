@@ -3004,6 +3004,8 @@ export const deTranslations: Record<string, string> = {
 	"digitalCenters.write.liveRestartFailed": "Das Live-Monitoring konnte nicht automatisch neu gestartet werden. Bitte manuell starten.",
     "digitalCenters.write.consent": "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden.",
     "digitalCenters.write.createPreview": "Schreibvorschau erstellen",
+    "digitalCenters.write.createInEcos": "In ECoS anlegen",
+    "digitalCenters.write.missingInEcos": "Dieses RailKeeper-Fahrzeug fehlt in der ECoS. Beim Anlegen werden Name, Decoder-Adresse und Protokoll gemeinsam übertragen.",
     "digitalCenters.write.grantInvalid": "Die Schreibfreigabe ist nicht mehr gültig.",
     "digitalCenters.write.confirm": "In die Digitalzentrale schreiben",
     "digitalCenters.write.preview": "Schreibvorschau",

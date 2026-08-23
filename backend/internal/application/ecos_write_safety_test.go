@@ -245,6 +245,27 @@ func TestECoSSyncSeparatesAddressFromOtherAttributes(t *testing.T) {
 	}
 }
 
+func TestECoSCreateLocomotiveAppendsCompleteObjectAtomically(t *testing.T) {
+	listener := startECoSTestServer(t, func(command string) []string {
+		want := `create(10, addr[4405], name["BR 18 201 Roco S"], protocol[DCC28], append)`
+		if command != want {
+			t.Fatalf("command = %q, want %q", command, want)
+		}
+		return []string{fmt.Sprintf("<REPLY %s>", command), "10 id[1002]", "<END 0 (OK)>"}
+	})
+	defer func() { _ = listener.Close() }()
+	host, port := splitTestAddress(t, listener.Addr().String())
+
+	result, err := NewECoSService().CreateLocomotive(t.Context(), ECoSLocomotiveCreateInput{
+		Host: host, Port: port,
+		Desired: ECoSLocomotiveSyncDesired{Name: "BR 18 201 Roco S", Address: 4405, Protocol: "DCC"},
+		Confirm: true,
+	})
+	if err != nil || result == nil || !result.Applied || result.ObjectID != 1002 {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
 func TestECoSSyncMarksMissingWriteReplyAsUnknown(t *testing.T) {
 	listener := startECoSTestServer(t, func(command string) []string {
 		switch {

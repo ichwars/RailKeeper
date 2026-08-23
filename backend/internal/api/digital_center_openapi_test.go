@@ -85,9 +85,9 @@ func TestOpenAPIDigitalCenterSchemasExposeExactRuntimeEnumsAndTelemetry(t *testi
 		"ECoSLiveStatus":              {"enum: [stopped, running, interrupted]", "pulseSamples:", "recentEvents:", "diagnosis:"},
 		"ECoSLivePulseSample":         {"repliesPerSecond:", "at:"},
 		"ECoSLiveEvent":               {"kind:", "protocol:", "message:"},
-		"DigitalCenterWritePreview":   {"enum: [railkeeper_to_center]", "changes:", "token:", "expiresAt:"},
+		"DigitalCenterWritePreview":   {"enum: [railkeeper_to_center]", "operation:", "changes:", "token:", "expiresAt:"},
 		"DigitalCenterWriteConfirmation": {
-			"enum: [verified, verification_failed, failed, unknown]", "verifiedValues:", "liveMonitor:", "workItem:",
+			"enum: [verified, verification_failed, failed, unknown]", "operation:", "verifiedValues:", "liveMonitor:", "workItem:",
 		},
 	}
 	for schema, fragments := range expectations {

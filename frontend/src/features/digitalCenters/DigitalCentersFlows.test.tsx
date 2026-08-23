@@ -163,12 +163,14 @@ describe("Digital Centers operational journeys", () => {
 
     expect(await screen.findByText("Schreiben verifiziert")).toBeInTheDocument();
     expect(api.previewDigitalCenterWrite).toHaveBeenCalledWith("session-1", "item-ok", {
-      fields: ["name", "address"]
+      fields: ["name", "address"],
+      operation: "update"
     });
     expect(api.confirmDigitalCenterWrite).toHaveBeenCalledWith("session-1", "item-ok", {
       token: "public-grant",
       confirm: true,
-      fields: ["name", "address"]
+      fields: ["name", "address"],
+      operation: "update"
     });
   });
 
@@ -364,6 +366,7 @@ const writePreview: DigitalCenterWritePreview = {
   itemId: "item-ok",
   provider: "ecos",
   objectId: "3",
+  operation: "update",
   direction: "railkeeper_to_center",
   fields: ["name", "address"],
   changes: [
@@ -453,6 +456,7 @@ function confirmationFixture(
     itemId: "item-ok",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name", "address"],
     applied: true,

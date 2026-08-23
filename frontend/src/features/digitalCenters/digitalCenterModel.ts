@@ -26,6 +26,7 @@ export type DigitalCenterMessageCode =
 export type ECoSLiveMonitorState = "stopped" | "running" | "interrupted";
 export type DigitalCenterWriteField = "address" | "name" | "protocol";
 export type DigitalCenterWriteDirection = "railkeeper_to_center";
+export type DigitalCenterWriteOperation = "update" | "create";
 export type DigitalCenterWriteResult = "verified" | "verification_failed" | "failed" | "unknown";
 
 export type DigitalCenterCapabilities = {
@@ -177,6 +178,7 @@ export type DigitalCenterWriteChange = {
 };
 
 export type DigitalCenterWritePreviewInput = {
+  operation?: DigitalCenterWriteOperation;
   fields?: DigitalCenterWriteField[];
 };
 
@@ -185,6 +187,7 @@ export type DigitalCenterWritePreview = {
   itemId: string;
   provider: DigitalCenterProvider;
   objectId: string;
+  operation: DigitalCenterWriteOperation;
   direction: DigitalCenterWriteDirection;
   fields: DigitalCenterWriteField[];
   changes: DigitalCenterWriteChange[];
@@ -193,6 +196,7 @@ export type DigitalCenterWritePreview = {
 };
 
 export type DigitalCenterWriteConfirmInput = {
+  operation?: DigitalCenterWriteOperation;
   token: string;
   confirm: true;
   fields?: DigitalCenterWriteField[];
@@ -203,6 +207,7 @@ export type DigitalCenterWriteConfirmation = {
   itemId: string;
   provider: DigitalCenterProvider;
   objectId: string;
+  operation: DigitalCenterWriteOperation;
   direction: DigitalCenterWriteDirection;
   fields: DigitalCenterWriteField[];
   applied: boolean;

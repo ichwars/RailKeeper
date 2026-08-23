@@ -47,7 +47,7 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 			locomotive.Address < 1 || locomotive.Address > maxDigitalCenterAddress {
 			return ErrDigitalCenterDeviceOutput
 		}
-		if locomotive.ObjectID == target.objectID {
+		if target.operation != DigitalCenterWriteCreate && locomotive.ObjectID == target.objectID {
 			targetFound = true
 			continue
 		}
@@ -60,7 +60,7 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 			Address:  target.desired.Address,
 		}
 	}
-	if !targetFound {
+	if target.operation != DigitalCenterWriteCreate && !targetFound {
 		return ErrDigitalCenterDeviceOutput
 	}
 	return nil

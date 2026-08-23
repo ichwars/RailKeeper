@@ -3004,6 +3004,8 @@ export const enTranslations: Record<string, string> = {
 	"digitalCenters.write.liveRestartFailed": "Live monitoring could not be restarted automatically. Please start it manually.",
     "digitalCenters.write.consent": "I confirm that the displayed values will be written to the command station.",
     "digitalCenters.write.createPreview": "Create write preview",
+    "digitalCenters.write.createInEcos": "Create in ECoS",
+    "digitalCenters.write.missingInEcos": "This RailKeeper vehicle is missing from ECoS. Its name, decoder address, and protocol will be transferred together when it is created.",
     "digitalCenters.write.grantInvalid": "The write grant is no longer valid.",
     "digitalCenters.write.confirm": "Write to command station",
     "digitalCenters.write.preview": "Write preview",

@@ -233,7 +233,8 @@ describe("useDigitalCentersWorkspace", () => {
     expect(api.confirmDigitalCenterWrite).toHaveBeenCalledWith(readySession.id, newest.id, {
       token: "public-grant",
       confirm: true,
-      fields: ["name"]
+      fields: ["name"],
+      operation: "update"
     });
   });
 
@@ -779,6 +780,7 @@ function writePreviewFixture(overrides: Partial<DigitalCenterWritePreview> = {})
     itemId: "item-new",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name"],
     changes: [{ field: "name", current: "Alte Lok", desired: "ICE 3" }],
@@ -796,6 +798,7 @@ function writeConfirmationFixture(
     itemId: "item-new",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name"],
     applied: true,

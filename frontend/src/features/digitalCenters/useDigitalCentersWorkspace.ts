@@ -15,6 +15,7 @@ import {
   type DigitalCenterWorkspaceTab,
   type DigitalCenterWriteConfirmation,
   type DigitalCenterWriteField,
+  type DigitalCenterWriteOperation,
   type DigitalCenterWritePreview,
   type ECoSLiveStatus,
   emptyDigitalCenterWorkItemPage
@@ -463,7 +464,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     resetWriteDialogState();
   }, [resetWriteDialogState]);
 
-  const previewWrite = useCallback(async (fields: DigitalCenterWriteField[]) => {
+  const previewWrite = useCallback(async (
+    fields: DigitalCenterWriteField[], operation: DigitalCenterWriteOperation = "update"
+  ) => {
     const sessionID = readSession?.id;
     const itemID = selectedItemIDRef.current;
     if (!actions.canWrite || !sessionID || !itemID) {
@@ -475,7 +478,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setError("write", "");
     setLoadingArea("write", true);
     try {
-      const preview = await api.previewDigitalCenterWrite(sessionID, itemID, { fields });
+      const preview = await api.previewDigitalCenterWrite(sessionID, itemID, { fields, operation });
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
@@ -518,6 +521,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLoadingArea("write", true);
     try {
       const confirmation = await api.confirmDigitalCenterWrite(sessionID, itemID, {
+        operation: preview.operation,
         token: preview.token,
         confirm: true,
         fields: preview.fields

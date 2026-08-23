@@ -52,6 +52,54 @@ ON CONFLICT(provider, external_id) DO UPDATE SET
 	return s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
 }
 
+func (s *VehicleService) RebindExternalMapping(
+	ctx context.Context,
+	vehicleID string,
+	previousExternalID string,
+	input VehicleExternalMapInput,
+	actor string,
+) (*VehicleExternalMap, error) {
+	vehicleID = strings.TrimSpace(vehicleID)
+	previousExternalID = strings.TrimSpace(previousExternalID)
+	input = cleanVehicleExternalMapInput(input)
+	if previousExternalID == "" || previousExternalID == input.ExternalID {
+		return s.UpsertExternalMapping(ctx, vehicleID, input, actor)
+	}
+	if vehicleID == "" || input.Provider == "" || input.ExternalID == "" {
+		return nil, ErrVehicleValidation
+	}
+	previous, err := s.getVehicleExternalMapping(ctx, input.Provider, previousExternalID)
+	if err != nil || previous.VehicleID != vehicleID {
+		return nil, ErrVehicleExternalMappingConflict
+	}
+	if existing, lookupErr := s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID); lookupErr == nil {
+		if existing.VehicleID != vehicleID {
+			return nil, ErrVehicleExternalMappingConflict
+		}
+		return existing, nil
+	} else if !errors.Is(lookupErr, sql.ErrNoRows) {
+		return nil, fmt.Errorf("check replacement external mapping owner: %w", lookupErr)
+	}
+	now := time.Now().UTC().Format(time.RFC3339)
+	if input.SyncStatus == "" {
+		input.SyncStatus = "linked"
+	}
+	result, err := s.db.ExecContext(ctx, `
+UPDATE vehicle_external_mappings
+SET external_id=?, external_name=?, external_address=?, external_protocol=?, sync_status=?, last_seen_at=?, updated_at=?
+WHERE vehicle_id=? AND provider=? AND external_id=?
+`, input.ExternalID, nullableString(input.ExternalName), nullableString(input.ExternalAddress),
+		nullableString(input.ExternalProtocol), input.SyncStatus, now, now, vehicleID, input.Provider, previousExternalID)
+	if err != nil {
+		return nil, fmt.Errorf("rebind vehicle external mapping: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil || affected != 1 {
+		return nil, ErrVehicleExternalMappingConflict
+	}
+	return s.getVehicleExternalMapping(ctx, input.Provider, input.ExternalID)
+}
+
 func cleanVehicleExternalMapInput(input VehicleExternalMapInput) VehicleExternalMapInput {
 	input.Provider = strings.ToLower(strings.TrimSpace(input.Provider))
 	input.ExternalID = strings.TrimSpace(input.ExternalID)
