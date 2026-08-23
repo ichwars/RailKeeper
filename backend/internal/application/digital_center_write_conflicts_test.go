@@ -48,6 +48,7 @@ func (stub *digitalCenterWriteECoSStub) ListLocomotives(
 	context.Context,
 	ECoSConnectionInput,
 ) ([]ECoSLocomotive, error) {
+	stub.events = append(stub.events, "list")
 	if len(stub.locomotives) == 0 {
 		return []ECoSLocomotive{{ObjectID: 3, Name: stub.currentName, Address: 3, Protocol: "DCC"}}, nil
 	}

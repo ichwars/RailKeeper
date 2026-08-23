@@ -345,6 +345,116 @@ func TestDigitalCenterWriteGrantAllowsOnlyOneConcurrentConfirmation(t *testing.T
 	}
 }
 
+func TestDigitalCenterConfirmWritePausesWritesVerifiesAndResumes(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveRunning, Connected: true}
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name", "address"})
+	fixture.ecos.events = nil
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantEvents := []string{"pause", "dry-run", "list", "write", "read-target", "resume"}
+	if !reflect.DeepEqual(fixture.ecos.events, wantEvents) {
+		t.Fatalf("events=%#v want=%#v", fixture.ecos.events, wantEvents)
+	}
+	if result.Result != DigitalCenterWriteVerified || result.WorkItem == nil ||
+		!result.LiveMonitor.WasRunning || !result.LiveMonitor.Restarted {
+		t.Fatalf("result=%#v", result)
+	}
+}
+
+func TestDigitalCenterConfirmWriteReturnsUnknownWithoutRetry(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+	fixture.ecos.events = nil
+	fixture.ecos.writeErr = ErrECoSWriteStateUnknown
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil || result.Result != DigitalCenterWriteUnknown || fixture.ecos.writeCalls != 1 {
+		t.Fatalf("result=%#v err=%v calls=%d", result, err, fixture.ecos.writeCalls)
+	}
+}
+
+func TestDigitalCenterConfirmWriteKeepsVerifiedResultWhenResumeFails(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveRunning, Connected: true}
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+	fixture.ecos.events = nil
+	fixture.ecos.resumeErr = errors.New("restart failed")
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil || result.Result != DigitalCenterWriteVerified || result.LiveMonitor.Restarted {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
+func TestDigitalCenterConfirmWriteAbortsBeforeMutationWhenPauseFails(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveRunning, Connected: true}
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+	fixture.ecos.events = nil
+	fixture.ecos.pauseErr = errors.New("live connection did not close")
+
+	_, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if !errors.Is(err, ErrDigitalCenterLivePauseFailed) || fixture.ecos.writeCalls != 0 {
+		t.Fatalf("error=%v writes=%d", err, fixture.ecos.writeCalls)
+	}
+}
+
+func TestDigitalCenterConfirmWriteRechecksAddressOwnershipAfterPreview(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"address"})
+	fixture.ecos.events = nil
+	fixture.ecos.locomotives = append(fixture.ecos.locomotives,
+		ECoSLocomotive{ObjectID: 2002, Name: "Other", Address: 18, Protocol: "DCC"})
+
+	_, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	var conflict *DigitalCenterAddressConflictError
+	if !errors.As(err, &conflict) || fixture.ecos.writeCalls != 0 {
+		t.Fatalf("error=%v writes=%d", err, fixture.ecos.writeCalls)
+	}
+}
+
+func TestDigitalCenterWriteVerificationNormalizesTargetedReply(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.verificationName = "  Neue Lok  "
+	fixture.ecos.verificationProtocol = "DCC128"
+	target := digitalCenterWriteTarget{
+		center: fixture.serviceCenter(), objectID: 3, fields: []string{"name", "protocol"},
+		desired: ECoSLocomotiveSyncDesired{Name: "Neue Lok", Protocol: "DCC"},
+	}
+	locomotive, verified, err := fixture.service.verifyDigitalCenterWrite(t.Context(), target)
+	if err != nil || !verified || locomotive.Name != "Neue Lok" || locomotive.Protocol != "DCC" {
+		t.Fatalf("locomotive=%#v verified=%v err=%v", locomotive, verified, err)
+	}
+}
+
+func previewDigitalCenterWriteFixture(
+	t *testing.T,
+	fixture *digitalCenterWriteFixture,
+	fields []string,
+) DigitalCenterWritePreview {
+	t.Helper()
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: fields}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return preview
+}
+
+func confirmDigitalCenterWriteFixture(
+	t *testing.T,
+	fixture *digitalCenterWriteFixture,
+	preview DigitalCenterWritePreview,
+) (DigitalCenterWriteConfirmation, error) {
+	t.Helper()
+	return fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Token: preview.Token, Confirm: true, Fields: preview.Fields}, "admin-1")
+}
+
 type digitalCenterWriteFixture struct {
 	service    *DigitalCenterWorkspaceService
 	repository *digitalCenterWriteRepositoryStub
@@ -353,6 +463,10 @@ type digitalCenterWriteFixture struct {
 	audit      *digitalCenterWriteAuditStub
 	session    DigitalCenterReadSession
 	item       DigitalCenterWorkItem
+}
+
+func (fixture *digitalCenterWriteFixture) serviceCenter() DigitalCenterSummary {
+	return DigitalCenterSummary{Provider: "ecos", Host: fixture.session.Host, Port: fixture.session.Port}
 }
 
 func newDigitalCenterWriteFixture(t *testing.T) *digitalCenterWriteFixture {
@@ -432,6 +546,14 @@ func (stub *digitalCenterWriteRepositoryStub) GetWorkItem(
 	return stub.item, nil
 }
 
+func (stub *digitalCenterWriteRepositoryStub) UpdateWorkItem(
+	_ context.Context,
+	item DigitalCenterWorkItem,
+) (DigitalCenterWorkItem, error) {
+	stub.item = item
+	return item, nil
+}
+
 func (*digitalCenterWriteRepositoryStub) AddMessage(context.Context, DigitalCenterSessionMessage) error {
 	return nil
 }
@@ -475,12 +597,19 @@ func (stub *digitalCenterWriteRepositoryStub) ConsumeWriteGrant(
 type digitalCenterWriteECoSStub struct {
 	currentName          string
 	verificationName     string
+	verificationProtocol string
 	locomotives          []ECoSLocomotive
 	tamperedDesired      string
 	syncCalls            []ECoSLocomotiveSyncInput
 	confirmCalls         int
 	probeCalls           int
 	beforeConfirmedWrite func()
+	events               []string
+	liveStatus           ECoSLiveStatus
+	resumeErr            error
+	pauseErr             error
+	writeErr             error
+	writeCalls           int
 }
 
 func (stub *digitalCenterWriteECoSStub) ProbeLocomotiveRaw(
@@ -495,6 +624,15 @@ func (stub *digitalCenterWriteECoSStub) ProbeLocomotiveRaw(
 func (stub *digitalCenterWriteECoSStub) SyncLocomotive(
 	_ context.Context, input ECoSLocomotiveSyncInput,
 ) (*ECoSLocomotiveSyncResult, error) {
+	if input.Confirm {
+		stub.events = append(stub.events, "write")
+		stub.writeCalls++
+		if stub.writeErr != nil {
+			return nil, stub.writeErr
+		}
+	} else {
+		stub.events = append(stub.events, "dry-run")
+	}
 	stub.syncCalls = append(stub.syncCalls, input)
 	changes := []ECoSLocomotiveSyncChange{}
 	if input.Desired.Name != "" && input.Desired.Name != stub.currentName {
@@ -523,6 +661,60 @@ func (stub *digitalCenterWriteECoSStub) SyncLocomotive(
 	return &ECoSLocomotiveSyncResult{
 		ObjectID: input.ObjectID, DryRun: input.DryRun || !input.Confirm,
 		Applied: input.Confirm && len(changes) > 0, Desired: input.Desired, Changes: changes,
+	}, nil
+}
+
+func (stub *digitalCenterWriteECoSStub) LiveStatus() ECoSLiveStatus {
+	return stub.liveStatus
+}
+
+func (stub *digitalCenterWriteECoSStub) StopLive() ECoSLiveStatus {
+	stub.liveStatus.State = ECoSLiveStopped
+	stub.liveStatus.Connected = false
+	return stub.liveStatus
+}
+
+func (stub *digitalCenterWriteECoSStub) PauseLive(context.Context) (ECoSLiveStatus, error) {
+	stub.events = append(stub.events, "pause")
+	if stub.pauseErr != nil {
+		return stub.liveStatus, stub.pauseErr
+	}
+	return stub.StopLive(), nil
+}
+
+func (stub *digitalCenterWriteECoSStub) StartLive(
+	context.Context,
+	ECoSConnectionInput,
+) (*ECoSLiveStatus, error) {
+	stub.events = append(stub.events, "resume")
+	if stub.resumeErr != nil {
+		return nil, stub.resumeErr
+	}
+	stub.liveStatus.State = ECoSLiveRunning
+	stub.liveStatus.Connected = true
+	return &stub.liveStatus, nil
+}
+
+func (stub *digitalCenterWriteECoSStub) StartLiveWithInterruption(
+	ctx context.Context,
+	input ECoSConnectionInput,
+	_ func(),
+) (*ECoSLiveStatus, error) {
+	return stub.StartLive(ctx, input)
+}
+
+func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
+	context.Context,
+	ECoSConnectionInput,
+	int,
+) (ECoSLocomotive, error) {
+	stub.events = append(stub.events, "read-target")
+	protocol := stub.verificationProtocol
+	if protocol == "" {
+		protocol = "DCC"
+	}
+	return ECoSLocomotive{
+		ObjectID: 3, Name: stub.verificationName, Address: 18, Protocol: protocol,
 	}, nil
 }
 

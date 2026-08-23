@@ -32,6 +32,7 @@ var (
 	ErrDigitalCenterPreviewStale          = errors.New("digital center write preview is stale")
 	ErrDigitalCenterWriteNoChanges        = errors.New("digital center write has no changes")
 	ErrDigitalCenterDeviceWrite           = errors.New("digital center device write failed")
+	ErrDigitalCenterLivePauseFailed       = errors.New("digital center live monitor could not be paused")
 )
 
 type DigitalCenterWriteDirection string
@@ -42,6 +43,7 @@ const (
 	DigitalCenterWriteVerified           DigitalCenterWriteResultStatus = "verified"
 	DigitalCenterWriteVerificationFailed DigitalCenterWriteResultStatus = "verification_failed"
 	DigitalCenterWriteFailed             DigitalCenterWriteResultStatus = "failed"
+	DigitalCenterWriteUnknown            DigitalCenterWriteResultStatus = "unknown"
 )
 
 type DigitalCenterWritePreviewInput struct {
@@ -67,20 +69,36 @@ type DigitalCenterWritePreview struct {
 }
 
 type DigitalCenterWriteConfirmation struct {
-	SessionID string                         `json:"sessionId"`
-	ItemID    string                         `json:"itemId"`
-	Provider  string                         `json:"provider"`
-	ObjectID  string                         `json:"objectId"`
-	Direction DigitalCenterWriteDirection    `json:"direction"`
-	Fields    []string                       `json:"fields"`
-	Applied   bool                           `json:"applied"`
-	Verified  bool                           `json:"verified"`
-	Result    DigitalCenterWriteResultStatus `json:"result"`
-	Message   string                         `json:"message"`
+	SessionID      string                         `json:"sessionId"`
+	ItemID         string                         `json:"itemId"`
+	Provider       string                         `json:"provider"`
+	ObjectID       string                         `json:"objectId"`
+	Direction      DigitalCenterWriteDirection    `json:"direction"`
+	Fields         []string                       `json:"fields"`
+	Applied        bool                           `json:"applied"`
+	Verified       bool                           `json:"verified"`
+	Result         DigitalCenterWriteResultStatus `json:"result"`
+	Message        string                         `json:"message"`
+	VerifiedValues *ECoSLocomotiveSyncSnapshot    `json:"verifiedValues,omitempty"`
+	LiveMonitor    DigitalCenterWriteLiveResult   `json:"liveMonitor"`
+	WorkItem       *DigitalCenterWorkItem         `json:"workItem,omitempty"`
+}
+
+type DigitalCenterWriteLiveResult struct {
+	WasRunning bool `json:"wasRunning"`
+	Restarted  bool `json:"restarted"`
 }
 
 type digitalCenterECoSWriter interface {
 	SyncLocomotive(context.Context, ECoSLocomotiveSyncInput) (*ECoSLocomotiveSyncResult, error)
+}
+
+type digitalCenterECoSPauser interface {
+	PauseLive(context.Context) (ECoSLiveStatus, error)
+}
+
+type digitalCenterECoSTargetReader interface {
+	ReadLocomotive(context.Context, ECoSConnectionInput, int) (ECoSLocomotive, error)
 }
 
 type digitalCenterVehicleMappingWriter interface {
@@ -158,7 +176,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	itemID string,
 	input DigitalCenterWriteConfirmInput,
 	actor string,
-) (DigitalCenterWriteConfirmation, error) {
+) (result DigitalCenterWriteConfirmation, returnErr error) {
 	if !input.Confirm {
 		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterConfirmationRequired
 	}
@@ -181,6 +199,15 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if grant.SessionID != target.session.ID || grant.WorkItemID != target.item.ID {
 		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterGrantMismatch
 	}
+	liveResult, err := service.pauseDigitalCenterLive(ctx)
+	if err != nil {
+		return DigitalCenterWriteConfirmation{}, err
+	}
+	defer func() {
+		service.resumeDigitalCenterLive(context.WithoutCancel(ctx), target, &liveResult)
+		result.LiveMonitor = liveResult
+	}()
+
 	changes, err := service.previewDigitalCenterChanges(ctx, target)
 	if err != nil {
 		if errors.Is(err, ErrDigitalCenterWriteNoChanges) {
@@ -200,7 +227,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	}
 	target.fields = fields
 	target.desired = desiredDigitalCenterFields(target.desired, fields)
-	result := service.digitalCenterWriteResult(target, fields)
+	result = service.digitalCenterWriteResult(target, fields)
 	writer, ok := service.ecos.(digitalCenterECoSWriter)
 	if !ok {
 		return DigitalCenterWriteConfirmation{}, ErrDigitalCenterWorkspaceUnavailable
@@ -210,15 +237,34 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 		Desired: target.desired, Confirm: true,
 	})
 	if err != nil {
-		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, DigitalCenterWriteFailed)
-		return DigitalCenterWriteConfirmation{}, fmt.Errorf("%w: %v", ErrDigitalCenterDeviceWrite, err)
+		if errors.Is(err, ErrECoSWriteStateUnknown) {
+			result.Result = DigitalCenterWriteUnknown
+			result.Message = "Der Schreibstatus ist unbekannt. Die Änderung wird nicht automatisch wiederholt."
+			_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result)
+			_ = service.addSessionMessage(ctx, target.session.ID, DigitalCenterSessionMessage{
+				Severity: DigitalCenterMessageWarning, Code: DigitalCenterMessageWriteUnknown,
+				Message:    "Der Schreibstatus der Digitalzentrale ist unbekannt.",
+				NextAction: "Werte neu auslesen und vor einem weiteren Schreiben prüfen.",
+			})
+			return result, nil
+		}
+		result.Result = DigitalCenterWriteFailed
+		result.Message = "Die Digitalzentrale hat den Schreibvorgang abgelehnt."
+		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result)
+		return result, nil
 	}
 	result.Applied = syncResult != nil && syncResult.Applied
 	verifiedLocomotive, verified, err := service.verifyDigitalCenterWrite(ctx, target)
 	if err != nil {
-		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, DigitalCenterWriteVerificationFailed)
-		return DigitalCenterWriteConfirmation{}, fmt.Errorf("%w: %v", ErrDigitalCenterDeviceWrite, err)
+		result.Result = DigitalCenterWriteUnknown
+		result.Message = "Die geschriebenen Werte konnten nicht verifiziert werden."
+		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result)
+		return result, nil
 	}
+	verifiedValues := ECoSLocomotiveSyncSnapshot{
+		Name: verifiedLocomotive.Name, Address: verifiedLocomotive.Address, Protocol: verifiedLocomotive.Protocol,
+	}
+	result.VerifiedValues = &verifiedValues
 	if !verified {
 		result.Result = DigitalCenterWriteVerificationFailed
 		result.Message = "Die Digitalzentrale meldet nach dem Schreiben abweichende Werte."
@@ -245,6 +291,11 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if err != nil {
 		return DigitalCenterWriteConfirmation{}, fmt.Errorf("update verified digital center mapping: %w", err)
 	}
+	updatedItem, err := service.updateVerifiedDigitalCenterWorkItem(ctx, target, verifiedLocomotive)
+	if err != nil {
+		return DigitalCenterWriteConfirmation{}, err
+	}
+	result.WorkItem = &updatedItem
 	return result, nil
 }
 
@@ -548,40 +599,108 @@ func desiredDigitalCenterFields(
 func (service *DigitalCenterWorkspaceService) verifyDigitalCenterWrite(
 	ctx context.Context,
 	target digitalCenterWriteTarget,
-) (ECoSRawLocomotive, bool, error) {
-	probe, err := service.ecos.ProbeLocomotiveRaw(ctx, ECoSConnectionInput{
+) (ECoSLocomotive, bool, error) {
+	reader, ok := service.ecos.(digitalCenterECoSTargetReader)
+	if !ok {
+		return ECoSLocomotive{}, false, ErrDigitalCenterWorkspaceUnavailable
+	}
+	locomotive, err := reader.ReadLocomotive(ctx, ECoSConnectionInput{
 		Host: target.center.Host, Port: target.center.Port,
-	})
+	}, target.objectID)
 	if err != nil {
-		return ECoSRawLocomotive{}, false, fmt.Errorf("verify digital center write: %w", err)
+		return ECoSLocomotive{}, false, fmt.Errorf("verify digital center write: %w", err)
 	}
-	locomotives, err := normalizeDigitalCenterLocomotives(probe)
-	if err != nil {
-		return ECoSRawLocomotive{}, false, err
+	name, nameErr := normalizeDigitalCenterName(locomotive.Name)
+	protocol, protocolErr := normalizeDigitalCenterProtocol(locomotive.Protocol)
+	if nameErr != nil || protocolErr != nil || locomotive.ObjectID != target.objectID ||
+		locomotive.Address < 1 || locomotive.Address > maxDigitalCenterAddress {
+		return ECoSLocomotive{}, false, ErrDigitalCenterDeviceOutput
 	}
-	for _, locomotive := range locomotives {
-		if locomotive.ObjectID != target.objectID {
-			continue
-		}
-		for _, field := range target.fields {
-			switch field {
-			case "name":
-				if locomotive.Name != target.desired.Name {
-					return locomotive, false, nil
-				}
-			case "address":
-				if locomotive.Address != target.desired.Address {
-					return locomotive, false, nil
-				}
-			case "protocol":
-				if locomotive.Protocol != target.desired.Protocol {
-					return locomotive, false, nil
-				}
+	locomotive.Name = name
+	locomotive.Protocol = protocol
+	for _, field := range target.fields {
+		switch field {
+		case "name":
+			if locomotive.Name != target.desired.Name {
+				return locomotive, false, nil
+			}
+		case "address":
+			if locomotive.Address != target.desired.Address {
+				return locomotive, false, nil
+			}
+		case "protocol":
+			if locomotive.Protocol != target.desired.Protocol {
+				return locomotive, false, nil
 			}
 		}
-		return locomotive, true, nil
 	}
-	return ECoSRawLocomotive{}, false, nil
+	return locomotive, true, nil
+}
+
+func (service *DigitalCenterWorkspaceService) pauseDigitalCenterLive(
+	ctx context.Context,
+) (DigitalCenterWriteLiveResult, error) {
+	monitor, ok := service.ecos.(digitalCenterECoSLiveMonitor)
+	if !ok {
+		return DigitalCenterWriteLiveResult{}, nil
+	}
+	status := monitor.LiveStatus()
+	live := DigitalCenterWriteLiveResult{WasRunning: status.State == ECoSLiveRunning && status.Connected}
+	if !live.WasRunning {
+		return live, nil
+	}
+	pauser, ok := service.ecos.(digitalCenterECoSPauser)
+	if !ok {
+		return live, ErrDigitalCenterLivePauseFailed
+	}
+	if _, err := pauser.PauseLive(ctx); err != nil {
+		return live, fmt.Errorf("%w: %v", ErrDigitalCenterLivePauseFailed, err)
+	}
+	return live, nil
+}
+
+func (service *DigitalCenterWorkspaceService) resumeDigitalCenterLive(
+	ctx context.Context,
+	target digitalCenterWriteTarget,
+	result *DigitalCenterWriteLiveResult,
+) {
+	if result == nil || !result.WasRunning {
+		return
+	}
+	_, err := service.startLiveMonitorUnlocked(ctx, target.center.Provider, target.session.ID)
+	result.Restarted = err == nil
+	if err == nil {
+		return
+	}
+	_ = service.addSessionMessage(ctx, target.session.ID, DigitalCenterSessionMessage{
+		Severity: DigitalCenterMessageWarning, Code: DigitalCenterMessageLiveRestartFailed,
+		Message:    "Das Live-Monitoring konnte nach dem Schreibvorgang nicht neu gestartet werden.",
+		NextAction: "Live-Monitoring manuell starten und Verbindung prüfen.",
+	})
+}
+
+func (service *DigitalCenterWorkspaceService) updateVerifiedDigitalCenterWorkItem(
+	ctx context.Context,
+	target digitalCenterWriteTarget,
+	verified ECoSLocomotive,
+) (DigitalCenterWorkItem, error) {
+	item := target.item
+	item.Name = verified.Name
+	item.Address = verified.Address
+	item.Protocol = verified.Protocol
+	item.Center = map[string]any{
+		"objectId": verified.ObjectID, "name": verified.Name,
+		"decoderAddress": verified.Address, "protocol": verified.Protocol,
+	}
+	item.CompareStatus = DigitalCompareOK
+	item.StationStatus = "read"
+	item.Proposed = map[string]any{}
+	item.Conflicts = []map[string]any{}
+	updated, err := service.repository.UpdateWorkItem(ctx, item)
+	if err != nil {
+		return DigitalCenterWorkItem{}, fmt.Errorf("update verified digital center work item: %w", err)
+	}
+	return updated, nil
 }
 
 func (service *DigitalCenterWorkspaceService) digitalCenterWriteResult(

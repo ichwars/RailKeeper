@@ -32,8 +32,10 @@ var digitalCenterPersistedMessageCodes = map[application.DigitalCenterMessageCod
 	application.DigitalCenterMessageLiveInterrupted:       {},
 	application.DigitalCenterMessageWritePreviewFailed:    {},
 	application.DigitalCenterMessageWriteFailed:           {},
+	application.DigitalCenterMessageWriteUnknown:          {},
 	application.DigitalCenterMessageWriteVerified:         {},
 	application.DigitalCenterMessageWriteVerifyFailed:     {},
+	application.DigitalCenterMessageLiveRestartFailed:     {},
 }
 
 type DigitalCenterWorkspaceRepository struct {
@@ -204,6 +206,41 @@ func (repository *DigitalCenterWorkspaceRepository) GetWorkItem(
 		return application.DigitalCenterWorkItem{}, fmt.Errorf("get digital center work item: %w", err)
 	}
 	return item, nil
+}
+
+func (repository *DigitalCenterWorkspaceRepository) UpdateWorkItem(
+	ctx context.Context,
+	item application.DigitalCenterWorkItem,
+) (application.DigitalCenterWorkItem, error) {
+	center, err := encodeDigitalCenterMap(item.Center)
+	if err != nil {
+		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: encode center: %w", err)
+	}
+	railKeeper, err := encodeDigitalCenterMap(item.RailKeeper)
+	if err != nil {
+		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: encode RailKeeper: %w", err)
+	}
+	proposed, err := encodeDigitalCenterMap(item.Proposed)
+	if err != nil {
+		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: encode proposed: %w", err)
+	}
+	conflicts, err := encodeDigitalCenterConflicts(item.Conflicts)
+	if err != nil {
+		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: encode conflicts: %w", err)
+	}
+	result, err := repository.db.ExecContext(ctx, `
+UPDATE digital_center_work_items
+SET vehicle_id=NULLIF(?, ''), name=?, decoder_address=?, protocol=?, compare_status=?, station_status=?,
+    center_json=?, railkeeper_json=?, proposed_json=?, conflict_json=?, updated_at=?
+WHERE session_id=? AND id=?`, item.VehicleID, item.Name, item.Address, item.Protocol, item.CompareStatus,
+		item.StationStatus, center, railKeeper, proposed, conflicts, timestamp(), item.SessionID, item.ID)
+	if err != nil {
+		return application.DigitalCenterWorkItem{}, fmt.Errorf("update digital center work item: %w", err)
+	}
+	if err := requireDigitalCenterUpdate(result, "update digital center work item"); err != nil {
+		return application.DigitalCenterWorkItem{}, err
+	}
+	return repository.GetWorkItem(ctx, item.SessionID, item.ID)
 }
 
 func (repository *DigitalCenterWorkspaceRepository) AddMessage(

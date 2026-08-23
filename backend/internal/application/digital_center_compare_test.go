@@ -324,6 +324,19 @@ func (repository *workspaceRepositoryMemory) GetWorkItem(
 	return DigitalCenterWorkItem{}, errors.New("not found")
 }
 
+func (repository *workspaceRepositoryMemory) UpdateWorkItem(
+	_ context.Context,
+	item DigitalCenterWorkItem,
+) (DigitalCenterWorkItem, error) {
+	for index := range repository.items {
+		if repository.items[index].ID == item.ID && repository.items[index].SessionID == item.SessionID {
+			repository.items[index] = item
+			return item, nil
+		}
+	}
+	return DigitalCenterWorkItem{}, errors.New("not found")
+}
+
 func (repository *workspaceRepositoryMemory) AddMessage(
 	_ context.Context,
 	message DigitalCenterSessionMessage,

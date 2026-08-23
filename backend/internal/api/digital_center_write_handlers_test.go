@@ -141,6 +141,7 @@ func TestDigitalCenterWriteInputErrorsStayClientVisible(t *testing.T) {
 		{errors.New("wrapped: " + application.ErrDigitalCenterDeviceWrite.Error()), http.StatusInternalServerError,
 			"digital_center_workspace_failed"},
 		{application.ErrDigitalCenterDeviceWrite, http.StatusBadGateway, "ecos_sync_failed"},
+		{application.ErrDigitalCenterLivePauseFailed, http.StatusBadGateway, "ecos_live_pause_failed"},
 	}
 	for _, test := range tests {
 		response := httptest.NewRecorder()
