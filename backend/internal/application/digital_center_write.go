@@ -692,7 +692,7 @@ func (service *DigitalCenterWorkspaceService) updateVerifiedDigitalCenterWorkIte
 		"objectId": verified.ObjectID, "name": verified.Name,
 		"decoderAddress": verified.Address, "protocol": verified.Protocol,
 	}
-	item.CompareStatus = DigitalCompareOK
+	item.CompareStatus = compareDigitalCenterPayloads(item.Center, item.RailKeeper)
 	item.StationStatus = "read"
 	item.Proposed = map[string]any{}
 	item.Conflicts = []map[string]any{}
@@ -701,6 +701,24 @@ func (service *DigitalCenterWorkspaceService) updateVerifiedDigitalCenterWorkIte
 		return DigitalCenterWorkItem{}, fmt.Errorf("update verified digital center work item: %w", err)
 	}
 	return updated, nil
+}
+
+func compareDigitalCenterPayloads(
+	center map[string]any,
+	railKeeper map[string]any,
+) DigitalCenterCompareStatus {
+	centerName, centerNameOK := digitalCenterMapString(center, "name")
+	railKeeperName, railKeeperNameOK := digitalCenterMapString(railKeeper, "name")
+	centerAddress, centerAddressOK := digitalCenterMapPositiveInt(center, "decoderAddress")
+	railKeeperAddress, railKeeperAddressOK := digitalCenterMapPositiveInt(railKeeper, "decoderAddress")
+	centerProtocol, centerProtocolOK := digitalCenterMapString(center, "protocol")
+	railKeeperProtocol, railKeeperProtocolOK := digitalCenterMapString(railKeeper, "protocol")
+	if centerNameOK && railKeeperNameOK && centerName == railKeeperName &&
+		centerAddressOK && railKeeperAddressOK && centerAddress == railKeeperAddress &&
+		centerProtocolOK && railKeeperProtocolOK && centerProtocol == railKeeperProtocol {
+		return DigitalCompareOK
+	}
+	return DigitalCompareDeviation
 }
 
 func (service *DigitalCenterWorkspaceService) digitalCenterWriteResult(

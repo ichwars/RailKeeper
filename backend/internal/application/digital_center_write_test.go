@@ -431,6 +431,18 @@ func TestDigitalCenterWriteVerificationNormalizesTargetedReply(t *testing.T) {
 	}
 }
 
+func TestDigitalCenterConfirmedNameWriteKeepsOtherDeviationsVisible(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.verificationAddress = 99
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil || result.Result != DigitalCenterWriteVerified || result.WorkItem == nil ||
+		result.WorkItem.CompareStatus != DigitalCompareDeviation {
+		t.Fatalf("result=%#v err=%v", result, err)
+	}
+}
+
 func previewDigitalCenterWriteFixture(
 	t *testing.T,
 	fixture *digitalCenterWriteFixture,
@@ -598,6 +610,7 @@ type digitalCenterWriteECoSStub struct {
 	currentName          string
 	verificationName     string
 	verificationProtocol string
+	verificationAddress  int
 	locomotives          []ECoSLocomotive
 	tamperedDesired      string
 	syncCalls            []ECoSLocomotiveSyncInput
@@ -713,8 +726,12 @@ func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
 	if protocol == "" {
 		protocol = "DCC"
 	}
+	address := stub.verificationAddress
+	if address == 0 {
+		address = 18
+	}
 	return ECoSLocomotive{
-		ObjectID: 3, Name: stub.verificationName, Address: 18, Protocol: protocol,
+		ObjectID: 3, Name: stub.verificationName, Address: address, Protocol: protocol,
 	}, nil
 }
 
