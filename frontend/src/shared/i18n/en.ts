@@ -1561,6 +1561,8 @@ export const enTranslations: Record<string, string> = {
 		"vehicles.set.mainImage.title": "Main image",
 		"vehicles.set.mainImage.description": "Select a member image or use a dedicated image of the complete set.",
 		"vehicles.set.mainImage.current": "Currently used",
+		"vehicles.set.mainImage.active": "Current main image",
+		"vehicles.set.mainImage.availableCount": "{count} images available",
 		"vehicles.set.mainImage.automatic": "Use automatic selection",
 		"vehicles.set.mainImage.upload": "Upload dedicated set image",
 		"vehicles.set.mainImage.removeDedicated": "Remove dedicated set image",

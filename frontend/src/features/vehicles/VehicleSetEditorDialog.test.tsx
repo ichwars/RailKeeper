@@ -61,6 +61,10 @@ describe("VehicleSetEditorDialog", () => {
 		const fixture = {
 			...setFixture,
 			mainImageMode: "automatic" as const,
+			mainImage: {
+				source: "automatic" as const, imageId: "image-1", vehicleId: "member-1",
+				url: "/image-1", thumbnailUrl: "/image-1-thumb"
+			},
 			members: [{
 				id: "member-1", inventoryNumber: "RK-WAG-1", name: "Speisewagen", manufacturer: "Roco",
 				gauge: "H0", digital: false, dtDecoder: false, exhibitionReady: false, exhibition: false,
@@ -81,6 +85,8 @@ describe("VehicleSetEditorDialog", () => {
 
 		await user.click(await screen.findByRole("tab", { name: "Upload" }));
 		expect(screen.getByRole("heading", { name: /Hauptbild/ })).toBeVisible();
+		expect(screen.getByRole("img", { name: fixture.name }))
+			.toHaveClass("vehicle-set-main-image-preview");
 		await user.click(screen.getByRole("button", { name: /Als Hauptbild verwenden/ }));
 		expect(choose).toHaveBeenCalledWith("set-1", { mode: "member", memberImageId: "image-1" });
 

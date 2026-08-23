@@ -1,4 +1,4 @@
-import { ImageOff, Trash2, Upload } from "lucide-react";
+import { Check, ImageOff, Trash2, Upload } from "lucide-react";
 import { useState, type ChangeEvent } from "react";
 
 import { api, type VehicleImage, type VehicleSet } from "../../shared/api";
@@ -61,52 +61,73 @@ export function VehicleSetMainImageEditor({ vehicleSet, onChange, onError }: Veh
 					<h3 id="vehicle-set-main-image-title">{t("vehicles.set.mainImage.title")}</h3>
 					<p>{t("vehicles.set.mainImage.description")}</p>
 				</div>
-				<button type="button" className="secondary-button" disabled={busy}
-					onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, { mode: "automatic" }))}>
-					{t("vehicles.set.mainImage.automatic")}
-				</button>
+				{vehicleSet.mainImage && (
+					<span className="vehicle-set-main-image-status">
+						<Check size={14} aria-hidden="true" />{t("vehicles.set.mainImage.active")}
+					</span>
+				)}
 			</div>
 
-			<div className="vehicle-set-main-image-current">
+			<div className="vehicle-set-main-image-stage">
 				{vehicleSet.mainImage ? (
-					<img src={vehicleSet.mainImage.thumbnailUrl || vehicleSet.mainImage.url} alt={vehicleSet.name} />
+					<img className="vehicle-set-main-image-preview"
+						src={vehicleSet.mainImage.thumbnailUrl || vehicleSet.mainImage.url} alt={vehicleSet.name} />
 				) : (
-					<div className="image-placeholder"><ImageOff size={28} aria-hidden="true" /></div>
+					<div className="image-placeholder"><ImageOff size={32} aria-hidden="true" /></div>
 				)}
+			</div>
+
+			<div className="vehicle-set-main-image-meta">
 				<div>
-					<strong>{t("vehicles.set.mainImage.current")}</strong>
+					<strong>{vehicleSet.name}</strong>
 					<span>{t(`vehicles.set.mainImage.source.${sourceKey}`)}</span>
+				</div>
+				<div className="vehicle-set-main-image-actions">
+					<label className="primary-button vehicle-set-image-upload-button">
+						<Upload size={16} />{t("vehicles.set.mainImage.upload")}
+						<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy} />
+					</label>
+					<button type="button" className="secondary-button" disabled={busy}
+						onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, { mode: "automatic" }))}>
+						{t("vehicles.set.mainImage.automatic")}
+					</button>
+					{vehicleSet.dedicatedImage && (
+						<button type="button" className="danger-button" disabled={busy}
+							onClick={() => void removeDedicated()}>
+							<Trash2 size={16} />{t("vehicles.set.mainImage.removeDedicated")}
+						</button>
+					)}
 				</div>
 			</div>
 
-			<div className="vehicle-set-main-image-upload">
-				<label className="secondary-button vehicle-set-image-upload-button">
-					<Upload size={16} />{t("vehicles.set.mainImage.upload")}
-					<input type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy} />
-				</label>
-				{vehicleSet.dedicatedImage && (
-					<button type="button" className="danger-button" disabled={busy} onClick={() => void removeDedicated()}>
-						<Trash2 size={16} />{t("vehicles.set.mainImage.removeDedicated")}
-					</button>
-				)}
-			</div>
-
-			<div>
-				<h4>{t("vehicles.set.mainImage.memberGallery")}</h4>
+			<div className="vehicle-set-member-image-section">
+				<div className="vehicle-set-member-image-heading">
+					<h4>{t("vehicles.set.mainImage.memberGallery")}</h4>
+					<span>{t("vehicles.set.mainImage.availableCount", { count: memberImages.length })}</span>
+				</div>
 				{memberImages.length === 0 ? <p className="muted">{t("vehicles.set.mainImage.noMemberImages")}</p> : (
-					<div className="vehicle-set-member-image-gallery">
-						{memberImages.map(({ image, memberName }) => (
-							<article key={image.id} className={vehicleSet.selectedMemberImageId === image.id ? "selected" : ""}>
-								<img src={image.thumbnailUrl || image.url} alt={image.title || memberName} />
-								<div><strong>{memberName}</strong><small>{image.title || image.fileName}</small></div>
-								<button type="button" className="secondary-button" disabled={busy}
-									onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, {
-										mode: "member", memberImageId: image.id
-									}))}>
-									{t("vehicles.set.mainImage.use")}
-								</button>
-							</article>
-						))}
+					<div className="vehicle-set-member-image-strip">
+						{memberImages.map(({ image, memberName }) => {
+							const selected = vehicleSet.mainImage?.imageId === image.id
+								|| vehicleSet.selectedMemberImageId === image.id;
+							return (
+								<article key={image.id} className={selected ? "selected" : ""}>
+									<div className="vehicle-set-member-image-preview">
+										<img src={image.thumbnailUrl || image.url} alt={image.title || memberName} />
+										{selected && <span aria-label={t("vehicles.set.mainImage.active")}>
+											<Check size={13} aria-hidden="true" />
+										</span>}
+									</div>
+									<div><strong>{memberName}</strong><small>{image.title || image.fileName}</small></div>
+									<button type="button" className="secondary-button" disabled={busy}
+										onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, {
+											mode: "member", memberImageId: image.id
+										}))}>
+										{t("vehicles.set.mainImage.use")}
+									</button>
+								</article>
+							);
+						})}
 					</div>
 				)}
 			</div>
