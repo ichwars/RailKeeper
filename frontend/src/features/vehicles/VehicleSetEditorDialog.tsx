@@ -16,6 +16,8 @@ type VehicleSetEditorDialogProps = {
 	onUpdated: (set: VehicleSet) => void;
 };
 
+type SetEditorTab = "general" | "upload";
+
 function formFromSet(set: VehicleSet): CreateVehicleRequest {
 	return {
 		...emptyVehicle,
@@ -51,6 +53,7 @@ export function VehicleSetEditorDialog({
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
+	const [activeTab, setActiveTab] = useState<SetEditorTab>("general");
 	const filteredGattungen = gattungenForCategory(options, form.category);
 	const update = (patch: Partial<CreateVehicleRequest>) => {
 		setForm((current) => ({ ...current, ...patch }));
@@ -89,13 +92,23 @@ export function VehicleSetEditorDialog({
 						<X size={18} />
 					</button>
 				</header>
+				<nav className="modal-tabs vehicle-set-editor-tabs" role="tablist"
+					aria-label={t("vehicles.set.tabs.label")}>
+					<button id="vehicle-set-tab-general" type="button" role="tab"
+						className={activeTab === "general" ? "active" : ""}
+						aria-selected={activeTab === "general"} aria-controls="vehicle-set-panel-general"
+						onClick={() => setActiveTab("general")}>{t("vehicles.set.tabs.general")}</button>
+					<button id="vehicle-set-tab-upload" type="button" role="tab"
+						className={activeTab === "upload" ? "active" : ""}
+						aria-selected={activeTab === "upload"} aria-controls="vehicle-set-panel-upload"
+						onClick={() => setActiveTab("upload")}>{t("vehicles.set.tabs.upload")}</button>
+				</nav>
 				<div className="modal-body vehicle-set-dialog-body">
 					{loading && <p>{t("vehicles.set.loading")}</p>}
 					{error && <p className="error-text" role="alert">{error}</p>}
-					{!loading && (
-						<div className="vehicle-create-detail-groups vehicle-form">
-							{vehicleSet && <VehicleSetMainImageEditor vehicleSet={vehicleSet}
-								onChange={(updated) => { setVehicleSet(updated); onUpdated(updated); }} onError={setError} />}
+					{!loading && activeTab === "general" && (
+						<div id="vehicle-set-panel-general" role="tabpanel" aria-labelledby="vehicle-set-tab-general"
+							className="vehicle-create-detail-groups vehicle-form">
 							<details open>
 								<summary>{t("vehicles.wizard.basicData")}</summary>
 								<div className="form-row">
@@ -153,10 +166,23 @@ export function VehicleSetEditorDialog({
 							</details>
 						</div>
 					)}
+					{!loading && activeTab === "upload" && vehicleSet && (
+						<div id="vehicle-set-panel-upload" role="tabpanel" aria-labelledby="vehicle-set-tab-upload">
+							<VehicleSetMainImageEditor vehicleSet={vehicleSet}
+								onChange={(updated) => { setVehicleSet(updated); onUpdated(updated); }} onError={setError} />
+						</div>
+					)}
 				</div>
 				<footer className="modal-actions">
-					<button type="button" className="secondary-button" onClick={onClose}>{t("common.cancel")}</button>
-					<button type="submit" className="primary-button" disabled={loading || saving}>{t("common.save")}</button>
+					{activeTab === "general" ? (
+						<>
+							<button type="button" className="secondary-button" onClick={onClose}>{t("common.cancel")}</button>
+							<button type="submit" className="primary-button"
+								disabled={loading || saving}>{t("common.save")}</button>
+						</>
+					) : (
+						<button type="button" className="secondary-button" onClick={onClose}>{t("common.close")}</button>
+					)}
 				</footer>
 			</form>
 		</div>

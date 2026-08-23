@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -18,6 +18,27 @@ const memberImage = {
 
 describe("VehicleSetEditorDialog", () => {
 	afterEach(() => vi.restoreAllMocks());
+
+	it("separates general fields and image management into tabs", async () => {
+		const user = userEvent.setup();
+		vi.spyOn(api, "vehicleSet").mockResolvedValue(setFixture);
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
+
+		const general = await screen.findByRole("tab", { name: "Allgemein" });
+		const upload = screen.getByRole("tab", { name: "Upload" });
+		expect(general).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByLabelText(/bezeichnung/i)).toBeVisible();
+		expect(screen.queryByRole("heading", { name: "Hauptbild" })).not.toBeInTheDocument();
+
+		await user.click(upload);
+		expect(upload).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByRole("heading", { name: "Hauptbild" })).toBeVisible();
+		expect(screen.queryByLabelText(/bezeichnung/i)).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Speichern" })).not.toBeInTheDocument();
+		const footer = screen.getByRole("dialog").querySelector("footer");
+		expect(footer).not.toBeNull();
+		expect(within(footer!).getByRole("button", { name: "Schließen" })).toBeVisible();
+	});
 
 	it("edits shared data without exposing inventory numbers", async () => {
 		const user = userEvent.setup();
@@ -58,7 +79,8 @@ describe("VehicleSetEditorDialog", () => {
 		});
 		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
 
-		expect(await screen.findByRole("heading", { name: /Hauptbild/ })).toBeVisible();
+		await user.click(await screen.findByRole("tab", { name: "Upload" }));
+		expect(screen.getByRole("heading", { name: /Hauptbild/ })).toBeVisible();
 		await user.click(screen.getByRole("button", { name: /Als Hauptbild verwenden/ }));
 		expect(choose).toHaveBeenCalledWith("set-1", { mode: "member", memberImageId: "image-1" });
 
