@@ -45,7 +45,7 @@ type DigitalCenterWorkItemPage struct {
 	TotalPages int                     `json:"totalPages"`
 }
 
-func (service *DigitalCenterWorkspaceService) StartReadSession(
+func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 	ctx context.Context,
 	provider string,
 	actor string,

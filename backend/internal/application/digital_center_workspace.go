@@ -45,6 +45,7 @@ type DigitalCenterSummary struct {
 }
 
 type DigitalCenterWorkspaceService struct {
+	operationMu    sync.Mutex
 	repository     DigitalCenterWorkspaceRepository
 	settings       digitalCenterSettingsReader
 	ecos           digitalCenterECoSReader
@@ -146,7 +147,7 @@ func capabilitiesForProvider(provider string) DigitalCenterCapabilities {
 	}
 }
 
-func (service *DigitalCenterWorkspaceService) StartLiveMonitor(
+func (service *DigitalCenterWorkspaceService) startLiveMonitorUnlocked(
 	ctx context.Context,
 	provider string,
 	sessionID string,
@@ -220,7 +221,7 @@ func (service *DigitalCenterWorkspaceService) StartLiveMonitor(
 	return status, nil
 }
 
-func (service *DigitalCenterWorkspaceService) StopLiveMonitor(
+func (service *DigitalCenterWorkspaceService) stopLiveMonitorUnlocked(
 	ctx context.Context,
 	provider string,
 	sessionID string,

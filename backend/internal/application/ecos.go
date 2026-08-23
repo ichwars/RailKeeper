@@ -27,6 +27,7 @@ type ECoSService struct {
 	client                   ecospkg.Client
 	liveMu                   sync.Mutex
 	liveCancel               context.CancelFunc
+	liveDone                 chan struct{}
 	liveStatus               ECoSLiveStatus
 	livePulse                time.Time
 	liveCount                int
@@ -270,6 +271,8 @@ func (s *ECoSService) StartLiveWithInterruption(
 	generation := s.liveGeneration
 	s.liveInterruptionNotified = false
 	s.liveCancel = cancel
+	done := make(chan struct{})
+	s.liveDone = done
 	s.liveStatus = ECoSLiveStatus{
 		Provider:             "ecos",
 		Connected:            true,
@@ -292,7 +295,8 @@ func (s *ECoSService) StartLiveWithInterruption(
 
 	go s.runECoSLiveSampler(liveCtx, generation)
 	go s.runECoSLiveSession(
-		liveCtx, cancel, generation, onInterrupted, conn, reader, client, append([]string(nil), commands...),
+		liveCtx, cancel, generation, onInterrupted, conn, reader, client,
+		append([]string(nil), commands...), done,
 	)
 	return &status, nil
 }
@@ -310,6 +314,28 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 	s.liveStatus.Message = "ECoS-Live-Verbindung beendet."
 	s.liveStatus.LastMessage = "Verbindung beendet."
 	return cloneECoSLiveStatus(s.liveStatus)
+}
+
+func (s *ECoSService) PauseLive(ctx context.Context) (ECoSLiveStatus, error) {
+	s.liveMu.Lock()
+	done := s.liveDone
+	s.stopLiveLocked()
+	s.liveGeneration++
+	s.liveStatus.Connected = false
+	s.liveStatus.State = ECoSLiveStopped
+	s.liveStatus.Diagnosis.ConnectionState = ECoSLiveStopped
+	s.liveStatus.Message = "ECoS-Live-Verbindung für einen exklusiven Vorgang pausiert."
+	status := cloneECoSLiveStatus(s.liveStatus)
+	s.liveMu.Unlock()
+	if done == nil {
+		return status, nil
+	}
+	select {
+	case <-done:
+		return status, nil
+	case <-ctx.Done():
+		return status, fmt.Errorf("ECoS-Live-Verbindung pausieren: %w", ctx.Err())
+	}
 }
 
 func (s *ECoSService) LiveStatus() ECoSLiveStatus {
@@ -346,6 +372,7 @@ func (s *ECoSService) runECoSLiveSession(
 	reader *bufio.Reader,
 	client ecospkg.Client,
 	commands []string,
+	done chan struct{},
 ) {
 	defer func() {
 		cancel()
@@ -353,6 +380,7 @@ func (s *ECoSService) runECoSLiveSession(
 		s.updateLiveErrorForGenerationWithCallback(
 			generation, errors.New("ECoS live connection closed"), onInterrupted,
 		)
+		close(done)
 	}()
 
 	for _, command := range commands {

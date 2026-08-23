@@ -110,7 +110,7 @@ type digitalCenterWriteHashPayload struct {
 	Changes   []ECoSLocomotiveSyncChange  `json:"changes"`
 }
 
-func (service *DigitalCenterWorkspaceService) PreviewWrite(
+func (service *DigitalCenterWorkspaceService) previewWriteUnlocked(
 	ctx context.Context,
 	sessionID string,
 	itemID string,
@@ -149,7 +149,7 @@ func (service *DigitalCenterWorkspaceService) PreviewWrite(
 	}, nil
 }
 
-func (service *DigitalCenterWorkspaceService) ConfirmWrite(
+func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	ctx context.Context,
 	sessionID string,
 	itemID string,
