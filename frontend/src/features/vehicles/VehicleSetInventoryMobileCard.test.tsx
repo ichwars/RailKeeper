@@ -40,4 +40,13 @@ describe("VehicleSetInventoryMobileCard", () => {
 		expect(onEdit).toHaveBeenCalledWith("set-1");
 		expect(onDuplicate).toHaveBeenCalledWith("set-1");
 	});
+
+	it("shows the resolved set main image", () => {
+		const fixture = group();
+		fixture.set.mainImage = { source: "automatic", imageId: "image-1", vehicleId: "member-1",
+			url: "/image-1", thumbnailUrl: "/image-1-thumb" };
+		render(<VehicleSetInventoryMobileCard group={fixture} expanded={false}
+			onToggleExpanded={vi.fn()} onOpen={vi.fn()} />);
+		expect(screen.getByRole("img", { name: "Rheingold" })).toHaveAttribute("src", "/image-1-thumb");
+	});
 });

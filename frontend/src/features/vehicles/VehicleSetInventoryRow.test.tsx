@@ -70,4 +70,19 @@ describe("VehicleSetInventoryRow", () => {
 		await user.click(screen.getByRole("button", { name: /Set zuklappen/ }));
 		expect(onToggleCollapsed).toHaveBeenCalledOnce();
 	});
+
+	it("uses the backend-resolved set image instead of guessing from visible members", () => {
+		const group = groupFixture();
+		group.set.mainImage = {
+			source: "dedicated", url: "/api/v1/vehicle-sets/set-1/image/file",
+			thumbnailUrl: "/api/v1/vehicle-sets/set-1/image/thumbnail"
+		};
+		const { container } = render(<table><tbody><VehicleSetInventoryRow
+			group={group} columns={["image"]} collapsed selectedVehicleIDs={new Set()}
+			onToggleCollapsed={vi.fn()} onToggleSelection={vi.fn()} onOpen={vi.fn()}
+		/></tbody></table>);
+		expect(container.querySelector("img")).toHaveAttribute(
+			"src", "/api/v1/vehicle-sets/set-1/image/thumbnail"
+		);
+	});
 });

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../shared/api";
@@ -99,5 +99,41 @@ describe("Shell article navigation", () => {
     expect(screen.getByRole("link", { name: "Digitalzentralen" }))
       .toHaveAttribute("href", "/digital-centers");
     await waitFor(() => expect(api.profileSettings).toHaveBeenCalledOnce());
+  });
+
+  it("places command stations directly before settings in the default navigation", () => {
+    render(
+      <Shell username="admin" roles={["Admin"]} activeView="overview" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    const navigation = screen.getByRole("navigation", { name: "Hauptnavigation" });
+    const entries = Array.from(navigation.querySelectorAll(".nav-entry"));
+    expect(entries.slice(-2)).toEqual([
+      within(navigation).getByRole("link", { name: "Digitalzentralen" }),
+      within(navigation).getByRole("link", { name: "Einstellungen" })
+    ]);
+  });
+
+  it("migrates an older saved default order so command stations stay before settings", () => {
+    window.localStorage.setItem("railkeeper.settings.sidebarPrefs:admin", JSON.stringify({
+      order: ["overview", "vehicles", "accessories", "layouts", "exhibition", "importExport", "settings"],
+      hidden: []
+    }));
+
+    render(
+      <Shell username="admin" roles={["Admin"]} activeView="overview" onLogout={vi.fn()}>
+        <p>Inhalt</p>
+      </Shell>
+    );
+
+    const navigation = screen.getByRole("navigation", { name: "Hauptnavigation" });
+    const entries = Array.from(navigation.querySelectorAll(".nav-entry"));
+    expect(within(navigation).queryByRole("link", { name: "Anlage" })).not.toBeInTheDocument();
+    expect(entries.slice(-2)).toEqual([
+      within(navigation).getByRole("link", { name: "Digitalzentralen" }),
+      within(navigation).getByRole("link", { name: "Einstellungen" })
+    ]);
   });
 });

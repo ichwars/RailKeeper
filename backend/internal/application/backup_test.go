@@ -73,8 +73,8 @@ func TestBackupExportsAndRestoresAppDataAndUploads(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected backup version 19, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected backup version 20, got %d", backup.Version)
 	}
 	if len(backup.Tables["vehicles"]) != 1 {
 		t.Fatalf("expected one vehicle in backup, got %d", len(backup.Tables["vehicles"]))
@@ -156,11 +156,68 @@ func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected backup version 19, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected backup version 20, got %d", backup.Version)
 	}
 	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
 		t.Fatalf("set inventory number missing from backup: %v", got)
+	}
+	blobs := application.NewFileBlobService(db, dataDir)
+	memberBlobID, err := blobs.Store(ctx, []byte("member image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberImage, err := vehicles.CreateImage(ctx, created.Members[0].ID, application.VehicleImageInput{
+		FileName: "wagen.jpg", MimeType: "image/jpeg", BlobID: memberBlobID, IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := vehicles.SetSetMainImage(ctx, created.ID, application.VehicleSetMainImageInput{
+		Mode: application.VehicleSetMainImageModeMember, MemberImageID: memberImage.ID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	backup, err = application.NewBackupService(db, dataDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(db, dataDir).Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	restoredMemberSelection, err := vehicles.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredMemberSelection.MainImage == nil || restoredMemberSelection.MainImage.Source != "member" ||
+		restoredMemberSelection.MainImage.ImageID != memberImage.ID {
+		t.Fatalf("member image selection did not survive backup restore: %#v", restoredMemberSelection.MainImage)
+	}
+	blobID, err := blobs.Store(ctx, []byte("dedicated set image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := vehicles.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "rheingold.jpg", MimeType: "image/jpeg", BlobID: blobID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	backup, err = application.NewBackupService(db, dataDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(db, dataDir).Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := vehicles.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.DedicatedImage == nil || restored.MainImage == nil || restored.MainImage.Source != "dedicated" {
+		t.Fatalf("dedicated set image did not survive backup restore: %#v", restored)
+	}
+	if data, err := blobs.Load(ctx, blobID); err != nil || string(data) != "dedicated set image" {
+		t.Fatalf("dedicated set image blob did not survive backup restore: %q, %v", data, err)
 	}
 }
 
@@ -320,7 +377,7 @@ WHERE type='article_type' AND key='track'`); err != nil {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if doc.Version != 19 {
+	if doc.Version != 20 {
 		t.Fatalf("version=%d", doc.Version)
 	}
 	if _, err := service.Import(t.Context(), doc); err != nil {
@@ -470,8 +527,8 @@ func TestBackupOperationalFieldsAndListPriceRemainCompatible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Version != 19 {
-		t.Fatalf("expected backup version 19 for operational fields and accessory list price, got %d",
+	if document.Version != 20 {
+		t.Fatalf("expected backup version 20 for operational fields and accessory list price, got %d",
 			document.Version)
 	}
 	targetDir := t.TempDir()
@@ -548,8 +605,8 @@ func TestBackupVersionFourRoundTripPreservesStageOneDataReferences(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	for _, table := range stageOneBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -631,8 +688,8 @@ INSERT INTO accessory_installation_positions(installation_id, position_id)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	for _, table := range []string{
 		"layout_unit_outline_points", "layout_technical_positions",
@@ -709,8 +766,8 @@ INSERT INTO plan_track_object_reservations(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	for _, table := range versionFiveBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -822,8 +879,8 @@ INSERT INTO layout_unit_ports(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 || len(backup.Tables["layout_unit_ports"]) != 1 {
-		t.Fatalf("expected version 19 module-port export, got version=%d rows=%d",
+	if backup.Version != 20 || len(backup.Tables["layout_unit_ports"]) != 1 {
+		t.Fatalf("expected version 20 module-port export, got version=%d rows=%d",
 			backup.Version, len(backup.Tables["layout_unit_ports"]))
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layout_unit_ports SET name='Changed', x_mm=100`); err != nil {
@@ -878,8 +935,8 @@ VALUES('layout-grade', 'Steigungsanlage', 'private', 'TT', '1:120', '', 3.5,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `UPDATE layouts SET max_grade_percent=NULL WHERE id='layout-grade'`); err != nil {
 		t.Fatal(err)
@@ -941,8 +998,8 @@ VALUES('layout-clearance', 'Abstandsanlage', 'private', 'TT', '1:120', '', NULL,
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	if _, err := db.ExecContext(ctx, `
 UPDATE layouts SET minimum_track_clearance_mm=NULL WHERE id='layout-clearance'`); err != nil {
@@ -1225,8 +1282,8 @@ func TestBackupVersionFourRoundTripPreservesArticleManagementData(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if backup.Version != 19 {
-		t.Fatalf("expected version 19 export, got %d", backup.Version)
+	if backup.Version != 20 {
+		t.Fatalf("expected version 20 export, got %d", backup.Version)
 	}
 	for _, table := range versionThreeBackupTableNames() {
 		if len(backup.Tables[table]) == 0 {
@@ -2132,7 +2189,7 @@ func TestBackupPreflightFailuresLeaveExistingDataUntouched(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		doc.Version = 20
+		doc.Version = 21
 		if _, err := service.Import(ctx, doc); !errors.Is(err, application.ErrBackupInvalid) {
 			t.Fatalf("expected future backup rejection, got %v", err)
 		}

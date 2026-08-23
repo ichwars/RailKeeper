@@ -10,7 +10,7 @@ const setFixture = (): VehicleSet => ({
 	id: "set-1", inventoryNumber: "RK-SET-000001", name: "Rheingold", manufacturer: "Roco",
 	articleNumber: "45923", gauge: "H0", category: "Wagen", gattung: "Reisezugwagen",
 	members: [vehicleFixture({ id: "member-2", name: "Wagen 2" }), vehicleFixture({ id: "member-1", name: "Wagen 1" })],
-	createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z"
+	createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z", mainImageMode: "automatic"
 });
 
 describe("VehicleSetSummaryDialog", () => {

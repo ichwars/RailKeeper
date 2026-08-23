@@ -189,6 +189,27 @@ export type VehicleSetSummary = {
 	condition?: string;
 	memberCount: number;
 	position: number;
+	mainImage?: VehicleSetMainImage;
+};
+
+export type VehicleSetMainImageMode = "automatic" | "member" | "dedicated";
+
+export type VehicleSetMainImage = {
+	source: VehicleSetMainImageMode;
+	imageId?: string;
+	vehicleId?: string;
+	url: string;
+	thumbnailUrl?: string;
+	title?: string;
+};
+
+export type VehicleSetImage = {
+	url: string;
+	thumbnailUrl?: string;
+	fileName: string;
+	mimeType: string;
+	createdAt: string;
+	updatedAt: string;
 };
 
 export type Vehicle = {
@@ -308,6 +329,10 @@ export type VehicleSet = VehicleSetInput & {
   members: Vehicle[];
   createdAt: string;
   updatedAt: string;
+	mainImageMode: VehicleSetMainImageMode;
+	selectedMemberImageId?: string;
+	dedicatedImage?: VehicleSetImage;
+	mainImage?: VehicleSetMainImage;
 };
 
 export type VehicleExternalMapping = {
@@ -1488,6 +1513,21 @@ export const api = {
 			method: "PATCH",
 			body: JSON.stringify(input)
 		}),
+	setVehicleSetMainImage: (id: string, input: { mode: VehicleSetMainImageMode; memberImageId?: string }) =>
+		request<VehicleSet>(`/vehicle-sets/${encodeURIComponent(id)}/main-image`, {
+			method: "PUT",
+			body: JSON.stringify(input)
+		}),
+	uploadVehicleSetImage: (id: string, file: File) => {
+		const form = new FormData();
+		form.append("file", file);
+		return request<VehicleSet>(`/vehicle-sets/${encodeURIComponent(id)}/image`, {
+			method: "POST",
+			body: form
+		}, { timeoutMs: 30000 });
+	},
+	deleteVehicleSetImage: (id: string) =>
+		request<void>(`/vehicle-sets/${encodeURIComponent(id)}/image`, { method: "DELETE" }),
   vehicle: (id: string) => request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`),
   updateVehicle: (id: string, input: CreateVehicleRequest) =>
     request<Vehicle>(`/vehicles/${encodeURIComponent(id)}`, {

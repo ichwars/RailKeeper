@@ -269,14 +269,32 @@
   .overview-grid,
   .exhibition-layout,
   .inventory-status-row,
-  .import-export-grid,
-  .backup-grid,
-  .transfer-actions,
+    .import-export-grid,
+    .transfer-actions,
   .settings-dashboard-grid,
   .auth-settings-grid,
   .digital-settings-grid,
   .appearance-config-grid {
     grid-template-columns: 1fr;
+  }
+
+  .backup-operational-lane {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .backup-lane-workspace {
+    grid-column: auto;
+  }
+
+  .backup-lane-actions {
+    justify-content: flex-start;
+  }
+
+  .backup-restore-controls {
+    grid-template-columns: 1fr;
+    align-items: stretch;
   }
 
   .overview-hero {

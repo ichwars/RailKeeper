@@ -96,6 +96,7 @@ import {
   masterDataTypes,
   metadataString,
   nominalScalesText,
+  normalizeSidebarPrefs,
   normalizeCV8Binary,
   normalizeCV8Decimal,
   normalizeCV8Hex,
@@ -442,11 +443,10 @@ export function SettingsView({ username }: { username: string }) {
         if (sidebarValue) {
           try {
             const prefs = JSON.parse(sidebarValue) as { order?: AppView[]; hidden?: AppView[] };
-            const nextOrder = Array.isArray(prefs.order) ? prefs.order : [];
-            const nextHidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
-            window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
-            setSidebarOrder(nextOrder);
-            setSidebarHidden(nextHidden);
+            const normalized = normalizeSidebarPrefs(prefs);
+            window.localStorage.setItem(sidebarPrefsKey(username), JSON.stringify(normalized));
+            setSidebarOrder(normalized.order);
+            setSidebarHidden(normalized.hidden);
             window.dispatchEvent(new Event(sidebarOrderChangedEvent));
           } catch {
             // Ignore malformed profile settings and keep the local fallback.
@@ -2007,23 +2007,16 @@ export function SettingsView({ username }: { username: string }) {
       )}
 
       {activeSettingsTab === "importExport" && (
-        <section className="panel settings-card import-export-card">
-          <section className="backup-box master-data-transfer-box">
-            <div className="backup-box-head">
+        <section className="panel settings-card import-export-card backup-operational-lanes">
+          <section className="backup-operational-lane">
+            <div className="backup-lane-heading">
+              <Database size={18} aria-hidden="true" />
               <div>
                 <h3>{t("settings.masterTransfer.title")}</h3>
                 <p>{t("settings.masterTransfer.subtitle")}</p>
               </div>
-              <div className="box-icon-actions">
-                <a className="icon-button" href={api.masterDataExportUrl()} aria-label={t("settings.masterTransfer.download")} title={t("settings.masterTransfer.download")}>
-                  <Download size={16} />
-                </a>
-                <button type="button" className="icon-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile} aria-label={t("settings.masterTransfer.upload")} title={t("settings.masterTransfer.upload")}>
-                  <Upload size={16} />
-                </button>
-              </div>
             </div>
-            <div className="transfer-actions">
+            <div className="backup-lane-content">
               <label className="file-picker-field">
                 <span>{t("settings.masterTransfer.file")}</span>
                 <span className="file-picker-shell">
@@ -2042,17 +2035,28 @@ export function SettingsView({ username }: { username: string }) {
               </label>
               {masterDataSaving && <span className="inline-status">{t("settings.masterTransfer.saving")}</span>}
             </div>
+            <div className="backup-lane-actions">
+              <a className="secondary-button" href={api.masterDataExportUrl()}>
+                <Download size={16} />
+                {t("settings.masterTransfer.download")}
+              </a>
+              <button type="button" className="secondary-button" onClick={importMasterData} disabled={masterDataSaving || !masterDataFile}>
+                <Upload size={16} />
+                {t("settings.masterTransfer.upload")}
+              </button>
+            </div>
             {masterDataMessage && <p className="form-message">{masterDataMessage}</p>}
           </section>
 
-          <div className="backup-grid">
-            <section className="backup-box">
-              <div className="backup-box-head">
-                <div>
-                  <h3>{t("settings.backup.export.title")}</h3>
-                  <p>{t("settings.backup.export.subtitle")}</p>
-                </div>
+          <section className="backup-operational-lane">
+            <div className="backup-lane-heading">
+              <HardDrive size={18} aria-hidden="true" />
+              <div>
+                <h3>{t("settings.backup.export.title")}</h3>
+                <p>{t("settings.backup.export.subtitle")}</p>
               </div>
+            </div>
+            <div className="backup-lane-content">
               <div className="backup-summary-strip">
                 <span>
                   <strong>{formatBytes(storageUsage?.totalBytes || 0)}</strong>
@@ -2066,31 +2070,50 @@ export function SettingsView({ username }: { username: string }) {
                   <RefreshCw size={15} />
                 </button>
               </div>
+            </div>
+            <div className="backup-lane-actions">
               <a className="primary-button backup-export-button" href={api.backupExportUrl()} download>
                 <Download size={17} />
                 {t("settings.backup.create")}
               </a>
-            </section>
+            </div>
+          </section>
 
-            <section className="backup-box warning">
+          <section className="backup-operational-lane warning">
+            <div className="backup-lane-heading">
+              <ShieldAlert size={18} aria-hidden="true" />
               <div>
                 <h3>{t("settings.backup.restore.title")}</h3>
                 <p>{t("settings.backup.restore.subtitle")}</p>
               </div>
-              <label className="file-picker-field">
-                <span>{t("settings.backup.file")}</span>
-                <span className="file-picker-shell">
-                  <span className="file-picker-button">{t("settings.file.pick")}</span>
-                  <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
-                </span>
-                <input
-                  key={backupFileInputKey}
-                  type="file"
-                  accept="application/json,.json"
-                  onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
-                />
-              </label>
-              {backupValidating && <p className="backup-validation-status">{t("settings.backup.validating")}</p>}
+            </div>
+            <div className="backup-lane-workspace">
+              <div className="backup-restore-controls">
+                <label className="file-picker-field">
+                  <span>{t("settings.backup.file")}</span>
+                  <span className="file-picker-shell">
+                    <span className="file-picker-button">{t("settings.file.pick")}</span>
+                    <span className="file-picker-name">{backupFile?.name || t("settings.file.none")}</span>
+                  </span>
+                  <input
+                    key={backupFileInputKey}
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={(event) => selectBackupFile(event.target.files?.[0] || null)}
+                  />
+                </label>
+                {backupValidating && <p className="backup-validation-status">{t("settings.backup.validating")}</p>}
+                <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
+                  {backupSaving ? (
+                    t("settings.backup.restoring")
+                  ) : (
+                    <>
+                      <Upload size={17} />
+                      {t("settings.backup.restoreButton")}
+                    </>
+                  )}
+                </button>
+              </div>
               {backupValidation && (
                 <div className={backupValidation.compatible ? "backup-validation ok" : "backup-validation danger"}>
                   <strong>{backupValidation.compatible ? t("settings.backup.compatible") : t("settings.backup.incompatible")}</strong>
@@ -2148,23 +2171,13 @@ export function SettingsView({ username }: { username: string }) {
                   />
                 </label>
               )}
-              <button type="button" className="secondary-button danger" onClick={restoreBackup} disabled={backupSaving || backupValidating || !backupValidation?.compatible || !backupRestoreConfirmed}>
-                {backupSaving ? (
-                  t("settings.backup.restoring")
-                ) : (
-                  <>
-                    <Upload size={17} />
-                    {t("settings.backup.restoreButton")}
-                  </>
-                )}
-              </button>
-            </section>
-          </div>
+              <p className="source-note backup-note">
+                <ShieldAlert size={16} aria-hidden="true" />
+                <span>{t("settings.backup.note")}</span>
+              </p>
+            </div>
+          </section>
 
-          <p className="source-note backup-note">
-            <ShieldAlert size={16} aria-hidden="true" />
-            <span>{t("settings.backup.note")}</span>
-          </p>
           {backupMessage && <p className="form-message">{backupMessage}</p>}
         </section>
       )}

@@ -2,7 +2,9 @@ package application_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -107,6 +109,308 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	}
 	if len(listedByInventoryNumber) != 2 {
 		t.Fatalf("set inventory number search returned %d members", len(listedByInventoryNumber))
+	}
+}
+
+func TestVehicleSetMainImageSelectionDedicatedImageAndFallback(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Rheingold", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+			Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstImage, err := service.CreateImage(ctx, created.Members[0].ID, application.VehicleImageInput{
+		FileName: "wagen-1.jpg", MimeType: "image/jpeg", StoragePath: "images/wagen-1.jpg", IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondImage, err := service.CreateImage(ctx, created.Members[1].ID, application.VehicleImageInput{
+		FileName: "wagen-2.jpg", MimeType: "image/jpeg", StoragePath: "images/wagen-2.jpg", IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	selected, err := service.SetSetMainImage(ctx, created.ID, application.VehicleSetMainImageInput{
+		Mode: application.VehicleSetMainImageModeMember, MemberImageID: secondImage.ID,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selected.MainImage == nil || selected.MainImage.Source != "member" ||
+		selected.MainImage.ImageID != secondImage.ID {
+		t.Fatalf("unexpected selected main image: %#v", selected.MainImage)
+	}
+	listed, err := service.List(ctx, "Rheingold")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, vehicle := range listed {
+		if vehicle.VehicleSet == nil || vehicle.VehicleSet.MainImage == nil ||
+			vehicle.VehicleSet.MainImage.Source != "member" ||
+			vehicle.VehicleSet.MainImage.ImageID != secondImage.ID {
+			t.Fatalf("batched member main image mismatch: %#v", vehicle.VehicleSet)
+		}
+	}
+
+	if _, err := service.DeleteImage(ctx, created.Members[1].ID, secondImage.ID); err != nil {
+		t.Fatal(err)
+	}
+	fallback, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fallback.MainImage == nil || fallback.MainImage.Source != "automatic" ||
+		fallback.MainImage.ImageID != firstImage.ID {
+		t.Fatalf("expected automatic fallback, got %#v", fallback.MainImage)
+	}
+
+	blobs := application.NewFileBlobService(db, "")
+	blobID, err := blobs.Store(ctx, []byte("set image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dedicated, replaced, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "rheingold.jpg", MimeType: "image/jpeg", BlobID: blobID,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(replaced) != 0 || dedicated.MainImage == nil || dedicated.MainImage.Source != "dedicated" {
+		t.Fatalf("unexpected dedicated image result: %#v, replaced=%#v", dedicated.MainImage, replaced)
+	}
+	firstDedicatedURL := dedicated.MainImage.URL
+	replacementBlobID, err := blobs.Store(ctx, []byte("replacement set image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dedicated, replaced, err = service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "rheingold-new.jpg", MimeType: "image/jpeg", BlobID: replacementBlobID,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dedicated.MainImage == nil || dedicated.MainImage.URL == firstDedicatedURL ||
+		!strings.Contains(dedicated.MainImage.URL, "?v=") {
+		t.Fatalf("dedicated image URL was not versioned after replacement: before=%q after=%#v",
+			firstDedicatedURL, dedicated.MainImage)
+	}
+	if len(replaced) != 1 || replaced[0] != blobID {
+		t.Fatalf("unexpected replacement cleanup IDs: %#v", replaced)
+	}
+	listed, err = service.List(ctx, "Rheingold")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, vehicle := range listed {
+		if vehicle.VehicleSet == nil || vehicle.VehicleSet.MainImage == nil ||
+			vehicle.VehicleSet.MainImage.Source != "dedicated" ||
+			vehicle.VehicleSet.MainImage.URL != dedicated.MainImage.URL {
+			t.Fatalf("batched dedicated main image mismatch: %#v", vehicle.VehicleSet)
+		}
+	}
+	removed, err := service.DeleteSetImage(ctx, created.ID, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(removed) != 1 || removed[0] != replacementBlobID {
+		t.Fatalf("unexpected removed blobs: %#v", removed)
+	}
+	automatic, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if automatic.MainImage == nil || automatic.MainImage.Source != "automatic" {
+		t.Fatalf("expected automatic image after dedicated deletion, got %#v", automatic.MainImage)
+	}
+	ownedBlobID, err := blobs.Store(ctx, []byte("set-owned image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "owned.jpg", MimeType: "image/jpeg", BlobID: ownedBlobID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, member := range created.Members {
+		if err := service.Delete(ctx, member.ID, "actor-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := blobs.Load(ctx, ownedBlobID); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("set deletion retained its owned image blob: %v", err)
+	}
+}
+
+func TestSetVehicleSetMemberImageReturnsNotFoundForMissingSet(t *testing.T) {
+	service := application.NewVehicleService(testDB(t))
+
+	_, err := service.SetSetMainImage(context.Background(), "missing-set", application.VehicleSetMainImageInput{
+		Mode: application.VehicleSetMainImageModeMember, MemberImageID: "missing-image",
+	}, "actor-1")
+
+	if !errors.Is(err, application.ErrVehicleSetNotFound) {
+		t.Fatalf("expected vehicle set not found, got %v", err)
+	}
+}
+
+func TestVehicleSetImageMutationsRollbackWhenAuditFails(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(context.Context, *application.VehicleService, *application.VehicleSet) error
+		check  func(*testing.T, *sql.DB, string)
+	}{
+		{
+			name: "selection",
+			mutate: func(ctx context.Context, service *application.VehicleService, set *application.VehicleSet) error {
+				image, err := service.CreateImage(ctx, set.Members[0].ID, application.VehicleImageInput{
+					FileName: "member.jpg", MimeType: "image/jpeg", StoragePath: "images/member.jpg",
+				})
+				if err != nil {
+					return err
+				}
+				_, err = service.SetSetMainImage(ctx, set.ID, application.VehicleSetMainImageInput{
+					Mode: application.VehicleSetMainImageModeMember, MemberImageID: image.ID,
+				}, "actor-1")
+				return err
+			},
+			check: func(t *testing.T, db *sql.DB, setID string) {
+				var mode string
+				if err := db.QueryRow(`SELECT main_image_mode FROM vehicle_sets WHERE id=?`, setID).Scan(&mode); err != nil {
+					t.Fatal(err)
+				}
+				if mode != "automatic" {
+					t.Fatalf("selection mutation survived failed audit: %q", mode)
+				}
+			},
+		},
+		{
+			name: "upload",
+			mutate: func(ctx context.Context, service *application.VehicleService, set *application.VehicleSet) error {
+				_, _, err := service.UpsertSetImage(ctx, set.ID, application.VehicleSetImageInput{
+					FileName: "set.jpg", MimeType: "image/jpeg", BlobID: "blob-new",
+				}, "actor-1")
+				return err
+			},
+			check: func(t *testing.T, db *sql.DB, setID string) {
+				var blobID string
+				if err := db.QueryRow(`SELECT COALESCE(set_image_blob_id, '') FROM vehicle_sets WHERE id=?`, setID).
+					Scan(&blobID); err != nil {
+					t.Fatal(err)
+				}
+				if blobID != "" {
+					t.Fatalf("upload mutation survived failed audit: %q", blobID)
+				}
+			},
+		},
+		{
+			name: "delete",
+			mutate: func(ctx context.Context, service *application.VehicleService, set *application.VehicleSet) error {
+				_, err := service.DeleteSetImage(ctx, set.ID, "actor-1")
+				return err
+			},
+			check: func(t *testing.T, db *sql.DB, setID string) {
+				var blobID string
+				if err := db.QueryRow(`SELECT COALESCE(set_image_blob_id, '') FROM vehicle_sets WHERE id=?`, setID).
+					Scan(&blobID); err != nil {
+					t.Fatal(err)
+				}
+				if blobID != "blob-existing" {
+					t.Fatalf("delete mutation survived failed audit: %q", blobID)
+				}
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			db := testDB(t)
+			service := application.NewVehicleService(db)
+			ctx := context.Background()
+			if _, err := db.Exec(`
+INSERT INTO file_blobs(id, data, created_at) VALUES('blob-new', X'', '2026-08-23T00:00:00Z');
+INSERT INTO file_blobs(id, data, created_at) VALUES('blob-existing', X'', '2026-08-23T00:00:00Z');
+`); err != nil {
+				t.Fatal(err)
+			}
+			created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+				Set: application.VehicleSetInput{
+					Name: "Audit set", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+					Gattung: "Reisezugwagen",
+				},
+				Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+			}, "actor-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.name == "delete" {
+				if _, _, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+					FileName: "existing.jpg", MimeType: "image/jpeg", BlobID: "blob-existing",
+				}, "actor-1"); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if _, err := db.Exec(`CREATE TRIGGER fail_vehicle_set_image_audit
+BEFORE INSERT ON audit_logs WHEN NEW.target_type='vehicle_set'
+BEGIN SELECT RAISE(FAIL, 'forced audit failure'); END`); err != nil {
+				t.Fatal(err)
+			}
+
+			if err := test.mutate(ctx, service, created); err == nil {
+				t.Fatal("expected audit failure")
+			}
+			test.check(t, db, created.ID)
+		})
+	}
+}
+
+func TestVehicleSetImageReplacementKeepsCleanupIDsWhenResponseReloadFails(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+	if _, err := db.Exec(`
+INSERT INTO file_blobs(id, data, created_at) VALUES('blob-old', X'', '2026-08-23T00:00:00Z');
+INSERT INTO file_blobs(id, data, created_at) VALUES('blob-new', X'', '2026-08-23T00:00:00Z');
+`); err != nil {
+		t.Fatal(err)
+	}
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Cleanup set", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+			Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "old.jpg", MimeType: "image/jpeg", BlobID: "blob-old",
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`DROP TABLE vehicle_images`); err != nil {
+		t.Fatal(err)
+	}
+
+	_, replaced, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "new.jpg", MimeType: "image/jpeg", BlobID: "blob-new",
+	}, "actor-1")
+
+	if err == nil {
+		t.Fatal("expected response reload failure")
+	}
+	if len(replaced) != 1 || replaced[0] != "blob-old" {
+		t.Fatalf("replacement cleanup IDs were lost: %#v", replaced)
 	}
 }
 

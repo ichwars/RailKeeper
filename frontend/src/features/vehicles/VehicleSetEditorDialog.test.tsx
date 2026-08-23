@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -8,11 +8,37 @@ import { VehicleSetEditorDialog } from "./VehicleSetEditorDialog";
 const setFixture: VehicleSet = {
 	id: "set-1", inventoryNumber: "RK-SET-000001", name: "Rheingold", manufacturer: "Roco",
 	articleNumber: "45923", gauge: "H0", category: "Wagen", gattung: "Reisezugwagen", members: [],
-	createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z"
+	createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z", mainImageMode: "automatic"
+};
+
+const memberImage = {
+	id: "image-1", vehicleId: "member-1", url: "/image-1", thumbnailUrl: "/image-1-thumb",
+	isPrimary: true, sortOrder: 0, createdAt: "2026-08-01T00:00:00Z"
 };
 
 describe("VehicleSetEditorDialog", () => {
 	afterEach(() => vi.restoreAllMocks());
+
+	it("separates general fields and image management into tabs", async () => {
+		const user = userEvent.setup();
+		vi.spyOn(api, "vehicleSet").mockResolvedValue(setFixture);
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
+
+		const general = await screen.findByRole("tab", { name: "Allgemein" });
+		const upload = screen.getByRole("tab", { name: "Upload" });
+		expect(general).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByLabelText(/bezeichnung/i)).toBeVisible();
+		expect(screen.queryByRole("heading", { name: "Hauptbild" })).not.toBeInTheDocument();
+
+		await user.click(upload);
+		expect(upload).toHaveAttribute("aria-selected", "true");
+		expect(screen.getByRole("heading", { name: "Hauptbild" })).toBeVisible();
+		expect(screen.queryByLabelText(/bezeichnung/i)).not.toBeInTheDocument();
+		expect(screen.queryByRole("button", { name: "Speichern" })).not.toBeInTheDocument();
+		const footer = screen.getByRole("dialog").querySelector("footer");
+		expect(footer).not.toBeNull();
+		expect(within(footer!).getByRole("button", { name: "Schließen" })).toBeVisible();
+	});
 
 	it("edits shared data without exposing inventory numbers", async () => {
 		const user = userEvent.setup();
@@ -28,5 +54,76 @@ describe("VehicleSetEditorDialog", () => {
 		await user.click(screen.getByRole("button", { name: /speichern/i }));
 		expect(update).toHaveBeenCalledWith("set-1", expect.objectContaining({ name: "Rheingold neu" }));
 		expect(onUpdated).toHaveBeenCalledWith(expect.objectContaining({ name: "Rheingold neu" }));
+	});
+
+	it("selects member images, uploads a dedicated image and restores automatic selection", async () => {
+		const user = userEvent.setup();
+		const fixture = {
+			...setFixture,
+			mainImageMode: "automatic" as const,
+			mainImage: {
+				source: "automatic" as const, imageId: "image-1", vehicleId: "member-1",
+				url: "/image-1", thumbnailUrl: "/image-1-thumb"
+			},
+			members: [{
+				id: "member-1", inventoryNumber: "RK-WAG-1", name: "Speisewagen", manufacturer: "Roco",
+				gauge: "H0", digital: false, dtDecoder: false, exhibitionReady: false, exhibition: false,
+				abcBrakes: false, couplingSame: false, driveEnabled: false, headlightsEnabled: false,
+				lightingEnabled: false, soundGeneratorEnabled: false, smokeGeneratorEnabled: false,
+				qrCodeEnabled: false, images: [memberImage], createdAt: "2026-08-01T00:00:00Z",
+				updatedAt: "2026-08-01T00:00:00Z"
+			}]
+		};
+		vi.spyOn(api, "vehicleSet").mockResolvedValue(fixture);
+		const choose = vi.spyOn(api, "setVehicleSetMainImage").mockResolvedValue({
+			...fixture, mainImageMode: "member", selectedMemberImageId: "image-1"
+		});
+		const upload = vi.spyOn(api, "uploadVehicleSetImage").mockResolvedValue({
+			...fixture, mainImageMode: "dedicated"
+		});
+		const onUpdated = vi.fn();
+		const onImageChanged = vi.fn();
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={onUpdated}
+			onImageChanged={onImageChanged} />);
+
+		await user.click(await screen.findByRole("tab", { name: "Upload" }));
+		expect(screen.getByRole("heading", { name: /Hauptbild/ })).toBeVisible();
+		expect(screen.getByRole("img", { name: fixture.name }))
+			.toHaveClass("vehicle-set-main-image-preview");
+		await user.click(screen.getByRole("button", { name: /Als Hauptbild verwenden/ }));
+		expect(choose).toHaveBeenCalledWith("set-1", { mode: "member", memberImageId: "image-1" });
+
+		const file = new File(["image"], "set.png", { type: "image/png" });
+		await user.upload(screen.getByLabelText(/Eigenes Setbild hochladen/), file);
+		expect(upload).toHaveBeenCalledWith("set-1", file);
+
+		await user.click(screen.getByRole("button", { name: /Automatische Auswahl verwenden/ }));
+		expect(choose).toHaveBeenCalledWith("set-1", { mode: "automatic" });
+		expect(onUpdated).not.toHaveBeenCalled();
+		expect(onImageChanged).toHaveBeenCalledTimes(3);
+	});
+
+	it("allows an existing dedicated image to be selected again", async () => {
+		const user = userEvent.setup();
+		const fixture = {
+			...setFixture,
+			mainImageMode: "automatic" as const,
+			dedicatedImage: {
+				url: "/set-image", thumbnailUrl: "/set-image-thumb", fileName: "set.jpg",
+				mimeType: "image/jpeg", createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z"
+			}
+		};
+		vi.spyOn(api, "vehicleSet").mockResolvedValue(fixture);
+		const choose = vi.spyOn(api, "setVehicleSetMainImage").mockResolvedValue({
+			...fixture,
+			mainImageMode: "dedicated",
+			mainImage: { source: "dedicated", url: "/set-image", thumbnailUrl: "/set-image-thumb" }
+		});
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
+
+		await user.click(await screen.findByRole("tab", { name: "Upload" }));
+		await user.click(screen.getByRole("button", { name: "Eigenes Setbild verwenden" }));
+
+		expect(choose).toHaveBeenCalledWith("set-1", { mode: "dedicated" });
 	});
 });

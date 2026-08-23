@@ -57,7 +57,8 @@ describe("VehiclesView", () => {
       ...setSummary,
       members: [visibleMember, hiddenMember],
       createdAt: "2026-08-17T00:00:00Z",
-      updatedAt: "2026-08-17T00:00:00Z"
+      updatedAt: "2026-08-17T00:00:00Z",
+      mainImageMode: "automatic"
     });
     vi.spyOn(api, "vehicle").mockResolvedValue(hiddenMember);
 

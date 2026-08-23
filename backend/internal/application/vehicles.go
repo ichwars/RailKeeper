@@ -206,6 +206,9 @@ SELECT id, inventory_number, manufacturer, COALESCE(article_number, ''), COALESC
 	if err := s.attachImages(ctx, vehicles); err != nil {
 		return nil, err
 	}
+	if err := s.attachVehicleSetMainImages(ctx, vehicles); err != nil {
+		return nil, err
+	}
 	if err := s.attachAttachments(ctx, vehicles); err != nil {
 		return nil, err
 	}

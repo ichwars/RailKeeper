@@ -55,6 +55,9 @@ export function VehicleSetSummaryDialog({
 					{error && <p className="error-text" role="alert">{error}</p>}
 					{vehicleSet && (
 						<>
+						{vehicleSet.mainImage && <figure className="vehicle-set-summary-image">
+							<img src={vehicleSet.mainImage.thumbnailUrl || vehicleSet.mainImage.url} alt={vehicleSet.name} />
+						</figure>}
 						<dl className="detail-grid">
 							<div><dt>{t("vehicle.field.inventoryNumber")}</dt><dd>{vehicleSet.inventoryNumber}</dd></div>
 							<div><dt>{t("vehicle.field.name")}</dt><dd>{vehicleSet.name}</dd></div>

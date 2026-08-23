@@ -99,7 +99,11 @@ VALUES(?, ?, 'VehicleSetCreated', 'vehicle_set', ?, ?, '{}')
 		members[index].Images = images
 	}
 
-	return vehicleSetFromInput(setID, setInventoryNumber, setInput, members, now), nil
+	result := vehicleSetFromInput(setID, setInventoryNumber, setInput, members, now)
+	if err := s.attachSetMainImage(ctx, result); err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (s *VehicleService) GetSet(ctx context.Context, id string) (*VehicleSet, error) {
@@ -175,6 +179,9 @@ ORDER BY position ASC
 			return nil, fmt.Errorf("get vehicle set member %s: %w", memberID, ErrVehicleNotFound)
 		}
 		set.Members = append(set.Members, member)
+	}
+	if err := s.attachSetMainImage(ctx, &set); err != nil {
+		return nil, err
 	}
 	return &set, nil
 }
@@ -370,7 +377,7 @@ func vehicleSetFromInput(
 		PurchasePrice: input.PurchasePrice, PurchaseDate: input.PurchaseDate,
 		StorageLocation: input.StorageLocation, StorageDetails: input.StorageDetails,
 		Condition: input.Condition, ConditionDetails: input.ConditionDetails, Packaging: input.Packaging,
-		Members: members, CreatedAt: now, UpdatedAt: now,
+		Members: members, CreatedAt: now, UpdatedAt: now, MainImageMode: VehicleSetMainImageModeAutomatic,
 	}
 }
 

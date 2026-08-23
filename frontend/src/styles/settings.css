@@ -2132,63 +2132,96 @@
 
 .import-export-card {
   display: grid;
-  gap: 16px;
+  gap: 0;
+  padding-block: 4px;
 }
 
-.backup-grid {
+.backup-operational-lane {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.backup-box {
-  display: grid;
-  gap: 12px;
-  align-content: start;
-  padding: 14px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-subtle);
-}
-
-.backup-box.warning {
-  border-color: color-mix(in srgb, var(--accent) 36%, var(--line));
-}
-
-.master-data-transfer-box {
-  background: var(--panel-subtle);
-}
-
-.backup-box h3 {
-  margin: 0 0 6px;
-}
-
-.backup-box p {
-  margin: 0;
-}
-
-.backup-box-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: start;
-}
-
-.box-icon-actions {
-  display: flex;
+  grid-template-columns: minmax(240px, 0.8fr) minmax(300px, 1.35fr) auto;
   align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.backup-operational-lane:last-of-type {
+  border-bottom: 0;
+}
+
+.backup-operational-lane.warning {
+  box-shadow: inset 3px 0 color-mix(in srgb, var(--danger) 55%, var(--line));
+  padding-left: 14px;
+}
+
+.backup-lane-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+}
+
+.backup-lane-heading > svg {
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.backup-operational-lane.warning .backup-lane-heading > svg {
+  color: var(--danger);
+}
+
+.backup-lane-heading h3 {
+  margin: 0 0 4px;
+}
+
+.backup-lane-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.backup-lane-content,
+.backup-lane-workspace {
+  min-width: 0;
+}
+
+.backup-lane-workspace {
+  grid-column: 2 / 4;
+  display: grid;
+  gap: 12px;
+}
+
+.backup-lane-actions {
+  display: flex;
   justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
-.box-icon-actions .icon-button {
-  border: 0;
-  background: transparent;
+.backup-lane-actions .primary-button,
+.backup-lane-actions .secondary-button,
+.backup-restore-controls .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: fit-content;
+  white-space: nowrap;
+  text-decoration: none;
 }
 
-.backup-box-head > .icon-button {
-  border: 0;
-  background: transparent;
+.backup-restore-controls {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+}
+
+.backup-restore-controls .backup-validation-status {
+  grid-column: 1 / -1;
 }
 
 .backup-summary-strip {
@@ -2220,25 +2253,8 @@
   margin-left: auto;
 }
 
-.backup-box .primary-button,
-.backup-box .secondary-button {
-  justify-self: start;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-
 .backup-export-button {
   width: fit-content;
-  margin-top: 2px;
-}
-
-.transfer-actions {
-  display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto;
-  align-items: end;
-  gap: 10px;
 }
 
 .backup-file-field,

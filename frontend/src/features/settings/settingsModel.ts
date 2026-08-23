@@ -1,4 +1,15 @@
 import type { AppView } from "../../app/App";
+import {
+  defaultSidebarOrder,
+  normalizeSidebarPrefs,
+  normalizeSidebarOrder,
+  readSidebarPrefs,
+  sidebarOrderChangedEvent,
+  sidebarPrefsBaseKey,
+  sidebarPrefsKey,
+  legacySidebarOrderKey,
+  type SidebarPrefs
+} from "../../app/sidebarPreferences";
 import type { AuditLogEntry, MasterDataEntry } from "../../shared/api";
 import { functionSymbolImageData } from "../../shared/functionSymbolImages";
 export {
@@ -23,7 +34,7 @@ export const settingsTabs = [
   { id: "general", labelKey: "settings.tabs.general", descriptionKey: "settings.general.subtitle" },
   { id: "data", labelKey: "settings.tabs.data", descriptionKey: "settings.data.pageSubtitle" },
   { id: "digital", labelKey: "settings.tabs.digital", descriptionKey: "settings.digital.subtitle" },
-  { id: "importExport", labelKey: "settings.tabs.importExport", descriptionKey: "importExport.subtitle" },
+  { id: "importExport", labelKey: "settings.tabs.importExport", descriptionKey: "settings.backup.subtitle" },
   { id: "appearance", labelKey: "settings.tabs.appearance", descriptionKey: "settings.appearance.subtitle" },
   { id: "auth", labelKey: "settings.tabs.auth", descriptionKey: "settings.auth.subtitle" }
 ] satisfies Array<{ id: SettingsTab; labelKey: string; descriptionKey: string }>;
@@ -79,13 +90,16 @@ export const localSettingKeys = {
   twoFactorPrepared: "railkeeper.settings.twoFactorPrepared"
 };
 
-export const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
-export const legacySidebarOrderKey = "railkeeper.settings.sidebarOrder";
-export const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
-export const defaultSidebarOrder: AppView[] = ["overview", "vehicles", "accessories", "layouts", "exhibition", "importExport", "settings"];
-export type SidebarPrefs = {
-  order: AppView[];
-  hidden: AppView[];
+export {
+  defaultSidebarOrder,
+  legacySidebarOrderKey,
+  normalizeSidebarPrefs,
+  normalizeSidebarOrder,
+  readSidebarPrefs,
+  sidebarOrderChangedEvent,
+  sidebarPrefsBaseKey,
+  sidebarPrefsKey,
+  type SidebarPrefs
 };
 export function formatBytes(value: number) {
   if (!Number.isFinite(value) || value <= 0) return "0 KB";
@@ -101,36 +115,6 @@ export function readLocalBool(key: string, fallback: boolean) {
   const value = window.localStorage.getItem(key);
   if (value === null) return fallback;
   return value === "true";
-}
-
-export function sidebarPrefsKey(username: string) {
-  return `${sidebarPrefsBaseKey}:${username || "local"}`;
-}
-
-export function normalizeSidebarOrder(order: AppView[]) {
-  const ordered = order.filter((view): view is AppView => defaultSidebarOrder.includes(view));
-  const missing = defaultSidebarOrder.filter((view) => !ordered.includes(view));
-  return [...ordered, ...missing];
-}
-
-export function readSidebarPrefs(username: string): SidebarPrefs {
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(sidebarPrefsKey(username)) || "null") as Partial<SidebarPrefs> | null;
-    if (stored) {
-      return {
-        order: normalizeSidebarOrder(Array.isArray(stored.order) ? stored.order : []),
-        hidden: Array.isArray(stored.hidden) ? stored.hidden.filter((view): view is AppView => defaultSidebarOrder.includes(view) && view !== "settings") : []
-      };
-    }
-  } catch {
-    return { order: defaultSidebarOrder, hidden: [] };
-  }
-  try {
-    const legacyOrder = JSON.parse(window.localStorage.getItem(legacySidebarOrderKey) || "[]") as AppView[];
-    return { order: normalizeSidebarOrder(legacyOrder), hidden: [] };
-  } catch {
-    return { order: defaultSidebarOrder, hidden: [] };
-  }
 }
 
 export function formatDateTime(value: string) {

@@ -4,7 +4,6 @@ import { ChevronDown, ChevronUp, Copy, Eye, ImageOff, Pencil } from "lucide-reac
 import { useI18n } from "../../shared/i18n";
 import type { VehicleInventorySetGroup } from "./vehicleSetGroups";
 import type { VehicleTableColumn } from "./vehicleTableColumns";
-import { previewImageUrl, primaryImage } from "./vehicleTransforms";
 
 type VehicleSetInventoryRowProps = {
 	group: VehicleInventorySetGroup;
@@ -39,7 +38,7 @@ export function VehicleSetInventoryRow({
 	const checkboxRef = useRef<HTMLInputElement | null>(null);
 	const memberIDs = group.members.map((member) => member.id);
 	const selectedCount = memberIDs.filter((id) => selectedVehicleIDs.has(id)).length;
-	const setPreviewImage = group.members.map((member) => primaryImage(member.images)).find(Boolean);
+	const setPreviewImage = group.set.mainImage;
 
 	useEffect(() => {
 		if (checkboxRef.current) {
@@ -52,7 +51,7 @@ export function VehicleSetInventoryRow({
 			return (
 				<div className="vehicle-set-type-cell">
 					{setPreviewImage
-						? <img className="inventory-thumb" src={previewImageUrl(setPreviewImage)} alt="" />
+						? <img className="inventory-thumb" src={setPreviewImage.thumbnailUrl || setPreviewImage.url} alt="" />
 						: <div className="image-placeholder inventory-image-placeholder"
 							aria-label={t("exhibition.noPreview")} title={t("exhibition.noPreview")}>
 							<ImageOff size={18} strokeWidth={1.7} aria-hidden="true" />
