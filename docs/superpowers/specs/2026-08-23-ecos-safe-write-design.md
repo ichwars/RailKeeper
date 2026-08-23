@@ -38,6 +38,20 @@ Version 1 schreibt ausschließlich:
 CV-Werte, Funktionsdefinitionen, aktive Funktionen, Geschwindigkeit, Richtung, Bilder,
 Anlagenobjekte und neue ECoS-Lokobjekte bleiben außerhalb dieses Vorhabens.
 
+### Abgleich mit Issue #132
+
+Dieses Design konkretisiert die in Issue #132 bereits beschriebene Härtung des vorhandenen
+Schreibpfads. Es erweitert den dort freigegebenen Schreibumfang nicht.
+
+- `WriteLocomotives` bleibt nur für den vollständig geschützten ECoS-Ablauf aktiv.
+- `WriteCVs` bleibt deaktiviert.
+- Die frische Loklistenabfrage für Adresskonflikte verwendet ausschließlich freigegebene
+  Lokstammdaten. Laufzeit- und Anlagenzustände werden weder gelesen noch geschrieben.
+- Anonymisierte Realgeräteantworten ergänzen nach der Geräteabnahme das Parser- und
+  Regressionstestkorpus.
+- Hardwaremodell, Firmwarestand und festgestellte Abweichungen werden in der ECoS-
+  Kompatibilitätsmatrix dokumentiert.
+
 ### Architektur
 
 Der `DigitalCenterWorkspaceService` bleibt für Berechtigungen, Sitzungen, Vergleich,
@@ -184,6 +198,8 @@ Live-Diagnose erfasst. Ein verifizierter Gerätewert bleibt dabei unverändert e
 Automatisierte Tests decken ab:
 
 - simulierte ECoS-TCP-Kommunikation für kombinierten `set`-Befehl und anschließendes `query`;
+- anonymisierte Gerätefixtures für erfolgreiche, unvollständige, fehlerhafte und unterbrochene
+  Antworten;
 - Normalisierung und exakten Vergleich von Name, Adresse und Protokoll;
 - blockierte doppelte Decoder-Adressen;
 - veraltete, verbrauchte, benutzerfremde und manipulierte Freigaben;
@@ -210,8 +226,11 @@ Die produktive Freigabe erfolgt mit einer bewusst ausgewählten Testlok:
 6. Einen absichtlichen Adresskonflikt als blockierten Negativtest prüfen.
 7. Ursprungswerte über denselben geprüften Ablauf wiederherstellen.
 
-Die Abnahme dokumentiert ECoS-Modell, Firmware-Version, getestete Lok-Objekt-ID und Ergebnis. Bis
-dahin bleibt die Funktion als noch nicht realgeräteverifiziert gekennzeichnet.
+Die Abnahme dokumentiert ECoS-Modell, Firmware-Version, getestete Lok-Objekt-ID und Ergebnis. Nach
+Entfernung von Hostnamen, IP-Adressen, individuellen Loknamen und anderen lokalen Kennungen werden
+geeignete Antwortblöcke als Regressionstest-Fixtures übernommen. Das Ergebnis aktualisiert außerdem
+die ECoS-Kompatibilitätsmatrix. Bis dahin bleibt die Funktion als noch nicht realgeräteverifiziert
+gekennzeichnet.
 
 ---
 
@@ -251,6 +270,20 @@ Version 1 writes only:
 
 CV values, function definitions, active functions, speed, direction, images, layout objects, and
 new ECoS locomotive objects are out of scope.
+
+### Alignment with issue #132
+
+This design details the hardening of the existing write path already described in issue #132. It
+does not expand the write scope approved there.
+
+- `WriteLocomotives` remains enabled only for the fully protected ECoS workflow.
+- `WriteCVs` remains disabled.
+- The fresh locomotive-list query used for address conflicts reads only approved locomotive master
+  data. Runtime and layout state are neither read nor written.
+- Anonymized real-device replies extend the parser and regression fixture corpus after device
+  acceptance.
+- Hardware model, firmware version, and observed deviations are recorded in the ECoS compatibility
+  matrix.
 
 ### Architecture
 
@@ -393,6 +426,7 @@ verified device result remains successful.
 Automated coverage includes:
 
 - simulated ECoS TCP communication for one combined `set` and the following `query`;
+- anonymized device fixtures for successful, incomplete, malformed, and interrupted replies;
 - normalization and exact comparison of name, address, and protocol;
 - blocked duplicate decoder addresses;
 - stale, consumed, actor-mismatched, and tampered grants;
@@ -420,4 +454,7 @@ Production acceptance uses a deliberately selected test locomotive:
 7. Restore the original values through the same reviewed workflow.
 
 The acceptance record includes ECoS model, firmware version, tested locomotive object ID, and
-result. Until then, the feature remains marked as not yet verified against real hardware.
+result. Suitable reply blocks become regression fixtures after removing host names, IP addresses,
+individual locomotive names, and other local identifiers. The result also updates the ECoS
+compatibility matrix. Until then, the feature remains marked as not yet verified against real
+hardware.
