@@ -1542,6 +1542,52 @@ components:
         position:
           type: integer
           minimum: 1
+        mainImage:
+          $ref: "#/components/schemas/VehicleSetMainImage"
+    VehicleSetMainImageInput:
+      type: object
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [automatic, member, dedicated]
+        memberImageId:
+          type: string
+    VehicleSetMainImage:
+      type: object
+      required: [source, url]
+      properties:
+        source:
+          type: string
+          enum: [automatic, member, dedicated]
+        imageId:
+          type: string
+        vehicleId:
+          type: string
+        url:
+          type: string
+        thumbnailUrl:
+          type: string
+        title:
+          type: string
+    VehicleSetImage:
+      type: object
+      required: [url, fileName, mimeType, createdAt, updatedAt]
+      properties:
+        url:
+          type: string
+        thumbnailUrl:
+          type: string
+        fileName:
+          type: string
+        mimeType:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
     CreateVehicleSetRequest:
       type: object
       required: [set, members]
@@ -1650,7 +1696,7 @@ components:
       allOf:
         - $ref: "#/components/schemas/VehicleSetInput"
         - type: object
-          required: [id, inventoryNumber, members, createdAt, updatedAt]
+          required: [id, inventoryNumber, members, createdAt, updatedAt, mainImageMode]
           properties:
             id:
               type: string
@@ -1667,6 +1713,15 @@ components:
             updatedAt:
               type: string
               format: date-time
+            mainImageMode:
+              type: string
+              enum: [automatic, member, dedicated]
+            selectedMemberImageId:
+              type: string
+            dedicatedImage:
+              $ref: "#/components/schemas/VehicleSetImage"
+            mainImage:
+              $ref: "#/components/schemas/VehicleSetMainImage"
     VehicleImage:
       type: object
       required: [id, vehicleId, url, isPrimary, sortOrder, createdAt]
@@ -9672,6 +9727,117 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+  /vehicle-sets/{id}/main-image:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      tags: [Vehicles]
+      summary: Select a member image, dedicated image, or automatic set image
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VehicleSetMainImageInput"
+      responses:
+        "200":
+          description: Updated vehicle set image selection
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSet"
+        "400":
+          description: Invalid image selection
+        "403":
+          description: Insufficient role or missing CSRF token
+        "404":
+          description: Vehicle set not found
+  /vehicle-sets/{id}/image:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    post:
+      tags: [Vehicles]
+      summary: Upload and select a dedicated vehicle set image
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "201":
+          description: Dedicated set image uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VehicleSet"
+        "400":
+          description: Invalid image upload
+        "403":
+          description: Insufficient role or missing CSRF token
+        "404":
+          description: Vehicle set not found
+    delete:
+      tags: [Vehicles]
+      summary: Remove the dedicated vehicle set image
+      responses:
+        "204":
+          description: Dedicated set image removed
+        "403":
+          description: Insufficient role or missing CSRF token
+        "404":
+          description: Vehicle set not found
+  /vehicle-sets/{id}/image/file:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Vehicles]
+      summary: Download a dedicated vehicle set image
+      responses:
+        "200":
+          description: Image bytes
+        "403":
+          description: Insufficient role
+        "404":
+          description: Vehicle set image not found
+  /vehicle-sets/{id}/image/thumbnail:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      tags: [Vehicles]
+      summary: Download a dedicated vehicle set image thumbnail
+      responses:
+        "200":
+          description: Thumbnail bytes
+        "403":
+          description: Insufficient role
+        "404":
+          description: Vehicle set image not found
   /cv-files/preview:
     post:
       tags: [Vehicles]

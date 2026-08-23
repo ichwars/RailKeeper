@@ -228,6 +228,13 @@ WHERE id=?
 		return nil, err
 	}
 	vehicle.Images = images
+	if vehicle.VehicleSet != nil {
+		_, _, _, mainImage, err := s.resolveSetMainImage(ctx, vehicle.VehicleSet.ID)
+		if err != nil {
+			return nil, err
+		}
+		vehicle.VehicleSet.MainImage = mainImage
+	}
 	attachments, err := s.loadVehicleAttachments(ctx, id)
 	if err != nil {
 		return nil, err

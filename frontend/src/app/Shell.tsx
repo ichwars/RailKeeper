@@ -6,6 +6,11 @@ import { api } from "../shared/api";
 import { useI18n } from "../shared/i18n";
 import { applyThemePreference, readThemePreference, themePreferenceKey, type ThemePreference } from "../shared/theme";
 import { isViewTemporarilyDisabled } from "./navigationAvailability";
+import {
+  readSidebarPrefs,
+  sidebarOrderChangedEvent,
+  sidebarPrefsKey
+} from "./sidebarPreferences";
 
 const navItems = [
   { view: "overview", href: "/overview", labelKey: "nav.overview", icon: BarChart3 },
@@ -18,16 +23,8 @@ const navItems = [
 ] as const;
 
 const sidebarCollapsedKey = "railkeeper.sidebarCollapsed";
-const sidebarOrderKey = "railkeeper.settings.sidebarOrder";
-const sidebarPrefsBaseKey = "railkeeper.settings.sidebarPrefs";
-const sidebarOrderChangedEvent = "railkeeper-sidebar-order-changed";
 const betaUpdatesKey = "railkeeper.settings.betaUpdates";
 export const updateStatusChangedEvent = "railkeeper-update-status-changed";
-
-type SidebarPrefs = {
-  order: AppView[];
-  hidden: AppView[];
-};
 
 function GitHubMark({ size = 17 }: { size?: number }) {
   return (
@@ -59,31 +56,6 @@ function allowedNavItems(roles: string[]) {
     if (item.view === "importExport") return canUseInventory || canUseExhibition;
     return canUseInventory;
   });
-}
-
-function sidebarPrefsKey(username: string) {
-  return `${sidebarPrefsBaseKey}:${username || "local"}`;
-}
-
-function readSidebarPrefs(username: string): SidebarPrefs {
-  const fallback: SidebarPrefs = { order: [], hidden: [] };
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(sidebarPrefsKey(username)) || "null") as Partial<SidebarPrefs> | null;
-    if (stored) {
-      return {
-        order: Array.isArray(stored.order) ? stored.order.filter((view): view is AppView => navItems.some((item) => item.view === view)) : [],
-        hidden: Array.isArray(stored.hidden) ? stored.hidden.filter((view): view is AppView => navItems.some((item) => item.view === view) && view !== "settings") : []
-      };
-    }
-  } catch {
-    return fallback;
-  }
-  try {
-    const legacyOrder = JSON.parse(window.localStorage.getItem(sidebarOrderKey) || "[]") as AppView[];
-    return { order: legacyOrder.filter((view): view is AppView => navItems.some((item) => item.view === view)), hidden: [] };
-  } catch {
-    return fallback;
-  }
 }
 
 function readNavItems(roles: string[], username: string) {

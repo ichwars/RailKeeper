@@ -2,6 +2,7 @@ package application_test
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 
@@ -107,6 +108,104 @@ func TestCreateVehicleSetCreatesOrderedMembersAndListMetadata(t *testing.T) {
 	}
 	if len(listedByInventoryNumber) != 2 {
 		t.Fatalf("set inventory number search returned %d members", len(listedByInventoryNumber))
+	}
+}
+
+func TestVehicleSetMainImageSelectionDedicatedImageAndFallback(t *testing.T) {
+	db := testDB(t)
+	service := application.NewVehicleService(db)
+	ctx := context.Background()
+
+	created, err := service.CreateSet(ctx, application.CreateVehicleSetInput{
+		Set: application.VehicleSetInput{
+			Name: "Rheingold", Manufacturer: "Roco", Gauge: "H0", Category: "Wagen",
+			Gattung: "Reisezugwagen",
+		},
+		Members: []application.CreateVehicleInput{{Name: "Wagen 1"}, {Name: "Wagen 2"}},
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstImage, err := service.CreateImage(ctx, created.Members[0].ID, application.VehicleImageInput{
+		FileName: "wagen-1.jpg", MimeType: "image/jpeg", StoragePath: "images/wagen-1.jpg", IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	secondImage, err := service.CreateImage(ctx, created.Members[1].ID, application.VehicleImageInput{
+		FileName: "wagen-2.jpg", MimeType: "image/jpeg", StoragePath: "images/wagen-2.jpg", IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	selected, err := service.SetSetMainImage(ctx, created.ID, application.VehicleSetMainImageInput{
+		Mode: application.VehicleSetMainImageModeMember, MemberImageID: secondImage.ID,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if selected.MainImage == nil || selected.MainImage.Source != "member" ||
+		selected.MainImage.ImageID != secondImage.ID {
+		t.Fatalf("unexpected selected main image: %#v", selected.MainImage)
+	}
+
+	if _, err := service.DeleteImage(ctx, created.Members[1].ID, secondImage.ID); err != nil {
+		t.Fatal(err)
+	}
+	fallback, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fallback.MainImage == nil || fallback.MainImage.Source != "automatic" ||
+		fallback.MainImage.ImageID != firstImage.ID {
+		t.Fatalf("expected automatic fallback, got %#v", fallback.MainImage)
+	}
+
+	blobs := application.NewFileBlobService(db, "")
+	blobID, err := blobs.Store(ctx, []byte("set image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	dedicated, replaced, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "rheingold.jpg", MimeType: "image/jpeg", BlobID: blobID,
+	}, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(replaced) != 0 || dedicated.MainImage == nil || dedicated.MainImage.Source != "dedicated" {
+		t.Fatalf("unexpected dedicated image result: %#v, replaced=%#v", dedicated.MainImage, replaced)
+	}
+	removed, err := service.DeleteSetImage(ctx, created.ID, "actor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(removed) != 1 || removed[0] != blobID {
+		t.Fatalf("unexpected removed blobs: %#v", removed)
+	}
+	automatic, err := service.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if automatic.MainImage == nil || automatic.MainImage.Source != "automatic" {
+		t.Fatalf("expected automatic image after dedicated deletion, got %#v", automatic.MainImage)
+	}
+	ownedBlobID, err := blobs.Store(ctx, []byte("set-owned image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := service.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "owned.jpg", MimeType: "image/jpeg", BlobID: ownedBlobID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	for _, member := range created.Members {
+		if err := service.Delete(ctx, member.ID, "actor-1"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := blobs.Load(ctx, ownedBlobID); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("set deletion retained its owned image blob: %v", err)
 	}
 }
 

@@ -162,6 +162,63 @@ func TestBackupVersionEighteenPreservesVehicleSetInventoryNumber(t *testing.T) {
 	if got := backup.Tables["vehicle_sets"][0]["inventory_number"]; got != created.InventoryNumber {
 		t.Fatalf("set inventory number missing from backup: %v", got)
 	}
+	blobs := application.NewFileBlobService(db, dataDir)
+	memberBlobID, err := blobs.Store(ctx, []byte("member image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	memberImage, err := vehicles.CreateImage(ctx, created.Members[0].ID, application.VehicleImageInput{
+		FileName: "wagen.jpg", MimeType: "image/jpeg", BlobID: memberBlobID, IsPrimary: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := vehicles.SetSetMainImage(ctx, created.ID, application.VehicleSetMainImageInput{
+		Mode: application.VehicleSetMainImageModeMember, MemberImageID: memberImage.ID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	backup, err = application.NewBackupService(db, dataDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(db, dataDir).Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	restoredMemberSelection, err := vehicles.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restoredMemberSelection.MainImage == nil || restoredMemberSelection.MainImage.Source != "member" ||
+		restoredMemberSelection.MainImage.ImageID != memberImage.ID {
+		t.Fatalf("member image selection did not survive backup restore: %#v", restoredMemberSelection.MainImage)
+	}
+	blobID, err := blobs.Store(ctx, []byte("dedicated set image"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := vehicles.UpsertSetImage(ctx, created.ID, application.VehicleSetImageInput{
+		FileName: "rheingold.jpg", MimeType: "image/jpeg", BlobID: blobID,
+	}, "actor-1"); err != nil {
+		t.Fatal(err)
+	}
+	backup, err = application.NewBackupService(db, dataDir).Export(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := application.NewBackupService(db, dataDir).Import(ctx, backup); err != nil {
+		t.Fatal(err)
+	}
+	restored, err := vehicles.GetSet(ctx, created.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if restored.DedicatedImage == nil || restored.MainImage == nil || restored.MainImage.Source != "dedicated" {
+		t.Fatalf("dedicated set image did not survive backup restore: %#v", restored)
+	}
+	if data, err := blobs.Load(ctx, blobID); err != nil || string(data) != "dedicated set image" {
+		t.Fatalf("dedicated set image blob did not survive backup restore: %q, %v", data, err)
+	}
 }
 
 func TestLegacyVersionSeventeenVehicleSetNumbersAreNormalizedDeterministically(t *testing.T) {

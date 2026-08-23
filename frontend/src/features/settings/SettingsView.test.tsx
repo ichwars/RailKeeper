@@ -5,7 +5,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { api } from "../../shared/api";
 import { SettingsView } from "./SettingsView";
 import { readSettingsLocation } from "./settingsDataModel";
-import { defaultSidebarOrder, masterDataTypes, settingsTabs } from "./settingsModel";
+import {
+  defaultSidebarOrder,
+  masterDataTypes,
+  normalizeSidebarOrder,
+  readSidebarPrefs,
+  settingsTabs,
+  sidebarPrefsKey
+} from "./settingsModel";
 
 describe("SettingsView data navigation", () => {
   beforeEach(() => {
@@ -34,8 +41,43 @@ describe("SettingsView data navigation", () => {
     expect(readSettingsLocation("?tab=importExport").tab).toBe("importExport");
   });
 
-  it("does not add command stations to the Settings sidebar order", () => {
-    expect(defaultSidebarOrder).not.toContain("digitalCenters");
+  it("uses command stations instead of layouts in the current sidebar order", () => {
+    expect(defaultSidebarOrder).toEqual([
+      "overview",
+      "vehicles",
+      "accessories",
+      "exhibition",
+      "importExport",
+      "digitalCenters",
+      "settings"
+    ]);
+  });
+
+  it("migrates legacy sidebar preferences without losing the custom relative order", () => {
+    window.localStorage.setItem(sidebarPrefsKey("viewer"), JSON.stringify({
+      order: ["settings", "layouts", "vehicles"],
+      hidden: ["layouts"]
+    }));
+
+    const preferences = readSidebarPrefs("viewer");
+
+    expect(preferences.order).not.toContain("layouts");
+    expect(preferences.order).toContain("digitalCenters");
+    expect(preferences.order.indexOf("settings")).toBeLessThan(preferences.order.indexOf("vehicles"));
+    expect(preferences.hidden).toEqual([]);
+  });
+
+  it("inserts missing command stations before settings", () => {
+    const normalized = normalizeSidebarOrder([
+      "overview",
+      "vehicles",
+      "accessories",
+      "exhibition",
+      "importExport",
+      "settings"
+    ]);
+
+    expect(normalized.slice(-2)).toEqual(["digitalCenters", "settings"]);
   });
 
   it("restores manufacturers as the first general master-data type", async () => {
@@ -135,7 +177,7 @@ describe("SettingsView data navigation", () => {
     ["", "Allgemein", "Sprache, Startseite, Datumsformat und Druckausgabe."],
     ["?tab=data", "Daten", "Stammdaten für Fahrzeuge, Artikel und Anlagen zentral pflegen."],
     ["?tab=digital", "Digitalzentralen", "Zentrale Verbindungen konfigurieren, testen und für spätere Live-Aktualisierungen vorbereiten."],
-    ["?tab=importExport", "Import/Export", "Bestandslisten auswerten, korrigieren und kontrolliert in die lokale Datenbank übernehmen."],
+    ["?tab=importExport", "Backup", "Stammdaten übertragen, vollständige Sicherungen erstellen und kontrolliert wiederherstellen."],
     ["?tab=appearance", "Darstellung", "Design-Optionen und Anzeigeeinstellungen werden hier gebündelt."],
     ["?tab=auth", "Authentifizierung", "Ihre Instanz ist mit lokaler Benutzeranmeldung geschützt."]
   ])("uses the active tab as the only page header for %s", async (search, title, description) => {
@@ -146,6 +188,25 @@ describe("SettingsView data navigation", () => {
     expect(screen.getAllByText(description)).toHaveLength(1);
     expect(screen.queryByRole("heading", { level: 2, name: title })).not.toBeInTheDocument();
     view.unmount();
+  });
+
+  it("presents backup operations as three aligned operational lanes", async () => {
+    window.history.replaceState(null, "", "/settings?tab=importExport");
+
+    render(<SettingsView username="viewer" />);
+
+    expect(await screen.findByRole("button", { name: "Backup" })).toBeInTheDocument();
+    const workspace = document.querySelector(".backup-operational-lanes");
+    expect(workspace).toBeInTheDocument();
+    expect(workspace?.querySelectorAll(".backup-operational-lane")).toHaveLength(3);
+    expect(within(workspace as HTMLElement).getByRole("heading", { name: "Stammdaten" }))
+      .toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByRole("heading", { name: "Backup erstellen" }))
+      .toBeInTheDocument();
+    expect(within(workspace as HTMLElement).getByRole("heading", { name: "Backup wiederherstellen" }))
+      .toBeInTheDocument();
+    expect(workspace?.querySelector(".backup-restore-controls"))
+      .toContainElement(screen.getByRole("button", { name: "Backup einspielen" }));
   });
 
   it("keeps the Digital Centers configuration workflow inside the full Settings navigation", async () => {

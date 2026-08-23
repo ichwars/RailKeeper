@@ -32,11 +32,13 @@ export function VehicleSetInventoryMobileCard({
     <article className="vehicle-mobile-set-card">
       <button
         type="button"
-        className="vehicle-mobile-set-toggle"
+		className={`vehicle-mobile-set-toggle${group.set.mainImage ? " has-image" : ""}`}
         onClick={onToggleExpanded}
         aria-expanded={expanded}
         aria-label={expanded ? t("vehicles.set.collapse") : t("vehicles.set.expand")}
       >
+		{group.set.mainImage && <img className="vehicle-mobile-set-image"
+			src={group.set.mainImage.thumbnailUrl || group.set.mainImage.url} alt={group.set.name} />}
         <span className="vehicle-type-badge set"><Layers3 size={15} />{t("vehicles.set.type")}</span>
         <span className="vehicle-mobile-set-identity">
           <strong>{group.set.inventoryNumber}</strong>

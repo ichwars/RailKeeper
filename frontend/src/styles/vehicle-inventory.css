@@ -344,6 +344,124 @@
   padding: 16px 20px 20px;
 }
 
+.vehicle-set-main-image-section {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 94%, var(--accent));
+}
+
+.vehicle-set-main-image-heading,
+.vehicle-set-main-image-upload {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+}
+
+.vehicle-set-main-image-heading h3,
+.vehicle-set-main-image-section h4,
+.vehicle-set-main-image-heading p {
+  margin: 0;
+}
+
+.vehicle-set-main-image-heading p {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.vehicle-set-main-image-current {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.vehicle-set-main-image-current img,
+.vehicle-set-main-image-current .image-placeholder,
+.vehicle-set-summary-image img {
+  width: 112px;
+  height: 76px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.vehicle-set-main-image-current > div:last-child {
+  display: grid;
+  gap: 3px;
+}
+
+.vehicle-set-main-image-current span {
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+}
+
+.vehicle-set-image-upload-button {
+  position: relative;
+  cursor: pointer;
+}
+
+.vehicle-set-image-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.vehicle-set-member-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.vehicle-set-member-image-gallery article {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+}
+
+.vehicle-set-member-image-gallery article.selected {
+  border-color: var(--accent);
+}
+
+.vehicle-set-member-image-gallery img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.vehicle-set-member-image-gallery article > div {
+  display: grid;
+  min-width: 0;
+}
+
+.vehicle-set-member-image-gallery small {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-set-summary-image {
+  margin: 0 0 16px;
+}
+
+.vehicle-set-summary-image img {
+  width: min(320px, 100%);
+  height: auto;
+  aspect-ratio: 3 / 2;
+}
+
 .vehicle-set-summary-dialog .detail-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -424,6 +542,16 @@
     grid-template-columns: 1fr;
     gap: 4px;
   }
+
+  .vehicle-set-main-image-heading,
+  .vehicle-set-main-image-upload {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vehicle-set-member-image-gallery {
+    grid-template-columns: 1fr;
+  }
 }
 
 .vehicle-mobile-set-tree {
@@ -454,6 +582,17 @@
   cursor: pointer;
   font: inherit;
   text-align: left;
+}
+
+.vehicle-mobile-set-image {
+  width: 58px;
+  height: 44px;
+  border-radius: 5px;
+  object-fit: cover;
+}
+
+.vehicle-mobile-set-toggle.has-image {
+  grid-template-columns: 58px auto minmax(0, 1fr) 20px;
 }
 
 .vehicle-mobile-set-identity {

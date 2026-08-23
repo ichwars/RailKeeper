@@ -45,7 +45,8 @@ const setFixture: VehicleSet = {
 		vehicleFixture({ id: "member-2", inventoryNumber: "RK-WAG-000002", name: "Abteilwagen" })
 	],
 	createdAt: "2026-08-01T00:00:00Z",
-	updatedAt: "2026-08-01T00:00:00Z"
+	updatedAt: "2026-08-01T00:00:00Z",
+	mainImageMode: "automatic"
 };
 
 describe("vehicleSetDuplicatePrefill", () => {

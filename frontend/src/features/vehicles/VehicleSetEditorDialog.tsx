@@ -5,6 +5,7 @@ import { api, type CreateVehicleRequest, type MasterDataEntry, type VehicleSet }
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { VehicleOwnershipFields } from "./VehicleFormFields";
+import { VehicleSetMainImageEditor } from "./VehicleSetMainImageEditor";
 import { vehicleSetInputFromForm } from "./VehicleCreateWizard";
 import { emptyOptions, emptyVehicle, gattungenForCategory, type MasterDataOptions } from "./vehicleViewModel";
 
@@ -46,6 +47,7 @@ export function VehicleSetEditorDialog({
 }: VehicleSetEditorDialogProps) {
 	const { t } = useI18n();
 	const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
+	const [vehicleSet, setVehicleSet] = useState<VehicleSet | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [error, setError] = useState("");
@@ -57,7 +59,7 @@ export function VehicleSetEditorDialog({
 	useEffect(() => {
 		let active = true;
 		api.vehicleSet(setId)
-			.then((set) => { if (active) setForm(formFromSet(set)); })
+			.then((set) => { if (active) { setVehicleSet(set); setForm(formFromSet(set)); } })
 			.catch((reason: Error) => { if (active) setError(reason.message); })
 			.finally(() => { if (active) setLoading(false); });
 		return () => { active = false; };
@@ -69,6 +71,7 @@ export function VehicleSetEditorDialog({
 		setError("");
 		try {
 			const updated = await api.updateVehicleSet(setId, vehicleSetInputFromForm(form));
+			setVehicleSet(updated);
 			onUpdated(updated);
 		} catch (reason) {
 			setError(reason instanceof Error ? reason.message : t("vehicles.set.updateFailed"));
@@ -91,6 +94,8 @@ export function VehicleSetEditorDialog({
 					{error && <p className="error-text" role="alert">{error}</p>}
 					{!loading && (
 						<div className="vehicle-create-detail-groups vehicle-form">
+							{vehicleSet && <VehicleSetMainImageEditor vehicleSet={vehicleSet}
+								onChange={(updated) => { setVehicleSet(updated); onUpdated(updated); }} onError={setError} />}
 							<details open>
 								<summary>{t("vehicles.wizard.basicData")}</summary>
 								<div className="form-row">
