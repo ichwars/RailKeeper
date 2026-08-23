@@ -296,6 +296,38 @@
   clip: rect(0 0 0 0);
 }
 
+.transfer-mapping-section {
+  display: grid;
+  gap: 10px;
+}
+
+.transfer-mapping-table-wrap {
+  max-height: 330px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+
+.transfer-mapping-table {
+  min-width: 650px;
+}
+
+.transfer-mapping-table th:nth-child(1) {
+  width: 32%;
+}
+
+.transfer-mapping-table th:nth-child(2) {
+  width: 48%;
+}
+
+.transfer-mapping-table th:nth-child(3) {
+  width: 20%;
+}
+
+.transfer-mapping-table .app-select {
+  min-width: 230px;
+}
+
 .transfer-preview-section {
   display: grid;
   gap: 12px;

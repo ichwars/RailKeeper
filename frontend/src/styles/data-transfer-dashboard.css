@@ -406,15 +406,15 @@
 }
 
 .transfer-profiles-table {
-  min-width: 620px;
+  min-width: 820px;
 }
 
 .transfer-profiles-table th:nth-child(1) {
-  width: 23%;
+  width: 20%;
 }
 
 .transfer-profiles-table th:nth-child(2) {
-  width: 30%;
+  width: 10%;
 }
 
 .transfer-profiles-table th:nth-child(3) {
@@ -422,11 +422,31 @@
 }
 
 .transfer-profiles-table th:nth-child(4) {
-  width: 21%;
+  width: 22%;
 }
 
 .transfer-profiles-table th:nth-child(5) {
-  width: 16%;
+  width: 8%;
+}
+
+.transfer-profiles-table th:nth-child(6) {
+  width: 17%;
+}
+
+.transfer-profiles-table th:nth-child(7) {
+  width: 13%;
+}
+
+.transfer-profile-status {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.transfer-profile-status.enabled {
+  color: var(--accent-strong);
 }
 
 .transfer-profile-actions {

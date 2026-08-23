@@ -47,7 +47,6 @@ export function TransferProfileDialog({
   const [areas, setAreas] = useState<DataTransferArea[]>(
     profile ? [...profile.areas] : availableAreas.slice(0, 1)
   );
-  const [optionsText, setOptionsText] = useState(JSON.stringify(profile?.options || {}, null, 2));
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [disableConfirmationOpen, setDisableConfirmationOpen] = useState(false);
@@ -63,7 +62,6 @@ export function TransferProfileDialog({
     setDirection(profile?.direction || "export");
     setFormat(profile?.format || "railkeeper-json");
     setAreas(profile ? [...profile.areas] : availableAreas.slice(0, 1));
-    setOptionsText(JSON.stringify(profile?.options || {}, null, 2));
     setError("");
   }, [availableAreas, profile]);
 
@@ -78,21 +76,12 @@ export function TransferProfileDialog({
     event.preventDefault();
     setError("");
     if (!name.trim() || areas.length === 0 || (format === "csv" && csvUnavailable)) return;
-    let options: Record<string, unknown>;
-    try {
-      const parsed: unknown = optionsText.trim() ? JSON.parse(optionsText) : {};
-      if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") throw new Error();
-      options = { ...parsed as Record<string, unknown> };
-    } catch {
-      setError(copy.invalidOptions);
-      return;
-    }
     const input: DataTransferProfileInput = {
       name: name.trim(),
       direction,
       format,
       areas: [...areas],
-      options
+      options: { ...(profile?.options ?? {}) }
     };
     setBusy(true);
     try {
@@ -201,13 +190,6 @@ export function TransferProfileDialog({
               : null}
           </fieldset>
 
-          <label className="data-transfer-field">
-            <span>{copy.options}</span>
-            <textarea value={optionsText} onChange={(event) => setOptionsText(event.target.value)} rows={4}
-              spellCheck={false} />
-            <small>{copy.optionsHelp}</small>
-          </label>
-
           {error ? <p className="form-message error" role="alert">{error}</p> : null}
           <footer className="data-transfer-dialog-actions">
             {profile && canDisable ? (
@@ -239,10 +221,9 @@ function profileCopy(language: Language) {
     eyebrow: "TRANSFERPROFIL", createTitle: "Transferprofil anlegen", editTitle: "Transferprofil bearbeiten",
     close: "Dialog schließen", name: "Profilname", direction: "Richtung", export: "Export", import: "Import",
     manage: "Profil verwalten", newProfile: "Neues Profil", enabled: "aktiv", disabled: "deaktiviert",
-    areas: "Bereiche", format: "Format", options: "Optionen (JSON)",
-    optionsHelp: "Optionen werden unverändert im Profil und in neuen Auftragssnapshots gespeichert.",
+    areas: "Bereiche", format: "Format",
     exhibitionCSV: "Ausstellungslisten sind nur als JSON verfügbar.",
-    multiAreaCSV: "CSV unterstützt genau einen Bereich.", invalidOptions: "Die Optionen müssen ein gültiges JSON-Objekt sein.",
+    multiAreaCSV: "CSV unterstützt genau einen Bereich.",
     cancel: "Abbrechen", create: "Profil anlegen", save: "Änderungen speichern", disable: "Profil deaktivieren",
     disableTitle: "Profil deaktivieren?",
     disableConfirm: "Profil „{name}“ deaktivieren? Bestehende Auftragssnapshots bleiben erhalten.",
@@ -251,10 +232,9 @@ function profileCopy(language: Language) {
     eyebrow: "TRANSFER PROFILE", createTitle: "Create transfer profile", editTitle: "Edit transfer profile",
     close: "Close dialog", name: "Profile name", direction: "Direction", export: "Export", import: "Import",
     manage: "Manage profile", newProfile: "New profile", enabled: "enabled", disabled: "disabled",
-    areas: "Areas", format: "Format", options: "Options (JSON)",
-    optionsHelp: "Options are stored unchanged in the profile and in new job snapshots.",
+    areas: "Areas", format: "Format",
     exhibitionCSV: "Exhibition lists are only available as JSON.",
-    multiAreaCSV: "CSV supports exactly one area.", invalidOptions: "Options must be a valid JSON object.",
+    multiAreaCSV: "CSV supports exactly one area.",
     cancel: "Cancel", create: "Create profile", save: "Save changes", disable: "Disable profile",
     disableTitle: "Disable profile?",
     disableConfirm: "Disable profile “{name}”? Existing job snapshots remain unchanged.",

@@ -52,14 +52,15 @@ common punctuation, and known German or English aliases before looking for a tar
 
 After loading a file:
 
-1. Review the **mapped** and **open** counts.
-2. In **Column mapping**, assign every useful open column to a RailKeeper field.
-3. Leave an irrelevant source column on **Ignore**.
-4. Check the recalculated import review before saving.
+1. Under **Detected CSV mapping**, review every source header.
+2. Assign every useful open column to a RailKeeper field.
+3. Explicitly set an irrelevant source column to **Ignore column**.
+4. For recurring files, optionally select **Save mapping to profile**.
+5. Choose **Validate mapping**, then check the recalculated import review.
 
-One target field can belong to only one source column. Assigning the same target to a second column
-automatically clears the earlier assignment. Every mapping change rebuilds all preview rows, so
-review selections and corrections again afterwards.
+One target field can belong to only one source column. Targets already in use are unavailable for
+other columns. Mapping validation rereads the same file on the server and replaces the persistent
+preview, so review conflicts and corrections again afterwards.
 
 ## All 62 CSV and table targets
 

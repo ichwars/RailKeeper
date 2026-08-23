@@ -49,6 +49,57 @@ func TestDataTransferProfileServiceUpdatesDisablesAndListsProfiles(t *testing.T)
 	}
 }
 
+func TestDataTransferProfileRejectsDuplicateActiveNameInSameDirection(t *testing.T) {
+	repository := &dataTransferProfileRepositoryStub{profiles: []DataTransferProfile{
+		{ID: "import-1", Name: "Fahrzeugimport", Direction: TransferImport, Enabled: true},
+		{ID: "import-disabled", Name: "Archivimport", Direction: TransferImport, Enabled: false},
+		{ID: "export-1", Name: "Fahrzeugliste", Direction: TransferExport, Enabled: true},
+	}}
+	service := NewDataTransferService(repository, t.TempDir())
+
+	_, err := service.CreateProfile(t.Context(), CreateDataTransferProfileInput{
+		Name: " fahrzeugIMPORT ", Direction: TransferImport, Format: TransferCSV,
+		Areas: []TransferArea{TransferVehicles},
+	}, "admin-1")
+	if !errors.Is(err, ErrDataTransferConflict) {
+		t.Fatalf("duplicate active import error = %v, want conflict", err)
+	}
+
+	created, err := service.CreateProfile(t.Context(), CreateDataTransferProfileInput{
+		Name: "Fahrzeugimport", Direction: TransferExport, Format: TransferCSV,
+		Areas: []TransferArea{TransferVehicles},
+	}, "admin-1")
+	if err != nil || created.Direction != TransferExport {
+		t.Fatalf("same name in other direction should be allowed: %#v, %v", created, err)
+	}
+
+	created, err = service.CreateProfile(t.Context(), CreateDataTransferProfileInput{
+		Name: "Archivimport", Direction: TransferImport, Format: TransferCSV,
+		Areas: []TransferArea{TransferVehicles},
+	}, "admin-1")
+	if err != nil || created.Name != "Archivimport" {
+		t.Fatalf("name of disabled profile should be reusable: %#v, %v", created, err)
+	}
+}
+
+func TestDataTransferProfileRejectsDuplicateNameOnUpdate(t *testing.T) {
+	repository := &dataTransferProfileRepositoryStub{profiles: []DataTransferProfile{
+		{ID: "import-1", Name: "Fahrzeugimport", Direction: TransferImport, Format: TransferCSV,
+			Areas: []TransferArea{TransferVehicles}, Enabled: true},
+		{ID: "import-2", Name: "Lieferantenimport", Direction: TransferImport, Format: TransferCSV,
+			Areas: []TransferArea{TransferVehicles}, Enabled: true},
+	}}
+	service := NewDataTransferService(repository, t.TempDir())
+
+	_, err := service.UpdateProfile(t.Context(), "import-2", UpdateDataTransferProfileInput{
+		Name: "Fahrzeugimport", Direction: TransferImport, Format: TransferCSV,
+		Areas: []TransferArea{TransferVehicles},
+	})
+	if !errors.Is(err, ErrDataTransferConflict) {
+		t.Fatalf("duplicate profile update error = %v, want conflict", err)
+	}
+}
+
 func TestDataTransferSummaryCountsOpenScopedJobsAndActiveArtifacts(t *testing.T) {
 	repository := &dataTransferQueryRepositoryStub{
 		jobs: []DataTransferJob{
@@ -154,6 +205,15 @@ func (profileRepositoryStub) CreateProfile(
 type dataTransferProfileRepositoryStub struct {
 	DataTransferRepository
 	profiles []DataTransferProfile
+}
+
+func (s *dataTransferProfileRepositoryStub) CreateProfile(
+	_ context.Context,
+	profile DataTransferProfile,
+) (DataTransferProfile, error) {
+	profile.ID = "created-profile"
+	s.profiles = append(s.profiles, profile)
+	return profile, nil
 }
 
 type dataTransferQueryRepositoryStub struct {

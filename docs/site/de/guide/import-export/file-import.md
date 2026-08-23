@@ -54,14 +54,15 @@ bevor nach einem Zielfeld gesucht wird.
 
 Nach dem Laden einer Datei:
 
-1. Die Anzahl **zugeordnet** und **offen** prüfen.
-2. Unter **Spaltenzuordnung** jede benötigte offene Spalte einem RailKeeper-Feld zuweisen.
-3. Eine nicht benötigte Quellspalte auf **Ignorieren** belassen.
-4. Vor dem Speichern die neu berechnete Importprüfung kontrollieren.
+1. Unter **Erkannte CSV-Zuordnung** jede Quellüberschrift prüfen.
+2. Jede benötigte offene Spalte einem RailKeeper-Feld zuweisen.
+3. Eine nicht benötigte Quellspalte ausdrücklich auf **Spalte ignorieren** setzen.
+4. Bei wiederkehrenden Dateien optional **Zuordnung im Profil speichern** wählen.
+5. **Zuordnung prüfen** und danach die neu berechnete Importprüfung kontrollieren.
 
-Ein Zielfeld kann nur einer Quellspalte gehören. Wird dasselbe Ziel einer zweiten Spalte
-zugewiesen, löscht RailKeeper automatisch die vorherige Zuordnung. Jede Zuordnungsänderung baut
-alle Vorschauzeilen neu auf, daher anschließend Auswahl und Korrekturen erneut prüfen.
+Ein Zielfeld kann nur einer Quellspalte gehören. Bereits verwendete Ziele stehen bei anderen
+Spalten nicht erneut zur Auswahl. Die Zuordnungsprüfung liest dieselbe Datei serverseitig neu und
+ersetzt die dauerhafte Vorschau, daher anschließend Konflikte und Korrekturen erneut prüfen.
 
 ## Alle 62 CSV- und Tabellenziele
 

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/csv"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -30,7 +32,7 @@ func TestCombinedTransferPackageExcludesMasterData(t *testing.T) {
 		t.Fatalf("feature package leaked master data: %s", payload)
 	}
 	if !bytes.Contains(payload, []byte(`"format":"railkeeper-transfer"`)) ||
-		!bytes.Contains(payload, []byte(`"version":1`)) {
+		!bytes.Contains(payload, []byte(`"version":2`)) {
 		t.Fatalf("missing package identity: %s", payload)
 	}
 }
@@ -44,13 +46,45 @@ func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	wantPrefix := strings.Join([]string{
-		"Inventarnummer;Hersteller;Artikelnummer;Bezeichnung;Spurweite;Epoche;Bahngesellschaft;Kategorie;Gattung;Beschreibung",
-		"RK-001;Roco;;BR 01;H0;;;;;",
-		`RK-002;Märklin;;"BR 218; Cargo";H0;;;;;`,
-	}, "\n")
-	if !strings.HasPrefix(string(payload), wantPrefix) {
-		t.Fatalf("vehicle CSV = %q, want prefix %q", payload, wantPrefix)
+	reader := csv.NewReader(bytes.NewReader(payload))
+	reader.Comma = ';'
+	rows, err := reader.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantHeaderPrefix := []string{
+		"Inventarnummer", "Hersteller", "Artikel-Nr.", "Quelle / URL", "Bezeichnung", "Spurweite", "Epoche",
+		"Bahngesellschaft", "Kategorie", "Gattung", "Beschreibung",
+	}
+	if !slices.Equal(rows[0][:len(wantHeaderPrefix)], wantHeaderPrefix) {
+		t.Fatalf("vehicle CSV header prefix = %#v, want %#v", rows[0][:len(wantHeaderPrefix)], wantHeaderPrefix)
+	}
+	if rows[1][0] != "RK-001" || rows[1][1] != "Roco" || rows[1][4] != "BR 01" ||
+		rows[2][0] != "RK-002" || rows[2][4] != "BR 218; Cargo" {
+		t.Fatalf("vehicle CSV rows were not stable and sorted: %#v", rows)
+	}
+}
+
+func TestDataTransferExportVehicleCSVContainsAll62ScalarFields(t *testing.T) {
+	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{{
+		InventoryNumber: "RK-001", Manufacturer: "Roco", Name: "BR 01", Gauge: "H0",
+	}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := csv.NewReader(bytes.NewReader(payload))
+	reader.Comma = ';'
+	rows, err := reader.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows) != 2 || len(rows[0]) != 62 || len(rows[1]) != 62 {
+		t.Fatalf("vehicle CSV dimensions = %d rows, %d/%d columns, want 2 rows and 62 columns", len(rows), len(rows[0]), len(rows[1]))
+	}
+	for _, header := range []string{"Länge (mm)", "Kupplung hinten", "Zusatzinformationen", "QR-Code erstellen"} {
+		if !slices.Contains(rows[0], header) {
+			t.Fatalf("vehicle CSV header missing %q: %#v", header, rows[0])
+		}
 	}
 }
 

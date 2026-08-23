@@ -14,18 +14,7 @@ import (
 	"unicode"
 )
 
-var vehicleCSVFieldAliases = transferCSVFieldAliases(map[string][]string{
-	"inventoryNumber": {"Inventarnummer", "inventory number", "inventory_number", "inventoryNumber"},
-	"manufacturer":    {"Hersteller", "manufacturer"},
-	"articleNumber":   {"Artikelnummer", "article number", "article_number", "articleNumber"},
-	"name":            {"Bezeichnung", "Name", "designation"},
-	"gauge":           {"Spurweite", "gauge"},
-	"epoch":           {"Epoche", "epoch"},
-	"railwayCompany":  {"Bahngesellschaft", "railway company", "railway_company", "railwayCompany"},
-	"category":        {"Kategorie", "category"},
-	"gattung":         {"Gattung", "class"},
-	"description":     {"Beschreibung", "description"},
-})
+var vehicleCSVFieldAliases = vehicleTransferCSVAliases()
 
 var accessoryCSVFieldAliases = transferCSVFieldAliases(map[string][]string{
 	"inventoryNumber":   {"Inventarnummer", "inventory number", "inventory_number", "inventoryNumber"},
@@ -53,14 +42,24 @@ func parseDataTransferCSV(
 	area TransferArea,
 	reader io.Reader,
 ) (DataTransferSnapshot, []int, error) {
+	snapshot, rowNumbers, _, err := parseDataTransferCSVWithMapping(area, reader, nil, nil)
+	return snapshot, rowNumbers, err
+}
+
+func parseDataTransferCSVWithMapping(
+	area TransferArea,
+	reader io.Reader,
+	requested *DataTransferCSVMappingInput,
+	profileDefaults map[string]string,
+) (DataTransferSnapshot, []int, []DataTransferCSVColumnMapping, error) {
 	payload, err := io.ReadAll(reader)
 	if err != nil {
-		return DataTransferSnapshot{}, nil, fmt.Errorf("read transfer CSV: %w", err)
+		return DataTransferSnapshot{}, nil, nil, fmt.Errorf("read transfer CSV: %w", err)
 	}
 	payload = bytes.TrimPrefix(payload, []byte{0xef, 0xbb, 0xbf})
 	delimiter, err := detectDataTransferCSVDelimiter(payload)
 	if err != nil {
-		return DataTransferSnapshot{}, nil, err
+		return DataTransferSnapshot{}, nil, nil, err
 	}
 	csvReader := csv.NewReader(bytes.NewReader(payload))
 	csvReader.Comma = delimiter
@@ -68,20 +67,38 @@ func parseDataTransferCSV(
 	csvReader.ReuseRecord = false
 	rows, err := csvReader.ReadAll()
 	if err != nil {
-		return DataTransferSnapshot{}, nil, fmt.Errorf("%w: malformed CSV: %v", ErrDataTransferValidation, err)
+		return DataTransferSnapshot{}, nil, nil, fmt.Errorf("%w: malformed CSV: %v", ErrDataTransferValidation, err)
 	}
 	if len(rows) == 0 {
-		return DataTransferSnapshot{}, nil, fmt.Errorf("%w: CSV header is required", ErrDataTransferValidation)
+		return DataTransferSnapshot{}, nil, nil, fmt.Errorf("%w: CSV header is required", ErrDataTransferValidation)
 	}
+	var mapping []DataTransferCSVColumnMapping
 	aliases := vehicleCSVFieldAliases
 	if area == TransferAccessories {
 		aliases = accessoryCSVFieldAliases
 	} else if area != TransferVehicles {
-		return DataTransferSnapshot{}, nil, fmt.Errorf("%w: unsupported CSV area %q", ErrDataTransferValidation, area)
+		return DataTransferSnapshot{}, nil, nil, fmt.Errorf("%w: unsupported CSV area %q", ErrDataTransferValidation, area)
 	}
-	fields, err := resolveDataTransferCSVHeader(rows[0], aliases)
-	if err != nil {
-		return DataTransferSnapshot{}, nil, err
+	if area == TransferVehicles {
+		mapping = defaultDataTransferCSVMapping(rows[0], profileDefaults)
+		if requested != nil {
+			mapping = append([]DataTransferCSVColumnMapping(nil), requested.Columns...)
+		}
+		if err := validateDataTransferCSVMapping(rows[0], mapping); err != nil {
+			return DataTransferSnapshot{}, nil, nil, err
+		}
+	} else {
+		fields, err := resolveDataTransferCSVHeader(rows[0], aliases)
+		if err != nil {
+			return DataTransferSnapshot{}, nil, nil, err
+		}
+		mapping = make([]DataTransferCSVColumnMapping, len(fields))
+		for index, field := range fields {
+			mapping[index] = DataTransferCSVColumnMapping{
+				Index: index, SourceHeader: rows[0][index],
+				NormalizedHeader: normalizeTransferCSVHeader(rows[0][index]), TargetField: field, Origin: CSVMappingAlias,
+			}
+		}
 	}
 	snapshot := DataTransferSnapshot{}
 	rowNumbers := []int{}
@@ -90,29 +107,35 @@ func parseDataTransferCSV(
 		if transferCSVRowEmpty(values) {
 			continue
 		}
-		if len(values) != len(fields) {
-			return DataTransferSnapshot{}, nil, fmt.Errorf(
+		if len(values) != len(mapping) {
+			return DataTransferSnapshot{}, nil, nil, fmt.Errorf(
 				"%w: CSV row %d has %d fields, expected %d", ErrDataTransferValidation,
-				rowNumber, len(values), len(fields),
+				rowNumber, len(values), len(mapping),
 			)
 		}
-		row := make(map[string]string, len(fields))
-		for fieldIndex, field := range fields {
-			row[field] = strings.TrimSpace(values[fieldIndex])
+		row := make(map[string]string, len(mapping))
+		for _, column := range mapping {
+			if column.TargetField != "" {
+				row[column.TargetField] = strings.TrimSpace(values[column.Index])
+			}
 		}
 		switch area {
 		case TransferVehicles:
-			snapshot.Vehicles = append(snapshot.Vehicles, transferVehicleFromCSV(row))
+			vehicle, err := transferVehicleFromCSV(row, rowNumber)
+			if err != nil {
+				return DataTransferSnapshot{}, nil, nil, err
+			}
+			snapshot.Vehicles = append(snapshot.Vehicles, vehicle)
 		case TransferAccessories:
 			accessory, err := transferAccessoryFromCSV(row, rowNumber)
 			if err != nil {
-				return DataTransferSnapshot{}, nil, err
+				return DataTransferSnapshot{}, nil, nil, err
 			}
 			snapshot.Accessories = append(snapshot.Accessories, accessory)
 		}
 		rowNumbers = append(rowNumbers, rowNumber)
 	}
-	return snapshot, rowNumbers, nil
+	return snapshot, rowNumbers, mapping, nil
 }
 
 func detectDataTransferCSVDelimiter(payload []byte) (rune, error) {
@@ -181,12 +204,63 @@ func transferCSVRowEmpty(values []string) bool {
 	return true
 }
 
-func transferVehicleFromCSV(row map[string]string) TransferVehicle {
+func transferVehicleFromCSV(row map[string]string, rowNumber int) (TransferVehicle, error) {
+	maximumSpeed, err := parseTransferCSVOptionalInteger(row["maximumSpeedKmh"], rowNumber, "Höchstgeschwindigkeit")
+	if err != nil {
+		return TransferVehicle{}, err
+	}
 	return TransferVehicle{
 		InventoryNumber: row["inventoryNumber"], Manufacturer: row["manufacturer"],
-		ArticleNumber: row["articleNumber"], Name: row["name"], Gauge: row["gauge"], Epoch: row["epoch"],
-		RailwayCompany: row["railwayCompany"], Category: row["category"], Gattung: row["gattung"],
-		Description: row["description"],
+		ArticleNumber: row["articleNumber"], ArticleSourceURL: row["articleSourceUrl"], Name: row["name"],
+		Gauge: row["gauge"], Epoch: row["epoch"], RailwayCompany: row["railwayCompany"],
+		Category: row["category"], Gattung: row["gattung"], Description: row["description"],
+		Series: row["series"], VehicleNumber: row["vehicleNumber"], MaximumSpeedKmh: maximumSpeed,
+		HomeBase: row["homeBase"], Digital: parseTransferCSVBoolean(row["digital"]),
+		DigitalDecoderNumber: row["digitalDecoderNumber"], DecoderType: row["decoderType"],
+		DTDecoder: parseTransferCSVBoolean(row["dtDecoder"]), DTDecoderNumber: row["dtDecoderNumber"],
+		ExhibitionReady: parseTransferCSVBoolean(row["exhibitionReady"]),
+		Exhibition:      parseTransferCSVBoolean(row["exhibition"]),
+		ABCBrakes:       parseTransferCSVBoolean(row["abcBrakes"]), EAN: row["ean"],
+		ProductionPeriod: row["productionPeriod"], ListPrice: row["listPrice"],
+		AcquisitionType: row["acquisitionType"], AcquiredFrom: row["acquiredFrom"],
+		PurchasePrice: row["purchasePrice"], PurchaseDate: row["purchaseDate"],
+		StorageLocation: row["storageLocation"], StorageDetails: row["storageDetails"],
+		Condition: row["condition"], ConditionDetails: row["conditionDetails"], Packaging: row["packaging"],
+		LengthMM: row["lengthMm"], WeightG: row["weightG"], Color: row["color"], Lettering: row["lettering"],
+		Load: row["load"], Interior: row["interior"], Axles: row["axles"], AxleCount: row["axleCount"],
+		TractionTireCount: row["tractionTireCount"], Wheelset: row["wheelset"],
+		CouplingSame: parseTransferCSVBoolean(row["couplingSame"]), CouplingFront: row["couplingFront"],
+		CouplingRear: row["couplingRear"], PowerPickup: row["powerPickup"], Adapter: row["adapter"],
+		DriveEnabled: parseTransferCSVBoolean(row["driveEnabled"]), DriveDescription: row["driveDescription"],
+		HeadlightsEnabled:         parseTransferCSVBoolean(row["headlightsEnabled"]),
+		HeadlightsDescription:     row["headlightsDescription"],
+		LightingEnabled:           parseTransferCSVBoolean(row["lightingEnabled"]),
+		LightingDescription:       row["lightingDescription"],
+		SoundGeneratorEnabled:     parseTransferCSVBoolean(row["soundGeneratorEnabled"]),
+		SoundGeneratorDescription: row["soundGeneratorDescription"],
+		SmokeGeneratorEnabled:     parseTransferCSVBoolean(row["smokeGeneratorEnabled"]),
+		SmokeGeneratorDescription: row["smokeGeneratorDescription"], AdditionalInfo: row["additionalInfo"],
+		QRCodeEnabled: parseTransferCSVBoolean(row["qrCodeEnabled"]),
+	}, nil
+}
+
+func parseTransferCSVOptionalInteger(value string, rowNumber int, field string) (*int, error) {
+	if strings.TrimSpace(value) == "" {
+		return nil, nil
+	}
+	parsed, err := parseTransferCSVInteger(value, rowNumber, field)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
+}
+
+func parseTransferCSVBoolean(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "ja", "yes", "true", "wahr", "digital", "d", "x", "vorhanden":
+		return true
+	default:
+		return false
 	}
 }
 

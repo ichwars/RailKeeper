@@ -314,6 +314,39 @@ components:
         data:
           type: object
           additionalProperties: true
+    DataTransferCSVColumnMapping:
+      type: object
+      required: [index, sourceHeader, normalizedHeader, targetField, origin]
+      properties:
+        index:
+          type: integer
+          minimum: 0
+        sourceHeader:
+          type: string
+        normalizedHeader:
+          type: string
+        targetField:
+          type: string
+        origin:
+          type: string
+          enum: [alias, profile, manual, ignored, unmapped]
+    VehicleTransferField:
+      type: object
+      required: [key, labelDE, labelEN, kind, aliases]
+      properties:
+        key:
+          type: string
+        labelDE:
+          type: string
+        labelEN:
+          type: string
+        kind:
+          type: string
+          enum: [string, integer, boolean]
+        aliases:
+          type: array
+          items:
+            type: string
     DataTransferPreview:
       type: object
       required: [job, records, issues, totalRecords, readyRecords, warningRecords, errorRecords]
@@ -336,6 +369,14 @@ components:
           type: integer
         errorRecords:
           type: integer
+        csvMapping:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferCSVColumnMapping"
+        vehicleFields:
+          type: array
+          items:
+            $ref: "#/components/schemas/VehicleTransferField"
     DataTransferSummary:
       type: object
       required: [openJobs, selectedRecords, lastExportAt, artifactCount, artifactBytes,
@@ -6252,6 +6293,9 @@ paths:
               type: object
               required: [file]
               properties:
+                mapping:
+                  type: string
+                  description: JSON-encoded CSV column mapping and optional profile-save flag.
                 file:
                   type: string
                   format: binary

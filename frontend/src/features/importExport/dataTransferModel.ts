@@ -24,6 +24,28 @@ export type DataTransferIssueResolution = "replace" | "merge" | "copy" | "skip" 
 export type DataTransferProposedAction = "create" | "replace" | "use_existing" | "copy";
 export type DataTransferProposedResolution = DataTransferIssueResolution | "replace_or_copy";
 export type DataTransferOptions = Record<string, unknown>;
+export type DataTransferCSVMappingOrigin = "alias" | "profile" | "manual" | "ignored" | "unmapped";
+
+export type DataTransferCSVColumnMapping = {
+  index: number;
+  sourceHeader: string;
+  normalizedHeader: string;
+  targetField: string;
+  origin: DataTransferCSVMappingOrigin;
+};
+
+export type DataTransferCSVMappingInput = {
+  columns: DataTransferCSVColumnMapping[];
+  saveToProfile: boolean;
+};
+
+export type VehicleTransferField = {
+  key: string;
+  labelDE: string;
+  labelEN: string;
+  kind: "string" | "integer" | "boolean";
+  aliases?: string[];
+};
 
 export type DataTransferProfile = {
   id: string;
@@ -140,6 +162,8 @@ export type DataTransferPreview = {
   readyRecords: number;
   warningRecords: number;
   errorRecords: number;
+  csvMapping?: DataTransferCSVColumnMapping[];
+  vehicleFields?: VehicleTransferField[];
 };
 
 export type DataTransferSummary = {
