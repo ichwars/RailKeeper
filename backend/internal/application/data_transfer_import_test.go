@@ -46,6 +46,45 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	}
 }
 
+func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
+	maximumSpeed := 140
+	want := TransferVehicle{
+		InventoryNumber: "RK-062", Manufacturer: "Roco", ArticleNumber: "73000",
+		ArticleSourceURL: "https://example.invalid/73000", Name: "BR 218", Gauge: "H0", Epoch: "IV",
+		RailwayCompany: "DB", Category: "Lokomotive", Gattung: "Diesellokomotive", Description: "Test",
+		Series: "218", VehicleNumber: "218 001-6", MaximumSpeedKmh: &maximumSpeed, HomeBase: "Bw Hamburg",
+		Digital: true, DigitalDecoderNumber: "3", DecoderType: "LokSound 5", DTDecoder: true,
+		DTDecoderNumber: "4", ExhibitionReady: true, Exhibition: true, ABCBrakes: true, EAN: "4000000000000",
+		ProductionPeriod: "2025", ListPrice: "299,90", AcquisitionType: "Kauf", AcquiredFrom: "Händler",
+		PurchasePrice: "249,90", PurchaseDate: "2026-01-02", StorageLocation: "Vitrine",
+		StorageDetails: "Fach 2", Condition: "Sehr gut", ConditionDetails: "Eingefahren", Packaging: "OVP",
+		LengthMM: "181", WeightG: "540", Color: "Ozeanblau", Lettering: "DB", Load: "",
+		Interior: "Führerstand", Axles: "Bo'Bo'", AxleCount: "4", TractionTireCount: "2", Wheelset: "AC",
+		CouplingSame: true, CouplingFront: "KKK", CouplingRear: "KKK", PowerPickup: "Schleifer", Adapter: "MTC21",
+		DriveEnabled: true, DriveDescription: "Kardan", HeadlightsEnabled: true,
+		HeadlightsDescription: "Dreilicht", LightingEnabled: true, LightingDescription: "LED",
+		SoundGeneratorEnabled: true, SoundGeneratorDescription: "Diesel", SmokeGeneratorEnabled: true,
+		SmokeGeneratorDescription: "Dynamisch", AdditionalInfo: "Clubbestand", QRCodeEnabled: true,
+	}
+	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{want}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	gotSnapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(string(payload)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(gotSnapshot.Vehicles) != 1 {
+		t.Fatalf("round-trip vehicles = %d, want 1", len(gotSnapshot.Vehicles))
+	}
+	got := gotSnapshot.Vehicles[0]
+	if got.LengthMM != want.LengthMM || got.WeightG != want.WeightG || got.CouplingRear != want.CouplingRear ||
+		!got.SoundGeneratorEnabled || got.AdditionalInfo != want.AdditionalInfo || !got.QRCodeEnabled ||
+		got.MaximumSpeedKmh == nil || *got.MaximumSpeedKmh != maximumSpeed {
+		t.Fatalf("vehicle round trip lost extended fields: %#v", got)
+	}
+}
+
 func TestPreviewImportRejectsRecordsRejectedByRegularAggregateValidation(t *testing.T) {
 	incoming := DataTransferSnapshot{
 		Vehicles: []TransferVehicle{{

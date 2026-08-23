@@ -357,8 +357,14 @@ INSERT INTO vehicles(
   category, gattung, description, series, vehicle_number, maximum_speed_kmh, home_base, digital,
   digital_decoder_number, dt_decoder, dt_decoder_number, decoder_type, exhibition_ready, exhibition, abc_brakes,
   ean, production_period, list_price, acquisition_type, acquired_from, purchase_price, purchase_date,
-  storage_location, storage_details, condition, condition_details, packaging, created_at, updated_at
-) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  storage_location, storage_details, condition, condition_details, packaging,
+  length_mm, weight_g, color, lettering, load, interior, axles, axle_count, traction_tire_count, wheelset,
+  coupling_same, coupling_front, coupling_rear, power_pickup, adapter,
+  drive_enabled, drive_description, headlights_enabled, headlights_description, lighting_enabled,
+  lighting_description, sound_generator_enabled, sound_generator_description, smoke_generator_enabled,
+  smoke_generator_description, additional_info, qr_code_enabled, created_at, updated_at
+) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			append([]any{randomID()}, arguments...)...)
 		return err
 	case "replace":
@@ -371,7 +377,12 @@ UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, articl
   home_base=?, digital=?, digital_decoder_number=?, dt_decoder=?, dt_decoder_number=?, decoder_type=?,
   exhibition_ready=?, exhibition=?, abc_brakes=?, ean=?, production_period=?, list_price=?, acquisition_type=?,
   acquired_from=?, purchase_price=?, purchase_date=?, storage_location=?, storage_details=?, condition=?,
-  condition_details=?, packaging=?, updated_at=? WHERE id=?`, append(arguments[0:36], record.TargetID)...)
+  condition_details=?, packaging=?, length_mm=?, weight_g=?, color=?, lettering=?, load=?, interior=?, axles=?,
+  axle_count=?, traction_tire_count=?, wheelset=?, coupling_same=?, coupling_front=?, coupling_rear=?,
+  power_pickup=?, adapter=?, drive_enabled=?, drive_description=?, headlights_enabled=?, headlights_description=?,
+  lighting_enabled=?, lighting_description=?, sound_generator_enabled=?, sound_generator_description=?,
+  smoke_generator_enabled=?, smoke_generator_description=?, additional_info=?, qr_code_enabled=?, updated_at=?
+WHERE id=?`, append(append(arguments[0:62], now), record.TargetID)...)
 		if err != nil {
 			return err
 		}
@@ -390,6 +401,14 @@ func transferVehicleArguments(vehicle application.TransferVehicle, now string) [
 		vehicle.ExhibitionReady, vehicle.Exhibition, vehicle.ABCBrakes, vehicle.EAN, vehicle.ProductionPeriod,
 		vehicle.ListPrice, vehicle.AcquisitionType, vehicle.AcquiredFrom, vehicle.PurchasePrice, vehicle.PurchaseDate,
 		vehicle.StorageLocation, vehicle.StorageDetails, vehicle.Condition, vehicle.ConditionDetails, vehicle.Packaging,
+		vehicle.LengthMM, vehicle.WeightG, vehicle.Color, vehicle.Lettering, vehicle.Load, vehicle.Interior,
+		vehicle.Axles, vehicle.AxleCount, vehicle.TractionTireCount, vehicle.Wheelset, boolToInt(vehicle.CouplingSame),
+		vehicle.CouplingFront, vehicle.CouplingRear, vehicle.PowerPickup, vehicle.Adapter,
+		boolToInt(vehicle.DriveEnabled), vehicle.DriveDescription, boolToInt(vehicle.HeadlightsEnabled),
+		vehicle.HeadlightsDescription, boolToInt(vehicle.LightingEnabled), vehicle.LightingDescription,
+		boolToInt(vehicle.SoundGeneratorEnabled), vehicle.SoundGeneratorDescription,
+		boolToInt(vehicle.SmokeGeneratorEnabled), vehicle.SmokeGeneratorDescription, vehicle.AdditionalInfo,
+		boolToInt(vehicle.QRCodeEnabled),
 		now, now,
 	}
 }

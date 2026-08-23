@@ -49,6 +49,46 @@ func TestDataTransferApplyCommitsTwoVehiclesAndAudit(t *testing.T) {
 	}
 }
 
+func TestDataTransferApplyPersistsExtendedVehicleFields(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	data, err := json.Marshal(application.TransferVehicle{
+		InventoryNumber: "RK-FULL", Manufacturer: "Roco", Name: "BR 218", Gauge: "H0",
+		Category: "Lokomotive", Gattung: "Diesellokomotive", LengthMM: "181", WeightG: "540",
+		CouplingSame: true, CouplingFront: "KKK", CouplingRear: "KKK", DriveEnabled: true,
+		DriveDescription: "Kardan", SoundGeneratorEnabled: true, SoundGeneratorDescription: "Diesel",
+		AdditionalInfo: "Clubbestand", QRCodeEnabled: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	job := createApplyJob(t, repository, "sha-full-vehicle", []application.DataTransferPreviewRecord{{
+		Area: application.TransferVehicles, RecordKey: "RK-FULL", Classification: "ready",
+		ProposedAction: "create", Data: data,
+	}})
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var length, weight, couplingRear, driveDescription, soundDescription, additionalInfo string
+	var couplingSame, driveEnabled, soundEnabled, qrCodeEnabled int
+	if err := db.QueryRow(`
+SELECT length_mm, weight_g, coupling_same, coupling_rear, drive_enabled, drive_description,
+       sound_generator_enabled, sound_generator_description, additional_info, qr_code_enabled
+FROM vehicles WHERE inventory_number='RK-FULL'`).Scan(
+		&length, &weight, &couplingSame, &couplingRear, &driveEnabled, &driveDescription,
+		&soundEnabled, &soundDescription, &additionalInfo, &qrCodeEnabled,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if length != "181" || weight != "540" || couplingSame != 1 || couplingRear != "KKK" ||
+		driveEnabled != 1 || driveDescription != "Kardan" || soundEnabled != 1 || soundDescription != "Diesel" ||
+		additionalInfo != "Clubbestand" || qrCodeEnabled != 1 {
+		t.Fatalf("extended vehicle fields = %q %q %d %q %d %q %d %q %q %d",
+			length, weight, couplingSame, couplingRear, driveEnabled, driveDescription,
+			soundEnabled, soundDescription, additionalInfo, qrCodeEnabled)
+	}
+}
+
 func TestDataTransferApplyCommitsAllSelectedAreasInOneTransaction(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)

@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -379,16 +380,11 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 	writer.Comma = ';'
 	switch area {
 	case TransferVehicles:
-		if err := writer.Write([]string{
-			"Inventarnummer", "Hersteller", "Artikelnummer", "Bezeichnung", "Spurweite", "Epoche",
-			"Bahngesellschaft", "Kategorie", "Gattung", "Beschreibung",
-		}); err != nil {
+		if err := writer.Write(transferVehicleCSVHeaders()); err != nil {
 			return nil, err
 		}
 		for _, vehicle := range snapshot.Vehicles {
-			if err := writer.Write(safeDataTransferCSVRow([]string{vehicle.InventoryNumber, vehicle.Manufacturer, vehicle.ArticleNumber,
-				vehicle.Name, vehicle.Gauge, vehicle.Epoch, vehicle.RailwayCompany, vehicle.Category,
-				vehicle.Gattung, vehicle.Description})); err != nil {
+			if err := writer.Write(safeDataTransferCSVRow(transferVehicleCSVValues(vehicle))); err != nil {
 				return nil, err
 			}
 		}
@@ -427,6 +423,163 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 		return nil, fmt.Errorf("encode transfer CSV: %w", err)
 	}
 	return []byte(builder.String()), nil
+}
+
+func transferVehicleCSVHeaders() []string {
+	fields := VehicleTransferFields()
+	headers := make([]string, len(fields))
+	for index, field := range fields {
+		headers[index] = field.LabelDE
+	}
+	return headers
+}
+
+func transferVehicleCSVValues(vehicle TransferVehicle) []string {
+	fields := VehicleTransferFields()
+	values := make([]string, len(fields))
+	for index, field := range fields {
+		values[index] = transferVehicleCSVValue(vehicle, field.Key)
+	}
+	return values
+}
+
+func transferVehicleCSVValue(vehicle TransferVehicle, field string) string {
+	switch field {
+	case "inventoryNumber":
+		return vehicle.InventoryNumber
+	case "manufacturer":
+		return vehicle.Manufacturer
+	case "articleNumber":
+		return vehicle.ArticleNumber
+	case "articleSourceUrl":
+		return vehicle.ArticleSourceURL
+	case "name":
+		return vehicle.Name
+	case "gauge":
+		return vehicle.Gauge
+	case "epoch":
+		return vehicle.Epoch
+	case "railwayCompany":
+		return vehicle.RailwayCompany
+	case "category":
+		return vehicle.Category
+	case "gattung":
+		return vehicle.Gattung
+	case "description":
+		return vehicle.Description
+	case "series":
+		return vehicle.Series
+	case "vehicleNumber":
+		return vehicle.VehicleNumber
+	case "maximumSpeedKmh":
+		if vehicle.MaximumSpeedKmh != nil {
+			return strconv.Itoa(*vehicle.MaximumSpeedKmh)
+		}
+	case "homeBase":
+		return vehicle.HomeBase
+	case "digital":
+		return transferCSVBoolean(vehicle.Digital)
+	case "digitalDecoderNumber":
+		return vehicle.DigitalDecoderNumber
+	case "decoderType":
+		return vehicle.DecoderType
+	case "dtDecoder":
+		return transferCSVBoolean(vehicle.DTDecoder)
+	case "dtDecoderNumber":
+		return vehicle.DTDecoderNumber
+	case "exhibitionReady":
+		return transferCSVBoolean(vehicle.ExhibitionReady)
+	case "exhibition":
+		return transferCSVBoolean(vehicle.Exhibition)
+	case "abcBrakes":
+		return transferCSVBoolean(vehicle.ABCBrakes)
+	case "ean":
+		return vehicle.EAN
+	case "productionPeriod":
+		return vehicle.ProductionPeriod
+	case "listPrice":
+		return vehicle.ListPrice
+	case "acquisitionType":
+		return vehicle.AcquisitionType
+	case "acquiredFrom":
+		return vehicle.AcquiredFrom
+	case "purchasePrice":
+		return vehicle.PurchasePrice
+	case "purchaseDate":
+		return vehicle.PurchaseDate
+	case "storageLocation":
+		return vehicle.StorageLocation
+	case "storageDetails":
+		return vehicle.StorageDetails
+	case "condition":
+		return vehicle.Condition
+	case "conditionDetails":
+		return vehicle.ConditionDetails
+	case "packaging":
+		return vehicle.Packaging
+	case "lengthMm":
+		return vehicle.LengthMM
+	case "weightG":
+		return vehicle.WeightG
+	case "color":
+		return vehicle.Color
+	case "lettering":
+		return vehicle.Lettering
+	case "load":
+		return vehicle.Load
+	case "interior":
+		return vehicle.Interior
+	case "axles":
+		return vehicle.Axles
+	case "axleCount":
+		return vehicle.AxleCount
+	case "tractionTireCount":
+		return vehicle.TractionTireCount
+	case "wheelset":
+		return vehicle.Wheelset
+	case "couplingSame":
+		return transferCSVBoolean(vehicle.CouplingSame)
+	case "couplingFront":
+		return vehicle.CouplingFront
+	case "couplingRear":
+		return vehicle.CouplingRear
+	case "powerPickup":
+		return vehicle.PowerPickup
+	case "adapter":
+		return vehicle.Adapter
+	case "driveEnabled":
+		return transferCSVBoolean(vehicle.DriveEnabled)
+	case "driveDescription":
+		return vehicle.DriveDescription
+	case "headlightsEnabled":
+		return transferCSVBoolean(vehicle.HeadlightsEnabled)
+	case "headlightsDescription":
+		return vehicle.HeadlightsDescription
+	case "lightingEnabled":
+		return transferCSVBoolean(vehicle.LightingEnabled)
+	case "lightingDescription":
+		return vehicle.LightingDescription
+	case "soundGeneratorEnabled":
+		return transferCSVBoolean(vehicle.SoundGeneratorEnabled)
+	case "soundGeneratorDescription":
+		return vehicle.SoundGeneratorDescription
+	case "smokeGeneratorEnabled":
+		return transferCSVBoolean(vehicle.SmokeGeneratorEnabled)
+	case "smokeGeneratorDescription":
+		return vehicle.SmokeGeneratorDescription
+	case "additionalInfo":
+		return vehicle.AdditionalInfo
+	case "qrCodeEnabled":
+		return transferCSVBoolean(vehicle.QRCodeEnabled)
+	}
+	return ""
+}
+
+func transferCSVBoolean(value bool) string {
+	if value {
+		return "Ja"
+	}
+	return "Nein"
 }
 
 func safeDataTransferCSVRow(values []string) []string {

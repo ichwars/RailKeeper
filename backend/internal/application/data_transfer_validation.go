@@ -26,6 +26,18 @@ func ValidateTransferVehicle(vehicle TransferVehicle) error {
 		PurchasePrice: vehicle.PurchasePrice, PurchaseDate: vehicle.PurchaseDate,
 		StorageLocation: vehicle.StorageLocation, StorageDetails: vehicle.StorageDetails,
 		Condition: vehicle.Condition, ConditionDetails: vehicle.ConditionDetails, Packaging: vehicle.Packaging,
+		LengthMM: vehicle.LengthMM, WeightG: vehicle.WeightG, Color: vehicle.Color, Lettering: vehicle.Lettering,
+		Load: vehicle.Load, Interior: vehicle.Interior, Axles: vehicle.Axles, AxleCount: vehicle.AxleCount,
+		TractionTireCount: vehicle.TractionTireCount, Wheelset: vehicle.Wheelset,
+		CouplingSame: vehicle.CouplingSame, CouplingFront: vehicle.CouplingFront, CouplingRear: vehicle.CouplingRear,
+		PowerPickup: vehicle.PowerPickup, Adapter: vehicle.Adapter, DriveEnabled: vehicle.DriveEnabled,
+		DriveDescription: vehicle.DriveDescription, HeadlightsEnabled: vehicle.HeadlightsEnabled,
+		HeadlightsDescription: vehicle.HeadlightsDescription, LightingEnabled: vehicle.LightingEnabled,
+		LightingDescription: vehicle.LightingDescription, SoundGeneratorEnabled: vehicle.SoundGeneratorEnabled,
+		SoundGeneratorDescription: vehicle.SoundGeneratorDescription,
+		SmokeGeneratorEnabled:     vehicle.SmokeGeneratorEnabled,
+		SmokeGeneratorDescription: vehicle.SmokeGeneratorDescription, AdditionalInfo: vehicle.AdditionalInfo,
+		QRCodeEnabled: vehicle.QRCodeEnabled,
 	})
 	if err != nil {
 		return fmt.Errorf("validate transferred vehicle: %w", err)
