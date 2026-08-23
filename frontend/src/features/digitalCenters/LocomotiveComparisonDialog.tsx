@@ -83,8 +83,8 @@ export function LocomotiveComparisonDialog({
                 {t("digitalCenters.assignment.open")}
               </button>
             </>}
-            {!preview && <button type="button" className="digital-center-button"
-              disabled={!canWrite || unassigned || loading || changedFields.length === 0}
+            {!preview && !unassigned && <button type="button" className="digital-center-button"
+              disabled={!canWrite || loading || changedFields.length === 0}
               onClick={() => void onPreview(changedFields).catch(() => undefined)}>
               {t("digitalCenters.write.createPreview")}
             </button>}

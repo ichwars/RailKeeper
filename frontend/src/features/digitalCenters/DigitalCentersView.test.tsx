@@ -206,7 +206,10 @@ describe("DigitalCentersView", () => {
 
     render(<DigitalCentersView roles={["Admin"]} />);
 
-    expect(screen.getByRole("button", { name: "Schreibvorschau erstellen" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Schreibvorschau erstellen" }))
+      .not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Neues Fahrzeug anlegen" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Bestehendem Fahrzeug zuordnen" })).toBeVisible();
     expect(screen.getByText(
       "Diese Lok ist noch keinem RailKeeper-Fahrzeug zugeordnet. Erst nach dem Anlegen oder Zuordnen " +
       "eines Fahrzeugs kann in die Digitalzentrale geschrieben werden."
@@ -382,6 +385,15 @@ describe("Digital Centers responsive CSS contract", () => {
     );
     expect(digitalCentersCSS).toMatch(
       /\.digital-workspace-operation-error\s*\{[^}]*overflow-wrap:\s*anywhere;/s
+    );
+  });
+
+  it("wraps comparison actions instead of clipping them at narrow widths", () => {
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-comparison-dialog\s*>\s*footer\s*\{[^}]*flex-wrap:\s*wrap;/s
+    );
+    expect(digitalCentersCSS).toMatch(
+      /\.digital-comparison-dialog\s*>\s*footer\s+\.digital-center-button\s*\{[^}]*max-width:\s*100%;/s
     );
   });
 });

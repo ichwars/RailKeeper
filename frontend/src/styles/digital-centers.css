@@ -879,7 +879,15 @@
   padding: 14px 16px;
 }
 .digital-comparison-dialog > header { border-bottom: 1px solid var(--line); }
-.digital-comparison-dialog > footer { justify-content: flex-end; border-top: 1px solid var(--line); }
+.digital-comparison-dialog > footer {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--line);
+}
+.digital-comparison-dialog > footer .digital-center-button {
+  max-width: 100%;
+  white-space: normal;
+}
 .digital-comparison-dialog .eyebrow { margin-bottom: 4px; font-size: var(--font-size-xs); }
 .digital-comparison-dialog h2 { margin: 0; font-size: var(--font-size-title-md); }
 .digital-comparison-dialog table { width: 100%; border-collapse: collapse; table-layout: fixed; }
