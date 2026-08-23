@@ -2,7 +2,9 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
 	"mime"
 	"net/http"
 	"strconv"
@@ -147,6 +149,27 @@ func (a *App) uploadDataTransferImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	part, err := reader.NextPart()
+	if err != nil {
+		respondProblem(w, http.StatusBadRequest, "data_transfer_upload_missing", "Import file is required.")
+		return
+	}
+	var mapping *application.DataTransferCSVMappingInput
+	if part.FormName() == "mapping" && strings.TrimSpace(part.FileName()) == "" {
+		payload, readErr := io.ReadAll(io.LimitReader(part, 256*1024+1))
+		_ = part.Close()
+		if readErr != nil || len(payload) > 256*1024 {
+			respondProblem(w, http.StatusBadRequest, "data_transfer_mapping_invalid", "CSV mapping is invalid.")
+			return
+		}
+		mapping = &application.DataTransferCSVMappingInput{}
+		decoder := json.NewDecoder(strings.NewReader(string(payload)))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(mapping); err != nil || decoder.Decode(&struct{}{}) != io.EOF {
+			respondProblem(w, http.StatusBadRequest, "data_transfer_mapping_invalid", "CSV mapping is invalid.")
+			return
+		}
+		part, err = reader.NextPart()
+	}
 	if err != nil || part.FormName() != "file" || strings.TrimSpace(part.FileName()) == "" {
 		respondProblem(w, http.StatusBadRequest, "data_transfer_upload_missing", "Import file is required.")
 		return
@@ -154,7 +177,7 @@ func (a *App) uploadDataTransferImport(w http.ResponseWriter, r *http.Request) {
 	defer func() { _ = part.Close() }()
 	preview, err := a.dataTransferService.UploadAndPreviewReader(
 		r.Context(), r.PathValue("id"), part.FileName(), part.Header.Get("Content-Type"), part,
-		actorUserID(r), allowedDataTransferAreas(r)...,
+		actorUserID(r), mapping, allowedDataTransferAreas(r)...,
 	)
 	if err != nil {
 		a.dataTransferError(w, err, "preview data transfer import")

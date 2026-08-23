@@ -46,6 +46,53 @@ func TestPreviewImportPersistsValidationIssues(t *testing.T) {
 	}
 }
 
+func TestPreviewImportReturnsAndAppliesVehicleCSVMapping(t *testing.T) {
+	repository, service := newDataTransferImportFixture(t)
+	job := fixtureCreateImportJob(t, service, TransferVehicles, TransferCSV)
+	upload := []byte("Eigene Nummer;Marke;Titel;Spur;Typ;Klasse\nRK-900;Roco;BR 218;H0;Lokomotive;Diesellokomotive\n")
+
+	automatic, err := service.UploadAndPreview(t.Context(), job.ID, "vehicles.csv", upload, "editor-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(automatic.CSVMapping) != 6 || automatic.CSVMapping[0].SourceHeader != "Eigene Nummer" ||
+		automatic.CSVMapping[0].Origin != CSVMappingUnmapped || len(automatic.VehicleFields) != 62 {
+		t.Fatalf("unexpected automatic mapping: %#v, fields=%d", automatic.CSVMapping, len(automatic.VehicleFields))
+	}
+
+	columns := append([]DataTransferCSVColumnMapping(nil), automatic.CSVMapping...)
+	targets := []string{"inventoryNumber", "manufacturer", "name", "gauge", "category", "gattung"}
+	for index := range columns {
+		columns[index].TargetField = targets[index]
+		columns[index].Origin = CSVMappingManual
+	}
+	mapped, err := service.UploadAndPreviewWithMapping(t.Context(), job.ID, "vehicles.csv", upload, "editor-1",
+		&DataTransferCSVMappingInput{Columns: columns, SaveToProfile: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mapped.ReadyRecords != 1 || mapped.ErrorRecords != 0 || len(mapped.Records) != 1 {
+		t.Fatalf("manual mapping did not produce ready preview: %#v", mapped)
+	}
+	var vehicle TransferVehicle
+	if err := json.Unmarshal(mapped.Records[0].Data, &vehicle); err != nil {
+		t.Fatal(err)
+	}
+	if vehicle.InventoryNumber != "RK-900" || vehicle.Manufacturer != "Roco" || vehicle.Name != "BR 218" {
+		t.Fatalf("manual mapping produced wrong vehicle: %#v", vehicle)
+	}
+	if repository.profiles[job.ProfileID].Options["csvMapping"] == nil {
+		t.Fatalf("mapping was not saved to profile options: %#v", repository.profiles[job.ProfileID].Options)
+	}
+	loaded, err := repository.GetJob(t.Context(), job.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if loaded.Options["csvMapping"] == nil || loaded.Preview["csvMapping"] == nil {
+		t.Fatalf("mapping was not persisted in job snapshot and preview: %#v %#v", loaded.Options, loaded.Preview)
+	}
+}
+
 func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
 	maximumSpeed := 140
 	want := TransferVehicle{
@@ -433,6 +480,17 @@ func (repository *dataTransferImportRepositoryStub) GetProfile(
 	if !found {
 		return DataTransferProfile{}, ErrDataTransferNotFound
 	}
+	return profile, nil
+}
+
+func (repository *dataTransferImportRepositoryStub) UpdateProfile(
+	_ context.Context,
+	profile DataTransferProfile,
+) (DataTransferProfile, error) {
+	if _, found := repository.profiles[profile.ID]; !found {
+		return DataTransferProfile{}, ErrDataTransferNotFound
+	}
+	repository.profiles[profile.ID] = profile
 	return profile, nil
 }
 

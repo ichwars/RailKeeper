@@ -4,9 +4,12 @@ import { createPortal } from "react-dom";
 
 import { ApiError } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
+import { AppCheckbox } from "../../shared/ui/AppCheckbox";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type {
+  DataTransferCSVColumnMapping,
+  DataTransferCSVMappingInput,
   DataTransferIssue,
   DataTransferIssueResolution,
   DataTransferJob,
@@ -37,7 +40,7 @@ type TransferImportDialogProps = {
   onCreateJob: (profileId: string) => Promise<DataTransferJob>;
   onResolve: (jobId: string, issueId: string, resolution: DataTransferIssueResolution) => Promise<DataTransferJob>;
   onRefreshJob: (jobId: string) => Promise<DataTransferJobDetails>;
-  onUpload: (jobId: string, file: File) => Promise<DataTransferPreview>;
+  onUpload: (jobId: string, file: File, mapping?: DataTransferCSVMappingInput) => Promise<DataTransferPreview>;
   profiles: DataTransferProfile[];
 };
 
@@ -62,8 +65,13 @@ export function TransferImportDialog({
   const [job, setJob] = useState<DataTransferJob | null>(initialJob || null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<DataTransferPreview | null>(() => previewFromDetails(initialJob, initialDetails));
+  const [csvMapping, setCSVMapping] = useState<DataTransferCSVColumnMapping[]>(() =>
+    previewFromDetails(initialJob, initialDetails)?.csvMapping ?? []
+  );
+  const [saveMappingToProfile, setSaveMappingToProfile] = useState(false);
+  const [mappingDirty, setMappingDirty] = useState(false);
   const [mappingAccepted, setMappingAccepted] = useState(
-    Boolean(previewFromDetails(initialJob, initialDetails) && initialJob?.format !== "csv")
+    Boolean(previewFromDetails(initialJob, initialDetails) && !vehicleCSVMappingRequired(initialJob))
   );
   const [requiresReupload, setRequiresReupload] = useState(initialRequiresReupload);
   const requiresReuploadRef = useRef(initialRequiresReupload);
@@ -86,6 +94,7 @@ export function TransferImportDialog({
     return preview.records.filter((record) => !skipped.has(`${record.area}:${record.recordKey}`)).length;
   }, [preview, unresolvedIssues.length]);
   const step = currentStep(profileId, file, preview, job, mappingAccepted, requiresReupload);
+  const mappingReady = csvMapping.length === 0 || csvMapping.every((column) => column.origin !== "unmapped");
 
   useEffect(() => {
     if (!initialJob) return;
@@ -97,7 +106,8 @@ export function TransferImportDialog({
     if (persistedPreview) {
       setPreview((current) => current?.job.id === persistedPreview.job.id &&
         current.job.revision > persistedPreview.job.revision ? current : persistedPreview);
-      if (!requiresReuploadRef.current) setMappingAccepted(initialJob.format !== "csv");
+      setCSVMapping(persistedPreview.csvMapping ?? []);
+      if (!requiresReuploadRef.current) setMappingAccepted(!vehicleCSVMappingRequired(initialJob));
     }
   }, [initialDetails, initialJob]);
 
@@ -128,6 +138,9 @@ export function TransferImportDialog({
       setJob(null);
       setFile(null);
       setPreview(null);
+      setCSVMapping([]);
+      setSaveMappingToProfile(false);
+      setMappingDirty(false);
       setMappingAccepted(false);
       setRequiresReupload(false);
       requiresReuploadRef.current = false;
@@ -161,11 +174,53 @@ export function TransferImportDialog({
       const nextPreview = await onUpload(activeJob.id, nextFile);
       setJob(nextPreview.job);
       setPreview(clonePreview(nextPreview));
-      setMappingAccepted(nextPreview.job.format !== "csv");
+      setCSVMapping(cloneCSVMapping(nextPreview.csvMapping));
+      setSaveMappingToProfile(false);
+      setMappingDirty(false);
+      setMappingAccepted(!vehicleCSVMappingRequired(nextPreview.job));
       setRequiresReupload(false);
       requiresReuploadRef.current = false;
     } catch (reason) {
       await recoverConflict(reason, activeJobId, copy.uploadError);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function changeMapping(columnIndex: number, value: string) {
+    setCSVMapping((current) => current.map((column) => {
+      if (column.index !== columnIndex) return column;
+      if (value === "__ignore__") return { ...column, targetField: "", origin: "ignored" };
+      if (value === "") return { ...column, targetField: "", origin: "unmapped" };
+      return { ...column, targetField: value, origin: "manual" };
+    }));
+    setMappingDirty(true);
+  }
+
+  async function applyMapping() {
+    if (!preview || !job || !mappingReady) return;
+    if (!mappingDirty && !saveMappingToProfile) {
+      setMappingAccepted(true);
+      return;
+    }
+    if (!file) {
+      setError(copy.mappingFileRequired);
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const nextPreview = await onUpload(job.id, file, {
+        columns: cloneCSVMapping(csvMapping),
+        saveToProfile: saveMappingToProfile
+      });
+      setJob(nextPreview.job);
+      setPreview(clonePreview(nextPreview));
+      setCSVMapping(cloneCSVMapping(nextPreview.csvMapping));
+      setMappingDirty(false);
+      setMappingAccepted(true);
+    } catch (reason) {
+      await recoverConflict(reason, job.id, copy.mappingError);
     } finally {
       setBusy(false);
     }
@@ -221,7 +276,8 @@ export function TransferImportDialog({
       const details = await onRefreshJob(jobId);
       setJob(details.job);
       setPreview(previewFromDetails(details.job, details));
-      setMappingAccepted(details.job.format !== "csv" && !reuploadRequired);
+      setCSVMapping(previewFromDetails(details.job, details)?.csvMapping ?? []);
+      setMappingAccepted(!vehicleCSVMappingRequired(details.job) && !reuploadRequired);
       setRequiresReupload(reuploadRequired);
       setError(reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
     } catch (refreshError) {
@@ -305,15 +361,41 @@ export function TransferImportDialog({
             <section className="transfer-mapping-section">
               <header><div><p className="eyebrow">{copy.serverPreview}</p><h3>{copy.mappingTitle}</h3></div></header>
               <p>{copy.mappingExplanation}</p>
-              <h4>{copy.normalizedFields}</h4>
-              <ul>{previewFields(preview).map((field) => <li key={field}><code>{field}</code></li>)}</ul>
-              <p>{mappingIssueSummary(preview.issues, language)}</p>
-              <div className="transfer-mapping-actions">
-                <button type="button" className="secondary-button" disabled={busy}
-                  onClick={() => fileRef.current?.click()}>{copy.reupload}</button>
-                <button type="button" className="primary-button" disabled={busy || requiresReupload}
-                  onClick={() => setMappingAccepted(true)}>{copy.continueReview}</button>
+              <div className="transfer-mapping-table-wrap">
+                <table className="data-transfer-table transfer-mapping-table">
+                  <thead><tr><th>{copy.sourceColumn}</th><th>{copy.targetField}</th><th>{copy.mappingSource}</th></tr></thead>
+                  <tbody>{csvMapping.map((column) => (
+                    <tr key={`${column.index}:${column.sourceHeader}`}>
+                      <td><strong>{column.sourceHeader}</strong></td>
+                      <td>
+                        <AppSelect
+                          aria-label={copy.targetFor.replace("{source}", column.sourceHeader)}
+                          value={column.origin === "ignored" ? "__ignore__" : column.targetField}
+                          disabled={busy || !file}
+                          onChange={(event) => changeMapping(column.index, event.target.value)}
+                        >
+                          <option value="">{copy.unmapped}</option>
+                          <option value="__ignore__">{copy.ignore}</option>
+                          {(preview.vehicleFields ?? []).map((field) => (
+                            <option key={field.key} value={field.key}
+                              disabled={csvMapping.some((item) => item.index !== column.index &&
+                                item.targetField === field.key)}>
+                              {language === "de" ? field.labelDE : field.labelEN}
+                            </option>
+                          ))}
+                        </AppSelect>
+                      </td>
+                      <td>{mappingOriginLabel(column.origin, language)}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
               </div>
+              {csvMapping.length === 0 ? <p>{copy.legacyMapping}</p> : null}
+              {!mappingReady ? <p className="form-message error" role="status">{copy.mappingIncomplete}</p> : null}
+              {job?.profileId && csvMapping.length > 0 ? (
+                <AppCheckbox label={copy.saveMapping} checked={saveMappingToProfile}
+                  onChange={() => setSaveMappingToProfile((current) => !current)} />
+              ) : null}
             </section>
           ) : null}
 
@@ -347,6 +429,12 @@ export function TransferImportDialog({
             onClick={() => setPendingChange({ kind: "cancel" })}>{copy.cancelJob}</button> : <span />}
           <span>
             <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.close}</button>
+            {preview && preview.job.format === "csv" && !mappingAccepted ? (
+              <button type="button" className="primary-button"
+                disabled={busy || requiresReupload || !mappingReady} onClick={() => void applyMapping()}>
+                {mappingDirty || saveMappingToProfile || !mappingReady ? copy.validateMapping : copy.continueReview}
+              </button>
+            ) : null}
             {preview && mappingAccepted && !requiresReupload ? (
               <button type="button" className="primary-button" disabled={busy || unresolvedIssues.length > 0 ||
                 approvedRecords === 0 || job?.state !== "ready"} onClick={() => void confirmImport()}>
@@ -374,15 +462,8 @@ function currentStep(profileId: string, file: File | null, preview: DataTransfer
   return profileId || job ? "file" : "profile";
 }
 
-function previewFields(preview: DataTransferPreview) {
-  return [...new Set(preview.records.flatMap((record) => Object.keys(record.data)))].sort();
-}
-
-function mappingIssueSummary(issues: DataTransferIssue[], language: Language) {
-  const count = issues.filter((issue) => issue.code.includes("missing") || issue.code.includes("unmapped")).length;
-  return language === "de"
-    ? `${count} nicht zugeordnete oder fehlende Felder in der Servervorschau.`
-    : `${count} unmapped or missing fields in the server preview.`;
+function vehicleCSVMappingRequired(job: Pick<DataTransferJob, "format" | "areas"> | undefined) {
+  return job?.format === "csv" && job.areas.includes("vehicles");
 }
 
 function snapshotName(snapshot: DataTransferJob | DataTransferProfile) {
@@ -406,7 +487,9 @@ function previewFromDetails(job?: DataTransferJob, details?: DataTransferJobDeta
     totalRecords: job.totalRecords,
     readyRecords: job.readyRecords,
     warningRecords: job.warningRecords,
-    errorRecords: job.errorRecords
+    errorRecords: job.errorRecords,
+    csvMapping: csvMappingFromPreview(job.preview.csvMapping),
+    vehicleFields: vehicleFieldsFromPreview(job.preview.vehicleFields)
   };
 }
 
@@ -428,8 +511,45 @@ function clonePreview(preview: DataTransferPreview): DataTransferPreview {
     ...preview,
     job: { ...preview.job, areas: [...preview.job.areas], options: { ...preview.job.options } },
     records: preview.records.map((record) => ({ ...record, data: { ...record.data } })),
-    issues: preview.issues.map((issue) => ({ ...issue }))
+    issues: preview.issues.map((issue) => ({ ...issue })),
+    csvMapping: cloneCSVMapping(preview.csvMapping),
+    vehicleFields: preview.vehicleFields?.map((field) => ({
+      ...field,
+      aliases: field.aliases ? [...field.aliases] : undefined
+    }))
   };
+}
+
+function cloneCSVMapping(mapping: DataTransferCSVColumnMapping[] | undefined) {
+  return mapping?.map((column) => ({ ...column })) ?? [];
+}
+
+function csvMappingFromPreview(value: unknown): DataTransferCSVColumnMapping[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is DataTransferCSVColumnMapping => {
+    if (!item || typeof item !== "object") return false;
+    const column = item as Record<string, unknown>;
+    return typeof column.index === "number" && typeof column.sourceHeader === "string" &&
+      typeof column.normalizedHeader === "string" && typeof column.targetField === "string" &&
+      typeof column.origin === "string";
+  }).map((column) => ({ ...column }));
+}
+
+function vehicleFieldsFromPreview(value: unknown): DataTransferPreview["vehicleFields"] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is NonNullable<DataTransferPreview["vehicleFields"]>[number] => {
+    if (!item || typeof item !== "object") return false;
+    const field = item as Record<string, unknown>;
+    return typeof field.key === "string" && typeof field.labelDE === "string" &&
+      typeof field.labelEN === "string" && ["string", "integer", "boolean"].includes(String(field.kind));
+  }).map((field) => ({ ...field }));
+}
+
+function mappingOriginLabel(origin: DataTransferCSVColumnMapping["origin"], language: Language) {
+  const labels = language === "de"
+    ? { alias: "Automatisch", profile: "Profil", manual: "Manuell", ignored: "Ignoriert", unmapped: "Offen" }
+    : { alias: "Automatic", profile: "Profile", manual: "Manual", ignored: "Ignored", unmapped: "Open" };
+  return labels[origin];
 }
 
 function importButtonLabel(count: number, language: Language) {
@@ -461,9 +581,15 @@ function importCopy(language: Language) {
     changeWarning: "Die aktuelle Vorschau wird verworfen und als neue Revision erneut geprüft. Fortfahren?",
     uploadError: "Die Datei konnte nicht geprüft werden.", resolveError: "Der Konflikt konnte nicht aufgelöst werden.",
     confirmError: "Der Import konnte nicht bestätigt werden.", cancelJobError: "Der Auftrag konnte nicht abgebrochen werden.",
-    changeError: "Der Import konnte nicht auf ein anderes Profil umgestellt werden."
-    ,mappingTitle: "Erkannte CSV-Zuordnung", mappingExplanation: "Die Zuordnung wurde serverseitig aus Spalten und Aliasen erkannt. Änderungen erfordern: Quelldatei bearbeiten und erneut hochladen.",
-    normalizedFields: "Serverseitig normalisierte Zielfelder (automatische Alias-Erkennung)", reupload: "Datei erneut auswählen", continueReview: "Weiter zur Prüfung",
+    changeError: "Der Import konnte nicht auf ein anderes Profil umgestellt werden.",
+    mappingTitle: "Erkannte CSV-Zuordnung", mappingExplanation: "Jede CSV-Spalte wird einem RailKeeper-Feld zugeordnet. Nicht benötigte Spalten können ausdrücklich ignoriert werden.",
+    sourceColumn: "CSV-Spalte", targetField: "RailKeeper-Feld", mappingSource: "Erkennung",
+    targetFor: "Zielfeld für {source}", unmapped: "Nicht zugeordnet", ignore: "Spalte ignorieren",
+    mappingIncomplete: "Alle CSV-Spalten müssen zugeordnet oder ignoriert werden.",
+    legacyMapping: "Diese ältere Vorschau enthält noch keine Spaltenzuordnung. Sie kann unverändert geprüft werden.",
+    saveMapping: "Zuordnung im Profil speichern", validateMapping: "Zuordnung prüfen",
+    continueReview: "Weiter zur Prüfung", mappingFileRequired: "Für Änderungen muss die CSV-Datei erneut ausgewählt werden.",
+    mappingError: "Die geänderte CSV-Zuordnung konnte nicht geprüft werden.",
     conflictRecovery: "Der Auftrag wurde zwischenzeitlich geändert. Die persistente Vorschau wurde neu gelesen. Bitte Zuordnung und Konflikte erneut prüfen.",
     confirmConflictRecovery: "Der Auftrag wurde beim Bestätigen geändert. Bitte die Quelldatei erneut hochladen und die neue Vorschau vollständig prüfen."
   } : {
@@ -480,9 +606,15 @@ function importCopy(language: Language) {
     changeWarning: "The current preview will be discarded and reviewed as a new revision. Continue?",
     uploadError: "The file could not be reviewed.", resolveError: "The conflict could not be resolved.",
     confirmError: "The import could not be confirmed.", cancelJobError: "The job could not be cancelled.",
-    changeError: "The import could not be changed to another profile."
-    ,mappingTitle: "Detected CSV mapping", mappingExplanation: "The mapping was detected by the server from columns and aliases. To change it, edit the source file and upload it again.",
-    normalizedFields: "Server-normalized target fields (automatic alias detection)", reupload: "Choose file again", continueReview: "Continue to review",
+    changeError: "The import could not be changed to another profile.",
+    mappingTitle: "Detected CSV mapping", mappingExplanation: "Each CSV column is assigned to a RailKeeper field. Unneeded columns can be explicitly ignored.",
+    sourceColumn: "CSV column", targetField: "RailKeeper field", mappingSource: "Detection",
+    targetFor: "Target field for {source}", unmapped: "Not mapped", ignore: "Ignore column",
+    mappingIncomplete: "Every CSV column must be mapped or ignored.", saveMapping: "Save mapping to profile",
+    legacyMapping: "This older preview does not contain column mapping data. It can be reviewed unchanged.",
+    validateMapping: "Validate mapping", continueReview: "Continue to review",
+    mappingFileRequired: "Select the CSV file again to change its mapping.",
+    mappingError: "The changed CSV mapping could not be validated.",
     conflictRecovery: "The job changed in the meantime. The persistent preview was re-read. Review the mapping and conflicts again.",
     confirmConflictRecovery: "The job changed during confirmation. Upload the source file again and fully review the new preview."
   };

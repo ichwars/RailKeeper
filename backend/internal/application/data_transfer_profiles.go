@@ -81,6 +81,9 @@ func (s *DataTransferService) CreateProfile(
 	if err := validateTransferSelection(input.Format, input.Areas); err != nil {
 		return DataTransferProfile{}, err
 	}
+	if err := s.ensureUniqueActiveProfileName(ctx, "", input.Name, input.Direction); err != nil {
+		return DataTransferProfile{}, err
+	}
 	return s.repository.CreateProfile(ctx, DataTransferProfile{
 		Name: input.Name, Direction: input.Direction, Format: input.Format, Areas: input.Areas, Options: input.Options,
 		Enabled: true, CreatedByUserID: actorUserID,
@@ -284,12 +287,39 @@ func (s *DataTransferService) UpdateProfile(
 	if err != nil {
 		return DataTransferProfile{}, err
 	}
+	if profile.Enabled {
+		if err := s.ensureUniqueActiveProfileName(ctx, profile.ID, input.Name, input.Direction); err != nil {
+			return DataTransferProfile{}, err
+		}
+	}
 	profile.Name = input.Name
 	profile.Direction = input.Direction
 	profile.Format = input.Format
 	profile.Areas = input.Areas
 	profile.Options = input.Options
 	return s.repository.UpdateProfile(ctx, profile)
+}
+
+func (s *DataTransferService) ensureUniqueActiveProfileName(
+	ctx context.Context,
+	excludeID string,
+	name string,
+	direction TransferDirection,
+) error {
+	profiles, err := s.repository.ListProfiles(ctx)
+	if err != nil {
+		return fmt.Errorf("list data transfer profiles: %w", err)
+	}
+	for _, profile := range profiles {
+		if profile.ID == excludeID || !profile.Enabled || profile.Direction != direction {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(profile.Name), strings.TrimSpace(name)) {
+			return fmt.Errorf("%w: active %s profile named %q already exists",
+				ErrDataTransferConflict, direction, strings.TrimSpace(name))
+		}
+	}
+	return nil
 }
 
 func (s *DataTransferService) DisableProfile(ctx context.Context, id string) (DataTransferProfile, error) {

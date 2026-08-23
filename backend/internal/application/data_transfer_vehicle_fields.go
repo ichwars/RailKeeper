@@ -1,6 +1,9 @@
 package application
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type VehicleTransferValueKind string
 
@@ -11,11 +14,11 @@ const (
 )
 
 type VehicleTransferField struct {
-	Key     string
-	LabelDE string
-	LabelEN string
-	Kind    VehicleTransferValueKind
-	Aliases []string
+	Key     string                   `json:"key"`
+	LabelDE string                   `json:"labelDE"`
+	LabelEN string                   `json:"labelEN"`
+	Kind    VehicleTransferValueKind `json:"kind"`
+	Aliases []string                 `json:"aliases"`
 }
 
 type DataTransferCSVMappingOrigin string
@@ -40,6 +43,9 @@ type DataTransferCSVMappingInput struct {
 	Columns       []DataTransferCSVColumnMapping `json:"columns"`
 	SaveToProfile bool                           `json:"saveToProfile"`
 }
+
+const dataTransferCSVMappingOption = "csvMapping"
+const dataTransferCSVIgnoreTarget = "__ignore__"
 
 var vehicleTransferFields = []VehicleTransferField{
 	vehicleTransferField("inventoryNumber", "Inventarnummer", "Inventory number", VehicleTransferString),
@@ -152,10 +158,16 @@ func defaultDataTransferCSVMapping(
 			target = aliases[normalized]
 			origin = CSVMappingAlias
 		}
-		if target == "" || usedTargets[target] {
+		if hasProfileDefault && target == dataTransferCSVIgnoreTarget {
+			target = ""
+			origin = CSVMappingIgnored
+		}
+		if target == "" && origin != CSVMappingIgnored {
+			origin = CSVMappingUnmapped
+		} else if target != "" && usedTargets[target] {
 			target = ""
 			origin = CSVMappingUnmapped
-		} else {
+		} else if target != "" {
 			usedTargets[target] = true
 		}
 		mapping[index] = DataTransferCSVColumnMapping{
@@ -164,6 +176,48 @@ func defaultDataTransferCSVMapping(
 		}
 	}
 	return mapping
+}
+
+func dataTransferCSVMappingDefaults(options map[string]any) map[string]string {
+	defaults := map[string]string{}
+	value, ok := options[dataTransferCSVMappingOption]
+	if !ok {
+		return defaults
+	}
+	values, ok := value.(map[string]any)
+	if !ok {
+		if typed, typedOK := value.(map[string]string); typedOK {
+			for source, target := range typed {
+				defaults[normalizeTransferCSVHeader(source)] = target
+			}
+		}
+		return defaults
+	}
+	for source, value := range values {
+		target, ok := value.(string)
+		if ok {
+			defaults[normalizeTransferCSVHeader(source)] = strings.TrimSpace(target)
+		}
+	}
+	return defaults
+}
+
+func dataTransferOptionsWithCSVMapping(
+	options map[string]any,
+	mapping []DataTransferCSVColumnMapping,
+) map[string]any {
+	updated := cloneTransferOptions(options)
+	defaults := make(map[string]any, len(mapping))
+	for _, column := range mapping {
+		switch {
+		case column.TargetField != "":
+			defaults[column.NormalizedHeader] = column.TargetField
+		case column.Origin == CSVMappingIgnored:
+			defaults[column.NormalizedHeader] = dataTransferCSVIgnoreTarget
+		}
+	}
+	updated[dataTransferCSVMappingOption] = defaults
+	return updated
 }
 
 func vehicleTransferCSVAliases() map[string]string {

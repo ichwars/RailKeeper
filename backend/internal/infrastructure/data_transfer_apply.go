@@ -14,8 +14,10 @@ import (
 )
 
 type dataTransferPersistedPreview struct {
-	SourceSHA256 string                                  `json:"sourceSha256"`
-	Records      []application.DataTransferPreviewRecord `json:"records"`
+	SourceSHA256  string                                     `json:"sourceSha256"`
+	Records       []application.DataTransferPreviewRecord    `json:"records"`
+	CSVMapping    []application.DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
+	VehicleFields []application.VehicleTransferField         `json:"vehicleFields,omitempty"`
 }
 
 type dataTransferApplyDB interface {
