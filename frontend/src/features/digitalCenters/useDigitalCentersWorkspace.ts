@@ -526,25 +526,29 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWriteConfirmation(confirmation);
-		if (confirmation.workItem) {
-		  setSelectedItem(confirmation.workItem);
-		  setWorkItems((current) => ({
-			...current,
-			items: current.items.map((item) => item.id === confirmation.workItem?.id
-			  ? confirmation.workItem
-			  : item)
-		  }));
-		}
+        if (confirmation.workItem) {
+          setSelectedItem(confirmation.workItem);
+          setWorkItems((current) => ({
+            ...current,
+            items: current.items.map((item) => item.id === confirmation.workItem?.id
+              ? confirmation.workItem
+              : item)
+          }));
+        }
+      }
+      if (confirmation.liveMonitor.wasRunning &&
+        selectedProviderRef.current === confirmation.provider) {
+        await loadLiveStatus(confirmation.provider).catch(() => undefined);
       }
       return confirmation;
     } catch (writeError) {
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-		if (writeError instanceof ApiError && writeError.code === "digital_center_address_conflict") {
-		  setWritePreview(null);
-		  setWriteConfirmation(null);
-		  setError("write", digitalCenterAddressConflictMessage(writeError, workspaceText));
-		} else if (writeError instanceof ApiError && writeError.status === 409) {
+        if (writeError instanceof ApiError && writeError.code === "digital_center_address_conflict") {
+          setWritePreview(null);
+          setWriteConfirmation(null);
+          setError("write", digitalCenterAddressConflictMessage(writeError, workspaceText));
+        } else if (writeError instanceof ApiError && writeError.status === 409) {
           readSessionIDRef.current = null;
           setReadSession(null);
           clearSessionDependents();
@@ -560,8 +564,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("write", false);
       }
     }
-  }, [actions.canWrite, clearSessionDependents, localizedError, readSession?.id, setError, setLoadingArea,
-    workspaceText, writePreview]);
+  }, [actions.canWrite, clearSessionDependents, loadLiveStatus, localizedError, readSession?.id, setError,
+    setLoadingArea, workspaceText, writePreview]);
 
   const setSearch = useCallback((value: string) => {
     requestsRef.current.worklist += 1;

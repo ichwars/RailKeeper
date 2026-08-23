@@ -225,9 +225,9 @@ func TestECoSLiveStatusStopsIdleSession(t *testing.T) {
 	}
 }
 
-func TestBuildECoSLocomotiveSyncCommand(t *testing.T) {
+func TestBuildECoSLocomotiveSyncCommands(t *testing.T) {
 	current := &ECoSLocomotive{Name: `BR "Alt"`, Address: 3, Protocol: "DCC128"}
-	changes, command, err := buildECoSLocomotiveSyncCommand(1001, current, ECoSLocomotiveSyncDesired{
+	changes, commands, err := buildECoSLocomotiveSyncCommands(1001, current, ECoSLocomotiveSyncDesired{
 		Name:     `BR "Neu"`,
 		Address:  24,
 		Protocol: "MM27",
@@ -238,15 +238,19 @@ func TestBuildECoSLocomotiveSyncCommand(t *testing.T) {
 	if len(changes) != 3 {
 		t.Fatalf("expected three changes, got %#v", changes)
 	}
-	expected := `set(1001, name["BR \"Neu\""], addr[24], protocol[MM27])`
-	if command != expected {
-		t.Fatalf("unexpected command:\n%s", command)
+	expected := []string{
+		`set(1001, name["BR \"Neu\""])`,
+		"set(1001, addr[24])",
+		"set(1001, protocol[MM27])",
+	}
+	if fmt.Sprint(commands) != fmt.Sprint(expected) {
+		t.Fatalf("unexpected commands:\n%#v", commands)
 	}
 }
 
 func TestBuildECoSLocomotiveSyncCommandRejectsControlCharacters(t *testing.T) {
 	current := &ECoSLocomotive{Name: "BR 218", Address: 3, Protocol: "DCC128"}
-	_, _, err := buildECoSLocomotiveSyncCommand(1001, current, ECoSLocomotiveSyncDesired{
+	_, _, err := buildECoSLocomotiveSyncCommands(1001, current, ECoSLocomotiveSyncDesired{
 		Name: "BR 218\r\nget(1, status)",
 	})
 	if err == nil || !strings.Contains(err.Error(), "unzulässige Zeichen") {
@@ -315,7 +319,7 @@ func TestECoSServiceSyncLocomotiveDryRunDoesNotWrite(t *testing.T) {
 }
 
 func TestECoSServiceSyncLocomotiveWritesConfirmed(t *testing.T) {
-	var written string
+	written := []string{}
 	var mu sync.Mutex
 	listener := startECoSTestServer(t, func(command string) []string {
 		switch command {
@@ -330,19 +334,20 @@ func TestECoSServiceSyncLocomotiveWritesConfirmed(t *testing.T) {
 				`1001 protocol[DCC128] name["BR 218"] addr[3]`,
 				"<END 0 (OK)>",
 			}
-		case `set(1001, name["BR 218 neu"], addr[4])`:
+		case "request(1001, view, control, force)":
+			return []string{fmt.Sprintf("<REPLY %s>", command), "<END 0 (OK)>"}
+		case `set(1001, name["BR 218 neu"])`, "set(1001, addr[4])":
 			mu.Lock()
-			written = command
+			written = append(written, command)
 			mu.Unlock()
-			return []string{
-				`<REPLY set(1001, name["BR 218 neu"], addr[4])>`,
-				"<END 0 (OK)>",
-			}
+			return []string{fmt.Sprintf("<REPLY %s>", command), "<END 0 (OK)>"}
 		case "release(1001, view)":
 			return []string{
 				"<REPLY release(1001, view)>",
 				"<END 0 (OK)>",
 			}
+		case "release(1001, view, control)":
+			return []string{fmt.Sprintf("<REPLY %s>", command), "<END 0 (OK)>"}
 		default:
 			t.Fatalf("unexpected command: %s", command)
 		}
@@ -371,8 +376,8 @@ func TestECoSServiceSyncLocomotiveWritesConfirmed(t *testing.T) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if written == "" {
-		t.Fatal("expected set command to be written")
+	if len(written) != 2 {
+		t.Fatalf("expected two ECoS-compatible set commands, got %#v", written)
 	}
 }
 

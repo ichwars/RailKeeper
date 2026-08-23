@@ -17,6 +17,18 @@ func TestCompareDigitalCenterLocomotiveUsesExistingMapping(t *testing.T) {
 	}
 }
 
+func TestCompareDigitalCenterLocomotiveUsesRailKeeperAddressAsMappedWriteTarget(t *testing.T) {
+	vehicle := mappedDigitalCenterVehicle("vehicle-1", "ecos", "3", "3", "DCC")
+	vehicle.DigitalDecoderNumber = "18"
+	item := compareDigitalCenterLocomotive("ecos", ECoSRawLocomotive{
+		ObjectID: 3, Name: "BR 218", Address: 3, Protocol: "DCC128",
+	}, []Vehicle{vehicle})
+
+	if item.CompareStatus != DigitalCompareDeviation || item.RailKeeper["decoderAddress"] != 18 {
+		t.Fatalf("comparison = %#v, want mapped deviation with RailKeeper address 18", item)
+	}
+}
+
 func TestCompareDigitalCenterLocomotiveProposesUniqueAddressAndNormalizedProtocol(t *testing.T) {
 	vehicle := mappedDigitalCenterVehicle("vehicle-1", "ecos", "old-object", "3", "dcc-28")
 	item := compareDigitalCenterLocomotive("ecos", ECoSRawLocomotive{

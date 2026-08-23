@@ -237,6 +237,28 @@ describe("useDigitalCentersWorkspace", () => {
     });
   });
 
+  it("refreshes the live status after a confirmed write restarted the monitor", async () => {
+    const restartedLive = liveStatusFixture({ state: "running", connected: true });
+    vi.mocked(api.digitalCenterLiveStatus)
+      .mockResolvedValueOnce(stoppedLive)
+      .mockResolvedValueOnce(restartedLive);
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      liveMonitor: { wasRunning: true, restarted: true }
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => result.current.confirmWrite());
+
+    expect(api.digitalCenterLiveStatus).toHaveBeenLastCalledWith("ecos");
+    expect(result.current.liveStatus).toMatchObject({ state: "running", connected: true });
+  });
+
   it("ignores a late item detail from the previous read session", async () => {
     const lateDetail = deferred<DigitalCenterWorkItem>();
     vi.mocked(api.digitalCenterWorkItem).mockReturnValueOnce(lateDetail.promise);

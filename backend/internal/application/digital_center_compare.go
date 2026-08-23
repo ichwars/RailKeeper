@@ -408,6 +408,9 @@ func compareMappedDigitalCenterStatus(
 }
 
 func digitalCenterVehicleAddress(vehicle Vehicle, provider string) int {
+	if address, err := strconv.Atoi(strings.TrimSpace(vehicle.DigitalDecoderNumber)); err == nil && address > 0 {
+		return address
+	}
 	for _, mapping := range vehicle.ExternalMappings {
 		if strings.EqualFold(strings.TrimSpace(mapping.Provider), provider) {
 			if address, err := strconv.Atoi(strings.TrimSpace(mapping.ExternalAddress)); err == nil && address > 0 {
@@ -415,8 +418,7 @@ func digitalCenterVehicleAddress(vehicle Vehicle, provider string) int {
 			}
 		}
 	}
-	address, _ := strconv.Atoi(strings.TrimSpace(vehicle.DigitalDecoderNumber))
-	return address
+	return 0
 }
 
 func digitalCenterVehicleProtocol(vehicle Vehicle, provider string) string {
