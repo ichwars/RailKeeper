@@ -194,6 +194,7 @@ func (a *App) requireDigitalCenterWorkspace(w http.ResponseWriter) bool {
 }
 
 func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err error) {
+	var addressConflict *application.DigitalCenterAddressConflictError
 	switch {
 	case errors.Is(err, application.ErrDigitalCenterWorkspaceUnavailable):
 		respondProblem(w, http.StatusServiceUnavailable, "digital_center_workspace_unavailable",
@@ -219,6 +220,13 @@ func (a *App) respondDigitalCenterWorkspaceError(w http.ResponseWriter, err erro
 	case errors.Is(err, application.ErrDigitalCenterConflictUnresolved):
 		respondProblem(w, http.StatusConflict, "digital_center_conflict_unresolved",
 			"Resolve the work-item conflict before writing.")
+	case errors.As(err, &addressConflict):
+		respondProblemDetails(w, http.StatusConflict, "digital_center_address_conflict",
+			"The decoder address is already used by another ECoS locomotive.", map[string]any{
+				"objectId":       addressConflict.ObjectID,
+				"name":           addressConflict.Name,
+				"decoderAddress": addressConflict.Address,
+			})
 	case errors.Is(err, application.ErrDigitalCenterPreviewStale):
 		respondProblem(w, http.StatusConflict, "digital_center_write_preview_stale",
 			"The write preview is stale. Create a fresh preview.")

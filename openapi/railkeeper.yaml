@@ -41,6 +41,9 @@ components:
           type: string
         message:
           type: string
+        details:
+          type: object
+          additionalProperties: true
     TransferDirection:
       type: string
       enum: [import, export]

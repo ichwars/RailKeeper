@@ -125,6 +125,9 @@ func (service *DigitalCenterWorkspaceService) previewWriteUnlocked(
 	if err != nil {
 		return DigitalCenterWritePreview{}, err
 	}
+	if err := service.checkDigitalCenterAddressConflict(ctx, target, changes); err != nil {
+		return DigitalCenterWritePreview{}, err
+	}
 	previewHash, fields, err := hashDigitalCenterWrite(target, changes)
 	if err != nil {
 		return DigitalCenterWritePreview{}, err
@@ -183,6 +186,9 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 		if errors.Is(err, ErrDigitalCenterWriteNoChanges) {
 			return DigitalCenterWriteConfirmation{}, ErrDigitalCenterPreviewStale
 		}
+		return DigitalCenterWriteConfirmation{}, err
+	}
+	if err := service.checkDigitalCenterAddressConflict(ctx, target, changes); err != nil {
 		return DigitalCenterWriteConfirmation{}, err
 	}
 	previewHash, fields, err := hashDigitalCenterWrite(target, changes)

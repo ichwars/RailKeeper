@@ -475,6 +475,7 @@ func (stub *digitalCenterWriteRepositoryStub) ConsumeWriteGrant(
 type digitalCenterWriteECoSStub struct {
 	currentName          string
 	verificationName     string
+	locomotives          []ECoSLocomotive
 	tamperedDesired      string
 	syncCalls            []ECoSLocomotiveSyncInput
 	confirmCalls         int
