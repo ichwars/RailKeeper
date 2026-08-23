@@ -260,6 +260,35 @@ describe("useDigitalCentersWorkspace", () => {
     expect(result.current.liveStatus).toMatchObject({ state: "running", connected: true });
   });
 
+  it("reloads the active work-list filter after a confirmed write changes the item", async () => {
+    const syncedItem = workItemFixture({ compareStatus: "ok", center: { ...item.railkeeper } });
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      workItem: syncedItem
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.setCompareStatus("deviation"));
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenCalledWith(
+      readySession.id,
+      expect.objectContaining({ compareStatus: "deviation" })
+    ));
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+    const callsBeforeConfirmation = vi.mocked(api.digitalCenterWorkItems).mock.calls.length;
+
+    await act(async () => result.current.confirmWrite());
+
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenCalledTimes(callsBeforeConfirmation + 2));
+    const refreshCalls = vi.mocked(api.digitalCenterWorkItems).mock.calls.slice(callsBeforeConfirmation);
+    expect(refreshCalls).toEqual(expect.arrayContaining([
+      [readySession.id, { compareStatus: "deviation", query: "", page: 1, pageSize: 10 }],
+      [readySession.id, { compareStatus: "all", query: "", page: 1, pageSize: 1 }]
+    ]));
+  });
+
   it("ignores a late item detail from the previous read session", async () => {
     const lateDetail = deferred<DigitalCenterWorkItem>();
     vi.mocked(api.digitalCenterWorkItem).mockReturnValueOnce(lateDetail.promise);

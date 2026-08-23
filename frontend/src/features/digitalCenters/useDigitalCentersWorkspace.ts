@@ -80,6 +80,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [readSession, setReadSession] = useState<DigitalCenterReadSession | null>(null);
   const [workItems, setWorkItems] = useState(emptyDigitalCenterWorkItemPage);
+  const [worklistRevision, setWorklistRevision] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [messages, setMessages] = useState<DigitalCenterSessionMessage[]>([]);
   const [selectedItemId, setSelectedItemID] = useState<string | null>(null);
@@ -297,7 +298,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("worklist", false);
         }
       });
-  }, [filter, localizedError, readSession?.id, setError, setLoadingArea]);
+  }, [filter, localizedError, readSession?.id, setError, setLoadingArea, worklistRevision]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -532,12 +533,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setWriteConfirmation(confirmation);
         if (confirmation.workItem) {
           setSelectedItem(confirmation.workItem);
-          setWorkItems((current) => ({
-            ...current,
-            items: current.items.map((item) => item.id === confirmation.workItem?.id
-              ? confirmation.workItem
-              : item)
-          }));
+          setWorklistRevision((current) => current + 1);
         }
       }
       if (confirmation.liveMonitor.wasRunning &&
