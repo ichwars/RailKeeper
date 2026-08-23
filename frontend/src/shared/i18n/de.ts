@@ -1711,6 +1711,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.ecosDraft.cvPreviewTitle": "ECoS-CV-Werte",
     "vehicles.ecosDraft.cvPreviewSubtitle": "{count} CV-Werte werden beim Speichern am neuen Fahrzeug hinterlegt.",
     "vehicles.ecosDraft.mappingPreviewTitle": "ECoS-Zuordnung wird gespeichert",
+    "vehicles.ecosDraft.mappingConflict": "Diese ECoS-Lok ist bereits einem anderen Fahrzeug zugeordnet. Bitte die Digitalzentrale erneut auslesen.",
     "vehicles.cv.emptyUntilSave": "CV-Werte können nach dem ersten Speichern gepflegt werden.",
     "vehicles.cv.values": "CV-Werte",
     "vehicles.cv.profiles": "Profile",
@@ -2892,6 +2893,7 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.toolbar.startMonitor": "Live-Monitor starten",
     "digitalCenters.toolbar.stopMonitor": "Live-Monitor stoppen",
     "digitalCenters.toolbar.read": "Daten lesen",
+    "digitalCenters.toolbar.reading": "Daten werden gelesen",
     "digitalCenters.toolbar.configure": "Digitalzentrale konfigurieren",
     "digitalCenters.toolbar.readUnsupported": "Lesen wird von dieser Digitalzentrale nicht unterstützt.",
     "digitalCenters.toolbar.monitorUnsupported": "Live-Monitoring wird von dieser Digitalzentrale nicht unterstützt.",
@@ -2972,6 +2974,7 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.write.locked": "Schreiben gesperrt",
     "digitalCenters.write.lockedHelp": "In dieser Zentrale sind Schreibbefehle gesperrt.",
     "digitalCenters.write.unsupported": "Diese Digitalzentrale unterstützt keine Schreibbefehle.",
+    "digitalCenters.write.unassigned": "Diese Lok ist noch keinem RailKeeper-Fahrzeug zugeordnet. Erst nach dem Anlegen oder Zuordnen eines Fahrzeugs kann in die Digitalzentrale geschrieben werden.",
     "digitalCenters.write.verified": "Schreiben verifiziert",
     "digitalCenters.write.consent": "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden.",
     "digitalCenters.write.createPreview": "Schreibvorschau erstellen",
@@ -3008,6 +3011,7 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.error.previewRequired": "Eine aktuelle Schreibvorschau ist erforderlich.",
     "digitalCenters.error.grantExpired": "Die Schreibfreigabe ist nicht mehr gültig. Neue Schreibvorschau erstellen.",
     "digitalCenters.error.grantConflict": "Schreibfreigabe ungültig. Daten erneut lesen und eine neue Schreibvorschau erstellen.",
+    "digitalCenters.error.conflictUnresolved": "Der Lok-Abgleich ist noch nicht eindeutig. Ordne die Lok zuerst einem RailKeeper-Fahrzeug zu.",
     "digitalCenters.error.liveInterrupted": "Live-Verbindung unterbrochen",
     "digitalCenters.error.requestFailed": "Die Digitalzentralen-Anfrage ist fehlgeschlagen."
   };

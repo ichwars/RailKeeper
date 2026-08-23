@@ -2,6 +2,7 @@ import type { Dispatch, FormEvent, SetStateAction } from "react";
 
 import {
   api,
+  ApiError,
   type CreateVehicleRequest,
   type Vehicle,
   type VehicleSparePartInput
@@ -46,7 +47,7 @@ type VehicleMutationCommandsOptions = {
     unclearFieldCount: number;
     markSaved: (draft: ECoSVehicleDraftPayload, vehicleId: string) => void;
     clear: () => void;
-    returnToSession: () => void;
+    returnToSession: (draft: ECoSVehicleDraftPayload) => void;
   };
   deletion: {
     candidate: Vehicle | null;
@@ -128,9 +129,10 @@ export function createVehicleMutationCommands({
       }
 
       if (ecos.draft && (editor.mode === "create" || editor.mode === "edit")) {
-        await api.upsertVehicleExternalMapping(vehicle.id, ecos.draft.externalMapping);
+        const savedDraft = ecos.draft;
+        await api.upsertVehicleExternalMapping(vehicle.id, savedDraft.externalMapping);
         const detailBeforeECoSValues = await api.vehicle(vehicle.id);
-        for (const cvValue of ecos.draft.cvValues) {
+        for (const cvValue of savedDraft.cvValues) {
           const existing = (detailBeforeECoSValues.cvValues || []).find((entry) => (
             cvValueKey(entry) === cvValueKey(cvValue)
           ));
@@ -149,14 +151,14 @@ export function createVehicleMutationCommands({
             notes: edit.notes || ""
           });
         }
-        ecos.markSaved(ecos.draft, vehicle.id);
+        ecos.markSaved(savedDraft, vehicle.id);
         vehicle = await api.vehicle(vehicle.id);
-        const returnToEcos = Boolean(ecos.draft.returnToEcos);
+        const returnsToSource = Boolean(savedDraft.returnToEcos || savedDraft.returnToDigitalCenters);
         ecos.clear();
-        if (returnToEcos) {
+        if (returnsToSource) {
           reloadVehicles();
           editor.close();
-          ecos.returnToSession();
+          ecos.returnToSession(savedDraft);
           return;
         }
       }
@@ -171,7 +173,9 @@ export function createVehicleMutationCommands({
         onMessage(t("vehicles.spareParts.importedCount", { count: sparePartsToImport.length }));
       }
     } catch (error) {
-      onMessage(error instanceof Error ? error.message : String(error));
+      onMessage(error instanceof ApiError && error.code === "external_mapping_conflict"
+        ? t("vehicles.ecosDraft.mappingConflict")
+        : error instanceof Error ? error.message : String(error));
     } finally {
       editor.setSaving(false);
     }

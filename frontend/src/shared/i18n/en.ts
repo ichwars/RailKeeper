@@ -1711,6 +1711,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.ecosDraft.cvPreviewTitle": "ECoS CV values",
     "vehicles.ecosDraft.cvPreviewSubtitle": "{count} CV values will be stored on the new vehicle when saving.",
     "vehicles.ecosDraft.mappingPreviewTitle": "ECoS mapping will be saved",
+    "vehicles.ecosDraft.mappingConflict": "This ECoS locomotive is already assigned to another vehicle. Please read the command station again.",
     "vehicles.cv.emptyUntilSave": "CV values can be maintained after the first save.",
     "vehicles.cv.values": "CV values",
     "vehicles.cv.profiles": "Profiles",
@@ -2892,6 +2893,7 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.toolbar.startMonitor": "Start live monitor",
     "digitalCenters.toolbar.stopMonitor": "Stop live monitor",
     "digitalCenters.toolbar.read": "Read data",
+    "digitalCenters.toolbar.reading": "Reading data",
     "digitalCenters.toolbar.configure": "Configure command station",
     "digitalCenters.toolbar.readUnsupported": "This command station does not support reading.",
     "digitalCenters.toolbar.monitorUnsupported": "This command station does not support live monitoring.",
@@ -2972,6 +2974,7 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.write.locked": "Writing locked",
     "digitalCenters.write.lockedHelp": "Write commands are locked for this station.",
     "digitalCenters.write.unsupported": "This command station does not support write commands.",
+    "digitalCenters.write.unassigned": "This locomotive is not assigned to a RailKeeper vehicle yet. Create or assign a vehicle before writing to the command station.",
     "digitalCenters.write.verified": "Write verified",
     "digitalCenters.write.consent": "I confirm that the displayed values will be written to the command station.",
     "digitalCenters.write.createPreview": "Create write preview",
@@ -3008,6 +3011,7 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.error.previewRequired": "A current write preview is required.",
     "digitalCenters.error.grantExpired": "The write grant is no longer valid. Create a new write preview.",
     "digitalCenters.error.grantConflict": "Write grant invalid. Read data again and create a new write preview.",
+    "digitalCenters.error.conflictUnresolved": "The locomotive match is not resolved yet. Assign it to a RailKeeper vehicle first.",
     "digitalCenters.error.liveInterrupted": "Live connection interrupted",
     "digitalCenters.error.requestFailed": "The command station request failed."
   };
