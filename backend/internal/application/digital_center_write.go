@@ -259,6 +259,11 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 		result.Result = DigitalCenterWriteUnknown
 		result.Message = "Die geschriebenen Werte konnten nicht verifiziert werden."
 		_ = service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result)
+		_ = service.addSessionMessage(ctx, target.session.ID, DigitalCenterSessionMessage{
+			Severity: DigitalCenterMessageWarning, Code: DigitalCenterMessageWriteUnknown,
+			Message:    "Der Schreibstatus der Digitalzentrale ist unbekannt.",
+			NextAction: "Werte neu auslesen und vor einem weiteren Schreiben prüfen.",
+		})
 		return result, nil
 	}
 	verifiedValues := ECoSLocomotiveSyncSnapshot{

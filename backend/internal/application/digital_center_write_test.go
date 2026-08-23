@@ -377,6 +377,18 @@ func TestDigitalCenterConfirmWriteReturnsUnknownWithoutRetry(t *testing.T) {
 	}
 }
 
+func TestDigitalCenterConfirmWriteRecordsUnknownWhenVerificationReadFails(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+	fixture.ecos.readErr = errors.New("connection closed")
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil || result.Result != DigitalCenterWriteUnknown || len(fixture.repository.messages) != 1 ||
+		fixture.repository.messages[0].Code != DigitalCenterMessageWriteUnknown {
+		t.Fatalf("result=%#v err=%v messages=%#v", result, err, fixture.repository.messages)
+	}
+}
+
 func TestDigitalCenterConfirmWriteKeepsVerifiedResultWhenResumeFails(t *testing.T) {
 	fixture := newDigitalCenterWriteFixture(t)
 	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveRunning, Connected: true}
@@ -528,6 +540,7 @@ type digitalCenterWriteRepositoryStub struct {
 	grant      DigitalCenterWriteGrant
 	consumed   bool
 	consumeErr error
+	messages   []DigitalCenterSessionMessage
 }
 
 func (stub *digitalCenterWriteRepositoryStub) CreateSession(
@@ -566,7 +579,11 @@ func (stub *digitalCenterWriteRepositoryStub) UpdateWorkItem(
 	return item, nil
 }
 
-func (*digitalCenterWriteRepositoryStub) AddMessage(context.Context, DigitalCenterSessionMessage) error {
+func (stub *digitalCenterWriteRepositoryStub) AddMessage(
+	_ context.Context,
+	message DigitalCenterSessionMessage,
+) error {
+	stub.messages = append(stub.messages, message)
 	return nil
 }
 
@@ -623,6 +640,7 @@ type digitalCenterWriteECoSStub struct {
 	pauseErr             error
 	writeErr             error
 	writeCalls           int
+	readErr              error
 }
 
 func (stub *digitalCenterWriteECoSStub) ProbeLocomotiveRaw(
@@ -722,6 +740,9 @@ func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
 	int,
 ) (ECoSLocomotive, error) {
 	stub.events = append(stub.events, "read-target")
+	if stub.readErr != nil {
+		return ECoSLocomotive{}, stub.readErr
+	}
 	protocol := stub.verificationProtocol
 	if protocol == "" {
 		protocol = "DCC"

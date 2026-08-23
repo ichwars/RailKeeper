@@ -59,6 +59,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     []
   );
   const localizedError = useCallback((error: unknown) => {
+	if (error instanceof ApiError && error.code === "digital_center_address_conflict") {
+	  return digitalCenterAddressConflictMessage(error, workspaceText);
+	}
     const translationKey = error instanceof ApiError ? digitalCenterErrorTranslationKey(error.code) : null;
     return translationKey
       ? workspaceText(translationKey)

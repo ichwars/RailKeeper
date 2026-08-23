@@ -463,6 +463,27 @@ describe("useDigitalCentersWorkspace", () => {
 	expect(result.current.errors.write).toContain("18");
   });
 
+  it("localizes an address conflict raised while creating the preview", async () => {
+	vi.mocked(api.previewDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+	  "The decoder address is already used by another ECoS locomotive.",
+	  "digital_center_address_conflict",
+	  409,
+	  { objectId: 2002, name: "Rangierlok", decoderAddress: 18 }
+	));
+	const { result } = renderHook(() => useDigitalCentersWorkspace());
+	await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+	await act(async () => result.current.readData());
+	act(() => result.current.selectItem(item.id));
+
+	await act(async () => {
+	  await expect(result.current.previewWrite(["address"])).rejects.toThrow();
+	});
+
+	expect(result.current.errors.write).toBe(
+	  "Decoderadresse 18 wird bereits von „Rangierlok“ verwendet. Neue Schreibvorschau erstellen."
+	);
+  });
+
   it("clears every center-specific error when selecting another center", async () => {
     vi.mocked(api.digitalCenterLiveStatus).mockRejectedValueOnce(new Error("Live fehlgeschlagen"));
     vi.mocked(api.digitalCenterWorkItems).mockRejectedValueOnce(new Error("Liste fehlgeschlagen"));
