@@ -3,7 +3,7 @@ title: Vehicle inventory and core records
 description: Search, filter, create, maintain, report, and safely delete RailKeeper vehicle records.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-17
 ---
 
@@ -11,10 +11,10 @@ lastReviewed: 2026-08-17
 
 **Vehicle inventory** is the central workspace for model railway vehicles. It combines inventory
 status, search, filters, table and card views, core vehicle data, QR labels, and printable reports.
-This chapter describes the vehicle workflow shipped with RailKeeper v0.1.20.
+This chapter describes the vehicle workflow shipped with RailKeeper v0.1.20.1.
 
 Admin, Editor, Viewer, and Planner users can inspect the inventory. Creating, changing, and deleting
-vehicle records requires Admin or Editor. In v0.1.20, write controls can still be visible to Viewer
+vehicle records requires Admin or Editor. In v0.1.20.1, write controls can still be visible to Viewer
 and Planner users. The server rejects their write requests, and RailKeeper displays the error.
 
 Media, maintenance, decoder/CV data, article-data lookup, and spare parts have their own workflows.
@@ -52,7 +52,7 @@ and trailing spaces are ignored, and the search matches substrings in these fiel
 - Maximum speed
 
 It does not search descriptions, railway companies, epochs, categories, decoder numbers, EANs, or
-other detail fields in v0.1.20. The filters below are applied in the browser to the vehicles
+other detail fields in v0.1.20.1. The filters below are applied in the browser to the vehicles
 returned by the server search. Search and filters therefore combine.
 
 If loading fails, the error appears above the list. Previously loaded rows can remain visible, so
@@ -62,7 +62,7 @@ resolve the error or refresh before treating them as current.
 
 Filter groups combine with AND logic. A vehicle must satisfy every active group.
 
-| Group | Stable v0.1.20 choices |
+| Group | Stable v0.1.20.1 choices |
 | --- | --- |
 | Inventory state | **All**, **Digital**, **Analog**, **With image**, **Without image** |
 | Maintenance | **All**, **Maintenance due**, **Without maintenance** |
@@ -71,7 +71,7 @@ Filter groups combine with AND logic. A vehicle must satisfy every active group.
 | Operational flag | **Exhibition ready** |
 | Overview data gap | **Without article no.**, **Without EAN**, or **Digital without decoder no.** when opened from **Overview** |
 
-The **Without maintenance** label is imprecise in v0.1.20. It selects vehicles without a due
+The **Without maintenance** label is imprecise in v0.1.20.1. It selects vehicles without a due
 maintenance entry, including vehicles that have completed or non-due maintenance history.
 
 Selecting a category limits the subtype choices to distinct subtypes among the currently loaded
@@ -104,7 +104,7 @@ before `...10`. Select the active header again to reverse its direction. Card an
 follow the current table sort but do not expose separate sort controls. Mobile cards use the
 configured column selection and reveal additional fields in the configured order when expanded.
 
-In the English locale, the table/card and refresh tooltips remain German in v0.1.20. This is a
+In the English locale, the table/card and refresh tooltips remain German in v0.1.20.1. This is a
 localization limitation, not a different operation.
 
 ## Select vehicles
@@ -213,7 +213,7 @@ authoritative without user selection.
 
 ## Stable select choices
 
-The following choices are static in v0.1.20. Their stored values remain German in both UI
+The following choices are static in v0.1.20.1. Their stored values remain German in both UI
 locales.
 
 | Field | Choices |
@@ -258,7 +258,7 @@ Decoder-Nr.: <decoder number, only when available>
 RailKeeper uses the primary digital decoder number first, then the DT decoder number. The QR dialog
 can download PNG or SVG and open a printable label. The quick menu and read-only view can generate a
 QR code whenever identity data exists. The **Create QR code** switch controls only the QR button in
-the edit-form Details section in v0.1.20.
+the edit-form Details section in v0.1.20.1.
 
 When either inventory number or designation is empty, the payload writes `-` for that field. At
 least one of the two fields must contain a value before RailKeeper creates the QR code.
@@ -284,7 +284,7 @@ maintenance, CV data, images, attachments, and external mappings. Printing one v
 quick menu or read-only view always creates a detail report with QR code and images enabled.
 
 Reports and some report labels are generated in German even under the English locale in
-v0.1.20. If no matching vehicle exists, RailKeeper does not create a report. Allow the print window
+v0.1.20.1. If no matching vehicle exists, RailKeeper does not create a report. Allow the print window
 if the browser blocks popups.
 
 ## Exhibition switch boundary
@@ -300,7 +300,7 @@ vehicle flag, but it does not delete an existing exhibition-list entry.
 ## Delete a vehicle
 
 Admin and Editor users can select **Delete** and confirm the vehicle identified by inventory number
-and designation. There is no undo or typed confirmation in v0.1.20.
+and designation. There is no undo or typed confirmation in v0.1.20.1.
 
 Deletion removes the vehicle and cascades through its vehicle-owned database records, including
 inventory-number history, images, attachment metadata, maintenance, functions, CV data, external
@@ -340,4 +340,4 @@ important records; the application does not promise physical cleanup of every re
 
 ## Documented RailKeeper version
 
-This page documents the vehicle workflow shipped with RailKeeper **v0.1.20** and was last reviewed on 2026-08-17.
+This page documents the vehicle workflow shipped with RailKeeper **v0.1.20.1** and was last reviewed on 2026-08-17.

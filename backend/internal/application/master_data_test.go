@@ -920,6 +920,7 @@ func TestRailKeeperFunctionSymbolsSeededWithImages(t *testing.T) {
 	}
 	if fahrgeraeusch == nil {
 		t.Fatal("expected Fahrgeraeusch symbol")
+		return
 	}
 	if fahrgeraeusch.Label != "Fahrgeräusch" {
 		t.Fatalf("unexpected symbol label %q", fahrgeraeusch.Label)

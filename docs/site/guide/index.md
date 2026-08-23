@@ -3,7 +3,7 @@ title: User Guide
 description: Learn every stable RailKeeper workflow.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ This guide explains the complete published RailKeeper workflow for collectors, c
 workshops. It covers first setup, navigation, vehicles, accessories, decoder data, maintenance,
 documents, reports, exhibitions, and controlled import and export.
 
-Content in this section describes stable RailKeeper v0.1.20. The layout workspace is still under
+Content in this section describes stable RailKeeper v0.1.20.1. The layout workspace is still under
 development and is therefore not presented as a stable user feature.
 
 ## Start here

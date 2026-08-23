@@ -3,7 +3,7 @@ title: Exhibition workspace
 description: Prepare, maintain, review, and print exhibition lists safely.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -13,7 +13,7 @@ The **Exhibition list** workspace keeps the information needed for an exhibition
 one operational view. Each list has a date, an open or locked state, and its own locomotive
 entries. Operators can maintain an open list without entering the general vehicle inventory.
 
-This chapter documents stable RailKeeper v0.1.20. It does not explain user administration,
+This chapter documents stable RailKeeper v0.1.20.1. It does not explain user administration,
 master-data administration, backup operation, or the layout workspace.
 
 ## Access rights and isolation
@@ -122,5 +122,5 @@ already have succeeded before the refresh failed.
 
 ## Documented RailKeeper version
 
-This page describes stable RailKeeper v0.1.20. Development behavior on `main` may differ and is
+This page describes stable RailKeeper v0.1.20.1. Development behavior on `main` may differ and is
 not part of this user workflow.

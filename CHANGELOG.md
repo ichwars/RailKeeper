@@ -6,6 +6,40 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.20.1] - 2026-08-24
+
+### Added
+
+- Vehicle sets can have a dedicated main image used in inventory, mobile views, and set dialogs,
+  with a focused upload workflow for managing it.
+- The Digital centers workspace can safely adopt reviewed ECoS locomotives and, after explicit
+  authorization, create missing locomotives on the device through a controlled workflow.
+
+### Changed
+
+- Import and export profiles are listed together with explicit direction, areas, format, and
+  status. Vehicle CSV files support all 62 transfer fields and persisted, user-reviewed column
+  mappings.
+- Navigation and personal workspace visibility synchronize more consistently.
+- Backups use format version 20 and include vehicle-set main-image assignments.
+
+### Fixed
+
+- Partial and legacy vehicle CSV files preserve every unmapped existing field during replacement.
+  Incomplete mappings, unknown boolean values, and contradictory profile data are rejected before
+  apply.
+- CSV protection markers survive export and reimport without data loss. Version-1 JSON packages
+  are processed strictly through their historical schema.
+- ECoS reads, vehicle assignment, write conflicts, and result handling are hardened against stale,
+  incomplete, or ambiguous device state.
+
+### Security
+
+- ECoS writes remain limited to explicitly authorized differences and are verified on the device
+  after writing.
+- CSV formula injection, multipart upload order, and transactional import apply are handled without
+  silent data mutation.
+
 ## [0.1.20] - 2026-08-22
 
 ### Added
@@ -317,6 +351,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
 [0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2
 [0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1
