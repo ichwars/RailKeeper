@@ -59,11 +59,12 @@ func (service *DigitalCenterWorkspaceService) persistDigitalCenterMapping(
 	target digitalCenterWriteTarget,
 	verified ECoSLocomotive,
 	actor string,
+	syncStatus string,
 ) error {
 	input := VehicleExternalMapInput{
 		Provider: target.center.Provider, ExternalID: target.item.CenterObjectID,
 		ExternalName: verified.Name, ExternalAddress: strconv.Itoa(verified.Address),
-		ExternalProtocol: verified.Protocol, SyncStatus: "synced",
+		ExternalProtocol: verified.Protocol, SyncStatus: syncStatus,
 	}
 	if target.operation == DigitalCenterWriteCreate {
 		rebinder, ok := service.vehicles.(digitalCenterVehicleMappingRebinder)

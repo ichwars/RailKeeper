@@ -234,6 +234,45 @@ func TestDigitalCenterCreatePreviewAndConfirmVerifiesMapsAndAudits(t *testing.T)
 	}
 }
 
+func TestDigitalCenterCreateVerificationMismatchRebindsMappingAsLinked(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.item.CenterObjectID = "42"
+	fixture.item.Name = "BR 18"
+	fixture.item.Address = 4405
+	fixture.item.Protocol = "DCC"
+	fixture.item.CompareStatus = DigitalCompareMissing
+	fixture.item.StationStatus = "missing"
+	fixture.item.Center = map[string]any{}
+	fixture.item.RailKeeper = map[string]any{
+		"vehicleId": "vehicle-1", "name": "BR 18", "decoderAddress": 4405, "protocol": "DCC",
+	}
+	fixture.repository.item = fixture.item
+	fixture.ecos.createObjectID = 1002
+	fixture.ecos.verificationName = "Abweichender Name"
+	fixture.ecos.verificationAddress = 4405
+	fixture.ecos.verificationProtocol = "DCC"
+
+	preview, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Operation: DigitalCenterWriteCreate,
+			Fields: []string{"name", "address", "protocol"}}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := fixture.service.ConfirmWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWriteConfirmInput{Operation: DigitalCenterWriteCreate, Token: preview.Token,
+			Confirm: true, Fields: preview.Fields}, "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Result != DigitalCenterWriteVerificationFailed || result.Verified {
+		t.Fatalf("result=%#v", result)
+	}
+	if fixture.vehicles.mapping == nil || fixture.vehicles.mapping.ExternalID != "1002" ||
+		fixture.vehicles.mapping.SyncStatus != "linked" || fixture.vehicles.previousExternalID != "42" {
+		t.Fatalf("mapping=%#v previous=%q", fixture.vehicles.mapping, fixture.vehicles.previousExternalID)
+	}
+}
+
 func TestDigitalCenterWriteConfirmRejectsFalseActorExpiredMismatchedAndConsumedGrants(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -430,6 +469,22 @@ func TestDigitalCenterConfirmWritePausesWritesVerifiesAndResumes(t *testing.T) {
 	if result.Result != DigitalCenterWriteVerified || result.WorkItem == nil ||
 		!result.LiveMonitor.WasRunning || !result.LiveMonitor.Restarted {
 		t.Fatalf("result=%#v", result)
+	}
+}
+
+func TestDigitalCenterConfirmWriteWaitsForPublishedStoppedLiveSession(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveStopped, Connected: false}
+	preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+	fixture.ecos.events = nil
+
+	result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(fixture.ecos.events) == 0 || fixture.ecos.events[0] != "pause" ||
+		result.LiveMonitor.WasRunning || result.LiveMonitor.Restarted {
+		t.Fatalf("events=%#v live=%#v", fixture.ecos.events, result.LiveMonitor)
 	}
 }
 

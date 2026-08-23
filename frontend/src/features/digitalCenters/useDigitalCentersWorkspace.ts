@@ -73,6 +73,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const selectedProviderRef = useRef<DigitalCenterProvider | null>(null);
   const readSessionIDRef = useRef<string | null>(null);
   const selectedItemIDRef = useRef<string | null>(null);
+  const clampWorklistPageRef = useRef(false);
   const requestsRef = useRef({ workspace: 0, live: 0, read: 0, worklist: 0, detail: 0, messages: 0, write: 0 });
 
   const [centers, setCenters] = useState<DigitalCenterSummary[]>([]);
@@ -83,6 +84,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const [worklistRevision, setWorklistRevision] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [messages, setMessages] = useState<DigitalCenterSessionMessage[]>([]);
+  const [messagesRevision, setMessagesRevision] = useState(0);
   const [selectedItemId, setSelectedItemID] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<DigitalCenterWorkItem | null>(null);
   const [search, setSearchState] = useState("");
@@ -272,6 +274,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   useEffect(() => {
     const sessionID = readSession?.id;
     if (!sessionID) return;
+    const clampPage = clampWorklistPageRef.current;
+    clampWorklistPageRef.current = false;
     const requestID = ++requestsRef.current.worklist;
     setError("worklist", "");
     setLoadingArea("worklist", true);
@@ -282,6 +286,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       .then(([result, aggregate]) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
+          const lastPage = Math.max(1, result.totalPages);
+          if (clampPage && filter.page > lastPage) {
+            setPageState(lastPage);
+            setSessionTotal(aggregate?.total ?? result.total);
+            return;
+          }
           setWorkItems(result);
           setSessionTotal(aggregate?.total ?? result.total);
         }
@@ -318,7 +328,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setError("messages", localizedError(loadError));
         }
       });
-  }, [localizedError, readSession?.id, setError]);
+  }, [localizedError, messagesRevision, readSession?.id, setError]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -531,8 +541,10 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWriteConfirmation(confirmation);
+        setMessagesRevision((current) => current + 1);
         if (confirmation.workItem) {
           setSelectedItem(confirmation.workItem);
+          clampWorklistPageRef.current = true;
           setWorklistRevision((current) => current + 1);
         }
       }

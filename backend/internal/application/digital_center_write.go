@@ -278,9 +278,19 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if !verified {
 		result.Result = DigitalCenterWriteVerificationFailed
 		result.Message = "Die Digitalzentrale meldet nach dem Schreiben abweichende Werte."
+		var mappingErr error
+		if target.operation == DigitalCenterWriteCreate {
+			mappingErr = service.persistDigitalCenterMapping(ctx, target, verifiedLocomotive, actor, "linked")
+		}
 		updatedItem, updateErr := service.updateVerifiedDigitalCenterWorkItem(ctx, target, verifiedLocomotive)
 		if err := service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result); err != nil {
 			return DigitalCenterWriteConfirmation{}, err
+		}
+		if errors.Is(mappingErr, ErrDigitalCenterWorkspaceUnavailable) {
+			return DigitalCenterWriteConfirmation{}, mappingErr
+		}
+		if mappingErr != nil {
+			return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 		}
 		if updateErr != nil {
 			return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
@@ -294,7 +304,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	if err := service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result); err != nil {
 		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
-	if err := service.persistDigitalCenterMapping(ctx, target, verifiedLocomotive, actor); err != nil {
+	if err := service.persistDigitalCenterMapping(ctx, target, verifiedLocomotive, actor, "synced"); err != nil {
 		if errors.Is(err, ErrDigitalCenterWorkspaceUnavailable) {
 			return DigitalCenterWriteConfirmation{}, err
 		}
@@ -700,11 +710,11 @@ func (service *DigitalCenterWorkspaceService) pauseDigitalCenterLive(
 	}
 	status := monitor.LiveStatus()
 	live := DigitalCenterWriteLiveResult{WasRunning: status.State == ECoSLiveRunning && status.Connected}
-	if !live.WasRunning {
-		return live, nil
-	}
 	pauser, ok := service.ecos.(digitalCenterECoSPauser)
 	if !ok {
+		if !live.WasRunning {
+			return live, nil
+		}
 		return live, ErrDigitalCenterLivePauseFailed
 	}
 	if _, err := pauser.PauseLive(ctx); err != nil {
