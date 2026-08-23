@@ -3,7 +3,7 @@ title: Entries and printing
 description: Record exhibition locomotives, resolve address conflicts, and print the operating list.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -145,7 +145,7 @@ Selecting a symbol applies the symbol label as the function name when the picker
 Review the name after choosing a symbol. On **Save**, RailKeeper stores only configured functions as
 structured data. The table, detail view, and report show only those functions.
 
-Stable v0.1.20 can also read earlier plain-text values separated by commas, semicolons, or lines
+Stable v0.1.20.1 can also read earlier plain-text values separated by commas, semicolons, or lines
 when each item starts with a key such as `F1 Sound`. Opening and saving such an entry writes the
 currently configured structured representation.
 
@@ -216,5 +216,5 @@ An empty list produces a report row reading **No entries.**
 
 ## Documented RailKeeper version
 
-This page describes stable RailKeeper v0.1.20. Development behavior on `main` may differ and is
+This page describes stable RailKeeper v0.1.20.1. Development behavior on `main` may differ and is
 not part of this user workflow.

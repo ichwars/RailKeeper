@@ -3,7 +3,7 @@ title: Fahrzeugdateien importieren
 description: Fahrzeugzeilen aus CSV, TSV, XML oder JSON zuordnen, prüfen und speichern.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -144,4 +144,4 @@ Wartungen, Ersatzteile oder Decoder-Dateien. Ergänze diese über die jeweiligen
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.1** und wurde zuletzt am 16.08.2026 geprüft.

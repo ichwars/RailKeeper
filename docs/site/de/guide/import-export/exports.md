@@ -3,7 +3,7 @@ title: Bestand exportieren
 description: CSV, RailKeeper-JSON und eine druckbare Fahrzeug-Bestandsausgabe erstellen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -49,7 +49,7 @@ Das `vehicles`-Array enthält die Fahrzeugobjekte, welche an diese Seite geliefe
 eignet sich JSON zur Prüfung und für einen verlustärmeren Datenaustausch, ist aber keine
 Anwendungssicherung und kein vollständiges Wiederherstellungsformat.
 
-Der stabile JSON-Import von v0.1.20 liest pro Objekt nur 14 Felder. Er stellt nicht alle im
+Der stabile JSON-Import von v0.1.20.1 liest pro Objekt nur 14 Felder. Er stellt nicht alle im
 exportierten Objekt vorhandenen Eigenschaften, verschachtelten Datensätze oder gespeicherten
 Dateibytes wieder her. Vor einem Rundlauf die genaue
 [JSON-Teilmenge](/de/guide/import-export/file-import#teilmenge-beim-json-import) prüfen.
@@ -85,4 +85,4 @@ enthalten sein.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.1** und wurde zuletzt am 16.08.2026 geprüft.

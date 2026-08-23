@@ -6,6 +6,40 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.20.1] - 2026-08-24
+
+### Hinzugefügt
+
+- Fahrzeugsets können ein eigenes Hauptbild erhalten, das in Bestand, Mobilansicht und Setdialogen
+  verwendet und über einen eigenen Upload-Ablauf verwaltet wird.
+- Der Digitalzentralen-Arbeitsbereich kann geprüfte ECoS-Lokomotiven sicher übernehmen und bei
+  ausdrücklicher Freigabe fehlende Lokomotiven kontrolliert auf dem Gerät anlegen.
+
+### Geändert
+
+- Import- und Exportprofile erscheinen gemeinsam mit eindeutiger Richtung, Bereichen, Format und
+  Status. Fahrzeug-CSV-Dateien unterstützen alle 62 Transferfelder sowie gespeicherte,
+  benutzergeprüfte Spaltenzuordnungen.
+- Navigation und persönliche Arbeitsbereichssichtbarkeit sind konsistenter synchronisiert.
+- Sicherungen verwenden Formatversion 20 und enthalten die Hauptbildzuordnung von Fahrzeugsets.
+
+### Behoben
+
+- Teilweise und ältere Fahrzeug-CSV-Dateien bewahren bei Ersetzungen alle nicht zugeordneten
+  Bestandsfelder. Unvollständige Zuordnungen, unbekannte Wahrheitswerte und widersprüchliche
+  Profilangaben werden vor der Übernahme abgewiesen.
+- CSV-Schutzzeichen bleiben über Export und Rückimport verlustfrei. JSON-Pakete der Version 1
+  werden strikt nach ihrem historischen Schema verarbeitet.
+- ECoS-Lesevorgänge, Fahrzeugzuordnung, Schreibkonflikte und Rückmeldungen wurden gegen veraltete,
+  unvollständige oder mehrdeutige Gerätezustände gehärtet.
+
+### Sicherheit
+
+- ECoS-Schreibvorgänge bleiben auf explizit freigegebene Abweichungen begrenzt und werden nach dem
+  Schreiben am Gerät verifiziert.
+- CSV-Formelinjektion, Upload-Reihenfolge und transaktionale Importübernahme werden ohne stille
+  Datenänderungen behandelt.
+
 ## [0.1.20] - 2026-08-22
 
 ### Hinzugefügt
@@ -331,6 +365,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
 [0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2
 [0.1.19.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.19...v0.1.19.1

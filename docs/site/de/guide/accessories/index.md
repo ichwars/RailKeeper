@@ -3,7 +3,7 @@ title: Zubehörübersicht
 description: Zubehörartikel finden, filtern, prüfen und sicher verwalten.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 **Zubehör** ist RailKeepers Katalog- und Bestandsbereich für Gleise, Signale, Decoder, elektrische
 Bauteile, Landschaftsbau, Beleuchtung und weitere Modellbahnartikel. Er verbindet Produktidentität,
 gelagerte und gebundene Mengen, Bilder, Lagerorte und Aktionen im Artikellebenszyklus. Dieses
-Kapitel beschreibt den stabilen RailKeeper-Stand v0.1.20.
+Kapitel beschreibt den stabilen RailKeeper-Stand v0.1.20.1.
 
 Ein Artikel ist der gemeinsame Produktdatensatz. Sein Bestand kann aus austauschbaren Mengen,
 einzeln geführten Stücken oder beidem bestehen. Reservierungen und Einbauten binden einen Teil
@@ -145,7 +145,7 @@ Serversortierung, bieten aber keine eigenen Sortieraktionen.
 
 Kontrollkästchen in der Tabelle wählen eine Zeile oder alle aktuell sichtbaren Zeilen aus. Eine
 Auswahl verschwindet, wenn ein neues Such- oder Filterergebnis den Artikel nicht mehr enthält. Der
-stabile Stand v0.1.20 bietet keine Sammelaktion für diese Auswahl. Sie ist nur visueller Zustand
+stabile Stand v0.1.20.1 bietet keine Sammelaktion für diese Auswahl. Sie ist nur visueller Zustand
 und keine vorgemerkte Archivierung, Auswertung oder Bestandsbuchung.
 
 Öffne über Artikelname, Bild oder **Artikel ansehen** den schreibgeschützten Artikeldialog. Abhängig
@@ -207,5 +207,5 @@ sofortige Bestands- oder Lebenszyklusaktion startest.
 
 ## Dokumentierter RailKeeper-Stand
 
-Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20** und wurde zuletzt am
+Diese Seite dokumentiert den stabilen RailKeeper-Stand **v0.1.20.1** und wurde zuletzt am
 2026-08-16 geprüft.

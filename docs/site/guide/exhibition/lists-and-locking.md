@@ -3,7 +3,7 @@ title: Lists and locking
 description: Create exhibition lists, control their lock state, and remove them safely.
 audience: user
 status: stable
-reviewedVersion: 0.1.20
+reviewedVersion: 0.1.20.1
 lastReviewed: 2026-08-16
 ---
 
@@ -41,7 +41,7 @@ reloads the list table. The create operation is an immediate server write; the d
 only local form state until it succeeds.
 
 If either required field is empty, the browser prevents normal submission. The server also rejects
-blank values after trimming them. In stable v0.1.20 the server checks that the date value is not
+blank values after trimming them. In stable v0.1.20.1 the server checks that the date value is not
 empty; the date control supplies the normal calendar value.
 
 ## Select, sort, and inspect lists
@@ -126,5 +126,5 @@ log. Audit-log operation belongs to administration and is not documented on this
 
 ## Documented RailKeeper version
 
-This page describes stable RailKeeper v0.1.20. Development behavior on `main` may differ and is
+This page describes stable RailKeeper v0.1.20.1. Development behavior on `main` may differ and is
 not part of this user workflow.
