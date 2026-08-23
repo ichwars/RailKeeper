@@ -523,12 +523,25 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWriteConfirmation(confirmation);
+		if (confirmation.workItem) {
+		  setSelectedItem(confirmation.workItem);
+		  setWorkItems((current) => ({
+			...current,
+			items: current.items.map((item) => item.id === confirmation.workItem?.id
+			  ? confirmation.workItem
+			  : item)
+		  }));
+		}
       }
       return confirmation;
     } catch (writeError) {
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-        if (writeError instanceof ApiError && writeError.status === 409) {
+		if (writeError instanceof ApiError && writeError.code === "digital_center_address_conflict") {
+		  setWritePreview(null);
+		  setWriteConfirmation(null);
+		  setError("write", digitalCenterAddressConflictMessage(writeError, workspaceText));
+		} else if (writeError instanceof ApiError && writeError.status === 409) {
           readSessionIDRef.current = null;
           setReadSession(null);
           clearSessionDependents();
@@ -625,6 +638,22 @@ function digitalCenterErrorTranslationKey(code: string) {
   return code === "digital_center_conflict_unresolved"
     ? "digitalCenters.error.conflictUnresolved"
     : null;
+}
+
+function digitalCenterAddressConflictMessage(
+  error: ApiError,
+  text: (key: string, values?: Record<string, string | number>) => string
+) {
+  const details = isRecord(error.details) ? error.details : null;
+  const name = typeof details?.name === "string" ? details.name.trim() : "";
+  const address = typeof details?.decoderAddress === "number" ? details.decoderAddress : null;
+  return name && address !== null
+	? text("digitalCenters.error.addressConflict", { name, address })
+	: text("digitalCenters.error.addressConflictGeneric");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function validWriteGrant(preview: DigitalCenterWritePreview) {

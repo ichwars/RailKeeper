@@ -239,6 +239,26 @@ describe("Digital Centers operational journeys", () => {
     expect(api.startDigitalCenterReadSession).toHaveBeenCalledTimes(2);
   });
 
+  it("shows an unknown write result and a failed live restart without claiming success", async () => {
+	vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(confirmationFixture({
+	  applied: false,
+	  verified: false,
+	  result: "unknown",
+	  message: "Der Schreibstatus ist unbekannt.",
+	  liveMonitor: { wasRunning: true, restarted: false }
+	}));
+	const user = userEvent.setup();
+	render(<DigitalCentersView roles={["Admin"]} />);
+	await openComparison(user);
+	await user.click(screen.getByRole("button", { name: "Schreibvorschau erstellen" }));
+	await user.click(await screen.findByRole("checkbox"));
+	await user.click(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }));
+
+	expect(await screen.findByText("Schreibstatus unbekannt")).toBeInTheDocument();
+	expect(screen.getByText(/Live-Monitoring konnte nicht automatisch neu gestartet/)).toBeInTheDocument();
+	expect(screen.queryByText("Schreiben verifiziert")).not.toBeInTheDocument();
+  });
+
   it("keeps confirmation disabled when the preview grant is expired", async () => {
     vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce({
       ...writePreview,
@@ -439,6 +459,7 @@ function confirmationFixture(
     verified: true,
     result: "verified",
     message: "Änderungen wurden gelesen und bestätigt.",
+	liveMonitor: { wasRunning: false, restarted: false },
     ...overrides
   };
 }

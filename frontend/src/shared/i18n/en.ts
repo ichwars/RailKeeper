@@ -2998,6 +2998,10 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.assignment.create": "Create new vehicle",
     "digitalCenters.assignment.open": "Assign to existing vehicle",
     "digitalCenters.write.verified": "Write verified",
+	"digitalCenters.write.unknown": "Write status unknown",
+	"digitalCenters.write.inProgress": "Writing and verifying…",
+	"digitalCenters.write.actualValues": "Read back: {name}, address {address}, {protocol}",
+	"digitalCenters.write.liveRestartFailed": "Live monitoring could not be restarted automatically. Please start it manually.",
     "digitalCenters.write.consent": "I confirm that the displayed values will be written to the command station.",
     "digitalCenters.write.createPreview": "Create write preview",
     "digitalCenters.write.grantInvalid": "The write grant is no longer valid.",
@@ -3034,6 +3038,8 @@ export const enTranslations: Record<string, string> = {
     "digitalCenters.error.grantExpired": "The write grant is no longer valid. Create a new write preview.",
     "digitalCenters.error.grantConflict": "Write grant invalid. Read data again and create a new write preview.",
     "digitalCenters.error.conflictUnresolved": "The locomotive match is not resolved yet. Assign it to a RailKeeper vehicle first.",
+	"digitalCenters.error.addressConflict": "Decoder address {address} is already used by “{name}”. Create a new write preview.",
+	"digitalCenters.error.addressConflictGeneric": "The decoder address is already used by another ECoS locomotive. Create a new write preview.",
     "digitalCenters.error.liveInterrupted": "Live connection interrupted",
     "digitalCenters.error.requestFailed": "The command station request failed."
   };

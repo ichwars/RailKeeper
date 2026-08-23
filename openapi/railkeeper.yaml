@@ -867,8 +867,8 @@ components:
           enum:
             [connection.succeeded, connection.failed, connection.interrupted, read.started,
             read.completed, read.failed, parse.failed, capability.unavailable, live.started,
-            live.stopped, live.interrupted, write.preview_failed, write.failed, write.verified,
-            write.verification_failed]
+            live.stopped, live.interrupted, live.restart_failed, write.preview_failed, write.failed,
+            write.unknown, write.verified, write.verification_failed]
         message:
           type: string
         nextAction:
@@ -1042,7 +1042,7 @@ components:
           format: date-time
     DigitalCenterWriteConfirmation:
       type: object
-      required: [sessionId, itemId, provider, objectId, direction, fields, applied, verified, result, message]
+      required: [sessionId, itemId, provider, objectId, direction, fields, applied, verified, result, message, liveMonitor]
       properties:
         sessionId:
           type: string
@@ -1065,9 +1065,28 @@ components:
           type: boolean
         result:
           type: string
-          enum: [verified, verification_failed, failed]
+          enum: [verified, verification_failed, failed, unknown]
         message:
           type: string
+        verifiedValues:
+          type: object
+          properties:
+            name:
+              type: string
+            address:
+              type: integer
+            protocol:
+              type: string
+        liveMonitor:
+          type: object
+          required: [wasRunning, restarted]
+          properties:
+            wasRunning:
+              type: boolean
+            restarted:
+              type: boolean
+        workItem:
+          $ref: "#/components/schemas/DigitalCenterWorkItem"
     VersionInfo:
       type: object
       required: [version, updateAvailable, checkedAt, status, message]

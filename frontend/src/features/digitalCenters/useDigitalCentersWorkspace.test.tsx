@@ -439,6 +439,30 @@ describe("useDigitalCentersWorkspace", () => {
     );
   });
 
+  it("keeps the read session after an address conflict and clears only the consumed preview", async () => {
+	vi.mocked(api.confirmDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+	  "The decoder address is already used by another ECoS locomotive.",
+	  "digital_center_address_conflict",
+	  409,
+	  { objectId: 2002, name: "Rangierlok", decoderAddress: 18 }
+	));
+	const { result } = renderHook(() => useDigitalCentersWorkspace());
+	await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+	await act(async () => result.current.readData());
+	act(() => result.current.selectItem("item-new"));
+	await act(async () => result.current.previewWrite(["address"]));
+
+	await act(async () => {
+	  await expect(result.current.confirmWrite()).rejects.toThrow();
+	});
+
+	expect(result.current.readSession?.id).toBe(readySession.id);
+	expect(result.current.selectedItemId).toBe("item-new");
+	expect(result.current.writePreview).toBeNull();
+	expect(result.current.errors.write).toContain("Rangierlok");
+	expect(result.current.errors.write).toContain("18");
+  });
+
   it("clears every center-specific error when selecting another center", async () => {
     vi.mocked(api.digitalCenterLiveStatus).mockRejectedValueOnce(new Error("Live fehlgeschlagen"));
     vi.mocked(api.digitalCenterWorkItems).mockRejectedValueOnce(new Error("Liste fehlgeschlagen"));
@@ -735,6 +759,7 @@ function writeConfirmationFixture(
     verified: true,
     result: "verified",
     message: "Verifiziert",
+	liveMonitor: { wasRunning: false, restarted: false },
     ...overrides
   };
 }

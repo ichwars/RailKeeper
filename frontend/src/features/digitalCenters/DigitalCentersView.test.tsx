@@ -479,7 +479,7 @@ const writePreview: Awaited<ReturnType<Workspace["previewWrite"]>> = {
 const writeConfirmation: Awaited<ReturnType<Workspace["confirmWrite"]>> = {
   sessionId: readSession.id, itemId: workItem.id, provider: "ecos", objectId: "3",
   direction: "railkeeper_to_center", fields: ["name"], applied: true, verified: true,
-  result: "verified", message: "Verifiziert"
+	result: "verified", message: "Verifiziert", liveMonitor: { wasRunning: false, restarted: false }
 };
 
 function capabilitiesFixture(enabled: boolean): DigitalCenterSummary["capabilities"] {

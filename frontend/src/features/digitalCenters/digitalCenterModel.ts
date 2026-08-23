@@ -19,12 +19,14 @@ export type DigitalCenterMessageCode =
   | "live.interrupted"
   | "write.preview_failed"
   | "write.failed"
+	| "write.unknown"
   | "write.verified"
-  | "write.verification_failed";
+	| "write.verification_failed"
+	| "live.restart_failed";
 export type ECoSLiveMonitorState = "stopped" | "running" | "interrupted";
 export type DigitalCenterWriteField = "address" | "name" | "protocol";
 export type DigitalCenterWriteDirection = "railkeeper_to_center";
-export type DigitalCenterWriteResult = "verified" | "verification_failed" | "failed";
+export type DigitalCenterWriteResult = "verified" | "verification_failed" | "failed" | "unknown";
 
 export type DigitalCenterCapabilities = {
   testConnection: boolean;
@@ -207,6 +209,16 @@ export type DigitalCenterWriteConfirmation = {
   verified: boolean;
   result: DigitalCenterWriteResult;
   message: string;
+	verifiedValues?: {
+	  name?: string;
+	  address?: number;
+	  protocol?: string;
+	};
+	liveMonitor: {
+	  wasRunning: boolean;
+	  restarted: boolean;
+	};
+	workItem?: DigitalCenterWorkItem;
 };
 
 export type DigitalCenterWorkspaceDialog =

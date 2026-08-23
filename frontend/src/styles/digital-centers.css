@@ -952,7 +952,9 @@
 }
 
 .digital-write-result.verified { color: var(--accent-strong); }
+.digital-write-result.warning { color: var(--warning); }
 .digital-write-result.error { color: var(--danger); }
+.digital-write-result .digital-write-restart-warning { color: var(--warning); }
 
 .digital-write-unavailable {
   margin: 0;
