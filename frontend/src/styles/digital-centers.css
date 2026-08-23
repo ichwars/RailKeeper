@@ -180,6 +180,12 @@
   opacity: 0.48;
 }
 
+.digital-center-button-primary {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .digital-center-icon-button {
   display: inline-grid;
   width: 34px;
@@ -749,6 +755,111 @@
   background: color-mix(in srgb, var(--bg) 72%, transparent);
 }
 
+.digital-assignment-layer {
+  position: fixed;
+  z-index: 80;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+}
+
+.digital-assignment-dialog {
+  display: grid;
+  width: min(760px, 100%);
+  max-height: min(780px, calc(100vh - 48px));
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.digital-assignment-dialog > header,
+.digital-assignment-dialog > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.digital-assignment-dialog > header { border-bottom: 1px solid var(--line); }
+.digital-assignment-dialog > footer { justify-content: flex-end; border-top: 1px solid var(--line); }
+.digital-assignment-dialog > header > div { min-width: 0; }
+.digital-assignment-dialog .eyebrow { margin-bottom: 4px; font-size: var(--font-size-xs); }
+.digital-assignment-dialog h2 { margin: 0; font-size: var(--font-size-title-md); }
+.digital-assignment-dialog header p:last-child {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.digital-assignment-body {
+  display: grid;
+  min-height: 0;
+  gap: 12px;
+  padding: 14px 16px;
+  overflow: hidden;
+}
+
+.digital-assignment-state {
+  margin: 0;
+  padding: 22px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 6px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.digital-assignment-candidates {
+  display: grid;
+  min-height: 0;
+  max-height: min(430px, 48vh);
+  gap: 6px;
+  overflow-y: auto;
+}
+
+.digital-assignment-candidate {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+  cursor: pointer;
+}
+
+.digital-assignment-candidate:has(input:checked) {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.digital-assignment-candidate input { accent-color: var(--accent); }
+.digital-assignment-candidate-copy { display: grid; min-width: 0; gap: 2px; }
+.digital-assignment-candidate-copy strong,
+.digital-assignment-candidate-copy small,
+.digital-assignment-candidate-copy > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.digital-assignment-candidate-copy small,
+.digital-assignment-candidate-copy > span { color: var(--muted); font-size: var(--font-size-sm); }
+.digital-assignment-reason {
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
 .digital-comparison-dialog {
   width: min(720px, 100%);
   max-height: min(760px, calc(100vh - 48px));
@@ -871,4 +982,8 @@
   .digital-worklist-filters { overflow-x: auto; }
   .digital-worklist-table-wrap { overflow-x: auto; }
   .digital-worklist-table { min-width: 720px; }
+  .digital-assignment-layer { padding: 12px; }
+  .digital-assignment-dialog { max-height: calc(100vh - 24px); }
+  .digital-assignment-candidate { grid-template-columns: auto minmax(0, 1fr); }
+  .digital-assignment-reason { grid-column: 2; justify-self: start; }
 }

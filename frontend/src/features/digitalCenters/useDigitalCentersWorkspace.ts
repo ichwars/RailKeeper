@@ -58,10 +58,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     (key: string, values?: Record<string, string | number>) => translate(languageRef.current, key, values),
     []
   );
-  const localizedError = useCallback(
-    (error: unknown) => errorMessage(error, workspaceText("digitalCenters.error.requestFailed")),
-    [workspaceText]
-  );
+  const localizedError = useCallback((error: unknown) => {
+    const translationKey = error instanceof ApiError ? digitalCenterErrorTranslationKey(error.code) : null;
+    return translationKey
+      ? workspaceText(translationKey)
+      : errorMessage(error, workspaceText("digitalCenters.error.requestFailed"));
+  }, [workspaceText]);
   const pollIntervalMs = options.pollIntervalMs ?? 1000;
   const mountedRef = useRef(true);
   const selectedProviderRef = useRef<DigitalCenterProvider | null>(null);
@@ -126,14 +128,27 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLoading((current) => ({ ...current, write: false }));
     setErrors((current) => ({ ...current, write: "" }));
   }, []);
-  const clearSessionDependents = useCallback(() => {
+  const suspendSessionActions = useCallback(() => {
+    requestsRef.current.detail += 1;
+    requestsRef.current.write += 1;
+    selectedItemIDRef.current = null;
+    setSelectedItemID(null);
+    setSelectedItem(null);
+    setDialog(null);
+    setWritePreview(null);
+    setWriteConfirmation(null);
+    setLoading((current) => ({ ...current, detail: false, write: false }));
+  }, []);
+  const clearSessionDependents = useCallback((preserveWorklist = false) => {
     requestsRef.current.worklist += 1;
     requestsRef.current.detail += 1;
     requestsRef.current.messages += 1;
     requestsRef.current.write += 1;
     selectedItemIDRef.current = null;
-    setWorkItems(emptyDigitalCenterWorkItemPage);
-    setSessionTotal(0);
+    if (!preserveWorklist) {
+      setWorkItems(emptyDigitalCenterWorkItemPage);
+      setSessionTotal(0);
+    }
     setMessages([]);
     setSelectedItemID(null);
     setSelectedItem(null);
@@ -175,7 +190,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setError("live", "");
     setLoadingArea("live", true);
     try {
-      const status = await api.digitalCenterLiveStatus(provider);
+      const status = normalizeLiveStatus(await api.digitalCenterLiveStatus(provider));
       if (mountedRef.current && requestID === requestsRef.current.live &&
         selectedProviderRef.current === provider) {
         setLiveStatus(status);
@@ -370,9 +385,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       throw error;
     }
     const requestID = ++requestsRef.current.read;
-    readSessionIDRef.current = null;
-    setReadSession(null);
-    clearSessionDependents();
+    suspendSessionActions();
     setError("read", "");
     setError("write", "");
     setLoadingArea("read", true);
@@ -380,7 +393,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       const session = await api.startDigitalCenterReadSession(provider);
       if (mountedRef.current && requestID === requestsRef.current.read &&
         selectedProviderRef.current === provider) {
-        clearSessionDependents();
+        clearSessionDependents(true);
         readSessionIDRef.current = session.id;
         setReadSession(session);
       }
@@ -395,7 +408,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("read", false);
       }
     }
-  }, [actions.canRead, clearSessionDependents, localizedError, setError, setLoadingArea, workspaceText]);
+  }, [actions.canRead, clearSessionDependents, localizedError, setError, setLoadingArea, suspendSessionActions,
+    workspaceText]);
 
   const runLiveMutation = useCallback(async (operation: "start" | "stop") => {
     const provider = selectedProviderRef.current;
@@ -409,9 +423,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLoadingArea("live", true);
     try {
       const sessionID = readSession?.id;
-      const status = operation === "start"
+      const status = normalizeLiveStatus(operation === "start"
         ? await api.startDigitalCenterLive(provider, sessionID)
-        : await api.stopDigitalCenterLive(provider, sessionID);
+        : await api.stopDigitalCenterLive(provider, sessionID));
       if (mountedRef.current && requestID === requestsRef.current.live &&
         selectedProviderRef.current === provider) {
         setLiveStatus(status);
@@ -594,8 +608,23 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   };
 }
 
+function normalizeLiveStatus(status: ECoSLiveStatus): ECoSLiveStatus {
+  if (Array.isArray(status.pulseSamples) && Array.isArray(status.recentEvents)) return status;
+  return {
+    ...status,
+    pulseSamples: status.pulseSamples ?? [],
+    recentEvents: status.recentEvents ?? []
+  };
+}
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+function digitalCenterErrorTranslationKey(code: string) {
+  return code === "digital_center_conflict_unresolved"
+    ? "digitalCenters.error.conflictUnresolved"
+    : null;
 }
 
 function validWriteGrant(preview: DigitalCenterWritePreview) {

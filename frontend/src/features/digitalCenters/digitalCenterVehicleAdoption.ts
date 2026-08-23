@@ -1,4 +1,4 @@
-import type { VehicleExternalMappingInput } from "../../shared/api";
+import type { Vehicle, VehicleExternalMappingInput } from "../../shared/api";
 import {
   ecosVehicleDraftStorageKey,
   emptyVehicle,
@@ -63,4 +63,81 @@ export function openDigitalCenterVehicleDraft(item: DigitalCenterWorkItem) {
   window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(draft));
   window.history.pushState(null, "", "/vehicles?source=ecos");
   window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
+export type DigitalCenterVehicleMatchReason = "mapping" | "address" | "name";
+
+export function digitalCenterVehicleMatchReason(
+  item: DigitalCenterWorkItem,
+  vehicle: Vehicle
+): DigitalCenterVehicleMatchReason | null {
+  if (vehicle.externalMappings?.some((mapping) => (
+    mapping.provider === "ecos" && mapping.externalId === item.centerObjectId
+  ))) {
+    return "mapping";
+  }
+  if (item.decoderAddress > 0 && vehicle.digitalDecoderNumber === String(item.decoderAddress)) {
+    return "address";
+  }
+  const sourceName = comparableVehicleIdentity(item.center.name || item.name);
+  const vehicleName = comparableVehicleIdentity(vehicle.name);
+  const vehicleNumber = comparableVehicleIdentity(vehicle.vehicleNumber);
+  if (sourceName && (
+    vehicleName === sourceName ||
+    vehicleNumber === sourceName ||
+    (vehicleName.length > 0 && sourceName.includes(vehicleName)) ||
+    (vehicleNumber.length > 0 && sourceName.includes(vehicleNumber))
+  )) {
+    return "name";
+  }
+  return null;
+}
+
+export function rankDigitalCenterVehicleCandidates(
+  item: DigitalCenterWorkItem,
+  vehicles: Vehicle[],
+  query: string
+) {
+  const normalizedQuery = comparableVehicleIdentity(query);
+  return vehicles
+    .filter((vehicle) => !normalizedQuery || searchableVehicleIdentity(vehicle).includes(normalizedQuery))
+    .map((vehicle, index) => ({ vehicle, index }))
+    .sort((left, right) => {
+      const rankDifference = matchRank(item, left.vehicle) - matchRank(item, right.vehicle);
+      if (rankDifference !== 0) return rankDifference;
+      const inventoryDifference = left.vehicle.inventoryNumber.localeCompare(
+        right.vehicle.inventoryNumber,
+        undefined,
+        { numeric: true, sensitivity: "base" }
+      );
+      if (inventoryDifference !== 0) return inventoryDifference;
+      const nameDifference = left.vehicle.name.localeCompare(right.vehicle.name, undefined, {
+        sensitivity: "base"
+      });
+      return nameDifference || left.index - right.index;
+    })
+    .map(({ vehicle }) => vehicle);
+}
+
+function matchRank(item: DigitalCenterWorkItem, vehicle: Vehicle) {
+  const reason = digitalCenterVehicleMatchReason(item, vehicle);
+  if (reason === "mapping") return 0;
+  if (reason === "address") return 1;
+  if (reason === "name") return 2;
+  return 3;
+}
+
+function searchableVehicleIdentity(vehicle: Vehicle) {
+  return [
+    vehicle.inventoryNumber,
+    vehicle.name,
+    vehicle.manufacturer,
+    vehicle.articleNumber,
+    vehicle.vehicleNumber,
+    vehicle.digitalDecoderNumber
+  ].map(comparableVehicleIdentity).join(" ");
+}
+
+function comparableVehicleIdentity(value?: string) {
+  return (value || "").toLocaleLowerCase().replace(/[^a-z0-9äöüß]+/g, "");
 }

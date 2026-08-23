@@ -3,6 +3,7 @@ package application
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -12,6 +13,20 @@ import (
 
 	ecospkg "railkeeper/backend/internal/ecos"
 )
+
+func TestECoSLiveStatusSerializesEmptyTelemetryAsArrays(t *testing.T) {
+	status := cloneECoSLiveStatus(ECoSLiveStatus{})
+	payload, err := json.Marshal(status)
+	if err != nil {
+		t.Fatalf("marshal live status: %v", err)
+	}
+	encoded := string(payload)
+	for _, field := range []string{`"pulseSamples":[]`, `"recentEvents":[]`} {
+		if !strings.Contains(encoded, field) {
+			t.Fatalf("live status must serialize empty telemetry as arrays: %s", encoded)
+		}
+	}
+}
 
 func TestECoSLiveTelemetryIsBoundedMaskedAndCopied(t *testing.T) {
 	service := NewECoSService()

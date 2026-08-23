@@ -12,16 +12,20 @@ import type {
 } from "./digitalCenterModel";
 
 export function LocomotiveComparisonDialog({
-  item, canWrite, loading, preview, confirmation, error, onPreview, onConfirm, onClose
+  item, canWrite, canAdopt, loading, preview, confirmation, error, onPreview, onConfirm,
+  onCreateVehicle, onAssignVehicle, onClose
 }: {
   item: DigitalCenterWorkItem;
   canWrite: boolean;
+  canAdopt: boolean;
   loading: boolean;
   preview: DigitalCenterWritePreview | null;
   confirmation: DigitalCenterWriteConfirmation | null;
   error: string;
   onPreview: (fields: DigitalCenterWriteField[]) => Promise<DigitalCenterWritePreview>;
   onConfirm: () => Promise<DigitalCenterWriteConfirmation>;
+  onCreateVehicle: () => void;
+  onAssignVehicle: () => void;
   onClose: () => void;
 }) {
   const { t, language } = useI18n();
@@ -30,6 +34,8 @@ export function LocomotiveComparisonDialog({
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, closeButtonRef);
   const rows = comparisonRows(item, t);
   const changedFields = rows.filter((row) => row.current !== row.desired).map((row) => row.field);
+  const unassigned = item.vehicleId.trim() === "";
+  const adoptable = unassigned && /^\d+$/.test(item.centerObjectId.trim());
   const grantValid = Boolean(preview?.token.trim()) && validExpiry(preview?.expiresAt);
   const verified = confirmation?.result === "verified" && confirmation.applied && confirmation.verified;
 
@@ -68,8 +74,17 @@ export function LocomotiveComparisonDialog({
             onChange={(event) => setConfirmed(event.target.checked)} />}
 
           <footer>
+            {!preview && canAdopt && adoptable && <>
+              <button type="button" className="digital-center-button digital-center-button-primary"
+                onClick={onCreateVehicle}>
+                {t("digitalCenters.assignment.create")}
+              </button>
+              <button type="button" className="digital-center-button" onClick={onAssignVehicle}>
+                {t("digitalCenters.assignment.open")}
+              </button>
+            </>}
             {!preview && <button type="button" className="digital-center-button"
-              disabled={!canWrite || loading || changedFields.length === 0}
+              disabled={!canWrite || unassigned || loading || changedFields.length === 0}
               onClick={() => void onPreview(changedFields).catch(() => undefined)}>
               {t("digitalCenters.write.createPreview")}
             </button>}
@@ -83,6 +98,9 @@ export function LocomotiveComparisonDialog({
           </footer>
           {!canWrite && <p className="digital-write-unavailable">
             {t("digitalCenters.write.unsupported")}
+          </p>}
+          {canWrite && unassigned && <p className="digital-write-unavailable">
+            {t("digitalCenters.write.unassigned")}
           </p>}
         </section>
       </div>
