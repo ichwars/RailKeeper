@@ -827,7 +827,12 @@ func (s *ECoSService) fetchLocomotiveDetails(ctx context.Context, host string, p
 	if len(locomotives) == 0 {
 		return nil, errors.New("keine Detaildaten gelesen")
 	}
-	return &locomotives[0], nil
+	for index := range locomotives {
+		if locomotives[index].ObjectID == objectID {
+			return &locomotives[index], nil
+		}
+	}
+	return nil, errors.New("ECoS-Detailantwort enthält das angeforderte Objekt nicht")
 }
 
 func (s *ECoSService) fetchLocomotiveRawProbes(ctx context.Context, host string, port int, objectID int) ([]ECoSRawCommandProbe, error) {
@@ -993,6 +998,10 @@ func (s *ECoSService) exchangeRequestedGet(ctx context.Context, host string, por
 	_, _ = fmt.Fprintf(conn, "release(%d, view)\r\n", objectID)
 	if len(lines) == 0 {
 		return nil, errors.New("ECoS hat keine Lok-Detailantwort geliefert")
+	}
+	if status, ok := parseECoSEndStatus(lines); !ok {
+		return nil, fmt.Errorf("ECoS-Lok-Detailantwort nicht vollständig bestätigt: %s",
+			firstNonEmpty(status, "fehlender Status"))
 	}
 	return lines, nil
 }

@@ -44,6 +44,19 @@ func TestDigitalCenterWritePreviewAllowsNameOnlyWithExistingAddressCollision(t *
 	}
 }
 
+func TestDigitalCenterWritePreviewFailsClosedWhenTargetIsMissingFromMasterList(t *testing.T) {
+	fixture := newDigitalCenterWriteFixture(t)
+	fixture.ecos.locomotives = []ECoSLocomotive{
+		{ObjectID: 2002, Name: "Other", Address: 99, Protocol: "DCC"},
+	}
+
+	_, err := fixture.service.PreviewWrite(t.Context(), fixture.session.ID, fixture.item.ID,
+		DigitalCenterWritePreviewInput{Fields: []string{"address"}}, "admin-1")
+	if !errors.Is(err, ErrDigitalCenterDeviceOutput) {
+		t.Fatalf("error=%v", err)
+	}
+}
+
 func (stub *digitalCenterWriteECoSStub) ListLocomotives(
 	context.Context,
 	ECoSConnectionInput,

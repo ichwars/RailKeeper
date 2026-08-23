@@ -41,12 +41,17 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 	if len(locomotives) > maxDigitalCenterLocomotives {
 		return ErrDigitalCenterDeviceOutput
 	}
+	targetFound := false
 	for _, locomotive := range locomotives {
 		if locomotive.ObjectID < 1 || locomotive.ObjectID > maxDigitalCenterObjectID ||
 			locomotive.Address < 1 || locomotive.Address > maxDigitalCenterAddress {
 			return ErrDigitalCenterDeviceOutput
 		}
-		if locomotive.ObjectID == target.objectID || locomotive.Address != target.desired.Address {
+		if locomotive.ObjectID == target.objectID {
+			targetFound = true
+			continue
+		}
+		if locomotive.Address != target.desired.Address {
 			continue
 		}
 		return &DigitalCenterAddressConflictError{
@@ -54,6 +59,9 @@ func (service *DigitalCenterWorkspaceService) checkDigitalCenterAddressConflict(
 			Name:     normalizeSafeConflictName(locomotive.Name),
 			Address:  target.desired.Address,
 		}
+	}
+	if !targetFound {
+		return ErrDigitalCenterDeviceOutput
 	}
 	return nil
 }

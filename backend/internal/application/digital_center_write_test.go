@@ -389,6 +389,36 @@ func TestDigitalCenterConfirmWriteRecordsUnknownWhenVerificationReadFails(t *tes
 	}
 }
 
+func TestDigitalCenterConfirmWritePreservesDeviceOutcomeWhenLocalPersistenceFails(t *testing.T) {
+	tests := []struct {
+		name   string
+		mutate func(*digitalCenterWriteFixture)
+	}{
+		{name: "audit", mutate: func(fixture *digitalCenterWriteFixture) {
+			fixture.audit.err = errors.New("audit unavailable")
+		}},
+		{name: "mapping", mutate: func(fixture *digitalCenterWriteFixture) {
+			fixture.vehicles.err = errors.New("mapping unavailable")
+		}},
+		{name: "work item", mutate: func(fixture *digitalCenterWriteFixture) {
+			fixture.repository.updateErr = errors.New("work item unavailable")
+		}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fixture := newDigitalCenterWriteFixture(t)
+			preview := previewDigitalCenterWriteFixture(t, fixture, []string{"name"})
+			test.mutate(fixture)
+
+			result, err := confirmDigitalCenterWriteFixture(t, fixture, preview)
+			if err != nil || result.Result != DigitalCenterWriteUnknown || !result.Applied ||
+				!result.Verified || fixture.ecos.writeCalls != 1 {
+				t.Fatalf("result=%#v err=%v writes=%d", result, err, fixture.ecos.writeCalls)
+			}
+		})
+	}
+}
+
 func TestDigitalCenterConfirmWriteKeepsVerifiedResultWhenResumeFails(t *testing.T) {
 	fixture := newDigitalCenterWriteFixture(t)
 	fixture.ecos.liveStatus = ECoSLiveStatus{Provider: "ecos", State: ECoSLiveRunning, Connected: true}
@@ -541,6 +571,7 @@ type digitalCenterWriteRepositoryStub struct {
 	consumed   bool
 	consumeErr error
 	messages   []DigitalCenterSessionMessage
+	updateErr  error
 }
 
 func (stub *digitalCenterWriteRepositoryStub) CreateSession(
@@ -575,6 +606,9 @@ func (stub *digitalCenterWriteRepositoryStub) UpdateWorkItem(
 	_ context.Context,
 	item DigitalCenterWorkItem,
 ) (DigitalCenterWorkItem, error) {
+	if stub.updateErr != nil {
+		return DigitalCenterWorkItem{}, stub.updateErr
+	}
 	stub.item = item
 	return item, nil
 }
@@ -758,6 +792,7 @@ func (stub *digitalCenterWriteECoSStub) ReadLocomotive(
 
 type digitalCenterWriteVehicleStub struct {
 	mapping *VehicleExternalMapInput
+	err     error
 }
 
 func (*digitalCenterWriteVehicleStub) ListReadOnly(context.Context, string) ([]Vehicle, error) {
@@ -767,6 +802,9 @@ func (*digitalCenterWriteVehicleStub) ListReadOnly(context.Context, string) ([]V
 func (stub *digitalCenterWriteVehicleStub) UpsertExternalMapping(
 	_ context.Context, _ string, input VehicleExternalMapInput, _ string,
 ) (*VehicleExternalMap, error) {
+	if stub.err != nil {
+		return nil, stub.err
+	}
 	copy := input
 	stub.mapping = &copy
 	return &VehicleExternalMap{Provider: input.Provider, ExternalID: input.ExternalID}, nil
@@ -778,6 +816,7 @@ type digitalCenterWriteAuditEntry struct {
 
 type digitalCenterWriteAuditStub struct {
 	entries []digitalCenterWriteAuditEntry
+	err     error
 }
 
 func (stub *digitalCenterWriteAuditStub) RecordAudit(
@@ -786,5 +825,5 @@ func (stub *digitalCenterWriteAuditStub) RecordAudit(
 	stub.entries = append(stub.entries, digitalCenterWriteAuditEntry{
 		actor: actor, action: action, targetType: targetType, targetID: targetID, details: details,
 	})
-	return nil
+	return stub.err
 }

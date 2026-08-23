@@ -282,7 +282,7 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 	result.Result = DigitalCenterWriteVerified
 	result.Message = "Die Änderung wurde geschrieben und verifiziert."
 	if err := service.auditDigitalCenterWrite(ctx, actor, target, fields, result.Result); err != nil {
-		return DigitalCenterWriteConfirmation{}, err
+		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
 	mappings, ok := service.vehicles.(digitalCenterVehicleMappingWriter)
 	if !ok {
@@ -294,14 +294,29 @@ func (service *DigitalCenterWorkspaceService) confirmWriteUnlocked(
 		ExternalProtocol: verifiedLocomotive.Protocol, SyncStatus: "synced",
 	}, strings.TrimSpace(actor))
 	if err != nil {
-		return DigitalCenterWriteConfirmation{}, fmt.Errorf("update verified digital center mapping: %w", err)
+		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
 	updatedItem, err := service.updateVerifiedDigitalCenterWorkItem(ctx, target, verifiedLocomotive)
 	if err != nil {
-		return DigitalCenterWriteConfirmation{}, err
+		return service.digitalCenterLocalPersistenceUnknown(ctx, target, result), nil
 	}
 	result.WorkItem = &updatedItem
 	return result, nil
+}
+
+func (service *DigitalCenterWorkspaceService) digitalCenterLocalPersistenceUnknown(
+	ctx context.Context,
+	target digitalCenterWriteTarget,
+	result DigitalCenterWriteConfirmation,
+) DigitalCenterWriteConfirmation {
+	result.Result = DigitalCenterWriteUnknown
+	result.Message = "Die Geräteänderung wurde verifiziert, aber der lokale Abgleich konnte nicht vollständig gespeichert werden."
+	_ = service.addSessionMessage(ctx, target.session.ID, DigitalCenterSessionMessage{
+		Severity: DigitalCenterMessageWarning, Code: DigitalCenterMessageWriteUnknown,
+		Message:    "Die verifizierte Geräteänderung konnte lokal nicht vollständig gespeichert werden.",
+		NextAction: "Daten neu auslesen und den lokalen Abgleich prüfen.",
+	})
+	return result
 }
 
 func (service *DigitalCenterWorkspaceService) digitalCenterWriteTarget(

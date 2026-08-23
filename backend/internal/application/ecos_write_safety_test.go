@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
+
+	ecospkg "railkeeper/backend/internal/ecos"
 )
 
 func TestECoSListLocomotivesUsesOnlyApprovedMasterFields(t *testing.T) {
@@ -54,6 +57,83 @@ func TestECoSReadLocomotiveUsesTargetedMasterGet(t *testing.T) {
 	if err != nil || locomotive.ObjectID != 1001 || locomotive.Name != "Testlok A" {
 		t.Fatalf("locomotive=%#v err=%v", locomotive, err)
 	}
+}
+
+func TestECoSListLocomotivesRejectsIncompleteAndNegativeReplies(t *testing.T) {
+	tests := map[string][]string{
+		"incomplete": {
+			"<REPLY queryObjects(10, addr, name, protocol)>",
+			`1001 addr[3] name["Testlok A"] protocol[DCC]`,
+		},
+		"rejected": {
+			"<REPLY queryObjects(10, addr, name, protocol)>",
+			`1001 addr[3] name["Testlok A"] protocol[DCC]`,
+			"<END 11 (unsupported)>",
+		},
+	}
+	for name, reply := range tests {
+		t.Run(name, func(t *testing.T) {
+			listener := startECoSTestServer(t, func(string) []string { return reply })
+			defer func() { _ = listener.Close() }()
+			host, port := splitTestAddress(t, listener.Addr().String())
+			service := shortTimeoutECoSService()
+
+			locomotives, err := service.ListLocomotives(
+				t.Context(), ECoSConnectionInput{Host: host, Port: port},
+			)
+			if err == nil || len(locomotives) != 0 {
+				t.Fatalf("locomotives=%#v err=%v", locomotives, err)
+			}
+		})
+	}
+}
+
+func TestECoSReadLocomotiveRejectsIncompleteAndNegativeRepliesWithMatchingData(t *testing.T) {
+	tests := map[string][]string{
+		"incomplete": {
+			"<REPLY get(1001, profile, protocol, name, addr, funcdesc)>",
+			`1001 name["Testlok A"] addr[3] protocol[DCC]`,
+		},
+		"rejected": {
+			"<REPLY get(1001, profile, protocol, name, addr, funcdesc)>",
+			`1001 name["Testlok A"] addr[3] protocol[DCC]`,
+			"<END 11 (unsupported)>",
+		},
+	}
+	for name, detailReply := range tests {
+		t.Run(name, func(t *testing.T) {
+			listener := startECoSTestServer(t, func(command string) []string {
+				switch command {
+				case "request(1001, view)":
+					return []string{"<REPLY request(1001, view)>", "<END 0 (OK)>"}
+				case eCoSLocomotiveDetailCommand(1001):
+					return detailReply
+				case "release(1001, view)":
+					return []string{"<REPLY release(1001, view)>", "<END 0 (OK)>"}
+				default:
+					return nil
+				}
+			})
+			defer func() { _ = listener.Close() }()
+			host, port := splitTestAddress(t, listener.Addr().String())
+			service := shortTimeoutECoSService()
+
+			locomotive, err := service.ReadLocomotive(
+				t.Context(), ECoSConnectionInput{Host: host, Port: port}, 1001,
+			)
+			if err == nil || locomotive.ObjectID != 0 {
+				t.Fatalf("locomotive=%#v err=%v", locomotive, err)
+			}
+		})
+	}
+}
+
+func shortTimeoutECoSService() *ECoSService {
+	timeout := 40 * time.Millisecond
+	service := NewECoSService()
+	service.timeout = timeout
+	service.client = ecospkg.NewClient(timeout)
+	return service
 }
 
 func TestECoSSyncMarksMissingWriteReplyAsUnknown(t *testing.T) {

@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 )
 
 var ErrECoSWriteStateUnknown = errors.New("ECoS write state is unknown")
@@ -18,6 +19,10 @@ func (s *ECoSService) ListLocomotives(
 	lines, err := s.exchange(ctx, target.Host, target.Port, eCoSLocomotiveListCommand)
 	if err != nil {
 		return nil, err
+	}
+	if status, ok := parseECoSEndStatus(lines); !ok {
+		return nil, fmt.Errorf("ECoS-Lokliste nicht vollständig bestätigt: %s",
+			firstNonEmpty(status, "fehlender Status"))
 	}
 	return parseECoSLocomotives(lines), nil
 }
