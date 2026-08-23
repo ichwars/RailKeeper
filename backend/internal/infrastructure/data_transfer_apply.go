@@ -58,7 +58,7 @@ func (repository *DataTransferRepository) ApplyImportWithPolicy(
 	if err != nil {
 		return err
 	}
-	result, err := applyTransferRecords(ctx, tx, job, preview.Records, issues, policy)
+	result, err := applyTransferRecords(ctx, tx, job, preview.Records, preview.CSVMapping, issues, policy)
 	if err != nil {
 		return err
 	}
@@ -255,10 +255,13 @@ func applyTransferRecords(
 	db *sql.Tx,
 	job application.DataTransferJob,
 	records []application.DataTransferPreviewRecord,
+	csvMapping []application.DataTransferCSVColumnMapping,
 	issues []application.DataTransferIssue,
 	policy application.DataTransferImportPolicy,
 ) (dataTransferApplyResult, error) {
 	result := dataTransferApplyResult{}
+	var csvVehicleTargets map[string]application.TransferVehicle
+	csvVehicleTargetsLoaded := false
 	for _, record := range records {
 		recordIssues := transferRecordIssues(issues, record)
 		action, skip := transferRecordAction(record, recordIssues)
@@ -273,7 +276,27 @@ func applyTransferRecords(
 		var err error
 		switch record.Area {
 		case application.TransferVehicles:
-			err = applyTransferVehicle(ctx, db, record, action, job.PackageVersion)
+			var existingCSVVehicle *application.TransferVehicle
+			if action == "replace" && len(csvMapping) > 0 &&
+				job.PackageVersion != application.DataTransferPackageLegacyVersion {
+				if !csvVehicleTargetsLoaded {
+					vehicles, snapshotErr := transferVehicleSnapshot(ctx, db)
+					if snapshotErr != nil {
+						return dataTransferApplyResult{}, snapshotErr
+					}
+					csvVehicleTargets = make(map[string]application.TransferVehicle, len(vehicles))
+					for _, vehicle := range vehicles {
+						csvVehicleTargets[vehicle.ID] = vehicle
+					}
+					csvVehicleTargetsLoaded = true
+				}
+				if existing, found := csvVehicleTargets[record.TargetID]; found {
+					existingCSVVehicle = &existing
+				}
+			}
+			err = applyTransferVehicle(
+				ctx, db, record, action, job.PackageVersion, csvMapping, existingCSVVehicle,
+			)
 		case application.TransferAccessories:
 			err = applyTransferAccessory(ctx, db, record, action)
 		case application.TransferExhibitionLists:
@@ -337,10 +360,12 @@ func transferRecordAction(
 
 func applyTransferVehicle(
 	ctx context.Context,
-	db dataTransferApplyDB,
+	db *sql.Tx,
 	record application.DataTransferPreviewRecord,
 	action string,
 	packageVersion int,
+	csvMapping []application.DataTransferCSVColumnMapping,
+	existingCSVVehicle *application.TransferVehicle,
 ) error {
 	vehicle := application.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
@@ -358,9 +383,9 @@ func applyTransferVehicle(
 		vehicle.InventoryNumber = inventoryNumber
 		action = "create"
 	}
-	arguments := transferVehicleArguments(vehicle, now)
 	switch action {
 	case "create":
+		arguments := transferVehicleArguments(vehicle, now)
 		_, err := db.ExecContext(ctx, `
 INSERT INTO vehicles(
   id, inventory_number, manufacturer, article_number, article_source_url, name, gauge, epoch, railway_company,
@@ -382,6 +407,7 @@ INSERT INTO vehicles(
 			return dataTransferApplyConflict("vehicle replacement target is missing")
 		}
 		if packageVersion == application.DataTransferPackageLegacyVersion {
+			arguments := transferVehicleArguments(vehicle, now)
 			result, err := db.ExecContext(ctx, `
 UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
   epoch=?, railway_company=?, category=?, gattung=?, description=?, series=?, vehicle_number=?, maximum_speed_kmh=?,
@@ -395,6 +421,19 @@ WHERE id=?`, append(append(arguments[0:35], now), record.TargetID)...)
 			}
 			return requireApplyUpdate(result, "replace legacy vehicle")
 		}
+		if len(csvMapping) > 0 {
+			if existingCSVVehicle == nil {
+				return dataTransferApplyConflict("vehicle replacement target is missing")
+			}
+			merged, err := application.PreserveUnmappedTransferVehicleFields(
+				vehicle, *existingCSVVehicle, csvMapping,
+			)
+			if err != nil {
+				return err
+			}
+			vehicle = merged
+		}
+		arguments := transferVehicleArguments(vehicle, now)
 		result, err := db.ExecContext(ctx, `
 UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, article_source_url=?, name=?, gauge=?,
   epoch=?, railway_company=?, category=?, gattung=?, description=?, series=?, vehicle_number=?, maximum_speed_kmh=?,

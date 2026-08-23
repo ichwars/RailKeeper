@@ -1,6 +1,7 @@
 package application
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -143,6 +144,58 @@ func VehicleTransferFieldByKey(key string) (VehicleTransferField, bool) {
 	return VehicleTransferField{}, false
 }
 
+func PreserveUnmappedTransferVehicleFields(
+	incoming TransferVehicle,
+	existing TransferVehicle,
+	mapping []DataTransferCSVColumnMapping,
+) (TransferVehicle, error) {
+	mappedFields := make(map[string]bool, len(mapping))
+	for _, column := range mapping {
+		if column.TargetField != "" {
+			mappedFields[column.TargetField] = true
+		}
+	}
+	existingValues, err := transferVehicleJSONFields(existing)
+	if err != nil {
+		return TransferVehicle{}, err
+	}
+	incomingValues, err := transferVehicleJSONFields(incoming)
+	if err != nil {
+		return TransferVehicle{}, err
+	}
+	for _, field := range vehicleTransferFields {
+		if mappedFields[field.Key] {
+			continue
+		}
+		if value, found := existingValues[field.Key]; found {
+			incomingValues[field.Key] = value
+		} else {
+			delete(incomingValues, field.Key)
+		}
+	}
+	payload, err := json.Marshal(incomingValues)
+	if err != nil {
+		return TransferVehicle{}, fmt.Errorf("encode merged transfer vehicle: %w", err)
+	}
+	merged := TransferVehicle{}
+	if err := json.Unmarshal(payload, &merged); err != nil {
+		return TransferVehicle{}, fmt.Errorf("decode merged transfer vehicle: %w", err)
+	}
+	return merged, nil
+}
+
+func transferVehicleJSONFields(vehicle TransferVehicle) (map[string]json.RawMessage, error) {
+	payload, err := json.Marshal(vehicle)
+	if err != nil {
+		return nil, fmt.Errorf("encode transfer vehicle fields: %w", err)
+	}
+	fields := map[string]json.RawMessage{}
+	if err := json.Unmarshal(payload, &fields); err != nil {
+		return nil, fmt.Errorf("decode transfer vehicle fields: %w", err)
+	}
+	return fields, nil
+}
+
 func defaultDataTransferCSVMapping(
 	header []string,
 	profileDefaults map[string]string,
@@ -258,11 +311,14 @@ func validateDataTransferCSVMapping(header []string, mapping []DataTransferCSVCo
 		if !validOrigins[column.Origin] {
 			return fmt.Errorf("%w: invalid CSV mapping origin", ErrDataTransferValidation)
 		}
-		if column.TargetField == "" {
-			if column.Origin != CSVMappingIgnored && column.Origin != CSVMappingUnmapped {
-				return fmt.Errorf("%w: empty CSV target must be ignored or unmapped", ErrDataTransferValidation)
+		if column.Origin == CSVMappingIgnored || column.Origin == CSVMappingUnmapped {
+			if column.TargetField != "" {
+				return fmt.Errorf("%w: ignored or unmapped CSV column must not have a target", ErrDataTransferValidation)
 			}
 			continue
+		}
+		if column.TargetField == "" {
+			return fmt.Errorf("%w: mapped CSV column must have a target", ErrDataTransferValidation)
 		}
 		if _, ok := VehicleTransferFieldByKey(column.TargetField); !ok {
 			return fmt.Errorf("%w: unsupported CSV target %q", ErrDataTransferValidation, column.TargetField)
@@ -271,6 +327,19 @@ func validateDataTransferCSVMapping(header []string, mapping []DataTransferCSVCo
 			return fmt.Errorf("%w: repeated CSV target %q", ErrDataTransferValidation, column.TargetField)
 		}
 		seenTargets[column.TargetField] = true
+	}
+	return nil
+}
+
+func validateRequestedDataTransferCSVMapping(mapping []DataTransferCSVColumnMapping) error {
+	for _, column := range mapping {
+		if column.Origin == CSVMappingUnmapped || (column.TargetField == "" && column.Origin != CSVMappingIgnored) {
+			return fmt.Errorf(
+				"%w: CSV column %q must be mapped or explicitly ignored",
+				ErrDataTransferValidation,
+				column.SourceHeader,
+			)
+		}
 	}
 	return nil
 }

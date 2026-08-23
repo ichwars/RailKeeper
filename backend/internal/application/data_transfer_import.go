@@ -1,7 +1,6 @@
 package application
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -672,20 +671,54 @@ func parseDataTransferUpload(
 }
 
 func decodeDataTransferPackage(reader io.Reader) (DataTransferPackage, error) {
-	decoder := json.NewDecoder(bufio.NewReader(reader))
-	decoder.DisallowUnknownFields()
-	document := DataTransferPackage{}
-	if err := decoder.Decode(&document); err != nil {
+	envelope := struct {
+		Format    string          `json:"format"`
+		Version   int             `json:"version"`
+		CreatedAt string          `json:"createdAt"`
+		Areas     json.RawMessage `json:"areas"`
+	}{}
+	if err := decodeStrictTransferJSON(reader, &envelope); err != nil {
 		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
 	}
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		return DataTransferPackage{}, fmt.Errorf("%w: transfer package has trailing data", ErrDataTransferValidation)
-	}
-	if document.Format != DataTransferPackageFormat ||
-		(document.Version != DataTransferPackageLegacyVersion && document.Version != DataTransferPackageVersion) {
+	if envelope.Format != DataTransferPackageFormat ||
+		(envelope.Version != DataTransferPackageLegacyVersion && envelope.Version != DataTransferPackageVersion) {
 		return DataTransferPackage{}, fmt.Errorf("%w: unsupported transfer package format or version", ErrDataTransferValidation)
 	}
+	document := DataTransferPackage{
+		Format: envelope.Format, Version: envelope.Version, CreatedAt: envelope.CreatedAt,
+	}
+	if envelope.Version == DataTransferPackageVersion {
+		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &document.Areas); err != nil {
+			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+		}
+		return document, nil
+	}
+	legacyAreas := dataTransferPackageAreasV1{}
+	if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &legacyAreas); err != nil {
+		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+	}
+	document.Areas = DataTransferPackageAreas{
+		Accessories: legacyAreas.Accessories, ExhibitionLists: legacyAreas.ExhibitionLists,
+	}
+	if legacyAreas.Vehicles != nil {
+		document.Areas.Vehicles = make([]TransferVehicle, len(legacyAreas.Vehicles))
+		for index, vehicle := range legacyAreas.Vehicles {
+			document.Areas.Vehicles[index] = transferVehicleFromV1(vehicle)
+		}
+	}
 	return document, nil
+}
+
+func decodeStrictTransferJSON(reader io.Reader, target any) error {
+	decoder := json.NewDecoder(reader)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(target); err != nil {
+		return err
+	}
+	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+		return errors.New("trailing JSON data")
+	}
+	return nil
 }
 
 func validateDataTransferPackageSelection(areas DataTransferPackageAreas, selected []TransferArea) error {

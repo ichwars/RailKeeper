@@ -586,7 +586,7 @@ func safeDataTransferCSVRow(values []string) []string {
 	protected := make([]string, len(values))
 	for index, value := range values {
 		candidate := strings.TrimLeftFunc(value, unicode.IsSpace)
-		if candidate != "" && strings.ContainsRune("=+-@", rune(candidate[0])) {
+		if candidate != "" && (candidate[0] == '\'' || strings.ContainsRune("=+-@", rune(candidate[0]))) {
 			value = "'" + value
 		}
 		protected[index] = value

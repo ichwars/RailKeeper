@@ -59,3 +59,30 @@ func TestDataTransferCSVMappingRejectsDuplicateTargets(t *testing.T) {
 		t.Fatalf("duplicate target error = %v, want validation error", err)
 	}
 }
+
+func TestRequestedDataTransferCSVMappingRejectsUnresolvedColumns(t *testing.T) {
+	header := []string{"Inventarnummer", "Vereinsnotiz"}
+	mapping := []DataTransferCSVColumnMapping{
+		{Index: 0, SourceHeader: header[0], NormalizedHeader: "inventarnummer", TargetField: "inventoryNumber", Origin: CSVMappingAlias},
+		{Index: 1, SourceHeader: header[1], NormalizedHeader: "vereinsnotiz", Origin: CSVMappingUnmapped},
+	}
+	if err := validateRequestedDataTransferCSVMapping(mapping); !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("unresolved mapping error = %v, want validation error", err)
+	}
+
+	mapping[1].Origin = CSVMappingIgnored
+	if err := validateRequestedDataTransferCSVMapping(mapping); err != nil {
+		t.Fatalf("explicitly ignored mapping error = %v, want nil", err)
+	}
+}
+
+func TestDataTransferCSVMappingRejectsIgnoredColumnWithTarget(t *testing.T) {
+	header := []string{"Vereinsnotiz"}
+	mapping := []DataTransferCSVColumnMapping{{
+		Index: 0, SourceHeader: header[0], NormalizedHeader: "vereinsnotiz",
+		TargetField: "additionalInfo", Origin: CSVMappingIgnored,
+	}}
+	if err := validateDataTransferCSVMapping(header, mapping); !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("ignored mapping with target error = %v, want validation error", err)
+	}
+}

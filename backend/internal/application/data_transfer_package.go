@@ -21,6 +21,12 @@ type DataTransferPackageAreas struct {
 	ExhibitionLists []TransferExhibitionList `json:"exhibitionLists,omitempty"`
 }
 
+type dataTransferPackageAreasV1 struct {
+	Vehicles        []transferVehicleV1      `json:"vehicles,omitempty"`
+	Accessories     []TransferAccessory      `json:"accessories,omitempty"`
+	ExhibitionLists []TransferExhibitionList `json:"exhibitionLists,omitempty"`
+}
+
 // MarshalJSON preserves a selected but empty area as [] while omitting areas that were not selected.
 func (areas DataTransferPackageAreas) MarshalJSON() ([]byte, error) {
 	type areaDocument struct {
@@ -161,6 +167,25 @@ type transferVehicleV1 struct {
 
 func legacyTransferVehicle(vehicle TransferVehicle) transferVehicleV1 {
 	return transferVehicleV1{
+		ID: vehicle.ID, InventoryNumber: vehicle.InventoryNumber, Manufacturer: vehicle.Manufacturer,
+		ArticleNumber: vehicle.ArticleNumber, ArticleSourceURL: vehicle.ArticleSourceURL, Name: vehicle.Name,
+		Gauge: vehicle.Gauge, Epoch: vehicle.Epoch, RailwayCompany: vehicle.RailwayCompany,
+		Category: vehicle.Category, Gattung: vehicle.Gattung, Description: vehicle.Description,
+		Series: vehicle.Series, VehicleNumber: vehicle.VehicleNumber, MaximumSpeedKmh: vehicle.MaximumSpeedKmh,
+		HomeBase: vehicle.HomeBase, Digital: vehicle.Digital, DigitalDecoderNumber: vehicle.DigitalDecoderNumber,
+		DTDecoder: vehicle.DTDecoder, DTDecoderNumber: vehicle.DTDecoderNumber, DecoderType: vehicle.DecoderType,
+		ExhibitionReady: vehicle.ExhibitionReady, Exhibition: vehicle.Exhibition, ABCBrakes: vehicle.ABCBrakes,
+		EAN: vehicle.EAN, ProductionPeriod: vehicle.ProductionPeriod, ListPrice: vehicle.ListPrice,
+		AcquisitionType: vehicle.AcquisitionType, AcquiredFrom: vehicle.AcquiredFrom,
+		PurchasePrice: vehicle.PurchasePrice, PurchaseDate: vehicle.PurchaseDate,
+		StorageLocation: vehicle.StorageLocation, StorageDetails: vehicle.StorageDetails,
+		Condition: vehicle.Condition, ConditionDetails: vehicle.ConditionDetails, Packaging: vehicle.Packaging,
+		CreatedAt: vehicle.CreatedAt, UpdatedAt: vehicle.UpdatedAt,
+	}
+}
+
+func transferVehicleFromV1(vehicle transferVehicleV1) TransferVehicle {
+	return TransferVehicle{
 		ID: vehicle.ID, InventoryNumber: vehicle.InventoryNumber, Manufacturer: vehicle.Manufacturer,
 		ArticleNumber: vehicle.ArticleNumber, ArticleSourceURL: vehicle.ArticleSourceURL, Name: vehicle.Name,
 		Gauge: vehicle.Gauge, Epoch: vehicle.Epoch, RailwayCompany: vehicle.RailwayCompany,

@@ -141,6 +141,13 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 		application.DataTransferCSVMappingInput{Columns: preview.CSVMapping, SaveToProfile: true})
 	assertStatus(t, uploaded, http.StatusOK)
 	decodeResponse(t, uploaded, &preview)
+	profiles, err := service.ListProfiles(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(profiles) != 1 || profiles[0].Options["csvMapping"] == nil {
+		t.Fatalf("file-first multipart mapping was not saved: %#v", profiles)
+	}
 
 	resolved := layoutRequest(t, router, editor, http.MethodPut,
 		"/api/v1/data-transfer/jobs/"+job.ID+"/issues/"+preview.Issues[0].ID,
@@ -535,14 +542,14 @@ func dataTransferMultipartMappingRequest(
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := writer.WriteField("mapping", string(mappingPayload)); err != nil {
-		t.Fatal(err)
-	}
 	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := part.Write(payload); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.WriteField("mapping", string(mappingPayload)); err != nil {
 		t.Fatal(err)
 	}
 	if err := writer.Close(); err != nil {

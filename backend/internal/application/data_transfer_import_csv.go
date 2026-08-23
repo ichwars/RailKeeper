@@ -87,6 +87,11 @@ func parseDataTransferCSVWithMapping(
 		if err := validateDataTransferCSVMapping(rows[0], mapping); err != nil {
 			return DataTransferSnapshot{}, nil, nil, err
 		}
+		if requested != nil {
+			if err := validateRequestedDataTransferCSVMapping(mapping); err != nil {
+				return DataTransferSnapshot{}, nil, nil, err
+			}
+		}
 	} else {
 		fields, err := resolveDataTransferCSVHeader(rows[0], aliases)
 		if err != nil {
@@ -116,7 +121,7 @@ func parseDataTransferCSVWithMapping(
 		row := make(map[string]string, len(mapping))
 		for _, column := range mapping {
 			if column.TargetField != "" {
-				row[column.TargetField] = strings.TrimSpace(values[column.Index])
+				row[column.TargetField] = decodeSafeDataTransferCSVValue(strings.TrimSpace(values[column.Index]))
 			}
 		}
 		switch area {
@@ -204,10 +209,46 @@ func transferCSVRowEmpty(values []string) bool {
 	return true
 }
 
+func decodeSafeDataTransferCSVValue(value string) string {
+	if len(value) < 2 || value[0] != '\'' {
+		return value
+	}
+	decoded := value[1:]
+	candidate := strings.TrimLeftFunc(decoded, unicode.IsSpace)
+	if candidate != "" && (candidate[0] == '\'' || strings.ContainsRune("=+-@", rune(candidate[0]))) {
+		return decoded
+	}
+	return value
+}
+
 func transferVehicleFromCSV(row map[string]string, rowNumber int) (TransferVehicle, error) {
 	maximumSpeed, err := parseTransferCSVOptionalInteger(row["maximumSpeedKmh"], rowNumber, "Höchstgeschwindigkeit")
 	if err != nil {
 		return TransferVehicle{}, err
+	}
+	booleanValues := make(map[string]bool, 13)
+	for _, field := range []struct {
+		key   string
+		label string
+	}{
+		{key: "digital", label: "Digital"},
+		{key: "dtDecoder", label: "D&T-Decoder"},
+		{key: "exhibitionReady", label: "Ausstellungsbereit"},
+		{key: "exhibition", label: "Ausstellung"},
+		{key: "abcBrakes", label: "ABC-Bremsen"},
+		{key: "couplingSame", label: "Kupplungen identisch"},
+		{key: "driveEnabled", label: "Antrieb vorhanden"},
+		{key: "headlightsEnabled", label: "Spitzenlicht vorhanden"},
+		{key: "lightingEnabled", label: "Beleuchtung vorhanden"},
+		{key: "soundGeneratorEnabled", label: "Soundgenerator vorhanden"},
+		{key: "smokeGeneratorEnabled", label: "Rauchgenerator vorhanden"},
+		{key: "qrCodeEnabled", label: "QR-Code aktiviert"},
+	} {
+		parsed, parseErr := parseTransferCSVBoolean(row[field.key], rowNumber, field.label)
+		if parseErr != nil {
+			return TransferVehicle{}, parseErr
+		}
+		booleanValues[field.key] = parsed
 	}
 	return TransferVehicle{
 		InventoryNumber: row["inventoryNumber"], Manufacturer: row["manufacturer"],
@@ -215,12 +256,12 @@ func transferVehicleFromCSV(row map[string]string, rowNumber int) (TransferVehic
 		Gauge: row["gauge"], Epoch: row["epoch"], RailwayCompany: row["railwayCompany"],
 		Category: row["category"], Gattung: row["gattung"], Description: row["description"],
 		Series: row["series"], VehicleNumber: row["vehicleNumber"], MaximumSpeedKmh: maximumSpeed,
-		HomeBase: row["homeBase"], Digital: parseTransferCSVBoolean(row["digital"]),
+		HomeBase: row["homeBase"], Digital: booleanValues["digital"],
 		DigitalDecoderNumber: row["digitalDecoderNumber"], DecoderType: row["decoderType"],
-		DTDecoder: parseTransferCSVBoolean(row["dtDecoder"]), DTDecoderNumber: row["dtDecoderNumber"],
-		ExhibitionReady: parseTransferCSVBoolean(row["exhibitionReady"]),
-		Exhibition:      parseTransferCSVBoolean(row["exhibition"]),
-		ABCBrakes:       parseTransferCSVBoolean(row["abcBrakes"]), EAN: row["ean"],
+		DTDecoder: booleanValues["dtDecoder"], DTDecoderNumber: row["dtDecoderNumber"],
+		ExhibitionReady: booleanValues["exhibitionReady"],
+		Exhibition:      booleanValues["exhibition"],
+		ABCBrakes:       booleanValues["abcBrakes"], EAN: row["ean"],
 		ProductionPeriod: row["productionPeriod"], ListPrice: row["listPrice"],
 		AcquisitionType: row["acquisitionType"], AcquiredFrom: row["acquiredFrom"],
 		PurchasePrice: row["purchasePrice"], PurchaseDate: row["purchaseDate"],
@@ -229,18 +270,18 @@ func transferVehicleFromCSV(row map[string]string, rowNumber int) (TransferVehic
 		LengthMM: row["lengthMm"], WeightG: row["weightG"], Color: row["color"], Lettering: row["lettering"],
 		Load: row["load"], Interior: row["interior"], Axles: row["axles"], AxleCount: row["axleCount"],
 		TractionTireCount: row["tractionTireCount"], Wheelset: row["wheelset"],
-		CouplingSame: parseTransferCSVBoolean(row["couplingSame"]), CouplingFront: row["couplingFront"],
+		CouplingSame: booleanValues["couplingSame"], CouplingFront: row["couplingFront"],
 		CouplingRear: row["couplingRear"], PowerPickup: row["powerPickup"], Adapter: row["adapter"],
-		DriveEnabled: parseTransferCSVBoolean(row["driveEnabled"]), DriveDescription: row["driveDescription"],
-		HeadlightsEnabled:         parseTransferCSVBoolean(row["headlightsEnabled"]),
+		DriveEnabled: booleanValues["driveEnabled"], DriveDescription: row["driveDescription"],
+		HeadlightsEnabled:         booleanValues["headlightsEnabled"],
 		HeadlightsDescription:     row["headlightsDescription"],
-		LightingEnabled:           parseTransferCSVBoolean(row["lightingEnabled"]),
+		LightingEnabled:           booleanValues["lightingEnabled"],
 		LightingDescription:       row["lightingDescription"],
-		SoundGeneratorEnabled:     parseTransferCSVBoolean(row["soundGeneratorEnabled"]),
+		SoundGeneratorEnabled:     booleanValues["soundGeneratorEnabled"],
 		SoundGeneratorDescription: row["soundGeneratorDescription"],
-		SmokeGeneratorEnabled:     parseTransferCSVBoolean(row["smokeGeneratorEnabled"]),
+		SmokeGeneratorEnabled:     booleanValues["smokeGeneratorEnabled"],
 		SmokeGeneratorDescription: row["smokeGeneratorDescription"], AdditionalInfo: row["additionalInfo"],
-		QRCodeEnabled: parseTransferCSVBoolean(row["qrCodeEnabled"]),
+		QRCodeEnabled: booleanValues["qrCodeEnabled"],
 	}, nil
 }
 
@@ -255,13 +296,14 @@ func parseTransferCSVOptionalInteger(value string, rowNumber int, field string) 
 	return &parsed, nil
 }
 
-func parseTransferCSVBoolean(value string) bool {
+func parseTransferCSVBoolean(value string, rowNumber int, field string) (bool, error) {
 	switch strings.ToLower(strings.TrimSpace(value)) {
 	case "1", "ja", "yes", "true", "wahr", "digital", "d", "x", "vorhanden":
-		return true
-	default:
-		return false
+		return true, nil
+	case "", "0", "nein", "no", "false", "falsch", "analog", "a", "nicht vorhanden":
+		return false, nil
 	}
+	return false, fmt.Errorf("%w: invalid %s in CSV row %d", ErrDataTransferValidation, field, rowNumber)
 }
 
 func transferAccessoryFromCSV(row map[string]string, rowNumber int) (TransferAccessory, error) {

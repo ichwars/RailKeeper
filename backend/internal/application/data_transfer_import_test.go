@@ -111,7 +111,7 @@ func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
 		DriveEnabled: true, DriveDescription: "Kardan", HeadlightsEnabled: true,
 		HeadlightsDescription: "Dreilicht", LightingEnabled: true, LightingDescription: "LED",
 		SoundGeneratorEnabled: true, SoundGeneratorDescription: "Diesel", SmokeGeneratorEnabled: true,
-		SmokeGeneratorDescription: "Dynamisch", AdditionalInfo: "Clubbestand", QRCodeEnabled: true,
+		SmokeGeneratorDescription: "Dynamisch", AdditionalInfo: "-Clubbestand", QRCodeEnabled: true,
 	}
 	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{want}})
 	if err != nil {
@@ -129,6 +129,33 @@ func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
 		!got.SoundGeneratorEnabled || got.AdditionalInfo != want.AdditionalInfo || !got.QRCodeEnabled ||
 		got.MaximumSpeedKmh == nil || *got.MaximumSpeedKmh != maximumSpeed {
 		t.Fatalf("vehicle round trip lost extended fields: %#v", got)
+	}
+}
+
+func TestDataTransferCSVProtectionRoundTrip(t *testing.T) {
+	for _, value := range []string{"=x", "  =x", "'=x", "''=x", "+x", "-x", "@x"} {
+		t.Run(value, func(t *testing.T) {
+			encoded := safeDataTransferCSVRow([]string{value})[0]
+			decoded := decodeSafeDataTransferCSVValue(strings.TrimSpace(encoded))
+			if decoded != value {
+				t.Fatalf("CSV protection round trip = %q, want %q (encoded %q)", decoded, value, encoded)
+			}
+		})
+	}
+}
+
+func TestDataTransferVehicleCSVRejectsUnknownBooleanValue(t *testing.T) {
+	payload := strings.Join([]string{
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung;Digital",
+		"RK-BOOL;Roco;BR 218;H0;Lokomotive;Diesellokomotive;treu",
+	}, "\n")
+
+	_, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	if !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("unknown boolean error = %v, want validation error", err)
+	}
+	if err == nil || !strings.Contains(err.Error(), "Digital") || !strings.Contains(err.Error(), "row 2") {
+		t.Fatalf("unknown boolean error lacks field or row context: %v", err)
 	}
 }
 
@@ -193,6 +220,17 @@ func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
 	}
 	if document.Version != DataTransferPackageLegacyVersion || document.Areas.Vehicles == nil {
 		t.Fatalf("legacy package decoded incorrectly: %#v", document)
+	}
+}
+
+func TestTransferImportRejectsVersionTwoVehicleFieldsInLegacyPackage(t *testing.T) {
+	_, err := decodeDataTransferPackage(strings.NewReader(
+		`{"format":"railkeeper-transfer","version":1,"areas":{"vehicles":[{` +
+			`"inventoryNumber":"RK-LEGACY","manufacturer":"Roco","name":"BR 218","gauge":"H0",` +
+			`"lengthMm":"181"}]}}`,
+	))
+	if !errors.Is(err, ErrDataTransferValidation) {
+		t.Fatalf("version 2 field in legacy package error = %v, want validation error", err)
 	}
 }
 

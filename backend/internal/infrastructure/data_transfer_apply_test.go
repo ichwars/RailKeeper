@@ -1243,6 +1243,77 @@ func TestDataTransferApplyLegacyVehicleReplacementPreservesExtendedFieldsAndFing
 	}
 }
 
+func TestDataTransferApplyPartialCSVReplacementPreservesUnmappedVehicleFields(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	const timestamp = "2026-01-01T00:00:00Z"
+	if _, err := db.Exec(`INSERT INTO vehicles(
+		id, inventory_number, manufacturer, name, gauge, category, gattung,
+		length_mm, drive_enabled, additional_info, created_at, updated_at
+	) VALUES('vehicle-partial-csv', 'RK-PARTIAL', 'Roco', 'Alt', 'H0', 'Lokomotive', 'Diesellokomotive',
+		'181', 1, 'Nicht überschreiben', ?, ?)`, timestamp, timestamp); err != nil {
+		t.Fatal(err)
+	}
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	target := snapshot.Vehicles[0]
+	incoming := application.TransferVehicle{
+		InventoryNumber: target.InventoryNumber, Manufacturer: "Piko", Name: "Neu", Gauge: "H0",
+		Category: "Lokomotive", Gattung: "Diesellokomotive",
+	}
+	data, err := json.Marshal(incoming)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record := application.DataTransferPreviewRecord{
+		Area: application.TransferVehicles, RecordKey: target.InventoryNumber, Classification: "warning",
+		ProposedAction: "replace", TargetID: target.ID, TargetUpdatedAt: target.UpdatedAt,
+		TargetFingerprint: applyTargetFingerprint(t, target), Data: data,
+	}
+	mapping := []application.DataTransferCSVColumnMapping{}
+	for index, field := range []string{"inventoryNumber", "manufacturer", "name", "gauge", "category", "gattung"} {
+		mapping = append(mapping, application.DataTransferCSVColumnMapping{
+			Index: index, SourceHeader: field, NormalizedHeader: field, TargetField: field,
+			Origin: application.CSVMappingManual,
+		})
+	}
+	const sourceSHA = "sha-partial-csv"
+	job, err := repository.CreateJob(t.Context(), application.DataTransferJob{
+		ProfileName: "Partial CSV", Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobReady,
+		Stage: "preview", SourceName: "partial.csv", SourceSHA256: sourceSHA,
+		PackageVersion: application.DataTransferPackageVersion, TotalRecords: 1, WarningRecords: 1,
+		Preview: map[string]any{
+			"sourceSha256": sourceSHA, "fingerprintVersion": application.DataTransferTargetFingerprintVersion,
+			"records": []application.DataTransferPreviewRecord{record}, "csvMapping": mapping,
+		},
+		CreatedByUserID: "editor-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolveApplyIssue(t, repository, job.ID, record, "duplicate_inventory_number", "replace")
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var name, manufacturer, lengthMM, additionalInfo string
+	var driveEnabled int
+	if err := db.QueryRow(`SELECT name, manufacturer, length_mm, drive_enabled, additional_info
+		FROM vehicles WHERE id='vehicle-partial-csv'`).Scan(
+		&name, &manufacturer, &lengthMM, &driveEnabled, &additionalInfo,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if name != "Neu" || manufacturer != "Piko" || lengthMM != "181" || driveEnabled != 1 ||
+		additionalInfo != "Nicht überschreiben" {
+		t.Fatalf("partial CSV replacement lost data: name=%q manufacturer=%q length=%q drive=%d info=%q",
+			name, manufacturer, lengthMM, driveEnabled, additionalInfo)
+	}
+}
+
 func createApplyJob(
 	t *testing.T,
 	repository *infrastructure.DataTransferRepository,
