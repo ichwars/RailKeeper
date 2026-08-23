@@ -1524,7 +1524,7 @@ export const api = {
 		return request<VehicleSet>(`/vehicle-sets/${encodeURIComponent(id)}/image`, {
 			method: "POST",
 			body: form
-		});
+		}, { timeoutMs: 30000 });
 	},
 	deleteVehicleSetImage: (id: string) =>
 		request<void>(`/vehicle-sets/${encodeURIComponent(id)}/image`, { method: "DELETE" }),

@@ -81,7 +81,10 @@ describe("VehicleSetEditorDialog", () => {
 		const upload = vi.spyOn(api, "uploadVehicleSetImage").mockResolvedValue({
 			...fixture, mainImageMode: "dedicated"
 		});
-		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
+		const onUpdated = vi.fn();
+		const onImageChanged = vi.fn();
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={onUpdated}
+			onImageChanged={onImageChanged} />);
 
 		await user.click(await screen.findByRole("tab", { name: "Upload" }));
 		expect(screen.getByRole("heading", { name: /Hauptbild/ })).toBeVisible();
@@ -96,5 +99,31 @@ describe("VehicleSetEditorDialog", () => {
 
 		await user.click(screen.getByRole("button", { name: /Automatische Auswahl verwenden/ }));
 		expect(choose).toHaveBeenCalledWith("set-1", { mode: "automatic" });
+		expect(onUpdated).not.toHaveBeenCalled();
+		expect(onImageChanged).toHaveBeenCalledTimes(3);
+	});
+
+	it("allows an existing dedicated image to be selected again", async () => {
+		const user = userEvent.setup();
+		const fixture = {
+			...setFixture,
+			mainImageMode: "automatic" as const,
+			dedicatedImage: {
+				url: "/set-image", thumbnailUrl: "/set-image-thumb", fileName: "set.jpg",
+				mimeType: "image/jpeg", createdAt: "2026-08-01T00:00:00Z", updatedAt: "2026-08-01T00:00:00Z"
+			}
+		};
+		vi.spyOn(api, "vehicleSet").mockResolvedValue(fixture);
+		const choose = vi.spyOn(api, "setVehicleSetMainImage").mockResolvedValue({
+			...fixture,
+			mainImageMode: "dedicated",
+			mainImage: { source: "dedicated", url: "/set-image", thumbnailUrl: "/set-image-thumb" }
+		});
+		render(<VehicleSetEditorDialog setId="set-1" onClose={vi.fn()} onUpdated={vi.fn()} />);
+
+		await user.click(await screen.findByRole("tab", { name: "Upload" }));
+		await user.click(screen.getByRole("button", { name: "Eigenes Setbild verwenden" }));
+
+		expect(choose).toHaveBeenCalledWith("set-1", { mode: "dedicated" });
 	});
 });

@@ -1565,6 +1565,7 @@ export const deTranslations: Record<string, string> = {
 		"vehicles.set.mainImage.availableCount": "Verfügbare Bilder: {count}",
 		"vehicles.set.mainImage.automatic": "Automatische Auswahl verwenden",
 		"vehicles.set.mainImage.upload": "Eigenes Setbild hochladen",
+		"vehicles.set.mainImage.useDedicated": "Eigenes Setbild verwenden",
 		"vehicles.set.mainImage.removeDedicated": "Eigenes Setbild entfernen",
 		"vehicles.set.mainImage.memberGallery": "Bilder der Set-Fahrzeuge",
 		"vehicles.set.mainImage.noMemberImages": "Für die Fahrzeuge dieses Sets sind noch keine Bilder vorhanden.",

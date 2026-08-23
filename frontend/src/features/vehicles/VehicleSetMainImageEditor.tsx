@@ -91,6 +91,12 @@ export function VehicleSetMainImageEditor({ vehicleSet, onChange, onError }: Veh
 						onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, { mode: "automatic" }))}>
 						{t("vehicles.set.mainImage.automatic")}
 					</button>
+					{vehicleSet.dedicatedImage && vehicleSet.mainImage?.source !== "dedicated" && (
+						<button type="button" className="secondary-button" disabled={busy}
+							onClick={() => void run(() => api.setVehicleSetMainImage(vehicleSet.id, { mode: "dedicated" }))}>
+							{t("vehicles.set.mainImage.useDedicated")}
+						</button>
+					)}
 					{vehicleSet.dedicatedImage && (
 						<button type="button" className="danger-button" disabled={busy}
 							onClick={() => void removeDedicated()}>

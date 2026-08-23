@@ -46,16 +46,20 @@ function normalizeSidebarHidden(hidden: AppView[]) {
   );
 }
 
+export function normalizeSidebarPrefs(prefs: Partial<SidebarPrefs>): SidebarPrefs {
+  return {
+    order: normalizeSidebarOrder(Array.isArray(prefs.order) ? prefs.order : []),
+    hidden: normalizeSidebarHidden(Array.isArray(prefs.hidden) ? prefs.hidden : [])
+  };
+}
+
 export function readSidebarPrefs(username: string): SidebarPrefs {
   try {
     const stored = JSON.parse(
       window.localStorage.getItem(sidebarPrefsKey(username)) || "null"
     ) as Partial<SidebarPrefs> | null;
     if (stored) {
-      return {
-        order: normalizeSidebarOrder(Array.isArray(stored.order) ? stored.order : []),
-        hidden: normalizeSidebarHidden(Array.isArray(stored.hidden) ? stored.hidden : [])
-      };
+      return normalizeSidebarPrefs(stored);
     }
   } catch {
     return { order: defaultSidebarOrder, hidden: [] };

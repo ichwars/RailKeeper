@@ -96,6 +96,7 @@ import {
   masterDataTypes,
   metadataString,
   nominalScalesText,
+  normalizeSidebarPrefs,
   normalizeCV8Binary,
   normalizeCV8Decimal,
   normalizeCV8Hex,
@@ -442,11 +443,10 @@ export function SettingsView({ username }: { username: string }) {
         if (sidebarValue) {
           try {
             const prefs = JSON.parse(sidebarValue) as { order?: AppView[]; hidden?: AppView[] };
-            const nextOrder = Array.isArray(prefs.order) ? prefs.order : [];
-            const nextHidden = Array.isArray(prefs.hidden) ? prefs.hidden : [];
-            window.localStorage.setItem(sidebarPrefsKey(username), sidebarValue);
-            setSidebarOrder(nextOrder);
-            setSidebarHidden(nextHidden);
+            const normalized = normalizeSidebarPrefs(prefs);
+            window.localStorage.setItem(sidebarPrefsKey(username), JSON.stringify(normalized));
+            setSidebarOrder(normalized.order);
+            setSidebarHidden(normalized.hidden);
             window.dispatchEvent(new Event(sidebarOrderChangedEvent));
           } catch {
             // Ignore malformed profile settings and keep the local fallback.

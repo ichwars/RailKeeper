@@ -14,6 +14,7 @@ type VehicleSetEditorDialogProps = {
 	options?: MasterDataOptions;
 	onClose: () => void;
 	onUpdated: (set: VehicleSet) => void;
+	onImageChanged?: (set: VehicleSet) => void;
 };
 
 type SetEditorTab = "general" | "upload";
@@ -45,7 +46,8 @@ export function VehicleSetEditorDialog({
 	setId,
 	options = emptyOptions,
 	onClose,
-	onUpdated
+	onUpdated,
+	onImageChanged
 }: VehicleSetEditorDialogProps) {
 	const { t } = useI18n();
 	const [form, setForm] = useState<CreateVehicleRequest>(emptyVehicle);
@@ -169,7 +171,10 @@ export function VehicleSetEditorDialog({
 					{!loading && activeTab === "upload" && vehicleSet && (
 						<div id="vehicle-set-panel-upload" role="tabpanel" aria-labelledby="vehicle-set-tab-upload">
 							<VehicleSetMainImageEditor vehicleSet={vehicleSet}
-								onChange={(updated) => { setVehicleSet(updated); onUpdated(updated); }} onError={setError} />
+								onChange={(updated) => {
+									setVehicleSet(updated);
+									onImageChanged?.(updated);
+								}} onError={setError} />
 						</div>
 					)}
 				</div>

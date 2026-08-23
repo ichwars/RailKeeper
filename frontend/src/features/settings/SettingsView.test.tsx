@@ -80,6 +80,29 @@ describe("SettingsView data navigation", () => {
     expect(normalized.slice(-2)).toEqual(["digitalCenters", "settings"]);
   });
 
+  it("normalizes legacy sidebar preferences loaded from the profile", async () => {
+    vi.mocked(api.profileSettings).mockResolvedValue({
+      settings: {
+        [sidebarPrefsKey("viewer")]: JSON.stringify({
+          order: ["settings", "layouts", "vehicles"],
+          hidden: ["layouts"]
+        })
+      }
+    });
+
+    render(<SettingsView username="viewer" />);
+
+    await waitFor(() => {
+      const stored = JSON.parse(window.localStorage.getItem(sidebarPrefsKey("viewer")) || "{}") as {
+        order?: string[];
+        hidden?: string[];
+      };
+      expect(stored.order).not.toContain("layouts");
+      expect(stored.order).toContain("digitalCenters");
+      expect(stored.hidden).toEqual([]);
+    });
+  });
+
   it("restores manufacturers as the first general master-data type", async () => {
     window.history.replaceState(null, "", "/settings?tab=data");
     vi.mocked(api.managedMasterDataAll).mockResolvedValue({ manufacturer: [], vehicle_category: [] });

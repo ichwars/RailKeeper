@@ -74,14 +74,14 @@ func (a *App) uploadVehicleSetImage(w http.ResponseWriter, r *http.Request) {
 	set, replaced, err := a.vehicleService.UpsertSetImage(r.Context(), r.PathValue("id"), application.VehicleSetImageInput{
 		FileName: storageName, MimeType: mimeType, BlobID: blobID, ThumbnailBlobID: thumbnailBlobID,
 	}, actorUserID(r))
+	for _, replacedBlobID := range replaced {
+		a.deleteFileBlobIfUnreferenced(r.Context(), replacedBlobID)
+	}
 	if err != nil {
 		a.deleteFileBlobIfUnreferenced(r.Context(), blobID)
 		a.deleteFileBlobIfUnreferenced(r.Context(), thumbnailBlobID)
 		a.respondVehicleSetImageError(w, err)
 		return
-	}
-	for _, replacedBlobID := range replaced {
-		a.deleteFileBlobIfUnreferenced(r.Context(), replacedBlobID)
 	}
 	respondJSON(w, http.StatusCreated, set)
 }

@@ -1,6 +1,7 @@
 import type { AppView } from "../../app/App";
 import {
   defaultSidebarOrder,
+  normalizeSidebarPrefs,
   normalizeSidebarOrder,
   readSidebarPrefs,
   sidebarOrderChangedEvent,
@@ -92,6 +93,7 @@ export const localSettingKeys = {
 export {
   defaultSidebarOrder,
   legacySidebarOrderKey,
+  normalizeSidebarPrefs,
   normalizeSidebarOrder,
   readSidebarPrefs,
   sidebarOrderChangedEvent,

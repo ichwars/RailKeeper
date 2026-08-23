@@ -764,6 +764,9 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 		await load();
 		setVehicleSetMode("view");
 	};
+	const handleVehicleSetImageChanged = async () => {
+		await load();
+	};
   const { vehicleQuickMenu, selectOptions } = createVehicleInventoryRenderers({
     sort,
     quickMenuVehicleID,
@@ -1099,6 +1102,7 @@ export function VehiclesView({ username, roles = ["Editor"] }: { username: strin
 				options={options}
 				onClose={closeVehicleSetDialog}
 				onUpdated={handleVehicleSetUpdated}
+				onImageChanged={handleVehicleSetImageChanged}
 			/>
 		)}
       {articleSearchOpen && mode !== "create" && (
