@@ -39,8 +39,10 @@ const (
 	DigitalCenterMessageLiveInterrupted       DigitalCenterMessageCode = "live.interrupted"
 	DigitalCenterMessageWritePreviewFailed    DigitalCenterMessageCode = "write.preview_failed"
 	DigitalCenterMessageWriteFailed           DigitalCenterMessageCode = "write.failed"
+	DigitalCenterMessageWriteUnknown          DigitalCenterMessageCode = "write.unknown"
 	DigitalCenterMessageWriteVerified         DigitalCenterMessageCode = "write.verified"
 	DigitalCenterMessageWriteVerifyFailed     DigitalCenterMessageCode = "write.verification_failed"
+	DigitalCenterMessageLiveRestartFailed     DigitalCenterMessageCode = "live.restart_failed"
 )
 
 var (
@@ -119,6 +121,7 @@ type DigitalCenterWorkspaceRepository interface {
 	ReplaceWorkItems(context.Context, string, []DigitalCenterWorkItem) error
 	ListWorkItems(context.Context, string) ([]DigitalCenterWorkItem, error)
 	GetWorkItem(context.Context, string, string) (DigitalCenterWorkItem, error)
+	UpdateWorkItem(context.Context, DigitalCenterWorkItem) (DigitalCenterWorkItem, error)
 	AddMessage(context.Context, DigitalCenterSessionMessage) error
 	ListMessages(context.Context, string) ([]DigitalCenterSessionMessage, error)
 	CreateWriteGrant(context.Context, DigitalCenterWriteGrant) error

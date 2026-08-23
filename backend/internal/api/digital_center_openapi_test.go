@@ -78,15 +78,17 @@ func TestOpenAPIDigitalCenterSchemasExposeExactRuntimeEnumsAndTelemetry(t *testi
 	}
 	contract := string(data)
 	expectations := map[string][]string{
-		"DigitalCenterSummary":           {"capabilities:", "selected:", "active:"},
-		"DigitalCenterReadSession":       {"enum: [reading, ready, interrupted, failed]", "readCompletedAt:"},
-		"DigitalCenterWorkItem":          {"enum: [ok, deviation, missing, new, conflict]", "center:", "railkeeper:", "conflicts:"},
-		"DigitalCenterSessionMessage":    {"enum: [info, warning, error]", "nextAction:"},
-		"ECoSLiveStatus":                 {"enum: [stopped, running, interrupted]", "pulseSamples:", "recentEvents:", "diagnosis:"},
-		"ECoSLivePulseSample":            {"repliesPerSecond:", "at:"},
-		"ECoSLiveEvent":                  {"kind:", "protocol:", "message:"},
-		"DigitalCenterWritePreview":      {"enum: [railkeeper_to_center]", "changes:", "token:", "expiresAt:"},
-		"DigitalCenterWriteConfirmation": {"enum: [verified, verification_failed, failed]", "verified:", "applied:"},
+		"DigitalCenterSummary":        {"capabilities:", "selected:", "active:"},
+		"DigitalCenterReadSession":    {"enum: [reading, ready, interrupted, failed]", "readCompletedAt:"},
+		"DigitalCenterWorkItem":       {"enum: [ok, deviation, missing, new, conflict]", "center:", "railkeeper:", "conflicts:"},
+		"DigitalCenterSessionMessage": {"enum: [info, warning, error]", "nextAction:"},
+		"ECoSLiveStatus":              {"enum: [stopped, running, interrupted]", "pulseSamples:", "recentEvents:", "diagnosis:"},
+		"ECoSLivePulseSample":         {"repliesPerSecond:", "at:"},
+		"ECoSLiveEvent":               {"kind:", "protocol:", "message:"},
+		"DigitalCenterWritePreview":   {"enum: [railkeeper_to_center]", "operation:", "changes:", "token:", "expiresAt:"},
+		"DigitalCenterWriteConfirmation": {
+			"enum: [verified, verification_failed, failed, unknown]", "operation:", "verifiedValues:", "liveMonitor:", "workItem:",
+		},
 	}
 	for schema, fragments := range expectations {
 		block := openAPIIndentedBlock(t, contract, schema, 4)

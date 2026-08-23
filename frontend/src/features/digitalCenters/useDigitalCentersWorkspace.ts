@@ -15,6 +15,7 @@ import {
   type DigitalCenterWorkspaceTab,
   type DigitalCenterWriteConfirmation,
   type DigitalCenterWriteField,
+  type DigitalCenterWriteOperation,
   type DigitalCenterWritePreview,
   type ECoSLiveStatus,
   emptyDigitalCenterWorkItemPage
@@ -59,6 +60,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     []
   );
   const localizedError = useCallback((error: unknown) => {
+	if (error instanceof ApiError && error.code === "digital_center_address_conflict") {
+	  return digitalCenterAddressConflictMessage(error, workspaceText);
+	}
     const translationKey = error instanceof ApiError ? digitalCenterErrorTranslationKey(error.code) : null;
     return translationKey
       ? workspaceText(translationKey)
@@ -69,6 +73,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const selectedProviderRef = useRef<DigitalCenterProvider | null>(null);
   const readSessionIDRef = useRef<string | null>(null);
   const selectedItemIDRef = useRef<string | null>(null);
+  const clampWorklistPageRef = useRef(false);
   const requestsRef = useRef({ workspace: 0, live: 0, read: 0, worklist: 0, detail: 0, messages: 0, write: 0 });
 
   const [centers, setCenters] = useState<DigitalCenterSummary[]>([]);
@@ -76,8 +81,10 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   const [liveStatus, setLiveStatus] = useState<ECoSLiveStatus | null>(null);
   const [readSession, setReadSession] = useState<DigitalCenterReadSession | null>(null);
   const [workItems, setWorkItems] = useState(emptyDigitalCenterWorkItemPage);
+  const [worklistRevision, setWorklistRevision] = useState(0);
   const [sessionTotal, setSessionTotal] = useState(0);
   const [messages, setMessages] = useState<DigitalCenterSessionMessage[]>([]);
+  const [messagesRevision, setMessagesRevision] = useState(0);
   const [selectedItemId, setSelectedItemID] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<DigitalCenterWorkItem | null>(null);
   const [search, setSearchState] = useState("");
@@ -267,6 +274,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
   useEffect(() => {
     const sessionID = readSession?.id;
     if (!sessionID) return;
+    const clampPage = clampWorklistPageRef.current;
+    clampWorklistPageRef.current = false;
     const requestID = ++requestsRef.current.worklist;
     setError("worklist", "");
     setLoadingArea("worklist", true);
@@ -277,6 +286,12 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
       .then(([result, aggregate]) => {
         if (mountedRef.current && requestID === requestsRef.current.worklist &&
           readSessionIDRef.current === sessionID) {
+          const lastPage = Math.max(1, result.totalPages);
+          if (clampPage && filter.page > lastPage) {
+            setPageState(lastPage);
+            setSessionTotal(aggregate?.total ?? result.total);
+            return;
+          }
           setWorkItems(result);
           setSessionTotal(aggregate?.total ?? result.total);
         }
@@ -293,7 +308,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setLoadingArea("worklist", false);
         }
       });
-  }, [filter, localizedError, readSession?.id, setError, setLoadingArea]);
+  }, [filter, localizedError, readSession?.id, setError, setLoadingArea, worklistRevision]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -313,7 +328,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
           setError("messages", localizedError(loadError));
         }
       });
-  }, [localizedError, readSession?.id, setError]);
+  }, [localizedError, messagesRevision, readSession?.id, setError]);
 
   useEffect(() => {
     const sessionID = readSession?.id;
@@ -460,7 +475,9 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     resetWriteDialogState();
   }, [resetWriteDialogState]);
 
-  const previewWrite = useCallback(async (fields: DigitalCenterWriteField[]) => {
+  const previewWrite = useCallback(async (
+    fields: DigitalCenterWriteField[], operation: DigitalCenterWriteOperation = "update"
+  ) => {
     const sessionID = readSession?.id;
     const itemID = selectedItemIDRef.current;
     if (!actions.canWrite || !sessionID || !itemID) {
@@ -472,7 +489,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setError("write", "");
     setLoadingArea("write", true);
     try {
-      const preview = await api.previewDigitalCenterWrite(sessionID, itemID, { fields });
+      const preview = await api.previewDigitalCenterWrite(sessionID, itemID, { fields, operation });
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
@@ -515,6 +532,7 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
     setLoadingArea("write", true);
     try {
       const confirmation = await api.confirmDigitalCenterWrite(sessionID, itemID, {
+        operation: preview.operation,
         token: preview.token,
         confirm: true,
         fields: preview.fields
@@ -523,12 +541,30 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         readSessionIDRef.current === sessionID &&
         selectedItemIDRef.current === itemID) {
         setWriteConfirmation(confirmation);
+        setMessagesRevision((current) => current + 1);
+        if (confirmation.workItem) {
+          setSelectedItem(confirmation.workItem);
+          clampWorklistPageRef.current = true;
+          setWorklistRevision((current) => current + 1);
+        }
+      }
+      if (confirmation.liveMonitor.wasRunning &&
+        selectedProviderRef.current === confirmation.provider) {
+        await loadLiveStatus(confirmation.provider).catch(() => undefined);
       }
       return confirmation;
     } catch (writeError) {
       if (mountedRef.current && requestID === requestsRef.current.write &&
         readSessionIDRef.current === sessionID && selectedItemIDRef.current === itemID) {
-        if (writeError instanceof ApiError && writeError.status === 409) {
+        if (writeError instanceof ApiError && writeError.code === "digital_center_address_conflict") {
+          setWritePreview(null);
+          setWriteConfirmation(null);
+          setError("write", digitalCenterAddressConflictMessage(writeError, workspaceText));
+        } else if (writeError instanceof ApiError && writeError.code === "ecos_live_pause_failed") {
+          setWritePreview(null);
+          setWriteConfirmation(null);
+          setError("write", localizedError(writeError));
+        } else if (writeError instanceof ApiError && writeError.status === 409) {
           readSessionIDRef.current = null;
           setReadSession(null);
           clearSessionDependents();
@@ -544,8 +580,8 @@ export function useDigitalCentersWorkspace(options: DigitalCenterWorkspaceOption
         setLoadingArea("write", false);
       }
     }
-  }, [actions.canWrite, clearSessionDependents, localizedError, readSession?.id, setError, setLoadingArea,
-    workspaceText, writePreview]);
+  }, [actions.canWrite, clearSessionDependents, loadLiveStatus, localizedError, readSession?.id, setError,
+    setLoadingArea, workspaceText, writePreview]);
 
   const setSearch = useCallback((value: string) => {
     requestsRef.current.worklist += 1;
@@ -625,6 +661,22 @@ function digitalCenterErrorTranslationKey(code: string) {
   return code === "digital_center_conflict_unresolved"
     ? "digitalCenters.error.conflictUnresolved"
     : null;
+}
+
+function digitalCenterAddressConflictMessage(
+  error: ApiError,
+  text: (key: string, values?: Record<string, string | number>) => string
+) {
+  const details = isRecord(error.details) ? error.details : null;
+  const name = typeof details?.name === "string" ? details.name.trim() : "";
+  const address = typeof details?.decoderAddress === "number" ? details.decoderAddress : null;
+  return name && address !== null
+	? text("digitalCenters.error.addressConflict", { name, address })
+	: text("digitalCenters.error.addressConflictGeneric");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function validWriteGrant(preview: DigitalCenterWritePreview) {

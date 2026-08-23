@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -10,6 +11,31 @@ import (
 
 	"railkeeper/backend/internal/application"
 )
+
+func TestDigitalCenterAddressConflictReturnsSafeStructuredDetails(t *testing.T) {
+	response := httptest.NewRecorder()
+	(&App{logger: slog.Default()}).respondDigitalCenterWorkspaceError(response,
+		&application.DigitalCenterAddressConflictError{ObjectID: 2002, Name: "Other", Address: 18})
+
+	if response.Code != http.StatusConflict {
+		t.Fatalf("status=%d body=%s", response.Code, response.Body.String())
+	}
+	var body struct {
+		Error   string `json:"error"`
+		Details struct {
+			ObjectID       int    `json:"objectId"`
+			Name           string `json:"name"`
+			DecoderAddress int    `json:"decoderAddress"`
+		} `json:"details"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body.Error != "digital_center_address_conflict" || body.Details.ObjectID != 2002 ||
+		body.Details.Name != "Other" || body.Details.DecoderAddress != 18 {
+		t.Fatalf("body=%#v", body)
+	}
+}
 
 func TestDigitalCenterWriteRoutesAreAdminOnly(t *testing.T) {
 	want := map[string]bool{
@@ -115,6 +141,7 @@ func TestDigitalCenterWriteInputErrorsStayClientVisible(t *testing.T) {
 		{errors.New("wrapped: " + application.ErrDigitalCenterDeviceWrite.Error()), http.StatusInternalServerError,
 			"digital_center_workspace_failed"},
 		{application.ErrDigitalCenterDeviceWrite, http.StatusBadGateway, "ecos_sync_failed"},
+		{application.ErrDigitalCenterLivePauseFailed, http.StatusBadGateway, "ecos_live_pause_failed"},
 	}
 	for _, test := range tests {
 		response := httptest.NewRecorder()

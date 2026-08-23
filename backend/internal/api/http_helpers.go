@@ -142,6 +142,20 @@ func respondProblem(w http.ResponseWriter, status int, code, message string) {
 	})
 }
 
+func respondProblemDetails(
+	w http.ResponseWriter,
+	status int,
+	code string,
+	message string,
+	details map[string]any,
+) {
+	respondJSON(w, status, map[string]any{
+		"error":   code,
+		"message": message,
+		"details": details,
+	})
+}
+
 func decodeBoundedJSON(w http.ResponseWriter, r *http.Request, target any) bool {
 	r.Body = http.MaxBytesReader(w, r.Body, maxJSONBodyBytes)
 	if err := json.NewDecoder(r.Body).Decode(target); err != nil {

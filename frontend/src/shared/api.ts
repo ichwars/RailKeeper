@@ -1173,12 +1173,14 @@ let csrfToken = "";
 export class ApiError extends Error {
   code: string;
   status: number;
+	details: unknown;
 
-  constructor(message: string, code: string, status: number) {
+  constructor(message: string, code: string, status: number, details: unknown = null) {
     super(message);
     this.name = "ApiError";
     this.code = code;
     this.status = status;
+	this.details = details;
   }
 }
 
@@ -1228,14 +1230,16 @@ async function request<T>(path: string, init: RequestInit = {}, options: Request
       if (!response.ok) {
         let message = response.statusText;
         let code = "request_failed";
+		let details: unknown = null;
         try {
           const body = await response.json();
           code = body.error || code;
           message = body.message || body.error || message;
+		  details = body.details ?? null;
         } catch {
           // Keep the HTTP status text when the server did not return JSON.
         }
-        throw new ApiError(message, code, response.status);
+		throw new ApiError(message, code, response.status, details);
       }
 
       if (response.status === 204) {

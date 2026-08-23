@@ -104,7 +104,7 @@ func (a *App) syncECoSLocomotive(w http.ResponseWriter, r *http.Request) {
 		Protocol: "",
 	}
 	if mapping != nil {
-		if address := parsePositiveIntText(mapping.ExternalAddress); address > 0 {
+		if address := parsePositiveIntText(mapping.ExternalAddress); desired.Address <= 0 && address > 0 {
 			desired.Address = address
 		}
 		desired.Protocol = mapping.ExternalProtocol

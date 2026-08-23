@@ -163,12 +163,14 @@ describe("Digital Centers operational journeys", () => {
 
     expect(await screen.findByText("Schreiben verifiziert")).toBeInTheDocument();
     expect(api.previewDigitalCenterWrite).toHaveBeenCalledWith("session-1", "item-ok", {
-      fields: ["name", "address"]
+      fields: ["name", "address"],
+      operation: "update"
     });
     expect(api.confirmDigitalCenterWrite).toHaveBeenCalledWith("session-1", "item-ok", {
       token: "public-grant",
       confirm: true,
-      fields: ["name", "address"]
+      fields: ["name", "address"],
+      operation: "update"
     });
   });
 
@@ -237,6 +239,26 @@ describe("Digital Centers operational journeys", () => {
     expect(screen.getByText("Noch keine Lokdaten gelesen")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Daten lesen" }));
     expect(api.startDigitalCenterReadSession).toHaveBeenCalledTimes(2);
+  });
+
+  it("shows an unknown write result and a failed live restart without claiming success", async () => {
+	vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(confirmationFixture({
+	  applied: false,
+	  verified: false,
+	  result: "unknown",
+	  message: "Der Schreibstatus ist unbekannt.",
+	  liveMonitor: { wasRunning: true, restarted: false }
+	}));
+	const user = userEvent.setup();
+	render(<DigitalCentersView roles={["Admin"]} />);
+	await openComparison(user);
+	await user.click(screen.getByRole("button", { name: "Schreibvorschau erstellen" }));
+	await user.click(await screen.findByRole("checkbox"));
+	await user.click(screen.getByRole("button", { name: "In die Digitalzentrale schreiben" }));
+
+	expect(await screen.findByText("Schreibstatus unbekannt")).toBeInTheDocument();
+	expect(screen.getByText(/Live-Monitoring konnte nicht automatisch neu gestartet/)).toBeInTheDocument();
+	expect(screen.queryByText("Schreiben verifiziert")).not.toBeInTheDocument();
   });
 
   it("keeps confirmation disabled when the preview grant is expired", async () => {
@@ -344,6 +366,7 @@ const writePreview: DigitalCenterWritePreview = {
   itemId: "item-ok",
   provider: "ecos",
   objectId: "3",
+  operation: "update",
   direction: "railkeeper_to_center",
   fields: ["name", "address"],
   changes: [
@@ -433,12 +456,14 @@ function confirmationFixture(
     itemId: "item-ok",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name", "address"],
     applied: true,
     verified: true,
     result: "verified",
     message: "Änderungen wurden gelesen und bestätigt.",
+	liveMonitor: { wasRunning: false, restarted: false },
     ...overrides
   };
 }

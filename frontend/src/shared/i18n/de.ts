@@ -2998,8 +2998,14 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.assignment.create": "Neues Fahrzeug anlegen",
     "digitalCenters.assignment.open": "Bestehendem Fahrzeug zuordnen",
     "digitalCenters.write.verified": "Schreiben verifiziert",
+	"digitalCenters.write.unknown": "Schreibstatus unbekannt",
+	"digitalCenters.write.inProgress": "Wird geschrieben und geprüft …",
+	"digitalCenters.write.actualValues": "Zurückgelesen: {name}, Adresse {address}, {protocol}",
+	"digitalCenters.write.liveRestartFailed": "Das Live-Monitoring konnte nicht automatisch neu gestartet werden. Bitte manuell starten.",
     "digitalCenters.write.consent": "Ich bestätige, dass die angezeigten Werte in die Digitalzentrale geschrieben werden.",
     "digitalCenters.write.createPreview": "Schreibvorschau erstellen",
+    "digitalCenters.write.createInEcos": "In ECoS anlegen",
+    "digitalCenters.write.missingInEcos": "Dieses RailKeeper-Fahrzeug fehlt in der ECoS. Beim Anlegen werden Name, Decoder-Adresse und Protokoll gemeinsam übertragen.",
     "digitalCenters.write.grantInvalid": "Die Schreibfreigabe ist nicht mehr gültig.",
     "digitalCenters.write.confirm": "In die Digitalzentrale schreiben",
     "digitalCenters.write.preview": "Schreibvorschau",
@@ -3034,6 +3040,8 @@ export const deTranslations: Record<string, string> = {
     "digitalCenters.error.grantExpired": "Die Schreibfreigabe ist nicht mehr gültig. Neue Schreibvorschau erstellen.",
     "digitalCenters.error.grantConflict": "Schreibfreigabe ungültig. Daten erneut lesen und eine neue Schreibvorschau erstellen.",
     "digitalCenters.error.conflictUnresolved": "Der Lok-Abgleich ist noch nicht eindeutig. Ordne die Lok zuerst einem RailKeeper-Fahrzeug zu.",
+	"digitalCenters.error.addressConflict": "Decoderadresse {address} wird bereits von „{name}“ verwendet. Neue Schreibvorschau erstellen.",
+	"digitalCenters.error.addressConflictGeneric": "Die Decoderadresse wird bereits von einer anderen ECoS-Lok verwendet. Neue Schreibvorschau erstellen.",
     "digitalCenters.error.liveInterrupted": "Live-Verbindung unterbrochen",
     "digitalCenters.error.requestFailed": "Die Digitalzentralen-Anfrage ist fehlgeschlagen."
   };

@@ -233,8 +233,126 @@ describe("useDigitalCentersWorkspace", () => {
     expect(api.confirmDigitalCenterWrite).toHaveBeenCalledWith(readySession.id, newest.id, {
       token: "public-grant",
       confirm: true,
-      fields: ["name"]
+      fields: ["name"],
+      operation: "update"
     });
+  });
+
+  it("refreshes the live status after a confirmed write restarted the monitor", async () => {
+    const restartedLive = liveStatusFixture({ state: "running", connected: true });
+    vi.mocked(api.digitalCenterLiveStatus)
+      .mockResolvedValueOnce(stoppedLive)
+      .mockResolvedValueOnce(restartedLive);
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      liveMonitor: { wasRunning: true, restarted: true }
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => result.current.confirmWrite());
+
+    expect(api.digitalCenterLiveStatus).toHaveBeenLastCalledWith("ecos");
+    expect(result.current.liveStatus).toMatchObject({ state: "running", connected: true });
+  });
+
+  it("reloads persistent session messages after a completed write confirmation", async () => {
+    const warning = {
+      id: "message-1",
+      sessionId: readySession.id,
+      severity: "warning" as const,
+      code: "write.unknown" as const,
+      message: "Schreibstatus unbekannt",
+      nextAction: "Neu auslesen",
+      createdAt: "2026-08-21T10:00:02Z"
+    };
+    vi.mocked(api.digitalCenterSessionMessages)
+      .mockResolvedValueOnce({ messages: [] })
+      .mockResolvedValueOnce({ messages: [warning] });
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      result: "unknown",
+      verified: false
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => result.current.confirmWrite());
+
+    await waitFor(() => expect(result.current.messages).toEqual([warning]));
+  });
+
+  it("reloads the active work-list filter after a confirmed write changes the item", async () => {
+    const syncedItem = workItemFixture({ compareStatus: "ok", center: { ...item.railkeeper } });
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      workItem: syncedItem
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.setCompareStatus("deviation"));
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenCalledWith(
+      readySession.id,
+      expect.objectContaining({ compareStatus: "deviation" })
+    ));
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+    const callsBeforeConfirmation = vi.mocked(api.digitalCenterWorkItems).mock.calls.length;
+
+    await act(async () => result.current.confirmWrite());
+
+    await waitFor(() => expect(api.digitalCenterWorkItems).toHaveBeenCalledTimes(callsBeforeConfirmation + 2));
+    const refreshCalls = vi.mocked(api.digitalCenterWorkItems).mock.calls.slice(callsBeforeConfirmation);
+    expect(refreshCalls).toEqual(expect.arrayContaining([
+      [readySession.id, { compareStatus: "deviation", query: "", page: 1, pageSize: 10 }],
+      [readySession.id, { compareStatus: "all", query: "", page: 1, pageSize: 1 }]
+    ]));
+  });
+
+  it("clamps the filtered page after a confirmed write removes its last item", async () => {
+    const pageOneItem = workItemFixture({ id: "item-page-1", name: "Page one" });
+    vi.mocked(api.digitalCenterWorkItems).mockImplementation((_sessionID, filter) => {
+      if (filter.compareStatus === "all") {
+        return Promise.resolve({ ...worklistFixture([pageOneItem]), total: 10, totalPages: 1 });
+      }
+      if (filter.page === 2 && vi.mocked(api.confirmDigitalCenterWrite).mock.calls.length > 0) {
+        return Promise.resolve({ items: [], page: 2, pageSize: 10, total: 10, totalPages: 1 });
+      }
+      if (filter.page === 2) {
+        return Promise.resolve({ items: [item], page: 2, pageSize: 10, total: 11, totalPages: 2 });
+      }
+      return Promise.resolve({ items: [pageOneItem], page: 1, pageSize: 10, total: 10, totalPages: 1 });
+    });
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockResolvedValueOnce(writeConfirmationFixture({
+      itemId: item.id,
+      workItem: workItemFixture({ compareStatus: "ok" })
+    }));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => {
+      result.current.setCompareStatus("deviation");
+      result.current.setPage(2);
+    });
+    await waitFor(() => expect(result.current.workItems.page).toBe(2));
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => result.current.confirmWrite());
+
+    await waitFor(() => expect(result.current.page).toBe(1));
+    await waitFor(() => expect(result.current.workItems.items).toEqual([pageOneItem]));
   });
 
   it("ignores a late item detail from the previous read session", async () => {
@@ -437,6 +555,74 @@ describe("useDigitalCentersWorkspace", () => {
     expect(result.current.errors.write).toBe(
       "Der Lok-Abgleich ist noch nicht eindeutig. Ordne die Lok zuerst einem RailKeeper-Fahrzeug zu."
     );
+  });
+
+  it("keeps the read session after an address conflict and clears only the consumed preview", async () => {
+	vi.mocked(api.confirmDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+	  "The decoder address is already used by another ECoS locomotive.",
+	  "digital_center_address_conflict",
+	  409,
+	  { objectId: 2002, name: "Rangierlok", decoderAddress: 18 }
+	));
+	const { result } = renderHook(() => useDigitalCentersWorkspace());
+	await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+	await act(async () => result.current.readData());
+	act(() => result.current.selectItem("item-new"));
+	await act(async () => result.current.previewWrite(["address"]));
+
+	await act(async () => {
+	  await expect(result.current.confirmWrite()).rejects.toThrow();
+	});
+
+	expect(result.current.readSession?.id).toBe(readySession.id);
+	expect(result.current.selectedItemId).toBe("item-new");
+	expect(result.current.writePreview).toBeNull();
+	expect(result.current.errors.write).toContain("Rangierlok");
+	expect(result.current.errors.write).toContain("18");
+  });
+
+  it("clears the consumed preview when live monitoring cannot be paused", async () => {
+    vi.mocked(api.previewDigitalCenterWrite).mockResolvedValueOnce(writePreviewFixture({ itemId: item.id }));
+    vi.mocked(api.confirmDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+      "ECoS live monitoring could not be paused safely.",
+      "ecos_live_pause_failed",
+      502
+    ));
+    const { result } = renderHook(() => useDigitalCentersWorkspace());
+    await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+    await act(async () => result.current.readData());
+    act(() => result.current.selectItem(item.id));
+    await act(async () => result.current.previewWrite(["name"]));
+
+    await act(async () => {
+      await expect(result.current.confirmWrite()).rejects.toThrow();
+    });
+
+    expect(result.current.readSession?.id).toBe(readySession.id);
+    expect(result.current.selectedItemId).toBe(item.id);
+    expect(result.current.writePreview).toBeNull();
+    expect(result.current.writeConfirmation).toBeNull();
+  });
+
+  it("localizes an address conflict raised while creating the preview", async () => {
+	vi.mocked(api.previewDigitalCenterWrite).mockRejectedValueOnce(new ApiError(
+	  "The decoder address is already used by another ECoS locomotive.",
+	  "digital_center_address_conflict",
+	  409,
+	  { objectId: 2002, name: "Rangierlok", decoderAddress: 18 }
+	));
+	const { result } = renderHook(() => useDigitalCentersWorkspace());
+	await waitFor(() => expect(result.current.loading.workspace).toBe(false));
+	await act(async () => result.current.readData());
+	act(() => result.current.selectItem(item.id));
+
+	await act(async () => {
+	  await expect(result.current.previewWrite(["address"])).rejects.toThrow();
+	});
+
+	expect(result.current.errors.write).toBe(
+	  "Decoderadresse 18 wird bereits von „Rangierlok“ verwendet. Neue Schreibvorschau erstellen."
+	);
   });
 
   it("clears every center-specific error when selecting another center", async () => {
@@ -712,6 +898,7 @@ function writePreviewFixture(overrides: Partial<DigitalCenterWritePreview> = {})
     itemId: "item-new",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name"],
     changes: [{ field: "name", current: "Alte Lok", desired: "ICE 3" }],
@@ -729,12 +916,14 @@ function writeConfirmationFixture(
     itemId: "item-new",
     provider: "ecos",
     objectId: "3",
+    operation: "update",
     direction: "railkeeper_to_center",
     fields: ["name"],
     applied: true,
     verified: true,
     result: "verified",
     message: "Verifiziert",
+	liveMonitor: { wasRunning: false, restarted: false },
     ...overrides
   };
 }

@@ -27,6 +27,7 @@ type ECoSService struct {
 	client                   ecospkg.Client
 	liveMu                   sync.Mutex
 	liveCancel               context.CancelFunc
+	liveDone                 chan struct{}
 	liveStatus               ECoSLiveStatus
 	livePulse                time.Time
 	liveCount                int
@@ -270,6 +271,8 @@ func (s *ECoSService) StartLiveWithInterruption(
 	generation := s.liveGeneration
 	s.liveInterruptionNotified = false
 	s.liveCancel = cancel
+	done := make(chan struct{})
+	s.liveDone = done
 	s.liveStatus = ECoSLiveStatus{
 		Provider:             "ecos",
 		Connected:            true,
@@ -292,7 +295,8 @@ func (s *ECoSService) StartLiveWithInterruption(
 
 	go s.runECoSLiveSampler(liveCtx, generation)
 	go s.runECoSLiveSession(
-		liveCtx, cancel, generation, onInterrupted, conn, reader, client, append([]string(nil), commands...),
+		liveCtx, cancel, generation, onInterrupted, conn, reader, client,
+		append([]string(nil), commands...), done,
 	)
 	return &status, nil
 }
@@ -310,6 +314,28 @@ func (s *ECoSService) StopLive() ECoSLiveStatus {
 	s.liveStatus.Message = "ECoS-Live-Verbindung beendet."
 	s.liveStatus.LastMessage = "Verbindung beendet."
 	return cloneECoSLiveStatus(s.liveStatus)
+}
+
+func (s *ECoSService) PauseLive(ctx context.Context) (ECoSLiveStatus, error) {
+	s.liveMu.Lock()
+	done := s.liveDone
+	s.stopLiveLocked()
+	s.liveGeneration++
+	s.liveStatus.Connected = false
+	s.liveStatus.State = ECoSLiveStopped
+	s.liveStatus.Diagnosis.ConnectionState = ECoSLiveStopped
+	s.liveStatus.Message = "ECoS-Live-Verbindung für einen exklusiven Vorgang pausiert."
+	status := cloneECoSLiveStatus(s.liveStatus)
+	s.liveMu.Unlock()
+	if done == nil {
+		return status, nil
+	}
+	select {
+	case <-done:
+		return status, nil
+	case <-ctx.Done():
+		return status, fmt.Errorf("ECoS-Live-Verbindung pausieren: %w", ctx.Err())
+	}
 }
 
 func (s *ECoSService) LiveStatus() ECoSLiveStatus {
@@ -346,6 +372,7 @@ func (s *ECoSService) runECoSLiveSession(
 	reader *bufio.Reader,
 	client ecospkg.Client,
 	commands []string,
+	done chan struct{},
 ) {
 	defer func() {
 		cancel()
@@ -353,6 +380,7 @@ func (s *ECoSService) runECoSLiveSession(
 		s.updateLiveErrorForGenerationWithCallback(
 			generation, errors.New("ECoS live connection closed"), onInterrupted,
 		)
+		close(done)
 	}()
 
 	for _, command := range commands {
@@ -656,7 +684,7 @@ func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSy
 		return nil, err
 	}
 	desired := cleanECoSLocomotiveSyncDesired(input.Desired)
-	changes, command, err := buildECoSLocomotiveSyncCommand(input.ObjectID, current, desired)
+	changes, commands, err := buildECoSLocomotiveSyncCommands(input.ObjectID, current, desired)
 	if err != nil {
 		return nil, err
 	}
@@ -675,8 +703,8 @@ func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSy
 		Changes: changes,
 		Message: "ECoS-Sync-Vorschau erstellt.",
 	}
-	if command != "" {
-		result.Commands = []string{command}
+	if len(commands) > 0 {
+		result.Commands = append([]string(nil), commands...)
 	}
 	if len(changes) == 0 {
 		result.Message = "ECoS-Lok ist bereits synchron."
@@ -686,25 +714,39 @@ func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSy
 		return result, nil
 	}
 
-	probes, err := s.exchangeRequestedCommands(ctx, target.Host, target.Port, input.ObjectID, []struct {
+	writeCommands := make([]struct {
 		command string
 		fields  []string
-	}{{command: command, fields: eCoSLocomotiveSyncFields(changes)}})
+	}, 0, len(commands))
+	for index, command := range commands {
+		writeCommands = append(writeCommands, struct {
+			command string
+			fields  []string
+		}{command: command, fields: eCoSLocomotiveSyncFields(changes[index : index+1])})
+	}
+	probes, err := s.exchangeControlledCommands(ctx, target.Host, target.Port, input.ObjectID, writeCommands)
 	if err != nil {
 		return nil, err
 	}
 	if len(probes) == 0 {
 		return nil, errors.New("ECoS hat keine Schreibantwort geliefert")
 	}
-	probe := probes[0]
-	result.RawLines = probe.RawLines
-	if !probe.OK {
-		if probe.Error != "" {
-			return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", probe.Error)
+	confirmedWrites := 0
+	for _, probe := range probes {
+		result.RawLines = append(result.RawLines, probe.RawLines...)
+		if probe.OK {
+			confirmedWrites++
+			continue
+		}
+		if probe.Error != "" || confirmedWrites > 0 {
+			return nil, fmt.Errorf("%w: ECoS-Schreibantwort fehlt", ErrECoSWriteStateUnknown)
 		}
 		return nil, fmt.Errorf("ECoS-Schreibbefehl nicht bestätigt: %s", firstNonEmpty(probe.Status, "unbekannter Status"))
 	}
-	result.Applied = true
+	if len(probes) != len(commands) {
+		return nil, fmt.Errorf("%w: ECoS-Schreibantwort fehlt", ErrECoSWriteStateUnknown)
+	}
+	result.Applied = confirmedWrites > 0
 	result.Message = "ECoS-Lok wurde geschrieben."
 	return result, nil
 }
@@ -799,7 +841,12 @@ func (s *ECoSService) fetchLocomotiveDetails(ctx context.Context, host string, p
 	if len(locomotives) == 0 {
 		return nil, errors.New("keine Detaildaten gelesen")
 	}
-	return &locomotives[0], nil
+	for index := range locomotives {
+		if locomotives[index].ObjectID == objectID {
+			return &locomotives[index], nil
+		}
+	}
+	return nil, errors.New("ECoS-Detailantwort enthält das angeforderte Objekt nicht")
 }
 
 func (s *ECoSService) fetchLocomotiveRawProbes(ctx context.Context, host string, port int, objectID int) ([]ECoSRawCommandProbe, error) {
@@ -841,6 +888,30 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 	command string
 	fields  []string
 }) ([]ECoSRawCommandProbe, error) {
+	return s.exchangeRegisteredCommands(ctx, host, port, objectID, "view", "view", false, commands)
+}
+
+func (s *ECoSService) exchangeControlledCommands(ctx context.Context, host string, port int, objectID int, commands []struct {
+	command string
+	fields  []string
+}) ([]ECoSRawCommandProbe, error) {
+	return s.exchangeRegisteredCommands(ctx, host, port, objectID,
+		"view, control, force", "view, control", true, commands)
+}
+
+func (s *ECoSService) exchangeRegisteredCommands(
+	ctx context.Context,
+	host string,
+	port int,
+	objectID int,
+	requestOptions string,
+	releaseOptions string,
+	stopOnFailure bool,
+	commands []struct {
+		command string
+		fields  []string
+	},
+) ([]ECoSRawCommandProbe, error) {
 	timeout := s.timeout
 	if timeout <= 0 {
 		timeout = 5 * time.Second
@@ -859,12 +930,17 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 		return nil, fmt.Errorf("ECoS-Zeitlimit konnte nicht gesetzt werden: %w", err)
 	}
 	reader := bufio.NewReader(conn)
-	requestCommand := fmt.Sprintf("request(%d, view)", objectID)
+	requestCommand := fmt.Sprintf("request(%d, %s)", objectID, requestOptions)
 	if _, err := fmt.Fprintf(conn, "%s\r\n", requestCommand); err != nil {
-		return nil, fmt.Errorf("ECoS-View konnte nicht angefordert werden: %w", err)
+		return nil, fmt.Errorf("ECoS-Registrierung konnte nicht angefordert werden: %w", err)
 	}
-	if _, err := readECoSReply(conn, reader, timeout); err != nil {
-		return nil, fmt.Errorf("ECoS-Viewantwort konnte nicht gelesen werden: %w", err)
+	requestReply, err := readECoSReply(conn, reader, timeout)
+	if err != nil {
+		return nil, fmt.Errorf("ECoS-Registrierungsantwort konnte nicht gelesen werden: %w", err)
+	}
+	if status, ok := parseECoSEndStatus(requestReply); !ok {
+		return nil, fmt.Errorf("ECoS-Registrierung nicht bestätigt: %s",
+			firstNonEmpty(status, "fehlender Status"))
 	}
 
 	probes := make([]ECoSRawCommandProbe, 0, len(commands))
@@ -904,8 +980,12 @@ func (s *ECoSService) exchangeRequestedCommands(ctx context.Context, host string
 			probe.Error = err.Error()
 		}
 		probes = append(probes, probe)
+		if stopOnFailure && !probe.OK {
+			break
+		}
 	}
-	_, _ = fmt.Fprintf(conn, "release(%d, view)\r\n", objectID)
+	_, _ = fmt.Fprintf(conn, "release(%d, %s)\r\n", objectID, releaseOptions)
+	_, _ = readECoSReply(conn, reader, replyTimeout)
 	return probes, nil
 }
 
@@ -965,6 +1045,10 @@ func (s *ECoSService) exchangeRequestedGet(ctx context.Context, host string, por
 	_, _ = fmt.Fprintf(conn, "release(%d, view)\r\n", objectID)
 	if len(lines) == 0 {
 		return nil, errors.New("ECoS hat keine Lok-Detailantwort geliefert")
+	}
+	if status, ok := parseECoSEndStatus(lines); !ok {
+		return nil, fmt.Errorf("ECoS-Lok-Detailantwort nicht vollständig bestätigt: %s",
+			firstNonEmpty(status, "fehlender Status"))
 	}
 	return lines, nil
 }
@@ -1060,7 +1144,8 @@ func parseECoSEndStatus(lines []string) (string, bool) {
 			continue
 		}
 		status := strings.Trim(strings.TrimPrefix(line, "<END"), " >")
-		return status, strings.Contains(line, "(OK)")
+		fields := strings.Fields(status)
+		return status, len(fields) > 0 && fields[0] == "0"
 	}
 	return "", false
 }
@@ -1427,34 +1512,31 @@ func cleanECoSLocomotiveSyncDesired(input ECoSLocomotiveSyncDesired) ECoSLocomot
 	return input
 }
 
-func buildECoSLocomotiveSyncCommand(objectID int, current *ECoSLocomotive, desired ECoSLocomotiveSyncDesired) ([]ECoSLocomotiveSyncChange, string, error) {
+func buildECoSLocomotiveSyncCommands(objectID int, current *ECoSLocomotive, desired ECoSLocomotiveSyncDesired) ([]ECoSLocomotiveSyncChange, []string, error) {
 	if current == nil {
-		return nil, "", errors.New("ECoS-Istwerte fehlen")
+		return nil, nil, errors.New("ECoS-Istwerte fehlen")
 	}
 	changes := []ECoSLocomotiveSyncChange{}
-	parts := []string{}
+	commands := []string{}
 	if desired.Name != "" && desired.Name != current.Name {
 		if strings.IndexFunc(desired.Name, unicode.IsControl) >= 0 {
-			return nil, "", errors.New("ECoS-Name enthielt unzulässige Zeichen")
+			return nil, nil, errors.New("ECoS-Name enthielt unzulässige Zeichen")
 		}
 		changes = append(changes, ECoSLocomotiveSyncChange{Field: "name", Current: current.Name, Desired: desired.Name})
-		parts = append(parts, "name["+quoteECoSString(desired.Name)+"]")
+		commands = append(commands, fmt.Sprintf("set(%d, name[%s])", objectID, quoteECoSString(desired.Name)))
 	}
 	if desired.Address > 0 && desired.Address != current.Address {
 		changes = append(changes, ECoSLocomotiveSyncChange{Field: "address", Current: strconv.Itoa(current.Address), Desired: strconv.Itoa(desired.Address)})
-		parts = append(parts, fmt.Sprintf("addr[%d]", desired.Address))
+		commands = append(commands, fmt.Sprintf("set(%d, addr[%d])", objectID, desired.Address))
 	}
 	if desired.Protocol != "" && desired.Protocol != current.Protocol {
 		if !isSafeECoSToken(desired.Protocol) {
-			return nil, "", errors.New("ECoS-Protokoll enthielt unzulässige Zeichen")
+			return nil, nil, errors.New("ECoS-Protokoll enthielt unzulässige Zeichen")
 		}
 		changes = append(changes, ECoSLocomotiveSyncChange{Field: "protocol", Current: current.Protocol, Desired: desired.Protocol})
-		parts = append(parts, "protocol["+desired.Protocol+"]")
+		commands = append(commands, fmt.Sprintf("set(%d, protocol[%s])", objectID, desired.Protocol))
 	}
-	if len(parts) == 0 {
-		return changes, "", nil
-	}
-	return changes, fmt.Sprintf("set(%d, %s)", objectID, strings.Join(parts, ", ")), nil
+	return changes, commands, nil
 }
 
 func eCoSLocomotiveSyncFields(changes []ECoSLocomotiveSyncChange) []string {

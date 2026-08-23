@@ -19,12 +19,15 @@ export type DigitalCenterMessageCode =
   | "live.interrupted"
   | "write.preview_failed"
   | "write.failed"
+	| "write.unknown"
   | "write.verified"
-  | "write.verification_failed";
+	| "write.verification_failed"
+	| "live.restart_failed";
 export type ECoSLiveMonitorState = "stopped" | "running" | "interrupted";
 export type DigitalCenterWriteField = "address" | "name" | "protocol";
 export type DigitalCenterWriteDirection = "railkeeper_to_center";
-export type DigitalCenterWriteResult = "verified" | "verification_failed" | "failed";
+export type DigitalCenterWriteOperation = "update" | "create";
+export type DigitalCenterWriteResult = "verified" | "verification_failed" | "failed" | "unknown";
 
 export type DigitalCenterCapabilities = {
   testConnection: boolean;
@@ -175,6 +178,7 @@ export type DigitalCenterWriteChange = {
 };
 
 export type DigitalCenterWritePreviewInput = {
+  operation?: DigitalCenterWriteOperation;
   fields?: DigitalCenterWriteField[];
 };
 
@@ -183,6 +187,7 @@ export type DigitalCenterWritePreview = {
   itemId: string;
   provider: DigitalCenterProvider;
   objectId: string;
+  operation: DigitalCenterWriteOperation;
   direction: DigitalCenterWriteDirection;
   fields: DigitalCenterWriteField[];
   changes: DigitalCenterWriteChange[];
@@ -191,6 +196,7 @@ export type DigitalCenterWritePreview = {
 };
 
 export type DigitalCenterWriteConfirmInput = {
+  operation?: DigitalCenterWriteOperation;
   token: string;
   confirm: true;
   fields?: DigitalCenterWriteField[];
@@ -201,12 +207,23 @@ export type DigitalCenterWriteConfirmation = {
   itemId: string;
   provider: DigitalCenterProvider;
   objectId: string;
+  operation: DigitalCenterWriteOperation;
   direction: DigitalCenterWriteDirection;
   fields: DigitalCenterWriteField[];
   applied: boolean;
   verified: boolean;
   result: DigitalCenterWriteResult;
   message: string;
+	verifiedValues?: {
+	  name?: string;
+	  address?: number;
+	  protocol?: string;
+	};
+	liveMonitor: {
+	  wasRunning: boolean;
+	  restarted: boolean;
+	};
+	workItem?: DigitalCenterWorkItem;
 };
 
 export type DigitalCenterWorkspaceDialog =

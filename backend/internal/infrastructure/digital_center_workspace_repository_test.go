@@ -112,6 +112,44 @@ func TestDigitalCenterWorkspaceRepositoryUpdatesSession(t *testing.T) {
 	}
 }
 
+func TestDigitalCenterWorkspaceRepositoryUpdatesWorkItem(t *testing.T) {
+	repo := infrastructure.NewDigitalCenterWorkspaceRepository(testDB(t))
+	session, err := repo.CreateSession(t.Context(), application.DigitalCenterReadSession{
+		Provider: "ecos", State: application.DigitalCenterSessionReady,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.ReplaceWorkItems(t.Context(), session.ID, []application.DigitalCenterWorkItem{{
+		CenterObjectID: "3", Name: "Alt", Address: 3, Protocol: "DCC",
+		CompareStatus: application.DigitalCompareDeviation, StationStatus: "read",
+		Center: map[string]any{"name": "Alt"}, RailKeeper: map[string]any{"name": "Neu"},
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	items, err := repo.ListWorkItems(t.Context(), session.ID)
+	if err != nil || len(items) != 1 {
+		t.Fatalf("items=%#v err=%v", items, err)
+	}
+	item := items[0]
+	item.CenterObjectID = "1002"
+	item.Name = "Neu"
+	item.Address = 18
+	item.Center = map[string]any{"name": "Neu", "decoderAddress": 18}
+	item.CompareStatus = application.DigitalCompareOK
+	item.Conflicts = []map[string]any{}
+	updated, err := repo.UpdateWorkItem(t.Context(), item)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if updated.CenterObjectID != "1002" || updated.Name != "Neu" || updated.Address != 18 ||
+		updated.CompareStatus != application.DigitalCompareOK ||
+		updated.Center["decoderAddress"] != float64(18) || len(updated.Conflicts) != 0 ||
+		updated.UpdatedAt == "" {
+		t.Fatalf("updated item=%#v", updated)
+	}
+}
+
 func TestDigitalCenterWorkspaceRepositoryEnforcesForeignKeysUniquenessAndCascade(t *testing.T) {
 	db := testDB(t)
 	repo := infrastructure.NewDigitalCenterWorkspaceRepository(db)
@@ -269,6 +307,8 @@ func TestDigitalCenterWorkspaceRepositoryRejectsPrivateProtocolMessages(t *testi
 		{Code: "read.completed", Message: "42 Lokomotiven wurden gelesen."},
 		{Code: "parse.failed", Message: "Die gelesenen Daten konnten nicht verarbeitet werden."},
 		{Code: "capability.unavailable", Message: "Diese Zentrale unterstützt das Lesen nicht."},
+		{Code: "write.unknown", Message: "Der Schreibstatus der Digitalzentrale ist unbekannt."},
+		{Code: "live.restart_failed", Message: "Das Live-Monitoring konnte nicht neu gestartet werden."},
 	}
 	for _, message := range safeMessages {
 		message.SessionID = session.ID

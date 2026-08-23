@@ -8,6 +8,7 @@ import type {
   DigitalCenterWorkItem,
   DigitalCenterWriteConfirmation,
   DigitalCenterWriteField,
+  DigitalCenterWriteOperation,
   DigitalCenterWritePreview
 } from "./digitalCenterModel";
 
@@ -22,7 +23,9 @@ export function LocomotiveComparisonDialog({
   preview: DigitalCenterWritePreview | null;
   confirmation: DigitalCenterWriteConfirmation | null;
   error: string;
-  onPreview: (fields: DigitalCenterWriteField[]) => Promise<DigitalCenterWritePreview>;
+  onPreview: (
+    fields: DigitalCenterWriteField[], operation?: DigitalCenterWriteOperation
+  ) => Promise<DigitalCenterWritePreview>;
   onConfirm: () => Promise<DigitalCenterWriteConfirmation>;
   onCreateVehicle: () => void;
   onAssignVehicle: () => void;
@@ -36,8 +39,10 @@ export function LocomotiveComparisonDialog({
   const changedFields = rows.filter((row) => row.current !== row.desired).map((row) => row.field);
   const unassigned = item.vehicleId.trim() === "";
   const adoptable = unassigned && /^\d+$/.test(item.centerObjectId.trim());
+  const missingInCenter = !unassigned && item.compareStatus === "missing" && item.stationStatus === "missing";
   const grantValid = Boolean(preview?.token.trim()) && validExpiry(preview?.expiresAt);
   const verified = confirmation?.result === "verified" && confirmation.applied && confirmation.verified;
+	const resultTone = verified ? "verified" : confirmation?.result === "unknown" ? "warning" : "error";
 
   useEffect(() => setConfirmed(false), [preview?.token]);
   useEffect(() => {
@@ -62,12 +67,22 @@ export function LocomotiveComparisonDialog({
             aria-label={t("digitalCenters.error.write")}>
             <TriangleAlert size={17} aria-hidden="true" />{error}
           </p>}
-          {confirmation && <p className={`digital-write-result ${verified ? "verified" : "error"}`}>
+          {confirmation && <section className={`digital-write-result ${resultTone}`}>
             {verified ? <CheckCircle2 size={17} aria-hidden="true" /> :
               <TriangleAlert size={17} aria-hidden="true" />}
             <span><strong>{verified ? t("digitalCenters.write.verified") : resultLabel(confirmation, t)}</strong>
-              <small>{confirmation.message}</small></span>
-          </p>}
+			  <small>{confirmation.message}</small>
+			  {confirmation.verifiedValues && <small>{t("digitalCenters.write.actualValues", {
+				name: confirmation.verifiedValues.name ?? "–",
+				address: confirmation.verifiedValues.address ?? "–",
+				protocol: confirmation.verifiedValues.protocol ?? "–"
+			  })}</small>}
+			  {confirmation.liveMonitor.wasRunning && !confirmation.liveMonitor.restarted &&
+				<small className="digital-write-restart-warning">
+				  {t("digitalCenters.write.liveRestartFailed")}
+				</small>}
+			</span>
+		  </section>}
 
           {preview && !confirmation && <AppCheckbox className="digital-write-confirmation"
             label={t("digitalCenters.write.consent")} checked={confirmed}
@@ -83,7 +98,14 @@ export function LocomotiveComparisonDialog({
                 {t("digitalCenters.assignment.open")}
               </button>
             </>}
-            {!preview && !unassigned && <button type="button" className="digital-center-button"
+            {!preview && missingInCenter && <button type="button"
+              className="digital-center-button digital-center-button-primary"
+              disabled={!canWrite || loading}
+              onClick={() => void onPreview(["name", "address", "protocol"], "create")
+                .catch(() => undefined)}>
+              {t("digitalCenters.write.createInEcos")}
+            </button>}
+            {!preview && !unassigned && !missingInCenter && <button type="button" className="digital-center-button"
               disabled={!canWrite || loading || changedFields.length === 0}
               onClick={() => void onPreview(changedFields).catch(() => undefined)}>
               {t("digitalCenters.write.createPreview")}
@@ -92,7 +114,7 @@ export function LocomotiveComparisonDialog({
               disabled={!confirmed || !grantValid || loading}
               title={!grantValid ? t("digitalCenters.write.grantInvalid") : undefined}
               onClick={() => void onConfirm().catch(() => undefined)}>
-              {t("digitalCenters.write.confirm")}</button>}
+			  {loading ? t("digitalCenters.write.inProgress") : t("digitalCenters.write.confirm")}</button>}
             <button type="button" className="digital-center-button" onClick={onClose}>
               {t("digitalCenters.common.close")}</button>
           </footer>
@@ -101,6 +123,9 @@ export function LocomotiveComparisonDialog({
           </p>}
           {canWrite && unassigned && <p className="digital-write-unavailable">
             {t("digitalCenters.write.unassigned")}
+          </p>}
+          {canWrite && missingInCenter && <p className="digital-write-unavailable">
+            {t("digitalCenters.write.missingInEcos")}
           </p>}
         </section>
       </div>
@@ -132,7 +157,7 @@ function WritePreview({ preview, t, language }: {
     <table><thead><tr><th>{t("digitalCenters.dialog.field")}</th>
       <th>{t("digitalCenters.write.current")}</th><th>{t("digitalCenters.write.desired")}</th></tr></thead>
       <tbody>{preview.changes.map((change) => <tr key={change.field}>
-        <th>{fieldLabel(change.field, t)}</th><td>{change.current}</td><td>{change.desired}</td>
+        <th>{fieldLabel(change.field, t)}</th><td>{change.current || "–"}</td><td>{change.desired}</td>
       </tr>)}</tbody></table>
     <small>{t("digitalCenters.write.grantUntil", { value: formatDateTime(preview.expiresAt, language) })}</small>
   </section>;
@@ -160,8 +185,9 @@ function fieldLabel(field: DigitalCenterWriteField, t: Translate) {
 }
 
 function resultLabel(confirmation: DigitalCenterWriteConfirmation, t: Translate) {
-  return confirmation.result === "verification_failed" ? t("digitalCenters.write.verificationFailed") :
-    t("digitalCenters.write.failed");
+  if (confirmation.result === "verification_failed") return t("digitalCenters.write.verificationFailed");
+  if (confirmation.result === "unknown") return t("digitalCenters.write.unknown");
+  return t("digitalCenters.write.failed");
 }
 
 function formatDateTime(value: string, language: Language) {
