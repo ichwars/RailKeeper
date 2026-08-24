@@ -1,4 +1,4 @@
-import { Database, MoreVertical, Play, Plus } from "lucide-react";
+import { Database, FileDown, FileUp, MoreVertical, Plus } from "lucide-react";
 
 import { formatDateTime, type Language } from "../../shared/i18n";
 import type { DataTransferArea, DataTransferProfile } from "./dataTransferModel";
@@ -58,8 +58,10 @@ export function TransferProfilesTable({
           <tbody>
             {profiles.length === 0 ? (
               <tr><td className="data-transfer-empty" colSpan={7}>{t("importExport.dashboard.profiles.empty")}</td></tr>
-            ) : profiles.map((profile) => (
-              <tr key={profile.id}>
+            ) : profiles.map((profile) => {
+              const RunIcon = profile.direction === "import" ? FileUp : FileDown;
+              const runTitle = t(`importExport.dashboard.profiles.run.${profile.direction}`);
+              return <tr key={profile.id}>
                 <td><strong className="data-transfer-truncate" title={profile.name}>{profile.name}</strong></td>
                 <td>{t(`importExport.dashboard.profiles.${profile.direction}`)}</td>
                 <td>
@@ -67,8 +69,8 @@ export function TransferProfilesTable({
                     {t(`importExport.dashboard.profiles.${profile.enabled ? "enabled" : "disabled"}`)}
                   </span>
                 </td>
-                <td className="data-transfer-truncate" title={areaLabels(profile.areas, t)}>
-                  {areaLabels(profile.areas, t)}
+                <td title={areaLabels(profile.areas, t)}>
+                  <span className="data-transfer-truncate">{areaLabels(profile.areas, t)}</span>
                 </td>
                 <td>{profile.format === "csv" ? "CSV" : "JSON"}</td>
                 <td>{profile.lastUsedAt ? formatDateTime(profile.lastUsedAt, language) : "–"}</td>
@@ -77,13 +79,13 @@ export function TransferProfilesTable({
                     {profile.enabled && (profile.direction === "import" ? canImport : canExport) ? (
                       <button
                         type="button"
-                        className="transfer-inline-run"
+                        className="icon-button transfer-profile-run"
                         aria-label={`${profile.name} ${t("importExport.dashboard.profiles.start")}`}
+                        title={runTitle}
                         disabled={mutating}
                         onClick={() => onRun(profile)}
                       >
-                        <Play size={13} fill="currentColor" aria-hidden="true" />
-                        {t(`importExport.dashboard.profiles.run.${profile.direction}`)}
+                        <RunIcon size={16} aria-hidden="true" />
                       </button>
                     ) : null}
                     {canEdit && (
@@ -99,8 +101,8 @@ export function TransferProfilesTable({
                     )}
                   </span>
                 </td>
-              </tr>
-            ))}
+              </tr>;
+            })}
           </tbody>
         </table>
       </div>

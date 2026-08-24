@@ -75,6 +75,23 @@ func TestOpenAPIDataTransferImportDocumentsRuntimeErrorsAndRevision(t *testing.T
 	}
 }
 
+func TestOpenAPIDataTransferJobDeleteContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	jobItem := openAPIIndentedBlock(t, string(data), "/data-transfer/jobs/{id}", 2)
+	operation := openAPIIndentedBlock(t, jobItem, "delete", 4)
+	if !strings.Contains(operation, "security:\n        - sessionCookie: []\n          csrfHeader: []") {
+		t.Fatalf("data-transfer job delete is missing session and CSRF security: %s", operation)
+	}
+	for _, response := range []string{"204", "403", "404", "409"} {
+		if !strings.Contains(operation, "        \""+response+"\":") {
+			t.Fatalf("data-transfer job delete is missing response %s: %s", response, operation)
+		}
+	}
+}
+
 func TestOpenAPIDataTransferIssueResolutionIncludesMesseMerge(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

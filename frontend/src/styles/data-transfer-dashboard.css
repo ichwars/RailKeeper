@@ -227,13 +227,24 @@
   display: grid;
   width: 100%;
   min-height: 118px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel-subtle);
+  overflow: hidden;
+}
+
+.transfer-job-card-select {
+  display: grid;
+  width: 100%;
+  min-width: 0;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: start;
   gap: 11px;
   padding: 13px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--panel-subtle);
+  border: 0;
+  background: transparent;
   color: var(--text);
   cursor: pointer;
   font: inherit;
@@ -241,8 +252,11 @@
 }
 
 .transfer-job-card:hover,
-.transfer-job-card:focus-visible {
+.transfer-job-card:focus-within {
   border-color: color-mix(in srgb, var(--accent) 48%, var(--line));
+}
+
+.transfer-job-card-select:focus-visible {
   outline: none;
 }
 
@@ -256,9 +270,23 @@
   color: var(--accent-strong);
 }
 
-.transfer-job-card > svg:last-child {
+.transfer-job-card-select > svg:last-child {
   align-self: center;
   color: var(--muted);
+}
+
+.transfer-job-delete {
+  width: 30px;
+  height: 30px;
+  align-self: center;
+  margin-right: 9px;
+}
+
+.transfer-job-delete:hover,
+.transfer-job-delete:focus-visible,
+.transfer-history-delete:hover,
+.transfer-history-delete:focus-visible {
+  color: var(--danger);
 }
 
 .transfer-job-copy {
@@ -455,23 +483,13 @@
   gap: 4px;
 }
 
-.transfer-inline-run {
-  display: inline-flex;
-  min-height: 26px;
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 4px;
-  background: var(--accent-soft);
+.transfer-profile-run {
+  width: 30px;
+  height: 30px;
   color: var(--accent-strong);
-  cursor: pointer;
-  font: inherit;
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-extra-bold);
 }
 
-.transfer-inline-run:disabled {
+.transfer-profile-run:disabled {
   cursor: wait;
   opacity: 0.55;
 }
@@ -506,11 +524,17 @@
 }
 
 .transfer-history-table th:nth-child(6) {
-  width: 17%;
+  width: 13%;
 }
 
 .transfer-history-table th:nth-child(7) {
-  width: 4%;
+  width: 8%;
+}
+
+.transfer-history-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .transfer-history-row {

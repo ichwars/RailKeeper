@@ -52,6 +52,17 @@ const failedExportJob = jobFixture({
   createdAt: "2026-08-20T13:01:00Z"
 });
 
+const cancelledImportJob = jobFixture({
+  id: "job-cancelled",
+  profileId: "profile-import",
+  profileName: "Fahrzeugimport",
+  state: "cancelled",
+  stage: "cancelled",
+  sourceName: "abgebrochener-import.csv",
+  completedAt: "2026-08-20T13:12:00Z",
+  createdAt: "2026-08-20T13:11:00Z"
+});
+
 const readyImportJob = jobFixture({
   ...reviewJob,
   id: "job-ready",
@@ -164,8 +175,58 @@ describe("ImportExportView", () => {
 
     render(<ImportExportView roles={["Admin"]} />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Fahrzeugimport starten" }));
+    const importAction = await screen.findByRole("button", { name: "Fahrzeugimport starten" });
+    expect(importAction).toHaveAttribute("title", "Import starten");
+    expect(importAction).toHaveTextContent("");
+    expect(importAction.querySelector("svg")).not.toBeNull();
+    const exportAction = screen.getByRole("button", { name: "Fahrzeugexport starten" });
+    expect(exportAction).toHaveAttribute("title", "Export starten");
+    expect(exportAction).toHaveTextContent("");
+
+    fireEvent.click(importAction);
     expect(screen.getByRole("dialog", { name: "Import prüfen" })).toBeInTheDocument();
+  });
+
+  it("lets Admin delete a cancelled job from jobs or history after confirmation", async () => {
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([cancelledImportJob, exhibitionExportJob, failedExportJob]);
+    vi.mocked(api.dataTransferJob).mockImplementation(async (id) => detailsFixture(
+      id === cancelledImportJob.id ? cancelledImportJob : exhibitionExportJob
+    ));
+    vi.spyOn(api, "deleteDataTransferJob").mockResolvedValue(undefined);
+    render(<ImportExportView roles={["Admin"]} />);
+
+    const jobPanel = (await screen.findByRole("heading", { name: "Aufträge" })).closest("section") as HTMLElement;
+    const historyPanel = screen.getByRole("heading", { name: "Transferverlauf" }).closest("section") as HTMLElement;
+    const jobDelete = within(jobPanel).getByRole("button", { name: "Fahrzeugimport löschen" });
+    expect(within(historyPanel).getByRole("button", { name: "Fahrzeugimport löschen" })).toBeInTheDocument();
+
+    fireEvent.click(jobDelete);
+    expect(screen.getByRole("dialog", { name: "Abgebrochenen Auftrag löschen?" })).toHaveTextContent(
+      "abgebrochener-import.csv"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Auftrag löschen" }));
+
+    await waitFor(() => expect(api.deleteDataTransferJob).toHaveBeenCalledWith(cancelledImportJob.id));
+  });
+
+  it("hides job deletion from non-admins and every non-cancelled state", async () => {
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([cancelledImportJob, exhibitionExportJob, failedExportJob]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(cancelledImportJob));
+    const { unmount } = render(<ImportExportView roles={["Editor"]} />);
+
+    const editorJobs = (await screen.findByRole("heading", { name: "Aufträge" })).closest("section") as HTMLElement;
+    const editorHistory = screen.getByRole("heading", { name: "Transferverlauf" }).closest("section") as HTMLElement;
+    expect(within(editorJobs).queryByRole("button", { name: "Fahrzeugimport löschen" })).not.toBeInTheDocument();
+    expect(within(editorHistory).queryByRole("button", { name: "Fahrzeugimport löschen" })).not.toBeInTheDocument();
+    unmount();
+
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([exhibitionExportJob, failedExportJob]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(exhibitionExportJob));
+    render(<ImportExportView roles={["Admin"]} />);
+    const adminJobs = (await screen.findByRole("heading", { name: "Aufträge" })).closest("section") as HTMLElement;
+    const adminHistory = screen.getByRole("heading", { name: "Transferverlauf" }).closest("section") as HTMLElement;
+    expect(within(adminJobs).queryByRole("button", { name: /löschen/i })).not.toBeInTheDocument();
+    expect(within(adminHistory).queryByRole("button", { name: /löschen/i })).not.toBeInTheDocument();
   });
 
   it("updates job details and progress stages after selection and applies job filters", async () => {

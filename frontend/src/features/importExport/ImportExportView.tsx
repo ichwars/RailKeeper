@@ -1,7 +1,9 @@
 import { Plus } from "lucide-react";
+import { useState } from "react";
 
 import { useI18n } from "../../shared/i18n";
 import { TransferArtifactPanel } from "./TransferArtifactPanel";
+import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 import { TransferExportDialog } from "./TransferExportDialog";
 import { TransferHistoryTable } from "./TransferHistoryTable";
 import { TransferImportDialog } from "./TransferImportDialog";
@@ -10,11 +12,13 @@ import { TransferJobList } from "./TransferJobList";
 import { TransferProfileDialog } from "./TransferProfileDialog";
 import { TransferProfilesTable } from "./TransferProfilesTable";
 import { TransferSummaryStrip } from "./TransferSummaryStrip";
+import type { DataTransferJob } from "./dataTransferModel";
 import { useDataTransferWorkspace } from "./useDataTransferWorkspace";
 
 export function ImportExportView({ roles }: { roles: string[] }) {
   const { language, t } = useI18n();
   const workspace = useDataTransferWorkspace(roles);
+  const [jobPendingDelete, setJobPendingDelete] = useState<DataTransferJob | null>(null);
   const detailJob = workspace.selectedJobDetails?.job ?? workspace.selectedJob;
   const dialogJobId = workspace.dialog?.kind !== "profile" ? workspace.dialog?.jobId : undefined;
   const dialogJob = dialogJobId
@@ -26,6 +30,17 @@ export function ImportExportView({ roles }: { roles: string[] }) {
     const retry = await workspace.retryJob(jobId);
     workspace.openDialog(retry.direction, retry.profileId || undefined, retry.id);
   }
+
+  const deleteAction: TransferPendingAction | null = jobPendingDelete ? {
+    title: t("importExport.dashboard.delete.title"),
+    body: t("importExport.dashboard.delete.body", {
+      name: jobPendingDelete.sourceName || jobPendingDelete.profileName
+    }),
+    confirmLabel: t("importExport.dashboard.delete.confirm"),
+    dangerous: true,
+    errorMessage: t("importExport.dashboard.delete.error"),
+    run: () => workspace.deleteJob(jobPendingDelete.id)
+  } : null;
 
   return (
     <div className="data-transfer-workspace">
@@ -68,10 +83,13 @@ export function ImportExportView({ roles }: { roles: string[] }) {
       <div className="data-transfer-dashboard">
         <TransferJobList
           allJobs={workspace.allJobs}
+          canDelete={workspace.capabilities.canDeleteJobs}
           filters={workspace.filters}
           jobs={workspace.jobs}
           language={language}
           loading={workspace.loading}
+          mutating={workspace.mutating}
+          onDeleteRequest={setJobPendingDelete}
           onFilter={(filter) => workspace.setFilters(filter)}
           onSelect={workspace.selectJob}
           selectedJobId={workspace.selectedJobId}
@@ -93,8 +111,11 @@ export function ImportExportView({ roles }: { roles: string[] }) {
             t={t}
           />
           <TransferHistoryTable
+            canDelete={workspace.capabilities.canDeleteJobs}
             jobs={workspace.allJobs}
             language={language}
+            mutating={workspace.mutating}
+            onDeleteRequest={setJobPendingDelete}
             onSelect={workspace.selectJob}
             selectedJobId={workspace.selectedJobId}
             t={t}
@@ -176,6 +197,8 @@ export function ImportExportView({ roles }: { roles: string[] }) {
           profiles={workspace.profiles}
         />
       ) : null}
+      <TransferConfirmDialog action={deleteAction} cancelLabel={t("importExport.dashboard.delete.cancel")}
+        onClose={() => setJobPendingDelete(null)} />
     </div>
   );
 }
