@@ -3,7 +3,7 @@ title: Overview, metrics, and data quality
 description: Read the RailKeeper dashboard, follow data gaps, and arrange its widgets.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
@@ -11,7 +11,7 @@ lastReviewed: 2026-08-16
 
 The **Overview** is RailKeeper's working dashboard for inventory size, recorded value,
 digitalization, maintenance, and data quality. This chapter explains what each number means and how
-to continue from an indicator to the affected vehicles. It describes stable RailKeeper v0.1.20.1.
+to continue from an indicator to the affected vehicles. It describes stable RailKeeper v0.1.20.2.
 
 Admin, Editor, Viewer, and Planner users can open the overview. An account with only the Messe role
 starts in **Exhibition** and cannot open this dashboard.
@@ -94,7 +94,7 @@ heading is **Inventory**, with the matching filter active.
 | **Without EAN** | Vehicles without an EAN |
 | **Digital without decoder no.** | Digital vehicles without a value in either decoder-number field |
 
-In v0.1.20.1, **Without main image** technically checks whether any image exists. It does not
+In v0.1.20.2, **Without main image** technically checks whether any image exists. It does not
 distinguish a specifically selected main image. When all four counts are zero, the widget reports
 that no major data gaps were detected.
 
@@ -201,4 +201,4 @@ shared with other browsers or saved as account-wide dashboard settings.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.1** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.

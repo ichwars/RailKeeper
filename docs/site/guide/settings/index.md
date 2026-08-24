@@ -3,7 +3,7 @@ title: Settings
 description: Understand personal preferences, appearance, and the boundaries between user and administration settings.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
@@ -14,7 +14,7 @@ chapter covers the settings that shape an individual user's navigation and appea
 command stations, application backup, storage, updates, users, sessions, and authentication are
 separate topics even though RailKeeper presents them in the same workspace.
 
-This chapter documents stable RailKeeper v0.1.20.1.
+This chapter documents stable RailKeeper v0.1.20.2.
 
 ## Access rights
 
@@ -59,7 +59,7 @@ preferences. Opening Settings restores the other synchronized preferences.
 
 There are important exceptions and limits:
 
-- Interface language is browser-local in v0.1.20.1 and is not written to the server profile.
+- Interface language is browser-local in v0.1.20.2 and is not written to the server profile.
 - The collapsed or expanded state of the main sidebar is browser-local. Sidebar order and hidden
   entries are profile settings.
 - Profile saving runs in the background. The page does not show a success or failure message for
@@ -76,8 +76,8 @@ There are important exceptions and limits:
 4. Adjust the light and dark variants independently when required.
 5. Reload RailKeeper once when verifying that a preference was restored.
 6. When moving to another browser, sign in with the same user. Set the interface language again
-   because language is not profile-synchronized in v0.1.20.1.
+   because language is not profile-synchronized in v0.1.20.2.
 
 ## Documented RailKeeper version
 
-This chapter documents stable RailKeeper **v0.1.20.1** and was last reviewed on 2026-08-16.
+This chapter documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.

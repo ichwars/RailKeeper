@@ -3,7 +3,7 @@ title: Accessories overview
 description: Find, filter, inspect, and safely manage accessory articles.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 **Accessories** is RailKeeper's catalogue and inventory workspace for track, signals, decoders,
 electrical components, scenery, lighting, and other model railway articles. It combines product
 identity, stored and allocated quantities, images, storage locations, and article lifecycle actions.
-This chapter describes stable RailKeeper v0.1.20.1.
+This chapter describes stable RailKeeper v0.1.20.2.
 
 An article is the common product record. Its stock can consist of interchangeable quantities,
 individually tracked items, or both. Reservations and installations bind some of that stock to a
@@ -51,7 +51,7 @@ Four metric cards appear above the article list:
 | **Care hints** | Total number of incomplete-data hints across active articles. It is informative and has no filter action. |
 
 **Care hints** is a count of missing fields, not a count of affected articles. One article can
-contribute several hints. Stable v0.1.20.1 checks for missing manufacturer, article number, article
+contribute several hints. Stable v0.1.20.2 checks for missing manufacturer, article number, article
 type, and stock unit. Track, signal, decoder, electrical/control, building/equipment, and lighting
 articles also contribute a hint when they have no gauge. Landscape consumables and **Other** do not
 require a gauge for this metric.
@@ -140,7 +140,7 @@ sort controls.
 ## Select, open, and manage an article
 
 Table checkboxes select one row or all currently visible rows. Selection is removed when a new
-search or filter result no longer contains the article. Stable v0.1.20.1 provides no bulk action for
+search or filter result no longer contains the article. Stable v0.1.20.2 provides no bulk action for
 this selection. It is visual state only and must not be treated as a pending archive, report, or
 stock command.
 
@@ -202,4 +202,4 @@ write.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.1** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.

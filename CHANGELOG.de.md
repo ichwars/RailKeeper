@@ -6,6 +6,27 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.20.2] - 2026-08-24
+
+### Geändert
+
+- Import- und Exportprofile zeigen Richtung, Status, Bereiche und Format in einer gemeinsamen,
+  einheitlich ausgerichteten Tabelle.
+- Startaktionen verwenden kompakte, zugängliche Symbole. Lange CSV-Zuordnungen und Prüfergebnisse
+  bleiben in den Importdialogen vollständig scrollbar und bedienbar.
+- Go-, SQLite-, Frontend- und GitHub-Actions-Abhängigkeiten wurden aktualisiert.
+
+### Behoben
+
+- Tabellenversatz und gequetschte untere Bereiche im Import/Export-Arbeitsbereich wurden beseitigt.
+- Die Importprüfung kann auch bei umfangreichen CSV-Zuordnungen bis zur Bestätigung fortgesetzt
+  werden.
+
+### Sicherheit
+
+- Administratoren können ausschließlich abgebrochene Transferaufträge nach Bestätigung dauerhaft
+  löschen. Die Einschränkung wird serverseitig durchgesetzt und der Vorgang protokolliert.
+
 ## [0.1.20.1] - 2026-08-24
 
 ### Hinzugefügt
@@ -365,6 +386,7 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 - Die Vorprüfung der Backup-Wiederherstellung bleibt konservativ, Authentifizierungsdaten bleiben
   aus Exporten ausgeschlossen.
 
+[0.1.20.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.20.1...v0.1.20.2
 [0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
 [0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2

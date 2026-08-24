@@ -6,6 +6,26 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.20.2] - 2026-08-24
+
+### Changed
+
+- Import and export profiles show direction, status, areas, and format in one consistently aligned
+  table.
+- Start actions use compact, accessible icons. Long CSV mappings and review results remain fully
+  scrollable and usable throughout the import dialogs.
+- Go, SQLite, frontend, and GitHub Actions dependencies were updated.
+
+### Fixed
+
+- Removed table offsets and cramped lower sections in the import/export workspace.
+- Import reviews can proceed through confirmation even with extensive CSV mappings.
+
+### Security
+
+- Administrators can permanently delete cancelled transfer jobs only after confirmation. The
+  restriction is enforced server-side and the action is recorded in the audit log.
+
 ## [0.1.20.1] - 2026-08-24
 
 ### Added
@@ -351,6 +371,7 @@ All notable changes to RailKeeper are documented in this file.
 - Tightened API validation and protected master-data import invariants.
 - Kept backup restore preflight conservative and authentication data excluded from exports.
 
+[0.1.20.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.20.1...v0.1.20.2
 [0.1.20.1]: https://github.com/ichwars/RailKeeper/compare/v0.1.20...v0.1.20.1
 [0.1.20]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.2...v0.1.20
 [0.1.19.2]: https://github.com/ichwars/RailKeeper/compare/v0.1.19.1...v0.1.19.2

@@ -3,14 +3,14 @@ title: Allgemeine Stammdaten
 description: Fahrzeugklassifizierungen, Hersteller, CV8-Kennungen und Funktionssymbole verwalten.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
 # Allgemeine Stammdaten
 
 Unter **Einstellungen > Daten > Allgemein** werden die gemeinsamen Auswahlen für Fahrzeuge,
-Zubehör, Decoderdaten und Messen verwaltet. RailKeeper v0.1.20.1 stellt acht Datentypen bereit.
+Zubehör, Decoderdaten und Messen verwaltet. RailKeeper v0.1.20.2 stellt acht Datentypen bereit.
 
 ## Datentypen
 
@@ -117,4 +117,4 @@ Planner abgewiesen, ist ein Admin- oder Editor-Konto erforderlich.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.1** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
