@@ -3,7 +3,7 @@ title: Darstellung
 description: Designmodus wählen und helle sowie dunkle Varianten getrennt konfigurieren.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
@@ -44,7 +44,7 @@ das System helle Farben anfordert, und die konfigurierte dunkle Variante bei dun
 Varianten bleiben deshalb sinnvoll, auch wenn weder Hell noch Dunkel erzwungen wird.
 
 **OLED Schwarz** steht nur für den dunklen Hintergrund bereit und verwendet eine schwarze
-Grundfläche sowie sehr dunkle Panels. **Kompakt** verkleinert in v0.1.20.1 hauptsächlich die Abstände
+Grundfläche sowie sehr dunkle Panels. **Kompakt** verkleinert in v0.1.20.2 hauptsächlich die Abstände
 zwischen Einstellungskarten; es ist keine globale Tabellendichte. **Kontrast** verstärkt Trennlinien
 und zurückgenommene Texte, ersetzt aber nicht Browser-Zoom oder Bedienungshilfen des Betriebssystems.
 
@@ -70,9 +70,9 @@ Darstellungsvorgaben gehören daher nicht zur Anwendungssicherung.
 | Systemmodus wechselt unerwartet | Farbmodus des Betriebssystems oder Browsers prüfen. Der Systemmodus folgt diesem Signal. |
 | Hintergrund oder Akzent scheinen wirkungslos | Prüfen, ob die Anwendung gerade die bearbeitete helle oder dunkle Variante verwendet. |
 | Ein anderer Browser zeigt ein früheres Design | Einstellungen mit demselben Benutzer öffnen und neu laden. Nach einem Verbindungsfehler den Modus oder die Variante bei Bedarf erneut wählen. |
-| Kompakt verdichtet die Bestandstabellen nicht | In v0.1.20.1 verkleinert der Stil hauptsächlich Abstände zwischen Einstellungskarten. |
+| Kompakt verdichtet die Bestandstabellen nicht | In v0.1.20.2 verkleinert der Stil hauptsächlich Abstände zwischen Einstellungskarten. |
 | Kontrast reicht weiterhin nicht aus | Kontrast-Stil mit Browser-Zoom und Bedienungshilfen des Betriebssystems kombinieren. |
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.1** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.

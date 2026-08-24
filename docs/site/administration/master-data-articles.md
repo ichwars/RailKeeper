@@ -3,7 +3,7 @@ title: Article master data and storage locations
 description: Configure accessory units, classifications, custom fields, and hierarchical storage locations.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.1
+reviewedVersion: 0.1.20.2
 lastReviewed: 2026-08-16
 ---
 
@@ -35,7 +35,7 @@ RailKeeper ships eight protected article-type keys:
 - Lighting
 - Other
 
-Their labels and active states can be maintained, but v0.1.20.1 does not allow creating or deleting
+Their labels and active states can be maintained, but v0.1.20.2 does not allow creating or deleting
 article-type keys. This protects the matching technical-data contracts. Deactivating a type removes
 it from new article selection without rewriting existing articles.
 
@@ -77,7 +77,7 @@ Names must be unique among siblings without regard to letter case. A location ca
 parent or be moved beneath one of its descendants. The parent picker excludes those invalid
 choices.
 
-There is no permanent-delete action in v0.1.20.1. Archive a location to retire it and reactivate it
+There is no permanent-delete action in v0.1.20.2. Archive a location to retire it and reactivate it
 when required. Stock and individual items can use a location only when that location and every
 ancestor are active. Archiving a parent therefore makes its entire branch unavailable for new
 stock operations without erasing stored location references.
@@ -112,4 +112,4 @@ stored configuration unchanged.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.1** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.

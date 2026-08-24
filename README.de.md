@@ -161,7 +161,7 @@ SQLite-Datenbank, Uploads und lokale Dateien bleiben im Docker-Volume `railkeepe
 Um statt `latest` ein bestimmtes Release festzulegen, trage Folgendes in `.env` ein:
 
 ```env
-RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.20.1
+RAILKEEPER_IMAGE=ghcr.io/ichwars/railkeeper:v0.1.20.2
 ```
 
 Wenn du bewusst den ausgecheckten Quellstand bauen möchtest, verwende:
