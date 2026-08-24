@@ -82,7 +82,8 @@ describe("useDataTransferWorkspace", () => {
     expect(result.current.capabilities).toMatchObject({
       canCreateProfiles: true,
       canUpdateProfiles: true,
-      canDisableProfiles: false
+      canDisableProfiles: false,
+      canDeleteJobs: false
     });
 
     rerender({ roles: ["Admin"] });
@@ -90,8 +91,52 @@ describe("useDataTransferWorkspace", () => {
     expect(result.current.capabilities).toMatchObject({
       canCreateProfiles: true,
       canUpdateProfiles: true,
-      canDisableProfiles: true
+      canDisableProfiles: true,
+      canDeleteJobs: true
     });
+  });
+
+  it("deletes a cancelled job, clears its selection, and refreshes the workspace", async () => {
+    const cancelledJob = jobFixture({ id: "job-cancelled", state: "cancelled", stage: "cancelled" });
+    let deleted = false;
+    vi.mocked(api.dataTransferJobs).mockImplementation(async () => deleted ? [] : [cancelledJob]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(cancelledJob));
+    vi.spyOn(api, "deleteDataTransferJob").mockImplementation(async () => {
+      deleted = true;
+    });
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe(cancelledJob.id));
+
+    await act(() => result.current.deleteJob(cancelledJob.id));
+
+    expect(api.deleteDataTransferJob).toHaveBeenCalledWith(cancelledJob.id);
+    expect(result.current.selectedJobId).toBeNull();
+    expect(result.current.selectedJobDetails).toBeNull();
+    expect(result.current.jobs).toEqual([]);
+    expect(api.dataTransferSummary).toHaveBeenCalledTimes(2);
+  });
+
+  it("preserves the selected job when deletion fails", async () => {
+    const cancelledJob = jobFixture({ id: "job-cancelled", state: "cancelled", stage: "cancelled" });
+    vi.mocked(api.dataTransferJobs).mockResolvedValue([cancelledJob]);
+    vi.mocked(api.dataTransferJob).mockResolvedValue(detailsFixture(cancelledJob));
+    vi.spyOn(api, "deleteDataTransferJob").mockRejectedValue(new Error("Löschen fehlgeschlagen"));
+    const { result } = renderHook(() => useDataTransferWorkspace(["Admin"]));
+    await waitFor(() => expect(result.current.selectedJobDetails?.job.id).toBe(cancelledJob.id));
+
+    let deletionError: unknown;
+    await act(async () => {
+      try {
+        await result.current.deleteJob(cancelledJob.id);
+      } catch (error) {
+        deletionError = error;
+      }
+    });
+
+    expect(deletionError).toEqual(new Error("Löschen fehlgeschlagen"));
+    expect(result.current.selectedJobId).toBe(cancelledJob.id);
+    expect(result.current.selectedJobDetails?.job.id).toBe(cancelledJob.id);
+    await waitFor(() => expect(result.current.error).toBe("Löschen fehlgeschlagen"));
   });
 
   it("applies filters and loads a selected job detail", async () => {
@@ -327,6 +372,7 @@ describe("data transfer API", () => {
     await api.disableDataTransferProfile("profile/1");
     await api.dataTransferJobs({ profileId: "profile/1", direction: "import", states: ["ready", "failed"], limit: 25 });
     await api.dataTransferJob("job/1");
+    await api.deleteDataTransferJob("job/1");
     await api.retryDataTransferJob("job/1");
     await api.createDataTransferExportJob({ profileId: "profile/1" });
     await api.executeDataTransferExportJob("job/1");
@@ -346,6 +392,7 @@ describe("data transfer API", () => {
       ["/api/v1/data-transfer/profiles/profile%2F1", "DELETE"],
       ["/api/v1/data-transfer/jobs?profileId=profile%2F1&direction=import&states=ready&states=failed&limit=25", "GET"],
       ["/api/v1/data-transfer/jobs/job%2F1", "GET"],
+      ["/api/v1/data-transfer/jobs/job%2F1", "DELETE"],
       ["/api/v1/data-transfer/jobs/job%2F1/retry", "POST"],
       ["/api/v1/data-transfer/jobs/export", "POST"],
       ["/api/v1/data-transfer/jobs/job%2F1/execute", "POST"],
@@ -357,7 +404,7 @@ describe("data transfer API", () => {
       ["/api/v1/data-transfer/artifacts/artifact%2F1", "DELETE"],
       ["/api/v1/data-transfer/artifacts/open-folder", "POST"]
     ]);
-    const uploadInit = fetchMock.mock.calls[11]?.[1];
+    const uploadInit = fetchMock.mock.calls[12]?.[1];
     expect(uploadInit.body).toBeInstanceOf(FormData);
     expect(uploadInit.headers["Content-Type"]).toBeUndefined();
     expect(uploadInit.headers["X-CSRF-Token"]).toBe("transfer-test-token");

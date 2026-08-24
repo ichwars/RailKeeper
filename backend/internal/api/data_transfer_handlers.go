@@ -76,6 +76,20 @@ func (a *App) getDataTransferJob(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, details)
 }
 
+func (a *App) deleteDataTransferJob(w http.ResponseWriter, r *http.Request) {
+	if !a.dataTransferAvailable(w) {
+		return
+	}
+	if err := a.dataTransferService.DeleteJob(
+		r.Context(), r.PathValue("id"), allowedDataTransferAreas(r)...,
+	); err != nil {
+		a.dataTransferError(w, err, "delete data transfer job")
+		return
+	}
+	a.recordAudit(r, "DataTransferJobDeleted", "data_transfer_job", r.PathValue("id"))
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (a *App) retryDataTransferJob(w http.ResponseWriter, r *http.Request) {
 	if !a.dataTransferAvailable(w) {
 		return

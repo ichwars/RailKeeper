@@ -1296,6 +1296,8 @@ export const api = {
   },
   dataTransferJob: (id: string) =>
     request<DataTransferJobDetails>(`/data-transfer/jobs/${encodeURIComponent(id)}`),
+  deleteDataTransferJob: (id: string) =>
+    request<void>(`/data-transfer/jobs/${encodeURIComponent(id)}`, { method: "DELETE" }),
   retryDataTransferJob: (id: string) =>
     request<DataTransferJob>(`/data-transfer/jobs/${encodeURIComponent(id)}/retry`, { method: "POST" }),
   createDataTransferExportJob: (input: DataTransferJobInput) =>
