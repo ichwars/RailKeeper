@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
@@ -756,6 +757,65 @@ func TestDataTransferProfileRoutesUpdateAndDisableProfiles(t *testing.T) {
 	if err != nil || len(profiles) != 1 || profiles[0].Enabled {
 		t.Fatalf("unexpected disabled profile state: %#v, %v", profiles, err)
 	}
+}
+
+func TestDataTransferJobDeleteRouteAllowsOnlyAdminsAndCancelledJobs(t *testing.T) {
+	db := testRouterDB(t)
+	auth := application.NewAuthService(db)
+	for _, user := range []application.CreateUserInput{
+		{Username: "admin-delete", Password: "admin-password", Roles: []string{"Admin"}},
+		{Username: "editor-delete", Password: "editor-password", Roles: []string{"Editor"}},
+	} {
+		if _, err := auth.CreateUser(t.Context(), "", user); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	createJob := func(state application.TransferJobState) application.DataTransferJob {
+		t.Helper()
+		job, err := repository.CreateJob(t.Context(), application.DataTransferJob{
+			ProfileName: "Fahrzeugimport", Direction: application.TransferImport,
+			Format: application.TransferCSV, Areas: []application.TransferArea{application.TransferVehicles},
+			State: state, Stage: string(state),
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return job
+	}
+	cancelled := createJob(application.TransferJobCancelled)
+	editorCancelled := createJob(application.TransferJobCancelled)
+	csrfCancelled := createJob(application.TransferJobCancelled)
+	completed := createJob(application.TransferJobCompleted)
+
+	service := application.NewDataTransferService(repository, t.TempDir())
+	router := NewRouter(Config{AuthService: auth, DataTransferService: service})
+	admin := loginRouteTestUser(t, auth, "admin-delete", "admin-password")
+	editor := loginRouteTestUser(t, auth, "editor-delete", "editor-password")
+
+	withoutCSRF := layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/data-transfer/jobs/"+csrfCancelled.ID, nil, false)
+	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
+
+	forbidden := layoutRequest(t, router, editor, http.MethodDelete,
+		"/api/v1/data-transfer/jobs/"+editorCancelled.ID, nil, true)
+	assertProblem(t, forbidden, http.StatusForbidden, "forbidden")
+
+	conflict := layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/data-transfer/jobs/"+completed.ID, nil, true)
+	assertProblem(t, conflict, http.StatusConflict, "data_transfer_conflict")
+
+	missing := layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/data-transfer/jobs/missing", nil, true)
+	assertProblem(t, missing, http.StatusNotFound, "data_transfer_not_found")
+
+	deleted := layoutRequest(t, router, admin, http.MethodDelete,
+		"/api/v1/data-transfer/jobs/"+cancelled.ID, nil, true)
+	assertStatus(t, deleted, http.StatusNoContent)
+	if _, err := repository.GetJob(t.Context(), cancelled.ID); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("deleted job lookup error = %v, want sql.ErrNoRows", err)
+	}
+	assertDataTransferAuditActions(t, db, "DataTransferJobDeleted")
 }
 
 func TestDataTransferQueryAndRetryRoutesReturnScopedPersistentHistory(t *testing.T) {
