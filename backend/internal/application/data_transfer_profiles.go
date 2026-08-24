@@ -217,6 +217,21 @@ func (s *DataTransferService) RetryJob(
 	})
 }
 
+func (s *DataTransferService) DeleteJob(
+	ctx context.Context,
+	id string,
+	allowedAreas ...TransferArea,
+) error {
+	job, err := s.getJob(ctx, id, allowedAreas)
+	if err != nil {
+		return err
+	}
+	if job.State != TransferJobCancelled {
+		return fmt.Errorf("%w: job is %s", ErrDataTransferConflict, job.State)
+	}
+	return s.repository.DeleteJob(ctx, job.ID)
+}
+
 func (s *DataTransferService) getJob(
 	ctx context.Context,
 	id string,
