@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, CircleAlert, History, XCircle } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleAlert, History, Trash2, XCircle } from "lucide-react";
 import type { KeyboardEvent } from "react";
 
 import { formatDateTime, type Language } from "../../shared/i18n";
@@ -13,14 +13,26 @@ type TerminalJobState = Extract<
 const terminalStates: TerminalJobState[] = ["completed", "completed_with_warnings", "failed", "cancelled"];
 
 type TransferHistoryTableProps = {
+  canDelete: boolean;
   jobs: DataTransferJob[];
   language: Language;
+  mutating: boolean;
+  onDeleteRequest: (job: DataTransferJob) => void;
   onSelect: (id: string) => void;
   selectedJobId: string | null;
   t: Translate;
 };
 
-export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, t }: TransferHistoryTableProps) {
+export function TransferHistoryTable({
+  canDelete,
+  jobs,
+  language,
+  mutating,
+  onDeleteRequest,
+  onSelect,
+  selectedJobId,
+  t
+}: TransferHistoryTableProps) {
   const terminalJobs = jobs.filter((job): job is DataTransferJob & { state: TerminalJobState } =>
     terminalStates.includes(job.state as TerminalJobState)
   );
@@ -57,11 +69,13 @@ export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, 
               >
                 <td>{formatDateTime(job.completedAt || job.createdAt, language)}</td>
                 <td>{t(`importExport.dashboard.direction.${job.direction}`)}</td>
-                <td className="data-transfer-truncate" title={areaLabels(job.areas, t)}>{areaLabels(job.areas, t)}</td>
+                <td title={areaLabels(job.areas, t)}>
+                  <span className="data-transfer-truncate">{areaLabels(job.areas, t)}</span>
+                </td>
                 <td>{new Intl.NumberFormat(language === "de" ? "de-DE" : "en-GB").format(job.totalRecords)}</td>
                 <td><HistoryResult state={job.state} t={t} /></td>
                 <td><span className="data-transfer-truncate" title={job.sourceName}>{job.sourceName || "–"}</span></td>
-                <td>
+                <td><span className="transfer-history-actions">
                   <button
                     type="button"
                     className="icon-button transfer-row-menu"
@@ -74,7 +88,18 @@ export function TransferHistoryTable({ jobs, language, onSelect, selectedJobId, 
                   >
                     <ChevronRight size={16} aria-hidden="true" />
                   </button>
-                </td>
+                  {canDelete && job.state === "cancelled" ? (
+                    <button type="button" className="icon-button transfer-row-menu transfer-history-delete"
+                      aria-label={t("importExport.dashboard.delete.action", { name: job.profileName })}
+                      title={t("importExport.dashboard.delete.action", { name: job.profileName })}
+                      disabled={mutating} onClick={(event) => {
+                        event.stopPropagation();
+                        onDeleteRequest(job);
+                      }}>
+                      <Trash2 size={16} aria-hidden="true" />
+                    </button>
+                  ) : null}
+                </span></td>
               </tr>
             ))}
           </tbody>

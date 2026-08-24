@@ -416,6 +416,50 @@ func TestDataTransferRepositoryFiltersAndUpdatesJobs(t *testing.T) {
 	}
 }
 
+func TestDataTransferRepositoryDeleteJobCascadesRelatedRows(t *testing.T) {
+	db := testDB(t)
+	repo := infrastructure.NewDataTransferRepository(db)
+	job, err := repo.CreateJob(t.Context(), application.DataTransferJob{
+		Direction: application.TransferImport, Format: application.TransferCSV,
+		Areas: []application.TransferArea{application.TransferVehicles}, State: application.TransferJobCancelled,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := repo.ReplaceIssues(t.Context(), job.ID, []application.DataTransferIssue{{
+		JobID: job.ID, Area: application.TransferVehicles, Severity: application.TransferIssueWarning,
+		Code: "cancelled", Message: "Cancelled preview issue",
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateArtifact(t.Context(), application.DataTransferArtifact{
+		JobID: job.ID, RelativePath: "exports/cancelled.csv", DisplayName: "cancelled.csv",
+		MIMEType: "text/csv", SHA256: "cancelled",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := repo.DeleteJob(t.Context(), job.ID); err != nil {
+		t.Fatal(err)
+	}
+	for _, table := range []string{"data_transfer_jobs", "data_transfer_job_issues", "data_transfer_artifacts"} {
+		var count int
+		if err := db.QueryRow("SELECT COUNT(*) FROM " + table).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		if count != 0 {
+			t.Fatalf("%s count = %d, want 0", table, count)
+		}
+	}
+}
+
+func TestDataTransferRepositoryDeleteJobReturnsNotFound(t *testing.T) {
+	repo := infrastructure.NewDataTransferRepository(testDB(t))
+	if err := repo.DeleteJob(t.Context(), "missing"); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("delete missing job error = %v, want sql.ErrNoRows", err)
+	}
+}
+
 func TestDataTransferRepositoryReplacesIssuesAndMarksArtifactsDeleted(t *testing.T) {
 	db := testDB(t)
 	repo := infrastructure.NewDataTransferRepository(db)
