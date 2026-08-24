@@ -1,4 +1,4 @@
-import { ChevronRight, FileJson, FileSpreadsheet, ListChecks } from "lucide-react";
+import { ChevronRight, FileJson, FileSpreadsheet, ListChecks, Trash2 } from "lucide-react";
 
 import type { Language } from "../../shared/i18n";
 import type { DataTransferJob, DataTransferJobFilter, DataTransferJobState } from "./dataTransferModel";
@@ -7,10 +7,13 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
 
 type TransferJobListProps = {
   allJobs: DataTransferJob[];
+  canDelete: boolean;
   filters: DataTransferJobFilter;
   jobs: DataTransferJob[];
   language: Language;
   loading: boolean;
+  mutating: boolean;
+  onDeleteRequest: (job: DataTransferJob) => void;
   onFilter: (filter: DataTransferJobFilter) => void;
   onSelect: (id: string) => void;
   selectedJobId: string | null;
@@ -22,10 +25,13 @@ const completedStates: DataTransferJobState[] = ["completed", "completed_with_wa
 
 export function TransferJobList({
   allJobs,
+  canDelete,
   filters,
   jobs,
   language,
   loading,
+  mutating,
+  onDeleteRequest,
   onFilter,
   onSelect,
   selectedJobId,
@@ -74,9 +80,12 @@ export function TransferJobList({
           <p className="data-transfer-empty">{t("importExport.dashboard.jobs.empty")}</p>
         ) : jobs.map((job) => (
           <JobCard
+            canDelete={canDelete}
             job={job}
             key={job.id}
             language={language}
+            mutating={mutating}
+            onDeleteRequest={onDeleteRequest}
             onSelect={onSelect}
             selected={job.id === selectedJobId}
             t={t}
@@ -88,14 +97,20 @@ export function TransferJobList({
 }
 
 function JobCard({
+  canDelete,
   job,
   language,
+  mutating,
+  onDeleteRequest,
   onSelect,
   selected,
   t
 }: {
+  canDelete: boolean;
   job: DataTransferJob;
   language: Language;
+  mutating: boolean;
+  onDeleteRequest: (job: DataTransferJob) => void;
   onSelect: (id: string) => void;
   selected: boolean;
   t: Translate;
@@ -107,31 +122,40 @@ function JobCard({
     ? maximum
     : Math.min(job.readyRecords, maximum);
   const displayedReady = completed ? job.totalRecords : Math.min(job.readyRecords, job.totalRecords);
+  const deleteLabel = t("importExport.dashboard.delete.action", { name: job.profileName });
 
   return (
-    <button
-      type="button"
-      className={`transfer-job-card${selected ? " selected" : ""}`}
-      aria-pressed={selected}
-      onClick={() => onSelect(job.id)}
-      title={job.profileName}
-    >
-      <FileIcon className="transfer-job-file-icon" size={29} aria-hidden="true" />
-      <span className="transfer-job-copy">
-        <strong>{job.profileName}</strong>
-        <small title={job.sourceName}>{job.sourceName || formatLabel(job.format, t)}</small>
-        <span className={`transfer-state-badge ${stateTone(job.state)}`}>{stateLabel(job.state, t)}</span>
-        <span className="transfer-job-progress-copy">
-          {formatNumber(displayedReady, language)}/{formatNumber(job.totalRecords, language)} {t("importExport.readyShort")}
+    <article className={`transfer-job-card${selected ? " selected" : ""}`}>
+      <button
+        type="button"
+        className="transfer-job-card-select"
+        aria-pressed={selected}
+        onClick={() => onSelect(job.id)}
+        title={job.profileName}
+      >
+        <FileIcon className="transfer-job-file-icon" size={29} aria-hidden="true" />
+        <span className="transfer-job-copy">
+          <strong>{job.profileName}</strong>
+          <small title={job.sourceName}>{job.sourceName || formatLabel(job.format, t)}</small>
+          <span className={`transfer-state-badge ${stateTone(job.state)}`}>{stateLabel(job.state, t)}</span>
+          <span className="transfer-job-progress-copy">
+            {formatNumber(displayedReady, language)}/{formatNumber(job.totalRecords, language)} {t("importExport.readyShort")}
+          </span>
+          <progress
+            max={maximum}
+            value={progressValue}
+            aria-label={`${t("importExport.dashboard.jobs.progress")} ${job.profileName}`}
+          />
         </span>
-        <progress
-          max={maximum}
-          value={progressValue}
-          aria-label={`${t("importExport.dashboard.jobs.progress")} ${job.profileName}`}
-        />
-      </span>
-      <ChevronRight size={18} aria-hidden="true" />
-    </button>
+        <ChevronRight size={18} aria-hidden="true" />
+      </button>
+      {canDelete && job.state === "cancelled" ? (
+        <button type="button" className="icon-button transfer-job-delete" aria-label={deleteLabel}
+          title={deleteLabel} disabled={mutating} onClick={() => onDeleteRequest(job)}>
+          <Trash2 size={16} aria-hidden="true" />
+        </button>
+      ) : null}
+    </article>
   );
 }
 

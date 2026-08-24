@@ -139,6 +139,7 @@ type DataTransferRepository interface {
 	UpdateJob(context.Context, DataTransferJob) (DataTransferJob, error)
 	GetJob(context.Context, string) (DataTransferJob, error)
 	ListJobs(context.Context, DataTransferJobFilter) ([]DataTransferJob, error)
+	DeleteJob(context.Context, string) error
 	ReplaceIssues(context.Context, string, []DataTransferIssue) error
 	ListIssues(context.Context, string) ([]DataTransferIssue, error)
 	CreateArtifact(context.Context, DataTransferArtifact) (DataTransferArtifact, error)
