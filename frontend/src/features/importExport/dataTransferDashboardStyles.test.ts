@@ -18,4 +18,31 @@ describe("data transfer dashboard styles", () => {
     expect(dashboardStyles).toContain("@media (max-width: 1180px)");
     expect(dashboardStyles).toContain("@media (max-width: 900px)");
   });
+
+  it("keeps truncation inside profile and history table cells", () => {
+    const profiles = readFileSync(
+      resolve(process.cwd(), "src/features/importExport/TransferProfilesTable.tsx"),
+      "utf8"
+    );
+    const history = readFileSync(
+      resolve(process.cwd(), "src/features/importExport/TransferHistoryTable.tsx"),
+      "utf8"
+    );
+
+    expect(profiles).not.toMatch(/<td[^>]*className="data-transfer-truncate"/);
+    expect(history).not.toMatch(/<td[^>]*className="data-transfer-truncate"/);
+    expect(profiles).toMatch(/<td[^>]*>\s*<span className="data-transfer-truncate">/);
+    expect(history).toMatch(/<td[^>]*>\s*<span className="data-transfer-truncate">/);
+  });
+
+  it("keeps the transfer dialog body vertically scrollable", () => {
+    const dialogStyles = readFileSync(resolve(process.cwd(), "src/styles/data-transfer-dialogs.css"), "utf8");
+
+    expect(dialogStyles).toMatch(
+      /\.transfer-import-dialog\s*\{[^}]*grid-template-rows:\s*auto auto minmax\(0, 1fr\) auto/s
+    );
+    expect(dialogStyles).toMatch(/\.data-transfer-dialog-body\s*\{[^}]*overflow-y:\s*auto/s);
+    expect(dialogStyles).toMatch(/\.data-transfer-dialog-body\s*\{[^}]*scrollbar-gutter:\s*stable/s);
+    expect(dialogStyles).toMatch(/\.transfer-review-wrap\s*\{[^}]*overflow:\s*auto/s);
+  });
 });

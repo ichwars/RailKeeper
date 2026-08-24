@@ -191,6 +191,67 @@ func TestRetryRejectsOpenJob(t *testing.T) {
 	}
 }
 
+func TestDeleteJobAllowsOnlyCancelledTransfers(t *testing.T) {
+	repository := &dataTransferQueryRepositoryStub{jobs: []DataTransferJob{{
+		ID: "cancelled", Direction: TransferImport, Format: TransferCSV,
+		Areas: []TransferArea{TransferVehicles}, State: TransferJobCancelled,
+	}}}
+	service := NewDataTransferService(repository, t.TempDir())
+
+	if err := service.DeleteJob(t.Context(), "cancelled", TransferVehicles); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(repository.deletedJobIDs, []string{"cancelled"}) {
+		t.Fatalf("deleted jobs = %#v", repository.deletedJobIDs)
+	}
+}
+
+func TestDeleteJobRejectsEveryNonCancelledState(t *testing.T) {
+	states := []TransferJobState{
+		TransferJobDraft,
+		TransferJobReading,
+		TransferJobReviewRequired,
+		TransferJobReady,
+		TransferJobRunning,
+		TransferJobCompleted,
+		TransferJobCompletedWithWarnings,
+		TransferJobFailed,
+	}
+	for _, state := range states {
+		t.Run(string(state), func(t *testing.T) {
+			repository := &dataTransferQueryRepositoryStub{jobs: []DataTransferJob{{
+				ID: "job", Direction: TransferImport, Format: TransferCSV,
+				Areas: []TransferArea{TransferVehicles}, State: state,
+			}}}
+			service := NewDataTransferService(repository, t.TempDir())
+
+			err := service.DeleteJob(t.Context(), "job", TransferVehicles)
+			if !errors.Is(err, ErrDataTransferConflict) {
+				t.Fatalf("delete state %q error = %v, want conflict", state, err)
+			}
+			if len(repository.deletedJobIDs) != 0 {
+				t.Fatalf("delete state %q removed jobs %#v", state, repository.deletedJobIDs)
+			}
+		})
+	}
+}
+
+func TestDeleteJobEnforcesAreaScope(t *testing.T) {
+	repository := &dataTransferQueryRepositoryStub{jobs: []DataTransferJob{{
+		ID: "cancelled", Direction: TransferImport, Format: TransferJSON,
+		Areas: []TransferArea{TransferVehicles}, State: TransferJobCancelled,
+	}}}
+	service := NewDataTransferService(repository, t.TempDir())
+
+	err := service.DeleteJob(t.Context(), "cancelled", TransferExhibitionLists)
+	if !errors.Is(err, ErrDataTransferForbidden) {
+		t.Fatalf("delete outside area scope error = %v, want forbidden", err)
+	}
+	if len(repository.deletedJobIDs) != 0 {
+		t.Fatalf("forbidden delete removed jobs %#v", repository.deletedJobIDs)
+	}
+}
+
 type profileRepositoryStub struct {
 	DataTransferRepository
 }
@@ -218,10 +279,11 @@ func (s *dataTransferProfileRepositoryStub) CreateProfile(
 
 type dataTransferQueryRepositoryStub struct {
 	DataTransferRepository
-	jobs      []DataTransferJob
-	issues    map[string][]DataTransferIssue
-	artifacts []DataTransferArtifact
-	nextID    int
+	jobs          []DataTransferJob
+	issues        map[string][]DataTransferIssue
+	artifacts     []DataTransferArtifact
+	deletedJobIDs []string
+	nextID        int
 }
 
 func (s *dataTransferQueryRepositoryStub) GetJob(_ context.Context, id string) (DataTransferJob, error) {
@@ -257,6 +319,11 @@ func (s *dataTransferQueryRepositoryStub) CreateJob(
 	job.Revision = 1
 	s.jobs = append(s.jobs, job)
 	return job, nil
+}
+
+func (s *dataTransferQueryRepositoryStub) DeleteJob(_ context.Context, id string) error {
+	s.deletedJobIDs = append(s.deletedJobIDs, id)
+	return nil
 }
 
 func (s *dataTransferProfileRepositoryStub) GetProfile(_ context.Context, id string) (DataTransferProfile, error) {

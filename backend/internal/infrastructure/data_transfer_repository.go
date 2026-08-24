@@ -230,6 +230,14 @@ func (repository *DataTransferRepository) GetJob(
 	return job, nil
 }
 
+func (repository *DataTransferRepository) DeleteJob(ctx context.Context, id string) error {
+	result, err := repository.db.ExecContext(ctx, `DELETE FROM data_transfer_jobs WHERE id=?`, id)
+	if err != nil {
+		return fmt.Errorf("delete transfer job: %w", err)
+	}
+	return requireDataTransferUpdate(result, "delete transfer job")
+}
+
 func (repository *DataTransferRepository) ListJobs(
 	ctx context.Context,
 	filter application.DataTransferJobFilter,

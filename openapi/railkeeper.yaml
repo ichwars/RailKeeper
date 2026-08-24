@@ -6061,6 +6061,40 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Problem"
+    delete:
+      tags: [DataTransfer]
+      summary: Permanently delete a cancelled data transfer job
+      description: Admin role required. Jobs in every state except cancelled are rejected.
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Cancelled transfer job deleted
+        "403":
+          description: Administrator role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: Transfer job not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "409":
+          description: Transfer job is not cancelled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
   /data-transfer/jobs/{id}/retry:
     post:
       tags: [DataTransfer]

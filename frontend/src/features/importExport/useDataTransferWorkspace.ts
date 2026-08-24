@@ -38,6 +38,7 @@ export type DataTransferCapabilities = {
   canCreateProfiles: boolean;
   canUpdateProfiles: boolean;
   canDisableProfiles: boolean;
+  canDeleteJobs: boolean;
   canDeleteArtifacts: boolean;
   canOpenFolder: boolean;
 };
@@ -255,6 +256,27 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     runMutation(() => api.executeDataTransferExportJob(jobId), (result) => result.job), [runMutation]);
   const retryJob = useCallback((jobId: string) =>
     runMutation(() => api.retryDataTransferJob(jobId), (job) => job), [runMutation]);
+  const deleteJob = useCallback(async (jobId: string) => {
+    setMutating(true);
+    setError("");
+    try {
+      await api.deleteDataTransferJob(jobId);
+      if (mountedRef.current && selectedJobIdRef.current === jobId) {
+        detailRequestRef.current += 1;
+        selectedJobIdRef.current = null;
+        setSelectedJobId(null);
+        setSelectedJobDetails(null);
+        setDetailError("");
+        setDetailLoading(false);
+      }
+      await loadWorkspace();
+    } catch (mutationError) {
+      if (mountedRef.current) setError(errorMessage(mutationError));
+      throw mutationError;
+    } finally {
+      if (mountedRef.current) setMutating(false);
+    }
+  }, [loadWorkspace]);
   const refreshJobDetails = useCallback(async (jobId: string) => {
     const details = await api.dataTransferJob(jobId);
     if (!visibleJob(details.job)) throw new Error("Der Auftrag ist für diese Rolle nicht verfügbar.");
@@ -283,6 +305,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     canCreateProfiles: isAdmin || isEditor,
     canUpdateProfiles: isAdmin || isEditor,
     canDisableProfiles: isAdmin,
+    canDeleteJobs: isAdmin,
     canDeleteArtifacts: isAdmin,
     canOpenFolder: isAdmin && summary.openFolderAvailable
   }), [canRead, isAdmin, isEditor, isMesse, summary.openFolderAvailable]);
@@ -324,6 +347,7 @@ export function useDataTransferWorkspace(roles: string[] = []) {
     createExportJob,
     executeExportJob,
     retryJob,
+    deleteJob,
     refreshJobDetails,
     artifactDownloadUrl: api.dataTransferArtifactDownloadUrl,
     deleteArtifact,
