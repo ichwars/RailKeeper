@@ -1,5 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   api,
@@ -74,6 +74,30 @@ function renderController(selected: Vehicle | null = vehicleFixture({
 
 describe("useVehicleSparePartsController", () => {
   beforeEach(() => window.localStorage.clear());
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    document.body.replaceChildren();
+  });
+
+  it("avoids smooth scrolling when reduced motion is requested", async () => {
+    const matchMedia = vi.fn().mockReturnValue({ matches: true });
+    vi.stubGlobal("matchMedia", matchMedia);
+    const editor = document.createElement("details");
+    editor.id = "vehicle-spare-parts-editor";
+    editor.scrollIntoView = vi.fn();
+    document.body.append(editor);
+    const part = sparePart();
+    const { result } = renderController();
+
+    act(() => result.current.commands.edit(part));
+
+    await waitFor(() => expect(editor.scrollIntoView).toHaveBeenCalledWith({
+      behavior: "auto",
+      block: "start"
+    }));
+    expect(matchMedia).toHaveBeenCalledWith("(prefers-reduced-motion: reduce)");
+  });
 
   it("edits, creates and deletes spare parts", async () => {
     const part = sparePart();

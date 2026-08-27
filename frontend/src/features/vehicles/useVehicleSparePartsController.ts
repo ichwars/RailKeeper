@@ -108,7 +108,12 @@ export function useVehicleSparePartsController({
     setEditingId(part.id);
     window.setTimeout(() => {
       const editor = document.getElementById("vehicle-spare-parts-editor") as HTMLDetailsElement | null;
-      editor?.scrollIntoView({ behavior: "smooth", block: "start" });
+      const prefersReducedMotion = typeof window.matchMedia === "function"
+        && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      editor?.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+        block: "start"
+      });
       if (editor) editor.open = true;
       document.getElementById("vehicle-spare-part-article-number")?.focus({ preventScroll: true });
     }, 0);
