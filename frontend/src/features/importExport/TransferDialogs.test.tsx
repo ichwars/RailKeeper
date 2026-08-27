@@ -355,6 +355,66 @@ describe("data transfer operational dialogs", () => {
     expect(screen.getByRole("option", { name: "Do not import this record" })).toBeInTheDocument();
   });
 
+  it("uses explicit English accessory actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      area: "accessories",
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Manufacturer and article number match an existing accessory."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="en"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{
+        ...previewFixture.records[0],
+        area: "accessories",
+        classification: "warning",
+        proposedAction: "use_existing"
+      }]}
+    />);
+
+    await user.click(screen.getByLabelText("Resolution for RK-1001"));
+    expect(screen.getByRole("option", { name: "Choose action" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Use existing accessory" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Import as an additional new accessory" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Do not import this record" })).toBeInTheDocument();
+  });
+
+  it("uses explicit German accessory actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      area: "accessories",
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Hersteller und Artikelnummer stimmen mit vorhandenem Zubehör überein."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="de"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{
+        ...previewFixture.records[0],
+        area: "accessories",
+        classification: "warning",
+        proposedAction: "use_existing"
+      }]}
+    />);
+
+    await user.click(screen.getByLabelText("Auflösung für RK-1001"));
+    expect(screen.getByRole("option", { name: "Aktion wählen" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Vorhandenen Zubehörartikel verwenden" })).toBeInTheDocument();
+    expect(screen.getByRole("option", {
+      name: "Zusätzlich als neuen Zubehörartikel importieren"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Diesen Datensatz nicht importieren" })).toBeInTheDocument();
+  });
+
   it("shows detected vehicle sets and resolves a set as one unit", async () => {
     const user = userEvent.setup();
     const records = ["RK-A", "RK-B", "RK-C"].map((recordKey, index) => ({

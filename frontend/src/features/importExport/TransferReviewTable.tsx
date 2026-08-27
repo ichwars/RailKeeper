@@ -122,9 +122,17 @@ function resolutionLabel(
   }
   if (issue.code === "matching_manufacturer_article_number") {
     if (resolution === "use_existing") {
+      if (issue.area === "accessories") {
+        return language === "de" ? "Vorhandenen Zubehörartikel verwenden" : "Use existing accessory";
+      }
       return language === "de" ? "Vorhandenes Fahrzeug verwenden" : "Use existing vehicle";
     }
     if (resolution === "create") {
+      if (issue.area === "accessories") {
+        return language === "de"
+          ? "Zusätzlich als neuen Zubehörartikel importieren"
+          : "Import as an additional new accessory";
+      }
       return language === "de"
         ? "Zusätzlich als neues Fahrzeug importieren"
         : "Import as an additional new vehicle";
