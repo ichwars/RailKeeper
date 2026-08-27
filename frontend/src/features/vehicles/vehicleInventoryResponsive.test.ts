@@ -5,6 +5,10 @@ import { describe, expect, it } from "vitest";
 const css = readFileSync(resolve(process.cwd(), "src/styles/vehicle-inventory.css"), "utf8");
 const appCss = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
 const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
+const inventoryResponsiveCss = readFileSync(
+  resolve(process.cwd(), "src/styles/vehicle-inventory-responsive.css"),
+  "utf8",
+);
 const inventoryPanelSource = readFileSync(
   resolve(process.cwd(), "src/features/vehicles/VehicleInventoryPanel.tsx"),
   "utf8",
@@ -13,6 +17,10 @@ const inventoryPanelSource = readFileSync(
 describe("vehicle inventory column layout", () => {
   it("imports a focused vehicle inventory stylesheet", () => {
     expect(appCss).toContain('@import "../styles/vehicle-inventory.css";');
+    expect(appCss).toContain('@import "../styles/vehicle-inventory-responsive.css";');
+    expect(appCss.indexOf('@import "../styles/overrides-responsive.css";')).toBeLessThan(
+      appCss.indexOf('@import "../styles/vehicle-inventory-responsive.css";'),
+    );
   });
 
   it("bounds the long picker and uses a fixed mobile sheet", () => {
@@ -51,10 +59,10 @@ describe("vehicle inventory column layout", () => {
   });
 
   it("keeps the next appointment card wide until the status row stacks", () => {
-    expect(responsiveCss).toMatch(
+    expect(inventoryResponsiveCss).toMatch(
       /@media\s*\(max-width:\s*640px\)[\s\S]*?\.inventory-status-row\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*?\.inventory-status-card\.wide\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s,
     );
-    expect(responsiveCss).toMatch(
+    expect(inventoryResponsiveCss).toMatch(
       /@media\s*\(max-width:\s*420px\)[\s\S]*?\.inventory-status-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
     );
   });
@@ -66,8 +74,21 @@ describe("vehicle inventory column layout", () => {
   });
 
   it("contains the mobile filter scroller without clipping its controls", () => {
-    expect(responsiveCss).toMatch(
+    expect(inventoryResponsiveCss).toMatch(
       /@media\s*\(max-width:\s*640px\)[\s\S]*?\.inventory-filter-row\s*\{[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*overflow-x:\s*auto[^}]*overscroll-behavior-x:\s*contain[^}]*scrollbar-gutter:\s*stable[^}]*scroll-padding-inline:\s*2px/s,
     );
+  });
+
+  it("keeps inventory breakpoints out of the shared responsive layer", () => {
+    [
+      ".inventory-head",
+      ".inventory-status-row",
+      ".inventory-toolbar",
+      ".inventory-filter-row",
+      ".inventory-mobile-list",
+      ".inventory-desktop-content",
+      ".inventory-card {",
+      ".inventory-card-media",
+    ].forEach((selector) => expect(responsiveCss).not.toContain(selector));
   });
 });
