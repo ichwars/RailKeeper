@@ -1,5 +1,5 @@
 /* Persistent data-transfer dialogs. Dashboard topology and colors remain owned by data-transfer-dashboard.css. */
-.data-transfer-dialog-layer {
+.confirm-layer.data-transfer-dialog-layer {
   padding: 16px;
   overflow: auto;
 }
@@ -74,7 +74,7 @@
   font: inherit;
 }
 
-.data-transfer-confirm-layer {
+.confirm-layer.data-transfer-confirm-layer {
   z-index: 140;
   padding: 16px;
 }
@@ -660,7 +660,11 @@
 }
 
 @media (max-width: 680px) {
-  .data-transfer-dialog-layer {
+  .confirm-layer.data-transfer-dialog-layer {
+    padding: 8px;
+  }
+
+  .confirm-layer.data-transfer-confirm-layer {
     padding: 8px;
   }
 

@@ -62,5 +62,8 @@ describe("data transfer dashboard styles", () => {
     expect(dialogStyles).toMatch(
       /@media \(max-width:\s*680px\)[\s\S]*\.data-transfer-dialog-actions-main[^}]*width:\s*100%/
     );
+    expect(dialogStyles).toMatch(
+      /@media \(max-width:\s*680px\)[\s\S]*\.confirm-layer\.data-transfer-dialog-layer\s*\{[^}]*padding:\s*8px/
+    );
   });
 });
