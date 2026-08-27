@@ -70,6 +70,52 @@ func TestDataTransferPackageVersionThreeRoundTripsVehicleSet(t *testing.T) {
 	}
 }
 
+func TestDataTransferExportNormalizesVehicleSetsOnlyDuringSerialization(t *testing.T) {
+	snapshot := validTransferVehicleSetSnapshot()
+	snapshot.VehicleSets[0].Members[1].Position = 3
+	singleton := snapshot.VehicleSets[0]
+	singleton.ID = "source-singleton"
+	singleton.InventoryNumber = "Set-Singleton"
+	singleton.Members = append([]TransferVehicleSetMember(nil), singleton.Members[:1]...)
+	snapshot.VehicleSets = append(snapshot.VehicleSets, singleton)
+
+	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(document.Areas.VehicleSets) != 1 {
+		t.Fatalf("exported vehicle sets = %#v", document.Areas.VehicleSets)
+	}
+	set := document.Areas.VehicleSets[0]
+	if len(set.Members) != 2 || set.Members[0].Position != 1 || set.Members[1].Position != 2 {
+		t.Fatalf("normalized exported members = %#v", set.Members)
+	}
+	if err := ValidateTransferVehicleSet(set); err != nil {
+		t.Fatalf("serialized vehicle set is not importable: %v", err)
+	}
+	if snapshot.VehicleSets[0].Members[1].Position != 3 || len(snapshot.VehicleSets) != 2 {
+		t.Fatalf("serialization mutated source snapshot: %#v", snapshot.VehicleSets)
+	}
+}
+
+func TestDataTransferExportPreservesUnselectedVehicleSets(t *testing.T) {
+	snapshot := DataTransferSnapshot{Accessories: []TransferAccessory{{
+		InventoryNumber: "RK-ART-1", Manufacturer: "Viessmann", ArticleNumber: "4011",
+		Name: "Signal", Category: "signal", TrackingMode: "bulk",
+	}}}
+	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(payload, []byte(`"vehicleSets"`)) {
+		t.Fatalf("accessory-only export contains unselected vehicle sets: %s", payload)
+	}
+}
+
 func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 	snapshot := DataTransferSnapshot{Vehicles: []TransferVehicle{
 		{InventoryNumber: "RK-002", Manufacturer: "Märklin", Name: "BR 218; Cargo", Gauge: "H0"},
@@ -202,13 +248,21 @@ func TestDataTransferExportCombinedJSONHasStableOrdering(t *testing.T) {
 
 func TestDataTransferExportJSONSortsVehicleSetsAndMembers(t *testing.T) {
 	snapshot := DataTransferSnapshot{
-		Vehicles: []TransferVehicle{{ID: "v-1", InventoryNumber: "RK-1"}},
+		Vehicles: []TransferVehicle{
+			{ID: "v-1", InventoryNumber: "RK-1"},
+			{ID: "v-2", InventoryNumber: "RK-2"},
+			{ID: "v-3", InventoryNumber: "RK-3"},
+			{ID: "v-4", InventoryNumber: "RK-4"},
+		},
 		VehicleSets: []TransferVehicleSet{
 			{ID: "set-z", InventoryNumber: "Set-010", Members: []TransferVehicleSetMember{
 				{SourceVehicleID: "v-2", VehicleInventoryNumber: "RK-2", Position: 2},
 				{SourceVehicleID: "v-1", VehicleInventoryNumber: "RK-1", Position: 1},
 			}},
-			{ID: "set-a", InventoryNumber: "Set-002"},
+			{ID: "set-a", InventoryNumber: "Set-002", Members: []TransferVehicleSetMember{
+				{SourceVehicleID: "v-4", VehicleInventoryNumber: "RK-4", Position: 2},
+				{SourceVehicleID: "v-3", VehicleInventoryNumber: "RK-3", Position: 1},
+			}},
 		},
 	}
 	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
@@ -219,7 +273,7 @@ func TestDataTransferExportJSONSortsVehicleSetsAndMembers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if document.Areas.VehicleSets[0].ID != "set-a" ||
+	if document.Areas.VehicleSets[0].ID != "set-a" || document.Areas.VehicleSets[0].Members[0].Position != 1 ||
 		document.Areas.VehicleSets[1].Members[0].Position != 1 {
 		t.Fatalf("unstable vehicle set ordering: %#v", document.Areas.VehicleSets)
 	}

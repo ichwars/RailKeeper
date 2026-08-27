@@ -315,6 +315,17 @@ func applyTransferVehicleSets(
 					return dataTransferApplyConflict("vehicle set replacement target is missing")
 				}
 				setData = application.PreserveUnmappedTransferVehicleSetFields(setData, existing, csvMapping)
+				if !transferCSVFieldMapped(csvMapping, "vehicleSetMemberLabel") {
+					existingLabels := make(map[string]string, len(existing.Members))
+					for _, member := range existing.Members {
+						existingLabels[member.SourceVehicleID] = member.Label
+					}
+					for index, result := range memberResults {
+						if label, found := existingLabels[result.ID]; found {
+							setData.Members[index].Label = label
+						}
+					}
+				}
 				inventoryNumber = setData.InventoryNumber
 			}
 			if err := updateTransferVehicleSet(
@@ -326,7 +337,7 @@ func applyTransferVehicleSets(
 				return fmt.Errorf("clear transfer vehicle set members: %w", err)
 			}
 		}
-		for index, member := range preview.Data.Members {
+		for index, member := range setData.Members {
 			if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
 VALUES(?, ?, ?, ?)`, setID, memberResults[index].ID, member.Position, member.Label); err != nil {
@@ -341,6 +352,15 @@ VALUES(?, NULLIF(?, ''), 'VehicleSetImported', 'vehicle_set', ?, ?, ?)`,
 		}
 	}
 	return nil
+}
+
+func transferCSVFieldMapped(mapping []application.DataTransferCSVColumnMapping, targetField string) bool {
+	for _, column := range mapping {
+		if column.TargetField == targetField {
+			return true
+		}
+	}
+	return false
 }
 
 func insertTransferVehicleSet(

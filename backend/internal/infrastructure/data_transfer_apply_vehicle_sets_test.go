@@ -103,7 +103,7 @@ func TestDataTransferApplyCSVReplacePreservesUnmappedVehicleSetFields(t *testing
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)
 	insertApplyVehicleSet(t, db, "target-set", "RK-SET-CSV", []applyVehicleSetMemberFixture{
-		{ID: "target-a", InventoryNumber: "RK-CSV-A", Position: 1},
+		{ID: "target-a", InventoryNumber: "RK-CSV-A", Position: 1, Label: "Lokale Bezeichnung"},
 		{ID: "target-old", InventoryNumber: "RK-CSV-OLD", Position: 2},
 	})
 	if _, err := db.Exec(`
@@ -122,6 +122,8 @@ WHERE id='target-set'`); err != nil {
 	setPreview.TargetID = targetSet.ID
 	setPreview.TargetFingerprint = application.DataTransferTargetFingerprint(targetSet)
 	setPreview.Data.Name = "CSV-Name"
+	setPreview.Data.Members[0].Label = ""
+	setPreview.Data.Members[1].Label = ""
 	job := createApplyJobWithVehicleSets(
 		t, repository, "sha-set-csv-preserve", records, []application.DataTransferVehicleSetPreview{setPreview},
 	)
@@ -160,6 +162,62 @@ SELECT name, description, storage_location FROM vehicle_sets WHERE id='target-se
 	}
 	if name != "CSV-Name" || description != "Lokale Beschreibung" || storageLocation != "Vitrine 7" {
 		t.Fatalf("CSV replace set fields = %q/%q/%q", name, description, storageLocation)
+	}
+	var memberLabel string
+	if err := db.QueryRow(`
+SELECT label FROM vehicle_set_members
+WHERE vehicle_set_id='target-set' AND vehicle_id='target-a'`).Scan(&memberLabel); err != nil {
+		t.Fatal(err)
+	}
+	if memberLabel != "Lokale Bezeichnung" {
+		t.Fatalf("CSV replace member label = %q, want preserved local label", memberLabel)
+	}
+}
+
+func TestDataTransferApplyCSVReplaceClearsMappedVehicleSetMemberLabel(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	insertApplyVehicleSet(t, db, "target-set", "RK-SET-CSV-LABEL", []applyVehicleSetMemberFixture{
+		{ID: "target-a", InventoryNumber: "RK-CSV-LABEL-A", Position: 1, Label: "Lokale Bezeichnung"},
+		{ID: "target-old", InventoryNumber: "RK-CSV-LABEL-OLD", Position: 2},
+	})
+	targetSet, targetVehicles := applyVehicleSetSnapshot(t, repository, "target-set")
+	records, setPreview := applyVehicleSetPreview(
+		t, "RK-SET-CSV-LABEL", "RK-CSV-LABEL-A", "RK-CSV-LABEL-B",
+	)
+	records[0].ProposedAction = "replace"
+	records[0].TargetID = "target-a"
+	records[0].TargetFingerprint = application.DataTransferTargetFingerprint(targetVehicles["RK-CSV-LABEL-A"])
+	setPreview.Classification = "warning"
+	setPreview.ProposedAction = "replace"
+	setPreview.TargetID = targetSet.ID
+	setPreview.TargetFingerprint = application.DataTransferTargetFingerprint(targetSet)
+	setPreview.Data.Members[0].Label = ""
+	setPreview.Data.Members[1].Label = ""
+	job := createApplyJobWithVehicleSets(
+		t, repository, "sha-set-csv-clear-label", records, []application.DataTransferVehicleSetPreview{setPreview},
+	)
+	job.Preview["csvMapping"] = []application.DataTransferCSVColumnMapping{{TargetField: "vehicleSetMemberLabel"}}
+	var err error
+	job, err = repository.UpdateJob(t.Context(), job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolveApplyVehicleSetIssue(
+		t, repository, job.ID, setPreview, "duplicate_vehicle_set_inventory_number", "replace",
+	)
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var memberLabel string
+	if err := db.QueryRow(`
+SELECT label FROM vehicle_set_members
+WHERE vehicle_set_id='target-set' AND vehicle_id='target-a'`).Scan(&memberLabel); err != nil {
+		t.Fatal(err)
+	}
+	if memberLabel != "" {
+		t.Fatalf("CSV replace mapped blank member label = %q, want cleared label", memberLabel)
 	}
 }
 
@@ -357,6 +415,7 @@ type applyVehicleSetMemberFixture struct {
 	ID              string
 	InventoryNumber string
 	Position        int
+	Label           string
 }
 
 func insertApplyVehicleSet(
@@ -380,7 +439,7 @@ INSERT INTO vehicle_sets(
 	for _, member := range members {
 		if _, err := db.Exec(`
 INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
-VALUES(?, ?, ?, '')`, setID, member.ID, member.Position); err != nil {
+VALUES(?, ?, ?, ?)`, setID, member.ID, member.Position, member.Label); err != nil {
 			t.Fatal(err)
 		}
 	}
