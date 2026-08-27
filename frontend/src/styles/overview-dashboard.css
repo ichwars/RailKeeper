@@ -692,7 +692,7 @@ a.overview-metric-card:focus-visible {
   border-radius: 50%;
   background: conic-gradient(var(--accent-strong) calc(var(--quality-value) * 1%), var(--line) 0);
   color: var(--text);
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-bold);
 }
 

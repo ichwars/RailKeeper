@@ -182,7 +182,7 @@
   background: color-mix(in srgb, var(--input-bg) 88%, transparent);
   color: var(--text);
   font: inherit;
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
 }
 
@@ -211,7 +211,7 @@
 
 .pending-image-card figcaption > span {
   color: var(--accent-strong);
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-micro);
   font-weight: var(--font-weight-semibold);
 }
 

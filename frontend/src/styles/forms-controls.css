@@ -1421,7 +1421,7 @@ td {
   border-radius: 6px;
   background: var(--panel-subtle);
   color: var(--muted);
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-strong);
   line-height: var(--line-height-tight);
   text-align: center;

@@ -250,9 +250,11 @@ describe("OverviewView", () => {
     const css = readFileSync(resolve(process.cwd(), "src/styles/overview-dashboard.css"), "utf8");
     const baseCss = readFileSync(resolve(process.cwd(), "src/styles/base.css"), "utf8");
 
-    expect(baseCss).toMatch(/--font-size-3xs:\s*11px/);
-    expect(baseCss).toMatch(/--font-size-2xs:\s*12px/);
-    expect(baseCss).toMatch(/--font-size-xs:\s*12px/);
+    expect(baseCss).toMatch(/--font-size-micro:\s*11px/);
+    expect(baseCss).toMatch(/--font-size-caption:\s*12px/);
+    expect(baseCss).toMatch(/--font-size-3xs:\s*var\(--font-size-micro\)/);
+    expect(baseCss).toMatch(/--font-size-2xs:\s*var\(--font-size-caption\)/);
+    expect(baseCss).toMatch(/--font-size-xs:\s*var\(--font-size-caption\)/);
     expect(baseCss).toMatch(/--font-size-sm:\s*13px/);
     expect(baseCss).toMatch(/--font-size-base:\s*15px/);
     expect(css).toContain("--overview-interactive:");
