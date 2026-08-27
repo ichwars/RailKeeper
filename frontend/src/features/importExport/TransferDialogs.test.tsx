@@ -725,9 +725,14 @@ describe("data transfer operational dialogs", () => {
     vi.mocked(api.dataTransferJobs).mockResolvedValue([historicalJob]);
     vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: historicalJob, issues: [], artifacts: [] });
 
-    render(<ImportExportView roles={["Editor"]} />);
+    render(<ImportExportView roles={["Admin"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Werkstattbestand bearbeiten" }));
     const dialog = screen.getByRole("dialog", { name: "Transferprofil bearbeiten" });
+    const dangerActions = dialog.querySelector(".data-transfer-dialog-actions-danger");
+    const mainActions = dialog.querySelector(".data-transfer-dialog-actions-main");
+    expect(dangerActions).toContainElement(within(dialog).getByRole("button", { name: "Profil deaktivieren" }));
+    expect(mainActions).toContainElement(within(dialog).getByRole("button", { name: "Abbrechen" }));
+    expect(mainActions).toContainElement(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
     const name = within(dialog).getByLabelText("Profilname");
     await user.clear(name);
     await user.type(name, "Werkstattbestand neu");
