@@ -171,8 +171,7 @@ func TestDataTransferVehicleSetCSVRoundTripIgnoresRowOrder(t *testing.T) {
 	var reordered bytes.Buffer
 	writer := csv.NewWriter(&reordered)
 	writer.Comma = ';'
-	writer.WriteAll(rows)
-	if err := writer.Error(); err != nil {
+	if err := writer.WriteAll(rows); err != nil {
 		t.Fatal(err)
 	}
 	got, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(reordered.String()))
