@@ -427,13 +427,13 @@ describe("data transfer operational dialogs", () => {
     }));
     const vehicleSets: DataTransferVehicleSetPreview[] = [
       vehicleSetPreviewFixture({
-        recordKey: "Set-001",
+        recordKey: "vehicle-set:id:source-1",
         classification: "ready",
         memberRecordKeys: ["RK-A", "RK-B"],
         data: vehicleSetDataFixture("Set-001", "Nahverkehr", ["RK-A", "RK-B"])
       }),
       vehicleSetPreviewFixture({
-        recordKey: "Set-002",
+        recordKey: "vehicle-set:id:source-2",
         classification: "error",
         proposedAction: "replace",
         memberRecordKeys: ["RK-B", "RK-C"],
@@ -443,7 +443,7 @@ describe("data transfer operational dialogs", () => {
     const setIssue: DataTransferIssue = {
       ...importIssue,
       id: "issue-set-2",
-      recordKey: "Set-002",
+      recordKey: "vehicle-set:id:source-2",
       rowNumber: null,
       field: "inventoryNumber",
       code: "duplicate_vehicle_set_inventory_number",
@@ -491,6 +491,7 @@ describe("data transfer operational dialogs", () => {
     const setReview = screen.getByRole("heading", { name: "Erkannte Fahrzeugsets" }).closest("section")!;
     expect(setReview).toBeVisible();
     expect(within(setReview).getByText("Set-001")).toBeVisible();
+    expect(within(setReview).queryByText("vehicle-set:id:source-1")).not.toBeInTheDocument();
     expect(within(setReview).getByText("Nahverkehr")).toBeVisible();
     expect(within(setReview).getAllByText("2 Mitglieder")).toHaveLength(2);
     expect(within(setReview).getByText("Bereit")).toBeVisible();

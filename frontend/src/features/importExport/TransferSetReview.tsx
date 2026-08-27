@@ -37,13 +37,14 @@ export function TransferSetReview({ busy, issues, language, onResolve, sets }: T
         {sets.map((set) => {
           const setIssues = issues.filter((item) => item.recordKey === set.recordKey);
           const issue = setIssues.find(isSetConflictIssue);
+          const setLabel = set.data.inventoryNumber.trim() || set.recordKey;
           const Icon = set.classification === "error"
             ? CircleAlert
             : set.classification === "warning" ? AlertTriangle : CheckCircle2;
           return (
             <article className={`transfer-set-review-card ${set.classification}`} key={set.recordKey}>
               <div className="transfer-set-review-main">
-                <strong>{set.recordKey}</strong>
+                <strong>{setLabel}</strong>
                 <span>{set.data.name || copy.unnamed}</span>
                 <small>{memberCount(set.memberRecordKeys.length, language)}</small>
               </div>
@@ -55,7 +56,7 @@ export function TransferSetReview({ busy, issues, language, onResolve, sets }: T
                 <label className="transfer-set-review-resolution">
                   <span>{issue.message}</span>
                   <AppSelect
-                    aria-label={`${copy.resolutionFor} ${set.recordKey}`}
+                    aria-label={`${copy.resolutionFor} ${setLabel}`}
                     disabled={busy}
                     value={issue.selectedResolution}
                     onChange={(event) => {
