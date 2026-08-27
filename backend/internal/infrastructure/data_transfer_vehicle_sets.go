@@ -337,7 +337,7 @@ func applyTransferVehicleSets(
 				return fmt.Errorf("clear transfer vehicle set members: %w", err)
 			}
 		}
-		for index, member := range preview.Data.Members {
+		for index, member := range setData.Members {
 			if _, err := tx.ExecContext(ctx, `
 INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
 VALUES(?, ?, ?, ?)`, setID, memberResults[index].ID, member.Position, member.Label); err != nil {
