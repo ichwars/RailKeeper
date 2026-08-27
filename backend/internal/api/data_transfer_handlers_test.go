@@ -130,7 +130,7 @@ func TestDataTransferImportRoutesUploadResolveAndCancelPersistentPreview(t *test
 	if preview.ErrorRecords != 1 || len(preview.Issues) != 1 {
 		t.Fatalf("unexpected import preview: %#v", preview)
 	}
-	if len(preview.CSVMapping) != 6 || len(preview.VehicleFields) != 62 ||
+	if len(preview.CSVMapping) != 6 || len(preview.VehicleFields) != len(application.VehicleCSVTransferFields()) ||
 		preview.CSVMapping[0].SourceHeader != "Inventarnummer" {
 		t.Fatalf("missing CSV mapping contract: %#v, fields=%d", preview.CSVMapping, len(preview.VehicleFields))
 	}

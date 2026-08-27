@@ -106,6 +106,20 @@ func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 		t.Fatalf("external member conflict preview = %#v", previews)
 	}
 	assertTransferIssueCode(t, issues, "vehicle_set_member_external_conflict")
+
+	current = validTransferVehicleSetSnapshot()
+	current.VehicleSets[0].ID = "target-set"
+	current.Vehicles[0].ID = "target-a"
+	current.Vehicles[1].ID = "target-b"
+	current.VehicleSets[0].Members = current.VehicleSets[0].Members[:1]
+	current.VehicleSets[0].Members[0].SourceVehicleID = "target-a"
+	records, _ = classifyDataTransferImport("job-target-external", incoming, current, nil)
+	previews, issues = classifyDataTransferVehicleSets("job-target-external", incoming, current, records)
+	if len(previews) != 1 || previews[0].ProposedAction != "copy" ||
+		previews[0].TargetID != "target-set" || previews[0].TargetFingerprint == "" {
+		t.Fatalf("target set external conflict preview = %#v", previews)
+	}
+	assertTransferIssueCode(t, issues, "vehicle_set_member_external_conflict")
 }
 
 func TestPreviewImportPersistsVehicleSetGroupsWithoutChangingRecordCounts(t *testing.T) {

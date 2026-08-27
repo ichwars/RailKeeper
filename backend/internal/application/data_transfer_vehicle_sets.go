@@ -117,6 +117,9 @@ func classifyDataTransferVehicleSets(
 			target, hasTarget := currentSetsByInventory[transferIdentity(set.InventoryNumber)]
 			targetMemberIDs := map[string]bool{}
 			if hasTarget {
+				preview.TargetID = target.ID
+				preview.TargetUpdatedAt = target.UpdatedAt
+				preview.TargetFingerprint = DataTransferTargetFingerprint(target)
 				for _, member := range target.Members {
 					targetMemberIDs[member.SourceVehicleID] = true
 				}
@@ -136,9 +139,6 @@ func classifyDataTransferVehicleSets(
 					"A set member conflicts with a vehicle outside the target set.", "copy",
 				))
 			} else if hasTarget {
-				preview.TargetID = target.ID
-				preview.TargetUpdatedAt = target.UpdatedAt
-				preview.TargetFingerprint = DataTransferTargetFingerprint(target)
 				preview.ProposedAction = "replace"
 				issues = append(issues, newTransferIssue(
 					jobID, TransferVehicles, recordKey, nil, "inventoryNumber", TransferIssueWarning,
