@@ -58,6 +58,7 @@ func classifyDataTransferVehicleSets(
 		currentSetsByInventory[transferIdentity(set.InventoryNumber)] = set
 	}
 	seenMembers := map[string]string{}
+	seenSetIDs := map[string]bool{}
 	seenSetInventories := map[string]bool{}
 	for index, set := range incoming.VehicleSets {
 		recordKey := transferVehicleSetRecordKey(set, index)
@@ -65,6 +66,14 @@ func classifyDataTransferVehicleSets(
 			RecordKey: recordKey, Classification: "ready", ProposedAction: "create", Data: set,
 		}
 		preview.Diagnostics = append(preview.Diagnostics, validateTransferVehicleSetStructure(set)...)
+		sourceSetID := strings.TrimSpace(set.ID)
+		if sourceSetID != "" && seenSetIDs[sourceSetID] {
+			preview.Diagnostics = append(preview.Diagnostics, TransferVehicleSetDiagnostic{
+				Field: "id", Code: "duplicate_import_vehicle_set_id",
+			})
+		} else if sourceSetID != "" {
+			seenSetIDs[sourceSetID] = true
+		}
 		setInventoryIdentity := transferIdentity(set.InventoryNumber)
 		if setInventoryIdentity != "" && seenSetInventories[setInventoryIdentity] {
 			preview.Diagnostics = append(preview.Diagnostics, TransferVehicleSetDiagnostic{
@@ -301,6 +310,7 @@ func compactTransferVehicleSetDiagnostics(
 func transferVehicleSetDiagnosticMessage(code string) string {
 	messages := map[string]string{
 		"missing_vehicle_set_inventory_number":          "Vehicle set inventory number is required.",
+		"duplicate_import_vehicle_set_id":               "Vehicle set source ID occurs more than once in the import.",
 		"duplicate_import_vehicle_set_inventory_number": "Vehicle set inventory number occurs more than once in the import.",
 		"invalid_vehicle_set":                           "Vehicle set data violates aggregate validation.",
 		"vehicle_set_too_small":                         "A vehicle set requires at least two members.",
