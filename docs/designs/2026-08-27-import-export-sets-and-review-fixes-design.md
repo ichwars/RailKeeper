@@ -1,6 +1,6 @@
 # Import/Export: Set-Roundtrip und Prüfkorrekturen
 
-Datum: 2026-08-27  
+Datum: 2026-08-27
 Status: freigegeben
 
 ## Ziel
