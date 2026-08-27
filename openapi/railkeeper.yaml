@@ -273,6 +273,9 @@ components:
           $ref: "#/components/schemas/TransferIssueSeverity"
         code:
           type: string
+          description: >-
+            Stable conflict or validation code. Vehicle-set groups additionally use
+            duplicate_vehicle_set_inventory_number and vehicle_set_member_external_conflict.
         message:
           type: string
         proposedResolution:
@@ -314,6 +317,88 @@ components:
         data:
           type: object
           additionalProperties: true
+    DataTransferVehicleSetMember:
+      type: object
+      required: [vehicleId, vehicleInventoryNumber, position]
+      properties:
+        vehicleId:
+          type: string
+          description: Source vehicle ID used only to resolve members inside the transfer package.
+        vehicleInventoryNumber:
+          type: string
+        position:
+          type: integer
+          minimum: 1
+        label:
+          type: string
+    DataTransferVehicleSet:
+      allOf:
+        - $ref: "#/components/schemas/VehicleSetInput"
+        - type: object
+          required: [inventoryNumber, members]
+          properties:
+            id:
+              type: string
+              description: Source set ID. Target installations assign their own ID.
+            inventoryNumber:
+              type: string
+            members:
+              type: array
+              minItems: 2
+              items:
+                $ref: "#/components/schemas/DataTransferVehicleSetMember"
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+    DataTransferVehicleSetDiagnostic:
+      type: object
+      required: [rowNumber, field, code]
+      properties:
+        rowNumber:
+          type: integer
+          minimum: 0
+        field:
+          type: string
+        code:
+          type: string
+          description: Stable code for an invalid or inconsistent vehicle-set group.
+    DataTransferVehicleSetPreview:
+      type: object
+      required: [recordKey, classification, proposedAction, memberRecordKeys, data]
+      properties:
+        recordKey:
+          type: string
+        classification:
+          type: string
+          enum: [ready, warning, error]
+        proposedAction:
+          $ref: "#/components/schemas/TransferProposedAction"
+        targetId:
+          type: string
+        targetUpdatedAt:
+          type: string
+        targetFingerprint:
+          type: string
+          description: SHA-256 fingerprint of the complete target set and its memberships.
+        memberRecordKeys:
+          type: array
+          minItems: 2
+          items:
+            type: string
+        rowNumbers:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+        diagnostics:
+          type: array
+          items:
+            $ref: "#/components/schemas/DataTransferVehicleSetDiagnostic"
+        data:
+          $ref: "#/components/schemas/DataTransferVehicleSet"
     DataTransferCSVColumnMapping:
       type: object
       required: [index, sourceHeader, normalizedHeader, targetField, origin]
@@ -363,12 +448,16 @@ components:
             $ref: "#/components/schemas/DataTransferIssue"
         totalRecords:
           type: integer
+          description: Number of vehicle and other area records. Vehicle-set metadata is not counted separately.
         readyRecords:
           type: integer
+          description: Ready area records. Vehicle-set metadata is not counted separately.
         warningRecords:
           type: integer
+          description: Area records with warnings. Vehicle-set metadata is not counted separately.
         errorRecords:
           type: integer
+          description: Area records with errors. Vehicle-set metadata is not counted separately.
         csvMapping:
           type: array
           items:
@@ -377,6 +466,11 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/VehicleTransferField"
+        vehicleSets:
+          type: array
+          description: Detected vehicle-set groups reviewed and resolved as one unit.
+          items:
+            $ref: "#/components/schemas/DataTransferVehicleSetPreview"
     DataTransferSummary:
       type: object
       required: [openJobs, selectedRecords, lastExportAt, artifactCount, artifactBytes,
