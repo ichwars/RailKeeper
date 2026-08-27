@@ -402,12 +402,12 @@
   min-width: 760px;
 }
 
-.transfer-review-table td:nth-child(2) {
+.transfer-review-record {
   display: grid;
   gap: 2px;
 }
 
-.transfer-review-table td:nth-child(2) small {
+.transfer-review-record small {
   color: var(--muted);
   font-size: var(--font-size-xs);
 }

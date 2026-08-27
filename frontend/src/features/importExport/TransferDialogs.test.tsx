@@ -12,6 +12,8 @@ import type {
   DataTransferSummary
 } from "./dataTransferModel";
 import { ImportExportView } from "./ImportExportView";
+import { TransferImportDialog } from "./TransferImportDialog";
+import { TransferReviewTable } from "./TransferReviewTable";
 
 const importProfile = profileFixture({
   id: "profile-import",
@@ -309,14 +311,47 @@ describe("data transfer operational dialogs", () => {
     const blockedConfirm = await within(dialog).findByRole("button", { name: "0 Datensätze importieren" });
     expect(blockedConfirm).toBeDisabled();
     expect(api.confirmDataTransferImport).not.toHaveBeenCalled();
+    const resolutionSelect = within(dialog).getByLabelText("Auflösung für RK-1001");
+    await user.click(resolutionSelect);
+    expect(screen.getByRole("option", { name: "Aktion wählen" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Bestehenden Datensatz überschreiben" })).toBeInTheDocument();
+    expect(screen.getByRole("option", {
+      name: "Als neuen Datensatz mit neuer Inventarnummer importieren"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Diesen Datensatz nicht importieren" })).toBeInTheDocument();
+    const recordCellContent = within(dialog).getByText("RK-1001").closest(".transfer-review-record");
+    expect(recordCellContent).not.toBeNull();
+    expect(recordCellContent?.parentElement?.tagName).toBe("TD");
 
-    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+    await user.click(screen.getByRole("option", { name: "Bestehenden Datensatz überschreiben" }));
     const enabledConfirm = await within(dialog).findByRole("button", { name: "1 Datensatz importieren" });
     expect(enabledConfirm).toBeEnabled();
     await user.click(enabledConfirm);
 
     await waitFor(() => expect(api.confirmDataTransferImport).toHaveBeenCalledWith("job-import", 3));
+  });
+
+  it("uses explicit English vehicle actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Manufacturer and article number match an existing vehicle."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="en"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{ ...previewFixture.records[0], classification: "warning", proposedAction: "use_existing" }]}
+    />);
+
+    await user.click(screen.getByLabelText("Resolution for RK-1001"));
+    expect(screen.getByRole("option", { name: "Choose action" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Use existing vehicle" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Import as an additional new vehicle" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Do not import this record" })).toBeInTheDocument();
   });
 
   it("retries into a fresh draft flow without confirming the historical import", async () => {
@@ -415,9 +450,101 @@ describe("data transfer operational dialogs", () => {
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("persistente Vorschau wurde neu gelesen");
     expect(within(dialog).getByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+  });
+
+  it("keeps accepted CSV mapping after resolving a conflict in the same preview", async () => {
+    const user = userEvent.setup();
+    const persistedReviewJob = {
+      ...previewFixture.job,
+      preview: {
+        records: previewFixture.records,
+        csvMapping: previewFixture.csvMapping,
+        vehicleFields: previewFixture.vehicleFields
+      }
+    };
+    const readyJob = {
+      ...persistedReviewJob,
+      state: "ready" as const,
+      revision: 3,
+      readyRecords: 1,
+      errorRecords: 0
+    };
+    const baseProps = {
+      initialRequiresReupload: false,
+      language: "de" as const,
+      onCancelJob: vi.fn(async () => undefined),
+      onClose: vi.fn(),
+      onConfirm: vi.fn(async () => undefined),
+      onCreateJob: vi.fn(async () => draftImportJob),
+      onRefreshJob: vi.fn(async () => ({ job: readyJob, issues: [], artifacts: [] })),
+      onUpload: vi.fn(async () => previewFixture),
+      profiles: [importProfile]
+    };
+    const onResolve = vi.fn(async () => readyJob);
+    const { rerender } = render(<TransferImportDialog {...baseProps}
+      initialJob={persistedReviewJob}
+      initialDetails={{ job: persistedReviewJob, issues: [importIssue], artifacts: [] }}
+      onResolve={onResolve} />);
+
+    await user.click(screen.getByRole("button", { name: "Weiter zur Prüfung" }));
+    await selectAppOption(user, screen.getByLabelText("Auflösung für RK-1001"),
+      "Bestehenden Datensatz überschreiben");
+    rerender(<TransferImportDialog {...baseProps}
+      initialJob={readyJob}
+      initialDetails={{ job: readyJob, issues: [{ ...importIssue, selectedResolution: "replace" }], artifacts: [] }}
+      onResolve={onResolve} />);
+
+    expect(screen.queryByRole("heading", { name: "Erkannte CSV-Zuordnung" })).not.toBeInTheDocument();
+    expect(screen.getByText("Alle Konflikte sind aufgelöst. Der geprüfte Stand kann importiert werden.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "1 Datensatz importieren" })).toBeEnabled();
+  });
+
+  it.each([
+    ["job", (job: DataTransferJob) => ({ ...job, id: "job-other" }), false],
+    ["source", (job: DataTransferJob) => ({ ...job, sourceSha256: "sha-other" }), false],
+    ["mapping", (job: DataTransferJob) => ({ ...job, preview: {
+      ...job.preview,
+      csvMapping: [{ ...previewFixture.csvMapping![0], targetField: "manufacturer" }]
+    } }), false],
+    ["reupload requirement", (job: DataTransferJob) => job, true]
+  ] as const)("resets accepted CSV mapping after a changed %s", async (_name, changeJob, requiresReupload) => {
+    const user = userEvent.setup();
+    const persistedJob = {
+      ...previewFixture.job,
+      preview: {
+        records: previewFixture.records,
+        csvMapping: previewFixture.csvMapping,
+        vehicleFields: previewFixture.vehicleFields
+      }
+    };
+    const props = {
+      language: "de" as const,
+      onCancelJob: vi.fn(async () => undefined),
+      onClose: vi.fn(),
+      onConfirm: vi.fn(async () => undefined),
+      onCreateJob: vi.fn(async () => draftImportJob),
+      onRefreshJob: vi.fn(async () => ({ job: persistedJob, issues: [importIssue], artifacts: [] })),
+      onResolve: vi.fn(async () => persistedJob),
+      onUpload: vi.fn(async () => previewFixture),
+      profiles: [importProfile]
+    };
+    const { rerender } = render(<TransferImportDialog {...props}
+      initialJob={persistedJob}
+      initialDetails={{ job: persistedJob, issues: [importIssue], artifacts: [] }}
+      initialRequiresReupload={false} />);
+    await user.click(screen.getByRole("button", { name: "Weiter zur Prüfung" }));
+    expect(screen.getByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
+
+    const changedJob = changeJob(persistedJob);
+    rerender(<TransferImportDialog {...props}
+      initialJob={changedJob}
+      initialDetails={{ job: changedJob, issues: [importIssue], artifacts: [] }}
+      initialRequiresReupload={requiresReupload} />);
+
+    expect(await screen.findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
   });
 
   it("re-reads a draft export after an execution conflict", async () => {
@@ -449,7 +576,7 @@ describe("data transfer operational dialogs", () => {
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
@@ -483,7 +610,7 @@ describe("data transfer operational dialogs", () => {
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");

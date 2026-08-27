@@ -18,19 +18,19 @@ type TransferReviewTableProps = {
 
 const resolutionLabels = {
   de: {
-    replace: "Vorhandenen Datensatz ersetzen",
+    replace: "Bestehenden Datensatz überschreiben",
     merge: "Einträge zusammenführen",
     copy: "Als Kopie anlegen",
-    skip: "Überspringen",
+    skip: "Diesen Datensatz nicht importieren",
     use_existing: "Vorhandenen Datensatz verwenden",
     create: "Neu anlegen",
     link: "Fahrzeug verknüpfen"
   },
   en: {
-    replace: "Replace existing record",
+    replace: "Overwrite existing record",
     merge: "Merge entries",
     copy: "Create a copy",
-    skip: "Skip",
+    skip: "Do not import this record",
     use_existing: "Use existing record",
     create: "Create new record",
     link: "Link vehicle"
@@ -40,9 +40,9 @@ const resolutionLabels = {
 export function TransferReviewTable({ busy, issues, language, onResolve, records }: TransferReviewTableProps) {
   const copy = language === "de"
     ? { area: "Bereich", record: "Datensatz", status: "Status", action: "Vorschlag", issue: "Prüfung",
-      choose: "Auflösung wählen", row: "Zeile", ready: "Bereit", warning: "Hinweis", error: "Fehler" }
+      choose: "Aktion wählen", row: "Zeile", ready: "Bereit", warning: "Hinweis", error: "Fehler" }
     : { area: "Area", record: "Record", status: "Status", action: "Proposed action", issue: "Review",
-      choose: "Choose resolution", row: "Row", ready: "Ready", warning: "Warning", error: "Error" };
+      choose: "Choose action", row: "Row", ready: "Ready", warning: "Warning", error: "Error" };
 
   return (
     <div className="data-transfer-table-wrap transfer-review-wrap">
@@ -68,8 +68,10 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
               <tr className={`transfer-review-${record.classification}`} key={`${record.area}-${record.recordKey}-${index}`}>
                 <td>{areaLabel(record.area, language)}</td>
                 <td>
-                  <strong>{record.recordKey || "–"}</strong>
-                  {record.rowNumber ? <small>{copy.row} {record.rowNumber}</small> : null}
+                  <span className="transfer-review-record">
+                    <strong>{record.recordKey || "–"}</strong>
+                    {record.rowNumber ? <small>{copy.row} {record.rowNumber}</small> : null}
+                  </span>
                 </td>
                 <td>
                   <span className={`transfer-review-status ${record.classification}`}>
@@ -93,7 +95,7 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
                       >
                         <option value="">{copy.choose}</option>
                         {resolutionsFor(issue).map((resolution) => (
-                          <option key={resolution} value={resolution}>{resolutionLabels[language][resolution]}</option>
+                          <option key={resolution} value={resolution}>{resolutionLabel(issue, resolution, language)}</option>
                         ))}
                       </AppSelect>
                     </label>
@@ -106,6 +108,29 @@ export function TransferReviewTable({ busy, issues, language, onResolve, records
       </table>
     </div>
   );
+}
+
+function resolutionLabel(
+  issue: DataTransferIssue,
+  resolution: DataTransferIssueResolution,
+  language: Language
+) {
+  if (issue.code === "duplicate_inventory_number" && resolution === "copy") {
+    return language === "de"
+      ? "Als neuen Datensatz mit neuer Inventarnummer importieren"
+      : "Import as a new record with a new inventory number";
+  }
+  if (issue.code === "matching_manufacturer_article_number") {
+    if (resolution === "use_existing") {
+      return language === "de" ? "Vorhandenes Fahrzeug verwenden" : "Use existing vehicle";
+    }
+    if (resolution === "create") {
+      return language === "de"
+        ? "Zusätzlich als neues Fahrzeug importieren"
+        : "Import as an additional new vehicle";
+    }
+  }
+  return resolutionLabels[language][resolution];
 }
 
 function resolutionsFor(issue: DataTransferIssue): DataTransferIssueResolution[] {

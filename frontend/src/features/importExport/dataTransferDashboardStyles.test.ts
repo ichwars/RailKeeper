@@ -45,4 +45,11 @@ describe("data transfer dashboard styles", () => {
     expect(dialogStyles).toMatch(/\.data-transfer-dialog-body\s*\{[^}]*scrollbar-gutter:\s*stable/s);
     expect(dialogStyles).toMatch(/\.transfer-review-wrap\s*\{[^}]*overflow:\s*auto/s);
   });
+
+  it("keeps the review table cell in the table formatting context", () => {
+    const dialogStyles = readFileSync(resolve(process.cwd(), "src/styles/data-transfer-dialogs.css"), "utf8");
+
+    expect(dialogStyles).not.toMatch(/\.transfer-review-table td:nth-child\(2\)\s*\{[^}]*display:\s*grid/s);
+    expect(dialogStyles).toMatch(/\.transfer-review-record\s*\{[^}]*display:\s*grid/s);
+  });
 });

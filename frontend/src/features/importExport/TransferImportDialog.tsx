@@ -73,6 +73,7 @@ export function TransferImportDialog({
   const [mappingAccepted, setMappingAccepted] = useState(
     Boolean(previewFromDetails(initialJob, initialDetails) && !vehicleCSVMappingRequired(initialJob))
   );
+  const acceptedMappingIdentityRef = useRef<string | null>(null);
   const [requiresReupload, setRequiresReupload] = useState(initialRequiresReupload);
   const requiresReuploadRef = useRef(initialRequiresReupload);
   const [busy, setBusy] = useState(false);
@@ -107,7 +108,12 @@ export function TransferImportDialog({
       setPreview((current) => current?.job.id === persistedPreview.job.id &&
         current.job.revision > persistedPreview.job.revision ? current : persistedPreview);
       setCSVMapping(persistedPreview.csvMapping ?? []);
-      if (!requiresReuploadRef.current) setMappingAccepted(!vehicleCSVMappingRequired(initialJob));
+      if (!requiresReuploadRef.current) {
+        const persistedIdentity = csvMappingIdentity(initialJob, persistedPreview.csvMapping ?? []);
+        const keepAccepted = acceptedMappingIdentityRef.current === persistedIdentity;
+        if (!keepAccepted) acceptedMappingIdentityRef.current = null;
+        setMappingAccepted(!vehicleCSVMappingRequired(initialJob) || keepAccepted);
+      }
     }
   }, [initialDetails, initialJob]);
 
@@ -115,6 +121,7 @@ export function TransferImportDialog({
     requiresReuploadRef.current = initialRequiresReupload;
     setRequiresReupload(initialRequiresReupload);
     if (initialRequiresReupload) {
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
       setError(copy.confirmConflictRecovery);
     }
@@ -141,6 +148,7 @@ export function TransferImportDialog({
       setCSVMapping([]);
       setSaveMappingToProfile(false);
       setMappingDirty(false);
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
       setRequiresReupload(false);
       requiresReuploadRef.current = false;
@@ -163,6 +171,7 @@ export function TransferImportDialog({
   }
 
   async function uploadFile(nextFile: File) {
+    acceptedMappingIdentityRef.current = null;
     setFile(nextFile);
     setBusy(true);
     setError("");
@@ -200,6 +209,7 @@ export function TransferImportDialog({
   async function applyMapping() {
     if (!preview || !job || !mappingReady) return;
     if (!mappingDirty && !saveMappingToProfile) {
+      acceptedMappingIdentityRef.current = csvMappingIdentity(job, csvMapping);
       setMappingAccepted(true);
       return;
     }
@@ -216,8 +226,10 @@ export function TransferImportDialog({
       });
       setJob(nextPreview.job);
       setPreview(clonePreview(nextPreview));
-      setCSVMapping(cloneCSVMapping(nextPreview.csvMapping));
+      const nextMapping = cloneCSVMapping(nextPreview.csvMapping);
+      setCSVMapping(nextMapping);
       setMappingDirty(false);
+      acceptedMappingIdentityRef.current = csvMappingIdentity(nextPreview.job, nextMapping);
       setMappingAccepted(true);
     } catch (reason) {
       await recoverConflict(reason, job.id, copy.mappingError);
@@ -270,14 +282,20 @@ export function TransferImportDialog({
     if (reuploadRequired) {
       requiresReuploadRef.current = true;
       setRequiresReupload(true);
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
     }
     try {
       const details = await onRefreshJob(jobId);
+      const refreshedPreview = previewFromDetails(details.job, details);
+      const refreshedMapping = refreshedPreview?.csvMapping ?? [];
+      const refreshedIdentity = csvMappingIdentity(details.job, refreshedMapping);
+      const keepAccepted = acceptedMappingIdentityRef.current === refreshedIdentity;
+      if (!keepAccepted) acceptedMappingIdentityRef.current = null;
       setJob(details.job);
-      setPreview(previewFromDetails(details.job, details));
-      setCSVMapping(previewFromDetails(details.job, details)?.csvMapping ?? []);
-      setMappingAccepted(!vehicleCSVMappingRequired(details.job) && !reuploadRequired);
+      setPreview(refreshedPreview);
+      setCSVMapping(refreshedMapping);
+      setMappingAccepted(!reuploadRequired && (!vehicleCSVMappingRequired(details.job) || keepAccepted));
       setRequiresReupload(reuploadRequired);
       setError(reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
     } catch (refreshError) {
@@ -522,6 +540,15 @@ function clonePreview(preview: DataTransferPreview): DataTransferPreview {
 
 function cloneCSVMapping(mapping: DataTransferCSVColumnMapping[] | undefined) {
   return mapping?.map((column) => ({ ...column })) ?? [];
+}
+
+function csvMappingIdentity(job: DataTransferJob, mapping: DataTransferCSVColumnMapping[]) {
+  const columns = [...mapping]
+    .sort((left, right) => left.index - right.index)
+    .map(({ index, sourceHeader, normalizedHeader, targetField }) =>
+      [index, sourceHeader, normalizedHeader, targetField]
+    );
+  return JSON.stringify([job.id, job.sourceSha256, columns]);
 }
 
 function csvMappingFromPreview(value: unknown): DataTransferCSVColumnMapping[] {
