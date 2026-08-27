@@ -92,6 +92,34 @@ func TestClassifyDataTransferVehicleSetReadyAndCountsMembersOnly(t *testing.T) {
 	}
 }
 
+func TestClassifyDataTransferVehicleSetsRejectsDuplicateImportedInventoryNumbers(t *testing.T) {
+	incoming := validTransferVehicleSetSnapshot()
+	incoming.Vehicles = append(incoming.Vehicles,
+		TransferVehicle{ID: "source-c", InventoryNumber: "RK-C", Manufacturer: "Roco", Name: "Wagen C",
+			Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen"},
+		TransferVehicle{ID: "source-d", InventoryNumber: "RK-D", Manufacturer: "Roco", Name: "Wagen D",
+			Gauge: "H0", Category: "Wagen", Gattung: "Reisezugwagen"},
+	)
+	setInput := incoming.VehicleSets[0].VehicleSetInput
+	incoming.VehicleSets = append(incoming.VehicleSets, TransferVehicleSet{
+		ID: "source-set-2", InventoryNumber: incoming.VehicleSets[0].InventoryNumber, VehicleSetInput: setInput,
+		Members: []TransferVehicleSetMember{
+			{SourceVehicleID: "source-c", VehicleInventoryNumber: "RK-C", Position: 1,
+				DeclaredMemberCount: 2, SourceSetInput: setInput},
+			{SourceVehicleID: "source-d", VehicleInventoryNumber: "RK-D", Position: 2,
+				DeclaredMemberCount: 2, SourceSetInput: setInput},
+		},
+	})
+	records, _ := classifyDataTransferImport("job-duplicate-set", incoming, DataTransferSnapshot{}, nil)
+	previews, issues := classifyDataTransferVehicleSets(
+		"job-duplicate-set", incoming, DataTransferSnapshot{}, records,
+	)
+	if len(previews) != 2 || previews[0].Classification != "ready" || previews[1].Classification != "error" {
+		t.Fatalf("set previews = %#v", previews)
+	}
+	assertTransferIssueCode(t, issues, "duplicate_import_vehicle_set_inventory_number")
+}
+
 func TestClassifyDataTransferVehicleSetConflicts(t *testing.T) {
 	incoming := validTransferVehicleSetSnapshot()
 	current := validTransferVehicleSetSnapshot()

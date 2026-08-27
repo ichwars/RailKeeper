@@ -58,12 +58,21 @@ func classifyDataTransferVehicleSets(
 		currentSetsByInventory[transferIdentity(set.InventoryNumber)] = set
 	}
 	seenMembers := map[string]string{}
+	seenSetInventories := map[string]bool{}
 	for index, set := range incoming.VehicleSets {
 		recordKey := transferVehicleSetRecordKey(set, index)
 		preview := DataTransferVehicleSetPreview{
 			RecordKey: recordKey, Classification: "ready", ProposedAction: "create", Data: set,
 		}
 		preview.Diagnostics = append(preview.Diagnostics, validateTransferVehicleSetStructure(set)...)
+		setInventoryIdentity := transferIdentity(set.InventoryNumber)
+		if setInventoryIdentity != "" && seenSetInventories[setInventoryIdentity] {
+			preview.Diagnostics = append(preview.Diagnostics, TransferVehicleSetDiagnostic{
+				Field: "inventoryNumber", Code: "duplicate_import_vehicle_set_inventory_number",
+			})
+		} else if setInventoryIdentity != "" {
+			seenSetInventories[setInventoryIdentity] = true
+		}
 		memberTargetIDs := make([]string, 0, len(set.Members))
 		for memberIndex, member := range set.Members {
 			if member.SourceRowNumber > 0 {
@@ -291,20 +300,21 @@ func compactTransferVehicleSetDiagnostics(
 
 func transferVehicleSetDiagnosticMessage(code string) string {
 	messages := map[string]string{
-		"missing_vehicle_set_inventory_number": "Vehicle set inventory number is required.",
-		"invalid_vehicle_set":                  "Vehicle set data violates aggregate validation.",
-		"vehicle_set_too_small":                "A vehicle set requires at least two members.",
-		"vehicle_set_too_large":                "A vehicle set cannot contain more than 100 members.",
-		"invalid_vehicle_set_position":         "Vehicle set member position must be a positive integer.",
-		"duplicate_vehicle_set_position":       "Vehicle set member positions must be unique.",
-		"non_contiguous_vehicle_set_positions": "Vehicle set member positions must be contiguous.",
-		"invalid_vehicle_set_member_count":     "Vehicle set member count must be an integer.",
-		"vehicle_set_member_count_mismatch":    "Vehicle set member count does not match the detected group.",
-		"conflicting_vehicle_set_metadata":     "Vehicle set rows contain conflicting metadata.",
-		"duplicate_vehicle_set_member":         "A vehicle occurs more than once in the vehicle set.",
-		"vehicle_set_member_in_multiple_sets":  "A vehicle belongs to more than one imported set.",
-		"missing_vehicle_set_member_reference": "Referenced vehicle is missing from the import.",
-		"invalid_vehicle_set_member":           "A vehicle set member contains blocking validation errors.",
+		"missing_vehicle_set_inventory_number":          "Vehicle set inventory number is required.",
+		"duplicate_import_vehicle_set_inventory_number": "Vehicle set inventory number occurs more than once in the import.",
+		"invalid_vehicle_set":                           "Vehicle set data violates aggregate validation.",
+		"vehicle_set_too_small":                         "A vehicle set requires at least two members.",
+		"vehicle_set_too_large":                         "A vehicle set cannot contain more than 100 members.",
+		"invalid_vehicle_set_position":                  "Vehicle set member position must be a positive integer.",
+		"duplicate_vehicle_set_position":                "Vehicle set member positions must be unique.",
+		"non_contiguous_vehicle_set_positions":          "Vehicle set member positions must be contiguous.",
+		"invalid_vehicle_set_member_count":              "Vehicle set member count must be an integer.",
+		"vehicle_set_member_count_mismatch":             "Vehicle set member count does not match the detected group.",
+		"conflicting_vehicle_set_metadata":              "Vehicle set rows contain conflicting metadata.",
+		"duplicate_vehicle_set_member":                  "A vehicle occurs more than once in the vehicle set.",
+		"vehicle_set_member_in_multiple_sets":           "A vehicle belongs to more than one imported set.",
+		"missing_vehicle_set_member_reference":          "Referenced vehicle is missing from the import.",
+		"invalid_vehicle_set_member":                    "A vehicle set member contains blocking validation errors.",
 	}
 	if message := messages[code]; message != "" {
 		return message
