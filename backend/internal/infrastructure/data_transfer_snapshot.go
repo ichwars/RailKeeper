@@ -27,7 +27,6 @@ func (repository *DataTransferRepository) Snapshot(
 			snapshot.Vehicles, err = transferVehicleSnapshot(ctx, tx)
 			if err == nil {
 				snapshot.VehicleSets, err = transferVehicleSetSnapshot(ctx, tx)
-				snapshot.VehicleSets = normalizeTransferVehicleSetsForExport(snapshot.VehicleSets)
 			}
 		case application.TransferAccessories:
 			snapshot.Accessories, err = transferAccessorySnapshot(ctx, tx)
@@ -44,23 +43,6 @@ func (repository *DataTransferRepository) Snapshot(
 		return application.DataTransferSnapshot{}, fmt.Errorf("commit transfer snapshot: %w", err)
 	}
 	return snapshot, nil
-}
-
-func normalizeTransferVehicleSetsForExport(
-	sets []application.TransferVehicleSet,
-) []application.TransferVehicleSet {
-	normalized := make([]application.TransferVehicleSet, 0, len(sets))
-	for _, set := range sets {
-		if len(set.Members) < 2 {
-			continue
-		}
-		set.Members = append([]application.TransferVehicleSetMember(nil), set.Members...)
-		for index := range set.Members {
-			set.Members[index].Position = index + 1
-		}
-		normalized = append(normalized, set)
-	}
-	return normalized
 }
 
 func (repository *DataTransferRepository) GetArtifact(

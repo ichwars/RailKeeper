@@ -216,7 +216,7 @@ func TestDataTransferSnapshotIncludesVehicleSets(t *testing.T) {
 	}
 }
 
-func TestDataTransferSnapshotNormalizesReachableVehicleSetMemberships(t *testing.T) {
+func TestDataTransferSnapshotPreservesVehicleSetMembershipsForImportComparison(t *testing.T) {
 	db := testDB(t)
 	for _, statement := range []string{
 		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
@@ -250,15 +250,17 @@ func TestDataTransferSnapshotNormalizesReachableVehicleSetMemberships(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(snapshot.VehicleSets) != 1 || snapshot.VehicleSets[0].ID != "set-gap" {
-		t.Fatalf("exportable vehicle sets = %#v", snapshot.VehicleSets)
+	if len(snapshot.VehicleSets) != 2 || snapshot.VehicleSets[0].ID != "set-gap" ||
+		snapshot.VehicleSets[1].ID != "set-single" {
+		t.Fatalf("snapshot vehicle sets = %#v", snapshot.VehicleSets)
 	}
-	set := snapshot.VehicleSets[0]
-	if len(set.Members) != 2 || set.Members[0].Position != 1 || set.Members[1].Position != 2 {
-		t.Fatalf("normalized vehicle set members = %#v", set.Members)
+	gapSet := snapshot.VehicleSets[0]
+	if len(gapSet.Members) != 2 || gapSet.Members[0].Position != 1 || gapSet.Members[1].Position != 3 {
+		t.Fatalf("raw gapped vehicle set members = %#v", gapSet.Members)
 	}
-	if err := application.ValidateTransferVehicleSet(set); err != nil {
-		t.Fatalf("normalized vehicle set is not importable: %v", err)
+	singleton := snapshot.VehicleSets[1]
+	if len(singleton.Members) != 1 || singleton.Members[0].Position != 2 {
+		t.Fatalf("raw singleton vehicle set members = %#v", singleton.Members)
 	}
 }
 

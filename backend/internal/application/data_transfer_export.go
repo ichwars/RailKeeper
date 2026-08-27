@@ -361,7 +361,7 @@ func marshalDataTransferExport(
 }
 
 func marshalDataTransferPackage(snapshot DataTransferSnapshot, createdAt string) ([]byte, error) {
-	sortDataTransferSnapshot(&snapshot)
+	prepareDataTransferSnapshotForExport(&snapshot)
 	document := DataTransferPackage{
 		Format: DataTransferPackageFormat, Version: DataTransferPackageVersion, CreatedAt: createdAt,
 		Areas: DataTransferPackageAreas(snapshot),
@@ -374,7 +374,7 @@ func marshalDataTransferPackage(snapshot DataTransferSnapshot, createdAt string)
 }
 
 func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([]byte, error) {
-	sortDataTransferSnapshot(&snapshot)
+	prepareDataTransferSnapshotForExport(&snapshot)
 	var builder strings.Builder
 	writer := csv.NewWriter(&builder)
 	writer.Comma = ';'
@@ -739,6 +739,31 @@ func sortDataTransferSnapshot(snapshot *DataTransferSnapshot) {
 			return compareTransferKeys(left.LocomotiveName, right.LocomotiveName, left.ID, right.ID)
 		})
 	}
+}
+
+func prepareDataTransferSnapshotForExport(snapshot *DataTransferSnapshot) {
+	normalizedSets := make([]TransferVehicleSet, 0, len(snapshot.VehicleSets))
+	for _, set := range snapshot.VehicleSets {
+		if len(set.Members) < 2 {
+			continue
+		}
+		set.Members = slices.Clone(set.Members)
+		slices.SortStableFunc(set.Members, func(left, right TransferVehicleSetMember) int {
+			if left.Position != right.Position {
+				return left.Position - right.Position
+			}
+			return compareTransferKeys(
+				left.VehicleInventoryNumber, right.VehicleInventoryNumber,
+				left.SourceVehicleID, right.SourceVehicleID,
+			)
+		})
+		for index := range set.Members {
+			set.Members[index].Position = index + 1
+		}
+		normalizedSets = append(normalizedSets, set)
+	}
+	snapshot.VehicleSets = normalizedSets
+	sortDataTransferSnapshot(snapshot)
 }
 
 func compareTransferKeys(values ...string) int {
