@@ -387,7 +387,7 @@
 
 .vehicle-create-review-chevron {
   color: var(--muted);
-  transition: transform 120ms ease;
+  transition: transform var(--duration-fast) var(--ease-standard);
 }
 
 .vehicle-create-review-group[open] .vehicle-create-review-chevron {
