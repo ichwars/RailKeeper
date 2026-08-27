@@ -67,12 +67,13 @@ type DataTransferSnapshot struct {
 }
 
 type TransferVehicleSetMember struct {
-	SourceVehicleID        string `json:"vehicleId"`
-	VehicleInventoryNumber string `json:"vehicleInventoryNumber"`
-	Position               int    `json:"position"`
-	Label                  string `json:"label,omitempty"`
-	SourceRowNumber        int    `json:"-"`
-	DeclaredMemberCount    int    `json:"-"`
+	SourceVehicleID        string          `json:"vehicleId"`
+	VehicleInventoryNumber string          `json:"vehicleInventoryNumber"`
+	Position               int             `json:"position"`
+	Label                  string          `json:"label,omitempty"`
+	SourceRowNumber        int             `json:"-"`
+	DeclaredMemberCount    int             `json:"-"`
+	SourceSetInput         VehicleSetInput `json:"-"`
 }
 
 type TransferVehicleSetDiagnostic struct {

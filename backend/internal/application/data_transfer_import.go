@@ -27,15 +27,16 @@ var (
 )
 
 type DataTransferPreview struct {
-	Job            DataTransferJob                `json:"job"`
-	Records        []DataTransferPreviewRecord    `json:"records"`
-	Issues         []DataTransferIssue            `json:"issues"`
-	TotalRecords   int                            `json:"totalRecords"`
-	ReadyRecords   int                            `json:"readyRecords"`
-	WarningRecords int                            `json:"warningRecords"`
-	ErrorRecords   int                            `json:"errorRecords"`
-	CSVMapping     []DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
-	VehicleFields  []VehicleTransferField         `json:"vehicleFields,omitempty"`
+	Job            DataTransferJob                 `json:"job"`
+	Records        []DataTransferPreviewRecord     `json:"records"`
+	Issues         []DataTransferIssue             `json:"issues"`
+	TotalRecords   int                             `json:"totalRecords"`
+	ReadyRecords   int                             `json:"readyRecords"`
+	WarningRecords int                             `json:"warningRecords"`
+	ErrorRecords   int                             `json:"errorRecords"`
+	CSVMapping     []DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
+	VehicleFields  []VehicleTransferField          `json:"vehicleFields,omitempty"`
+	VehicleSets    []DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
 }
 
 type DataTransferPreviewRecord struct {
@@ -221,6 +222,9 @@ func (s *DataTransferService) UploadAndPreviewReader(
 		return DataTransferPreview{}, fmt.Errorf("load current transfer rows: %w", err)
 	}
 	records, issues := classifyDataTransferImport(job.ID, incoming, current, rowNumbers)
+	vehicleSets, vehicleSetIssues := classifyDataTransferVehicleSets(job.ID, incoming, current, records)
+	issues = append(issues, vehicleSetIssues...)
+	records, issues = suppressDataTransferVehicleSetMemberConflicts(records, issues, vehicleSets)
 	records, issues, err = validateTransferAccessoryPreviewReferences(ctx, repository, job.ID, records, issues)
 	if err != nil {
 		return DataTransferPreview{}, err
@@ -246,7 +250,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if job.Format == TransferCSV && slices.Contains(job.Areas, TransferVehicles) {
 		vehicleFields = VehicleCSVTransferFields()
 	}
-	job.Preview, err = dataTransferPreviewMap(digest, records, csvMapping, vehicleFields)
+	job.Preview, err = dataTransferPreviewMap(digest, records, vehicleSets, csvMapping, vehicleFields)
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
@@ -273,7 +277,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	if err != nil {
 		return DataTransferPreview{}, err
 	}
-	return newDataTransferPreview(job, records, issues, csvMapping, vehicleFields), nil
+	return newDataTransferPreview(job, records, issues, vehicleSets, csvMapping, vehicleFields), nil
 }
 
 func validateTransferAccessoryPreviewReferences(
@@ -654,7 +658,8 @@ func parseDataTransferUpload(
 			return DataTransferSnapshot{}, 0, nil, nil, err
 		}
 		return DataTransferSnapshot{
-			Vehicles: packageDocument.Areas.Vehicles, Accessories: packageDocument.Areas.Accessories,
+			Vehicles: packageDocument.Areas.Vehicles, VehicleSets: packageDocument.Areas.VehicleSets,
+			Accessories:     packageDocument.Areas.Accessories,
 			ExhibitionLists: packageDocument.Areas.ExhibitionLists,
 		}, packageDocument.Version, nil, nil, nil
 	case TransferCSV:
@@ -762,17 +767,19 @@ func validateDataTransferPackageSelection(areas DataTransferPackageAreas, select
 func dataTransferPreviewMap(
 	sourceSHA256 string,
 	records []DataTransferPreviewRecord,
+	vehicleSets []DataTransferVehicleSetPreview,
 	csvMapping []DataTransferCSVColumnMapping,
 	vehicleFields []VehicleTransferField,
 ) (map[string]any, error) {
 	payload, err := json.Marshal(struct {
-		SourceSHA256       string                         `json:"sourceSha256"`
-		FingerprintVersion int                            `json:"fingerprintVersion"`
-		Records            []DataTransferPreviewRecord    `json:"records"`
-		CSVMapping         []DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
-		VehicleFields      []VehicleTransferField         `json:"vehicleFields,omitempty"`
+		SourceSHA256       string                          `json:"sourceSha256"`
+		FingerprintVersion int                             `json:"fingerprintVersion"`
+		Records            []DataTransferPreviewRecord     `json:"records"`
+		VehicleSets        []DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
+		CSVMapping         []DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
+		VehicleFields      []VehicleTransferField          `json:"vehicleFields,omitempty"`
 	}{SourceSHA256: sourceSHA256, FingerprintVersion: DataTransferTargetFingerprintVersion,
-		Records: records, CSVMapping: csvMapping, VehicleFields: vehicleFields})
+		Records: records, VehicleSets: vehicleSets, CSVMapping: csvMapping, VehicleFields: vehicleFields})
 	if err != nil {
 		return nil, fmt.Errorf("encode transfer preview: %w", err)
 	}
@@ -787,33 +794,36 @@ func newDataTransferPreview(
 	job DataTransferJob,
 	records []DataTransferPreviewRecord,
 	issues []DataTransferIssue,
+	vehicleSets []DataTransferVehicleSetPreview,
 	csvMapping []DataTransferCSVColumnMapping,
 	vehicleFields []VehicleTransferField,
 ) DataTransferPreview {
 	return DataTransferPreview{
 		Job: job, Records: records, Issues: issues, TotalRecords: job.TotalRecords,
 		ReadyRecords: job.ReadyRecords, WarningRecords: job.WarningRecords, ErrorRecords: job.ErrorRecords,
-		CSVMapping: csvMapping, VehicleFields: vehicleFields,
+		CSVMapping: csvMapping, VehicleFields: vehicleFields, VehicleSets: vehicleSets,
 	}
 }
 
 func validDataTransferResolution(issue DataTransferIssue, resolution string) bool {
 	allowed := map[string]map[string]bool{
-		"missing_inventory_number":             {"skip": true},
-		"missing_manufacturer":                 {"skip": true},
-		"missing_name":                         {"skip": true},
-		"missing_gauge":                        {"skip": true},
-		"missing_category":                     {"skip": true},
-		"missing_gattung":                      {"skip": true},
-		"invalid_vehicle":                      {"skip": true},
-		"invalid_accessory":                    {"skip": true},
-		"duplicate_inventory_number":           {"replace": true, "copy": true, "skip": true},
-		"matching_manufacturer_article_number": {"use_existing": true, "create": true, "skip": true},
-		"duplicate_exhibition_list":            {"replace": true, "merge": true, "copy": true, "skip": true},
-		"locked_exhibition_list":               {"copy": true, "skip": true},
-		"exhibition_vehicle_reference":         {"link": true, "skip": true},
-		"missing_vehicle_reference":            {"skip": true},
-		"duplicate_input_inventory_number":     {"skip": true},
+		"missing_inventory_number":               {"skip": true},
+		"missing_manufacturer":                   {"skip": true},
+		"missing_name":                           {"skip": true},
+		"missing_gauge":                          {"skip": true},
+		"missing_category":                       {"skip": true},
+		"missing_gattung":                        {"skip": true},
+		"invalid_vehicle":                        {"skip": true},
+		"invalid_accessory":                      {"skip": true},
+		"duplicate_inventory_number":             {"replace": true, "copy": true, "skip": true},
+		"matching_manufacturer_article_number":   {"use_existing": true, "create": true, "skip": true},
+		"duplicate_exhibition_list":              {"replace": true, "merge": true, "copy": true, "skip": true},
+		"locked_exhibition_list":                 {"copy": true, "skip": true},
+		"exhibition_vehicle_reference":           {"link": true, "skip": true},
+		"missing_vehicle_reference":              {"skip": true},
+		"duplicate_input_inventory_number":       {"skip": true},
+		"duplicate_vehicle_set_inventory_number": {"replace": true, "copy": true, "skip": true},
+		"vehicle_set_member_external_conflict":   {"copy": true, "skip": true},
 	}
 	return resolution != "" && allowed[issue.Code][resolution]
 }

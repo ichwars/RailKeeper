@@ -204,27 +204,29 @@ func transferVehicleSetFromCSV(
 	if memberCountDiagnostic != nil {
 		diagnostics = append(diagnostics, *memberCountDiagnostic)
 	}
+	setInput := VehicleSetInput{
+		Name: row["vehicleSetName"], Manufacturer: row["vehicleSetManufacturer"],
+		ArticleNumber: row["vehicleSetArticleNumber"], ArticleSourceURL: row["vehicleSetArticleSourceUrl"],
+		Gauge: row["vehicleSetGauge"], Epoch: row["vehicleSetEpoch"],
+		RailwayCompany: row["vehicleSetRailwayCompany"], Category: row["vehicleSetCategory"],
+		Gattung: row["vehicleSetGattung"], Description: row["vehicleSetDescription"],
+		EAN: row["vehicleSetEAN"], ProductionPeriod: row["vehicleSetProductionPeriod"],
+		ListPrice: row["vehicleSetListPrice"], AcquisitionType: row["vehicleSetAcquisitionType"],
+		AcquiredFrom: row["vehicleSetAcquiredFrom"], PurchasePrice: row["vehicleSetPurchasePrice"],
+		PurchaseDate: row["vehicleSetPurchaseDate"], StorageLocation: row["vehicleSetStorageLocation"],
+		StorageDetails: row["vehicleSetStorageDetails"], Condition: row["vehicleSetCondition"],
+		ConditionDetails: row["vehicleSetConditionDetails"], Packaging: row["vehicleSetPackaging"],
+	}
 	return TransferVehicleSet{
 		InventoryNumber: row["vehicleSetInventoryNumber"],
-		VehicleSetInput: VehicleSetInput{
-			Name: row["vehicleSetName"], Manufacturer: row["vehicleSetManufacturer"],
-			ArticleNumber: row["vehicleSetArticleNumber"], ArticleSourceURL: row["vehicleSetArticleSourceUrl"],
-			Gauge: row["vehicleSetGauge"], Epoch: row["vehicleSetEpoch"],
-			RailwayCompany: row["vehicleSetRailwayCompany"], Category: row["vehicleSetCategory"],
-			Gattung: row["vehicleSetGattung"], Description: row["vehicleSetDescription"],
-			EAN: row["vehicleSetEAN"], ProductionPeriod: row["vehicleSetProductionPeriod"],
-			ListPrice: row["vehicleSetListPrice"], AcquisitionType: row["vehicleSetAcquisitionType"],
-			AcquiredFrom: row["vehicleSetAcquiredFrom"], PurchasePrice: row["vehicleSetPurchasePrice"],
-			PurchaseDate: row["vehicleSetPurchaseDate"], StorageLocation: row["vehicleSetStorageLocation"],
-			StorageDetails: row["vehicleSetStorageDetails"], Condition: row["vehicleSetCondition"],
-			ConditionDetails: row["vehicleSetConditionDetails"], Packaging: row["vehicleSetPackaging"],
-		},
+		VehicleSetInput: setInput,
 		Members: []TransferVehicleSetMember{{
 			VehicleInventoryNumber: vehicle.InventoryNumber,
 			Position:               position,
 			Label:                  row["vehicleSetMemberLabel"],
 			SourceRowNumber:        rowNumber,
 			DeclaredMemberCount:    memberCount,
+			SourceSetInput:         setInput,
 		}},
 		Diagnostics: diagnostics,
 	}, true, nil
