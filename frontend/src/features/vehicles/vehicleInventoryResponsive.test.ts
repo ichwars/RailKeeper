@@ -5,6 +5,10 @@ import { describe, expect, it } from "vitest";
 const css = readFileSync(resolve(process.cwd(), "src/styles/vehicle-inventory.css"), "utf8");
 const appCss = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
 const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
+const inventoryPanelSource = readFileSync(
+  resolve(process.cwd(), "src/features/vehicles/VehicleInventoryPanel.tsx"),
+  "utf8",
+);
 
 describe("vehicle inventory column layout", () => {
   it("imports a focused vehicle inventory stylesheet", () => {
@@ -52,6 +56,12 @@ describe("vehicle inventory column layout", () => {
     );
     expect(responsiveCss).toMatch(
       /@media\s*\(max-width:\s*420px\)[\s\S]*?\.inventory-status-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
+    );
+  });
+
+  it("places four compact status cards before the wide next appointment card", () => {
+    expect(inventoryPanelSource.indexOf('t("vehicles.imageCare")')).toBeLessThan(
+      inventoryPanelSource.indexOf('t("vehicles.nextAppointment")'),
     );
   });
 
