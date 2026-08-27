@@ -425,6 +425,73 @@
   font-size: var(--font-size-xs);
 }
 
+.transfer-set-review {
+  display: grid;
+  gap: 9px;
+}
+
+.transfer-set-review > header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.transfer-set-review > header svg {
+  color: var(--accent-strong);
+}
+
+.transfer-set-review h4 {
+  margin: 0;
+  font-size: var(--font-size-md);
+}
+
+.transfer-set-review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.transfer-set-review-card {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(170px, 0.8fr) auto minmax(280px, 1.4fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel-subtle);
+}
+
+.transfer-set-review-main {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.transfer-set-review-main strong,
+.transfer-set-review-main span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.transfer-set-review-main small,
+.transfer-set-review-diagnostic {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
+.transfer-set-review-resolution {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+}
+
+.transfer-set-review-resolution > span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+}
+
 .transfer-review-error td {
   background: color-mix(in srgb, var(--danger) 5%, var(--panel));
 }
@@ -621,6 +688,10 @@
   .data-transfer-file-drop .secondary-button,
   .transfer-export-result .secondary-button {
     grid-column: 1 / -1;
+  }
+
+  .transfer-set-review-card {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .data-transfer-dialog-actions {
