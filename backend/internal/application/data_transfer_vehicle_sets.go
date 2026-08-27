@@ -166,6 +166,9 @@ func validateTransferVehicleSetStructure(set TransferVehicleSet) []TransferVehic
 	if len(set.Members) < 2 {
 		diagnostics = append(diagnostics, TransferVehicleSetDiagnostic{Field: "members", Code: "vehicle_set_too_small"})
 	}
+	if len(set.Members) > maxVehicleSetMembers {
+		diagnostics = append(diagnostics, TransferVehicleSetDiagnostic{Field: "members", Code: "vehicle_set_too_large"})
+	}
 	positions := make(map[int]bool, len(set.Members))
 	members := make(map[string]bool, len(set.Members))
 	for index, member := range set.Members {
@@ -291,6 +294,7 @@ func transferVehicleSetDiagnosticMessage(code string) string {
 		"missing_vehicle_set_inventory_number": "Vehicle set inventory number is required.",
 		"invalid_vehicle_set":                  "Vehicle set data violates aggregate validation.",
 		"vehicle_set_too_small":                "A vehicle set requires at least two members.",
+		"vehicle_set_too_large":                "A vehicle set cannot contain more than 100 members.",
 		"invalid_vehicle_set_position":         "Vehicle set member position must be a positive integer.",
 		"duplicate_vehicle_set_position":       "Vehicle set member positions must be unique.",
 		"non_contiguous_vehicle_set_positions": "Vehicle set member positions must be contiguous.",

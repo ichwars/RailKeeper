@@ -2,6 +2,7 @@ package application
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"testing"
 )
@@ -20,6 +21,15 @@ func TestClassifyDataTransferVehicleSetStructure(t *testing.T) {
 		}},
 		{name: "too small", code: "vehicle_set_too_small", edit: func(snapshot *DataTransferSnapshot) {
 			snapshot.VehicleSets[0].Members = snapshot.VehicleSets[0].Members[:1]
+		}},
+		{name: "too large", code: "vehicle_set_too_large", edit: func(snapshot *DataTransferSnapshot) {
+			members := make([]TransferVehicleSetMember, maxVehicleSetMembers+1)
+			for index := range members {
+				members[index] = TransferVehicleSetMember{
+					SourceVehicleID: fmt.Sprintf("source-%d", index), Position: index + 1,
+				}
+			}
+			snapshot.VehicleSets[0].Members = members
 		}},
 		{name: "duplicate position", code: "duplicate_vehicle_set_position", edit: func(snapshot *DataTransferSnapshot) {
 			snapshot.VehicleSets[0].Members[1].Position = 1
