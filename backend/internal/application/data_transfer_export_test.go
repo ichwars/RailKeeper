@@ -10,6 +10,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"slices"
 	"strings"
 	"testing"
@@ -32,8 +33,40 @@ func TestCombinedTransferPackageExcludesMasterData(t *testing.T) {
 		t.Fatalf("feature package leaked master data: %s", payload)
 	}
 	if !bytes.Contains(payload, []byte(`"format":"railkeeper-transfer"`)) ||
-		!bytes.Contains(payload, []byte(`"version":2`)) {
+		!bytes.Contains(payload, []byte(`"version":3`)) {
 		t.Fatalf("missing package identity: %s", payload)
+	}
+}
+
+func TestDataTransferPackageVersionThreeRoundTripsVehicleSet(t *testing.T) {
+	snapshot := DataTransferSnapshot{
+		Vehicles: []TransferVehicle{
+			{ID: "source-a", InventoryNumber: "RK-1", Manufacturer: "Roco", Name: "A", Gauge: "H0",
+				Category: "Wagen", Gattung: "Reisezugwagen"},
+			{ID: "source-b", InventoryNumber: "RK-2", Manufacturer: "Roco", Name: "B", Gauge: "H0",
+				Category: "Wagen", Gattung: "Reisezugwagen"},
+		},
+		VehicleSets: []TransferVehicleSet{{
+			ID: "source-set", InventoryNumber: "Set-1",
+			VehicleSetInput: VehicleSetInput{
+				Name: "Rheingold", Manufacturer: "Roco", Gauge: "H0", Category: "Set", Gattung: "Reisezug",
+			},
+			Members: []TransferVehicleSetMember{
+				{SourceVehicleID: "source-a", VehicleInventoryNumber: "RK-1", Position: 1, Label: "A-Wagen"},
+				{SourceVehicleID: "source-b", VehicleInventoryNumber: "RK-2", Position: 2, Label: "B-Wagen"},
+			},
+		}},
+	}
+	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Version != 3 || !reflect.DeepEqual(document.Areas.VehicleSets, snapshot.VehicleSets) {
+		t.Fatalf("vehicle set round trip = %#v", document)
 	}
 }
 

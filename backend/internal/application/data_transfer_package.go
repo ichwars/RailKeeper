@@ -3,9 +3,10 @@ package application
 import "encoding/json"
 
 const (
-	DataTransferPackageFormat        = "railkeeper-transfer"
-	DataTransferPackageLegacyVersion = 1
-	DataTransferPackageVersion       = 2
+	DataTransferPackageFormat          = "railkeeper-transfer"
+	DataTransferPackageLegacyVersion   = 1
+	DataTransferPackagePreviousVersion = 2
+	DataTransferPackageVersion         = 3
 )
 
 type DataTransferPackage struct {
@@ -16,6 +17,13 @@ type DataTransferPackage struct {
 }
 
 type DataTransferPackageAreas struct {
+	Vehicles        []TransferVehicle        `json:"vehicles,omitempty"`
+	VehicleSets     []TransferVehicleSet     `json:"vehicleSets,omitempty"`
+	Accessories     []TransferAccessory      `json:"accessories,omitempty"`
+	ExhibitionLists []TransferExhibitionList `json:"exhibitionLists,omitempty"`
+}
+
+type dataTransferPackageAreasV2 struct {
 	Vehicles        []TransferVehicle        `json:"vehicles,omitempty"`
 	Accessories     []TransferAccessory      `json:"accessories,omitempty"`
 	ExhibitionLists []TransferExhibitionList `json:"exhibitionLists,omitempty"`
@@ -31,12 +39,16 @@ type dataTransferPackageAreasV1 struct {
 func (areas DataTransferPackageAreas) MarshalJSON() ([]byte, error) {
 	type areaDocument struct {
 		Vehicles        *[]TransferVehicle        `json:"vehicles,omitempty"`
+		VehicleSets     *[]TransferVehicleSet     `json:"vehicleSets,omitempty"`
 		Accessories     *[]TransferAccessory      `json:"accessories,omitempty"`
 		ExhibitionLists *[]TransferExhibitionList `json:"exhibitionLists,omitempty"`
 	}
 	document := areaDocument{}
 	if areas.Vehicles != nil {
 		document.Vehicles = &areas.Vehicles
+	}
+	if areas.VehicleSets != nil {
+		document.VehicleSets = &areas.VehicleSets
 	}
 	if areas.Accessories != nil {
 		document.Accessories = &areas.Accessories
@@ -49,8 +61,25 @@ func (areas DataTransferPackageAreas) MarshalJSON() ([]byte, error) {
 
 type DataTransferSnapshot struct {
 	Vehicles        []TransferVehicle
+	VehicleSets     []TransferVehicleSet
 	Accessories     []TransferAccessory
 	ExhibitionLists []TransferExhibitionList
+}
+
+type TransferVehicleSetMember struct {
+	SourceVehicleID        string `json:"vehicleId"`
+	VehicleInventoryNumber string `json:"vehicleInventoryNumber"`
+	Position               int    `json:"position"`
+	Label                  string `json:"label,omitempty"`
+}
+
+type TransferVehicleSet struct {
+	ID              string `json:"id,omitempty"`
+	InventoryNumber string `json:"inventoryNumber"`
+	VehicleSetInput
+	Members   []TransferVehicleSetMember `json:"members"`
+	CreatedAt string                     `json:"createdAt,omitempty"`
+	UpdatedAt string                     `json:"updatedAt,omitempty"`
 }
 
 type TransferVehicle struct {

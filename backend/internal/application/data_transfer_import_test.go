@@ -190,7 +190,7 @@ func TestTransferImportRejectsUnknownMasterDataAndUnsupportedVersion(t *testing.
 		},
 		{
 			name:    "unsupported package version",
-			payload: `{"format":"railkeeper-transfer","version":3,"areas":{"vehicles":[]}}`,
+			payload: `{"format":"railkeeper-transfer","version":4,"areas":{"vehicles":[]}}`,
 		},
 		{
 			name:    "empty areas",
@@ -220,6 +220,25 @@ func TestTransferImportAcceptsLegacyPackageVersionOne(t *testing.T) {
 	}
 	if document.Version != DataTransferPackageLegacyVersion || document.Areas.Vehicles == nil {
 		t.Fatalf("legacy package decoded incorrectly: %#v", document)
+	}
+}
+
+func TestTransferImportAcceptsPreviousPackageVersionTwo(t *testing.T) {
+	document, err := decodeDataTransferPackage(strings.NewReader(
+		`{"format":"railkeeper-transfer","version":2,"createdAt":"2026-01-01T00:00:00Z",` +
+			`"areas":{"vehicles":[{"inventoryNumber":"RK-2","manufacturer":"Roco",` +
+			`"name":"BR 218","gauge":"H0","category":"Lokomotive","gattung":"Diesellokomotive",` +
+			`"digital":false,"dtDecoder":false,"exhibitionReady":false,"exhibition":false,` +
+			`"abcBrakes":false,"couplingSame":false,"driveEnabled":false,"headlightsEnabled":false,` +
+			`"lightingEnabled":false,"soundGeneratorEnabled":false,"smokeGeneratorEnabled":false,` +
+			`"qrCodeEnabled":false}]}}`,
+	))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Version != DataTransferPackagePreviousVersion || len(document.Areas.Vehicles) != 1 ||
+		document.Areas.VehicleSets != nil {
+		t.Fatalf("version two package decoded incorrectly: %#v", document)
 	}
 }
 

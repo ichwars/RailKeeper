@@ -681,7 +681,9 @@ func decodeDataTransferPackage(reader io.Reader) (DataTransferPackage, error) {
 		return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
 	}
 	if envelope.Format != DataTransferPackageFormat ||
-		(envelope.Version != DataTransferPackageLegacyVersion && envelope.Version != DataTransferPackageVersion) {
+		(envelope.Version != DataTransferPackageLegacyVersion &&
+			envelope.Version != DataTransferPackagePreviousVersion &&
+			envelope.Version != DataTransferPackageVersion) {
 		return DataTransferPackage{}, fmt.Errorf("%w: unsupported transfer package format or version", ErrDataTransferValidation)
 	}
 	document := DataTransferPackage{
@@ -690,6 +692,17 @@ func decodeDataTransferPackage(reader io.Reader) (DataTransferPackage, error) {
 	if envelope.Version == DataTransferPackageVersion {
 		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &document.Areas); err != nil {
 			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+		}
+		return document, nil
+	}
+	if envelope.Version == DataTransferPackagePreviousVersion {
+		previousAreas := dataTransferPackageAreasV2{}
+		if err := decodeStrictTransferJSON(bytes.NewReader(envelope.Areas), &previousAreas); err != nil {
+			return DataTransferPackage{}, fmt.Errorf("%w: invalid transfer package: %v", ErrDataTransferValidation, err)
+		}
+		document.Areas = DataTransferPackageAreas{
+			Vehicles: previousAreas.Vehicles, Accessories: previousAreas.Accessories,
+			ExhibitionLists: previousAreas.ExhibitionLists,
 		}
 		return document, nil
 	}
@@ -722,6 +735,9 @@ func decodeStrictTransferJSON(reader io.Reader, target any) error {
 }
 
 func validateDataTransferPackageSelection(areas DataTransferPackageAreas, selected []TransferArea) error {
+	if areas.VehicleSets != nil && (areas.Vehicles == nil || !slices.Contains(selected, TransferVehicles)) {
+		return fmt.Errorf("%w: vehicle sets require the vehicles area", ErrDataTransferValidation)
+	}
 	present := []TransferArea{}
 	if areas.Vehicles != nil {
 		present = append(present, TransferVehicles)
