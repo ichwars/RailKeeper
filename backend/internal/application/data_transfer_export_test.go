@@ -102,6 +102,20 @@ func TestDataTransferExportNormalizesVehicleSetsOnlyDuringSerialization(t *testi
 	}
 }
 
+func TestDataTransferExportPreservesUnselectedVehicleSets(t *testing.T) {
+	snapshot := DataTransferSnapshot{Accessories: []TransferAccessory{{
+		InventoryNumber: "RK-ART-1", Manufacturer: "Viessmann", ArticleNumber: "4011",
+		Name: "Signal", Category: "signal", TrackingMode: "bulk",
+	}}}
+	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bytes.Contains(payload, []byte(`"vehicleSets"`)) {
+		t.Fatalf("accessory-only export contains unselected vehicle sets: %s", payload)
+	}
+}
+
 func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 	snapshot := DataTransferSnapshot{Vehicles: []TransferVehicle{
 		{InventoryNumber: "RK-002", Manufacturer: "Märklin", Name: "BR 218; Cargo", Gauge: "H0"},

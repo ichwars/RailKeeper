@@ -742,27 +742,29 @@ func sortDataTransferSnapshot(snapshot *DataTransferSnapshot) {
 }
 
 func prepareDataTransferSnapshotForExport(snapshot *DataTransferSnapshot) {
-	normalizedSets := make([]TransferVehicleSet, 0, len(snapshot.VehicleSets))
-	for _, set := range snapshot.VehicleSets {
-		if len(set.Members) < 2 {
-			continue
-		}
-		set.Members = slices.Clone(set.Members)
-		slices.SortStableFunc(set.Members, func(left, right TransferVehicleSetMember) int {
-			if left.Position != right.Position {
-				return left.Position - right.Position
+	if snapshot.VehicleSets != nil {
+		normalizedSets := make([]TransferVehicleSet, 0, len(snapshot.VehicleSets))
+		for _, set := range snapshot.VehicleSets {
+			if len(set.Members) < 2 {
+				continue
 			}
-			return compareTransferKeys(
-				left.VehicleInventoryNumber, right.VehicleInventoryNumber,
-				left.SourceVehicleID, right.SourceVehicleID,
-			)
-		})
-		for index := range set.Members {
-			set.Members[index].Position = index + 1
+			set.Members = slices.Clone(set.Members)
+			slices.SortStableFunc(set.Members, func(left, right TransferVehicleSetMember) int {
+				if left.Position != right.Position {
+					return left.Position - right.Position
+				}
+				return compareTransferKeys(
+					left.VehicleInventoryNumber, right.VehicleInventoryNumber,
+					left.SourceVehicleID, right.SourceVehicleID,
+				)
+			})
+			for index := range set.Members {
+				set.Members[index].Position = index + 1
+			}
+			normalizedSets = append(normalizedSets, set)
 		}
-		normalizedSets = append(normalizedSets, set)
+		snapshot.VehicleSets = normalizedSets
 	}
-	snapshot.VehicleSets = normalizedSets
 	sortDataTransferSnapshot(snapshot)
 }
 
