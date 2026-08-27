@@ -71,7 +71,9 @@ func (repository *DataTransferRepository) ApplyImportWithPolicy(
 	if err != nil {
 		return err
 	}
-	if err := applyTransferVehicleSets(ctx, tx, preview.VehicleSets, issues, result.Vehicles, actor); err != nil {
+	if err := applyTransferVehicleSets(
+		ctx, tx, preview.VehicleSets, preview.CSVMapping, issues, result.Vehicles, actor,
+	); err != nil {
 		return err
 	}
 	now := timestamp()

@@ -99,6 +99,70 @@ func TestDataTransferApplyReplacesVehicleSetAndDetachesMissingMembers(t *testing
 	}
 }
 
+func TestDataTransferApplyCSVReplacePreservesUnmappedVehicleSetFields(t *testing.T) {
+	db := testDB(t)
+	repository := infrastructure.NewDataTransferRepository(db)
+	insertApplyVehicleSet(t, db, "target-set", "RK-SET-CSV", []applyVehicleSetMemberFixture{
+		{ID: "target-a", InventoryNumber: "RK-CSV-A", Position: 1},
+		{ID: "target-old", InventoryNumber: "RK-CSV-OLD", Position: 2},
+	})
+	if _, err := db.Exec(`
+UPDATE vehicle_sets
+SET description='Lokale Beschreibung', storage_location='Vitrine 7'
+WHERE id='target-set'`); err != nil {
+		t.Fatal(err)
+	}
+	targetSet, targetVehicles := applyVehicleSetSnapshot(t, repository, "target-set")
+	records, setPreview := applyVehicleSetPreview(t, "RK-SET-CSV", "RK-CSV-A", "RK-CSV-B")
+	records[0].ProposedAction = "replace"
+	records[0].TargetID = "target-a"
+	records[0].TargetFingerprint = application.DataTransferTargetFingerprint(targetVehicles["RK-CSV-A"])
+	setPreview.Classification = "warning"
+	setPreview.ProposedAction = "replace"
+	setPreview.TargetID = targetSet.ID
+	setPreview.TargetFingerprint = application.DataTransferTargetFingerprint(targetSet)
+	setPreview.Data.Name = "CSV-Name"
+	job := createApplyJobWithVehicleSets(
+		t, repository, "sha-set-csv-preserve", records, []application.DataTransferVehicleSetPreview{setPreview},
+	)
+	job.Preview["csvMapping"] = []application.DataTransferCSVColumnMapping{
+		{TargetField: "inventoryNumber"},
+		{TargetField: "manufacturer"},
+		{TargetField: "name"},
+		{TargetField: "gauge"},
+		{TargetField: "category"},
+		{TargetField: "gattung"},
+		{TargetField: "vehicleSetInventoryNumber"},
+		{TargetField: "vehicleSetName"},
+		{TargetField: "vehicleSetManufacturer"},
+		{TargetField: "vehicleSetGauge"},
+		{TargetField: "vehicleSetCategory"},
+		{TargetField: "vehicleSetGattung"},
+	}
+	var err error
+	job, err = repository.UpdateJob(t.Context(), job)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resolveApplyVehicleSetIssue(
+		t, repository, job.ID, setPreview, "duplicate_vehicle_set_inventory_number", "replace",
+	)
+
+	if err := repository.ApplyImport(t.Context(), job, "editor-1"); err != nil {
+		t.Fatal(err)
+	}
+	var name, description, storageLocation string
+	if err := db.QueryRow(`
+SELECT name, description, storage_location FROM vehicle_sets WHERE id='target-set'`).Scan(
+		&name, &description, &storageLocation,
+	); err != nil {
+		t.Fatal(err)
+	}
+	if name != "CSV-Name" || description != "Lokale Beschreibung" || storageLocation != "Vitrine 7" {
+		t.Fatalf("CSV replace set fields = %q/%q/%q", name, description, storageLocation)
+	}
+}
+
 func TestDataTransferApplyCopiesVehicleSetWithoutReusingMembers(t *testing.T) {
 	db := testDB(t)
 	repository := infrastructure.NewDataTransferRepository(db)

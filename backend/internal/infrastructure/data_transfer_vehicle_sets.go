@@ -251,6 +251,7 @@ func applyTransferVehicleSets(
 	ctx context.Context,
 	tx *sql.Tx,
 	previews []application.DataTransferVehicleSetPreview,
+	csvMapping []application.DataTransferCSVColumnMapping,
 	issues []application.DataTransferIssue,
 	vehicles map[string]transferVehicleApplyResult,
 	actor string,
@@ -258,6 +259,16 @@ func applyTransferVehicleSets(
 	policies, _, err := transferVehicleSetApplyPolicies(previews, issues)
 	if err != nil {
 		return err
+	}
+	existingSetsByID := map[string]application.TransferVehicleSet{}
+	if len(previews) > 0 && len(csvMapping) > 0 {
+		existingSets, err := transferVehicleSetSnapshot(ctx, tx)
+		if err != nil {
+			return err
+		}
+		for _, set := range existingSets {
+			existingSetsByID[set.ID] = set
+		}
 	}
 	for _, preview := range previews {
 		policy := policies[preview.RecordKey]
@@ -278,13 +289,14 @@ func applyTransferVehicleSets(
 			seenVehicleIDs[result.ID] = true
 			memberResults[index] = result
 		}
+		setData := preview.Data
 		setID := preview.TargetID
-		inventoryNumber := preview.Data.InventoryNumber
+		inventoryNumber := setData.InventoryNumber
 		now := timestamp()
 		switch policy.Action {
 		case "create":
 			setID = randomID()
-			if err := insertTransferVehicleSet(ctx, tx, setID, inventoryNumber, preview.Data.VehicleSetInput, now); err != nil {
+			if err := insertTransferVehicleSet(ctx, tx, setID, inventoryNumber, setData.VehicleSetInput, now); err != nil {
 				return err
 			}
 		case "copy":
@@ -293,12 +305,20 @@ func applyTransferVehicleSets(
 			if err != nil {
 				return err
 			}
-			if err := insertTransferVehicleSet(ctx, tx, setID, inventoryNumber, preview.Data.VehicleSetInput, now); err != nil {
+			if err := insertTransferVehicleSet(ctx, tx, setID, inventoryNumber, setData.VehicleSetInput, now); err != nil {
 				return err
 			}
 		case "replace":
+			if len(csvMapping) > 0 {
+				existing, found := existingSetsByID[setID]
+				if !found {
+					return dataTransferApplyConflict("vehicle set replacement target is missing")
+				}
+				setData = application.PreserveUnmappedTransferVehicleSetFields(setData, existing, csvMapping)
+				inventoryNumber = setData.InventoryNumber
+			}
 			if err := updateTransferVehicleSet(
-				ctx, tx, setID, inventoryNumber, preview.Data.VehicleSetInput, now,
+				ctx, tx, setID, inventoryNumber, setData.VehicleSetInput, now,
 			); err != nil {
 				return err
 			}
