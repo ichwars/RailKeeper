@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const css = readFileSync(resolve(process.cwd(), "src/styles/vehicle-inventory.css"), "utf8");
 const appCss = readFileSync(resolve(process.cwd(), "src/app/styles.css"), "utf8");
+const responsiveCss = readFileSync(resolve(process.cwd(), "src/styles/overrides-responsive.css"), "utf8");
 
 describe("vehicle inventory column layout", () => {
   it("imports a focused vehicle inventory stylesheet", () => {
@@ -43,5 +44,20 @@ describe("vehicle inventory column layout", () => {
     expect(css).toMatch(/\.vehicle-inventory-table\s*\{[^}]*width:\s*100%[^}]*min-width:\s*100%[^}]*table-layout:\s*fixed/s);
     expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\),[\s\S]*width:\s*calc\(\(100%\s*-\s*186px\)\s*\/\s*var\(--vehicle-data-column-count,\s*8\)\)/s);
     expect(css).toMatch(/\.vehicle-inventory-table \[class\*="vehicle-column-"\]\s*\{[^}]*max-width:\s*280px/s);
+  });
+
+  it("keeps the next appointment card wide until the status row stacks", () => {
+    expect(responsiveCss).toMatch(
+      /@media\s*\(max-width:\s*640px\)[\s\S]*?\.inventory-status-row\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\)[\s\S]*?\.inventory-status-card\.wide\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s,
+    );
+    expect(responsiveCss).toMatch(
+      /@media\s*\(max-width:\s*420px\)[\s\S]*?\.inventory-status-row\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s,
+    );
+  });
+
+  it("contains the mobile filter scroller without clipping its controls", () => {
+    expect(responsiveCss).toMatch(
+      /@media\s*\(max-width:\s*640px\)[\s\S]*?\.inventory-filter-row\s*\{[^}]*min-width:\s*0[^}]*max-width:\s*100%[^}]*overflow-x:\s*auto[^}]*overscroll-behavior-x:\s*contain[^}]*scrollbar-gutter:\s*stable[^}]*scroll-padding-inline:\s*2px/s,
+    );
   });
 });
