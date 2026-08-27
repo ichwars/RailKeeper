@@ -1449,6 +1449,7 @@ export const enTranslations: Record<string, string> = {
     "vehicles.exhibition.noOpenLists": "No open exhibition list available.",
     "vehicles.exhibition.requiresDecoder": "Exhibition is only available when Digital is yes and a decoder no. is set.",
     "vehicles.exhibition.toggle": "Change exhibition status",
+    "vehicles.exhibition.unavailable": "Digital yes + decoder no. required",
     "vehicles.image": "Image",
     "vehicles.view": "View",
     "vehicles.quickMenu": "Quick menu",

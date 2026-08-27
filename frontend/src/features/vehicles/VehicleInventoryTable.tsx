@@ -3,6 +3,7 @@ import {
   ArrowUpDown,
   ChevronDown,
   ChevronUp,
+  CircleOff,
   Eye,
   ImageOff,
   Pencil,
@@ -122,17 +123,25 @@ export function VehicleInventoryTable({
       );
     }
     if (column === "exhibition") {
+      if (!vehicle.exhibition && !vehicleExhibitionEligible(vehicle)) {
+        return (
+          <span
+            className="inventory-exhibition-unavailable"
+            aria-label={t("vehicles.exhibition.requiresDecoder")}
+          >
+            <CircleOff size={14} aria-hidden="true" />
+            <span>{t("vehicles.exhibition.unavailable")}</span>
+          </span>
+        );
+      }
       return (
         <label
           className={vehicle.exhibition ? "inventory-inline-switch active" : "inventory-inline-switch"}
-          title={vehicle.exhibition || vehicleExhibitionEligible(vehicle)
-            ? t("vehicles.exhibition.toggle")
-            : t("vehicles.exhibition.requiresDecoder")}
+          title={t("vehicles.exhibition.toggle")}
         >
           <input
             type="checkbox"
             checked={Boolean(vehicle.exhibition)}
-            disabled={!vehicle.exhibition && !vehicleExhibitionEligible(vehicle)}
             onChange={(event) => onToggleExhibition(vehicle, event.target.checked)}
             aria-label={t("vehicles.exhibition.toggle")}
           />

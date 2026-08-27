@@ -95,8 +95,10 @@ describe("VehicleInventoryTable", () => {
     expect(screen.getByRole("table")).toHaveStyle("--vehicle-data-column-count: 3");
   });
 
-  it("keeps selection and exhibition controls operational", () => {
-    const vehicle = vehicleFixture({ exhibition: true });
+  it("keeps the exhibition control operational for eligible vehicles", async () => {
+    const user = userEvent.setup();
+    const vehicle = vehicleFixture({ exhibition: false });
+    const onToggleExhibition = vi.fn();
     render(
       <VehicleInventoryTable
         vehicles={[vehicle]}
@@ -108,12 +110,83 @@ describe("VehicleInventoryTable", () => {
         onToggleSelection={vi.fn()}
         onToggleAllVisibleSelection={vi.fn()}
         onOpenDetail={vi.fn()}
-        onToggleExhibition={vi.fn()}
+        onToggleExhibition={onToggleExhibition}
         renderQuickMenu={() => null}
       />
     );
 
     const row = screen.getAllByRole("row")[1];
     expect(within(row).getAllByRole("checkbox")).toHaveLength(2);
+    const exhibitionControl = within(row).getByRole("checkbox", { name: "Ausstellungsstatus ändern" });
+    expect(exhibitionControl).toBeEnabled();
+    expect(exhibitionControl).not.toBeChecked();
+
+    await user.click(exhibitionControl);
+    expect(onToggleExhibition).toHaveBeenCalledWith(vehicle, true);
+  });
+
+  it("keeps the exhibition control operational for already active vehicles", async () => {
+    const user = userEvent.setup();
+    const vehicle = vehicleFixture({
+      exhibition: true,
+      digital: false,
+      digitalDecoderNumber: ""
+    });
+    const onToggleExhibition = vi.fn();
+    render(
+      <VehicleInventoryTable
+        vehicles={[vehicle]}
+        columns={["exhibition"]}
+        allVisibleSelected={false}
+        selectedVehicleIDs={new Set()}
+        sort={{ key: "inventoryNumber", direction: "asc" }}
+        onToggleSort={vi.fn()}
+        onToggleSelection={vi.fn()}
+        onToggleAllVisibleSelection={vi.fn()}
+        onOpenDetail={vi.fn()}
+        onToggleExhibition={onToggleExhibition}
+        renderQuickMenu={() => null}
+      />
+    );
+
+    const exhibitionControl = screen.getByRole("checkbox", { name: "Ausstellungsstatus ändern" });
+    expect(exhibitionControl).toBeEnabled();
+    expect(exhibitionControl).toBeChecked();
+
+    await user.click(exhibitionControl);
+    expect(onToggleExhibition).toHaveBeenCalledWith(vehicle, false);
+  });
+
+  it("explains an unavailable exhibition status without rendering a disabled control", () => {
+    const vehicle = vehicleFixture({
+      exhibition: false,
+      digital: false,
+      digitalDecoderNumber: ""
+    });
+    render(
+      <VehicleInventoryTable
+        vehicles={[vehicle]}
+        columns={["exhibition"]}
+        allVisibleSelected={false}
+        selectedVehicleIDs={new Set()}
+        sort={{ key: "inventoryNumber", direction: "asc" }}
+        onToggleSort={vi.fn()}
+        onToggleSelection={vi.fn()}
+        onToggleAllVisibleSelection={vi.fn()}
+        onOpenDetail={vi.fn()}
+        onToggleExhibition={vi.fn()}
+        renderQuickMenu={() => null}
+      />
+    );
+
+    const row = screen.getAllByRole("row")[1];
+    expect(
+      within(row).queryByRole("checkbox", { name: "Ausstellungsstatus ändern" })
+    ).not.toBeInTheDocument();
+    expect(within(row).getByText("Digital ja + Decoder-Nr. erforderlich")).toBeVisible();
+    const status = within(row).getByLabelText(
+      "Ausstellung ist erst aktiv, wenn Digital ja und eine Decoder-Nr. gepflegt ist."
+    );
+    expect(status.querySelector("svg")).toBeInTheDocument();
   });
 });
