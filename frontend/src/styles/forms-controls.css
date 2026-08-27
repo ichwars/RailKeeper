@@ -837,10 +837,12 @@
   display: inline-block;
   width: 34px;
   height: 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--muted) 26%, var(--panel-subtle));
   border: 1px solid var(--line);
-  transition: background 160ms ease, border-color 160ms ease;
+  transition:
+    background var(--duration-normal) var(--ease-standard),
+    border-color var(--duration-normal) var(--ease-standard);
 }
 
 .inventory-inline-switch span::after {
@@ -850,9 +852,11 @@
   left: 2px;
   width: 12px;
   height: 12px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--text) 80%, #fff);
-  transition: transform 160ms ease, background 160ms ease;
+  transition:
+    transform var(--duration-normal) var(--ease-standard),
+    background var(--duration-normal) var(--ease-standard);
 }
 
 .inventory-inline-switch input:checked + span {

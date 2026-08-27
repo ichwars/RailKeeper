@@ -737,10 +737,10 @@
   position: relative;
   width: 36px;
   height: 20px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #b8c2cc;
   cursor: pointer;
-  transition: background 0.18s ease;
+  transition: background var(--duration-slow) var(--ease-standard);
 }
 
 .switch-field span::after {
@@ -749,10 +749,10 @@
   left: 3px;
   width: 14px;
   height: 14px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--input-bg);
   content: "";
-  transition: transform 0.18s ease;
+  transition: transform var(--duration-slow) var(--ease-standard);
 }
 
 .switch-field input:checked + span {
