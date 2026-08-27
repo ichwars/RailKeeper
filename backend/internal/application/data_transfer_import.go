@@ -244,7 +244,7 @@ func (s *DataTransferService) UploadAndPreviewReader(
 	}
 	vehicleFields := []VehicleTransferField(nil)
 	if job.Format == TransferCSV && slices.Contains(job.Areas, TransferVehicles) {
-		vehicleFields = VehicleTransferFields()
+		vehicleFields = VehicleCSVTransferFields()
 	}
 	job.Preview, err = dataTransferPreviewMap(digest, records, csvMapping, vehicleFields)
 	if err != nil {

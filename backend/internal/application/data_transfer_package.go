@@ -71,15 +71,24 @@ type TransferVehicleSetMember struct {
 	VehicleInventoryNumber string `json:"vehicleInventoryNumber"`
 	Position               int    `json:"position"`
 	Label                  string `json:"label,omitempty"`
+	SourceRowNumber        int    `json:"-"`
+	DeclaredMemberCount    int    `json:"-"`
+}
+
+type TransferVehicleSetDiagnostic struct {
+	RowNumber int    `json:"rowNumber"`
+	Field     string `json:"field"`
+	Code      string `json:"code"`
 }
 
 type TransferVehicleSet struct {
 	ID              string `json:"id,omitempty"`
 	InventoryNumber string `json:"inventoryNumber"`
 	VehicleSetInput
-	Members   []TransferVehicleSetMember `json:"members"`
-	CreatedAt string                     `json:"createdAt,omitempty"`
-	UpdatedAt string                     `json:"updatedAt,omitempty"`
+	Members     []TransferVehicleSetMember     `json:"members"`
+	Diagnostics []TransferVehicleSetDiagnostic `json:"-"`
+	CreatedAt   string                         `json:"createdAt,omitempty"`
+	UpdatedAt   string                         `json:"updatedAt,omitempty"`
 }
 
 type TransferVehicle struct {

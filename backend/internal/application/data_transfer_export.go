@@ -383,8 +383,16 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 		if err := writer.Write(transferVehicleCSVHeaders()); err != nil {
 			return nil, err
 		}
+		membersByID, membersByInventory, err := transferVehicleSetCSVMemberLookups(snapshot.VehicleSets)
+		if err != nil {
+			return nil, err
+		}
 		for _, vehicle := range snapshot.Vehicles {
-			if err := writer.Write(safeDataTransferCSVRow(transferVehicleCSVValues(vehicle))); err != nil {
+			member := membersByID[vehicle.ID]
+			if member == nil {
+				member = membersByInventory[transferIdentity(vehicle.InventoryNumber)]
+			}
+			if err := writer.Write(safeDataTransferCSVRow(transferVehicleCSVValues(vehicle, member))); err != nil {
 				return nil, err
 			}
 		}
@@ -426,7 +434,7 @@ func marshalDataTransferCSV(area TransferArea, snapshot DataTransferSnapshot) ([
 }
 
 func transferVehicleCSVHeaders() []string {
-	fields := VehicleTransferFields()
+	fields := VehicleCSVTransferFields()
 	headers := make([]string, len(fields))
 	for index, field := range fields {
 		headers[index] = field.LabelDE
@@ -434,13 +442,110 @@ func transferVehicleCSVHeaders() []string {
 	return headers
 }
 
-func transferVehicleCSVValues(vehicle TransferVehicle) []string {
-	fields := VehicleTransferFields()
+type transferVehicleSetCSVMember struct {
+	Set    TransferVehicleSet
+	Member TransferVehicleSetMember
+}
+
+func transferVehicleSetCSVMemberLookups(
+	sets []TransferVehicleSet,
+) (map[string]*transferVehicleSetCSVMember, map[string]*transferVehicleSetCSVMember, error) {
+	byID := map[string]*transferVehicleSetCSVMember{}
+	byInventory := map[string]*transferVehicleSetCSVMember{}
+	for _, set := range sets {
+		for _, member := range set.Members {
+			value := &transferVehicleSetCSVMember{Set: set, Member: member}
+			if member.SourceVehicleID != "" {
+				if byID[member.SourceVehicleID] != nil {
+					return nil, nil, fmt.Errorf("%w: vehicle belongs to multiple exported sets", ErrDataTransferValidation)
+				}
+				byID[member.SourceVehicleID] = value
+			}
+			inventoryKey := transferIdentity(member.VehicleInventoryNumber)
+			if inventoryKey != "" {
+				if byInventory[inventoryKey] != nil {
+					return nil, nil, fmt.Errorf("%w: vehicle belongs to multiple exported sets", ErrDataTransferValidation)
+				}
+				byInventory[inventoryKey] = value
+			}
+		}
+	}
+	return byID, byInventory, nil
+}
+
+func transferVehicleCSVValues(vehicle TransferVehicle, setMember *transferVehicleSetCSVMember) []string {
+	fields := VehicleCSVTransferFields()
 	values := make([]string, len(fields))
 	for index, field := range fields {
-		values[index] = transferVehicleCSVValue(vehicle, field.Key)
+		if strings.HasPrefix(field.Key, "vehicleSet") {
+			values[index] = transferVehicleSetCSVValue(setMember, field.Key)
+		} else {
+			values[index] = transferVehicleCSVValue(vehicle, field.Key)
+		}
 	}
 	return values
+}
+
+func transferVehicleSetCSVValue(member *transferVehicleSetCSVMember, field string) string {
+	if member == nil {
+		return ""
+	}
+	set := member.Set
+	switch field {
+	case "vehicleSetInventoryNumber":
+		return set.InventoryNumber
+	case "vehicleSetName":
+		return set.Name
+	case "vehicleSetManufacturer":
+		return set.Manufacturer
+	case "vehicleSetArticleNumber":
+		return set.ArticleNumber
+	case "vehicleSetArticleSourceUrl":
+		return set.ArticleSourceURL
+	case "vehicleSetGauge":
+		return set.Gauge
+	case "vehicleSetEpoch":
+		return set.Epoch
+	case "vehicleSetRailwayCompany":
+		return set.RailwayCompany
+	case "vehicleSetCategory":
+		return set.Category
+	case "vehicleSetGattung":
+		return set.Gattung
+	case "vehicleSetDescription":
+		return set.Description
+	case "vehicleSetEAN":
+		return set.EAN
+	case "vehicleSetProductionPeriod":
+		return set.ProductionPeriod
+	case "vehicleSetListPrice":
+		return set.ListPrice
+	case "vehicleSetAcquisitionType":
+		return set.AcquisitionType
+	case "vehicleSetAcquiredFrom":
+		return set.AcquiredFrom
+	case "vehicleSetPurchasePrice":
+		return set.PurchasePrice
+	case "vehicleSetPurchaseDate":
+		return set.PurchaseDate
+	case "vehicleSetStorageLocation":
+		return set.StorageLocation
+	case "vehicleSetStorageDetails":
+		return set.StorageDetails
+	case "vehicleSetCondition":
+		return set.Condition
+	case "vehicleSetConditionDetails":
+		return set.ConditionDetails
+	case "vehicleSetPackaging":
+		return set.Packaging
+	case "vehicleSetPosition":
+		return strconv.Itoa(member.Member.Position)
+	case "vehicleSetMemberCount":
+		return strconv.Itoa(len(set.Members))
+	case "vehicleSetMemberLabel":
+		return member.Member.Label
+	}
+	return ""
 }
 
 func transferVehicleCSVValue(vehicle TransferVehicle, field string) string {

@@ -1,7 +1,9 @@
 package application
 
 import (
+	"bytes"
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"strings"
@@ -56,7 +58,7 @@ func TestPreviewImportReturnsAndAppliesVehicleCSVMapping(t *testing.T) {
 		t.Fatal(err)
 	}
 	if len(automatic.CSVMapping) != 6 || automatic.CSVMapping[0].SourceHeader != "Eigene Nummer" ||
-		automatic.CSVMapping[0].Origin != CSVMappingUnmapped || len(automatic.VehicleFields) != 62 {
+		automatic.CSVMapping[0].Origin != CSVMappingUnmapped || len(automatic.VehicleFields) != 88 {
 		t.Fatalf("unexpected automatic mapping: %#v, fields=%d", automatic.CSVMapping, len(automatic.VehicleFields))
 	}
 
@@ -129,6 +131,97 @@ func TestDataTransferVehicleCSVFullFieldRoundTrip(t *testing.T) {
 		!got.SoundGeneratorEnabled || got.AdditionalInfo != want.AdditionalInfo || !got.QRCodeEnabled ||
 		got.MaximumSpeedKmh == nil || *got.MaximumSpeedKmh != maximumSpeed {
 		t.Fatalf("vehicle round trip lost extended fields: %#v", got)
+	}
+}
+
+func TestDataTransferVehicleSetCSVRoundTripIgnoresRowOrder(t *testing.T) {
+	snapshot := DataTransferSnapshot{
+		Vehicles: []TransferVehicle{
+			{ID: "vehicle-a", InventoryNumber: "RK-A", Manufacturer: "Roco", Name: "Wagen A", Gauge: "H0",
+				Category: "Wagen", Gattung: "Reisezugwagen"},
+			{ID: "vehicle-b", InventoryNumber: "RK-B", Manufacturer: "Roco", Name: "Wagen B", Gauge: "H0",
+				Category: "Wagen", Gattung: "Reisezugwagen"},
+		},
+		VehicleSets: []TransferVehicleSet{{
+			ID: "set-source", InventoryNumber: "Set-001",
+			VehicleSetInput: VehicleSetInput{
+				Name: "Rheingold", Manufacturer: "Roco", ArticleNumber: "43000", Gauge: "H0", Epoch: "III",
+				RailwayCompany: "DB", Category: "Set", Gattung: "Reisezug", StorageLocation: "Vitrine",
+			},
+			Members: []TransferVehicleSetMember{
+				{SourceVehicleID: "vehicle-a", VehicleInventoryNumber: "RK-A", Position: 1, Label: "Steuerwagen"},
+				{SourceVehicleID: "vehicle-b", VehicleInventoryNumber: "RK-B", Position: 2, Label: "Speisewagen"},
+			},
+		}},
+	}
+	payload, err := marshalDataTransferCSV(TransferVehicles, snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reader := csv.NewReader(bytes.NewReader(payload))
+	reader.Comma = ';'
+	rows, err := reader.ReadAll()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(rows[0]) != 88 {
+		t.Fatalf("vehicle set CSV columns = %d, want 88", len(rows[0]))
+	}
+	rows[1], rows[2] = rows[2], rows[1]
+	var reordered bytes.Buffer
+	writer := csv.NewWriter(&reordered)
+	writer.Comma = ';'
+	writer.WriteAll(rows)
+	if err := writer.Error(); err != nil {
+		t.Fatal(err)
+	}
+	got, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(reordered.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got.VehicleSets) != 1 || len(got.VehicleSets[0].Members) != 2 {
+		t.Fatalf("vehicle set CSV round trip = %#v", got.VehicleSets)
+	}
+	set := got.VehicleSets[0]
+	if set.InventoryNumber != "Set-001" || set.Name != "Rheingold" || set.ArticleNumber != "43000" ||
+		set.StorageLocation != "Vitrine" || set.Members[0].Position != 1 ||
+		set.Members[0].VehicleInventoryNumber != "RK-A" || set.Members[0].Label != "Steuerwagen" ||
+		set.Members[1].Position != 2 {
+		t.Fatalf("vehicle set CSV values = %#v", set)
+	}
+}
+
+func TestDataTransferVehicleCSVWithoutSetColumnsCreatesNoSet(t *testing.T) {
+	payload := strings.Join([]string{
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung",
+		"RK-SOLO;Roco;BR 218;H0;Lokomotive;Diesellokomotive",
+	}, "\n")
+	snapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.Vehicles) != 1 || len(snapshot.VehicleSets) != 0 {
+		t.Fatalf("single vehicle CSV snapshot = %#v", snapshot)
+	}
+}
+
+func TestDataTransferVehicleSetCSVPreservesInvalidIntegersForReview(t *testing.T) {
+	payload := strings.Join([]string{
+		"Inventarnummer;Hersteller;Bezeichnung;Spurweite;Kategorie;Gattung;" +
+			"Set-Inventarnummer;Set-Bezeichnung;Set-Hersteller;Set-Spurweite;Set-Kategorie;Set-Gattung;" +
+			"Set-Position;Set-Mitgliederzahl",
+		"RK-A;Roco;Wagen A;H0;Wagen;Reisezugwagen;Set-001;Rheingold;Roco;H0;Set;Reisezug;x;zwei",
+	}, "\n")
+	snapshot, _, err := parseDataTransferCSV(TransferVehicles, strings.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.VehicleSets) != 1 || len(snapshot.VehicleSets[0].Diagnostics) != 2 {
+		t.Fatalf("vehicle set diagnostics = %#v", snapshot.VehicleSets)
+	}
+	if snapshot.VehicleSets[0].Diagnostics[0].Code != "invalid_vehicle_set_position" ||
+		snapshot.VehicleSets[0].Diagnostics[1].Code != "invalid_vehicle_set_member_count" {
+		t.Fatalf("unexpected diagnostics = %#v", snapshot.VehicleSets[0].Diagnostics)
 	}
 }
 

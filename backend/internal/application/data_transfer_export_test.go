@@ -98,7 +98,7 @@ func TestDataTransferExportVehicleCSVUsesStableSemicolonColumns(t *testing.T) {
 	}
 }
 
-func TestDataTransferExportVehicleCSVContainsAll62ScalarFields(t *testing.T) {
+func TestDataTransferExportVehicleCSVContainsAllScalarAndSetFields(t *testing.T) {
 	payload, err := marshalDataTransferCSV(TransferVehicles, DataTransferSnapshot{Vehicles: []TransferVehicle{{
 		InventoryNumber: "RK-001", Manufacturer: "Roco", Name: "BR 01", Gauge: "H0",
 	}}})
@@ -111,8 +111,8 @@ func TestDataTransferExportVehicleCSVContainsAll62ScalarFields(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(rows) != 2 || len(rows[0]) != 62 || len(rows[1]) != 62 {
-		t.Fatalf("vehicle CSV dimensions = %d rows, %d/%d columns, want 2 rows and 62 columns", len(rows), len(rows[0]), len(rows[1]))
+	if len(rows) != 2 || len(rows[0]) != 88 || len(rows[1]) != 88 {
+		t.Fatalf("vehicle CSV dimensions = %d rows, %d/%d columns, want 2 rows and 88 columns", len(rows), len(rows[0]), len(rows[1]))
 	}
 	for _, header := range []string{"Länge (mm)", "Kupplung hinten", "Zusatzinformationen", "QR-Code erstellen"} {
 		if !slices.Contains(rows[0], header) {

@@ -23,6 +23,30 @@ func TestVehicleTransferFieldCatalogContainsStable62Fields(t *testing.T) {
 	}
 }
 
+func TestVehicleSetTransferFieldCatalogContainsStable26Fields(t *testing.T) {
+	fields := VehicleSetTransferFields()
+	if len(fields) != 26 {
+		t.Fatalf("set transfer fields = %d, want 26", len(fields))
+	}
+	if len(VehicleCSVTransferFields()) != 88 {
+		t.Fatalf("combined vehicle CSV fields = %d, want 88", len(VehicleCSVTransferFields()))
+	}
+	for _, key := range []string{
+		"vehicleSetInventoryNumber",
+		"vehicleSetName",
+		"vehicleSetPosition",
+		"vehicleSetMemberCount",
+		"vehicleSetMemberLabel",
+	} {
+		if _, ok := VehicleCSVTransferFieldByKey(key); !ok {
+			t.Fatalf("missing vehicle set transfer field %q", key)
+		}
+	}
+	if len(VehicleTransferFields()) != 62 {
+		t.Fatalf("vehicle transfer catalog changed to %d fields", len(VehicleTransferFields()))
+	}
+}
+
 func TestDataTransferCSVMappingRecognizesAliasesAndLeavesUnknownColumnsOpen(t *testing.T) {
 	mapping := defaultDataTransferCSVMapping([]string{"Inventarnummer", "Vereinsnotiz"}, nil)
 	if len(mapping) != 2 {

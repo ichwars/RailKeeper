@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode"
@@ -107,6 +108,7 @@ func parseDataTransferCSVWithMapping(
 	}
 	snapshot := DataTransferSnapshot{}
 	rowNumbers := []int{}
+	vehicleSetIndexes := map[string]int{}
 	for index, values := range rows[1:] {
 		rowNumber := index + 2
 		if transferCSVRowEmpty(values) {
@@ -131,6 +133,29 @@ func parseDataTransferCSVWithMapping(
 				return DataTransferSnapshot{}, nil, nil, err
 			}
 			snapshot.Vehicles = append(snapshot.Vehicles, vehicle)
+			set, found, err := transferVehicleSetFromCSV(row, rowNumber, vehicle)
+			if err != nil {
+				return DataTransferSnapshot{}, nil, nil, err
+			}
+			if found {
+				setKey := transferIdentity(set.InventoryNumber)
+				if setKey == "" {
+					setKey = fmt.Sprintf("row-%d", rowNumber)
+				}
+				if setIndex, exists := vehicleSetIndexes[setKey]; exists {
+					snapshot.VehicleSets[setIndex].Members = append(
+						snapshot.VehicleSets[setIndex].Members,
+						set.Members...,
+					)
+					snapshot.VehicleSets[setIndex].Diagnostics = append(
+						snapshot.VehicleSets[setIndex].Diagnostics,
+						set.Diagnostics...,
+					)
+				} else {
+					vehicleSetIndexes[setKey] = len(snapshot.VehicleSets)
+					snapshot.VehicleSets = append(snapshot.VehicleSets, set)
+				}
+			}
 		case TransferAccessories:
 			accessory, err := transferAccessoryFromCSV(row, rowNumber)
 			if err != nil {
@@ -140,7 +165,86 @@ func parseDataTransferCSVWithMapping(
 		}
 		rowNumbers = append(rowNumbers, rowNumber)
 	}
+	for index := range snapshot.VehicleSets {
+		slices.SortStableFunc(snapshot.VehicleSets[index].Members, func(left, right TransferVehicleSetMember) int {
+			if left.Position != right.Position {
+				return left.Position - right.Position
+			}
+			return strings.Compare(left.VehicleInventoryNumber, right.VehicleInventoryNumber)
+		})
+	}
 	return snapshot, rowNumbers, mapping, nil
+}
+
+func transferVehicleSetFromCSV(
+	row map[string]string,
+	rowNumber int,
+	vehicle TransferVehicle,
+) (TransferVehicleSet, bool, error) {
+	hasSetValue := false
+	for _, field := range vehicleSetTransferFields {
+		if strings.TrimSpace(row[field.Key]) != "" {
+			hasSetValue = true
+			break
+		}
+	}
+	if !hasSetValue {
+		return TransferVehicleSet{}, false, nil
+	}
+	position, positionDiagnostic := parseTransferCSVSetInteger(
+		row["vehicleSetPosition"], rowNumber, "vehicleSetPosition", "invalid_vehicle_set_position",
+	)
+	memberCount, memberCountDiagnostic := parseTransferCSVSetInteger(
+		row["vehicleSetMemberCount"], rowNumber, "vehicleSetMemberCount", "invalid_vehicle_set_member_count",
+	)
+	diagnostics := []TransferVehicleSetDiagnostic{}
+	if positionDiagnostic != nil {
+		diagnostics = append(diagnostics, *positionDiagnostic)
+	}
+	if memberCountDiagnostic != nil {
+		diagnostics = append(diagnostics, *memberCountDiagnostic)
+	}
+	return TransferVehicleSet{
+		InventoryNumber: row["vehicleSetInventoryNumber"],
+		VehicleSetInput: VehicleSetInput{
+			Name: row["vehicleSetName"], Manufacturer: row["vehicleSetManufacturer"],
+			ArticleNumber: row["vehicleSetArticleNumber"], ArticleSourceURL: row["vehicleSetArticleSourceUrl"],
+			Gauge: row["vehicleSetGauge"], Epoch: row["vehicleSetEpoch"],
+			RailwayCompany: row["vehicleSetRailwayCompany"], Category: row["vehicleSetCategory"],
+			Gattung: row["vehicleSetGattung"], Description: row["vehicleSetDescription"],
+			EAN: row["vehicleSetEAN"], ProductionPeriod: row["vehicleSetProductionPeriod"],
+			ListPrice: row["vehicleSetListPrice"], AcquisitionType: row["vehicleSetAcquisitionType"],
+			AcquiredFrom: row["vehicleSetAcquiredFrom"], PurchasePrice: row["vehicleSetPurchasePrice"],
+			PurchaseDate: row["vehicleSetPurchaseDate"], StorageLocation: row["vehicleSetStorageLocation"],
+			StorageDetails: row["vehicleSetStorageDetails"], Condition: row["vehicleSetCondition"],
+			ConditionDetails: row["vehicleSetConditionDetails"], Packaging: row["vehicleSetPackaging"],
+		},
+		Members: []TransferVehicleSetMember{{
+			VehicleInventoryNumber: vehicle.InventoryNumber,
+			Position:               position,
+			Label:                  row["vehicleSetMemberLabel"],
+			SourceRowNumber:        rowNumber,
+			DeclaredMemberCount:    memberCount,
+		}},
+		Diagnostics: diagnostics,
+	}, true, nil
+}
+
+func parseTransferCSVSetInteger(
+	value string,
+	rowNumber int,
+	field string,
+	code string,
+) (int, *TransferVehicleSetDiagnostic) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return 0, nil
+	}
+	parsed, err := strconv.Atoi(value)
+	if err == nil {
+		return parsed, nil
+	}
+	return 0, &TransferVehicleSetDiagnostic{RowNumber: rowNumber, Field: field, Code: code}
 }
 
 func detectDataTransferCSVDelimiter(payload []byte) (rune, error) {
