@@ -128,6 +128,7 @@ function editFromKeyboard(
   profileId: string,
   onEdit: (profileId: string) => void
 ) {
+  if (event.target !== event.currentTarget) return;
   if (event.key !== "Enter" && event.key !== " ") return;
   event.preventDefault();
   onEdit(profileId);

@@ -239,6 +239,10 @@ describe("ImportExportView", () => {
     expect(onRun).toHaveBeenCalledTimes(1);
 
     onEdit.mockClear();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Fahrzeugimport starten" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "Fahrzeugimport bearbeiten" }), { key: " " });
+    expect(onEdit).not.toHaveBeenCalled();
+
     rerender(<TransferProfilesTable
       canCreate={false}
       canEdit={false}
