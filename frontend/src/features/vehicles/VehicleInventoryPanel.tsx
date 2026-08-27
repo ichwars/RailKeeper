@@ -245,6 +245,14 @@ export function VehicleInventoryPanel({
             <em>{maintenanceReminderSummary.upcoming} geplant</em>
           </button>
         </article>
+        <article className={inventoryFilter === "withoutImages" ? "inventory-status-card active" : "inventory-status-card"}>
+          <button type="button" onClick={() => onInventoryFilterChange("withoutImages")} aria-label={t("vehicles.status.imagesAria")}>
+            <span><Image size={16} aria-hidden="true" /></span>
+            <small>{t("vehicles.imageCare")}</small>
+            <strong>{vehicles.length ? Math.round((inventorySummary.withImages / vehicles.length) * 100) : 0}%</strong>
+            <em>{t("vehicles.withImage", { count: inventorySummary.withImages })}</em>
+          </button>
+        </article>
         <article className="inventory-status-card wide">
           {nextMaintenanceReminder ? (
             <button type="button" onClick={() => onOpenDetail(nextMaintenanceReminder.vehicle, "maintenance")}>
@@ -261,14 +269,6 @@ export function VehicleInventoryPanel({
               <em>{t("vehicles.noDueMaintenance")}</em>
             </>
           )}
-        </article>
-        <article className={inventoryFilter === "withoutImages" ? "inventory-status-card active" : "inventory-status-card"}>
-          <button type="button" onClick={() => onInventoryFilterChange("withoutImages")} aria-label={t("vehicles.status.imagesAria")}>
-            <span><Image size={16} aria-hidden="true" /></span>
-            <small>{t("vehicles.imageCare")}</small>
-            <strong>{vehicles.length ? Math.round((inventorySummary.withImages / vehicles.length) * 100) : 0}%</strong>
-            <em>{t("vehicles.withImage", { count: inventorySummary.withImages })}</em>
-          </button>
         </article>
       </section>
 
