@@ -29,11 +29,11 @@ describe("VehicleCreateStepBasics", () => {
     expect(screen.getByRole("radio", { name: /Set/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByText(/RK-SET-000001/)).toHaveTextContent(/vorläufig/i);
     expect(inventoryNumberPreview(scheme)).toBe("RK-SET-000001");
-    expect(screen.getByLabelText("Hersteller")).toBeVisible();
-    expect(screen.getByLabelText("Bezeichnung")).toBeVisible();
+    expect(screen.getByLabelText("Hersteller Noch offen")).toBeVisible();
+    expect(screen.getByLabelText("Bezeichnung Noch offen")).toBeVisible();
     expect(screen.getByLabelText("Artikel-Nr.")).toBeVisible();
-    expect(screen.getByLabelText("Spurweite")).toBeVisible();
-    expect(screen.getByLabelText("Kategorie")).toBeVisible();
+    expect(screen.getByLabelText("Spurweite Noch offen")).toBeVisible();
+    expect(screen.getByLabelText("Kategorie Noch offen")).toBeVisible();
     const count = screen.getByLabelText(/Anzahl Fahrzeuge/);
     expect(count).toHaveAttribute("min", "2");
 

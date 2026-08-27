@@ -66,7 +66,7 @@ describe("VehicleCreateStepDetails", () => {
     const { rerender } = render(<VehicleCreateStepDetails state={state} dispatch={vi.fn()} model={model} />);
 
     expect(screen.getByText("Gattung")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Gattung" }));
+    await user.click(screen.getByRole("button", { name: "Gattung Noch offen" }));
     expect(screen.getByRole("option", { name: "Reisezugwagen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Erwerb" })).toBeEnabled();
 
@@ -74,7 +74,7 @@ describe("VehicleCreateStepDetails", () => {
       dispatch={vi.fn()} model={model} />);
     expect(screen.getByText("Höchstgeschwindigkeit")).toBeInTheDocument();
     expect(screen.getByLabelText("Digital")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Kategorie" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Kategorie Ausgefüllt" })).toBeEnabled();
     await user.click(screen.getByRole("button", { name: "Details" }));
     rerender(<VehicleCreateStepDetails state={{ ...state, activeDetailsTab: "member:0" }}
       dispatch={vi.fn()} model={{ ...model, openSections: { ...model.openSections, details: true } }} />);
