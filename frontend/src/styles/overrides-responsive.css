@@ -225,52 +225,10 @@
     justify-content: flex-start;
   }
 
-  .inventory-head {
-    display: grid;
-  }
-
-  .inventory-list-head {
-    display: grid;
-    gap: 10px;
-    padding: 12px;
-  }
-
-  .inventory-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .inventory-search {
-    width: 100%;
-  }
-
-  .inventory-list-head .table-actions,
-  .inventory-toolbar-actions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .inventory-mobile-list {
-    display: grid;
-    gap: 8px;
-    padding: 10px;
-    background: var(--panel-subtle);
-  }
-
-  .inventory-desktop-content {
-    display: none;
-  }
-
-  .inventory-card-grid {
-    grid-template-columns: 1fr;
-    padding: 12px;
-  }
-
   .overview-grid,
   .exhibition-layout,
-  .inventory-status-row,
-    .import-export-grid,
-    .transfer-actions,
+  .import-export-grid,
+  .transfer-actions,
   .settings-dashboard-grid,
   .auth-settings-grid,
   .digital-settings-grid,
@@ -309,10 +267,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .inventory-status-card.wide {
-    grid-column: auto;
-  }
-
   .auth-settings-grid .auth-status-card,
   .auth-settings-grid .current-user-settings-card,
   .auth-settings-grid .user-management-card,
@@ -334,14 +288,6 @@
 
   .digital-overview-grid {
     grid-template-columns: 1fr;
-  }
-
-  .inventory-card {
-    grid-template-rows: 130px auto;
-  }
-
-  .inventory-card-media {
-    height: 130px;
   }
 
   .settings-grid {
@@ -718,104 +664,6 @@
     line-height: var(--line-height-copy-lg);
   }
 
-  .inventory-status-row {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .inventory-status-card {
-    grid-column: auto;
-    min-height: 92px;
-    padding: 10px;
-  }
-
-  .inventory-status-card.wide {
-    grid-column: 1 / -1;
-  }
-
-  .inventory-status-card > span,
-  .inventory-status-card button > span {
-    width: 20px;
-    height: 20px;
-  }
-
-  .inventory-status-card strong {
-    font-size: var(--font-size-title-lg);
-    line-height: var(--line-height-title-md);
-  }
-
-  .inventory-status-card small,
-  .inventory-status-card em {
-    font-size: var(--font-size-2xs);
-    line-height: 14px;
-  }
-
-  .inventory-list-head {
-    grid-template-columns: 1fr;
-    gap: 8px;
-    padding: 10px;
-  }
-
-  .inventory-title-line {
-    align-items: start;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .inventory-toolbar {
-    display: grid;
-    gap: 8px;
-  }
-
-  .inventory-search {
-    width: 100%;
-  }
-
-  .inventory-toolbar-actions {
-    justify-content: flex-start;
-  }
-
-  .inventory-filter-row {
-    flex-wrap: nowrap;
-    min-width: 0;
-    max-width: 100%;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-gutter: stable;
-    scroll-padding-inline: 2px;
-    padding: 2px 2px 6px;
-    scrollbar-width: thin;
-  }
-
-  .inventory-filter-group,
-  .inventory-filter-toggle,
-  .inventory-filter-select,
-  .inventory-filter-clear,
-  .inventory-filter-result {
-    flex: 0 0 auto;
-  }
-
-  .inventory-filter-select,
-  .app-select.inventory-filter-select {
-    width: 158px;
-    min-width: 158px;
-    max-width: none;
-  }
-
-  .inventory-filter-result {
-    margin-left: 0;
-  }
-
-  .inventory-mobile-list {
-    gap: 7px;
-    padding: 8px;
-  }
-
-  .inventory-card,
-  .inventory-mobile-list article {
-    border-radius: 8px;
-  }
-
   .settings-dashboard-grid,
   .settings-card-stack {
     gap: 12px;
@@ -999,11 +847,5 @@
   .barcode-search-dialog .form-head p {
     grid-column: 1 / -1;
     font-size: var(--font-size-sm);
-  }
-}
-
-@media (max-width: 420px) {
-  .inventory-status-row {
-    grid-template-columns: minmax(0, 1fr);
   }
 }

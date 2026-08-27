@@ -721,48 +721,6 @@
   }
 }
 
-.switch-field {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.switch-field input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.switch-field span {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  border-radius: var(--radius-pill);
-  background: #b8c2cc;
-  cursor: pointer;
-  transition: background var(--duration-slow) var(--ease-standard);
-}
-
-.switch-field span::after {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: var(--radius-pill);
-  background: var(--input-bg);
-  content: "";
-  transition: transform var(--duration-slow) var(--ease-standard);
-}
-
-.switch-field input:checked + span {
-  background: #22c55e;
-}
-
-.switch-field input:checked + span::after {
-  transform: translateX(16px);
-}
-
 .settings-card-actions {
   display: flex;
   justify-content: flex-end;

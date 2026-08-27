@@ -207,6 +207,72 @@
   flex: 0 0 auto;
 }
 
+.inventory-inline-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
+}
+
+.inventory-inline-switch input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.inventory-inline-switch span {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--muted) 26%, var(--panel-subtle));
+  border: 1px solid var(--line);
+  transition:
+    background var(--duration-normal) var(--ease-standard),
+    border-color var(--duration-normal) var(--ease-standard);
+}
+
+.inventory-inline-switch span::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--text) 80%, #fff);
+  transition:
+    transform var(--duration-normal) var(--ease-standard),
+    background var(--duration-normal) var(--ease-standard);
+}
+
+.inventory-inline-switch input:checked + span {
+  background: color-mix(in srgb, var(--accent) 74%, var(--panel));
+  border-color: color-mix(in srgb, var(--accent) 68%, var(--line));
+}
+
+.inventory-inline-switch input:checked + span::after {
+  transform: translateX(16px);
+  background: #07110a;
+}
+
+.inventory-inline-switch input:disabled + span {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.inventory-inline-switch.active {
+  color: var(--accent-strong);
+}
+
+.inventory-inline-switch em {
+  font-style: normal;
+}
+
 .vehicle-inventory-table th.vehicle-column-inventoryNumber .sort-button,
 .vehicle-inventory-table th.vehicle-column-manufacturer .sort-button,
 .vehicle-inventory-table th.vehicle-column-articleNumber .sort-button,
