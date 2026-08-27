@@ -25,6 +25,9 @@ func (repository *DataTransferRepository) Snapshot(
 		switch area {
 		case application.TransferVehicles:
 			snapshot.Vehicles, err = transferVehicleSnapshot(ctx, tx)
+			if err == nil {
+				snapshot.VehicleSets, err = transferVehicleSetSnapshot(ctx, tx)
+			}
 		case application.TransferAccessories:
 			snapshot.Accessories, err = transferAccessorySnapshot(ctx, tx)
 		case application.TransferExhibitionLists:

@@ -192,19 +192,21 @@ export function TransferProfileDialog({
 
           {error ? <p className="form-message error" role="alert">{error}</p> : null}
           <footer className="data-transfer-dialog-actions">
-            {profile && canDisable ? (
-              <button type="button" className="danger-button" disabled={busy}
-                onClick={() => setDisableConfirmationOpen(true)}>
-                <Trash2 size={16} aria-hidden="true" />{copy.disable}
-              </button>
-            ) : <span />}
-            <span>
+            <div className="data-transfer-dialog-actions-danger">
+              {profile && canDisable ? (
+                <button type="button" className="danger-button" disabled={busy}
+                  onClick={() => setDisableConfirmationOpen(true)}>
+                  <Trash2 size={16} aria-hidden="true" />{copy.disable}
+                </button>
+              ) : null}
+            </div>
+            <div className="data-transfer-dialog-actions-main">
               <button type="button" className="secondary-button" disabled={busy} onClick={onClose}>{copy.cancel}</button>
               <button type="submit" className="primary-button"
                 disabled={busy || !name.trim() || areas.length === 0 || (format === "csv" && csvUnavailable)}>
                 <Save size={16} aria-hidden="true" />{profile ? copy.save : copy.create}
               </button>
-            </span>
+            </div>
           </footer>
         </form>
         <TransferConfirmDialog action={disableAction} cancelLabel={copy.cancel}

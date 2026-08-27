@@ -16,10 +16,13 @@ import type {
   DataTransferJobDetails,
   DataTransferPreview,
   DataTransferPreviewRecord,
-  DataTransferProfile
+  DataTransferProfile,
+  DataTransferVehicleSet,
+  DataTransferVehicleSetPreview
 } from "./dataTransferModel";
 import { TransferConfirmDialog, type TransferPendingAction } from "./TransferConfirmDialog";
 import { TransferReviewTable } from "./TransferReviewTable";
+import { TransferSetReview } from "./TransferSetReview";
 
 export type ImportDialogStep = "profile" | "file" | "mapping" | "review" | "confirm";
 
@@ -73,6 +76,7 @@ export function TransferImportDialog({
   const [mappingAccepted, setMappingAccepted] = useState(
     Boolean(previewFromDetails(initialJob, initialDetails) && !vehicleCSVMappingRequired(initialJob))
   );
+  const acceptedMappingIdentityRef = useRef<string | null>(null);
   const [requiresReupload, setRequiresReupload] = useState(initialRequiresReupload);
   const requiresReuploadRef = useRef(initialRequiresReupload);
   const [busy, setBusy] = useState(false);
@@ -91,7 +95,16 @@ export function TransferImportDialog({
     const skipped = new Set(preview.issues
       .filter((issue) => issue.selectedResolution === "skip")
       .map((issue) => `${issue.area}:${issue.recordKey}`));
-    return preview.records.filter((record) => !skipped.has(`${record.area}:${record.recordKey}`)).length;
+    const skippedSetMembers = new Set<string>();
+    for (const set of preview.vehicleSets ?? []) {
+      if (skipped.has(`vehicles:${set.recordKey}`)) {
+        for (const memberKey of set.memberRecordKeys) skippedSetMembers.add(memberKey);
+      }
+    }
+    return preview.records.filter((record) =>
+      !skipped.has(`${record.area}:${record.recordKey}`) &&
+      !(record.area === "vehicles" && skippedSetMembers.has(record.recordKey))
+    ).length;
   }, [preview, unresolvedIssues.length]);
   const step = currentStep(profileId, file, preview, job, mappingAccepted, requiresReupload);
   const mappingReady = csvMapping.length === 0 || csvMapping.every((column) => column.origin !== "unmapped");
@@ -107,7 +120,12 @@ export function TransferImportDialog({
       setPreview((current) => current?.job.id === persistedPreview.job.id &&
         current.job.revision > persistedPreview.job.revision ? current : persistedPreview);
       setCSVMapping(persistedPreview.csvMapping ?? []);
-      if (!requiresReuploadRef.current) setMappingAccepted(!vehicleCSVMappingRequired(initialJob));
+      if (!requiresReuploadRef.current) {
+        const persistedIdentity = csvMappingIdentity(initialJob, persistedPreview.csvMapping ?? []);
+        const keepAccepted = acceptedMappingIdentityRef.current === persistedIdentity;
+        if (!keepAccepted) acceptedMappingIdentityRef.current = null;
+        setMappingAccepted(!vehicleCSVMappingRequired(initialJob) || keepAccepted);
+      }
     }
   }, [initialDetails, initialJob]);
 
@@ -115,6 +133,7 @@ export function TransferImportDialog({
     requiresReuploadRef.current = initialRequiresReupload;
     setRequiresReupload(initialRequiresReupload);
     if (initialRequiresReupload) {
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
       setError(copy.confirmConflictRecovery);
     }
@@ -141,6 +160,7 @@ export function TransferImportDialog({
       setCSVMapping([]);
       setSaveMappingToProfile(false);
       setMappingDirty(false);
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
       setRequiresReupload(false);
       requiresReuploadRef.current = false;
@@ -163,6 +183,7 @@ export function TransferImportDialog({
   }
 
   async function uploadFile(nextFile: File) {
+    acceptedMappingIdentityRef.current = null;
     setFile(nextFile);
     setBusy(true);
     setError("");
@@ -200,6 +221,7 @@ export function TransferImportDialog({
   async function applyMapping() {
     if (!preview || !job || !mappingReady) return;
     if (!mappingDirty && !saveMappingToProfile) {
+      acceptedMappingIdentityRef.current = csvMappingIdentity(job, csvMapping);
       setMappingAccepted(true);
       return;
     }
@@ -216,8 +238,10 @@ export function TransferImportDialog({
       });
       setJob(nextPreview.job);
       setPreview(clonePreview(nextPreview));
-      setCSVMapping(cloneCSVMapping(nextPreview.csvMapping));
+      const nextMapping = cloneCSVMapping(nextPreview.csvMapping);
+      setCSVMapping(nextMapping);
       setMappingDirty(false);
+      acceptedMappingIdentityRef.current = csvMappingIdentity(nextPreview.job, nextMapping);
       setMappingAccepted(true);
     } catch (reason) {
       await recoverConflict(reason, job.id, copy.mappingError);
@@ -270,14 +294,20 @@ export function TransferImportDialog({
     if (reuploadRequired) {
       requiresReuploadRef.current = true;
       setRequiresReupload(true);
+      acceptedMappingIdentityRef.current = null;
       setMappingAccepted(false);
     }
     try {
       const details = await onRefreshJob(jobId);
+      const refreshedPreview = previewFromDetails(details.job, details);
+      const refreshedMapping = refreshedPreview?.csvMapping ?? [];
+      const refreshedIdentity = csvMappingIdentity(details.job, refreshedMapping);
+      const keepAccepted = acceptedMappingIdentityRef.current === refreshedIdentity;
+      if (!keepAccepted) acceptedMappingIdentityRef.current = null;
       setJob(details.job);
-      setPreview(previewFromDetails(details.job, details));
-      setCSVMapping(previewFromDetails(details.job, details)?.csvMapping ?? []);
-      setMappingAccepted(!vehicleCSVMappingRequired(details.job) && !reuploadRequired);
+      setPreview(refreshedPreview);
+      setCSVMapping(refreshedMapping);
+      setMappingAccepted(!reuploadRequired && (!vehicleCSVMappingRequired(details.job) || keepAccepted));
       setRequiresReupload(reuploadRequired);
       setError(reuploadRequired ? copy.confirmConflictRecovery : copy.conflictRecovery);
     } catch (refreshError) {
@@ -413,6 +443,8 @@ export function TransferImportDialog({
               </div>
               <TransferReviewTable busy={busy} issues={preview.issues} language={language} onResolve={resolve}
                 records={preview.records} />
+              <TransferSetReview busy={busy} issues={preview.issues} language={language} onResolve={resolve}
+                sets={preview.vehicleSets ?? []} />
               {unresolvedIssues.length > 0 ? (
                 <p className="form-message error" role="status">{copy.unresolved.replace("{count}", String(unresolvedIssues.length))}</p>
               ) : (
@@ -489,7 +521,8 @@ function previewFromDetails(job?: DataTransferJob, details?: DataTransferJobDeta
     warningRecords: job.warningRecords,
     errorRecords: job.errorRecords,
     csvMapping: csvMappingFromPreview(job.preview.csvMapping),
-    vehicleFields: vehicleFieldsFromPreview(job.preview.vehicleFields)
+    vehicleFields: vehicleFieldsFromPreview(job.preview.vehicleFields),
+    vehicleSets: vehicleSetPreviewsFromPreview(job.preview.vehicleSets)
   };
 }
 
@@ -516,12 +549,35 @@ function clonePreview(preview: DataTransferPreview): DataTransferPreview {
     vehicleFields: preview.vehicleFields?.map((field) => ({
       ...field,
       aliases: field.aliases ? [...field.aliases] : undefined
-    }))
+    })),
+    vehicleSets: preview.vehicleSets?.map(cloneVehicleSetPreview)
+  };
+}
+
+function cloneVehicleSetPreview(set: DataTransferVehicleSetPreview): DataTransferVehicleSetPreview {
+  return {
+    ...set,
+    memberRecordKeys: [...set.memberRecordKeys],
+    rowNumbers: set.rowNumbers ? [...set.rowNumbers] : undefined,
+    diagnostics: set.diagnostics?.map((diagnostic) => ({ ...diagnostic })),
+    data: {
+      ...set.data,
+      members: set.data.members.map((member) => ({ ...member }))
+    }
   };
 }
 
 function cloneCSVMapping(mapping: DataTransferCSVColumnMapping[] | undefined) {
   return mapping?.map((column) => ({ ...column })) ?? [];
+}
+
+function csvMappingIdentity(job: DataTransferJob, mapping: DataTransferCSVColumnMapping[]) {
+  const columns = [...mapping]
+    .sort((left, right) => left.index - right.index)
+    .map(({ index, sourceHeader, normalizedHeader, targetField }) =>
+      [index, sourceHeader, normalizedHeader, targetField]
+    );
+  return JSON.stringify([job.id, job.sourceSha256, columns]);
 }
 
 function csvMappingFromPreview(value: unknown): DataTransferCSVColumnMapping[] {
@@ -543,6 +599,70 @@ function vehicleFieldsFromPreview(value: unknown): DataTransferPreview["vehicleF
     return typeof field.key === "string" && typeof field.labelDE === "string" &&
       typeof field.labelEN === "string" && ["string", "integer", "boolean"].includes(String(field.kind));
   }).map((field) => ({ ...field }));
+}
+
+const vehicleSetStringFields = [
+  "inventoryNumber", "name", "manufacturer", "articleNumber", "articleSourceUrl", "gauge", "epoch",
+  "railwayCompany", "category", "gattung", "description", "ean", "productionPeriod", "listPrice",
+  "acquisitionType", "acquiredFrom", "purchasePrice", "purchaseDate", "storageLocation", "storageDetails",
+  "condition", "conditionDetails", "packaging"
+] as const satisfies readonly (keyof DataTransferVehicleSet)[];
+const vehicleSetOptionalStringFields = ["id", "createdAt", "updatedAt"] as const;
+const vehicleSetPreviewOptionalStringFields = ["targetId", "targetUpdatedAt", "targetFingerprint"] as const;
+
+function vehicleSetPreviewsFromPreview(value: unknown): DataTransferVehicleSetPreview[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(isVehicleSetPreview).map(cloneVehicleSetPreview);
+}
+
+function isVehicleSetPreview(value: unknown): value is DataTransferVehicleSetPreview {
+  if (!isRecord(value)) return false;
+  return typeof value.recordKey === "string" &&
+    typeof value.classification === "string" &&
+    ["ready", "warning", "error"].includes(value.classification) &&
+    typeof value.proposedAction === "string" &&
+    ["create", "replace", "use_existing", "copy"].includes(value.proposedAction) &&
+    hasOptionalStrings(value, vehicleSetPreviewOptionalStringFields) &&
+    isStringArray(value.memberRecordKeys) &&
+    (value.rowNumbers === undefined || isNumberArray(value.rowNumbers)) &&
+    (value.diagnostics === undefined || isVehicleSetDiagnostics(value.diagnostics)) &&
+    isVehicleSet(value.data);
+}
+
+function isVehicleSet(value: unknown): value is DataTransferVehicleSet {
+  if (!isRecord(value) || !vehicleSetStringFields.every((field) => typeof value[field] === "string")) return false;
+  if (!hasOptionalStrings(value, vehicleSetOptionalStringFields)) return false;
+  if (!Array.isArray(value.members)) return false;
+  return value.members.every((member) => isRecord(member) &&
+    typeof member.vehicleId === "string" &&
+    typeof member.vehicleInventoryNumber === "string" &&
+    typeof member.position === "number" &&
+    (member.label === undefined || typeof member.label === "string")
+  );
+}
+
+function isVehicleSetDiagnostics(value: unknown): boolean {
+  return Array.isArray(value) && value.every((diagnostic) => isRecord(diagnostic) &&
+    typeof diagnostic.rowNumber === "number" &&
+    typeof diagnostic.field === "string" &&
+    typeof diagnostic.code === "string"
+  );
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isNumberArray(value: unknown): value is number[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "number");
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object";
+}
+
+function hasOptionalStrings(value: Record<string, unknown>, fields: readonly string[]) {
+  return fields.every((field) => value[field] === undefined || typeof value[field] === "string");
 }
 
 function mappingOriginLabel(origin: DataTransferCSVColumnMapping["origin"], language: Language) {

@@ -1,4 +1,5 @@
 import { Database, FileDown, FileUp, MoreVertical, Plus } from "lucide-react";
+import type { KeyboardEvent } from "react";
 
 import { formatDateTime, type Language } from "../../shared/i18n";
 import type { DataTransferArea, DataTransferProfile } from "./dataTransferModel";
@@ -61,7 +62,13 @@ export function TransferProfilesTable({
             ) : profiles.map((profile) => {
               const RunIcon = profile.direction === "import" ? FileUp : FileDown;
               const runTitle = t(`importExport.dashboard.profiles.run.${profile.direction}`);
-              return <tr key={profile.id}>
+              return <tr
+                className={canEdit ? "transfer-profile-row" : undefined}
+                key={profile.id}
+                onClick={canEdit ? () => onEdit(profile.id) : undefined}
+                onKeyDown={canEdit ? (event) => editFromKeyboard(event, profile.id, onEdit) : undefined}
+                tabIndex={canEdit ? 0 : undefined}
+              >
                 <td><strong className="data-transfer-truncate" title={profile.name}>{profile.name}</strong></td>
                 <td>{t(`importExport.dashboard.profiles.${profile.direction}`)}</td>
                 <td>
@@ -83,7 +90,10 @@ export function TransferProfilesTable({
                         aria-label={`${profile.name} ${t("importExport.dashboard.profiles.start")}`}
                         title={runTitle}
                         disabled={mutating}
-                        onClick={() => onRun(profile)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onRun(profile);
+                        }}
                       >
                         <RunIcon size={16} aria-hidden="true" />
                       </button>
@@ -94,7 +104,10 @@ export function TransferProfilesTable({
                         className="icon-button transfer-row-menu"
                         aria-label={`${profile.name} ${t("importExport.dashboard.profiles.edit")}`}
                         title={t("importExport.dashboard.profiles.edit")}
-                        onClick={() => onEdit(profile.id)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onEdit(profile.id);
+                        }}
                       >
                         <MoreVertical size={16} aria-hidden="true" />
                       </button>
@@ -108,6 +121,17 @@ export function TransferProfilesTable({
       </div>
     </section>
   );
+}
+
+function editFromKeyboard(
+  event: KeyboardEvent<HTMLTableRowElement>,
+  profileId: string,
+  onEdit: (profileId: string) => void
+) {
+  if (event.target !== event.currentTarget) return;
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
+  onEdit(profileId);
 }
 
 function areaLabels(areas: DataTransferArea[], t: Translate) {

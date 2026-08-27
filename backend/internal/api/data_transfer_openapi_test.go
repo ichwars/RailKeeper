@@ -102,3 +102,21 @@ func TestOpenAPIDataTransferIssueResolutionIncludesMesseMerge(t *testing.T) {
 		t.Fatalf("data transfer issue resolution omits Messe merge: %s", resolution)
 	}
 }
+
+func TestOpenAPIDataTransferPreviewDocumentsVehicleSets(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	preview := openAPIIndentedBlock(t, contract, "DataTransferPreview", 4)
+	if !strings.Contains(preview, "vehicleSets:") ||
+		!strings.Contains(contract, "DataTransferVehicleSetPreview:") ||
+		!strings.Contains(contract, "DataTransferVehicleSetMember:") {
+		t.Fatalf("vehicle set preview contract missing: %s", preview)
+	}
+	area := openAPIIndentedBlock(t, contract, "TransferArea", 4)
+	if !strings.Contains(area, "enum: [vehicles, accessories, exhibitionLists]") {
+		t.Fatalf("transfer areas changed unexpectedly: %s", area)
+	}
+}

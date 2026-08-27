@@ -126,8 +126,12 @@ func vehicleTransferField(
 }
 
 func VehicleTransferFields() []VehicleTransferField {
-	fields := make([]VehicleTransferField, len(vehicleTransferFields))
-	copy(fields, vehicleTransferFields)
+	return cloneVehicleTransferFields(vehicleTransferFields)
+}
+
+func cloneVehicleTransferFields(source []VehicleTransferField) []VehicleTransferField {
+	fields := make([]VehicleTransferField, len(source))
+	copy(fields, source)
 	for index := range fields {
 		fields[index].Aliases = append([]string(nil), fields[index].Aliases...)
 	}
@@ -207,7 +211,7 @@ func defaultDataTransferCSVMapping(
 		normalized := normalizeTransferCSVHeader(sourceHeader)
 		target, hasProfileDefault := profileDefaults[normalized]
 		if hasProfileDefault && target != dataTransferCSVIgnoreTarget {
-			if _, valid := VehicleTransferFieldByKey(target); !valid {
+			if _, valid := VehicleCSVTransferFieldByKey(target); !valid {
 				hasProfileDefault = false
 				target = ""
 			}
@@ -280,8 +284,9 @@ func dataTransferOptionsWithCSVMapping(
 }
 
 func vehicleTransferCSVAliases() map[string]string {
-	aliases := make(map[string]string, len(vehicleTransferFields)*3)
-	for _, field := range vehicleTransferFields {
+	fields := VehicleCSVTransferFields()
+	aliases := make(map[string]string, len(fields)*3)
+	for _, field := range fields {
 		for _, alias := range field.Aliases {
 			aliases[normalizeTransferCSVHeader(alias)] = field.Key
 		}
@@ -320,7 +325,7 @@ func validateDataTransferCSVMapping(header []string, mapping []DataTransferCSVCo
 		if column.TargetField == "" {
 			return fmt.Errorf("%w: mapped CSV column must have a target", ErrDataTransferValidation)
 		}
-		if _, ok := VehicleTransferFieldByKey(column.TargetField); !ok {
+		if _, ok := VehicleCSVTransferFieldByKey(column.TargetField); !ok {
 			return fmt.Errorf("%w: unsupported CSV target %q", ErrDataTransferValidation, column.TargetField)
 		}
 		if seenTargets[column.TargetField] {

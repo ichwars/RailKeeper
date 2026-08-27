@@ -4,7 +4,7 @@ description: Fahrzeug-, Zubehör- und Messedaten über geprüfte Transferaufträ
 audience: user
 status: stable
 reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-27
 ---
 
 # Import und Export
@@ -51,12 +51,27 @@ Ein Transferprofil speichert nur die wiederverwendbare Auswahl für einen Auftra
   Ausstellungslisten benötigen RailKeeper-JSON.
 - **Format**: CSV für tabellarische Einzelbereiche, RailKeeper-JSON für vollständige, auch
   bereichsübergreifende Pakete.
-- **CSV-Zuordnung**: Bei Fahrzeugimporten kann die Zuordnung von Quellspalten zu den 62
-  RailKeeper-Feldern als Profilstandard gespeichert werden.
+- **CSV-Zuordnung**: Bei Fahrzeugimporten kann die Zuordnung von Quellspalten zu 62 Fahrzeugfeldern
+  und 26 Fahrzeugset-Feldern als Profilstandard gespeichert werden.
 
 Die Tabelle **Transferprofile** zeigt Import-, Export- und deaktivierte Profile gemeinsam. Nur
 aktive Profile besitzen eine Startaktion. Ein aktiver Profilname darf je Richtung nur einmal
 vorkommen, derselbe Name darf aber einmal für Import und einmal für Export verwendet werden.
+
+## Fahrzeugsets übertragen
+
+Ein Fahrzeugprofil nimmt zugehörige Fahrzeugsets automatisch mit. Die Datensatzanzahl zählt dabei
+weiterhin Fahrzeuge, nicht zusätzliche Set-Metadaten.
+
+- RailKeeper-JSON verwendet ab Paketversion 3 die normalisierte Struktur `vehicleSets`. Dateien der
+  Paketversionen 1 und 2 bleiben für Einzelfahrzeugimporte kompatibel.
+- CSV wiederholt die `vehicleSet*`-Felder in jeder Mitgliedszeile. RailKeeper gruppiert die Zeilen
+  über `vehicleSetInventoryNumber` und übernimmt Reihenfolge sowie individuelle Mitgliedslabels.
+- Erkannte Sets erscheinen als eigene Gruppen in der Importprüfung. Bei einer vorhandenen
+  Set-Inventarnummer kann das gesamte Set aktualisiert, als neues Set importiert oder übersprungen
+  werden. Bei extern gebundenen Mitgliedern sind nur Set-Kopie oder Überspringen zulässig.
+- Jede Set-Aktion gilt für die vollständige Gruppe. RailKeeper hängt kein bereits anderweitig
+  gebundenes Fahrzeug stillschweigend um.
 
 ## Sicherer Arbeitsablauf
 
@@ -84,6 +99,8 @@ vorkommen, derselbe Name darf aber einmal für Import und einmal für Export ver
 - Transferpakete enthalten keine Benutzer, Rollen, Sitzungen, Passwort-Hashes oder andere lokale
   Authentifizierungsdaten. Für vollständige lokale Bestands- und Upload-Wiederherstellung die
   Anwendungssicherung verwenden.
+- Fahrzeugbilder und andere Unterdaten gehören weiterhin in die Anwendungssicherung und nicht in
+  einen Fahrzeug-Transfer.
 - Digitalzentralen-Lese- und Schreibvorgänge gelangen nie automatisch in einen Transferauftrag.
 
 ## Fehlerbehebung
@@ -101,4 +118,4 @@ vorkommen, derselbe Name darf aber einmal für Import und einmal für Export ver
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 27.08.2026 geprüft.

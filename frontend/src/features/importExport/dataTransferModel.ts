@@ -154,6 +154,62 @@ export type DataTransferPreviewRecord = {
   data: Record<string, unknown>;
 };
 
+export type DataTransferVehicleSetMember = {
+  vehicleId: string;
+  vehicleInventoryNumber: string;
+  position: number;
+  label?: string;
+};
+
+export type DataTransferVehicleSet = {
+  id?: string;
+  inventoryNumber: string;
+  name: string;
+  manufacturer: string;
+  articleNumber: string;
+  articleSourceUrl: string;
+  gauge: string;
+  epoch: string;
+  railwayCompany: string;
+  category: string;
+  gattung: string;
+  description: string;
+  ean: string;
+  productionPeriod: string;
+  listPrice: string;
+  acquisitionType: string;
+  acquiredFrom: string;
+  purchasePrice: string;
+  purchaseDate: string;
+  storageLocation: string;
+  storageDetails: string;
+  condition: string;
+  conditionDetails: string;
+  packaging: string;
+  members: DataTransferVehicleSetMember[];
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type DataTransferVehicleSetDiagnostic = {
+  rowNumber: number;
+  field: string;
+  code: string;
+};
+
+export type DataTransferVehicleSetPreview = {
+  recordKey: string;
+  classification: "ready" | "warning" | "error";
+  proposedAction: DataTransferProposedAction;
+  targetId?: string;
+  targetUpdatedAt?: string;
+  targetFingerprint?: string;
+  memberRecordKeys: string[];
+  rowNumbers?: number[];
+  diagnostics?: DataTransferVehicleSetDiagnostic[];
+  data: DataTransferVehicleSet;
+};
+
 export type DataTransferPreview = {
   job: DataTransferJob;
   records: DataTransferPreviewRecord[];
@@ -164,6 +220,7 @@ export type DataTransferPreview = {
   errorRecords: number;
   csvMapping?: DataTransferCSVColumnMapping[];
   vehicleFields?: VehicleTransferField[];
+  vehicleSets?: DataTransferVehicleSetPreview[];
 };
 
 export type DataTransferSummary = {

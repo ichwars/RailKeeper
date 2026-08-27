@@ -45,4 +45,25 @@ describe("data transfer dashboard styles", () => {
     expect(dialogStyles).toMatch(/\.data-transfer-dialog-body\s*\{[^}]*scrollbar-gutter:\s*stable/s);
     expect(dialogStyles).toMatch(/\.transfer-review-wrap\s*\{[^}]*overflow:\s*auto/s);
   });
+
+  it("keeps the review table cell in the table formatting context", () => {
+    const dialogStyles = readFileSync(resolve(process.cwd(), "src/styles/data-transfer-dialogs.css"), "utf8");
+
+    expect(dialogStyles).not.toMatch(/\.transfer-review-table td:nth-child\(2\)\s*\{[^}]*display:\s*grid/s);
+    expect(dialogStyles).toMatch(/\.transfer-review-record\s*\{[^}]*display:\s*grid/s);
+  });
+
+  it("keeps editable profile rows visible on focus and dialog actions aligned", () => {
+    const dashboardStyles = readFileSync(resolve(process.cwd(), "src/styles/data-transfer-dashboard.css"), "utf8");
+    const dialogStyles = readFileSync(resolve(process.cwd(), "src/styles/data-transfer-dialogs.css"), "utf8");
+
+    expect(dashboardStyles).toMatch(/\.transfer-profile-row:focus-visible\s*\{[^}]*outline:/s);
+    expect(dialogStyles).toMatch(/\.data-transfer-dialog-actions-main\s*\{[^}]*flex-wrap:\s*nowrap/s);
+    expect(dialogStyles).toMatch(
+      /@media \(max-width:\s*680px\)[\s\S]*\.data-transfer-dialog-actions-main[^}]*width:\s*100%/
+    );
+    expect(dialogStyles).toMatch(
+      /@media \(max-width:\s*680px\)[\s\S]*\.confirm-layer\.data-transfer-dialog-layer\s*\{[^}]*padding:\s*8px/
+    );
+  });
 });

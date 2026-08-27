@@ -4,7 +4,7 @@ description: Exchange vehicle, accessory, and exhibition data through reviewed t
 audience: user
 status: stable
 reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-27
 ---
 
 # Import and export
@@ -49,12 +49,27 @@ A transfer profile stores only the reusable selection for a job:
   exhibition lists require RailKeeper JSON.
 - **Format**: CSV for tabular single-area exchange, RailKeeper JSON for complete packages that may
   span areas.
-- **CSV mapping**: vehicle imports can save source-column assignments to the 62 RailKeeper fields
-  as profile defaults.
+- **CSV mapping**: vehicle imports can save source-column assignments to 62 vehicle fields and 26
+  vehicle-set fields as profile defaults.
 
 The **Transfer profiles** table lists import, export, and disabled profiles together. Only enabled
 profiles have a start action. An enabled profile name may occur only once per direction, while the
 same name may be used once for import and once for export.
+
+## Transfer vehicle sets
+
+A vehicle profile automatically includes associated vehicle sets. Record totals continue to count
+vehicles, not additional set metadata.
+
+- RailKeeper JSON uses the normalized `vehicleSets` structure from package version 3. Package
+  versions 1 and 2 remain compatible for individual-vehicle imports.
+- CSV repeats the `vehicleSet*` fields on every member row. RailKeeper groups rows by
+  `vehicleSetInventoryNumber` and preserves member order and individual labels.
+- Detected sets appear as separate groups during import review. If a set inventory number already
+  exists, the complete set can be updated, imported as a new set, or skipped. For members already
+  bound externally, only copying or skipping the set is allowed.
+- Every set action applies to the complete group. RailKeeper never silently moves a vehicle that is
+  already assigned elsewhere.
 
 ## Safe working sequence
 
@@ -78,6 +93,8 @@ same name may be used once for import and once for export.
   snapshot transactionally; a failed apply does not leave a partially imported job.
 - Transfer packages never contain users, roles, sessions, password hashes, or other local
   authentication state. Use application backup for full local inventory and upload recovery.
+- Vehicle images and other subordinate data still require application backup and are not included
+  in a vehicle transfer.
 - Digital-center reads and writes never enter a generic transfer job automatically.
 
 ## Troubleshooting
@@ -95,4 +112,4 @@ same name may be used once for import and once for export.
 
 ## Documented RailKeeper version
 
-This chapter documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This chapter documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-27.

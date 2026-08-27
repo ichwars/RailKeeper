@@ -10,6 +10,7 @@ import type {
   DataTransferSummary
 } from "./dataTransferModel";
 import { ImportExportView } from "./ImportExportView";
+import { TransferProfilesTable } from "./TransferProfilesTable";
 
 const reviewJob = jobFixture({
   id: "job-review",
@@ -185,6 +186,81 @@ describe("ImportExportView", () => {
 
     fireEvent.click(importAction);
     expect(screen.getByRole("dialog", { name: "Import prüfen" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["mouse click", "click"],
+    ["Enter", "Enter"],
+    ["Space", " "]
+  ])("opens profile editor from the row using %s", async (_interaction, key) => {
+    vi.mocked(api.dataTransferProfiles).mockResolvedValue([
+      profileFixture({ id: "profile-import", name: "Fahrzeugimport", direction: "import", format: "csv" })
+    ]);
+
+    render(<ImportExportView roles={["Admin"]} />);
+    const profilesPanel = (await screen.findByRole("heading", { name: "Transferprofile" })).closest("section")!;
+    const row = within(profilesPanel).getByText("Fahrzeugimport").closest("tr")!;
+    if (key === "click") fireEvent.click(row);
+    else fireEvent.keyDown(row, { key });
+
+    expect(screen.getByRole("dialog", { name: "Transferprofil bearbeiten" })).toBeInTheDocument();
+  });
+
+  it("keeps profile row actions isolated and non-editable rows inert", () => {
+    const profile = profileFixture({ id: "profile-import", name: "Fahrzeugimport", direction: "import" });
+    const onEdit = vi.fn();
+    const onRun = vi.fn();
+    const t = (key: string) => ({
+      "importExport.dashboard.profiles.start": "starten",
+      "importExport.dashboard.profiles.edit": "bearbeiten",
+      "importExport.dashboard.profiles.run.import": "Import starten"
+    })[key] ?? key;
+    const { rerender } = render(<TransferProfilesTable
+      canCreate={false}
+      canEdit
+      canExport
+      canImport
+      language="de"
+      mutating={false}
+      onCreate={vi.fn()}
+      onEdit={onEdit}
+      onRun={onRun}
+      profiles={[profile]}
+      t={t}
+    />);
+
+    const editableRow = screen.getByText("Fahrzeugimport").closest("tr")!;
+    expect(editableRow).toHaveAttribute("tabindex", "0");
+    fireEvent.click(screen.getByRole("button", { name: "Fahrzeugimport starten" }));
+    expect(onRun).toHaveBeenCalledTimes(1);
+    expect(onEdit).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Fahrzeugimport bearbeiten" }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onRun).toHaveBeenCalledTimes(1);
+
+    onEdit.mockClear();
+    fireEvent.keyDown(screen.getByRole("button", { name: "Fahrzeugimport starten" }), { key: "Enter" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "Fahrzeugimport bearbeiten" }), { key: " " });
+    expect(onEdit).not.toHaveBeenCalled();
+
+    rerender(<TransferProfilesTable
+      canCreate={false}
+      canEdit={false}
+      canExport
+      canImport
+      language="de"
+      mutating={false}
+      onCreate={vi.fn()}
+      onEdit={onEdit}
+      onRun={onRun}
+      profiles={[profile]}
+      t={t}
+    />);
+    const inertRow = screen.getByText("Fahrzeugimport").closest("tr")!;
+    expect(inertRow).not.toHaveAttribute("tabindex");
+    expect(inertRow).not.toHaveClass("transfer-profile-row");
+    fireEvent.click(inertRow);
+    expect(onEdit).not.toHaveBeenCalled();
   });
 
   it("lets Admin delete a cancelled job from jobs or history after confirmation", async () => {

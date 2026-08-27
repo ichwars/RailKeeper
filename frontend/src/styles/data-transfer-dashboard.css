@@ -477,6 +477,20 @@
   color: var(--accent-strong);
 }
 
+.transfer-profile-row {
+  cursor: pointer;
+}
+
+.transfer-profile-row:hover td,
+.transfer-profile-row:focus-visible td {
+  background: color-mix(in srgb, var(--accent) 5%, var(--panel));
+}
+
+.transfer-profile-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .transfer-profile-actions {
   display: inline-flex;
   align-items: center;

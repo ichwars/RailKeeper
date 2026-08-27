@@ -9,9 +9,12 @@ import type {
   DataTransferJob,
   DataTransferPreview,
   DataTransferProfile,
-  DataTransferSummary
+  DataTransferSummary,
+  DataTransferVehicleSetPreview
 } from "./dataTransferModel";
 import { ImportExportView } from "./ImportExportView";
+import { TransferImportDialog } from "./TransferImportDialog";
+import { TransferReviewTable } from "./TransferReviewTable";
 
 const importProfile = profileFixture({
   id: "profile-import",
@@ -309,14 +312,252 @@ describe("data transfer operational dialogs", () => {
     const blockedConfirm = await within(dialog).findByRole("button", { name: "0 Datensätze importieren" });
     expect(blockedConfirm).toBeDisabled();
     expect(api.confirmDataTransferImport).not.toHaveBeenCalled();
+    const resolutionSelect = within(dialog).getByLabelText("Auflösung für RK-1001");
+    await user.click(resolutionSelect);
+    expect(screen.getByRole("option", { name: "Aktion wählen" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Bestehenden Datensatz überschreiben" })).toBeInTheDocument();
+    expect(screen.getByRole("option", {
+      name: "Als neuen Datensatz mit neuer Inventarnummer importieren"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Diesen Datensatz nicht importieren" })).toBeInTheDocument();
+    const recordCellContent = within(dialog).getByText("RK-1001").closest(".transfer-review-record");
+    expect(recordCellContent).not.toBeNull();
+    expect(recordCellContent?.parentElement?.tagName).toBe("TD");
 
-    await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+    await user.click(screen.getByRole("option", { name: "Bestehenden Datensatz überschreiben" }));
     const enabledConfirm = await within(dialog).findByRole("button", { name: "1 Datensatz importieren" });
     expect(enabledConfirm).toBeEnabled();
     await user.click(enabledConfirm);
 
     await waitFor(() => expect(api.confirmDataTransferImport).toHaveBeenCalledWith("job-import", 3));
+  });
+
+  it("uses explicit English vehicle actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Manufacturer and article number match an existing vehicle."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="en"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{ ...previewFixture.records[0], classification: "warning", proposedAction: "use_existing" }]}
+    />);
+
+    await user.click(screen.getByLabelText("Resolution for RK-1001"));
+    expect(screen.getByRole("option", { name: "Choose action" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Use existing vehicle" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Import as an additional new vehicle" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Do not import this record" })).toBeInTheDocument();
+  });
+
+  it("uses explicit English accessory actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      area: "accessories",
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Manufacturer and article number match an existing accessory."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="en"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{
+        ...previewFixture.records[0],
+        area: "accessories",
+        classification: "warning",
+        proposedAction: "use_existing"
+      }]}
+    />);
+
+    await user.click(screen.getByLabelText("Resolution for RK-1001"));
+    expect(screen.getByRole("option", { name: "Choose action" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Use existing accessory" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Import as an additional new accessory" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Do not import this record" })).toBeInTheDocument();
+  });
+
+  it("uses explicit German accessory actions for manufacturer and article matches", async () => {
+    const user = userEvent.setup();
+    const matchingIssue: DataTransferIssue = {
+      ...importIssue,
+      area: "accessories",
+      code: "matching_manufacturer_article_number",
+      proposedResolution: "use_existing",
+      message: "Hersteller und Artikelnummer stimmen mit vorhandenem Zubehör überein."
+    };
+    render(<TransferReviewTable
+      busy={false}
+      issues={[matchingIssue]}
+      language="de"
+      onResolve={vi.fn(async () => undefined)}
+      records={[{
+        ...previewFixture.records[0],
+        area: "accessories",
+        classification: "warning",
+        proposedAction: "use_existing"
+      }]}
+    />);
+
+    await user.click(screen.getByLabelText("Auflösung für RK-1001"));
+    expect(screen.getByRole("option", { name: "Aktion wählen" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Vorhandenen Zubehörartikel verwenden" })).toBeInTheDocument();
+    expect(screen.getByRole("option", {
+      name: "Zusätzlich als neuen Zubehörartikel importieren"
+    })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Diesen Datensatz nicht importieren" })).toBeInTheDocument();
+  });
+
+  it("shows detected vehicle sets and resolves a set as one unit", async () => {
+    const user = userEvent.setup();
+    const records = ["RK-A", "RK-B", "RK-C"].map((recordKey, index) => ({
+      area: "vehicles" as const,
+      recordKey,
+      rowNumber: index + 2,
+      classification: "ready" as const,
+      proposedAction: "create" as const,
+      data: { inventoryNumber: recordKey, manufacturer: "Märklin", name: `Fahrzeug ${index + 1}` }
+    }));
+    const vehicleSets: DataTransferVehicleSetPreview[] = [
+      vehicleSetPreviewFixture({
+        recordKey: "vehicle-set:id:source-1",
+        classification: "ready",
+        memberRecordKeys: ["RK-A", "RK-B"],
+        data: vehicleSetDataFixture("Set-001", "Nahverkehr", ["RK-A", "RK-B"])
+      }),
+      vehicleSetPreviewFixture({
+        recordKey: "vehicle-set:id:source-2",
+        classification: "error",
+        proposedAction: "replace",
+        memberRecordKeys: ["RK-B", "RK-C"],
+        data: vehicleSetDataFixture("Set-002", "Güterzug", ["RK-B", "RK-C"])
+      })
+    ];
+    const setIssue: DataTransferIssue = {
+      ...importIssue,
+      id: "issue-set-2",
+      recordKey: "vehicle-set:id:source-2",
+      rowNumber: null,
+      field: "inventoryNumber",
+      code: "duplicate_vehicle_set_inventory_number",
+      message: "Set-Inventarnummer ist bereits vorhanden."
+    };
+    const persistedJob = jobFixture({
+      id: "job-set-import",
+      profileId: jsonImportProfile.id,
+      profileName: jsonImportProfile.name,
+      direction: "import",
+      format: "railkeeper-json",
+      areas: ["vehicles"],
+      state: "review_required",
+      stage: "review",
+      sourceName: "fahrzeugsets.json",
+      revision: 2,
+      totalRecords: 3,
+      errorRecords: 1,
+      preview: { records, vehicleSets }
+    });
+    const readyJob = {
+      ...persistedJob,
+      state: "ready" as const,
+      revision: 3,
+      readyRecords: 3,
+      errorRecords: 0
+    };
+    const onResolve = vi.fn(async () => readyJob);
+
+    render(<TransferImportDialog
+      initialDetails={{ job: persistedJob, issues: [setIssue], artifacts: [] }}
+      initialJob={persistedJob}
+      initialRequiresReupload={false}
+      language="de"
+      onCancelJob={vi.fn(async () => undefined)}
+      onClose={vi.fn()}
+      onConfirm={vi.fn(async () => undefined)}
+      onCreateJob={vi.fn(async () => draftImportJob)}
+      onRefreshJob={vi.fn(async () => ({ job: readyJob, issues: [], artifacts: [] }))}
+      onResolve={onResolve}
+      onUpload={vi.fn(async () => previewFixture)}
+      profiles={[jsonImportProfile]}
+    />);
+
+    const setReview = screen.getByRole("heading", { name: "Erkannte Fahrzeugsets" }).closest("section")!;
+    expect(setReview).toBeVisible();
+    expect(within(setReview).getByText("Set-001")).toBeVisible();
+    expect(within(setReview).queryByText("vehicle-set:id:source-1")).not.toBeInTheDocument();
+    expect(within(setReview).getByText("Nahverkehr")).toBeVisible();
+    expect(within(setReview).getAllByText("2 Mitglieder")).toHaveLength(2);
+    expect(within(setReview).getByText("Bereit")).toBeVisible();
+    await user.click(screen.getByLabelText("Auflösung für Set Set-002"));
+    expect(screen.getByRole("option", { name: "Bestehendes Set aktualisieren" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Als neues Set importieren" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "Dieses Set nicht importieren" })).toBeInTheDocument();
+    await user.click(screen.getByRole("option", { name: "Bestehendes Set aktualisieren" }));
+
+    expect(onResolve).toHaveBeenCalledWith("job-set-import", "issue-set-2", "replace");
+    expect(await screen.findByRole("button", { name: "3 Datensätze importieren" })).toBeEnabled();
+  });
+
+  it("excludes every member when a detected vehicle set is skipped", () => {
+    const records = ["RK-A", "RK-B", "RK-C"].map((recordKey) => ({
+      area: "vehicles" as const,
+      recordKey,
+      classification: "ready" as const,
+      proposedAction: "create" as const,
+      data: { inventoryNumber: recordKey }
+    }));
+    const vehicleSets = [vehicleSetPreviewFixture({
+      recordKey: "Set-001",
+      classification: "warning",
+      memberRecordKeys: ["RK-A", "RK-B"],
+      data: vehicleSetDataFixture("Set-001", "Nahverkehr", ["RK-A", "RK-B"])
+    })];
+    const skippedIssue: DataTransferIssue = {
+      ...importIssue,
+      id: "issue-set-skip",
+      recordKey: "Set-001",
+      rowNumber: null,
+      code: "duplicate_vehicle_set_inventory_number",
+      selectedResolution: "skip"
+    };
+    const readyJob = jobFixture({
+      id: "job-set-skip",
+      profileId: jsonImportProfile.id,
+      profileName: jsonImportProfile.name,
+      direction: "import",
+      format: "railkeeper-json",
+      areas: ["vehicles"],
+      state: "ready",
+      stage: "review",
+      sourceName: "fahrzeugsets.json",
+      totalRecords: 3,
+      readyRecords: 3,
+      preview: { records, vehicleSets }
+    });
+
+    render(<TransferImportDialog
+      initialDetails={{ job: readyJob, issues: [skippedIssue], artifacts: [] }}
+      initialJob={readyJob}
+      initialRequiresReupload={false}
+      language="de"
+      onCancelJob={vi.fn(async () => undefined)}
+      onClose={vi.fn()}
+      onConfirm={vi.fn(async () => undefined)}
+      onCreateJob={vi.fn(async () => draftImportJob)}
+      onRefreshJob={vi.fn(async () => ({ job: readyJob, issues: [skippedIssue], artifacts: [] }))}
+      onResolve={vi.fn(async () => readyJob)}
+      onUpload={vi.fn(async () => previewFixture)}
+      profiles={[jsonImportProfile]}
+    />);
+
+    expect(screen.getByRole("button", { name: "1 Datensatz importieren" })).toBeEnabled();
   });
 
   it("retries into a fresh draft flow without confirming the historical import", async () => {
@@ -415,9 +656,101 @@ describe("data transfer operational dialogs", () => {
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("persistente Vorschau wurde neu gelesen");
     expect(within(dialog).getByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
+  });
+
+  it("keeps accepted CSV mapping after resolving a conflict in the same preview", async () => {
+    const user = userEvent.setup();
+    const persistedReviewJob = {
+      ...previewFixture.job,
+      preview: {
+        records: previewFixture.records,
+        csvMapping: previewFixture.csvMapping,
+        vehicleFields: previewFixture.vehicleFields
+      }
+    };
+    const readyJob = {
+      ...persistedReviewJob,
+      state: "ready" as const,
+      revision: 3,
+      readyRecords: 1,
+      errorRecords: 0
+    };
+    const baseProps = {
+      initialRequiresReupload: false,
+      language: "de" as const,
+      onCancelJob: vi.fn(async () => undefined),
+      onClose: vi.fn(),
+      onConfirm: vi.fn(async () => undefined),
+      onCreateJob: vi.fn(async () => draftImportJob),
+      onRefreshJob: vi.fn(async () => ({ job: readyJob, issues: [], artifacts: [] })),
+      onUpload: vi.fn(async () => previewFixture),
+      profiles: [importProfile]
+    };
+    const onResolve = vi.fn(async () => readyJob);
+    const { rerender } = render(<TransferImportDialog {...baseProps}
+      initialJob={persistedReviewJob}
+      initialDetails={{ job: persistedReviewJob, issues: [importIssue], artifacts: [] }}
+      onResolve={onResolve} />);
+
+    await user.click(screen.getByRole("button", { name: "Weiter zur Prüfung" }));
+    await selectAppOption(user, screen.getByLabelText("Auflösung für RK-1001"),
+      "Bestehenden Datensatz überschreiben");
+    rerender(<TransferImportDialog {...baseProps}
+      initialJob={readyJob}
+      initialDetails={{ job: readyJob, issues: [{ ...importIssue, selectedResolution: "replace" }], artifacts: [] }}
+      onResolve={onResolve} />);
+
+    expect(screen.queryByRole("heading", { name: "Erkannte CSV-Zuordnung" })).not.toBeInTheDocument();
+    expect(screen.getByText("Alle Konflikte sind aufgelöst. Der geprüfte Stand kann importiert werden.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "1 Datensatz importieren" })).toBeEnabled();
+  });
+
+  it.each([
+    ["job", (job: DataTransferJob) => ({ ...job, id: "job-other" }), false],
+    ["source", (job: DataTransferJob) => ({ ...job, sourceSha256: "sha-other" }), false],
+    ["mapping", (job: DataTransferJob) => ({ ...job, preview: {
+      ...job.preview,
+      csvMapping: [{ ...previewFixture.csvMapping![0], targetField: "manufacturer" }]
+    } }), false],
+    ["reupload requirement", (job: DataTransferJob) => job, true]
+  ] as const)("resets accepted CSV mapping after a changed %s", async (_name, changeJob, requiresReupload) => {
+    const user = userEvent.setup();
+    const persistedJob = {
+      ...previewFixture.job,
+      preview: {
+        records: previewFixture.records,
+        csvMapping: previewFixture.csvMapping,
+        vehicleFields: previewFixture.vehicleFields
+      }
+    };
+    const props = {
+      language: "de" as const,
+      onCancelJob: vi.fn(async () => undefined),
+      onClose: vi.fn(),
+      onConfirm: vi.fn(async () => undefined),
+      onCreateJob: vi.fn(async () => draftImportJob),
+      onRefreshJob: vi.fn(async () => ({ job: persistedJob, issues: [importIssue], artifacts: [] })),
+      onResolve: vi.fn(async () => persistedJob),
+      onUpload: vi.fn(async () => previewFixture),
+      profiles: [importProfile]
+    };
+    const { rerender } = render(<TransferImportDialog {...props}
+      initialJob={persistedJob}
+      initialDetails={{ job: persistedJob, issues: [importIssue], artifacts: [] }}
+      initialRequiresReupload={false} />);
+    await user.click(screen.getByRole("button", { name: "Weiter zur Prüfung" }));
+    expect(screen.getByRole("heading", { name: "Vorschau" })).toBeInTheDocument();
+
+    const changedJob = changeJob(persistedJob);
+    rerender(<TransferImportDialog {...props}
+      initialJob={changedJob}
+      initialDetails={{ job: changedJob, issues: [importIssue], artifacts: [] }}
+      initialRequiresReupload={requiresReupload} />);
+
+    expect(await screen.findByRole("heading", { name: "Erkannte CSV-Zuordnung" })).toBeInTheDocument();
   });
 
   it("re-reads a draft export after an execution conflict", async () => {
@@ -449,7 +782,7 @@ describe("data transfer operational dialogs", () => {
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["a;b"], "fahrzeuge.csv"));
     await user.click(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" }));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
     expect(within(dialog).getByRole("button", { name: "Weiter zur Prüfung" })).toBeDisabled();
@@ -483,7 +816,7 @@ describe("data transfer operational dialogs", () => {
     await selectAppOption(user, within(dialog).getByLabelText("Importprofil"), jsonImportProfile.name);
     await user.upload(within(dialog).getByLabelText("Importdatei"), new File(["{}"], "backup.json"));
     await selectAppOption(user, within(dialog).getByLabelText("Auflösung für RK-1001"),
-      "Vorhandenen Datensatz ersetzen");
+      "Bestehenden Datensatz überschreiben");
     await user.click(await within(dialog).findByRole("button", { name: "1 Datensatz importieren" }));
 
     expect(await within(dialog).findByRole("alert")).toHaveTextContent("erneut hochladen");
@@ -598,9 +931,14 @@ describe("data transfer operational dialogs", () => {
     vi.mocked(api.dataTransferJobs).mockResolvedValue([historicalJob]);
     vi.spyOn(api, "dataTransferJob").mockResolvedValue({ job: historicalJob, issues: [], artifacts: [] });
 
-    render(<ImportExportView roles={["Editor"]} />);
+    render(<ImportExportView roles={["Admin"]} />);
     fireEvent.click(await screen.findByRole("button", { name: "Werkstattbestand bearbeiten" }));
     const dialog = screen.getByRole("dialog", { name: "Transferprofil bearbeiten" });
+    const dangerActions = dialog.querySelector(".data-transfer-dialog-actions-danger");
+    const mainActions = dialog.querySelector(".data-transfer-dialog-actions-main");
+    expect(dangerActions).toContainElement(within(dialog).getByRole("button", { name: "Profil deaktivieren" }));
+    expect(mainActions).toContainElement(within(dialog).getByRole("button", { name: "Abbrechen" }));
+    expect(mainActions).toContainElement(within(dialog).getByRole("button", { name: "Änderungen speichern" }));
     const name = within(dialog).getByLabelText("Profilname");
     await user.clear(name);
     await user.type(name, "Werkstattbestand neu");
@@ -690,6 +1028,52 @@ function jobFixture(overrides: Partial<DataTransferJob> = {}): DataTransferJob {
     createdAt: "2026-08-20T08:00:00Z",
     updatedAt: "2026-08-20T08:00:00Z",
     ...overrides
+  };
+}
+
+function vehicleSetPreviewFixture(
+  overrides: Partial<DataTransferVehicleSetPreview> = {}
+): DataTransferVehicleSetPreview {
+  return {
+    recordKey: "Set-001",
+    classification: "ready",
+    proposedAction: "create",
+    memberRecordKeys: ["RK-A", "RK-B"],
+    data: vehicleSetDataFixture("Set-001", "Fahrzeugset", ["RK-A", "RK-B"]),
+    ...overrides
+  };
+}
+
+function vehicleSetDataFixture(inventoryNumber: string, name: string, memberKeys: string[]) {
+  return {
+    inventoryNumber,
+    name,
+    manufacturer: "Märklin",
+    articleNumber: "12345",
+    articleSourceUrl: "",
+    gauge: "H0",
+    epoch: "VI",
+    railwayCompany: "DB AG",
+    category: "Set",
+    gattung: "",
+    description: "",
+    ean: "",
+    productionPeriod: "",
+    listPrice: "",
+    acquisitionType: "",
+    acquiredFrom: "",
+    purchasePrice: "",
+    purchaseDate: "",
+    storageLocation: "",
+    storageDetails: "",
+    condition: "",
+    conditionDetails: "",
+    packaging: "",
+    members: memberKeys.map((vehicleInventoryNumber, index) => ({
+      vehicleId: "",
+      vehicleInventoryNumber,
+      position: index + 1
+    }))
   };
 }
 

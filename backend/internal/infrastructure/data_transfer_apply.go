@@ -14,11 +14,12 @@ import (
 )
 
 type dataTransferPersistedPreview struct {
-	SourceSHA256       string                                     `json:"sourceSha256"`
-	FingerprintVersion int                                        `json:"fingerprintVersion,omitempty"`
-	Records            []application.DataTransferPreviewRecord    `json:"records"`
-	CSVMapping         []application.DataTransferCSVColumnMapping `json:"csvMapping,omitempty"`
-	VehicleFields      []application.VehicleTransferField         `json:"vehicleFields,omitempty"`
+	SourceSHA256       string                                      `json:"sourceSha256"`
+	FingerprintVersion int                                         `json:"fingerprintVersion,omitempty"`
+	Records            []application.DataTransferPreviewRecord     `json:"records"`
+	VehicleSets        []application.DataTransferVehicleSetPreview `json:"vehicleSets,omitempty"`
+	CSVMapping         []application.DataTransferCSVColumnMapping  `json:"csvMapping,omitempty"`
+	VehicleFields      []application.VehicleTransferField          `json:"vehicleFields,omitempty"`
 }
 
 type dataTransferApplyDB interface {
@@ -28,8 +29,14 @@ type dataTransferApplyDB interface {
 }
 
 type dataTransferApplyResult struct {
-	Applied int
-	Skipped int
+	Applied  int
+	Skipped  int
+	Vehicles map[string]transferVehicleApplyResult
+}
+
+type transferVehicleApplyResult struct {
+	ID              string
+	InventoryNumber string
 }
 
 func (repository *DataTransferRepository) ApplyImport(
@@ -58,8 +65,15 @@ func (repository *DataTransferRepository) ApplyImportWithPolicy(
 	if err != nil {
 		return err
 	}
-	result, err := applyTransferRecords(ctx, tx, job, preview.Records, preview.CSVMapping, issues, policy)
+	result, err := applyTransferRecords(
+		ctx, tx, job, preview.Records, preview.VehicleSets, preview.CSVMapping, issues, policy,
+	)
 	if err != nil {
+		return err
+	}
+	if err := applyTransferVehicleSets(
+		ctx, tx, preview.VehicleSets, preview.CSVMapping, issues, result.Vehicles, actor,
+	); err != nil {
 		return err
 	}
 	now := timestamp()
@@ -135,6 +149,9 @@ FROM data_transfer_jobs WHERE id=?`, job.ID).Scan(
 			return dataTransferPersistedPreview{}, nil, dataTransferApplyConflict("import has unresolved conflicts")
 		}
 	}
+	if err := revalidateTransferVehicleSetPreview(ctx, tx, preview.VehicleSets, preview.Records, issues); err != nil {
+		return dataTransferPersistedPreview{}, nil, err
+	}
 	targetFingerprints, err := currentTransferTargetFingerprints(
 		ctx, tx, preview.Records, preview.FingerprintVersion,
 	)
@@ -182,21 +199,23 @@ WHERE job_id=? ORDER BY created_at, id`, jobID)
 
 func validTransferApplyResolution(code, resolution string) bool {
 	allowed := map[string]map[string]bool{
-		"missing_inventory_number":             {"skip": true},
-		"missing_manufacturer":                 {"skip": true},
-		"missing_name":                         {"skip": true},
-		"missing_gauge":                        {"skip": true},
-		"missing_category":                     {"skip": true},
-		"missing_gattung":                      {"skip": true},
-		"invalid_vehicle":                      {"skip": true},
-		"invalid_accessory":                    {"skip": true},
-		"duplicate_inventory_number":           {"replace": true, "copy": true, "skip": true},
-		"matching_manufacturer_article_number": {"use_existing": true, "create": true, "skip": true},
-		"duplicate_exhibition_list":            {"replace": true, "merge": true, "copy": true, "skip": true},
-		"locked_exhibition_list":               {"copy": true, "skip": true},
-		"exhibition_vehicle_reference":         {"link": true, "skip": true},
-		"missing_vehicle_reference":            {"skip": true},
-		"duplicate_input_inventory_number":     {"skip": true},
+		"missing_inventory_number":               {"skip": true},
+		"missing_manufacturer":                   {"skip": true},
+		"missing_name":                           {"skip": true},
+		"missing_gauge":                          {"skip": true},
+		"missing_category":                       {"skip": true},
+		"missing_gattung":                        {"skip": true},
+		"invalid_vehicle":                        {"skip": true},
+		"invalid_accessory":                      {"skip": true},
+		"duplicate_inventory_number":             {"replace": true, "copy": true, "skip": true},
+		"matching_manufacturer_article_number":   {"use_existing": true, "create": true, "skip": true},
+		"duplicate_exhibition_list":              {"replace": true, "merge": true, "copy": true, "skip": true},
+		"locked_exhibition_list":                 {"copy": true, "skip": true},
+		"exhibition_vehicle_reference":           {"link": true, "skip": true},
+		"missing_vehicle_reference":              {"skip": true},
+		"duplicate_input_inventory_number":       {"skip": true},
+		"duplicate_vehicle_set_inventory_number": {"replace": true, "copy": true, "skip": true},
+		"vehicle_set_member_external_conflict":   {"copy": true, "skip": true},
 	}
 	return allowed[code][resolution]
 }
@@ -255,16 +274,46 @@ func applyTransferRecords(
 	db *sql.Tx,
 	job application.DataTransferJob,
 	records []application.DataTransferPreviewRecord,
+	vehicleSets []application.DataTransferVehicleSetPreview,
 	csvMapping []application.DataTransferCSVColumnMapping,
 	issues []application.DataTransferIssue,
 	policy application.DataTransferImportPolicy,
 ) (dataTransferApplyResult, error) {
-	result := dataTransferApplyResult{}
+	_, memberPolicies, err := transferVehicleSetApplyPolicies(vehicleSets, issues)
+	if err != nil {
+		return dataTransferApplyResult{}, err
+	}
+	result := dataTransferApplyResult{Vehicles: map[string]transferVehicleApplyResult{}}
 	var csvVehicleTargets map[string]application.TransferVehicle
 	csvVehicleTargetsLoaded := false
 	for _, record := range records {
 		recordIssues := transferRecordIssues(issues, record)
 		action, skip := transferRecordAction(record, recordIssues)
+		if setPolicy, member := memberPolicies[record.RecordKey]; record.Area == application.TransferVehicles && member {
+			switch setPolicy.Action {
+			case "skip":
+				skip = true
+			case "copy":
+				if record.TargetID != "" {
+					action = "copy"
+				} else {
+					action = "create"
+				}
+			case "replace":
+				if record.TargetID != "" {
+					action = "replace"
+				} else {
+					action = "create"
+				}
+			case "create":
+				if record.TargetID != "" {
+					return dataTransferApplyResult{}, dataTransferApplyConflict(
+						"vehicle set member conflict has no group resolution",
+					)
+				}
+				action = "create"
+			}
+		}
 		if skip {
 			result.Skipped++
 			continue
@@ -294,9 +343,16 @@ func applyTransferRecords(
 					existingCSVVehicle = &existing
 				}
 			}
-			err = applyTransferVehicle(
+			vehicleResult, vehicleErr := applyTransferVehicle(
 				ctx, db, record, action, job.PackageVersion, csvMapping, existingCSVVehicle,
 			)
+			err = vehicleErr
+			if err == nil {
+				if _, duplicate := result.Vehicles[record.RecordKey]; duplicate {
+					return dataTransferApplyResult{}, dataTransferApplyConflict("duplicate vehicle record key")
+				}
+				result.Vehicles[record.RecordKey] = vehicleResult
+			}
 		case application.TransferAccessories:
 			err = applyTransferAccessory(ctx, db, record, action)
 		case application.TransferExhibitionLists:
@@ -366,25 +422,26 @@ func applyTransferVehicle(
 	packageVersion int,
 	csvMapping []application.DataTransferCSVColumnMapping,
 	existingCSVVehicle *application.TransferVehicle,
-) error {
+) (transferVehicleApplyResult, error) {
 	vehicle := application.TransferVehicle{}
 	if err := json.Unmarshal(record.Data, &vehicle); err != nil {
-		return dataTransferApplyConflict("vehicle preview data is invalid")
+		return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle preview data is invalid")
 	}
 	if err := application.ValidateTransferVehicle(vehicle); err != nil {
-		return dataTransferApplyConflict("vehicle preview data violates aggregate validation")
+		return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle preview data violates aggregate validation")
 	}
 	now := timestamp()
 	if action == "copy" {
 		inventoryNumber, err := uniqueTransferInventoryNumber(ctx, db, "vehicles", vehicle.InventoryNumber)
 		if err != nil {
-			return err
+			return transferVehicleApplyResult{}, err
 		}
 		vehicle.InventoryNumber = inventoryNumber
 		action = "create"
 	}
 	switch action {
 	case "create":
+		vehicleID := randomID()
 		arguments := transferVehicleArguments(vehicle, now)
 		_, err := db.ExecContext(ctx, `
 INSERT INTO vehicles(
@@ -400,11 +457,14 @@ INSERT INTO vehicles(
   smoke_generator_description, additional_info, qr_code_enabled, created_at, updated_at
 ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
          ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-			append([]any{randomID()}, arguments...)...)
-		return err
+			append([]any{vehicleID}, arguments...)...)
+		if err != nil {
+			return transferVehicleApplyResult{}, err
+		}
+		return transferVehicleApplyResult{ID: vehicleID, InventoryNumber: vehicle.InventoryNumber}, nil
 	case "replace":
 		if record.TargetID == "" {
-			return dataTransferApplyConflict("vehicle replacement target is missing")
+			return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle replacement target is missing")
 		}
 		if packageVersion == application.DataTransferPackageLegacyVersion {
 			arguments := transferVehicleArguments(vehicle, now)
@@ -417,19 +477,22 @@ UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, articl
   condition_details=?, packaging=?, updated_at=?
 WHERE id=?`, append(append(arguments[0:35], now), record.TargetID)...)
 			if err != nil {
-				return err
+				return transferVehicleApplyResult{}, err
 			}
-			return requireApplyUpdate(result, "replace legacy vehicle")
+			if err := requireApplyUpdate(result, "replace legacy vehicle"); err != nil {
+				return transferVehicleApplyResult{}, err
+			}
+			return transferVehicleApplyResult{ID: record.TargetID, InventoryNumber: vehicle.InventoryNumber}, nil
 		}
 		if len(csvMapping) > 0 {
 			if existingCSVVehicle == nil {
-				return dataTransferApplyConflict("vehicle replacement target is missing")
+				return transferVehicleApplyResult{}, dataTransferApplyConflict("vehicle replacement target is missing")
 			}
 			merged, err := application.PreserveUnmappedTransferVehicleFields(
 				vehicle, *existingCSVVehicle, csvMapping,
 			)
 			if err != nil {
-				return err
+				return transferVehicleApplyResult{}, err
 			}
 			vehicle = merged
 		}
@@ -447,11 +510,14 @@ UPDATE vehicles SET inventory_number=?, manufacturer=?, article_number=?, articl
   smoke_generator_enabled=?, smoke_generator_description=?, additional_info=?, qr_code_enabled=?, updated_at=?
 WHERE id=?`, append(append(arguments[0:62], now), record.TargetID)...)
 		if err != nil {
-			return err
+			return transferVehicleApplyResult{}, err
 		}
-		return requireApplyUpdate(result, "replace vehicle")
+		if err := requireApplyUpdate(result, "replace vehicle"); err != nil {
+			return transferVehicleApplyResult{}, err
+		}
+		return transferVehicleApplyResult{ID: record.TargetID, InventoryNumber: vehicle.InventoryNumber}, nil
 	default:
-		return dataTransferApplyConflict("unsupported vehicle resolution")
+		return transferVehicleApplyResult{}, dataTransferApplyConflict("unsupported vehicle resolution")
 	}
 }
 
@@ -1007,6 +1073,7 @@ func uniqueTransferInventoryNumber(
 ) (string, error) {
 	query := map[string]string{
 		"vehicles":           `SELECT EXISTS(SELECT 1 FROM vehicles WHERE inventory_number=? COLLATE NOCASE)`,
+		"vehicle_sets":       `SELECT EXISTS(SELECT 1 FROM vehicle_sets WHERE inventory_number=? COLLATE NOCASE)`,
 		"accessory_products": `SELECT EXISTS(SELECT 1 FROM accessory_products WHERE inventory_number=? COLLATE NOCASE)`,
 		"accessory_assets":   `SELECT EXISTS(SELECT 1 FROM accessory_assets WHERE inventory_number=? COLLATE NOCASE)`,
 	}[table]
