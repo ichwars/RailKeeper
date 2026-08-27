@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -59,5 +59,35 @@ describe("base design system", () => {
     expect(baseCss).toMatch(/animation-iteration-count:\s*1\s*!important/);
     expect(baseCss).toMatch(/transition-duration:\s*0\.01ms\s*!important/);
     expect(baseCss).toMatch(/scroll-behavior:\s*auto\s*!important/);
+  });
+
+  it("bounds micro type to machine metadata and keeps user-facing small copy at caption size", () => {
+    expect(baseCss).toContain("--font-size-micro: 11px");
+    expect(baseCss).toContain("--font-size-caption: 12px");
+
+    const styles = new Map(
+      cssFiles(stylesDirectory).map((file) => [basename(file), readFileSync(file, "utf8")])
+    );
+    const combinedStyles = [...styles.entries()]
+      .filter(([name]) => name !== "base.css")
+      .map(([, css]) => css)
+      .join("\n");
+
+    expect(combinedStyles).not.toMatch(/font-size:\s*(?:11px|var\(--font-size-3xs\))/);
+    expect(combinedStyles.match(/font-size:\s*var\(--font-size-micro\)/g)).toHaveLength(1);
+    expect(styles.get("vehicle-uploads.css")).toMatch(
+      /\.pending-image-card figcaption > span\s*\{[^}]*font-size:\s*var\(--font-size-micro\)/s
+    );
+
+    const captionRoles: Array<[string, RegExp]> = [
+      ["forms-controls.css", /\.image-placeholder\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s],
+      ["overview-dashboard.css", /\.overview-quality-list b\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s],
+      ["exhibition.css", /\.event-list-state small\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s],
+      ["exhibition.css", /\.exhibition-day-tabs small\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s],
+      ["exhibition.css", /\.exhibition-quick-filters span\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s],
+      ["vehicle-uploads.css", /\.pending-image-card input\s*\{[^}]*font-size:\s*var\(--font-size-caption\)/s]
+    ];
+
+    for (const [file, role] of captionRoles) expect(styles.get(file)).toMatch(role);
   });
 });

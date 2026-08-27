@@ -518,7 +518,7 @@
 
 .event-list-state small {
   color: var(--muted);
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
 }
 
 .exhibition-all-events {
@@ -569,7 +569,7 @@
 
 .exhibition-day-tabs small {
   display: block;
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-regular);
 }
 
@@ -611,7 +611,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--text) 9%, transparent);
   color: var(--text);
-  font-size: var(--font-size-3xs);
+  font-size: var(--font-size-caption);
 }
 
 .exhibition-search {

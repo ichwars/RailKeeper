@@ -42,9 +42,12 @@
   --ease-out: ease-out;
   --font-sans: "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
-  --font-size-3xs: 11px;
-  --font-size-2xs: 12px;
-  --font-size-xs: 12px;
+  /* 11px is reserved for short machine metadata; user-facing copy starts at caption. */
+  --font-size-micro: 11px;
+  --font-size-caption: 12px;
+  --font-size-3xs: var(--font-size-micro);
+  --font-size-2xs: var(--font-size-caption);
+  --font-size-xs: var(--font-size-caption);
   --font-size-sm: 13px;
   --font-size-md: 14px;
   --font-size-base: 15px;
