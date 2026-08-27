@@ -598,6 +598,20 @@ func sortDataTransferSnapshot(snapshot *DataTransferSnapshot) {
 	slices.SortStableFunc(snapshot.Vehicles, func(left, right TransferVehicle) int {
 		return compareTransferKeys(left.InventoryNumber, right.InventoryNumber, left.ID, right.ID)
 	})
+	slices.SortStableFunc(snapshot.VehicleSets, func(left, right TransferVehicleSet) int {
+		return compareTransferKeys(left.InventoryNumber, right.InventoryNumber, left.ID, right.ID)
+	})
+	for index := range snapshot.VehicleSets {
+		slices.SortStableFunc(snapshot.VehicleSets[index].Members, func(left, right TransferVehicleSetMember) int {
+			if left.Position != right.Position {
+				return left.Position - right.Position
+			}
+			return compareTransferKeys(
+				left.VehicleInventoryNumber, right.VehicleInventoryNumber,
+				left.SourceVehicleID, right.SourceVehicleID,
+			)
+		})
+	}
 	slices.SortStableFunc(snapshot.Accessories, func(left, right TransferAccessory) int {
 		return compareTransferKeys(left.InventoryNumber, right.InventoryNumber, left.ID, right.ID)
 	})

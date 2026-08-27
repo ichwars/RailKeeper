@@ -167,6 +167,55 @@ INSERT INTO vehicles(
 	}
 }
 
+func TestDataTransferSnapshotIncludesVehicleSets(t *testing.T) {
+	db := testDB(t)
+	for _, statement := range []string{
+		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
+         VALUES('vehicle-a', 'RK-A', 'Roco', 'Wagen A', 'H0', 'Wagen', 'Reisezugwagen',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
+         VALUES('vehicle-b', 'RK-B', 'Roco', 'Wagen B', 'H0', 'Wagen', 'Reisezugwagen',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicle_sets(
+           id, inventory_number, name, manufacturer, article_number, article_source_url, gauge, epoch,
+           railway_company, category, gattung, description, ean, production_period, list_price,
+           acquisition_type, acquired_from, purchase_price, purchase_date, storage_location,
+           storage_details, condition, condition_details, packaging, created_at, updated_at
+         ) VALUES(
+           'set-1', 'Set-001', 'Rheingold', 'Roco', '43000', 'https://example.invalid/43000', 'H0', 'III',
+           'DB', 'Set', 'Reisezug', 'Komplettzug', '4000000000001', '2020', '499.00',
+           'purchase', 'Fachhandel', '450.00', '2026-08-01', 'Vitrine', 'Fach 2',
+           'very_good', 'Vollständig', 'original', '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z'
+         )`,
+		`INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
+         VALUES('set-1', 'vehicle-b', 2, 'Speisewagen')`,
+		`INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
+         VALUES('set-1', 'vehicle-a', 1, 'Steuerwagen')`,
+	} {
+		if _, err := db.Exec(statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.VehicleSets) != 1 || len(snapshot.VehicleSets[0].Members) != 2 {
+		t.Fatalf("vehicle sets = %#v", snapshot.VehicleSets)
+	}
+	set := snapshot.VehicleSets[0]
+	if set.InventoryNumber != "Set-001" || set.Name != "Rheingold" || set.ArticleNumber != "43000" ||
+		set.StorageLocation != "Vitrine" {
+		t.Fatalf("vehicle set metadata = %#v", set)
+	}
+	if set.Members[0].Position != 1 || set.Members[0].SourceVehicleID != "vehicle-a" ||
+		set.Members[0].VehicleInventoryNumber != "RK-A" || set.Members[0].Label != "Steuerwagen" ||
+		set.Members[1].Position != 2 {
+		t.Fatalf("ordered members = %#v", set.Members)
+	}
+}
+
 func TestDataTransferSnapshotAccessoryIncludesCurrentStateOnly(t *testing.T) {
 	db := testDB(t)
 	for _, statement := range []string{

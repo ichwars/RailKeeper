@@ -200,6 +200,31 @@ func TestDataTransferExportCombinedJSONHasStableOrdering(t *testing.T) {
 	}
 }
 
+func TestDataTransferExportJSONSortsVehicleSetsAndMembers(t *testing.T) {
+	snapshot := DataTransferSnapshot{
+		Vehicles: []TransferVehicle{{ID: "v-1", InventoryNumber: "RK-1"}},
+		VehicleSets: []TransferVehicleSet{
+			{ID: "set-z", InventoryNumber: "Set-010", Members: []TransferVehicleSetMember{
+				{SourceVehicleID: "v-2", VehicleInventoryNumber: "RK-2", Position: 2},
+				{SourceVehicleID: "v-1", VehicleInventoryNumber: "RK-1", Position: 1},
+			}},
+			{ID: "set-a", InventoryNumber: "Set-002"},
+		},
+	}
+	payload, err := marshalDataTransferPackage(snapshot, "2026-08-27T10:00:00Z")
+	if err != nil {
+		t.Fatal(err)
+	}
+	document, err := decodeDataTransferPackage(bytes.NewReader(payload))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if document.Areas.VehicleSets[0].ID != "set-a" ||
+		document.Areas.VehicleSets[1].Members[0].Position != 1 {
+		t.Fatalf("unstable vehicle set ordering: %#v", document.Areas.VehicleSets)
+	}
+}
+
 func TestDataTransferExportWritesConfinedArtifactWithSHA256(t *testing.T) {
 	repository := &dataTransferExportRepositoryStub{
 		profile: DataTransferProfile{
