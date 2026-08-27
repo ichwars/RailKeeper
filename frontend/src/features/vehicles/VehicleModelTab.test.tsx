@@ -25,8 +25,8 @@ describe("VehicleModelTab operational fields", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Artikel-Nr." })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Hersteller" })).toBeDisabled();
-    expect(screen.getByRole("textbox", { name: "Bezeichnung" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Hersteller Ausgefüllt" })).toBeDisabled();
+    expect(screen.getByRole("textbox", { name: "Bezeichnung Ausgefüllt" })).toBeEnabled();
   });
 
   it("renders speed and home base directly as constrained model inputs", async () => {
@@ -139,7 +139,7 @@ describe("VehicleModelTab operational fields", () => {
       />
     );
 
-    await user.click(screen.getByRole("button", { name: "Hersteller" }));
+    await user.click(screen.getByRole("button", { name: "Hersteller Ausgefüllt" }));
     expect(screen.getByRole("option", { name: "Roco (inaktiv)" })).toBeDisabled();
     expect(screen.getByRole("option", { name: "Piko" })).toBeEnabled();
     expect(screen.queryByRole("option", { name: "ESU" })).not.toBeInTheDocument();

@@ -56,9 +56,12 @@
 }
 
 .required-label {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 4px 8px;
+  min-width: 0;
+  flex-wrap: wrap;
   color: var(--text);
 }
 
@@ -89,22 +92,24 @@
   outline-color: color-mix(in srgb, var(--danger) 18%, transparent);
 }
 
-.required-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: var(--danger);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--danger) 12%, transparent);
+.required-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  color: var(--danger);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-strong);
+  line-height: var(--line-height-control-sm);
+  white-space: nowrap;
 }
 
-.required-dot.pending {
-  background: color-mix(in srgb, var(--muted) 66%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 10%, transparent);
+.required-state.pending {
+  color: var(--muted);
 }
 
-.required-dot.filled {
-  background: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 12%, transparent);
+.required-state.filled {
+  color: var(--accent-strong);
 }
 
 .vehicle-form input,

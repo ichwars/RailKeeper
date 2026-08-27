@@ -1,4 +1,4 @@
-import { QrCode } from "lucide-react";
+import { CircleAlert, CircleCheck, CircleDashed, QrCode } from "lucide-react";
 import { CreateVehicleRequest } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
@@ -30,11 +30,22 @@ function renderStaticOptions(items: string[], emptyLabel = "Bitte wählen", curr
 }
 
 export function RequiredLabel({ label, filled, showError = false }: { label: string; filled: boolean; showError?: boolean }) {
+  const { t } = useI18n();
   const stateClass = filled ? "filled" : showError ? "missing" : "pending";
+  const stateLabel = t(`vehicles.requiredState.${stateClass}`);
+  const stateIcon = filled
+    ? <CircleCheck size={14} aria-hidden="true" />
+    : showError
+      ? <CircleAlert size={14} aria-hidden="true" />
+      : <CircleDashed size={14} aria-hidden="true" />;
   return (
     <span className={`required-label ${stateClass}`}>
       {label}
-      <span className={`required-dot ${stateClass}`} aria-hidden="true" />
+      {" "}
+      <span className={`required-state ${stateClass}`} role="status" aria-label={stateLabel}>
+        {stateIcon}
+        {stateLabel}
+      </span>
     </span>
   );
 }
