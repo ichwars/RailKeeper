@@ -12,8 +12,8 @@ describe("RequiredLabel", () => {
   ])("renders the $state state with text and a distinct icon", ({ filled, showError, state, text, icon }) => {
     const { container } = render(<RequiredLabel label="Hersteller" filled={filled} showError={showError} />);
 
-    expect(screen.getByRole("status", { name: text })).toHaveTextContent(text);
-    expect(screen.getByRole("status", { name: text })).toHaveClass(state);
+    expect(screen.getByRole("status", { name: `Hersteller: ${text}` })).toHaveTextContent(text);
+    expect(screen.getByRole("status", { name: `Hersteller: ${text}` })).toHaveClass(state);
     expect(container.querySelector(`.${icon}`)).toBeInTheDocument();
   });
 
@@ -25,7 +25,7 @@ describe("RequiredLabel", () => {
       </label>,
     );
 
-    expect(screen.getByRole("textbox", { name: "Hersteller Eingabe fehlt" })).toBeRequired();
+    expect(screen.getByRole("textbox", { name: "Hersteller: Eingabe fehlt" })).toBeRequired();
   });
 
   it("provides English status text", () => {
@@ -33,6 +33,6 @@ describe("RequiredLabel", () => {
 
     render(<RequiredLabel label="Manufacturer" filled={false} showError />);
 
-    expect(screen.getByRole("status", { name: "Value missing" })).toHaveTextContent("Value missing");
+    expect(screen.getByRole("status", { name: "Manufacturer: Value missing" })).toHaveTextContent("Value missing");
   });
 });

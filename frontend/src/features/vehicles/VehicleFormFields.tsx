@@ -38,11 +38,11 @@ export function RequiredLabel({ label, filled, showError = false }: { label: str
     : showError
       ? <CircleAlert size={14} aria-hidden="true" />
       : <CircleDashed size={14} aria-hidden="true" />;
+  const accessibleStateLabel = `${label}: ${stateLabel}`;
   return (
     <span className={`required-label ${stateClass}`}>
-      {label}
-      {" "}
-      <span className={`required-state ${stateClass}`} role="status" aria-label={stateLabel}>
+      <span aria-hidden="true">{label}</span>
+      <span className={`required-state ${stateClass}`} role="status" aria-label={accessibleStateLabel}>
         {stateIcon}
         {stateLabel}
       </span>
