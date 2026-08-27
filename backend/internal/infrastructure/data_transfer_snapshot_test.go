@@ -216,6 +216,52 @@ func TestDataTransferSnapshotIncludesVehicleSets(t *testing.T) {
 	}
 }
 
+func TestDataTransferSnapshotNormalizesReachableVehicleSetMemberships(t *testing.T) {
+	db := testDB(t)
+	for _, statement := range []string{
+		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
+         VALUES('vehicle-a', 'RK-A', 'Roco', 'Wagen A', 'H0', 'Wagen', 'Reisezugwagen',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
+         VALUES('vehicle-c', 'RK-C', 'Roco', 'Wagen C', 'H0', 'Wagen', 'Reisezugwagen',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicles(id, inventory_number, manufacturer, name, gauge, category, gattung, created_at, updated_at)
+         VALUES('vehicle-d', 'RK-D', 'Roco', 'Wagen D', 'H0', 'Wagen', 'Reisezugwagen',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicle_sets(id, inventory_number, name, manufacturer, gauge, category, gattung, created_at, updated_at)
+         VALUES('set-gap', 'Set-Gap', 'Set mit Lücke', 'Roco', 'H0', 'Set', 'Reisezug',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicle_sets(id, inventory_number, name, manufacturer, gauge, category, gattung, created_at, updated_at)
+         VALUES('set-single', 'Set-Single', 'Einzelrest', 'Roco', 'H0', 'Set', 'Reisezug',
+           '2026-08-27T10:00:00Z', '2026-08-27T10:00:00Z')`,
+		`INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
+         VALUES('set-gap', 'vehicle-a', 1, 'A')`,
+		`INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
+         VALUES('set-gap', 'vehicle-c', 3, 'C')`,
+		`INSERT INTO vehicle_set_members(vehicle_set_id, vehicle_id, position, label)
+         VALUES('set-single', 'vehicle-d', 2, 'D')`,
+	} {
+		if _, err := db.Exec(statement); err != nil {
+			t.Fatal(err)
+		}
+	}
+	repository := infrastructure.NewDataTransferRepository(db)
+	snapshot, err := repository.Snapshot(t.Context(), []application.TransferArea{application.TransferVehicles})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(snapshot.VehicleSets) != 1 || snapshot.VehicleSets[0].ID != "set-gap" {
+		t.Fatalf("exportable vehicle sets = %#v", snapshot.VehicleSets)
+	}
+	set := snapshot.VehicleSets[0]
+	if len(set.Members) != 2 || set.Members[0].Position != 1 || set.Members[1].Position != 2 {
+		t.Fatalf("normalized vehicle set members = %#v", set.Members)
+	}
+	if err := application.ValidateTransferVehicleSet(set); err != nil {
+		t.Fatalf("normalized vehicle set is not importable: %v", err)
+	}
+}
+
 func TestDataTransferSnapshotAccessoryIncludesCurrentStateOnly(t *testing.T) {
 	db := testDB(t)
 	for _, statement := range []string{
