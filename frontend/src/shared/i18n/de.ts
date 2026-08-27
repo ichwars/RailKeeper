@@ -1449,6 +1449,7 @@ export const deTranslations: Record<string, string> = {
     "vehicles.exhibition.noOpenLists": "Keine offene Ausstellungsliste vorhanden.",
     "vehicles.exhibition.requiresDecoder": "Ausstellung ist erst aktiv, wenn Digital ja und eine Decoder-Nr. gepflegt ist.",
     "vehicles.exhibition.toggle": "Ausstellungsstatus ändern",
+    "vehicles.exhibition.unavailable": "Digital ja + Decoder-Nr. erforderlich",
     "vehicles.image": "Bild",
     "vehicles.view": "Anzeigen",
     "vehicles.quickMenu": "Kurzmenü",

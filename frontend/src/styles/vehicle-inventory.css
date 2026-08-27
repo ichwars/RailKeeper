@@ -190,6 +190,23 @@
   text-align: center;
 }
 
+.inventory-exhibition-unavailable {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-control-sm);
+  white-space: normal;
+}
+
+.inventory-exhibition-unavailable > svg {
+  flex: 0 0 auto;
+}
+
 .vehicle-inventory-table th.vehicle-column-inventoryNumber .sort-button,
 .vehicle-inventory-table th.vehicle-column-manufacturer .sort-button,
 .vehicle-inventory-table th.vehicle-column-articleNumber .sort-button,
