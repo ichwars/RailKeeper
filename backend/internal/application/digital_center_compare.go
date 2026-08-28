@@ -50,7 +50,7 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 	provider string,
 	actor string,
 ) (DigitalCenterReadSession, error) {
-	if service == nil || service.repository == nil || service.ecos == nil || service.vehicles == nil {
+	if service == nil || service.repository == nil || service.vehicles == nil {
 		return DigitalCenterReadSession{}, ErrDigitalCenterWorkspaceUnavailable
 	}
 	center, err := service.configuredCenter(ctx, provider)
@@ -77,11 +77,7 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 		return DigitalCenterReadSession{}, fmt.Errorf("start digital center read session: %w", err)
 	}
 
-	probe, err := service.ecos.ProbeLocomotiveRaw(ctx, ECoSConnectionInput{Host: center.Host, Port: center.Port})
-	if err != nil {
-		return service.finishFailedReadSession(ctx, session, err)
-	}
-	locomotives, err := normalizeDigitalCenterLocomotives(probe)
+	locomotives, err := service.readDigitalCenterLocomotives(ctx, center)
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, err)
 	}
@@ -108,6 +104,42 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 		return DigitalCenterReadSession{}, fmt.Errorf("record completed digital center read: %w", err)
 	}
 	return session, nil
+}
+
+func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
+	ctx context.Context,
+	center DigitalCenterSummary,
+) ([]ECoSRawLocomotive, error) {
+	var locomotives []ECoSRawLocomotive
+	switch center.Provider {
+	case "ecos":
+		if service.ecos == nil {
+			return nil, ErrDigitalCenterWorkspaceUnavailable
+		}
+		probe, err := service.ecos.ProbeLocomotiveRaw(
+			ctx,
+			ECoSConnectionInput{Host: center.Host, Port: center.Port},
+		)
+		if err != nil {
+			return nil, err
+		}
+		return normalizeDigitalCenterLocomotives(probe)
+	case "cs3":
+		if service.digitalCenters == nil {
+			return nil, ErrDigitalCenterWorkspaceUnavailable
+		}
+		var err error
+		locomotives, _, err = service.digitalCenters.ReadCS3Locomotives(
+			ctx,
+			DigitalCenterConnectionInput{Host: center.Host, Port: center.Port},
+		)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, ErrDigitalCenterCapabilityUnavailable
+	}
+	return normalizeDigitalCenterLocomotives(&ECoSRawProbe{Locomotives: locomotives})
 }
 
 func (service *DigitalCenterWorkspaceService) configuredCenter(

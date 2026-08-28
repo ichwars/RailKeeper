@@ -4,7 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"testing"
 	"time"
 
@@ -58,6 +62,56 @@ func TestDigitalCenterReadSessionLeavesEveryVehicleRowUnchanged(t *testing.T) {
 
 	if !reflect.DeepEqual(after, before) {
 		t.Fatalf("digital center read mutated vehicle rows:\nbefore=%#v\nafter=%#v", before, after)
+	}
+}
+
+func TestCS3ReadSessionLeavesEveryVehicleRowUnchanged(t *testing.T) {
+	requestMethods := []string{}
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requestMethods = append(requestMethods, request.Method)
+		if request.URL.Path != "/app/api/locos" {
+			t.Errorf("request path = %q, want current CS3 roster endpoint", request.URL.Path)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`[{"uid":"0x2a","name":"BR 218","address":3,"dectyp":"mfx+"}]`))
+	}))
+	defer server.Close()
+
+	db := testDB(t)
+	vehicles := application.NewVehicleService(db)
+	settings := application.NewSettingsService(db)
+	ctx := t.Context()
+	if _, err := vehicles.Create(ctx, application.CreateVehicleInput{
+		Manufacturer: "Piko", Name: "BR 218", Gauge: "H0", Category: "Lokomotive",
+		Gattung: "Diesellok", Digital: true, DigitalDecoderNumber: "3",
+	}, "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	address := server.Listener.Addr().(*net.TCPAddr)
+	if _, err := settings.UpdateDigitalSettings(ctx, application.DigitalCenterSettings{
+		Provider: "cs3",
+		CS3: application.DigitalProviderSettings{
+			Enabled: true, Host: address.IP.String(), Port: strconv.Itoa(address.Port),
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	before := snapshotVehicleRows(t, db)
+	workspace := application.NewDigitalCenterWorkspaceService(
+		infrastructure.NewDigitalCenterWorkspaceRepository(db), settings,
+		nil, application.NewDigitalCenterService(), vehicles, nil,
+	)
+	if _, err := workspace.StartReadSession(ctx, "cs3", "admin-1"); err != nil {
+		t.Fatal(err)
+	}
+	after := snapshotVehicleRows(t, db)
+
+	if !reflect.DeepEqual(after, before) {
+		t.Fatalf("CS3 read mutated vehicle rows:\nbefore=%#v\nafter=%#v", before, after)
+	}
+	if !reflect.DeepEqual(requestMethods, []string{http.MethodGet}) {
+		t.Fatalf("CS3 request methods = %v, want one read-only GET", requestMethods)
 	}
 }
 

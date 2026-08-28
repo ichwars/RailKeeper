@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"math"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"testing"
 )
 
@@ -124,6 +128,55 @@ func TestDigitalCenterWorkspaceReadUsesConfiguredTargetAndPersistsReadyWorklist(
 	}
 	if vehicles.listCalls != 1 || ecos.probeCalls != 1 {
 		t.Fatalf("read calls: vehicles=%d ECoS=%d", vehicles.listCalls, ecos.probeCalls)
+	}
+}
+
+func TestDigitalCenterWorkspaceReadsCS3RosterIntoExistingConflictWorkflow(t *testing.T) {
+	requestCount := 0
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		requestCount++
+		if request.Method != http.MethodGet || request.URL.Path != "/app/api/locos" {
+			t.Errorf("request = %s %s, want read-only current CS3 roster endpoint", request.Method, request.URL.Path)
+		}
+		writer.Header().Set("Content-Type", "application/json")
+		_, _ = writer.Write([]byte(`[{"uid":"0x2a","name":"BR 218","address":24,"dectyp":"mfx+"}]`))
+	}))
+	defer server.Close()
+
+	repository := &workspaceRepositoryMemory{}
+	settings := &workspaceSettingsReaderStub{value: DigitalCenterSettings{
+		Provider: "cs3",
+		CS3: DigitalProviderSettings{
+			Enabled: true, Host: server.Listener.Addr().(*net.TCPAddr).IP.String(),
+			Port: strconv.Itoa(server.Listener.Addr().(*net.TCPAddr).Port),
+		},
+	}}
+	vehicles := &workspaceVehicleReaderStub{vehicles: []Vehicle{
+		mappedDigitalCenterVehicle("vehicle-1", "cs3", "old-1", "24", "MFX"),
+		mappedDigitalCenterVehicle("vehicle-2", "cs3", "old-2", "24", "MFX"),
+	}}
+	service := NewDigitalCenterWorkspaceService(
+		repository, settings, nil, NewDigitalCenterService(), vehicles, nil,
+	)
+
+	session, err := service.StartReadSession(t.Context(), "cs3", "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestCount != 1 || vehicles.listCalls != 1 {
+		t.Fatalf("read calls: CS3=%d vehicles=%d, want one each", requestCount, vehicles.listCalls)
+	}
+	if session.State != DigitalCenterSessionReady || !session.Capabilities.ReadLocomotives ||
+		session.Capabilities.LiveMonitor || session.Capabilities.WriteLocomotives || session.Capabilities.WriteCVs {
+		t.Fatalf("session = %#v, want ready read-only CS3 session", session)
+	}
+	if len(repository.items) != 3 {
+		t.Fatalf("work items = %#v, want one conflict and two missing mappings", repository.items)
+	}
+	item := repository.items[0]
+	if item.CenterObjectID != "42" || item.Protocol != "MFX" ||
+		item.CompareStatus != DigitalCompareConflict || len(item.Conflicts) != 2 {
+		t.Fatalf("CS3 work item = %#v, want normalized visible conflict", item)
 	}
 }
 

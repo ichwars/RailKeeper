@@ -141,7 +141,11 @@ func capabilitiesForProvider(provider string) DigitalCenterCapabilities {
 	case "z21", "intellibox3":
 		return DigitalCenterCapabilities{TestConnection: true, Diagnose: true}
 	case "cs3":
-		return DigitalCenterCapabilities{TestConnection: true}
+		return DigitalCenterCapabilities{
+			TestConnection:  true,
+			ReadLocomotives: true,
+			Diagnose:        true,
+		}
 	default:
 		return DigitalCenterCapabilities{}
 	}

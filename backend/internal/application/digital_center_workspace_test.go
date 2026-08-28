@@ -116,7 +116,7 @@ func TestDigitalCenterWorkspaceReportsTruthfulProviderCapabilities(t *testing.T)
 		TestConnection: true, Diagnose: true,
 	})
 	assertDigitalCenterCapabilities(t, byProvider["cs3"], application.DigitalCenterCapabilities{
-		TestConnection: true,
+		TestConnection: true, ReadLocomotives: true, Diagnose: true,
 	})
 }
 
