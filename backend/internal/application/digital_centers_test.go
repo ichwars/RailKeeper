@@ -167,13 +167,13 @@ func TestDigitalCenterServiceProbeIntellibox3ConnectionUsesZ21CompatibleDiagnost
 
 func TestDigitalCenterServiceTestCS3Connection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/app/api/version" {
+		if r.URL.Path != "/app/api/locos" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"version": "2.5.2",
-			"name":    "CS3",
-		})
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode([]map[string]any{{
+			"name": "BR 218", "uid": "0xc003", "address": 3, "dectyp": "dcc",
+		}})
 	}))
 	defer server.Close()
 
@@ -183,7 +183,8 @@ func TestDigitalCenterServiceTestCS3Connection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("test cs3 failed: %v", err)
 	}
-	if !result.Connected || result.Provider != "cs3" || result.Fields["version"] != "2.5.2" {
+	if !result.Connected || result.Provider != "cs3" || result.Fields["apiGeneration"] != "2.6+" ||
+		result.Fields["locomotiveCount"] != "1" {
 		t.Fatalf("unexpected result: %#v", result)
 	}
 }

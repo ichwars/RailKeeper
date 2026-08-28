@@ -511,7 +511,7 @@ func normalizeDigitalCenterName(value string) (string, error) {
 
 func normalizeDigitalCenterProtocol(value string) (string, error) {
 	compact := strings.Map(func(character rune) rune {
-		if unicode.IsSpace(character) || strings.ContainsRune("-_/.", character) {
+		if unicode.IsSpace(character) || strings.ContainsRune("-_/.+", character) {
 			return -1
 		}
 		if !unicode.IsLetter(character) && !unicode.IsDigit(character) {

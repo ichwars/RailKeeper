@@ -377,7 +377,9 @@ func (repository *workspaceRepositoryMemory) ConsumeWriteGrant(
 }
 
 func TestNormalizeDigitalCenterProtocolAliases(t *testing.T) {
-	tests := map[string]string{"DCC128": "DCC", "dcc-28": "DCC", "MM27": "MOTOROLA", "mfx": "MFX"}
+	tests := map[string]string{
+		"DCC128": "DCC", "dcc-28": "DCC", "MM27": "MOTOROLA", "mfx": "MFX", "mfx+": "MFX",
+	}
 	for input, want := range tests {
 		got, err := normalizeDigitalCenterProtocol(input)
 		if err != nil || got != want {
