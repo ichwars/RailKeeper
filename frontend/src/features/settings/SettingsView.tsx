@@ -49,6 +49,11 @@ import { applyStoredThemeOptions, applyThemePreference, readThemePreference, the
 import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
+import {
+  MasterDataBulkSelectAllCheckbox,
+  MasterDataBulkToolbar,
+  useMasterDataBulkSelection
+} from "./MasterDataBulkSelection";
 import { MasterDataLifecycleActions } from "./MasterDataLifecycleActions";
 import {
   generalDataTypes,
@@ -192,6 +197,7 @@ export function SettingsView({ username }: { username: string }) {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [masterDataBatchBusy, setMasterDataBatchBusy] = useState(false);
   const [search, setSearch] = useState("");
   const [masterDataSort, setMasterDataSort] = useState<MasterDataSortState>({ key: "name", direction: "asc" });
   const [articleSearchEnabled, setArticleSearchEnabled] = useState(
@@ -279,6 +285,7 @@ export function SettingsView({ username }: { username: string }) {
   const [twoFactorMessage, setTwoFactorMessage] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<SettingsConfirmDialog | null>(null);
   const canManageUsers = Boolean(currentSession?.roles.includes("Admin"));
+  const canEditMasterData = Boolean(currentSession?.roles.some((role) => role === "Admin" || role === "Editor"));
   const languageLocale = language === "de" ? "de-DE" : "en-US";
   const backupRestorePhrase = t("settings.backup.confirmPhrase");
   const backupRestoreConfirmed =
@@ -376,6 +383,11 @@ export function SettingsView({ username }: { username: string }) {
       `${entry.label} ${cv8NameText(entry)} ${entry.key} ${entry.sourceUrl || ""} ${manufacturerWebsite(entry)} ${manufacturerSearchDomainsText(entry)} ${manufacturerAliasesText(entry)} ${metadataString(entry, "description")} ${cv8DecimalText(entry)} ${cv8BinaryText(entry)} ${cv8HexText(entry)} ${cv8CountryText(entry)}`.toLocaleLowerCase("de-DE").includes(needle)
     );
   }, [items, search]);
+  const masterDataSelection = useMasterDataBulkSelection(
+    `${activeType}|${search}`,
+    items,
+    filteredItems
+  );
 
   useEffect(() => {
     setEditing(null);
@@ -534,6 +546,7 @@ export function SettingsView({ username }: { username: string }) {
   }, [activeSettingsTab, activeType, dataGroup]);
 
   const reloadActiveType = () => {
+    masterDataSelection.clear();
     setLoadingTypes((current) => ({ ...current, [activeType]: true }));
     setMessage("");
     api
@@ -1173,6 +1186,42 @@ export function SettingsView({ username }: { username: string }) {
     });
   };
 
+  const deactivateSelectedEntries = () => {
+    const keys = [...masterDataSelection.selectedKeys];
+    const count = keys.length;
+    if (count === 0) return;
+    setConfirmDialog({
+      title: t("settings.master.deactivateManyTitle"),
+      body: t("settings.master.deactivateManyBody", { count }),
+      confirmLabel: t(
+        count === 1 ? "settings.master.deactivateOneConfirm" : "settings.master.deactivateManyConfirm",
+        { count }
+      ),
+      onConfirm: () => {
+        setMasterDataBatchBusy(true);
+        setMessage("");
+        api.setMasterDataActiveMany(activeType, keys, false)
+          .then((updated) => {
+            const byKey = new Map(updated.map((entry) => [entry.key, entry]));
+            setItemsByType((current) => ({
+              ...current,
+              [activeType]: (current[activeType] || []).map((entry) => byKey.get(entry.key) || entry)
+            }));
+            if (editing) {
+              const updatedEditing = byKey.get(editing.key);
+              if (updatedEditing) {
+                setEditing(updatedEditing);
+                setForm(entryToForm(updatedEditing));
+              }
+            }
+            masterDataSelection.clear();
+          })
+          .catch((error: Error) => setMessage(error.message))
+          .finally(() => setMasterDataBatchBusy(false));
+      }
+    });
+  };
+
   const deleteEntry = (entry: MasterDataEntry) => {
     setConfirmDialog({
       title: t("settings.master.deleteTitle"),
@@ -1284,6 +1333,24 @@ export function SettingsView({ username }: { username: string }) {
   };
 
   const masterDataColumns: MasterDataTableColumn[] = [];
+  if (canEditMasterData) {
+    masterDataColumns.push({
+      key: "selection",
+      label: "",
+      align: "center",
+      sortable: false,
+      render: (entry) => entry.active && entry.capabilities?.canDeactivate ? (
+        <input
+          className="master-data-bulk-checkbox"
+          type="checkbox"
+          aria-label={t("settings.master.selectEntry", { label: entry.label })}
+          checked={masterDataSelection.isSelected(entry.key)}
+          disabled={masterDataBatchBusy}
+          onChange={(event) => masterDataSelection.toggle(entry.key, event.target.checked)}
+        />
+      ) : null
+    });
+  }
   if (isSymbolData) {
     masterDataColumns.push({
       key: "symbol",
@@ -1420,6 +1487,7 @@ export function SettingsView({ username }: { username: string }) {
         onDeactivate={() => deactivateEntry(entry)}
         onReactivate={() => setEntryActive(entry, true)}
         onDelete={() => deleteEntry(entry)}
+        disabled={masterDataBatchBusy}
       />
     )
   });
@@ -1931,6 +1999,12 @@ export function SettingsView({ username }: { username: string }) {
                   </div>
                 )}
 
+                {canEditMasterData && <MasterDataBulkToolbar
+                  count={masterDataSelection.selectedCount}
+                  busy={masterDataBatchBusy}
+                  onDeactivate={deactivateSelectedEntries}
+                />}
+
                 <div className={`table-wrap master-data-table master-data-table-${activeType}`}>
                   <table>
                     <thead>
@@ -1948,7 +2022,12 @@ export function SettingsView({ username }: { username: string }) {
                               className={className}
                               aria-sort={isActiveSort ? (masterDataSort.direction === "asc" ? "ascending" : "descending") : "none"}
                             >
-                              {column.sortable === false || !column.sortValue ? (
+                              {column.key === "selection" ? (
+                                <MasterDataBulkSelectAllCheckbox
+                                  selection={masterDataSelection}
+                                  disabled={masterDataBatchBusy}
+                                />
+                              ) : column.sortable === false || !column.sortValue ? (
                                 column.label
                               ) : (
                                 <button

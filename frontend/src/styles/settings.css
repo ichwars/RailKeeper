@@ -2052,7 +2052,8 @@
   color: var(--muted);
 }
 
-.master-data-selection-col {
+.master-data-selection-col,
+.master-data-col-selection {
   width: 46px;
   text-align: center;
 }

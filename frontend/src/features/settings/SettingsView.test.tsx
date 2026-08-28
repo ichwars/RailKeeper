@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { api } from "../../shared/api";
+import { api, type MasterDataEntry } from "../../shared/api";
 import { SettingsView } from "./SettingsView";
 import { readSettingsLocation } from "./settingsDataModel";
 import {
@@ -194,6 +194,54 @@ describe("SettingsView data navigation", () => {
 
     await waitFor(() => expect(api.setMasterDataActive)
       .toHaveBeenCalledWith("manufacturer", "tillig", false));
+  });
+
+  it("deactivates selected visible master data with one confirmed batch request", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState(null, "", "/settings?tab=data");
+    vi.mocked(api.session).mockResolvedValue({
+      username: "editor",
+      roles: ["Editor"],
+      csrfToken: "test",
+      twoFactorEnabled: false
+    });
+    const manufacturer = (key: string, label: string): MasterDataEntry => ({
+      id: `manufacturer-${key}`,
+      type: "manufacturer",
+      key,
+      label,
+      active: true,
+      sortOrder: 10,
+      metadata: {},
+      origin: "bundled",
+      capabilities: { canDeactivate: true, canReactivate: false, canDelete: false },
+      createdAt: "2026-08-16T10:00:00Z",
+      updatedAt: "2026-08-16T10:00:00Z"
+    });
+    const tillig = manufacturer("tillig", "Tillig");
+    const roco = manufacturer("roco", "Roco");
+    vi.mocked(api.managedMasterDataAll).mockResolvedValue({ manufacturer: [tillig, roco] });
+    vi.spyOn(api, "setMasterDataActiveMany").mockResolvedValue([tillig, roco].map((item) => ({
+      ...item,
+      active: false,
+      capabilities: { canDeactivate: false, canReactivate: true, canDelete: false }
+    })));
+
+    render(<SettingsView username="editor" />);
+
+    await user.click(await screen.findByRole("checkbox", {
+      name: "Alle sichtbaren aktiven Einträge auswählen"
+    }));
+    expect(screen.getByText("2 Einträge ausgewählt")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Ausgewählte deaktivieren" }));
+    expect(screen.getByRole("dialog", { name: "Ausgewählte Stammdateneinträge deaktivieren" }))
+      .toHaveTextContent("2 ausgewählte Einträge");
+    await user.click(screen.getByRole("button", { name: "2 Einträge deaktivieren" }));
+
+    await waitFor(() => expect(api.setMasterDataActiveMany)
+      .toHaveBeenCalledWith("manufacturer", ["tillig", "roco"], false));
+    expect(screen.queryByText("2 Einträge ausgewählt")).not.toBeInTheDocument();
+    expect(screen.getAllByText("Inaktiv")).toHaveLength(2);
   });
 
   it.each([
