@@ -40,6 +40,7 @@ export function ArticleToolbar({
   hasActiveFilters,
   onViewModeChange,
   columns = defaultArticleTableColumns,
+  columnsLoading = false,
   onToggleColumn = () => undefined,
   onMoveColumn = () => undefined,
   onResetColumns = () => undefined,
@@ -54,6 +55,7 @@ export function ArticleToolbar({
   hasActiveFilters: boolean;
   onViewModeChange: (mode: ArticleViewMode) => void;
   columns?: readonly ArticleTableColumn[];
+  columnsLoading?: boolean;
   onToggleColumn?: (column: ArticleTableColumn) => void;
   onMoveColumn?: (column: ArticleTableColumn, direction: ArticleColumnMove) => void;
   onResetColumns?: () => void;
@@ -102,6 +104,7 @@ export function ArticleToolbar({
           {viewMode === "table" ? (
             <ArticleColumnPicker
               columns={columns}
+              loading={columnsLoading}
               onToggle={onToggleColumn}
               onMove={onMoveColumn}
               onReset={onResetColumns}

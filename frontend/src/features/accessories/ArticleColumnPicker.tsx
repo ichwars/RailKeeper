@@ -10,12 +10,19 @@ import {
 
 type ArticleColumnPickerProps = {
   columns: readonly ArticleTableColumn[];
+  loading?: boolean;
   onToggle: (column: ArticleTableColumn) => void;
   onMove: (column: ArticleTableColumn, direction: ArticleColumnMove) => void;
   onReset: () => void;
 };
 
-export function ArticleColumnPicker({ columns, onToggle, onMove, onReset }: ArticleColumnPickerProps) {
+export function ArticleColumnPicker({
+  columns,
+  loading = false,
+  onToggle,
+  onMove,
+  onReset
+}: ArticleColumnPickerProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -56,6 +63,7 @@ export function ArticleColumnPicker({ columns, onToggle, onMove, onReset }: Arti
         title={t("accessories.view.columns")}
         aria-haspopup="dialog"
         aria-expanded={open}
+        disabled={loading}
         onClick={() => setOpen((current) => !current)}
       >
         <Columns3 size={16} aria-hidden="true" />

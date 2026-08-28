@@ -160,6 +160,7 @@ export function AccessoriesView({
             hasActiveFilters={overview.hasActiveFilters}
             onViewModeChange={changeViewMode}
             columns={columnPreferences.columns}
+            columnsLoading={columnPreferences.loading}
             onToggleColumn={columnPreferences.toggleColumn}
             onMoveColumn={columnPreferences.moveColumn}
             onResetColumns={columnPreferences.resetColumns}
