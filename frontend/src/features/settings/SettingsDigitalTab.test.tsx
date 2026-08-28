@@ -111,4 +111,48 @@ describe("SettingsDigitalTab commissioning workflow", () => {
     });
     expect(await screen.findByText("Adapter-Verbindung wurde entfernt.")).toBeInTheDocument();
   });
+
+  it("runs CS3 read-only diagnostics and exposes the import safety boundary", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.digitalSettings).mockResolvedValue({
+      ...settings(),
+      provider: "cs3",
+      cs3: { enabled: true, host: "192.168.2.46", port: "80" }
+    });
+    vi.spyOn(api, "probeCS3Connection").mockResolvedValue({
+      provider: "cs3",
+      connected: true,
+      host: "192.168.2.46",
+      port: 80,
+      message: "CS3-Diagnose abgeschlossen.",
+      fields: { readOnly: "true", locomotiveCount: "1" },
+      commands: [{
+        name: "CS3_LOCOMOTIVE_API",
+        description: "Read-only Loklisten-API",
+        request: "GET /app/api/locos",
+        commandHex: "",
+        ok: true,
+        fields: { readOnly: "true", locomotiveCount: "1" }
+      }]
+    });
+
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    expect(await screen.findByText("192.168.2.46:80")).toBeInTheDocument();
+    expect(screen.getByText("Liest Name, Adresse und Protokoll nur lesend in den Vergleichsbereich ein.")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: "Letzte Diagnose" }));
+    await user.click(screen.getByRole("button", { name: "Diagnosedaten lesen" }));
+
+    await waitFor(() => {
+      expect(api.probeCS3Connection).toHaveBeenCalledWith({ host: "192.168.2.46", port: 80 });
+    });
+    expect(await screen.findByText("GET /app/api/locos")).toBeInTheDocument();
+    expect(screen.getAllByText("true").length).toBeGreaterThan(0);
+  });
 });
