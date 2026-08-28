@@ -54,8 +54,9 @@ against the project sources in both English and German.
 - Responsive inventory workflow with mobile-optimized dialogs, filter controls and camera fallback for barcode entry
 - Reviewed ECoS locomotive exchange reads locomotive data, CV values, and static function keys, then
   writes name, address, and protocol only after preview and confirmation. It does not monitor speed,
-  direction, active function states, or ECoS layout object managers. Z21 UDP and CS3 HTTP remain
-  connection-test adapters.
+  direction, active function states, or ECoS layout object managers. CS3 reads name, address, and
+  protocol into the comparison workspace without writing. Z21 and Intellibox 3 remain connection
+  and diagnostic adapters.
 - Decoder function mapping from F0 to F31 with symbol library and stored SVG/PNG graphics
 - Structured CV values, CV import/export, decoder profiles, NMRA CV8 manufacturer master data and ESU/LokProgrammer file metadata
 - Maintenance, condition history and searchable documentation per vehicle

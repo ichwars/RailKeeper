@@ -22,7 +22,8 @@ workspace.
 | Active provider | Import/Export behavior in v0.1.20.2 |
 | --- | --- |
 | ESU ECoS | Read workflow, vehicle handoff, CV and static-function suggestions, and reviewed write sync are available. |
-| Z21, Intellibox 3, or Märklin CS3 | RailKeeper shows that the import path is prepared but not implemented. |
+| Märklin CS3 | Read-only import of UID, name, address, and protocol into the same comparison workspace. See [Read CS3 locomotives without writing](./cs3-import). |
+| Z21 or Intellibox 3 | RailKeeper shows that the import path is prepared but not implemented. |
 | No active provider | The page shows a link to the Digital command-station settings. |
 
 RailKeeper does not monitor speed, direction, active function states, locomotive images, or layout
@@ -118,7 +119,8 @@ layout objects to the command station.
 | Symptom | Check |
 | --- | --- |
 | The ECoS workspace is absent or disabled | Confirm an Admin enabled ECoS and stored a non-empty host under Digital command stations. |
-| Another provider is active | v0.1.20.2 only implements this import path for ECoS. |
+| A CS3 is active | Use the read-only CS3 workflow. ECoS-specific CV, function, and write features are unavailable there. |
+| Z21 or Intellibox 3 is active | These adapters support connection tests and diagnostics, but not locomotive import yet. |
 | Fetching fails | Check network reachability, stored host and port, ECoS availability, and Admin role. |
 | A wrong vehicle is suggested | Do not update or sync it. Correct the external mapping or decoder/name data through the vehicle workflow first. |
 | A CV or function is missing | The ECoS locomotive object did not expose it, or RailKeeper did not recognize it as a static supported value. Missing CVs do not block saving. |

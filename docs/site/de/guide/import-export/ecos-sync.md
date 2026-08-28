@@ -22,7 +22,8 @@ Port sind im Import-Arbeitsbereich schreibgeschützt.
 | Aktiver Anbieter | Verhalten unter Import/Export in v0.1.20.2 |
 | --- | --- |
 | ESU ECoS | Leseablauf, Fahrzeugübergabe, CV- und statische Funktionsvorschläge sowie geprüfter Schreib-Sync sind verfügbar. |
-| Z21, Intellibox 3 oder Märklin CS3 | RailKeeper zeigt, dass der Importpfad vorbereitet, aber noch nicht umgesetzt ist. |
+| Märklin CS3 | Read-only Import von UID, Name, Adresse und Protokoll in denselben Vergleichsbereich. Siehe [CS3-Lokdaten read-only lesen](./cs3-import). |
+| Z21 oder Intellibox 3 | RailKeeper zeigt, dass der Importpfad vorbereitet, aber noch nicht umgesetzt ist. |
 | Kein aktiver Anbieter | Die Seite zeigt einen Verweis zu den Digitalzentralen-Einstellungen. |
 
 RailKeeper überwacht in diesem Ablauf weder Geschwindigkeit noch Richtung, aktive
@@ -124,7 +125,8 @@ werden nicht in die Digitalzentrale geschrieben.
 | Symptom | Prüfen |
 | --- | --- |
 | ECoS-Arbeitsbereich fehlt oder ist deaktiviert | Prüfen, ob ein Admin ECoS aktiviert und unter Digitalzentralen einen nicht leeren Host gespeichert hat. |
-| Ein anderer Anbieter ist aktiv | v0.1.20.2 setzt diesen Importpfad nur für ECoS um. |
+| Eine CS3 ist aktiv | Den read-only CS3-Leseablauf verwenden. ECoS-spezifische CV-, Funktions- und Schreibfunktionen stehen dort nicht zur Verfügung. |
+| Z21 oder Intellibox 3 ist aktiv | Diese Adapter unterstützen Verbindungstest und Diagnose, aber noch keinen Lokimport. |
 | Datenabruf scheitert | Netzwerkerreichbarkeit, gespeicherten Host und Port, ECoS-Verfügbarkeit und Admin-Rolle prüfen. |
 | Ein falsches Fahrzeug wird vorgeschlagen | Nicht aktualisieren oder synchronisieren. Zuerst externe Zuordnung oder Decoder-/Namensdaten im Fahrzeugablauf korrigieren. |
 | Eine CV oder Funktion fehlt | Das ECoS-Lokobjekt hat sie nicht bereitgestellt oder RailKeeper hat sie nicht als statischen unterstützten Wert erkannt. Fehlende CVs blockieren das Speichern nicht. |
