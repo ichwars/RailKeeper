@@ -58,6 +58,10 @@ describe("LayoutTwinPanel", () => {
   it("renders the transformed twin, filters statuses, and opens the inspector by click and keyboard", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "layoutTwin").mockResolvedValue(twin);
+    const history = vi.spyOn(api, "accessoryUsageHistory").mockImplementation(async (productID) => ({
+      productId: productID,
+      events: []
+    }));
     render(<LayoutTwinPanel layout={layout} units={[unit]} configurations={[configuration]} canPlan />);
 
     expect(await screen.findByRole("img", { name: "Grafische Anlagenübersicht mit technischen Positionen" }))
@@ -79,6 +83,7 @@ describe("LayoutTwinPanel", () => {
     defectiveMarker.focus();
     await user.keyboard("{Enter}");
     await waitFor(() => expect(screen.getByLabelText("Positionsinspektor")).toHaveTextContent("Weiche West"));
+    await waitFor(() => expect(history).toHaveBeenCalledWith("product-2"));
   });
 
   it("uses the app-owned empty state when no unit or configuration exists", () => {
@@ -90,9 +95,7 @@ describe("LayoutTwinPanel", () => {
 
   it("keeps editing role-gated and autosaves keyboard and pointer changes", async () => {
     const user = userEvent.setup();
-    const pendingReload = new Promise<LayoutTwin>(() => undefined);
-    vi.spyOn(api, "layoutTwin").mockResolvedValueOnce(twin).mockReturnValueOnce(pendingReload)
-      .mockResolvedValue(twin);
+    vi.spyOn(api, "layoutTwin").mockResolvedValue(twin);
     const updatePosition = vi.spyOn(api, "updateLayoutTechnicalPosition").mockResolvedValue({
       id: "position-reserved", layoutUnitId: unit.id, label: "Einfahrsignal A", kind: "signal",
       positionXMm: 151, positionYMm: 80, rotationDegrees: 90, version: 2, archived: false,
@@ -112,7 +115,7 @@ describe("LayoutTwinPanel", () => {
     await user.keyboard("{ArrowRight}");
     await waitFor(() => expect(updatePosition).toHaveBeenCalledWith("position-reserved",
       expect.objectContaining({ positionXMm: 151, positionYMm: 80, expectedVersion: 1 })), { timeout: 1500 });
-    await waitFor(() => expect(api.layoutTwin).toHaveBeenCalledTimes(2));
+    expect(api.layoutTwin).toHaveBeenCalledTimes(1);
 
     const canvas = screen.getByRole("img", { name: "Grafische Anlagenübersicht mit technischen Positionen" });
     vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
@@ -126,6 +129,34 @@ describe("LayoutTwinPanel", () => {
     await waitFor(() => expect(updateOutline).toHaveBeenCalledWith(unit.id,
       expect.objectContaining({ expectedVersion: 1 })), { timeout: 4000 });
   }, 10000);
+
+  it("keeps independent autosaves when two positions are edited within the debounce window", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "layoutTwin").mockResolvedValue(twin);
+    const updatePosition = vi.spyOn(api, "updateLayoutTechnicalPosition").mockResolvedValue({
+      id: "position-reserved", layoutUnitId: unit.id, label: "Einfahrsignal A", kind: "signal",
+      positionXMm: 151, positionYMm: 80, rotationDegrees: 90, version: 2, archived: false,
+      createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T11:00:00Z"
+    });
+    render(<LayoutTwinPanel layout={layout} units={[unit]} configurations={[configuration]} canPlan />);
+    await screen.findByRole("img", { name: "Grafische Anlagenübersicht mit technischen Positionen" });
+    await user.click(screen.getByRole("button", { name: "Bearbeiten" }));
+
+    const reserved = screen.getByRole("button", { name: /Einfahrsignal A, Reserviert/ });
+    reserved.focus();
+    await user.keyboard("{ArrowRight}");
+    const defective = screen.getByRole("button", { name: /Weiche West, Eingebaut, Defekt/ });
+    defective.focus();
+    await user.keyboard("{ArrowDown}");
+
+    await waitFor(() => expect(updatePosition).toHaveBeenCalledTimes(2), { timeout: 2000 });
+    expect(updatePosition).toHaveBeenCalledWith("position-reserved", expect.objectContaining({
+      positionXMm: 151, positionYMm: 80
+    }));
+    expect(updatePosition).toHaveBeenCalledWith("position-defective", expect.objectContaining({
+      positionXMm: 500, positionYMm: 121
+    }));
+  });
 
   it("preserves the local edit on a version conflict and hides editing from viewers", async () => {
     const user = userEvent.setup();

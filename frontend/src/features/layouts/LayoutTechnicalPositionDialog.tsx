@@ -59,7 +59,7 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
   conflict: boolean;
   returnFocusTo?: HTMLElement | null;
   onSubmit: (input: LayoutTechnicalPositionInput, expectedVersion?: number) => void | Promise<void>;
-  onReloadConflict?: () => Promise<number | void>;
+  onReloadConflict?: () => Promise<LayoutTechnicalPosition | void>;
   onClose: () => void;
 }) {
   const [form, setForm] = useState(() => formValue(position));
@@ -99,8 +99,10 @@ export function LayoutTechnicalPositionDialog({ unit, position, products, saving
   };
 
   const reloadConflict = async () => {
-    const version = await onReloadConflict?.();
-    if (version) setExpectedVersion(version);
+    const current = await onReloadConflict?.();
+    if (!current) return;
+    setForm(formValue(current));
+    setExpectedVersion(current.version);
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {

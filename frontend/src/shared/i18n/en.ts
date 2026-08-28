@@ -2832,7 +2832,7 @@ export const enTranslations: Record<string, string> = {
     "layouts.technology.summary": "{count} positions in the selected unit",
     "layouts.technology.editLabel": "Edit {name}",
     "layouts.technology.conflict": "The position changed on the server. Your entries have been preserved.",
-    "layouts.technology.reloaded": "Current version loaded. Your entries have been preserved.",
+    "layouts.technology.reloaded": "Current server version loaded. The local draft was replaced.",
     "layouts.technology.missingAfterReload": "The position no longer exists on the server.",
     "layouts.positionKind.turnout": "Turnout",
     "layouts.positionKind.signal": "Signal",

@@ -1,4 +1,4 @@
-import { Check, Info, Map, Pencil, RefreshCw, TriangleAlert, X } from "lucide-react";
+import { Check, Info, Map as MapIcon, Pencil, RefreshCw, TriangleAlert, X } from "lucide-react";
 import { KeyboardEvent, PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -42,6 +42,14 @@ function positionSymbol(position: LayoutTwinPosition) {
   return symbols[position.kind];
 }
 
+function positionProductIDs(position: LayoutTwinPosition) {
+  return [...new Set([
+    position.productId,
+    ...position.reservations.map((reservation) => reservation.productId),
+    ...position.installations.map((installation) => installation.productId)
+  ].filter((productID): productID is string => Boolean(productID)))];
+}
+
 type TwinDrag =
   | { kind: "position"; id: string; unitID: string; pointerID: number }
   | { kind: "outline"; unitID: string; pointIndex: number; pointerID: number };
@@ -77,7 +85,7 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
   const [editConflict, setEditConflict] = useState(false);
   const twinRef = useRef<LayoutTwin | null>(null);
   const dragRef = useRef<TwinDrag | null>(null);
-  const saveTimerRef = useRef<number | null>(null);
+  const saveTimersRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
     if (sources.some((option) => option.value === source)) return;
@@ -109,7 +117,8 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
   }, [layout.id, reloadKey, source]);
 
   useEffect(() => () => {
-    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    saveTimersRef.current.forEach((timer) => window.clearTimeout(timer));
+    saveTimersRef.current.clear();
   }, []);
 
   useEffect(() => {
@@ -190,12 +199,18 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
     if (!position) return;
     setSavingKey(`position:${positionID}`);
     try {
-      await api.updateLayoutTechnicalPosition(positionID, {
+      const saved = await api.updateLayoutTechnicalPosition(positionID, {
         label: position.label, kind: position.kind, positionXMm: position.localXMm,
         positionYMm: position.localYMm, rotationDegrees: position.localRotationDegrees,
         productId: position.productId, description: position.description, expectedVersion: position.version
       });
-      setReloadKey((current) => current + 1);
+      const current = twinRef.current;
+      if (current) applyTwin({ ...current, units: current.units.map((unit) => unit.id === unitID ? {
+        ...unit,
+        positions: unit.positions.map((item) => item.id === positionID
+          ? { ...item, version: saved.version }
+          : item)
+      } : unit) });
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) setEditConflict(true);
       else setError(reason instanceof Error ? reason.message : t("layouts.error.generic"));
@@ -209,10 +224,13 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
     if (!unit) return;
     setSavingKey(`outline:${unitID}`);
     try {
-      await api.updateLayoutUnitOutline(unitID, {
+      const saved = await api.updateLayoutUnitOutline(unitID, {
         points: unit.localOutline, expectedVersion: unit.version
       });
-      setReloadKey((current) => current + 1);
+      const current = twinRef.current;
+      if (current) applyTwin({ ...current, units: current.units.map((item) => item.id === unitID
+        ? { ...item, version: saved.version }
+        : item) });
     } catch (reason) {
       if (reason instanceof ApiError && reason.status === 409) setEditConflict(true);
       else setError(reason instanceof Error ? reason.message : t("layouts.error.generic"));
@@ -222,12 +240,15 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
   };
 
   const scheduleSave = (drag: TwinDrag) => {
-    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = window.setTimeout(() => {
-      saveTimerRef.current = null;
+    const key = drag.kind === "position" ? `position:${drag.id}` : `outline:${drag.unitID}`;
+    const currentTimer = saveTimersRef.current.get(key);
+    if (currentTimer !== undefined) window.clearTimeout(currentTimer);
+    const timer = window.setTimeout(() => {
+      saveTimersRef.current.delete(key);
       if (drag.kind === "position") void savePosition(drag.id, drag.unitID);
       else void saveOutline(drag.unitID);
     }, 300);
+    saveTimersRef.current.set(key, timer);
   };
 
   const handlePointerMove = (event: PointerEvent<SVGSVGElement>) => {
@@ -268,7 +289,7 @@ export function LayoutTwinPanel({ layout, units, configurations, canPlan }: {
 
   return <section className="panel layout-twin-panel">
     <div className="layout-panel-head layout-twin-head">
-      <div className="panel-title"><Map size={17} /><div><h3>{t("layouts.twin.title")}</h3>
+      <div className="panel-title"><MapIcon size={17} /><div><h3>{t("layouts.twin.title")}</h3>
         <p>{t("layouts.twin.subtitle")}</p></div></div>
       <div className="layout-twin-head-actions">{canPlan ? <button type="button"
         className={editing ? "secondary-button compact-action active" : "secondary-button compact-action"}
@@ -412,7 +433,8 @@ function LayoutTwinInspector({ position, unitName, onClose }: {
           {allocation.wiringNotes ? <small>{t("layouts.twin.inspector.wiringNotes")}: {allocation.wiringNotes}</small> : null}
         </article>)}</div> : <p className="layout-empty">{t("layouts.twin.inspector.noAllocations")}</p>}</section>
       <section><h5>{t("layouts.twin.history.title")}</h5>
-        <LayoutTwinHistory key={position.id} positionID={position.id} productID={position.productId} /></section>
+        <LayoutTwinHistory key={position.id} positionID={position.id}
+          productIDs={positionProductIDs(position)} /></section>
     </div>
   </aside>;
 }
