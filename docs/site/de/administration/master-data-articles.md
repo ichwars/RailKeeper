@@ -3,8 +3,8 @@ title: Artikelstammdaten und Lagerorte
 description: Bestandseinheiten, Artikelklassifizierung, eigene Felder und hierarchische Lagerorte konfigurieren.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.3
+lastReviewed: 2026-08-28
 ---
 
 # Artikelstammdaten und Lagerorte
@@ -24,6 +24,19 @@ Deaktivierung entfernt sie aus neuen Artikelauswahlen. Bereits zugeordnete Artik
 historischen Wert. Eine eigene Einheit kann nur endgültig gelöscht werden, solange kein Artikel
 ihren Schlüssel verwendet.
 
+## Mehrere Einträge deaktivieren
+
+Die Tabellen für Bestandseinheiten, Artikelarten, Unterarten und eigene Felder bieten Admin und
+Editor eine Mehrfachauswahl. Auswahlfelder erscheinen nur bei aktiven Einträgen, die deaktiviert
+werden dürfen. Das Feld im Tabellenkopf markiert alle geeigneten Einträge der aktuellen Tabelle;
+beim Wechsel des Stammdatentyps wird die Auswahl geleert.
+
+**Ausgewählte deaktivieren** zeigt vor dem Schreiben Datentyp und Anzahl zur Bestätigung. Der Server
+verarbeitet den bestätigten Satz atomar. Fehlt ein Eintrag oder schlägt der Vorgang fehl, bleibt die
+gesamte gespeicherte Konfiguration unverändert und die Auswahl bleibt für eine Korrektur erhalten.
+Nach Erfolg wird sie geleert. Inaktive Einträge lassen sich nur einzeln reaktivieren. Lagerorte
+gehören nicht zu diesem Mehrfachablauf.
+
 ## Artikelarten und Unterarten
 
 RailKeeper liefert acht geschützte Artikelart-Schlüssel aus:
@@ -37,7 +50,7 @@ RailKeeper liefert acht geschützte Artikelart-Schlüssel aus:
 - Beleuchtung
 - Sonstiges
 
-Bezeichnungen und Aktivstatus lassen sich verwalten, aber v0.1.20.2 erlaubt weder neue noch gelöschte
+Bezeichnungen und Aktivstatus lassen sich verwalten, aber v0.1.20.3 erlaubt weder neue noch gelöschte
 Artikelart-Schlüssel. Dadurch bleiben die zugehörigen Verträge für Fachangaben geschützt. Eine
 Deaktivierung entfernt die Art aus neuen Artikelauswahlen, ohne vorhandene Artikel umzuschreiben.
 
@@ -80,7 +93,7 @@ Namen müssen innerhalb derselben Ebene ohne Beachtung der Groß- und Kleinschre
 Ein Lagerort kann weder sein eigener übergeordneter Ort sein noch unter einen seiner Nachfolger
 verschoben werden. Die Elternauswahl blendet diese ungültigen Möglichkeiten aus.
 
-In v0.1.20.2 gibt es keine endgültige Löschaktion. Einen nicht mehr verwendeten Ort archivieren und
+In v0.1.20.3 gibt es keine endgültige Löschaktion. Einen nicht mehr verwendeten Ort archivieren und
 bei Bedarf reaktivieren. Bestand und Einzelstücke können einen Ort nur verwenden, wenn dieser Ort
 und alle übergeordneten Orte aktiv sind. Das Archivieren eines Elternorts sperrt daher seinen
 gesamten Zweig für neue Bestandsvorgänge, ohne gespeicherte Ortsverweise zu löschen.
@@ -115,4 +128,4 @@ abgewiesener Vorgang lässt die gespeicherte Konfiguration unverändert.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

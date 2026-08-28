@@ -3,7 +3,7 @@ title: Read CS3 locomotives without writing
 description: Safely read Märklin CS3 locomotives and compare them in the Digital centers workspace.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-28
 ---
 
@@ -79,4 +79,4 @@ the preview.
 
 ## Documented RailKeeper version
 
-This chapter documents RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-28.
+This chapter documents RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

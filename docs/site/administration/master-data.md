@@ -3,8 +3,8 @@ title: Master-data administration
 description: Govern RailKeeper master data, inventory-number schemes, locations, and transfers safely.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.3
+lastReviewed: 2026-08-28
 ---
 
 # Master-data administration
@@ -14,7 +14,7 @@ or numbering rules. Most of it is managed under **Settings > Data**. Inventory-n
 under **Settings > General**, and the master-data JSON transfer is under
 **Settings > Import/Export**.
 
-This section documents stable RailKeeper v0.1.20.2. It separates four administrative workflows:
+This section documents stable RailKeeper v0.1.20.3. It separates four administrative workflows:
 
 - [General master data](./master-data-general) for vehicles, manufacturers, CV8 identities, and
   function symbols.
@@ -37,7 +37,7 @@ This section documents stable RailKeeper v0.1.20.2. It separates four administra
 
 Viewer and Planner inherit read access. Article management explicitly displays a read-only state.
 Some controls in the general master-data and inventory-number panels can still remain visible to
-those roles in v0.1.20.2, but the server rejects every write. Visible controls are never an access
+those roles in v0.1.20.3, but the server rejects every write. Visible controls are never an access
 grant.
 
 A pure Messe account cannot open Settings. It can read the active function-symbol subset only
@@ -55,6 +55,11 @@ Every controlled entry has an origin:
 Both origins can be edited, deactivated, and reactivated. Deactivation removes an entry from new
 selections. Existing records retain their stored value and continue to show it as inactive. It is
 therefore the safe way to retire a value that remains part of inventory history.
+
+Multi-selection is available for active entries of one data type. It deactivates all confirmed
+entries in one transaction. If any entry fails, the complete set remains unchanged. Bulk
+reactivation is not available; reactivate inactive entries individually. This workflow applies to
+general and article master data, not to inventory-number schemes or storage locations.
 
 Permanent deletion is deliberately narrower. RailKeeper offers it only for a custom entry whose
 type has a known usage check and whose key or label is not referenced. Standard article-type keys
@@ -82,4 +87,4 @@ application backup when those settings must be recoverable together with the inv
 
 ## Documented RailKeeper version
 
-This section documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This section documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

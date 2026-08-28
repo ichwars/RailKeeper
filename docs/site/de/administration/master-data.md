@@ -3,8 +3,8 @@ title: Stammdaten-Administration
 description: Stammdaten, Inventarnummern, Lagerorte und Transfer in RailKeeper sicher verwalten.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.3
+lastReviewed: 2026-08-28
 ---
 
 # Stammdaten-Administration
@@ -15,7 +15,7 @@ Klassifizierungen, Symbole oder Nummerierungsregeln benötigen. Der größte Tei
 **Einstellungen > Allgemein**, der JSON-Stammdatentransfer unter
 **Einstellungen > Import/Export**.
 
-Dieser Bereich dokumentiert RailKeeper v0.1.20.2 und trennt vier administrative Abläufe:
+Dieser Bereich dokumentiert RailKeeper v0.1.20.3 und trennt vier administrative Abläufe:
 
 - [Allgemeine Stammdaten](./master-data-general) für Fahrzeuge, Hersteller, CV8-Kennungen und
   Funktionssymbole.
@@ -37,7 +37,7 @@ Dieser Bereich dokumentiert RailKeeper v0.1.20.2 und trennt vier administrative 
 
 Viewer und Planner erben den Lesezugriff. Die Artikelverwaltung zeigt ausdrücklich einen
 Nur-Lese-Zustand. Einige Bedienelemente für allgemeine Stammdaten und Inventarnummern können für
-diese Rollen in v0.1.20.2 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
+diese Rollen in v0.1.20.3 trotzdem sichtbar bleiben, der Server weist aber jeden Schreibvorgang ab.
 Ein sichtbares Bedienelement erteilt niemals eine Berechtigung.
 
 Ein reines Messe-Konto kann die Einstellungen nicht öffnen. Es kann nur die aktiven
@@ -56,6 +56,12 @@ Einträge beider Herkünfte lassen sich bearbeiten, deaktivieren und reaktiviere
 entfernt einen Eintrag aus neuen Auswahlen. Bestehende Datensätze behalten ihren gespeicherten Wert
 und zeigen ihn weiterhin als inaktiv an. So wird ein historisch noch benötigter Wert sicher außer
 Betrieb genommen.
+
+Für mehrere aktive Einträge desselben Datentyps steht eine Mehrfachauswahl zur Verfügung. Sie
+deaktiviert alle bestätigten Einträge in einer gemeinsamen Transaktion. Schlägt ein Eintrag fehl,
+bleibt der gesamte Satz unverändert. Eine Mehrfach-Reaktivierung gibt es nicht; inaktive Einträge
+werden einzeln reaktiviert. Der Ablauf gilt für allgemeine und artikelbezogene Stammdaten, nicht für
+Inventarnummernschemata oder Lagerorte.
 
 Das endgültige Löschen ist absichtlich enger gefasst. RailKeeper bietet es nur für einen eigenen
 Eintrag an, dessen Datentyp eine bekannte Verwendungsprüfung besitzt und dessen Schlüssel oder
@@ -85,4 +91,4 @@ zusammen mit dem Bestand wiederherstellbar sein müssen, ist eine Anwendungssich
 
 ## Dokumentierte RailKeeper-Version
 
-Dieser Bereich dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Dieser Bereich dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

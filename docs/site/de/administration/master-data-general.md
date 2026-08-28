@@ -3,14 +3,14 @@ title: Allgemeine Stammdaten
 description: Fahrzeugklassifizierungen, Hersteller, CV8-Kennungen und Funktionssymbole verwalten.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.3
+lastReviewed: 2026-08-28
 ---
 
 # Allgemeine Stammdaten
 
 Unter **Einstellungen > Daten > Allgemein** werden die gemeinsamen Auswahlen für Fahrzeuge,
-Zubehör, Decoderdaten und Messen verwaltet. RailKeeper v0.1.20.2 stellt acht Datentypen bereit.
+Zubehör, Decoderdaten und Messen verwaltet. RailKeeper v0.1.20.3 stellt acht Datentypen bereit.
 
 ## Datentypen
 
@@ -42,6 +42,20 @@ gewechselt, erneutes Auswählen kehrt die Reihenfolge um. Aktive und inaktive Ei
 
 Nach einer parallelen Änderung durch einen anderen Administrator die Aktualisierungsaktion
 verwenden. Beim Wechsel des Datentyps werden aktueller Entwurf, Suche und Sortierung zurückgesetzt.
+
+## Mehrere Einträge deaktivieren
+
+Auswahlfelder erscheinen nur bei aktiven Einträgen, die deaktiviert werden dürfen. Einzelne Zeilen
+auswählen oder über das Feld im Tabellenkopf alle aktuell durch die Suche sichtbaren, geeigneten
+Einträge markieren. Eine bereits gesetzte Auswahl bleibt beim Ändern des Suchbegriffs erhalten; die
+Aktionsleiste zeigt deshalb immer die Gesamtzahl der im aktuellen Datentyp ausgewählten Einträge.
+Beim Wechsel des Datentyps wird die Auswahl geleert.
+
+**Ausgewählte deaktivieren** öffnet eine Bestätigung mit Datentyp und Anzahl. Erst die Bestätigung
+sendet den vollständigen Satz an den Server. RailKeeper verarbeitet ihn atomar: Fehlt ein Eintrag
+oder schlägt die Verarbeitung fehl, wird keiner der ausgewählten Einträge geändert und die Auswahl
+bleibt für eine Korrektur erhalten. Nach erfolgreicher Deaktivierung wird sie geleert. Eine
+Mehrfach-Reaktivierung ist nicht vorgesehen; inaktive Einträge einzeln reaktivieren.
 
 ## Hersteller verwalten
 
@@ -117,4 +131,4 @@ Planner abgewiesen, ist ein Admin- oder Editor-Konto erforderlich.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

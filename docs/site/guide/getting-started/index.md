@@ -3,14 +3,14 @@ title: First setup and sign-in
 description: Create the first administrator, sign in securely, and recover access to RailKeeper.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
 # First setup and sign-in
 
 This chapter covers the first administrator account, normal and two-factor sign-in, sign-out, and
-password recovery. It describes stable RailKeeper v0.1.20.2.
+password recovery. It describes stable RailKeeper v0.1.20.3.
 
 ## Before you start
 
@@ -116,5 +116,5 @@ confirmations to ten within ten minutes.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last checked against the application on
+This page documents stable RailKeeper **v0.1.20.3** and was last checked against the application on
 2026-08-16.
