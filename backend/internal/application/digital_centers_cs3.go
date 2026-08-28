@@ -222,7 +222,7 @@ func (s *DigitalCenterService) fetchCS3Locomotives(
 	}
 	if len(data) > maxCS3ResponseBytes {
 		return nil, metadata, &cs3ReadError{
-			kind: cs3ErrorFormat, status: response.Status, cause: errors.New("Antwort ist zu groß"),
+			kind: cs3ErrorFormat, status: response.Status, cause: errors.New("antwort ist zu groß"),
 		}
 	}
 	var records []cs3LocomotiveRecord
