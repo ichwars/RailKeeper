@@ -131,7 +131,7 @@ export const enTranslations: Record<string, string> = {
     "settings.master.selectedMany": "{count} entries selected",
     "settings.master.deactivateSelected": "Deactivate selected",
     "settings.master.deactivateManyTitle": "Deactivate selected master-data entries",
-    "settings.master.deactivateManyBody": "The {count} selected entries will no longer be offered for new records. Existing saved uses remain unchanged.",
+    "settings.master.deactivateManyBody": "The {count} selected entries from “{type}” will no longer be offered for new records. Existing saved uses remain unchanged.",
     "settings.master.deactivateOneConfirm": "Deactivate 1 entry",
     "settings.master.deactivateManyConfirm": "Deactivate {count} entries",
     "settings.tabs.data": "Data",

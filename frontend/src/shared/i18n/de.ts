@@ -131,7 +131,7 @@ export const deTranslations: Record<string, string> = {
     "settings.master.selectedMany": "{count} Einträge ausgewählt",
     "settings.master.deactivateSelected": "Ausgewählte deaktivieren",
     "settings.master.deactivateManyTitle": "Ausgewählte Stammdateneinträge deaktivieren",
-    "settings.master.deactivateManyBody": "{count} ausgewählte Einträge werden für neue Datensätze nicht mehr angeboten. Bestehende gespeicherte Verwendungen bleiben unverändert.",
+    "settings.master.deactivateManyBody": "{count} ausgewählte Einträge aus „{type}“ werden für neue Datensätze nicht mehr angeboten. Bestehende gespeicherte Verwendungen bleiben unverändert.",
     "settings.master.deactivateOneConfirm": "1 Eintrag deaktivieren",
     "settings.master.deactivateManyConfirm": "{count} Einträge deaktivieren",
     "settings.tabs.data": "Daten",

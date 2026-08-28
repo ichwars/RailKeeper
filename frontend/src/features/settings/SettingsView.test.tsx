@@ -235,7 +235,7 @@ describe("SettingsView data navigation", () => {
     expect(screen.getByText("2 Einträge ausgewählt")).toBeVisible();
     await user.click(screen.getByRole("button", { name: "Ausgewählte deaktivieren" }));
     expect(screen.getByRole("dialog", { name: "Ausgewählte Stammdateneinträge deaktivieren" }))
-      .toHaveTextContent("2 ausgewählte Einträge");
+      .toHaveTextContent("2 ausgewählte Einträge aus „Hersteller“");
     await user.click(screen.getByRole("button", { name: "2 Einträge deaktivieren" }));
 
     await waitFor(() => expect(api.setMasterDataActiveMany)

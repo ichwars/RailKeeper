@@ -263,6 +263,29 @@ describe("ArticleManagementSettings", () => {
     expect(screen.getByText("2 Einträge ausgewählt")).toBeVisible();
   });
 
+  it("names the article master-data type and count in bulk confirmation", async () => {
+    const user = userEvent.setup();
+    const onConfirmAction = vi.fn();
+    vi.mocked(api.managedMasterData).mockImplementation(async (type) => type === "stock_unit"
+      ? [entry("stock_unit", "piece", "Piece"), entry("stock_unit", "box", "Box")]
+      : []);
+    render(<ArticleManagementSettings
+      roles={["Editor"]}
+      activeSection="stock_unit"
+      onSectionChange={vi.fn()}
+      onConfirmAction={onConfirmAction}
+    />);
+
+    await user.click(await screen.findByRole("checkbox", {
+      name: "Alle sichtbaren aktiven Einträge auswählen"
+    }));
+    await user.click(screen.getByRole("button", { name: "Ausgewählte deaktivieren" }));
+
+    expect(onConfirmAction).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.stringContaining("2 ausgewählte Einträge aus „Bestandseinheiten“")
+    }));
+  });
+
   it("shows origin and only deletes an unused custom entry after confirmation", async () => {
     const user = userEvent.setup();
     const custom = {

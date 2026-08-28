@@ -53,6 +53,8 @@ Content-Type: application/json
 
 Die Antwort ist eine Liste der aktualisierten `MasterDataEntry`-Objekte einschließlich ihrer
 Management-Fähigkeiten. Der Endpunkt bleibt Editor/Admin vorbehalten und CSRF-geschützt.
+Der öffentliche Handler akzeptiert ausschließlich `active: false`; `active: true` wird mit
+`400 master_data_validation` abgelehnt. Eine Sammelreaktivierung bleibt damit ausgeschlossen.
 
 Der Anwendungsdienst:
 

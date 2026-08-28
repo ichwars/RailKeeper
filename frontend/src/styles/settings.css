@@ -2054,8 +2054,18 @@
 
 .master-data-selection-col,
 .master-data-col-selection {
-  width: 46px;
+  width: 52px;
   text-align: center;
+}
+
+.master-data-bulk-checkbox-target {
+  align-items: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
 }
 
 .master-data-bulk-checkbox {
@@ -2067,6 +2077,10 @@
 }
 
 .master-data-bulk-checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.master-data-bulk-checkbox-target:has(.master-data-bulk-checkbox:disabled) {
   cursor: not-allowed;
 }
 

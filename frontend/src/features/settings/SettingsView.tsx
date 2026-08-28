@@ -50,6 +50,7 @@ import { SettingsAuthTab } from "./SettingsAuthTab";
 import { SettingsDigitalTab } from "./SettingsDigitalTab";
 import { ArticleManagementSettings } from "./ArticleManagementSettings";
 import {
+  MasterDataBulkEntryCheckbox,
   MasterDataBulkSelectAllCheckbox,
   MasterDataBulkToolbar,
   useMasterDataBulkSelection
@@ -1192,7 +1193,7 @@ export function SettingsView({ username }: { username: string }) {
     if (count === 0) return;
     setConfirmDialog({
       title: t("settings.master.deactivateManyTitle"),
-      body: t("settings.master.deactivateManyBody", { count }),
+      body: t("settings.master.deactivateManyBody", { count, type: activeDataLabel }),
       confirmLabel: t(
         count === 1 ? "settings.master.deactivateOneConfirm" : "settings.master.deactivateManyConfirm",
         { count }
@@ -1339,16 +1340,12 @@ export function SettingsView({ username }: { username: string }) {
       label: "",
       align: "center",
       sortable: false,
-      render: (entry) => entry.active && entry.capabilities?.canDeactivate ? (
-        <input
-          className="master-data-bulk-checkbox"
-          type="checkbox"
-          aria-label={t("settings.master.selectEntry", { label: entry.label })}
-          checked={masterDataSelection.isSelected(entry.key)}
-          disabled={masterDataBatchBusy}
-          onChange={(event) => masterDataSelection.toggle(entry.key, event.target.checked)}
-        />
-      ) : null
+      render: (entry) => <MasterDataBulkEntryCheckbox
+        selection={masterDataSelection}
+        entry={entry}
+        label={isCV8ManufacturerData ? cv8NameText(entry) : entry.label}
+        disabled={masterDataBatchBusy}
+      />
     });
   }
   if (isSymbolData) {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { MasterDataEntry } from "../../shared/api";
 import {
+  MasterDataBulkEntryCheckbox,
   MasterDataBulkSelectAllCheckbox,
   MasterDataBulkToolbar,
   useMasterDataBulkSelection
@@ -83,6 +84,12 @@ describe("useMasterDataBulkSelection", () => {
       const selection = useMasterDataBulkSelection("manufacturer", entries, entries);
       return <>
         <MasterDataBulkSelectAllCheckbox selection={selection} disabled={busy} />
+        <MasterDataBulkEntryCheckbox
+          selection={selection}
+          entry={entries[0]}
+          label={entries[0].label}
+          disabled={busy}
+        />
         <button type="button" onClick={() => selection.toggle("first", true)}>Ersten auswählen</button>
         <MasterDataBulkToolbar count={selection.selectedCount} busy={busy} onDeactivate={onDeactivate} />
       </>;
@@ -90,6 +97,9 @@ describe("useMasterDataBulkSelection", () => {
 
     const { rerender } = render(<Harness />);
     const selectAll = screen.getByRole("checkbox", { name: "Alle sichtbaren aktiven Einträge auswählen" });
+    const selectFirst = screen.getByRole("checkbox", { name: "First auswählen" });
+    expect(selectAll.closest("label")).toHaveClass("master-data-bulk-checkbox-target");
+    expect(selectFirst.closest("label")).toHaveClass("master-data-bulk-checkbox-target");
     expect(selectAll).not.toBeChecked();
     expect(selectAll).toHaveProperty("indeterminate", false);
 

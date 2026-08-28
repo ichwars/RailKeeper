@@ -7,6 +7,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
 import {
+  MasterDataBulkEntryCheckbox,
   MasterDataBulkSelectAllCheckbox,
   MasterDataBulkToolbar,
   useMasterDataBulkSelection
@@ -163,7 +164,10 @@ function MasterDataSettingsSection({
     if (count === 0) return;
     onConfirmAction({
       title: t("settings.master.deactivateManyTitle"),
-      body: t("settings.master.deactivateManyBody", { count }),
+      body: t("settings.master.deactivateManyBody", {
+        count,
+        type: t(`settings.articleManagement.master.${type}`)
+      }),
       confirmLabel: t(
         count === 1 ? "settings.master.deactivateOneConfirm" : "settings.master.deactivateManyConfirm",
         { count }
@@ -304,14 +308,12 @@ function MasterDataSettingsSection({
               const displayLabel = masterDataDisplayLabel(entry, t);
               return <tr key={entry.id} className={entry.active ? "" : "muted-row"}>
                 {canEdit && <td className="master-data-selection-col">
-                  {entry.active && entry.capabilities?.canDeactivate && <input
-                    className="master-data-bulk-checkbox"
-                    type="checkbox"
-                    aria-label={t("settings.master.selectEntry", { label: displayLabel })}
-                    checked={bulkSelection.isSelected(entry.key)}
+                  <MasterDataBulkEntryCheckbox
+                    selection={bulkSelection}
+                    entry={entry}
+                    label={displayLabel}
                     disabled={busy}
-                    onChange={(event) => bulkSelection.toggle(entry.key, event.target.checked)}
-                  />}
+                  />
                 </td>}
                 <td><strong>{displayLabel}</strong></td>
                 <td><code>{entry.key}</code></td>

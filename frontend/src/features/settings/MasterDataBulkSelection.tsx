@@ -101,15 +101,42 @@ export function MasterDataBulkSelectAllCheckbox({
     if (inputRef.current) inputRef.current.indeterminate = selection.someVisibleSelected;
   }, [selection.someVisibleSelected]);
 
-  return <input
-    ref={inputRef}
-    className="master-data-bulk-checkbox"
-    type="checkbox"
-    aria-label={t("settings.master.selectAllVisible")}
-    checked={selection.allVisibleSelected}
-    disabled={disabled || selection.selectableVisibleCount === 0}
-    onChange={(event) => selection.toggleVisible(event.target.checked)}
-  />;
+  return <label className="master-data-bulk-checkbox-target">
+    <input
+      ref={inputRef}
+      className="master-data-bulk-checkbox"
+      type="checkbox"
+      aria-label={t("settings.master.selectAllVisible")}
+      checked={selection.allVisibleSelected}
+      disabled={disabled || selection.selectableVisibleCount === 0}
+      onChange={(event) => selection.toggleVisible(event.target.checked)}
+    />
+  </label>;
+}
+
+export function MasterDataBulkEntryCheckbox({
+  selection,
+  entry,
+  label,
+  disabled = false
+}: {
+  selection: MasterDataBulkSelectionState;
+  entry: MasterDataEntry;
+  label: string;
+  disabled?: boolean;
+}) {
+  const { t } = useI18n();
+  if (!canSelect(entry)) return null;
+  return <label className="master-data-bulk-checkbox-target">
+    <input
+      className="master-data-bulk-checkbox"
+      type="checkbox"
+      aria-label={t("settings.master.selectEntry", { label })}
+      checked={selection.isSelected(entry.key)}
+      disabled={disabled}
+      onChange={(event) => selection.toggle(entry.key, event.target.checked)}
+    />
+  </label>;
 }
 
 export function MasterDataBulkToolbar({
