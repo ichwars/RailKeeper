@@ -1,7 +1,7 @@
 # Massen-Deaktivierung für Stammdaten
 
-Datum: 28. August 2026  
-Issue: #142
+- Datum: 28. August 2026
+- Issue: #142
 
 ## Ziel
 
