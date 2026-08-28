@@ -68,7 +68,19 @@ export function TableColumnResizeHandle({
       event.currentTarget.releasePointerCapture?.(event.pointerId);
     }
     dragRef.current = null;
-    onCommit(drag.currentWidth);
+    if (drag.currentWidth !== drag.startWidth) onCommit(drag.currentWidth);
+  };
+
+  const cancelDrag = (event: PointerEvent<HTMLSpanElement>) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerID !== event.pointerId) return;
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+    }
+    dragRef.current = null;
+    if (drag.currentWidth !== drag.startWidth) onPreview(drag.startWidth);
   };
 
   const resizeWithKeyboard = (event: KeyboardEvent<HTMLSpanElement>) => {
@@ -108,7 +120,7 @@ export function TableColumnResizeHandle({
       onPointerDown={startDrag}
       onPointerMove={moveDrag}
       onPointerUp={finishDrag}
-      onPointerCancel={finishDrag}
+      onPointerCancel={cancelDrag}
     />
   );
 }

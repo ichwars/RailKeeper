@@ -43,6 +43,7 @@ type ArticleTableProps = {
   onDelete?: (article: AccessoryArticleListItem) => void;
   columns?: readonly ArticleTableColumn[];
   columnWidths?: TableColumnWidths<ArticleTableColumn>;
+  columnWidthsLoading?: boolean;
   onPreviewColumnWidth?: (column: ArticleTableColumn, width: number) => void;
   onCommitColumnWidth?: (column: ArticleTableColumn, width: number) => void;
 };
@@ -81,6 +82,7 @@ export function ArticleTable({
   onDelete,
   columns = defaultArticleTableColumns,
   columnWidths = {},
+  columnWidthsLoading = false,
   onPreviewColumnWidth,
   onCommitColumnWidth
 }: ArticleTableProps) {
@@ -99,7 +101,7 @@ export function ArticleTable({
   }, [allSelected, someSelected]);
 
   const resizeHandle = (column: ArticleTableColumn, label: string) => {
-    if (!onPreviewColumnWidth || !onCommitColumnWidth) return null;
+    if (columnWidthsLoading || !onPreviewColumnWidth || !onCommitColumnWidth) return null;
     const definition = articleTableColumnWidthDefinitions[column];
     return <TableColumnResizeHandle
       label={t("common.resizeColumn", { label })}
@@ -205,11 +207,14 @@ export function ArticleTable({
     <div className="table-wrap article-table-wrap">
       <table className="inventory-table article-table" style={tableStyle}>
         <colgroup>
-          <col className="select-cell" />
+          <col className="select-cell" style={{ width: 44, minWidth: 44, maxWidth: 44 }} />
           {columns.map((column) => <col key={column} data-column={column} style={{
             width: `${tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}px`
           }} />)}
-          <col className="actions-cell" />
+          <col className="table-fill-cell" style={{
+            width: `max(0px, calc(100% - ${minimumWidth}px))`
+          }} />
+          <col className="actions-cell" style={{ width: 136, minWidth: 136, maxWidth: 136 }} />
         </colgroup>
         <thead>
           <tr>
@@ -221,6 +226,7 @@ export function ArticleTable({
               </label>
             </th>
             {columns.map(renderHeader)}
+            <th className="table-fill-cell" aria-hidden="true" />
             <th className="actions-cell">{t("accessories.table.actions")}</th>
           </tr>
         </thead>
@@ -238,6 +244,7 @@ export function ArticleTable({
                 </label>
               </td>
               {columns.map((column) => renderCell(article, column))}
+              <td className="table-fill-cell" aria-hidden="true" />
               <td className="actions-cell">
                 <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
                   onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
