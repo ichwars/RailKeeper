@@ -893,9 +893,21 @@ components:
           type: boolean
         diagnose:
           type: boolean
+    DigitalCenterTransport:
+      type: object
+      required: [id, status, capabilities]
+      properties:
+        id:
+          type: string
+          enum: [ecos_tcp, z21_udp, loconet_tcp, cs3_http]
+        status:
+          type: string
+          enum: [available, planned]
+        capabilities:
+          $ref: "#/components/schemas/DigitalCenterCapabilities"
     DigitalCenterSummary:
       type: object
-      required: [provider, name, active, selected, host, port, capabilities]
+      required: [provider, name, active, selected, host, port, capabilities, transports]
       properties:
         provider:
           $ref: "#/components/schemas/DigitalCenterProvider"
@@ -913,6 +925,11 @@ components:
           maximum: 65535
         capabilities:
           $ref: "#/components/schemas/DigitalCenterCapabilities"
+        transports:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/DigitalCenterTransport"
     DigitalCenterWorkspaceSummary:
       type: object
       required: [centers]

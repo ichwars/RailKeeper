@@ -112,7 +112,8 @@ func TestOpenAPIDigitalCenterSchemasExposeExactRuntimeEnumsAndTelemetry(t *testi
 	}
 	contract := string(data)
 	expectations := map[string][]string{
-		"DigitalCenterSummary":        {"capabilities:", "selected:", "active:"},
+		"DigitalCenterSummary":        {"capabilities:", "transports:", "selected:", "active:"},
+		"DigitalCenterTransport":      {"enum: [ecos_tcp, z21_udp, loconet_tcp, cs3_http]", "enum: [available, planned]", "capabilities:"},
 		"DigitalCenterReadSession":    {"enum: [reading, ready, interrupted, failed]", "readCompletedAt:"},
 		"DigitalCenterWorkItem":       {"enum: [ok, deviation, missing, new, conflict]", "center:", "railkeeper:", "conflicts:"},
 		"DigitalCenterSessionMessage": {"enum: [info, warning, error]", "nextAction:"},

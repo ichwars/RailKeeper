@@ -3243,6 +3243,67 @@
   gap: 3px;
 }
 
+.digital-transport-status {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--panel-subtle);
+}
+
+.digital-transport-status h3 {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.digital-transport-status article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 8px;
+}
+
+.digital-transport-status article > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.digital-transport-status strong,
+.digital-transport-status span,
+.digital-transport-status em {
+  overflow-wrap: anywhere;
+}
+
+.digital-transport-status strong {
+  font-size: var(--font-size-xs);
+}
+
+.digital-transport-status span {
+  color: var(--muted);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-control-sm);
+}
+
+.digital-transport-status em {
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: var(--font-size-xs);
+  font-style: normal;
+  font-weight: var(--font-weight-bold);
+}
+
+.digital-transport-status em.available {
+  color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+}
+
+.digital-transport-status em.planned {
+  color: var(--muted);
+  background: var(--line);
+}
+
 .digital-capability-list {
   display: grid;
   border-top: 1px solid var(--line);

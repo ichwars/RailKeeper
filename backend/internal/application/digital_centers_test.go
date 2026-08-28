@@ -3,13 +3,17 @@ package application
 import (
 	"context"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDigitalCenterServiceTestZ21Connection(t *testing.T) {
@@ -80,9 +84,98 @@ func TestDigitalCenterServiceTestIntellibox3ConnectionUsesZ21CompatibleUDP(t *te
 	if !result.Connected || result.Provider != "intellibox3" || result.Fields["serialNumber"] != "987654" {
 		t.Fatalf("unexpected result: %#v", result)
 	}
+	if result.Fields["transport"] != "z21_udp" || result.Fields["loconetTcpStatus"] != "planned" {
+		t.Fatalf("unexpected Intellibox 3 transport fields: %#v", result.Fields)
+	}
 	command := <-received
 	if len(command) != 4 || binary.LittleEndian.Uint16(command[2:4]) != z21LANGetSerialNumber {
 		t.Fatalf("unexpected intellibox 3 command: %#v", command)
+	}
+}
+
+func TestDigitalCenterServiceTestIntellibox3ConnectionSkipsAsyncDatasets(t *testing.T) {
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen udp: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	go func() {
+		buffer := make([]byte, 128)
+		_, address, readErr := conn.ReadFrom(buffer)
+		if readErr != nil {
+			return
+		}
+		asyncCode := z21TestResponse(z21LANGetCode, []byte{0x00})
+		serial := z21TestResponse(z21LANGetSerialNumber, []byte{0x40, 0xE2, 0x01, 0x00})
+		_, _ = conn.WriteTo(append(asyncCode, serial...), address)
+	}()
+
+	host, port := splitDigitalCenterTestAddress(t, conn.LocalAddr().String())
+	result, err := NewDigitalCenterService().TestIntellibox3Connection(
+		context.Background(), DigitalCenterConnectionInput{Host: host, Port: port},
+	)
+	if err != nil {
+		t.Fatalf("test intellibox 3 failed: %v", err)
+	}
+	if !result.Connected || result.Fields["serialNumber"] != "123456" {
+		t.Fatalf("combined asynchronous response was not matched safely: %#v", result)
+	}
+}
+
+func TestDigitalCenterServiceTestIntellibox3ConnectionRejectsWrongResponseHeader(t *testing.T) {
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen udp: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	go func() {
+		buffer := make([]byte, 128)
+		_, address, readErr := conn.ReadFrom(buffer)
+		if readErr == nil {
+			_, _ = conn.WriteTo(z21TestResponse(z21LANGetCode, []byte{0x00}), address)
+		}
+	}()
+
+	host, port := splitDigitalCenterTestAddress(t, conn.LocalAddr().String())
+	service := NewDigitalCenterService()
+	service.timeout = 50 * time.Millisecond
+	result, err := service.TestIntellibox3Connection(
+		context.Background(), DigitalCenterConnectionInput{Host: host, Port: port},
+	)
+	if err != nil {
+		t.Fatalf("test intellibox 3 failed: %v", err)
+	}
+	if result.Connected || !strings.Contains(result.Message, "passende Z21-Antwort") {
+		t.Fatalf("wrong response header must remain disconnected with actionable message: %#v", result)
+	}
+}
+
+func TestDigitalCenterServiceTestIntellibox3ConnectionRejectsInvalidSerialPayloadLength(t *testing.T) {
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen udp: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	go func() {
+		buffer := make([]byte, 128)
+		_, address, readErr := conn.ReadFrom(buffer)
+		if readErr == nil {
+			_, _ = conn.WriteTo(z21TestResponse(z21LANGetSerialNumber, []byte{0x01, 0x02, 0x03}), address)
+		}
+	}()
+
+	host, port := splitDigitalCenterTestAddress(t, conn.LocalAddr().String())
+	result, err := NewDigitalCenterService().TestIntellibox3Connection(
+		context.Background(), DigitalCenterConnectionInput{Host: host, Port: port},
+	)
+	if err != nil {
+		t.Fatalf("test intellibox 3 failed: %v", err)
+	}
+	if result.Connected || !strings.Contains(result.Message, "Nutzdatenlänge 4") {
+		t.Fatalf("invalid serial payload must remain disconnected with actionable message: %#v", result)
 	}
 }
 
@@ -150,7 +243,12 @@ func TestDigitalCenterServiceProbeIntellibox3ConnectionUsesZ21CompatibleDiagnost
 				return
 			}
 			header := binary.LittleEndian.Uint16(buffer[2:4])
-			_, _ = conn.WriteTo(z21TestResponse(header, []byte{0x01, 0x00, 0x00, 0x00}), address)
+			payload := map[uint16][]byte{
+				z21LANGetSerialNumber: {0x01, 0x00, 0x00, 0x00},
+				z21LANGetCode:         {0x01},
+				z21LANGetHWInfo:       {0x00, 0x02, 0x00, 0x00, 0x20, 0x01, 0x00, 0x00},
+			}[header]
+			_, _ = conn.WriteTo(z21TestResponse(header, payload), address)
 		}
 	}()
 
@@ -162,6 +260,39 @@ func TestDigitalCenterServiceProbeIntellibox3ConnectionUsesZ21CompatibleDiagnost
 	}
 	if !result.Connected || result.Provider != "intellibox3" || len(result.Commands) != 3 {
 		t.Fatalf("unexpected probe result: %#v", result)
+	}
+	if result.Fields["transport"] != "z21_udp" || result.Fields["loconetTcpStatus"] != "planned" {
+		t.Fatalf("unexpected Intellibox 3 probe transport fields: %#v", result.Fields)
+	}
+}
+
+func TestParseZ21ProtocolV113Fixtures(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "z21_protocol_v1_13.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture struct {
+		DatagramHex     string   `json:"datagramHex"`
+		ExpectedHeaders []uint16 `json:"expectedHeaders"`
+	}
+	if err := json.Unmarshal(data, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	datagram, err := hex.DecodeString(fixture.DatagramHex)
+	if err != nil {
+		t.Fatal(err)
+	}
+	packets, err := parseZ21Packets(datagram)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(packets) != len(fixture.ExpectedHeaders) {
+		t.Fatalf("packet count = %d, want %d", len(packets), len(fixture.ExpectedHeaders))
+	}
+	for index, packet := range packets {
+		if packet.Header != fixture.ExpectedHeaders[index] {
+			t.Fatalf("packet %d header = 0x%04X, want 0x%04X", index, packet.Header, fixture.ExpectedHeaders[index])
+		}
 	}
 }
 

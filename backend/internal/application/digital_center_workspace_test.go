@@ -103,8 +103,10 @@ func TestDigitalCenterWorkspaceReportsTruthfulProviderCapabilities(t *testing.T)
 		t.Fatal(err)
 	}
 	byProvider := map[string]application.DigitalCenterCapabilities{}
+	transportsByProvider := map[string][]application.DigitalCenterTransport{}
 	for _, center := range centers {
 		byProvider[center.Provider] = center.Capabilities
+		transportsByProvider[center.Provider] = center.Transports
 	}
 	assertDigitalCenterCapabilities(t, byProvider["ecos"], application.DigitalCenterCapabilities{
 		TestConnection: true, ReadLocomotives: true, LiveMonitor: true, WriteLocomotives: true,
@@ -118,6 +120,21 @@ func TestDigitalCenterWorkspaceReportsTruthfulProviderCapabilities(t *testing.T)
 	assertDigitalCenterCapabilities(t, byProvider["cs3"], application.DigitalCenterCapabilities{
 		TestConnection: true, ReadLocomotives: true, Diagnose: true,
 	})
+
+	intelliboxTransports := transportsByProvider["intellibox3"]
+	if len(intelliboxTransports) != 2 {
+		t.Fatalf("Intellibox 3 transports = %#v, want Z21 UDP and planned LocoNet TCP", intelliboxTransports)
+	}
+	if intelliboxTransports[0].ID != "z21_udp" || intelliboxTransports[0].Status != "available" {
+		t.Fatalf("Intellibox 3 Z21 transport = %#v, want available", intelliboxTransports[0])
+	}
+	assertDigitalCenterCapabilities(t, intelliboxTransports[0].Capabilities, application.DigitalCenterCapabilities{
+		TestConnection: true, Diagnose: true,
+	})
+	if intelliboxTransports[1].ID != "loconet_tcp" || intelliboxTransports[1].Status != "planned" {
+		t.Fatalf("Intellibox 3 LocoNet transport = %#v, want planned", intelliboxTransports[1])
+	}
+	assertDigitalCenterCapabilities(t, intelliboxTransports[1].Capabilities, application.DigitalCenterCapabilities{})
 }
 
 func TestDigitalCenterWorkspaceReturnsEmptyListWhenNoCenterIsConfigured(t *testing.T) {

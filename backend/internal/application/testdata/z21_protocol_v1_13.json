@@ -1,0 +1,7 @@
+{
+  "source": "Z21 LAN Protocol Specification 1.13, dataset framing and documented LAN_GET_HWINFO example",
+  "sourceUrl": "https://www.z21.eu/media/Kwc_Basic_DownloadTag_Component/root-en-main_47-1652-959-downloadTag-download/default/d559b9cf/1646977702/z21-lan-protokoll-en.pdf",
+  "hardwareCapture": false,
+  "datagramHex": "05001800000C001A000002000020010000",
+  "expectedHeaders": [24, 26]
+}

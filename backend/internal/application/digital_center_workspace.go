@@ -42,6 +42,13 @@ type DigitalCenterSummary struct {
 	Host         string                    `json:"host"`
 	Port         int                       `json:"port"`
 	Capabilities DigitalCenterCapabilities `json:"capabilities"`
+	Transports   []DigitalCenterTransport  `json:"transports"`
+}
+
+type DigitalCenterTransport struct {
+	ID           string                    `json:"id"`
+	Status       string                    `json:"status"`
+	Capabilities DigitalCenterCapabilities `json:"capabilities"`
 }
 
 type DigitalCenterWorkspaceService struct {
@@ -116,9 +123,31 @@ func (service *DigitalCenterWorkspaceService) ListConfiguredCenters(
 			Host:         host,
 			Port:         port,
 			Capabilities: capabilitiesForProvider(center.provider),
+			Transports:   transportsForProvider(center.provider),
 		})
 	}
 	return centers, nil
+}
+
+func transportsForProvider(provider string) []DigitalCenterTransport {
+	available := func(id string, capabilities DigitalCenterCapabilities) DigitalCenterTransport {
+		return DigitalCenterTransport{ID: id, Status: "available", Capabilities: capabilities}
+	}
+	switch provider {
+	case "ecos":
+		return []DigitalCenterTransport{available("ecos_tcp", capabilitiesForProvider(provider))}
+	case "z21":
+		return []DigitalCenterTransport{available("z21_udp", capabilitiesForProvider(provider))}
+	case "intellibox3":
+		return []DigitalCenterTransport{
+			available("z21_udp", capabilitiesForProvider(provider)),
+			{ID: "loconet_tcp", Status: "planned", Capabilities: DigitalCenterCapabilities{}},
+		}
+	case "cs3":
+		return []DigitalCenterTransport{available("cs3_http", capabilitiesForProvider(provider))}
+	default:
+		return []DigitalCenterTransport{}
+	}
 }
 
 func parseDigitalCenterSettingsPort(provider, value string) (int, error) {

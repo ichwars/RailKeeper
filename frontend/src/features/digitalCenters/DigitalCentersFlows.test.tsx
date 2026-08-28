@@ -397,6 +397,7 @@ function centerFixture(overrides: Partial<DigitalCenterSummary> = {}): DigitalCe
     host: "center.local",
     port: 15471,
     capabilities: allCapabilities,
+    transports: [{ id: "ecos_tcp", status: "available", capabilities: allCapabilities }],
     ...overrides
   };
 }

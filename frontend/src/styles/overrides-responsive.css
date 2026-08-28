@@ -20,6 +20,19 @@
   }
 }
 
+@media (max-width: 900px) {
+  .digital-workflow-aside,
+  .digital-diagnostic-content {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .digital-test-summary {
+    justify-content: flex-start;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+}
+
 @media (max-width: 760px) {
   .digital-provider-options,
   .digital-workflow-aside {

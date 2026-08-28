@@ -155,4 +155,29 @@ describe("SettingsDigitalTab commissioning workflow", () => {
     expect(await screen.findByText("GET /app/api/locos")).toBeInTheDocument();
     expect(screen.getAllByText("true").length).toBeGreaterThan(0);
   });
+
+  it("separates available Z21 UDP from disabled LocoNet TCP for Intellibox 3", async () => {
+    vi.mocked(api.digitalSettings).mockResolvedValue({
+      ...settings(),
+      provider: "intellibox3",
+      intellibox3: { enabled: true, host: "192.168.2.47", port: "21105" }
+    });
+
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    expect(await screen.findByText("192.168.2.47:21105")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Transportwege" })).toBeInTheDocument();
+    expect(screen.getByText("Z21 über UDP")).toBeInTheDocument();
+    expect(screen.getByText("Verfügbar")).toBeInTheDocument();
+    expect(screen.getByText("LocoNet-over-TCP")).toBeInTheDocument();
+    expect(screen.getByText("Geplant")).toBeInTheDocument();
+    expect(screen.getByText(/es werden keine TCP-Anfragen gesendet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Live-Monitor starten" })).toBeDisabled();
+  });
 });

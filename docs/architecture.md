@@ -57,6 +57,9 @@ Node.js is only used to build the frontend.
 - Article data web search is a core module. It already uses an adapter boundary so provider-specific logic
   can be replaced later. It remains a synchronous request with one truthful in-progress state; simulated
   phases and polling are not part of the current contract. See `docs/architecture/article-search-progress.md`.
+- Intellibox 3 keeps Z21-compatible UDP and LocoNet over TCP as separate transports. Only the bounded,
+  read-only Z21 connection test and diagnostics are available today. See
+  `docs/architecture/intellibox3-transports.md` for the validation status and hardware test boundary.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - Backup version 20 covers vehicle sets and their main-image assignments, vehicles, accessories, storage,
