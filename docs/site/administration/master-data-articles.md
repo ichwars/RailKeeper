@@ -4,7 +4,7 @@ description: Configure accessory units, classifications, custom fields, and hier
 audience: admin
 status: stable
 reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-28
 ---
 
 # Article master data and storage locations
@@ -21,6 +21,19 @@ Each entry has an immutable key, editable label, active state, and origin.
 Create a unit only when the existing list cannot express the stock. Deactivating a unit removes it
 from new article selections, while articles already using it retain the historical value. A custom
 unit can be permanently deleted only when no article references its key.
+
+## Deactivate multiple entries
+
+The stock-unit, article-type, subtype, and custom-field tables provide multi-selection to Admin and
+Editor. Selection checkboxes appear only for active entries that may be deactivated. The
+table-header checkbox selects every eligible entry in the current table; changing the master-data
+type clears the selection.
+
+**Deactivate selected** presents the data type and count for confirmation before writing. The
+server processes the confirmed set atomically. If an entry is missing or the operation fails, the
+complete stored configuration remains unchanged and the selection stays available for correction.
+A successful operation clears the selection. Inactive entries can be reactivated only one at a
+time. Storage locations are not part of this bulk workflow.
 
 ## Article types and subtypes
 
@@ -112,4 +125,4 @@ stored configuration unchanged.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

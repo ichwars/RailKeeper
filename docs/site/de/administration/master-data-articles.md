@@ -4,7 +4,7 @@ description: Bestandseinheiten, Artikelklassifizierung, eigene Felder und hierar
 audience: admin
 status: stable
 reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-28
 ---
 
 # Artikelstammdaten und Lagerorte
@@ -23,6 +23,19 @@ Eine neue Einheit nur anlegen, wenn die vorhandene Liste den Bestand nicht ausdr
 Deaktivierung entfernt sie aus neuen Artikelauswahlen. Bereits zugeordnete Artikel behalten den
 historischen Wert. Eine eigene Einheit kann nur endgültig gelöscht werden, solange kein Artikel
 ihren Schlüssel verwendet.
+
+## Mehrere Einträge deaktivieren
+
+Die Tabellen für Bestandseinheiten, Artikelarten, Unterarten und eigene Felder bieten Admin und
+Editor eine Mehrfachauswahl. Auswahlfelder erscheinen nur bei aktiven Einträgen, die deaktiviert
+werden dürfen. Das Feld im Tabellenkopf markiert alle geeigneten Einträge der aktuellen Tabelle;
+beim Wechsel des Stammdatentyps wird die Auswahl geleert.
+
+**Ausgewählte deaktivieren** zeigt vor dem Schreiben Datentyp und Anzahl zur Bestätigung. Der Server
+verarbeitet den bestätigten Satz atomar. Fehlt ein Eintrag oder schlägt der Vorgang fehl, bleibt die
+gesamte gespeicherte Konfiguration unverändert und die Auswahl bleibt für eine Korrektur erhalten.
+Nach Erfolg wird sie geleert. Inaktive Einträge lassen sich nur einzeln reaktivieren. Lagerorte
+gehören nicht zu diesem Mehrfachablauf.
 
 ## Artikelarten und Unterarten
 
@@ -115,4 +128,4 @@ abgewiesener Vorgang lässt die gespeicherte Konfiguration unverändert.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

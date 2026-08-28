@@ -4,7 +4,7 @@ description: Govern RailKeeper master data, inventory-number schemes, locations,
 audience: admin
 status: stable
 reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-28
 ---
 
 # Master-data administration
@@ -56,6 +56,11 @@ Both origins can be edited, deactivated, and reactivated. Deactivation removes a
 selections. Existing records retain their stored value and continue to show it as inactive. It is
 therefore the safe way to retire a value that remains part of inventory history.
 
+Multi-selection is available for active entries of one data type. It deactivates all confirmed
+entries in one transaction. If any entry fails, the complete set remains unchanged. Bulk
+reactivation is not available; reactivate inactive entries individually. This workflow applies to
+general and article master data, not to inventory-number schemes or storage locations.
+
 Permanent deletion is deliberately narrower. RailKeeper offers it only for a custom entry whose
 type has a known usage check and whose key or label is not referenced. Standard article-type keys
 are additionally protected. Deleting an eligible entry also removes its master-data relations and
@@ -82,4 +87,4 @@ application backup when those settings must be recoverable together with the inv
 
 ## Documented RailKeeper version
 
-This section documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+This section documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

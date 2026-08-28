@@ -4,7 +4,7 @@ description: Maintain vehicle classifications, manufacturers, CV8 identities, an
 audience: admin
 status: stable
 reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+lastReviewed: 2026-08-28
 ---
 
 # General master data
@@ -41,6 +41,19 @@ again to reverse the order. It always shows active and inactive entries, their *
 
 Use refresh after another administrator changes the same type. Loading a different type resets
 the current edit, search, and sort selection.
+
+## Deactivate multiple entries
+
+Selection checkboxes appear only for active entries that may be deactivated. Select individual
+rows or use the table-header checkbox to select all eligible entries currently visible through the
+search. Existing selections remain selected when the search term changes, so the action bar always
+shows the total selection within the current data type. Changing the data type clears the selection.
+
+**Deactivate selected** opens a confirmation with the data type and count. Only confirming sends
+the complete set to the server. RailKeeper processes it atomically: if an entry is missing or the
+operation fails, none of the selected entries changes and the selection remains available for
+correction. A successful operation clears the selection. Bulk reactivation is not available;
+reactivate inactive entries individually.
 
 ## Maintain manufacturers
 
@@ -111,4 +124,4 @@ authority instead of retrying the visible control.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.
