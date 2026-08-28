@@ -988,6 +988,7 @@ export const deTranslations: Record<string, string> = {
     "common.ready": "bereit",
     "common.saved": "gespeichert",
     "common.sort": "{label} sortieren",
+    "common.resizeColumn": "Breite von {label} ändern",
 		"vehicle.field.type": "Typ",
     "vehicle.field.inventoryNumber": "Inventarnummer",
     "vehicle.field.manufacturer": "Hersteller",

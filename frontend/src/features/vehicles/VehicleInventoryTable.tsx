@@ -12,11 +12,18 @@ import {
 
 import type { Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import {
+  tableColumnWidth,
+  tableMinimumWidth,
+  type TableColumnWidths
+} from "../../shared/tableColumnLayout";
+import { TableColumnResizeHandle } from "../../shared/ui/TableColumnResizeHandle";
 import { previewImageUrl, primaryImage, vehicleExhibitionEligible } from "./vehicleTransforms";
 import {
   sortableVehicleColumn,
   vehicleColumnLabel,
   vehicleColumnText,
+  vehicleTableColumnWidthDefinitions,
   type VehicleTableColumn
 } from "./vehicleTableColumns";
 import type { SortDirection, SortKey } from "./vehicleViewModel";
@@ -26,6 +33,7 @@ import { VehicleSetInventoryRow } from "./VehicleSetInventoryRow";
 type VehicleInventoryTableProps = {
   vehicles: Vehicle[];
   columns: readonly VehicleTableColumn[];
+  columnWidths?: TableColumnWidths<VehicleTableColumn>;
   allVisibleSelected: boolean;
   selectedVehicleIDs: Set<string>;
   sort: { key: SortKey; direction: SortDirection };
@@ -40,12 +48,15 @@ type VehicleInventoryTableProps = {
   onOpenEdit?: (vehicle: Vehicle) => void;
   onDelete?: (vehicle: Vehicle) => void;
   onToggleExhibition: (vehicle: Vehicle, exhibition: boolean) => void;
+  onPreviewColumnWidth?: (column: VehicleTableColumn, width: number) => void;
+  onCommitColumnWidth?: (column: VehicleTableColumn, width: number) => void;
   renderQuickMenu: (vehicle: Vehicle) => ReactNode;
 };
 
 export function VehicleInventoryTable({
   vehicles,
   columns,
+  columnWidths = {},
   allVisibleSelected,
   selectedVehicleIDs,
   sort,
@@ -60,11 +71,19 @@ export function VehicleInventoryTable({
   onOpenEdit,
   onDelete,
   onToggleExhibition,
+  onPreviewColumnWidth,
+  onCommitColumnWidth,
   renderQuickMenu
 }: VehicleInventoryTableProps) {
   const { language, t } = useI18n();
   const [expandedSetIDs, setExpandedSetIDs] = useState<Set<string>>(() => new Set());
   const groupedVehicles = groupVehicleInventory(vehicles, sort);
+  const columnLayout = { columns: [...columns], widths: columnWidths };
+  const minimumWidth = tableMinimumWidth(
+    columnLayout,
+    vehicleTableColumnWidthDefinitions,
+    64 + 122
+  );
 
   const header = (column: VehicleTableColumn) => {
     const label = vehicleColumnLabel(column, t);
@@ -200,8 +219,24 @@ export function VehicleInventoryTable({
     <div className="table-wrap">
       <table
         className="inventory-table vehicle-inventory-table"
-        style={{ "--vehicle-data-column-count": Math.max(columns.length, 1) } as CSSProperties}
+        style={{
+          "--vehicle-data-column-count": Math.max(columns.length, 1),
+          "--vehicle-table-min-width": `${minimumWidth}px`
+        } as CSSProperties}
       >
+        <colgroup>
+          <col className="select-cell" />
+          {columns.map((column) => <col
+            key={column}
+            data-column={column}
+            style={{ width: tableColumnWidth(
+              columnLayout,
+              column,
+              vehicleTableColumnWidthDefinitions
+            ) }}
+          />)}
+          <col className="actions-cell" />
+        </colgroup>
         <thead>
           <tr>
             <th className="select-cell">
@@ -215,9 +250,29 @@ export function VehicleInventoryTable({
                 />
               </label>
             </th>
-            {columns.map((column) => (
-              <th key={column} className={`vehicle-column-${column}`}>{header(column)}</th>
-            ))}
+            {columns.map((column) => {
+              const width = tableColumnWidth(
+                columnLayout,
+                column,
+                vehicleTableColumnWidthDefinitions
+              );
+              const definition = vehicleTableColumnWidthDefinitions[column];
+              const label = vehicleColumnLabel(column, t);
+              return (
+                <th key={column} className={`vehicle-column-${column}`}>
+                  {header(column)}
+                  {onPreviewColumnWidth && onCommitColumnWidth ? <TableColumnResizeHandle
+                    label={t("common.resizeColumn", { label })}
+                    width={width}
+                    minWidth={definition.minWidth}
+                    maxWidth={definition.maxWidth}
+                    defaultWidth={definition.defaultWidth}
+                    onPreview={(next) => onPreviewColumnWidth(column, next)}
+                    onCommit={(next) => onCommitColumnWidth(column, next)}
+                  /> : null}
+                </th>
+              );
+            })}
             <th className="actions-cell">{t("vehicles.actions")}</th>
           </tr>
         </thead>

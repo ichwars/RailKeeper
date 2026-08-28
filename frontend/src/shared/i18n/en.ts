@@ -988,6 +988,7 @@ export const enTranslations: Record<string, string> = {
     "common.ready": "ready",
     "common.saved": "saved",
     "common.sort": "Sort {label}",
+    "common.resizeColumn": "Resize {label} column",
 		"vehicle.field.type": "Type",
     "vehicle.field.inventoryNumber": "Inventory number",
     "vehicle.field.manufacturer": "Manufacturer",

@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback } from "react";
 
-import { api } from "../../shared/api";
 import { translate, useI18n } from "../../shared/i18n";
+import { setTableColumnWidth } from "../../shared/tableColumnLayout";
+import { useProfileTableLayout } from "../../shared/useProfileTableLayout";
 import {
   defaultVehicleTableColumns,
+  defaultVehicleTableLayout,
   moveVehicleTableColumn,
-  parseVehicleTableColumns,
-  serializeVehicleTableColumns,
+  parseVehicleTableLayout,
+  serializeVehicleTableLayout,
   toggleVehicleTableColumn,
+  vehicleTableColumnWidthDefinitions,
   type VehicleColumnMove,
   type VehicleTableColumn
 } from "./vehicleTableColumns";
@@ -15,62 +18,24 @@ import {
 export const vehicleTableColumnSettingKey = "railkeeper.vehicles.tableColumns";
 
 export function useVehicleColumnPreferences(onMessage: (message: string) => void) {
-  const [columns, setColumns] = useState<VehicleTableColumn[]>(() => [
-    ...defaultVehicleTableColumns
-  ]);
-  const [loading, setLoading] = useState(true);
-  const saveQueue = useRef<Promise<void>>(Promise.resolve());
-  const onMessageRef = useRef(onMessage);
   const { language } = useI18n();
-
-  useEffect(() => {
-    onMessageRef.current = onMessage;
-  }, [onMessage]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    api.profileSettings()
-      .then(({ settings }) => {
-        if (!cancelled) {
-          setColumns(parseVehicleTableColumns(settings[vehicleTableColumnSettingKey]));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          onMessageRef.current(translate(language, "vehicles.columns.loadError"));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [language]);
-
-  const queueSave = useCallback((next: VehicleTableColumn[]) => {
-    saveQueue.current = saveQueue.current
-      .catch(() => undefined)
-      .then(() => api.updateProfileSettings({
-        [vehicleTableColumnSettingKey]: serializeVehicleTableColumns(next)
-      }))
-      .then(() => undefined)
-      .catch(() => {
-        onMessageRef.current(translate(language, "vehicles.columns.saveError"));
-      });
-  }, [language]);
+  const preferences = useProfileTableLayout({
+    settingKey: vehicleTableColumnSettingKey,
+    defaultLayout: defaultVehicleTableLayout,
+    parse: parseVehicleTableLayout,
+    serialize: serializeVehicleTableLayout,
+    onLoadError: () => onMessage(translate(language, "vehicles.columns.loadError")),
+    onSaveError: () => onMessage(translate(language, "vehicles.columns.saveError"))
+  });
 
   const applyColumns = useCallback((
     update: (current: VehicleTableColumn[]) => VehicleTableColumn[]
   ) => {
-    setColumns((current) => {
-      const next = update(current);
-      queueSave(next);
-      return next;
-    });
-  }, [queueSave]);
+    preferences.commit((current) => ({
+      ...current,
+      columns: update(current.columns)
+    }));
+  }, [preferences]);
 
   const toggleColumn = useCallback((column: VehicleTableColumn) => {
     applyColumns((current) => toggleVehicleTableColumn(current, column));
@@ -81,13 +46,34 @@ export function useVehicleColumnPreferences(onMessage: (message: string) => void
   }, [applyColumns]);
 
   const resetColumns = useCallback(() => {
-    applyColumns(() => [...defaultVehicleTableColumns]);
-  }, [applyColumns]);
+    preferences.commit(() => ({ columns: [...defaultVehicleTableColumns], widths: {} }));
+  }, [preferences]);
+
+  const previewColumnWidth = useCallback((column: VehicleTableColumn, width: number) => {
+    preferences.preview((current) => setTableColumnWidth(
+      current,
+      column,
+      width,
+      vehicleTableColumnWidthDefinitions
+    ));
+  }, [preferences]);
+
+  const commitColumnWidth = useCallback((column: VehicleTableColumn, width: number) => {
+    preferences.commit((current) => setTableColumnWidth(
+      current,
+      column,
+      width,
+      vehicleTableColumnWidthDefinitions
+    ));
+  }, [preferences]);
 
   return {
-    columns,
-    loading,
+    columns: preferences.layout.columns,
+    widths: preferences.layout.widths,
+    loading: preferences.loading,
+    commitColumnWidth,
     moveColumn,
+    previewColumnWidth,
     resetColumns,
     toggleColumn
   };
