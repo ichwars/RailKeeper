@@ -3,7 +3,7 @@ title: Stammdatentransfer
 description: RailKeeper-Stammdaten mit dem versionierten JSON-Dokument exportieren und abgleichen.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -16,7 +16,7 @@ noch der Arbeitsbereich für den Fahrzeugdatei-Import und -Export.
 
 ## Inhalt des Dokuments
 
-Die heruntergeladene Datei heißt `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. RailKeeper v0.1.20.2
+Die heruntergeladene Datei heißt `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. RailKeeper v0.1.20.3
 exportiert das Format `railkeeper-master-data` in Version 2 mit:
 
 - Erstellungszeitpunkt;
@@ -103,4 +103,4 @@ verwenden.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

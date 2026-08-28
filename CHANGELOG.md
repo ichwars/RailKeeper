@@ -6,6 +6,40 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.20.3] - 2026-08-28
+
+### Added
+
+- Märklin CS3 and CS3 Plus can read their locomotive rosters through the known read-only endpoints
+  into the Digital centers workspace. Diagnostics, comparison, conflict review, and RailKeeper
+  vehicle creation or assignment remain separate from writes to the command station.
+- Vehicle CSV files recognize complete sets, set memberships, and individual member labels. The
+  import preview presents set changes explicitly before applying them.
+- Master-data records can be bulk-deactivated through an accessible multi-selection workflow.
+
+### Changed
+
+- Vehicle and accessory tables use persistent, resizable columns. The mobile vehicle view,
+  required-field cues, contextual exhibition controls, typography, design tokens, and reduced
+  motion handling were consolidated.
+- Article-search status messages distinguish real progress more clearly from indeterminate
+  processing phases. Temporary working documents were removed from `docs/`, and documentation
+  governance was clarified.
+
+### Fixed
+
+- Set member labels and unmapped existing values survive CSV replacement. Set rows and selection,
+  data, and action columns remain aligned after resizing.
+- CS3 vehicle drafts and external mappings preserve the `cs3` provider instead of being stored
+  incorrectly as ECoS mappings.
+
+### Security
+
+- CS3 HTTP targets are restricted to private LAN addresses before any request. Loopback,
+  link-local, public, and mixed DNS targets are rejected, validated DNS results are pinned for the
+  request, and redirects remain disabled.
+- The runtime image enforces updated Alpine OpenSSL packages.
+
 ## [0.1.20.2] - 2026-08-24
 
 ### Changed

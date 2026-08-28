@@ -3,7 +3,7 @@ title: CS3-Lokdaten read-only lesen
 description: Märklin-CS3-Lokomotiven sicher lesen und im Digitalzentralen-Arbeitsbereich vergleichen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-28
 ---
 
@@ -79,4 +79,4 @@ Protokolle gelangen in die Vorschau.
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 28.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 28.08.2026 geprüft.

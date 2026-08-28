@@ -3,7 +3,7 @@ title: ECoS-Lokabgleich
 description: Ausgewählte ESU-ECoS-Lokdaten lesen, prüfen, importieren und ausdrücklich schreiben.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -19,7 +19,7 @@ Port sind im Import-Arbeitsbereich schreibgeschützt.
 
 ## Unterstützte und nicht unterstützte Digitalzentralen
 
-| Aktiver Anbieter | Verhalten unter Import/Export in v0.1.20.2 |
+| Aktiver Anbieter | Verhalten unter Import/Export in v0.1.20.3 |
 | --- | --- |
 | ESU ECoS | Leseablauf, Fahrzeugübergabe, CV- und statische Funktionsvorschläge sowie geprüfter Schreib-Sync sind verfügbar. |
 | Märklin CS3 | Read-only Import von UID, Name, Adresse und Protokoll in denselben Vergleichsbereich. Siehe [CS3-Lokdaten read-only lesen](./cs3-import). |
@@ -135,4 +135,4 @@ werden nicht in die Digitalzentrale geschrieben.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 16.08.2026 geprüft.
+Diese Seite dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 16.08.2026 geprüft.

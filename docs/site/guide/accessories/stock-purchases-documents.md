@@ -3,7 +3,7 @@ title: Stock, purchases, and documents
 description: Manage accessory quantities, individual items, purchases, images, and documents.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -12,7 +12,7 @@ lastReviewed: 2026-08-16
 RailKeeper can count interchangeable accessory units, track physical items individually, or move
 units from counted stock into individual tracking when needed. Purchases and documents belong to
 the same article but have their own immediate save actions. This chapter describes the stable
-behavior of RailKeeper v0.1.20.2.
+behavior of RailKeeper v0.1.20.3.
 
 Admin and Editor users can manage these resources. Viewer and Planner users can inspect them, but a
 Planner's reservation authority does not include stock, purchase, item, or document changes. Save
@@ -130,7 +130,7 @@ that lifecycle, location, and history remain consistent.
 
 ## Record purchases
 
-The purchase list is a stable, newest-first history. Stable v0.1.20.2 provides an add action but no
+The purchase list is a stable, newest-first history. Stable v0.1.20.3 provides an add action but no
 purchase edit or delete action.
 
 | Purchase field | Stable rule |
@@ -237,4 +237,4 @@ Reload before attempting to delete again.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

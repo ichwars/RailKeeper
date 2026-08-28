@@ -3,7 +3,7 @@ title: Import and export
 description: Exchange vehicle, accessory, and exhibition data through reviewed transfer jobs.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-27
 ---
 
@@ -113,4 +113,4 @@ vehicles, not additional set metadata.
 
 ## Documented RailKeeper version
 
-This chapter documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-27.
+This chapter documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-27.

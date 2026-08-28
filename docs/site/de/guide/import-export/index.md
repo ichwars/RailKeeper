@@ -3,7 +3,7 @@ title: Import und Export
 description: Fahrzeug-, Zubehör- und Messedaten über geprüfte Transferaufträge austauschen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-27
 ---
 
@@ -119,4 +119,4 @@ weiterhin Fahrzeuge, nicht zusätzliche Set-Metadaten.
 
 ## Dokumentierte RailKeeper-Version
 
-Dieses Kapitel dokumentiert RailKeeper **v0.1.20.2** und wurde zuletzt am 27.08.2026 geprüft.
+Dieses Kapitel dokumentiert RailKeeper **v0.1.20.3** und wurde zuletzt am 27.08.2026 geprüft.

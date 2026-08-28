@@ -3,7 +3,7 @@ title: Master-data transfer
 description: Export and reconcile RailKeeper master data with the versioned JSON document.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -16,7 +16,7 @@ Import/Export workspace.
 
 ## What the document contains
 
-The downloaded file is named `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. Stable v0.1.20.2 exports
+The downloaded file is named `railkeeper-stammdaten-YYYYMMDD-HHMMSS.json`. Stable v0.1.20.3 exports
 format `railkeeper-master-data`, version 2, with:
 
 - the creation timestamp;
@@ -99,4 +99,4 @@ need recovery, use the validated application backup instead.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

@@ -3,7 +3,7 @@ title: Appearance
 description: Choose the theme mode and configure light and dark variants independently.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -42,7 +42,7 @@ system requests light colors and the configured dark variant while it requests d
 variant cards therefore remain useful even when neither Light nor Dark is forced.
 
 **OLED Black** is available only for the dark background. It uses a black base and very dark panel
-surfaces. **Compact** in v0.1.20.2 primarily tightens spacing between Settings cards; it is not a
+surfaces. **Compact** in v0.1.20.3 primarily tightens spacing between Settings cards; it is not a
 global table-density control. **Contrast** strengthens separators and muted text but does not
 replace browser zoom or operating-system accessibility settings.
 
@@ -67,9 +67,9 @@ therefore not part of an application backup.
 | System mode changes unexpectedly | Check the operating-system or browser color preference. System mode follows that signal. |
 | A background or accent appears to have no effect | Confirm whether the application currently uses the light or dark variant you edited. |
 | Another browser shows a previous theme | Open Settings with the same user and reload. If needed, choose the mode or variant again after server connectivity returns. |
-| Compact does not make inventory tables denser | In v0.1.20.2 it mainly reduces gaps between Settings cards. |
+| Compact does not make inventory tables denser | In v0.1.20.3 it mainly reduces gaps between Settings cards. |
 | Contrast is still insufficient | Combine the Contrast style with browser zoom and operating-system accessibility controls. |
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.
