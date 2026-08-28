@@ -6,6 +6,12 @@ import { masterDataDisplayLabel, masterDataPersistedLabel } from "../../shared/a
 import { useI18n } from "../../shared/i18n";
 import { AppSelect } from "../../shared/ui/AppSelect";
 import { AppTextInput } from "../../shared/ui/AppTextInput";
+import {
+  MasterDataBulkEntryCheckbox,
+  MasterDataBulkSelectAllCheckbox,
+  MasterDataBulkToolbar,
+  useMasterDataBulkSelection
+} from "./MasterDataBulkSelection";
 import { MasterDataLifecycleActions } from "./MasterDataLifecycleActions";
 import { SettingsTabList } from "./SettingsTabList";
 import { StorageLocationsSettings } from "./StorageLocationsSettings";
@@ -70,6 +76,7 @@ function MasterDataSettingsSection({
   const [fieldKind, setFieldKind] = useState<CustomFieldKind>("text");
   const [fieldOptions, setFieldOptions] = useState("");
   const [fieldUnit, setFieldUnit] = useState("");
+  const bulkSelection = useMasterDataBulkSelection(type, entries, entries);
 
   const reset = () => {
     setCreating(false);
@@ -148,6 +155,36 @@ function MasterDataSettingsSection({
       body: t("settings.master.deactivateBody"),
       confirmLabel: t("settings.master.deactivate"),
       onConfirm: () => void setActive(entry, false)
+    });
+  };
+
+  const requestBulkDeactivate = () => {
+    const keys = [...bulkSelection.selectedKeys];
+    const count = keys.length;
+    if (count === 0) return;
+    onConfirmAction({
+      title: t("settings.master.deactivateManyTitle"),
+      body: t("settings.master.deactivateManyBody", {
+        count,
+        type: t(`settings.articleManagement.master.${type}`)
+      }),
+      confirmLabel: t(
+        count === 1 ? "settings.master.deactivateOneConfirm" : "settings.master.deactivateManyConfirm",
+        { count }
+      ),
+      onConfirm: () => {
+        setBusy(true);
+        setMessage("");
+        api.setMasterDataActiveMany(type, keys, false)
+          .then((updated) => {
+            for (const entry of updated) onChanged(type, entry);
+            const updatedEditing = editing && updated.find((entry) => entry.key === editing.key);
+            if (updatedEditing) setEditing(updatedEditing);
+            bulkSelection.clear();
+          })
+          .catch((reason: Error) => setMessage(reason.message))
+          .finally(() => setBusy(false));
+      }
     });
   };
 
@@ -243,10 +280,18 @@ function MasterDataSettingsSection({
       )}
 
       {message && <p className="form-message" role="alert">{message}</p>}
+      {canEdit && <MasterDataBulkToolbar
+        count={bulkSelection.selectedCount}
+        busy={busy}
+        onDeactivate={requestBulkDeactivate}
+      />}
       <div className="table-wrap article-master-data-table">
         <table>
           <thead>
             <tr>
+              {canEdit && <th className="master-data-selection-col">
+                <MasterDataBulkSelectAllCheckbox selection={bulkSelection} disabled={busy} />
+              </th>}
               <th>{t("settings.articleManagement.label")}</th>
               <th>{t("settings.articleManagement.key")}</th>
               <th>{t("settings.articleManagement.status")}</th>
@@ -256,12 +301,20 @@ function MasterDataSettingsSection({
           </thead>
           <tbody>
             {entries.length === 0 ? (
-              <tr><td colSpan={canEdit ? 5 : 4} className="loading-cell">
+              <tr><td colSpan={canEdit ? 6 : 4} className="loading-cell">
                 {t("settings.articleManagement.empty")}
               </td></tr>
             ) : entries.map((entry) => {
               const displayLabel = masterDataDisplayLabel(entry, t);
               return <tr key={entry.id} className={entry.active ? "" : "muted-row"}>
+                {canEdit && <td className="master-data-selection-col">
+                  <MasterDataBulkEntryCheckbox
+                    selection={bulkSelection}
+                    entry={entry}
+                    label={displayLabel}
+                    disabled={busy}
+                  />
+                </td>}
                 <td><strong>{displayLabel}</strong></td>
                 <td><code>{entry.key}</code></td>
                 <td>{t(entry.active ? "settings.articleManagement.active" : "settings.articleManagement.inactive")}</td>

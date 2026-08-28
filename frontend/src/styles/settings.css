@@ -2052,6 +2052,55 @@
   color: var(--muted);
 }
 
+.master-data-selection-col,
+.master-data-col-selection {
+  width: 52px;
+  text-align: center;
+}
+
+.master-data-bulk-checkbox-target {
+  align-items: center;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex;
+  height: 44px;
+  justify-content: center;
+  width: 44px;
+}
+
+.master-data-bulk-checkbox {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.master-data-bulk-checkbox:disabled {
+  cursor: not-allowed;
+}
+
+.master-data-bulk-checkbox-target:has(.master-data-bulk-checkbox:disabled) {
+  cursor: not-allowed;
+}
+
+.master-data-bulk-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-subtle);
+}
+
+.master-data-bulk-toolbar strong {
+  color: var(--text);
+  font-size: var(--font-size-sm);
+}
+
 .master-data-lifecycle-actions {
   flex-wrap: nowrap;
   justify-content: flex-end;

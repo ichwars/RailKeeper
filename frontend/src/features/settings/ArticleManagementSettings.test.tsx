@@ -243,6 +243,49 @@ describe("ArticleManagementSettings", () => {
     ));
   });
 
+  it("keeps article master-data selection after a failed bulk deactivation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.managedMasterData).mockImplementation(async (type) => type === "stock_unit"
+      ? [entry("stock_unit", "piece", "Piece"), entry("stock_unit", "box", "Box")]
+      : []);
+    vi.spyOn(api, "setMasterDataActiveMany").mockRejectedValue(new Error("Batch fehlgeschlagen."));
+    render(<ArticleManagementHarness roles={["Editor"]} />);
+
+    await user.click(await screen.findByRole("checkbox", {
+      name: "Alle sichtbaren aktiven Einträge auswählen"
+    }));
+    expect(screen.getByText("2 Einträge ausgewählt")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Ausgewählte deaktivieren" }));
+
+    await waitFor(() => expect(api.setMasterDataActiveMany)
+      .toHaveBeenCalledWith("stock_unit", ["piece", "box"], false));
+    expect(screen.getByRole("alert")).toHaveTextContent("Batch fehlgeschlagen.");
+    expect(screen.getByText("2 Einträge ausgewählt")).toBeVisible();
+  });
+
+  it("names the article master-data type and count in bulk confirmation", async () => {
+    const user = userEvent.setup();
+    const onConfirmAction = vi.fn();
+    vi.mocked(api.managedMasterData).mockImplementation(async (type) => type === "stock_unit"
+      ? [entry("stock_unit", "piece", "Piece"), entry("stock_unit", "box", "Box")]
+      : []);
+    render(<ArticleManagementSettings
+      roles={["Editor"]}
+      activeSection="stock_unit"
+      onSectionChange={vi.fn()}
+      onConfirmAction={onConfirmAction}
+    />);
+
+    await user.click(await screen.findByRole("checkbox", {
+      name: "Alle sichtbaren aktiven Einträge auswählen"
+    }));
+    await user.click(screen.getByRole("button", { name: "Ausgewählte deaktivieren" }));
+
+    expect(onConfirmAction).toHaveBeenCalledWith(expect.objectContaining({
+      body: expect.stringContaining("2 ausgewählte Einträge aus „Bestandseinheiten“")
+    }));
+  });
+
   it("shows origin and only deletes an unused custom entry after confirmation", async () => {
     const user = userEvent.setup();
     const custom = {

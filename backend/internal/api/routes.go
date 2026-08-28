@@ -240,6 +240,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/master-data/import", routeAccessAdmin, (*App).importMasterData, nil},
 		{http.MethodGet, "/api/v1/master-data/{type}", routeAccessViewer, (*App).listMasterData, authorizeMasterDataRead},
 		{http.MethodPost, "/api/v1/master-data/{type}", routeAccessEditor, (*App).createMasterData, nil},
+		{http.MethodPatch, "/api/v1/master-data/{type}/active", routeAccessEditor, (*App).setMasterDataActiveMany, nil},
 		{http.MethodPut, "/api/v1/master-data/{type}/{key}", routeAccessEditor, (*App).updateMasterData, nil},
 		{http.MethodPatch, "/api/v1/master-data/{type}/{key}/active", routeAccessEditor, (*App).setMasterDataActive, nil},
 		{http.MethodDelete, "/api/v1/master-data/{type}/{key}", routeAccessEditor, (*App).deleteMasterData, nil},

@@ -2007,6 +2007,21 @@ components:
       properties:
         active:
           type: boolean
+    MasterDataActiveBatchInput:
+      type: object
+      required: [keys, active]
+      properties:
+        keys:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          uniqueItems: true
+          items:
+            type: string
+            minLength: 1
+        active:
+          type: boolean
+          enum: [false]
     MasterDataInput:
       type: object
       required: [label]
@@ -10450,6 +10465,43 @@ paths:
                 $ref: "#/components/schemas/MasterDataEntry"
         "400":
           description: Invalid or protected master data entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /master-data/{type}/active:
+    patch:
+      tags: [MasterData]
+      summary: Deactivate multiple master data entries atomically
+      parameters:
+        - name: type
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MasterDataActiveBatchInput"
+      responses:
+        "200":
+          description: Updated master data entries in request order
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MasterDataEntry"
+        "400":
+          description: Invalid bulk deactivation request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "404":
+          description: At least one master data entry was not found; no entries were changed
           content:
             application/json:
               schema:

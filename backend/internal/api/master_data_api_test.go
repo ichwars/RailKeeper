@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -113,6 +114,83 @@ INSERT INTO vehicles(
 		"bundled", "master_data_bundled")
 	assertMasterDataDeleteProblem(t, router, editorSession, editorCookies,
 		"used", "master_data_in_use")
+}
+
+func TestMasterDataAPIBulkDeactivation(t *testing.T) {
+	db := testRouterDB(t)
+	setup := application.NewSetupService(db)
+	auth := application.NewAuthService(db)
+	masterData := application.NewMasterDataService(db)
+	router := NewRouter(Config{
+		SetupService: setup, AuthService: auth, MasterDataService: masterData,
+	})
+	if err := setup.CreateAdmin(t.Context(), application.CreateAdminInput{
+		Username: "admin", Email: "admin@example.test", Password: "very-secure-password",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	adminSession, adminCookies := loginTestUser(t, router, "admin", "very-secure-password")
+	doAuthedJSON(t, router, http.MethodPost, "/api/v1/users",
+		`{"username":"editor","email":"editor@example.test","password":"editor-secure-password","roles":["Editor"]}`,
+		adminSession, adminCookies, http.StatusCreated)
+	editorSession, editorCookies := loginTestUser(t, router, "editor", "editor-secure-password")
+	for _, input := range []application.MasterDataInput{
+		{Key: "first", Label: "First"},
+		{Key: "second", Label: "Second"},
+	} {
+		if _, err := masterData.Create(t.Context(), "manufacturer", input); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	response := doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/active",
+		`{"keys":["first","second"],"active":false}`,
+		editorSession, editorCookies, http.StatusOK)
+	var updated []application.MasterDataEntry
+	if err := json.Unmarshal(response.Body.Bytes(), &updated); err != nil {
+		t.Fatal(err)
+	}
+	if len(updated) != 2 || updated[0].Key != "first" || updated[1].Key != "second" {
+		t.Fatalf("updated entries=%#v", updated)
+	}
+	for _, entry := range updated {
+		if entry.Active || entry.Capabilities == nil || !entry.Capabilities.CanReactivate {
+			t.Fatalf("updated entry=%#v", entry)
+		}
+	}
+
+	assertProblem(t, doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/active", `[`, editorSession, editorCookies,
+		http.StatusBadRequest), http.StatusBadRequest, "invalid_json")
+	for name, body := range map[string]string{
+		"missing state": `{ "keys": ["first"] }`,
+		"empty keys":    `{"keys":[],"active":false}`,
+		"reactivation":  `{"keys":["first"],"active":true}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			assertProblem(t, doAuthedJSON(t, router, http.MethodPatch,
+				"/api/v1/master-data/manufacturer/active", body, editorSession, editorCookies,
+				http.StatusBadRequest), http.StatusBadRequest, "master_data_validation")
+		})
+	}
+	assertProblem(t, doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/active",
+		`{"keys":["first","missing"],"active":false}`,
+		editorSession, editorCookies, http.StatusNotFound),
+		http.StatusNotFound, "master_data_not_found")
+
+	tooMany := make([]string, application.MaxMasterDataActiveBatchSize+1)
+	for index := range tooMany {
+		tooMany[index] = fmt.Sprintf("key-%d", index)
+	}
+	overLimit, err := json.Marshal(map[string]any{"keys": tooMany, "active": false})
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertProblem(t, doAuthedJSON(t, router, http.MethodPatch,
+		"/api/v1/master-data/manufacturer/active", string(overLimit), editorSession, editorCookies,
+		http.StatusBadRequest), http.StatusBadRequest, "master_data_validation")
 }
 
 func assertMasterDataDeleteProblem(

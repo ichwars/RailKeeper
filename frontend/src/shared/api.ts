@@ -1956,6 +1956,11 @@ export const api = {
         body: JSON.stringify({ active })
       }
     ),
+  setMasterDataActiveMany: (type: string, keys: string[], active: false) =>
+    request<MasterDataEntry[]>(`/master-data/${encodeURIComponent(type)}/active`, {
+      method: "PATCH",
+      body: JSON.stringify({ keys, active })
+    }),
   deleteMasterData: (type: string, key: string) =>
     request<void>(`/master-data/${encodeURIComponent(type)}/${encodeURIComponent(key)}`, {
       method: "DELETE"

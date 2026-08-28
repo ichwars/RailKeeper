@@ -41,6 +41,30 @@ func TestOpenAPIDocumentsRegisteredAPIRoutes(t *testing.T) {
 	}
 }
 
+func TestOpenAPIMasterDataActiveBatchContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	operation := openAPIIndentedBlock(t, contract, "/master-data/{type}/active", 2)
+	for _, expected := range []string{
+		"patch:", "MasterDataActiveBatchInput", `"200":`, `"400":`, `"404":`,
+	} {
+		if !strings.Contains(operation, expected) {
+			t.Errorf("master-data batch operation is missing %q: %s", expected, operation)
+		}
+	}
+	schema := openAPIIndentedBlock(t, contract, "MasterDataActiveBatchInput", 4)
+	for _, expected := range []string{
+		"required: [keys, active]", "minItems: 1", "maxItems: 5000", "uniqueItems: true", "enum: [false]",
+	} {
+		if !strings.Contains(schema, expected) {
+			t.Errorf("master-data batch schema is missing %q: %s", expected, schema)
+		}
+	}
+}
+
 func TestOpenAPIDataTransferPreviewEnumsMatchRuntimeValues(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {
