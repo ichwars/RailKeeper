@@ -528,7 +528,8 @@ function capabilitiesFixture(enabled: boolean): DigitalCenterSummary["capabiliti
 function centerFixture(overrides: Partial<DigitalCenterSummary> = {}): DigitalCenterSummary {
   return {
     provider: "ecos", name: "ESU ECoS", active: true, selected: true,
-    host: "192.168.2.151", port: 15471, capabilities: capabilitiesFixture(true), ...overrides
+    host: "192.168.2.151", port: 15471, capabilities: capabilitiesFixture(true),
+    transports: [{ id: "ecos_tcp", status: "available", capabilities: capabilitiesFixture(true) }], ...overrides
   };
 }
 

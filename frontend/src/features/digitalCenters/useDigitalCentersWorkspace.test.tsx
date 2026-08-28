@@ -833,6 +833,7 @@ function centerFixture(overrides: Partial<DigitalCenterSummary> = {}): DigitalCe
     host: "center.local",
     port: 15471,
     capabilities: capabilitiesFixture(),
+    transports: [{ id: "ecos_tcp", status: "available", capabilities: capabilitiesFixture() }],
     ...overrides
   };
 }

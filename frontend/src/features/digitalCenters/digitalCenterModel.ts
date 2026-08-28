@@ -38,6 +38,12 @@ export type DigitalCenterCapabilities = {
   diagnose: boolean;
 };
 
+export type DigitalCenterTransport = {
+  id: "ecos_tcp" | "z21_udp" | "loconet_tcp" | "cs3_http";
+  status: "available" | "planned";
+  capabilities: DigitalCenterCapabilities;
+};
+
 export type DigitalCenterSummary = {
   provider: DigitalCenterProvider;
   name: string;
@@ -46,6 +52,7 @@ export type DigitalCenterSummary = {
   host: string;
   port: number;
   capabilities: DigitalCenterCapabilities;
+  transports: DigitalCenterTransport[];
 };
 
 export type DigitalCenterWorkspaceSummary = {

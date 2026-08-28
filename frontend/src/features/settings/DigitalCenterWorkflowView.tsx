@@ -404,6 +404,19 @@ export function DigitalCenterWorkflowView({
         <aside className="digital-workflow-aside">
           <section className="panel digital-safety-card">
             <header><ShieldCheck size={26} /><div><h2>{t("settings.digital.workflow.safetyTitle")}</h2><p>{t("settings.digital.workflow.safetySubtitle")}</p></div></header>
+            {provider === "intellibox3" && (
+              <section className="digital-transport-status" aria-labelledby="digital-intellibox-transport-title">
+                <h3 id="digital-intellibox-transport-title">{t("settings.digital.workflow.transportTitle")}</h3>
+                <article>
+                  <div><strong>{t("settings.digital.workflow.transportZ21Title")}</strong><span>{t("settings.digital.workflow.transportZ21Help")}</span></div>
+                  <em className="available">{t("settings.digital.workflow.transportAvailable")}</em>
+                </article>
+                <article>
+                  <div><strong>{t("settings.digital.workflow.transportLocoNetTitle")}</strong><span>{t("settings.digital.workflow.transportLocoNetHelp")}</span></div>
+                  <em className="planned">{t("settings.digital.workflow.transportPlanned")}</em>
+                </article>
+              </section>
+            )}
             <div className="digital-capability-list">
               <article><Wifi size={17} /><div><strong>{t("settings.digital.workflow.safetyTestTitle")}</strong><span>{t("settings.digital.workflow.safetyTestHelp")}</span></div><span className="capability-state available"><Check size={12} /></span></article>
               <article><Database size={17} /><div><strong>{t("settings.digital.workflow.safetyReadTitle")}</strong><span>{provider === "cs3" ? t("settings.digital.workflow.safetyReadCS3Help") : providerSupportsRead(provider) ? t("settings.digital.workflow.safetyReadHelp") : t("settings.digital.workflow.safetyReadLimited")}</span></div><span className={`capability-state ${providerSupportsRead(provider) ? "available" : "limited"}`}>{providerSupportsRead(provider) ? <Check size={12} /> : "–"}</span></article>

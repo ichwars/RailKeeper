@@ -54,6 +54,10 @@ func TestDigitalCenterWorkspaceRoutesUseConfiguredTargetAndBoundPagination(t *te
 	if len(summary.Centers) != 1 || summary.Centers[0].Host != "configured-center.local" {
 		t.Fatalf("workspace summary = %#v", summary)
 	}
+	if len(summary.Centers[0].Transports) != 1 || summary.Centers[0].Transports[0].ID != "ecos_tcp" ||
+		summary.Centers[0].Transports[0].Status != "available" {
+		t.Fatalf("workspace transport summary = %#v", summary.Centers[0].Transports)
+	}
 
 	started := layoutRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/ecos/read-sessions",
