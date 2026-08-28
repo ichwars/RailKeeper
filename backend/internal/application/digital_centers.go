@@ -9,19 +9,22 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 )
 
 const (
-	defaultZ21Port        = 21105
-	defaultCS3Port        = 80
-	z21MaximumUDPPayload  = 1472
-	z21MaximumDatagrams   = 32
-	z21LANGetSerialNumber = 0x0010
-	z21LANGetCode         = 0x0018
-	z21LANGetHWInfo       = 0x001A
+	defaultZ21Port          = 21105
+	defaultCS3Port          = 80
+	z21MaximumUDPPayload    = 1472
+	z21MaximumDatagrams     = 32
+	z21MaximumReadAddresses = 64
+	z21LANXHeader           = 0x0040
+	z21LANGetSerialNumber   = 0x0010
+	z21LANGetCode           = 0x0018
+	z21LANGetHWInfo         = 0x001A
 )
 
 type DigitalCenterService struct {
@@ -125,6 +128,39 @@ func (s *DigitalCenterService) ProbeZ21Connection(ctx context.Context, input Dig
 
 func (s *DigitalCenterService) ProbeIntellibox3Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterProbeResult, error) {
 	return s.probeZ21CompatibleConnection(ctx, input, "intellibox3", "Intellibox 3")
+}
+
+// ReadZ21Locomotives polls only decoder addresses already known to RailKeeper.
+// LAN_X_GET_LOCO_INFO is a status query, not a roster endpoint. Dynamic driving
+// and function state is deliberately discarded at this boundary.
+func (s *DigitalCenterService) ReadZ21Locomotives(
+	ctx context.Context,
+	input DigitalCenterConnectionInput,
+	addresses []int,
+) ([]ECoSRawLocomotive, error) {
+	target, err := normalizeDigitalCenterInput(input, defaultZ21Port)
+	if err != nil {
+		return nil, err
+	}
+	addresses, err = normalizeZ21ReadAddresses(addresses)
+	if err != nil {
+		return nil, err
+	}
+	if len(addresses) == 0 {
+		return nil, fmt.Errorf("%w: keine bekannte Z21-Decoderadresse in RailKeeper", ErrDigitalCenterDeviceOutput)
+	}
+	ctx, cancel := context.WithTimeout(ctx, 15*time.Second)
+	defer cancel()
+
+	locomotives := make([]ECoSRawLocomotive, 0, len(addresses))
+	for _, address := range addresses {
+		locomotive, readErr := s.readZ21LocoInfo(ctx, target, address)
+		if readErr != nil {
+			return nil, fmt.Errorf("Z21-Adresse %d lesen: %w", address, readErr)
+		}
+		locomotives = append(locomotives, locomotive)
+	}
+	return locomotives, nil
 }
 
 func (s *DigitalCenterService) testZ21CompatibleConnection(ctx context.Context, input DigitalCenterConnectionInput, provider, label string) (*DigitalCenterConnectionResult, error) {
@@ -256,6 +292,27 @@ func (s *DigitalCenterService) exchangeZ21UDP(ctx context.Context, target Digita
 		return nil, errors.New("Z21-Befehl war unvollständig")
 	}
 	expectedHeader := binary.LittleEndian.Uint16(command[2:4])
+	return s.exchangeZ21UDPMatching(ctx, target, command, func(packet z21Packet) (bool, error) {
+		if packet.Header != expectedHeader {
+			return false, nil
+		}
+		if err := validateZ21PayloadLength(packet.Header, packet.Payload); err != nil {
+			return false, err
+		}
+		return true, nil
+	})
+}
+
+func (s *DigitalCenterService) exchangeZ21UDPMatching(
+	ctx context.Context,
+	target DigitalCenterConnectionInput,
+	command []byte,
+	matcher func(z21Packet) (bool, error),
+) ([]byte, error) {
+	if len(command) < 4 {
+		return nil, errors.New("Z21-Befehl war unvollständig")
+	}
+	expectedHeader := binary.LittleEndian.Uint16(command[2:4])
 	timeout := s.timeout
 	if timeout <= 0 {
 		timeout = 4 * time.Second
@@ -295,17 +352,60 @@ func (s *DigitalCenterService) exchangeZ21UDP(ctx context.Context, target Digita
 			return nil, parseErr
 		}
 		for _, packet := range packets {
-			if packet.Header != expectedHeader {
+			matched, matchErr := matcher(packet)
+			if matchErr != nil {
+				return nil, matchErr
+			}
+			if !matched {
 				unmatchedResponse = true
 				continue
-			}
-			if err := validateZ21PayloadLength(packet.Header, packet.Payload); err != nil {
-				return nil, err
 			}
 			return append([]byte(nil), packet.Raw...), nil
 		}
 	}
 	return nil, fmt.Errorf("keine passende Z21-Antwort für Header 0x%04X nach %d UDP-Datagrammen erhalten", expectedHeader, z21MaximumDatagrams)
+}
+
+func (s *DigitalCenterService) readZ21LocoInfo(
+	ctx context.Context,
+	target DigitalCenterConnectionInput,
+	address int,
+) (ECoSRawLocomotive, error) {
+	command, err := z21LocoInfoCommand(address)
+	if err != nil {
+		return ECoSRawLocomotive{}, err
+	}
+	var result ECoSRawLocomotive
+	mismatch := ""
+	_, err = s.exchangeZ21UDPMatching(ctx, target, command, func(packet z21Packet) (bool, error) {
+		if packet.Header != z21LANXHeader {
+			return false, nil
+		}
+		if len(packet.Payload) == 0 {
+			return false, errors.New("Z21-Lokantwort war unvollständig: X-Header fehlt")
+		}
+		if packet.Payload[0] != 0xEF {
+			mismatch = fmt.Sprintf("unerwarteter Z21-X-BUS-Nachrichtentyp 0x%02X", packet.Payload[0])
+			return false, nil
+		}
+		locomotive, parseErr := parseZ21LocoInfo(packet.Payload)
+		if parseErr != nil {
+			return false, parseErr
+		}
+		if locomotive.Address != address {
+			mismatch = fmt.Sprintf("Z21-Lokantwort für unerwartete Adresse %d", locomotive.Address)
+			return false, nil
+		}
+		result = locomotive
+		return true, nil
+	})
+	if err != nil {
+		if mismatch != "" {
+			return ECoSRawLocomotive{}, fmt.Errorf("%s: %w", mismatch, err)
+		}
+		return ECoSRawLocomotive{}, err
+	}
+	return result, nil
 }
 
 func (s *DigitalCenterService) httpClient() *http.Client {
@@ -349,6 +449,69 @@ func z21HeaderCommand(header uint16) []byte {
 	binary.LittleEndian.PutUint16(packet[0:2], 4)
 	binary.LittleEndian.PutUint16(packet[2:4], header)
 	return packet
+}
+
+func z21LocoInfoCommand(address int) ([]byte, error) {
+	if address < 1 || address > maxDigitalCenterAddress {
+		return nil, fmt.Errorf("Z21-Decoderadresse %d liegt außerhalb 1 bis %d", address, maxDigitalCenterAddress)
+	}
+	addressMSB := byte(address >> 8)
+	if address >= 128 {
+		addressMSB |= 0xC0
+	}
+	command := []byte{0x09, 0x00, 0x40, 0x00, 0xE3, 0xF0, addressMSB, byte(address), 0x00}
+	for _, value := range command[4 : len(command)-1] {
+		command[len(command)-1] ^= value
+	}
+	return command, nil
+}
+
+func normalizeZ21ReadAddresses(addresses []int) ([]int, error) {
+	unique := make(map[int]struct{}, len(addresses))
+	for _, address := range addresses {
+		if address < 1 || address > maxDigitalCenterAddress {
+			return nil, fmt.Errorf("Z21-Decoderadresse %d liegt außerhalb 1 bis %d", address, maxDigitalCenterAddress)
+		}
+		unique[address] = struct{}{}
+	}
+	if len(unique) > z21MaximumReadAddresses {
+		return nil, fmt.Errorf("Z21-Leseumfang ist auf %d eindeutige Decoderadressen begrenzt", z21MaximumReadAddresses)
+	}
+	result := make([]int, 0, len(unique))
+	for address := range unique {
+		result = append(result, address)
+	}
+	sort.Ints(result)
+	return result, nil
+}
+
+func parseZ21LocoInfo(payload []byte) (ECoSRawLocomotive, error) {
+	if len(payload) < 10 {
+		return ECoSRawLocomotive{}, fmt.Errorf("Z21-Lokantwort war unvollständig: erwartete mindestens 10 Nutzdatenbytes, erhielt %d", len(payload))
+	}
+	if len(payload) > 17 {
+		return ECoSRawLocomotive{}, fmt.Errorf("Z21-Lokantwort hatte eine ungültige Nutzdatenlänge von %d Byte", len(payload))
+	}
+	if payload[0] != 0xEF {
+		return ECoSRawLocomotive{}, fmt.Errorf("unerwarteter Z21-X-BUS-Nachrichtentyp 0x%02X", payload[0])
+	}
+	checksum := byte(0)
+	for _, value := range payload {
+		checksum ^= value
+	}
+	if checksum != 0 {
+		return ECoSRawLocomotive{}, errors.New("Z21-Lokantwort hatte eine ungültige XOR-Prüfsumme")
+	}
+	address := int(payload[1]&0x3F)<<8 | int(payload[2])
+	if address < 1 || address > maxDigitalCenterAddress {
+		return ECoSRawLocomotive{}, fmt.Errorf("Z21-Lokantwort enthielt ungültige Decoderadresse %d", address)
+	}
+	return ECoSRawLocomotive{
+		ObjectID: address,
+		Address:  address,
+		DetailError: "Z21-LAN stellt weder Loknamen noch ein verlässlich eindeutiges Decoderprotokoll bereit; " +
+			"Fahrzustände wurden verworfen.",
+	}, nil
 }
 
 func decodeZ21ProbeFields(header uint16, payload []byte) map[string]string {

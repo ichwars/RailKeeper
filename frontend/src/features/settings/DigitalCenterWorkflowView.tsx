@@ -84,7 +84,7 @@ function providerSupportsProbe(provider: DigitalProvider) {
 }
 
 function providerSupportsRead(provider: DigitalProvider) {
-  return provider === "ecos" || provider === "cs3";
+  return provider === "ecos" || provider === "z21" || provider === "cs3";
 }
 
 function resultFieldEntries(result: ConnectionResult | null) {
@@ -419,7 +419,7 @@ export function DigitalCenterWorkflowView({
             )}
             <div className="digital-capability-list">
               <article><Wifi size={17} /><div><strong>{t("settings.digital.workflow.safetyTestTitle")}</strong><span>{t("settings.digital.workflow.safetyTestHelp")}</span></div><span className="capability-state available"><Check size={12} /></span></article>
-              <article><Database size={17} /><div><strong>{t("settings.digital.workflow.safetyReadTitle")}</strong><span>{provider === "cs3" ? t("settings.digital.workflow.safetyReadCS3Help") : providerSupportsRead(provider) ? t("settings.digital.workflow.safetyReadHelp") : t("settings.digital.workflow.safetyReadLimited")}</span></div><span className={`capability-state ${providerSupportsRead(provider) ? "available" : "limited"}`}>{providerSupportsRead(provider) ? <Check size={12} /> : "–"}</span></article>
+              <article><Database size={17} /><div><strong>{t("settings.digital.workflow.safetyReadTitle")}</strong><span>{provider === "cs3" ? t("settings.digital.workflow.safetyReadCS3Help") : provider === "z21" ? t("settings.digital.workflow.safetyReadZ21Help") : providerSupportsRead(provider) ? t("settings.digital.workflow.safetyReadHelp") : t("settings.digital.workflow.safetyReadLimited")}</span></div><span className={`capability-state ${providerSupportsRead(provider) ? "available" : "limited"}`}>{providerSupportsRead(provider) ? <Check size={12} /> : "–"}</span></article>
               <article><Monitor size={17} /><div><strong>{t("settings.digital.workflow.safetyMonitorTitle")}</strong><span>{provider === "ecos" ? t("settings.digital.workflow.safetyMonitorHelp") : t("settings.digital.workflow.safetyMonitorUnavailable")}</span></div><span className={`capability-state ${provider === "ecos" ? "available" : "limited"}`}>{provider === "ecos" ? <Check size={12} /> : "–"}</span></article>
               <article><LockKeyhole size={17} /><div><strong>{t("settings.digital.workflow.safetyWriteTitle")}</strong><span>{provider === "ecos" ? t("settings.digital.workflow.safetyWriteHelp") : t("settings.digital.workflow.safetyWriteUnavailable")}</span></div><span className="capability-state locked"><LockKeyhole size={11} /></span></article>
             </div>

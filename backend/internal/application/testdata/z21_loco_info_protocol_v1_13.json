@@ -1,0 +1,8 @@
+{
+  "source": "Z21 LAN Protocol Specification 1.13, sections 4.1 and 4.4",
+  "sourceUrl": "https://www.z21.eu/media/Kwc_Basic_DownloadTag_Component/root-en-main_47-1652-959-downloadTag-download/default/d559b9cf/1699290380/z21-lan-protokoll-en.pdf",
+  "hardwareCapture": false,
+  "address": 3,
+  "requestHex": "09004000E3F0000310",
+  "responseHex": "0E004000EF00030001102040801D"
+}

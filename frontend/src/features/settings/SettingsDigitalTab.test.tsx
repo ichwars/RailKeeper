@@ -156,6 +156,27 @@ describe("SettingsDigitalTab commissioning workflow", () => {
     expect(screen.getAllByText("true").length).toBeGreaterThan(0);
   });
 
+  it("shows the bounded address-only read scope for Z21", async () => {
+    vi.mocked(api.digitalSettings).mockResolvedValue({
+      ...settings(),
+      provider: "z21",
+      z21: { enabled: true, host: "192.168.2.45", port: "21105" }
+    });
+
+    render(
+      <SettingsDigitalTab
+        canManageUsers
+        formatDateTime={(value) => value}
+        username="admin"
+      />
+    );
+
+    expect(await screen.findByText("192.168.2.45:21105")).toBeInTheDocument();
+    expect(screen.getByText("Fragt nur bekannte RailKeeper-Decoderadressen ab. Loknamen, Fahrzustände und Funktionen werden nicht übernommen.")).toBeInTheDocument();
+    expect(screen.getByText("Lokdaten lesen").closest("article")?.querySelector(".capability-state.available")).toBeInTheDocument();
+    expect(screen.getByText("Schreibzugriffe geschützt").closest("article")).toHaveTextContent("Dieser Adapter führt keine Schreibzugriffe aus.");
+  });
+
   it("separates available Z21 UDP from disabled LocoNet TCP for Intellibox 3", async () => {
     vi.mocked(api.digitalSettings).mockResolvedValue({
       ...settings(),
