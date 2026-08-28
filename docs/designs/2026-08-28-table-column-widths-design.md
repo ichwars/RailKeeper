@@ -1,7 +1,9 @@
 # Anpassbare Spaltenbreiten für Fahrzeuge und Zubehör
 
-Status: beschlossen  
-Issue: #141  
+Status: beschlossen
+
+Issue: #141
+
 Datum: 28.08.2026
 
 ## Ziel

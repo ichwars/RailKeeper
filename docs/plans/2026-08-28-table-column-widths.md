@@ -1,6 +1,7 @@
 # Implementierungsplan: Anpassbare Spaltenbreiten
 
-Issue: #141  
+Issue: #141
+
 Design: `docs/designs/2026-08-28-table-column-widths-design.md`
 
 ## Aufgabe 1: Gemeinsames Layoutmodell und Profilpersistenz
