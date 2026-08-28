@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef } from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 import type {
@@ -8,8 +8,15 @@ import type {
   MasterDataEntry
 } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import {
+  tableColumnWidth,
+  tableMinimumWidth,
+  type TableColumnWidths
+} from "../../shared/tableColumnLayout";
+import { TableColumnResizeHandle } from "../../shared/ui/TableColumnResizeHandle";
 import { ArticleActions } from "./ArticleActions";
 import {
+  articleTableColumnWidthDefinitions,
   defaultArticleTableColumns,
   type ArticleTableColumn
 } from "./articleTableColumns";
@@ -34,41 +41,26 @@ type ArticleTableProps = {
   onArchive: (article: AccessoryArticleListItem) => void | Promise<void>;
   onRestore: (article: AccessoryArticleListItem) => void | Promise<void>;
   onDelete?: (article: AccessoryArticleListItem) => void;
-  visibleColumns?: ReadonlySet<ArticleTableColumn>;
+  columns?: readonly ArticleTableColumn[];
+  columnWidths?: TableColumnWidths<ArticleTableColumn>;
+  onPreviewColumnWidth?: (column: ArticleTableColumn, width: number) => void;
+  onCommitColumnWidth?: (column: ArticleTableColumn, width: number) => void;
 };
 
-const tableColumns: Array<{ sort?: AccessoryArticleSort; key: ArticleTableColumn }> = [
-  { sort: "image", key: "image" },
-  { sort: "inventoryNumber", key: "inventoryNumber" },
-  { sort: "manufacturer", key: "manufacturer" },
-  { sort: "articleNumber", key: "articleNumber" },
-  { sort: "name", key: "name" },
-  { sort: "type", key: "type" },
-  { sort: "gauge", key: "gauge" },
-  { key: "listPrice" },
-  { sort: "stock", key: "stock" },
-  { sort: "storage", key: "storage" }
-];
-
-const articleColumnWidths: Record<ArticleTableColumn, number> = {
-  image: 86,
-  inventoryNumber: 142,
-  manufacturer: 150,
-  articleNumber: 126,
-  name: 210,
-  type: 175,
-  gauge: 80,
-  listPrice: 130,
-  stock: 210,
-  storage: 170
+const tableColumns: Record<ArticleTableColumn, { sort?: AccessoryArticleSort }> = {
+  image: { sort: "image" },
+  inventoryNumber: { sort: "inventoryNumber" },
+  manufacturer: { sort: "manufacturer" },
+  articleNumber: { sort: "articleNumber" },
+  name: { sort: "name" },
+  type: { sort: "type" },
+  gauge: { sort: "gauge" },
+  listPrice: {},
+  stock: { sort: "stock" },
+  storage: { sort: "storage" }
 };
 
-function articleTableStyle(visibleColumns: ReadonlySet<ArticleTableColumn>) {
-  const dataWidth = [...visibleColumns]
-    .reduce((total, column) => total + articleColumnWidths[column], 0);
-  const minimumWidth = Math.max(420, 44 + 128 + dataWidth);
-  return { "--article-table-min-width": `${minimumWidth}px` } as CSSProperties;
-}
+const fixedTableWidth = 44 + 136;
 
 export function ArticleTable({
   items,
@@ -87,52 +79,138 @@ export function ArticleTable({
   onArchive,
   onRestore,
   onDelete,
-  visibleColumns = defaultArticleTableColumns
+  columns = defaultArticleTableColumns,
+  columnWidths = {},
+  onPreviewColumnWidth,
+  onCommitColumnWidth
 }: ArticleTableProps) {
   const selectAllRef = useRef<HTMLInputElement | null>(null);
   const { language, t } = useI18n();
   const allSelected = items.length > 0 && items.every((item) => selectedIDs.has(item.id));
   const someSelected = items.some((item) => selectedIDs.has(item.id));
+  const layout = { columns: [...columns], widths: columnWidths };
+  const minimumWidth = tableMinimumWidth(layout, articleTableColumnWidthDefinitions, fixedTableWidth);
+  const tableStyle = {
+    "--article-table-min-width": `${minimumWidth}px`
+  } as CSSProperties;
 
   useEffect(() => {
     if (selectAllRef.current) selectAllRef.current.indeterminate = someSelected && !allSelected;
   }, [allSelected, someSelected]);
 
-  const renderSortHeader = ({
-    sort: columnSort,
-    key
-  }: { sort: AccessoryArticleSort; key: ArticleTableColumn }) => {
-    const active = sort === columnSort;
+  const resizeHandle = (column: ArticleTableColumn, label: string) => {
+    if (!onPreviewColumnWidth || !onCommitColumnWidth) return null;
+    const definition = articleTableColumnWidthDefinitions[column];
+    return <TableColumnResizeHandle
+      label={t("common.resizeColumn", { label })}
+      width={tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}
+      minWidth={definition.minWidth}
+      maxWidth={definition.maxWidth}
+      defaultWidth={definition.defaultWidth}
+      onPreview={(width) => onPreviewColumnWidth(column, width)}
+      onCommit={(width) => onCommitColumnWidth(column, width)}
+    />;
+  };
+
+  const renderHeader = (key: ArticleTableColumn) => {
+    const columnSort = tableColumns[key].sort;
     const label = t(`accessories.table.${key}`);
+    const active = columnSort !== undefined && sort === columnSort;
     return (
-      <th key={columnSort} className={`article-${key}-cell`}
-        aria-sort={active ? (direction === "asc" ? "ascending" : "descending") : "none"}>
-        <button
-          type="button"
-          className={active ? "article-sort-button active" : "article-sort-button"}
-          onClick={() => onSort(columnSort)}
-          aria-label={t("accessories.table.sortBy", { column: label })}
-        >
-          <span>{label}</span>
-          {active ? direction === "asc"
-            ? <ChevronUp size={14} aria-hidden="true" />
-            : <ChevronDown size={14} aria-hidden="true" />
-            : null}
-        </button>
+      <th key={key} className={`article-${key}-cell`} aria-label={label}
+        aria-sort={columnSort ? (active ? (direction === "asc" ? "ascending" : "descending") : "none") : undefined}>
+        {columnSort ? (
+          <button type="button" className={active ? "article-sort-button active" : "article-sort-button"}
+            onClick={() => onSort(columnSort)}
+            aria-label={t("accessories.table.sortBy", { column: label })}>
+            <span>{label}</span>
+            {active ? direction === "asc"
+              ? <ChevronUp size={14} aria-hidden="true" />
+              : <ChevronDown size={14} aria-hidden="true" />
+              : null}
+          </button>
+        ) : label}
+        {resizeHandle(key, label)}
       </th>
     );
   };
 
-  const renderHeader = (column: { sort?: AccessoryArticleSort; key: ArticleTableColumn }) => {
-    if (column.sort) return renderSortHeader({ sort: column.sort, key: column.key });
-    return <th key={column.key} className={`article-${column.key}-cell`}>
-      {t(`accessories.table.${column.key}`)}
-    </th>;
+  const renderCell = (article: AccessoryArticleListItem, column: ArticleTableColumn): ReactNode => {
+    const storageTitle = article.locationNames.join(", ");
+    const primaryLocation = article.locationNames[0] || t("common.none");
+    switch (column) {
+      case "image":
+        return <td key={column} className="article-image-cell">
+          {article.primaryImageUrl
+            ? <img className="inventory-thumb" src={article.primaryImageUrl} alt="" />
+            : <div className="image-placeholder">{t("exhibition.noPreview")}</div>}
+        </td>;
+      case "inventoryNumber":
+        return <td key={column} className="article-inventoryNumber-cell article-inventory-cell">
+          <span className="article-truncate" title={article.inventoryNumber}>{article.inventoryNumber}</span>
+        </td>;
+      case "manufacturer":
+        return <td key={column} className="article-manufacturer-cell">
+          <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
+        </td>;
+      case "articleNumber":
+        return <td key={column} className="article-articleNumber-cell article-number-cell">
+          <span className="article-truncate" title={article.articleNumber || undefined}>
+            {article.articleNumber || t("common.none")}
+          </span>
+        </td>;
+      case "name":
+        return <td key={column} className="article-name-cell article-main-cell">
+          {onView ? <button type="button" className="article-name-button" onClick={() => onView(article)}>
+            <strong className="article-truncate" title={article.name}>{article.name}</strong>
+          </button> : <div className="article-name-content">
+            <strong className="article-truncate" title={article.name}>{article.name}</strong>
+          </div>}
+        </td>;
+      case "type":
+        return <td key={column} className="article-type-cell">
+          <strong>{articleTypeLabel(article.articleType, articleTypeEntries, t)}</strong>
+          <small>{article.subtype
+            ? articleSubtypeLabel(article.articleType, article.subtype, subtypeEntries, t)
+            : t("common.none")}</small>
+        </td>;
+      case "gauge":
+        return <td key={column} className="article-gauge-cell">
+          {article.gauges.length ? article.gauges.join(", ") : t("common.none")}
+        </td>;
+      case "listPrice":
+        return <td key={column} className="article-listPrice-cell">
+          {formatAccessoryMoney(article.listPrice, language) || t("common.none")}
+        </td>;
+      case "stock":
+        return <td key={column} className="article-stock-cell">
+          <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
+          <small>{t("accessories.table.stockBreakdown", {
+            available: article.available,
+            reserved: article.reserved,
+            installed: article.installed
+          })}</small>
+        </td>;
+      case "storage":
+        return <td key={column} className="article-storage-cell">
+          <span className="article-truncate" title={storageTitle || primaryLocation}>{primaryLocation}</span>
+          {article.locationNames.length > 1
+            ? <small>{t("accessories.table.moreLocations", { count: article.locationNames.length - 1 })}</small>
+            : null}
+        </td>;
+    }
   };
 
   return (
     <div className="table-wrap article-table-wrap">
-      <table className="inventory-table article-table" style={articleTableStyle(visibleColumns)}>
+      <table className="inventory-table article-table" style={tableStyle}>
+        <colgroup>
+          <col className="select-cell" />
+          {columns.map((column) => <col key={column} data-column={column} style={{
+            width: `${tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}px`
+          }} />)}
+          <col className="actions-cell" />
+        </colgroup>
         <thead>
           <tr>
             <th className="select-cell" aria-label={t("accessories.table.select")}>
@@ -142,83 +220,31 @@ export function ArticleTable({
                   onChange={() => onToggleAll?.()} />
               </label>
             </th>
-            {tableColumns.filter(({ key }) => visibleColumns.has(key)).map(renderHeader)}
+            {columns.map(renderHeader)}
             <th className="actions-cell">{t("accessories.table.actions")}</th>
           </tr>
         </thead>
         <tbody>
-          {items.map((article) => {
-            const storageTitle = article.locationNames.join(", ");
-            const primaryLocation = article.locationNames[0] || t("common.none");
-            return (
-              <tr key={article.id} className={[
-                article.archived ? "archived" : "",
-                selectedIDs.has(article.id) ? "selected-row" : ""
-              ].filter(Boolean).join(" ")}>
-                <td className="select-cell">
-                  <label className="table-select-field" title={t("accessories.table.selectNamed", { name: article.name })}>
-                    <input type="checkbox" checked={selectedIDs.has(article.id)}
-                      aria-label={t("accessories.table.selectNamed", { name: article.name })}
-                      onChange={() => onToggleSelection?.(article.id)} />
-                  </label>
-                </td>
-                {visibleColumns.has("image") ? <td className="article-image-cell">
-                  {article.primaryImageUrl
-                    ? <img className="inventory-thumb" src={article.primaryImageUrl} alt="" />
-                    : <div className="image-placeholder">{t("exhibition.noPreview")}</div>}
-                </td> : null}
-                {visibleColumns.has("inventoryNumber") ? <td className="article-inventoryNumber-cell article-inventory-cell">
-                  <span className="article-truncate" title={article.inventoryNumber}>{article.inventoryNumber}</span>
-                </td> : null}
-                {visibleColumns.has("manufacturer") ? <td className="article-manufacturer-cell">
-                  <span className="article-truncate" title={article.manufacturer}>{article.manufacturer}</span>
-                </td> : null}
-                {visibleColumns.has("articleNumber") ? <td className="article-articleNumber-cell article-number-cell">
-                  <span className="article-truncate" title={article.articleNumber || undefined}>
-                    {article.articleNumber || t("common.none")}
-                  </span>
-                </td> : null}
-                {visibleColumns.has("name") ? <td className="article-name-cell article-main-cell">
-                  {onView ? <button type="button" className="article-name-button" onClick={() => onView(article)}>
-                    <strong className="article-truncate" title={article.name}>{article.name}</strong>
-                  </button> : <div className="article-name-content">
-                    <strong className="article-truncate" title={article.name}>{article.name}</strong>
-                  </div>}
-                </td> : null}
-                {visibleColumns.has("type") ? <td className="article-type-cell">
-                  <strong>{articleTypeLabel(article.articleType, articleTypeEntries, t)}</strong>
-                  <small>{article.subtype
-                    ? articleSubtypeLabel(article.articleType, article.subtype, subtypeEntries, t)
-                    : t("common.none")}</small>
-                </td> : null}
-                {visibleColumns.has("gauge") ? <td className="article-gauge-cell">
-                  {article.gauges.length ? article.gauges.join(", ") : t("common.none")}
-                </td> : null}
-                {visibleColumns.has("listPrice") ? <td className="article-listPrice-cell">
-                  {formatAccessoryMoney(article.listPrice, language) || t("common.none")}
-                </td> : null}
-                {visibleColumns.has("stock") ? <td className="article-stock-cell">
-                  <strong>{t("accessories.table.stockOwned", { count: article.owned })}</strong>
-                  <small>{t("accessories.table.stockBreakdown", {
-                    available: article.available,
-                    reserved: article.reserved,
-                    installed: article.installed
-                  })}</small>
-                </td> : null}
-                {visibleColumns.has("storage") ? <td className="article-storage-cell">
-                  <span className="article-truncate" title={storageTitle || primaryLocation}>{primaryLocation}</span>
-                  {article.locationNames.length > 1 ? (
-                    <small>{t("accessories.table.moreLocations", { count: article.locationNames.length - 1 })}</small>
-                  ) : null}
-                </td> : null}
-                <td className="actions-cell">
-                  <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
-                    onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
-                    onDelete={onDelete} />
-                </td>
-              </tr>
-            );
-          })}
+          {items.map((article) => (
+            <tr key={article.id} className={[
+              article.archived ? "archived" : "",
+              selectedIDs.has(article.id) ? "selected-row" : ""
+            ].filter(Boolean).join(" ")}>
+              <td className="select-cell">
+                <label className="table-select-field" title={t("accessories.table.selectNamed", { name: article.name })}>
+                  <input type="checkbox" checked={selectedIDs.has(article.id)}
+                    aria-label={t("accessories.table.selectNamed", { name: article.name })}
+                    onChange={() => onToggleSelection?.(article.id)} />
+                </label>
+              </td>
+              {columns.map((column) => renderCell(article, column))}
+              <td className="actions-cell">
+                <ArticleActions article={article} canEdit={canEdit} canDelete={canDelete}
+                  onView={onView} onEdit={onEdit} onArchive={onArchive} onRestore={onRestore}
+                  onDelete={onDelete} />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

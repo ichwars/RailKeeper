@@ -20,7 +20,9 @@ describe("article editor responsive tabs", () => {
   });
 
   it("keeps the configurable article table horizontally reachable at every width", () => {
-    expect(accessoriesCss).toMatch(/\.article-table\s*\{[^}]*min-width:\s*var\(--article-table-min-width\)/s);
+    expect(accessoriesCss).toMatch(
+      /\.article-table\s*\{[^}]*width:\s*max\(100%,\s*var\(--article-table-min-width\)\)/s
+    );
     expect(accessoriesCss).toMatch(/\.article-table th\.actions-cell,[\s\S]*?width:\s*13[0-9]px/s);
     expect(accessoriesCss).toMatch(/\.article-table-wrap\s*\{[^}]*overflow-x:\s*auto/s);
     expect(accessoriesCss).toMatch(/\.article-table \.select-cell\s*\{[^}]*width:\s*4[0-9]px/s);
@@ -28,14 +30,15 @@ describe("article editor responsive tabs", () => {
   });
 
   it("keeps truncation constraints off configurable table headers", () => {
-    expect(accessoriesCss).toContain(`.article-table td.article-main-cell,
+    const configurableCells = `.article-table td.article-main-cell,
 .article-table td.article-inventory-cell,
 .article-table td.article-manufacturer-cell,
 .article-table td.article-number-cell,
 .article-table td.article-storage-cell {
   min-width: 0;
-  max-width: 0;
-}`);
+}`;
+    expect(accessoriesCss).toContain(configurableCells);
+    expect(configurableCells).not.toContain("max-width");
   });
 
   it("loads focused overview styles and switches presentations at the mobile breakpoint", () => {

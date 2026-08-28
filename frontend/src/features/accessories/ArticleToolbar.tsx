@@ -6,6 +6,7 @@ import { AppSelect } from "../../shared/ui/AppSelect";
 import { ArticleColumnPicker } from "./ArticleColumnPicker";
 import {
   defaultArticleTableColumns,
+  type ArticleColumnMove,
   type ArticleTableColumn
 } from "./articleTableColumns";
 import type { ArticleViewMode } from "./articleViewMode";
@@ -38,8 +39,9 @@ export function ArticleToolbar({
   viewMode,
   hasActiveFilters,
   onViewModeChange,
-  visibleColumns = defaultArticleTableColumns,
+  columns = defaultArticleTableColumns,
   onToggleColumn = () => undefined,
+  onMoveColumn = () => undefined,
   onResetColumns = () => undefined,
   onFilterChange,
   onReset
@@ -51,8 +53,9 @@ export function ArticleToolbar({
   viewMode: ArticleViewMode;
   hasActiveFilters: boolean;
   onViewModeChange: (mode: ArticleViewMode) => void;
-  visibleColumns?: ReadonlySet<ArticleTableColumn>;
+  columns?: readonly ArticleTableColumn[];
   onToggleColumn?: (column: ArticleTableColumn) => void;
+  onMoveColumn?: (column: ArticleTableColumn, direction: ArticleColumnMove) => void;
   onResetColumns?: () => void;
   onFilterChange: <Key extends keyof ArticleOverviewFilters>(key: Key, value: ArticleOverviewFilters[Key]) => void;
   onReset: () => void;
@@ -98,8 +101,9 @@ export function ArticleToolbar({
           </button>
           {viewMode === "table" ? (
             <ArticleColumnPicker
-              visibleColumns={visibleColumns}
+              columns={columns}
               onToggle={onToggleColumn}
+              onMove={onMoveColumn}
               onReset={onResetColumns}
             />
           ) : null}

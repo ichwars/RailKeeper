@@ -9,19 +9,13 @@ import { ArticleMetrics } from "./ArticleMetrics";
 import { ArticleOverviewHeader } from "./ArticleOverviewHeader";
 import { ArticleTable } from "./ArticleTable";
 import { ArticleToolbar } from "./ArticleToolbar";
-import {
-  persistArticleTableColumns,
-  resetArticleTableColumns,
-  storedArticleTableColumns,
-  toggleArticleTableColumn,
-  type ArticleTableColumn
-} from "./articleTableColumns";
 import { AccessoryConfirmDialog } from "./AccessoryConfirmDialog";
 import { persistArticleViewMode, storedArticleViewMode, type ArticleViewMode } from "./articleViewMode";
 import { useArticleOverview } from "./useArticleOverview";
 import { useArticleEditorController } from "./useArticleEditorController";
 import { useArticleCoreMasterData } from "./useArticleCoreMasterData";
 import { useAccessoryArticleSearchController } from "./useAccessoryArticleSearchController";
+import { useArticleColumnPreferences } from "./useArticleColumnPreferences";
 
 export type ArticleOpenMode = "view" | "edit";
 
@@ -75,7 +69,8 @@ export function AccessoriesView({
   const [pendingDeleteArticle, setPendingDeleteArticle] =
     useState<AccessoryArticleListItem | null>(null);
   const [viewMode, setViewMode] = useState<ArticleViewMode>(storedArticleViewMode);
-  const [visibleColumns, setVisibleColumns] = useState(storedArticleTableColumns);
+  const [columnMessage, setColumnMessage] = useState("");
+  const columnPreferences = useArticleColumnPreferences(setColumnMessage);
   const compactOverview = useCompactArticleOverview();
   const { t } = useI18n();
 
@@ -119,16 +114,6 @@ export function AccessoriesView({
   const changeViewMode = (mode: ArticleViewMode) => {
     setViewMode(mode);
     persistArticleViewMode(mode);
-  };
-  const toggleColumn = (column: ArticleTableColumn) => setVisibleColumns((current) => {
-    const next = toggleArticleTableColumn(current, column);
-    persistArticleTableColumns(next);
-    return next;
-  });
-  const resetColumns = () => {
-    const next = resetArticleTableColumns();
-    persistArticleTableColumns(next);
-    setVisibleColumns(next);
   };
   const toggleSelection = (id: string) => setSelectedArticleIDs((current) => {
     const next = new Set(current);
@@ -174,13 +159,15 @@ export function AccessoriesView({
             viewMode={viewMode}
             hasActiveFilters={overview.hasActiveFilters}
             onViewModeChange={changeViewMode}
-            visibleColumns={visibleColumns}
-            onToggleColumn={toggleColumn}
-            onResetColumns={resetColumns}
+            columns={columnPreferences.columns}
+            onToggleColumn={columnPreferences.toggleColumn}
+            onMoveColumn={columnPreferences.moveColumn}
+            onResetColumns={columnPreferences.resetColumns}
             onFilterChange={overview.setFilter}
             onReset={overview.resetFilters}
           />
         </div>
+        {columnMessage ? <p className="form-message" role="alert">{columnMessage}</p> : null}
         {overview.error ? <p className="form-message" role="alert">{overview.error}</p> : null}
         {showErrorOnly ? null : isFirstLoad ? (
           <p className="empty-state">{t("accessories.overview.loading")}</p>
@@ -241,7 +228,10 @@ export function AccessoriesView({
                     direction={overview.direction}
                     canEdit={canEdit}
                     canDelete={canDelete}
-                    visibleColumns={visibleColumns}
+                    columns={columnPreferences.columns}
+                    columnWidths={columnPreferences.widths}
+                    onPreviewColumnWidth={columnPreferences.previewColumnWidth}
+                    onCommitColumnWidth={columnPreferences.commitColumnWidth}
                     selectedIDs={selectedArticleIDs}
                     onToggleSelection={toggleSelection}
                     onToggleAll={toggleAll}
