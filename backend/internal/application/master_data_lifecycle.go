@@ -15,6 +15,8 @@ var (
 	ErrMasterDataUsageUnknown = errors.New("master data usage is unknown")
 )
 
+const MaxMasterDataActiveBatchSize = 5000
+
 type masterDataQueryer interface {
 	QueryRowContext(context.Context, string, ...any) *sql.Row
 }
@@ -106,6 +108,90 @@ UPDATE master_data_entries SET active=?, updated_at=? WHERE type=? AND key=?
 	}
 	s.invalidateCache()
 	return s.Get(ctx, typeName, key)
+}
+
+func (s *MasterDataService) SetActiveMany(
+	ctx context.Context,
+	typeName string,
+	keys []string,
+	active bool,
+) ([]MasterDataEntry, error) {
+	typeName = strings.TrimSpace(typeName)
+	normalizedKeys, err := normalizeMasterDataBatchKeys(keys)
+	if typeName == "" || err != nil {
+		return nil, ErrMasterDataValidation
+	}
+
+	tx, err := s.db.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("begin master data active-state batch: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err := reserveMasterDataWriteTransaction(ctx, tx); err != nil {
+		return nil, err
+	}
+
+	updatedAt := time.Now().UTC().Format(time.RFC3339)
+	for _, key := range normalizedKeys {
+		result, err := tx.ExecContext(ctx, `
+UPDATE master_data_entries SET active=?, updated_at=? WHERE type=? AND key=?
+`, boolToInt(active), updatedAt, typeName, key)
+		if err != nil {
+			return nil, fmt.Errorf("set master data active-state batch: %w", err)
+		}
+		affected, err := result.RowsAffected()
+		if err != nil {
+			return nil, fmt.Errorf("read master data active-state batch result: %w", err)
+		}
+		if affected == 0 {
+			return nil, fmt.Errorf("%w: %s/%s", ErrMasterDataNotFound, typeName, key)
+		}
+	}
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("commit master data active-state batch: %w", err)
+	}
+
+	s.invalidateCache()
+	entries, err := s.ListForManagement(ctx, typeName)
+	if err != nil {
+		return nil, err
+	}
+	byKey := make(map[string]MasterDataEntry, len(entries))
+	for _, entry := range entries {
+		byKey[entry.Key] = entry
+	}
+	updated := make([]MasterDataEntry, 0, len(normalizedKeys))
+	for _, key := range normalizedKeys {
+		entry, exists := byKey[key]
+		if !exists {
+			return nil, fmt.Errorf("%w: %s/%s", ErrMasterDataNotFound, typeName, key)
+		}
+		updated = append(updated, entry)
+	}
+	return updated, nil
+}
+
+func normalizeMasterDataBatchKeys(keys []string) ([]string, error) {
+	if len(keys) == 0 {
+		return nil, ErrMasterDataValidation
+	}
+	normalized := make([]string, 0, len(keys))
+	seen := make(map[string]struct{}, len(keys))
+	for _, key := range keys {
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return nil, ErrMasterDataValidation
+		}
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		normalized = append(normalized, key)
+		if len(normalized) > MaxMasterDataActiveBatchSize {
+			return nil, ErrMasterDataValidation
+		}
+	}
+	return normalized, nil
 }
 
 func (s *MasterDataService) ListForManagement(

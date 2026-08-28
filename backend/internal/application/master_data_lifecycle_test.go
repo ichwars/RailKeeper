@@ -3,6 +3,7 @@ package application_test
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"testing"
 
 	"railkeeper/backend/internal/application"
@@ -202,6 +203,92 @@ func TestMasterDataSetActiveInvalidatesCache(t *testing.T) {
 		if entry.Key == "club" {
 			t.Fatal("inactive entry remained in cached active list")
 		}
+	}
+}
+
+func TestMasterDataSetActiveManyNormalizesDeduplicatesAndInvalidatesCache(t *testing.T) {
+	db := testDB(t)
+	insertLifecycleEntry(t, db, "manufacturer", "first", "First", "custom", true)
+	insertLifecycleEntry(t, db, "manufacturer", "second", "Second", "custom", true)
+	service := application.NewMasterDataService(db)
+	if _, err := service.ListAll(t.Context(), true); err != nil {
+		t.Fatal(err)
+	}
+
+	updated, err := service.SetActiveMany(t.Context(), " manufacturer ",
+		[]string{" first ", "second", "first"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(updated) != 2 || updated[0].Key != "first" || updated[1].Key != "second" {
+		t.Fatalf("unexpected result order: %#v", updated)
+	}
+	for _, entry := range updated {
+		if entry.Active {
+			t.Fatalf("entry %q remained active", entry.Key)
+		}
+		if entry.Capabilities == nil || !entry.Capabilities.CanReactivate || entry.Capabilities.CanDeactivate {
+			t.Fatalf("entry %q capabilities=%#v", entry.Key, entry.Capabilities)
+		}
+	}
+	active, err := service.ListAll(t.Context(), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range active["manufacturer"] {
+		if entry.Key == "first" || entry.Key == "second" {
+			t.Fatalf("inactive entry %q remained in cached active list", entry.Key)
+		}
+	}
+}
+
+func TestMasterDataSetActiveManyRollsBackMissingEntry(t *testing.T) {
+	db := testDB(t)
+	insertLifecycleEntry(t, db, "manufacturer", "first", "First", "custom", true)
+	service := application.NewMasterDataService(db)
+
+	_, err := service.SetActiveMany(t.Context(), "manufacturer", []string{"first", "missing"}, false)
+	if !errors.Is(err, application.ErrMasterDataNotFound) {
+		t.Fatalf("error=%v", err)
+	}
+	entry, err := service.Get(t.Context(), "manufacturer", "first")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !entry.Active {
+		t.Fatal("valid entry changed despite batch rollback")
+	}
+}
+
+func TestMasterDataSetActiveManyValidatesInput(t *testing.T) {
+	service := application.NewMasterDataService(testDB(t))
+	tests := []struct {
+		name     string
+		typeName string
+		keys     []string
+	}{
+		{name: "empty type", keys: []string{"first"}},
+		{name: "empty keys", typeName: "manufacturer"},
+		{name: "blank key", typeName: "manufacturer", keys: []string{"first", " "}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := service.SetActiveMany(t.Context(), test.typeName, test.keys, false); !errors.Is(
+				err, application.ErrMasterDataValidation,
+			) {
+				t.Fatalf("error=%v", err)
+			}
+		})
+	}
+
+	tooMany := make([]string, application.MaxMasterDataActiveBatchSize+1)
+	for index := range tooMany {
+		tooMany[index] = fmt.Sprintf("key-%d", index)
+	}
+	if _, err := service.SetActiveMany(t.Context(), "manufacturer", tooMany, false); !errors.Is(
+		err, application.ErrMasterDataValidation,
+	) {
+		t.Fatalf("over-limit error=%v", err)
 	}
 }
 
