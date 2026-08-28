@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"math"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -142,13 +141,13 @@ func TestDigitalCenterWorkspaceReadsCS3RosterIntoExistingConflictWorkflow(t *tes
 		_, _ = writer.Write([]byte(`[{"uid":"0x2a","name":"BR 218","address":24,"dectyp":"mfx+"}]`))
 	}))
 	defer server.Close()
+	cs3Service, cs3Input := newCS3TestService(t, server)
 
 	repository := &workspaceRepositoryMemory{}
 	settings := &workspaceSettingsReaderStub{value: DigitalCenterSettings{
 		Provider: "cs3",
 		CS3: DigitalProviderSettings{
-			Enabled: true, Host: server.Listener.Addr().(*net.TCPAddr).IP.String(),
-			Port: strconv.Itoa(server.Listener.Addr().(*net.TCPAddr).Port),
+			Enabled: true, Host: cs3Input.Host, Port: strconv.Itoa(cs3Input.Port),
 		},
 	}}
 	vehicles := &workspaceVehicleReaderStub{vehicles: []Vehicle{
@@ -156,7 +155,7 @@ func TestDigitalCenterWorkspaceReadsCS3RosterIntoExistingConflictWorkflow(t *tes
 		mappedDigitalCenterVehicle("vehicle-2", "cs3", "old-2", "24", "MFX"),
 	}}
 	service := NewDigitalCenterWorkspaceService(
-		repository, settings, nil, NewDigitalCenterService(), vehicles, nil,
+		repository, settings, nil, cs3Service, vehicles, nil,
 	)
 
 	session, err := service.StartReadSession(t.Context(), "cs3", "admin-1")

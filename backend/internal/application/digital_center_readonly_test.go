@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
-	"strconv"
 	"testing"
 	"time"
 
@@ -87,20 +86,25 @@ func TestCS3ReadSessionLeavesEveryVehicleRowUnchanged(t *testing.T) {
 	}, "admin-1"); err != nil {
 		t.Fatal(err)
 	}
-	address := server.Listener.Addr().(*net.TCPAddr)
 	if _, err := settings.UpdateDigitalSettings(ctx, application.DigitalCenterSettings{
 		Provider: "cs3",
 		CS3: application.DigitalProviderSettings{
-			Enabled: true, Host: address.IP.String(), Port: strconv.Itoa(address.Port),
+			Enabled: true, Host: "192.168.10.23", Port: "80",
 		},
 	}); err != nil {
 		t.Fatal(err)
 	}
+	dialer := &net.Dialer{}
+	cs3Service := application.NewDigitalCenterService(application.WithCS3DialContext(
+		func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, server.Listener.Addr().String())
+		},
+	))
 
 	before := snapshotVehicleRows(t, db)
 	workspace := application.NewDigitalCenterWorkspaceService(
 		infrastructure.NewDigitalCenterWorkspaceRepository(db), settings,
-		nil, application.NewDigitalCenterService(), vehicles, nil,
+		nil, cs3Service, vehicles, nil,
 	)
 	if _, err := workspace.StartReadSession(ctx, "cs3", "admin-1"); err != nil {
 		t.Fatal(err)

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -18,6 +19,12 @@ func TestCS3ProbeRouteReturnsReadOnlyHTTPDiagnostics(t *testing.T) {
 		_, _ = writer.Write([]byte(`[{"uid":"0x2a","name":"BR 218","address":3,"dectyp":"mfx+"}]`))
 	}))
 	defer server.Close()
+	dialer := &net.Dialer{}
+	cs3Service := application.NewDigitalCenterService(application.WithCS3DialContext(
+		func(ctx context.Context, network, _ string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, server.Listener.Addr().String())
+		},
+	))
 
 	db := testRouterDB(t)
 	auth := application.NewAuthService(db)
@@ -28,14 +35,13 @@ func TestCS3ProbeRouteReturnsReadOnlyHTTPDiagnostics(t *testing.T) {
 	}
 	router := NewRouter(Config{
 		AuthService:          auth,
-		DigitalCenterService: application.NewDigitalCenterService(),
+		DigitalCenterService: cs3Service,
 	})
 	admin := loginRouteTestUser(t, auth, "cs3-admin", "admin-password")
-	address := server.Listener.Addr().(*net.TCPAddr)
 
 	response := layoutRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/cs3/probe",
-		map[string]any{"host": address.IP.String(), "port": address.Port}, true)
+		map[string]any{"host": "192.168.10.23", "port": 80}, true)
 	assertStatus(t, response, http.StatusOK)
 	var result application.DigitalCenterProbeResult
 	decodeResponse(t, response, &result)
@@ -50,6 +56,6 @@ func TestCS3ProbeRouteReturnsReadOnlyHTTPDiagnostics(t *testing.T) {
 
 	withoutCSRF := layoutRequest(t, router, admin, http.MethodPost,
 		"/api/v1/digital-centers/cs3/probe",
-		map[string]any{"host": address.IP.String(), "port": address.Port}, false)
+		map[string]any{"host": "192.168.10.23", "port": 80}, false)
 	assertProblem(t, withoutCSRF, http.StatusForbidden, "csrf_required")
 }

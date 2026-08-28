@@ -23,8 +23,23 @@ const (
 )
 
 type DigitalCenterService struct {
-	timeout time.Duration
-	client  *http.Client
+	timeout        time.Duration
+	client         *http.Client
+	cs3Resolver    digitalCenterIPResolver
+	cs3DialContext func(context.Context, string, string) (net.Conn, error)
+}
+
+type DigitalCenterServiceOption func(*DigitalCenterService)
+
+// WithCS3DialContext injects the trusted socket boundary used after CS3 target validation.
+func WithCS3DialContext(
+	dialContext func(context.Context, string, string) (net.Conn, error),
+) DigitalCenterServiceOption {
+	return func(service *DigitalCenterService) {
+		if dialContext != nil {
+			service.cs3DialContext = dialContext
+		}
+	}
 }
 
 type DigitalCenterConnectionInput struct {
@@ -71,12 +86,21 @@ type z21ProbeCommand struct {
 	header      uint16
 }
 
-func NewDigitalCenterService() *DigitalCenterService {
+func NewDigitalCenterService(options ...DigitalCenterServiceOption) *DigitalCenterService {
 	timeout := 4 * time.Second
-	return &DigitalCenterService{
-		timeout: timeout,
-		client:  &http.Client{Timeout: timeout},
+	dialer := &net.Dialer{Timeout: timeout}
+	service := &DigitalCenterService{
+		timeout:        timeout,
+		client:         &http.Client{Timeout: timeout},
+		cs3Resolver:    net.DefaultResolver,
+		cs3DialContext: dialer.DialContext,
 	}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service
 }
 
 func (s *DigitalCenterService) TestZ21Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterConnectionResult, error) {

@@ -177,9 +177,8 @@ func TestDigitalCenterServiceTestCS3Connection(t *testing.T) {
 	}))
 	defer server.Close()
 
-	host, port := splitDigitalCenterTestURL(t, server.URL)
-	service := NewDigitalCenterService()
-	result, err := service.TestCS3Connection(context.Background(), DigitalCenterConnectionInput{Host: host, Port: port})
+	service, input := newCS3TestService(t, server)
+	result, err := service.TestCS3Connection(context.Background(), input)
 	if err != nil {
 		t.Fatalf("test cs3 failed: %v", err)
 	}

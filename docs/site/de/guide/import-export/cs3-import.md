@@ -15,7 +15,9 @@ schreibt nichts zur CS3 und steuert keine Lokomotive.
 
 Alle CS3-Routen sind ausschließlich für Admin verfügbar. Host und Port stammen aus der
 Serverkonfiguration unter **Einstellungen > Digitalzentralen**. Werte aus dem Leseaufruf können den
-gespeicherten Zielhost nicht überschreiben.
+gespeicherten Zielhost nicht überschreiben. RailKeeper akzeptiert nur private IP-Adressen im
+lokalen Netzwerk, lehnt Loopback-, Link-Local- und öffentliche Ziele ab und bindet aufgelöste
+Hostnamen für den gesamten Abruf an die geprüfte IP-Adresse.
 
 ## Unterstützte CS3-API-Generationen
 
@@ -67,6 +69,7 @@ Protokolle gelangen in die Vorschau.
 | Diagnose | Prüfen |
 | --- | --- |
 | Netzwerk- oder Timeoutfehler | CS3-IP, Port, lokales Netz und Erreichbarkeit vom RailKeeper-Server prüfen. |
+| Ziel wurde abgelehnt | Eine private CS3-Adresse aus dem lokalen Netzwerk konfigurieren. Öffentliche, Loopback- und Link-Local-Adressen sind nicht zulässig. |
 | Authentifizierungsfehler | Zugriffsschutz der CS3-Webanwendung prüfen. RailKeeper umgeht keine Anmeldung. |
 | Weiterleitung abgelehnt | Den direkten lokalen CS3-Host konfigurieren. RailKeeper folgt keiner Weiterleitung. |
 | Kein JSON oder HTML erhalten | Prüfen, ob Host und Port die CS3-API statt einer Login- oder Proxyseite erreichen. |

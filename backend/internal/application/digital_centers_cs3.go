@@ -1,6 +1,7 @@
 package application
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,8 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
+	"unicode/utf8"
 )
 
 const maxCS3ResponseBytes = 8 * 1024 * 1024
@@ -26,6 +29,7 @@ const (
 	cs3ErrorUnsupported    = cs3ErrorKind("unsupported_version")
 	cs3ErrorDeviceOutput   = cs3ErrorKind("device_output")
 	cs3ErrorNotFound       = cs3ErrorKind("not_found")
+	cs3ErrorUnsafeTarget   = cs3ErrorKind("unsafe_target")
 )
 
 type cs3ErrorKind string
@@ -79,6 +83,16 @@ type cs3APIEndpoint struct {
 	generation string
 }
 
+type digitalCenterIPResolver interface {
+	LookupIPAddr(context.Context, string) ([]net.IPAddr, error)
+}
+
+type cs3ResolvedTarget struct {
+	host        string
+	port        int
+	dialAddress string
+}
+
 var cs3APIEndpoints = []cs3APIEndpoint{
 	{path: "/app/api/locos", generation: "2.6+"},
 	{path: "/app/api/loks", generation: "pre-2.6"},
@@ -99,9 +113,13 @@ func (s *DigitalCenterService) readCS3Locomotives(
 	ctx context.Context,
 	target DigitalCenterConnectionInput,
 ) ([]DigitalCenterLocomotive, CS3RosterMetadata, error) {
+	resolvedTarget, err := s.resolveCS3Target(ctx, target)
+	if err != nil {
+		return nil, CS3RosterMetadata{}, err
+	}
 	var lastMetadata CS3RosterMetadata
 	for _, endpoint := range cs3APIEndpoints {
-		locomotives, metadata, err := s.fetchCS3Locomotives(ctx, target, endpoint)
+		locomotives, metadata, err := s.fetchCS3Locomotives(ctx, resolvedTarget, endpoint)
 		lastMetadata = metadata
 		if err == nil {
 			return locomotives, metadata, nil
@@ -132,8 +150,14 @@ func (s *DigitalCenterService) ProbeCS3Connection(
 		Fields:   map[string]string{},
 		Commands: []DigitalCenterProbeCommandResult{},
 	}
+	resolvedTarget, err := s.resolveCS3Target(ctx, target)
+	if err != nil {
+		result.Message = cs3UserMessage(err)
+		result.Fields["errorKind"] = string(cs3ErrorKindOf(err))
+		return result, nil
+	}
 	for _, endpoint := range cs3APIEndpoints {
-		locomotives, metadata, readErr := s.fetchCS3Locomotives(ctx, target, endpoint)
+		locomotives, metadata, readErr := s.fetchCS3Locomotives(ctx, resolvedTarget, endpoint)
 		command := DigitalCenterProbeCommandResult{
 			Name:        "CS3_LOCOMOTIVE_API",
 			Description: "Read-only Loklisten-API",
@@ -164,13 +188,13 @@ func (s *DigitalCenterService) ProbeCS3Connection(
 
 func (s *DigitalCenterService) fetchCS3Locomotives(
 	ctx context.Context,
-	target DigitalCenterConnectionInput,
+	target cs3ResolvedTarget,
 	endpoint cs3APIEndpoint,
 ) ([]DigitalCenterLocomotive, CS3RosterMetadata, error) {
 	metadata := CS3RosterMetadata{APIPath: endpoint.path, APIGeneration: endpoint.generation}
 	requestURL := url.URL{
 		Scheme: "http",
-		Host:   net.JoinHostPort(target.Host, strconv.Itoa(target.Port)),
+		Host:   "railkeeper-cs3.invalid",
 		Path:   endpoint.path,
 	}
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
@@ -179,10 +203,9 @@ func (s *DigitalCenterService) fetchCS3Locomotives(
 	}
 	request.Header.Set("Accept", "application/json")
 	request.Header.Set("User-Agent", "RailKeeper")
+	request.Host = net.JoinHostPort(target.host, strconv.Itoa(target.port))
 
-	client := *s.httpClient()
-	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	response, err := client.Do(request)
+	response, err := s.cs3HTTPClient(target.dialAddress).Do(request)
 	if err != nil {
 		return nil, metadata, &cs3ReadError{kind: cs3ErrorNetwork, cause: err}
 	}
@@ -225,6 +248,17 @@ func (s *DigitalCenterService) fetchCS3Locomotives(
 			kind: cs3ErrorFormat, status: response.Status, cause: errors.New("antwort ist zu groß"),
 		}
 	}
+	if !utf8.Valid(data) {
+		return nil, metadata, &cs3ReadError{
+			kind: cs3ErrorDeviceOutput, status: response.Status, cause: errors.New("ungültige UTF-8-Daten"),
+		}
+	}
+	trimmedData := bytes.TrimSpace(data)
+	if len(trimmedData) == 0 || trimmedData[0] != '[' {
+		return nil, metadata, &cs3ReadError{
+			kind: cs3ErrorFormat, status: response.Status, cause: errors.New("JSON-Wurzel muss ein Array sein"),
+		}
+	}
 	var records []cs3LocomotiveRecord
 	if err := json.Unmarshal(data, &records); err != nil {
 		return nil, metadata, &cs3ReadError{
@@ -237,6 +271,91 @@ func (s *DigitalCenterService) fetchCS3Locomotives(
 	}
 	metadata.LocomotiveCount = len(locomotives)
 	return locomotives, metadata, nil
+}
+
+func (s *DigitalCenterService) resolveCS3Target(
+	ctx context.Context,
+	target DigitalCenterConnectionInput,
+) (cs3ResolvedTarget, error) {
+	host := strings.TrimSuffix(strings.ToLower(strings.TrimSpace(target.Host)), ".")
+	if host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return cs3ResolvedTarget{}, unsafeCS3TargetError()
+	}
+
+	addresses := []net.IPAddr{}
+	if literal := net.ParseIP(host); literal != nil {
+		addresses = append(addresses, net.IPAddr{IP: literal})
+	} else {
+		resolver := s.cs3Resolver
+		if resolver == nil {
+			resolver = net.DefaultResolver
+		}
+		timeout := s.timeout
+		if timeout <= 0 {
+			timeout = 4 * time.Second
+		}
+		lookupContext, cancel := context.WithTimeout(ctx, timeout)
+		defer cancel()
+		resolved, err := resolver.LookupIPAddr(lookupContext, host)
+		if err != nil {
+			return cs3ResolvedTarget{}, &cs3ReadError{kind: cs3ErrorNetwork, cause: err}
+		}
+		addresses = append(addresses, resolved...)
+	}
+	if len(addresses) == 0 {
+		return cs3ResolvedTarget{}, &cs3ReadError{
+			kind: cs3ErrorNetwork, cause: errors.New("hostname lieferte keine IP-Adresse"),
+		}
+	}
+
+	var selected net.IP
+	for _, address := range addresses {
+		if !isPrivateCS3Address(address.IP) {
+			return cs3ResolvedTarget{}, unsafeCS3TargetError()
+		}
+		if selected == nil {
+			selected = address.IP
+		}
+	}
+	return cs3ResolvedTarget{
+		host:        target.Host,
+		port:        target.Port,
+		dialAddress: net.JoinHostPort(selected.String(), strconv.Itoa(target.Port)),
+	}, nil
+}
+
+func isPrivateCS3Address(address net.IP) bool {
+	return address != nil && address.IsPrivate() && !address.IsLoopback() &&
+		!address.IsLinkLocalUnicast() && !address.IsLinkLocalMulticast() &&
+		!address.IsMulticast() && !address.IsUnspecified()
+}
+
+func unsafeCS3TargetError() error {
+	return &cs3ReadError{
+		kind:  cs3ErrorUnsafeTarget,
+		cause: errors.New("CS3-Ziel muss eine private IP-Adresse im lokalen Netzwerk sein"),
+	}
+}
+
+func (s *DigitalCenterService) cs3HTTPClient(dialAddress string) *http.Client {
+	client := *s.httpClient()
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.Proxy = nil
+	transport.DisableKeepAlives = true
+	dialContext := s.cs3DialContext
+	if dialContext == nil {
+		timeout := s.timeout
+		if timeout <= 0 {
+			timeout = 4 * time.Second
+		}
+		dialContext = (&net.Dialer{Timeout: timeout}).DialContext
+	}
+	transport.DialContext = func(ctx context.Context, network, _ string) (net.Conn, error) {
+		return dialContext(ctx, network, dialAddress)
+	}
+	client.Transport = transport
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return &client
 }
 
 func normalizeCS3Locomotives(records []cs3LocomotiveRecord) ([]DigitalCenterLocomotive, error) {
@@ -332,6 +451,8 @@ func cs3UserMessage(err error) string {
 		return "Keine unterstützte CS3-Loklisten-API gefunden."
 	case cs3ErrorDeviceOutput:
 		return "CS3-Lokdaten sind ungültig und wurden nicht übernommen."
+	case cs3ErrorUnsafeTarget:
+		return "CS3-Ziel wurde abgelehnt. Nur private IP-Adressen im lokalen Netzwerk sind erlaubt."
 	default:
 		return "CS3 nicht erreichbar: Netzwerk- oder Timeoutfehler."
 	}

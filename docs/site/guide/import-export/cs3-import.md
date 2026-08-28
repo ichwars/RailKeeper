@@ -15,7 +15,9 @@ does not write to the CS3 and does not control a locomotive.
 
 All CS3 routes are Admin-only. Host and port come from the server configuration under
 **Settings > Digital command stations**. Values sent to the read action cannot override the stored
-target.
+target. RailKeeper accepts only private IP addresses on the local network, rejects loopback,
+link-local, and public targets, and pins resolved host names to the validated IP address for the
+complete request.
 
 ## Supported CS3 API generations
 
@@ -67,6 +69,7 @@ the preview.
 | Diagnosis | Check |
 | --- | --- |
 | Network or timeout error | Check CS3 IP, port, local network, and reachability from the RailKeeper server. |
+| Target rejected | Configure a private CS3 address on the local network. Public, loopback, and link-local addresses are not allowed. |
 | Authentication error | Check CS3 web-app access protection. RailKeeper does not bypass authentication. |
 | Redirect rejected | Configure the direct local CS3 host. RailKeeper does not follow redirects. |
 | HTML or non-JSON response | Check that host and port reach the CS3 API rather than a login or proxy page. |
