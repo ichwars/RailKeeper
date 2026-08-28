@@ -65,6 +65,30 @@ func TestOpenAPIMasterDataActiveBatchContract(t *testing.T) {
 	}
 }
 
+func TestOpenAPIDocumentsECoSCompatibilityResult(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	schema := openAPIIndentedBlock(t, contract, "ECoSConnectionResult", 4)
+	for _, expected := range []string{
+		"required: [connected, host, port, compatibilityStatus, missingFields, message]",
+		"enum: [unreachable, rejected, partial, unverified, verified]",
+		"missingFields:",
+	} {
+		if !strings.Contains(schema, expected) {
+			t.Errorf("ECoS connection schema is missing %q: %s", expected, schema)
+		}
+	}
+	operation := openAPIIndentedBlock(t, contract, "/ecos/test", 2)
+	for _, expected := range []string{"DigitalCenterConnectionInput", "ECoSConnectionResult"} {
+		if !strings.Contains(operation, expected) {
+			t.Errorf("ECoS test operation is missing %q: %s", expected, operation)
+		}
+	}
+}
+
 func TestOpenAPIDataTransferPreviewEnumsMatchRuntimeValues(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

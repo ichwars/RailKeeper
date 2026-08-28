@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	ecospkg "railkeeper/backend/internal/ecos"
 )
 
 func TestParseECoSLocomotives(t *testing.T) {
@@ -102,6 +104,84 @@ func TestECoSServiceTestConnection(t *testing.T) {
 	}
 	if !result.Connected || result.Status != "GO" || result.ProtocolVersion != "0.5" {
 		t.Fatalf("unexpected result: %#v", result)
+	}
+	if result.CompatibilityStatus != ECoSCompatibilityUnverified || len(result.MissingFields) != 0 {
+		t.Fatalf("compatibility = %#v, want complete but unverified firmware", result)
+	}
+}
+
+func TestECoSServiceTestConnectionRecognizesVerifiedFirmware433(t *testing.T) {
+	listener := startECoSTestServer(t, func(string) []string {
+		return []string{
+			"<REPLY get(1, info, status)>",
+			"1 status[GO] ProtocolVersion[0.5] ApplicationVersion[4.3.3] HardwareVersion[2.1]",
+			"<END 0 (OK)>",
+		}
+	})
+	defer func() { _ = listener.Close() }()
+
+	host, port := splitTestAddress(t, listener.Addr().String())
+	result, err := NewECoSService().TestConnection(
+		t.Context(), ECoSConnectionInput{Host: host, Port: port},
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !result.Connected || result.CompatibilityStatus != ECoSCompatibilityVerified ||
+		result.ApplicationVersion != "4.3.3" || len(result.MissingFields) != 0 {
+		t.Fatalf("result = %#v, want verified firmware 4.3.3", result)
+	}
+}
+
+func TestECoSServiceTestConnectionRejectsIncompleteOrNegativeReplies(t *testing.T) {
+	tests := []struct {
+		name        string
+		reply       []string
+		wantStatus  ECoSCompatibilityStatus
+		wantMissing []string
+	}{
+		{
+			name: "missing end marker",
+			reply: []string{
+				"<REPLY get(1, info, status)>",
+				"1 status[GO] ProtocolVersion[0.5] ApplicationVersion[4.3.3] HardwareVersion[2.1]",
+			},
+			wantStatus: ECoSCompatibilityPartial,
+		},
+		{
+			name:       "negative end status",
+			reply:      []string{"<REPLY get(1, info, status)>", "<END 12 (unsupported)>"},
+			wantStatus: ECoSCompatibilityRejected,
+		},
+		{
+			name: "missing required fields",
+			reply: []string{
+				"<REPLY get(1, info, status)>",
+				"1 status[GO] ProtocolVersion[0.5]",
+				"<END 0 (OK)>",
+			},
+			wantStatus:  ECoSCompatibilityPartial,
+			wantMissing: []string{"ApplicationVersion", "HardwareVersion"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			listener := startECoSTestServer(t, func(string) []string { return test.reply })
+			defer func() { _ = listener.Close() }()
+			host, port := splitTestAddress(t, listener.Addr().String())
+			service := NewECoSService()
+			service.timeout = 50 * time.Millisecond
+			service.client = ecospkg.NewClient(service.timeout)
+
+			result, err := service.TestConnection(t.Context(), ECoSConnectionInput{Host: host, Port: port})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result.Connected || result.CompatibilityStatus != test.wantStatus ||
+				strings.Join(result.MissingFields, ",") != strings.Join(test.wantMissing, ",") {
+				t.Fatalf("result = %#v, want status %q and missing %v", result, test.wantStatus, test.wantMissing)
+			}
+		})
 	}
 }
 

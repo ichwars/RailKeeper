@@ -825,6 +825,44 @@ components:
           type: integer
           minimum: 1
           maximum: 65535
+    ECoSConnectionResult:
+      type: object
+      required: [connected, host, port, compatibilityStatus, missingFields, message]
+      properties:
+        connected:
+          type: boolean
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        status:
+          type: string
+        protocolVersion:
+          type: string
+        applicationVersion:
+          type: string
+        hardwareVersion:
+          type: string
+        compatibilityStatus:
+          type: string
+          enum: [unreachable, rejected, partial, unverified, verified]
+        missingFields:
+          type: array
+          items:
+            type: string
+            enum: [status, ProtocolVersion, ApplicationVersion, HardwareVersion]
+        message:
+          type: string
+        rawLines:
+          type: array
+          items:
+            type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
     DigitalCenterProbeCommandResult:
       type: object
       required: [name, description, commandHex, ok]
@@ -11318,9 +11356,21 @@ paths:
     post:
       tags: [Vehicles]
       summary: Test an ECoS connection
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterConnectionInput"
       responses:
         "200":
           description: ECoS connection result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ECoSConnectionResult"
         "403":
           description: Admin role required
           content:

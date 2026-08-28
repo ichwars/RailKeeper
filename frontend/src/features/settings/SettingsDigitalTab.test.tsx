@@ -36,6 +36,8 @@ describe("SettingsDigitalTab commissioning workflow", () => {
       host: "192.168.2.151",
       port: 15471,
       applicationVersion: "4.3.1",
+      compatibilityStatus: "unverified",
+      missingFields: [],
       message: "ECoS-Verbindung erfolgreich getestet."
     });
   });
@@ -56,6 +58,7 @@ describe("SettingsDigitalTab commissioning workflow", () => {
 
     await user.click(screen.getByRole("button", { name: "Verbindung testen" }));
     expect(await screen.findByText("Verbindung erfolgreich geprüft")).toBeInTheDocument();
+    expect(screen.getByText("Vollständig, Firmware noch nicht geräteverifiziert")).toBeInTheDocument();
     expect(activate).toBeEnabled();
 
     await user.click(activate);

@@ -60,6 +60,9 @@ Node.js is only used to build the frontend.
 - Intellibox 3 keeps Z21-compatible UDP and LocoNet over TCP as separate transports. Only the bounded,
   read-only Z21 connection test and diagnostics are available today. See
   `docs/architecture/intellibox3-transports.md` for the validation status and hardware test boundary.
+- ECoS activation requires a successful end marker and complete version fields. Firmware 4.3.3 is the
+  currently recorded real-device acceptance; other complete versions remain explicitly unverified. See
+  `docs/architecture/ecos-compatibility.md` for the status model and evidence boundary.
 - Z21 locomotive reads are targeted status polls for decoder addresses already known to RailKeeper, not a
   roster import. Only the confirmed address enters the comparison workspace; driving and function state is
   discarded. See `docs/architecture/z21-read-scope.md` for protocol evidence, bounds, and hardware gaps.
