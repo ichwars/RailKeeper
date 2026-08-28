@@ -213,8 +213,8 @@ func TestDigitalCenterOperationalAndSettingsRoutesRemainAdminOnly(t *testing.T) 
 			wantSettings[settingsKey] = true
 		}
 	}
-	if operationalRoutes != 20 {
-		t.Fatalf("digital center operational routes = %d, want 20", operationalRoutes)
+	if operationalRoutes != 21 {
+		t.Fatalf("digital center operational routes = %d, want 21", operationalRoutes)
 	}
 	for route, found := range wantSettings {
 		if !found {

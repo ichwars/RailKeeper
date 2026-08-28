@@ -815,6 +815,68 @@ components:
     DigitalCenterProvider:
       type: string
       enum: [ecos, z21, intellibox3, cs3]
+    DigitalCenterConnectionInput:
+      type: object
+      required: [host, port]
+      properties:
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+    DigitalCenterProbeCommandResult:
+      type: object
+      required: [name, description, commandHex, ok]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        commandHex:
+          type: string
+          description: Binary command rendered as hexadecimal, empty for HTTP probes.
+        request:
+          type: string
+          description: Sanitized read-only HTTP request or binary command description.
+        responseHex:
+          type: string
+        header:
+          type: string
+        payloadHex:
+          type: string
+        ok:
+          type: boolean
+        error:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+    DigitalCenterProbeResult:
+      type: object
+      required: [provider, connected, host, port, message, commands]
+      properties:
+        provider:
+          $ref: "#/components/schemas/DigitalCenterProvider"
+        connected:
+          type: boolean
+        host:
+          type: string
+        port:
+          type: integer
+          minimum: 1
+          maximum: 65535
+        message:
+          type: string
+        fields:
+          type: object
+          additionalProperties:
+            type: string
+        commands:
+          type: array
+          items:
+            $ref: "#/components/schemas/DigitalCenterProbeCommandResult"
     DigitalCenterCapabilities:
       type: object
       required: [testConnection, readLocomotives, liveMonitor, writeLocomotives, writeCVs, diagnose]
@@ -11682,6 +11744,38 @@ paths:
           description: CS3 connection result
         "403":
           description: Admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+  /digital-centers/cs3/probe:
+    post:
+      tags: [DigitalCenters]
+      summary: Probe the compatible read-only Märklin CS3 locomotive API
+      security:
+        - sessionCookie: []
+          csrfHeader: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DigitalCenterConnectionInput"
+      responses:
+        "200":
+          description: Bounded read-only CS3 HTTP diagnostic result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DigitalCenterProbeResult"
+        "400":
+          description: Invalid host, port, or request body
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Problem"
+        "403":
+          description: Admin role or CSRF token missing
           content:
             application/json:
               schema:

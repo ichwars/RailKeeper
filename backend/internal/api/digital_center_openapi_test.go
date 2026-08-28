@@ -71,6 +71,40 @@ func TestOpenAPIDigitalCenterLiveStatusIsConfigurationIndependent(t *testing.T) 
 	}
 }
 
+func TestOpenAPIDocumentsCS3ReadOnlyProbeContract(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	contract := string(data)
+	block := openAPIIndentedBlock(t, openAPIIndentedBlock(t, contract,
+		"/digital-centers/cs3/probe", 2), "post", 4)
+	for _, fragment := range []string{
+		"Probe the compatible read-only Märklin CS3 locomotive API",
+		"$ref: \"#/components/schemas/DigitalCenterConnectionInput\"",
+		"$ref: \"#/components/schemas/DigitalCenterProbeResult\"",
+		"security:\n        - sessionCookie: []\n          csrfHeader: []",
+		"        \"400\":",
+		"        \"403\":",
+	} {
+		if !strings.Contains(block, fragment) {
+			t.Errorf("CS3 probe contract missing %q: %s", fragment, block)
+		}
+	}
+	for schema, fragments := range map[string][]string{
+		"DigitalCenterConnectionInput":    {"required: [host, port]", "maximum: 65535"},
+		"DigitalCenterProbeResult":        {"commands:", "DigitalCenterProbeCommandResult"},
+		"DigitalCenterProbeCommandResult": {"request:", "commandHex:", "read-only HTTP request or binary command"},
+	} {
+		schemaBlock := openAPIIndentedBlock(t, contract, schema, 4)
+		for _, fragment := range fragments {
+			if !strings.Contains(schemaBlock, fragment) {
+				t.Errorf("%s missing %q: %s", schema, fragment, schemaBlock)
+			}
+		}
+	}
+}
+
 func TestOpenAPIDigitalCenterSchemasExposeExactRuntimeEnumsAndTelemetry(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("..", "..", "..", "openapi", "railkeeper.yaml"))
 	if err != nil {

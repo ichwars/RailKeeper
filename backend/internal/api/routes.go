@@ -76,6 +76,7 @@ func apiRouteSpecs() []routeSpec {
 		{http.MethodPost, "/api/v1/digital-centers/intellibox3/test", routeAccessAdmin, (*App).testIntellibox3Connection, nil},
 		{http.MethodPost, "/api/v1/digital-centers/intellibox3/probe", routeAccessAdmin, (*App).probeIntellibox3Connection, nil},
 		{http.MethodPost, "/api/v1/digital-centers/cs3/test", routeAccessAdmin, (*App).testCS3Connection, nil},
+		{http.MethodPost, "/api/v1/digital-centers/cs3/probe", routeAccessAdmin, (*App).probeCS3Connection, nil},
 		{http.MethodGet, "/api/v1/digital-centers/{provider}/live/status", routeAccessAdmin, (*App).digitalCenterLiveStatus, nil},
 		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/start", routeAccessAdmin, (*App).startDigitalCenterLiveMonitor, nil},
 		{http.MethodPost, "/api/v1/digital-centers/{provider}/live/stop", routeAccessAdmin, (*App).stopDigitalCenterLiveMonitor, nil},
