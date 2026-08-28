@@ -17,7 +17,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/railkee
 FROM alpine:3.24 AS runtime
 LABEL org.opencontainers.image.source="https://github.com/ichwars/RailKeeper" \
   org.opencontainers.image.licenses="AGPL-3.0-only"
-RUN apk add --no-cache ca-certificates tzdata \
+RUN apk add --no-cache --upgrade \
+  'libcrypto3>=3.5.8-r0' \
+  'libssl3>=3.5.8-r0' \
+  ca-certificates \
+  tzdata \
   && adduser -D -H -u 10001 railkeeper \
   && mkdir -p /app/web /data \
   && chown -R railkeeper:railkeeper /app /data
