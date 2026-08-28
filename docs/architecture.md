@@ -55,7 +55,8 @@ Node.js is only used to build the frontend.
 - The Stage 1 layout workspace uses structured forms. Graphical track planning and digital control are not
   part of this stage.
 - Article data web search is a core module. It already uses an adapter boundary so provider-specific logic
-  can be replaced later.
+  can be replaced later. It remains a synchronous request with one truthful in-progress state; simulated
+  phases and polling are not part of the current contract. See `docs/architecture/article-search-progress.md`.
 - SQLite remains the default database because it keeps local installation, backup, and restore simple.
 - Attachments are stored on the filesystem below the configured data directory; metadata stays in SQLite.
 - Backup version 20 covers vehicle sets and their main-image assignments, vehicles, accessories, storage,

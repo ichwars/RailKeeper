@@ -21,8 +21,10 @@ Die englische Entsprechung lautet:
 > the result is ready.
 
 Die Formulierung beschreibt beobachtbares Verhalten, verspricht keine einzelne Quelle und nennt
-keine Phase, die das Frontend nicht belegen kann. Eine spätere Textänderung ist eine getrennte
-Implementierungsaufgabe. Dieses Dokument verändert weder API noch Laufzeitverhalten.
+keine Phase, die das Frontend nicht belegen kann. Sie wird in der Ergebnisfläche verwendet. Der
+kürzere Buttontext lautet `Artikeldaten und Quellen werden gesucht...` beziehungsweise
+`Searching article data and sources...`. Dieses Dokument und die Textänderung verändern weder API
+noch Laufzeitverhalten.
 
 Ein serverseitiger Suchauftrag mit Status-Polling wird derzeit nicht eingeführt. Die begrenzte
 Requestdauer und der lokale Einprozessbetrieb rechtfertigen den zusätzlichen persistenten Zustand,
