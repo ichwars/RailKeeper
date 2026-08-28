@@ -29,6 +29,7 @@ export function LayoutTechnicalPositionsPanel({ units, canPlan }: {
   const [dialogMessage, setDialogMessage] = useState("");
   const [conflict, setConflict] = useState(false);
   const createButtonRef = useRef<HTMLButtonElement | null>(null);
+  const positionsRequestRef = useRef(0);
   const { t } = useI18n();
   const selectedUnit = activeUnits.find((unit) => unit.id === unitID);
 
@@ -38,12 +39,14 @@ export function LayoutTechnicalPositionsPanel({ units, canPlan }: {
   }, [activeUnits, unitID]);
 
   const loadPositions = useCallback(async () => {
+    const requestID = positionsRequestRef.current + 1;
+    positionsRequestRef.current = requestID;
     if (!unitID) {
-      setPositions([]);
+      if (requestID === positionsRequestRef.current) setPositions([]);
       return [];
     }
     const next = await api.layoutTechnicalPositions(unitID);
-    setPositions(next);
+    if (requestID === positionsRequestRef.current) setPositions(next);
     return next;
   }, [unitID]);
 
@@ -115,7 +118,8 @@ export function LayoutTechnicalPositionsPanel({ units, canPlan }: {
       }
       setConflict(false);
       setDialogMessage(t("layouts.technology.reloaded"));
-      return current.version;
+      setDialogPosition(current);
+      return current;
     } catch (reason) {
       setDialogMessage(reason instanceof Error ? reason.message : t("layouts.error.generic"));
     }
@@ -140,7 +144,10 @@ export function LayoutTechnicalPositionsPanel({ units, canPlan }: {
       <div className="layout-technology-toolbar">
         <label className="app-field"><span className="app-field-label">{t("layouts.plans.unit")}</span>
           <AppSelect value={unitID} aria-label={t("layouts.plans.unit")}
-            onChange={(event) => setUnitID(event.target.value)}>
+            onChange={(event) => {
+              positionsRequestRef.current += 1;
+              setUnitID(event.target.value);
+            }}>
             {activeUnits.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
           </AppSelect>
         </label>

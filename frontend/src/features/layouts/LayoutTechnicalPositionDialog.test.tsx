@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import type { AccessoryArticleListItem, LayoutUnit } from "../../shared/api";
+import type { AccessoryArticleListItem, LayoutTechnicalPosition, LayoutUnit } from "../../shared/api";
 import { LayoutTechnicalPositionDialog } from "./LayoutTechnicalPositionDialog";
 
 const unit: LayoutUnit = {
@@ -17,6 +17,12 @@ const product: AccessoryArticleListItem = {
   inventoryStrategy: "quantity", archived: false, owned: 4, available: 4, reserved: 0, installed: 0,
   locationNames: [], hasUsageHistory: false, careHintCount: 0, updatedAt: "2026-08-09T10:00:00Z",
   attributes: []
+};
+
+const position: LayoutTechnicalPosition = {
+  id: "position-1", layoutUnitId: unit.id, label: "Signal Alt", kind: "signal",
+  positionXMm: 100, positionYMm: 80, rotationDegrees: 0, version: 1, archived: false,
+  createdAt: "2026-08-09T10:00:00Z", updatedAt: "2026-08-09T10:00:00Z"
 };
 
 describe("LayoutTechnicalPositionDialog", () => {
@@ -58,5 +64,23 @@ describe("LayoutTechnicalPositionDialog", () => {
     const confirm = screen.getByRole("dialog", { name: "Änderungen verwerfen?" });
     await user.click(within(confirm).getByRole("button", { name: "Verwerfen" }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("replaces stale form values with the reloaded server position after a conflict", async () => {
+    const user = userEvent.setup();
+    const reloaded = {
+      ...position, label: "Signal Server", positionXMm: 220, version: 2,
+      updatedAt: "2026-08-09T11:00:00Z"
+    };
+    render(<LayoutTechnicalPositionDialog unit={unit} position={position} products={[]} saving={false}
+      message="Konflikt" conflict onSubmit={() => undefined} onReloadConflict={async () => reloaded}
+      onClose={() => undefined} />);
+
+    await user.clear(screen.getByRole("textbox", { name: "Bezeichnung" }));
+    await user.type(screen.getByRole("textbox", { name: "Bezeichnung" }), "Lokaler Entwurf");
+    await user.click(screen.getByRole("button", { name: "Serverstand neu laden" }));
+
+    expect(screen.getByRole("textbox", { name: "Bezeichnung" })).toHaveValue("Signal Server");
+    expect(screen.getByRole("spinbutton", { name: "X-Position (mm)" })).toHaveValue(220);
   });
 });

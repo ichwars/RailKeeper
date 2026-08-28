@@ -2832,7 +2832,7 @@ export const deTranslations: Record<string, string> = {
     "layouts.technology.summary": "{count} Positionen in der gewählten Einheit",
     "layouts.technology.editLabel": "{name} bearbeiten",
     "layouts.technology.conflict": "Die Position wurde zwischenzeitlich geändert. Deine Eingaben bleiben erhalten.",
-    "layouts.technology.reloaded": "Aktuelle Version geladen. Deine Eingaben bleiben erhalten.",
+    "layouts.technology.reloaded": "Aktueller Serverstand geladen. Der lokale Entwurf wurde ersetzt.",
     "layouts.technology.missingAfterReload": "Die Position ist auf dem Server nicht mehr vorhanden.",
     "layouts.positionKind.turnout": "Weiche",
     "layouts.positionKind.signal": "Signal",

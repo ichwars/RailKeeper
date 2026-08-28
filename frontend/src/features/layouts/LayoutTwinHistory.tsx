@@ -4,25 +4,26 @@ import { useEffect, useState } from "react";
 import { api, type AccessoryUsageEvent } from "../../shared/api";
 import { formatDateTime, useI18n } from "../../shared/i18n";
 
-export function LayoutTwinHistory({ positionID, productID }: {
+export function LayoutTwinHistory({ positionID, productIDs }: {
   positionID: string;
-  productID?: string;
+  productIDs: readonly string[];
 }) {
   const { t, language } = useI18n();
+  const productKey = [...new Set(productIDs.filter(Boolean))].sort().join("\u001f");
   const [events, setEvents] = useState<AccessoryUsageEvent[]>([]);
-  const [loading, setLoading] = useState(Boolean(productID));
+  const [loading, setLoading] = useState(Boolean(productKey));
   const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     let active = true;
     setEvents([]);
     setFailed(false);
-    setLoading(Boolean(productID));
-    if (!productID) return () => { active = false; };
-    api.accessoryUsageHistory(productID)
-      .then((history) => {
+    setLoading(Boolean(productKey));
+    if (!productKey) return () => { active = false; };
+    Promise.all(productKey.split("\u001f").map((productID) => api.accessoryUsageHistory(productID)))
+      .then((histories) => {
         if (!active) return;
-        setEvents(history.events
+        setEvents(histories.flatMap((history) => history.events)
           .filter((event) => event.technicalPositionId === positionID)
           .sort((left, right) => right.occurredAt.localeCompare(left.occurredAt)));
       })
@@ -33,9 +34,9 @@ export function LayoutTwinHistory({ positionID, productID }: {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [positionID, productID]);
+  }, [positionID, productKey]);
 
-  if (!productID) return <p className="layout-empty">{t("layouts.twin.history.noArticle")}</p>;
+  if (!productKey) return <p className="layout-empty">{t("layouts.twin.history.noArticle")}</p>;
   if (loading) return <p className="layout-empty" role="status">{t("layouts.twin.history.loading")}</p>;
   if (failed) return <p className="layout-twin-history-error" role="alert"><TriangleAlert size={15} />
     {t("layouts.twin.history.error")}</p>;

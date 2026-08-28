@@ -21,7 +21,7 @@ describe("LayoutTwinHistory", () => {
       }]
     });
 
-    render(<LayoutTwinHistory positionID="position-1" productID="product-1" />);
+    render(<LayoutTwinHistory positionID="position-1" productIDs={["product-1"]} />);
 
     expect(screen.getByRole("status")).toHaveTextContent("Verlauf wird geladen");
     expect(await screen.findByText("Zustandsänderung")).toBeInTheDocument();
@@ -30,9 +30,27 @@ describe("LayoutTwinHistory", () => {
     expect(history).toHaveBeenCalledWith("product-1");
   });
 
-  it("does not request history when the position has no linked article", async () => {
+  it("merges position events from every allocated article", async () => {
+    const history = vi.spyOn(api, "accessoryUsageHistory").mockImplementation(async (productID) => ({
+      productId: productID,
+      events: [{
+        id: `installation-${productID}`, type: "installation", productId: productID,
+        installationId: `installation-${productID}`, quantity: 1, technicalPositionId: "position-1",
+        condition: "ready", occurredAt: productID === "product-1"
+          ? "2026-08-09T11:00:00Z" : "2026-08-09T12:00:00Z"
+      }]
+    }));
+
+    render(<LayoutTwinHistory positionID="position-1" productIDs={["product-1", "product-2"]} />);
+
+    expect(await screen.findAllByText("Einbau")).toHaveLength(2);
+    expect(history).toHaveBeenCalledWith("product-1");
+    expect(history).toHaveBeenCalledWith("product-2");
+  });
+
+  it("does not request history when the position has no allocated article", async () => {
     const history = vi.spyOn(api, "accessoryUsageHistory");
-    render(<LayoutTwinHistory positionID="position-1" />);
+    render(<LayoutTwinHistory positionID="position-1" productIDs={[]} />);
 
     expect(screen.getByText(/verknüpften Artikel/)).toBeInTheDocument();
     await waitFor(() => expect(history).not.toHaveBeenCalled());
@@ -40,7 +58,7 @@ describe("LayoutTwinHistory", () => {
 
   it("keeps loading failures inside the inspector", async () => {
     vi.spyOn(api, "accessoryUsageHistory").mockRejectedValue(new Error("offline"));
-    render(<LayoutTwinHistory positionID="position-1" productID="product-1" />);
+    render(<LayoutTwinHistory positionID="position-1" productIDs={["product-1"]} />);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Verlauf konnte nicht geladen werden");
   });

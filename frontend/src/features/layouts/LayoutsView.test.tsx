@@ -213,7 +213,7 @@ describe("LayoutsView", () => {
       expect.objectContaining({ label: "Weiche 1", kind: "turnout", positionXMm: 120, positionYMm: 45 })));
   });
 
-  it("preserves technical position edits while reloading a version conflict", async () => {
+  it("replaces technical position edits with the selected server version after a conflict", async () => {
     const user = userEvent.setup();
     const serverPosition = { ...technicalPosition, version: 2, positionXMm: 275 };
     vi.mocked(api.layoutTechnicalPositions)
@@ -240,12 +240,13 @@ describe("LayoutsView", () => {
     expect(name).toHaveValue("Lokaler Signalname");
     await user.click(within(dialog).getByRole("button", { name: "Serverstand neu laden" }));
     expect(await within(dialog).findByText(
-      "Aktuelle Version geladen. Deine Eingaben bleiben erhalten."
+      "Aktueller Serverstand geladen. Der lokale Entwurf wurde ersetzt."
     )).toBeInTheDocument();
-    expect(name).toHaveValue("Lokaler Signalname");
+    expect(name).toHaveValue("Einfahrsignal A");
+    expect(within(dialog).getByRole("spinbutton", { name: "X-Position (mm)" })).toHaveValue(275);
     await user.click(within(dialog).getByRole("button", { name: "Position speichern" }));
     await waitFor(() => expect(api.updateLayoutTechnicalPosition).toHaveBeenLastCalledWith(technicalPosition.id,
-      expect.objectContaining({ label: "Lokaler Signalname", expectedVersion: 2 })));
+      expect.objectContaining({ label: "Einfahrsignal A", positionXMm: 275, expectedVersion: 2 })));
   });
 
   it.each(["Viewer", "Editor"])("keeps technical positions read-only for %s users", async (role) => {
