@@ -119,10 +119,27 @@ describe("VehicleInventoryTable", () => {
 
     const expectedWidth = 64 + 122 +
       vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth + 196;
-    expect(screen.getByRole("table")).toHaveStyle(
+    const table = screen.getByRole("table");
+    expect(table).toHaveStyle(
       `--vehicle-table-min-width: ${expectedWidth}px`
     );
-    expect(document.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(table.querySelector('col[data-column="inventoryNumber"]')).toHaveStyle(
+      `width: ${vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth}px`
+    );
+    const growColumnStyle = table.querySelector('col[data-column="manufacturer"]')
+      ?.getAttribute("style");
+    expect(growColumnStyle).toContain("width: calc(196px");
+    expect(growColumnStyle).toContain(`${expectedWidth}px`);
+    expect(table.querySelector("col.select-cell")).toHaveStyle({
+      width: "64px",
+      minWidth: "64px",
+      maxWidth: "64px"
+    });
+    expect(table.querySelector("col.actions-cell")).toHaveStyle({
+      width: "122px",
+      minWidth: "122px",
+      maxWidth: "122px"
+    });
     expect(screen.getAllByRole("separator")).toHaveLength(2);
     fireEvent.keyDown(screen.getByRole("separator", {
       name: "Breite von Hersteller ändern"

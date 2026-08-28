@@ -120,11 +120,6 @@
   white-space: nowrap;
 }
 
-.vehicle-inventory-table th:not(.select-cell):not(.actions-cell),
-.vehicle-inventory-table td:not(.select-cell):not(.actions-cell) {
-  min-width: 112px;
-}
-
 .vehicle-inventory-table th:not(.select-cell):not(.actions-cell) {
   position: relative;
 }
@@ -148,6 +143,8 @@
 
 .vehicle-inventory-table .select-cell {
   width: 64px;
+  min-width: 64px;
+  max-width: 64px;
 }
 
 .vehicle-inventory-table th.select-cell,
@@ -177,6 +174,8 @@
 
 .vehicle-inventory-table .actions-cell {
   width: 122px;
+  min-width: 122px;
+  max-width: 122px;
 }
 
 .vehicle-inventory-table .vehicle-column-type,

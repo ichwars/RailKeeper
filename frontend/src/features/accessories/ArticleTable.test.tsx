@@ -253,8 +253,23 @@ describe("ArticleTable", () => {
       .toEqual(["", "Hersteller", "Inventarnummer", "Aktionen"]);
     const expectedWidth = 44 + 136 + 196 +
       articleTableColumnWidthDefinitions.inventoryNumber.defaultWidth;
-    expect(screen.getByRole("table")).toHaveStyle(`--article-table-min-width: ${expectedWidth}px`);
-    expect(document.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    const table = screen.getByRole("table");
+    expect(table).toHaveStyle(`--article-table-min-width: ${expectedWidth}px`);
+    expect(table.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(table.querySelector('col[data-column="inventoryNumber"]')).toHaveStyle(
+      `width: calc(${articleTableColumnWidthDefinitions.inventoryNumber.defaultWidth}px + ` +
+      `max(0px, 100% - ${expectedWidth}px))`
+    );
+    expect(table.querySelector("col.select-cell")).toHaveStyle({
+      width: "44px",
+      minWidth: "44px",
+      maxWidth: "44px"
+    });
+    expect(table.querySelector("col.actions-cell")).toHaveStyle({
+      width: "136px",
+      minWidth: "136px",
+      maxWidth: "136px"
+    });
     expect(screen.getAllByRole("separator")).toHaveLength(2);
     fireEvent.keyDown(screen.getByRole("separator", {
       name: "Breite von Hersteller ändern"

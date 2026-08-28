@@ -24,6 +24,7 @@ export function useProfileTableLayout<Layout>({
   const [layout, setLayout] = useState(defaultLayout);
   const [loading, setLoading] = useState(true);
   const layoutRef = useRef(layout);
+  const editedSinceLoadRef = useRef(false);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const parseRef = useRef(parse);
   const serializeRef = useRef(serialize);
@@ -50,6 +51,7 @@ export function useProfileTableLayout<Layout>({
 
   useEffect(() => {
     let cancelled = false;
+    editedSinceLoadRef.current = false;
     setLoading(true);
 
     api.profileSettings()
@@ -58,9 +60,11 @@ export function useProfileTableLayout<Layout>({
         const stored = settings[settingKey];
         const legacy = stored === undefined ? legacyValueRef.current?.() : undefined;
         const next = parseRef.current(stored ?? legacy);
-        layoutRef.current = next;
-        setLayout(next);
-        if (stored === undefined && legacy !== undefined) queueSave(next);
+        if (!editedSinceLoadRef.current) {
+          layoutRef.current = next;
+          setLayout(next);
+          if (stored === undefined && legacy !== undefined) queueSave(next);
+        }
       })
       .catch(() => {
         if (!cancelled) onLoadErrorRef.current();
@@ -75,6 +79,7 @@ export function useProfileTableLayout<Layout>({
   }, [queueSave, settingKey]);
 
   const update = useCallback((change: (current: Layout) => Layout, persist: boolean) => {
+    editedSinceLoadRef.current = true;
     const next = change(layoutRef.current);
     layoutRef.current = next;
     setLayout(next);

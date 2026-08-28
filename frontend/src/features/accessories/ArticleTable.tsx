@@ -90,6 +90,7 @@ export function ArticleTable({
   const someSelected = items.some((item) => selectedIDs.has(item.id));
   const layout = { columns: [...columns], widths: columnWidths };
   const minimumWidth = tableMinimumWidth(layout, articleTableColumnWidthDefinitions, fixedTableWidth);
+  const growColumn = columns.includes("name") ? "name" : columns.at(-1);
   const tableStyle = {
     "--article-table-min-width": `${minimumWidth}px`
   } as CSSProperties;
@@ -205,11 +206,14 @@ export function ArticleTable({
     <div className="table-wrap article-table-wrap">
       <table className="inventory-table article-table" style={tableStyle}>
         <colgroup>
-          <col className="select-cell" />
+          <col className="select-cell" style={{ width: 44, minWidth: 44, maxWidth: 44 }} />
           {columns.map((column) => <col key={column} data-column={column} style={{
-            width: `${tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}px`
+            width: column === growColumn
+              ? `calc(${tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}px + ` +
+                `max(0px, 100% - ${minimumWidth}px))`
+              : `${tableColumnWidth(layout, column, articleTableColumnWidthDefinitions)}px`
           }} />)}
-          <col className="actions-cell" />
+          <col className="actions-cell" style={{ width: 136, minWidth: 136, maxWidth: 136 }} />
         </colgroup>
         <thead>
           <tr>

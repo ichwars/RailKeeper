@@ -88,6 +88,8 @@
 
 .article-table .select-cell {
   width: 44px;
+  min-width: 44px;
+  max-width: 44px;
   text-align: center;
 }
 
@@ -102,6 +104,8 @@
 .article-table th.actions-cell,
 .article-table td.actions-cell {
   width: 136px;
+  min-width: 136px;
+  max-width: 136px;
   text-align: right;
 }
 

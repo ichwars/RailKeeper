@@ -47,6 +47,32 @@ describe("useProfileTableLayout", () => {
     }));
   });
 
+  it("keeps a local commit made while the profile is still loading", async () => {
+    let resolveProfile: ((value: { settings: Record<string, string> }) => void) | undefined;
+    vi.spyOn(api, "profileSettings").mockImplementation(() => new Promise((resolve) => {
+      resolveProfile = resolve;
+    }));
+    const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
+
+    const { result } = renderHook(() => useProfileTableLayout<Layout>({
+      settingKey: "table.layout",
+      defaultLayout: { value: 10 },
+      parse,
+      serialize: JSON.stringify,
+      onLoadError: vi.fn(),
+      onSaveError: vi.fn()
+    }));
+
+    act(() => result.current.commit(() => ({ value: 44 })));
+    await waitFor(() => expect(update).toHaveBeenCalledWith({
+      "table.layout": '{"value":44}'
+    }));
+
+    act(() => resolveProfile?.({ settings: { "table.layout": '{"value":24}' } }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.layout).toEqual({ value: 44 });
+  });
+
   it("migrates a legacy browser value only when the profile has no value", async () => {
     vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {} });
     const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });

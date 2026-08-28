@@ -84,6 +84,7 @@ export function VehicleInventoryTable({
     vehicleTableColumnWidthDefinitions,
     64 + 122
   );
+  const growColumn = columns.includes("name") ? "name" : columns.at(-1);
 
   const header = (column: VehicleTableColumn) => {
     const label = vehicleColumnLabel(column, t);
@@ -225,17 +226,16 @@ export function VehicleInventoryTable({
         } as CSSProperties}
       >
         <colgroup>
-          <col className="select-cell" />
+          <col className="select-cell" style={{ width: 64, minWidth: 64, maxWidth: 64 }} />
           {columns.map((column) => <col
             key={column}
             data-column={column}
-            style={{ width: tableColumnWidth(
-              columnLayout,
-              column,
-              vehicleTableColumnWidthDefinitions
-            ) }}
+            style={{ width: column === growColumn
+              ? `calc(${tableColumnWidth(columnLayout, column, vehicleTableColumnWidthDefinitions)}px + ` +
+                `max(0px, 100% - ${minimumWidth}px))`
+              : tableColumnWidth(columnLayout, column, vehicleTableColumnWidthDefinitions) }}
           />)}
-          <col className="actions-cell" />
+          <col className="actions-cell" style={{ width: 122, minWidth: 122, maxWidth: 122 }} />
         </colgroup>
         <thead>
           <tr>
