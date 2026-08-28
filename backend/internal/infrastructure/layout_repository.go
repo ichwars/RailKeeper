@@ -297,6 +297,27 @@ func (r *LayoutRepository) UpdateUnit(
 ) (*application.LayoutUnit, error) {
 	now := timestamp()
 	err := r.withTx(ctx, func(tx *sql.Tx) error {
+		var version int
+		if err := tx.QueryRowContext(ctx, `SELECT version FROM layout_units WHERE id=?`, id).Scan(&version); errors.Is(err, sql.ErrNoRows) {
+			return application.ErrLayoutNotFound
+		} else if err != nil {
+			return fmt.Errorf("read layout unit version: %w", err)
+		}
+		if version != input.ExpectedVersion {
+			return application.ErrLayoutVersionConflict
+		}
+		var portOutsideBounds int
+		if err := tx.QueryRowContext(ctx, `
+SELECT EXISTS(
+  SELECT 1 FROM layout_unit_ports port
+  WHERE port.layout_unit_id=?
+    AND ((? > 0 AND port.x_mm > ?) OR (? > 0 AND port.y_mm > ?))
+)`, id, input.WidthMM, input.WidthMM, input.HeightMM, input.HeightMM).Scan(&portOutsideBounds); err != nil {
+			return fmt.Errorf("validate layout unit port bounds: %w", err)
+		}
+		if portOutsideBounds != 0 {
+			return application.ErrLayoutValidation
+		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE layout_units
 SET name=?, kind=?, owner_label=?, width_mm=?, height_mm=?, archived=?, version=version+1, updated_at=?
@@ -390,6 +411,80 @@ ORDER BY u.name COLLATE NOCASE, cu.unit_id, p.name COLLATE NOCASE, p.id`, config
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate layout configuration port placements: %w", err)
+	}
+	return placements, nil
+}
+
+func (r *LayoutRepository) LoadDraftConfigurationPortPlacements(
+	ctx context.Context,
+	configurationID string,
+	units []application.ConfigurationUnitInput,
+) ([]domain.ModulePortPlacement, error) {
+	var layoutID string
+	if err := r.db.QueryRowContext(ctx,
+		`SELECT layout_id FROM layout_configurations WHERE id=?`, configurationID).Scan(&layoutID); errors.Is(err, sql.ErrNoRows) {
+		return nil, application.ErrLayoutNotFound
+	} else if err != nil {
+		return nil, fmt.Errorf("find layout configuration for draft port preview: %w", err)
+	}
+	unitRows, err := r.db.QueryContext(ctx, `SELECT id FROM layout_units WHERE layout_id=?`, layoutID)
+	if err != nil {
+		return nil, fmt.Errorf("list layout units for draft port preview: %w", err)
+	}
+	available := make(map[string]struct{})
+	for unitRows.Next() {
+		var unitID string
+		if err := unitRows.Scan(&unitID); err != nil {
+			_ = unitRows.Close()
+			return nil, fmt.Errorf("scan layout unit for draft port preview: %w", err)
+		}
+		available[unitID] = struct{}{}
+	}
+	if err := unitRows.Err(); err != nil {
+		_ = unitRows.Close()
+		return nil, fmt.Errorf("iterate layout units for draft port preview: %w", err)
+	}
+	if err := unitRows.Close(); err != nil {
+		return nil, fmt.Errorf("close layout units for draft port preview: %w", err)
+	}
+	poses := make(map[string]domain.TrackPose, len(units))
+	for _, unit := range units {
+		if _, found := available[unit.UnitID]; !found {
+			return nil, application.ErrLayoutValidation
+		}
+		poses[unit.UnitID] = domain.TrackPose{
+			PositionXMM: unit.PositionXMM, PositionYMM: unit.PositionYMM,
+			RotationDegrees: unit.RotationDegrees,
+		}
+	}
+	rows, err := r.db.QueryContext(ctx, `
+SELECT unit.id, unit.name, port.id, port.name, port.kind, port.interface_key,
+       port.x_mm, port.y_mm, port.direction_degrees
+FROM layout_units unit
+JOIN layout_unit_ports port ON port.layout_unit_id=unit.id AND port.archived=0
+WHERE unit.layout_id=?
+ORDER BY unit.name COLLATE NOCASE, unit.id, port.name COLLATE NOCASE, port.id`, layoutID)
+	if err != nil {
+		return nil, fmt.Errorf("list draft configuration port placements: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	placements := []domain.ModulePortPlacement{}
+	for rows.Next() {
+		placement := domain.ModulePortPlacement{}
+		if err := rows.Scan(&placement.UnitID, &placement.UnitName, &placement.PortID, &placement.PortName,
+			&placement.Kind, &placement.InterfaceKey, &placement.XMM, &placement.YMM,
+			&placement.DirectionDegrees); err != nil {
+			return nil, fmt.Errorf("scan draft configuration port placement: %w", err)
+		}
+		pose, included := poses[placement.UnitID]
+		if !included {
+			continue
+		}
+		placement.UnitPose = pose
+		placements = append(placements, placement)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate draft configuration port placements: %w", err)
 	}
 	return placements, nil
 }

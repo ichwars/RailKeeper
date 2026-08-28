@@ -88,6 +88,45 @@ func TestLayoutUnitPortRepositoryPersistsAndRejectsStaleUpdates(t *testing.T) {
 	}
 }
 
+func TestLayoutRepositoryRejectsUnitDimensionsOutsideExistingPortBounds(t *testing.T) {
+	_, service := testLayoutServiceWithDB(t)
+	ctx := t.Context()
+	layout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Club", Kind: domain.LayoutKindClub, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	unit, err := service.CreateUnit(ctx, layout.ID, application.CreateLayoutUnitInput{
+		Name: "Module A", Kind: domain.LayoutUnitKindModule, WidthMM: 1000, HeightMM: 500,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.CreateUnitPort(ctx, unit.ID, application.CreateLayoutUnitPortInput{
+		Name: "East", Kind: domain.LayoutUnitPortTrack, InterfaceKey: "track:tillig-tt-modellgleis",
+		XMM: 1000, YMM: 250,
+	}, "planner"); err != nil {
+		t.Fatal(err)
+	}
+	_, err = service.UpdateUnit(ctx, unit.ID, application.UpdateLayoutUnitInput{
+		CreateLayoutUnitInput: application.CreateLayoutUnitInput{
+			Name: unit.Name, Kind: unit.Kind, OwnerLabel: unit.OwnerLabel, WidthMM: 999, HeightMM: unit.HeightMM,
+		},
+		ExpectedVersion: unit.Version,
+	}, "planner")
+	if !errors.Is(err, application.ErrLayoutValidation) {
+		t.Fatalf("expected port bounds validation error, got %v", err)
+	}
+	stored, err := service.ListUnits(ctx, layout.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(stored) != 1 || stored[0].WidthMM != 1000 || stored[0].Version != unit.Version {
+		t.Fatalf("unit changed despite invalid port bounds: %#v", stored)
+	}
+}
+
 func TestLayoutConfigurationPortRepositoryLoadsActivePlacements(t *testing.T) {
 	db, service := testLayoutServiceWithDB(t)
 	ctx := t.Context()
@@ -140,6 +179,35 @@ func TestLayoutConfigurationPortRepositoryLoadsActivePlacements(t *testing.T) {
 		placements[0].UnitName != "West" || placements[0].UnitPose.PositionXMM != 10 ||
 		placements[0].UnitPose.PositionYMM != 20 || placements[0].UnitPose.RotationDegrees != 90 {
 		t.Fatalf("unexpected configuration port placements: %#v", placements)
+	}
+	draftPlacements, err := repository.LoadDraftConfigurationPortPlacements(ctx, configuration.ID,
+		[]application.ConfigurationUnitInput{
+			{UnitID: west.ID, PositionXMM: 75, PositionYMM: 30, RotationDegrees: 180},
+			{UnitID: east.ID, PositionXMM: 900, PositionYMM: 40},
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(draftPlacements) != 1 || draftPlacements[0].PortID != active.ID ||
+		draftPlacements[0].UnitPose.PositionXMM != 75 || draftPlacements[0].UnitPose.PositionYMM != 30 ||
+		draftPlacements[0].UnitPose.RotationDegrees != 180 {
+		t.Fatalf("unexpected draft port placements: %#v", draftPlacements)
+	}
+	otherLayout, err := service.CreateLayout(ctx, application.CreateLayoutInput{
+		Name: "Other", Kind: domain.LayoutKindPrivate, Gauge: "TT", Scale: "1:120",
+	}, "admin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	otherUnit, err := service.CreateUnit(ctx, otherLayout.ID, application.CreateLayoutUnitInput{
+		Name: "Foreign", Kind: domain.LayoutUnitKindModule,
+	}, "planner")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repository.LoadDraftConfigurationPortPlacements(ctx, configuration.ID,
+		[]application.ConfigurationUnitInput{{UnitID: otherUnit.ID}}); !errors.Is(err, application.ErrLayoutValidation) {
+		t.Fatalf("expected draft unit membership validation error, got %v", err)
 	}
 	contained, err := repository.ConfigurationContainsUnit(ctx, configuration.ID, east.ID)
 	if err != nil || !contained {

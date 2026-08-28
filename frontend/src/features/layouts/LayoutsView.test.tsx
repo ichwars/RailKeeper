@@ -158,11 +158,18 @@ describe("LayoutsView", () => {
 
   it("previews module-port alignment without saving the configuration", async () => {
     const user = userEvent.setup();
+    const targetUnit: LayoutUnit = {
+      ...unit, id: "unit-2", name: "Streckenmodul", ownerLabel: "Verein"
+    };
     const configuration: LayoutConfiguration = {
       id: "setup-1", layoutId: layout.id, name: "Ausstellung 2026", version: 2, archived: false,
-      units: [{ unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2, sortOrder: 0 }],
+      units: [
+        { unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2, sortOrder: 0 },
+        { unitId: targetUnit.id, positionXMm: 112, positionYMm: 0, rotationDegrees: 0, sortOrder: 1 }
+      ],
       createdAt: "2026-08-10T10:00:00Z", updatedAt: "2026-08-10T10:00:00Z"
     };
+    vi.mocked(api.layoutUnits).mockResolvedValue([unit, targetUnit]);
     vi.mocked(api.layoutConfigurations).mockResolvedValue([configuration]);
     vi.spyOn(api, "previewLayoutConfigurationUnitSnap").mockResolvedValue({
       snapped: true,
@@ -175,14 +182,21 @@ describe("LayoutsView", () => {
 
     await user.click(screen.getByRole("tab", { name: "Aufbauten" }));
     await user.click(await screen.findByRole("button", { name: /Ausstellung 2026/ }));
+    const xInputs = screen.getAllByLabelText("X (mm)");
+    await user.clear(xInputs[1]);
+    await user.type(xInputs[1], "150");
     await user.click(screen.getByRole("button", { name: "Bahnhofsmodul an Ports ausrichten" }));
 
     await waitFor(() => expect(api.previewLayoutConfigurationUnitSnap).toHaveBeenCalledWith(configuration.id, {
-      unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2
+      unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2,
+      units: [
+        { unitId: unit.id, positionXMm: 5, positionYMm: 10, rotationDegrees: 2 },
+        { unitId: targetUnit.id, positionXMm: 150, positionYMm: 0, rotationDegrees: 0 }
+      ]
     }));
-    expect(screen.getByLabelText("X (mm)")).toHaveValue(12);
-    expect(screen.getByLabelText("Y (mm)")).toHaveValue(20);
-    expect(screen.getByLabelText("Drehung (Grad)")).toHaveValue(0);
+    expect(screen.getAllByLabelText("X (mm)")[0]).toHaveValue(12);
+    expect(screen.getAllByLabelText("Y (mm)")[0]).toHaveValue(20);
+    expect(screen.getAllByLabelText("Drehung (Grad)")[0]).toHaveValue(0);
     expect(screen.getByText("Ausrichtung übernommen. Aufbau noch speichern.")).toBeInTheDocument();
     expect(update).not.toHaveBeenCalled();
   });

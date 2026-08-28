@@ -212,14 +212,17 @@ type LayoutUnitPortRepository interface {
 
 type LayoutConfigurationPortRepository interface {
 	LoadConfigurationPortPlacements(context.Context, string) ([]domain.ModulePortPlacement, error)
-	ConfigurationContainsUnit(context.Context, string, string) (bool, error)
+	LoadDraftConfigurationPortPlacements(
+		context.Context, string, []ConfigurationUnitInput,
+	) ([]domain.ModulePortPlacement, error)
 }
 
 type PreviewConfigurationUnitSnapInput struct {
-	UnitID          string  `json:"unitId"`
-	PositionXMM     float64 `json:"positionXMm"`
-	PositionYMM     float64 `json:"positionYMm"`
-	RotationDegrees float64 `json:"rotationDegrees"`
+	UnitID          string                   `json:"unitId"`
+	PositionXMM     float64                  `json:"positionXMm"`
+	PositionYMM     float64                  `json:"positionYMm"`
+	RotationDegrees float64                  `json:"rotationDegrees"`
+	Units           []ConfigurationUnitInput `json:"units"`
 }
 
 type LayoutService struct {
@@ -360,16 +363,30 @@ func (s *LayoutService) PreviewConfigurationUnitSnap(
 		!finite(input.PositionYMM) || !finite(input.RotationDegrees) {
 		return nil, ErrLayoutValidation
 	}
-	placements, err := s.configurationPortRepository.LoadConfigurationPortPlacements(ctx, configurationID)
-	if err != nil {
-		return nil, err
+	seen := make(map[string]struct{}, len(input.Units))
+	movingIncluded := false
+	for index := range input.Units {
+		unit := &input.Units[index]
+		unit.UnitID = strings.TrimSpace(unit.UnitID)
+		if unit.UnitID == "" || !finite(unit.PositionXMM) || !finite(unit.PositionYMM) ||
+			!finite(unit.RotationDegrees) {
+			return nil, ErrLayoutValidation
+		}
+		if _, duplicate := seen[unit.UnitID]; duplicate {
+			return nil, ErrLayoutValidation
+		}
+		seen[unit.UnitID] = struct{}{}
+		unit.RotationDegrees = normalizeRotation(unit.RotationDegrees)
+		movingIncluded = movingIncluded || unit.UnitID == input.UnitID
 	}
-	found, err := s.configurationPortRepository.ConfigurationContainsUnit(ctx, configurationID, input.UnitID)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
+	if !movingIncluded {
 		return nil, ErrLayoutValidation
+	}
+	placements, err := s.configurationPortRepository.LoadDraftConfigurationPortPlacements(
+		ctx, configurationID, input.Units,
+	)
+	if err != nil {
+		return nil, err
 	}
 	result := domain.FindModulePortSnap(input.UnitID, domain.TrackPose{
 		PositionXMM: input.PositionXMM, PositionYMM: input.PositionYMM,
