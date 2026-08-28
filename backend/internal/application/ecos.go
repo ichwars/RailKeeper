@@ -41,17 +41,29 @@ type ECoSConnectionInput struct {
 }
 
 type ECoSConnectionResult struct {
-	Connected          bool              `json:"connected"`
-	Host               string            `json:"host"`
-	Port               int               `json:"port"`
-	Status             string            `json:"status,omitempty"`
-	ProtocolVersion    string            `json:"protocolVersion,omitempty"`
-	ApplicationVersion string            `json:"applicationVersion,omitempty"`
-	HardwareVersion    string            `json:"hardwareVersion,omitempty"`
-	Message            string            `json:"message"`
-	RawLines           []string          `json:"rawLines,omitempty"`
-	Fields             map[string]string `json:"fields,omitempty"`
+	Connected           bool                    `json:"connected"`
+	Host                string                  `json:"host"`
+	Port                int                     `json:"port"`
+	Status              string                  `json:"status,omitempty"`
+	ProtocolVersion     string                  `json:"protocolVersion,omitempty"`
+	ApplicationVersion  string                  `json:"applicationVersion,omitempty"`
+	HardwareVersion     string                  `json:"hardwareVersion,omitempty"`
+	CompatibilityStatus ECoSCompatibilityStatus `json:"compatibilityStatus"`
+	MissingFields       []string                `json:"missingFields"`
+	Message             string                  `json:"message"`
+	RawLines            []string                `json:"rawLines,omitempty"`
+	Fields              map[string]string       `json:"fields,omitempty"`
 }
+
+type ECoSCompatibilityStatus string
+
+const (
+	ECoSCompatibilityUnreachable ECoSCompatibilityStatus = "unreachable"
+	ECoSCompatibilityRejected    ECoSCompatibilityStatus = "rejected"
+	ECoSCompatibilityPartial     ECoSCompatibilityStatus = "partial"
+	ECoSCompatibilityUnverified  ECoSCompatibilityStatus = "unverified"
+	ECoSCompatibilityVerified    ECoSCompatibilityStatus = "verified"
+)
 
 type ECoSLocomotive struct {
 	ObjectID    int                 `json:"objectId"`
@@ -649,25 +661,75 @@ func (s *ECoSService) TestConnection(ctx context.Context, input ECoSConnectionIn
 	}
 	lines, err := s.exchange(ctx, target.Host, target.Port, "get(1, info, status)")
 	result := &ECoSConnectionResult{
-		Connected: false,
-		Host:      target.Host,
-		Port:      target.Port,
-		Message:   "ECoS-Verbindung konnte nicht aufgebaut werden.",
+		Connected:           false,
+		Host:                target.Host,
+		Port:                target.Port,
+		CompatibilityStatus: ECoSCompatibilityUnreachable,
+		MissingFields:       []string{},
+		Message:             "ECoS-Verbindung konnte nicht aufgebaut werden.",
 	}
 	if err != nil {
 		result.Message = err.Error()
 		return result, nil //nolint:nilerr // Connection failures are returned as preview results.
 	}
 	fields := parseECoSFields(lines)
-	result.Connected = true
 	result.Status = fields["status"]
 	result.ProtocolVersion = firstNonEmpty(fields["ProtocolVersion"], fields["protocolversion"])
 	result.ApplicationVersion = firstNonEmpty(fields["ApplicationVersion"], fields["applicationversion"])
 	result.HardwareVersion = firstNonEmpty(fields["HardwareVersion"], fields["hardwareversion"])
-	result.Message = "ECoS-Verbindung erfolgreich."
 	result.RawLines = lines
 	result.Fields = fields
+	endStatus, endOK := parseECoSEndStatus(lines)
+	if endStatus == "" {
+		result.CompatibilityStatus = ECoSCompatibilityPartial
+		result.Message = "ECoS-Antwort war unvollständig: Abschlussstatus fehlt."
+		return result, nil
+	}
+	result.Fields["endStatus"] = endStatus
+	if !endOK {
+		result.CompatibilityStatus = ECoSCompatibilityRejected
+		result.Message = fmt.Sprintf("ECoS hat den Verbindungstest abgelehnt: %s.", endStatus)
+		return result, nil
+	}
+	result.MissingFields = missingECoSConnectionFields(result)
+	if len(result.MissingFields) > 0 {
+		result.CompatibilityStatus = ECoSCompatibilityPartial
+		result.Message = fmt.Sprintf(
+			"ECoS-Antwort war unvollständig: Pflichtfelder fehlen (%s).",
+			strings.Join(result.MissingFields, ", "),
+		)
+		return result, nil
+	}
+	result.Connected = true
+	if result.ApplicationVersion == "4.3.3" {
+		result.CompatibilityStatus = ECoSCompatibilityVerified
+		result.Message = "ECoS-Verbindung erfolgreich. Firmware 4.3.3 ist geräteverifiziert."
+	} else {
+		result.CompatibilityStatus = ECoSCompatibilityUnverified
+		result.Message = fmt.Sprintf(
+			"ECoS-Verbindung erfolgreich. Firmware %s ist noch nicht geräteverifiziert.",
+			result.ApplicationVersion,
+		)
+	}
 	return result, nil
+}
+
+func missingECoSConnectionFields(result *ECoSConnectionResult) []string {
+	missing := []string{}
+	for _, field := range []struct {
+		name  string
+		value string
+	}{
+		{name: "status", value: result.Status},
+		{name: "ProtocolVersion", value: result.ProtocolVersion},
+		{name: "ApplicationVersion", value: result.ApplicationVersion},
+		{name: "HardwareVersion", value: result.HardwareVersion},
+	} {
+		if strings.TrimSpace(field.value) == "" {
+			missing = append(missing, field.name)
+		}
+	}
+	return missing
 }
 
 func (s *ECoSService) SyncLocomotive(ctx context.Context, input ECoSLocomotiveSyncInput) (*ECoSLocomotiveSyncResult, error) {

@@ -139,6 +139,9 @@ export function DigitalCenterWorkflowView({
   const canStartLive = canManageUsers && provider === "ecos" && configured && active && tested;
   const currentProbe = probeResult?.provider === provider ? probeResult : null;
   const resultFields = resultFieldEntries(connectionResult);
+  const ecosCompatibility = provider === "ecos" && connectionResult && "compatibilityStatus" in connectionResult
+    ? connectionResult.compatibilityStatus
+    : null;
   const activeStep = !configured ? 2 : !tested ? 3 : !active ? 4 : 4;
   const testState = tested ? "done" : configured ? "current" : "locked";
   const activationState = active ? "done" : tested ? "current" : "locked";
@@ -180,6 +183,12 @@ export function DigitalCenterWorkflowView({
           <div><dt>{t("settings.digital.workflow.port")}</dt><dd>{port}</dd></div>
           <div><dt>{t("settings.digital.workflow.adapterId")}</dt><dd><code>{adapterId}</code></dd></div>
           <div><dt>{t("settings.digital.workflow.timeout")}</dt><dd>{timeout}</dd></div>
+          {ecosCompatibility && (
+            <div><dt>{t("settings.digital.workflow.compatibility")}</dt><dd>{t(`settings.digital.workflow.compatibility.${ecosCompatibility}`)}</dd></div>
+          )}
+          {provider === "ecos" && connectionResult && "missingFields" in connectionResult && connectionResult.missingFields.length > 0 && (
+            <div><dt>{t("settings.digital.workflow.missingFields")}</dt><dd>{connectionResult.missingFields.join(", ")}</dd></div>
+          )}
           <div>
             <dt>{t("settings.digital.workflow.driverVersion")}</dt>
             <dd>{connectionResult && "applicationVersion" in connectionResult ? connectionResult.applicationVersion || "–" : connectionResult?.fields?.version || "–"}</dd>

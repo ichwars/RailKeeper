@@ -839,6 +839,8 @@ export type ECoSConnectionResult = {
   protocolVersion?: string;
   applicationVersion?: string;
   hardwareVersion?: string;
+  compatibilityStatus: "unreachable" | "rejected" | "partial" | "unverified" | "verified";
+  missingFields: string[];
   message: string;
   rawLines?: string[];
   fields?: Record<string, string>;
