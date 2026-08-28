@@ -159,6 +159,7 @@ func TestMasterDataRouteSecurityContractRemainsIndependentFromDataTransfer(t *te
 		{http.MethodPost, "/api/v1/master-data/import", routeAccessAdmin, false},
 		{http.MethodGet, "/api/v1/master-data/{type}", routeAccessViewer, true},
 		{http.MethodPost, "/api/v1/master-data/{type}", routeAccessEditor, false},
+		{http.MethodPatch, "/api/v1/master-data/{type}/active", routeAccessEditor, false},
 		{http.MethodPut, "/api/v1/master-data/{type}/{key}", routeAccessEditor, false},
 		{http.MethodPatch, "/api/v1/master-data/{type}/{key}/active", routeAccessEditor, false},
 		{http.MethodDelete, "/api/v1/master-data/{type}/{key}", routeAccessEditor, false},

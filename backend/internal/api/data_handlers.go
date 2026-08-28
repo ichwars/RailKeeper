@@ -482,6 +482,11 @@ type masterDataActiveInput struct {
 	Active *bool `json:"active"`
 }
 
+type masterDataActiveBatchInput struct {
+	Keys   []string `json:"keys"`
+	Active *bool    `json:"active"`
+}
+
 func (a *App) setMasterDataActive(w http.ResponseWriter, r *http.Request) {
 	var input masterDataActiveInput
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
@@ -512,6 +517,43 @@ func (a *App) setMasterDataActive(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respondJSON(w, http.StatusOK, item)
+}
+
+func (a *App) setMasterDataActiveMany(w http.ResponseWriter, r *http.Request) {
+	var input masterDataActiveBatchInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		respondProblem(w, http.StatusBadRequest, "invalid_json", "Request body must be valid JSON.")
+		return
+	}
+	if input.Active == nil {
+		respondProblem(w, http.StatusBadRequest, "master_data_validation", "Active state is required.")
+		return
+	}
+	if *input.Active {
+		respondProblem(w, http.StatusBadRequest, "master_data_validation", "Bulk reactivation is not supported.")
+		return
+	}
+	items, err := a.masterDataService.SetActiveMany(
+		r.Context(),
+		r.PathValue("type"),
+		input.Keys,
+		false,
+	)
+	if err != nil {
+		switch {
+		case errors.Is(err, application.ErrMasterDataValidation):
+			respondProblem(w, http.StatusBadRequest, "master_data_validation",
+				"Master data type and between 1 and 5000 non-empty keys are required.")
+		case errors.Is(err, application.ErrMasterDataNotFound):
+			respondProblem(w, http.StatusNotFound, "master_data_not_found", "Master data entry not found.")
+		default:
+			a.logger.Error("master data active-state batch update failed", "error", err)
+			respondProblem(w, http.StatusInternalServerError, "master_data_update_failed",
+				"Could not update master data active state.")
+		}
+		return
+	}
+	respondJSON(w, http.StatusOK, items)
 }
 
 func (a *App) deleteMasterData(w http.ResponseWriter, r *http.Request) {
