@@ -24,6 +24,11 @@ export function useProfileTableLayout<Layout>({
   const [layout, setLayout] = useState(defaultLayout);
   const [loading, setLoading] = useState(true);
   const layoutRef = useRef(layout);
+  const loadingRef = useRef(true);
+  const pendingChangesRef = useRef<Array<{
+    change: (current: Layout) => Layout;
+    persist: boolean;
+  }>>([]);
   const saveQueue = useRef<Promise<void>>(Promise.resolve());
   const parseRef = useRef(parse);
   const serializeRef = useRef(serialize);
@@ -50,6 +55,8 @@ export function useProfileTableLayout<Layout>({
 
   useEffect(() => {
     let cancelled = false;
+    loadingRef.current = true;
+    pendingChangesRef.current = [];
     setLoading(true);
 
     api.profileSettings()
@@ -57,16 +64,28 @@ export function useProfileTableLayout<Layout>({
         if (cancelled) return;
         const stored = settings[settingKey];
         const legacy = stored === undefined ? legacyValueRef.current?.() : undefined;
-        const next = parseRef.current(stored ?? legacy);
+        const pendingChanges = pendingChangesRef.current;
+        const next = pendingChanges.reduce(
+          (current, pending) => pending.change(current),
+          parseRef.current(stored ?? legacy)
+        );
+        const shouldPersist = pendingChanges.some((pending) => pending.persist) ||
+          (stored === undefined && legacy !== undefined);
+        pendingChangesRef.current = [];
+        loadingRef.current = false;
         layoutRef.current = next;
         setLayout(next);
-        if (stored === undefined && legacy !== undefined) queueSave(next);
+        if (shouldPersist) queueSave(next);
+        setLoading(false);
       })
       .catch(() => {
-        if (!cancelled) onLoadErrorRef.current();
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (cancelled) return;
+        const shouldPersist = pendingChangesRef.current.some((pending) => pending.persist);
+        pendingChangesRef.current = [];
+        loadingRef.current = false;
+        onLoadErrorRef.current();
+        if (shouldPersist) queueSave(layoutRef.current);
+        setLoading(false);
       });
 
     return () => {
@@ -75,10 +94,11 @@ export function useProfileTableLayout<Layout>({
   }, [queueSave, settingKey]);
 
   const update = useCallback((change: (current: Layout) => Layout, persist: boolean) => {
+    if (loadingRef.current) pendingChangesRef.current.push({ change, persist });
     const next = change(layoutRef.current);
     layoutRef.current = next;
     setLayout(next);
-    if (persist) queueSave(next);
+    if (persist && !loadingRef.current) queueSave(next);
   }, [queueSave]);
 
   const preview = useCallback((change: (current: Layout) => Layout) => {

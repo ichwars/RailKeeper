@@ -54,7 +54,8 @@ describe("vehicle inventory column layout", () => {
 
   it("fills the desktop wrapper but preserves configured overflow widths", () => {
     expect(css).toMatch(/\.vehicle-inventory-table\s*\{[^}]*width:\s*max\(100%,\s*var\(--vehicle-table-min-width\)\)[^}]*min-width:\s*var\(--vehicle-table-min-width\)[^}]*table-layout:\s*fixed/s);
-    expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\)\s*\{[^}]*position:\s*relative/s);
+    expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\):not\(\.table-fill-cell\)\s*\{[^}]*position:\s*relative/s);
+    expect(css).toMatch(/\.vehicle-inventory-table \.table-fill-cell\s*\{[^}]*padding:\s*0[^}]*pointer-events:\s*none/s);
     expect(css).not.toMatch(/--vehicle-data-column-count,\s*8/);
   });
 

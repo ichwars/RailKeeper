@@ -47,6 +47,49 @@ describe("useProfileTableLayout", () => {
     }));
   });
 
+  it("replays a local commit onto the stored layout after loading", async () => {
+    let resolveProfile: ((value: { settings: Record<string, string> }) => void) | undefined;
+    vi.spyOn(api, "profileSettings").mockImplementation(() => new Promise((resolve) => {
+      resolveProfile = resolve;
+    }));
+    const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
+
+    type ProfileLayout = { columns: string[]; widths: Record<string, number> };
+    const parseProfileLayout = (raw: string | undefined): ProfileLayout => raw
+      ? JSON.parse(raw) as ProfileLayout
+      : { columns: ["default"], widths: {} };
+
+    const { result } = renderHook(() => useProfileTableLayout<ProfileLayout>({
+      settingKey: "table.layout",
+      defaultLayout: { columns: ["default"], widths: {} },
+      parse: parseProfileLayout,
+      serialize: JSON.stringify,
+      onLoadError: vi.fn(),
+      onSaveError: vi.fn()
+    }));
+
+    act(() => result.current.commit((current) => ({
+      ...current,
+      widths: { ...current.widths, local: 44 }
+    })));
+    expect(result.current.layout).toEqual({ columns: ["default"], widths: { local: 44 } });
+    expect(update).not.toHaveBeenCalled();
+
+    act(() => resolveProfile?.({
+      settings: {
+        "table.layout": '{"columns":["stored"],"widths":{"stored":24}}'
+      }
+    }));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.layout).toEqual({
+      columns: ["stored"],
+      widths: { stored: 24, local: 44 }
+    });
+    await waitFor(() => expect(update).toHaveBeenCalledWith({
+      "table.layout": '{"columns":["stored"],"widths":{"stored":24,"local":44}}'
+    }));
+  });
+
   it("migrates a legacy browser value only when the profile has no value", async () => {
     vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {} });
     const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });

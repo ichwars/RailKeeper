@@ -119,15 +119,55 @@ describe("VehicleInventoryTable", () => {
 
     const expectedWidth = 64 + 122 +
       vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth + 196;
-    expect(screen.getByRole("table")).toHaveStyle(
+    const table = screen.getByRole("table");
+    expect(table).toHaveStyle(
       `--vehicle-table-min-width: ${expectedWidth}px`
     );
-    expect(document.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(table.querySelector('col[data-column="inventoryNumber"]')).toHaveStyle(
+      `width: ${vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth}px`
+    );
+    expect(table.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(table.querySelector("col.table-fill-cell")).toHaveStyle(
+      `width: max(0px, calc(100% - ${expectedWidth}px))`
+    );
+    expect(table.querySelector("col.select-cell")).toHaveStyle({
+      width: "64px",
+      minWidth: "64px",
+      maxWidth: "64px"
+    });
+    expect(table.querySelector("col.actions-cell")).toHaveStyle({
+      width: "122px",
+      minWidth: "122px",
+      maxWidth: "122px"
+    });
     expect(screen.getAllByRole("separator")).toHaveLength(2);
     fireEvent.keyDown(screen.getByRole("separator", {
       name: "Breite von Hersteller ändern"
     }), { key: "ArrowRight" });
     expect(onCommitColumnWidth).toHaveBeenCalledWith("manufacturer", 204);
+  });
+
+  it("hides column resizers while profile widths are loading", () => {
+    render(
+      <VehicleInventoryTable
+        vehicles={[vehicleFixture()]}
+        columns={["inventoryNumber", "manufacturer"]}
+        columnWidthsLoading
+        allVisibleSelected={false}
+        selectedVehicleIDs={new Set()}
+        sort={{ key: "inventoryNumber", direction: "asc" }}
+        onToggleSort={vi.fn()}
+        onToggleSelection={vi.fn()}
+        onToggleAllVisibleSelection={vi.fn()}
+        onOpenDetail={vi.fn()}
+        onToggleExhibition={vi.fn()}
+        onPreviewColumnWidth={vi.fn()}
+        onCommitColumnWidth={vi.fn()}
+        renderQuickMenu={() => null}
+      />
+    );
+
+    expect(screen.queryAllByRole("separator")).toHaveLength(0);
   });
 
   it("keeps the exhibition control operational for eligible vehicles", async () => {

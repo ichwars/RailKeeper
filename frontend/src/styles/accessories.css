@@ -88,6 +88,8 @@
 
 .article-table .select-cell {
   width: 44px;
+  min-width: 44px;
+  max-width: 44px;
   text-align: center;
 }
 
@@ -95,13 +97,20 @@
   white-space: nowrap;
 }
 
-.article-table th:not(.select-cell):not(.actions-cell) {
+.article-table th:not(.select-cell):not(.actions-cell):not(.table-fill-cell) {
   position: relative;
+}
+
+.article-table .table-fill-cell {
+  padding: 0;
+  pointer-events: none;
 }
 
 .article-table th.actions-cell,
 .article-table td.actions-cell {
   width: 136px;
+  min-width: 136px;
+  max-width: 136px;
   text-align: right;
 }
 

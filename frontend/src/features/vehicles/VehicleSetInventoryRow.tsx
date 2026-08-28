@@ -103,6 +103,7 @@ export function VehicleSetInventoryRow({
 			{columns.map((column) => (
 				<td key={column} className={`vehicle-column-${column}`}>{cell(column)}</td>
 			))}
+			<td className="table-fill-cell" aria-hidden="true" />
 			<td className="actions-cell">
 				<div className="table-actions">
 					<button type="button" className="icon-button" onClick={() => onOpen(group.id)} aria-label={t("exhibition.view")}><Eye size={16} /></button>
