@@ -53,6 +53,17 @@ describe("i18n", () => {
     expect(translate("en", "nav.digitalCenters")).toBe("Command stations");
   });
 
+  it("describes article search as one truthful in-progress phase", () => {
+    expect(translate("de", "vehicles.articleSearch.searching")).toBe("Artikeldaten und Quellen werden gesucht...");
+    expect(translate("de", "vehicles.articleSearch.loading")).toBe(
+      "Externe Suchtreffer und verfügbare Detailseiten werden geprüft. Bis zum Ergebnis werden keine Daten übernommen."
+    );
+    expect(translate("en", "vehicles.articleSearch.searching")).toBe("Searching article data and sources...");
+    expect(translate("en", "vehicles.articleSearch.loading")).toBe(
+      "External search results and available detail pages are being checked. No data is applied before the result is ready."
+    );
+  });
+
   it.each([
     ["digitalCenters.title", "Digitalzentralen", "Command stations"],
     ["digitalCenters.subtitle", "Zentralen, Live-Daten und Synchronisation in einer Arbeitsansicht.",
