@@ -403,11 +403,6 @@ func (service *TrackPlannerService) UpdateObject(
 	if _, err := domain.EffectiveGeometryForObject(*moving); err != nil {
 		return nil, ErrTrackPlanValidation
 	}
-	if snap := domain.FindTrackSnap(*moving, plan.Objects); snap.Snapped {
-		input.PositionXMM = snap.Pose.PositionXMM
-		input.PositionYMM = snap.Pose.PositionYMM
-		input.RotationDegrees = snap.Pose.RotationDegrees
-	}
 	return service.repository.UpdateObject(ctx, id, input, actor)
 }
 

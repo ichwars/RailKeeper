@@ -350,7 +350,7 @@ func TestTrackPlannerServicePreviewsTransitionCurveWithoutMutation(t *testing.T)
 
 func float64Pointer(value float64) *float64 { return &value }
 
-func TestTrackPlannerSnapAppliesNearestCompatiblePose(t *testing.T) {
+func TestTrackPlannerServiceDelegatesRequestedPoseForTransactionalSnapping(t *testing.T) {
 	moving := trackPlannerTestG1("moving", 172, 2, 2)
 	target := trackPlannerTestG1("target", 0, 0, 0)
 	repository := &trackPlannerRepositorySpy{planForObject: &TrackPlan{
@@ -366,8 +366,8 @@ func TestTrackPlannerSnapAppliesNearestCompatiblePose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if updated.PositionXMM != 166 || updated.PositionYMM != 0 || updated.RotationDegrees != 0 {
-		t.Fatalf("expected authoritative snapped pose, got %#v", updated)
+	if updated.PositionXMM != 172 || updated.PositionYMM != 2 || updated.RotationDegrees != 2 {
+		t.Fatalf("requested pose changed before repository update: %#v", updated)
 	}
 }
 

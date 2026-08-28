@@ -356,8 +356,20 @@ WHERE geometry.id=?`, line.GeometryID).
 
 		rows, err := repository.db.QueryContext(ctx, `
 SELECT product.id, product.inventory_number,
-       COALESCE((SELECT SUM(stock.quantity) FROM accessory_stock stock
-                 WHERE stock.product_id=product.id), 0),
+       CASE WHEN product.inventory_strategy='individual' THEN
+              COALESCE((SELECT COUNT(*) FROM accessory_assets asset
+                        WHERE asset.product_id=product.id
+                          AND asset.storage_location_id IS NOT NULL
+                          AND asset.lifecycle_state IN ('stored', 'reserved')), 0)
+            WHEN product.inventory_strategy='quantity_later_individual' THEN
+              COALESCE((SELECT SUM(stock.quantity) FROM accessory_stock stock
+                        WHERE stock.product_id=product.id), 0)
+              + COALESCE((SELECT COUNT(*) FROM accessory_assets asset
+                          WHERE asset.product_id=product.id
+                            AND asset.storage_location_id IS NOT NULL
+                            AND asset.lifecycle_state IN ('stored', 'reserved')), 0)
+            ELSE COALESCE((SELECT SUM(stock.quantity) FROM accessory_stock stock
+                           WHERE stock.product_id=product.id), 0) END,
        COALESCE((SELECT SUM(reservation.quantity) FROM accessory_reservations reservation
                  WHERE reservation.product_id=product.id AND reservation.status='active'), 0)
 FROM accessory_products product
@@ -476,6 +488,13 @@ func (repository *TrackPlannerRepository) CreateObject(
 		) {
 			return application.ErrTrackPlanValidation
 		}
+		gaugeMatches, err := trackGeometryMatchesRevisionGauge(ctx, tx, revisionID, geometry.LibraryID)
+		if err != nil {
+			return err
+		}
+		if !gaugeMatches {
+			return application.ErrTrackPlanValidation
+		}
 		geometrySnapshotJSON, err := json.Marshal(geometry)
 		if err != nil {
 			return fmt.Errorf("encode track geometry snapshot: %w", err)
@@ -515,7 +534,7 @@ func (repository *TrackPlannerRepository) UpdateObject(
 		return nil, application.ErrTrackPlanValidation
 	}
 	err = repository.withTx(ctx, func(tx *sql.Tx) error {
-		status, version, err := trackObjectState(ctx, tx, id)
+		status, revisionID, version, err := trackObjectState(ctx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -524,6 +543,29 @@ func (repository *TrackPlannerRepository) UpdateObject(
 		}
 		if version != input.ExpectedVersion {
 			return application.ErrTrackPlanConflict
+		}
+		objects, err := trackObjectsForRevision(ctx, tx, revisionID)
+		if err != nil {
+			return err
+		}
+		for index := range objects {
+			if objects[index].ID != id {
+				continue
+			}
+			moving := objects[index]
+			moving.PositionXMM = input.PositionXMM
+			moving.PositionYMM = input.PositionYMM
+			moving.RotationDegrees = input.RotationDegrees
+			moving.ElevationStartMM = input.ElevationStartMM
+			moving.ElevationEndMM = input.ElevationEndMM
+			moving.FlexPath = input.FlexPath
+			moving.TransitionPath = input.TransitionPath
+			if snap := domain.FindTrackSnap(moving, objects); snap.Snapped {
+				input.PositionXMM = snap.Pose.PositionXMM
+				input.PositionYMM = snap.Pose.PositionYMM
+				input.RotationDegrees = snap.Pose.RotationDegrees
+			}
+			break
 		}
 		result, err := tx.ExecContext(ctx, `
 UPDATE plan_track_objects
@@ -558,7 +600,7 @@ func (repository *TrackPlannerRepository) DeleteObject(
 ) error {
 	now := timestamp()
 	return repository.withTx(ctx, func(tx *sql.Tx) error {
-		status, version, err := trackObjectState(ctx, tx, id)
+		status, _, version, err := trackObjectState(ctx, tx, id)
 		if err != nil {
 			return err
 		}
@@ -650,25 +692,75 @@ SELECT status FROM track_geometry_libraries WHERE id=?`, geometry.LibraryID).Sca
 	return geometry, geometry.Status.Placeable() && libraryStatus.Placeable(), nil
 }
 
+func trackGeometryMatchesRevisionGauge(
+	ctx context.Context,
+	tx *sql.Tx,
+	revisionID string,
+	libraryID string,
+) (bool, error) {
+	var layoutGauge, libraryGauge string
+	err := tx.QueryRowContext(ctx, `
+SELECT layout.gauge, library.gauge
+FROM plan_revisions revision
+JOIN plan_variants variant ON variant.id=revision.variant_id
+JOIN layout_units unit ON unit.id=variant.layout_unit_id
+JOIN layouts layout ON layout.id=unit.layout_id
+JOIN track_geometry_libraries library ON library.id=?
+WHERE revision.id=?`, libraryID, revisionID).Scan(&layoutGauge, &libraryGauge)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, application.ErrTrackPlanNotFound
+	}
+	if err != nil {
+		return false, fmt.Errorf("read track geometry and layout gauge: %w", err)
+	}
+	return strings.EqualFold(strings.TrimSpace(layoutGauge), strings.TrimSpace(libraryGauge)), nil
+}
+
+func trackObjectsForRevision(
+	ctx context.Context,
+	tx *sql.Tx,
+	revisionID string,
+) ([]domain.PlanTrackObject, error) {
+	rows, err := tx.QueryContext(ctx, trackObjectSelect+`
+WHERE object.revision_id=? ORDER BY object.created_at, object.id`, revisionID)
+	if err != nil {
+		return nil, fmt.Errorf("list transactional track plan objects: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	objects := []domain.PlanTrackObject{}
+	for rows.Next() {
+		object, err := scanTrackObject(rows)
+		if err != nil {
+			return nil, fmt.Errorf("scan transactional track plan object: %w", err)
+		}
+		objects = append(objects, *object)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate transactional track plan objects: %w", err)
+	}
+	return objects, nil
+}
+
 func trackObjectState(
 	ctx context.Context,
 	tx *sql.Tx,
 	id string,
-) (domain.PlanRevisionStatus, int, error) {
+) (domain.PlanRevisionStatus, string, int, error) {
 	var status domain.PlanRevisionStatus
+	var revisionID string
 	var version int
 	err := tx.QueryRowContext(ctx, `
-SELECT revision.status, object.version
+SELECT revision.status, object.revision_id, object.version
 FROM plan_track_objects object
 JOIN plan_revisions revision ON revision.id=object.revision_id
-WHERE object.id=?`, id).Scan(&status, &version)
+WHERE object.id=?`, id).Scan(&status, &revisionID, &version)
 	if errors.Is(err, sql.ErrNoRows) {
-		return "", 0, application.ErrTrackPlanNotFound
+		return "", "", 0, application.ErrTrackPlanNotFound
 	}
 	if err != nil {
-		return "", 0, fmt.Errorf("read track plan object state: %w", err)
+		return "", "", 0, fmt.Errorf("read track plan object state: %w", err)
 	}
-	return status, version, nil
+	return status, revisionID, version, nil
 }
 
 const trackGeometrySelect = `
