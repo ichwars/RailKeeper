@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"math"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -176,6 +177,73 @@ func TestDigitalCenterWorkspaceReadsCS3RosterIntoExistingConflictWorkflow(t *tes
 	if item.CenterObjectID != "42" || item.Protocol != "MFX" ||
 		item.CompareStatus != DigitalCompareConflict || len(item.Conflicts) != 2 {
 		t.Fatalf("CS3 work item = %#v, want normalized visible conflict", item)
+	}
+}
+
+func TestDigitalCenterWorkspaceReadsKnownZ21AddressesIntoConflictWorkflow(t *testing.T) {
+	requestCount := 0
+	conn, err := net.ListenPacket("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen udp: %v", err)
+	}
+	defer func() { _ = conn.Close() }()
+	go func() {
+		buffer := make([]byte, 128)
+		count, client, readErr := conn.ReadFrom(buffer)
+		if readErr != nil {
+			return
+		}
+		requestCount++
+		if count != 9 || buffer[4] != 0xE3 || buffer[5] != 0xF0 {
+			t.Errorf("request = % X, want read-only LAN_X_GET_LOCO_INFO", buffer[:count])
+			return
+		}
+		_, _ = conn.WriteTo(z21LocoInfoTestResponse(24, 0x04, 0x7F), client)
+	}()
+
+	host, port := splitDigitalCenterTestAddress(t, conn.LocalAddr().String())
+	repository := &workspaceRepositoryMemory{}
+	settings := &workspaceSettingsReaderStub{value: DigitalCenterSettings{
+		Provider: "z21",
+		Z21:      DigitalProviderSettings{Enabled: true, Host: host, Port: strconv.Itoa(port)},
+	}}
+	vehicles := &workspaceVehicleReaderStub{vehicles: []Vehicle{
+		mappedDigitalCenterVehicle("vehicle-1", "z21", "24", "24", "DCC"),
+		mappedDigitalCenterVehicle("vehicle-2", "z21", "old-24", "24", "DCC"),
+	}}
+	service := NewDigitalCenterWorkspaceService(
+		repository, settings, nil, NewDigitalCenterService(), vehicles, nil,
+	)
+
+	session, err := service.StartReadSession(t.Context(), "z21", "admin-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if requestCount != 1 || vehicles.listCalls != 1 {
+		t.Fatalf("read calls: Z21=%d vehicles=%d, want one unique address read", requestCount, vehicles.listCalls)
+	}
+	if session.State != DigitalCenterSessionReady || !session.Capabilities.ReadLocomotives ||
+		session.Capabilities.LiveMonitor || session.Capabilities.WriteLocomotives || session.Capabilities.WriteCVs {
+		t.Fatalf("session = %#v, want ready read-only Z21 session", session)
+	}
+	if len(repository.items) != 2 {
+		t.Fatalf("work items = %#v, want mapped item and missing mapping", repository.items)
+	}
+	item := repository.items[0]
+	if item.CenterObjectID != "24" || item.Address != 24 || item.Protocol != "" ||
+		item.CompareStatus != DigitalCompareOK || item.StationStatus != "incomplete" {
+		t.Fatalf("Z21 work item = %#v, want safe address-only comparison", item)
+	}
+}
+
+func TestCompareMappedDigitalCenterStatusIgnoresFieldsUnavailableFromDevice(t *testing.T) {
+	vehicle := mappedDigitalCenterVehicle("vehicle-1", "z21", "3", "3", "DCC")
+	item := compareDigitalCenterLocomotive("z21", ECoSRawLocomotive{
+		ObjectID: 3, Address: 3, DetailError: "Z21 stellt keinen Loknamen bereit.",
+	}, []Vehicle{vehicle})
+
+	if item.CompareStatus != DigitalCompareOK {
+		t.Fatalf("comparison = %#v, want missing device fields excluded from deviation check", item)
 	}
 }
 

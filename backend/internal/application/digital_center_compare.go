@@ -77,13 +77,13 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 		return DigitalCenterReadSession{}, fmt.Errorf("start digital center read session: %w", err)
 	}
 
-	locomotives, err := service.readDigitalCenterLocomotives(ctx, center)
-	if err != nil {
-		return service.finishFailedReadSession(ctx, session, err)
-	}
 	vehicles, err := service.vehicles.ListReadOnly(ctx, "")
 	if err != nil {
 		return service.finishFailedReadSession(ctx, session, fmt.Errorf("list RailKeeper vehicles: %w", err))
+	}
+	locomotives, err := service.readDigitalCenterLocomotives(ctx, center, vehicles)
+	if err != nil {
+		return service.finishFailedReadSession(ctx, session, err)
 	}
 	items := compareDigitalCenterLocomotives(center.Provider, locomotives, vehicles)
 	if err := service.repository.ReplaceWorkItems(ctx, session.ID, items); err != nil {
@@ -109,6 +109,7 @@ func (service *DigitalCenterWorkspaceService) startReadSessionUnlocked(
 func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 	ctx context.Context,
 	center DigitalCenterSummary,
+	vehicles []Vehicle,
 ) ([]ECoSRawLocomotive, error) {
 	var locomotives []ECoSRawLocomotive
 	switch center.Provider {
@@ -132,6 +133,19 @@ func (service *DigitalCenterWorkspaceService) readDigitalCenterLocomotives(
 		locomotives, _, err = service.digitalCenters.ReadCS3Locomotives(
 			ctx,
 			DigitalCenterConnectionInput{Host: center.Host, Port: center.Port},
+		)
+		if err != nil {
+			return nil, err
+		}
+	case "z21":
+		if service.digitalCenters == nil {
+			return nil, ErrDigitalCenterWorkspaceUnavailable
+		}
+		var err error
+		locomotives, err = service.digitalCenters.ReadZ21Locomotives(
+			ctx,
+			DigitalCenterConnectionInput{Host: center.Host, Port: center.Port},
+			knownDigitalCenterAddresses(vehicles, center.Provider),
 		)
 		if err != nil {
 			return nil, err
@@ -427,16 +441,26 @@ func compareMappedDigitalCenterStatus(
 	vehicle Vehicle,
 	provider string,
 ) DigitalCenterCompareStatus {
-	if strings.TrimSpace(vehicle.Name) != "" && strings.TrimSpace(vehicle.Name) != locomotive.Name {
+	if locomotive.Name != "" && strings.TrimSpace(vehicle.Name) != "" && strings.TrimSpace(vehicle.Name) != locomotive.Name {
 		return DigitalCompareDeviation
 	}
 	if address := digitalCenterVehicleAddress(vehicle, provider); address > 0 && address != locomotive.Address {
 		return DigitalCompareDeviation
 	}
-	if protocol := digitalCenterVehicleProtocol(vehicle, provider); protocol != "" && protocol != locomotive.Protocol {
+	if protocol := digitalCenterVehicleProtocol(vehicle, provider); locomotive.Protocol != "" && protocol != "" && protocol != locomotive.Protocol {
 		return DigitalCompareDeviation
 	}
 	return DigitalCompareOK
+}
+
+func knownDigitalCenterAddresses(vehicles []Vehicle, provider string) []int {
+	addresses := make([]int, 0, len(vehicles))
+	for _, vehicle := range vehicles {
+		if address := digitalCenterVehicleAddress(vehicle, provider); address > 0 {
+			addresses = append(addresses, address)
+		}
+	}
+	return addresses
 }
 
 func digitalCenterVehicleAddress(vehicle Vehicle, provider string) int {

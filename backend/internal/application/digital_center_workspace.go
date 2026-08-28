@@ -167,8 +167,10 @@ func capabilitiesForProvider(provider string) DigitalCenterCapabilities {
 			LiveMonitor:      true,
 			WriteLocomotives: true,
 		}
-	case "z21", "intellibox3":
+	case "intellibox3":
 		return DigitalCenterCapabilities{TestConnection: true, Diagnose: true}
+	case "z21":
+		return DigitalCenterCapabilities{TestConnection: true, ReadLocomotives: true, Diagnose: true}
 	case "cs3":
 		return DigitalCenterCapabilities{
 			TestConnection:  true,

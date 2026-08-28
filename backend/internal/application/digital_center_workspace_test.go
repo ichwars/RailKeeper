@@ -112,7 +112,7 @@ func TestDigitalCenterWorkspaceReportsTruthfulProviderCapabilities(t *testing.T)
 		TestConnection: true, ReadLocomotives: true, LiveMonitor: true, WriteLocomotives: true,
 	})
 	assertDigitalCenterCapabilities(t, byProvider["z21"], application.DigitalCenterCapabilities{
-		TestConnection: true, Diagnose: true,
+		TestConnection: true, ReadLocomotives: true, Diagnose: true,
 	})
 	assertDigitalCenterCapabilities(t, byProvider["intellibox3"], application.DigitalCenterCapabilities{
 		TestConnection: true, Diagnose: true,
