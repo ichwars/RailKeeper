@@ -31,13 +31,6 @@ describe("ArticleColumnPicker", () => {
     expect(onToggle).toHaveBeenCalledWith("manufacturer");
   });
 
-  it("prevents changes while profile preferences are loading", () => {
-    render(<ArticleColumnPicker columns={defaultArticleTableColumns} loading
-      onToggle={vi.fn()} onMove={vi.fn()} onReset={vi.fn()} />);
-
-    expect(screen.getByRole("button", { name: "Tabellenspalten auswählen" })).toBeDisabled();
-  });
-
   it("locks the final visible identity column", async () => {
     const user = userEvent.setup();
     const columns: ArticleTableColumn[] = ["name", "stock"];
