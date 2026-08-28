@@ -4,10 +4,8 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -25,8 +23,23 @@ const (
 )
 
 type DigitalCenterService struct {
-	timeout time.Duration
-	client  *http.Client
+	timeout        time.Duration
+	client         *http.Client
+	cs3Resolver    digitalCenterIPResolver
+	cs3DialContext func(context.Context, string, string) (net.Conn, error)
+}
+
+type DigitalCenterServiceOption func(*DigitalCenterService)
+
+// WithCS3DialContext injects the trusted socket boundary used after CS3 target validation.
+func WithCS3DialContext(
+	dialContext func(context.Context, string, string) (net.Conn, error),
+) DigitalCenterServiceOption {
+	return func(service *DigitalCenterService) {
+		if dialContext != nil {
+			service.cs3DialContext = dialContext
+		}
+	}
 }
 
 type DigitalCenterConnectionInput struct {
@@ -58,6 +71,7 @@ type DigitalCenterProbeCommandResult struct {
 	Name        string            `json:"name"`
 	Description string            `json:"description"`
 	CommandHex  string            `json:"commandHex"`
+	Request     string            `json:"request,omitempty"`
 	ResponseHex string            `json:"responseHex,omitempty"`
 	Header      string            `json:"header,omitempty"`
 	PayloadHex  string            `json:"payloadHex,omitempty"`
@@ -72,12 +86,21 @@ type z21ProbeCommand struct {
 	header      uint16
 }
 
-func NewDigitalCenterService() *DigitalCenterService {
+func NewDigitalCenterService(options ...DigitalCenterServiceOption) *DigitalCenterService {
 	timeout := 4 * time.Second
-	return &DigitalCenterService{
-		timeout: timeout,
-		client:  &http.Client{Timeout: timeout},
+	dialer := &net.Dialer{Timeout: timeout}
+	service := &DigitalCenterService{
+		timeout:        timeout,
+		client:         &http.Client{Timeout: timeout},
+		cs3Resolver:    net.DefaultResolver,
+		cs3DialContext: dialer.DialContext,
 	}
+	for _, option := range options {
+		if option != nil {
+			option(service)
+		}
+	}
+	return service
 }
 
 func (s *DigitalCenterService) TestZ21Connection(ctx context.Context, input DigitalCenterConnectionInput) (*DigitalCenterConnectionResult, error) {
@@ -195,20 +218,19 @@ func (s *DigitalCenterService) TestCS3Connection(ctx context.Context, input Digi
 		Message:  "CS3 nicht erreichbar.",
 		Fields:   map[string]string{},
 	}
-	for _, path := range []string{"/app/api/version", "/"} {
-		status, fields, err := s.fetchCS3HTTP(ctx, target, path)
-		if err != nil {
-			result.Message = fmt.Sprintf("CS3 nicht erreichbar: %v", err)
-			continue
-		}
-		result.Connected = true
-		result.Status = status
-		result.Message = "CS3-Verbindung erfolgreich."
-		for key, value := range fields {
-			result.Fields[key] = value
+	locomotives, metadata, readErr := s.readCS3Locomotives(ctx, target)
+	if readErr != nil {
+		result.Message = cs3UserMessage(readErr)
+		result.Fields["errorKind"] = string(cs3ErrorKindOf(readErr))
+		if metadata.HTTPStatus != "" {
+			result.Status = metadata.HTTPStatus
 		}
 		return result, nil
 	}
+	result.Connected = true
+	result.Status = metadata.HTTPStatus
+	result.Message = "CS3-Verbindung erfolgreich. Kompatible read-only Loklisten-API erkannt."
+	result.Fields = cs3DiagnosticFields(metadata, len(locomotives))
 	return result, nil
 }
 
@@ -240,44 +262,6 @@ func (s *DigitalCenterService) exchangeZ21UDP(ctx context.Context, target Digita
 		return nil, err
 	}
 	return buffer[:count], nil
-}
-
-func (s *DigitalCenterService) fetchCS3HTTP(ctx context.Context, target DigitalCenterConnectionInput, requestPath string) (string, map[string]string, error) {
-	endpoint := url.URL{
-		Scheme: "http",
-		Host:   net.JoinHostPort(target.Host, strconv.Itoa(target.Port)),
-		Path:   requestPath,
-	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
-	if err != nil {
-		return "", nil, err
-	}
-	request.Header.Set("Accept", "application/json,text/plain,*/*")
-	request.Header.Set("User-Agent", "RailKeeper")
-	response, err := s.httpClient().Do(request)
-	if err != nil {
-		return "", nil, err
-	}
-	defer func() { _ = response.Body.Close() }()
-	if response.StatusCode < 200 || response.StatusCode >= 500 {
-		return response.Status, nil, fmt.Errorf("HTTP %s", response.Status)
-	}
-	fields := map[string]string{}
-	data, _ := io.ReadAll(io.LimitReader(response.Body, 64*1024))
-	var document map[string]any
-	if json.Unmarshal(data, &document) == nil {
-		for key, value := range document {
-			switch typed := value.(type) {
-			case string:
-				fields[key] = typed
-			case float64:
-				fields[key] = strconv.FormatFloat(typed, 'f', -1, 64)
-			case bool:
-				fields[key] = strconv.FormatBool(typed)
-			}
-		}
-	}
-	return response.Status, fields, nil
 }
 
 func (s *DigitalCenterService) httpClient() *http.Client {

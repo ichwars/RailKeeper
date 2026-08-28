@@ -61,8 +61,9 @@ Abdeckung wird in englischer und deutscher Sprache direkt gegen die Projektquell
 - Responsiver Bestandsablauf mit mobil optimierten Dialogen, Filtern und Kameraersatz für die Barcode-Eingabe
 - Der kontrollierte ECoS-Lokabgleich liest Lokdaten, CV-Werte und statische Funktionstasten und
   schreibt Name, Adresse und Protokoll erst nach Vorschau und Bestätigung. Geschwindigkeit,
-  Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Z21 per
-  UDP und CS3 per HTTP bleiben reine Verbindungsadapter.
+  Richtung, aktive Funktionszustände und ECoS-Anlagenobjektmanager werden nicht überwacht. Die CS3
+  liest Name, Adresse und Protokoll ausschließlich in den Vergleichsbereich ein. Z21 und
+  Intellibox 3 bleiben Verbindungs- und Diagnoseadapter.
 - Decoder-Funktionszuordnung von F0 bis F31 mit Symbolbibliothek und gespeicherten SVG-/PNG-Grafiken
 - Strukturierte CV-Werte, CV-Import und -Export, Decoderprofile, NMRA-CV8-Herstellerstammdaten und ESU-/LokProgrammer-Dateimetadaten
 - Wartungen, Zustandshistorie und durchsuchbare Dokumentation je Fahrzeug

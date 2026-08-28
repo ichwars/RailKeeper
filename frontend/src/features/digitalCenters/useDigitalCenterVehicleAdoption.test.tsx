@@ -37,10 +37,10 @@ describe("useDigitalCenterVehicleAdoption", () => {
     expect(result.current.state.vehicles).toEqual(vehicles);
 
     act(() => result.current.setters.setSelectedVehicleId("vehicle-2"));
-    await act(async () => result.current.commands.assign(item, "vehicle-2"));
+    await act(async () => result.current.commands.assign(item, "ecos", "vehicle-2"));
     expect(api.upsertVehicleExternalMapping).toHaveBeenCalledWith(
       "vehicle-2",
-      digitalCenterExternalMapping(item)
+      digitalCenterExternalMapping(item, "ecos")
     );
     expect(onAssigned).toHaveBeenCalledOnce();
   });
@@ -53,12 +53,29 @@ describe("useDigitalCenterVehicleAdoption", () => {
     const { result } = renderHook(() => useDigitalCenterVehicleAdoption({ onAssigned }));
     act(() => result.current.setters.setSelectedVehicleId("vehicle-2"));
 
-    await act(async () => result.current.commands.assign(item, "vehicle-2"));
+    await act(async () => result.current.commands.assign(item, "ecos", "vehicle-2"));
 
     expect(result.current.state.selectedVehicleId).toBe("vehicle-2");
     expect(result.current.state.error).toBe(
-      "Diese ECoS-Lok ist bereits einem anderen Fahrzeug zugeordnet. Bitte erneut auslesen."
+      "Diese Lok der Digitalzentrale ist bereits einem anderen Fahrzeug zugeordnet. Bitte erneut auslesen."
     );
     expect(onAssigned).not.toHaveBeenCalled();
+  });
+
+  it("assigns a CS3 item with a CS3 external mapping", async () => {
+    vi.spyOn(api, "upsertVehicleExternalMapping").mockResolvedValue({
+      id: "mapping-1", vehicleId: "vehicle-2", provider: "cs3", externalId: "77",
+      syncStatus: "linked", createdAt: "2026-08-23T08:00:00Z", updatedAt: "2026-08-23T08:00:00Z"
+    });
+    const onAssigned = vi.fn();
+    const { result } = renderHook(() => useDigitalCenterVehicleAdoption({ onAssigned }));
+
+    await act(async () => result.current.commands.assign(item, "cs3", "vehicle-2"));
+
+    expect(api.upsertVehicleExternalMapping).toHaveBeenCalledWith(
+      "vehicle-2",
+      expect.objectContaining({ provider: "cs3", externalId: "77" })
+    );
+    expect(onAssigned).toHaveBeenCalledOnce();
   });
 });

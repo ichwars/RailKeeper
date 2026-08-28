@@ -1,0 +1,22 @@
+[
+  {
+    "name": "Anonymisierte MFX-Lok",
+    "internname": "Anonymisierte#20MFX-Lok",
+    "uid": "0x4017",
+    "address": 23,
+    "dectyp": "mfx+",
+    "speed": 0,
+    "dir": 0,
+    "funktionen": []
+  },
+  {
+    "name": "Anonymisierte DCC-Lok",
+    "internname": "Anonymisierte#20DCC-Lok",
+    "uid": "0xc003",
+    "address": 3,
+    "dectyp": "dcc",
+    "speed": 0,
+    "dir": 1,
+    "funktionen": []
+  }
+]

@@ -39,6 +39,7 @@ Nur Admin darf Profile deaktivieren, Artefakte löschen oder deren Serverordner 
 | Einen oder mehrere Bereiche mit Beziehungen übertragen | Versioniertes RailKeeper-JSON-Profil anlegen |
 | Einen Import prüfen | Auftrag öffnen, Probleme und Lösungen prüfen, dann Übernahme bestätigen |
 | Lokdaten lesen, vergleichen oder schreiben | Den getrennt geschützten Arbeitsbereich **Digitalzentralen** verwenden |
+| CS3-Lokdaten ohne Schreibzugriff vergleichen | [CS3-Lokdaten read-only lesen](./cs3-import) |
 | Hersteller, Spurweiten, Kategorien, Symbole oder andere Stammdaten übertragen | **Einstellungen > Stammdaten** verwenden, nicht diesen Arbeitsbereich |
 | Anwendungsdaten und gespeicherte Uploads erhalten oder wiederherstellen | Admin-Anwendungssicherung verwenden, keinen Fahrzeugexport |
 

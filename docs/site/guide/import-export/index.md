@@ -37,6 +37,7 @@ artifacts, or request that RailKeeper open an artifact folder on the server.
 | Transfer one or more data areas with relationships | Create a versioned RailKeeper JSON profile |
 | Review an import | Open its job, inspect issues, choose resolutions, then confirm the apply |
 | Read, compare, or write locomotive data | Use the separately protected **Digital centers** workspace |
+| Compare CS3 locomotive data without writing | [Read CS3 locomotives without writing](./cs3-import) |
 | Transfer manufacturers, gauges, categories, symbols, or other master data | Use **Settings > Master data**, not this workspace |
 | Preserve or restore application data and stored uploads | Use the Admin-only application backup, not a vehicle export |
 

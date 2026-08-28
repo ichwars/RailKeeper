@@ -125,12 +125,13 @@ export function useVehicleECoSDraftController({
 
     try {
       const storedDraft = JSON.parse(rawDraft) as ECoSVehicleDraftPayload;
-      if (storedDraft?.source === "ecos") openDraft(storedDraft);
+      if (storedDraft?.source === "ecos" || storedDraft?.source === "cs3") openDraft(storedDraft);
     } catch {
       onMessage(t("vehicles.ecosDraft.invalid"));
     } finally {
       window.sessionStorage.removeItem(ecosVehicleDraftStorageKey);
-      if (window.location.search.includes("source=ecos")) {
+      const source = new URLSearchParams(window.location.search).get("source");
+      if (source === "ecos" || source === "cs3") {
         window.history.replaceState(null, "", "/vehicles");
       }
     }

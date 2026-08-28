@@ -80,6 +80,7 @@ export default defineConfig({
                 { text: "Fahrzeugdateien importieren", link: "/de/guide/import-export/file-import" },
                 { text: "Bestand exportieren", link: "/de/guide/import-export/exports" },
                 { text: "ECoS-Lokabgleich", link: "/de/guide/import-export/ecos-sync" },
+                { text: "CS3-Lokdaten read-only lesen", link: "/de/guide/import-export/cs3-import" },
               ],
             },
             {
@@ -196,6 +197,7 @@ export default defineConfig({
             { text: "Import vehicle files", link: "/guide/import-export/file-import" },
             { text: "Export inventory", link: "/guide/import-export/exports" },
             { text: "ECoS locomotive sync", link: "/guide/import-export/ecos-sync" },
+            { text: "Read CS3 locomotives without writing", link: "/guide/import-export/cs3-import" },
           ],
         },
         {

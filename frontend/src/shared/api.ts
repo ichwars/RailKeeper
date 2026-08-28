@@ -812,6 +812,7 @@ export type DigitalCenterProbeCommandResult = {
   name: string;
   description: string;
   commandHex: string;
+  request?: string;
   responseHex?: string;
   header?: string;
   payloadHex?: string;
@@ -1892,6 +1893,15 @@ export const api = {
         body: JSON.stringify(input)
       },
       { timeoutMs: 10000 }
+    ),
+  probeCS3Connection: (input: DigitalCenterConnectionInput) =>
+    request<DigitalCenterProbeResult>(
+      "/digital-centers/cs3/probe",
+      {
+        method: "POST",
+        body: JSON.stringify(input)
+      },
+      { timeoutMs: 15000 }
     ),
   backupExportUrl: () => "/api/v1/backup/export",
   validateBackup: (file: File) => {

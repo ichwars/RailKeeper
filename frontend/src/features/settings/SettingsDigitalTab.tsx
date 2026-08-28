@@ -317,7 +317,8 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     }
   };
 
-  const canProbeProvider = (providerId: DigitalProvider | null) => providerId === "z21" || providerId === "intellibox3";
+  const canProbeProvider = (providerId: DigitalProvider | null) =>
+    providerId === "z21" || providerId === "intellibox3" || providerId === "cs3";
 
   const probeConnection = async () => {
     const probedProvider = activeDialogProvider || provider;
@@ -330,7 +331,9 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
     try {
       const result = probedProvider === "z21"
         ? await api.probeZ21Connection(providerInput("z21"))
-        : await api.probeIntellibox3Connection(providerInput("intellibox3"));
+        : probedProvider === "intellibox3"
+          ? await api.probeIntellibox3Connection(providerInput("intellibox3"))
+          : await api.probeCS3Connection(providerInput("cs3"));
       setProbeResult(result);
       setDiagnosticsTab("diagnosis");
       setMessage(result.message);
@@ -610,10 +613,18 @@ export function SettingsDigitalTab({ canManageUsers, formatDateTime, username }:
                           </summary>
                           <div className="digital-probe-command-body">
                             <dl>
-                              <div>
+                              {command.request && (
+                                <div>
+                                  <dt>{t("settings.digital.probeRequest")}</dt>
+                                  <dd><code>{command.request}</code></dd>
+                                </div>
+                              )}
+                              {command.commandHex && (
+                                <div>
                                 <dt>{t("settings.digital.probeCommand")}</dt>
                                 <dd><code>{command.commandHex}</code></dd>
-                              </div>
+                                </div>
+                              )}
                               {command.header && (
                                 <div>
                                   <dt>{t("settings.digital.probeHeader")}</dt>

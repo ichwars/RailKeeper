@@ -3,7 +3,10 @@ import { useCallback, useRef, useState } from "react";
 import { api, ApiError, type Vehicle } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
 import type { DigitalCenterWorkItem } from "./digitalCenterModel";
-import { digitalCenterExternalMapping } from "./digitalCenterVehicleAdoption";
+import {
+  digitalCenterExternalMapping,
+  type DigitalCenterVehicleAdoptionProvider
+} from "./digitalCenterVehicleAdoption";
 
 type DigitalCenterVehicleAdoptionOptions = {
   onAssigned: () => void | Promise<void>;
@@ -43,7 +46,11 @@ export function useDigitalCenterVehicleAdoption({ onAssigned }: DigitalCenterVeh
     }
   }, [t]);
 
-  const assign = useCallback(async (item: DigitalCenterWorkItem, vehicleId: string) => {
+  const assign = useCallback(async (
+    item: DigitalCenterWorkItem,
+    provider: DigitalCenterVehicleAdoptionProvider,
+    vehicleId: string
+  ) => {
     if (!vehicleId.trim()) {
       setError(t("digitalCenters.assignment.selectionRequired"));
       return;
@@ -52,7 +59,7 @@ export function useDigitalCenterVehicleAdoption({ onAssigned }: DigitalCenterVeh
     setError("");
     setSaving(true);
     try {
-      await api.upsertVehicleExternalMapping(vehicleId, digitalCenterExternalMapping(item));
+      await api.upsertVehicleExternalMapping(vehicleId, digitalCenterExternalMapping(item, provider));
       await onAssigned();
     } catch (assignError) {
       setError(assignError instanceof ApiError && assignError.code === "external_mapping_conflict"
