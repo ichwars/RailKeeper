@@ -330,7 +330,7 @@ describe("DigitalCentersView", () => {
       .toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /RK-002/ })).toBeChecked();
     await user.click(screen.getByRole("button", { name: "Fahrzeug zuordnen" }));
-    expect(adoption.commands.assign).toHaveBeenCalledWith(unmatchedItem, "vehicle-2");
+    expect(adoption.commands.assign).toHaveBeenCalledWith(unmatchedItem, "ecos", "vehicle-2");
   });
 
   it("reads once after returning from the vehicle editor and removes the return marker", async () => {

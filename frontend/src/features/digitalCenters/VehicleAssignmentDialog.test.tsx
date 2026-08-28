@@ -32,7 +32,7 @@ describe("VehicleAssignmentDialog", () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
     const onAssign = vi.fn();
-    render(<VehicleAssignmentDialog item={item} vehicles={vehicles} selectedVehicleId=""
+    render(<VehicleAssignmentDialog item={item} provider="ecos" vehicles={vehicles} selectedVehicleId=""
       loading={false} saving={false} error="" onSelect={onSelect} onAssign={onAssign} onClose={vi.fn()} />);
 
     const search = screen.getByRole("textbox", { name: "Fahrzeuge durchsuchen" });
@@ -53,7 +53,7 @@ describe("VehicleAssignmentDialog", () => {
   it("confirms the selected vehicle and exposes errors accessibly", async () => {
     const user = userEvent.setup();
     const onAssign = vi.fn();
-    render(<VehicleAssignmentDialog item={item} vehicles={vehicles} selectedVehicleId="address-match"
+    render(<VehicleAssignmentDialog item={item} provider="ecos" vehicles={vehicles} selectedVehicleId="address-match"
       loading={false} saving={false} error="Zuordnung fehlgeschlagen" onSelect={vi.fn()}
       onAssign={onAssign} onClose={vi.fn()} />);
 
@@ -64,7 +64,7 @@ describe("VehicleAssignmentDialog", () => {
 
   it("closes on Escape", () => {
     const onClose = vi.fn();
-    render(<VehicleAssignmentDialog item={item} vehicles={vehicles} selectedVehicleId=""
+    render(<VehicleAssignmentDialog item={item} provider="ecos" vehicles={vehicles} selectedVehicleId=""
       loading={false} saving={false} error="" onSelect={vi.fn()} onAssign={vi.fn()} onClose={onClose} />);
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });

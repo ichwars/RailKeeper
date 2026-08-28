@@ -2,7 +2,10 @@ import { useEffect, useRef } from "react";
 
 import { DigitalCenterList } from "./DigitalCenterList";
 import { useI18n } from "../../shared/i18n";
-import { openDigitalCenterVehicleDraft } from "./digitalCenterVehicleAdoption";
+import {
+  isDigitalCenterVehicleAdoptionProvider,
+  openDigitalCenterVehicleDraft
+} from "./digitalCenterVehicleAdoption";
 import { DigitalCenterToolbar } from "./DigitalCenterToolbar";
 import { DigitalStatusPanel } from "./DigitalStatusPanel";
 import { LocomotiveComparisonDialog } from "./LocomotiveComparisonDialog";
@@ -27,6 +30,9 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       await workspace.readData();
     }
   });
+  const adoptionProvider = isDigitalCenterVehicleAdoptionProvider(workspace.readSession?.provider)
+    ? workspace.readSession.provider
+    : null;
 
   useEffect(() => {
     if (returnReadStartedRef.current || !workspace.actions.canRead) return;
@@ -108,14 +114,18 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
       {workspace.dialog?.kind === "comparison" && workspace.selectedItem && (
         <LocomotiveComparisonDialog item={workspace.selectedItem}
           canWrite={workspace.actions.canWrite}
-          canAdopt={roles.includes("Admin")}
+          canAdopt={roles.includes("Admin") && adoptionProvider !== null}
           loading={workspace.loading.write}
           preview={workspace.writePreview}
           confirmation={workspace.writeConfirmation}
           error={workspace.errors.write}
           onPreview={workspace.previewWrite}
           onConfirm={workspace.confirmWrite}
-          onCreateVehicle={() => openDigitalCenterVehicleDraft(workspace.selectedItem!)}
+          onCreateVehicle={() => {
+            if (adoptionProvider) {
+              openDigitalCenterVehicleDraft(workspace.selectedItem!, adoptionProvider);
+            }
+          }}
           onAssignVehicle={() => {
             workspace.openDialog("assignment", workspace.selectedItem!.id);
             void adoption.commands.load(workspace.selectedItem!);
@@ -126,16 +136,22 @@ export function DigitalCentersView({ roles }: { roles: string[] }) {
           }} />
       )}
 
-      {workspace.dialog?.kind === "assignment" && workspace.selectedItem && roles.includes("Admin") && (
+      {workspace.dialog?.kind === "assignment" && workspace.selectedItem && roles.includes("Admin") &&
+        adoptionProvider && (
         <VehicleAssignmentDialog
           item={workspace.selectedItem}
+          provider={adoptionProvider}
           vehicles={adoption.state.vehicles}
           selectedVehicleId={adoption.state.selectedVehicleId}
           loading={adoption.state.loading}
           saving={adoption.state.saving}
           error={adoption.state.error}
           onSelect={adoption.setters.setSelectedVehicleId}
-          onAssign={(vehicleId) => adoption.commands.assign(workspace.selectedItem!, vehicleId)}
+          onAssign={(vehicleId) => adoption.commands.assign(
+            workspace.selectedItem!,
+            adoptionProvider,
+            vehicleId
+          )}
           onClose={() => {
             adoption.commands.reset();
             workspace.closeDialog();

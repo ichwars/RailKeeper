@@ -8,11 +8,13 @@ import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 import {
   digitalCenterVehicleMatchReason,
-  rankDigitalCenterVehicleCandidates
+  rankDigitalCenterVehicleCandidates,
+  type DigitalCenterVehicleAdoptionProvider
 } from "./digitalCenterVehicleAdoption";
 
 type VehicleAssignmentDialogProps = {
   item: DigitalCenterWorkItem;
+  provider: DigitalCenterVehicleAdoptionProvider;
   vehicles: Vehicle[];
   selectedVehicleId: string;
   loading: boolean;
@@ -25,6 +27,7 @@ type VehicleAssignmentDialogProps = {
 
 export function VehicleAssignmentDialog({
   item,
+  provider,
   vehicles,
   selectedVehicleId,
   loading,
@@ -39,8 +42,8 @@ export function VehicleAssignmentDialog({
   const searchRef = useRef<HTMLInputElement>(null);
   const { anchorRef, layerRef, onKeyDown } = useModalDialogLayer(onClose, searchRef);
   const candidates = useMemo(
-    () => rankDigitalCenterVehicleCandidates(item, vehicles, query),
-    [item, query, vehicles]
+    () => rankDigitalCenterVehicleCandidates(item, vehicles, query, provider),
+    [item, provider, query, vehicles]
   );
 
   return <>
@@ -70,7 +73,7 @@ export function VehicleAssignmentDialog({
               {t("digitalCenters.assignment.noResults")}
             </p> : <div className="digital-assignment-candidates">
               {candidates.map((vehicle) => {
-                const reason = digitalCenterVehicleMatchReason(item, vehicle);
+                const reason = digitalCenterVehicleMatchReason(item, vehicle, provider);
                 return <label key={vehicle.id} className="digital-assignment-candidate">
                   <input type="radio" name="digital-center-vehicle" value={vehicle.id}
                     checked={selectedVehicleId === vehicle.id}

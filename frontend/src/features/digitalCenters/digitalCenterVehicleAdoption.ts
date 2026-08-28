@@ -4,10 +4,19 @@ import {
   emptyVehicle,
   type ECoSVehicleDraftPayload
 } from "../vehicles/vehicleViewModel";
-import type { DigitalCenterWorkItem } from "./digitalCenterModel";
+import type { DigitalCenterProvider, DigitalCenterWorkItem } from "./digitalCenterModel";
+
+export type DigitalCenterVehicleAdoptionProvider = Extract<DigitalCenterProvider, "ecos" | "cs3">;
+
+export function isDigitalCenterVehicleAdoptionProvider(
+  provider: DigitalCenterProvider | null | undefined
+): provider is DigitalCenterVehicleAdoptionProvider {
+  return provider === "ecos" || provider === "cs3";
+}
 
 export function digitalCenterExternalMapping(
-  item: DigitalCenterWorkItem
+  item: DigitalCenterWorkItem,
+  provider: DigitalCenterVehicleAdoptionProvider
 ): VehicleExternalMappingInput {
   const externalId = item.centerObjectId.trim();
   if (!/^\d+$/.test(externalId)) {
@@ -15,7 +24,7 @@ export function digitalCenterExternalMapping(
   }
   const address = item.center.decoderAddress ?? item.decoderAddress;
   return {
-    provider: "ecos",
+    provider,
     externalId,
     externalName: item.center.name?.trim() || item.name.trim(),
     externalAddress: address > 0 ? String(address) : "",
@@ -25,12 +34,13 @@ export function digitalCenterExternalMapping(
 }
 
 export function buildDigitalCenterVehicleDraft(
-  item: DigitalCenterWorkItem
+  item: DigitalCenterWorkItem,
+  provider: DigitalCenterVehicleAdoptionProvider
 ): ECoSVehicleDraftPayload {
-  const mapping = digitalCenterExternalMapping(item);
-  const name = mapping.externalName || `ECoS ${mapping.externalId}`;
+  const mapping = digitalCenterExternalMapping(item, provider);
+  const name = mapping.externalName || `${provider === "cs3" ? "CS3" : "ECoS"} ${mapping.externalId}`;
   return {
-    source: "ecos",
+    source: provider === "cs3" ? "cs3" : "ecos",
     mode: "create",
     sourceSummary: {
       objectId: Number(mapping.externalId),
@@ -58,10 +68,13 @@ export function buildDigitalCenterVehicleDraft(
   };
 }
 
-export function openDigitalCenterVehicleDraft(item: DigitalCenterWorkItem) {
-  const draft = buildDigitalCenterVehicleDraft(item);
+export function openDigitalCenterVehicleDraft(
+  item: DigitalCenterWorkItem,
+  provider: DigitalCenterVehicleAdoptionProvider
+) {
+  const draft = buildDigitalCenterVehicleDraft(item, provider);
   window.sessionStorage.setItem(ecosVehicleDraftStorageKey, JSON.stringify(draft));
-  window.history.pushState(null, "", "/vehicles?source=ecos");
+  window.history.pushState(null, "", `/vehicles?source=${draft.source}`);
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
@@ -69,10 +82,11 @@ export type DigitalCenterVehicleMatchReason = "mapping" | "address" | "name";
 
 export function digitalCenterVehicleMatchReason(
   item: DigitalCenterWorkItem,
-  vehicle: Vehicle
+  vehicle: Vehicle,
+  provider: DigitalCenterVehicleAdoptionProvider
 ): DigitalCenterVehicleMatchReason | null {
   if (vehicle.externalMappings?.some((mapping) => (
-    mapping.provider === "ecos" && mapping.externalId === item.centerObjectId
+    mapping.provider === provider && mapping.externalId === item.centerObjectId
   ))) {
     return "mapping";
   }
@@ -96,14 +110,15 @@ export function digitalCenterVehicleMatchReason(
 export function rankDigitalCenterVehicleCandidates(
   item: DigitalCenterWorkItem,
   vehicles: Vehicle[],
-  query: string
+  query: string,
+  provider: DigitalCenterVehicleAdoptionProvider
 ) {
   const normalizedQuery = comparableVehicleIdentity(query);
   return vehicles
     .filter((vehicle) => !normalizedQuery || searchableVehicleIdentity(vehicle).includes(normalizedQuery))
     .map((vehicle, index) => ({ vehicle, index }))
     .sort((left, right) => {
-      const rankDifference = matchRank(item, left.vehicle) - matchRank(item, right.vehicle);
+      const rankDifference = matchRank(item, left.vehicle, provider) - matchRank(item, right.vehicle, provider);
       if (rankDifference !== 0) return rankDifference;
       const inventoryDifference = left.vehicle.inventoryNumber.localeCompare(
         right.vehicle.inventoryNumber,
@@ -119,8 +134,12 @@ export function rankDigitalCenterVehicleCandidates(
     .map(({ vehicle }) => vehicle);
 }
 
-function matchRank(item: DigitalCenterWorkItem, vehicle: Vehicle) {
-  const reason = digitalCenterVehicleMatchReason(item, vehicle);
+function matchRank(
+  item: DigitalCenterWorkItem,
+  vehicle: Vehicle,
+  provider: DigitalCenterVehicleAdoptionProvider
+) {
+  const reason = digitalCenterVehicleMatchReason(item, vehicle, provider);
   if (reason === "mapping") return 0;
   if (reason === "address") return 1;
   if (reason === "name") return 2;

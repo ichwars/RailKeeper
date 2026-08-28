@@ -5,6 +5,7 @@ import { vehicleFixture } from "../../test/fixtures/vehicles";
 import type { DigitalCenterWorkItem } from "./digitalCenterModel";
 import {
   buildDigitalCenterVehicleDraft,
+  digitalCenterVehicleMatchReason,
   openDigitalCenterVehicleDraft,
   rankDigitalCenterVehicleCandidates
 } from "./digitalCenterVehicleAdoption";
@@ -34,7 +35,7 @@ describe("digitalCenterVehicleAdoption", () => {
   });
 
   it("builds a bounded ECoS create draft", () => {
-    const draft = buildDigitalCenterVehicleDraft(workItem);
+	const draft = buildDigitalCenterVehicleDraft(workItem, "ecos");
 
     expect(draft).toMatchObject({
       source: "ecos",
@@ -62,8 +63,22 @@ describe("digitalCenterVehicleAdoption", () => {
     expect(draft.vehicle.gattung).toBe("");
   });
 
+  it("preserves the CS3 provider in drafts and mappings", () => {
+    const draft = buildDigitalCenterVehicleDraft(workItem, "cs3");
+
+    expect(draft.source).toBe("cs3");
+    expect(draft.externalMapping.provider).toBe("cs3");
+
+    openDigitalCenterVehicleDraft(workItem, "cs3");
+    expect(window.location.pathname + window.location.search).toBe("/vehicles?source=cs3");
+    expect(JSON.parse(window.sessionStorage.getItem(ecosVehicleDraftStorageKey) || "{}"))
+      .toMatchObject({ source: "cs3", externalMapping: { provider: "cs3" } });
+  });
+
   it("rejects invalid object ids before storing or navigating", () => {
-    expect(() => openDigitalCenterVehicleDraft({ ...workItem, centerObjectId: "invalid" })).toThrow();
+    expect(() => openDigitalCenterVehicleDraft(
+      { ...workItem, centerObjectId: "invalid" }, "ecos"
+    )).toThrow();
     expect(window.sessionStorage.getItem(ecosVehicleDraftStorageKey)).toBeNull();
     expect(window.location.pathname).toBe("/");
   });
@@ -78,7 +93,7 @@ describe("digitalCenterVehicleAdoption", () => {
     });
     const vehicles = [ordinary, nameMatch, addressMatch];
 
-    expect(rankDigitalCenterVehicleCandidates(workItem, vehicles, "").map((vehicle) => vehicle.id))
+    expect(rankDigitalCenterVehicleCandidates(workItem, vehicles, "", "ecos").map((vehicle) => vehicle.id))
       .toEqual([addressMatch.id, nameMatch.id, ordinary.id]);
     expect(vehicles.map((vehicle) => vehicle.id)).toEqual([ordinary.id, nameMatch.id, addressMatch.id]);
   });
@@ -87,7 +102,31 @@ describe("digitalCenterVehicleAdoption", () => {
     const ordinary = vehicleFixture({ id: "ordinary", name: "V 200" });
     const nameMatch = vehicleFixture({ id: "name-match", name: "BR 106" });
 
-    expect(rankDigitalCenterVehicleCandidates(workItem, [ordinary, nameMatch], "br 106")
+    expect(rankDigitalCenterVehicleCandidates(workItem, [ordinary, nameMatch], "br 106", "ecos")
       .map((vehicle) => vehicle.id)).toEqual([nameMatch.id]);
+  });
+
+  it("matches external IDs only within the selected provider", () => {
+    const ecosMapping = vehicleFixture({
+      id: "ecos-mapping",
+      name: "Andere Lok",
+      digitalDecoderNumber: "99",
+      externalMappings: [{
+        id: "mapping-ecos", vehicleId: "ecos-mapping", provider: "ecos", externalId: "77",
+        syncStatus: "linked", createdAt: "2026-08-23T08:00:00Z", updatedAt: "2026-08-23T08:00:00Z"
+      }]
+    });
+    const cs3Mapping = vehicleFixture({
+      id: "cs3-mapping",
+      name: "Andere Lok",
+      digitalDecoderNumber: "99",
+      externalMappings: [{
+        id: "mapping-cs3", vehicleId: "cs3-mapping", provider: "cs3", externalId: "77",
+        syncStatus: "linked", createdAt: "2026-08-23T08:00:00Z", updatedAt: "2026-08-23T08:00:00Z"
+      }]
+    });
+
+    expect(digitalCenterVehicleMatchReason(workItem, ecosMapping, "cs3")).toBeNull();
+    expect(digitalCenterVehicleMatchReason(workItem, cs3Mapping, "cs3")).toBe("mapping");
   });
 });
