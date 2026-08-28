@@ -3822,7 +3822,7 @@ components:
             $ref: "#/components/schemas/ModulePortIssue"
     ConfigurationUnitSnapPreviewInput:
       type: object
-      required: [unitId, positionXMm, positionYMm, rotationDegrees]
+      required: [unitId, positionXMm, positionYMm, rotationDegrees, units]
       properties:
         unitId:
           type: string
@@ -3832,6 +3832,11 @@ components:
           type: number
         rotationDegrees:
           type: number
+        units:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ConfigurationUnitInput"
     ModulePortSnapResult:
       type: object
       required: [snapped, pose]

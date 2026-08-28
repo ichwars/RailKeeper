@@ -273,6 +273,7 @@ export type ConfigurationUnitSnapPreviewInput = {
   positionXMm: number;
   positionYMm: number;
   rotationDegrees: number;
+  units: ConfigurationUnitInput[];
 };
 
 export type ModulePortSnapResult = {

@@ -79,7 +79,8 @@ export function LayoutConfigurationsPanel({ configurations, units, layoutID, can
         unitId: unitID,
         positionXMm: item.positionXMm || 0,
         positionYMm: item.positionYMm || 0,
-        rotationDegrees: item.rotationDegrees || 0
+        rotationDegrees: item.rotationDegrees || 0,
+        units: form.units
       });
       if (!preview.snapped) {
         setMessage(t("layouts.setups.snapMissing"));

@@ -95,6 +95,35 @@ func (spy *layoutRepositorySpy) LoadConfigurationPortPlacements(
 	return spy.configurationPorts, nil
 }
 
+func (spy *layoutRepositorySpy) LoadDraftConfigurationPortPlacements(
+	_ context.Context,
+	_ string,
+	units []ConfigurationUnitInput,
+) ([]domain.ModulePortPlacement, error) {
+	placements := append([]domain.ModulePortPlacement(nil), spy.configurationPorts...)
+	poses := make(map[string]domain.TrackPose, len(units))
+	for _, unit := range units {
+		known := spy.configurationUnit == unit.UnitID
+		for _, placement := range spy.configurationPorts {
+			known = known || placement.UnitID == unit.UnitID
+		}
+		if !known {
+			return nil, ErrLayoutValidation
+		}
+		poses[unit.UnitID] = domain.TrackPose{
+			PositionXMM: unit.PositionXMM, PositionYMM: unit.PositionYMM,
+			RotationDegrees: unit.RotationDegrees,
+		}
+	}
+	for index := range placements {
+		pose, included := poses[placements[index].UnitID]
+		if included {
+			placements[index].UnitPose = pose
+		}
+	}
+	return placements, nil
+}
+
 func (spy *layoutRepositorySpy) ConfigurationContainsUnit(
 	_ context.Context,
 	_ string,
@@ -389,11 +418,17 @@ func TestLayoutServiceAnalyzesConfigurationPortsAndPreviewsWithoutMutation(t *te
 	}
 
 	preview, err := service.PreviewConfigurationUnitSnap(t.Context(), " configuration-1 ",
-		PreviewConfigurationUnitSnapInput{UnitID: " moving ", PositionXMM: 5})
+		PreviewConfigurationUnitSnapInput{
+			UnitID: " moving ", PositionXMM: 43,
+			Units: []ConfigurationUnitInput{
+				{UnitID: "moving", PositionXMM: 43},
+				{UnitID: "target", PositionXMM: 150},
+			},
+		})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !preview.Snapped || preview.Pose.PositionXMM != 12 || preview.TargetUnitID != "target" {
+	if !preview.Snapped || preview.Pose.PositionXMM != 50 || preview.TargetUnitID != "target" {
 		t.Fatalf("unexpected snap preview: %#v", preview)
 	}
 	if repository.configurationPorts[0].UnitPose.PositionXMM != 5 {
@@ -409,11 +444,14 @@ func TestLayoutServiceRejectsInvalidConfigurationPortRequests(t *testing.T) {
 	if _, err := service.AnalyzeConfigurationPorts(t.Context(), " "); !errors.Is(err, ErrLayoutValidation) {
 		t.Fatalf("expected blank configuration rejection, got %v", err)
 	}
+	validUnits := []ConfigurationUnitInput{{UnitID: "unit-1"}}
 	invalid := []PreviewConfigurationUnitSnapInput{
 		{},
-		{UnitID: "missing"},
-		{UnitID: "unit-1", PositionXMM: math.NaN()},
-		{UnitID: "unit-1", PositionYMM: math.Inf(1)},
+		{UnitID: "missing", Units: []ConfigurationUnitInput{{UnitID: "missing"}}},
+		{UnitID: "unit-1", PositionXMM: math.NaN(), Units: validUnits},
+		{UnitID: "unit-1", PositionYMM: math.Inf(1), Units: validUnits},
+		{UnitID: "unit-1"},
+		{UnitID: "unit-1", Units: []ConfigurationUnitInput{{UnitID: "unit-1"}, {UnitID: "unit-1"}}},
 	}
 	for _, input := range invalid {
 		if _, err := service.PreviewConfigurationUnitSnap(t.Context(), "configuration-1", input); !errors.Is(err, ErrLayoutValidation) {
@@ -425,7 +463,8 @@ func TestLayoutServiceRejectsInvalidConfigurationPortRequests(t *testing.T) {
 func TestLayoutServicePreviewsUnsnappedUnitWithoutActivePorts(t *testing.T) {
 	service := NewLayoutService(&layoutRepositorySpy{configurationUnit: "unit-without-ports"})
 	preview, err := service.PreviewConfigurationUnitSnap(t.Context(), "configuration-1",
-		PreviewConfigurationUnitSnapInput{UnitID: "unit-without-ports"})
+		PreviewConfigurationUnitSnapInput{UnitID: "unit-without-ports",
+			Units: []ConfigurationUnitInput{{UnitID: "unit-without-ports"}}})
 	if err != nil {
 		t.Fatal(err)
 	}

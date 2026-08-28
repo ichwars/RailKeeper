@@ -122,6 +122,9 @@ func TestLayoutRoutesEnforceRoleAndCSRFBoundaries(t *testing.T) {
 		response := layoutRequest(t, router, session, http.MethodPost,
 			"/api/v1/layout-configurations/"+configuration.ID+"/unit-snap-preview", map[string]any{
 				"unitId": unit.ID, "positionXMm": 0, "positionYMm": 0, "rotationDegrees": 0,
+				"units": []map[string]any{{
+					"unitId": unit.ID, "positionXMm": 0, "positionYMm": 0, "rotationDegrees": 0,
+				}},
 			}, true)
 		want := http.StatusForbidden
 		if role == "admin" || role == "planner" {
