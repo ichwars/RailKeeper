@@ -9,10 +9,18 @@ import { defaultArticleTableColumns, type ArticleTableColumn } from "./articleTa
 describe("ArticleColumnPicker", () => {
   beforeEach(() => setLanguage("de"));
 
+  it("disables configuration until profile preferences are loaded", () => {
+    render(<ArticleColumnPicker columns={defaultArticleTableColumns} loading
+      onToggle={vi.fn()} onMove={vi.fn()} onReset={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: "Tabellenspalten auswählen" })).toBeDisabled();
+  });
+
   it("opens a localized checkbox popover and routes column toggles", async () => {
     const user = userEvent.setup();
     const onToggle = vi.fn();
-    render(<ArticleColumnPicker visibleColumns={defaultArticleTableColumns} onToggle={onToggle} onReset={vi.fn()} />);
+    render(<ArticleColumnPicker columns={defaultArticleTableColumns} onToggle={onToggle}
+      onMove={vi.fn()} onReset={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
     expect(screen.getByRole("group", { name: "Tabellenspalten" })).toBeInTheDocument();
@@ -25,8 +33,9 @@ describe("ArticleColumnPicker", () => {
 
   it("locks the final visible identity column", async () => {
     const user = userEvent.setup();
-    const visible = new Set<ArticleTableColumn>(["name", "stock"]);
-    render(<ArticleColumnPicker visibleColumns={visible} onToggle={vi.fn()} onReset={vi.fn()} />);
+    const columns: ArticleTableColumn[] = ["name", "stock"];
+    render(<ArticleColumnPicker columns={columns} onToggle={vi.fn()} onMove={vi.fn()}
+      onReset={vi.fn()} />);
 
     await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
     expect(screen.getByRole("checkbox", { name: "Name" })).toBeDisabled();
@@ -35,7 +44,8 @@ describe("ArticleColumnPicker", () => {
 
   it("closes on Escape and restores focus to its trigger", async () => {
     const user = userEvent.setup();
-    render(<ArticleColumnPicker visibleColumns={defaultArticleTableColumns} onToggle={vi.fn()} onReset={vi.fn()} />);
+    render(<ArticleColumnPicker columns={defaultArticleTableColumns} onToggle={vi.fn()}
+      onMove={vi.fn()} onReset={vi.fn()} />);
     const trigger = screen.getByRole("button", { name: "Tabellenspalten auswählen" });
 
     await user.click(trigger);
@@ -48,7 +58,8 @@ describe("ArticleColumnPicker", () => {
   it("closes on an outside pointer action", async () => {
     const user = userEvent.setup();
     render(<div>
-      <ArticleColumnPicker visibleColumns={defaultArticleTableColumns} onToggle={vi.fn()} onReset={vi.fn()} />
+      <ArticleColumnPicker columns={defaultArticleTableColumns} onToggle={vi.fn()}
+        onMove={vi.fn()} onReset={vi.fn()} />
       <button type="button">Außerhalb</button>
     </div>);
 
@@ -62,8 +73,9 @@ describe("ArticleColumnPicker", () => {
     const user = userEvent.setup();
     const onReset = vi.fn();
     render(<ArticleColumnPicker
-      visibleColumns={new Set<ArticleTableColumn>(["inventoryNumber"])}
+      columns={["inventoryNumber"]}
       onToggle={vi.fn()}
+      onMove={vi.fn()}
       onReset={onReset}
     />);
 
@@ -71,5 +83,17 @@ describe("ArticleColumnPicker", () => {
     await user.click(screen.getByRole("button", { name: "Auf Standard zurücksetzen" }));
 
     expect(onReset).toHaveBeenCalledOnce();
+  });
+
+  it("routes visible column order changes", async () => {
+    const user = userEvent.setup();
+    const onMove = vi.fn();
+    render(<ArticleColumnPicker columns={["inventoryNumber", "name", "storage"]}
+      onToggle={vi.fn()} onMove={onMove} onReset={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
+    await user.click(screen.getByRole("button", { name: "Lagerung nach oben" }));
+
+    expect(onMove).toHaveBeenCalledWith("storage", "up");
   });
 });

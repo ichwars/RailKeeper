@@ -52,10 +52,10 @@ describe("vehicle inventory column layout", () => {
     expect(css).toMatch(/\.vehicle-inventory-table tbody tr:has\(\.quick-menu\)\s*\{[^}]*z-index:\s*5/s);
   });
 
-  it("uses the available desktop width without assigning all spare space to one data column", () => {
-    expect(css).toMatch(/\.vehicle-inventory-table\s*\{[^}]*width:\s*100%[^}]*min-width:\s*100%[^}]*table-layout:\s*fixed/s);
-    expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\),[\s\S]*width:\s*calc\(\(100%\s*-\s*186px\)\s*\/\s*var\(--vehicle-data-column-count,\s*8\)\)/s);
-    expect(css).toMatch(/\.vehicle-inventory-table \[class\*="vehicle-column-"\]\s*\{[^}]*max-width:\s*280px/s);
+  it("fills the desktop wrapper but preserves configured overflow widths", () => {
+    expect(css).toMatch(/\.vehicle-inventory-table\s*\{[^}]*width:\s*max\(100%,\s*var\(--vehicle-table-min-width\)\)[^}]*min-width:\s*var\(--vehicle-table-min-width\)[^}]*table-layout:\s*fixed/s);
+    expect(css).toMatch(/\.vehicle-inventory-table th:not\(\.select-cell\):not\(\.actions-cell\)\s*\{[^}]*position:\s*relative/s);
+    expect(css).not.toMatch(/--vehicle-data-column-count,\s*8/);
   });
 
   it("keeps the next appointment card wide until the status row stacks", () => {

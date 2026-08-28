@@ -3,11 +3,16 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   articleTableColumns,
   articleTableColumnSettingKey,
+  articleTableColumnWidthDefinitions,
+  defaultArticleTableColumns,
+  defaultArticleTableLayout,
+  moveArticleTableColumn,
+  parseArticleTableLayout,
   persistArticleTableColumns,
   resetArticleTableColumns,
+  serializeArticleTableLayout,
   storedArticleTableColumns,
   toggleArticleTableColumn,
-  defaultArticleTableColumns,
   type ArticleTableColumn
 } from "./articleTableColumns";
 
@@ -16,48 +21,71 @@ describe("article table columns", () => {
 
   it("keeps newly introduced columns hidden for missing, malformed, and older preferences", () => {
     expect(articleTableColumns).toContain("listPrice");
-    expect(defaultArticleTableColumns.has("listPrice")).toBe(false);
-    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
+    expect(defaultArticleTableColumns).not.toContain("listPrice");
+    expect(storedArticleTableColumns()).not.toContain("listPrice");
 
     window.localStorage.setItem(articleTableColumnSettingKey, "not-json");
-    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
+    expect(storedArticleTableColumns()).not.toContain("listPrice");
 
     window.localStorage.setItem(articleTableColumnSettingKey, JSON.stringify([
-      "image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge", "stock", "storage"
+      "image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge",
+      "stock", "storage"
     ]));
-    expect(storedArticleTableColumns().has("listPrice")).toBe(false);
+    expect(storedArticleTableColumns()).not.toContain("listPrice");
   });
 
-  it("filters stale values and restores an identity column", () => {
+  it("filters stale values, duplicates, and restores an identity column", () => {
     window.localStorage.setItem(
       articleTableColumnSettingKey,
-      JSON.stringify(["image", "unknown"])
+      JSON.stringify(["image", "unknown", "image"])
     );
 
-    expect([...storedArticleTableColumns()]).toEqual(["image", "inventoryNumber"]);
+    expect(storedArticleTableColumns()).toEqual(["image", "inventoryNumber"]);
   });
 
   it("does not hide the final visible identity column", () => {
-    const current = new Set<ArticleTableColumn>(["name", "stock"]);
+    const current: ArticleTableColumn[] = ["name", "stock"];
 
-    expect([...toggleArticleTableColumn(current, "name")]).toEqual(["name", "stock"]);
+    expect(toggleArticleTableColumn(current, "name")).toEqual(["name", "stock"]);
   });
 
-  it("allows either identity column to be hidden when the other remains visible", () => {
-    const current = new Set<ArticleTableColumn>(["inventoryNumber", "name", "stock"]);
+  it("allows either identity column to be hidden and preserves the remaining order", () => {
+    const current: ArticleTableColumn[] = ["stock", "inventoryNumber", "name"];
 
-    expect([...toggleArticleTableColumn(current, "inventoryNumber")]).toEqual(["name", "stock"]);
-    expect([...toggleArticleTableColumn(current, "name")]).toEqual(["inventoryNumber", "stock"]);
+    expect(toggleArticleTableColumn(current, "inventoryNumber")).toEqual(["stock", "name"]);
+    expect(toggleArticleTableColumn(current, "name")).toEqual(["stock", "inventoryNumber"]);
   });
 
-  it("persists columns in stable table order", () => {
-    persistArticleTableColumns(new Set<ArticleTableColumn>(["storage", "name"]));
-
-    expect(window.localStorage.getItem(articleTableColumnSettingKey)).toBe('["name","storage"]');
+  it("moves and persists columns in the user-defined order", () => {
+    const moved = moveArticleTableColumn(["inventoryNumber", "name", "storage"], "storage", "up");
+    expect(moved).toEqual(["inventoryNumber", "storage", "name"]);
+    persistArticleTableColumns(moved);
+    expect(window.localStorage.getItem(articleTableColumnSettingKey))
+      .toBe('["inventoryNumber","storage","name"]');
   });
 
-  it("restores the standard columns without the optional list price", () => {
+  it("loads legacy and versioned layouts with hidden bounded widths", () => {
+    expect(parseArticleTableLayout('["name","inventoryNumber"]')).toEqual({
+      columns: ["name", "inventoryNumber"],
+      widths: {}
+    });
+    expect(parseArticleTableLayout(JSON.stringify({
+      version: 1,
+      columns: ["inventoryNumber", "name"],
+      widths: { name: 9999, storage: 202, unknown: 200 }
+    }))).toEqual({
+      columns: ["inventoryNumber", "name"],
+      widths: {
+        name: articleTableColumnWidthDefinitions.name.maxWidth,
+        storage: 202
+      }
+    });
+    expect(parseArticleTableLayout(serializeArticleTableLayout(defaultArticleTableLayout)))
+      .toEqual(defaultArticleTableLayout);
+  });
+
+  it("restores the standard order without the optional list price", () => {
     expect(resetArticleTableColumns()).toEqual(defaultArticleTableColumns);
-    expect(resetArticleTableColumns().has("listPrice")).toBe(false);
+    expect(resetArticleTableColumns()).not.toContain("listPrice");
   });
 });

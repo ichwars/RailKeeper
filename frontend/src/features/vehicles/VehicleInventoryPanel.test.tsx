@@ -29,6 +29,7 @@ describe("VehicleInventoryPanel card view", () => {
     render(<VehicleInventoryPanel
       vehicles={vehicles} sortedVehicles={vehicles} loading={false} message="" query=""
       columns={["type", "inventoryNumber", "manufacturer", "articleNumber", "name"]}
+      columnWidths={{}}
       columnsLoading={false} sort={{ key: "inventoryNumber", direction: "asc" }} inventoryView="cards"
       inventoryFilter="all" maintenanceFilter="all" qualityFilter="none"
       manufacturerFilter="" categoryFilter="" gattungFilter="" railwayCompanyFilter=""
@@ -39,7 +40,8 @@ describe("VehicleInventoryPanel card view", () => {
       inventoryFilterOptions={{ manufacturers: [], categories: [], gattungen: [], railwayCompanies: [], epochs: [], adapters: [] }}
       hasActiveInventoryFilters={false} allVisibleSelected={false} selectedVehicleIDs={new Set()}
       onCreate={vi.fn()} onReload={vi.fn()} onOpenReport={vi.fn()} onQueryChange={vi.fn()}
-      onToggleColumn={vi.fn()} onMoveColumn={vi.fn()} onResetColumns={vi.fn()} onToggleSort={vi.fn()}
+      onToggleColumn={vi.fn()} onMoveColumn={vi.fn()} onResetColumns={vi.fn()}
+      onPreviewColumnWidth={vi.fn()} onCommitColumnWidth={vi.fn()} onToggleSort={vi.fn()}
       onInventoryViewChange={vi.fn()} onInventoryFilterChange={vi.fn()} onMaintenanceFilterChange={vi.fn()}
       onQualityFilterChange={vi.fn()} onManufacturerFilterChange={vi.fn()} onCategoryFilterChange={vi.fn()}
       onGattungFilterChange={vi.fn()} onRailwayCompanyFilterChange={vi.fn()} onEpochFilterChange={vi.fn()}

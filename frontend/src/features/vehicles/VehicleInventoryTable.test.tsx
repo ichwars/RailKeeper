@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import { VehicleInventoryTable } from "./VehicleInventoryTable";
+import { vehicleTableColumnWidthDefinitions } from "./vehicleTableColumns";
 
 describe("VehicleInventoryTable", () => {
 	it("renders sets collapsed by default and aligns children after expansion", async () => {
@@ -93,6 +94,40 @@ describe("VehicleInventoryTable", () => {
     expect(screen.getByText("15.08.2026")).toBeInTheDocument();
     expect(screen.queryByText(vehicle.inventoryNumber)).not.toBeInTheDocument();
     expect(screen.getByRole("table")).toHaveStyle("--vehicle-data-column-count: 3");
+  });
+
+  it("applies configured widths and exposes handles only for configurable columns", () => {
+    const onCommitColumnWidth = vi.fn();
+    render(
+      <VehicleInventoryTable
+        vehicles={[vehicleFixture()]}
+        columns={["inventoryNumber", "manufacturer"]}
+        columnWidths={{ manufacturer: 196 }}
+        allVisibleSelected={false}
+        selectedVehicleIDs={new Set()}
+        sort={{ key: "inventoryNumber", direction: "asc" }}
+        onToggleSort={vi.fn()}
+        onToggleSelection={vi.fn()}
+        onToggleAllVisibleSelection={vi.fn()}
+        onOpenDetail={vi.fn()}
+        onToggleExhibition={vi.fn()}
+        onPreviewColumnWidth={vi.fn()}
+        onCommitColumnWidth={onCommitColumnWidth}
+        renderQuickMenu={() => null}
+      />
+    );
+
+    const expectedWidth = 64 + 122 +
+      vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth + 196;
+    expect(screen.getByRole("table")).toHaveStyle(
+      `--vehicle-table-min-width: ${expectedWidth}px`
+    );
+    expect(document.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(screen.getAllByRole("separator")).toHaveLength(2);
+    fireEvent.keyDown(screen.getByRole("separator", {
+      name: "Breite von Hersteller ändern"
+    }), { key: "ArrowRight" });
+    expect(onCommitColumnWidth).toHaveBeenCalledWith("manufacturer", 204);
   });
 
   it("keeps the exhibition control operational for eligible vehicles", async () => {

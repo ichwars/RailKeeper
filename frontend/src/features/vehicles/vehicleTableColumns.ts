@@ -1,5 +1,12 @@
 import type { Vehicle } from "../../shared/api";
 import type { Language } from "../../shared/i18n";
+import {
+  parseTableColumnLayout,
+  serializeTableColumnLayout,
+  type TableColumnLayout,
+  type TableColumnLayoutOptions,
+  type TableColumnWidthDefinition
+} from "../../shared/tableColumnLayout";
 
 export const vehicleTableColumnKeys = [
 	"type",
@@ -160,6 +167,60 @@ export const defaultVehicleTableColumns: VehicleTableColumn[] = [
   "epoch",
   "exhibition"
 ];
+
+const compactVehicleColumns = new Set<VehicleTableColumn>([
+  "type", "image", "gauge", "epoch", "digital", "dtDecoder", "abcBrakes", "axles",
+  "axleCount", "tractionTireCount", "driveEnabled", "headlightsEnabled", "lightingEnabled",
+  "soundGeneratorEnabled", "smokeGeneratorEnabled", "exhibitionReady"
+]);
+
+function vehicleWidthDefinition(column: VehicleTableColumn): TableColumnWidthDefinition {
+  if (column === "name") return { defaultWidth: 220, minWidth: 140, maxWidth: 480 };
+  if (column === "type" || column === "image") {
+    return { defaultWidth: 88, minWidth: 72, maxWidth: 160 };
+  }
+  if (column === "inventoryNumber") return { defaultWidth: 142, minWidth: 112, maxWidth: 280 };
+  if (column === "manufacturer") return { defaultWidth: 150, minWidth: 112, maxWidth: 360 };
+  if (column === "articleNumber") return { defaultWidth: 132, minWidth: 104, maxWidth: 280 };
+  if (column === "exhibition") return { defaultWidth: 154, minWidth: 132, maxWidth: 260 };
+  if (column === "storageLocation" || column === "acquiredFrom") {
+    return { defaultWidth: 180, minWidth: 120, maxWidth: 420 };
+  }
+  if (column === "purchaseDate" || column === "productionPeriod") {
+    return { defaultWidth: 140, minWidth: 112, maxWidth: 260 };
+  }
+  if (column === "purchasePrice" || column === "listPrice") {
+    return { defaultWidth: 136, minWidth: 112, maxWidth: 240 };
+  }
+  if (compactVehicleColumns.has(column)) {
+    return { defaultWidth: 112, minWidth: 88, maxWidth: 220 };
+  }
+  return { defaultWidth: 156, minWidth: 104, maxWidth: 360 };
+}
+
+export const vehicleTableColumnWidthDefinitions = Object.fromEntries(
+  vehicleTableColumnKeys.map((column) => [column, vehicleWidthDefinition(column)])
+) as Record<VehicleTableColumn, TableColumnWidthDefinition>;
+
+const vehicleTableLayoutOptions: TableColumnLayoutOptions<VehicleTableColumn> = {
+  columnKeys: vehicleTableColumnKeys,
+  defaultColumns: defaultVehicleTableColumns,
+  normalizeColumns: normalizeVehicleTableColumns,
+  widthDefinitions: vehicleTableColumnWidthDefinitions
+};
+
+export const defaultVehicleTableLayout: TableColumnLayout<VehicleTableColumn> = {
+  columns: [...defaultVehicleTableColumns],
+  widths: {}
+};
+
+export function parseVehicleTableLayout(raw: string | undefined) {
+  return parseTableColumnLayout(raw, vehicleTableLayoutOptions);
+}
+
+export function serializeVehicleTableLayout(layout: TableColumnLayout<VehicleTableColumn>) {
+  return serializeTableColumnLayout(layout, vehicleTableLayoutOptions);
+}
 
 export function isVehicleTableColumn(value: unknown): value is VehicleTableColumn {
   return typeof value === "string" && vehicleTableColumnKeys.some((key) => key === value);

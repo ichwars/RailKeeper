@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Vehicle, VehicleMaintenance } from "../../shared/api";
 import { useI18n } from "../../shared/i18n";
+import type { TableColumnWidths } from "../../shared/tableColumnLayout";
 import { formatDate } from "./vehicleFormat";
 import { maintenanceReminderText } from "./vehicleMaintenance";
 import { previewImageUrl, primaryImage } from "./vehicleTransforms";
@@ -55,6 +56,7 @@ type InventoryPanelProps = {
   message: string;
   query: string;
   columns: readonly VehicleTableColumn[];
+  columnWidths: TableColumnWidths<VehicleTableColumn>;
   columnsLoading: boolean;
   sort: { key: SortKey; direction: SortDirection };
   inventoryView: InventoryViewMode;
@@ -103,6 +105,8 @@ type InventoryPanelProps = {
   onToggleColumn: (column: VehicleTableColumn) => void;
   onMoveColumn: (column: VehicleTableColumn, direction: VehicleColumnMove) => void;
   onResetColumns: () => void;
+  onPreviewColumnWidth: (column: VehicleTableColumn, width: number) => void;
+  onCommitColumnWidth: (column: VehicleTableColumn, width: number) => void;
   onToggleSort: (key: SortKey) => void;
   onInventoryViewChange: (value: InventoryViewMode) => void;
   onInventoryFilterChange: (value: InventoryFilter) => void;
@@ -136,6 +140,7 @@ export function VehicleInventoryPanel({
   message,
   query,
   columns,
+  columnWidths,
   columnsLoading,
   sort,
   inventoryView,
@@ -165,6 +170,8 @@ export function VehicleInventoryPanel({
   onToggleColumn,
   onMoveColumn,
   onResetColumns,
+  onPreviewColumnWidth,
+  onCommitColumnWidth,
   onToggleSort,
   onInventoryViewChange,
   onInventoryFilterChange,
@@ -557,6 +564,7 @@ export function VehicleInventoryPanel({
               <VehicleInventoryTable
                 vehicles={sortedVehicles}
                 columns={columns}
+                columnWidths={columnWidths}
                 allVisibleSelected={allVisibleSelected}
                 selectedVehicleIDs={selectedVehicleIDs}
                 sort={sort}
@@ -571,6 +579,8 @@ export function VehicleInventoryPanel({
                 onOpenEdit={onOpenEdit}
                 onDelete={onDelete}
                 onToggleExhibition={onToggleExhibition}
+                onPreviewColumnWidth={onPreviewColumnWidth}
+                onCommitColumnWidth={onCommitColumnWidth}
                 renderQuickMenu={renderQuickMenu}
               />
             )}

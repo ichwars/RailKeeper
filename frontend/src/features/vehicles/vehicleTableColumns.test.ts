@@ -2,14 +2,18 @@ import { describe, expect, it } from "vitest";
 
 import { vehicleFixture } from "../../test/fixtures/vehicles";
 import {
+  defaultVehicleTableLayout,
   defaultVehicleTableColumns,
   moveVehicleTableColumn,
   normalizeVehicleTableColumns,
   parseVehicleTableColumns,
+  parseVehicleTableLayout,
+  serializeVehicleTableLayout,
   serializeVehicleTableColumns,
 	isVehicleDataColumn,
   toggleVehicleTableColumn,
-  vehicleColumnSortValue
+  vehicleColumnSortValue,
+  vehicleTableColumnWidthDefinitions
 } from "./vehicleTableColumns";
 
 describe("vehicle table columns", () => {
@@ -65,6 +69,26 @@ describe("vehicle table columns", () => {
 
     expect(moved.at(-2)).toBe("series");
     expect(parseVehicleTableColumns(serializeVehicleTableColumns(moved))).toEqual(moved);
+  });
+
+  it("loads legacy and versioned layouts with bounded widths", () => {
+    expect(parseVehicleTableLayout('["series","inventoryNumber"]')).toEqual({
+      columns: ["series", "inventoryNumber"],
+      widths: {}
+    });
+    expect(parseVehicleTableLayout(JSON.stringify({
+      version: 1,
+      columns: ["name", "inventoryNumber"],
+      widths: { name: 9999, series: 184, unknown: 200 }
+    }))).toEqual({
+      columns: ["name", "inventoryNumber"],
+      widths: {
+        name: vehicleTableColumnWidthDefinitions.name.maxWidth,
+        series: 184
+      }
+    });
+    expect(parseVehicleTableLayout(serializeVehicleTableLayout(defaultVehicleTableLayout)))
+      .toEqual(defaultVehicleTableLayout);
   });
 
   it("returns stable sortable values for booleans and text", () => {

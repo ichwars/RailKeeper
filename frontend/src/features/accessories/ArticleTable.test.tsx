@@ -1,11 +1,14 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AccessoryArticleListItem, MasterDataEntry } from "../../shared/api";
 import { setLanguage } from "../../shared/i18n";
 import { ArticleTable } from "./ArticleTable";
-import type { ArticleTableColumn } from "./articleTableColumns";
+import {
+  articleTableColumnWidthDefinitions,
+  type ArticleTableColumn
+} from "./articleTableColumns";
 
 const article: AccessoryArticleListItem = {
   id: "article-1",
@@ -207,9 +210,9 @@ describe("ArticleTable", () => {
   });
 
   it("hides matching headers and cells while retaining selection and actions", () => {
-    const visibleColumns = new Set<ArticleTableColumn>(["inventoryNumber", "name"]);
+    const columns: ArticleTableColumn[] = ["inventoryNumber", "name"];
     render(
-      <ArticleTable items={[article]} visibleColumns={visibleColumns}
+      <ArticleTable items={[article]} columns={columns}
         sort="article" direction="asc" canEdit onSort={vi.fn()} onView={vi.fn()}
         onArchive={vi.fn()} onRestore={vi.fn()} />
     );
@@ -220,14 +223,14 @@ describe("ArticleTable", () => {
     expect(screen.getByText(article.name)).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Auswahl" })).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Aktionen" })).toBeInTheDocument();
-    expect(screen.getByRole("table")).toHaveStyle("--article-table-min-width: 524px");
+    expect(screen.getByRole("table")).toHaveStyle("--article-table-min-width: 532px");
   });
 
   it("renders an optional nonsortable list-price column with exact locale formatting", () => {
     setLanguage("de");
     render(
       <ArticleTable items={[article]}
-        visibleColumns={new Set<ArticleTableColumn>(["inventoryNumber", "listPrice"])}
+        columns={["inventoryNumber", "listPrice"]}
         sort="article" direction="asc" canEdit={false} onSort={vi.fn()}
         onArchive={vi.fn()} onRestore={vi.fn()} />
     );
@@ -235,5 +238,27 @@ describe("ArticleTable", () => {
     const header = screen.getByRole("columnheader", { name: "Listenpreis pro Stück" });
     expect(within(header).queryByRole("button")).not.toBeInTheDocument();
     expect(screen.getByText("1.299,90 €")).toBeInTheDocument();
+  });
+
+  it("renders user order, configured widths, and resizers only for data columns", () => {
+    const onCommitColumnWidth = vi.fn();
+    render(
+      <ArticleTable items={[article]} columns={["manufacturer", "inventoryNumber"]}
+        columnWidths={{ manufacturer: 196 }} sort="article" direction="asc" canEdit={false}
+        onSort={vi.fn()} onArchive={vi.fn()} onRestore={vi.fn()}
+        onPreviewColumnWidth={vi.fn()} onCommitColumnWidth={onCommitColumnWidth} />
+    );
+
+    expect(screen.getAllByRole("columnheader").map((header) => header.textContent?.trim()))
+      .toEqual(["", "Hersteller", "Inventarnummer", "Aktionen"]);
+    const expectedWidth = 44 + 136 + 196 +
+      articleTableColumnWidthDefinitions.inventoryNumber.defaultWidth;
+    expect(screen.getByRole("table")).toHaveStyle(`--article-table-min-width: ${expectedWidth}px`);
+    expect(document.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(screen.getAllByRole("separator")).toHaveLength(2);
+    fireEvent.keyDown(screen.getByRole("separator", {
+      name: "Breite von Hersteller ändern"
+    }), { key: "ArrowRight" });
+    expect(onCommitColumnWidth).toHaveBeenCalledWith("manufacturer", 204);
   });
 });

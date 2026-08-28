@@ -53,6 +53,39 @@ describe("useVehicleColumnPreferences", () => {
     expect(result.current.columns.at(-1)).toBe("series");
   });
 
+  it("previews widths locally, commits them in the versioned layout, and resets all widths", async () => {
+    vi.spyOn(api, "profileSettings").mockResolvedValue({
+      settings: {
+        [vehicleTableColumnSettingKey]: JSON.stringify({
+          version: 1,
+          columns: ["inventoryNumber", "name"],
+          widths: { name: 286 }
+        })
+      }
+    });
+    const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
+    const { result } = renderHook(() => useVehicleColumnPreferences(vi.fn()));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+
+    expect(result.current.widths).toEqual({ name: 286 });
+    act(() => result.current.previewColumnWidth("name", 300));
+    expect(result.current.widths).toEqual({ name: 300 });
+    expect(update).not.toHaveBeenCalled();
+
+    act(() => result.current.commitColumnWidth("name", 304));
+    await waitFor(() => expect(update).toHaveBeenCalledOnce());
+    expect(JSON.parse(Object.values(update.mock.calls[0]![0])[0]!)).toEqual({
+      version: 1,
+      columns: ["inventoryNumber", "name"],
+      widths: { name: 304 }
+    });
+
+    act(() => result.current.resetColumns());
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    expect(result.current.widths).toEqual({});
+    expect(result.current.columns).toEqual(defaultVehicleTableColumns);
+  });
+
   it("reports load and save failures without discarding the visible selection", async () => {
     const onMessage = vi.fn();
     vi.spyOn(api, "profileSettings").mockRejectedValue(new Error("offline"));

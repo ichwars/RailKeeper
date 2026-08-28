@@ -106,6 +106,8 @@ describe("AccessoriesView", () => {
     window.localStorage.removeItem(articleTableColumnSettingKey);
     setLanguage("de");
     vi.spyOn(api, "accessoryArticles").mockResolvedValue(overview);
+    vi.spyOn(api, "profileSettings").mockResolvedValue({ settings: {} });
+    vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
     vi.spyOn(api, "storageLocations").mockResolvedValue([]);
     vi.spyOn(api, "masterData").mockImplementation(async (type) =>
       type === "accessory_subtype" ? [straightSubtype]
@@ -247,8 +249,9 @@ describe("AccessoriesView", () => {
     await user.click(screen.getByRole("checkbox", { name: "Hersteller" }));
 
     expect(screen.queryByRole("columnheader", { name: "Hersteller" })).not.toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem(articleTableColumnSettingKey) || "[]"))
-      .not.toContain("manufacturer");
+    await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalled());
+    const stored = Object.values(vi.mocked(api.updateProfileSettings).mock.calls.at(-1)![0])[0]!;
+    expect(JSON.parse(stored).columns).not.toContain("manufacturer");
   });
 
   it("restores and persists the default table columns", async () => {
@@ -260,13 +263,18 @@ describe("AccessoriesView", () => {
     render(<AccessoriesView roles={["Admin"]} />);
     await screen.findByRole("table");
 
-    expect(screen.queryByRole("columnheader", { name: "Hersteller" })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole("columnheader", { name: "Hersteller" }))
+      .not.toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: "Tabellenspalten auswählen" }));
     await user.click(screen.getByRole("button", { name: "Auf Standard zurücksetzen" }));
 
     expect(screen.getByRole("columnheader", { name: "Hersteller" })).toBeInTheDocument();
-    expect(JSON.parse(window.localStorage.getItem(articleTableColumnSettingKey) || "[]"))
-      .toEqual(["image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge", "stock", "storage"]);
+    await waitFor(() => expect(api.updateProfileSettings).toHaveBeenCalledTimes(2));
+    const stored = Object.values(vi.mocked(api.updateProfileSettings).mock.calls.at(-1)![0])[0]!;
+    expect(JSON.parse(stored).columns).toEqual([
+      "image", "inventoryNumber", "manufacturer", "articleNumber", "name", "type", "gauge",
+      "stock", "storage"
+    ]);
   });
 
   it("localizes the view controls", async () => {
