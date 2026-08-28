@@ -126,10 +126,10 @@ describe("VehicleInventoryTable", () => {
     expect(table.querySelector('col[data-column="inventoryNumber"]')).toHaveStyle(
       `width: ${vehicleTableColumnWidthDefinitions.inventoryNumber.defaultWidth}px`
     );
-    const growColumnStyle = table.querySelector('col[data-column="manufacturer"]')
-      ?.getAttribute("style");
-    expect(growColumnStyle).toContain("width: calc(196px");
-    expect(growColumnStyle).toContain(`${expectedWidth}px`);
+    expect(table.querySelector('col[data-column="manufacturer"]')).toHaveStyle("width: 196px");
+    expect(table.querySelector("col.table-fill-cell")).toHaveStyle(
+      `width: max(0px, calc(100% - ${expectedWidth}px))`
+    );
     expect(table.querySelector("col.select-cell")).toHaveStyle({
       width: "64px",
       minWidth: "64px",
@@ -145,6 +145,29 @@ describe("VehicleInventoryTable", () => {
       name: "Breite von Hersteller ändern"
     }), { key: "ArrowRight" });
     expect(onCommitColumnWidth).toHaveBeenCalledWith("manufacturer", 204);
+  });
+
+  it("hides column resizers while profile widths are loading", () => {
+    render(
+      <VehicleInventoryTable
+        vehicles={[vehicleFixture()]}
+        columns={["inventoryNumber", "manufacturer"]}
+        columnWidthsLoading
+        allVisibleSelected={false}
+        selectedVehicleIDs={new Set()}
+        sort={{ key: "inventoryNumber", direction: "asc" }}
+        onToggleSort={vi.fn()}
+        onToggleSelection={vi.fn()}
+        onToggleAllVisibleSelection={vi.fn()}
+        onOpenDetail={vi.fn()}
+        onToggleExhibition={vi.fn()}
+        onPreviewColumnWidth={vi.fn()}
+        onCommitColumnWidth={vi.fn()}
+        renderQuickMenu={() => null}
+      />
+    );
+
+    expect(screen.queryAllByRole("separator")).toHaveLength(0);
   });
 
   it("keeps the exhibition control operational for eligible vehicles", async () => {

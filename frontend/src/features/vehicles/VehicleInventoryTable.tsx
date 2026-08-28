@@ -34,6 +34,7 @@ type VehicleInventoryTableProps = {
   vehicles: Vehicle[];
   columns: readonly VehicleTableColumn[];
   columnWidths?: TableColumnWidths<VehicleTableColumn>;
+  columnWidthsLoading?: boolean;
   allVisibleSelected: boolean;
   selectedVehicleIDs: Set<string>;
   sort: { key: SortKey; direction: SortDirection };
@@ -57,6 +58,7 @@ export function VehicleInventoryTable({
   vehicles,
   columns,
   columnWidths = {},
+  columnWidthsLoading = false,
   allVisibleSelected,
   selectedVehicleIDs,
   sort,
@@ -84,7 +86,6 @@ export function VehicleInventoryTable({
     vehicleTableColumnWidthDefinitions,
     64 + 122
   );
-  const growColumn = columns.includes("name") ? "name" : columns.at(-1);
 
   const header = (column: VehicleTableColumn) => {
     const label = vehicleColumnLabel(column, t);
@@ -195,6 +196,7 @@ export function VehicleInventoryTable({
 			{columns.map((column) => (
 				<td key={column} className={`vehicle-column-${column}`}>{cell(vehicle, column, setMember)}</td>
 			))}
+      <td className="table-fill-cell" aria-hidden="true" />
       <td className="actions-cell">
         <div className="table-actions">
           <button type="button" className="icon-button" onClick={() => onOpenDetail(vehicle)} aria-label={t("exhibition.view")} title={t("exhibition.view")}>
@@ -230,11 +232,15 @@ export function VehicleInventoryTable({
           {columns.map((column) => <col
             key={column}
             data-column={column}
-            style={{ width: column === growColumn
-              ? `calc(${tableColumnWidth(columnLayout, column, vehicleTableColumnWidthDefinitions)}px + ` +
-                `max(0px, 100% - ${minimumWidth}px))`
-              : tableColumnWidth(columnLayout, column, vehicleTableColumnWidthDefinitions) }}
+            style={{ width: tableColumnWidth(
+              columnLayout,
+              column,
+              vehicleTableColumnWidthDefinitions
+            ) }}
           />)}
+          <col className="table-fill-cell" style={{
+            width: `max(0px, calc(100% - ${minimumWidth}px))`
+          }} />
           <col className="actions-cell" style={{ width: 122, minWidth: 122, maxWidth: 122 }} />
         </colgroup>
         <thead>
@@ -261,7 +267,8 @@ export function VehicleInventoryTable({
               return (
                 <th key={column} className={`vehicle-column-${column}`}>
                   {header(column)}
-                  {onPreviewColumnWidth && onCommitColumnWidth ? <TableColumnResizeHandle
+                  {!columnWidthsLoading && onPreviewColumnWidth && onCommitColumnWidth
+                    ? <TableColumnResizeHandle
                     label={t("common.resizeColumn", { label })}
                     width={width}
                     minWidth={definition.minWidth}
@@ -269,10 +276,11 @@ export function VehicleInventoryTable({
                     defaultWidth={definition.defaultWidth}
                     onPreview={(next) => onPreviewColumnWidth(column, next)}
                     onCommit={(next) => onCommitColumnWidth(column, next)}
-                  /> : null}
+                    /> : null}
                 </th>
               );
             })}
+            <th className="table-fill-cell" aria-hidden="true" />
             <th className="actions-cell">{t("vehicles.actions")}</th>
           </tr>
         </thead>

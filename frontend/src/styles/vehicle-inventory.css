@@ -120,8 +120,13 @@
   white-space: nowrap;
 }
 
-.vehicle-inventory-table th:not(.select-cell):not(.actions-cell) {
+.vehicle-inventory-table th:not(.select-cell):not(.actions-cell):not(.table-fill-cell) {
   position: relative;
+}
+
+.vehicle-inventory-table .table-fill-cell {
+  padding: 0;
+  pointer-events: none;
 }
 
 .vehicle-inventory-table td:not(.actions-cell) {

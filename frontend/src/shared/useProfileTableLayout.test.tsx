@@ -47,30 +47,47 @@ describe("useProfileTableLayout", () => {
     }));
   });
 
-  it("keeps a local commit made while the profile is still loading", async () => {
+  it("replays a local commit onto the stored layout after loading", async () => {
     let resolveProfile: ((value: { settings: Record<string, string> }) => void) | undefined;
     vi.spyOn(api, "profileSettings").mockImplementation(() => new Promise((resolve) => {
       resolveProfile = resolve;
     }));
     const update = vi.spyOn(api, "updateProfileSettings").mockResolvedValue({ settings: {} });
 
-    const { result } = renderHook(() => useProfileTableLayout<Layout>({
+    type ProfileLayout = { columns: string[]; widths: Record<string, number> };
+    const parseProfileLayout = (raw: string | undefined): ProfileLayout => raw
+      ? JSON.parse(raw) as ProfileLayout
+      : { columns: ["default"], widths: {} };
+
+    const { result } = renderHook(() => useProfileTableLayout<ProfileLayout>({
       settingKey: "table.layout",
-      defaultLayout: { value: 10 },
-      parse,
+      defaultLayout: { columns: ["default"], widths: {} },
+      parse: parseProfileLayout,
       serialize: JSON.stringify,
       onLoadError: vi.fn(),
       onSaveError: vi.fn()
     }));
 
-    act(() => result.current.commit(() => ({ value: 44 })));
-    await waitFor(() => expect(update).toHaveBeenCalledWith({
-      "table.layout": '{"value":44}'
-    }));
+    act(() => result.current.commit((current) => ({
+      ...current,
+      widths: { ...current.widths, local: 44 }
+    })));
+    expect(result.current.layout).toEqual({ columns: ["default"], widths: { local: 44 } });
+    expect(update).not.toHaveBeenCalled();
 
-    act(() => resolveProfile?.({ settings: { "table.layout": '{"value":24}' } }));
+    act(() => resolveProfile?.({
+      settings: {
+        "table.layout": '{"columns":["stored"],"widths":{"stored":24}}'
+      }
+    }));
     await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.layout).toEqual({ value: 44 });
+    expect(result.current.layout).toEqual({
+      columns: ["stored"],
+      widths: { stored: 24, local: 44 }
+    });
+    await waitFor(() => expect(update).toHaveBeenCalledWith({
+      "table.layout": '{"columns":["stored"],"widths":{"stored":24,"local":44}}'
+    }));
   });
 
   it("migrates a legacy browser value only when the profile has no value", async () => {

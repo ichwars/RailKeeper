@@ -231,6 +231,7 @@ export function AccessoriesView({
                     canDelete={canDelete}
                     columns={columnPreferences.columns}
                     columnWidths={columnPreferences.widths}
+                    columnWidthsLoading={columnPreferences.loading}
                     onPreviewColumnWidth={columnPreferences.previewColumnWidth}
                     onCommitColumnWidth={columnPreferences.commitColumnWidth}
                     selectedIDs={selectedArticleIDs}

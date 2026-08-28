@@ -97,8 +97,13 @@
   white-space: nowrap;
 }
 
-.article-table th:not(.select-cell):not(.actions-cell) {
+.article-table th:not(.select-cell):not(.actions-cell):not(.table-fill-cell) {
   position: relative;
+}
+
+.article-table .table-fill-cell {
+  padding: 0;
+  pointer-events: none;
 }
 
 .article-table th.actions-cell,
