@@ -3,7 +3,7 @@ title: Messearbeitsbereich
 description: Messelisten sicher vorbereiten, pflegen, prüfen und drucken.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -14,7 +14,7 @@ in einer Betriebsansicht. Jede Liste besitzt ein Datum, den Zustand offen oder g
 Lokomotiveinträge. Das Betriebspersonal kann eine offene Liste pflegen, ohne den allgemeinen
 Fahrzeugbestand zu öffnen.
 
-Dieses Kapitel dokumentiert RailKeeper v0.1.20.2. Benutzer- und Stammdatenverwaltung,
+Dieses Kapitel dokumentiert RailKeeper v0.1.20.3. Benutzer- und Stammdatenverwaltung,
 Backup-Bedienung sowie der Anlagen-Arbeitsbereich gehören nicht zu diesem Kapitel.
 
 ## Zugriffsrechte und Trennung
@@ -131,5 +131,5 @@ versehentlich doppelt ausgeführt.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite beschreibt RailKeeper v0.1.20.2. Der Entwicklungsstand auf `main` kann abweichen und
+Diese Seite beschreibt RailKeeper v0.1.20.3. Der Entwicklungsstand auf `main` kann abweichen und
 gehört nicht zu diesem Benutzerablauf.

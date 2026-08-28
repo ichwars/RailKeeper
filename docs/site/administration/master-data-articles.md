@@ -3,8 +3,8 @@ title: Article master data and storage locations
 description: Configure accessory units, classifications, custom fields, and hierarchical storage locations.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.2
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.3
+lastReviewed: 2026-08-28
 ---
 
 # Article master data and storage locations
@@ -22,6 +22,19 @@ Create a unit only when the existing list cannot express the stock. Deactivating
 from new article selections, while articles already using it retain the historical value. A custom
 unit can be permanently deleted only when no article references its key.
 
+## Deactivate multiple entries
+
+The stock-unit, article-type, subtype, and custom-field tables provide multi-selection to Admin and
+Editor. Selection checkboxes appear only for active entries that may be deactivated. The
+table-header checkbox selects every eligible entry in the current table; changing the master-data
+type clears the selection.
+
+**Deactivate selected** presents the data type and count for confirmation before writing. The
+server processes the confirmed set atomically. If an entry is missing or the operation fails, the
+complete stored configuration remains unchanged and the selection stays available for correction.
+A successful operation clears the selection. Inactive entries can be reactivated only one at a
+time. Storage locations are not part of this bulk workflow.
+
 ## Article types and subtypes
 
 RailKeeper ships eight protected article-type keys:
@@ -35,7 +48,7 @@ RailKeeper ships eight protected article-type keys:
 - Lighting
 - Other
 
-Their labels and active states can be maintained, but v0.1.20.2 does not allow creating or deleting
+Their labels and active states can be maintained, but v0.1.20.3 does not allow creating or deleting
 article-type keys. This protects the matching technical-data contracts. Deactivating a type removes
 it from new article selection without rewriting existing articles.
 
@@ -77,7 +90,7 @@ Names must be unique among siblings without regard to letter case. A location ca
 parent or be moved beneath one of its descendants. The parent picker excludes those invalid
 choices.
 
-There is no permanent-delete action in v0.1.20.2. Archive a location to retire it and reactivate it
+There is no permanent-delete action in v0.1.20.3. Archive a location to retire it and reactivate it
 when required. Stock and individual items can use a location only when that location and every
 ancestor are active. Archiving a parent therefore makes its entire branch unavailable for new
 stock operations without erasing stored location references.
@@ -112,4 +125,4 @@ stored configuration unchanged.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-28.

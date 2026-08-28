@@ -3,7 +3,7 @@ title: ECoS locomotive sync
 description: Read, review, import, and explicitly write selected ESU ECoS locomotive data.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-16
 ---
 
@@ -19,7 +19,7 @@ workspace.
 
 ## Supported and unsupported command stations
 
-| Active provider | Import/Export behavior in v0.1.20.2 |
+| Active provider | Import/Export behavior in v0.1.20.3 |
 | --- | --- |
 | ESU ECoS | Read workflow, vehicle handoff, CV and static-function suggestions, and reviewed write sync are available. |
 | Märklin CS3 | Read-only import of UID, name, address, and protocol into the same comparison workspace. See [Read CS3 locomotives without writing](./cs3-import). |
@@ -129,4 +129,4 @@ layout objects to the command station.
 
 ## Documented RailKeeper version
 
-This page documents stable RailKeeper **v0.1.20.2** and was last reviewed on 2026-08-16.
+This page documents stable RailKeeper **v0.1.20.3** and was last reviewed on 2026-08-16.

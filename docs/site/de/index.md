@@ -4,12 +4,12 @@ title: RailKeeper-Dokumentation
 description: Vollständige Benutzer-, Administrations- und Entwicklungsdokumentation für RailKeeper.
 audience: reference
 status: stable
-reviewedVersion: 0.1.20.2
+reviewedVersion: 0.1.20.3
 lastReviewed: 2026-08-15
 hero:
   name: RailKeeper-Dokumentation
   text: Werkstattwissen direkt beim Projekt
-  tagline: Das Handbuch folgt v0.1.20.2, die Entwicklungsdokumentation dem Stand von main.
+  tagline: Das Handbuch folgt v0.1.20.3, die Entwicklungsdokumentation dem Stand von main.
   image:
     src: /brand/railkeeper-logo.png
     alt: RailKeeper
