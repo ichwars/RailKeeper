@@ -281,6 +281,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const startDrag = (event: ReactPointerEvent<SVGGElement>, object: PlanTrackObject) => {
     if (!editable || saving) return;
     event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     const point = canvasPoint(event.nativeEvent);
     dragRef.current = { object, offsetX: point.x - object.positionXMm, offsetY: point.y - object.positionYMm };
     setSelectedID(object.id);
@@ -290,6 +291,7 @@ export function TrackPlannerCanvas({ unit, gauge, revision, canPlan, onClose }: 
   const startFreeDrag = (event: ReactPointerEvent<SVGGElement>, object: PlanFreeObject) => {
     if (!editable || saving) return;
     event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     const point = canvasPoint(event.nativeEvent);
     freeDragRef.current = { object, offsetX: point.x - object.positionXMm, offsetY: point.y - object.positionYMm };
     setSelectedID("");

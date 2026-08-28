@@ -292,10 +292,37 @@ INSERT INTO track_geometry_definitions(
 	}
 }
 
+func TestTrackPlannerRepositoryRejectsGeometryFromDifferentLayoutGauge(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	if _, err := db.Exec(`
+INSERT INTO track_geometry_libraries(
+  id, manufacturer, track_system, gauge, scale, version, source_url, status, created_at
+) VALUES('h0-library', 'Test', 'H0 Test', 'H0', '1:87', '1', 'https://example.invalid/h0',
+         'verified', 'now');
+INSERT INTO track_geometry_definitions(
+  id, library_id, article_number, name, kind, length_mm, geometry_json,
+  source_url, status, created_at
+) SELECT 'h0-geometry', 'h0-library', 'H0-1', 'H0-Gleis', kind, length_mm, geometry_json,
+         'https://example.invalid/h0', 'verified', 'now'
+  FROM track_geometry_definitions WHERE id='tillig-tt-modellgleis-83101-v1';
+`); err != nil {
+		t.Fatal(err)
+	}
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	_, err := planner.CreateObject(t.Context(), "revision-track-1", application.CreatePlanTrackObjectInput{
+		GeometryID: "h0-geometry",
+	}, "planner")
+	if !errors.Is(err, application.ErrTrackPlanValidation) {
+		t.Fatalf("expected mismatched gauge validation error, got %v", err)
+	}
+}
+
 func TestTrackPlannerSnapPersistsAuthoritativePose(t *testing.T) {
 	db := openTrackPlannerSchemaDB(t)
 	seedTrackPlanRevision(t, db)
-	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	repository := infrastructure.NewTrackPlannerRepository(db)
+	planner := application.NewTrackPlannerService(repository)
 	geometryID := "tillig-tt-modellgleis-83101-v1"
 	if _, err := planner.CreateObject(t.Context(), "revision-track-1", application.CreatePlanTrackObjectInput{
 		GeometryID: geometryID, PositionXMM: 0, PositionYMM: 0,
@@ -309,7 +336,7 @@ func TestTrackPlannerSnapPersistsAuthoritativePose(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	updated, err := planner.UpdateObject(t.Context(), moving.ID, application.UpdatePlanTrackObjectInput{
+	updated, err := repository.UpdateObject(t.Context(), moving.ID, application.UpdatePlanTrackObjectInput{
 		PositionXMM: 172, PositionYMM: 2, RotationDegrees: 2, ExpectedVersion: moving.Version,
 	}, "planner")
 	if err != nil {
@@ -317,6 +344,90 @@ func TestTrackPlannerSnapPersistsAuthoritativePose(t *testing.T) {
 	}
 	if updated.PositionXMM != 166 || updated.PositionYMM != 0 || updated.RotationDegrees != 0 {
 		t.Fatalf("unexpected authoritative snapped pose: %#v", updated)
+	}
+}
+
+func TestTrackPlannerAnalysisCountsStoredIndividualAssets(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	if _, err := db.Exec(`
+INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('asset-location', 'Assetlager', 'now', 'now');
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  inventory_strategy, created_at, updated_at
+) VALUES(
+  'asset-product', 'RK-ART-ASSET', 'Tillig', '83101', 'Gleisstück G1', 'track', 'individual',
+  'individual', 'now', 'now'
+);
+INSERT INTO accessory_assets(
+  id, product_id, inventory_number, lifecycle_state, storage_location_id, created_at, updated_at
+) VALUES('track-asset', 'asset-product', 'RK-ASSET-1', 'stored', 'asset-location', 'now', 'now');
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  version, created_at, updated_at
+) VALUES(
+  'track-material-asset', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 0, 0, 0, 1,
+  'now', 'now');
+`); err != nil {
+		t.Fatal(err)
+	}
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	analysis, err := planner.AnalyzePlan(t.Context(), "revision-track-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Materials) != 1 {
+		t.Fatalf("unexpected material lines: %#v", analysis.Materials)
+	}
+	material := analysis.Materials[0]
+	if material.PhysicalQuantity != 1 || material.AvailableQuantity != 1 || material.MissingQuantity != 0 {
+		t.Fatalf("individual asset not counted as available material: %#v", material)
+	}
+}
+
+func TestTrackPlannerAnalysisCombinesQuantityAndAssetsForHybridInventory(t *testing.T) {
+	db := openTrackPlannerSchemaDB(t)
+	seedTrackPlanRevision(t, db)
+	if _, err := db.Exec(`
+INSERT INTO storage_locations(id, name, created_at, updated_at)
+VALUES('hybrid-location', 'Hybridlager', 'now', 'now');
+INSERT INTO accessory_products(
+  id, inventory_number, manufacturer, article_number, name, category, tracking_mode,
+  inventory_strategy, created_at, updated_at
+) VALUES(
+  'hybrid-product', 'RK-ART-HYBRID', 'Tillig', '83101', 'Gleisstueck G1', 'track', 'quantity',
+  'quantity_later_individual', 'now', 'now'
+);
+INSERT INTO accessory_stock(product_id, location_id, quantity, updated_at)
+VALUES('hybrid-product', 'hybrid-location', 2, 'now');
+INSERT INTO accessory_assets(
+  id, product_id, inventory_number, lifecycle_state, storage_location_id, created_at, updated_at
+) VALUES('hybrid-asset', 'hybrid-product', 'RK-HYBRID-1', 'stored', 'hybrid-location', 'now', 'now');
+INSERT INTO plan_track_objects(
+  id, revision_id, geometry_id, position_x_mm, position_y_mm, rotation_degrees,
+  version, created_at, updated_at
+) VALUES
+  ('track-material-hybrid-1', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 0, 0, 0, 1,
+   'now', 'now'),
+  ('track-material-hybrid-2', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 166, 0, 0, 1,
+   'now', 'now'),
+  ('track-material-hybrid-3', 'revision-track-1', 'tillig-tt-modellgleis-83101-v1', 332, 0, 0, 1,
+   'now', 'now');
+`); err != nil {
+		t.Fatal(err)
+	}
+	planner := application.NewTrackPlannerService(infrastructure.NewTrackPlannerRepository(db))
+	analysis, err := planner.AnalyzePlan(t.Context(), "revision-track-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(analysis.Materials) != 1 {
+		t.Fatalf("unexpected material lines: %#v", analysis.Materials)
+	}
+	material := analysis.Materials[0]
+	if material.PhysicalQuantity != 3 || material.AvailableQuantity != 3 || material.MissingQuantity != 0 {
+		t.Fatalf("hybrid inventory was not combined: %#v", material)
 	}
 }
 

@@ -171,7 +171,10 @@ describe("TrackPlannerCanvas", () => {
       toJSON: () => ({})
     });
     const placed = await screen.findByRole("button", { name: "Bahnsteig" });
+    const capturePointer = vi.fn();
+    Object.defineProperty(placed, "setPointerCapture", { value: capturePointer });
     fireEvent.pointerDown(placed, { pointerId: 7, clientX: 600, clientY: 250 });
+    expect(capturePointer).toHaveBeenCalledWith(7);
     fireEvent.pointerMove(canvas, { pointerId: 7, clientX: 700, clientY: 300 });
     fireEvent.pointerUp(canvas, { pointerId: 7, clientX: 700, clientY: 300 });
     await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
@@ -244,7 +247,10 @@ describe("TrackPlannerCanvas", () => {
       toJSON: () => ({})
     });
     const placed = screen.getByRole("button", { name: "Gleis Tillig 83101 · Gleisstück G1" });
+    const capturePointer = vi.fn();
+    Object.defineProperty(placed, "setPointerCapture", { value: capturePointer });
     fireEvent.pointerDown(placed, { pointerId: 4, clientX: 517, clientY: 250 });
+    expect(capturePointer).toHaveBeenCalledWith(4);
     fireEvent.pointerMove(canvas, { pointerId: 4, clientX: 540, clientY: 270 });
     fireEvent.pointerUp(canvas, { pointerId: 4, clientX: 540, clientY: 270 });
     await waitFor(() => expect(update).toHaveBeenCalledWith(trackObject.id,
