@@ -1,7 +1,7 @@
 # RailKeeper In-App Bug Reporting Design
 
 Date: 2026-08-29
-Status: Approved design, pending written-spec review
+Status: Approved
 
 ## Goal
 
@@ -233,7 +233,7 @@ contact key, or operational error details.
     "goVersion": "go1.26.0",
     "operatingSystem": "linux",
     "architecture": "amd64",
-    "schemaVersion": 63,
+    "schemaVersion": 67,
     "enabledDigitalProviderTypes": ["ecos", "z21"]
   }
 }
