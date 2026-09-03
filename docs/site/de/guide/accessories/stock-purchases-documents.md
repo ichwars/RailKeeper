@@ -3,7 +3,7 @@ title: Bestand, Käufe und Dokumente
 description: Zubehörmengen, Einzelstücke, Käufe, Bilder und Dokumente verwalten.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

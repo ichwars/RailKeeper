@@ -3,7 +3,7 @@ title: Accessories overview
 description: Find, filter, inspect, and safely manage accessory articles.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

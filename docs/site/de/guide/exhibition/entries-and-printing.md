@@ -3,8 +3,8 @@ title: Einträge und Drucken
 description: Messeloks erfassen, Adresskonflikte lösen und die Betriebsliste drucken.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.4
+lastReviewed: 2026-08-31
 ---
 
 # Einträge und Drucken
@@ -86,11 +86,11 @@ zuerst mit Admin oder einem Messekonto mit bestandsberechtigter Zusatzrolle.
 | Adresse SX | Optionaler Freitext, der getrennt mit anderen geladenen Einträgen verglichen wird. |
 | Analog | Schalter für die Verfügbarkeit des Analogbetriebs. |
 
-Tabelle und Report verbinden DCC und SX unter **Adresse**, zeigen Analog als Ja oder Nein und führen
-Decoder-Typ und Schnittstelle getrennt auf. Leere Werte erscheinen als Strich.
+Die Tabelle verbindet DCC und SX unter **Adresse**. Der aktuelle Druckreport zeigt beide Adressen,
+Analogzustand, Decoder-Typ, Adapter und Zentrale getrennt. Leere Werte erscheinen als Strich.
 
-**Baureihe** wird mit dem Eintrag gespeichert, erscheint in v0.1.20.3 jedoch weder in Tabelle und
-Listenansicht noch im gedruckten Report. Öffne **Eintrag bearbeiten**, um den Wert zu prüfen.
+**Baureihe** wird mit dem Eintrag gespeichert und im aktuellen Druckreport ausgegeben. In der
+kompakten Bildschirmtabelle ist sie nicht enthalten. Öffne **Eintrag bearbeiten**, um den Wert zu ändern.
 
 ### Nr. / Beschriftung / Merkmale
 
@@ -181,30 +181,32 @@ Das Löschen ist sofort und dauerhaft. Danach lädt RailKeeper Einträge und Anz
 allgemeiner Fahrzeugdatensatz wird nicht gelöscht. Messe erhält das Löschbedienelement nicht. Eine
 gesperrte Liste weist die Serveranfrage auch für Admin zurück.
 
-## Report ansehen und drucken
+## Ausstellungsliste drucken
 
-**Ansehen** öffnet eine schreibgeschützte Tabelle für eine Liste. Sie zeigt Bild, Besitzer und Tage,
-Lokdaten, Steuerungsdaten und belegte Funktionstasten. **Drucken** in diesem Dialog führt weiter zu
-**Report drucken**.
+Die separate Druckansicht ist ab RailKeeper v0.1.20.4 verfügbar.
 
-Alternativ stehen **Drucken** in einer Listenzeile und **Liste drucken** über der ausgewählten
-Eintragstabelle zur Verfügung. Gehört die Aktion zu einer anderen Liste, lädt RailKeeper zuerst
-deren Einträge. Die Aktion der ausgewählten Liste verwendet die aktuell angezeigten Einträge.
+Wähle die Veranstaltung und anschließend **Drucken** in ihrer Übersicht. RailKeeper erzeugt ein
+separates Dokument im A4-Querformat. Navigation, andere Veranstaltungen, Filter und Schaltflächen
+erscheinen darin nicht. Gedruckt werden sämtliche gespeicherten Einträge der ausgewählten
+Ausstellung, unabhängig von Suchtext, Tages- und Statusfiltern auf dem Bildschirm.
 
-Lasse in **Report drucken** die Option **Mit Bildern drucken** aktiviert oder deaktiviere sie, um
-die Bildspalte wegzulassen. Der erzeugte Report verwendet A4 im Querformat und enthält:
+Der Report enthält:
 
-- RailKeeper-Zeichen, Listenbezeichnung, Datum und Eintragsanzahl;
-- optional das Bild;
-- Besitzer und Tagesumfang;
-- Lokidentität sowie vorhandene Angaben zu Hersteller, Gattung und Epoche;
-- Adressen, Analogzustand, Decoder und Schnittstelle;
-- belegte Funktionstasten und Symbole;
-- Notizen.
+- Veranstaltungsname, Zeitraum, Ort, Status, Eintragsanzahl, Beschreibung und Organisationshinweise;
+- je Fahrzeug Bild, Besitzer, Fahrtage, Verfügbarkeit und Prüfstatus;
+- Lokbezeichnung, Hersteller, Baureihe, Gattung, Epoche und Bahnverwaltung;
+- Digitaldecoder, Decoder-Typ, Adapter, DCC- und SX-Adresse, Zentrale und Analogzustand;
+- alle gespeicherten Funktionstasten mit Beschreibung, Typ und vorhandenem Symbol;
+- vollständige Notizen mit Zeilenumbrüchen.
 
-Mit **Drucken** öffnet sich der Druckdialog des Browsers. Papierauswahl, Ränder, Skalierung,
-Druckerverfügbarkeit, Abbruch und endgültige Ausgabe bleiben Entscheidungen von Browser und
-Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.**
+Funktionstasten stehen über die volle Listenbreite. Ältere Freitextbelegungen bleiben erhalten;
+fehlende Belegungen werden nicht durch Standardfunktionen ergänzt. Leere Listen zeigen
+**Keine Einträge.** Beim Wechsel der Veranstaltung ist Drucken gesperrt, bis ihre Daten geladen sind.
+
+RailKeeper wartet auf das Laden der Druckansicht einschließlich ihrer Bilder. Danach öffnet sich
+der Druckdialog des Browsers. Papierauswahl, Skalierung, Druckerverfügbarkeit, Abbruch und endgültige
+Ausgabe bleiben Entscheidungen von Browser und Betriebssystem. Verwende den **Drucken**-Knopf der
+Ausstellung, nicht den allgemeinen Browserbefehl zum Drucken der Webseite.
 
 ## Eintrags- und Druckfehler beheben
 
@@ -217,7 +219,7 @@ Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.
 | Bild hat keine Vorschau | Vor dem Speichern eine lesbare PNG-, JPEG- oder WebP-Datei bis 10 MB wählen. |
 | Speichern gelingt, aber der Refresh scheitert | Öffne den Arbeitsbereich neu und prüfe den Eintrag vor dem Wiederholen. |
 | Detail oder Report öffnet nicht | Lade Liste und Einträge neu und wiederhole danach die Leseaktion. |
-| Browser-Druckdialog wird ohne Ausgabe geschlossen | Öffne **Report drucken** erneut; RailKeeper-Daten wurden nicht geändert. |
+| Browser-Druckdialog wird ohne Ausgabe geschlossen | Wähle **Drucken** erneut; RailKeeper-Daten wurden nicht geändert. |
 
 ## Verwandte Seiten
 
@@ -228,5 +230,4 @@ Betriebssystem. Eine leere Liste erzeugt eine Reportzeile mit **Keine Einträge.
 
 ## Dokumentierte RailKeeper-Version
 
-Diese Seite beschreibt RailKeeper v0.1.20.3. Der Entwicklungsstand auf `main` kann abweichen und
-gehört nicht zu diesem Benutzerablauf.
+Diese Seite beschreibt RailKeeper v0.1.20.4.

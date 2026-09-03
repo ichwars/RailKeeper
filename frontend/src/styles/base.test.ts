@@ -16,6 +16,11 @@ function cssFiles(directory: string): string[] {
 }
 
 describe("base design system", () => {
+  it("confines hidden exhibition row actions to the scrollable table", () => {
+    const exhibitionCss = readFileSync(join(stylesDirectory, "exhibition.css"), "utf8");
+    expect(exhibitionCss).toMatch(/\.exhibition-row-menu\s*\{[^}]*position:\s*relative/s);
+  });
+
   it("defines the shared spacing, radius, duration, and easing scales", () => {
     const expectedTokens = [
       "--space-xs: 4px",

@@ -3,7 +3,7 @@ title: Vehicle images and attachments
 description: Upload, organize, preview, download, and safely remove vehicle images and attachments.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

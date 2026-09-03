@@ -6,6 +6,31 @@ Diese Datei dokumentiert alle wesentlichen Änderungen an RailKeeper.
 
 ## Unveröffentlicht
 
+## [0.1.20.4] - 2026-09-03
+
+### Geändert
+
+- Ausstellungen erhalten eine separate Druckansicht im A4-Querformat. Sie enthält alle
+  gespeicherten Einträge der ausgewählten Veranstaltung mit Bildern, Modell- und Steuerungsdaten,
+  Fahrtagen, Verfügbarkeit, Status, vollständigen Funktionstasten und Notizen. Bildschirmfilter
+  begrenzen den Ausdruck nicht; Navigation und Bedienelemente werden nicht mitgedruckt.
+- Z21 bietet eine zeitlich und mengenmäßig begrenzte, rein lesende Vorschau bekannter
+  Lokadressen. Intellibox-Transportauswahl und Z21-Diagnose grenzen verfügbare und noch geplante
+  Fähigkeiten deutlicher ab. Diese Abläufe schreiben nichts auf die Zentrale.
+
+### Behoben
+
+- Drucken wartet auf die Bilder und bleibt beim Wechsel zu einer noch nicht geladenen
+  Ausstellung gesperrt. Ältere Freitext-Funktionsbelegungen bleiben erhalten. Versteckte
+  Zeilenaktionen verursachen in der Ausstellungsansicht keinen Seitenüberlauf mehr.
+- ECoS weist unvollständige Kompatibilitätsantworten ab und unterscheidet sie von vollständigen
+  Antworten mit noch nicht verifizierter Firmware.
+- Parallele Änderungen und Autosaves im Anlagenzwilling bewahren andere ungespeicherte Entwürfe.
+  Positionshistorie, Konflikt-Neuladen und verspätete Antworten nach Modulwechseln wurden korrigiert.
+- Der Gleisplaner sichert Drag-Vorgänge, Spurweitenprüfung, Materialanalyse und transaktionales
+  Snapping ab. Modulport-Vorschauen berücksichtigen ungespeicherte Platzierungen;
+  Dimensionsänderungen dürfen vorhandene Ports nicht außerhalb der Modulgrenzen verschieben.
+
 ## [0.1.20.3] - 2026-08-28
 
 ### Hinzugefügt
