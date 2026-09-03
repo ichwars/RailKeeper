@@ -3,7 +3,7 @@ title: Artikelstammdaten und Lagerorte
 description: Bestandseinheiten, Artikelklassifizierung, eigene Felder und hierarchische Lagerorte konfigurieren.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-28
 ---
 

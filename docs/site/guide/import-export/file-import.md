@@ -3,7 +3,7 @@ title: Import vehicle files
 description: Map, validate, review, and save vehicle rows from CSV, TSV, XML, or JSON.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

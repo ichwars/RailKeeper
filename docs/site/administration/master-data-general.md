@@ -3,7 +3,7 @@ title: General master data
 description: Maintain vehicle classifications, manufacturers, CV8 identities, and function symbols.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-28
 ---
 

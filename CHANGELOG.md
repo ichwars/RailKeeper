@@ -6,6 +6,31 @@ All notable changes to RailKeeper are documented in this file.
 
 ## Unreleased
 
+## [0.1.20.4] - 2026-09-03
+
+### Changed
+
+- Exhibitions have a separate A4 landscape print document. It includes every saved entry in the
+  selected event with images, model and control data, operating days, availability, status, complete
+  function assignments, and notes. Screen filters do not limit the report; navigation and controls
+  are excluded.
+- Z21 provides a read-only preview of known locomotive addresses with time and item limits.
+  Intellibox transport selection and Z21 diagnostics distinguish available capabilities from
+  planned ones more clearly. These flows do not write to the command station.
+
+### Fixed
+
+- Printing waits for images and remains disabled while a newly selected exhibition is loading.
+  Legacy free-text function assignments are preserved. Hidden row actions no longer cause
+  page overflow in the exhibition view.
+- ECoS rejects incomplete compatibility replies and distinguishes them from complete replies
+  with firmware that has not yet been verified.
+- Concurrent edits and autosaves in the layout twin preserve other unsaved drafts. Position
+  history, conflict reloads, and stale replies after switching modules were corrected.
+- The track planner safeguards dragging, gauge validation, material analysis, and transactional
+  snapping. Module-port previews account for unsaved placements; dimension changes cannot leave
+  existing ports outside module bounds.
+
 ## [0.1.20.3] - 2026-08-28
 
 ### Added

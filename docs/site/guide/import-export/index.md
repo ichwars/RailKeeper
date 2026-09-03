@@ -3,7 +3,7 @@ title: Import and export
 description: Exchange vehicle, accessory, and exhibition data through reviewed transfer jobs.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-27
 ---
 

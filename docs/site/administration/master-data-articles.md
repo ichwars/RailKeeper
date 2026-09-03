@@ -3,7 +3,7 @@ title: Article master data and storage locations
 description: Configure accessory units, classifications, custom fields, and hierarchical storage locations.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-28
 ---
 

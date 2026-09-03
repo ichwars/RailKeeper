@@ -3,7 +3,7 @@ title: Settings
 description: Understand personal preferences, appearance, and the boundaries between user and administration settings.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

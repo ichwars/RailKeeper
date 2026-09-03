@@ -3,7 +3,7 @@ title: Exhibition workspace
 description: Prepare, maintain, review, and print exhibition lists safely.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

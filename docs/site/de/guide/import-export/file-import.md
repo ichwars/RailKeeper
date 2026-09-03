@@ -3,7 +3,7 @@ title: Fahrzeugdateien importieren
 description: Fahrzeugzeilen aus CSV, TSV, XML oder JSON zuordnen, prüfen und speichern.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

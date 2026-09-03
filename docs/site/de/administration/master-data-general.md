@@ -3,7 +3,7 @@ title: Allgemeine Stammdaten
 description: Fahrzeugklassifizierungen, Hersteller, CV8-Kennungen und Funktionssymbole verwalten.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-28
 ---
 
