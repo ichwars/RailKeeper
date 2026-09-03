@@ -3,7 +3,7 @@ title: Article search, web documents, and spare parts
 description: Verify external article data, import web documents, and maintain vehicle spare parts.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

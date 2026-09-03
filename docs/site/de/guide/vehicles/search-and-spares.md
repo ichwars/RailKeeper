@@ -3,7 +3,7 @@ title: Artikelsuche, Web-Dokumente und Ersatzteile
 description: Externe Artikeldaten prüfen, Web-Dokumente importieren und Fahrzeugersatzteile pflegen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

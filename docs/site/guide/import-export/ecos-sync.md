@@ -3,7 +3,7 @@ title: ECoS locomotive sync
 description: Read, review, import, and explicitly write selected ESU ECoS locomotive data.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 
