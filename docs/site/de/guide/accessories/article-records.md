@@ -3,7 +3,7 @@ title: Artikelstammdaten und Fachangaben
 description: Zubehörartikel anlegen, ihre Identität pflegen und technische Angaben prüfen.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

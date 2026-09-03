@@ -4,7 +4,7 @@ title: RailKeeper-Dokumentation
 description: Vollständige Benutzer-, Administrations- und Entwicklungsdokumentation für RailKeeper.
 audience: reference
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-15
 hero:
   name: RailKeeper-Dokumentation

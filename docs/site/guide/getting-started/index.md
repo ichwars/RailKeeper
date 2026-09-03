@@ -3,7 +3,7 @@ title: First setup and sign-in
 description: Create the first administrator, sign in securely, and recover access to RailKeeper.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

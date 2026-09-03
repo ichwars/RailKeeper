@@ -35,6 +35,7 @@ import { useI18n } from "../../shared/i18n";
 import { AppDateInput } from "../../shared/ui/AppDateInput";
 import { useModalDialogLayer } from "../../shared/ui/useModalDialogLayer";
 import { ExhibitionEntryDialog, ExhibitionEntryMasterData } from "./ExhibitionEntryDialog";
+import { printList } from "./exhibitionPrint";
 
 type EntryFilter = "all" | "ready" | "check";
 type ExhibitionDialog = "event" | "entry" | "conflicts" | "lock" | null;
@@ -156,7 +157,7 @@ function conflictDescription(conflict: ExhibitionConflict, language: "de" | "en"
 }
 
 export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
-  const { language } = useI18n();
+  const { language, t } = useI18n();
   const de = language === "de";
   const admin = hasAdmin(roles);
   const manager = admin || roles.includes("Editor");
@@ -169,6 +170,7 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
   const [symbols, setSymbols] = useState<MasterDataEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [message, setMessage] = useState("");
   const [dialog, setDialog] = useState<ExhibitionDialog>(null);
   const [editingEvent, setEditingEvent] = useState<ExhibitionList | null>(null);
@@ -187,6 +189,18 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
   const locked = Boolean(selectedList?.locked);
   const planningOpen = selectedList?.status === "draft" || selectedList?.status === "open";
   const canEditEntries = entryManager && planningOpen && !locked;
+
+  const printCurrentList = async () => {
+    if (!workspace || workspace.list.id !== selectedID || printing) return;
+    setPrinting(true);
+    try {
+      await printList(workspace.list, workspace.entries, symbols, language, t);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : de ? "Drucken fehlgeschlagen." : "Printing failed.");
+    } finally {
+      setPrinting(false);
+    }
+  };
 
   const loadLists = async (preferredID?: string) => {
     setLoading(true);
@@ -437,7 +451,10 @@ export function ExhibitionWorkspacePage({ roles }: { roles: string[] }) {
               {selectedList.location && <span className="exhibition-event-location"><MapPin size={14} />{selectedList.location}</span>}
             </div>
             <div className="exhibition-summary-actions">
-              <button type="button" className="secondary-button" onClick={() => window.print()}><Printer size={17} />{de ? "Drucken" : "Print"}</button>
+              <button type="button" className="secondary-button" onClick={() => void printCurrentList()}
+                disabled={printing || workspace.list.id !== selectedID}>
+                <Printer size={17} />{printing ? (de ? "Druck wird vorbereitet…" : "Preparing print…") : (de ? "Drucken" : "Print")}
+              </button>
               {manager && (selectedList.status === "open" || selectedList.status === "locked") && <button type="button" className="secondary-button" onClick={() => selectedList.locked ? void updateStatus("open", de ? "Liste wieder geöffnet" : "List reopened") : void updateStatus("locked")}>
                 {selectedList.locked ? <LockOpen size={17} /> : <Lock size={17} />}{selectedList.locked ? (de ? "Liste entsperren" : "Unlock list") : (de ? "Liste sperren" : "Lock list")}
               </button>}

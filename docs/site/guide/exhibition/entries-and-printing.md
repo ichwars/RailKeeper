@@ -3,8 +3,8 @@ title: Entries and printing
 description: Record exhibition locomotives, resolve address conflicts, and print the operating list.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
-lastReviewed: 2026-08-16
+reviewedVersion: 0.1.20.4
+lastReviewed: 2026-08-31
 ---
 
 # Entries and printing
@@ -80,11 +80,11 @@ Messe account with an inventory-capable role to verify it first.
 | SX address | Optional free text checked separately against other loaded entries. |
 | Analog | Switch indicating that analog operation is available. |
 
-The table and report combine DCC and SX into **Address**, show analog as Yes or No, and list decoder
-type and interface separately. Empty values appear as a dash.
+The table combines DCC and SX into **Address**. The current print report shows both addresses,
+analogue state, decoder type, adapter and command station separately. Empty values appear as a dash.
 
-**Class** is saved with the entry but is not shown in the stable table, read-only list view, or
-printed report. Reopen **Edit entry** when that value must be checked.
+**Class** is saved with the entry and included in the current print report. It is not part of the
+compact screen table. Reopen **Edit entry** to change it.
 
 ### No. / lettering / features
 
@@ -170,29 +170,31 @@ The delete is immediate and permanent, then RailKeeper reloads the entries and c
 delete a general vehicle. Messe does not receive the delete control. A locked list rejects the
 server request even for Admin.
 
-## View and print the report
+## Print the exhibition list
 
-**View** opens a read-only table for one list. It shows image, owner and days, locomotive data,
-control data, and configured function keys. **Print** from that dialog continues to **Print report**.
+The separate print document is available from RailKeeper v0.1.20.4.
 
-You can also use **Print** on a list row or **Print list** above the selected entry table. If the
-action belongs to another list, RailKeeper loads that list's entries first. The selected-list action
-uses the entries currently displayed.
+Select the event, then choose **Print** in its overview. RailKeeper generates a separate A4 landscape
+document without navigation, other events, filters or buttons. It includes every saved entry in the
+selected exhibition, regardless of the screen's search, day and status filters.
 
-In **Print report**, keep **Print with images** selected or clear it to omit the image column. The
-generated report uses A4 landscape and contains:
+The report includes:
 
-- RailKeeper mark, list designation, date, and entry count;
-- optional image;
-- owner and day scope;
-- locomotive identity and available manufacturer, type, and epoch;
-- addresses, analog state, decoder, and interface;
-- configured function keys and symbols;
-- notes.
+- event name, date range, location, status, entry count, description and organisation notes;
+- each vehicle's image, owner, operating days, availability and check status;
+- locomotive name, manufacturer, series, category, epoch and railway company;
+- digital decoder, decoder type, adapter, DCC and SX addresses, command station and analogue state;
+- all saved function keys with description, type and available symbol;
+- complete notes with line breaks.
 
-Select **Print** to open the browser's print dialog. Paper selection, margins, scaling, printer
-availability, cancellation, and the final output remain browser and operating-system decisions.
-An empty list produces a report row reading **No entries.**
+Function keys use the full table width. Legacy free-text assignments are preserved; missing
+assignments are not replaced with default functions. Empty lists show **No entries.** Printing is
+disabled while a newly selected event's data is still loading.
+
+RailKeeper waits for the print document, including its images, to load before opening the browser's
+print dialog. Paper selection, scaling, printer availability, cancellation and final output remain
+browser and operating-system decisions. Use the event's **Print** button rather than the browser's
+general command for printing the web page.
 
 ## Resolve entry and print errors
 
@@ -205,7 +207,7 @@ An empty list produces a report row reading **No entries.**
 | Image has no preview | Choose a readable PNG, JPEG, or WebP up to 10 MB before saving. |
 | Save succeeds but reload fails | Reopen the workspace and inspect the stored entry before retrying. |
 | Detail or report does not open | Reload the list and entries, then retry the read-only action. |
-| Browser print dialog closes without output | Reopen **Print report**; no RailKeeper data was changed. |
+| Browser print dialog closes without output | Select **Print** again; no RailKeeper data was changed. |
 
 ## Related pages
 
@@ -216,5 +218,4 @@ An empty list produces a report row reading **No entries.**
 
 ## Documented RailKeeper version
 
-This page describes stable RailKeeper v0.1.20.3. Development behavior on `main` may differ and is
-not part of this user workflow.
+This page describes RailKeeper v0.1.20.4.

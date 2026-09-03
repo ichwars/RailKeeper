@@ -3,7 +3,7 @@ title: Lists and locking
 description: Create exhibition lists, control their lock state, and remove them safely.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

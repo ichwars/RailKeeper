@@ -3,7 +3,7 @@ title: Decoder, functions, and CV data
 description: Map digital functions, inspect speed curves, manage CV values, and store decoder files.
 audience: user
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 

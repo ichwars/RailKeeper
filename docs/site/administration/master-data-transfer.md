@@ -3,7 +3,7 @@ title: Master-data transfer
 description: Export and reconcile RailKeeper master data with the versioned JSON document.
 audience: admin
 status: stable
-reviewedVersion: 0.1.20.3
+reviewedVersion: 0.1.20.4
 lastReviewed: 2026-08-16
 ---
 
